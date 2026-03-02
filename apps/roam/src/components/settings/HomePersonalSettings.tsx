@@ -22,7 +22,7 @@ import {
   STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
 } from "~/data/userSettings";
-import { getSetting, setSetting } from "~/utils/extensionSettings";
+import { setSetting } from "~/utils/extensionSettings";
 import { enablePostHog, disablePostHog } from "~/utils/posthog";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import streamlineStyling from "~/styles/streamlineStyling";
@@ -67,7 +67,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         title="Overlay"
         description="Whether or not to overlay discourse context information over discourse node references."
         settingKeys={["Discourse context overlay"]}
-        initialValue={getSetting<boolean>("discourse-context-overlay", false)}
         onChange={(checked) => {
           void setSetting("discourse-context-overlay", checked);
           onPageRefObserverChange(overlayHandler)(checked);
@@ -81,7 +80,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           title="Suggestive mode overlay"
           description="Whether or not to overlay suggestive mode button over discourse node references."
           settingKeys={["Suggestive mode overlay"]}
-          initialValue={getSetting<boolean>("suggestive-mode-overlay", false)}
           onChange={(checked) => {
             void setSetting("suggestive-mode-overlay", checked);
             onPageRefObserverChange(getSuggestiveOverlayHandler(onloadArgs))(
@@ -94,7 +92,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         title="Text selection popup"
         description="Whether or not to show the discourse node menu when selecting text."
         settingKeys={["Text selection popup"]}
-        initialValue={getSetting("text-selection-popup", true)}
         onChange={(checked) => {
           void setSetting("text-selection-popup", checked);
         }}
@@ -103,7 +100,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         title="Disable sidebar open"
         description="Disable opening new nodes in the sidebar when created"
         settingKeys={["Disable sidebar open"]}
-        initialValue={getSetting<boolean>("disable-sidebar-open", false)}
         onChange={(checked) => {
           void setSetting("disable-sidebar-open", checked);
         }}
@@ -112,7 +108,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         title="Page preview"
         description="Whether or not to display page previews when hovering over page refs"
         settingKeys={["Page preview"]}
-        initialValue={getSetting<boolean>("page-preview", false)}
         onChange={(checked) => {
           void setSetting("page-preview", checked);
           onPageRefObserverChange(previewPageRefHandler)(checked);
@@ -122,7 +117,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         title="Hide feedback button"
         description="Hide the 'Send feedback' button at the bottom right of the screen."
         settingKeys={["Hide feedback button"]}
-        initialValue={getSetting<boolean>("hide-feedback-button", false)}
         onChange={(checked) => {
           void setSetting("hide-feedback-button", checked);
           if (checked) {
@@ -136,7 +130,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         title="Auto canvas relations"
         description="Automatically add discourse relations to canvas when a node is added"
         settingKeys={["Auto canvas relations"]}
-        initialValue={getSetting<boolean>(AUTO_CANVAS_RELATIONS_KEY, false)}
         onChange={(checked) => {
           void setSetting(AUTO_CANVAS_RELATIONS_KEY, checked);
         }}
@@ -146,10 +139,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         title="(BETA) Overlay in canvas"
         description="Whether or not to overlay discourse context information over canvas nodes."
         settingKeys={["Overlay in canvas"]}
-        initialValue={getSetting<boolean>(
-          DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
-          false,
-        )}
         onChange={(checked) => {
           void setSetting(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, checked);
         }}
@@ -158,7 +147,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         title="Streamline styling"
         description="Apply streamlined styling to your personal graph for a cleaner appearance."
         settingKeys={["Streamline styling"]}
-        initialValue={getSetting<boolean>(STREAMLINE_STYLING_KEY, false)}
         onChange={(checked) => {
           void setSetting(STREAMLINE_STYLING_KEY, checked);
           const existingStyleElement =
@@ -176,7 +164,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         title="Disable product diagnostics"
         description="Disable sending usage signals and error reports that help us improve the product."
         settingKeys={["Disable product diagnostics"]}
-        initialValue={getSetting<boolean>(DISALLOW_DIAGNOSTICS, false)}
         onChange={(checked) => {
           void setSetting(DISALLOW_DIAGNOSTICS, checked);
           if (checked) {
