@@ -178,6 +178,33 @@ export const getRelationsForNodeInstanceId = async (
   );
 };
 
+/**
+ * Get all relations for a file, matching by nodeInstanceId and/or importedFromRid.
+ * Use this for the discourse context view so imported relations (source/destination as RID) show up.
+ */
+export const getRelationsForFile = async (
+  plugin: DiscourseGraphPlugin,
+  file: TFile,
+): Promise<RelationInstance[]> => {
+  const nodeInstanceId = await getNodeInstanceIdForFile(plugin, file);
+  const cache = plugin.app.metadataCache.getFileCache(file);
+  const importedFromRid = (cache?.frontmatter as Record<string, unknown> | undefined)
+    ?.importedFromRid as string | undefined;
+
+  const relationsFile = await loadRelations(plugin);
+  const relations = relationsFile.relations ?? Object.create(null);
+  const all = Object.values(relations);
+
+  const ids = new Set<string>();
+  if (nodeInstanceId) ids.add(nodeInstanceId);
+  if (importedFromRid) ids.add(importedFromRid);
+  if (ids.size === 0) return [];
+
+  return all.filter(
+    (r) => ids.has(r.source) || ids.has(r.destination),
+  );
+};
+
 const DEFAULT_CACHE_WAIT_MS = 500;
 const CACHE_POLL_INTERVAL_MS = 30;
 
@@ -240,19 +267,52 @@ export const getNodeTypeIdForFile = async (
   return typeof nodeTypeId === "string" ? nodeTypeId : null;
 };
 
-export const getFileForNodeInstanceId = (
+/**
+ * Find a file by importedFromRid (used for imported relations where source/destination store RID).
+ */
+export const getFileForImportedFromRid = (
   plugin: DiscourseGraphPlugin,
-  nodeInstanceId: string,
+  importedFromRid: string,
 ): TFile | null => {
-  const queryEngine = new QueryEngine(plugin.app);
-  if (queryEngine.functional())
-    return queryEngine.getDiscourseNodeById(nodeInstanceId);
   const files = plugin.app.vault.getMarkdownFiles();
   for (const file of files) {
     const cache = plugin.app.metadataCache.getFileCache(file);
-    const id = (cache?.frontmatter as Record<string, unknown> | undefined)
-      ?.nodeInstanceId as string | undefined;
-    if (id === nodeInstanceId) {
+    const rid = (cache?.frontmatter as Record<string, unknown> | undefined)
+      ?.importedFromRid as string | undefined;
+    if (rid === importedFromRid) {
+      return file;
+    }
+  }
+  return null;
+};
+
+/** RIDs contain "orn:" or "/" (e.g. orn:obsidian.note:.../uuid). NodeInstanceIds match ^[-.+\w]+$ */
+const looksLikeRid = (id: string): boolean =>
+  id.includes("orn:") || (id.includes("/") && !/^[-.+\w]+$/.test(id));
+
+/**
+ * Find a file by nodeInstanceId or importedFromRid.
+ * For imported relations, source/destination store RID, so we resolve by importedFromRid.
+ */
+export const getFileForNodeInstanceId = (
+  plugin: DiscourseGraphPlugin,
+  nodeInstanceIdOrRid: string,
+): TFile | null => {
+  if (looksLikeRid(nodeInstanceIdOrRid)) {
+    return getFileForImportedFromRid(plugin, nodeInstanceIdOrRid);
+  }
+  const queryEngine = new QueryEngine(plugin.app);
+  if (queryEngine.functional()) {
+    const byId = queryEngine.getDiscourseNodeById(nodeInstanceIdOrRid);
+    if (byId) return byId;
+  }
+  const files = plugin.app.vault.getMarkdownFiles();
+  for (const file of files) {
+    const cache = plugin.app.metadataCache.getFileCache(file);
+    const fm = cache?.frontmatter as Record<string, unknown> | undefined;
+    const id = fm?.nodeInstanceId as string | undefined;
+    const rid = fm?.importedFromRid as string | undefined;
+    if (id === nodeInstanceIdOrRid || rid === nodeInstanceIdOrRid) {
       return file;
     }
   }
@@ -261,27 +321,13 @@ export const getFileForNodeInstanceId = (
 
 export const getFileForNodeInstanceIds = (
   plugin: DiscourseGraphPlugin,
-  nodeInstanceIds: Set<string>,
+  nodeInstanceIdsOrRids: Set<string>,
 ): Record<string, TFile> => {
   const result: Record<string, TFile> = {};
-  if (nodeInstanceIds.size == 0) return result;
-  const queryEngine = new QueryEngine(plugin.app);
-  if (queryEngine.functional()) {
-    [...nodeInstanceIds.values()].map((nodeId) => {
-      const f = queryEngine.getDiscourseNodeById(nodeId);
-      if (f) result[nodeId] = f;
-    });
-  } else {
-    // query engine not available, fallback
-    const files = plugin.app.vault.getMarkdownFiles();
-    for (const file of files) {
-      const cache = plugin.app.metadataCache.getFileCache(file);
-      const id = (cache?.frontmatter as Record<string, unknown> | undefined)
-        ?.nodeInstanceId as string | undefined;
-      if (id && nodeInstanceIds.has(id)) {
-        result[id] = file;
-      }
-    }
+  if (nodeInstanceIdsOrRids.size == 0) return result;
+  for (const idOrRid of nodeInstanceIdsOrRids) {
+    const f = getFileForNodeInstanceId(plugin, idOrRid);
+    if (f) result[idOrRid] = f;
   }
   return result;
 };

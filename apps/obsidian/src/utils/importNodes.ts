@@ -6,10 +6,12 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
-import { QueryEngine } from "~/services/QueryEngine";
+import { getImportedNodesInfo, QueryEngine } from "~/services/QueryEngine";
 import { spaceUriAndLocalIdToRid, ridToSpaceUriAndLocalId } from "./rid";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Tables } from "@repo/database/dbTypes";
+import { getSpaceNameIdFromRid } from "./spaceFromRid";
+import { importRelationsForImportedNodes } from "./importRelations";
 
 export const getAvailableGroupIds = async (
   client: DGSupabaseClient,
@@ -148,6 +150,11 @@ export const getLocalNodeInstanceIds = (
   return nodeInstanceIds;
 };
 
+/**
+ * Returns info about imported nodes (from import/ folder only).
+ * - nodeKeys: "spaceId:nodeInstanceId" for each imported node
+ * - keyToRid: maps "spaceId:nodeInstanceId" -> importedFromRid
+ */
 export const getSpaceNameFromId = async (
   client: DGSupabaseClient,
   spaceId: number,
@@ -166,24 +173,7 @@ export const getSpaceNameFromId = async (
   return data.name;
 };
 
-export const getSpaceNameIdFromRid = async (
-  client: DGSupabaseClient,
-  rid: string,
-): Promise<{ spaceName: string; spaceId: number }> => {
-  const { spaceUri } = ridToSpaceUriAndLocalId(rid);
-  const { data, error } = await client
-    .from("Space")
-    .select("name, id")
-    .eq("url", spaceUri)
-    .maybeSingle();
-
-  if (error || !data) {
-    console.error("Error fetching space name:", error);
-    return { spaceName: "", spaceId: -1 };
-  }
-
-  return { spaceName: data.name, spaceId: data.id };
-};
+export { getSpaceNameIdFromRid } from "./spaceFromRid";
 
 export const getSpaceNameFromIds = async (
   client: DGSupabaseClient,
@@ -1332,6 +1322,28 @@ export const importSelectedNodes = async ({
         onProgress?.(processedCount, totalNodes);
       }
     }
+
+    // Import relations where both nodes are in the import folder
+    try {
+      const { nodeKeys, keyToRid } = await getImportedNodesInfo({
+        queryEngine,
+        plugin,
+        client,
+      });
+      const { imported } = await importRelationsForImportedNodes({
+        plugin,
+        client,
+        spaceId,
+        spaceUri,
+        nodeKeys,
+        keyToRid,
+      });
+      if (imported > 0) {
+        console.debug(`Imported ${imported} relation(s) for space ${spaceId}`);
+      }
+    } catch (error) {
+      console.warn("Failed to import relations for imported nodes:", error);
+    }
   }
 
   return { success: successCount, failed: failedCount };
@@ -1389,7 +1401,7 @@ export const refreshImportedFile = async ({
   const filePath: string | undefined =
     typeof metadata === "object" &&
     typeof (metadata as Record<string, any>).filePath === "string"
-      ? (metadata as Record<string, any>).filePath
+      ? ((metadata as Record<string, any>).filePath as string)
       : undefined;
   const result = await importSelectedNodes({
     plugin,

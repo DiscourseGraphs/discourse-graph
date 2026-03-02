@@ -6,9 +6,10 @@ import { DiscourseNode } from "~/types";
 import DropdownSelect from "./DropdownSelect";
 import { usePlugin } from "./PluginContext";
 import { getNodeTypeById } from "~/utils/typeUtils";
+import type { RelationInstance } from "~/types";
 import {
   getNodeInstanceIdForFile,
-  getRelationsForNodeInstanceId,
+  getRelationsForFile,
   getFileForNodeInstanceId,
   addRelation,
   removeRelationBySourceDestinationType,
@@ -357,9 +358,14 @@ const AddRelationship = ({
   );
 };
 
+type LinkedEntry = {
+  file: TFile;
+  relation: RelationInstance;
+};
+
 type GroupedRelation = {
   relationTypeOptions: RelationTypeOption;
-  linkedFiles: TFile[];
+  linkedEntries: LinkedEntry[];
 };
 
 type CurrentRelationshipsProps = RelationshipSectionProps & {
@@ -380,12 +386,15 @@ const CurrentRelationships = ({
     if (!fileCache?.frontmatter) return;
 
     const nodeInstanceId = await getNodeInstanceIdForFile(plugin, activeFile);
-    if (!nodeInstanceId) return;
+    const importedFromRid = fileCache.frontmatter.importedFromRid as
+      | string
+      | undefined;
+    const activeIds = new Set<string>();
+    if (nodeInstanceId) activeIds.add(nodeInstanceId);
+    if (importedFromRid) activeIds.add(importedFromRid);
+    if (activeIds.size === 0) return;
 
-    const relations = await getRelationsForNodeInstanceId(
-      plugin,
-      nodeInstanceId,
-    );
+    const relations = await getRelationsForFile(plugin, activeFile);
     const tempRelationships = new Map<string, GroupedRelation>();
 
     for (const r of relations) {
@@ -394,7 +403,7 @@ const CurrentRelationships = ({
       );
       if (!relationType) continue;
 
-      const isSource = r.source === nodeInstanceId;
+      const isSource = activeIds.has(r.source);
       const relationLabel = isSource
         ? relationType.label
         : relationType.complement;
@@ -407,18 +416,20 @@ const CurrentRelationships = ({
             label: relationLabel,
             isSource,
           },
-          linkedFiles: [],
+          linkedEntries: [],
         });
       }
 
       const group = tempRelationships.get(relationKey)!;
       const otherId = isSource ? r.destination : r.source;
       const linkedFile = getFileForNodeInstanceId(plugin, otherId);
-      if (
-        linkedFile &&
-        !group.linkedFiles.some((f) => f.path === linkedFile.path)
-      ) {
-        group.linkedFiles.push(linkedFile);
+      if (linkedFile) {
+        const already = group.linkedEntries.some(
+          (e) => e.file.path === linkedFile.path && e.relation.id === r.id,
+        );
+        if (!already) {
+          group.linkedEntries.push({ file: linkedFile, relation: r });
+        }
       }
     }
 
@@ -430,35 +441,22 @@ const CurrentRelationships = ({
   }, [activeFile, loadCurrentRelationships, relationsVersion]);
 
   const deleteRelationship = useCallback(
-    async (linkedFile: TFile, relationTypeId: string) => {
+    async (entry: LinkedEntry, relationTypeId: string) => {
       const relationType = plugin.settings.relationTypes.find(
         (r) => r.id === relationTypeId,
       );
       if (!relationType) return;
 
       try {
-        const activeId = await getNodeInstanceIdForFile(plugin, activeFile);
-        const linkedId = await getNodeInstanceIdForFile(plugin, linkedFile);
-        if (!activeId || !linkedId) {
-          new Notice("Could not resolve node instance IDs.");
-          return;
-        }
-
         await removeRelationBySourceDestinationType(
           plugin,
-          activeId,
-          linkedId,
-          relationTypeId,
-        );
-        await removeRelationBySourceDestinationType(
-          plugin,
-          linkedId,
-          activeId,
+          entry.relation.source,
+          entry.relation.destination,
           relationTypeId,
         );
 
         new Notice(
-          `Successfully removed ${relationType.label} with ${linkedFile.basename}`,
+          `Successfully removed ${relationType.label} with ${entry.file.basename}`,
         );
 
         await loadCurrentRelationships();
@@ -469,7 +467,7 @@ const CurrentRelationships = ({
         );
       }
     },
-    [activeFile, plugin, loadCurrentRelationships],
+    [plugin, loadCurrentRelationships],
   );
 
   if (groupedRelationships.length === 0) return null;
@@ -480,7 +478,7 @@ const CurrentRelationships = ({
       <ul className="border-modifier-border m-0 list-none rounded border p-0">
         {groupedRelationships.map(
           (group) =>
-            group.linkedFiles.length > 0 && (
+            group.linkedEntries.length > 0 && (
               <li
                 key={`${group.relationTypeOptions.id}-${group.relationTypeOptions.isSource}`}
                 className="border-modifier-border border-b px-3 py-2"
@@ -495,9 +493,9 @@ const CurrentRelationships = ({
                 </div>
 
                 <ul className="m-0 ml-6 list-none p-0">
-                  {group.linkedFiles.map((file) => (
+                  {group.linkedEntries.map((entry) => (
                     <li
-                      key={file.path}
+                      key={entry.relation.id}
                       className="mt-1 flex items-center gap-2"
                     >
                       <a
@@ -506,19 +504,19 @@ const CurrentRelationships = ({
                         onClick={(e) => {
                           e.preventDefault();
                           void plugin.app.workspace.openLinkText(
-                            file.path,
+                            entry.file.path,
                             activeFile.path,
                           );
                         }}
                       >
-                        {file.basename}
+                        {entry.file.basename}
                       </a>
                       <button
                         className="!text-muted hover:!text-error flex h-6 w-6 cursor-pointer items-center justify-center border-0 !bg-transparent text-sm"
                         onClick={(e) => {
                           e.preventDefault();
                           void deleteRelationship(
-                            file,
+                            entry,
                             group.relationTypeOptions.id,
                           );
                         }}
