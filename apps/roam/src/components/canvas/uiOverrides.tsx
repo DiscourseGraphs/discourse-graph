@@ -15,7 +15,6 @@ import {
   DefaultToolbarContent,
   TldrawUiMenuItem,
   DefaultMainMenu,
-  DefaultMainMenuContent,
   TldrawUiMenuGroup,
   TldrawUiDropdownMenuItem,
   TldrawUiButton,
@@ -25,7 +24,14 @@ import {
   DefaultContextMenu,
   DefaultContextMenuContent,
   TLUiComponents,
+  EditSubmenu,
+  ExportFileContentSubMenu,
+  ExtrasGroup,
+  PreferencesGroup,
   TldrawUiMenuSubmenu,
+  ZoomTo100MenuItem,
+  ZoomToFitMenuItem,
+  ZoomToSelectionMenuItem,
   useEditor,
   useValue,
   useToasts,
@@ -256,27 +262,41 @@ export const createUiComponents = ({
       );
     },
     MainMenu: () => {
+      const CustomViewMenu = () => {
+        const actions = useActions();
+        return (
+          <TldrawUiMenuSubmenu id="view" label="menu.view">
+            <TldrawUiMenuGroup id="view-actions">
+              <TldrawUiMenuItem {...actions["zoom-in"]} />
+              <TldrawUiMenuItem {...actions["zoom-out"]} />
+              <ZoomTo100MenuItem />
+              <ZoomToFitMenuItem />
+              <ZoomToSelectionMenuItem />
+              <TldrawUiMenuItem {...actions["toggle-full-screen"]} />
+            </TldrawUiMenuGroup>
+          </TldrawUiMenuSubmenu>
+        );
+      };
       const onToggleSyncMode = (): void => {
         const nextMode: CanvasSyncMode =
           canvasSyncMode === "sync" ? "local" : "sync";
         onCanvasSyncModeChange(nextMode);
       };
-      // const syncModeLabel = isCloudflareSyncAvailable
-      //   ? "Use cloud canvas"
-      //   : "Cloud canvas unavailable";
 
       return (
         <DefaultMainMenu>
           <TldrawUiMenuGroup id="sync-mode">
             <SyncModeMenuSwitchItem
-              // label={syncModeLabel}
               label="Use cloud canvas"
               checked={canvasSyncMode === "sync"}
-              // disabled={!isCloudflareSyncAvailable}
               onToggle={onToggleSyncMode}
             />
           </TldrawUiMenuGroup>
-          <DefaultMainMenuContent />
+          <EditSubmenu />
+          <CustomViewMenu /> {/* Replaced <ViewSubmenu /> */}
+          <ExportFileContentSubMenu />
+          <ExtrasGroup />
+          <PreferencesGroup />
         </DefaultMainMenu>
       );
     },
