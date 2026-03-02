@@ -4,137 +4,119 @@
   <img alt="Shows project promo image in light and dark mode">
 </picture>
 
-# Discourse Graphs for Obsidian
+# Overview
+Break down the research process into atomic units to augment the knowledge synthesis process. Create distinct objects for questions, claims, evidence, hypotheses or choose your own to suit your specific needs. These objects can then be related, resurfaced, and reused throughout your research journey to help you efficiently build arguments and create new knowledge.
 
-The Discourse Graph extension enables Obsidian users to seamlessly add additional semantic structure to their notes, including specified page types and link types that model scientific discourse, to enable more complex and structured knowledge synthesis work, such as a complex interdisciplinary literature review, and enhanced collaboration with others on this work.
+For more information about Discourse Graphs, check out [our website](https://discoursegraphs.com) and [documentation](https://discoursegraphs.com/docs/obsidian/getting-started).
 
-For more information about Discourse Graphs, check out our website at [https://discoursegraphs.com](https://discoursegraphs.com)
 
-## Installation
+# Installation
+Follow the instructions below to install the plugin:
 
-### Prerequisites
-
-#### Install BRAT (Beta Reviewer's Auto-update Tester)
-
+## Install BRAT
+To use the plugin prior to it's public release on Obsidian's community plugin browser, install BRAT (Beta Reviewer's Auto-update Tester).
 1. Open Obsidian Settings
 2. Go to Community Plugins and disable Restricted Mode
 3. Click "Browse" and search for "BRAT"
-   ![BRAT](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2Faar5LKpLOk.png?alt=media&token=6f51ac48-19d3-4bb5-9a07-7b32cfa6afe6)
 4. Install BRAT and enable it
 
-#### Install DataCore via BRAT
+## Install DataCore via BRAT
+1. Add the DataCore plugin from the BRAT settings menu or run command "Add a beta plugin for testing"
+2. Enter the repository URL: `https://github.com/blacksmithgu/datacore` and choose "Latest version"
+3. Paste the url of this repository `https://github.com/DiscourseGraphs/discourse-graph-obsidian`
+4. Check the box for "Enable after installing the plugin"
+5. Click `Add plugin`
 
-1. Open Obsidian Settings
-2. Go to "Community Plugins" → "BRAT"
-3. Click "Add Beta Plugin"
-   ![Add plugin](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FdMtstUHPXe.png?alt=media&token=3f139ab9-9802-404d-9554-4a63bac080c5)
-4. Enter the repository URL: `https://github.com/blacksmithgu/datacore` and choose "Latest version"
-   ![Add datacore](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FEY3vNGt1Rf.png?alt=media&token=32c60ff1-5272-4cde-8b5f-8f049fb2cf50)
-5. Check the box for "Enable after installing the plugin"
-6. Click "Add plugin"
+## Install Discourse Graphs
+1. Add the Discourse Graphs plugin from the BRAT settings menu or run command `Add a beta plugin for testing`
+2. Enter the repository URL: `https://github.com/DiscourseGraphs/discourse-graph-obsidian` and choose "Latest version"
+3. Check the box for "Enable after installing the plugin"
+4. Click `Add plugin`
 
-### Install Discourse Graphs
+# Getting started
+The Discourse Graphs plugin gives you the ability to add additional semantic structure to your notes via specified page types (nodes) and relation types that model scientific discourse and enable more complex and structured [knowledge synthesis work](https://oasislab.pubpub.org/pub/54t0y9mk/release/3).
 
-1. Open Obsidian Settings
-2. Go to "Community Plugins" → "BRAT"
-3. Click "Add Beta Plugin"
-   ![Add plugin](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FdMtstUHPXe.png?alt=media&token=3f139ab9-9802-404d-9554-4a63bac080c5)
+The plugin ships with several node types to provide a foundation for your scientific argumentation: Question, Claim, Evidence, and Source, as well as complementary relation types that can be used between them.
 
-4. Enter the repository URL: `https://github.com/DiscourseGraphs/discourse-graph-obsidian` and choose "Latest version"
-   ![Add discourse graph](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FSBCK-2lkcu.png?alt=media&token=0375c828-da4d-43b4-8f2c-e691692cb019)
-5. Check the box for "Enable after installing the plugin"
-6. Click "Add Plugin"
+To see the default settings or begin adding your own node and relation types, open the Discourse Graphs plugin settings menu by navigating to it in Obsidian's settings menu or using the command: "Open Discourse Graphs Settings"
 
-## Creating Nodes and Relationships
+## Defining node types
+To define a new node type for use in your vault navigate to the Node Types menu and click `Add Node Type`. Doing so will take you to an editing menu where you can choose the details of your new node type including it's title, a description, a template to use, a color to represent that type in your vault, and more.
 
-### Configure Node and Relationship Types
+## Defining relation types
+The Discourse Graphs plugin ships with three default relation types: `supports`, `opposes`, and `informs`. You can add your own in the Relation Types menu by clicking the `Add relation type` button and filling out the text fields that define your new type.
 
-1. Open Obsidian Settings
-2. Navigate to the "Discourse Graphs" settings tab
+## Defining relations
+With nodes and relation types ready, the last step is to connect them in the Discourse Relations menu. Click `Add Relation` then choose a source node, relation type, target node, and then click `Save Changes`. These relations are now ready to use in your notes and canvases.
 
-#### Edit Node Types
+# Usage
+## In notes
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/85bfcced-5627-4e38-ac54-588bf37df2d4">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/f3e27e4a-d50e-4634-905c-32fbca6b4eac">
+  <img alt="Shows project promo image in light and dark mode">
+</picture>
 
-- Under "Node Types," click "Add Node Type"
-- Enter a name for your node type (e.g., "Claim", "Evidence", "Question")
-- Add the format for your node type. eg a claim node will have page title "CLM - {content}"
-- **Template (Optional)**: Select a template from the dropdown to automatically apply template content when creating nodes of this type
-  - Templates are sourced from Obsidian's core Templates plugin
-  - Ensure you have the Templates plugin enabled and configured with a template folder
-  - The dropdown will show all available template files from your configured template folder
+### Creating nodes
+There are three ways to create nodes in a note:
 
-  ![add node types with template](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FHMg_Tq6qiR.png?alt=media&token=69828bfc-c939-41b0-abd4-2cc8931c5a38)
-  - Click "Save Changes"
+_Turn text into a node with the node type text menu_
+1. Highlight the text that you want to turn into a node
+2. Use the hotkey `⌘ + \` to open the node type selection menu
+3. Choose your node type
 
-- To create a new template:
-  - Create new folder to store templates
-    ![new folder](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FyTtJ1a0iI2.png?alt=media&token=b5d09b10-f170-47cd-a239-ee5f7acd89dc)
+_Turn text into a node from the right click menu_
+1. Highlight the text that you want to turn into a node
+2. Right-click on the highlighted text and navigate to the menu option "Turn into Discourse Node"
+3. Choose your node type
 
-  - Specify template folder location in plugin settings menu
-    ![template](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FhzZg_GJXY9.png?alt=media&token=508c8d19-1f13-4fb3-adf1-898dcf694f08)
+_Create Discourse Node command_
+1. Search for and select "Create Discourse Node" from the command palette
+2. In the node creation dialog, choose your node type and the title of your new node then click confirm
+3. Your new node is created and a link to it is added to the location of your cursor
 
-  - Create new file in template folder (A) and add text to file (B)
-    ![create template file](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FtTr9vOnXnX.png?alt=media&token=dda1fe25-3ccf-42b4-8f3c-1cd29f82c3f7)
+### Creating relations
+To create a relation between nodes:
+1. Open the page of the node that you want to create the relation for
+2. Run the command "Toggle Discourse Context"  which will open a widget in the right sidebar
+3. From there, click `Add new relation`, choose the desired relation type and the node to link with, then click `Confirm`
+4. The relation is now created and can be viewed or removed from this Discourse Context panel
 
-  ![add node types](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FYRZ6ocI_d-.png?alt=media&token=c623bec7-02bd-42b4-a994-cd1c40a54d82)
-  - Click "Save Changes"
+## On a canvas
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/48a3a4ae-ac47-4f8b-8288-1d1ba3377ef2">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/6234a38f-be4e-4a83-bfe6-2d22ea1293e1">
+  <img alt="Shows project promo image in light and dark mode">
+</picture>
 
-#### Edit Relation Types
+The Discourse Graphs plugin uses [tldraw](https://tldraw.dev/) to create canvases in Obsidian. To create a new canvas, run the command "Create new Discourse Graph Canvas".
 
-- Under "Relation Types," click "Add Relationship Type"
-- A relation type is a kind of relationship that can exist between any two node types
-- Enter a name for your relationship (e.g., "supports", "contradicts")
-- Enter the complement label (e.g., "is supported by", "is contradicted by")
-  ![add relation type](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2Fjk367dcO_K.png?alt=media&token=22d74e9f-882c-434b-8b50-afd7a754fb2b)
-- Click "Save Changes"
+### Creating nodes
+1. Click on the Discourse Graphs icon-button located in the bottom toolbar of the canvas
+2. Drag the desired node type from the menu that appears in the top-right corner of the interface onto the canvas
+3. Search for or create a new node with the input field in the node creation modal
+4. Click `Confirm` to add this node to the canvas
 
-#### Define possible relations between nodes
+### Creating relations
+1. Click on the Discourse Graphs icon-button located in the bottom toolbar of the canvas to show a menu in the top right of the interface
+2. From the menu, select the desired relation type that you would like to draw between nodes
+3. With the relation type selected, click and drag from one node card to another to create a relation between those nodes
 
-- Open the Discourse Relations tab in the Discourse Graph settings
-  ![discourse relation](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FNgm7Ha4Ul5.png?alt=media&token=a933bd3a-d9a6-42c1-9c6e-d779d41c7ebf)
-- Choose Source Node Type, Relation Type, and Target Node Type
-  ![choose relation](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FlflJBkfdaK.png?alt=media&token=5de9617c-6099-46e8-931f-feafc604cabb)
-- Once you see the source, relation, and target selected:
-  ![final relations](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FycPW-N-rY8.png?alt=media&token=54867be2-9030-4c6c-82d2-b96069e52d81)
-  E.g: this means that _Claim_ nodes can supports _Questions_ nodes
-- Click "Save changes"
+# Commands
 
-## Using Discourse Graphs
+| Name | Description |
+|---------|-------------|
+| Bulk identify discourse nodes | Scan vault to identify notes that follow the pattern to be a node |
+| Create discourse Node | Opens the node creation dialog modal |
+| Create new Discourse Graph canvas | Creates a tldraw canvas |
+| Open Discourse Graphs settings | Takes you to the plugin settings menu |
+| Open node type menu | Opens menu that allows you to choose the node type that you wish to apply to selected text |
+| Switch to Discourse Graph canvas view | Renders tldraw canvas if markdown is displayed |
+| Switch to discourse markdown edit | Displays markdown of a rendered tldraw canvas |
+| Toggle Discourse Context | Opens a widget in the sidebar which displays relations of the active node |
 
-### Instantiate a Node
+# Get involved
 
-- Select the text you want to turn into a Discourse Node
-  ![select text](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FInIer-iPGs.png?alt=media&token=fad214f6-f426-4249-8b0a-d5a403894600)
-- There are two ways you can create a node from here:
-  1. Using command keys: Cmd + \
-     <br>
-  - As you press these keys, the Node Menu will open up as a popup
-
-  ![node menu](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FS6eU6y70eX.png?alt=media&token=00e61ddf-877b-4752-a65b-272e80a0a19c)
-  - Select the node type you want to turn the text into
-  - Voila, you've created a new discourse node
-    ![node created](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2F1VNkJC0aH8.png?alt=media&token=df9a26aa-997b-4b56-a307-87a80e350b28)
-  2. Right-click menu:
-  - Alternatively, you can right-click on the selected text
-    ![right click menu](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2F4UqeVkqLz7.png?alt=media&token=d2373152-d251-45fe-afb6-56373d6092aa)
-  - Then choose a node type from the "Turn into discourse node" menu
-
-### Open Discourse Context
-
-- Click on the telescope icon on the left bar
-  ![open discourse context](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FE10krHZcDM.png?alt=media&token=c1796a9f-7e51-437f-913d-91f5433d9bab)
-- Alternatively, you can set a hotkey to toggle the Discourse Context view or access it via the Command Palette
-  ![command palette](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2F5ybScaQISO.png?alt=media&token=2b36f0e7-4247-47b7-a53d-c784dfd4609b)
-
-### Instantiate a Relationship
-
-1. Open a note that you want to create a relationship from
-2. Open the Discourse Context
-   ![open discourse context](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FE10krHZcDM.png?alt=media&token=c1796a9f-7e51-437f-913d-91f5433d9bab)
-3. Click "Add a new relation"
-4. The dropdown that shows Relationship Types will be all available relations that you have defined in the setings.
-   <br> It will also show you what node type you can link with
-   ![add relation](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FXQsgznWuV2.png?alt=media&token=9442b9fa-0904-4847-8eb8-a5791705c4c5)
-5. Search the nodes you want to link with by the title
-   ![search](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2F4NW4UjYDrC.png?alt=media&token=bae307d0-ebec-4e6b-a03d-0943d9d03754)
-6. Click "Confirm", now a new relationship has been created
-   ![relationship created](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FK8XAhCqrUL.png?alt=media&token=a559c477-c7f6-4b3e-8b00-ece7da5d4fec)
+1. Join our growing community of academics, researchers, and thinkers on [Slack 💬](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg) 
+2. Are you a lab or researcher interested in piloting the plugin with some guidance from the team? Send us [an email](https://discoursegraphs@homeworld.bio/) or DM on Slack!
+3. Discourse Graphs is [open source](https://en.wikipedia.org/wiki/Open_source) and open to contributions. If you have an idea for an improvement or identify a bug open an issue here on the repo to start the conversation.
