@@ -419,12 +419,12 @@ export const performHydeSearch = async ({
     getGlobalSetting<boolean>([
       "Suggestive mode",
       "Include current page relations",
-    ]) ?? true;
+    ]) ?? false;
   const shouldGrabParentChildContext =
     getGlobalSetting<boolean>([
       "Suggestive mode",
       "Include parent and child blocks",
-    ]) ?? true;
+    ]) ?? false;
 
   let candidateNodesForHyde: SuggestedNode[] = [];
 
