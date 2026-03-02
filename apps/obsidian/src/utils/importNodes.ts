@@ -681,7 +681,16 @@ const updateMarkdownAssetLinks = ({
     markdownLinkRegex,
     (match, linkText: string, linkPath: string) => {
       if (!linkPath) return match;
-      linkPath = decodeURI(linkPath);
+      linkPath = linkPath
+        .split("/")
+        .map((segment) => {
+          try {
+            return decodeURIComponent(segment);
+          } catch {
+            return segment;
+          }
+        })
+        .join("/");
       const processedPath = encodePathForMarkdownLink(processLink(linkPath));
       return `[${linkText}](${processedPath})`;
     },
@@ -1502,14 +1511,8 @@ export const refreshAllImportedFiles = async (
 };
 
 const encodePathForMarkdownLink = (linkPath: string): string => {
-  // Decode the full path first so %2F becomes / and we split into real segments; then encode each segment (spaces → %20) but keep / as separator so we never emit %2F
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(linkPath);
-  } catch {
-    decoded = linkPath;
-  }
-  return decoded
+  // Input is already decoded; encode each segment (spaces → %20) but keep / as separator
+  return linkPath
     .split("/")
     .map((segment) => encodeURIComponent(segment))
     .join("/");
