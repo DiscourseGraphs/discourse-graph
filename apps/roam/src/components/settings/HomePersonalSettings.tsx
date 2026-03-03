@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { Label, Dialog, Button, Intent } from "@blueprintjs/core";
+import { Label, Dialog, Button, Intent, Classes } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { addStyle } from "roamjs-components/dom";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
@@ -298,59 +298,65 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         onClose={() => {
           setActiveRelationMigration(RelationMigrationDialog.none);
         }}
+        className="w-2/3"
       >
         <div className="p-4">
           {isOngoing ? (
             <p>Migrating relations, please wait</p>
           ) : (
             <div>
-              <p>
-                Activating the faster relations system will migrate all
-                previously created relations and newly created relations will
-                use the new system. You can deactivate this setting to revert to
-                the old system, and your newly created relations will not be
-                deleted; however, they will not be accessible until you
-                reactivate the faster relation system.
-              </p>
-              <p>
-                <Label>Relations</Label> {numExistingRelations}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  small
-                  onClick={() => {
-                    setActiveRelationMigration(RelationMigrationDialog.none);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  small
-                  intent={Intent.PRIMARY}
-                  onClick={() => {
-                    setStoredRelations(true)
-                      .then(() => {
-                        setActiveRelationMigration(
-                          RelationMigrationDialog.none,
-                        );
-                      })
-                      .catch((error) => {
-                        internalError({ error });
-                      });
-                  }}
-                >
-                  Reactivate without Migration
-                </Button>
-                <Button
-                  small
-                  intent={Intent.PRIMARY}
-                  onClick={() => {
-                    setOngoing(true);
-                    void startMigration();
-                  }}
-                >
-                  Migrate again and Reactivate
-                </Button>
+              <div className={Classes.DIALOG_BODY}>
+                <p>
+                  Activating the faster relations system will migrate all
+                  previously created relations and newly created relations will
+                  use the new system. You can deactivate this setting to revert
+                  to the old system, and your newly created relations will not
+                  be deleted; however, they will not be accessible until you
+                  reactivate the faster relation system.
+                </p>
+                <div className="flex justify-center">
+                  <Label className="pr-2">Relations</Label>
+                  {numExistingRelations}
+                </div>
+              </div>
+              <div className={Classes.DIALOG_FOOTER}>
+                <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                  <Button
+                    small
+                    onClick={() => {
+                      setActiveRelationMigration(RelationMigrationDialog.none);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    small
+                    intent={Intent.PRIMARY}
+                    onClick={() => {
+                      setStoredRelations(true)
+                        .then(() => {
+                          setActiveRelationMigration(
+                            RelationMigrationDialog.none,
+                          );
+                        })
+                        .catch((error) => {
+                          internalError({ error });
+                        });
+                    }}
+                  >
+                    Reactivate without Migration
+                  </Button>
+                  <Button
+                    small
+                    intent={Intent.PRIMARY}
+                    onClick={() => {
+                      setOngoing(true);
+                      void startMigration();
+                    }}
+                  >
+                    Migrate again and Reactivate
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -363,37 +369,41 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }}
       >
         <div className="p-4">
-          <p>
-            Deactivating the faster relations system will mean that any
-            relations created using it will no longer be accessible. The
-            discourse context overlay will still be usable with the previous
-            relations system. Any relations created with the faster system will
-            be accessible should you choose to reactivate.
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              small
-              onClick={() => {
-                setActiveRelationMigration(RelationMigrationDialog.none);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              small
-              intent={Intent.DANGER}
-              onClick={() => {
-                setStoredRelations(false)
-                  .then(() => {
-                    setActiveRelationMigration(RelationMigrationDialog.none);
-                  })
-                  .catch((error) => {
-                    internalError({ error });
-                  });
-              }}
-            >
-              Deactivate
-            </Button>
+          <div className={Classes.DIALOG_BODY}>
+            <p>
+              Deactivating the faster relations system will mean that any
+              relations created using it will no longer be accessible. The
+              discourse context overlay will still be usable with the previous
+              relations system. Any relations created with the faster system
+              will be accessible should you choose to reactivate.
+            </p>
+          </div>
+          <div className={Classes.DIALOG_FOOTER}>
+            <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+              <Button
+                small
+                onClick={() => {
+                  setActiveRelationMigration(RelationMigrationDialog.none);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                small
+                intent={Intent.DANGER}
+                onClick={() => {
+                  setStoredRelations(false)
+                    .then(() => {
+                      setActiveRelationMigration(RelationMigrationDialog.none);
+                    })
+                    .catch((error) => {
+                      internalError({ error });
+                    });
+                }}
+              >
+                Deactivate
+              </Button>
+            </div>
           </div>
         </div>
       </Dialog>
@@ -402,39 +412,44 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         onClose={() => {
           setActiveRelationMigration(RelationMigrationDialog.none);
         }}
+        className="w-2/3"
       >
         <div className="p-4">
           {isOngoing ? (
             <p>Migrating relations, please wait</p>
           ) : (
             <div>
-              <p>
-                Activating the stored relations system will migrate all
-                previously created relations and newly created relations will
-                use the new system. You can deactivate this setting to revert to
-                the old system, and your newly created relations will not be
-                deleted; however, they will not be accessible until you
-                reactivate the stored relation system.
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  small
-                  onClick={() => {
-                    setActiveRelationMigration(RelationMigrationDialog.none);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  small
-                  intent={Intent.PRIMARY}
-                  onClick={() => {
-                    setOngoing(true);
-                    void startMigration();
-                  }}
-                >
-                  Activate and Migrate
-                </Button>
+              <div className={Classes.DIALOG_BODY}>
+                <p>
+                  Activating the stored relations system will migrate all
+                  previously created relations and newly created relations will
+                  use the new system. You can deactivate this setting to revert
+                  to the old system, and your newly created relations will not
+                  be deleted; however, they will not be accessible until you
+                  reactivate the stored relation system.
+                </p>
+              </div>
+              <div className={Classes.DIALOG_FOOTER}>
+                <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                  <Button
+                    small
+                    onClick={() => {
+                      setActiveRelationMigration(RelationMigrationDialog.none);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    small
+                    intent={Intent.PRIMARY}
+                    onClick={() => {
+                      setOngoing(true);
+                      void startMigration();
+                    }}
+                  >
+                    Activate and Migrate
+                  </Button>
+                </div>
               </div>
             </div>
           )}
