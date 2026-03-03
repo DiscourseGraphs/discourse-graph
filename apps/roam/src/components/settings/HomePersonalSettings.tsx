@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from "react";
+import React, { useMemo, useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { Label, Dialog, Button, Intent, Classes } from "@blueprintjs/core";
