@@ -410,7 +410,6 @@ export default class DiscourseGraphPlugin extends Plugin {
       this.fileChangeListener.cleanup();
       this.fileChangeListener = null;
     }
-
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_DISCOURSE_CONTEXT);
   }
 }
