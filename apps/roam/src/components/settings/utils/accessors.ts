@@ -661,9 +661,40 @@ export const getFeatureFlags = (): FeatureFlags => {
   return FeatureFlagsSchema.parse(blockProps || {});
 };
 
+/* eslint-disable @typescript-eslint/naming-convention */
+const FEATURE_FLAG_LEGACY_MAP: Partial<
+  Record<keyof FeatureFlags, () => boolean>
+> = {
+  "Suggestive mode enabled": () =>
+    getFormattedConfigTree().suggestiveModeEnabled.value,
+  "Enable left sidebar": () =>
+    getFormattedConfigTree().leftSidebarEnabled.value,
+};
+/* eslint-enable @typescript-eslint/naming-convention */
+
 export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
+  const legacyReader = FEATURE_FLAG_LEGACY_MAP[key];
+
+  if (!legacyReader) {
+    // Block-props-only flag (no legacy equivalent)
+    const flags = getFeatureFlags();
+    return flags[key];
+  }
+
+  if (!isNewSettingsStoreEnabled()) {
+    return legacyReader();
+  }
+
   const flags = getFeatureFlags();
-  return flags[key];
+  const blockPropsValue = flags[key];
+  const legacyValue = legacyReader();
+  if (blockPropsValue !== legacyValue) {
+    console.warn(`[DG Dual-Read] Mismatch at Feature Flag > ${key}`, {
+      blockProps: blockPropsValue,
+      legacy: legacyValue,
+    });
+  }
+  return blockPropsValue;
 };
 
 export const isNewSettingsStoreEnabled = (): boolean => {
