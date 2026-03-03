@@ -309,7 +309,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
               {activeRelationMigration ===
               RelationMigrationDialog.reactivate ? (
                 <div className="flex flex-col items-center">
-                  <Label className=" font-semibold">Relations</Label>
+                  <Label className="font-semibold">Relations</Label>
                   <pre className="m-0 rounded border border-gray-300 bg-gray-50 p-2 text-center">
                     {numExistingRelations}
                   </pre>
@@ -350,8 +350,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                   void startMigration();
                 }}
               >
-                {activeRelationMigration ===
-                RelationMigrationDialog.reactivate
+                {activeRelationMigration === RelationMigrationDialog.reactivate
                   ? "Migrate again and Reactivate"
                   : "Activate and Migrate"}
               </Button>
