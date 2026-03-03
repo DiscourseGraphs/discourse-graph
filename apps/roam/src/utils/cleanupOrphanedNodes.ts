@@ -1,5 +1,7 @@
+import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { SupabaseContext } from "./supabaseContext";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { Tables } from "@repo/database/dbTypes";
 import internalError from "./internalError";
 
 const getAllNodesFromSupabase = async (
@@ -7,12 +9,12 @@ const getAllNodesFromSupabase = async (
   spaceId: number,
 ): Promise<string[]> => {
   try {
-    const { data: schemas, error: schemasError } = await supabaseClient
-      .from("Concept")
+    const { data: schemas, error: schemasError } = (await supabaseClient
+      .from("my_concepts")
       .select("id")
       .eq("space_id", spaceId)
       .eq("is_schema", true)
-      .eq("arity", 0);
+      .eq("arity", 0)) as PostgrestResponse<Tables<"Concept">>;
 
     if (schemasError) {
       internalError({
@@ -27,7 +29,7 @@ const getAllNodesFromSupabase = async (
 
     if (schemaIds.length > 0) {
       const conceptResponse = await supabaseClient
-        .from("Concept")
+        .from("my_concepts")
         .select("source_local_id")
         .eq("space_id", spaceId)
         .eq("is_schema", false)
@@ -52,7 +54,7 @@ const getAllNodesFromSupabase = async (
     }
 
     const blockContentResponse = await supabaseClient
-      .from("Content")
+      .from("my_contents")
       .select("source_local_id")
       .eq("space_id", spaceId)
       .eq("scale", "block")
@@ -86,7 +88,7 @@ const getAllNodeSchemasFromSupabase = async (
 ): Promise<string[]> => {
   try {
     const { data, error } = await supabaseClient
-      .from("Concept")
+      .from("my_concepts")
       .select("source_local_id")
       .eq("space_id", spaceId)
       .eq("is_schema", true)
@@ -189,12 +191,12 @@ const deleteNodeSchemasFromSupabase = async (
     if (uids.length === 0) return;
 
     const { data: schemaConceptData, error: schemaConceptError } =
-      await supabaseClient
-        .from("Concept")
+      (await supabaseClient
+        .from("my_concepts")
         .select("id")
         .eq("space_id", spaceId)
         .eq("is_schema", true)
-        .in("source_local_id", uids);
+        .in("source_local_id", uids)) as PostgrestResponse<Tables<"Concept">>;
 
     if (schemaConceptError) {
       internalError({
@@ -211,7 +213,7 @@ const deleteNodeSchemasFromSupabase = async (
     if (schemaConceptIds.length > 0) {
       const { data: instanceConceptData, error: instanceConceptError } =
         await supabaseClient
-          .from("Concept")
+          .from("my_concepts")
           .select("source_local_id")
           .eq("space_id", spaceId)
           .eq("is_schema", false)
