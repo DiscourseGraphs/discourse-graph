@@ -161,21 +161,15 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           description="Transition to using stored relations instead of pattern-based relations"
           settingKeys={["Reified relation triples"]}
           value={storedRelations}
-          // eslint-disable-next-line @typescript-eslint/require-await
           onBeforeChange={async (checked) => {
             if (checked) {
-              countReifiedRelations()
-                .then((num: number) => {
-                  setNumExistingRelations(num);
-                  setActiveRelationMigration(
-                    num > 0
-                      ? RelationMigrationDialog.reactivate
-                      : RelationMigrationDialog.activate,
-                  );
-                })
-                .catch((error) => {
-                  internalError({ error });
-                });
+              const num = await countReifiedRelations();
+              setNumExistingRelations(num);
+              setActiveRelationMigration(
+                num > 0
+                  ? RelationMigrationDialog.reactivate
+                  : RelationMigrationDialog.activate,
+              );
             } else {
               setActiveRelationMigration(RelationMigrationDialog.deactivate);
             }
