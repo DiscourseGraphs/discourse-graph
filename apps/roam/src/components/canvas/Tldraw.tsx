@@ -715,6 +715,7 @@ const TldrawCanvasShared = ({
   const discourseGraphTool = class DiscourseGraphTool extends StateNode {
     static override id = "discourse-tool";
     static override initial = "idle";
+    static override isLockable = true;
   };
   const discourseNodeTools = createNodeShapeTools(allNodes);
   const discourseRelationTools = createAllRelationShapeTools(allRelationNames);

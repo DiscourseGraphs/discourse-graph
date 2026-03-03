@@ -108,6 +108,7 @@ import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import internalError from "~/utils/internalError";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import { setCurrentToolToSelectIfUnlocked } from "~/components/canvas/toolLock";
 
 const COLOR_ARRAY = Array.from(DefaultColorStyle.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
@@ -1084,7 +1085,7 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
   static override props = arrowShapeProps;
 
   cancelAndWarn = (title: string) => {
-    this.editor.setCurrentTool("select");
+    setCurrentToolToSelectIfUnlocked(this.editor);
     dispatchToastEvent({
       id: `tldraw-cancel-and-warn-${title}`,
       title,

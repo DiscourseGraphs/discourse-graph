@@ -16,6 +16,7 @@ import { TOOL_ARROW_ICON_SVG, NODE_COLOR_ICON_SVG } from "~/icons";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./Tldraw";
 import { DEFAULT_STYLE_PROPS, FONT_SIZES } from "./DiscourseNodeUtil";
+import { lockToolIfNeeded, setCurrentToolToSelectIfUnlocked } from "./toolLock";
 
 export type DiscourseGraphPanelProps = {
   nodes: DiscourseNode[];
@@ -167,6 +168,7 @@ const DiscourseGraphPanel = ({
           const itemIndex = target.dataset.drag_item_index!;
           const item = panelItems[+itemIndex];
           if (item) {
+            lockToolIfNeeded(editor);
             editor.setCurrentTool(item.id);
           }
           dragState.set({
@@ -190,9 +192,10 @@ const DiscourseGraphPanel = ({
               props: { fontFamily: "sans", size: "s" },
             });
             editor.setEditingShape(shapeId);
-            editor.setCurrentTool("select");
+            setCurrentToolToSelectIfUnlocked(editor);
           } else {
             // For relations, just activate the tool
+            lockToolIfNeeded(editor);
             editor.setCurrentTool(current.item.id);
           }
 
