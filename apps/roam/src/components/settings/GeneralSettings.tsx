@@ -6,6 +6,7 @@ import {
   GlobalTextPanel,
   FeatureFlagPanel,
 } from "./components/BlockPropSettingPanels";
+import { isNewSettingsStoreEnabled } from "./utils/accessors";
 import posthog from "posthog-js";
 
 const DiscourseGraphHome = () => {
@@ -43,7 +44,7 @@ const DiscourseGraphHome = () => {
         uid={settings.leftSidebarEnabled.uid}
         parentUid={settings.settingsUid}
         onAfterChange={(checked: boolean) => {
-          if (checked) {
+          if (checked && !isNewSettingsStoreEnabled()) {
             setIsAlertOpen(true);
           }
           posthog.capture("General Settings: Left Sidebar Toggled", {
