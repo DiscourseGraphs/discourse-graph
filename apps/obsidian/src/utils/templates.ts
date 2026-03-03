@@ -15,7 +15,7 @@ const parseFrontmatterFromString = (
   content: string,
 ): { exists: boolean; contentStart: number } => {
   const lines = content.split('\n');
-  if (lines[0] !== '---') {
+  if (lines[0]?.trim() !== "---") {
     return { exists: false, contentStart: 0 };
   }
   

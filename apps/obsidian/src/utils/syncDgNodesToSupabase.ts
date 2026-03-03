@@ -375,8 +375,6 @@ export const syncAllNodesAndRelations = async (
   relationsOnly?: boolean,
 ): Promise<void> => {
   try {
-    console.debug("Starting syncAllNodesAndRelations");
-
     const context = supabaseContext ?? (await getSupabaseContext(plugin));
     if (!context) {
       throw new Error("Could not create Supabase context");
@@ -397,10 +395,6 @@ export const syncAllNodesAndRelations = async (
           supabaseClient,
           context,
         });
-
-    console.log("changedNodeInstances", changedNodeInstances);
-    console.debug(`Found ${changedNodeInstances.length} nodes to sync`);
-
     const accountLocalId = plugin.settings.accountLocalId;
     if (!accountLocalId) {
       throw new Error("accountLocalId not found in plugin settings");

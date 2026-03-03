@@ -47,14 +47,6 @@ This document tracks all the changes made to address failed criteria from the [O
 - **Issue**: `ConfirmationModal.tsx:24` uses `createEl("h2")`
 - **Fix**: Replaced with `setHeading()` method
 - **Files affected**: `src/components/ConfirmationModal.tsx`
-
-### Plugin Guidelines - Resource Management
-
-#### [PG-RM13] Don't detach leaves in onunload
-- **Issue**: `src/index.ts:414` calls `this.app.workspace.detachLeavesOfType(VIEW_TYPE_DISCOURSE_CONTEXT)`
-- **Fix**: Removed detachLeavesOfType call (Obsidian handles cleanup automatically)
-- **Files affected**: `src/index.ts`
-
 ### Plugin Guidelines - Commands
 
 #### [PG-C14] Avoid setting a default hotkey for commands
