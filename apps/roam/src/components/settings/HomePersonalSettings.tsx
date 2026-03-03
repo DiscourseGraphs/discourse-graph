@@ -293,13 +293,11 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }}
         style={{ width: "600px" }}
       >
-        {isOngoing ? (
-          <div className={Classes.DIALOG_BODY}>
+        <div className={Classes.DIALOG_BODY}>
+          {isOngoing ? (
             <p>Migrating relations, please wait</p>
-          </div>
-        ) : (
-          <>
-            <div className={Classes.DIALOG_BODY}>
+          ) : (
+            <>
               <p>
                 Activating the faster relations system will migrate all
                 previously created relations and newly created relations will
@@ -308,58 +306,57 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                 deleted; however, they will not be accessible until you
                 reactivate the faster relation system.
               </p>
-              {activeRelationMigration === RelationMigrationDialog.activate ? (
-                <div className="flex justify-center">
-                  <div className="mt-1 inline-block align-middle">
-                    <Label className="!my-0 pr-2">Relations</Label>
-                  </div>
-                  <pre className="m-0 p-1.5 pt-2">{numExistingRelations}</pre>
+              {activeRelationMigration ===
+              RelationMigrationDialog.reactivate ? (
+                <div className="flex flex-col items-center">
+                  <Label className=" font-semibold">Relations</Label>
+                  <pre className="m-0 rounded border border-gray-300 bg-gray-50 p-2 text-center">
+                    {numExistingRelations}
+                  </pre>
                 </div>
-              ) : (
-                ""
-              )}
-            </div>
-            <div className={Classes.DIALOG_FOOTER}>
-              <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-                <Button
-                  small
-                  onClick={() => {
-                    setActiveRelationMigration(RelationMigrationDialog.none);
-                  }}
-                >
-                  Cancel
-                </Button>
-                {activeRelationMigration ===
-                RelationMigrationDialog.reactivate ? (
-                  <Button
-                    small
-                    intent={Intent.PRIMARY}
-                    onClick={() => {
-                      setStoredRelations(true);
-                      setActiveRelationMigration(RelationMigrationDialog.none);
-                    }}
-                  >
-                    Reactivate without Migration
-                  </Button>
-                ) : (
-                  ""
-                )}
+              ) : null}
+            </>
+          )}
+        </div>
+        {!isOngoing && (
+          <div className={Classes.DIALOG_FOOTER}>
+            <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+              <Button
+                small
+                onClick={() => {
+                  setActiveRelationMigration(RelationMigrationDialog.none);
+                }}
+              >
+                Cancel
+              </Button>
+              {activeRelationMigration ===
+              RelationMigrationDialog.reactivate ? (
                 <Button
                   small
                   intent={Intent.PRIMARY}
                   onClick={() => {
-                    setIsOngoing(true);
-                    void startMigration();
+                    setStoredRelations(true);
+                    setActiveRelationMigration(RelationMigrationDialog.none);
                   }}
                 >
-                  {activeRelationMigration ===
-                  RelationMigrationDialog.reactivate
-                    ? "Migrate again and Reactivate"
-                    : "Activate and Migrate"}
+                  Reactivate without Migration
                 </Button>
-              </div>
+              ) : null}
+              <Button
+                small
+                intent={Intent.PRIMARY}
+                onClick={() => {
+                  setIsOngoing(true);
+                  void startMigration();
+                }}
+              >
+                {activeRelationMigration ===
+                RelationMigrationDialog.reactivate
+                  ? "Migrate again and Reactivate"
+                  : "Activate and Migrate"}
+              </Button>
             </div>
-          </>
+          </div>
         )}
       </Dialog>
       <Dialog

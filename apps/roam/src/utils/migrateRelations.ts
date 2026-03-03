@@ -2,8 +2,6 @@ import getRelationData from "./getRelationData";
 import getBlockProps from "./getBlockProps";
 import type { json } from "./getBlockProps";
 import setBlockProps from "./setBlockProps";
-import { getSetting, setSetting } from "./extensionSettings";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import internalError from "./internalError";
 import {
   createReifiedRelation,
