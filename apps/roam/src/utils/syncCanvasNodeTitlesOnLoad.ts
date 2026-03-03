@@ -15,6 +15,7 @@ const queryTitlesByUids = async (
       :in $ [?uid ...]
       :where [?e :block/uid ?uid]]`,
     uids,
+    /* eslint-disable-next-line @typescript-eslint/naming-convention */
   )) as [string, { ":node/title"?: string; ":block/string"?: string }][];
 
   const map = new Map<string, string>();
@@ -43,7 +44,9 @@ const deleteNodeShapeAndRelations = (
   );
   const relationShapeIdsToDelete = relationShapeIdsAndType.map((r) => r.id);
   const bindingIdsToDelete = bindingsToDelete.map((b) => b.id);
-  editor.deleteShapes(relationShapeIdsToDelete).deleteBindings(bindingIdsToDelete);
+  editor
+    .deleteShapes(relationShapeIdsToDelete)
+    .deleteBindings(bindingIdsToDelete);
   editor.deleteShapes([shape.id]);
 };
 
@@ -81,7 +84,9 @@ export const syncCanvasNodeTitlesOnLoad = async (
     const currentInRoam = uidToTitle.get(uid);
     if (currentInRoam === undefined) {
       shapesToRemove.push(shape);
-    } else if ((shape.props.title ?? "").trim() !== (currentInRoam ?? "").trim()) {
+    } else if (
+      (shape.props.title ?? "").trim() !== (currentInRoam ?? "").trim()
+    ) {
       shapesToUpdate.push({ shape, newTitle: currentInRoam });
     }
   }
@@ -97,7 +102,7 @@ export const syncCanvasNodeTitlesOnLoad = async (
       shapesToUpdate.map(({ shape, newTitle }) => ({
         id: shape.id,
         type: shape.type,
-        props: { ...shape.props, title: newTitle },
+        props: { title: newTitle },
       })),
     );
   }
