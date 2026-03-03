@@ -2,7 +2,7 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { RoamBasicNode } from "roamjs-components/types";
 import { getSubTree } from "roamjs-components/util";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 
 type UidPair<T> = {
   uid?: string;

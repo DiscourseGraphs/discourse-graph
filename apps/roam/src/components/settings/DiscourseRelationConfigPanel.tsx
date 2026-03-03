@@ -32,7 +32,6 @@ import type {
   RoamBasicNode,
   TreeNode,
 } from "roamjs-components/types";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import setInputSetting from "roamjs-components/util/setInputSetting";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
@@ -50,8 +49,9 @@ import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import {
+  getFeatureFlag,
+  getGlobalSetting,
   setGlobalSetting,
   getGlobalSettings,
 } from "~/components/settings/utils/accessors";
@@ -105,7 +105,7 @@ export const RelationEditPanel = ({
       ),
     [nodes],
   );
-  const useReifiedRelations = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
+  const useReifiedRelations = getFeatureFlag("Reified relation triples");
   const containerRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
   const cyRef = useRef<cytoscape.Core>();
@@ -139,10 +139,11 @@ export const RelationEditPanel = ({
   const [tab, setTab] = useState(0);
   const initialSourceUid = useMemo(
     () =>
-      getSettingValueFromTree({
-        tree: editingRelationInfo.children,
-        key: "source",
-      }),
+      getGlobalSetting<string>([
+        "Relations",
+        editingRelationInfo.uid,
+        "source",
+      ]) ?? "",
     [],
   );
   const initialSource = useMemo(
@@ -152,10 +153,11 @@ export const RelationEditPanel = ({
   const [source, setSource] = useState(initialSourceUid);
   const initialDestinationUid = useMemo(
     () =>
-      getSettingValueFromTree({
-        tree: editingRelationInfo.children,
-        key: "destination",
-      }),
+      getGlobalSetting<string>([
+        "Relations",
+        editingRelationInfo.uid,
+        "destination",
+      ]) ?? "",
     [],
   );
   const initialDestination = useMemo(
@@ -165,10 +167,11 @@ export const RelationEditPanel = ({
   const [destination, setDestination] = useState(initialDestinationUid);
   const [label, setLabel] = useState(editingRelationInfo.text);
   const [complement, setComplement] = useState(
-    getSettingValueFromTree({
-      tree: editingRelationInfo.children,
-      key: "complement",
-    }),
+    getGlobalSetting<string>([
+      "Relations",
+      editingRelationInfo.uid,
+      "complement",
+    ]) ?? "",
   );
 
   const edgeCallback = useCallback(
@@ -1026,10 +1029,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
     null,
   );
-  const shouldHideCanvasRelation = getSetting<boolean>(
-    USE_REIFIED_RELATIONS,
-    false,
-  );
+  const shouldHideCanvasRelation = getFeatureFlag("Reified relation triples");
   const visibleRelations = useMemo(() => {
     if (!shouldHideCanvasRelation) {
       return relations;

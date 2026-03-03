@@ -12,8 +12,7 @@ import { ContextContent } from "./DiscourseContext";
 import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import deriveDiscourseNodeAttribute from "~/utils/deriveDiscourseNodeAttribute";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
+import { getDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 import nanoid from "nanoid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
@@ -180,11 +179,10 @@ const useDiscourseContext = (uid: string, tag: string) => {
         .then(({ refs, results }) => {
           const discourseNode = findDiscourseNode({ uid: uid });
           if (discourseNode) {
-            const attribute = getSettingValueFromTree({
-              tree: getBasicTreeByParentUid(discourseNode.type),
-              key: "Overlay",
-              defaultValue: "Overlay",
-            });
+            const attribute =
+              getDiscourseNodeSetting<string>(discourseNode.type, [
+                "overlay",
+              ]) || "Overlay";
             return deriveDiscourseNodeAttribute({
               uid: uid,
               attribute,

@@ -90,12 +90,14 @@ const featureFlags: FeatureFlags = {
   "Enable left sidebar": true,
   "Suggestive mode enabled": true,
   "Reified relation triples": false,
+  "Use new settings store": false,
 };
 
 const defaultFeatureFlags: FeatureFlags = {
   "Enable left sidebar": false,
   "Suggestive mode enabled": false,
   "Reified relation triples": false,
+  "Use new settings store": false,
 };
 
 const exportSettings: ExportSettings = {
@@ -402,9 +404,9 @@ const defaultPersonalSettings: PersonalSettings = {
   "Auto canvas relations": false,
   "Disable product diagnostics": false,
   Query: {
-    "Hide query metadata": false,
+    "Hide query metadata": true,
     "Default page size": 10,
-    "Query pages": [],
+    "Query pages": ["discourse-graph/queries/*"],
     "Default filters": {},
   },
 };

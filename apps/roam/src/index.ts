@@ -13,7 +13,7 @@ import { listActiveQueries } from "./utils/listActiveQueries";
 import { registerSmartBlock } from "./utils/registerSmartBlock";
 import { initObservers } from "./utils/initializeObserversAndListeners";
 import { addGraphViewNodeStyling } from "./utils/graphViewNodeStyling";
-import { setQueryPages } from "./utils/setQueryPages";
+import { setInitialQueryPages } from "./utils/setQueryPages";
 import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
 import styles from "./styles/styles.css";
 import discourseFloatingMenuStyles from "./styles/discourseFloatingMenuStyles.css";
@@ -31,24 +31,21 @@ import {
   setSyncActivity,
 } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
-import { getUidAndBooleanSetting } from "./utils/getExportSettings";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "./utils/renderNodeConfigPage";
-import { getSetting } from "./utils/extensionSettings";
 import { initPostHog } from "./utils/posthog";
-import {
-  STREAMLINE_STYLING_KEY,
-  DISALLOW_DIAGNOSTICS,
-} from "./data/userSettings";
 import { initSchema } from "./components/settings/utils/init";
+import {
+  getFeatureFlag,
+  getPersonalSetting,
+} from "./components/settings/utils/accessors";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
   const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
   const isOffline = window.roamAlphaAPI.graph.type === "offline";
-  const disallowDiagnostics = getSetting(DISALLOW_DIAGNOSTICS, false);
+  const disallowDiagnostics = getPersonalSetting<boolean>([
+    "Disable product diagnostics",
+  ]);
   if (!isEncrypted && !isOffline && !disallowDiagnostics) {
     initPostHog();
   }
@@ -83,7 +80,7 @@ export default runExtension(async (onloadArgs) => {
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
-  setQueryPages(onloadArgs);
+  setInitialQueryPages(onloadArgs);
 
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
@@ -91,7 +88,9 @@ export default runExtension(async (onloadArgs) => {
   const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
 
   // Add streamline styling only if enabled
-  const isStreamlineStylingEnabled = getSetting(STREAMLINE_STYLING_KEY, false);
+  const isStreamlineStylingEnabled = getPersonalSetting<boolean>([
+    "Streamline styling",
+  ]);
   let streamlineStyleElement: HTMLStyleElement | null = null;
   if (isStreamlineStylingEnabled) {
     streamlineStyleElement = addStyle(streamlineStyling);
@@ -112,12 +111,7 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  const isSuggestiveModeEnabled = getUidAndBooleanSetting({
-    tree: getBasicTreeByParentUid(
-      getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-    ),
-    text: "(BETA) Suggestive Mode Enabled",
-  }).value;
+  const isSuggestiveModeEnabled = getFeatureFlag("Suggestive mode enabled");
 
   if (isSuggestiveModeEnabled) {
     initializeSupabaseSync();
@@ -133,7 +127,7 @@ export default runExtension(async (onloadArgs) => {
       const queryArgs = parseQuery(parentUid);
       return fireQuerySync(queryArgs);
     },
-    listActiveQueries: () => listActiveQueries(extensionAPI),
+    listActiveQueries: () => listActiveQueries(),
     isDiscourseNode: isDiscourseNode,
     // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
@@ -156,6 +150,7 @@ export default runExtension(async (onloadArgs) => {
   }
 
   await initSchema();
+
   return {
     elements: [
       style,

@@ -34,8 +34,6 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { OnloadArgs } from "roamjs-components/types";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { render as renderGraphOverviewExport } from "~/components/ExportDiscourseContext";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import { getSettingValueFromTree } from "roamjs-components/util";
 import {
   getModifiersFromCombo,
   render as renderDiscourseNodeMenu,
@@ -51,9 +49,7 @@ import {
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { renderImageToolsMenu } from "./renderImageToolsMenu";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
-import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
-import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
@@ -61,6 +57,11 @@ import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import findDiscourseNode from "./findDiscourseNode";
+import {
+  getPersonalSetting,
+  getFeatureFlag,
+  getGlobalSetting,
+} from "~/components/settings/utils/accessors";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -105,12 +106,7 @@ export const initObservers = async ({
       const { title, uid } = getTitleAndUidFromHeader(h1);
       const props = { title, h1, onloadArgs };
 
-      const isSuggestiveModeEnabled = getUidAndBooleanSetting({
-        tree: getBasicTreeByParentUid(
-          getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-        ),
-        text: "(BETA) Suggestive Mode Enabled",
-      }).value;
+      const isSuggestiveModeEnabled = getFeatureFlag("Suggestive mode enabled");
 
       const node = findDiscourseNode({ uid, title });
       const isDiscourseNode = node && node.backedBy !== "default";
@@ -128,7 +124,7 @@ export const initObservers = async ({
       }
 
       if (isNodeConfigPage(title)) renderNodeConfigPage(props);
-      else if (isQueryPage(props)) renderQueryPage(props);
+      else if (isQueryPage({ title })) renderQueryPage(props);
       else if (isCurrentPageCanvas(props)) renderTldrawCanvas(props);
       else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
     },
@@ -191,11 +187,11 @@ export const initObservers = async ({
     }>,
   ) => {
     if (!/page/i.test(e.detail.action)) return;
-    window.roamAlphaAPI.ui.mainWindow
+    void window.roamAlphaAPI.ui.mainWindow
       .getOpenPageOrBlockUid()
       .then((u) => u || window.roamAlphaAPI.util.dateToPageUid(new Date()))
       .then((parentUid) => {
-        createBlock({
+        return createBlock({
           parentUid,
           order: Number.MAX_VALUE,
           node: { text: `[[${e.detail.val}]]` },
@@ -203,7 +199,7 @@ export const initObservers = async ({
       });
   }) as EventListener;
 
-  if (onloadArgs.extensionAPI.settings.get("suggestive-mode-overlay")) {
+  if (getPersonalSetting<boolean>(["Suggestive mode overlay"])) {
     addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
   }
 
@@ -226,9 +222,9 @@ export const initObservers = async ({
     },
   });
 
-  if (onloadArgs.extensionAPI.settings.get("page-preview"))
+  if (getPersonalSetting<boolean>(["Page preview"]))
     addPageRefObserver(previewPageRefHandler);
-  if (onloadArgs.extensionAPI.settings.get("discourse-context-overlay")) {
+  if (getPersonalSetting<boolean>(["Discourse context overlay"])) {
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(true);
   }
@@ -256,18 +252,14 @@ export const initObservers = async ({
     }
   };
 
-  const configTree = getBasicTreeByParentUid(configPageUid);
-  const globalTrigger = getSettingValueFromTree({
-    tree: configTree,
-    key: "trigger",
-    defaultValue: "\\",
-  }).trim();
-  const personalTriggerCombo =
-    (onloadArgs.extensionAPI.settings.get(
-      "personal-node-menu-trigger",
-    ) as IKeyCombo) || undefined;
+  const globalTrigger = (getGlobalSetting<string>(["Trigger"]) ?? "\\").trim();
+  const personalTriggerCombo = getPersonalSetting<IKeyCombo>([
+    "Personal node menu trigger",
+  ]);
   const personalTrigger = personalTriggerCombo?.key;
-  const personalModifiers = getModifiersFromCombo(personalTriggerCombo);
+  const personalModifiers = personalTriggerCombo
+    ? getModifiersFromCombo(personalTriggerCombo)
+    : [];
 
   const leftSidebarObserver = createHTMLObserver({
     tag: "DIV",
@@ -275,10 +267,7 @@ export const initObservers = async ({
     className: "starred-pages-wrapper",
     callback: (el) => {
       void (async () => {
-        const isLeftSidebarEnabled = getUidAndBooleanSetting({
-          tree: configTree,
-          text: "(BETA) Left Sidebar",
-        }).value;
+        const isLeftSidebarEnabled = getFeatureFlag("Enable left sidebar");
         const container = el as HTMLDivElement;
         if (isLeftSidebarEnabled) {
           container.style.padding = "0";
@@ -329,7 +318,8 @@ export const initObservers = async ({
     }
   };
 
-  const customTrigger = getSetting("node-search-trigger", "@");
+  const customTrigger =
+    getPersonalSetting<string>(["Node search menu trigger"]) ?? "@";
 
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
@@ -383,7 +373,7 @@ export const initObservers = async ({
 
   const nodeCreationPopoverListener = debounce(() => {
     const isTextSelectionPopupEnabled =
-      onloadArgs.extensionAPI.settings.get("text-selection-popup") !== false;
+      getPersonalSetting<boolean>(["Text selection popup"]) !== false;
 
     if (!isTextSelectionPopupEnabled) return;
 

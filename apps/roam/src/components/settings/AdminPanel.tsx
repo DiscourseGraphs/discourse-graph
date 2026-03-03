@@ -14,7 +14,11 @@ import {
 } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { Select } from "@blueprintjs/select";
-import { getSetting, setSetting } from "~/utils/extensionSettings";
+import { setSetting } from "~/utils/extensionSettings";
+import {
+  getFeatureFlag,
+  setFeatureFlag,
+} from "~/components/settings/utils/accessors";
 import {
   getSupabaseContext,
   getLoggedInClient,
@@ -38,7 +42,7 @@ import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import posthog from "posthog-js";
-import { setFeatureFlag } from "~/components/settings/utils/accessors";
+import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -263,7 +267,7 @@ const MigrationTab = (): React.ReactElement => {
   const [useMigrationResults, setMigrationResults] = useState<string>("");
   const [useOngoing, setOngoing] = useState<boolean>(false);
   const [useDryRun, setDryRun] = useState<boolean>(false);
-  const enabled = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
+  const enabled = getFeatureFlag("Reified relation triples");
   const doMigrateRelations = async () => {
     setOngoing(true);
     try {
@@ -348,7 +352,7 @@ const MigrationTab = (): React.ReactElement => {
 
 const FeatureFlagsTab = (): React.ReactElement => {
   const [useReifiedRelations, setUseReifiedRelations] = useState<boolean>(
-    getSetting<boolean>(USE_REIFIED_RELATIONS, false),
+    getFeatureFlag("Reified relation triples"),
   );
   const settings = useMemo(() => {
     refreshConfigTree();
@@ -356,7 +360,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
   }, []);
 
   const [suggestiveModeEnabled, setSuggestiveModeEnabled] = useState(
-    settings.suggestiveModeEnabled.value || false,
+    getFeatureFlag("Suggestive mode enabled"),
   );
   const [suggestiveModeUid, setSuggestiveModeUid] = useState(
     settings.suggestiveModeEnabled.uid,
@@ -420,6 +424,8 @@ const FeatureFlagsTab = (): React.ReactElement => {
         <p>Are you sure you want to proceed?</p>
       </Alert>
 
+      {/* TODO(ENG-1484): Add pull watcher reactivity so toggling suggestive mode
+          starts/stops sync and shows the tab without requiring a reload. */}
       <Alert
         isOpen={isInstructionOpen}
         onConfirm={() => window.location.reload()}
@@ -467,6 +473,12 @@ const FeatureFlagsTab = (): React.ReactElement => {
         }
       />
 
+      <FeatureFlagPanel
+        title="Use new settings store"
+        description="When enabled, accessor getters read from block props instead of the old system. Surfaces dual-write gaps during development."
+        featureKey="Use new settings store"
+      />
+
       <Button
         className="w-96"
         icon="send-message"
@@ -488,10 +500,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
 const AdminPanel = (): React.ReactElement => {
   const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
-  const settings = useMemo(() => {
-    refreshConfigTree();
-    return getFormattedConfigTree();
-  }, []);
 
   return (
     <Tabs
@@ -526,7 +534,7 @@ const AdminPanel = (): React.ReactElement => {
           </div>
         }
       />
-      {settings.suggestiveModeEnabled.value && (
+      {getFeatureFlag("Suggestive mode enabled") && (
         <Tab
           id="suggestive-mode-settings"
           title="Suggestive mode"

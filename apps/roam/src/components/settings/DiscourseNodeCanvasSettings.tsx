@@ -7,15 +7,16 @@ import {
   Icon,
   ControlGroup,
 } from "@blueprintjs/core";
-import React, { useState, useMemo } from "react";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
+import React, { useState } from "react";
 import setInputSetting from "roamjs-components/util/setInputSetting";
 import {
   DiscourseNodeFlagPanel,
   DiscourseNodeTextPanel,
 } from "./components/BlockPropSettingPanels";
-import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import {
+  getDiscourseNodeSetting,
+  setDiscourseNodeSetting,
+} from "~/components/settings/utils/accessors";
 
 export const formatHexColor = (color: string) => {
   if (!color) return "";
@@ -36,20 +37,35 @@ const DiscourseNodeCanvasSettings = ({
   nodeType: string;
   uid: string;
 }) => {
-  const tree = useMemo(() => getBasicTreeByParentUid(uid), [uid]);
   const [color, setColor] = useState<string>(() => {
-    const color = getSettingValueFromTree({ tree, key: "color" });
+    const color =
+      getDiscourseNodeSetting<string>(nodeType, ["canvasSettings", "color"]) ??
+      "";
     return formatHexColor(color);
   });
-  const alias = getSettingValueFromTree({ tree, key: "alias" });
-  const [queryBuilderAlias, setQueryBuilderAlias] = useState<string>(() =>
-    getSettingValueFromTree({ tree, key: "query-builder-alias" }),
+  const alias =
+    getDiscourseNodeSetting<string>(nodeType, ["canvasSettings", "alias"]) ??
+    "";
+  const [queryBuilderAlias, setQueryBuilderAlias] = useState<string>(
+    () =>
+      getDiscourseNodeSetting<string>(nodeType, [
+        "canvasSettings",
+        "query-builder-alias",
+      ]) ?? "",
   );
   const [isKeyImage, setIsKeyImage] = useState(
-    () => getSettingValueFromTree({ tree, key: "key-image" }) === "true",
+    () =>
+      getDiscourseNodeSetting<boolean>(nodeType, [
+        "canvasSettings",
+        "key-image",
+      ]) ?? false,
   );
-  const [keyImageOption, setKeyImageOption] = useState(() =>
-    getSettingValueFromTree({ tree, key: "key-image-option" }),
+  const [keyImageOption, setKeyImageOption] = useState(
+    () =>
+      getDiscourseNodeSetting<string>(nodeType, [
+        "canvasSettings",
+        "key-image-option",
+      ]) ?? "",
   );
 
   return (
