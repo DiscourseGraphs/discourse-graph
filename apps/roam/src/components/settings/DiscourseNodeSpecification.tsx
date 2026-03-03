@@ -8,7 +8,10 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import QueryEditor from "~/components/QueryEditor";
 import internalError from "~/utils/internalError";
-import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import {
+  getDiscourseNodeSetting,
+  setDiscourseNodeSetting,
+} from "~/components/settings/utils/accessors";
 import { DiscourseNodeFlagPanel } from "~/components/settings/components/BlockPropSettingPanels";
 
 const NodeSpecification = ({
@@ -27,7 +30,13 @@ const NodeSpecification = ({
         ?.uid,
     [parentUid],
   );
-  const [enabled, setEnabled] = React.useState(!!enabledBlockUid);
+  const [enabled, setEnabled] = React.useState(
+    () =>
+      getDiscourseNodeSetting<boolean>(node.type, [
+        "specification",
+        "enabled",
+      ]) ?? false,
+  );
 
   React.useEffect(() => {
     if (enabled) {
