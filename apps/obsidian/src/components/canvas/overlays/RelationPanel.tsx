@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
-import { DiscourseNodeShape } from "~/components/canvas/shapes/DiscourseNodeShape";
+import {
+  buildDiscourseNodeShapeRecord,
+  type DiscourseNodeShape,
+} from "~/components/canvas/shapes/DiscourseNodeShape";
 import {
   ensureBlockRefForFile,
   resolveLinkedFileFromSrc,
@@ -229,37 +232,25 @@ export const RelationsPanel = ({
 
     if (existing) return existing;
 
-    // Create a new node shape near the selected node
     const newId = createShapeId();
     const src = `asset:obsidian.blockref.${blockRef}`;
     const x = nodeShape.x + nodeShape.props.w + 80;
     const y = nodeShape.y;
-
     const nodeTypeId = getFrontmatterForFile(plugin.app, file)
       ?.nodeTypeId as string;
 
-    const created: DiscourseNodeShape = {
+    const created = buildDiscourseNodeShapeRecord(editor, {
       id: newId,
-      typeName: "shape",
-      type: "discourse-node",
       x,
       y,
-      rotation: 0,
-      index: editor.getHighestIndexForParent(editor.getCurrentPageId()),
-      parentId: editor.getCurrentPageId(),
-      isLocked: false,
-      opacity: 1,
-      meta: {},
       props: {
-        w: 200,
-        h: 100,
         src,
         title: file.basename,
-        nodeTypeId: nodeTypeId,
+        nodeTypeId,
         size: "m",
         fontFamily: "sans",
       },
-    };
+    });
 
     editor.createShape(created);
     return created;
