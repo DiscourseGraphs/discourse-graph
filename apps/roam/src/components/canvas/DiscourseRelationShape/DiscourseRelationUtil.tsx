@@ -86,7 +86,10 @@ const getCanvasPageUidFromDOM = (): string | null => {
   // With multiple canvases, find the one that contains the currently focused element
   // or has been recently interacted with (has :focus-within)
   for (const container of containers) {
-    if (container.matches(":focus-within") || container.contains(document.activeElement)) {
+    if (
+      container.matches(":focus-within") ||
+      container.contains(document.activeElement)
+    ) {
       return container.getAttribute("data-page-uid");
     }
   }
