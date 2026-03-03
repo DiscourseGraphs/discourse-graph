@@ -811,7 +811,7 @@ const importAssetsForNode = async ({
       const pathParts = targetPath.split("/");
       for (let i = 1; i < pathParts.length - 1; i++) {
         const folderPath = pathParts.slice(0, i + 1).join("/");
-        if (!(await plugin.app.vault.adapter.exists(folderPath))) {
+        if (!plugin.app.vault.getAbstractFileByPath(folderPath)) {
           await plugin.app.vault.createFolder(folderPath);
         }
       }
@@ -1180,9 +1180,7 @@ export const importSelectedNodes = async ({
     }
 
     // Ensure the import folder exists
-    const folderExists =
-      await plugin.app.vault.adapter.exists(importFolderPath);
-    if (!folderExists) {
+    if (!plugin.app.vault.getAbstractFileByPath(importFolderPath)) {
       await plugin.app.vault.createFolder(importFolderPath);
     }
 
@@ -1237,7 +1235,7 @@ export const importSelectedNodes = async ({
 
           // Check if file path already exists (edge case: same title but different nodeInstanceId)
           let counter = 1;
-          while (await plugin.app.vault.adapter.exists(finalFilePath)) {
+          while (plugin.app.vault.getAbstractFileByPath(finalFilePath)) {
             finalFilePath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
             counter++;
           }
@@ -1312,7 +1310,7 @@ export const importSelectedNodes = async ({
           const newPath = `${importFolderPath}/${sanitizedFileName}.md`;
           let targetPath = newPath;
           let counter = 1;
-          while (await plugin.app.vault.adapter.exists(targetPath)) {
+          while (plugin.app.vault.getAbstractFileByPath(targetPath)) {
             targetPath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
             counter++;
           }
