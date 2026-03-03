@@ -340,6 +340,7 @@ export const useConfig = () => {
   const [config, setConfig] = useState(() => buildConfig());
   useEffect(() => {
     const handleUpdate = () => {
+      refreshConfigTree();
       setConfig(buildConfig());
     };
     const unsubGlobal = onSettingChange("global:Left sidebar", handleUpdate);
