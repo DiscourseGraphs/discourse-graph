@@ -282,7 +282,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }}
       />
       <Dialog
-        isOpen={activeRelationMigration === RelationMigrationDialog.reactivate}
+        isOpen={
+          activeRelationMigration === RelationMigrationDialog.reactivate ||
+          activeRelationMigration === RelationMigrationDialog.activate
+        }
         onClose={() => {
           setActiveRelationMigration(RelationMigrationDialog.none);
         }}
@@ -303,12 +306,16 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                 deleted; however, they will not be accessible until you
                 reactivate the faster relation system.
               </p>
-              <div className="flex justify-center">
-                <div className="mt-1 inline-block align-middle">
-                  <Label className="!my-0 pr-2">Relations</Label>
+              {activeRelationMigration === RelationMigrationDialog.activate ? (
+                <div className="flex justify-center">
+                  <div className="mt-1 inline-block align-middle">
+                    <Label className="!my-0 pr-2">Relations</Label>
+                  </div>
+                  <pre className="m-0 p-1.5 pt-2">{numExistingRelations}</pre>
                 </div>
-                <pre className="m-0 p-1.5 pt-2">{numExistingRelations}</pre>
-              </div>
+              ) : (
+                ""
+              )}
             </div>
             <div className={Classes.DIALOG_FOOTER}>
               <div className={Classes.DIALOG_FOOTER_ACTIONS}>
@@ -320,16 +327,21 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                 >
                   Cancel
                 </Button>
-                <Button
-                  small
-                  intent={Intent.PRIMARY}
-                  onClick={() => {
-                    setStoredRelations(true);
-                    setActiveRelationMigration(RelationMigrationDialog.none);
-                  }}
-                >
-                  Reactivate without Migration
-                </Button>
+                {activeRelationMigration ===
+                RelationMigrationDialog.reactivate ? (
+                  <Button
+                    small
+                    intent={Intent.PRIMARY}
+                    onClick={() => {
+                      setStoredRelations(true);
+                      setActiveRelationMigration(RelationMigrationDialog.none);
+                    }}
+                  >
+                    Reactivate without Migration
+                  </Button>
+                ) : (
+                  ""
+                )}
                 <Button
                   small
                   intent={Intent.PRIMARY}
@@ -338,7 +350,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                     void startMigration();
                   }}
                 >
-                  Migrate again and Reactivate
+                  {activeRelationMigration ===
+                  RelationMigrationDialog.reactivate
+                    ? "Migrate again and Reactivate"
+                    : "Activate and Migrate"}
                 </Button>
               </div>
             </div>
@@ -382,54 +397,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             </Button>
           </div>
         </div>
-      </Dialog>
-      <Dialog
-        isOpen={activeRelationMigration === RelationMigrationDialog.activate}
-        onClose={() => {
-          setActiveRelationMigration(RelationMigrationDialog.none);
-        }}
-        style={{ width: "600px" }}
-      >
-        {isOngoing ? (
-          <div className={Classes.DIALOG_BODY}>
-            <p>Migrating relations, please wait</p>
-          </div>
-        ) : (
-          <>
-            <div className={Classes.DIALOG_BODY}>
-              <p>
-                Activating the stored relations system will migrate all
-                previously created relations and newly created relations will
-                use the new system. You can deactivate this setting to revert to
-                the old system, and your newly created relations will not be
-                deleted; however, they will not be accessible until you
-                reactivate the stored relation system.
-              </p>
-            </div>
-            <div className={Classes.DIALOG_FOOTER}>
-              <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-                <Button
-                  small
-                  onClick={() => {
-                    setActiveRelationMigration(RelationMigrationDialog.none);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  small
-                  intent={Intent.PRIMARY}
-                  onClick={() => {
-                    setIsOngoing(true);
-                    void startMigration();
-                  }}
-                >
-                  Activate and Migrate
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
       </Dialog>
     </div>
   );
