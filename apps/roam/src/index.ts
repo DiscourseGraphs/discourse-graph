@@ -39,7 +39,10 @@ import {
   getPersonalSetting,
 } from "./components/settings/utils/accessors";
 import { setupPullWatchOnSettingsPage } from "./components/settings/utils/pullWatchers";
-import { onSettingChange } from "./components/settings/utils/settingsEmitter";
+import {
+  onSettingChange,
+  settingKeys,
+} from "./components/settings/utils/settingsEmitter";
 import { mountLeftSidebar } from "./components/LeftSidebarView";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
@@ -154,7 +157,7 @@ export default runExtension(async (onloadArgs) => {
   }
 
   const unsubLeftSidebarFlag = onSettingChange(
-    "Enable left sidebar",
+    settingKeys.leftSidebarFlag,
     (newValue) => {
       const enabled = Boolean(newValue);
       const wrapper = document.querySelector<HTMLDivElement>(

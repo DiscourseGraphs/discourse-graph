@@ -12,7 +12,7 @@ import {
   type PersonalSettings,
   type DiscourseNodeSettings,
 } from "./zodSchema";
-import { emitSettingChange } from "./settingsEmitter";
+import { emitSettingChange, settingKeys } from "./settingsEmitter";
 
 type PullWatchCallback = Parameters<AddPullWatch>[2];
 
@@ -93,7 +93,7 @@ export const featureFlagHandlers: Partial<
 > = {
   /* eslint-disable @typescript-eslint/naming-convention */
   "Enable left sidebar": (newValue, oldValue) => {
-    emitSettingChange("Enable left sidebar", newValue, oldValue);
+    emitSettingChange(settingKeys.leftSidebarFlag, newValue, oldValue);
   },
   /* eslint-enable @typescript-eslint/naming-convention */
 };
@@ -109,7 +109,7 @@ type GlobalSettingsHandlers = {
 export const globalSettingsHandlers: GlobalSettingsHandlers = {
   /* eslint-disable @typescript-eslint/naming-convention */
   "Left sidebar": (newValue, oldValue) => {
-    emitSettingChange("global:Left sidebar", newValue, oldValue);
+    emitSettingChange(settingKeys.globalLeftSidebar, newValue, oldValue);
   },
   /* eslint-enable @typescript-eslint/naming-convention */
 };
@@ -125,7 +125,7 @@ type PersonalSettingsHandlers = {
 export const personalSettingsHandlers: PersonalSettingsHandlers = {
   /* eslint-disable @typescript-eslint/naming-convention */
   "Left sidebar": (newValue, oldValue) => {
-    emitSettingChange("personal:Left sidebar", newValue, oldValue);
+    emitSettingChange(settingKeys.personalLeftSidebar, newValue, oldValue);
   },
   /* eslint-enable @typescript-eslint/naming-convention */
 };

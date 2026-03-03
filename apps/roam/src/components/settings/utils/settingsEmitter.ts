@@ -1,5 +1,11 @@
 type SettingChangeCallback = (newValue: unknown, oldValue: unknown) => void;
 
+export const settingKeys = {
+  leftSidebarFlag: "Enable left sidebar",
+  globalLeftSidebar: "global:Left sidebar",
+  personalLeftSidebar: "personal:Left sidebar",
+} as const;
+
 const listeners = new Map<string, Set<SettingChangeCallback>>();
 
 export const onSettingChange = (

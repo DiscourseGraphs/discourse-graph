@@ -22,7 +22,10 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import extractRef from "roamjs-components/util/extractRef";
 import { getFormattedConfigTree, notify } from "~/utils/discourseConfigRef";
-import { onSettingChange } from "~/components/settings/utils/settingsEmitter";
+import {
+  onSettingChange,
+  settingKeys,
+} from "~/components/settings/utils/settingsEmitter";
 import {
   type LeftSidebarConfig,
   type LeftSidebarPersonalSectionConfig,
@@ -343,9 +346,12 @@ export const useConfig = () => {
       refreshConfigTree();
       setConfig(buildConfig());
     };
-    const unsubGlobal = onSettingChange("global:Left sidebar", handleUpdate);
+    const unsubGlobal = onSettingChange(
+      settingKeys.globalLeftSidebar,
+      handleUpdate,
+    );
     const unsubPersonal = onSettingChange(
-      "personal:Left sidebar",
+      settingKeys.personalLeftSidebar,
       handleUpdate,
     );
     return () => {
@@ -356,9 +362,9 @@ export const useConfig = () => {
   return { config, setConfig };
 };
 
-// TODO(ENG-1471): refreshAndNotify still needed for other subscribe() consumers
-// (PanelManager, Canvas). Left sidebar reactivity now uses emitter, but other
-// components still depend on notify(). Remove when all consumers migrate to emitter.
+// TODO(ENG-1471): refreshAndNotify still needed by settings panels
+// (LeftSidebarGlobalSettings, LeftSidebarPersonalSettings) for old-system CRUD.
+// Remove when settings panels also read via accessors + emitter.
 export const refreshAndNotify = () => {
   refreshConfigTree();
   notify();
