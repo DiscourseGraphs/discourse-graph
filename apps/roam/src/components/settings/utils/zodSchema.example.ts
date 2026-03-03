@@ -89,13 +89,11 @@ const discourseNodeSettings: DiscourseNodeSettings = {
 const featureFlags: FeatureFlags = {
   "Enable left sidebar": true,
   "Suggestive mode enabled": true,
-  "Reified relation triples": false,
 };
 
 const defaultFeatureFlags: FeatureFlags = {
   "Enable left sidebar": false,
   "Suggestive mode enabled": false,
-  "Reified relation triples": false,
 };
 
 const exportSettings: ExportSettings = {
@@ -373,6 +371,7 @@ const personalSettings: PersonalSettings = {
   "Streamline styling": true,
   "Auto canvas relations": true,
   "Disable product diagnostics": false,
+  "Reified relation triples": true,
   Query: {
     "Hide query metadata": true,
     "Default page size": 25,
@@ -401,6 +400,7 @@ const defaultPersonalSettings: PersonalSettings = {
   "Streamline styling": false,
   "Auto canvas relations": false,
   "Disable product diagnostics": false,
+  "Reified relation triples": false,
   Query: {
     "Hide query metadata": false,
     "Default page size": 10,
