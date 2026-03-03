@@ -50,21 +50,9 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     useState<RelationMigrationDialog>(RelationMigrationDialog.none);
   const [numExistingRelations, setNumExistingRelations] = useState<number>(0);
   const [isOngoing, setOngoing] = useState<boolean>(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const settingStoredMigrationValue = useRef<boolean>();
-  const setStoredRelations = async (enabled: boolean) => {
-    await setSetting(USE_REIFIED_RELATIONS, enabled);
-    const panel = document.getElementById("stored-relation-flag");
-    const checkboxList = panel?.getElementsByTagName("input");
-    if (checkboxList && checkboxList.length > 0) {
-      const checkbox = checkboxList.item(0)!;
-      if (checkbox.checked !== enabled) {
-        settingStoredMigrationValue.current = true;
-        checkbox.click();
-        settingStoredMigrationValue.current = false;
-      }
-    }
-  };
+  const [storedRelations, setStoredRelations] = useState<boolean>(
+    getSetting<boolean>(USE_REIFIED_RELATIONS, false),
+  );
   const startMigration = async (): Promise<void> => {
     const before = numExistingRelations;
     try {
@@ -76,7 +64,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           intent: Intent.DANGER,
           id: "migration-error",
         });
-        await setStoredRelations(false);
+        setStoredRelations(false);
         return;
       }
       const after = await countReifiedRelations();
@@ -99,13 +87,13 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         after,
         created: after - before,
       });
-      await setStoredRelations(true);
+      setStoredRelations(true);
     } catch (error) {
       internalError({
         error,
         userMessage: "Reified Relations: Migration Failed",
       });
-      await setStoredRelations(false);
+      setStoredRelations(false);
     } finally {
       setOngoing(false);
       setActiveRelationMigration(RelationMigrationDialog.none);
@@ -172,10 +160,9 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           title="Enable stored relations"
           description="Transition to using stored relations instead of pattern-based relations"
           settingKeys={["Reified relation triples"]}
-          initialValue={getSetting<boolean>(USE_REIFIED_RELATIONS, false)}
+          value={storedRelations}
           // eslint-disable-next-line @typescript-eslint/require-await
           onBeforeChange={async (checked) => {
-            if (settingStoredMigrationValue.current) return true;
             if (checked) {
               countReifiedRelations()
                 .then((num: number) => {
@@ -333,15 +320,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                     small
                     intent={Intent.PRIMARY}
                     onClick={() => {
-                      setStoredRelations(true)
-                        .then(() => {
-                          setActiveRelationMigration(
-                            RelationMigrationDialog.none,
-                          );
-                        })
-                        .catch((error) => {
-                          internalError({ error });
-                        });
+                      setStoredRelations(true);
+                      setActiveRelationMigration(RelationMigrationDialog.none);
                     }}
                   >
                     Reactivate without Migration
@@ -392,13 +372,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                 small
                 intent={Intent.DANGER}
                 onClick={() => {
-                  setStoredRelations(false)
-                    .then(() => {
-                      setActiveRelationMigration(RelationMigrationDialog.none);
-                    })
-                    .catch((error) => {
-                      internalError({ error });
-                    });
+                  setStoredRelations(false);
+                  setActiveRelationMigration(RelationMigrationDialog.none);
                 }}
               >
                 Deactivate
