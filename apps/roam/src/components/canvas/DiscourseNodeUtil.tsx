@@ -45,6 +45,7 @@ import { getSetting } from "~/utils/extensionSettings";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import { setCurrentToolToSelectIfUnlocked } from "./toolLock";
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -110,6 +111,7 @@ export const createNodeShapeTools = (
     return class DiscourseNodeTool extends StateNode {
       static id = n.type;
       static initial = "idle";
+      static isLockable = true;
       shapeType = n.type;
 
       override onEnter = () => {
@@ -130,7 +132,7 @@ export const createNodeShapeTools = (
           props: { fontFamily: "sans", size: "s" },
         });
         this.editor.setEditingShape(shapeId);
-        this.editor.setCurrentTool("select");
+        setCurrentToolToSelectIfUnlocked(this.editor);
       };
     };
   });
