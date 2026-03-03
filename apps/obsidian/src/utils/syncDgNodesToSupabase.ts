@@ -314,33 +314,6 @@ const detectNodeChanges = (
   return changeTypes;
 };
 
-const logNodeChanges = ({
-  node,
-  changeTypes,
-  existingTitle,
-  lastSyncTime,
-}: {
-  node: DiscourseNodeInVault;
-  changeTypes: ChangeType[];
-  existingTitle: string | undefined;
-  lastSyncTime: Date;
-}): void => {
-  const currentFilename = node.file.basename;
-  const fileModifiedTime = new Date(node.file.stat.mtime);
-
-  if (changeTypes.includes("title")) {
-    console.log(
-      `Title changed for ${node.nodeInstanceId}: "${existingTitle}" -> "${currentFilename}"`,
-    );
-  }
-
-  if (changeTypes.includes("content")) {
-    console.log(
-      `Content changed for ${node.nodeInstanceId} (filename: "${currentFilename}") - file mtime: ${fileModifiedTime.toISOString()}, lastSyncTime: ${lastSyncTime.toISOString()}`,
-    );
-  }
-};
-
 const buildChangedNodesFromNodes = async ({
   nodes,
   supabaseClient,
@@ -382,13 +355,6 @@ const buildChangedNodesFromNodes = async ({
       continue;
     }
 
-    logNodeChanges({
-      node,
-      changeTypes: finalChangeTypes,
-      existingTitle,
-      lastSyncTime,
-    });
-
     changedNodes.push({
       file: node.file,
       frontmatter: node.frontmatter,
@@ -409,19 +375,15 @@ export const syncAllNodesAndRelations = async (
   relationsOnly?: boolean,
 ): Promise<void> => {
   try {
-    console.debug("Starting syncAllNodesAndRelations");
-
     const context = supabaseContext ?? (await getSupabaseContext(plugin));
     if (!context) {
       throw new Error("Could not create Supabase context");
     }
 
     const supabaseClient = await getLoggedInClient(plugin);
-    console.log("supabaseClient", supabaseClient);
     if (!supabaseClient) {
       throw new Error("Could not log in to Supabase client");
     }
-    console.debug("Supabase client:", supabaseClient);
 
     const allNodes = await collectDiscourseNodesFromVault(plugin);
 
@@ -432,9 +394,6 @@ export const syncAllNodesAndRelations = async (
           supabaseClient,
           context,
         });
-
-    console.log("changedNodeInstances", changedNodeInstances);
-    console.debug(`Found ${changedNodeInstances.length} nodes to sync`);
 
     const accountLocalId = plugin.settings.accountLocalId;
     if (!accountLocalId) {
@@ -460,8 +419,6 @@ export const syncAllNodesAndRelations = async (
 
     // When synced nodes are already published, ensure non-text assets are in storage.
     await syncPublishedNodesAssets(plugin, changedNodeInstances);
-
-    console.debug("Sync completed successfully");
   } catch (error) {
     console.error("syncAllNodesAndRelations: Process failed:", error);
     throw error;
@@ -695,7 +652,6 @@ const collectDiscourseNodesFromPaths = async (
   for (const filePath of filePaths) {
     const file = plugin.app.vault.getAbstractFileByPath(filePath);
     if (!(file instanceof TFile)) {
-      console.debug(`File not found or not a TFile: ${filePath}`);
       continue;
     }
 
@@ -709,12 +665,10 @@ const collectDiscourseNodesFromPaths = async (
 
     // Not a discourse node
     if (!frontmatter?.nodeTypeId) {
-      console.debug(`File is not a DG node: ${filePath}`);
       continue;
     }
 
     if (frontmatter.importedFromRid) {
-      console.debug(`Skipping imported file: ${filePath}`);
       continue;
     }
 
@@ -767,12 +721,7 @@ export const syncDiscourseNodeChanges = async (
   try {
     const filePaths = Array.from(changeTypesByPath.keys());
 
-    console.debug(
-      `Syncing ${filePaths.length} file change(s) with explicit types`,
-    );
-
     if (filePaths.length === 0) {
-      console.debug("No files to sync");
       return;
     }
 
@@ -792,7 +741,6 @@ export const syncDiscourseNodeChanges = async (
     );
 
     if (dgNodesInVault.length === 0) {
-      console.debug("No DG nodes found in specified files");
       return;
     }
 
@@ -815,8 +763,6 @@ export const syncDiscourseNodeChanges = async (
       context,
       accountLocalId,
     });
-
-    console.debug(`Successfully synced ${changedNodes.length} node(s)`);
   } catch (error) {
     console.error("syncDiscourseNodeChanges: Process failed:", error);
     throw error;

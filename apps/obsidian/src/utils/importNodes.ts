@@ -354,12 +354,6 @@ const fetchNodeContentForImport = async ({
     full.created == null ||
     full.last_modified == null
   ) {
-    if (!direct?.text) {
-      console.warn(`No direct variant found for node ${nodeInstanceId}`);
-    }
-    if (!full?.text) {
-      console.warn(`No full variant found for node ${nodeInstanceId}`);
-    }
     return null;
   }
 
@@ -458,12 +452,10 @@ const downloadFileFromStorage = async ({
       .download(filehash);
 
     if (error) {
-      console.warn(`Error downloading file ${filehash}:`, error);
       return null;
     }
 
     if (!data) {
-      console.warn(`No data returned for file ${filehash}`);
       return null;
     }
 
@@ -858,7 +850,6 @@ const importAssetsForNode = async ({
 
       if (!fileContent) {
         errors.push(`Failed to download file: ${filepath}`);
-        console.warn(`Failed to download file ${filepath} (hash: ${filehash})`);
         continue;
       }
 
@@ -898,7 +889,6 @@ const importAssetsForNode = async ({
 
       // Track path mapping (raw + normalized key so updateMarkdownAssetLinks can lookup by link text)
       setPathMapping(filepath, targetPath);
-      console.log(`Imported asset: ${filepath} -> ${targetPath}`);
     } catch (error) {
       const errorMsg = `Error importing asset ${fileRef.filepath}: ${error}`;
       errors.push(errorMsg);
@@ -1173,7 +1163,6 @@ export const importSelectedNodes = async ({
     const importFolderPath = `import/${sanitizeFileName(spaceName)}`;
     const spaceUri = spaceUris.get(spaceId);
     if (!spaceUri) {
-      console.warn(`Missing URI for space ${spaceId}`);
       for (const _node of nodes) {
         failedCount++;
         processedCount++;
@@ -1304,10 +1293,7 @@ export const importSelectedNodes = async ({
 
         // Log asset import errors if any
         if (assetImportResult.errors.length > 0) {
-          console.warn(
-            `Some assets failed to import for node ${node.nodeInstanceId}:`,
-            assetImportResult.errors,
-          );
+          // Errors are tracked in assetImportResult
         }
 
         // If title changed and file exists, rename it to match the new title
