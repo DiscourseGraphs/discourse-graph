@@ -50,9 +50,18 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     useState<RelationMigrationDialog>(RelationMigrationDialog.none);
   const [numExistingRelations, setNumExistingRelations] = useState<number>(0);
   const [isOngoing, setOngoing] = useState<boolean>(false);
-  const [storedRelations, setStoredRelations] = useState<boolean>(
+  const [storedRelations, setStoredRelationsState] = useState<boolean>(
     getSetting<boolean>(USE_REIFIED_RELATIONS, false),
   );
+  const setStoredRelations = (value: boolean) => {
+    setSetting<boolean>(USE_REIFIED_RELATIONS, value)
+      .then(() => {
+        setStoredRelationsState(value);
+      })
+      .catch((error) => {
+        internalError({ error });
+      });
+  };
   const startMigration = async (): Promise<void> => {
     const before = numExistingRelations;
     try {
