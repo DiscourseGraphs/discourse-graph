@@ -198,7 +198,7 @@ const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
   return settings.leftSidebar.personal.sections.map((section) => ({
     name: section.text,
     Children: (section.children || []).map((child) => ({
-      uid: child.uid,
+      uid: child.text,
       Alias: child.alias?.value || "",
     })),
     Settings: {

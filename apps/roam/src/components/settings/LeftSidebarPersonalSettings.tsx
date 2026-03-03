@@ -512,7 +512,7 @@ const SectionItem = memo(
                             <PersonalTextPanel
                               title="Alias"
                               description="Display name for this item"
-                              settingKeys={["Left sidebar"]}
+                              settingKeys={[]}
                               initialValue={child.alias?.value ?? ""}
                               order={0}
                               uid={child.alias?.uid}
@@ -797,7 +797,7 @@ const LeftSidebarPersonalSectionsContent = ({
               <PersonalNumberPanel
                 title="Truncate-result?"
                 description="Maximum characters to display"
-                settingKeys={["Left sidebar"]}
+                settingKeys={[]}
                 initialValue={
                   activeDialogSection.settings.truncateResult?.value ?? 75
                 }
