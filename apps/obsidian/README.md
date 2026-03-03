@@ -8,10 +8,6 @@
 
 Break down the research process into atomic units to augment the knowledge synthesis process. Create distinct objects for questions, claims, evidence, hypotheses or choose your own to suit your specific needs. These objects can then be related, resurfaced, and reused throughout your research journey to help you efficiently build arguments and create new knowledge.
 
-# Documentation
-
-For more information about Discourse Graphs, check out [our website](https://discoursegraphs.com) and [documentation](https://discoursegraphs.com/docs/obsidian/getting-started).
-
 # Installation
 
 Follow the instructions below to install the plugin:
@@ -135,6 +131,10 @@ The Discourse Graphs plugin uses [tldraw](https://tldraw.dev/) to create canvase
 | Switch to Discourse Graph canvas view | Renders tldraw canvas if markdown is displayed                                             |
 | Switch to discourse markdown edit     | Displays markdown of a rendered tldraw canvas                                              |
 | Toggle discourse context              | Opens a widget in the sidebar which displays relations of the active node                  |
+
+# Documentation
+
+For more information about Discourse Graphs, check out [our website](https://discoursegraphs.com) and [documentation](https://discoursegraphs.com/docs/obsidian/getting-started).
 
 # Get involved
 
