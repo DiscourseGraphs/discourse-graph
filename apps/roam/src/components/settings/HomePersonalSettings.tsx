@@ -49,7 +49,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const [activeRelationMigration, setActiveRelationMigration] =
     useState<RelationMigrationDialog>(RelationMigrationDialog.none);
   const [numExistingRelations, setNumExistingRelations] = useState<number>(0);
-  const [isOngoing, setOngoing] = useState<boolean>(false);
+  const [isOngoing, setIsOngoing] = useState<boolean>(false);
   const [storedRelations, setStoredRelationsState] = useState<boolean>(
     getSetting<boolean>(USE_REIFIED_RELATIONS, false),
   );
@@ -104,7 +104,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       });
       setStoredRelations(false);
     } finally {
-      setOngoing(false);
+      setIsOngoing(false);
       setActiveRelationMigration(RelationMigrationDialog.none);
     }
   };
@@ -334,7 +334,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                   small
                   intent={Intent.PRIMARY}
                   onClick={() => {
-                    setOngoing(true);
+                    setIsOngoing(true);
                     void startMigration();
                   }}
                 >
@@ -420,7 +420,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                   small
                   intent={Intent.PRIMARY}
                   onClick={() => {
-                    setOngoing(true);
+                    setIsOngoing(true);
                     void startMigration();
                   }}
                 >
