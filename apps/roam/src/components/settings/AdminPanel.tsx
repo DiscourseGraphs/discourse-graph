@@ -360,7 +360,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
   }, []);
 
   const [suggestiveModeEnabled, setSuggestiveModeEnabled] = useState(
-    settings.suggestiveModeEnabled.value || false,
+    getFeatureFlag("Suggestive mode enabled"),
   );
   const [suggestiveModeUid, setSuggestiveModeUid] = useState(
     settings.suggestiveModeEnabled.uid,
@@ -424,6 +424,8 @@ const FeatureFlagsTab = (): React.ReactElement => {
         <p>Are you sure you want to proceed?</p>
       </Alert>
 
+      {/* TODO(ENG-1484): Add pull watcher reactivity so toggling suggestive mode
+          starts/stops sync and shows the tab without requiring a reload. */}
       <Alert
         isOpen={isInstructionOpen}
         onConfirm={() => window.location.reload()}
@@ -498,10 +500,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
 const AdminPanel = (): React.ReactElement => {
   const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
-  const settings = useMemo(() => {
-    refreshConfigTree();
-    return getFormattedConfigTree();
-  }, []);
 
   return (
     <Tabs
@@ -536,7 +534,7 @@ const AdminPanel = (): React.ReactElement => {
           </div>
         }
       />
-      {settings.suggestiveModeEnabled.value && (
+      {getFeatureFlag("Suggestive mode enabled") && (
         <Tab
           id="suggestive-mode-settings"
           title="Suggestive mode"

@@ -5,9 +5,9 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import findDiscourseNode from "./findDiscourseNode";
 import { nextApiRoot } from "@repo/utils/execContext";
 import { DiscourseNode } from "./getDiscourseNodes";
-import getExtensionAPI from "roamjs-components/util/extensionApiContext";
 import { getNodesByType } from "@repo/database/lib/queries";
 import getAllReferencesOnPage from "./getAllReferencesOnPage";
+import { getGlobalSetting } from "~/components/settings/utils/accessors";
 
 type ApiEmbeddingResponse = {
   data: Array<{
@@ -415,15 +415,16 @@ export const performHydeSearch = async ({
     return [];
   }
 
-  const extensionAPI = getExtensionAPI();
   const shouldGrabFromReferencedPages =
-    (extensionAPI.settings.get(
-      "context-grab-from-referenced-pages",
-    ) as boolean) ?? true;
+    getGlobalSetting<boolean>([
+      "Suggestive mode",
+      "Include current page relations",
+    ]) ?? false;
   const shouldGrabParentChildContext =
-    (extensionAPI.settings.get(
-      "context-grab-parent-child-context",
-    ) as boolean) ?? true;
+    getGlobalSetting<boolean>([
+      "Suggestive mode",
+      "Include parent and child blocks",
+    ]) ?? false;
 
   let candidateNodesForHyde: SuggestedNode[] = [];
 

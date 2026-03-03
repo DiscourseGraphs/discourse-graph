@@ -31,13 +31,12 @@ import {
   setSyncActivity,
 } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
-import { getUidAndBooleanSetting } from "./utils/getExportSettings";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "./utils/renderNodeConfigPage";
 import { initPostHog } from "./utils/posthog";
 import { initSchema } from "./components/settings/utils/init";
-import { getPersonalSetting } from "./components/settings/utils/accessors";
+import {
+  getFeatureFlag,
+  getPersonalSetting,
+} from "./components/settings/utils/accessors";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -112,12 +111,7 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  const isSuggestiveModeEnabled = getUidAndBooleanSetting({
-    tree: getBasicTreeByParentUid(
-      getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-    ),
-    text: "(BETA) Suggestive Mode Enabled",
-  }).value;
+  const isSuggestiveModeEnabled = getFeatureFlag("Suggestive mode enabled");
 
   if (isSuggestiveModeEnabled) {
     initializeSupabaseSync();
