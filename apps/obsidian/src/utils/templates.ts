@@ -1,14 +1,32 @@
-import {
-  App,
-  TFile,
-  TFolder,
-  TAbstractFile,
-  getFrontMatterInfo,
-} from "obsidian";
+import { App, TFile, TFolder, TAbstractFile } from "obsidian";
 
 type TemplatePluginInfo = {
   isEnabled: boolean;
   folderPath: string;
+};
+
+const parseFrontmatterFromString = (
+  content: string,
+): { exists: boolean; contentStart: number } => {
+  const lines = content.split("\n");
+  if (lines[0]?.trim() !== "---") {
+    return { exists: false, contentStart: 0 };
+  }
+
+  let endLine = -1;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i] === "---") {
+      endLine = i;
+      break;
+    }
+  }
+
+  if (endLine === -1) {
+    return { exists: false, contentStart: 0 };
+  }
+
+  const contentStart = lines.slice(0, endLine + 1).join("\n").length + 1;
+  return { exists: true, contentStart };
 };
 
 const mergeFrontmatter = (
@@ -139,7 +157,7 @@ export const applyTemplate = async ({
       Object.assign(fm, mergedFrontmatter);
     });
 
-    const frontmatterInfo = getFrontMatterInfo(templateContent);
+    const frontmatterInfo = parseFrontmatterFromString(templateContent);
     const templateBody = frontmatterInfo.exists
       ? templateContent.slice(frontmatterInfo.contentStart)
       : templateContent;
