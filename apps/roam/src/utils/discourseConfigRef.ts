@@ -7,8 +7,7 @@ import {
   getUidAndBooleanSetting,
   BooleanSetting,
 } from "./getExportSettings";
-// Inlined to break circular dep: accessors → discourseConfigRef → renderNodeConfigPage → ~/components barrel → accessors
-const DISCOURSE_CONFIG_PAGE_TITLE = "roam/js/discourse-graph";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import {
   getSuggestiveModeConfigAndUids,

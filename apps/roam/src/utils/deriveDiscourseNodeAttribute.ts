@@ -54,8 +54,12 @@ const deriveNodeAttribute = async ({
     getDiscourseNodeSetting<Record<string, string>>(nodeType || "", [
       "attributes",
     ]) ?? {};
+  const match = Object.keys(attributes).find(
+    (k) => k.toLowerCase() === attribute.toLowerCase(),
+  );
   const scoreFormula =
-    attributes[attribute] ?? "{count:Has Any Relation To:any}";
+    (match ? attributes[match] : undefined) ||
+    "{count:Has Any Relation To:any}";
   let postProcess = scoreFormula;
   let totalOffset = 0;
   const matches = scoreFormula.matchAll(/{([^}]+)}/g);

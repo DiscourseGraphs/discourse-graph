@@ -2,8 +2,7 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { RoamBasicNode } from "roamjs-components/types";
 import { getSubTree } from "roamjs-components/util";
-// Inlined to avoid circular dep: accessors → discourseConfigRef → getExportSettings → renderNodeConfigPage → ~/components barrel → accessors
-const DISCOURSE_CONFIG_PAGE_TITLE = "roam/js/discourse-graph";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 
 type UidPair<T> = {
   uid?: string;
