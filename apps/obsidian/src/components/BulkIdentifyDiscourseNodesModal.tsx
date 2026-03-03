@@ -143,7 +143,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
           const fileContent = await plugin.app.vault.read(candidate.file);
           const newContent = `---\nnodeTypeId: ${candidate.matchedNodeType.id}\n---\n\n${fileContent}`;
 
-          await plugin.app.vault.modify(candidate.file, newContent);
+          await plugin.app.vault.process(candidate.file, () => newContent);
 
           successCount++;
 
