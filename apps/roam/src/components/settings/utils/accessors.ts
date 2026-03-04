@@ -512,7 +512,7 @@ const migrateNodeBlockProps = (
         conditions: migrated.specification,
         selections: [],
         custom: "",
-        returnNode: "",
+        returnNode: "node",
       },
     };
   } else if (
@@ -531,7 +531,7 @@ const migrateNodeBlockProps = (
         conditions: spec.query,
         selections: [],
         custom: "",
-        returnNode: "",
+        returnNode: "node",
       },
     };
   }
