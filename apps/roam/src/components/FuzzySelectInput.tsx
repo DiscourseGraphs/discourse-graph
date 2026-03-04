@@ -57,10 +57,6 @@ const FuzzySelectInput = <T extends Result = Result>({
     return filteredItems.slice(0, RESULTS_LIMIT);
   }, [filteredItems]);
 
-  const isResultsTruncated = useMemo(() => {
-    return filteredItems.length > RESULTS_LIMIT;
-  }, [filteredItems.length]);
-
   const handleSelect = useCallback(
     (item: T) => {
       setQuery(item.text);
@@ -209,28 +205,20 @@ const FuzzySelectInput = <T extends Result = Result>({
       autoFocus={false}
       enforceFocus={false}
       content={
-        <div>
-          <Menu className="max-h-64 max-w-md overflow-auto" ulRef={menuRef}>
-            {displayedItems.map((item, index) => (
-              <MenuItem
-                key={item.uid || index}
-                text={item.text}
-                active={activeIndex === index}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handleSelect(item);
-                }}
-                multiline
-              />
-            ))}
-          </Menu>
-          {isResultsTruncated && (
-            <div className="border-t border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400">
-              Showing first {RESULTS_LIMIT} results — refine your search to see
-              more.
-            </div>
-          )}
-        </div>
+        <Menu className="max-h-64 max-w-md overflow-auto" ulRef={menuRef}>
+          {displayedItems.map((item, index) => (
+            <MenuItem
+              key={item.uid || index}
+              text={item.text}
+              active={activeIndex === index}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleSelect(item);
+              }}
+              multiline
+            />
+          ))}
+        </Menu>
       }
       target={
         <InputGroup
