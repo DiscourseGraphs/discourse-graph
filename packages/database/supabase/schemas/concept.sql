@@ -410,7 +410,9 @@ BEGIN
             literal_content = db_concept.literal_content,
             is_schema = db_concept.is_schema,
             reference_content = db_concept.reference_content
-        -- ON CONFLICT (space_id, name) DO NOTHING... why can't I specify two conflict clauses?
+        -- If the syntax allowed two conflict clauses, I would add
+        -- ON CONFLICT (space_id, name) DO NOTHING
+        -- but since not, I have to handle it as an exception.
         RETURNING id INTO concept_id;
         RETURN NEXT concept_id;
     EXCEPTION
