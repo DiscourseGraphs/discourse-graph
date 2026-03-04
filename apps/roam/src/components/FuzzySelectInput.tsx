@@ -17,6 +17,8 @@ import {
 import fuzzy from "fuzzy";
 import { Result } from "~/utils/types";
 
+const RESULTS_LIMIT = 50;
+
 type FuzzySelectInputProps<T extends Result = Result> = {
   value?: T;
   setValue: (q: T) => void;
@@ -51,6 +53,14 @@ const FuzzySelectInput = <T extends Result = Result>({
       .map((result) => result.original);
   }, [query, options]);
 
+  const displayedItems = useMemo(() => {
+    return filteredItems.slice(0, RESULTS_LIMIT);
+  }, [filteredItems]);
+
+  const isResultsTruncated = useMemo(() => {
+    return filteredItems.length > RESULTS_LIMIT;
+  }, [filteredItems.length]);
+
   const handleSelect = useCallback(
     (item: T) => {
       setQuery(item.text);
@@ -84,7 +94,7 @@ const FuzzySelectInput = <T extends Result = Result>({
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setActiveIndex((prev) =>
-          prev < filteredItems.length - 1 ? prev + 1 : prev,
+          prev < displayedItems.length - 1 ? prev + 1 : prev,
         );
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
@@ -92,7 +102,7 @@ const FuzzySelectInput = <T extends Result = Result>({
       } else if (e.key === "Enter") {
         e.preventDefault();
         e.stopPropagation();
-        if (isOpen && filteredItems[activeIndex]) {
+        if (isOpen && displayedItems[activeIndex]) {
           const keyUpHandler = (keyUpEvent: KeyboardEvent) => {
             if (keyUpEvent.key === "Enter" || keyUpEvent.key === " ") {
               keyUpEvent.preventDefault();
@@ -104,14 +114,14 @@ const FuzzySelectInput = <T extends Result = Result>({
           setTimeout(() => {
             document.removeEventListener("keyup", keyUpHandler, true);
           }, 150);
-          handleSelect(filteredItems[activeIndex]);
+          handleSelect(displayedItems[activeIndex]);
         }
       } else if (e.key === "Escape") {
         e.preventDefault();
         setIsOpen(false);
       }
     },
-    [filteredItems, activeIndex, isOpen, handleSelect],
+    [displayedItems, activeIndex, isOpen, handleSelect],
   );
 
   useEffect(() => {
@@ -129,7 +139,7 @@ const FuzzySelectInput = <T extends Result = Result>({
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [filteredItems]);
+  }, [displayedItems]);
 
   useEffect(() => {
     if (menuRef.current && isOpen) {
@@ -199,20 +209,28 @@ const FuzzySelectInput = <T extends Result = Result>({
       autoFocus={false}
       enforceFocus={false}
       content={
-        <Menu className="max-h-64 max-w-md overflow-auto" ulRef={menuRef}>
-          {filteredItems.map((item, index) => (
-            <MenuItem
-              key={item.uid || index}
-              text={item.text}
-              active={activeIndex === index}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleSelect(item);
-              }}
-              multiline
-            />
-          ))}
-        </Menu>
+        <div>
+          <Menu className="max-h-64 max-w-md overflow-auto" ulRef={menuRef}>
+            {displayedItems.map((item, index) => (
+              <MenuItem
+                key={item.uid || index}
+                text={item.text}
+                active={activeIndex === index}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleSelect(item);
+                }}
+                multiline
+              />
+            ))}
+          </Menu>
+          {isResultsTruncated && (
+            <div className="border-t border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400">
+              Showing first {RESULTS_LIMIT} results — refine your search to see
+              more.
+            </div>
+          )}
+        </div>
       }
       target={
         <InputGroup
