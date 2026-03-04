@@ -391,8 +391,8 @@ BEGIN
     -- then input values
     local_concept := jsonb_populate_record(local_concept, concept_row);
     local_concept.space_id := v_space_id;
-    db_concept := public._local_concept_to_db_concept(local_concept);
     BEGIN
+        db_concept := public._local_concept_to_db_concept(local_concept);
         -- cannot use db_concept.* because of refs.
         INSERT INTO public."Concept" (
         epistemic_status, name, description, author_id, created, last_modified, space_id, schema_id, literal_content, is_schema, source_local_id, reference_content
@@ -418,6 +418,10 @@ BEGIN
             -- a distinct unique constraint failed
             RAISE WARNING 'Concept with space_id: % and name % already exists', v_space_id, local_concept.name;
             RETURN NEXT -1; -- Return a special value to indicate conflict
+        WHEN OTHERS THEN
+            -- Null value; probably due to a missing concept.
+            RAISE WARNING 'Error in concept upsert: (%) %', SQLSTATE, SQLERRM;
+            RETURN NEXT -2; -- Return a special value to indicate error
     END;
   END LOOP;
   RAISE DEBUG 'Completed upsert_concepts successfully';

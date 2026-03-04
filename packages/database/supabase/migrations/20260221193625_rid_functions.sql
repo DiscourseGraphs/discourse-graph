@@ -101,3 +101,60 @@ BEGIN
   RETURN concept;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION public.upsert_concepts(v_space_id bigint, data jsonb)
+RETURNS SETOF BIGINT
+SET search_path = ''
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_platform public."Platform";
+  local_concept public.concept_local_input;
+  db_concept public."Concept"%ROWTYPE;
+  concept_row JSONB;
+  concept_id BIGINT;
+BEGIN
+  SELECT platform INTO STRICT v_platform FROM public."Space" WHERE id=v_space_id;
+  FOR concept_row IN SELECT * FROM jsonb_array_elements(data)
+  LOOP
+    -- first set defaults
+    local_concept := jsonb_populate_record(NULL::public.concept_local_input, '{"epistemic_status": "unknown", "literal_content":{},"reference_content":{},"is_schema":false}');
+    -- then input values
+    local_concept := jsonb_populate_record(local_concept, concept_row);
+    local_concept.space_id := v_space_id;
+    BEGIN
+        db_concept := public._local_concept_to_db_concept(local_concept);
+        -- cannot use db_concept.* because of refs.
+        INSERT INTO public."Concept" (
+        epistemic_status, name, description, author_id, created, last_modified, space_id, schema_id, literal_content, is_schema, source_local_id, reference_content
+        ) VALUES (
+        db_concept.epistemic_status, db_concept.name, db_concept.description, db_concept.author_id, db_concept.created, db_concept.last_modified, db_concept.space_id, db_concept.schema_id, db_concept.literal_content, db_concept.is_schema, db_concept.source_local_id, db_concept.reference_content
+        )
+        ON CONFLICT (space_id, source_local_id) DO UPDATE SET
+            epistemic_status = db_concept.epistemic_status,
+            name = db_concept.name,
+            description = db_concept.description,
+            author_id = db_concept.author_id,
+            created = db_concept.created,
+            last_modified = db_concept.last_modified,
+            schema_id = db_concept.schema_id,
+            literal_content = db_concept.literal_content,
+            is_schema = db_concept.is_schema,
+            reference_content = db_concept.reference_content
+        -- ON CONFLICT (space_id, name) DO NOTHING... why can't I specify two conflict clauses?
+        RETURNING id INTO concept_id;
+        RETURN NEXT concept_id;
+    EXCEPTION
+        WHEN unique_violation THEN
+            -- a distinct unique constraint failed
+            RAISE WARNING 'Concept with space_id: % and name % already exists', v_space_id, local_concept.name;
+            RETURN NEXT -1; -- Return a special value to indicate conflict
+        WHEN OTHERS THEN
+            -- Null value; probably due to a missing concept.
+            RAISE WARNING 'Error in concept upsert: (%) %', SQLSTATE, SQLERRM;
+            RETURN NEXT -2; -- Return a special value to indicate error
+    END;
+  END LOOP;
+  RAISE DEBUG 'Completed upsert_concepts successfully';
+END;
+$$;
