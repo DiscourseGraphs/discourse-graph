@@ -124,7 +124,6 @@ const fetchRelationInstancesFromSpace = async ({
     .eq("space_id", spaceId)
     .eq("is_schema", false)
     .gt("arity", 0);
-  console.log(instances);
 
   if (error || !instances) {
     console.warn("Error fetching relation instances:", error);
