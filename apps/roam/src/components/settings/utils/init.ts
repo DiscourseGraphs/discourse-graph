@@ -151,8 +151,6 @@ const initSingleDiscourseNode = async (
     });
 
     setBlockProps(pageUid, nodeData, false);
-  } else if (existingProps && existingProps["backedBy"] === "default") {
-    setBlockProps(pageUid, { ...existingProps, backedBy: "user" }, false);
   }
 
   return { label: node.text, pageUid };

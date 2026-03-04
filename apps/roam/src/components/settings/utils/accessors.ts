@@ -968,7 +968,7 @@ const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
   format: settings.format,
   description: settings.description || undefined,
   graphOverview: settings.graphOverview || undefined,
-  backedBy: settings.backedBy,
+  backedBy: "user",
   specification: addConditionUids(
     settings.specification.query.conditions as SchemaCondition[],
   ),
