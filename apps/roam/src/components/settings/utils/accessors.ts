@@ -493,6 +493,67 @@ export const setDiscourseNodeSetting = (
   setBlockPropAtPath(pageUid, keys, value);
 };
 
+/**
+ * Migrate known legacy block prop shapes to the current schema.
+ *
+ * - specification: Condition[] → {enabled, query: {conditions, ...}}
+ * - specification: {enabled, query: Condition[]} → {enabled, query: {conditions, ...}}
+ * - suggestiveRules.isFirstChild: {uid, value} → boolean
+ */
+const migrateNodeBlockProps = (
+  props: Record<string, json>,
+): Record<string, json> => {
+  const migrated = { ...props };
+
+  if (Array.isArray(migrated.specification)) {
+    migrated.specification = {
+      enabled: migrated.specification.length > 0,
+      query: {
+        conditions: migrated.specification,
+        selections: [],
+        custom: "",
+        returnNode: "",
+      },
+    };
+  } else if (
+    typeof migrated.specification === "object" &&
+    migrated.specification !== null &&
+    "query" in migrated.specification &&
+    Array.isArray((migrated.specification as Record<string, json>).query)
+  ) {
+    const spec = migrated.specification as Record<string, json>;
+    migrated.specification = {
+      enabled:
+        typeof spec.enabled === "boolean"
+          ? spec.enabled
+          : (spec.query as json[]).length > 0,
+      query: {
+        conditions: spec.query,
+        selections: [],
+        custom: "",
+        returnNode: "",
+      },
+    };
+  }
+
+  if (
+    typeof migrated.suggestiveRules === "object" &&
+    migrated.suggestiveRules !== null &&
+    !Array.isArray(migrated.suggestiveRules)
+  ) {
+    const rules = migrated.suggestiveRules as Record<string, json>;
+    const ifc = rules.isFirstChild;
+    if (typeof ifc === "object" && ifc !== null && !Array.isArray(ifc)) {
+      migrated.suggestiveRules = {
+        ...rules,
+        isFirstChild: (ifc as Record<string, json>).value ?? false,
+      };
+    }
+  }
+
+  return migrated;
+};
+
 export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
   const results = window.roamAlphaAPI.data.fast.q(`
     [:find ?uid ?title (pull ?page [:block/props])
@@ -517,20 +578,27 @@ export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
     )
       continue;
 
+    const nodeText = title.replace(DISCOURSE_NODE_PAGE_PREFIX, "");
     const result = DiscourseNodeSchema.safeParse(blockProps);
     if (result.success) {
-      nodes.push({
-        ...result.data,
-        type: pageUid,
-        text: title.replace(DISCOURSE_NODE_PAGE_PREFIX, ""),
-      });
+      nodes.push({ ...result.data, type: pageUid, text: nodeText });
     } else {
-      internalError({
-        error: result.error,
-        type: "DG Discourse Node Parse",
-        context: { pageUid, title },
-        sendEmail: false,
-      });
+      // Try migrating legacy field shapes before dropping the node.
+      const migrated = migrateNodeBlockProps(
+        blockProps as Record<string, json>,
+      );
+      const retryResult = DiscourseNodeSchema.safeParse(migrated);
+      if (retryResult.success) {
+        setBlockProps(pageUid, retryResult.data, false);
+        nodes.push({ ...retryResult.data, type: pageUid, text: nodeText });
+      } else {
+        internalError({
+          error: result.error,
+          type: "DG Discourse Node Parse",
+          context: { pageUid, title },
+          sendEmail: false,
+        });
+      }
     }
   }
 
