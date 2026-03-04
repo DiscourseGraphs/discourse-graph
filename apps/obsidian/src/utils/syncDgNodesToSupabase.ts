@@ -365,6 +365,7 @@ const buildChangedNodesFromNodes = async ({
   const changedNodes: ObsidianDiscourseNodeData[] = [];
 
   for (const node of nodes) {
+    if (node.frontmatter.importedFromRid) continue;
     const existingTitle = existingTitleMap.get(node.nodeInstanceId);
     const detectedChangeTypes = detectNodeChanges(
       node,
@@ -423,7 +424,7 @@ export const syncAllNodesAndRelations = async (
     }
     console.debug("Supabase client:", supabaseClient);
 
-    const allNodes = await collectDiscourseNodesFromVault(plugin);
+    const allNodes = await collectDiscourseNodesFromVault(plugin, true);
 
     const changedNodeInstances = relationsOnly
       ? []
@@ -433,7 +434,6 @@ export const syncAllNodesAndRelations = async (
           context,
         });
 
-    console.log("changedNodeInstances", changedNodeInstances);
     console.debug(`Found ${changedNodeInstances.length} nodes to sync`);
 
     const accountLocalId = plugin.settings.accountLocalId;
@@ -495,7 +495,7 @@ const convertDgToSupabaseConcepts = async ({
   const nodeTypes = plugin.settings.nodeTypes ?? [];
   const relationTypes = plugin.settings.relationTypes ?? [];
   const discourseRelations = plugin.settings.discourseRelations ?? [];
-  allNodes = allNodes ?? (await collectDiscourseNodesFromVault(plugin));
+  allNodes = allNodes ?? (await collectDiscourseNodesFromVault(plugin, true));
   const allNodesById = Object.fromEntries(
     allNodes.map((n) => [n.nodeInstanceId, n]),
   );

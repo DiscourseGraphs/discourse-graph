@@ -182,7 +182,6 @@ export const publishNodeRelations = async ({
         (fm.publishedToGroups as string[]) || [];
       if (!publishedToGroups.includes(myGroup)) return;
     }
-    if (fm.importedFromRid) return; // temporary, should be removed after eng-1475
     relevantNodeTypeById[id] = fm.nodeTypeId as string;
   });
   relations.map((relation) => {
@@ -199,6 +198,7 @@ export const publishNodeRelations = async ({
       resourceIds.add(triple.id);
     }
   });
+  if (resourceIds.size === 0) return;
   const publishResponse = await client.from("ResourceAccess").upsert(
     [...resourceIds.values()].map((sourceLocalId: string) => ({
       /* eslint-disable @typescript-eslint/naming-convention */
