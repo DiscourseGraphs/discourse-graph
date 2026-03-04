@@ -12,6 +12,7 @@ import {
   type TldrawColorName,
 } from "~/utils/tldrawColors";
 import { getContrastColor } from "~/utils/colorUtils";
+import { getImportInfo, formatImportSource } from "~/utils/typeUtils";
 
 type ColorPickerProps = {
   value: string;
@@ -208,47 +209,88 @@ const RelationshipTypeSettings = () => {
     new Notice("Relation types saved.");
   };
 
+  const localRelationTypes = relationTypes.filter(
+    (relationType) => !relationType.importedFromRid,
+  );
+  const importedRelationTypes = relationTypes.filter(
+    (relationType) => relationType.importedFromRid,
+  );
+
+  const renderRelationTypeItem = (
+    relationType: DiscourseRelationType,
+    index: number,
+  ) => {
+    const importInfo = getImportInfo(relationType.importedFromRid);
+    const isImported = importInfo.isImported;
+
+    return (
+      <div key={index} className="setting-item">
+        <div className="flex w-full flex-col gap-1">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Label (e.g., supports)"
+              value={relationType.label}
+              onChange={(e) =>
+                handleRelationTypeChange(index, "label", e.target.value)
+              }
+              className="flex-2"
+            />
+            <input
+              type="text"
+              placeholder="Complement (e.g., is supported by)"
+              value={relationType.complement}
+              onChange={(e) =>
+                handleRelationTypeChange(index, "complement", e.target.value)
+              }
+              className="flex-1"
+            />
+            <ColorPicker
+              value={relationType.color}
+              onChange={(color) =>
+                handleRelationTypeChange(index, "color", color)
+              }
+            />
+            <button
+              onClick={() => confirmDeleteRelationType(index)}
+              className="mod-warning p-2"
+            >
+              Delete
+            </button>
+          </div>
+          {isImported && importInfo.spaceUri && (
+            <span className="text-muted text-xs">
+              Imported from: {formatImportSource(importInfo.spaceUri)}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="discourse-relation-types">
-      {relationTypes.map((relationType, index) => (
-        <div key={index} className="setting-item">
-          <div className="flex w-full flex-col">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Label (e.g., supports)"
-                value={relationType.label}
-                onChange={(e) =>
-                  handleRelationTypeChange(index, "label", e.target.value)
-                }
-                className="flex-2"
-              />
-              <input
-                type="text"
-                placeholder="Complement (e.g., is supported by)"
-                value={relationType.complement}
-                onChange={(e) =>
-                  handleRelationTypeChange(index, "complement", e.target.value)
-                }
-                className="flex-1"
-              />
-              <ColorPicker
-                value={relationType.color}
-                onChange={(color) =>
-                  handleRelationTypeChange(index, "color", color)
-                }
-              />
-              <button
-                onClick={() => confirmDeleteRelationType(index)}
-                className="mod-warning p-2"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+      {localRelationTypes.length > 0 && (
+        <div>
+          <h4 className="mb-2 font-semibold">Local Relation Types</h4>
+          {localRelationTypes.map((relationType) => {
+            const index = relationTypes.indexOf(relationType);
+            return renderRelationTypeItem(relationType, index);
+          })}
         </div>
-      ))}
-      <div className="setting-item">
+      )}
+
+      {importedRelationTypes.length > 0 && (
+        <div className="mt-4">
+          <h4 className="mb-2 font-semibold">Imported Relation Types</h4>
+          {importedRelationTypes.map((relationType) => {
+            const index = relationTypes.indexOf(relationType);
+            return renderRelationTypeItem(relationType, index);
+          })}
+        </div>
+      )}
+
+      <div className="setting-item mt-4">
         <div className="flex gap-2">
           <button onClick={handleAddRelationType} className="p-2">
             Add Relation Type

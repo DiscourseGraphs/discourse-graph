@@ -6,6 +6,7 @@ import generateUid from "~/utils/generateUid";
 import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
+import { getImportInfo, formatImportSource } from "~/utils/typeUtils";
 
 const generateTagPlaceholder = (format: string, nodeName?: string): string => {
   if (!format) return "Enter tag (e.g., clm-candidate)";
@@ -508,26 +509,40 @@ const NodeTypeSettings = () => {
     );
   };
 
-  const renderNodeList = () => (
-    <div className="node-type-list">
-      <button onClick={handleAddNodeType} className="mod-cta">
-        Add Node Type
-      </button>
-      {nodeTypes.map((nodeType, index) => (
+  const renderNodeList = () => {
+    const localNodeTypes = nodeTypes.filter(
+      (nodeType) => !nodeType.importedFromRid,
+    );
+    const importedNodeTypes = nodeTypes.filter(
+      (nodeType) => nodeType.importedFromRid,
+    );
+
+    const renderNodeTypeItem = (nodeType: DiscourseNode, index: number) => {
+      const importInfo = getImportInfo(nodeType.importedFromRid);
+      const isImported = importInfo.isImported;
+
+      return (
         <div
           key={nodeType.id}
           className="node-type-item hover:bg-secondary-lt flex cursor-pointer flex-col gap-1 p-2"
           onClick={() => startEditing(index)}
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {nodeType.color && (
-                <div
-                  className="h-4 w-4 rounded-full"
-                  style={{ backgroundColor: nodeType.color }}
-                />
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                {nodeType.color && (
+                  <div
+                    className="h-4 w-4 rounded-full"
+                    style={{ backgroundColor: nodeType.color }}
+                  />
+                )}
+                <span>{nodeType.name}</span>
+              </div>
+              {isImported && importInfo.spaceUri && (
+                <span className="text-muted text-xs pl-6">
+                  Imported from: {formatImportSource(importInfo.spaceUri)}
+                </span>
               )}
-              <span>{nodeType.name}</span>
             </div>
             <div className="flex gap-2">
               <button
@@ -562,9 +577,37 @@ const NodeTypeSettings = () => {
             <span className="text-muted text-sm">{nodeType.description}</span>
           )}
         </div>
-      ))}
-    </div>
-  );
+      );
+    };
+
+    return (
+      <div className="node-type-list">
+        <button onClick={handleAddNodeType} className="mod-cta">
+          Add Node Type
+        </button>
+
+        {localNodeTypes.length > 0 && (
+          <div className="mt-4">
+            <h4 className="mb-2 font-semibold">Local Node Types</h4>
+            {localNodeTypes.map((nodeType) => {
+              const index = nodeTypes.indexOf(nodeType);
+              return renderNodeTypeItem(nodeType, index);
+            })}
+          </div>
+        )}
+
+        {importedNodeTypes.length > 0 && (
+          <div className="mt-4">
+            <h4 className="mb-2 font-semibold">Imported Node Types</h4>
+            {importedNodeTypes.map((nodeType) => {
+              const index = nodeTypes.indexOf(nodeType);
+              return renderNodeTypeItem(nodeType, index);
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderEditForm = () => {
     if (!editingNodeType) return null;

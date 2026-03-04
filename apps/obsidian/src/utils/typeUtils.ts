@@ -1,5 +1,6 @@
 import type DiscourseGraphPlugin from "~/index";
 import { DiscourseNode, DiscourseRelationType } from "~/types";
+import { ridToSpaceUriAndLocalId } from "./rid";
 
 export const getNodeTypeById = (
   plugin: DiscourseGraphPlugin,
@@ -15,4 +16,48 @@ export const getRelationTypeById = (
   return plugin.settings.relationTypes.find(
     (relation) => relation.id === relationTypeId,
   );
+};
+
+export type ImportInfo = {
+  isImported: boolean;
+  spaceUri?: string;
+  sourceLocalId?: string;
+};
+
+export const getImportInfo = (
+  importedFromRid: string | undefined,
+): ImportInfo => {
+  if (!importedFromRid) {
+    return { isImported: false };
+  }
+
+  try {
+    const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(importedFromRid);
+    return {
+      isImported: true,
+      spaceUri,
+      sourceLocalId,
+    };
+  } catch (error) {
+    console.error("Error parsing importedFromRid:", error);
+    return { isImported: false };
+  }
+};
+
+export const formatImportSource = (spaceUri: string): string => {
+  if (spaceUri.startsWith("obsidian:")) {
+    const vaultId = spaceUri.replace("obsidian:", "");
+    return `Vault ID: ${vaultId}`;
+  }
+  
+  if (spaceUri.startsWith("http")) {
+    return spaceUri;
+  }
+  
+  const parts = spaceUri.split(":");
+  if (parts.length === 2) {
+    return `${parts[0]}: ${parts[1]}`;
+  }
+  
+  return spaceUri;
 };

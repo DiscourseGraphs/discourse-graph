@@ -3,7 +3,11 @@ import { DiscourseRelation, DiscourseRelationType } from "~/types";
 import { Notice } from "obsidian";
 import { usePlugin } from "./PluginContext";
 import { ConfirmationModal } from "./ConfirmationModal";
-import { getNodeTypeById } from "~/utils/typeUtils";
+import {
+  getNodeTypeById,
+  getImportInfo,
+  formatImportSource,
+} from "~/utils/typeUtils";
 import generateUid from "~/utils/generateUid";
 
 const RelationshipSettings = () => {
@@ -133,6 +137,87 @@ const RelationshipSettings = () => {
     setHasUnsavedChanges(false);
   };
 
+  const localRelations = discourseRelations.filter(
+    (relation) => !relation.importedFromRid,
+  );
+  const importedRelations = discourseRelations.filter(
+    (relation) => relation.importedFromRid,
+  );
+
+  const renderRelationItem = (relation: DiscourseRelation, index: number) => {
+    const importInfo = getImportInfo(relation.importedFromRid);
+    const isImported = importInfo.isImported;
+
+    return (
+      <div key={index} className="setting-item">
+        <div className="flex w-full flex-col gap-1">
+          <div className="flex gap-2">
+            <select
+              value={relation.sourceId}
+              onChange={(e) =>
+                handleRelationChange(index, "sourceId", e.target.value)
+              }
+              className="flex-1 pl-2"
+            >
+              <option value="">Source Node Type</option>
+              {plugin.settings.nodeTypes.map((nodeType) => (
+                <option key={nodeType.id} value={nodeType.id}>
+                  {nodeType.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={relation.relationshipTypeId}
+              onChange={(e) =>
+                handleRelationChange(
+                  index,
+                  "relationshipTypeId",
+                  e.target.value,
+                )
+              }
+              className="flex-1 pl-2"
+            >
+              <option value="">Relation Type</option>
+              {plugin.settings.relationTypes.map((relType) => (
+                <option key={relType.id} value={relType.id}>
+                  {relType.label} / {relType.complement}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={relation.destinationId}
+              onChange={(e) =>
+                handleRelationChange(index, "destinationId", e.target.value)
+              }
+              className="flex-1 pl-2"
+            >
+              <option value="">Target Node Type</option>
+              {plugin.settings.nodeTypes.map((nodeType) => (
+                <option key={nodeType.id} value={nodeType.id}>
+                  {nodeType.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => confirmDeleteRelation(index)}
+              className="mod-warning p-2"
+            >
+              Delete
+            </button>
+          </div>
+          {isImported && importInfo.spaceUri && (
+            <span className="text-muted text-xs">
+              Imported from: {formatImportSource(importInfo.spaceUri)}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="discourse-relations">
       {plugin.settings.nodeTypes.length === 0 ? (
@@ -141,74 +226,29 @@ const RelationshipSettings = () => {
         <div>You need to create some relation types first.</div>
       ) : (
         <>
-          {discourseRelations.map((relation, index) => (
-            <div key={index} className="setting-item">
-              <div className="flex w-full flex-col">
-                <div className="flex gap-2">
-                  <select
-                    value={relation.sourceId}
-                    onChange={(e) =>
-                      handleRelationChange(index, "sourceId", e.target.value)
-                    }
-                    className="flex-1 pl-2"
-                  >
-                    <option value="">Source Node Type</option>
-                    {plugin.settings.nodeTypes.map((nodeType) => (
-                      <option key={nodeType.id} value={nodeType.id}>
-                        {nodeType.name}
-                      </option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={relation.relationshipTypeId}
-                    onChange={(e) =>
-                      handleRelationChange(
-                        index,
-                        "relationshipTypeId",
-                        e.target.value,
-                      )
-                    }
-                    className="flex-1 pl-2"
-                  >
-                    <option value="">Relation Type</option>
-                    {plugin.settings.relationTypes.map((relType) => (
-                      <option key={relType.id} value={relType.id}>
-                        {relType.label} / {relType.complement}
-                      </option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={relation.destinationId}
-                    onChange={(e) =>
-                      handleRelationChange(
-                        index,
-                        "destinationId",
-                        e.target.value,
-                      )
-                    }
-                    className="flex-1 pl-2"
-                  >
-                    <option value="">Target Node Type</option>
-                    {plugin.settings.nodeTypes.map((nodeType) => (
-                      <option key={nodeType.id} value={nodeType.id}>
-                        {nodeType.name}
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    onClick={() => confirmDeleteRelation(index)}
-                    className="mod-warning p-2"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+          {localRelations.length > 0 && (
+            <div>
+              <h4 className="mb-2 font-semibold">Local Discourse Relations</h4>
+              {localRelations.map((relation) => {
+                const index = discourseRelations.indexOf(relation);
+                return renderRelationItem(relation, index);
+              })}
             </div>
-          ))}
-          <div className="setting-item">
+          )}
+
+          {importedRelations.length > 0 && (
+            <div className="mt-4">
+              <h4 className="mb-2 font-semibold">
+                Imported Discourse Relations
+              </h4>
+              {importedRelations.map((relation) => {
+                const index = discourseRelations.indexOf(relation);
+                return renderRelationItem(relation, index);
+              })}
+            </div>
+          )}
+
+          <div className="setting-item mt-4">
             <div className="flex gap-2">
               <button onClick={handleAddRelation} className="p-2">
                 Add Relation
