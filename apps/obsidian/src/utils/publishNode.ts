@@ -198,7 +198,7 @@ export const publishNodeRelations = async ({
       resourceIds.add(triple.id);
     }
   });
-  if (!resourceIds) return;
+  if (resourceIds.size === 0) return;
   const publishResponse = await client.from("ResourceAccess").upsert(
     [...resourceIds.values()].map((sourceLocalId: string) => ({
       /* eslint-disable @typescript-eslint/naming-convention */

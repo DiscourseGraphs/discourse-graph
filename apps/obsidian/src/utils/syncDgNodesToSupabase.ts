@@ -365,6 +365,7 @@ const buildChangedNodesFromNodes = async ({
   const changedNodes: ObsidianDiscourseNodeData[] = [];
 
   for (const node of nodes) {
+    if (node.frontmatter.importedFromRid) continue;
     const existingTitle = existingTitleMap.get(node.nodeInstanceId);
     const detectedChangeTypes = detectNodeChanges(
       node,
@@ -433,7 +434,6 @@ export const syncAllNodesAndRelations = async (
           context,
         });
 
-    console.log("changedNodeInstances", changedNodeInstances);
     console.debug(`Found ${changedNodeInstances.length} nodes to sync`);
 
     const accountLocalId = plugin.settings.accountLocalId;
