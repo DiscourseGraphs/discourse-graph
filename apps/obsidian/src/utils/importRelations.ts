@@ -11,6 +11,12 @@ import {
 } from "./relationsStore";
 import { DEFAULT_TLDRAW_COLOR } from "./tldrawColors";
 
+type ConceptInRelation = {
+  id: number;
+  space_id: number;
+  source_local_id: string;
+};
+
 type RemoteRelationInstance = {
   id: number;
   source_local_id: string | null;
@@ -19,6 +25,7 @@ type RemoteRelationInstance = {
   refs: number[] | null;
   created: string | null;
   last_modified: string | null;
+  concepts_of_relation: ConceptInRelation[];
 };
 
 /**
@@ -109,26 +116,15 @@ const fetchRelationInstancesFromSpace = async ({
   client: DGSupabaseClient;
   spaceId: number;
 }): Promise<RemoteRelationInstance[]> => {
-  const { data: relationTypes } = await client
-    .from("my_concepts")
-    .select("id")
-    .eq("space_id", spaceId)
-    .eq("is_schema", true)
-    .eq("arity", 2);
-
-  if (!relationTypes?.length) {
-    return [];
-  }
-
-  const schemaIds = relationTypes.map((r) => r.id);
   const { data: instances, error } = await client
     .from("my_concepts")
     .select(
-      "id, source_local_id, schema_id, reference_content, refs, created, last_modified",
+      "id, source_local_id, schema_id, reference_content, refs, created, last_modified, concepts_of_relation!inner(id, space_id, source_local_id)",
     )
     .eq("space_id", spaceId)
     .eq("is_schema", false)
-    .in("schema_id", schemaIds);
+    .gt("arity", 0);
+  console.log(instances);
 
   if (error || !instances) {
     console.warn("Error fetching relation instances:", error);
@@ -136,53 +132,6 @@ const fetchRelationInstancesFromSpace = async ({
   }
 
   return instances as unknown as RemoteRelationInstance[];
-};
-
-/**
- * Resolve source and destination nodeInstanceIds from a relation instance's reference_content.
- * reference_content has { source: conceptId, destination: conceptId }.
- */
-const resolveRelationEndpoints = async ({
-  client,
-  spaceId,
-  referenceContent,
-}: {
-  client: DGSupabaseClient;
-  spaceId: number;
-  referenceContent: Json;
-}): Promise<{ sourceId: string; destinationId: string } | null> => {
-  const ref = referenceContent as Record<string, unknown>;
-  const sourceConceptId = ref?.source as number | undefined;
-  const destConceptId = ref?.destination as number | undefined;
-
-  if (
-    sourceConceptId == null ||
-    destConceptId == null ||
-    typeof sourceConceptId !== "number" ||
-    typeof destConceptId !== "number"
-  ) {
-    return null;
-  }
-
-  const { data: concepts } = await client
-    .from("my_concepts")
-    .select("id, source_local_id")
-    .eq("space_id", spaceId)
-    .in("id", [sourceConceptId, destConceptId]);
-
-  if (!concepts || concepts.length < 2) {
-    return null;
-  }
-
-  const byId = new Map(concepts.map((c) => [c.id, c.source_local_id]));
-  const sourceId = byId.get(sourceConceptId) as string | undefined;
-  const destId = byId.get(destConceptId) as string | undefined;
-
-  if (!sourceId || !destId) {
-    return null;
-  }
-
-  return { sourceId, destinationId: destId };
 };
 
 /**
@@ -215,15 +164,21 @@ export const importRelationsForImportedNodes = async ({
   let imported = 0;
 
   for (const rel of relationInstances) {
-    const endpoints = await resolveRelationEndpoints({
-      client,
-      spaceId,
-      referenceContent: rel.reference_content,
-    });
-    if (!endpoints) continue;
+    const sourceData = rel.concepts_of_relation.find(
+      (cor) =>
+        cor.id ===
+        (rel.reference_content as Record<string, number | number[]>).source,
+    );
+    const destData = rel.concepts_of_relation.find(
+      (cor) =>
+        cor.id ===
+        (rel.reference_content as Record<string, number | number[]>)
+          .destination,
+    );
+    if (!sourceData || !destData) continue;
 
-    const sourceKey = `${spaceId}:${endpoints.sourceId}`;
-    const destKey = `${spaceId}:${endpoints.destinationId}`;
+    const sourceKey = `${sourceData.space_id}:${sourceData.source_local_id}`;
+    const destKey = `${destData.space_id}:${destData.source_local_id}`;
 
     if (!nodeKeys.has(sourceKey) || !nodeKeys.has(destKey)) {
       continue;
