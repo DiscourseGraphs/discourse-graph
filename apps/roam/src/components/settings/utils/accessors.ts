@@ -593,7 +593,7 @@ export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
         nodes.push({ ...retryResult.data, type: pageUid, text: nodeText });
       } else {
         internalError({
-          error: result.error,
+          error: retryResult.error,
           type: "DG Discourse Node Parse",
           context: { pageUid, title },
           sendEmail: false,
