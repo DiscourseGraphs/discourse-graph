@@ -28,6 +28,7 @@ import {
   defaultShapeUtils,
   defaultTools,
   useEditor,
+  useValue,
   VecModel,
   createShapeId,
   TLPointerEventInfo,
@@ -90,6 +91,10 @@ import {
 } from "./DiscourseRelationShape/DiscourseRelationTool";
 import ConvertToDialog from "./ConvertToDialog";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
+import {
+  setCurrentToolToSelectIfUnlocked,
+  unlockToolWhenSelect,
+} from "./toolLock";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
 import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import internalError from "~/utils/internalError";
@@ -819,6 +824,7 @@ const TldrawCanvasShared = ({
             ...position,
           },
         ]);
+        setCurrentToolToSelectIfUnlocked(app);
         lastInsertRef.current = position;
         e.detail.onRefresh();
       }
@@ -1121,6 +1127,18 @@ const InsideEditorAndUiContext = ({
   const toasts = useToasts();
   const msg = useTranslation();
 
+  // When the user selects the select tool, clear tool lock so we only lock while on discourse tools
+  const currentToolId = useValue(
+    "currentToolId",
+    () => editor.getCurrentToolId(),
+    [editor],
+  );
+  useEffect(() => {
+    if (currentToolId === "select") {
+      unlockToolWhenSelect(editor);
+    }
+  }, [currentToolId, editor]);
+
   // const isCustomArrowShape = (shape: TLShape) => {
   //   // TODO: find a better way to identify custom arrow shapes
   //   // possibly migrate to shape.type or shape.name
@@ -1176,6 +1194,7 @@ const InsideEditorAndUiContext = ({
           },
         },
       ]);
+      setCurrentToolToSelectIfUnlocked(editor);
     },
     [editor, extensionAPI],
   );

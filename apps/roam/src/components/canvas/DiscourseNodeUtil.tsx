@@ -45,7 +45,7 @@ import { getSetting } from "~/utils/extensionSettings";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { setCurrentToolToSelectIfUnlocked } from "./toolLock";
+import { lockTool, unlockTool } from "./toolLock";
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -132,7 +132,7 @@ export const createNodeShapeTools = (
           props: { fontFamily: "sans", size: "s" },
         });
         this.editor.setEditingShape(shapeId);
-        setCurrentToolToSelectIfUnlocked(this.editor);
+        // setCurrentToolToSelectIfUnlocked(this.editor);
       };
     };
   });
@@ -521,6 +521,9 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
           this.updateProps(shape.id, shape.type, { h, w, imageUrl });
         };
 
+        // Clear tool lock when opening the dialog so we don't end up with Select + locked
+        unlockTool(this.editor);
+
         renderModifyNodeDialog({
           mode: isCreating ? "create" : "edit",
           nodeType: shape.type,
@@ -573,10 +576,17 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
               }
             }
 
+            // Stay on the discourse node tool after the modal so the user can place another node
+            this.editor.setCurrentTool(shape.type);
+            lockTool(this.editor);
+
             editor.setEditingShape(null);
             dialogRenderedRef.current = false;
           },
           onClose: () => {
+            // Stay on the discourse node tool after closing so the user can place another node
+            this.editor.setCurrentTool(shape.type);
+            lockTool(this.editor);
             editor.setEditingShape(null);
             dialogRenderedRef.current = false;
           },
