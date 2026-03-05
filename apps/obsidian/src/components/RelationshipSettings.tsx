@@ -209,9 +209,15 @@ const RelationshipSettings = () => {
             </button>
           </div>
           {isImported && (
-            <div className="flex items-center gap-2 text-xs text-muted">
+            <div className="text-muted flex items-center gap-2 text-xs">
               {importInfo.spaceUri && (
-                <span>from {formatImportSource(importInfo.spaceUri, plugin.settings.spaceNames)}</span>
+                <span>
+                  from{" "}
+                  {formatImportSource(
+                    importInfo.spaceUri,
+                    plugin.settings.spaceNames,
+                  )}
+                </span>
               )}
             </div>
           )}
@@ -230,7 +236,7 @@ const RelationshipSettings = () => {
         <>
           {localRelations.length > 0 && (
             <div>
-              <h4 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
+              <h4 className="text-muted mb-2 text-sm font-semibold uppercase tracking-wide">
                 Local
               </h4>
               {localRelations.map((relation) => {
@@ -241,11 +247,11 @@ const RelationshipSettings = () => {
           )}
 
           {importedRelations.length > 0 && (
-            <div className="mt-6 border-t border-modifier-border pt-4">
-              <h4 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
+            <div className="border-modifier-border mt-6 border-t pt-4">
+              <h4 className="text-muted mb-2 text-sm font-semibold uppercase tracking-wide">
                 Imported
               </h4>
-              <div className="rounded border border-modifier-border bg-secondary p-2">
+              <div className="border-modifier-border rounded border bg-secondary p-2">
                 {importedRelations.map((relation) => {
                   const index = discourseRelations.indexOf(relation);
                   return renderRelationItem(relation, index);
