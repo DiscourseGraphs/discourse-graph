@@ -17,7 +17,7 @@ import {
 import fuzzy from "fuzzy";
 import { Result } from "~/utils/types";
 
-const RESULTS_LIMIT = 50;
+const RESULTS_LIMIT = 20;
 
 type FuzzySelectInputProps<T extends Result = Result> = {
   value?: T;
