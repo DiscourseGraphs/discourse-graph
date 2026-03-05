@@ -159,7 +159,9 @@ const RelationshipTypeSettings = () => {
     const modal = new ConfirmationModal(plugin.app, {
       title: "Delete Relation Type",
       message: `Are you sure you want to delete the relation type "${relationType.label}"?`,
-      onConfirm: () => handleDeleteRelationType(index),
+      onConfirm: () => {
+        void handleDeleteRelationType(index);
+      },
     });
     modal.open();
   };
@@ -310,7 +312,7 @@ const RelationshipTypeSettings = () => {
             Add Relation Type
           </button>
           <button
-            onClick={handleSave}
+            onClick={() => void handleSave()}
             className={`p-2 ${hasUnsavedChanges ? "mod-cta" : ""}`}
             disabled={!hasUnsavedChanges}
           >
