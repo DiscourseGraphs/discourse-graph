@@ -268,6 +268,7 @@ export class FileChangeListener {
       }
 
       if (this.hasPendingOrphanCleanup) {
+        await cleanupOrphanedNodes(this.plugin);
         this.hasPendingOrphanCleanup = false;
       }
     } catch (error) {
