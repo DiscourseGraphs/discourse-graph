@@ -208,10 +208,12 @@ const RelationshipSettings = () => {
               Delete
             </button>
           </div>
-          {isImported && importInfo.spaceUri && (
-            <span className="text-muted text-xs">
-              Imported from: {formatImportSource(importInfo.spaceUri)}
-            </span>
+          {isImported && (
+            <div className="flex items-center gap-2 text-xs text-muted">
+              {importInfo.spaceUri && (
+                <span>from {formatImportSource(importInfo.spaceUri, plugin.settings.spaceNames)}</span>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -228,7 +230,9 @@ const RelationshipSettings = () => {
         <>
           {localRelations.length > 0 && (
             <div>
-              <h4 className="mb-2 font-semibold">Local Discourse Relations</h4>
+              <h4 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
+                Local
+              </h4>
               {localRelations.map((relation) => {
                 const index = discourseRelations.indexOf(relation);
                 return renderRelationItem(relation, index);
@@ -237,14 +241,16 @@ const RelationshipSettings = () => {
           )}
 
           {importedRelations.length > 0 && (
-            <div className="mt-4">
-              <h4 className="mb-2 font-semibold">
-                Imported Discourse Relations
+            <div className="mt-6 border-t border-modifier-border pt-4">
+              <h4 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
+                Imported
               </h4>
-              {importedRelations.map((relation) => {
-                const index = discourseRelations.indexOf(relation);
-                return renderRelationItem(relation, index);
-              })}
+              <div className="rounded border border-modifier-border bg-secondary p-2">
+                {importedRelations.map((relation) => {
+                  const index = discourseRelations.indexOf(relation);
+                  return renderRelationItem(relation, index);
+                })}
+              </div>
             </div>
           )}
 

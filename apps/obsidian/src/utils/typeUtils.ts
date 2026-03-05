@@ -32,7 +32,8 @@ export const getImportInfo = (
   }
 
   try {
-    const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(importedFromRid);
+    const { spaceUri, sourceLocalId } =
+      ridToSpaceUriAndLocalId(importedFromRid);
     return {
       isImported: true,
       spaceUri,
@@ -44,20 +45,28 @@ export const getImportInfo = (
   }
 };
 
-export const formatImportSource = (spaceUri: string): string => {
+export const formatImportSource = (
+  spaceUri: string,
+  spaceNames?: Record<string, string>,
+): string => {
+  const knownName = spaceNames?.[spaceUri];
+  if (knownName) {
+    return knownName;
+  }
+
   if (spaceUri.startsWith("obsidian:")) {
     const vaultId = spaceUri.replace("obsidian:", "");
-    return `Vault ID: ${vaultId}`;
+    return `Vault ${vaultId.slice(0, 8)}...`;
   }
-  
+
   if (spaceUri.startsWith("http")) {
     return spaceUri;
   }
-  
+
   const parts = spaceUri.split(":");
   if (parts.length === 2) {
     return `${parts[0]}: ${parts[1]}`;
   }
-  
+
   return spaceUri;
 };

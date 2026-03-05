@@ -1182,6 +1182,12 @@ export const importSelectedNodes = async ({
       continue;
     }
 
+    if (!plugin.settings.spaceNames) plugin.settings.spaceNames = {};
+    if (!plugin.settings.spaceNames[spaceUri]) {
+      plugin.settings.spaceNames[spaceUri] = spaceName;
+      await plugin.saveSettings();
+    }
+
     // Ensure the import folder exists
     const folderExists =
       await plugin.app.vault.adapter.exists(importFolderPath);

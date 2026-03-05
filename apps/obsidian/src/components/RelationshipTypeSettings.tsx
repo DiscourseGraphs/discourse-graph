@@ -258,10 +258,18 @@ const RelationshipTypeSettings = () => {
               Delete
             </button>
           </div>
-          {isImported && importInfo.spaceUri && (
-            <span className="text-muted text-xs">
-              Imported from: {formatImportSource(importInfo.spaceUri)}
-            </span>
+          {isImported && (
+            <div className="text-muted flex items-center gap-2 text-xs">
+              {importInfo.spaceUri && (
+                <span>
+                  from{" "}
+                  {formatImportSource(
+                    importInfo.spaceUri,
+                    plugin.settings.spaceNames,
+                  )}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -272,7 +280,9 @@ const RelationshipTypeSettings = () => {
     <div className="discourse-relation-types">
       {localRelationTypes.length > 0 && (
         <div>
-          <h4 className="mb-2 font-semibold">Local Relation Types</h4>
+          <h4 className="text-muted mb-2 text-sm font-semibold uppercase tracking-wide">
+            Local
+          </h4>
           {localRelationTypes.map((relationType) => {
             const index = relationTypes.indexOf(relationType);
             return renderRelationTypeItem(relationType, index);
@@ -281,12 +291,16 @@ const RelationshipTypeSettings = () => {
       )}
 
       {importedRelationTypes.length > 0 && (
-        <div className="mt-4">
-          <h4 className="mb-2 font-semibold">Imported Relation Types</h4>
-          {importedRelationTypes.map((relationType) => {
-            const index = relationTypes.indexOf(relationType);
-            return renderRelationTypeItem(relationType, index);
-          })}
+        <div className="border-modifier-border mt-6 border-t pt-4">
+          <h4 className="text-muted mb-2 text-sm font-semibold uppercase tracking-wide">
+            Imported
+          </h4>
+          <div className="border-modifier-border rounded border bg-secondary p-2">
+            {importedRelationTypes.map((relationType) => {
+              const index = relationTypes.indexOf(relationType);
+              return renderRelationTypeItem(relationType, index);
+            })}
+          </div>
         </div>
       )}
 

@@ -539,8 +539,12 @@ const NodeTypeSettings = () => {
                 <span>{nodeType.name}</span>
               </div>
               {isImported && importInfo.spaceUri && (
-                <span className="text-muted text-xs pl-6">
-                  Imported from: {formatImportSource(importInfo.spaceUri)}
+                <span className="text-muted pl-6 text-xs">
+                  from{" "}
+                  {formatImportSource(
+                    importInfo.spaceUri,
+                    plugin.settings.spaceNames,
+                  )}
                 </span>
               )}
             </div>
@@ -588,21 +592,29 @@ const NodeTypeSettings = () => {
 
         {localNodeTypes.length > 0 && (
           <div className="mt-4">
-            <h4 className="mb-2 font-semibold">Local Node Types</h4>
-            {localNodeTypes.map((nodeType) => {
-              const index = nodeTypes.indexOf(nodeType);
-              return renderNodeTypeItem(nodeType, index);
-            })}
+            <h4 className="text-muted mb-2 text-sm font-semibold uppercase tracking-wide">
+              Local
+            </h4>
+            <div className="flex flex-col gap-0.5">
+              {localNodeTypes.map((nodeType) => {
+                const index = nodeTypes.indexOf(nodeType);
+                return renderNodeTypeItem(nodeType, index);
+              })}
+            </div>
           </div>
         )}
 
         {importedNodeTypes.length > 0 && (
-          <div className="mt-4">
-            <h4 className="mb-2 font-semibold">Imported Node Types</h4>
-            {importedNodeTypes.map((nodeType) => {
-              const index = nodeTypes.indexOf(nodeType);
-              return renderNodeTypeItem(nodeType, index);
-            })}
+          <div className="border-modifier-border mt-6 border-t pt-4">
+            <h4 className="text-muted mb-2 text-sm font-semibold uppercase tracking-wide">
+              Imported
+            </h4>
+            <div className="border-modifier-border flex flex-col gap-0.5 rounded border bg-secondary p-2">
+              {importedNodeTypes.map((nodeType) => {
+                const index = nodeTypes.indexOf(nodeType);
+                return renderNodeTypeItem(nodeType, index);
+              })}
+            </div>
           </div>
         )}
       </div>
