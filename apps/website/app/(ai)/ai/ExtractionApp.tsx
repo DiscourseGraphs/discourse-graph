@@ -28,7 +28,11 @@ export const ExtractionApp = () => {
   const extraction = useExtraction();
   const modelsHook = useModels();
 
-  const modelValue = selectedModel || (modelsHook.models[0]?.id ?? "");
+  const defaultModel =
+    modelsHook.models.find((m) => m.id.includes("haiku"))?.id ??
+    modelsHook.models[0]?.id ??
+    "";
+  const modelValue = selectedModel || defaultModel;
 
   const toggleType = useCallback((type: NodeType) => {
     setSelectedTypes((prev) => {
