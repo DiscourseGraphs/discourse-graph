@@ -545,17 +545,21 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
               }
             }
 
-            // Stay on the discourse node tool after the modal so the user can place another node
-            this.editor.setCurrentTool(shape.type);
-            lockTool(this.editor);
+            // Stay on the discourse node tool after creation so the user can place another node
+            if (action === "create") {
+              this.editor.setCurrentTool(shape.type);
+              lockTool(this.editor);
+            }
 
             editor.setEditingShape(null);
             dialogRenderedRef.current = false;
           },
           onClose: () => {
             // Stay on the discourse node tool after closing so the user can place another node
-            this.editor.setCurrentTool(shape.type);
-            lockTool(this.editor);
+            if (isCreating) {
+              this.editor.setCurrentTool(shape.type);
+              lockTool(this.editor);
+            }
             editor.setEditingShape(null);
             dialogRenderedRef.current = false;
           },
