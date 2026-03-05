@@ -73,8 +73,6 @@ export class FileChangeListener {
       this.handleMetadataChange(file);
     };
     this.plugin.app.metadataCache.on("changed", this.metadataChangeCallback);
-
-    // [PG-G2] Removed console.debug
   }
 
   /**
@@ -134,7 +132,6 @@ export class FileChangeListener {
       return;
     }
 
-    // [PG-G2] Removed console.log
     this.queueChange(file.path, "content");
   }
 
@@ -146,7 +143,6 @@ export class FileChangeListener {
       return;
     }
 
-    // [PG-G2] Removed console.log
     this.hasPendingOrphanCleanup = true;
     this.resetDebounceTimer();
   }
@@ -159,7 +155,6 @@ export class FileChangeListener {
       return;
     }
 
-    // [PG-G2] Removed console.log
     this.queueChange(file.path, "title", oldPath);
   }
 
@@ -180,14 +175,6 @@ export class FileChangeListener {
 
     // Note: pendingCreates helps track files that are created -> added nodeTypeId -> synced to Supabase.
     // If a file is created -> added nodeTypeId manually, it won't be detected until the next global sync (onLoad).
-
-    // Placeholder: Check for relation metadata changes
-    // For now, we'll just log that metadata changed
-    // In the future, this can detect specific relation changes
-    const cache = this.plugin.app.metadataCache.getFileCache(file);
-    if (cache?.frontmatter) {
-      // [PG-G2] Removed console.debug
-    }
   }
 
   /**
@@ -233,7 +220,6 @@ export class FileChangeListener {
    */
   private async processQueue(): Promise<void> {
     if (this.isProcessing) {
-      // [PG-G2] Removed console.debug
       return;
     }
 
@@ -281,26 +267,8 @@ export class FileChangeListener {
         }
       }
 
-      // [PG-G2] Removed console.debug
-      if (processedFiles.length > 0) {
-        // Successfully processed files
-      }
-
-      // [PG-G2] Removed console.warn
-      if (failedFiles.length > 0) {
-        // Failed files will retry on next change
-      }
-
       if (this.hasPendingOrphanCleanup) {
-        const deletedCount = await cleanupOrphanedNodes(this.plugin);
-        if (deletedCount > 0) {
-          // [PG-G2] Removed console.debug
-        }
         this.hasPendingOrphanCleanup = false;
-      }
-
-      if (processedFiles.length > 0 || failedFiles.length === 0) {
-        // [PG-G2] Removed console.debug
       }
     } catch (error) {
       console.error("Error processing sync queue:", error);
@@ -335,7 +303,5 @@ export class FileChangeListener {
     this.changeQueue.clear();
     this.pendingCreates.clear();
     this.isProcessing = false;
-
-    // [PG-G2] Removed console.debug
   }
 }
