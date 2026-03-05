@@ -1,5 +1,5 @@
 import React from "react";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import { getExportSettingsAndUids } from "~/utils/getExportSettings";
 import {
   GlobalFlagPanel,
   GlobalNumberPanel,
@@ -12,9 +12,8 @@ import {
 } from "~/components/settings/utils/settingKeys";
 
 const DiscourseGraphExport = () => {
-  const settings = getFormattedConfigTree();
-  const exportSettings = settings.export;
-  const parentUid = settings.export.exportUid;
+  const exportSettings = getExportSettingsAndUids();
+  const parentUid = exportSettings.exportUid;
   return (
     <div className="flex flex-col gap-4 p-1">
       {/* TODO: Titles kept as lowercase to match legacy readers in getExportSettings.ts.

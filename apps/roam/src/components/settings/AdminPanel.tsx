@@ -36,13 +36,16 @@ import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import internalError from "~/utils/internalError";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import discourseConfigRef from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import posthog from "posthog-js";
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import { getUidAndBooleanSetting } from "~/utils/getExportSettings";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -354,16 +357,22 @@ const FeatureFlagsTab = (): React.ReactElement => {
   const [useReifiedRelations, setUseReifiedRelations] = useState<boolean>(
     getFeatureFlag("Reified relation triples"),
   );
-  const settings = useMemo(() => {
+  const legacySuggestiveModeMeta = useMemo(() => {
     refreshConfigTree();
-    return getFormattedConfigTree();
+    return {
+      settingsUid: getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
+      suggestiveModeEnabledUid: getUidAndBooleanSetting({
+        tree: discourseConfigRef.tree,
+        text: "(BETA) Suggestive Mode Enabled",
+      }).uid,
+    };
   }, []);
 
   const [suggestiveModeEnabled, setSuggestiveModeEnabled] = useState(
     getFeatureFlag("Suggestive mode enabled"),
   );
   const [suggestiveModeUid, setSuggestiveModeUid] = useState(
-    settings.suggestiveModeEnabled.uid,
+    legacySuggestiveModeMeta.suggestiveModeEnabledUid,
   );
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isInstructionOpen, setIsInstructionOpen] = useState(false);
@@ -400,7 +409,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
         isOpen={isAlertOpen}
         onConfirm={() => {
           void createBlock({
-            parentUid: settings.settingsUid,
+            parentUid: legacySuggestiveModeMeta.settingsUid,
             node: { text: "(BETA) Suggestive Mode Enabled" },
           }).then((uid) => {
             setSuggestiveModeUid(uid);

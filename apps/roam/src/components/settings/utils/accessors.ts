@@ -10,12 +10,16 @@ import { getSubTree } from "roamjs-components/util";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import discourseConfigRef, {
+  getFormattedConfigTree,
+} from "~/utils/discourseConfigRef";
 import { roamNodeToCondition } from "~/utils/parseQuery";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { Condition } from "~/utils/types";
 import { z } from "zod";
+import { getUidAndBooleanSetting } from "~/utils/getExportSettings";
+import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
 
 import {
   DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
@@ -214,10 +218,10 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
 ]);
 
 const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
-  const settings = getFormattedConfigTree();
+  const settings = getLeftSidebarSettings(discourseConfigRef.tree);
 
   /* eslint-disable @typescript-eslint/naming-convention */
-  return settings.leftSidebar.personal.sections.map((section) => ({
+  return settings.personal.sections.map((section) => ({
     name: section.text,
     Children: (section.children || []).map((child) => ({
       uid: child.text,
@@ -683,9 +687,15 @@ const FEATURE_FLAG_LEGACY_MAP: Partial<
   Record<keyof FeatureFlags, () => boolean>
 > = {
   "Suggestive mode enabled": () =>
-    getFormattedConfigTree().suggestiveModeEnabled.value,
+    getUidAndBooleanSetting({
+      tree: discourseConfigRef.tree,
+      text: "(BETA) Suggestive Mode Enabled",
+    }).value,
   "Enable left sidebar": () =>
-    getFormattedConfigTree().leftSidebarEnabled.value,
+    getUidAndBooleanSetting({
+      tree: discourseConfigRef.tree,
+      text: "(BETA) Left Sidebar",
+    }).value,
 };
 /* eslint-enable @typescript-eslint/naming-convention */
 
