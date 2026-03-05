@@ -479,8 +479,9 @@ const NodeTypeSettings = () => {
     return isValid;
   };
 
-  const isEditingImported =
-    getImportInfo(editingNodeType?.importedFromRid).isImported;
+  const isEditingImported = getImportInfo(
+    editingNodeType?.importedFromRid,
+  ).isImported;
 
   const renderField = (fieldConfig: BaseFieldConfig) => {
     if (!editingNodeType) return null;
