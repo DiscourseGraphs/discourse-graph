@@ -14,6 +14,7 @@ import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import deriveDiscourseNodeAttribute from "~/utils/deriveDiscourseNodeAttribute";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
+import getSubTree from "roamjs-components/util/getSubTree";
 import nanoid from "nanoid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
@@ -23,6 +24,7 @@ import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+import internalError from "~/utils/internalError";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -180,6 +182,19 @@ const useDiscourseContext = (uid: string, tag: string) => {
         .then(({ refs, results }) => {
           const discourseNode = findDiscourseNode({ uid: uid });
           if (discourseNode) {
+            const numResults = results
+              .map(
+                (entry) =>
+                  Object.keys(
+                    (
+                      entry as unknown as {
+                        label: string;
+                        results: Record<string, unknown>;
+                      }
+                    ).results,
+                  ).length,
+              )
+              .reduce((acc, cur) => acc + cur, 0);
             const attribute = getSettingValueFromTree({
               tree: getBasicTreeByParentUid(discourseNode.type),
               key: "Overlay",
@@ -192,6 +207,26 @@ const useDiscourseContext = (uid: string, tag: string) => {
               setResults(results);
               setRefs(refs);
               setScore(score);
+
+              const nodeType = discourseNode.type;
+              const attributeNode = getSubTree({
+                tree: getBasicTreeByParentUid(nodeType || ""),
+                key: "Attributes",
+              });
+              const scoreFormula = getSettingValueFromTree({
+                tree: attributeNode.children,
+                key: attribute,
+              });
+              if (scoreFormula === "" && score !== numResults) {
+                internalError({
+                  error: "DiscourseContext: Score does not match Num relations",
+                  context: {
+                    uid,
+                    score,
+                    numResults,
+                  },
+                });
+              }
             });
           }
         })
