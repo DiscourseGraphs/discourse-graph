@@ -158,6 +158,7 @@ const RelationshipSettings = () => {
                 handleRelationChange(index, "sourceId", e.target.value)
               }
               className="flex-1 pl-2"
+              disabled={isImported}
             >
               <option value="">Source Node Type</option>
               {plugin.settings.nodeTypes.map((nodeType) => (
@@ -177,6 +178,7 @@ const RelationshipSettings = () => {
                 )
               }
               className="flex-1 pl-2"
+              disabled={isImported}
             >
               <option value="">Relation Type</option>
               {plugin.settings.relationTypes.map((relType) => (
@@ -192,6 +194,7 @@ const RelationshipSettings = () => {
                 handleRelationChange(index, "destinationId", e.target.value)
               }
               className="flex-1 pl-2"
+              disabled={isImported}
             >
               <option value="">Target Node Type</option>
               {plugin.settings.nodeTypes.map((nodeType) => (
@@ -201,12 +204,14 @@ const RelationshipSettings = () => {
               ))}
             </select>
 
-            <button
-              onClick={() => confirmDeleteRelation(index)}
-              className="mod-warning p-2"
-            >
-              Delete
-            </button>
+            {!isImported && (
+              <button
+                onClick={() => confirmDeleteRelation(index)}
+                className="mod-warning p-2"
+              >
+                Delete
+              </button>
+            )}
           </div>
           {isImported && (
             <div className="text-muted flex items-center gap-2 text-xs">

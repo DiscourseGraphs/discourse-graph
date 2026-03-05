@@ -17,9 +17,10 @@ import { getImportInfo, formatImportSource } from "~/utils/typeUtils";
 type ColorPickerProps = {
   value: string;
   onChange: (color: TldrawColorName) => void;
+  disabled?: boolean;
 };
 
-const ColorPicker = ({ value, onChange }: ColorPickerProps) => {
+const ColorPicker = ({ value, onChange, disabled }: ColorPickerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -49,9 +50,10 @@ const ColorPicker = ({ value, onChange }: ColorPickerProps) => {
     <div ref={dropdownRef} className="relative min-w-32">
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
         className="flex w-full items-center justify-between rounded border px-3 py-2 text-left"
         style={{ backgroundColor: bgColor, color: textColor }}
+        disabled={disabled}
       >
         <span className="flex items-center gap-2">
           <span
@@ -237,6 +239,7 @@ const RelationshipTypeSettings = () => {
                 handleRelationTypeChange(index, "label", e.target.value)
               }
               className="flex-2"
+              disabled={isImported}
             />
             <input
               type="text"
@@ -246,19 +249,23 @@ const RelationshipTypeSettings = () => {
                 handleRelationTypeChange(index, "complement", e.target.value)
               }
               className="flex-1"
+              disabled={isImported}
             />
             <ColorPicker
               value={relationType.color}
               onChange={(color) =>
                 handleRelationTypeChange(index, "color", color)
               }
+              disabled={isImported}
             />
-            <button
-              onClick={() => confirmDeleteRelationType(index)}
-              className="mod-warning p-2"
-            >
-              Delete
-            </button>
+            {!isImported && (
+              <button
+                onClick={() => confirmDeleteRelationType(index)}
+                className="mod-warning p-2"
+              >
+                Delete
+              </button>
+            )}
           </div>
           {isImported && (
             <div className="text-muted flex items-center gap-2 text-xs">

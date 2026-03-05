@@ -135,14 +135,17 @@ const FIELD_CONFIG_ARRAY = Object.values(FIELD_CONFIGS);
 const BooleanField = ({
   value,
   onChange,
+  disabled,
 }: {
   value: boolean;
   onChange: (value: boolean) => void;
+  disabled?: boolean;
 }) => (
   <input
     type="checkbox"
     checked={!!value}
     onChange={(e) => onChange((e.target as HTMLInputElement).checked)}
+    disabled={disabled}
   />
 );
 
@@ -152,12 +155,14 @@ const TextField = ({
   error,
   onChange,
   nodeType,
+  disabled,
 }: {
   fieldConfig: BaseFieldConfig;
   value: string;
   error?: string;
   onChange: (value: string) => void;
   nodeType?: DiscourseNode;
+  disabled?: boolean;
 }) => {
   // Generate dynamic placeholder for tag field based on node format and name
   const getPlaceholder = (): string => {
@@ -174,6 +179,7 @@ const TextField = ({
       onChange={(e) => onChange(e.target.value)}
       placeholder={getPlaceholder()}
       className={`w-full ${error ? "input-error" : ""}`}
+      disabled={disabled}
     />
   );
 };
@@ -182,16 +188,19 @@ const ColorField = ({
   value,
   error,
   onChange,
+  disabled,
 }: {
   value: string;
   error?: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) => (
   <input
     type="color"
     value={value || "#000000"}
     onChange={(e) => onChange(e.target.value)}
     className={`h-8 w-20 ${error ? "input-error" : ""}`}
+    disabled={disabled}
   />
 );
 
@@ -201,18 +210,22 @@ const TemplateField = ({
   onChange,
   templateConfig,
   templateFiles,
+  disabled,
 }: {
   value: string;
   error?: string;
   onChange: (value: string) => void;
   templateConfig: { isEnabled: boolean; folderPath: string };
   templateFiles: string[];
+  disabled?: boolean;
 }) => (
   <select
     value={value || ""}
     onChange={(e) => onChange(e.target.value)}
     className={`w-full ${error ? "input-error" : ""}`}
-    disabled={!templateConfig.isEnabled || !templateConfig.folderPath}
+    disabled={
+      disabled || !templateConfig.isEnabled || !templateConfig.folderPath
+    }
   >
     <option value="">
       {!templateConfig.isEnabled || !templateConfig.folderPath
@@ -466,6 +479,9 @@ const NodeTypeSettings = () => {
     return isValid;
   };
 
+  const isEditingImported =
+    getImportInfo(editingNodeType?.importedFromRid).isImported;
+
   const renderField = (fieldConfig: BaseFieldConfig) => {
     if (!editingNodeType) return null;
 
@@ -487,15 +503,21 @@ const NodeTypeSettings = () => {
             onChange={handleChange}
             templateConfig={templateConfig}
             templateFiles={templateFiles}
+            disabled={isEditingImported}
           />
         ) : fieldConfig.type === "color" ? (
           <ColorField
             value={value as string}
             error={error}
             onChange={handleChange}
+            disabled={isEditingImported}
           />
         ) : fieldConfig.type === "boolean" ? (
-          <BooleanField value={value as boolean} onChange={handleChange} />
+          <BooleanField
+            value={value as boolean}
+            onChange={handleChange}
+            disabled={isEditingImported}
+          />
         ) : (
           <TextField
             fieldConfig={fieldConfig}
@@ -503,6 +525,7 @@ const NodeTypeSettings = () => {
             error={error}
             onChange={handleChange}
             nodeType={editingNodeType}
+            disabled={isEditingImported}
           />
         )}
       </FieldWrapper>
@@ -548,34 +571,36 @@ const NodeTypeSettings = () => {
                 </span>
               )}
             </div>
-            <div className="flex gap-2">
-              <button
-                className="icon-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  startEditing(index);
-                }}
-                aria-label="Edit node type"
-              >
-                <div
-                  className="icon"
-                  ref={(el) => (el && setIcon(el, "pencil")) || undefined}
-                />
-              </button>
-              <button
-                className="icon-button mod-warning"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  confirmDeleteNodeType(index);
-                }}
-                aria-label="Delete node type"
-              >
-                <div
-                  className="icon"
-                  ref={(el) => (el && setIcon(el, "trash")) || undefined}
-                />
-              </button>
-            </div>
+            {!isImported && (
+              <div className="flex gap-2">
+                <button
+                  className="icon-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startEditing(index);
+                  }}
+                  aria-label="Edit node type"
+                >
+                  <div
+                    className="icon"
+                    ref={(el) => (el && setIcon(el, "pencil")) || undefined}
+                  />
+                </button>
+                <button
+                  className="icon-button mod-warning"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    confirmDeleteNodeType(index);
+                  }}
+                  aria-label="Delete node type"
+                >
+                  <div
+                    className="icon"
+                    ref={(el) => (el && setIcon(el, "trash")) || undefined}
+                  />
+                </button>
+              </div>
+            )}
           </div>
           {nodeType.description && (
             <span className="text-muted text-sm">{nodeType.description}</span>
@@ -637,10 +662,12 @@ const NodeTypeSettings = () => {
               ref={(el) => (el && setIcon(el, "arrow-left")) || undefined}
             />
           </button>
-          <h3 className="dg-h3">Edit Node Type</h3>
+          <h3 className="dg-h3">
+            {isEditingImported ? "Node Type (read-only)" : "Edit Node Type"}
+          </h3>
         </div>
         {FIELD_CONFIG_ARRAY.map(renderField)}
-        {hasUnsavedChanges && (
+        {hasUnsavedChanges && !isEditingImported && (
           <div className="mt-4 flex justify-end gap-2">
             <button onClick={handleCancel} className="mod-muted">
               Cancel
