@@ -27,7 +27,6 @@ export const addRelationToRelationsJson = async ({
   const destId = await getNodeInstanceIdForFile(plugin, targetFile);
 
   if (!sourceId || !destId) {
-    // [PG-G2] Removed console.warn
     const missing: string[] = [];
     if (!sourceId) missing.push(`source (${sourceFile.basename})`);
     if (!destId) missing.push(`target (${targetFile.basename})`);
@@ -70,7 +69,6 @@ export const addRelationIfRequested = async (
     getNodeTypeIdForFile(plugin, createdOrSelectedFile),
     getNodeTypeIdForFile(plugin, relationshipTargetFile),
   ]);
-  // [PG-G2] Removed console.warn
   if (!typeA || !typeB) {
     return;
   }
@@ -86,7 +84,6 @@ export const addRelationIfRequested = async (
   } else if (relation.sourceId === relation.destinationId) {
     sourceFile = createdOrSelectedFile;
     targetFile = relationshipTargetFile;
-    // [PG-G2] Removed console.warn
   } else {
     return;
   }
