@@ -4,6 +4,10 @@ export const settingKeys = {
   leftSidebarFlag: "Enable left sidebar",
   globalLeftSidebar: "global:Left sidebar",
   personalLeftSidebar: "personal:Left sidebar",
+  globalTrigger: "global:Trigger",
+  personalNodeMenuTrigger: "personal:Personal node menu trigger",
+  nodeSearchMenuTrigger: "personal:Node search menu trigger",
+  personalSuggestiveModeOverlay: "personal:Suggestive mode overlay",
 } as const;
 
 const listeners = new Map<string, Set<SettingChangeCallback>>();

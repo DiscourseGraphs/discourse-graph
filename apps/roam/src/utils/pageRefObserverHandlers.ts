@@ -147,40 +147,55 @@ const applyHandlersToExistingPageRefs = (
   });
 };
 
-const removeOverlaysFromExistingPageRefs = () => {
-  // Find all page refs that have the overlay attribute OR have overlay elements
-  // This ensures we catch all cases, even if attribute is missing
+const removeOverlayElements = (
+  pageRefSelector: string,
+  overlayClass: string,
+  attributeName: string,
+) => {
   const allPageRefs =
-    document.querySelectorAll<HTMLSpanElement>("span.rm-page-ref");
+    document.querySelectorAll<HTMLSpanElement>(pageRefSelector);
   allPageRefs.forEach((pageRef) => {
-    // Check if overlay is a direct child of pageRef
     const directChildContainer = Array.from(pageRef.children).find(
       (child) =>
         child instanceof HTMLSpanElement &&
-        child.querySelector(".roamjs-discourse-context-overlay"),
+        child.querySelector(`.${overlayClass}`),
     ) as HTMLSpanElement | undefined;
     if (directChildContainer) {
       directChildContainer.remove();
-      pageRef.removeAttribute("data-roamjs-discourse-overlay");
+      pageRef.removeAttribute(attributeName);
       return;
     }
 
-    // Check if overlay is a direct child of pageRef's parent element
     if (pageRef.parentElement) {
       const parentDirectChildContainer = Array.from(
         pageRef.parentElement.children,
       ).find(
         (child) =>
           child instanceof HTMLSpanElement &&
-          child.querySelector(".roamjs-discourse-context-overlay"),
+          child.querySelector(`.${overlayClass}`),
       ) as HTMLSpanElement | undefined;
       if (parentDirectChildContainer) {
         parentDirectChildContainer.remove();
-        pageRef.removeAttribute("data-roamjs-discourse-overlay");
+        pageRef.removeAttribute(attributeName);
       }
     }
   });
 };
+
+// Queries all page refs (not just attributed ones) to catch cases where attribute is missing
+const removeOverlaysFromExistingPageRefs = () =>
+  removeOverlayElements(
+    "span.rm-page-ref",
+    "roamjs-discourse-context-overlay",
+    "data-roamjs-discourse-overlay",
+  );
+
+const removeSuggestiveOverlaysFromExistingPageRefs = () =>
+  removeOverlayElements(
+    "span.rm-page-ref[data-discourse-suggestive-overlay]",
+    "suggestive-mode-overlay",
+    "data-discourse-suggestive-overlay",
+  );
 
 export const onPageRefObserverChange =
   (handler: (s: HTMLSpanElement) => void) => (b: boolean) => {
@@ -194,6 +209,9 @@ export const onPageRefObserverChange =
       // Remove overlays from existing page refs when disabling
       if (handler === cachedHandler) {
         removeOverlaysFromExistingPageRefs();
+      }
+      if (handler === cachedSuggestiveHandler) {
+        removeSuggestiveOverlaysFromExistingPageRefs();
       }
       if (!pageRefObservers.size) disablePageRefObserver();
     }

@@ -111,6 +111,9 @@ export const globalSettingsHandlers: GlobalSettingsHandlers = {
   "Left sidebar": (newValue, oldValue) => {
     emitSettingChange(settingKeys.globalLeftSidebar, newValue, oldValue);
   },
+  Trigger: (newValue, oldValue) => {
+    emitSettingChange(settingKeys.globalTrigger, newValue, oldValue);
+  },
   /* eslint-enable @typescript-eslint/naming-convention */
 };
 
@@ -126,6 +129,19 @@ export const personalSettingsHandlers: PersonalSettingsHandlers = {
   /* eslint-disable @typescript-eslint/naming-convention */
   "Left sidebar": (newValue, oldValue) => {
     emitSettingChange(settingKeys.personalLeftSidebar, newValue, oldValue);
+  },
+  "Personal node menu trigger": (newValue, oldValue) => {
+    emitSettingChange(settingKeys.personalNodeMenuTrigger, newValue, oldValue);
+  },
+  "Node search menu trigger": (newValue, oldValue) => {
+    emitSettingChange(settingKeys.nodeSearchMenuTrigger, newValue, oldValue);
+  },
+  "Suggestive mode overlay": (newValue, oldValue) => {
+    emitSettingChange(
+      settingKeys.personalSuggestiveModeOverlay,
+      newValue,
+      oldValue,
+    );
   },
   /* eslint-enable @typescript-eslint/naming-convention */
 };

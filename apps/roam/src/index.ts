@@ -104,7 +104,9 @@ export default runExtension(async (onloadArgs) => {
     streamlineStyleElement.id = "streamline-styling";
   }
 
-  const { observers, listeners } = await initObservers({ onloadArgs });
+  const { observers, listeners, cleanups } = await initObservers({
+    onloadArgs,
+  });
   const {
     pageActionListener,
     hashChangeListener,
@@ -194,6 +196,7 @@ export default runExtension(async (onloadArgs) => {
     unload: () => {
       unsubLeftSidebarFlag();
       cleanupPullWatchers();
+      cleanups.forEach((fn) => fn());
       setSyncActivity(false);
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
       // @ts-expect-error - tldraw throws a warning on multiple loads
