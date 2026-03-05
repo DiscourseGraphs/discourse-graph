@@ -1071,7 +1071,7 @@ const processFileContent = async ({
   if (!file) {
     file = await plugin.app.vault.create(filePath, rawContent, stat);
   } else {
-    await plugin.app.vault.modify(file, rawContent, stat);
+    await plugin.app.vault.process(file, () => rawContent, stat);
   }
 
   // 2. Parse frontmatter from rawContent (metadataCache is updated async and is
@@ -1287,7 +1287,7 @@ export const importSelectedNodes = async ({
 
           // Only update if content changed
           if (updatedContent !== currentContent) {
-            await plugin.app.vault.modify(processedFile, updatedContent);
+            await plugin.app.vault.process(processedFile, () => updatedContent);
           }
         }
 
