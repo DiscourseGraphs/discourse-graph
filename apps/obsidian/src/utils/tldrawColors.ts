@@ -80,4 +80,4 @@ export const toTldrawColor = (color: string | undefined): TldrawColorName => {
   }
 
   return DEFAULT_TLDRAW_COLOR;
-}
+};
