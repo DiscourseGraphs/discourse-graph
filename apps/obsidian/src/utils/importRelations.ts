@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { Json } from "@repo/database/dbTypes";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import { uuidv7 } from "uuidv7";
 import type DiscourseGraphPlugin from "~/index";
-import type { DiscourseRelationType } from "~/types";
+import type { DiscourseRelationType, DiscourseRelation } from "~/types";
 import { spaceUriAndLocalIdToRid } from "./rid";
 import {
   loadRelations,
@@ -106,6 +107,62 @@ const mapRelationTypeToLocal = async ({
 };
 
 /**
+ * Find or create a DiscourseRelation (triple) for the given (source node type, dest node type, relation type).
+ * If one exists with the same three ids, return it; otherwise create a new one and add to settings.
+ * When creating, uses remote relation instance timestamps and importedFromRid when provided.
+ */
+const findOrCreateTriple = async ({
+  plugin,
+  sourceNodeTypeId,
+  destNodeTypeId,
+  relationTypeId,
+  importedCreatedAt,
+  importedModifiedAt,
+  importedFromRid,
+}: {
+  plugin: DiscourseGraphPlugin;
+  sourceNodeTypeId: string;
+  destNodeTypeId: string;
+  relationTypeId: string;
+  importedCreatedAt?: number;
+  importedModifiedAt?: number;
+  importedFromRid?: string;
+}): Promise<DiscourseRelation> => {
+  const existing = plugin.settings.discourseRelations?.find(
+    (dr) =>
+      dr.sourceId === sourceNodeTypeId &&
+      dr.destinationId === destNodeTypeId &&
+      dr.relationshipTypeId === relationTypeId,
+  );
+  if (existing) return existing;
+
+  const now = Date.now();
+  const created =
+    importedCreatedAt != null && !Number.isNaN(importedCreatedAt)
+      ? importedCreatedAt
+      : now;
+  const modified =
+    importedModifiedAt != null && !Number.isNaN(importedModifiedAt)
+      ? importedModifiedAt
+      : now;
+  const newTriple: DiscourseRelation = {
+    id: uuidv7(),
+    sourceId: sourceNodeTypeId,
+    destinationId: destNodeTypeId,
+    relationshipTypeId: relationTypeId,
+    created,
+    modified,
+    ...(importedFromRid && { importedFromRid }),
+  };
+  plugin.settings.discourseRelations = [
+    ...(plugin.settings.discourseRelations ?? []),
+    newTriple,
+  ];
+  await plugin.saveSettings();
+  return newTriple;
+};
+
+/**
  * Fetch relation instances from a remote space. Relation instances are concepts with
  * is_schema=false and schema_id pointing to a relation type (arity=2).
  */
@@ -153,11 +210,15 @@ export const importRelationsForImportedNodes = async ({
   keyToRid: Map<string, string>;
 }): Promise<{ imported: number }> => {
   if (nodeKeys.size === 0) return { imported: 0 };
+  console.log("keyToRid", keyToRid);
+  console.log("nodeKeys", nodeKeys);
+
 
   const relationInstances = await fetchRelationInstancesFromSpace({
     client,
     spaceId,
   });
+  console.log("relationInstances", relationInstances);
 
   const relationsData = await loadRelations(plugin);
   let imported = 0;
@@ -179,12 +240,15 @@ export const importRelationsForImportedNodes = async ({
     const sourceKey = `${sourceData.space_id}:${sourceData.source_local_id}`;
     const destKey = `${destData.space_id}:${destData.source_local_id}`;
 
+    // TODO: check local node ids as well. currently doesn't handle remote importing our local node -> create relations -> we re-import that node
     if (!nodeKeys.has(sourceKey) || !nodeKeys.has(destKey)) {
       continue;
     }
 
     const sourceRid = keyToRid.get(sourceKey);
     const destRid = keyToRid.get(destKey);
+    console.log("sourceRid", sourceRid);
+    console.log("destRid", destRid);
     if (!sourceRid || !destRid) continue;
 
     if (!rel.schema_id) continue;
@@ -210,6 +274,83 @@ export const importRelationsForImportedNodes = async ({
 
     if (!mappedTypeId) continue;
 
+    const { data: conceptSchemas } = await client
+      .from("my_concepts")
+      .select("id, schema_id")
+      .in("id", [sourceData.id, destData.id]);
+
+    let mappedSourceNodeTypeId: string | null = null;
+    let mappedDestNodeTypeId: string | null = null;
+    if (conceptSchemas && conceptSchemas.length === 2) {
+      const byConceptId = Object.fromEntries(
+        (conceptSchemas as Array<{ id: number; schema_id: number | null }>).map(
+          (r) => [r.id, r.schema_id],
+        ),
+      );
+      const sourceSchemaId = byConceptId[sourceData.id];
+      const destSchemaId = byConceptId[destData.id];
+      if (sourceSchemaId != null && destSchemaId != null) {
+        const { data: schemaRows } = await client
+          .from("my_concepts")
+          .select("id, source_local_id")
+          .in("id", [sourceSchemaId, destSchemaId]);
+        if (schemaRows && schemaRows.length === 2) {
+          const schemaIdToLocalId = Object.fromEntries(
+            (schemaRows as Array<{ id: number; source_local_id: string }>).map(
+              (row) => [row.id, row.source_local_id],
+            ),
+          );
+          const remoteSourceNodeTypeId = schemaIdToLocalId[sourceSchemaId];
+          const remoteDestNodeTypeId = schemaIdToLocalId[destSchemaId];
+          if (remoteSourceNodeTypeId && remoteDestNodeTypeId) {
+            const { mapNodeTypeIdToLocal } = await import("./importNodes.js");
+            mappedSourceNodeTypeId = await mapNodeTypeIdToLocal({
+              plugin,
+              client,
+              sourceSpaceId: spaceId,
+              sourceSpaceUri: spaceUri,
+              sourceNodeTypeId: remoteSourceNodeTypeId,
+            });
+            mappedDestNodeTypeId = await mapNodeTypeIdToLocal({
+              plugin,
+              client,
+              sourceSpaceId: spaceId,
+              sourceSpaceUri: spaceUri,
+              sourceNodeTypeId: remoteDestNodeTypeId,
+            });
+          }
+        }
+      }
+    }
+    const relationImportedFromRid =
+      rel.source_local_id != null && rel.source_local_id !== ""
+        ? spaceUriAndLocalIdToRid(spaceUri, rel.source_local_id, "relation")
+        : undefined;
+    const importedCreatedAt =
+      rel.created != null
+        ? new Date(
+            rel.created + (rel.created.endsWith("Z") ? "" : "Z"),
+          ).getTime()
+        : undefined;
+    const importedModifiedAt =
+      rel.last_modified != null
+        ? new Date(
+            rel.last_modified + (rel.last_modified.endsWith("Z") ? "" : "Z"),
+          ).getTime()
+        : undefined;
+
+    if (mappedSourceNodeTypeId && mappedDestNodeTypeId) {
+      await findOrCreateTriple({
+        plugin,
+        sourceNodeTypeId: mappedSourceNodeTypeId,
+        destNodeTypeId: mappedDestNodeTypeId,
+        relationTypeId: mappedTypeId,
+        importedCreatedAt,
+        importedModifiedAt,
+        importedFromRid: relationImportedFromRid,
+      });
+    }
+
     const existing = findRelationBySourceDestinationType(
       relationsData,
       sourceRid,
@@ -217,11 +358,6 @@ export const importRelationsForImportedNodes = async ({
       mappedTypeId,
     );
     if (existing) continue;
-
-    const relationImportedFromRid =
-      rel.source_local_id != null && rel.source_local_id !== ""
-        ? spaceUriAndLocalIdToRid(spaceUri, rel.source_local_id, "relation")
-        : undefined;
 
     await addRelationNoCheck(plugin, {
       type: mappedTypeId,

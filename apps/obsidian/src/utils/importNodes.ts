@@ -960,7 +960,7 @@ const parseSchemaLiteralContent = (
   };
 };
 
-const mapNodeTypeIdToLocal = async ({
+export const mapNodeTypeIdToLocal = async ({
   plugin,
   client,
   sourceSpaceId,
