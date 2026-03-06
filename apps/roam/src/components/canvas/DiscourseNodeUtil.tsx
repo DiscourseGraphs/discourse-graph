@@ -461,16 +461,19 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
       const blockText = getTextByBlockUid(shape.props.uid);
       if (!blockText) return null;
       const nodes = Object.values(discourseContext.nodes);
+      const tagPattern = /#(?:\[\[([^\]]*)\]\]|([^\s#[\]]+))/g;
       for (const node of nodes) {
         const tag = node.tag;
         if (!tag) continue;
-        const cleanTag = getCleanTagText(tag);
-        const blockTextUpper = blockText.toUpperCase();
-        if (
-          blockTextUpper.includes(`#${cleanTag}`) ||
-          blockTextUpper.includes(`#[[${cleanTag}]]`)
-        ) {
-          return { node, blockText };
+        const normalizedNodeTag = getCleanTagText(tag);
+        let match;
+        tagPattern.lastIndex = 0;
+        while ((match = tagPattern.exec(blockText)) !== null) {
+          const tagFromBlock = match[1] ?? match[2] ?? "";
+          const normalizedBlockTag = getCleanTagText(tagFromBlock);
+          if (normalizedBlockTag === normalizedNodeTag) {
+            return { node, blockText };
+          }
         }
       }
       return null;
