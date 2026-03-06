@@ -29,7 +29,6 @@ const Settings = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* [PG-UI7, PG-UI8] Removed top-level heading per plugin guidelines */}
       <div className="border-modifier-border flex w-full overflow-x-auto border-b p-2">
         <button
           onClick={() => setActiveTab("general")}

@@ -61,7 +61,6 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
     id: "open-node-type-menu",
     name: "Open node type menu",
-    // [PG-C14] Removed default hotkey - users can set their own
     editorCallback: (editor: Editor) => {
       const hasSelection = !!editor.getSelection();
 
@@ -188,7 +187,6 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "switch-to-tldraw-edit",
     name: "Switch to discourse markdown edit",
     checkCallback: (checking: boolean) => {
-      // [PG-W16] Use getActiveViewOfType instead of activeLeaf
       const leaf = plugin.app.workspace.getActiveViewOfType(TldrawView)?.leaf;
       if (!leaf) return false;
 
@@ -206,7 +204,6 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "switch-to-tldraw-preview",
     name: "Switch to Discourse Graph canvas view",
     checkCallback: (checking: boolean) => {
-      // [PG-W16] Use getActiveViewOfType instead of activeLeaf
       const leaf = plugin.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
       if (!leaf) return false;
 
