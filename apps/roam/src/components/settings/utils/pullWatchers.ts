@@ -95,6 +95,9 @@ export const featureFlagHandlers: Partial<
   "Enable left sidebar": (newValue, oldValue) => {
     emitSettingChange(settingKeys.leftSidebarFlag, newValue, oldValue);
   },
+  "Suggestive mode enabled": (newValue, oldValue) => {
+    emitSettingChange(settingKeys.suggestiveModeEnabled, newValue, oldValue);
+  },
   /* eslint-enable @typescript-eslint/naming-convention */
 };
 

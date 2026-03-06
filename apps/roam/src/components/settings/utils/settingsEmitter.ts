@@ -8,6 +8,7 @@ export const settingKeys = {
   personalNodeMenuTrigger: "personal:Personal node menu trigger",
   nodeSearchMenuTrigger: "personal:Node search menu trigger",
   personalSuggestiveModeOverlay: "personal:Suggestive mode overlay",
+  suggestiveModeEnabled: "flag:Suggestive mode enabled",
 } as const;
 
 const listeners = new Map<string, Set<SettingChangeCallback>>();

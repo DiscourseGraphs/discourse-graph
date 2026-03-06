@@ -26,7 +26,10 @@ import { setSetting } from "~/utils/extensionSettings";
 import { enablePostHog, disablePostHog } from "~/utils/posthog";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import streamlineStyling from "~/styles/streamlineStyling";
-import { getFeatureFlag } from "~/components/settings/utils/accessors";
+import {
+  getFeatureFlag,
+  isNewSettingsStoreEnabled,
+} from "~/components/settings/utils/accessors";
 import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
 import posthog from "posthog-js";
 
@@ -39,18 +42,14 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       <Label>
         Personal node menu trigger
         <Description
-          description={
-            "Override the global trigger for the discourse node menu. Must refresh after editing."
-          }
+          description={`Override the global trigger for the discourse node menu.${isNewSettingsStoreEnabled() ? "" : " Must refresh after editing."}`}
         />
         <NodeMenuTriggerComponent extensionAPI={extensionAPI} />
       </Label>
       <Label>
         Node search menu trigger
         <Description
-          description={
-            "Set the trigger character for the node search menu. Must refresh after editing."
-          }
+          description={`Set the trigger character for the node search menu.${isNewSettingsStoreEnabled() ? "" : " Must refresh after editing."}`}
         />
         <NodeSearchMenuTriggerSetting onloadArgs={onloadArgs} />
       </Label>

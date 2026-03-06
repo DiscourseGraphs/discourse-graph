@@ -120,11 +120,20 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  const isSuggestiveModeEnabled = getFeatureFlag("Suggestive mode enabled");
-
-  if (isSuggestiveModeEnabled) {
+  if (getFeatureFlag("Suggestive mode enabled")) {
     initializeSupabaseSync();
   }
+
+  const unsubSuggestiveMode = onSettingChange(
+    settingKeys.suggestiveModeEnabled,
+    (newValue) => {
+      if (newValue) {
+        initializeSupabaseSync();
+      } else {
+        setSyncActivity(false);
+      }
+    },
+  );
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
@@ -195,6 +204,7 @@ export default runExtension(async (onloadArgs) => {
     observers: observers,
     unload: () => {
       unsubLeftSidebarFlag();
+      unsubSuggestiveMode();
       cleanupPullWatchers();
       cleanups.forEach((fn) => fn());
       setSyncActivity(false);

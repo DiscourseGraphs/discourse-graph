@@ -18,7 +18,12 @@ import { setSetting } from "~/utils/extensionSettings";
 import {
   getFeatureFlag,
   setFeatureFlag,
+  isNewSettingsStoreEnabled,
 } from "~/components/settings/utils/accessors";
+import {
+  onSettingChange,
+  settingKeys,
+} from "~/components/settings/utils/settingsEmitter";
 import {
   getSupabaseContext,
   getLoggedInClient,
@@ -367,6 +372,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
   );
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isInstructionOpen, setIsInstructionOpen] = useState(false);
+  const isReactive = isNewSettingsStoreEnabled();
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -424,26 +430,30 @@ const FeatureFlagsTab = (): React.ReactElement => {
         <p>Are you sure you want to proceed?</p>
       </Alert>
 
-      {/* TODO(ENG-1484): Add pull watcher reactivity so toggling suggestive mode
-          starts/stops sync and shows the tab without requiring a reload. */}
       <Alert
         isOpen={isInstructionOpen}
-        onConfirm={() => window.location.reload()}
-        onCancel={() => setIsInstructionOpen(false)}
-        confirmButtonText="Reload Graph"
-        cancelButtonText="Later"
+        onConfirm={() =>
+          isReactive
+            ? setIsInstructionOpen(false)
+            : window.location.reload()
+        }
+        onCancel={isReactive ? undefined : () => setIsInstructionOpen(false)}
+        confirmButtonText={isReactive ? "OK" : "Reload Graph"}
+        cancelButtonText={isReactive ? undefined : "Later"}
         intent={Intent.PRIMARY}
       >
         <p>
           If this is the first time enabling it, you will need to generate and
           upload all node embeddings to supabase.
         </p>
+        {!isReactive && (
+          <p>
+            Please reload the graph to see the new &apos;Suggestive Mode&apos;
+            tab.
+          </p>
+        )}
         <p>
-          Please reload the graph to see the new &apos;Suggestive Mode&apos;
-          tab.
-        </p>
-        <p>
-          Then go to Suggestive Mode{" "}
+          Go to Suggestive Mode{" "}
           {"-> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"}
         </p>
       </Alert>
@@ -500,6 +510,15 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
 const AdminPanel = (): React.ReactElement => {
   const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
+  const [showSuggestiveTab, setShowSuggestiveTab] = useState(
+    getFeatureFlag("Suggestive mode enabled"),
+  );
+
+  useEffect(() => {
+    return onSettingChange(settingKeys.suggestiveModeEnabled, (newValue) => {
+      setShowSuggestiveTab(Boolean(newValue));
+    });
+  }, []);
 
   return (
     <Tabs
@@ -534,7 +553,7 @@ const AdminPanel = (): React.ReactElement => {
           </div>
         }
       />
-      {getFeatureFlag("Suggestive mode enabled") && (
+      {showSuggestiveTab && (
         <Tab
           id="suggestive-mode-settings"
           title="Suggestive mode"
