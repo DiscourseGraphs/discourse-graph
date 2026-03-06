@@ -192,7 +192,7 @@ const removeOverlaysFromExistingPageRefs = () =>
 
 const removeSuggestiveOverlaysFromExistingPageRefs = () =>
   removeOverlayElements(
-    "span.rm-page-ref[data-discourse-suggestive-overlay]",
+    "span.rm-page-ref",
     "suggestive-mode-overlay",
     "data-discourse-suggestive-overlay",
   );
