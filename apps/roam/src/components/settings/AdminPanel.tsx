@@ -433,9 +433,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
       <Alert
         isOpen={isInstructionOpen}
         onConfirm={() =>
-          isReactive
-            ? setIsInstructionOpen(false)
-            : window.location.reload()
+          isReactive ? setIsInstructionOpen(false) : window.location.reload()
         }
         onCancel={isReactive ? undefined : () => setIsInstructionOpen(false)}
         confirmButtonText={isReactive ? "OK" : "Reload Graph"}
