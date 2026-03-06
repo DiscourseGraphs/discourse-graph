@@ -164,7 +164,7 @@ export const getTitleDatalog = ({
           { type: "constant", value: ":node/title" },
           {
             type: "variable",
-            value: normalizePageTitle(target.replace(INPUT_REGEX, "")),
+            value: target.replace(INPUT_REGEX, ""),
           },
         ],
       },
@@ -343,7 +343,7 @@ const translator: Record<string, Translator> = {
         arguments: [
           { type: "variable", value: `${target}-Attribute` },
           { type: "constant", value: ":node/title" },
-          { type: "constant", value: `"normalizePageTitle(${target})"` },
+          { type: "constant", value: `"${normalizePageTitle(target)}"` },
         ],
       },
       {
