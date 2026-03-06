@@ -631,11 +631,12 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
                 const { node, blockText } = matchedNodeForConversion;
                 const tag = node.tag;
                 if (!tag) return;
-                const escapedTag = escapeRegExp(tag);
-                // Strip the tag from block text
+                const cleanTag = getCleanTagText(tag);
+                const escapedCleanTag = escapeRegExp(cleanTag);
+                // Strip the tag from block text (same pattern as detection above)
                 const cleanedText = blockText
-                  .replace(new RegExp(`#\\[\\[${escapedTag}\\]\\]`, "i"), "")
-                  .replace(new RegExp(`#${escapedTag}`, "i"), "")
+                  .replace(new RegExp(`#\\[\\[${escapedCleanTag}\\]\\]`, "i"), "")
+                  .replace(new RegExp(`#${escapedCleanTag}`, "i"), "")
                   .trim();
                 const { x, y } = shape;
                 renderModifyNodeDialog({
