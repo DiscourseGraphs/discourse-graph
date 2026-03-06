@@ -6,7 +6,11 @@ import generateUid from "~/utils/generateUid";
 import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
-import { getImportInfo, formatImportSource } from "~/utils/typeUtils";
+import {
+  getImportInfo,
+  formatImportSource,
+  getAndFormatImportSource,
+} from "~/utils/typeUtils";
 
 const generateTagPlaceholder = (format: string, nodeName?: string): string => {
   if (!format) return "Enter tag (e.g., clm-candidate)";
@@ -566,7 +570,7 @@ const NodeTypeSettings = () => {
                 <span className="text-muted pl-6 text-xs">
                   from{" "}
                   {formatImportSource(
-                    importInfo.spaceUri,
+                    importInfo.spaceUri || "",
                     plugin.settings.spaceNames,
                   )}
                 </span>
@@ -618,9 +622,11 @@ const NodeTypeSettings = () => {
 
         {localNodeTypes.length > 0 && (
           <div className="mt-4">
-            <h4 className="text-muted mb-2 text-sm font-semibold uppercase tracking-wide">
-              Local
-            </h4>
+            {importedNodeTypes.length > 0 && (
+              <h4 className="text-muted mb-2 text-sm font-semibold uppercase tracking-wide">
+                Local
+              </h4>
+            )}
             <div className="flex flex-col gap-0.5">
               {localNodeTypes.map((nodeType) => {
                 const index = nodeTypes.indexOf(nodeType);
@@ -664,7 +670,9 @@ const NodeTypeSettings = () => {
             />
           </button>
           <h3 className="dg-h3">
-            {isEditingImported ? "Node Type (read-only)" : "Edit Node Type"}
+            {isEditingImported
+              ? `[Read only] Imported from ${getAndFormatImportSource(editingNodeType.importedFromRid || "", plugin.settings.spaceNames)}`
+              : "Edit Node Type"}
           </h3>
         </div>
         {FIELD_CONFIG_ARRAY.map(renderField)}

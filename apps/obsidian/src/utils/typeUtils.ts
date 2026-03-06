@@ -70,3 +70,11 @@ export const formatImportSource = (
 
   return spaceUri;
 };
+
+export const getAndFormatImportSource = (
+  importedFromRid: string | undefined,
+  spaceNames?: Record<string, string>,
+): string => {
+  const importInfo = getImportInfo(importedFromRid);
+  return formatImportSource(importInfo.spaceUri || "", spaceNames);
+};

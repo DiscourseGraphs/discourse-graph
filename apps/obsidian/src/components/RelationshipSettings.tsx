@@ -155,7 +155,7 @@ const RelationshipSettings = () => {
             <select
               value={relation.sourceId}
               onChange={(e) =>
-                handleRelationChange(index, "sourceId", e.target.value)
+                void handleRelationChange(index, "sourceId", e.target.value)
               }
               className="flex-1 pl-2"
               disabled={isImported}
@@ -171,7 +171,7 @@ const RelationshipSettings = () => {
             <select
               value={relation.relationshipTypeId}
               onChange={(e) =>
-                handleRelationChange(
+                void handleRelationChange(
                   index,
                   "relationshipTypeId",
                   e.target.value,
@@ -191,7 +191,11 @@ const RelationshipSettings = () => {
             <select
               value={relation.destinationId}
               onChange={(e) =>
-                handleRelationChange(index, "destinationId", e.target.value)
+                void handleRelationChange(
+                  index,
+                  "destinationId",
+                  e.target.value,
+                )
               }
               className="flex-1 pl-2"
               disabled={isImported}
