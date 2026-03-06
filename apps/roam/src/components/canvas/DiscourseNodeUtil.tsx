@@ -635,7 +635,10 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
                 const escapedCleanTag = escapeRegExp(cleanTag);
                 // Strip the tag from block text (same pattern as detection above)
                 const cleanedText = blockText
-                  .replace(new RegExp(`#\\[\\[${escapedCleanTag}\\]\\]`, "i"), "")
+                  .replace(
+                    new RegExp(`#\\[\\[${escapedCleanTag}\\]\\]`, "i"),
+                    "",
+                  )
                   .replace(new RegExp(`#${escapedCleanTag}`, "i"), "")
                   .trim();
                 const { x, y } = shape;
