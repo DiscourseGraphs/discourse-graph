@@ -46,6 +46,8 @@ import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
 
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
 const TEXT_PROPS = {
@@ -460,7 +462,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
       if (!blockText) return null;
       const nodes = Object.values(discourseContext.nodes);
       for (const node of nodes) {
-        const tag = node.text;
+        const tag = node.tag;
         if (!tag) continue;
         const cleanTag = getCleanTagText(tag);
         const blockTextUpper = blockText.toUpperCase();
@@ -622,20 +624,18 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
               minimal
               small
               icon={
-                <Icon
-                  icon="plus"
-                  color={textColor}
-                  className="opacity-50"
-                />
+                <Icon icon="plus" color={textColor} className="opacity-50" />
               }
               onClick={(e) => {
                 e.stopPropagation();
                 const { node, blockText } = matchedNodeForConversion;
-                const tag = node.text;
+                const tag = node.tag;
+                if (!tag) return;
+                const escapedTag = escapeRegExp(tag);
                 // Strip the tag from block text
                 const cleanedText = blockText
-                  .replace(new RegExp(`#\\[\\[${tag}\\]\\]`, "i"), "")
-                  .replace(new RegExp(`#${tag}`, "i"), "")
+                  .replace(new RegExp(`#\\[\\[${escapedTag}\\]\\]`, "i"), "")
+                  .replace(new RegExp(`#${escapedTag}`, "i"), "")
                   .trim();
                 const { x, y } = shape;
                 renderModifyNodeDialog({
