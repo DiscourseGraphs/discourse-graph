@@ -82,7 +82,7 @@ export const getTitleDatalog = ({
           { type: "constant", value: ":node/title" },
           {
             type: "constant",
-            value: `"${getPageTitleByPageUid(mainWindowUid)}"`,
+            value: `"${normalizePageTitle(getPageTitleByPageUid(mainWindowUid))}"`,
           },
         ],
       },
@@ -98,7 +98,7 @@ export const getTitleDatalog = ({
           { type: "constant", value: ":node/title" },
           {
             type: "constant",
-            value: `"${getPageTitleByBlockUid(uid)}"`,
+            value: `"${normalizePageTitle(getPageTitleByBlockUid(uid))}"`,
           },
         ],
       },
@@ -112,7 +112,10 @@ export const getTitleDatalog = ({
         arguments: [
           { type: "variable", value: source },
           { type: "constant", value: ":node/title" },
-          { type: "constant", value: `"${getCurrentUserDisplayName()}"` },
+          {
+            type: "constant",
+            value: `"${normalizePageTitle(getCurrentUserDisplayName())}"`,
+          },
         ],
       },
     ];
@@ -159,7 +162,10 @@ export const getTitleDatalog = ({
         arguments: [
           { type: "variable", value: source },
           { type: "constant", value: ":node/title" },
-          { type: "variable", value: target.replace(INPUT_REGEX, "") },
+          {
+            type: "variable",
+            value: target.replace(INPUT_REGEX, ""),
+          },
         ],
       },
     ];
@@ -308,7 +314,7 @@ const translator: Record<string, Translator> = {
               { type: "variable", value: `${source}-Title` },
               {
                 type: "constant",
-                value: `"${getPageTitleByPageUid(uid)}"`,
+                value: `"${normalizePageTitle(getPageTitleByPageUid(uid))}"`,
               },
             ],
           },
@@ -337,7 +343,7 @@ const translator: Record<string, Translator> = {
         arguments: [
           { type: "variable", value: `${target}-Attribute` },
           { type: "constant", value: ":node/title" },
-          { type: "constant", value: `"${target}"` },
+          { type: "constant", value: `"${normalizePageTitle(target)}"` },
         ],
       },
       {
@@ -448,7 +454,10 @@ const translator: Record<string, Translator> = {
             pred: "clojure.string/includes?",
             arguments: [
               { type: "variable", value: `${source}-String` },
-              { type: "constant", value: `"${getCurrentUserDisplayName()}"` },
+              {
+                type: "constant",
+                value: `"${normalizePageTitle(getCurrentUserDisplayName())}"`,
+              },
             ],
           },
         ];
