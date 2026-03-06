@@ -8,6 +8,7 @@ env:
   APP_ID: ${{ secrets.APP_ID }}
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
 
 jobs:
   update-extension:
