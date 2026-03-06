@@ -18,7 +18,6 @@ import { setSetting } from "~/utils/extensionSettings";
 import {
   getFeatureFlag,
   setFeatureFlag,
-  isNewSettingsStoreEnabled,
 } from "~/components/settings/utils/accessors";
 import {
   onSettingChange,
@@ -372,7 +371,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
   );
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isInstructionOpen, setIsInstructionOpen] = useState(false);
-  const isReactive = isNewSettingsStoreEnabled();
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -432,24 +430,14 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
       <Alert
         isOpen={isInstructionOpen}
-        onConfirm={() =>
-          isReactive ? setIsInstructionOpen(false) : window.location.reload()
-        }
-        onCancel={isReactive ? undefined : () => setIsInstructionOpen(false)}
-        confirmButtonText={isReactive ? "OK" : "Reload Graph"}
-        cancelButtonText={isReactive ? undefined : "Later"}
+        onConfirm={() => setIsInstructionOpen(false)}
+        confirmButtonText="OK"
         intent={Intent.PRIMARY}
       >
         <p>
           If this is the first time enabling it, you will need to generate and
           upload all node embeddings to supabase.
         </p>
-        {!isReactive && (
-          <p>
-            Please reload the graph to see the new &apos;Suggestive Mode&apos;
-            tab.
-          </p>
-        )}
         <p>
           Go to Suggestive Mode{" "}
           {"-> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"}
