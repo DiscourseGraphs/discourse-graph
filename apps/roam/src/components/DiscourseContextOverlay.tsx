@@ -213,10 +213,12 @@ const useDiscourseContext = (uid: string, tag: string) => {
                 tree: getBasicTreeByParentUid(nodeType || ""),
                 key: "Attributes",
               });
-              const scoreFormula = getSettingValueFromTree({
-                tree: attributeNode.children,
-                key: attribute,
-              });
+              const scoreFormula = attributeNode?.children
+                ? getSettingValueFromTree({
+                    tree: attributeNode.children,
+                    key: attribute,
+                  })
+                : "";
               if (scoreFormula === "" && score !== numResults) {
                 internalError({
                   error: "DiscourseContext: Score does not match Num relations",
