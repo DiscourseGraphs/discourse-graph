@@ -22,7 +22,7 @@ import {
   DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
   STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
-  USE_REIFIED_RELATIONS,
+  USE_STORED_RELATIONS,
 } from "~/data/userSettings";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import { enablePostHog, disablePostHog } from "~/utils/posthog";
@@ -35,6 +35,7 @@ import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import posthog from "posthog-js";
 import internalError from "~/utils/internalError";
 import { setPersonalSetting } from "./utils/accessors";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 
 const enum RelationMigrationDialog {
   "none",
@@ -52,10 +53,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const [numExistingRelations, setNumExistingRelations] = useState<number>(0);
   const [isOngoing, setIsOngoing] = useState<boolean>(false);
   const [storedRelations, setStoredRelationsState] = useState<boolean>(
-    getSetting<boolean>(USE_REIFIED_RELATIONS, false),
+    getStoredRelationsEnabled(),
   );
   const setStoredRelations = (value: boolean) => {
-    setSetting<boolean>(USE_REIFIED_RELATIONS, value)
+    setSetting<boolean>(USE_STORED_RELATIONS, value)
       .then(() => {
         setStoredRelationsState(value);
         setPersonalSetting(["Reified relation triples"], value);
@@ -67,11 +68,11 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const startMigration = async (): Promise<void> => {
     const before = numExistingRelations;
     try {
-      posthog.capture("Reified Relations: Migration Started");
+      posthog.capture("Stored Relations: Migration Started");
       const numProcessed = await migrateRelations();
       if (numProcessed === false) {
         renderToast({
-          content: "Reified Relations: Migration Failed",
+          content: "Stored Relations: Migration Failed",
           intent: Intent.DANGER,
           id: "migration-error",
         });
@@ -92,7 +93,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           intent: Intent.SUCCESS,
           id: "migration-success",
         });
-      posthog.capture("Reified Relations: Migration Completed", {
+      posthog.capture("Stored Relations: Migration Completed", {
         processed: numProcessed,
         before,
         after,
@@ -102,7 +103,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     } catch (error) {
       internalError({
         error,
-        userMessage: "Reified Relations: Migration Failed",
+        userMessage: "Stored Relations: Migration Failed",
       });
       setStoredRelations(false);
     } finally {
@@ -168,7 +169,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 
       <PersonalFlagPanel
         title="Enable stored relations"
-        description="Transition to using stored relations instead of pattern-based relations"
+        description="Use stored relations instead of legacy pattern-based relations"
         settingKeys={["Reified relation triples"]}
         value={storedRelations}
         onBeforeChange={async (checked) => {
@@ -299,12 +300,12 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           ) : (
             <>
               <p>
-                Activating the faster relations system will migrate all
-                previously created relations and newly created relations will
-                use the new system. You can deactivate this setting to revert to
-                the old system, and your newly created relations will not be
+                Activating stored relations will migrate all previously created
+                legacy pattern relations, and newly created relations will use
+                stored relations. You can deactivate this setting to revert to
+                the legacy system, and your newly created relations will not be
                 deleted; however, they will not be accessible until you
-                reactivate the faster relation system.
+                reactivate stored relations.
               </p>
               {activeRelationMigration ===
               RelationMigrationDialog.reactivate ? (
@@ -366,11 +367,11 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       >
         <div className={Classes.DIALOG_BODY}>
           <p>
-            Deactivating the faster relations system will mean that any
-            relations created using it will no longer be accessible. The
-            discourse context overlay will still be usable with the previous
-            relations system. Any relations created with the faster system will
-            be accessible should you choose to reactivate.
+            Deactivating stored relations means any relations created using them
+            will no longer be accessible. The discourse context overlay will
+            still be usable with the legacy pattern-based system. Any relations
+            created with stored relations will be accessible accessible should
+            you choose to reactivate.
           </p>
         </div>
         <div className={Classes.DIALOG_FOOTER}>

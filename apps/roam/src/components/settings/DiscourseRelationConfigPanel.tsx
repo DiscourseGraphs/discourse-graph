@@ -50,7 +50,7 @@ import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import {
   setGlobalSetting,
   getGlobalSettings,
@@ -105,7 +105,7 @@ export const RelationEditPanel = ({
       ),
     [nodes],
   );
-  const useReifiedRelations = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
+  const storedRelationsEnabled = getStoredRelationsEnabled();
   const containerRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
   const cyRef = useRef<cytoscape.Core>();
@@ -406,7 +406,7 @@ export const RelationEditPanel = ({
   );
 
   const loadCytoscape = useCallback(async () => {
-    if (useReifiedRelations) return;
+    if (storedRelationsEnabled) return;
     cyRef.current?.destroy?.();
     const cytoscape = await window.RoamLazy?.Cytoscape();
     if (!cytoscape) return;
@@ -486,7 +486,7 @@ export const RelationEditPanel = ({
     setSelectedRelation,
     tab,
     unsavedChanges,
-    useReifiedRelations,
+    storedRelationsEnabled,
   ]);
   useEffect(() => {
     loadCytoscape();
@@ -788,7 +788,7 @@ export const RelationEditPanel = ({
           />
         </Label>
       </ControlGroup>
-      {!useReifiedRelations && (
+      {!storedRelationsEnabled && (
         <>
           <Tabs
             selectedTabId={tab}
@@ -1026,10 +1026,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
     null,
   );
-  const shouldHideCanvasRelation = getSetting<boolean>(
-    USE_REIFIED_RELATIONS,
-    false,
-  );
+  const shouldHideCanvasRelation = getStoredRelationsEnabled();
   const visibleRelations = useMemo(() => {
     if (!shouldHideCanvasRelation) {
       return relations;

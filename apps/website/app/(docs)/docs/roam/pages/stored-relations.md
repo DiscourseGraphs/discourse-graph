@@ -11,7 +11,7 @@ Stored relations change how relationships between discourse nodes are created an
 
 Instead of being inferred from patterns in your Roam graph, **stored relations are created and deleted explicitly** and saved as data. This makes relations faster to query, more reliable, and easier to manage.
 
-Stored relations are the foundation for improved performance and a more usable Discourse context overlay.
+Stored relations are the foundation for improved performance and a more usable Discourse context overlay. They are the default for new Discourse Graph installs.
 
 ## What is a stored relation?
 
@@ -48,7 +48,7 @@ Typical flow:
 3. Select the relation type
 4. Select the source and destination nodes
 
-The relation is immediately stored and available to all users who have enabled stored relations.
+The relation is immediately stored. New Discourse Graph installs use stored relations by default, while older installs may need to enable them first.
 
 ## Viewing stored relations
 
@@ -83,9 +83,9 @@ For details on migrating and mixed-mode behavior, see the [**stored relations mi
 
 - Stored relations are **not inferred** from patterns
 - Creating or deleting patterns does not affect stored relations
-- Stored relations are currently opt-in during the transition period
-
-These limitations will be removed once stored relations become the default.
+- New Discourse Graph installs default to stored relations
+- Older installs may still need to enable stored relations and run migration
+- Pattern-based relations remain available only as a legacy workflow during the transition
 
 ## For the technically inclined
 
@@ -93,19 +93,11 @@ Stored relations are implemented as:
 
 - One block per relation
 - Located at: `roam/js/discourse-graph/relations`
-- Relation data stored in the block’s hidden properties
+- Relation data stored in the block's hidden properties
 - Source and destination nodes referenced by UID
 
 This structure allows fast lookup, consistent rendering, and future extensions (metadata, provenance, annotations).
 
 ## Future direction
 
-Stored relations will eventually replace pattern-based relations entirely.
-
-Once the transition period ends:
-
-- Stored relations will be the default
-- Pattern-based relations will be phased out
-- Migration will be handled automatically
-
-Until then, stored relations are available as an opt-in feature for users who want improved performance and reliability.
+Stored relations are now the default for new Discourse Graph installs. Pattern-based relations are a legacy path for older installs that have not migrated yet.

@@ -5,11 +5,7 @@ author: ""
 published: true
 ---
 
-## Deprecation notice
-
-Pattern-based relations are being deprecated. Please plan to move to [**stored relations**](./stored-relations), which will be the recommended way to define and persist discourse relations. Migration guidance is available in [**Migration to stored relations**](./migration-to-stored-relations).
-
-## Stock Patterns
+Pattern-based relations are a legacy workflow and are being deprecated. New Discourse Graph installs use [**stored relations**](./stored-relations) by default. Migration guidance for older installs is available in [**Migration to stored relations**](./migration-to-stored-relations).
 
 The extension ships with the ability to recognize three such writing/outlining patterns. Give them a try!
 

@@ -22,9 +22,8 @@ import toCellValue from "~/utils/toCellValue";
 import { ContextContent } from "~/components/DiscourseContext";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { CONTEXT_OVERLAY_SUGGESTION } from "~/utils/predefinedSelections";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
-import { getSetting } from "~/utils/extensionSettings";
 import { strictQueryForReifiedBlocks } from "~/utils/createReifiedBlock";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import internalError from "~/utils/internalError";
 
 const EXTRA_ROW_TYPES = ["context", "discourse"] as const;
@@ -263,7 +262,7 @@ const ResultRow = ({
   onDragEnd,
   onRefresh,
 }: ResultRowProps) => {
-  const useReifiedRel = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
+  const storedRelationsEnabled = getStoredRelationsEnabled();
   const cell = (key: string) => {
     const value = toCellValue({
       value: r[`${key}-display`] || r[key] || "",
@@ -433,7 +432,7 @@ const ResultRow = ({
               ) : (
                 cell(key)
               )}
-              {useReifiedRel &&
+              {storedRelationsEnabled &&
                 typeof r["ctxTargetUid"] === "string" &&
                 typeof r["id"] === "string" &&
                 typeof r["complement"] === "number" &&

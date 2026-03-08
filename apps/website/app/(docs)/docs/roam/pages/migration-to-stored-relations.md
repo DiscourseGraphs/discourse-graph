@@ -7,18 +7,18 @@ published: true
 
 ## Overview
 
-Stored relations make relations load faster and more reliably. To start using them, your graph needs a one-time migration that copies your existing relations into the new format.
+Stored relations make relations load faster and more reliably. New Discourse Graph installs use them by default. Older installs need a one-time migration that copies existing pattern-based relations into the new format.
 
-This guide covers the migration flow from **Personal Settings**. If you’re new to stored relations, start with the [stored relations overview](./stored-relations).
+This guide covers the migration flow from **Personal Settings** for older installs. If you're new to stored relations, start with the [stored relations overview](./stored-relations).
 
-## Turn on stored relations
+## Turn on stored relations for an existing install
 
 1. Open **Personal Settings**
 2. Go to the **Home** panel
 3. Find **Enable stored relations**
 4. Turn the toggle **On**
 
-When you turn this on, you’ll be shown a migration step for your graph.
+When you turn this on for an older install, you'll be shown a migration step for your graph.
 
 ## Migrate your existing relations
 
@@ -42,7 +42,7 @@ You only need to run migration again if:
 
 ## Multi-user graphs
 
-Migration runs **per graph**, but the stored relations toggle is **per user**. During rollout, it’s possible for teammates to be in different modes.
+Migration runs **per graph**, but the stored relations toggle is **per user**. During rollout, it's possible for teammates to be in different modes.
 
 If some users are still using the older relation method, running migration again later helps ensure you see the most up-to-date relations.
 
@@ -66,11 +66,11 @@ You can run migration **multiple times**.
 This matters if:
 
 - Some users are still creating **pattern-based** relations
-- Other users have opted into **stored** relations
+- Other users are already using **stored** relations
 
-In that case, opt-in users must re-run migration to “catch up,” otherwise:
+In that case, stored-relations users must re-run migration to "catch up," otherwise:
 
-- They won’t see new pattern-based relations created since the last migration
+- They won't see new pattern-based relations created since the last migration
 
 #### Important edge case
 
@@ -79,7 +79,7 @@ If you:
 1. Delete a **stored** relation that originally came from a pattern, and then
 2. Re-run migration
 
-… it will be **re-created** from the still-existing pattern.
+... it will be **re-created** from the still-existing pattern.
 
 ### For the technically inclined
 
@@ -87,4 +87,4 @@ Stored relations are implemented as:
 
 - `roam/js/discourse-graph/relations`
 
-Each relation is a **block**, with relation data stored in the block’s **hidden properties**.
+Each relation is a **block**, with relation data stored in the block's **hidden properties**.
