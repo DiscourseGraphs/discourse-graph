@@ -13,7 +13,7 @@ The legacy pattern workflow recognizes a few common writing and outlining struct
 - [Supported](#claim-supported-by-evidence)
 - [Opposed](#claim-opposed-by-evidence)
 
-### Question Informed by Evidence
+## Question Informed by Evidence
 
 - Go into a Question page.
 - Create a block and reference an evidence page.
@@ -24,7 +24,7 @@ Like this:
 
 The system recognizes that this piece of evidence **informs** the question.
 
-### Claim Supported by Evidence
+## Claim Supported by Evidence
 
 Create a block anywhere and reference a claim page. We'll call this the claim block.
 
@@ -38,7 +38,7 @@ Like this:
 
 The system recognizes that this piece of evidence **supports** that claim.
 
-### Claim Opposed by Evidence
+## Claim Opposed by Evidence
 
 Create a block anywhere and reference a claim page. We'll call this the claim block.
 
