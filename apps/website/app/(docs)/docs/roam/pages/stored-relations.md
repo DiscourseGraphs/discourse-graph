@@ -11,7 +11,7 @@ Stored relations change how relationships between discourse nodes are created an
 
 Instead of being inferred from patterns in your Roam graph, **stored relations are created and deleted explicitly** and saved as data. This makes relations faster to query, more reliable, and easier to manage.
 
-Stored relations are the foundation for improved performance and a more usable Discourse context overlay. They are the default for new Discourse Graph installs.
+Stored relations are the foundation for improved performance and a more usable Discourse context overlay. Discourse Graph installs (as of v0.18.0) use them by default.
 
 ## What is a stored relation?
 
@@ -48,7 +48,7 @@ Typical flow:
 3. Select the relation type
 4. Select the source and destination nodes
 
-The relation is immediately stored. New Discourse Graph installs use stored relations by default, while older installs may need to enable them first.
+The relation is immediately stored.
 
 ## Viewing stored relations
 

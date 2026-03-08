@@ -5,7 +5,7 @@ author: ""
 published: true
 ---
 
-Pattern-based relations are a legacy workflow and are being deprecated. New Discourse Graph installs use [**stored relations**](./stored-relations) by default. Migration guidance for older installs is available in [**Migration to stored relations**](./migration-to-stored-relations).
+Pattern-based relations are a legacy workflow and are being deprecated. New Discourse Graph installs (as of v0.18.0) use [**stored relations**](./stored-relations) by default. Migration guidance for older installs is available in [**Migration to stored relations**](./migration-to-stored-relations).
 
 The extension ships with the ability to recognize three such writing/outlining patterns. Give them a try!
 

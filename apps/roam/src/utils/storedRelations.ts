@@ -6,7 +6,7 @@ import { USE_STORED_RELATIONS } from "~/data/userSettings";
 import { getSetting, setSetting } from "./extensionSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "./renderNodeConfigPage";
 
-const INSTALL_CUTOFF = Date.parse("2026-04-01T00:00:00.000Z");
+const INSTALL_CUTOFF = Date.parse("2026-03-01T00:00:00.000Z");
 
 const setResolvedDefault = (value: boolean): void => {
   void setSetting(USE_STORED_RELATIONS, value).catch(() => undefined);
