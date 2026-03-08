@@ -4,6 +4,7 @@ import { OnloadArgs, RoamBasicNode } from "roamjs-components/types/native";
 import getSettingIntFromTree from "roamjs-components/util/getSettingIntFromTree";
 import getSubTree from "roamjs-components/util/getSubTree";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
+import { BLOCK_REF_REGEX } from "roamjs-components/dom/constants";
 import { StoredFilters } from "~/components/settings/DefaultFilters";
 import { Column } from "./types";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
@@ -24,10 +25,16 @@ export type InputValues = {
 }[];
 export type FilterData = Record<string, Filters>;
 export type Views = {
+  uid: string;
   column: string;
   mode: string;
   value: string;
 }[];
+
+const getStoredViewKey = (text: string): string => {
+  const blockRefMatch = text.match(BLOCK_REF_REGEX);
+  return blockRefMatch?.[1] || text;
+};
 
 export const getAlias = (parentUid: string) => {
   const aliasMatch = getTextByBlockUid(parentUid).match(
@@ -124,7 +131,7 @@ const parseResultSettings = (
   const viewsNode = getSubTree({ tree: resultNode.children, key: "views" });
   const savedViewData = Object.fromEntries(
     viewsNode.children.map((c) => [
-      c.text,
+      getStoredViewKey(c.text),
       {
         mode: c.children[0]?.text,
         value: c.children[0]?.children?.[0]?.text || "",
@@ -210,11 +217,14 @@ const parseResultSettings = (
         type: getSettingValueFromTree({ tree: c.children, key: "type" }),
       };
     }),
-    views: columns.map(({ key: column }) => ({
+    views: columns.map(({ key: column, uid }) => ({
+      uid,
       column,
       mode:
-        savedViewData[column]?.mode || (column === "text" ? "link" : "plain"),
-      value: savedViewData[column]?.value || "",
+        savedViewData[uid]?.mode ||
+        savedViewData[column]?.mode ||
+        (column === "text" ? "link" : "plain"),
+      value: savedViewData[uid]?.value || savedViewData[column]?.value || "",
     })),
     random,
     pageSize,
