@@ -652,8 +652,8 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
                   extensionAPI,
                   includeDefaultNodes: true,
                   onSuccess: async ({ text, uid }) => {
-                    editor.deleteShapes([shape.id]);
                     if (!extensionAPI) return;
+                    editor.deleteShapes([shape.id]);
                     const {
                       h,
                       w,
