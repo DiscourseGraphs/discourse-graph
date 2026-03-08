@@ -15,13 +15,13 @@ const setResolvedDefault = (value: boolean): void => {
 // Stored relations are the default for new DG installs. We use the config
 // page create date as the install cutoff because it reflects when DG was first
 // initialized in the graph.
-const getInstallDefault = (): boolean | undefined => {
+const getInstallDefault = (): boolean => {
   const page = window.roamAlphaAPI.pull(
     "[:create/time]",
     [":node/title", DISCOURSE_CONFIG_PAGE_TITLE],
     // eslint-disable-next-line @typescript-eslint/naming-convention
   ) as { ":create/time"?: number } | null;
-  if (!page) return undefined;
+  if (!page) return true; // handle case where config page doesn't exist yet, assume new install
 
   const createdAt = page[":create/time"];
   return typeof createdAt === "number" && createdAt >= INSTALL_CUTOFF;
@@ -34,8 +34,6 @@ export const getStoredRelationsEnabled = (): boolean => {
   if (typeof value === "boolean") return value;
 
   const resolvedDefault = getInstallDefault();
-  if (typeof resolvedDefault !== "boolean") return false;
-
   setResolvedDefault(resolvedDefault);
   return resolvedDefault;
 };
