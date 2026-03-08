@@ -35,7 +35,6 @@ const getCanvasPageTargets = (): string[] => {
   return getAllPageNames().filter((title) => formatRegex.test(title));
 };
 
-
 const isRegex = (str: string) => /^\/.+\/(i)?$/.test(str);
 const regexRePatternValue = (str: string) => {
   const isCaseInsensitive = str.endsWith("/i");
@@ -933,8 +932,7 @@ const translator: Record<string, Translator> = {
       },
       ...getCanvasMembershipShapeClauses({ source, target }),
     ],
-    targetOptions: () =>
-      getCanvasPageTargets().concat(["{current}"]),
+    targetOptions: () => getCanvasPageTargets().concat(["{current}"]),
     placeholder: "Enter a page name",
   },
   "has block reference": {
