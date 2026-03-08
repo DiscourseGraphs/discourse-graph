@@ -370,8 +370,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             Deactivating stored relations means any relations created using them
             will no longer be accessible. The discourse context overlay will
             still be usable with the legacy pattern-based system. Any relations
-            created with stored relations will be accessible accessible should
-            you choose to reactivate.
+            created with stored relations will be accessible should you choose
+            to reactivate.
           </p>
         </div>
         <div className={Classes.DIALOG_FOOTER}>
