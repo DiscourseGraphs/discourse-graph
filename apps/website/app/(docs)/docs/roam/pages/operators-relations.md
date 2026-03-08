@@ -67,4 +67,4 @@ published: true
 
 ## Next
 
-- [Relations patterns](./relations-patterns)
+- [Stored relations](./stored-relations)
