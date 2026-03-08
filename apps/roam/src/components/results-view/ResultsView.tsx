@@ -1074,7 +1074,10 @@ const ResultsView: ResultsViewComponent = ({
                                   },
                                 );
 
-                                onViewChange({ mode: m, column, value, uid }, i);
+                                onViewChange(
+                                  { mode: m, column, value, uid },
+                                  i,
+                                );
                               }}
                             />
                           </td>
