@@ -1,5 +1,5 @@
 // We made the decision to use "Store relations" terminology for the UI
-// But there is still some legacy code that uses "Refied relations" terminology.
+// But there is still some legacy code that uses "Reified relations" terminology.
 // ENG-1521: Update internal terminology to use "stored" instead of "reified"
 
 import { USE_STORED_RELATIONS } from "~/data/userSettings";
