@@ -22,6 +22,7 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { Sorts } from "~/utils/parseResultSettings";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
+import { RenderRoamBlock } from "~/utils/roamReactComponents";
 
 const zPriority = z.record(z.number().min(0).max(1));
 
@@ -29,23 +30,12 @@ type Reprioritize = (args: { uid: string; x: number; y: number }) => void;
 
 const BlockEmbed = ({ uid, viewValue }: { uid: string; viewValue: string }) => {
   const title = getPageTitleByPageUid(uid);
-  const contentRef = useRef(null);
   const open =
-    viewValue === "open" ? true : viewValue === "closed" ? false : null;
-  useEffect(() => {
-    const el = contentRef.current;
-    if (el) {
-      window.roamAlphaAPI.ui.components.renderBlock({
-        uid,
-        el,
-        // @ts-expect-error - add to roamjs-components
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "open?": open,
-      });
-    }
-  }, [uid, open, contentRef]);
+    viewValue === "open" ? true : viewValue === "closed" ? false : undefined;
   return (
-    <div ref={contentRef} className={title ? "page-embed" : "block-embed"} />
+    <div className={title ? "page-embed" : "block-embed"}>
+      <RenderRoamBlock uid={uid} open={open} />
+    </div>
   );
 };
 
