@@ -84,9 +84,7 @@ export const syncCanvasNodeTitlesOnLoad = async (
     const currentInRoam = uidToTitle.get(uid);
     if (currentInRoam === undefined) {
       shapesToRemove.push(shape);
-    } else if (
-      (shape.props.title ?? "").trim() !== (currentInRoam ?? "").trim()
-    ) {
+    } else if ((shape.props.title ?? "") !== (currentInRoam ?? "")) {
       shapesToUpdate.push({ shape, newTitle: currentInRoam });
     }
   }

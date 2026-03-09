@@ -1032,9 +1032,9 @@ const TldrawCanvasShared = ({
                 app,
                 allNodes.map((n) => n.type),
                 allRelationIds,
-              ).catch((err) => {
+              ).catch((error) => {
                 internalError({
-                  error: err instanceof Error ? err : new Error(String(err)),
+                  error,
                   type: "Canvas: Sync node titles on load",
                 });
               });
