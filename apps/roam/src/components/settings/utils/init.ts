@@ -147,7 +147,7 @@ const initSingleDiscourseNode = async (
       tag: node.tag || "",
       graphOverview: node.graphOverview ?? false,
       canvasSettings: node.canvasSettings || {},
-      backedBy: "default",
+      backedBy: "user",
     });
 
     setBlockProps(pageUid, nodeData, false);

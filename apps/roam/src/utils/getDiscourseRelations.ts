@@ -6,6 +6,10 @@ import type {
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
+import {
+  isNewSettingsStoreEnabled,
+  getAllRelations,
+} from "~/components/settings/utils/accessors";
 import discourseConfigRef from "./discourseConfigRef";
 
 export type Triple = readonly [string, string, string];
@@ -32,6 +36,10 @@ export const getRelationsNode = (grammarNode = getGrammarNode()) => {
 };
 
 const getDiscourseRelations = () => {
+  if (isNewSettingsStoreEnabled()) {
+    return getAllRelations();
+  }
+
   const grammarNode = getGrammarNode();
   const relationsNode = getRelationsNode(grammarNode);
   const relationNodes = relationsNode?.children || DEFAULT_RELATION_VALUES;

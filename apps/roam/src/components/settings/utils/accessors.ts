@@ -12,6 +12,9 @@ import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { roamNodeToCondition } from "~/utils/parseQuery";
+import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
+import type { DiscourseNode } from "~/utils/getDiscourseNodes";
+import type { Condition } from "~/utils/types";
 import { z } from "zod";
 
 import {
@@ -27,7 +30,7 @@ import {
   type GlobalSettings,
   type PersonalSettings,
   type DiscourseNodeSettings,
-  type DiscourseRelationSettings,
+  type Condition as SchemaCondition,
 } from "./zodSchema";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -250,11 +253,6 @@ const getLegacyPersonalSetting = (keys: string[]): unknown => {
   return undefined;
 };
 
-// NOTE(ENG-1469): This returns the block props schema shape (Record<uid, {label, source,
-// destination, complement, ifConditions}>). Runtime consumers use getDiscourseRelations()
-// which returns a flat DiscourseRelation[] with a different structure (one entry per
-// if-block, triples at top level, no nodePositions). When migrating getDiscourseRelations()
-// to read from block props, it will need a conversion from this shape to the flat array.
 const getLegacyRelationsSetting = (): Record<string, unknown> => {
   const settingsUid = getPageUidByPageTitle(DG_BLOCK_PROP_SETTINGS_PAGE_TITLE);
   if (!settingsUid) return DEFAULT_GLOBAL_SETTINGS.Relations;
@@ -768,13 +766,19 @@ export const setGlobalSetting = (keys: string[], value: json): void => {
   });
 };
 
-export const getAllRelations = (): DiscourseRelationSettings[] => {
+export const getAllRelations = (): DiscourseRelation[] => {
   const settings = getGlobalSettings();
 
-  return Object.entries(settings.Relations).map(([id, relation]) => ({
-    ...relation,
-    id,
-  }));
+  return Object.entries(settings.Relations).flatMap(([id, relation]) =>
+    relation.ifConditions.map((ifCondition) => ({
+      id,
+      label: relation.label,
+      source: relation.source,
+      destination: relation.destination,
+      complement: relation.complement,
+      triples: ifCondition.triples,
+    })),
+  );
 };
 
 export const getPersonalSettings = (): PersonalSettings => {
@@ -940,7 +944,52 @@ export const setDiscourseNodeSetting = (
   setBlockPropAtPath(pageUid, keys, value);
 };
 
-export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
+const addConditionUids = (conditions: SchemaCondition[]): Condition[] =>
+  conditions.map((c) => {
+    const uid = window.roamAlphaAPI.util.generateUID();
+    if (c.type === "or" || c.type === "not or") {
+      return {
+        uid,
+        type: c.type,
+        conditions: c.conditions.map(addConditionUids),
+      };
+    }
+    return {
+      uid,
+      type: c.type,
+      source: c.source,
+      relation: c.relation,
+      target: c.target,
+      not: c.not,
+    };
+  }) as Condition[];
+
+const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
+  text: settings.text,
+  type: settings.type,
+  shortcut: settings.shortcut,
+  tag: settings.tag || undefined,
+  format: settings.format,
+  description: settings.description || undefined,
+  graphOverview: settings.graphOverview || undefined,
+  backedBy: "user",
+  specification: addConditionUids(
+    settings.specification.query.conditions as SchemaCondition[],
+  ),
+  canvasSettings: Object.fromEntries(
+    Object.entries(settings.canvasSettings).map(([k, v]) => [
+      k,
+      typeof v === "boolean" ? (v ? "true" : "") : String(v),
+    ]),
+  ),
+  template: settings.template.length > 0 ? settings.template : undefined,
+  embeddingRef: settings.suggestiveRules.embeddingRef || undefined,
+  isFirstChild: settings.suggestiveRules.isFirstChild
+    ? { uid: "", value: true }
+    : undefined,
+});
+
+export const getAllDiscourseNodes = (): DiscourseNode[] => {
   const results = window.roamAlphaAPI.data.fast.q(`
     [:find ?uid ?title (pull ?page [:block/props])
      :where
@@ -949,7 +998,7 @@ export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
      [(clojure.string/starts-with? ?title "${DISCOURSE_NODE_PAGE_PREFIX}")]]
   `) as [string, string, Record<string, json> | null][];
 
-  const nodes: DiscourseNodeSettings[] = [];
+  const nodes: DiscourseNode[] = [];
 
   for (const [pageUid, title, rawProps] of results) {
     if (typeof pageUid !== "string" || typeof title !== "string") continue;
@@ -966,11 +1015,13 @@ export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
 
     const result = DiscourseNodeSchema.safeParse(blockProps);
     if (result.success) {
-      nodes.push({
-        ...result.data,
-        type: pageUid,
-        text: title.replace(DISCOURSE_NODE_PAGE_PREFIX, ""),
-      });
+      nodes.push(
+        toDiscourseNode({
+          ...result.data,
+          type: pageUid,
+          text: title.replace(DISCOURSE_NODE_PAGE_PREFIX, ""),
+        }),
+      );
     } else {
       internalError({
         error: result.error,
