@@ -17,6 +17,27 @@ import {
 } from "./DiscourseRelationShape/DiscourseRelationBindings";
 import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 
+/**
+ * Cloudflare sync needs stable adapter arg identities, but local Roam
+ * persistence currently regresses when those same refs are memoized across
+ * canvas switches: the first canvas saves, later canvases stop persisting
+ * block props even though drawing still works.
+ *
+ * Tried the cleaner design of using stable, page-scoped adapter refs for
+ * both backends and resetting `useRoamStore` on `pageUid` changes. That
+ * reintroduced the local multi-canvas save bug, which suggests the real issue
+ * lives in `useRoamStore`'s page-switch lifecycle rather than in these arrays
+ * alone.
+ *
+ * For now this hook intentionally splits behavior:
+ * - Cloudflare gets stable, page-scoped refs.
+ * - Local Roam gets fresh values so the store can rebind correctly.
+ *
+ * Proper fix: make `useRoamStore` explicitly page-keyed, with proven teardown
+ * and re-creation of its store, timers, and pull-watch behavior on canvas
+ * switches, then try moving both backends back to one stable adapter path.
+ */
+
 export type CanvasStoreAdapterArgs = {
   pageUid: string;
   migrations: MigrationSequence[];
