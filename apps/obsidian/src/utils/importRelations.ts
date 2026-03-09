@@ -210,18 +210,34 @@ export const importRelationsForImportedNodes = async ({
   keyToRid: Map<string, string>;
 }): Promise<{ imported: number }> => {
   if (nodeKeys.size === 0) return { imported: 0 };
-  console.log("keyToRid", keyToRid);
-  console.log("nodeKeys", nodeKeys);
-
 
   const relationInstances = await fetchRelationInstancesFromSpace({
     client,
     spaceId,
   });
-  console.log("relationInstances", relationInstances);
 
   const relationsData = await loadRelations(plugin);
   let imported = 0;
+
+  const schemaIds = [
+    ...new Set(
+      relationInstances
+        .map((r) => r.schema_id)
+        .filter((id): id is number => id != null),
+    ),
+  ];
+  const schemaMap = new Map<number, string>();
+  if (schemaIds.length > 0) {
+    const { data: schemaConcepts } = await client
+      .from("my_concepts")
+      .select("id, source_local_id")
+      .in("id", schemaIds);
+    for (const row of schemaConcepts ?? []) {
+      if (row?.id != null && typeof row.source_local_id === "string") {
+        schemaMap.set(row.id, row.source_local_id);
+      }
+    }
+  }
 
   for (const rel of relationInstances) {
     const sourceData = rel.concepts_of_relation.find(
@@ -247,21 +263,11 @@ export const importRelationsForImportedNodes = async ({
 
     const sourceRid = keyToRid.get(sourceKey);
     const destRid = keyToRid.get(destKey);
-    console.log("sourceRid", sourceRid);
-    console.log("destRid", destRid);
     if (!sourceRid || !destRid) continue;
 
     if (!rel.schema_id) continue;
 
-    const { data: schemaConcept } = await client
-      .from("my_concepts")
-      .select("source_local_id")
-      .eq("id", rel.schema_id)
-      .maybeSingle();
-
-    const sourceRelationTypeId = schemaConcept?.source_local_id as
-      | string
-      | undefined;
+    const sourceRelationTypeId = schemaMap.get(rel.schema_id);
     if (!sourceRelationTypeId) continue;
 
     const mappedTypeId = await mapRelationTypeToLocal({
