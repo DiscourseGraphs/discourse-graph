@@ -17,7 +17,7 @@ import {
 import fuzzy from "fuzzy";
 import { Result } from "~/utils/types";
 
-const RESULTS_LIMIT = 20;
+const RESULTS_LIMIT = 50;
 
 type FuzzySelectInputProps<T extends Result = Result> = {
   value?: T;
@@ -218,6 +218,12 @@ const FuzzySelectInput = <T extends Result = Result>({
               multiline
             />
           ))}
+          {filteredItems.length > RESULTS_LIMIT && (
+            <li className="px-3 py-2 text-center text-xs italic text-gray-500">
+              Showing first {RESULTS_LIMIT} results — refine your search to see
+              more.
+            </li>
+          )}
         </Menu>
       }
       target={
