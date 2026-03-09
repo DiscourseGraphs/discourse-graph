@@ -387,8 +387,9 @@ export class QueryEngine {
           const file = this.app.vault.getAbstractFileByPath(page.$path);
           if (!(file && file instanceof TFile)) continue;
           if (opts?.excludeImported) {
-            const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
-            if ((fm as Record<string, unknown>)?.importedFromRid) continue;
+            const fm = this.app.metadataCache.getFileCache(file)
+              ?.frontmatter as Record<string, unknown> | undefined;
+            if (fm?.importedFromRid || fm?.importedFromSpaceUri) continue;
           }
           files.push(file);
         }
