@@ -2,7 +2,10 @@
 import type DiscourseGraphPlugin from "~/index";
 import type { ImportableNode } from "~/types";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
-import { getImportedNodesInfo } from "./relationsStore";
+import {
+  getImportedNodesInfo,
+  getLocalNodeKeyToEndpointId,
+} from "./relationsStore";
 import { getSpaceUris } from "./importNodes";
 import { QueryEngine } from "~/services/QueryEngine";
 import {
@@ -33,6 +36,8 @@ export type ImportPreviewData = {
   // Pre-fetched data to pass through to import (avoids re-querying)
   nodeKeys: Set<string>;
   keyToRid: Map<string, string>;
+  /** Key (spaceId:source_local_id) -> endpoint id (RID) for relation import; includes local nodes */
+  keyToRelationEndpointId: Map<string, string>;
   /** Relation instances per spaceId, for reuse during import */
   relationInstancesBySpace: Map<number, RemoteRelationInstance[]>;
 };
@@ -168,6 +173,9 @@ export const computeImportPreview = async ({
     }
   }
 
+  const localMap = getLocalNodeKeyToEndpointId(plugin, context.spaceId);
+  const keyToRelationEndpointId = new Map([...keyToRid, ...localMap]);
+
   // Fetch relation instances per space and collect matching ones with endpoint concept ids
   const relationInstancesBySpace = new Map<number, RemoteRelationInstance[]>();
   const matchingRelations: Array<{
@@ -184,7 +192,7 @@ export const computeImportPreview = async ({
     });
     relationInstancesBySpace.set(spaceId, instances);
 
-    // Filter: only relations where both endpoints are in combined nodeKeys
+    // Filter: only relations where both endpoints resolve (imported or local)
     for (const rel of instances) {
       const sourceData = rel.concepts_of_relation.find(
         (cor) =>
@@ -202,7 +210,7 @@ export const computeImportPreview = async ({
       const sourceKey = `${sourceData.space_id}:${sourceData.source_local_id}`;
       const destKey = `${destData.space_id}:${destData.source_local_id}`;
 
-      if (nodeKeys.has(sourceKey) && nodeKeys.has(destKey)) {
+      if (keyToRelationEndpointId.has(sourceKey) && keyToRelationEndpointId.has(destKey)) {
         matchingRelations.push({
           rel,
           sourceConceptId: sourceData.id,
@@ -289,7 +297,7 @@ export const computeImportPreview = async ({
       const obj =
         typeof schemaData.literal_content === "string"
           ? (JSON.parse(schemaData.literal_content) as Record<string, unknown>)
-          : ((schemaData.literal_content as Record<string, unknown>) || {});
+          : (schemaData.literal_content as Record<string, unknown>) || {};
       const label = (obj.label as string) || schemaData.name;
       const complement = (obj.complement as string) || "";
 
@@ -332,9 +340,7 @@ export const computeImportPreview = async ({
   }
 
   // Batch fetch source_local_id + name for all node type schemas
-  const nodeSchemaNumericIds = [
-    ...new Set(conceptIdToSchemaId.values()),
-  ];
+  const nodeSchemaNumericIds = [...new Set(conceptIdToSchemaId.values())];
   // Maps numeric schema id -> { source_local_id, name }
   const nodeSchemaIdToInfo = new Map<
     number,
@@ -433,10 +439,7 @@ export const computeImportPreview = async ({
       destSchemaInfo.source_local_id,
       destNodeTypeName,
     );
-    const localRelTypeId = resolveLocalRelTypeId(
-      relTypeLocalId,
-      relInfo.label,
-    );
+    const localRelTypeId = resolveLocalRelTypeId(relTypeLocalId, relInfo.label);
 
     const isNewTriplet = !plugin.settings.discourseRelations?.some(
       (dr) =>
@@ -461,6 +464,7 @@ export const computeImportPreview = async ({
     relationTriplets,
     nodeKeys,
     keyToRid,
+    keyToRelationEndpointId,
     relationInstancesBySpace,
   };
 };

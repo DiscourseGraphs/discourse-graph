@@ -7,7 +7,10 @@ import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
-import { getImportedNodesInfo } from "~/utils/relationsStore";
+import {
+  getImportedNodesInfo,
+  getLocalNodeKeyToEndpointId,
+} from "~/utils/relationsStore";
 import { spaceUriAndLocalIdToRid } from "./rid";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Tables } from "@repo/database/dbTypes";
@@ -1135,6 +1138,7 @@ export const importSelectedNodes = async ({
   precomputedData?: {
     nodeKeys: Set<string>;
     keyToRid: Map<string, string>;
+    keyToRelationEndpointId: Map<string, string>;
     relationInstancesBySpace: Map<number, RemoteRelationInstance[]>;
   };
 }): Promise<{ success: number; failed: number }> => {
@@ -1332,15 +1336,22 @@ export const importSelectedNodes = async ({
       }
     }
 
-    // Import relations where both nodes are in the import folder
+    // Import relations where both endpoints resolve in this vault (imported or local)
     try {
-      const { nodeKeys, keyToRid } = precomputedData
-        ? { nodeKeys: precomputedData.nodeKeys, keyToRid: precomputedData.keyToRid }
-        : await getImportedNodesInfo({
-            queryEngine,
-            plugin,
-            client,
-          });
+      let keyToRelationEndpointId: Map<string, string>;
+      if (precomputedData?.keyToRelationEndpointId) {
+        keyToRelationEndpointId = precomputedData.keyToRelationEndpointId;
+      } else {
+        const { keyToRid } = precomputedData
+          ? { keyToRid: precomputedData.keyToRid }
+          : await getImportedNodesInfo({
+              queryEngine,
+              plugin,
+              client,
+            });
+        const localMap = getLocalNodeKeyToEndpointId(plugin, context.spaceId);
+        keyToRelationEndpointId = new Map([...keyToRid, ...localMap]);
+      }
       const precomputedRelationInstances =
         precomputedData?.relationInstancesBySpace.get(spaceId);
       const { imported } = await importRelationsForImportedNodes({
@@ -1348,8 +1359,7 @@ export const importSelectedNodes = async ({
         client,
         spaceId,
         spaceUri,
-        nodeKeys,
-        keyToRid,
+        keyToRelationEndpointId,
         precomputedRelationInstances,
       });
       if (imported > 0) {

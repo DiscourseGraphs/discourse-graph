@@ -1,12 +1,15 @@
 You are working on the Obsidian plugin that implements the Discourse Graph protocol.
 
 ## Dependencies
+
 Prefer existing dependencies from package.json.
 
 ## Obsidian Style Guide
+
 Use the obsidian style guide from help.obsidian.md/style-guide and docs.obsidian.md/Developer+policies.
 
 ### Icons
+
 Platform-native UI.
 Lucide and custom Obsidian icons can be used alongside detailed elements to provide a visual representation of a feature.
 
@@ -25,3 +28,7 @@ Adjusting size and stroke in an SVG.
 Utilize the icon anchor in embedded images, to tweak the spacing around the icon so that it aligns neatly with the text in the vicinity.
 Icons should be surrounded by parenthesis. ( lucide-cog.svg > icon )
 Example: ( ![[lucide-cog.svg#icon]] )
+
+### Function guides
+
+- Any function that deals with querying vault's frontmatter, default to using Datacore API first, then write fallback where you use `plugin.app.vault.getMarkdownFiles()` to iterate through each file's frontmatter

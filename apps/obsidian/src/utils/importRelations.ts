@@ -191,27 +191,25 @@ export const fetchRelationInstancesFromSpace = async ({
 };
 
 /**
- * Import relations where both source and destination are in the imported nodes set.
- * Uses importedFromRid for source/destination in RelationInstance (not nodeInstanceId).
+ * Import relations where both source and destination resolve in this vault (imported or local).
+ * keyToRelationEndpointId maps "spaceId:source_local_id" -> endpoint id (RID or nodeInstanceId) to store in RelationInstance.
  */
 export const importRelationsForImportedNodes = async ({
   plugin,
   client,
   spaceId,
   spaceUri,
-  nodeKeys,
-  keyToRid,
+  keyToRelationEndpointId,
   precomputedRelationInstances,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
   spaceId: number;
   spaceUri: string;
-  nodeKeys: Set<string>;
-  keyToRid: Map<string, string>;
+  keyToRelationEndpointId: Map<string, string>;
   precomputedRelationInstances?: RemoteRelationInstance[];
 }): Promise<{ imported: number }> => {
-  if (nodeKeys.size === 0) return { imported: 0 };
+  if (keyToRelationEndpointId.size === 0) return { imported: 0 };
 
   const relationInstances =
     precomputedRelationInstances ??
@@ -260,14 +258,9 @@ export const importRelationsForImportedNodes = async ({
     const sourceKey = `${sourceData.space_id}:${sourceData.source_local_id}`;
     const destKey = `${destData.space_id}:${destData.source_local_id}`;
 
-    // TODO: check local node ids as well. currently doesn't handle remote importing our local node -> create relations -> we re-import that node
-    if (!nodeKeys.has(sourceKey) || !nodeKeys.has(destKey)) {
-      continue;
-    }
-
-    const sourceRid = keyToRid.get(sourceKey);
-    const destRid = keyToRid.get(destKey);
-    if (!sourceRid || !destRid) continue;
+    const sourceEndpointId = keyToRelationEndpointId.get(sourceKey);
+    const destEndpointId = keyToRelationEndpointId.get(destKey);
+    if (!sourceEndpointId || !destEndpointId) continue;
 
     if (!rel.schema_id) continue;
 
@@ -363,16 +356,16 @@ export const importRelationsForImportedNodes = async ({
 
     const existing = findRelationBySourceDestinationType(
       relationsData,
-      sourceRid,
-      destRid,
+      sourceEndpointId,
+      destEndpointId,
       mappedTypeId,
     );
     if (existing) continue;
 
     await addRelationNoCheck(plugin, {
       type: mappedTypeId,
-      source: sourceRid,
-      destination: destRid,
+      source: sourceEndpointId,
+      destination: destEndpointId,
       importedFromRid: relationImportedFromRid,
     });
     imported++;

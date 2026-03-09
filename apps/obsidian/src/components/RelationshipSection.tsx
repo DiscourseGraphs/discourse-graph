@@ -10,7 +10,7 @@ import type { RelationInstance } from "~/types";
 import {
   getNodeInstanceIdForFile,
   getRelationsForFile,
-  getFileForNodeInstanceId,
+  resolveEndpointToFile,
   addRelation,
   removeRelationBySourceDestinationType,
 } from "~/utils/relationsStore";
@@ -422,7 +422,7 @@ const CurrentRelationships = ({
 
       const group = tempRelationships.get(relationKey)!;
       const otherId = isSource ? r.destination : r.source;
-      const linkedFile = getFileForNodeInstanceId(plugin, otherId);
+      const linkedFile = resolveEndpointToFile(plugin, otherId);
       if (linkedFile) {
         const already = group.linkedEntries.some(
           (e) => e.relation.id === r.id,

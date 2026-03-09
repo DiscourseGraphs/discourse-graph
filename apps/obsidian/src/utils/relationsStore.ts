@@ -4,11 +4,11 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type DiscourseGraphPlugin from "~/index";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import { checkAndCreateFolder } from "~/utils/file";
-import { getVaultId } from "./supabaseContext";
+import { getVaultId, getLocalSpaceUri } from "./supabaseContext";
 import type { RelationInstance } from "~/types";
 import { QueryEngine, getImportedNodesRaw } from "~/services/QueryEngine";
 import { publishNewRelation } from "./publishNode";
-import { ridToSpaceUriAndLocalId } from "./rid";
+import { ridToSpaceUriAndLocalId, spaceUriAndLocalIdToRid } from "./rid";
 import { getSpaceIdsBySpaceUris } from "./spaceFromRid";
 
 const RELATIONS_FILE_NAME = "relations.json";
@@ -289,23 +289,36 @@ export const getFileForImportedFromRid = (
 };
 
 /** RIDs contain "orn:" or "/" (e.g. orn:obsidian.note:.../uuid). NodeInstanceIds match ^[-.+\w]+$ */
-const looksLikeRid = (id: string): boolean =>
+export const looksLikeRid = (id: string): boolean =>
   id.includes("orn:") || (id.includes("/") && !/^[-.+\w]+$/.test(id));
 
 /**
- * Find a file by nodeInstanceId or importedFromRid.
- * For imported relations, source/destination store RID, so we resolve by importedFromRid.
+ * Resolve an endpoint id (RID or legacy nodeInstanceId) to a file in this vault.
+ * Handles: imported nodes (frontmatter.importedFromRid), local nodes by RID (parse RID, match spaceUri to local, find by nodeInstanceId), and legacy nodeInstanceId.
  */
-export const getFileForNodeInstanceId = (
+export const resolveEndpointToFile = (
   plugin: DiscourseGraphPlugin,
-  nodeInstanceIdOrRid: string,
+  endpointId: string,
+  endpointToFileMap?: Map<string, TFile>,
 ): TFile | null => {
-  if (looksLikeRid(nodeInstanceIdOrRid)) {
-    return getFileForImportedFromRid(plugin, nodeInstanceIdOrRid);
+  if (endpointToFileMap) {
+    const cached = endpointToFileMap.get(endpointId);
+    if (cached) return cached;
   }
+
+  if (looksLikeRid(endpointId)) {
+    const byImported = getFileForImportedFromRid(plugin, endpointId);
+    if (byImported) return byImported;
+    const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(endpointId);
+    if (spaceUri === getLocalSpaceUri(plugin.app)) {
+      return resolveEndpointToFile(plugin, sourceLocalId, endpointToFileMap);
+    }
+    return null;
+  }
+
   const queryEngine = new QueryEngine(plugin.app);
   if (queryEngine.functional()) {
-    const byId = queryEngine.getDiscourseNodeById(nodeInstanceIdOrRid);
+    const byId = queryEngine.getDiscourseNodeById(endpointId);
     if (byId) return byId;
   }
   const files = plugin.app.vault.getMarkdownFiles();
@@ -314,11 +327,22 @@ export const getFileForNodeInstanceId = (
     const fm = cache?.frontmatter as Record<string, unknown> | undefined;
     const id = fm?.nodeInstanceId as string | undefined;
     const rid = fm?.importedFromRid as string | undefined;
-    if (id === nodeInstanceIdOrRid || rid === nodeInstanceIdOrRid) {
+    if (id === endpointId || rid === endpointId) {
       return file;
     }
   }
   return null;
+};
+
+/**
+ * Find a file by nodeInstanceId or importedFromRid.
+ * Delegates to resolveEndpointToFile for backward compatibility.
+ */
+export const getFileForNodeInstanceId = (
+  plugin: DiscourseGraphPlugin,
+  nodeInstanceIdOrRid: string,
+): TFile | null => {
+  return resolveEndpointToFile(plugin, nodeInstanceIdOrRid);
 };
 
 export const getFileForNodeInstanceIds = (
@@ -332,6 +356,60 @@ export const getFileForNodeInstanceIds = (
     if (f) result[idOrRid] = f;
   }
   return result;
+};
+
+/**
+ * Build a map from endpoint id (RID or nodeInstanceId) to file for batch resolution.
+ * Covers: imported nodes (importedFromRid), local nodes (nodeInstanceId and constructed RID).
+ */
+export const buildEndpointToFileMap = (
+  plugin: DiscourseGraphPlugin,
+): Map<string, TFile> => {
+  const map = new Map<string, TFile>();
+  const files = plugin.app.vault.getMarkdownFiles();
+  const localSpaceUri = getLocalSpaceUri(plugin.app);
+
+  for (const file of files) {
+    const cache = plugin.app.metadataCache.getFileCache(file);
+    const fm = cache?.frontmatter as Record<string, unknown> | undefined;
+    const importedFromRid = fm?.importedFromRid as string | undefined;
+    const nodeInstanceId = fm?.nodeInstanceId as string | undefined;
+
+    if (importedFromRid) {
+      map.set(importedFromRid, file);
+    }
+    if (nodeInstanceId && fm?.nodeTypeId) {
+      map.set(nodeInstanceId, file);
+      map.set(
+        spaceUriAndLocalIdToRid(localSpaceUri, nodeInstanceId, "note"),
+        file,
+      );
+    }
+  }
+  return map;
+};
+
+/**
+ * Build key -> relation endpoint id (RID) for local nodes in this vault.
+ * Key format: `${localSpaceId}:${nodeInstanceId}`. Value: constructed RID for storage.
+ */
+export const getLocalNodeKeyToEndpointId = (
+  plugin: DiscourseGraphPlugin,
+  localSpaceId: number,
+): Map<string, string> => {
+  const map = new Map<string, string>();
+  const localSpaceUri = getLocalSpaceUri(plugin.app);
+  const files = plugin.app.vault.getMarkdownFiles();
+  for (const file of files) {
+    const cache = plugin.app.metadataCache.getFileCache(file);
+    const fm = cache?.frontmatter as Record<string, unknown> | undefined;
+    const nodeInstanceId = fm?.nodeInstanceId as string | undefined;
+    if (nodeInstanceId && fm?.nodeTypeId) {
+      const key = `${localSpaceId}:${nodeInstanceId}`;
+      map.set(key, spaceUriAndLocalIdToRid(localSpaceUri, nodeInstanceId, "note"));
+    }
+  }
+  return map;
 };
 
 /**
