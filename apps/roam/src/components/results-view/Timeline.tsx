@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from "react";
+import React, { useMemo } from "react";
 import {
   VerticalTimeline,
   VerticalTimelineElement,
@@ -7,6 +7,7 @@ import "react-vertical-timeline-component/style.min.css";
 import { Icon } from "@blueprintjs/core";
 import PageLink from "roamjs-components/components/PageLink";
 import { Result } from "roamjs-components/types/query-builder";
+import { RenderRoamBlock } from "~/utils/roamReactComponents";
 
 type TimelineProps = { timelineElements: Result[] };
 
@@ -45,14 +46,6 @@ const TimelineElement = ({
   color: string;
   t: Result & { date: Date };
 }) => {
-  const containerRef = useRef(null);
-  useEffect(() => {
-    if (!containerRef.current) return;
-    window.roamAlphaAPI.ui.components.renderBlock({
-      uid: t.uid,
-      el: containerRef.current,
-    });
-  }, [t.uid, containerRef]);
   return (
     <VerticalTimelineElement
       contentStyle={{
@@ -79,7 +72,9 @@ const TimelineElement = ({
       <h4 className="vertical-timeline-element-title">
         <PageLink uid={t.uid}>{t.text}</PageLink>
       </h4>
-      <p className="vertical-timeline-element-body" ref={containerRef} />
+      <div className="vertical-timeline-element-body">
+        <RenderRoamBlock uid={t.uid} />
+      </div>
     </VerticalTimelineElement>
   );
 };

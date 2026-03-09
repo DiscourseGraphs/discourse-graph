@@ -25,50 +25,21 @@ import { CONTEXT_OVERLAY_SUGGESTION } from "~/utils/predefinedSelections";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { strictQueryForReifiedBlocks } from "~/utils/createReifiedBlock";
-import internalError from "~/utils/internalError";
+import {
+  RenderRoamBlock,
+  RenderRoamPage,
+  RenderRoamBlockString,
+} from "~/utils/roamReactComponents";
 
 const EXTRA_ROW_TYPES = ["context", "discourse"] as const;
 type ExtraRowType = (typeof EXTRA_ROW_TYPES)[number] | null;
 
 const ExtraContextRow = ({ uid }: { uid: string }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-    if (getPageTitleByPageUid(uid)) {
-      window.roamAlphaAPI.ui.components
-        .renderPage({
-          uid,
-          el: containerRef.current,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "hide-mentions?": true,
-        })
-        .catch((error) => {
-          internalError({
-            error,
-            type: "Results Table: Extra Context Row",
-            context: { uid },
-          });
-        });
-    } else {
-      window.roamAlphaAPI.ui.components
-        .renderBlock({
-          uid,
-          el: containerRef.current,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "zoom-path?": true,
-        })
-        .catch((error) => {
-          internalError({
-            error,
-            type: "Results Table: Extra Context Row",
-            context: { uid },
-          });
-        });
-    }
-  }, [containerRef, uid]);
-
-  return <div ref={containerRef} />;
+  return getPageTitleByPageUid(uid) ? (
+    <RenderRoamPage uid={uid} hideMentions />
+  ) : (
+    <RenderRoamBlock uid={uid} zoomPath />
+  );
 };
 
 const dragImage = document.createElement("img");
@@ -181,30 +152,12 @@ export const CellEmbed = ({
   viewValue?: string;
 }) => {
   const title = getPageTitleByPageUid(uid);
-  const contentRef = useRef(null);
-  useEffect(() => {
-    const el = contentRef.current;
-    const open =
-      viewValue === "open" ? true : viewValue === "closed" ? false : undefined;
-    if (el) {
-      window.roamAlphaAPI.ui.components
-        .renderBlock({
-          uid,
-          el,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "open?": open,
-        })
-        .catch((error) => {
-          internalError({
-            error,
-            type: "Results Table: Cell Embed",
-            context: { uid },
-          });
-        });
-    }
-  }, [contentRef, uid, viewValue]);
+  const open =
+    viewValue === "open" ? true : viewValue === "closed" ? false : undefined;
   return (
-    <div ref={contentRef} className={title ? "page-embed" : "block-embed"} />
+    <div className={title ? "page-embed" : "block-embed"}>
+      <RenderRoamBlock uid={uid} open={open} />
+    </div>
   );
 };
 
@@ -215,29 +168,14 @@ export const CellRender = ({
   content: string;
   uid: string;
 }) => {
-  const contentRef = useRef<HTMLSpanElement>(null);
   const isPage = !!getPageTitleByPageUid(uid);
   const displayString = isPage ? `[[${content}]]` : content;
 
-  useEffect(() => {
-    const el = contentRef.current;
-    if (el && displayString) {
-      window.roamAlphaAPI.ui.components
-        .renderString({
-          el,
-          string: displayString,
-        })
-        .catch((error) => {
-          internalError({
-            error,
-            type: "Results Table: Cell Render",
-            context: { displayString },
-          });
-        });
-    }
-  }, [displayString]);
-
-  return <span ref={contentRef} className="roamjs-query-link-cell" />;
+  return (
+    <span className="roamjs-query-link-cell">
+      <RenderRoamBlockString string={displayString} />
+    </span>
+  );
 };
 
 type ResultRowProps = {

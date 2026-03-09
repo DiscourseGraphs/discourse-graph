@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import { Button, Intent } from "@blueprintjs/core";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import getSubTree from "roamjs-components/util/getSubTree";
@@ -11,26 +11,9 @@ import {
   DiscourseNodeFlagPanel,
   DiscourseNodeTextPanel,
 } from "./components/BlockPropSettingPanels";
+import { RenderRoamBlock } from "~/utils/roamReactComponents";
 
 const TEMPLATE_SETTING_KEYS = ["template"];
-
-const BlockRenderer = ({ uid }: { uid: string }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (container) {
-      container.innerHTML = "";
-
-      window.roamAlphaAPI.ui.components.renderBlock({
-        uid: uid,
-        el: container,
-      });
-    }
-  }, [uid]);
-
-  return <div ref={containerRef} className="my-2 rounded border p-2" />;
-};
 
 const DiscourseNodeSuggestiveRules = ({
   node,
@@ -107,7 +90,9 @@ const DiscourseNodeSuggestiveRules = ({
       {blockUidToRender && (
         <div>
           <div className="mb-1 text-sm text-gray-600">Preview:</div>
-          <BlockRenderer uid={blockUidToRender} />
+          <div className="my-2 rounded border p-2">
+            <RenderRoamBlock uid={blockUidToRender} />
+          </div>
         </div>
       )}
 
