@@ -210,7 +210,10 @@ export const computeImportPreview = async ({
       const sourceKey = `${sourceData.space_id}:${sourceData.source_local_id}`;
       const destKey = `${destData.space_id}:${destData.source_local_id}`;
 
-      if (keyToRelationEndpointId.has(sourceKey) && keyToRelationEndpointId.has(destKey)) {
+      if (
+        keyToRelationEndpointId.has(sourceKey) &&
+        keyToRelationEndpointId.has(destKey)
+      ) {
         matchingRelations.push({
           rel,
           sourceConceptId: sourceData.id,

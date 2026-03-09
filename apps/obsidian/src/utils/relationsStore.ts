@@ -117,7 +117,9 @@ export const addRelationNoCheck = async (
     author,
     importedFromRid: params.importedFromRid,
     publishedToGroupId: params.publishedToGroupId,
-    ...(params.provisional !== undefined && { provisional: params.provisional }),
+    ...(params.provisional !== undefined && {
+      provisional: params.provisional,
+    }),
   };
   const data = await loadRelations(plugin);
   data.relations[id] = instance;

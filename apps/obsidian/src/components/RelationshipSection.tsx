@@ -424,9 +424,7 @@ const CurrentRelationships = ({
       const otherId = isSource ? r.destination : r.source;
       const linkedFile = resolveEndpointToFile(plugin, otherId);
       if (linkedFile) {
-        const already = group.linkedEntries.some(
-          (e) => e.relation.id === r.id,
-        );
+        const already = group.linkedEntries.some((e) => e.relation.id === r.id);
         if (!already) {
           group.linkedEntries.push({ file: linkedFile, relation: r });
         }
