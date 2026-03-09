@@ -43,7 +43,7 @@ import { getSetting } from "~/utils/extensionSettings";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { lockTool, unlockTool } from "./toolLock";
+import { unlockTool } from "./toolLock";
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -128,7 +128,6 @@ export const createNodeShapeTools = (
           props: { fontFamily: "sans", size: "s" },
         });
         this.editor.setEditingShape(shapeId);
-        // setCurrentToolToSelectIfUnlocked(this.editor);
       };
     };
   });
@@ -490,8 +489,22 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
           this.updateProps(shape.id, shape.type, { h, w, imageUrl });
         };
 
+        // Capture lock state before unlocking
+        const wasToolLocked = this.editor.getInstanceState().isToolLocked;
+
         // Clear tool lock when opening the dialog so we don't end up with Select + locked
         unlockTool(this.editor);
+
+        const restoreToolState = () => {
+          if (wasToolLocked) {
+            this.editor.updateInstanceState({ isToolLocked: true });
+            this.editor.setCurrentTool(shape.type);
+          } else {
+            this.editor.setCurrentTool("select");
+          }
+          editor.setEditingShape(null);
+          dialogRenderedRef.current = false;
+        };
 
         renderModifyNodeDialog({
           mode: isCreating ? "create" : "edit",
@@ -545,23 +558,20 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
               }
             }
 
-            // Stay on the discourse node tool after creation so the user can place another node
             if (action === "create") {
-              this.editor.setCurrentTool(shape.type);
-              lockTool(this.editor);
+              restoreToolState();
+            } else {
+              editor.setEditingShape(null);
+              dialogRenderedRef.current = false;
             }
-
-            editor.setEditingShape(null);
-            dialogRenderedRef.current = false;
           },
           onClose: () => {
-            // Stay on the discourse node tool after closing so the user can place another node
             if (isCreating) {
-              this.editor.setCurrentTool(shape.type);
-              lockTool(this.editor);
+              restoreToolState();
+            } else {
+              editor.setEditingShape(null);
+              dialogRenderedRef.current = false;
             }
-            editor.setEditingShape(null);
-            dialogRenderedRef.current = false;
           },
         });
 
