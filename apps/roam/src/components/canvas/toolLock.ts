@@ -1,15 +1,8 @@
-import { Editor } from "tldraw";
+import { Editor, TLShape } from "tldraw";
 
 export const setCurrentToolToSelectIfUnlocked = (editor: Editor): void => {
   if (!editor.getInstanceState().isToolLocked) {
     editor.setCurrentTool("select");
-  }
-};
-
-/** Lock the tool when switching to a discourse graph tool so the user stays on that tool until they choose select. */
-export const lockTool = (editor: Editor): void => {
-  if (!editor.getInstanceState().isToolLocked) {
-    editor.updateInstanceState({ isToolLocked: true });
   }
 };
 
