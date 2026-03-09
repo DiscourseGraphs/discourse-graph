@@ -229,7 +229,9 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Sync discourse nodes to Supabase",
     checkCallback: (checking: boolean) => {
       if (!plugin.settings.syncModeEnabled) {
-        new Notice("Sync mode is not enabled", 3000);
+        if (!checking) {
+          new Notice("Sync mode is not enabled", 3000);
+        }
         return false;
       }
       if (!checking) {
@@ -252,7 +254,9 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Publish current node to lab space",
     checkCallback: (checking: boolean) => {
       if (!plugin.settings.syncModeEnabled) {
-        new Notice("Sync mode is not enabled", 3000);
+        if (!checking) {
+          new Notice("Sync mode is not enabled", 3000);
+        }
         return false;
       }
       const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
