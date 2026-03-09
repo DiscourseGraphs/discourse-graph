@@ -73,6 +73,9 @@ patchedDependencies:
   '@tldraw/editor@2.4.6':
     hash: 88df41e89e43122c6a700d4917a83250639461079144bdbab7015f6b761e4582
     path: patches/@tldraw__editor@2.4.6.patch
+  '@tldraw/state@2.4.6':
+    hash: b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc
+    path: patches/@tldraw__state@2.4.6.patch
   tldraw@2.4.6:
     hash: 56e196052862c9a58a11b43e5e121384cd1d6548416afa0f16e9fbfbf0e4080d
     path: patches/tldraw@2.4.6.patch
@@ -235,7 +238,7 @@ importers:
         version: 2.4.6(patch_hash=88df41e89e43122c6a700d4917a83250639461079144bdbab7015f6b761e4582)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@tldraw/state':
         specifier: 2.4.6
-        version: 2.4.6
+        version: 2.4.6(patch_hash=b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc)
       '@tldraw/state-react':
         specifier: 2.4.6
         version: 2.4.6(react@18.2.0)
@@ -14187,7 +14190,7 @@ snapshots:
 
   '@tldraw/editor@2.4.6(patch_hash=88df41e89e43122c6a700d4917a83250639461079144bdbab7015f6b761e4582)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
-      '@tldraw/state': 2.4.6
+      '@tldraw/state': 2.4.6(patch_hash=b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc)
       '@tldraw/state-react': 2.4.6(react@18.2.0)
       '@tldraw/store': 2.4.6(react@18.2.0)
       '@tldraw/tlschema': 2.4.6(react@18.2.0)
@@ -14227,7 +14230,7 @@ snapshots:
 
   '@tldraw/state-react@2.4.6(react@18.2.0)':
     dependencies:
-      '@tldraw/state': 2.4.6
+      '@tldraw/state': 2.4.6(patch_hash=b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc)
       react: 18.2.0
 
   '@tldraw/state-react@3.14.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
@@ -14237,7 +14240,7 @@ snapshots:
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
 
-  '@tldraw/state@2.4.6': {}
+  '@tldraw/state@2.4.6(patch_hash=b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc)': {}
 
   '@tldraw/state@3.14.2':
     dependencies:
@@ -14245,7 +14248,7 @@ snapshots:
 
   '@tldraw/store@2.4.6(react@18.2.0)':
     dependencies:
-      '@tldraw/state': 2.4.6
+      '@tldraw/state': 2.4.6(patch_hash=b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc)
       '@tldraw/utils': 2.4.6
       lodash.isequal: 4.5.0
       nanoid: 4.0.2
@@ -14253,7 +14256,7 @@ snapshots:
 
   '@tldraw/store@2.4.6(react@19.1.1)':
     dependencies:
-      '@tldraw/state': 2.4.6
+      '@tldraw/state': 2.4.6(patch_hash=b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc)
       '@tldraw/utils': 2.4.6
       lodash.isequal: 4.5.0
       nanoid: 4.0.2
@@ -14267,7 +14270,7 @@ snapshots:
 
   '@tldraw/sync-core@2.4.6(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
-      '@tldraw/state': 2.4.6
+      '@tldraw/state': 2.4.6(patch_hash=b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc)
       '@tldraw/store': 2.4.6(react@18.2.0)
       '@tldraw/tlschema': 2.4.6(react@18.2.0)
       '@tldraw/utils': 2.4.6
@@ -14283,7 +14286,7 @@ snapshots:
 
   '@tldraw/sync-core@2.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
-      '@tldraw/state': 2.4.6
+      '@tldraw/state': 2.4.6(patch_hash=b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc)
       '@tldraw/store': 2.4.6(react@19.1.1)
       '@tldraw/tlschema': 2.4.6(react@19.1.1)
       '@tldraw/utils': 2.4.6
@@ -14299,7 +14302,7 @@ snapshots:
 
   '@tldraw/sync@2.4.6(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
-      '@tldraw/state': 2.4.6
+      '@tldraw/state': 2.4.6(patch_hash=b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc)
       '@tldraw/state-react': 2.4.6(react@18.2.0)
       '@tldraw/sync-core': 2.4.6(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@tldraw/utils': 2.4.6
@@ -14318,7 +14321,7 @@ snapshots:
 
   '@tldraw/tlschema@2.4.6(react@18.2.0)':
     dependencies:
-      '@tldraw/state': 2.4.6
+      '@tldraw/state': 2.4.6(patch_hash=b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc)
       '@tldraw/store': 2.4.6(react@18.2.0)
       '@tldraw/utils': 2.4.6
       '@tldraw/validate': 2.4.6
@@ -14327,7 +14330,7 @@ snapshots:
 
   '@tldraw/tlschema@2.4.6(react@19.1.1)':
     dependencies:
-      '@tldraw/state': 2.4.6
+      '@tldraw/state': 2.4.6(patch_hash=b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc)
       '@tldraw/store': 2.4.6(react@19.1.1)
       '@tldraw/utils': 2.4.6
       '@tldraw/validate': 2.4.6

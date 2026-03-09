@@ -52,9 +52,6 @@ import {
   StateNode,
   DefaultSpinner,
   Box,
-  MigrationSequence,
-  TLAnyBindingUtilConstructor,
-  TLAnyShapeUtilConstructor,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
@@ -71,7 +68,6 @@ import {
   BaseDiscourseNodeUtil,
   DiscourseNodeShape,
   createNodeShapeTools,
-  createNodeShapeUtils,
 } from "./DiscourseNodeUtil";
 import { useRoamStore } from "./useRoamStore";
 import {
@@ -88,20 +84,11 @@ import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import renderToast from "roamjs-components/components/Toast";
 import {
-  createAllReferencedNodeUtils,
-  createAllRelationShapeUtils,
-} from "./DiscourseRelationShape/DiscourseRelationUtil";
-import {
   AddReferencedNodeType,
   createAllReferencedNodeTools,
   createAllRelationShapeTools,
 } from "./DiscourseRelationShape/DiscourseRelationTool";
-import {
-  createAllReferencedNodeBindings,
-  createAllRelationBindings,
-} from "./DiscourseRelationShape/DiscourseRelationBindings";
 import ConvertToDialog from "./ConvertToDialog";
-import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
 import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
@@ -121,6 +108,10 @@ import {
   getEffectiveCanvasSyncMode,
   setCanvasSyncMode,
 } from "./canvasSyncMode";
+import {
+  CanvasStoreAdapterArgs,
+  useCanvasStoreAdapterArgs,
+} from "./useCanvasStoreAdapterArgs";
 import posthog from "posthog-js";
 
 declare global {
@@ -267,15 +258,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       onCanvasSyncModeChange={onCanvasSyncModeChange}
     />
   );
-};
-
-type CanvasStoreAdapterArgs = {
-  pageUid: string;
-  migrations: MigrationSequence[];
-  customShapeUtils: readonly TLAnyShapeUtilConstructor[];
-  customBindingUtils: readonly TLAnyBindingUtilConstructor[];
-  customShapeTypes: string[];
-  customBindingTypes: string[];
 };
 
 type CanvasStoreAdapterResult = {
@@ -715,17 +697,19 @@ const TldrawCanvasShared = ({
     onCanvasSyncModeChange,
   });
 
-  // UTILS
-  const discourseNodeUtils = createNodeShapeUtils(allNodes);
-  const discourseRelationUtils = createAllRelationShapeUtils(allRelationIds);
-  const referencedNodeUtils = createAllReferencedNodeUtils(
+  const storeAdapterArgs = useCanvasStoreAdapterArgs({
+    pageUid,
+    isCloudflareSync,
+    allNodes,
+    allRelationIds,
     allAddReferencedNodeByAction,
-  );
-  const customShapeUtils = [
-    ...discourseNodeUtils,
-    ...discourseRelationUtils,
-    ...referencedNodeUtils,
-  ];
+  });
+  const {
+    customShapeUtils,
+    customBindingUtils,
+    customShapeTypes,
+    customBindingTypes,
+  } = storeAdapterArgs;
 
   // TOOLS
   const discourseGraphTool = class DiscourseGraphTool extends StateNode {
@@ -744,19 +728,6 @@ const TldrawCanvasShared = ({
     ...referencedNodeTools,
   ];
 
-  // BINDINGS
-  const relationBindings = createAllRelationBindings(allRelationIds);
-  const referencedNodeBindings = createAllReferencedNodeBindings(
-    allAddReferencedNodeByAction,
-  );
-  const customBindingUtils = [...relationBindings, ...referencedNodeBindings];
-  const customShapeTypes = customShapeUtils
-    .map((s) => (s as unknown as { type?: string }).type)
-    .filter((t): t is string => !!t);
-  const customBindingTypes = customBindingUtils
-    .map((b) => (b as unknown as { type?: string }).type)
-    .filter((t): t is string => !!t);
-
   // UI OVERRIDES
   const uiOverrides = createUiOverrides({
     allNodes,
@@ -774,26 +745,8 @@ const TldrawCanvasShared = ({
       inSidebar: !!containerRef.current?.closest(".rm-sidebar-outline"),
     });
   }, [pageUid]);
-  const arrowShapeMigrations = useMemo(
-    () =>
-      createMigrations({
-        allRelationIds,
-        allAddReferencedNodeActions,
-        allNodeTypes: allNodes.map((node) => node.type),
-      }),
-    [allRelationIds, allAddReferencedNodeActions, allNodes],
-  );
-
-  const migrations = [arrowShapeMigrations];
   const { store, needsUpgrade, performUpgrade, error, isLoading } =
-    useStoreAdapter({
-      migrations,
-      customShapeUtils,
-      customBindingUtils,
-      customShapeTypes,
-      customBindingTypes,
-      pageUid,
-    });
+    useStoreAdapter(storeAdapterArgs);
 
   // ASSETS
   const assetLoading = usePreloadAssets(defaultEditorAssetUrls);
