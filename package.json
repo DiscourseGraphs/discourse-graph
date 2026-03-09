@@ -34,7 +34,7 @@
     "tailwindConfig": "./packages/tailwind-config/tailwind.config.ts"
   },
   "lint-staged": {
-    "*": "prettier -w --ignore-unknown"
+    "*.ts|*.tsx|*.md": "prettier -w"
   },
   "dependencies": {
     "posthog-js": "catalog:"
