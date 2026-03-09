@@ -71,8 +71,8 @@ const DiscourseNodeCanvasSettings = ({
   const [keyImageOption, setKeyImageOption] = useState(
     () =>
       getDiscourseNodeSetting<string>(nodeType, [
-        "canvasSettings",
-        "key-image-option",
+        DISCOURSE_NODE_KEYS.canvasSettings,
+        CANVAS_KEYS.keyImageOption,
       ]) ?? "",
   );
 
