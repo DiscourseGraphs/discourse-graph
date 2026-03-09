@@ -11,8 +11,11 @@ import {
   DiscourseNodeFlagPanel,
   DiscourseNodeTextPanel,
 } from "./components/BlockPropSettingPanels";
-
-const TEMPLATE_SETTING_KEYS = ["template"];
+import {
+  DISCOURSE_NODE_KEYS,
+  SUGGESTIVE_RULES_KEYS,
+  TEMPLATE_SETTING_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -95,7 +98,10 @@ const DiscourseNodeSuggestiveRules = ({
         nodeType={nodeUid}
         title="Embedding Block Ref"
         description="Copy block ref from template which you want to be embedded and ranked."
-        settingKeys={["suggestiveRules", "embeddingRef"]}
+        settingKeys={[
+          DISCOURSE_NODE_KEYS.suggestiveRules,
+          SUGGESTIVE_RULES_KEYS.embeddingRef,
+        ]}
         initialValue={node.embeddingRef || ""}
         placeholder="((block-uid))"
         onChange={setEmbeddingRef}
@@ -115,7 +121,10 @@ const DiscourseNodeSuggestiveRules = ({
         nodeType={nodeUid}
         title="First Child"
         description="If the block is the first child of the embedding block ref, it will be embedded and ranked."
-        settingKeys={["suggestiveRules", "isFirstChild"]}
+        settingKeys={[
+          DISCOURSE_NODE_KEYS.suggestiveRules,
+          SUGGESTIVE_RULES_KEYS.isFirstChild,
+        ]}
         initialValue={node.isFirstChild?.value || false}
         order={2}
         uid={node.isFirstChild?.uid || ""}

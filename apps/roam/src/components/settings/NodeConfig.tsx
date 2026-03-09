@@ -10,6 +10,11 @@ import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
 import { getDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import {
+  DISCOURSE_NODE_KEYS,
+  SPECIFICATION_KEYS,
+  TEMPLATE_SETTING_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import {
@@ -17,8 +22,6 @@ import {
   DiscourseNodeFlagPanel,
   DiscourseNodeSelectPanel,
 } from "./components/BlockPropSettingPanels";
-
-const TEMPLATE_SETTING_KEYS = ["template"];
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -84,8 +87,8 @@ const NodeConfig = ({
       if (isSpecificationEnabled === undefined)
         isSpecificationEnabled =
           getDiscourseNodeSetting<boolean>(node.type, [
-            "specification",
-            "enabled",
+            DISCOURSE_NODE_KEYS.specification,
+            SPECIFICATION_KEYS.enabled,
           ]) ?? false;
       if (format.trim().length === 0 && !isSpecificationEnabled) {
         setTagError("");
@@ -147,7 +150,7 @@ const NodeConfig = ({
                 nodeType={node.type}
                 title="Description"
                 description={`Describing what the ${node.text} node represents in your graph.`}
-                settingKeys={["description"]}
+                settingKeys={[DISCOURSE_NODE_KEYS.description]}
                 initialValue={node.description}
                 multiline
                 order={1}
@@ -158,7 +161,7 @@ const NodeConfig = ({
                 nodeType={node.type}
                 title="Shortcut"
                 description={`The trigger to quickly create a ${node.text} page from the node menu.`}
-                settingKeys={["shortcut"]}
+                settingKeys={[DISCOURSE_NODE_KEYS.shortcut]}
                 initialValue={node.shortcut}
                 order={0}
                 parentUid={node.type}
@@ -168,7 +171,7 @@ const NodeConfig = ({
                 nodeType={node.type}
                 title="Tag"
                 description={`Designate a hashtag for marking potential ${node.text}.`}
-                settingKeys={["tag"]}
+                settingKeys={[DISCOURSE_NODE_KEYS.tag]}
                 initialValue={node.tag}
                 placeholder={generateTagPlaceholder(node)}
                 error={tagError}
@@ -202,7 +205,7 @@ const NodeConfig = ({
                 nodeType={node.type}
                 title="Format"
                 description={`DEPRECATED - Use specification instead. The format ${node.text} pages should have.`}
-                settingKeys={["format"]}
+                settingKeys={[DISCOURSE_NODE_KEYS.format]}
                 initialValue={node.format}
                 error={formatError}
                 onChange={setFormatValue}
@@ -260,10 +263,12 @@ const NodeConfig = ({
                 nodeType={node.type}
                 title="Overlay"
                 description="Select which attribute is used for the discourse overlay"
-                settingKeys={["overlay"]}
+                settingKeys={[DISCOURSE_NODE_KEYS.overlay]}
                 options={attributeNode.children.map((c) => c.text)}
                 initialValue={
-                  getDiscourseNodeSetting<string>(node.type, ["overlay"]) ?? ""
+                  getDiscourseNodeSetting<string>(node.type, [
+                    DISCOURSE_NODE_KEYS.overlay,
+                  ]) ?? ""
                 }
                 order={0}
                 parentUid={node.type}
@@ -285,7 +290,7 @@ const NodeConfig = ({
                 nodeType={node.type}
                 title="Graph Overview"
                 description="Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification."
-                settingKeys={["graphOverview"]}
+                settingKeys={[DISCOURSE_NODE_KEYS.graphOverview]}
                 initialValue={node.graphOverview}
                 order={0}
                 parentUid={node.type}

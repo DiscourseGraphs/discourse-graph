@@ -14,11 +14,12 @@ import {
   setPersonalSetting,
 } from "~/components/settings/utils/accessors";
 import { comboToString } from "~/components/DiscourseNodeMenu";
+import type { PersonalSettings } from "~/components/settings/utils/zodSchema";
 
 type KeyboardShortcutInputProps = {
   onloadArgs: OnloadArgs;
   settingKey: string;
-  blockPropKey: string;
+  blockPropKey: keyof PersonalSettings;
   label: string;
   description: string;
   placeholder?: string;

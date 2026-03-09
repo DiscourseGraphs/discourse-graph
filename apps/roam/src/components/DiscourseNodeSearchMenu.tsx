@@ -29,6 +29,7 @@ import {
   getPersonalSetting,
   setPersonalSetting,
 } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -713,7 +714,7 @@ export const NodeSearchMenuTriggerSetting = ({
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const [nodeSearchTrigger, setNodeSearchTrigger] = useState<string>(
-    getPersonalSetting<string>(["Node search menu trigger"]) ?? "@",
+    getPersonalSetting<string>([PERSONAL_KEYS.nodeSearchMenuTrigger]) ?? "@",
   );
 
   const handleNodeSearchTriggerChange = (
@@ -728,7 +729,7 @@ export const NodeSearchMenuTriggerSetting = ({
 
     setNodeSearchTrigger(trigger);
     void extensionAPI.settings.set("node-search-trigger", trigger);
-    setPersonalSetting(["Node search menu trigger"], trigger);
+    setPersonalSetting([PERSONAL_KEYS.nodeSearchMenuTrigger], trigger);
   };
   return (
     <InputGroup

@@ -8,6 +8,10 @@ import { DiscourseNode } from "./getDiscourseNodes";
 import { getNodesByType } from "@repo/database/lib/queries";
 import getAllReferencesOnPage from "./getAllReferencesOnPage";
 import { getGlobalSetting } from "~/components/settings/utils/accessors";
+import {
+  GLOBAL_KEYS,
+  SUGGESTIVE_MODE_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 type ApiEmbeddingResponse = {
   data: Array<{
@@ -417,13 +421,13 @@ export const performHydeSearch = async ({
 
   const shouldGrabFromReferencedPages =
     getGlobalSetting<boolean>([
-      "Suggestive mode",
-      "Include current page relations",
+      GLOBAL_KEYS.suggestiveMode,
+      SUGGESTIVE_MODE_KEYS.includeCurrentPageRelations,
     ]) ?? false;
   const shouldGrabParentChildContext =
     getGlobalSetting<boolean>([
-      "Suggestive mode",
-      "Include parent and child blocks",
+      GLOBAL_KEYS.suggestiveMode,
+      SUGGESTIVE_MODE_KEYS.includeParentAndChildBlocks,
     ]) ?? false;
 
   let candidateNodesForHyde: SuggestedNode[] = [];

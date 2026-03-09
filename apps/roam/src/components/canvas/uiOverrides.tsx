@@ -50,6 +50,7 @@ import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 
 // const SyncModeMenuSwitchItem = ({
 //   checked,
@@ -326,7 +327,7 @@ export const createUiOverrides = ({
   tools: (editor, tools) => {
     // Get the custom keyboard shortcut for the discourse tool
     const discourseToolCombo = getPersonalSetting<IKeyCombo>([
-      "Discourse tool shortcut",
+      PERSONAL_KEYS.discourseToolShortcut,
     ]) || {
       key: "",
       modifiers: 0,

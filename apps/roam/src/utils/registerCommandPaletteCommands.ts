@@ -22,6 +22,10 @@ import {
   getPersonalSetting,
   setPersonalSetting,
 } from "~/components/settings/utils/accessors";
+import {
+  PERSONAL_KEYS,
+  QUERY_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
@@ -161,12 +165,12 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
 
   const toggleDiscourseContextOverlay = async () => {
     const currentValue = getPersonalSetting<boolean>([
-      "Discourse context overlay",
+      PERSONAL_KEYS.discourseContextOverlay,
     ]);
     const newValue = !currentValue;
     try {
       await extensionAPI.settings.set("discourse-context-overlay", newValue);
-      setPersonalSetting(["Discourse context overlay"], newValue);
+      setPersonalSetting([PERSONAL_KEYS.discourseContextOverlay], newValue);
     } catch (error) {
       const e = error as Error;
       renderToast({
@@ -188,13 +192,16 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
 
   const toggleQueryMetadata = async () => {
     const currentValue = getPersonalSetting<boolean>([
-      "Query",
-      "Hide query metadata",
+      PERSONAL_KEYS.query,
+      QUERY_KEYS.hideQueryMetadata,
     ]);
     const newValue = !currentValue;
     try {
       await extensionAPI.settings.set(HIDE_METADATA_KEY, newValue);
-      setPersonalSetting(["Query", "Hide query metadata"], newValue);
+      setPersonalSetting(
+        [PERSONAL_KEYS.query, QUERY_KEYS.hideQueryMetadata],
+        newValue,
+      );
     } catch (error) {
       const e = error as Error;
       renderToast({

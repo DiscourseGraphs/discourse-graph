@@ -38,6 +38,12 @@ import {
   setGlobalSetting,
   setPersonalSetting,
 } from "~/components/settings/utils/accessors";
+import {
+  PERSONAL_KEYS,
+  GLOBAL_KEYS,
+  LEFT_SIDEBAR_KEYS,
+  LEFT_SIDEBAR_SETTINGS_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import type {
   LeftSidebarGlobalSettings,
   PersonalSection,
@@ -138,13 +144,20 @@ const toggleFoldedState = ({
   }
 
   if (isGlobal) {
-    setGlobalSetting(["Left sidebar", "Settings", "Folded"], newFolded);
+    setGlobalSetting(
+      [
+        GLOBAL_KEYS.leftSidebar,
+        LEFT_SIDEBAR_KEYS.settings,
+        LEFT_SIDEBAR_SETTINGS_KEYS.folded,
+      ],
+      newFolded,
+    );
   } else if (sectionIndex !== undefined) {
     const sections =
-      getPersonalSetting<PersonalSection[]>(["Left sidebar"]) || [];
+      getPersonalSetting<PersonalSection[]>([PERSONAL_KEYS.leftSidebar]) || [];
     if (sections[sectionIndex]) {
       sections[sectionIndex].Settings.Folded = newFolded;
-      setPersonalSetting(["Left sidebar"], sections);
+      setPersonalSetting([PERSONAL_KEYS.leftSidebar], sections);
     }
   }
 };
@@ -314,10 +327,10 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
 const buildConfig = (): LeftSidebarConfig => {
   // Read VALUES from accessor (handles flag routing + mismatch detection)
   const globalValues = getGlobalSetting<LeftSidebarGlobalSettings>([
-    "Left sidebar",
+    GLOBAL_KEYS.leftSidebar,
   ]);
   const personalValues = getPersonalSetting<PersonalSection[]>([
-    "Left sidebar",
+    PERSONAL_KEYS.leftSidebar,
   ]);
 
   // Read UIDs from old system (needed for fold CRUD during dual-write)

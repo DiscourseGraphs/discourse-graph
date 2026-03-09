@@ -29,6 +29,10 @@ import {
   getFeatureFlag,
   getGlobalSetting,
 } from "~/components/settings/utils/accessors";
+import {
+  GLOBAL_KEYS,
+  SUGGESTIVE_MODE_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import type { PageGroup } from "~/components/settings/utils/zodSchema";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import posthog from "posthog-js";
@@ -420,7 +424,10 @@ const SuggestionsBody = ({
 
   useEffect(() => {
     const groups =
-      getGlobalSetting<PageGroup[]>(["Suggestive mode", "Page groups"]) ?? [];
+      getGlobalSetting<PageGroup[]>([
+        GLOBAL_KEYS.suggestiveMode,
+        SUGGESTIVE_MODE_KEYS.pageGroups,
+      ]) ?? [];
 
     const groupsRecord = groups.reduce(
       (acc, group) => {

@@ -32,6 +32,7 @@ import {
   type DiscourseNodeSettings,
   type Condition as SchemaCondition,
 } from "./zodSchema";
+import { PERSONAL_KEYS, QUERY_KEYS } from "./settingKeys";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -175,23 +176,41 @@ const DEFAULT_LEGACY_QUERY = {
 };
 
 const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
-  [pathKey(["Discourse context overlay"]), "discourse-context-overlay"],
-  [pathKey(["Suggestive mode overlay"]), "suggestive-mode-overlay"],
-  [pathKey(["Text selection popup"]), "text-selection-popup"],
-  [pathKey(["Disable sidebar open"]), "disable-sidebar-open"],
-  [pathKey(["Page preview"]), "page-preview"],
-  [pathKey(["Hide feedback button"]), "hide-feedback-button"],
-  [pathKey(["Auto canvas relations"]), "auto-canvas-relations"],
-  [pathKey(["Overlay in canvas"]), "discourse-context-overlay-in-canvas"],
-  [pathKey(["Streamline styling"]), "streamline-styling"],
-  [pathKey(["Disable product diagnostics"]), "disallow-diagnostics"],
-  [pathKey(["Discourse tool shortcut"]), "discourse-tool-shortcut"],
-  [pathKey(["Personal node menu trigger"]), "personal-node-menu-trigger"],
-  [pathKey(["Node search menu trigger"]), "node-search-trigger"],
-  [pathKey(["Query", "Hide query metadata"]), "hide-metadata"],
-  [pathKey(["Query", "Default page size"]), "default-page-size"],
-  [pathKey(["Query", "Query pages"]), "query-pages"],
-  [pathKey(["Query", "Default filters"]), "default-filters"],
+  [
+    pathKey([PERSONAL_KEYS.discourseContextOverlay]),
+    "discourse-context-overlay",
+  ],
+  [pathKey([PERSONAL_KEYS.suggestiveModeOverlay]), "suggestive-mode-overlay"],
+  [pathKey([PERSONAL_KEYS.textSelectionPopup]), "text-selection-popup"],
+  [pathKey([PERSONAL_KEYS.disableSidebarOpen]), "disable-sidebar-open"],
+  [pathKey([PERSONAL_KEYS.pagePreview]), "page-preview"],
+  [pathKey([PERSONAL_KEYS.hideFeedbackButton]), "hide-feedback-button"],
+  [pathKey([PERSONAL_KEYS.autoCanvasRelations]), "auto-canvas-relations"],
+  [
+    pathKey([PERSONAL_KEYS.overlayInCanvas]),
+    "discourse-context-overlay-in-canvas",
+  ],
+  [pathKey([PERSONAL_KEYS.streamlineStyling]), "streamline-styling"],
+  [pathKey([PERSONAL_KEYS.disableProductDiagnostics]), "disallow-diagnostics"],
+  [pathKey([PERSONAL_KEYS.discourseToolShortcut]), "discourse-tool-shortcut"],
+  [
+    pathKey([PERSONAL_KEYS.personalNodeMenuTrigger]),
+    "personal-node-menu-trigger",
+  ],
+  [pathKey([PERSONAL_KEYS.nodeSearchMenuTrigger]), "node-search-trigger"],
+  [
+    pathKey([PERSONAL_KEYS.query, QUERY_KEYS.hideQueryMetadata]),
+    "hide-metadata",
+  ],
+  [
+    pathKey([PERSONAL_KEYS.query, QUERY_KEYS.defaultPageSize]),
+    "default-page-size",
+  ],
+  [pathKey([PERSONAL_KEYS.query, QUERY_KEYS.queryPages]), "query-pages"],
+  [
+    pathKey([PERSONAL_KEYS.query, QUERY_KEYS.defaultFilters]),
+    "default-filters",
+  ],
 ]);
 
 const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {

@@ -10,6 +10,10 @@ import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase"
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { GlobalFlagPanel } from "./components/BlockPropSettingPanels";
 import { getGlobalSetting } from "~/components/settings/utils/accessors";
+import {
+  GLOBAL_KEYS,
+  SUGGESTIVE_MODE_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import posthog from "posthog-js";
 
 const SuggestiveModeSettings = () => {
@@ -22,8 +26,8 @@ const SuggestiveModeSettings = () => {
 
   const [includePageRelations, setIncludePageRelations] = useState(
     getGlobalSetting<boolean>([
-      "Suggestive mode",
-      "Include current page relations",
+      GLOBAL_KEYS.suggestiveMode,
+      SUGGESTIVE_MODE_KEYS.includeCurrentPageRelations,
     ]) ?? false,
   );
 
@@ -81,8 +85,8 @@ const SuggestiveModeSettings = () => {
                   title="Include Current Page Relations"
                   description="Include relations from pages referenced on the current page"
                   settingKeys={[
-                    "Suggestive mode",
-                    "Include current page relations",
+                    GLOBAL_KEYS.suggestiveMode,
+                    SUGGESTIVE_MODE_KEYS.includeCurrentPageRelations,
                   ]}
                   order={0}
                   uid={settings.suggestiveMode.includePageRelations.uid}
@@ -98,8 +102,8 @@ const SuggestiveModeSettings = () => {
                       : "Include relations from parent and child blocks"
                   }
                   settingKeys={[
-                    "Suggestive mode",
-                    "Include parent and child blocks",
+                    GLOBAL_KEYS.suggestiveMode,
+                    SUGGESTIVE_MODE_KEYS.includeParentAndChildBlocks,
                   ]}
                   value={includePageRelations ? true : undefined}
                   order={1}

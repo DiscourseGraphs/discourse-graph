@@ -7,6 +7,7 @@ import QueryBuilder from "~/components/QueryBuilder";
 import parseQuery, { DEFAULT_RETURN_NODE } from "~/utils/parseQuery";
 import createBlock from "roamjs-components/writes/createBlock";
 import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import { DISCOURSE_NODE_KEYS } from "~/components/settings/utils/settingKeys";
 
 const NodeIndex = ({
   parentUid,
@@ -50,7 +51,7 @@ const NodeIndex = ({
           ],
         },
       }).then(() => {
-        setDiscourseNodeSetting(node.type, ["index"], {
+        setDiscourseNodeSetting(node.type, [DISCOURSE_NODE_KEYS.index], {
           conditions: [
             {
               type: "clause",

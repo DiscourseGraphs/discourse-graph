@@ -120,6 +120,7 @@ import {
 } from "./canvasSyncMode";
 import posthog from "posthog-js";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -1454,7 +1455,7 @@ const InsideEditorAndUiContext = ({
           const util = editor.getShapeUtil(shape);
           if (util instanceof BaseDiscourseNodeUtil) {
             const autoCanvasRelations = getPersonalSetting<boolean>([
-              "Auto canvas relations",
+              PERSONAL_KEYS.autoCanvasRelations,
             ]);
             if (autoCanvasRelations) {
               void util.createExistingRelations({

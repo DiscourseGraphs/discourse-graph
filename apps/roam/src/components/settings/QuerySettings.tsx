@@ -9,6 +9,10 @@ import {
   PersonalNumberPanel,
   PersonalMultiTextPanel,
 } from "./components/BlockPropSettingPanels";
+import {
+  PERSONAL_KEYS,
+  QUERY_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import posthog from "posthog-js";
 
 const QuerySettings = ({
@@ -21,7 +25,7 @@ const QuerySettings = ({
       <PersonalFlagPanel
         title="Hide query metadata"
         description="Hide the Roam blocks that are used to power each query"
-        settingKeys={["Query", "Hide query metadata"]}
+        settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.hideQueryMetadata]}
         onChange={(checked) => {
           void extensionAPI.settings.set(HIDE_METADATA_KEY, checked);
           posthog.capture("Query Settings: Hide Metadata Toggled", {
@@ -32,7 +36,7 @@ const QuerySettings = ({
       <PersonalNumberPanel
         title="Default page size"
         description="The default page size used for query results"
-        settingKeys={["Query", "Default page size"]}
+        settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.defaultPageSize]}
         onChange={(value) => {
           void extensionAPI.settings.set(DEFAULT_PAGE_SIZE_KEY, value);
           posthog.capture("Query Settings: Default Page Size Changed", {
@@ -43,7 +47,7 @@ const QuerySettings = ({
       <PersonalMultiTextPanel
         title="Query pages"
         description="The title formats of pages that you would like to serve as pages that generate queries"
-        settingKeys={["Query", "Query pages"]}
+        settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.queryPages]}
         onChange={(values) => {
           void extensionAPI.settings.set("query-pages", values);
         }}

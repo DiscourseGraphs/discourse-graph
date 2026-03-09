@@ -62,6 +62,10 @@ import {
   getFeatureFlag,
   getGlobalSetting,
 } from "~/components/settings/utils/accessors";
+import {
+  PERSONAL_KEYS,
+  GLOBAL_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -199,7 +203,7 @@ export const initObservers = async ({
       });
   }) as EventListener;
 
-  if (getPersonalSetting<boolean>(["Suggestive mode overlay"])) {
+  if (getPersonalSetting<boolean>([PERSONAL_KEYS.suggestiveModeOverlay])) {
     addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
   }
 
@@ -222,9 +226,9 @@ export const initObservers = async ({
     },
   });
 
-  if (getPersonalSetting<boolean>(["Page preview"]))
+  if (getPersonalSetting<boolean>([PERSONAL_KEYS.pagePreview]))
     addPageRefObserver(previewPageRefHandler);
-  if (getPersonalSetting<boolean>(["Discourse context overlay"])) {
+  if (getPersonalSetting<boolean>([PERSONAL_KEYS.discourseContextOverlay])) {
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(true);
   }
@@ -252,9 +256,11 @@ export const initObservers = async ({
     }
   };
 
-  const globalTrigger = (getGlobalSetting<string>(["Trigger"]) ?? "\\").trim();
+  const globalTrigger = (
+    getGlobalSetting<string>([GLOBAL_KEYS.trigger]) ?? "\\"
+  ).trim();
   const personalTriggerCombo = getPersonalSetting<IKeyCombo>([
-    "Personal node menu trigger",
+    PERSONAL_KEYS.personalNodeMenuTrigger,
   ]);
   const personalTrigger = personalTriggerCombo?.key;
   const personalModifiers = personalTriggerCombo
@@ -319,7 +325,7 @@ export const initObservers = async ({
   };
 
   const customTrigger =
-    getPersonalSetting<string>(["Node search menu trigger"]) ?? "@";
+    getPersonalSetting<string>([PERSONAL_KEYS.nodeSearchMenuTrigger]) ?? "@";
 
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
@@ -373,7 +379,7 @@ export const initObservers = async ({
 
   const nodeCreationPopoverListener = debounce(() => {
     const isTextSelectionPopupEnabled =
-      getPersonalSetting<boolean>(["Text selection popup"]) !== false;
+      getPersonalSetting<boolean>([PERSONAL_KEYS.textSelectionPopup]) !== false;
 
     if (!isTextSelectionPopupEnabled) return;
 

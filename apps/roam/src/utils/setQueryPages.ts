@@ -3,13 +3,17 @@ import {
   getPersonalSetting,
   setPersonalSetting,
 } from "~/components/settings/utils/accessors";
+import {
+  PERSONAL_KEYS,
+  QUERY_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 export const setInitialQueryPages = (onloadArgs: OnloadArgs) => {
   // Legacy extensionAPI stored query-pages as string | string[] | Record<string, string>.
   // Coerce to string[] for backward compatibility with old stored formats.
   const raw = getPersonalSetting<string[] | string | Record<string, string>>([
-    "Query",
-    "Query pages",
+    PERSONAL_KEYS.query,
+    QUERY_KEYS.queryPages,
   ]);
   const queryPageArray = Array.isArray(raw)
     ? raw
@@ -19,6 +23,6 @@ export const setInitialQueryPages = (onloadArgs: OnloadArgs) => {
   if (!queryPageArray.includes("discourse-graph/queries/*")) {
     const updated = [...queryPageArray, "discourse-graph/queries/*"];
     void onloadArgs.extensionAPI.settings.set("query-pages", updated);
-    setPersonalSetting(["Query", "Query pages"], updated);
+    setPersonalSetting([PERSONAL_KEYS.query, QUERY_KEYS.queryPages], updated);
   }
 };

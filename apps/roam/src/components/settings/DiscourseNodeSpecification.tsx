@@ -12,6 +12,10 @@ import {
   getDiscourseNodeSetting,
   setDiscourseNodeSetting,
 } from "~/components/settings/utils/accessors";
+import {
+  DISCOURSE_NODE_KEYS,
+  SPECIFICATION_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import { DiscourseNodeFlagPanel } from "~/components/settings/components/BlockPropSettingPanels";
 
 const NodeSpecification = ({
@@ -33,8 +37,8 @@ const NodeSpecification = ({
   const [enabled, setEnabled] = React.useState(
     () =>
       getDiscourseNodeSetting<boolean>(node.type, [
-        "specification",
-        "enabled",
+        DISCOURSE_NODE_KEYS.specification,
+        SPECIFICATION_KEYS.enabled,
       ]) ?? false,
   );
 
@@ -83,19 +87,23 @@ const NodeSpecification = ({
             }),
           )
           .then(() => {
-            setDiscourseNodeSetting(node.type, ["specification", "query"], {
-              conditions: [
-                {
-                  type: "clause" as const,
-                  source: node.text,
-                  relation: "has title",
-                  target: `/${getDiscourseNodeFormatExpression(node.format).source}/`,
-                },
-              ],
-              selections: [],
-              custom: "",
-              returnNode: node.text,
-            });
+            setDiscourseNodeSetting(
+              node.type,
+              [DISCOURSE_NODE_KEYS.specification, SPECIFICATION_KEYS.query],
+              {
+                conditions: [
+                  {
+                    type: "clause" as const,
+                    source: node.text,
+                    relation: "has title",
+                    target: `/${getDiscourseNodeFormatExpression(node.format).source}/`,
+                  },
+                ],
+                selections: [],
+                custom: "",
+                returnNode: node.text,
+              },
+            );
             setMigrated(true);
           })
           .catch((error) => {
@@ -107,12 +115,16 @@ const NodeSpecification = ({
       const scratchNode = getSubTree({ tree, key: "scratch" });
       Promise.all(scratchNode.children.map((c) => deleteBlock(c.uid)))
         .then(() => {
-          setDiscourseNodeSetting(node.type, ["specification", "query"], {
-            conditions: [],
-            selections: [],
-            custom: "",
-            returnNode: "",
-          });
+          setDiscourseNodeSetting(
+            node.type,
+            [DISCOURSE_NODE_KEYS.specification, SPECIFICATION_KEYS.query],
+            {
+              conditions: [],
+              selections: [],
+              custom: "",
+              returnNode: "",
+            },
+          );
         })
         .catch((error) => {
           internalError({ error });
@@ -133,7 +145,10 @@ const NodeSpecification = ({
         nodeType={node.type}
         title="enabled"
         description=""
-        settingKeys={["specification", "enabled"]}
+        settingKeys={[
+          DISCOURSE_NODE_KEYS.specification,
+          SPECIFICATION_KEYS.enabled,
+        ]}
         initialValue={enabled}
         parentUid={parentUid}
         uid={enabledBlockUid}
