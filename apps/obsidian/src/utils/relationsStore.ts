@@ -271,21 +271,14 @@ export const getNodeTypeIdForFile = async (
 
 /**
  * Find a file by importedFromRid (used for imported relations where source/destination store RID).
+ * Uses DataCore when available; falls back to vault iteration otherwise.
  */
 export const getFileForImportedFromRid = (
   plugin: DiscourseGraphPlugin,
   importedFromRid: string,
 ): TFile | null => {
-  const files = plugin.app.vault.getMarkdownFiles();
-  for (const file of files) {
-    const cache = plugin.app.metadataCache.getFileCache(file);
-    const rid = (cache?.frontmatter as Record<string, unknown> | undefined)
-      ?.importedFromRid as string | undefined;
-    if (rid === importedFromRid) {
-      return file;
-    }
-  }
-  return null;
+  const queryEngine = new QueryEngine(plugin.app);
+  return queryEngine.getFileByImportedFromRid(importedFromRid);
 };
 
 /** RIDs contain "orn:" or "/" (e.g. orn:obsidian.note:.../uuid). NodeInstanceIds match ^[-.+\w]+$ */
@@ -317,21 +310,7 @@ export const resolveEndpointToFile = (
   }
 
   const queryEngine = new QueryEngine(plugin.app);
-  if (queryEngine.functional()) {
-    const byId = queryEngine.getDiscourseNodeById(endpointId);
-    if (byId) return byId;
-  }
-  const files = plugin.app.vault.getMarkdownFiles();
-  for (const file of files) {
-    const cache = plugin.app.metadataCache.getFileCache(file);
-    const fm = cache?.frontmatter as Record<string, unknown> | undefined;
-    const id = fm?.nodeInstanceId as string | undefined;
-    const rid = fm?.importedFromRid as string | undefined;
-    if (id === endpointId || rid === endpointId) {
-      return file;
-    }
-  }
-  return null;
+  return queryEngine.getFileByEndpoint(endpointId);
 };
 
 /**
@@ -361,23 +340,30 @@ export const getFileForNodeInstanceIds = (
 /**
  * Build a map from endpoint id (RID or nodeInstanceId) to file for batch resolution.
  * Covers: imported nodes (importedFromRid), local nodes (nodeInstanceId and constructed RID).
+ * Uses DataCore when available; falls back to vault iteration otherwise.
  */
 export const buildEndpointToFileMap = (
   plugin: DiscourseGraphPlugin,
 ): Map<string, TFile> => {
   const map = new Map<string, TFile>();
-  const files = plugin.app.vault.getMarkdownFiles();
   const localSpaceUri = getLocalSpaceUri(plugin.app);
+  const queryEngine = new QueryEngine(plugin.app);
 
-  for (const file of files) {
-    const cache = plugin.app.metadataCache.getFileCache(file);
-    const fm = cache?.frontmatter as Record<string, unknown> | undefined;
+  const importedFiles = queryEngine.getImportedNodePages();
+  for (const file of importedFiles) {
+    const fm = plugin.app.metadataCache.getFileCache(file)?.frontmatter as
+      | Record<string, unknown>
+      | undefined;
     const importedFromRid = fm?.importedFromRid as string | undefined;
-    const nodeInstanceId = fm?.nodeInstanceId as string | undefined;
+    if (importedFromRid) map.set(importedFromRid, file);
+  }
 
-    if (importedFromRid) {
-      map.set(importedFromRid, file);
-    }
+  const discourseFiles = queryEngine.getFilesWithNodeTypeId();
+  for (const file of discourseFiles) {
+    const fm = plugin.app.metadataCache.getFileCache(file)?.frontmatter as
+      | Record<string, unknown>
+      | undefined;
+    const nodeInstanceId = fm?.nodeInstanceId as string | undefined;
     if (nodeInstanceId && fm?.nodeTypeId) {
       map.set(nodeInstanceId, file);
       map.set(
@@ -392,6 +378,7 @@ export const buildEndpointToFileMap = (
 /**
  * Build key -> relation endpoint id (RID) for local nodes in this vault.
  * Key format: `${localSpaceId}:${nodeInstanceId}`. Value: constructed RID for storage.
+ * Uses DataCore when available; falls back to vault iteration otherwise.
  */
 export const getLocalNodeKeyToEndpointId = (
   plugin: DiscourseGraphPlugin,
@@ -399,14 +386,19 @@ export const getLocalNodeKeyToEndpointId = (
 ): Map<string, string> => {
   const map = new Map<string, string>();
   const localSpaceUri = getLocalSpaceUri(plugin.app);
-  const files = plugin.app.vault.getMarkdownFiles();
+  const queryEngine = new QueryEngine(plugin.app);
+  const files = queryEngine.getFilesWithNodeTypeId();
+
   for (const file of files) {
     const cache = plugin.app.metadataCache.getFileCache(file);
     const fm = cache?.frontmatter as Record<string, unknown> | undefined;
     const nodeInstanceId = fm?.nodeInstanceId as string | undefined;
     if (nodeInstanceId && fm?.nodeTypeId) {
       const key = `${localSpaceId}:${nodeInstanceId}`;
-      map.set(key, spaceUriAndLocalIdToRid(localSpaceUri, nodeInstanceId, "note"));
+      map.set(
+        key,
+        spaceUriAndLocalIdToRid(localSpaceUri, nodeInstanceId, "note"),
+      );
     }
   }
   return map;
@@ -588,7 +580,8 @@ export const migrateFrontmatterRelationsToRelationsJson = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<void> => {
   const data = await loadRelations(plugin);
-  const markdownFiles = plugin.app.vault.getMarkdownFiles();
+  const queryEngine = new QueryEngine(plugin.app);
+  const markdownFiles = queryEngine.getFilesWithNodeTypeId();
   let added = 0;
   const pendingCleanups: Array<{
     file: TFile;

@@ -142,13 +142,13 @@ export const getPublishedNodesForGroups = async ({
 export const getLocalNodeInstanceIds = (
   plugin: DiscourseGraphPlugin,
 ): Set<string> => {
-  const allFiles = plugin.app.vault.getMarkdownFiles();
+  const queryEngine = new QueryEngine(plugin.app);
+  const files = queryEngine.getFilesWithNodeInstanceId();
   const nodeInstanceIds = new Set<string>();
 
-  for (const file of allFiles) {
+  for (const file of files) {
     const cache = plugin.app.metadataCache.getFileCache(file);
     const frontmatter = cache?.frontmatter;
-
     if (frontmatter?.nodeInstanceId) {
       nodeInstanceIds.add(frontmatter.nodeInstanceId as string);
     }
@@ -1458,19 +1458,11 @@ export const refreshAllImportedFiles = async (
   failed: number;
   errors: Array<{ file: string; error: string }>;
 }> => {
-  const allFiles = plugin.app.vault.getMarkdownFiles();
-  const importedFiles: TFile[] = [];
+  const queryEngine = new QueryEngine(plugin.app);
+  const importedFiles = queryEngine.getImportedNodePages();
   const client = await getLoggedInClient(plugin);
   if (!client) {
     throw new Error("Cannot get Supabase client");
-  }
-  // Find all imported files
-  for (const file of allFiles) {
-    const cache = plugin.app.metadataCache.getFileCache(file);
-    const frontmatter = cache?.frontmatter;
-    if (frontmatter?.importedFromRid && frontmatter?.nodeInstanceId) {
-      importedFiles.push(file);
-    }
   }
 
   if (importedFiles.length === 0) {

@@ -322,25 +322,143 @@ export class QueryEngine {
 
   /**
    * Return all markdown pages under import/ that have importedFromRid and nodeInstanceId.
-   * Uses DataCore when available; returns [] if DataCore is not available.
+   * Uses DataCore when available; falls back to vault iteration otherwise.
    */
   getImportedNodePages = (): TFile[] => {
-    if (!this.dc) return [];
-    try {
-      const dcQuery = `@page and path("import") and exists(importedFromRid) and exists(nodeInstanceId)`;
-      const pages = this.dc.query(dcQuery);
-      const files: TFile[] = [];
-      for (const page of pages) {
-        if (page.$path) {
-          const file = this.app.vault.getAbstractFileByPath(page.$path);
-          if (file && file instanceof TFile) files.push(file);
+    if (this.dc) {
+      try {
+        const dcQuery = `@page and path("import") and exists(importedFromRid) and exists(nodeInstanceId)`;
+        const pages = this.dc.query(dcQuery);
+        const files: TFile[] = [];
+        for (const page of pages) {
+          if (page.$path) {
+            const file = this.app.vault.getAbstractFileByPath(page.$path);
+            if (file && file instanceof TFile) files.push(file);
+          }
         }
+        return files;
+      } catch (error) {
+        console.warn("DataCore query for imported nodes failed:", error);
       }
-      return files;
-    } catch (error) {
-      console.warn("DataCore query for imported nodes failed:", error);
-      return [];
     }
+    return this.fallbackGetImportedNodePages();
+  };
+
+  /**
+   * Return all markdown files that have nodeInstanceId in frontmatter.
+   * Uses DataCore when available; falls back to vault iteration otherwise.
+   */
+  getFilesWithNodeInstanceId = (): TFile[] => {
+    if (this.dc) {
+      try {
+        const dcQuery = `@page and exists(nodeInstanceId)`;
+        const pages = this.dc.query(dcQuery);
+        const files: TFile[] = [];
+        for (const page of pages) {
+          if (page.$path) {
+            const file = this.app.vault.getAbstractFileByPath(page.$path);
+            if (file && file instanceof TFile) files.push(file);
+          }
+        }
+        return files;
+      } catch (error) {
+        console.warn(
+          "DataCore query for files with nodeInstanceId failed:",
+          error,
+        );
+      }
+    }
+    return this.fallbackGetFilesWithNodeInstanceId();
+  };
+
+  /**
+   * Return all markdown files that have nodeTypeId in frontmatter.
+   * When excludeImported is true, only returns files without importedFromRid.
+   * Uses DataCore when available; falls back to vault iteration otherwise.
+   */
+  getFilesWithNodeTypeId = (opts?: { excludeImported?: boolean }): TFile[] => {
+    if (this.dc) {
+      try {
+        const dcQuery = `@page and exists(nodeTypeId)`;
+        const pages = this.dc.query(dcQuery);
+        const files: TFile[] = [];
+        for (const page of pages) {
+          if (!page.$path) continue;
+          const file = this.app.vault.getAbstractFileByPath(page.$path);
+          if (!(file && file instanceof TFile)) continue;
+          if (opts?.excludeImported) {
+            const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
+            if ((fm as Record<string, unknown>)?.importedFromRid) continue;
+          }
+          files.push(file);
+        }
+        return files;
+      } catch (error) {
+        console.warn("DataCore query for files with nodeTypeId failed:", error);
+      }
+    }
+    return this.fallbackGetFilesWithNodeTypeId(opts);
+  };
+
+  /**
+   * Find a file by importedFromRid in frontmatter.
+   * Uses DataCore when available; falls back to vault iteration otherwise.
+   */
+  getFileByImportedFromRid = (importedFromRid: string): TFile | null => {
+    if (this.dc) {
+      try {
+        const safeUri = importedFromRid
+          .replace(/\\/g, "\\\\")
+          .replace(/"/g, '\\"');
+        const dcQuery = `@page and importedFromRid = "${safeUri}"`;
+        const results = this.dc.query(dcQuery);
+        const path = results.at(0)?.$path;
+        if (path) {
+          const file = this.app.vault.getAbstractFileByPath(path);
+          if (file && file instanceof TFile) return file;
+        }
+      } catch (error) {
+        console.warn(
+          "DataCore query for file by importedFromRid failed:",
+          error,
+        );
+      }
+    }
+    const allFiles = this.app.vault.getMarkdownFiles();
+    for (const f of allFiles) {
+      const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
+      if (
+        (fm as Record<string, unknown> | undefined)?.importedFromRid ===
+        importedFromRid
+      ) {
+        return f;
+      }
+    }
+    return null;
+  };
+
+  /**
+   * Find a file by nodeInstanceId or importedFromRid (endpoint id).
+   * Tries DataCore getDiscourseNodeById and getFileByImportedFromRid when available;
+   * falls back to iterating files with nodeInstanceId and matching either field.
+   */
+  getFileByEndpoint = (endpointId: string): TFile | null => {
+    if (this.dc) {
+      const byId = this.getDiscourseNodeById(endpointId);
+      if (byId) return byId;
+      const byRid = this.getFileByImportedFromRid(endpointId);
+      if (byRid) return byRid;
+    }
+    const files = this.getFilesWithNodeInstanceId();
+    for (const file of files) {
+      const fm = this.app.metadataCache.getFileCache(file)?.frontmatter as
+        | Record<string, unknown>
+        | undefined;
+      const id = fm?.nodeInstanceId as string | undefined;
+      const rid = fm?.importedFromRid as string | undefined;
+      if (id === endpointId || rid === endpointId) return file;
+    }
+    return null;
   };
 
   /**
@@ -389,6 +507,55 @@ export class QueryEngine {
     }
     return null;
   };
+
+  private fallbackGetImportedNodePages(): TFile[] {
+    const files: TFile[] = [];
+    const allFiles = this.app.vault.getMarkdownFiles();
+    for (const f of allFiles) {
+      if (!f.path.startsWith("import/")) continue;
+      const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
+      if (
+        (fm as Record<string, unknown> | undefined)?.importedFromRid &&
+        (fm as Record<string, unknown> | undefined)?.nodeInstanceId
+      ) {
+        files.push(f);
+      }
+    }
+    return files;
+  }
+
+  private fallbackGetFilesWithNodeInstanceId(): TFile[] {
+    const files: TFile[] = [];
+    const allFiles = this.app.vault.getMarkdownFiles();
+    for (const f of allFiles) {
+      const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
+      if ((fm as Record<string, unknown> | undefined)?.nodeInstanceId) {
+        files.push(f);
+      }
+    }
+    return files;
+  }
+
+  private fallbackGetFilesWithNodeTypeId(opts?: {
+    excludeImported?: boolean;
+  }): TFile[] {
+    const files: TFile[] = [];
+    const allFiles = this.app.vault.getMarkdownFiles();
+    for (const f of allFiles) {
+      const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
+      const nodeTypeId = (fm as Record<string, unknown> | undefined)
+        ?.nodeTypeId;
+      if (!nodeTypeId) continue;
+      if (
+        opts?.excludeImported &&
+        (fm as Record<string, unknown>)?.importedFromRid
+      ) {
+        continue;
+      }
+      files.push(f);
+    }
+    return files;
+  }
 
   private async fallbackScanVault(
     patterns: BulkImportPattern[],
@@ -461,11 +628,8 @@ export const getImportedNodesRaw = ({
   queryEngine?: QueryEngine;
   plugin: DiscourseGraphPlugin;
 }): { importedFromRid: string; nodeInstanceId: string }[] => {
-  const files = queryEngine?.functional()
-    ? queryEngine.getImportedNodePages()
-    : plugin.app.vault
-        .getMarkdownFiles()
-        .filter((f) => f.path.startsWith("import/"));
+  const engine = queryEngine ?? new QueryEngine(plugin.app);
+  const files = engine.getImportedNodePages();
 
   const entries: { importedFromRid: string; nodeInstanceId: string }[] = [];
   for (const file of files) {
