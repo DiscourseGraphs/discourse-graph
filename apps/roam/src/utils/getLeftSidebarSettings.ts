@@ -8,6 +8,10 @@ import {
   getUidAndStringSetting,
 } from "./getExportSettings";
 import { getSubTree } from "roamjs-components/util";
+import type {
+  LeftSidebarGlobalSettings,
+  PersonalSection,
+} from "~/components/settings/utils/zodSchema";
 
 type LeftSidebarPersonalSectionSettings = {
   uid: string;
@@ -199,6 +203,58 @@ export const getAllLeftSidebarPersonalSectionConfigs = (
 
   return result;
 };
+
+// TODO(ENG-1471): Remove when migration complete — just use accessor values directly.
+// During dual-read, we need old-system UIDs for block CRUD (fold toggle, reorder, delete)
+// but read setting VALUES from accessors (which route through the feature flag and log
+// mismatches). These helpers merge accessor values onto old-system config objects.
+export const mergeGlobalSectionWithAccessor = (
+  config: LeftSidebarGlobalSectionConfig,
+  globalValues: LeftSidebarGlobalSettings | undefined,
+): LeftSidebarGlobalSectionConfig => {
+  if (!config.settings) return config;
+  return {
+    ...config,
+    settings: {
+      uid: config.settings.uid,
+      collapsable: {
+        uid: config.settings.collapsable.uid,
+        value:
+          globalValues?.Settings.Collapsable ??
+          config.settings.collapsable.value,
+      },
+      folded: {
+        uid: config.settings.folded.uid,
+        value: globalValues?.Settings.Folded ?? config.settings.folded.value,
+      },
+    },
+  };
+};
+
+export const mergePersonalSectionsWithAccessor = (
+  sections: LeftSidebarPersonalSectionConfig[],
+  personalValues: PersonalSection[] | undefined,
+): LeftSidebarPersonalSectionConfig[] => {
+  return sections.map((section, i) => {
+    const newSection = personalValues?.[i];
+    if (!section.settings || !newSection) return section;
+    return {
+      ...section,
+      settings: {
+        ...section.settings,
+        truncateResult: {
+          ...section.settings.truncateResult,
+          value: newSection.Settings["Truncate-result?"],
+        },
+        folded: {
+          ...section.settings.folded,
+          value: newSection.Settings.Folded,
+        },
+      },
+    };
+  });
+};
+
 export const getLeftSidebarSettings = (
   globalTree: RoamBasicNode[],
 ): LeftSidebarConfig => {

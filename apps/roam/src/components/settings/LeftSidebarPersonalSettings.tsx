@@ -19,7 +19,11 @@ import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
-import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import {
+  setPersonalSetting,
+  getPersonalSetting,
+} from "~/components/settings/utils/accessors";
+import type { PersonalSection } from "~/components/settings/utils/zodSchema";
 import {
   PersonalNumberPanel,
   PersonalTextPanel,
@@ -27,6 +31,7 @@ import {
 import {
   LeftSidebarPersonalSectionConfig,
   getLeftSidebarPersonalSectionConfig,
+  mergePersonalSectionsWithAccessor,
   PersonalSectionChild,
 } from "~/utils/getLeftSidebarSettings";
 import { extractRef, getSubTree } from "roamjs-components/util";
@@ -507,7 +512,7 @@ const SectionItem = memo(
                             <PersonalTextPanel
                               title="Alias"
                               description="Display name for this item"
-                              settingKeys={["Left sidebar"]}
+                              settingKeys={[]}
                               initialValue={child.alias?.value ?? ""}
                               order={0}
                               uid={child.alias?.uid}
@@ -599,10 +604,16 @@ const LeftSidebarPersonalSectionsContent = ({
         setSections([]);
       } else {
         setPersonalSectionUid(personalSection.uid);
+
+        const personalValues = getPersonalSetting<PersonalSection[]>([
+          "Left sidebar",
+        ]);
         const loadedSections = getLeftSidebarPersonalSectionConfig(
           leftSidebar.children,
         ).sections;
-        setSections(loadedSections);
+        setSections(
+          mergePersonalSectionsWithAccessor(loadedSections, personalValues),
+        );
       }
     };
 
@@ -786,7 +797,7 @@ const LeftSidebarPersonalSectionsContent = ({
               <PersonalNumberPanel
                 title="Truncate-result?"
                 description="Maximum characters to display"
-                settingKeys={["Left sidebar"]}
+                settingKeys={[]}
                 initialValue={
                   activeDialogSection.settings.truncateResult?.value ?? 75
                 }

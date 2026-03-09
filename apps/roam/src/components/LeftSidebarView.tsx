@@ -21,15 +21,27 @@ import {
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import extractRef from "roamjs-components/util/extractRef";
+import { getFormattedConfigTree, notify } from "~/utils/discourseConfigRef";
 import {
-  getFormattedConfigTree,
-  notify,
-  subscribe,
-} from "~/utils/discourseConfigRef";
-import type {
-  LeftSidebarConfig,
-  LeftSidebarPersonalSectionConfig,
+  onSettingChange,
+  settingKeys,
+} from "~/components/settings/utils/settingsEmitter";
+import {
+  type LeftSidebarConfig,
+  type LeftSidebarPersonalSectionConfig,
+  mergeGlobalSectionWithAccessor,
+  mergePersonalSectionsWithAccessor,
 } from "~/utils/getLeftSidebarSettings";
+import {
+  getGlobalSetting,
+  getPersonalSetting,
+  setGlobalSetting,
+  setPersonalSetting,
+} from "~/components/settings/utils/accessors";
+import type {
+  LeftSidebarGlobalSettings,
+  PersonalSection,
+} from "~/components/settings/utils/zodSchema";
 import { createBlock } from "roamjs-components/writes";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -95,12 +107,18 @@ const toggleFoldedState = ({
   setIsOpen,
   folded,
   parentUid,
+  isGlobal,
+  sectionIndex,
 }: {
   isOpen: boolean;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
   folded: { uid?: string; value: boolean };
   parentUid: string;
+  isGlobal?: boolean;
+  sectionIndex?: number;
 }) => {
+  const newFolded = !isOpen;
+
   if (isOpen) {
     setIsOpen(false);
     if (folded.uid) {
@@ -117,6 +135,17 @@ const toggleFoldedState = ({
     });
     folded.uid = newUid;
     folded.value = true;
+  }
+
+  if (isGlobal) {
+    setGlobalSetting(["Left sidebar", "Settings", "Folded"], newFolded);
+  } else if (sectionIndex !== undefined) {
+    const sections =
+      getPersonalSetting<PersonalSection[]>(["Left sidebar"]) || [];
+    if (sections[sectionIndex]) {
+      sections[sectionIndex].Settings.Folded = newFolded;
+      setPersonalSetting(["Left sidebar"], sections);
+    }
   }
 };
 
@@ -160,8 +189,10 @@ const SectionChildren = ({
 
 const PersonalSectionItem = ({
   section,
+  sectionIndex,
 }: {
   section: LeftSidebarPersonalSectionConfig;
+  sectionIndex: number;
 }) => {
   const titleRef = parseReference(section.text);
   const blockText = useMemo(
@@ -182,6 +213,7 @@ const PersonalSectionItem = ({
       setIsOpen,
       folded: section.settings.folded,
       parentUid: section.settings.uid || "",
+      sectionIndex,
     });
   };
 
@@ -226,9 +258,9 @@ const PersonalSections = ({ config }: { config: LeftSidebarConfig }) => {
 
   return (
     <div className="personal-left-sidebar-sections">
-      {sections.map((section) => (
+      {sections.map((section, index) => (
         <div key={section.uid}>
-          <PersonalSectionItem section={section} />
+          <PersonalSectionItem section={section} sectionIndex={index} />
         </div>
       ))}
     </div>
@@ -253,6 +285,7 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
             setIsOpen,
             folded: config.settings.folded,
             parentUid: config.settings.uid,
+            isGlobal: true,
           });
         }}
       >
@@ -276,22 +309,62 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
   );
 };
 
+// TODO(ENG-1471): Remove old-system merge when migration complete — just use accessor values directly.
+// See mergeGlobalSectionWithAccessor/mergePersonalSectionsWithAccessor for why the merge exists.
+const buildConfig = (): LeftSidebarConfig => {
+  // Read VALUES from accessor (handles flag routing + mismatch detection)
+  const globalValues = getGlobalSetting<LeftSidebarGlobalSettings>([
+    "Left sidebar",
+  ]);
+  const personalValues = getPersonalSetting<PersonalSection[]>([
+    "Left sidebar",
+  ]);
+
+  // Read UIDs from old system (needed for fold CRUD during dual-write)
+  const oldConfig = getFormattedConfigTree().leftSidebar;
+
+  return {
+    uid: oldConfig.uid,
+    favoritesMigrated: oldConfig.favoritesMigrated,
+    sidebarMigrated: oldConfig.sidebarMigrated,
+    global: mergeGlobalSectionWithAccessor(oldConfig.global, globalValues),
+    personal: {
+      uid: oldConfig.personal.uid,
+      sections: mergePersonalSectionsWithAccessor(
+        oldConfig.personal.sections,
+        personalValues,
+      ),
+    },
+    allPersonalSections: oldConfig.allPersonalSections,
+  };
+};
+
 export const useConfig = () => {
-  const [config, setConfig] = useState(
-    () => getFormattedConfigTree().leftSidebar,
-  );
+  const [config, setConfig] = useState(() => buildConfig());
   useEffect(() => {
     const handleUpdate = () => {
-      setConfig(getFormattedConfigTree().leftSidebar);
+      refreshConfigTree();
+      setConfig(buildConfig());
     };
-    const unsubscribe = subscribe(handleUpdate);
+    const unsubGlobal = onSettingChange(
+      settingKeys.globalLeftSidebar,
+      handleUpdate,
+    );
+    const unsubPersonal = onSettingChange(
+      settingKeys.personalLeftSidebar,
+      handleUpdate,
+    );
     return () => {
-      unsubscribe();
+      unsubGlobal();
+      unsubPersonal();
     };
   }, []);
   return { config, setConfig };
 };
 
+// TODO(ENG-1471): refreshAndNotify still needed by settings panels
+// (LeftSidebarGlobalSettings, LeftSidebarPersonalSettings) for old-system CRUD.
+// Remove when settings panels also read via accessors + emitter.
 export const refreshAndNotify = () => {
   refreshConfigTree();
   notify();

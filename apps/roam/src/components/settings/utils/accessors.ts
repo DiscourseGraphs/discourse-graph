@@ -198,7 +198,7 @@ const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
   return settings.leftSidebar.personal.sections.map((section) => ({
     name: section.text,
     Children: (section.children || []).map((child) => ({
-      uid: child.uid,
+      uid: child.text,
       Alias: child.alias?.value || "",
     })),
     Settings: {
@@ -724,6 +724,8 @@ export const getGlobalSettings = (): GlobalSettings => {
 export const getGlobalSetting = <T = unknown>(
   keys: string[],
 ): T | undefined => {
+  if (keys.length === 0) return undefined;
+
   if (!isNewSettingsStoreEnabled()) {
     return getLegacyGlobalSetting(keys) as T | undefined;
   }
@@ -788,6 +790,8 @@ export const getPersonalSettings = (): PersonalSettings => {
 export const getPersonalSetting = <T = unknown>(
   keys: string[],
 ): T | undefined => {
+  if (keys.length === 0) return undefined;
+
   if (!isNewSettingsStoreEnabled()) {
     return getLegacyPersonalSetting(keys) as T | undefined;
   }

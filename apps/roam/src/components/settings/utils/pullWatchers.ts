@@ -12,6 +12,7 @@ import {
   type PersonalSettings,
   type DiscourseNodeSettings,
 } from "./zodSchema";
+import { emitSettingChange, settingKeys } from "./settingsEmitter";
 
 type PullWatchCallback = Parameters<AddPullWatch>[2];
 
@@ -90,10 +91,11 @@ export const featureFlagHandlers: Partial<
     (newValue: boolean, oldValue: boolean, allFlags: FeatureFlags) => void
   >
 > = {
-  // Add handlers as needed:
-  // "Enable Left Sidebar": (newValue) => { ... },
-  // "Suggestive Mode Enabled": (newValue) => { ... },
-  // "Reified Relation Triples": (newValue) => { ... },
+  /* eslint-disable @typescript-eslint/naming-convention */
+  "Enable left sidebar": (newValue, oldValue) => {
+    emitSettingChange(settingKeys.leftSidebarFlag, newValue, oldValue);
+  },
+  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 type GlobalSettingsHandlers = {
@@ -105,12 +107,11 @@ type GlobalSettingsHandlers = {
 };
 
 export const globalSettingsHandlers: GlobalSettingsHandlers = {
-  // Add handlers as needed:
-  // "Trigger": (newValue) => { ... },
-  // "Canvas Page Format": (newValue) => { ... },
-  // "Left Sidebar": (newValue) => { ... },
-  // "Export": (newValue) => { ... },
-  // "Suggestive Mode": (newValue) => { ... },
+  /* eslint-disable @typescript-eslint/naming-convention */
+  "Left sidebar": (newValue, oldValue) => {
+    emitSettingChange(settingKeys.globalLeftSidebar, newValue, oldValue);
+  },
+  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 type PersonalSettingsHandlers = {
@@ -122,28 +123,9 @@ type PersonalSettingsHandlers = {
 };
 
 export const personalSettingsHandlers: PersonalSettingsHandlers = {
-  // "Left Sidebar" stub for testing with stubSetLeftSidebarPersonalSections() in accessors.ts
   /* eslint-disable @typescript-eslint/naming-convention */
   "Left sidebar": (newValue, oldValue) => {
-    const oldSections = Object.keys(oldValue || {});
-    const newSections = Object.keys(newValue || {});
-
-    if (newSections.length === 0 && oldSections.length === 0) return;
-
-    console.group("👤 [PullWatch] Personal Settings Changed: Left Sidebar");
-    console.log("Old value:", JSON.stringify(oldValue, null, 2));
-    console.log("New value:", JSON.stringify(newValue, null, 2));
-
-    const addedSections = newSections.filter((s) => !oldSections.includes(s));
-    const removedSections = oldSections.filter((s) => !newSections.includes(s));
-
-    if (addedSections.length > 0) {
-      console.log("  → Sections added:", addedSections);
-    }
-    if (removedSections.length > 0) {
-      console.log("  → Sections removed:", removedSections);
-    }
-    console.groupEnd();
+    emitSettingChange(settingKeys.personalLeftSidebar, newValue, oldValue);
   },
   /* eslint-enable @typescript-eslint/naming-convention */
 };

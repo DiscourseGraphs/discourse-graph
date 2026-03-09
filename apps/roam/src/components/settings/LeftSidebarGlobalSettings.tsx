@@ -1,7 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
 import { Button, ButtonGroup, Collapse } from "@blueprintjs/core";
 import { GlobalFlagPanel } from "~/components/settings/components/BlockPropSettingPanels";
-import { setGlobalSetting } from "~/components/settings/utils/accessors";
+import {
+  setGlobalSetting,
+  getGlobalSetting,
+} from "~/components/settings/utils/accessors";
+import type { LeftSidebarGlobalSettings } from "~/components/settings/utils/zodSchema";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import createBlock from "roamjs-components/writes/createBlock";
@@ -11,8 +15,11 @@ import { extractRef, getSubTree } from "roamjs-components/util";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import discourseConfigRef from "~/utils/discourseConfigRef";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
-import { getLeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
-import { LeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
+import {
+  getLeftSidebarGlobalSectionConfig,
+  mergeGlobalSectionWithAccessor,
+  type LeftSidebarGlobalSectionConfig,
+} from "~/utils/getLeftSidebarSettings";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
@@ -98,6 +105,9 @@ const LeftSidebarGlobalSectionsContent = ({
     const initialize = async () => {
       setIsInitializing(true);
       const globalSectionText = "Global-Section";
+      const globalValues = getGlobalSetting<LeftSidebarGlobalSettings>([
+        "Left sidebar",
+      ]);
       const config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
 
       const existingGlobalSection = leftSidebar.children.find(
@@ -142,9 +152,10 @@ const LeftSidebarGlobalSectionsContent = ({
           });
         }
       } else {
-        setChildrenUid(config.childrenUid || null);
-        setPages(config.children || []);
-        setGlobalSection(config);
+        const merged = mergeGlobalSectionWithAccessor(config, globalValues);
+        setChildrenUid(merged.childrenUid || null);
+        setPages(merged.children || []);
+        setGlobalSection(merged);
       }
       setIsInitializing(false);
     };

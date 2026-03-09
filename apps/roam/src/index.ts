@@ -1,3 +1,4 @@
+import ReactDOM from "react-dom";
 import { addStyle } from "roamjs-components/dom";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { runExtension } from "roamjs-components/util";
@@ -37,6 +38,12 @@ import {
   getFeatureFlag,
   getPersonalSetting,
 } from "./components/settings/utils/accessors";
+import { setupPullWatchOnSettingsPage } from "./components/settings/utils/pullWatchers";
+import {
+  onSettingChange,
+  settingKeys,
+} from "./components/settings/utils/settingsEmitter";
+import { mountLeftSidebar } from "./components/LeftSidebarView";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -149,7 +156,31 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
-  await initSchema();
+  const unsubLeftSidebarFlag = onSettingChange(
+    settingKeys.leftSidebarFlag,
+    (newValue) => {
+      const enabled = Boolean(newValue);
+      const wrapper = document.querySelector<HTMLDivElement>(
+        ".starred-pages-wrapper",
+      );
+      if (!wrapper) return;
+      if (enabled) {
+        wrapper.style.padding = "0";
+        void mountLeftSidebar(wrapper, onloadArgs);
+      } else {
+        const root = wrapper.querySelector("#dg-left-sidebar-root");
+        if (root) {
+          // eslint-disable-next-line react/no-deprecated
+          ReactDOM.unmountComponentAtNode(root);
+          root.remove();
+        }
+        wrapper.style.padding = "";
+      }
+    },
+  );
+
+  const { blockUids } = await initSchema();
+  const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
 
   return {
     elements: [
@@ -161,6 +192,8 @@ export default runExtension(async (onloadArgs) => {
     ],
     observers: observers,
     unload: () => {
+      unsubLeftSidebarFlag();
+      cleanupPullWatchers();
       setSyncActivity(false);
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
       // @ts-expect-error - tldraw throws a warning on multiple loads
