@@ -12,6 +12,7 @@ import { syncAllNodesAndRelations } from "./syncDgNodesToSupabase";
 import { publishNode } from "./publishNode";
 import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 import type { DiscourseNode } from "~/types";
+import { TldrawView } from "~/components/canvas/TldrawView";
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;
@@ -60,7 +61,6 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
     id: "open-node-type-menu",
     name: "Open node type menu",
-    hotkeys: [{ modifiers: ["Mod"], key: "\\" }],
     editorCallback: (editor: Editor) => {
       const hasSelection = !!editor.getSelection();
 
@@ -187,7 +187,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "switch-to-tldraw-edit",
     name: "Switch to discourse markdown edit",
     checkCallback: (checking: boolean) => {
-      const leaf = plugin.app.workspace.activeLeaf;
+      const leaf = plugin.app.workspace.getActiveViewOfType(TldrawView)?.leaf;
       if (!leaf) return false;
 
       if (!checking) {
@@ -204,7 +204,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "switch-to-tldraw-preview",
     name: "Switch to Discourse Graph canvas view",
     checkCallback: (checking: boolean) => {
-      const leaf = plugin.app.workspace.activeLeaf;
+      const leaf = plugin.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
       if (!leaf) return false;
 
       if (!checking) {
