@@ -92,6 +92,8 @@ export type AddRelationParams = {
   author?: string;
   importedFromRid?: string;
   publishedToGroupId?: string[];
+  /** On first import, set to false. For future approval UI. */
+  provisional?: boolean;
 };
 
 /**
@@ -115,6 +117,7 @@ export const addRelationNoCheck = async (
     author,
     importedFromRid: params.importedFromRid,
     publishedToGroupId: params.publishedToGroupId,
+    ...(params.provisional !== undefined && { provisional: params.provisional }),
   };
   const data = await loadRelations(plugin);
   data.relations[id] = instance;

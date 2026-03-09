@@ -367,6 +367,7 @@ export const importRelationsForImportedNodes = async ({
       source: sourceEndpointId,
       destination: destEndpointId,
       importedFromRid: relationImportedFromRid,
+      provisional: false,
     });
     imported++;
 
