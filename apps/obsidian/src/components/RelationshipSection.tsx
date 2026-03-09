@@ -425,7 +425,7 @@ const CurrentRelationships = ({
       const linkedFile = getFileForNodeInstanceId(plugin, otherId);
       if (linkedFile) {
         const already = group.linkedEntries.some(
-          (e) => e.file.path === linkedFile.path && e.relation.id === r.id,
+          (e) => e.relation.id === r.id,
         );
         if (!already) {
           group.linkedEntries.push({ file: linkedFile, relation: r });

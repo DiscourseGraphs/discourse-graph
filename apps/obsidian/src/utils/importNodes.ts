@@ -12,7 +12,10 @@ import { spaceUriAndLocalIdToRid } from "./rid";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Tables } from "@repo/database/dbTypes";
 import { getSpaceNameIdFromRid } from "./spaceFromRid";
-import { importRelationsForImportedNodes } from "./importRelations";
+import {
+  importRelationsForImportedNodes,
+  type RemoteRelationInstance,
+} from "./importRelations";
 
 export const getAvailableGroupIds = async (
   client: DGSupabaseClient,
@@ -1124,10 +1127,16 @@ export const importSelectedNodes = async ({
   plugin,
   selectedNodes,
   onProgress,
+  precomputedData,
 }: {
   plugin: DiscourseGraphPlugin;
   selectedNodes: ImportableNode[];
   onProgress?: (current: number, total: number) => void;
+  precomputedData?: {
+    nodeKeys: Set<string>;
+    keyToRid: Map<string, string>;
+    relationInstancesBySpace: Map<number, RemoteRelationInstance[]>;
+  };
 }): Promise<{ success: number; failed: number }> => {
   const client = await getLoggedInClient(plugin);
   if (!client) {
@@ -1325,11 +1334,15 @@ export const importSelectedNodes = async ({
 
     // Import relations where both nodes are in the import folder
     try {
-      const { nodeKeys, keyToRid } = await getImportedNodesInfo({
-        queryEngine,
-        plugin,
-        client,
-      });
+      const { nodeKeys, keyToRid } = precomputedData
+        ? { nodeKeys: precomputedData.nodeKeys, keyToRid: precomputedData.keyToRid }
+        : await getImportedNodesInfo({
+            queryEngine,
+            plugin,
+            client,
+          });
+      const precomputedRelationInstances =
+        precomputedData?.relationInstancesBySpace.get(spaceId);
       const { imported } = await importRelationsForImportedNodes({
         plugin,
         client,
@@ -1337,6 +1350,7 @@ export const importSelectedNodes = async ({
         spaceUri,
         nodeKeys,
         keyToRid,
+        precomputedRelationInstances,
       });
       if (imported > 0) {
         console.debug(`Imported ${imported} relation(s) for space ${spaceId}`);

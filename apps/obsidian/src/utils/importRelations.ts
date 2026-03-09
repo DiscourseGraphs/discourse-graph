@@ -18,7 +18,7 @@ type ConceptInRelation = {
   source_local_id: string;
 };
 
-type RemoteRelationInstance = {
+export type RemoteRelationInstance = {
   id: number;
   source_local_id: string | null;
   schema_id: number | null;
@@ -166,7 +166,7 @@ const findOrCreateTriple = async ({
  * Fetch relation instances from a remote space. Relation instances are concepts with
  * is_schema=false and schema_id pointing to a relation type (arity=2).
  */
-const fetchRelationInstancesFromSpace = async ({
+export const fetchRelationInstancesFromSpace = async ({
   client,
   spaceId,
 }: {
@@ -201,6 +201,7 @@ export const importRelationsForImportedNodes = async ({
   spaceUri,
   nodeKeys,
   keyToRid,
+  precomputedRelationInstances,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
@@ -208,13 +209,16 @@ export const importRelationsForImportedNodes = async ({
   spaceUri: string;
   nodeKeys: Set<string>;
   keyToRid: Map<string, string>;
+  precomputedRelationInstances?: RemoteRelationInstance[];
 }): Promise<{ imported: number }> => {
   if (nodeKeys.size === 0) return { imported: 0 };
 
-  const relationInstances = await fetchRelationInstancesFromSpace({
-    client,
-    spaceId,
-  });
+  const relationInstances =
+    precomputedRelationInstances ??
+    (await fetchRelationInstancesFromSpace({
+      client,
+      spaceId,
+    }));
 
   const relationsData = await loadRelations(plugin);
   let imported = 0;
