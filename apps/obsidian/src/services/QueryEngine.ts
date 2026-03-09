@@ -1,10 +1,8 @@
 import { TFile, App } from "obsidian";
-import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type DiscourseGraphPlugin from "~/index";
 import { BulkImportPattern, BulkImportCandidate, DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import { extractContentFromTitle } from "~/utils/extractContentFromTitle";
-import { getSpaceNameIdFromRid } from "~/utils/spaceFromRid";
 
 // This is a workaround to get the datacore API.
 // TODO: Remove once we can use datacore npm package
@@ -452,47 +450,32 @@ export class QueryEngine {
 }
 
 /**
- * Returns info about imported nodes (from import/ folder only).
- * Uses DataCore to query by path and metadata when available; otherwise iterates vault.
- * - nodeKeys: "spaceId:nodeInstanceId" for each imported node
- * - keyToRid: maps "spaceId:nodeInstanceId" -> importedFromRid
+ * Returns raw imported node entries from import/ folder (no DB).
+ * Uses DataCore when available; otherwise iterates vault. Only includes files
+ * that have both importedFromRid and nodeInstanceId in frontmatter.
  */
-export const getImportedNodesInfo = async ({
+export const getImportedNodesRaw = ({
   queryEngine,
   plugin,
-  client,
 }: {
   queryEngine?: QueryEngine;
   plugin: DiscourseGraphPlugin;
-  client: DGSupabaseClient;
-}): Promise<{
-  nodeKeys: Set<string>;
-  keyToRid: Map<string, string>;
-}> => {
-  const nodeKeys = new Set<string>();
-  const keyToRid = new Map<string, string>();
-
+}): { importedFromRid: string; nodeInstanceId: string }[] => {
   const files = queryEngine?.functional()
-    ? queryEngine?.getImportedNodePages()
+    ? queryEngine.getImportedNodePages()
     : plugin.app.vault
         .getMarkdownFiles()
         .filter((f) => f.path.startsWith("import/"));
 
+  const entries: { importedFromRid: string; nodeInstanceId: string }[] = [];
   for (const file of files) {
     const cache = plugin.app.metadataCache.getFileCache(file);
     const frontmatter = cache?.frontmatter;
     const importedFromRid = frontmatter?.importedFromRid as string | undefined;
     const nodeInstanceId = frontmatter?.nodeInstanceId as string | undefined;
-
-    if (!importedFromRid || !nodeInstanceId) continue;
-
-    const { spaceId } = await getSpaceNameIdFromRid(client, importedFromRid);
-    if (spaceId < 0) continue;
-
-    const key = `${spaceId}:${nodeInstanceId}`;
-    nodeKeys.add(key);
-    keyToRid.set(key, importedFromRid);
+    if (importedFromRid && nodeInstanceId) {
+      entries.push({ importedFromRid, nodeInstanceId });
+    }
   }
-
-  return { nodeKeys, keyToRid };
+  return entries;
 };

@@ -1,12 +1,15 @@
 import { normalizePath, TFile } from "obsidian";
 import { uuidv7 } from "uuidv7";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type DiscourseGraphPlugin from "~/index";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import { checkAndCreateFolder } from "~/utils/file";
 import { getVaultId } from "./supabaseContext";
 import type { RelationInstance } from "~/types";
-import { QueryEngine } from "~/services/QueryEngine";
+import { QueryEngine, getImportedNodesRaw } from "~/services/QueryEngine";
 import { publishNewRelation } from "./publishNode";
+import { ridToSpaceUriAndLocalId } from "./rid";
+import { getSpaceIdsBySpaceUris } from "./spaceFromRid";
 
 const RELATIONS_FILE_NAME = "relations.json";
 const RELATIONS_FILE_VERSION = 1;
@@ -329,6 +332,47 @@ export const getFileForNodeInstanceIds = (
     if (f) result[idOrRid] = f;
   }
   return result;
+};
+
+/**
+ * Resolves imported node entries to nodeKeys and keyToRid using a single batch DB lookup.
+ * Uses getImportedNodesRaw (pure QE) then fetches all space IDs by URL in one query.
+ */
+export const getImportedNodesInfo = async ({
+  queryEngine,
+  plugin,
+  client,
+}: {
+  queryEngine?: QueryEngine;
+  plugin: DiscourseGraphPlugin;
+  client: DGSupabaseClient;
+}): Promise<{
+  nodeKeys: Set<string>;
+  keyToRid: Map<string, string>;
+}> => {
+  const raw = getImportedNodesRaw({ queryEngine, plugin });
+  if (raw.length === 0) {
+    return { nodeKeys: new Set(), keyToRid: new Map() };
+  }
+
+  const spaceUris = [
+    ...new Set(
+      raw.map((e) => ridToSpaceUriAndLocalId(e.importedFromRid).spaceUri),
+    ),
+  ];
+  const spaceIdsByUri = await getSpaceIdsBySpaceUris(client, spaceUris);
+
+  const nodeKeys = new Set<string>();
+  const keyToRid = new Map<string, string>();
+  for (const { importedFromRid, nodeInstanceId } of raw) {
+    const spaceUri = ridToSpaceUriAndLocalId(importedFromRid).spaceUri;
+    const spaceId = spaceIdsByUri.get(spaceUri) ?? -1;
+    if (spaceId < 0) continue;
+    const key = `${spaceId}:${nodeInstanceId}`;
+    nodeKeys.add(key);
+    keyToRid.set(key, importedFromRid);
+  }
+  return { nodeKeys, keyToRid };
 };
 
 /**
