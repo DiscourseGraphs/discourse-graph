@@ -3,7 +3,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import updateBlock from "roamjs-components/writes/updateBlock";
 import createBlock from "roamjs-components/writes/createBlock";
 import { getFormattedConfigTree } from "./discourseConfigRef";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "./renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import refreshConfigTree from "./refreshConfigTree";
 
 const migrateSectionChildren = async (
@@ -51,12 +51,9 @@ export const migrateLeftSidebarSettings = async () => {
     await migrateSectionChildren(globalChildren);
   }
 
-
   const allPersonalSections = leftSidebarSettings.allPersonalSections;
 
-  for (const [_, userPersonalSection] of Object.entries(
-    allPersonalSections,
-  )) {
+  for (const [_, userPersonalSection] of Object.entries(allPersonalSections)) {
     for (const section of userPersonalSection.sections) {
       const children = section.children || [];
       if (children.length > 0) {

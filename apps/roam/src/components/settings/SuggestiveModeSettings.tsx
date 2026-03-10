@@ -5,7 +5,7 @@ import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import PageGroupsPanel from "./PageGroupPanel";
 import createBlock from "roamjs-components/writes/createBlock";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { GlobalFlagPanel } from "./components/BlockPropSettingPanels";

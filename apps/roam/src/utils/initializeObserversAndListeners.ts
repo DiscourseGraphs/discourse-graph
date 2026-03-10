@@ -8,18 +8,13 @@ import {
   renderCanvasReferences,
   renderDiscourseContext,
 } from "~/utils/renderLinkedReferenceAdditions";
-import { createConfigObserver } from "roamjs-components/components/ConfigPage";
 import {
   renderTldrawCanvas,
   renderTldrawCanvasInSidebar,
 } from "~/components/canvas/Tldraw";
 import { renderQueryPage, renderQueryBlock } from "~/components/QueryBuilder";
-import {
-  DISCOURSE_CONFIG_PAGE_TITLE,
-  renderNodeConfigPage,
-} from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import { isCurrentPageCanvas, isSidebarCanvas } from "~/utils/isCanvasPage";
-import { isDiscourseNodeConfigPage as isNodeConfigPage } from "~/utils/isDiscourseNodeConfigPage";
 import { isQueryPage } from "~/utils/isQueryPage";
 import {
   enablePageRefObserver,
@@ -39,7 +34,6 @@ import {
   render as renderDiscourseNodeMenu,
 } from "~/components/DiscourseNodeMenu";
 import { IKeyCombo } from "@blueprintjs/core";
-import { configPageTabs } from "~/utils/configPageTabs";
 import { renderDiscourseNodeSearchMenu } from "~/components/DiscourseNodeSearchMenu";
 import {
   renderTextSelectionPopup,
@@ -88,11 +82,11 @@ const getTitleAndUidFromHeader = (h1: HTMLHeadingElement) => {
   return { title, uid };
 };
 
-export const initObservers = async ({
+export const initObservers = ({
   onloadArgs,
 }: {
   onloadArgs: OnloadArgs;
-}): Promise<{
+}): {
   observers: MutationObserver[];
   listeners: {
     pageActionListener: EventListener;
@@ -101,7 +95,7 @@ export const initObservers = async ({
     discourseNodeSearchTriggerListener: EventListener;
     nodeCreationPopoverListener: EventListener;
   };
-}> => {
+} => {
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
@@ -127,8 +121,7 @@ export const initObservers = async ({
         }
       }
 
-      if (isNodeConfigPage(title)) renderNodeConfigPage(props);
-      else if (isQueryPage({ title })) renderQueryPage(props);
+      if (isQueryPage({ title })) renderQueryPage(props);
       else if (isCurrentPageCanvas(props)) renderTldrawCanvas(props);
       else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
     },
@@ -234,22 +227,14 @@ export const initObservers = async ({
   }
   if (getPageRefObserversSize()) enablePageRefObserver();
 
-  const { pageUid: configPageUid, observer: configPageObserver } =
-    await createConfigObserver({
-      title: DISCOURSE_CONFIG_PAGE_TITLE,
-      config: {
-        tabs: configPageTabs(onloadArgs),
-      },
-    });
-  // refresh config tree after config page is created
-  refreshConfigTree();
+  const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
 
   const hashChangeListener = (e: Event) => {
     const evt = e as HashChangeEvent;
     // Attempt to refresh config navigating away from config page
     // doesn't work if they update via sidebar
     if (
-      evt.oldURL.endsWith(configPageUid) ||
+      (configPageUid && evt.oldURL.endsWith(configPageUid)) ||
       getDiscourseNodes().some(({ type }) => evt.oldURL.endsWith(type))
     ) {
       refreshConfigTree();
@@ -417,7 +402,6 @@ export const initObservers = async ({
     observers: [
       pageTitleObserver,
       queryBlockObserver,
-      configPageObserver,
       graphOverviewExportObserver,
       nodeTagPopupButtonObserver,
       leftSidebarObserver,
