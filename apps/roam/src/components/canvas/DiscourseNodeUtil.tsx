@@ -520,11 +520,11 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
           this.updateProps(shape.id, shape.type, { h, w, imageUrl });
         };
 
-        // Capture lock state before unlocking
+        // Only unlock when creating — editing is already on the select tool
         const wasToolLocked = this.editor.getInstanceState().isToolLocked;
-
-        // Clear tool lock when opening the dialog so we don't end up with Select + locked
-        unlockTool(this.editor);
+        if (isCreating) {
+          unlockTool(this.editor);
+        }
 
         const restoreToolState = () => {
           if (wasToolLocked) {
