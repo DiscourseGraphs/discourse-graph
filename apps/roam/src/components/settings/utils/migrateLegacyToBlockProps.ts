@@ -48,26 +48,12 @@ const shouldWrite = (
     return true;
   }
 
-  // safeParse because some schemas (DiscourseNodeSchema) have required fields
-  // with no defaults, so parse({}) would throw.
-  const defaultsResult = schema.safeParse({});
-  if (!defaultsResult.success) {
-    // Can't determine schema defaults (e.g. DiscourseNodeSchema).
-    // Compare Zod-normalized parsed legacy against current props directly.
-    // Both sides are normalized so the comparison is apples-to-apples.
-    // Safe on retry: if prior run already wrote parsedLegacy, they'll match
-    // → skip. If user edited via settings UI, dual-write keeps both sides in
-    // sync → match → skip. The only write happens when legacy genuinely
-    // differs from current (first migration or tree-only edit).
-    return JSON.stringify(parsedLegacy) !== JSON.stringify(currentProps);
-  }
-
-  const defaults = defaultsResult.data as Record<string, unknown>;
-  const propsMatch = JSON.stringify(currentProps) === JSON.stringify(defaults);
-  const legacyDiffers =
-    JSON.stringify(parsedLegacy) !== JSON.stringify(defaults);
-
-  return propsMatch && legacyDiffers;
+  // Compare Zod-normalized parsed legacy against current props directly.
+  // Safe on retry: if prior run already wrote parsedLegacy, they'll match
+  // → skip. If user edited via settings UI, dual-write keeps both sides in
+  // sync → match → skip. The only write happens when legacy genuinely
+  // differs from current (first migration or tree-only edit).
+  return JSON.stringify(parsedLegacy) !== JSON.stringify(currentProps);
 };
 
 const migrateSection = ({
@@ -241,7 +227,12 @@ export const migratePersonalSettings = async (
 
   const personalKey = getPersonalSettingsKey();
   const personalUid = blockUids[personalKey];
-  if (!personalUid) return;
+  if (!personalUid) {
+    console.warn(
+      `${LOG_PREFIX} personal: block not found for key "${personalKey}", skipping`,
+    );
+    return;
+  }
 
   const legacyPersonal = readAllLegacyPersonalSettings();
   const ok = migrateSection({
