@@ -110,14 +110,14 @@ const migrateSection = ({
   return true;
 };
 
-const migrateDiscourseNodes = (): boolean => {
-  const nodePages = window.roamAlphaAPI.data.fast.q(`
+const migrateDiscourseNodes = async (): Promise<boolean> => {
+  const nodePages = (await window.roamAlphaAPI.data.backend.q(`
     [:find ?uid ?title
      :where
      [?page :node/title ?title]
      [?page :block/uid ?uid]
      [(clojure.string/starts-with? ?title "${DISCOURSE_NODE_PAGE_PREFIX}")]]
-  `) as [string, string][];
+  `)) as [string, string][];
 
   let allOk = true;
 
@@ -241,7 +241,7 @@ export const migrateGraphLevel = async (
     }
   }
 
-  if (!migrateDiscourseNodes()) {
+  if (!(await migrateDiscourseNodes())) {
     failures++;
   }
 
