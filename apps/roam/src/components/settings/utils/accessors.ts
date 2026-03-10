@@ -10,6 +10,7 @@ import { getSubTree } from "roamjs-components/util";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
+import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { roamNodeToCondition } from "~/utils/parseQuery";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
@@ -32,7 +33,7 @@ import {
   type DiscourseNodeSettings,
   type Condition as SchemaCondition,
 } from "./zodSchema";
-import { PERSONAL_KEYS, QUERY_KEYS } from "./settingKeys";
+import { PERSONAL_KEYS, QUERY_KEYS, GLOBAL_KEYS } from "./settingKeys";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -716,6 +717,44 @@ export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
 
 export const isNewSettingsStoreEnabled = (): boolean => {
   return getFeatureFlag("Use new settings store");
+};
+
+export const readAllLegacyFeatureFlags = (): Partial<FeatureFlags> => {
+  const flags: Partial<FeatureFlags> = {};
+  for (const [key, reader] of Object.entries(FEATURE_FLAG_LEGACY_MAP)) {
+    flags[key as keyof FeatureFlags] = reader();
+  }
+  flags["Reified relation triples"] = getSetting<boolean>(
+    USE_REIFIED_RELATIONS,
+    false,
+  );
+  flags["Use new settings store"] = false;
+  return flags;
+};
+
+export const readAllLegacyGlobalSettings = (): Record<string, unknown> => {
+  const result: Record<string, unknown> = {};
+  for (const key of Object.values(GLOBAL_KEYS)) {
+    result[key] = getLegacyGlobalSetting([key]);
+  }
+  return result;
+};
+
+export const readAllLegacyPersonalSettings = (): Record<string, unknown> => {
+  const result: Record<string, unknown> = {};
+  for (const key of Object.values(PERSONAL_KEYS)) {
+    result[key] = getLegacyPersonalSetting([key]);
+  }
+  return result;
+};
+
+export const readAllLegacyDiscourseNodeSettings = (
+  nodeType: string,
+  nodeTitle: string,
+): Record<string, unknown> | undefined => {
+  const raw = getLegacyDiscourseNodeSetting(nodeType, []);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  return { ...(raw as Record<string, unknown>), text: nodeTitle };
 };
 
 export const setFeatureFlag = (

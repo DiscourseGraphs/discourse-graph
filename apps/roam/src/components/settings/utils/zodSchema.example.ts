@@ -83,7 +83,6 @@ const discourseNodeSettings: DiscourseNodeSettings = {
     returnNode: "node",
   },
   suggestiveRules,
-  backedBy: "user",
 };
 
 const featureFlags: FeatureFlags = {
