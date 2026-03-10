@@ -11,6 +11,7 @@ import {
   formatImportSource,
   getAndFormatImportSource,
 } from "~/utils/typeUtils";
+import { FolderSuggestInput } from "./GeneralSettings";
 
 const generateTagPlaceholder = (format: string, nodeName?: string): string => {
   if (!format) return "Enter tag (e.g., clm-candidate)";
@@ -40,7 +41,7 @@ type BaseFieldConfig = {
   label: string;
   description: string;
   required?: boolean;
-  type: "text" | "select" | "color" | "boolean";
+  type: "text" | "select" | "color" | "boolean" | "folder";
   placeholder?: string;
   validate?: (
     value: string,
@@ -131,6 +132,15 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
       "When enabled, canvas nodes of this type will show the first image from the linked file",
     type: "boolean",
     required: false,
+  },
+  folderPath: {
+    key: "folderPath",
+    label: "Folder path",
+    description:
+      "Folder where new nodes of this type will be created. Leave empty to use the global discourse nodes folder path.",
+    type: "folder",
+    required: false,
+    placeholder: "Example: folder 1/folder",
   },
 };
 
@@ -242,6 +252,28 @@ const TemplateField = ({
       </option>
     ))}
   </select>
+);
+
+const FolderField = ({
+  value,
+  error,
+  onChange,
+  placeholder,
+  disabled,
+}: {
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}) => (
+  <div className={error ? "input-error" : ""}>
+    <FolderSuggestInput
+      value={value || ""}
+      onChange={onChange}
+      placeholder={placeholder}
+    />
+  </div>
 );
 
 const FieldWrapper = ({
@@ -508,6 +540,14 @@ const NodeTypeSettings = () => {
             onChange={handleChange}
             templateConfig={templateConfig}
             templateFiles={templateFiles}
+            disabled={isEditingImported}
+          />
+        ) : fieldConfig.type === "folder" ? (
+          <FolderField
+            value={value as string}
+            error={error}
+            onChange={handleChange}
+            placeholder={fieldConfig.placeholder}
             disabled={isEditingImported}
           />
         ) : fieldConfig.type === "color" ? (

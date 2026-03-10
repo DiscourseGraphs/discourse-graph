@@ -11,6 +11,7 @@ export type DiscourseNode = {
   color?: string;
   tag?: string;
   keyImage?: boolean;
+  folderPath?: string;
   created: number;
   modified: number;
   importedFromRid?: string;
