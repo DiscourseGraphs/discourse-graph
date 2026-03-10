@@ -41,7 +41,7 @@ type BaseFieldConfig = {
   label: string;
   description: string;
   required?: boolean;
-  type: "text" | "select" | "color" | "boolean" | "folder";
+  type: "text" | "select" | "color" | "boolean";
   placeholder?: string;
   validate?: (
     value: string,
@@ -50,7 +50,7 @@ type BaseFieldConfig = {
   ) => { isValid: boolean; error?: string };
 };
 
-const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
+const FIELD_CONFIGS: Partial<Record<EditableFieldKey, BaseFieldConfig>> = {
   name: {
     key: "name",
     label: "Name",
@@ -132,15 +132,6 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
       "When enabled, canvas nodes of this type will show the first image from the linked file",
     type: "boolean",
     required: false,
-  },
-  folderPath: {
-    key: "folderPath",
-    label: "Folder path",
-    description:
-      "Folder where new nodes of this type will be created. Leave empty to use the global discourse nodes folder path.",
-    type: "folder",
-    required: false,
-    placeholder: "Example: folder 1/folder",
   },
 };
 
@@ -254,27 +245,6 @@ const TemplateField = ({
   </select>
 );
 
-const FolderField = ({
-  value,
-  error,
-  onChange,
-  placeholder,
-  disabled,
-}: {
-  value: string;
-  error?: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  disabled?: boolean;
-}) => (
-  <div className={error ? "input-error" : ""}>
-    <FolderSuggestInput
-      value={value || ""}
-      onChange={onChange}
-      placeholder={placeholder}
-    />
-  </div>
-);
 
 const FieldWrapper = ({
   fieldConfig,
@@ -542,14 +512,6 @@ const NodeTypeSettings = () => {
             templateFiles={templateFiles}
             disabled={isEditingImported}
           />
-        ) : fieldConfig.type === "folder" ? (
-          <FolderField
-            value={value as string}
-            error={error}
-            onChange={handleChange}
-            placeholder={fieldConfig.placeholder}
-            disabled={isEditingImported}
-          />
         ) : fieldConfig.type === "color" ? (
           <ColorField
             value={value as string}
@@ -716,6 +678,23 @@ const NodeTypeSettings = () => {
           </h3>
         </div>
         {FIELD_CONFIG_ARRAY.map(renderField)}
+        <div className="setting-item">
+          <div className="setting-item-info">
+            <div className="setting-item-name">Folder path</div>
+            <div className="setting-item-description">
+              Folder where new nodes of this type will be created. Leave empty
+              to create nodes in the root folder.
+            </div>
+          </div>
+          <div className="setting-item-control">
+            <FolderSuggestInput
+              value={editingNodeType.folderPath || ""}
+              onChange={(value) => handleNodeTypeChange("folderPath", value)}
+              placeholder="Example: folder 1/folder"
+              disabled={isEditingImported}
+            />
+          </div>
+        </div>
         {hasUnsavedChanges && !isEditingImported && (
           <div className="mt-4 flex justify-end gap-2">
             <button onClick={handleCancel} className="mod-muted">

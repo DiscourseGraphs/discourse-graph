@@ -50,8 +50,7 @@ export const createDiscourseNodeFile = async ({
       return existingFile;
     }
 
-    const folderPath =
-      nodeType.folderPath?.trim() || settings.nodesFolderPath.trim();
+    const folderPath = nodeType.folderPath?.trim() || "";
     const fullPath = folderPath ? `${folderPath}/${fileName}` : fileName;
 
     if (folderPath) {
@@ -170,8 +169,7 @@ export const convertPageToDiscourseNode = async ({
     });
 
     let newPath = "";
-    const folderPath =
-      nodeType.folderPath?.trim() || plugin.settings.nodesFolderPath.trim();
+    const folderPath = nodeType.folderPath?.trim() || "";
     if (folderPath) {
       const folderExists = plugin.app.vault.getAbstractFileByPath(folderPath);
       if (!folderExists) {
