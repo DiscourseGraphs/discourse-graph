@@ -245,7 +245,6 @@ const TemplateField = ({
   </select>
 );
 
-
 const FieldWrapper = ({
   fieldConfig,
   children,
