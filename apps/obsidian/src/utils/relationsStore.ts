@@ -11,9 +11,12 @@ import { publishNewRelation } from "./publishNode";
 const RELATIONS_FILE_NAME = "relations.json";
 const RELATIONS_FILE_VERSION = 1;
 
-/** Vault-relative path for relations.json in the root folder. */
+/** Vault-relative path for relations.json, under the same folder as nodes (nodesFolderPath). */
 export const getRelationsFilePath = (plugin: DiscourseGraphPlugin): string => {
-  return normalizePath(RELATIONS_FILE_NAME);
+  const folderPath = plugin.settings.nodesFolderPath.trim();
+  return folderPath
+    ? normalizePath(`${folderPath}/${RELATIONS_FILE_NAME}`)
+    : normalizePath(RELATIONS_FILE_NAME);
 };
 
 export type RelationsFile = {
@@ -61,6 +64,10 @@ export const saveRelations = async (
   plugin: DiscourseGraphPlugin,
   data: RelationsFile,
 ): Promise<void> => {
+  const folderPath = plugin.settings.nodesFolderPath.trim();
+  if (folderPath) {
+    await checkAndCreateFolder(folderPath, plugin.app.vault);
+  }
   const path = getRelationsFilePath(plugin);
   const toWrite: RelationsFile = {
     ...data,
