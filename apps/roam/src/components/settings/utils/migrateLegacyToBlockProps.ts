@@ -5,6 +5,7 @@ import getBlockUidByTextOnPage from "roamjs-components/queries/getBlockUidByText
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { createBlock } from "roamjs-components/writes";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
+import internalError from "~/utils/internalError";
 import {
   readAllLegacyFeatureFlags,
   readAllLegacyGlobalSettings,
@@ -26,6 +27,7 @@ import type { z } from "zod";
 const LOG_PREFIX = "[DG BlockProps Migration]";
 const GRAPH_MIGRATION_MARKER = "Block props migrated";
 const PERSONAL_MIGRATION_MARKER = "dg-personal-settings-migrated";
+const MAX_ERROR_CONTEXT_LENGTH = 5000;
 
 const hasGraphMigrationMarker = (): boolean =>
   !!getBlockUidByTextOnPage({
@@ -39,6 +41,14 @@ const isPropsValid = (
 ): boolean =>
   !!props && Object.keys(props).length > 0 && schema.safeParse(props).success;
 
+const serializeErrorContext = (value: unknown): string => {
+  try {
+    return JSON.stringify(value).slice(0, MAX_ERROR_CONTEXT_LENGTH);
+  } catch {
+    return String(value);
+  }
+};
+
 const shouldWrite = (
   schema: z.ZodTypeAny,
   currentProps: Record<string, json> | null,
@@ -48,11 +58,6 @@ const shouldWrite = (
     return true;
   }
 
-  // Compare Zod-normalized parsed legacy against current props directly.
-  // Safe on retry: if prior run already wrote parsedLegacy, they'll match
-  // → skip. If user edited via settings UI, dual-write keeps both sides in
-  // sync → match → skip. The only write happens when legacy genuinely
-  // differs from current (first migration or tree-only edit).
   return JSON.stringify(parsedLegacy) !== JSON.stringify(currentProps);
 };
 
@@ -71,9 +76,6 @@ const migrateSection = ({
 
   const parseResult = schema.safeParse(legacyData);
   if (!parseResult.success) {
-    // Legacy malformed — succeed if current props are already valid.
-    // migrateGraphLevel runs before initDiscourseNodePages, so valid props
-    // at this point were written by a prior migration run, not init-seeded.
     if (isPropsValid(schema, currentProps)) {
       console.log(
         `${LOG_PREFIX} ${label}: legacy malformed but props already valid, skipping`,
@@ -82,6 +84,17 @@ const migrateSection = ({
     }
     console.warn(`${LOG_PREFIX} ${label}: Zod validation failed, skipping`, {
       error: parseResult.error.message,
+    });
+    internalError({
+      error: parseResult.error,
+      type: "DG Block Props Migration",
+      context: {
+        label,
+        blockUid,
+        legacyData: serializeErrorContext(legacyData),
+        currentProps: serializeErrorContext(currentProps),
+      },
+      sendEmail: false,
     });
     return false;
   }
@@ -117,8 +130,6 @@ const migrateDiscourseNodes = (): boolean => {
       nodeText,
     );
     if (!legacyData) {
-      // Legacy unreadable — if current props are already valid, treat as
-      // success so a missing/malformed legacy tree doesn't block the marker.
       if (isPropsValid(DiscourseNodeSchema, getBlockProps(nodePageUid))) {
         console.log(
           `${LOG_PREFIX} Discourse Node (${nodeText}): legacy unreadable but props already valid, skipping`,
@@ -128,6 +139,16 @@ const migrateDiscourseNodes = (): boolean => {
       console.warn(
         `${LOG_PREFIX} Discourse Node (${nodeText}): legacy data unreadable`,
       );
+      internalError({
+        error: `Legacy discourse node data unreadable: ${nodeText}`,
+        type: "DG Block Props Migration",
+        context: {
+          label: `Discourse Node (${nodeText})`,
+          blockUid: nodePageUid,
+          currentProps: serializeErrorContext(getBlockProps(nodePageUid)),
+        },
+        sendEmail: false,
+      });
       allOk = false;
       continue;
     }
@@ -151,7 +172,15 @@ export const migrateGraphLevel = async (
   blockUids: Record<string, string>,
 ): Promise<void> => {
   const pageUid = getPageUidByPageTitle(DG_BLOCK_PROP_SETTINGS_PAGE_TITLE);
-  if (!pageUid) return;
+  if (!pageUid) {
+    internalError({
+      error: `Settings page not found: ${DG_BLOCK_PROP_SETTINGS_PAGE_TITLE}`,
+      type: "DG Block Props Migration",
+      context: { scope: "graph" },
+      sendEmail: false,
+    });
+    return;
+  }
 
   if (hasGraphMigrationMarker()) {
     console.log(`${LOG_PREFIX} graph-level: skipped (already migrated)`);
@@ -160,9 +189,19 @@ export const migrateGraphLevel = async (
 
   let failures = 0;
 
-  // Feature flags
   const featureFlagUid = blockUids[TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags];
-  if (featureFlagUid) {
+  if (!featureFlagUid) {
+    internalError({
+      error: `Missing block uid for ${TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags}`,
+      type: "DG Block Props Migration",
+      context: {
+        scope: "graph",
+        blockUids: serializeErrorContext(blockUids),
+      },
+      sendEmail: false,
+    });
+    failures++;
+  } else {
     const legacyFlags = readAllLegacyFeatureFlags();
     if (
       !migrateSection({
@@ -176,9 +215,19 @@ export const migrateGraphLevel = async (
     }
   }
 
-  // Global settings
   const globalUid = blockUids[TOP_LEVEL_BLOCK_PROP_KEYS.global];
-  if (globalUid) {
+  if (!globalUid) {
+    internalError({
+      error: `Missing block uid for ${TOP_LEVEL_BLOCK_PROP_KEYS.global}`,
+      type: "DG Block Props Migration",
+      context: {
+        scope: "graph",
+        blockUids: serializeErrorContext(blockUids),
+      },
+      sendEmail: false,
+    });
+    failures++;
+  } else {
     const legacyGlobal = readAllLegacyGlobalSettings();
     if (
       !migrateSection({
@@ -192,7 +241,6 @@ export const migrateGraphLevel = async (
     }
   }
 
-  // Discourse nodes
   if (!migrateDiscourseNodes()) {
     failures++;
   }
@@ -231,6 +279,16 @@ export const migratePersonalSettings = async (
     console.warn(
       `${LOG_PREFIX} personal: block not found for key "${personalKey}", skipping`,
     );
+    internalError({
+      error: `Missing personal settings block for key "${personalKey}"`,
+      type: "DG Block Props Migration",
+      context: {
+        scope: "personal",
+        personalKey,
+        blockUids: serializeErrorContext(blockUids),
+      },
+      sendEmail: false,
+    });
     return;
   }
 
