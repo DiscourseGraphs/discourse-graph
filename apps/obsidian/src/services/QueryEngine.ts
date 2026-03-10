@@ -85,9 +85,6 @@ export class QueryEngine {
    */
   getDiscourseNodeById = (nodeInstanceId: string): TFile | null => {
     if (!this.dc) {
-      console.warn(
-        "Datacore API not available. Search functionality is not available.",
-      );
       return null;
     }
 
