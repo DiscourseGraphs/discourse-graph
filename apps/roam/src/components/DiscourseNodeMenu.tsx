@@ -31,6 +31,7 @@ import {
   getPersonalSetting,
   setPersonalSetting,
 } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 
 type Props = {
   textarea?: HTMLTextAreaElement;
@@ -426,7 +427,9 @@ export const NodeMenuTriggerComponent = ({
   const [isActive, setIsActive] = useState(false);
   const [comboKey, setComboKey] = useState<IKeyCombo>(
     () =>
-      getPersonalSetting<IKeyCombo>(["Personal node menu trigger"]) || {
+      getPersonalSetting<IKeyCombo>([
+        PERSONAL_KEYS.personalNodeMenuTrigger,
+      ]) || {
         modifiers: 0,
         key: "",
       },
@@ -442,7 +445,7 @@ export const NodeMenuTriggerComponent = ({
       const combo = { key: comboObj.key, modifiers: comboObj.modifiers };
       setComboKey(combo);
       void extensionAPI.settings.set("personal-node-menu-trigger", combo);
-      setPersonalSetting(["Personal node menu trigger"], combo);
+      setPersonalSetting([PERSONAL_KEYS.personalNodeMenuTrigger], combo);
     },
     [extensionAPI],
   );
@@ -464,7 +467,7 @@ export const NodeMenuTriggerComponent = ({
           onClick={() => {
             setComboKey({ modifiers: 0, key: "" });
             void extensionAPI.settings.set("personal-node-menu-trigger", "");
-            setPersonalSetting(["Personal node menu trigger"], "");
+            setPersonalSetting([PERSONAL_KEYS.personalNodeMenuTrigger], "");
           }}
           minimal
         />

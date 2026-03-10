@@ -1,5 +1,6 @@
 import getAttributeValueByBlockAndName from "roamjs-components/queries/getAttributeValueByBlockAndName";
 import { getDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import { DISCOURSE_NODE_KEYS } from "~/components/settings/utils/settingKeys";
 import getDiscourseContextResults from "./getDiscourseContextResults";
 import findDiscourseNode from "./findDiscourseNode";
 import getDiscourseNodes from "./getDiscourseNodes";
@@ -52,7 +53,7 @@ const deriveNodeAttribute = async ({
   const nodeType = discourseNode.type;
   const attributes =
     getDiscourseNodeSetting<Record<string, string>>(nodeType || "", [
-      "attributes",
+      DISCOURSE_NODE_KEYS.attributes,
     ]) ?? {};
   const match = Object.keys(attributes).find(
     (k) => k.toLowerCase() === attribute.toLowerCase(),

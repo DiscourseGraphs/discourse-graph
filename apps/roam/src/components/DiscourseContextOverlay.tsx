@@ -13,6 +13,7 @@ import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import deriveDiscourseNodeAttribute from "~/utils/deriveDiscourseNodeAttribute";
 import { getDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import { DISCOURSE_NODE_KEYS } from "~/components/settings/utils/settingKeys";
 import nanoid from "nanoid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
@@ -181,7 +182,7 @@ const useDiscourseContext = (uid: string, tag: string) => {
           if (discourseNode) {
             const attribute =
               getDiscourseNodeSetting<string>(discourseNode.type, [
-                "overlay",
+                DISCOURSE_NODE_KEYS.overlay,
               ]) || "Overlay";
             return deriveDiscourseNodeAttribute({
               uid: uid,

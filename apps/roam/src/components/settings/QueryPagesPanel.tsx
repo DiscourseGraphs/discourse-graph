@@ -6,13 +6,17 @@ import {
   getPersonalSetting,
   setPersonalSetting,
 } from "~/components/settings/utils/accessors";
+import {
+  PERSONAL_KEYS,
+  QUERY_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 // Legacy extensionAPI stored query-pages as string | string[] | Record<string, string>.
 // Coerce to string[] for backward compatibility with old stored formats.
 export const getQueryPages = (): string[] => {
   const value = getPersonalSetting<string[] | string | Record<string, string>>([
-    "Query",
-    "Query pages",
+    PERSONAL_KEYS.query,
+    QUERY_KEYS.queryPages,
   ]);
   return typeof value === "string"
     ? [value]
@@ -31,7 +35,7 @@ const QueryPagesPanel = ({
   const [texts, setTexts] = useState(() => getQueryPages());
   const [value, setValue] = useState("");
   const setQueryPages = (newTexts: string[]) => {
-    setPersonalSetting(["Query", "Query pages"], newTexts);
+    setPersonalSetting([PERSONAL_KEYS.query, QUERY_KEYS.queryPages], newTexts);
     void extensionAPI.settings.set("query-pages", newTexts);
   };
 

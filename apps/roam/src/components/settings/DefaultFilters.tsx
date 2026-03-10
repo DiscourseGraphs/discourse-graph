@@ -7,6 +7,10 @@ import {
   getPersonalSetting,
   setPersonalSetting,
 } from "~/components/settings/utils/accessors";
+import {
+  PERSONAL_KEYS,
+  QUERY_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 //
 // TODO - REWORK THIS COMPONENT
@@ -110,8 +114,8 @@ const DefaultFilters = ({
     Object.fromEntries(
       Object.entries(
         getPersonalSetting<Record<string, StoredFilters>>([
-          "Query",
-          "Default filters",
+          PERSONAL_KEYS.query,
+          QUERY_KEYS.defaultFilters,
         ]) ?? {},
       ).map(([k, v]) => [
         k,
@@ -148,7 +152,10 @@ const DefaultFilters = ({
       ]),
     );
     void extensionAPI.settings.set("default-filters", serialized);
-    setPersonalSetting(["Query", "Default filters"], serialized);
+    setPersonalSetting(
+      [PERSONAL_KEYS.query, QUERY_KEYS.defaultFilters],
+      serialized,
+    );
   }, [filters]);
   return (
     <div

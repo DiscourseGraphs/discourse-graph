@@ -3,6 +3,7 @@ import type { Properties } from "posthog-js";
 import renderToast from "roamjs-components/components/Toast";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 
 const NON_WORD = /\W+/g;
 
@@ -22,7 +23,7 @@ const internalError = ({
   forceSendInDev?: boolean;
 }): void => {
   if (
-    getPersonalSetting<boolean>(["Disable product diagnostics"]) ||
+    getPersonalSetting<boolean>([PERSONAL_KEYS.disableProductDiagnostics]) ||
     (process.env.NODE_ENV === "development" && forceSendInDev !== true)
   ) {
     console.error(error, context);
