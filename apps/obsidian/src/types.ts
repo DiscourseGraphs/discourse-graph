@@ -54,6 +54,7 @@ export type Settings = {
   discourseRelations: DiscourseRelation[];
   relationTypes: DiscourseRelationType[];
   showIdsInFrontmatter: boolean;
+  nodesFolderPath: string;
   canvasFolderPath: string;
   canvasAttachmentsFolderPath: string;
   nodeTagHotkey: string;

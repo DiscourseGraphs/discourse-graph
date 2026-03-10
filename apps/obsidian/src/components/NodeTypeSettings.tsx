@@ -683,7 +683,8 @@ const NodeTypeSettings = () => {
             <div className="setting-item-name">Folder path</div>
             <div className="setting-item-description">
               Folder where new nodes of this type will be created. Leave empty
-              to create nodes in the root folder.
+              to use the default discourse nodes folder path from general
+              settings.
             </div>
           </div>
           <div className="setting-item-control">

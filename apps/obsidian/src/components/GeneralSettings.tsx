@@ -146,6 +146,9 @@ const GeneralSettings = () => {
   const [showIdsInFrontmatter, setShowIdsInFrontmatter] = useState(
     plugin.settings.showIdsInFrontmatter,
   );
+  const [nodesFolderPath, setNodesFolderPath] = useState(
+    plugin.settings.nodesFolderPath,
+  );
   const [canvasFolderPath, setCanvasFolderPath] = useState<string>(
     plugin.settings.canvasFolderPath,
   );
@@ -160,6 +163,11 @@ const GeneralSettings = () => {
     setShowIdsInFrontmatter(newValue);
     setHasUnsavedChanges(true);
   };
+
+  const handleFolderPathChange = useCallback((newValue: string) => {
+    setNodesFolderPath(newValue);
+    setHasUnsavedChanges(true);
+  }, []);
 
   const handleCanvasFolderPathChange = useCallback((newValue: string) => {
     setCanvasFolderPath(newValue);
@@ -183,14 +191,17 @@ const GeneralSettings = () => {
   }, []);
 
   const handleSave = async () => {
+    const trimmedNodesFolderPath = nodesFolderPath.trim();
     const trimmedCanvasFolderPath = canvasFolderPath.trim();
     const trimmedCanvasAttachmentsFolderPath =
       canvasAttachmentsFolderPath.trim();
     plugin.settings.showIdsInFrontmatter = showIdsInFrontmatter;
+    plugin.settings.nodesFolderPath = trimmedNodesFolderPath;
     plugin.settings.canvasFolderPath = trimmedCanvasFolderPath;
     plugin.settings.canvasAttachmentsFolderPath =
       trimmedCanvasAttachmentsFolderPath;
     plugin.settings.nodeTagHotkey = nodeTagHotkey || "";
+    setNodesFolderPath(trimmedNodesFolderPath);
     setCanvasFolderPath(trimmedCanvasFolderPath);
     setCanvasAttachmentsFolderPath(trimmedCanvasAttachmentsFolderPath);
     await plugin.saveSettings();
@@ -215,6 +226,26 @@ const GeneralSettings = () => {
           >
             <input type="checkbox" checked={showIdsInFrontmatter} />
           </div>
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">
+            Default discourse nodes folder path
+          </div>
+          <div className="setting-item-description">
+            Default folder where new discourse nodes will be created. This is
+            used as a fallback when a node type does not have a specific folder
+            path set. Leave empty to create nodes in the root folder.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <FolderSuggestInput
+            value={nodesFolderPath}
+            onChange={handleFolderPathChange}
+            placeholder="Example: folder 1/folder"
+          />
         </div>
       </div>
 
