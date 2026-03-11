@@ -11,6 +11,7 @@ import {
   formatImportSource,
   getAndFormatImportSource,
 } from "~/utils/typeUtils";
+import { FolderSuggestInput } from "./GeneralSettings";
 
 const generateTagPlaceholder = (format: string, nodeName?: string): string => {
   if (!format) return "Enter tag (e.g., clm-candidate)";
@@ -49,7 +50,7 @@ type BaseFieldConfig = {
   ) => { isValid: boolean; error?: string };
 };
 
-const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
+const FIELD_CONFIGS: Partial<Record<EditableFieldKey, BaseFieldConfig>> = {
   name: {
     key: "name",
     label: "Name",
@@ -676,6 +677,24 @@ const NodeTypeSettings = () => {
           </h3>
         </div>
         {FIELD_CONFIG_ARRAY.map(renderField)}
+        <div className="setting-item">
+          <div className="setting-item-info">
+            <div className="setting-item-name">Folder path</div>
+            <div className="setting-item-description">
+              Folder where new nodes of this type will be created. Leave empty
+              to use the default discourse nodes folder path from general
+              settings.
+            </div>
+          </div>
+          <div className="setting-item-control">
+            <FolderSuggestInput
+              value={editingNodeType.folderPath || ""}
+              onChange={(value) => handleNodeTypeChange("folderPath", value)}
+              placeholder="Example: folder 1/folder"
+              disabled={isEditingImported}
+            />
+          </div>
+        </div>
         {hasUnsavedChanges && !isEditingImported && (
           <div className="mt-4 flex justify-end gap-2">
             <button onClick={handleCancel} className="mod-muted">

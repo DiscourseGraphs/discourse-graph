@@ -231,10 +231,13 @@ const GeneralSettings = () => {
 
       <div className="setting-item">
         <div className="setting-item-info">
-          <div className="setting-item-name">Discourse nodes folder path</div>
+          <div className="setting-item-name">
+            Default discourse nodes folder path
+          </div>
           <div className="setting-item-description">
-            Specify the folder where new discourse nodes should be created.
-            Leave empty to create nodes in the root folder.
+            Default folder where new discourse nodes will be created. This is
+            used as a fallback when a node type does not have a specific folder
+            path set. Leave empty to create nodes in the root folder.
           </div>
         </div>
         <div className="setting-item-control">
