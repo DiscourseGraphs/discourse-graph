@@ -2,7 +2,8 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import createBlock from "roamjs-components/writes/createBlock";
-import { getFormattedConfigTree } from "./discourseConfigRef";
+import discourseConfigRef from "./discourseConfigRef";
+import { getLeftSidebarSettings } from "./getLeftSidebarSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "./renderNodeConfigPage";
 import refreshConfigTree from "./refreshConfigTree";
 
@@ -37,7 +38,7 @@ const migrateSectionChildren = async (
 };
 
 export const migrateLeftSidebarSettings = async () => {
-  const leftSidebarSettings = getFormattedConfigTree().leftSidebar;
+  const leftSidebarSettings = getLeftSidebarSettings(discourseConfigRef.tree);
 
   if (!leftSidebarSettings.uid) return;
 
@@ -51,12 +52,10 @@ export const migrateLeftSidebarSettings = async () => {
     await migrateSectionChildren(globalChildren);
   }
 
-
   const allPersonalSections = leftSidebarSettings.allPersonalSections;
 
-  for (const [_, userPersonalSection] of Object.entries(
-    allPersonalSections,
-  )) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/naming-convention
+  for (const [_, userPersonalSection] of Object.entries(allPersonalSections)) {
     for (const section of userPersonalSection.sections) {
       const children = section.children || [];
       if (children.length > 0) {
