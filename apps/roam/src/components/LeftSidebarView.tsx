@@ -31,9 +31,7 @@ import {
   mergeGlobalSectionWithAccessor,
   mergePersonalSectionsWithAccessor,
 } from "~/utils/getLeftSidebarSettings";
-import discourseConfigRef, {
-  notify,
-} from "~/utils/discourseConfigRef";
+import discourseConfigRef, { notify } from "~/utils/discourseConfigRef";
 import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
 import {
   getGlobalSetting,
@@ -359,7 +357,6 @@ const buildConfig = (): LeftSidebarConfig => {
 };
 
 export const useConfig = () => {
-
   const [config, setConfig] = useState(() => buildConfig());
   useEffect(() => {
     const handleUpdate = () => {
