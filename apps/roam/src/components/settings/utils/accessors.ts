@@ -11,12 +11,19 @@ import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromT
 import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import discourseConfigRef from "~/utils/discourseConfigRef";
 import { roamNodeToCondition } from "~/utils/parseQuery";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { Condition } from "~/utils/types";
 import { z } from "zod";
+import {
+  getExportSettingsAndUids,
+  getUidAndBooleanSetting,
+  getUidAndStringSetting,
+} from "~/utils/getExportSettings";
+import { getSuggestiveModeConfigAndUids } from "~/utils/getSuggestiveModeConfigSettings";
+import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
 
 import {
   DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
@@ -215,10 +222,10 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
 ]);
 
 const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
-  const settings = getFormattedConfigTree();
+  const settings = getLeftSidebarSettings(discourseConfigRef.tree);
 
   /* eslint-disable @typescript-eslint/naming-convention */
-  return settings.leftSidebar.personal.sections.map((section) => ({
+  return settings.personal.sections.map((section) => ({
     name: section.text,
     Children: (section.children || []).map((child) => ({
       uid: child.text,
@@ -339,35 +346,39 @@ const getLegacyRelationsSetting = (): Record<string, unknown> => {
   );
 };
 
-// Reconstructs global settings from getFormattedConfigTree() shape to match block-props schema shape
+// Reconstructs global settings from legacy Roam tree to match block-props schema shape
 const getLegacyGlobalSetting = (keys: string[]): unknown => {
   if (keys.length === 0) return undefined;
 
-  const settings = getFormattedConfigTree();
+  const tree = discourseConfigRef.tree;
   const firstKey = keys[0];
 
   if (firstKey === "Trigger") {
-    return settings.trigger.value || DEFAULT_GLOBAL_SETTINGS.Trigger;
+    return (
+      getUidAndStringSetting({ tree, text: "trigger" }).value ||
+      DEFAULT_GLOBAL_SETTINGS.Trigger
+    );
   }
 
   if (firstKey === "Canvas page format") {
     return (
-      settings.canvasPageFormat.value ||
+      getUidAndStringSetting({ tree, text: "Canvas Page Format" }).value ||
       DEFAULT_GLOBAL_SETTINGS["Canvas page format"]
     );
   }
 
   if (firstKey === "Left sidebar") {
+    const sidebar = getLeftSidebarSettings(tree);
     const leftSidebarSettings: Record<string, unknown> = {};
-    leftSidebarSettings["Children"] = settings.leftSidebar.global.children.map(
+    leftSidebarSettings["Children"] = sidebar.global.children.map(
       (c) => c.text,
     );
     const sidebarSettingValues: Record<string, unknown> = {};
     sidebarSettingValues["Collapsable"] =
-      settings.leftSidebar.global.settings?.collapsable.value ??
+      sidebar.global.settings?.collapsable.value ??
       DEFAULT_GLOBAL_SETTINGS["Left sidebar"].Settings.Collapsable;
     sidebarSettingValues["Folded"] =
-      settings.leftSidebar.global.settings?.folded.value ??
+      sidebar.global.settings?.folded.value ??
       DEFAULT_GLOBAL_SETTINGS["Left sidebar"].Settings.Folded;
     leftSidebarSettings["Settings"] = sidebarSettingValues;
     if (keys.length === 1) return leftSidebarSettings;
@@ -375,49 +386,50 @@ const getLegacyGlobalSetting = (keys: string[]): unknown => {
   }
 
   if (firstKey === "Export") {
+    const exp = getExportSettingsAndUids();
     const exportSettings: Record<string, unknown> = {};
     exportSettings["Remove special characters"] =
-      settings.export.removeSpecialCharacters.value ??
+      exp.removeSpecialCharacters.value ??
       DEFAULT_GLOBAL_SETTINGS.Export["Remove special characters"];
     exportSettings["Resolve block references"] =
-      settings.export.optsRefs.value ??
+      exp.optsRefs.value ??
       DEFAULT_GLOBAL_SETTINGS.Export["Resolve block references"];
     exportSettings["Resolve block embeds"] =
-      settings.export.optsEmbeds.value ??
+      exp.optsEmbeds.value ??
       DEFAULT_GLOBAL_SETTINGS.Export["Resolve block embeds"];
     exportSettings["Append referenced node"] =
-      settings.export.appendRefNodeContext.value ??
+      exp.appendRefNodeContext.value ??
       DEFAULT_GLOBAL_SETTINGS.Export["Append referenced node"];
     exportSettings["Link type"] =
-      settings.export.linkType.value ||
-      DEFAULT_GLOBAL_SETTINGS.Export["Link type"];
+      exp.linkType.value || DEFAULT_GLOBAL_SETTINGS.Export["Link type"];
     exportSettings["Max filename length"] =
-      settings.export.maxFilenameLength.value ??
+      exp.maxFilenameLength.value ??
       DEFAULT_GLOBAL_SETTINGS.Export["Max filename length"];
     exportSettings["Frontmatter"] =
-      settings.export.frontmatter.values ??
-      DEFAULT_GLOBAL_SETTINGS.Export.Frontmatter;
+      exp.frontmatter.values ?? DEFAULT_GLOBAL_SETTINGS.Export.Frontmatter;
     if (keys.length === 1) return exportSettings;
     return readPathValue(exportSettings, keys.slice(1));
   }
 
   if (firstKey === "Suggestive mode") {
+    const sm = getSuggestiveModeConfigAndUids(tree);
     const suggestiveModeSettings: Record<string, unknown> = {};
     suggestiveModeSettings["Include current page relations"] =
-      settings.suggestiveMode.includePageRelations.value ??
+      sm.includePageRelations.value ??
       DEFAULT_GLOBAL_SETTINGS["Suggestive mode"][
         "Include current page relations"
       ];
     suggestiveModeSettings["Include parent and child blocks"] =
-      settings.suggestiveMode.includeParentAndChildren.value ??
+      sm.includeParentAndChildren.value ??
       DEFAULT_GLOBAL_SETTINGS["Suggestive mode"][
         "Include parent and child blocks"
       ];
-    suggestiveModeSettings["Page groups"] =
-      settings.suggestiveMode.pageGroups.groups.map((group) => ({
+    suggestiveModeSettings["Page groups"] = sm.pageGroups.groups.map(
+      (group) => ({
         name: group.name,
         pages: group.pages.map((page) => page.name),
-      }));
+      }),
+    );
     if (keys.length === 1) return suggestiveModeSettings;
     return readPathValue(suggestiveModeSettings, keys.slice(1));
   }
@@ -684,9 +696,15 @@ const FEATURE_FLAG_LEGACY_MAP: Partial<
   Record<keyof FeatureFlags, () => boolean>
 > = {
   "Suggestive mode enabled": () =>
-    getFormattedConfigTree().suggestiveModeEnabled.value,
+    getUidAndBooleanSetting({
+      tree: discourseConfigRef.tree,
+      text: "(BETA) Suggestive Mode Enabled",
+    }).value,
   "Enable left sidebar": () =>
-    getFormattedConfigTree().leftSidebarEnabled.value,
+    getUidAndBooleanSetting({
+      tree: discourseConfigRef.tree,
+      text: "(BETA) Left Sidebar",
+    }).value,
 };
 /* eslint-enable @typescript-eslint/naming-convention */
 
