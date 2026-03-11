@@ -4,7 +4,7 @@ import updateBlock from "roamjs-components/writes/updateBlock";
 import createBlock from "roamjs-components/writes/createBlock";
 import discourseConfigRef from "./discourseConfigRef";
 import { getLeftSidebarSettings } from "./getLeftSidebarSettings";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "./renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import refreshConfigTree from "./refreshConfigTree";
 
 const migrateSectionChildren = async (
