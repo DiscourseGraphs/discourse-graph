@@ -1069,20 +1069,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
     setGlobalSetting(["Relations"], remaining);
   };
   const handleDuplicate = (rel: Relation) => {
-    const baseText = rel.text
-      .split(" ")
-      .filter((s) => !/^\(\d+\)$/.test(s))
-      .join(" ");
-    const copy = relations.reduce((p, c) => {
-      if (c.text.startsWith(baseText)) {
-        const copyIndex = Number(/\((\d+)\)$/.exec(c.text)?.[1]);
-        if (copyIndex && copyIndex > p) {
-          return copyIndex;
-        }
-      }
-      return p;
-    }, 0);
-    const text = `${rel.text} (${copy + 1})`;
+    const text = rel.text;
     const copyTree = getBasicTreeByParentUid(rel.uid);
     const stripUid = (n: RoamBasicNode[]): InputTextNode[] =>
       n.map((c) => ({
