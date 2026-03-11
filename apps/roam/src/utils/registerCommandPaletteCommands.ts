@@ -12,6 +12,9 @@ import getDiscourseNodes from "./getDiscourseNodes";
 import fireQuery from "./fireQuery";
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";
+import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import getUids from "roamjs-components/dom/getUids";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
@@ -21,6 +24,49 @@ import posthog from "posthog-js";
 
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
+
+  const insertPageReferenceAtCursor = async ({
+    blockUid,
+    pageTitle,
+    selectionStart,
+    windowId,
+  }: {
+    blockUid: string;
+    pageTitle: string;
+    selectionStart: number;
+    windowId: string;
+  }): Promise<void> => {
+    const originalText = getTextByBlockUid(blockUid) || "";
+    const pageRef = `[[${pageTitle}]]`;
+    const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionStart)}`;
+    const newCursorPosition = selectionStart + pageRef.length;
+
+    await updateBlock({ uid: blockUid, text: newText });
+
+    if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
+      await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+        location: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "block-uid": blockUid,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "window-id": windowId,
+        },
+        selection: { start: newCursorPosition },
+      });
+      return;
+    }
+
+    setTimeout(() => {
+      const textareaElements = document.querySelectorAll("textarea");
+      for (const el of textareaElements) {
+        if (getUids(el).blockUid === blockUid) {
+          el.focus();
+          el.setSelectionRange(newCursorPosition, newCursorPosition);
+          break;
+        }
+      }
+    }, 50);
+  };
 
   const createQueryBlock = async () => {
     {
@@ -155,6 +201,53 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     renderSettings({ onloadArgs });
   };
 
+  const createDiscourseNodeFromCommand = () => {
+    const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
+    const blockUid = focusedBlock?.["block-uid"];
+    const windowId = focusedBlock?.["window-id"] || "main-window";
+    const activeElement = document.activeElement;
+    const isFocusedTextarea =
+      activeElement instanceof HTMLTextAreaElement &&
+      activeElement.classList.contains("rm-block-input");
+    const selectionStart = isFocusedTextarea
+      ? activeElement.selectionStart
+      : null;
+
+    if (!blockUid || selectionStart === null) {
+      renderToast({
+        id: "create-discourse-node-command-focus",
+        content: "Place your cursor in a block before running this command.",
+      });
+      return;
+    }
+
+    const defaultNodeType =
+      getDiscourseNodes().filter(excludeDefaultNodes)[0]?.type;
+    if (!defaultNodeType) {
+      renderToast({
+        id: "create-discourse-node-command-no-types",
+        content: "No discourse node types found in settings.",
+      });
+      return;
+    }
+
+    renderModifyNodeDialog({
+      mode: "create",
+      nodeType: defaultNodeType,
+      initialValue: { text: "", uid: "" },
+      extensionAPI,
+      onSuccess: async (result) => {
+        await insertPageReferenceAtCursor({
+          blockUid,
+          pageTitle: result.text,
+          selectionStart,
+          windowId,
+        });
+      },
+      onClose: () => {},
+    });
+  };
+
   const toggleDiscourseContextOverlay = async () => {
     const currentValue =
       (extensionAPI.settings.get("discourse-context-overlay") as boolean) ??
@@ -216,6 +309,10 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
   void addCommand("DG: Open - Query drawer", openQueryDrawerWithArgs);
+  void addCommand(
+    "DG: Create - Discourse node at cursor",
+    createDiscourseNodeFromCommand,
+  );
   void addCommand(
     "DG: Toggle - Discourse context overlay",
     toggleDiscourseContextOverlay,
