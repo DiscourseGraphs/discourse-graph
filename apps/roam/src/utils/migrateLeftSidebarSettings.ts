@@ -53,7 +53,7 @@ export const migrateLeftSidebarSettings = async () => {
 
   const allPersonalSections = leftSidebarSettings.allPersonalSections;
 
-  for (const [_, userPersonalSection] of Object.entries(allPersonalSections)) {
+  for (const userPersonalSection of Object.values(allPersonalSections)) {
     for (const section of userPersonalSection.sections) {
       const children = section.children || [];
       if (children.length > 0) {
