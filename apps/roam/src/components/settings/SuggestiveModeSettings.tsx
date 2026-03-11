@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import React, { useEffect, useState } from "react";
 import { Button, Intent, Tabs, Tab, TabId } from "@blueprintjs/core";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import discourseConfigRef from "~/utils/discourseConfigRef";
 import PageGroupsPanel from "./PageGroupPanel";
 import createBlock from "roamjs-components/writes/createBlock";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -15,14 +15,17 @@ import {
   SUGGESTIVE_MODE_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import posthog from "posthog-js";
+import { getSuggestiveModeConfigAndUids } from "~/utils/getSuggestiveModeConfigSettings";
 
 const SuggestiveModeSettings = () => {
-  const settings = getFormattedConfigTree();
+  const suggestiveMode = getSuggestiveModeConfigAndUids(
+    discourseConfigRef.tree,
+  );
 
   const [suggestiveModeUid, setSuggestiveModeUid] = useState(
-    settings.suggestiveMode.parentUid,
+    suggestiveMode.parentUid,
   );
-  const pageGroupsUid = settings.suggestiveMode.pageGroups.uid;
+  const pageGroupsUid = suggestiveMode.pageGroups.uid;
 
   const [includePageRelations, setIncludePageRelations] = useState(
     getGlobalSetting<boolean>([
@@ -43,7 +46,7 @@ const SuggestiveModeSettings = () => {
   }, [suggestiveModeUid]);
 
   const effectiveSuggestiveModeUid =
-    suggestiveModeUid || settings.suggestiveMode.parentUid;
+    suggestiveModeUid || suggestiveMode.parentUid;
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("page-groups");
 
@@ -67,7 +70,7 @@ const SuggestiveModeSettings = () => {
               <PageGroupsPanel
                 key={pageGroupsUid}
                 uid={pageGroupsUid}
-                initialGroups={settings.suggestiveMode.pageGroups.groups}
+                initialGroups={suggestiveMode.pageGroups.groups}
               />
             </div>
           }
@@ -89,7 +92,7 @@ const SuggestiveModeSettings = () => {
                     SUGGESTIVE_MODE_KEYS.includeCurrentPageRelations,
                   ]}
                   order={0}
-                  uid={settings.suggestiveMode.includePageRelations.uid}
+                  uid={suggestiveMode.includePageRelations.uid}
                   parentUid={effectiveSuggestiveModeUid}
                   onChange={setIncludePageRelations}
                 />
@@ -107,7 +110,7 @@ const SuggestiveModeSettings = () => {
                   ]}
                   value={includePageRelations ? true : undefined}
                   order={1}
-                  uid={settings.suggestiveMode.includeParentAndChildren.uid}
+                  uid={suggestiveMode.includeParentAndChildren.uid}
                   parentUid={effectiveSuggestiveModeUid}
                   disabled={includePageRelations}
                 />

@@ -2,8 +2,9 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import createBlock from "roamjs-components/writes/createBlock";
-import { getFormattedConfigTree } from "./discourseConfigRef";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
+import discourseConfigRef from "./discourseConfigRef";
+import { getLeftSidebarSettings } from "./getLeftSidebarSettings";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "./renderNodeConfigPage";
 import refreshConfigTree from "./refreshConfigTree";
 
 const migrateSectionChildren = async (
@@ -37,7 +38,7 @@ const migrateSectionChildren = async (
 };
 
 export const migrateLeftSidebarSettings = async () => {
-  const leftSidebarSettings = getFormattedConfigTree().leftSidebar;
+  const leftSidebarSettings = getLeftSidebarSettings(discourseConfigRef.tree);
 
   if (!leftSidebarSettings.uid) return;
 

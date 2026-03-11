@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import discourseConfigRef from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { Alert, Intent } from "@blueprintjs/core";
 import {
@@ -9,11 +9,29 @@ import {
 import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { isNewSettingsStoreEnabled } from "./utils/accessors";
 import posthog from "posthog-js";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import {
+  getUidAndBooleanSetting,
+  getUidAndStringSetting,
+} from "~/utils/getExportSettings";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 
 const DiscourseGraphHome = () => {
   const settings = useMemo(() => {
     refreshConfigTree();
-    return getFormattedConfigTree();
+    const tree = discourseConfigRef.tree;
+    return {
+      settingsUid: getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
+      triggerUid: getUidAndStringSetting({ tree, text: "trigger" }).uid,
+      canvasPageFormatUid: getUidAndStringSetting({
+        tree,
+        text: "Canvas Page Format",
+      }).uid,
+      leftSidebarEnabledUid: getUidAndBooleanSetting({
+        tree,
+        text: "(BETA) Left Sidebar",
+      }).uid,
+    };
   }, []);
 
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -26,7 +44,7 @@ const DiscourseGraphHome = () => {
         description="The trigger to create the node menu."
         settingKeys={[GLOBAL_KEYS.trigger]}
         order={0}
-        uid={settings.trigger.uid}
+        uid={settings.triggerUid}
         parentUid={settings.settingsUid}
       />
       <GlobalTextPanel
@@ -34,7 +52,7 @@ const DiscourseGraphHome = () => {
         description="The page format for canvas pages"
         settingKeys={[GLOBAL_KEYS.canvasPageFormat]}
         order={1}
-        uid={settings.canvasPageFormat.uid}
+        uid={settings.canvasPageFormatUid}
         parentUid={settings.settingsUid}
       />
       <FeatureFlagPanel
@@ -42,7 +60,7 @@ const DiscourseGraphHome = () => {
         description="Whether or not to enable the left sidebar."
         featureKey="Enable left sidebar"
         order={2}
-        uid={settings.leftSidebarEnabled.uid}
+        uid={settings.leftSidebarEnabledUid}
         parentUid={settings.settingsUid}
         onAfterChange={(checked: boolean) => {
           if (checked && !isNewSettingsStoreEnabled()) {

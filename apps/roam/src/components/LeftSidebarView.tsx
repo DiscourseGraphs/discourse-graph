@@ -21,7 +21,6 @@ import {
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import extractRef from "roamjs-components/util/extractRef";
-import { getFormattedConfigTree, notify } from "~/utils/discourseConfigRef";
 import {
   onSettingChange,
   settingKeys,
@@ -32,6 +31,8 @@ import {
   mergeGlobalSectionWithAccessor,
   mergePersonalSectionsWithAccessor,
 } from "~/utils/getLeftSidebarSettings";
+import discourseConfigRef, { notify } from "~/utils/discourseConfigRef";
+import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
 import {
   getGlobalSetting,
   getPersonalSetting,
@@ -61,6 +62,9 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
+
+const getCurrentLeftSidebarConfig = (): LeftSidebarConfig =>
+  getLeftSidebarSettings(discourseConfigRef.tree);
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -334,7 +338,7 @@ const buildConfig = (): LeftSidebarConfig => {
   ]);
 
   // Read UIDs from old system (needed for fold CRUD during dual-write)
-  const oldConfig = getFormattedConfigTree().leftSidebar;
+  const oldConfig = getCurrentLeftSidebarConfig();
 
   return {
     uid: oldConfig.uid,
@@ -356,7 +360,6 @@ export const useConfig = () => {
   const [config, setConfig] = useState(() => buildConfig());
   useEffect(() => {
     const handleUpdate = () => {
-      refreshConfigTree();
       setConfig(buildConfig());
     };
     const unsubGlobal = onSettingChange(
@@ -506,7 +509,7 @@ const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 };
 
 const migrateFavorites = async () => {
-  const config = getFormattedConfigTree().leftSidebar;
+  const config = getCurrentLeftSidebarConfig();
 
   if (config.favoritesMigrated.value) return;
 
