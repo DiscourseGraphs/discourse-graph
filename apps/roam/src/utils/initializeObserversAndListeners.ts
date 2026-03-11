@@ -278,7 +278,7 @@ export const initObservers = async ({
   const unsubGlobalTrigger = onSettingChange(
     settingKeys.globalTrigger,
     (newValue) => {
-      globalTrigger = ((newValue as string | undefined) ?? "\\").trim();
+      globalTrigger = (newValue as string).trim();
     },
   );
 
@@ -357,7 +357,7 @@ export const initObservers = async ({
   const unsubSearchTrigger = onSettingChange(
     settingKeys.nodeSearchMenuTrigger,
     (newValue) => {
-      customTrigger = (newValue as string | undefined) ?? "@";
+      customTrigger = newValue as string;
     },
   );
 
