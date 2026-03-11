@@ -22,7 +22,7 @@ const QBClauseDataSchema = z.object({
   not: z.boolean().optional(),
 });
 
-type Condition =
+export type Condition =
   | (z.infer<typeof QBClauseDataSchema> & { type: "clause" })
   | (z.infer<typeof QBClauseDataSchema> & { type: "not" })
   | { type: "or"; conditions: Condition[][] }

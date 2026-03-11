@@ -46,6 +46,10 @@ import { ALL_SELECTION_SUGGESTIONS } from "~/utils/predefinedSelections";
 import { getAlias } from "~/utils/parseResultSettings";
 import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 import { IndexSchema } from "~/components/settings/utils/zodSchema";
+import {
+  DISCOURSE_NODE_KEYS,
+  SPECIFICATION_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 const getSourceCandidates = (cs: Condition[]): string[] =>
   cs.flatMap((c) =>
@@ -513,7 +517,9 @@ const QueryEditor: QueryEditorComponent = ({
     }
 
     const path =
-      settingKey === "index" ? ["index"] : ["specification", "query"];
+      settingKey === "index"
+        ? [DISCOURSE_NODE_KEYS.index]
+        : [DISCOURSE_NODE_KEYS.specification, SPECIFICATION_KEYS.query];
 
     window.clearTimeout(blockPropSyncTimeoutRef.current);
     blockPropSyncTimeoutRef.current = window.setTimeout(() => {

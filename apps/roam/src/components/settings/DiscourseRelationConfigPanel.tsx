@@ -55,6 +55,7 @@ import {
   setGlobalSetting,
   getGlobalSettings,
 } from "~/components/settings/utils/accessors";
+import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",
@@ -140,7 +141,7 @@ export const RelationEditPanel = ({
   const initialSourceUid = useMemo(
     () =>
       getGlobalSetting<string>([
-        "Relations",
+        GLOBAL_KEYS.relations,
         editingRelationInfo.uid,
         "source",
       ]) ?? "",
@@ -154,7 +155,7 @@ export const RelationEditPanel = ({
   const initialDestinationUid = useMemo(
     () =>
       getGlobalSetting<string>([
-        "Relations",
+        GLOBAL_KEYS.relations,
         editingRelationInfo.uid,
         "destination",
       ]) ?? "",
@@ -168,7 +169,7 @@ export const RelationEditPanel = ({
   const [label, setLabel] = useState(editingRelationInfo.text);
   const [complement, setComplement] = useState(
     getGlobalSetting<string>([
-      "Relations",
+      GLOBAL_KEYS.relations,
       editingRelationInfo.uid,
       "complement",
     ]) ?? "",
@@ -704,7 +705,7 @@ export const RelationEditPanel = ({
                     );
                     return { triples, nodePositions };
                   });
-                  setGlobalSetting(["Relations", rootUid], {
+                  setGlobalSetting([GLOBAL_KEYS.relations, rootUid], {
                     label,
                     source,
                     destination,
@@ -1076,7 +1077,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/naming-convention
     const { [rel.uid]: _, ...remaining } = getGlobalSettings().Relations;
-    setGlobalSetting(["Relations"], remaining);
+    setGlobalSetting([GLOBAL_KEYS.relations], remaining);
   };
   const handleDuplicate = (rel: Relation) => {
     const baseText = rel.text
@@ -1109,7 +1110,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
     }).then((newUid) => {
       const originalRelation = getGlobalSettings().Relations[rel.uid];
       if (originalRelation) {
-        setGlobalSetting(["Relations", newUid], {
+        setGlobalSetting([GLOBAL_KEYS.relations, newUid], {
           ...originalRelation,
           label: text,
         });

@@ -6,6 +6,7 @@ import {
   GlobalTextPanel,
   FeatureFlagPanel,
 } from "./components/BlockPropSettingPanels";
+import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { isNewSettingsStoreEnabled } from "./utils/accessors";
 import posthog from "posthog-js";
 
@@ -23,7 +24,7 @@ const DiscourseGraphHome = () => {
       <GlobalTextPanel
         title="trigger"
         description="The trigger to create the node menu."
-        settingKeys={["Trigger"]}
+        settingKeys={[GLOBAL_KEYS.trigger]}
         order={0}
         uid={settings.trigger.uid}
         parentUid={settings.settingsUid}
@@ -31,7 +32,7 @@ const DiscourseGraphHome = () => {
       <GlobalTextPanel
         title="Canvas Page Format"
         description="The page format for canvas pages"
-        settingKeys={["Canvas page format"]}
+        settingKeys={[GLOBAL_KEYS.canvasPageFormat]}
         order={1}
         uid={settings.canvasPageFormat.uid}
         parentUid={settings.settingsUid}

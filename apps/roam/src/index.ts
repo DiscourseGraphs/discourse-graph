@@ -38,6 +38,7 @@ import {
   getFeatureFlag,
   getPersonalSetting,
 } from "./components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "./components/settings/utils/settingKeys";
 import { setupPullWatchOnSettingsPage } from "./components/settings/utils/pullWatchers";
 import {
   onSettingChange,
@@ -51,7 +52,7 @@ export default runExtension(async (onloadArgs) => {
   const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
   const isOffline = window.roamAlphaAPI.graph.type === "offline";
   const disallowDiagnostics = getPersonalSetting<boolean>([
-    "Disable product diagnostics",
+    PERSONAL_KEYS.disableProductDiagnostics,
   ]);
   if (!isEncrypted && !isOffline && !disallowDiagnostics) {
     initPostHog();
@@ -96,7 +97,7 @@ export default runExtension(async (onloadArgs) => {
 
   // Add streamline styling only if enabled
   const isStreamlineStylingEnabled = getPersonalSetting<boolean>([
-    "Streamline styling",
+    PERSONAL_KEYS.streamlineStyling,
   ]);
   let streamlineStyleElement: HTMLStyleElement | null = null;
   if (isStreamlineStylingEnabled) {

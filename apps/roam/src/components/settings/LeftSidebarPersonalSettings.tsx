@@ -23,6 +23,7 @@ import {
   setPersonalSetting,
   getPersonalSetting,
 } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import type { PersonalSection } from "~/components/settings/utils/zodSchema";
 import {
   PersonalNumberPanel,
@@ -63,7 +64,10 @@ const sectionsToBlockProps = (sections: LeftSidebarPersonalSectionConfig[]) =>
 const syncAllSectionsToBlockProps = (
   sections: LeftSidebarPersonalSectionConfig[],
 ) => {
-  setPersonalSetting(["Left sidebar"], sectionsToBlockProps(sections));
+  setPersonalSetting(
+    [PERSONAL_KEYS.leftSidebar],
+    sectionsToBlockProps(sections),
+  );
 };
 
 const SectionItem = memo(
@@ -606,7 +610,7 @@ const LeftSidebarPersonalSectionsContent = ({
         setPersonalSectionUid(personalSection.uid);
 
         const personalValues = getPersonalSetting<PersonalSection[]>([
-          "Left sidebar",
+          PERSONAL_KEYS.leftSidebar,
         ]);
         const loadedSections = getLeftSidebarPersonalSectionConfig(
           leftSidebar.children,

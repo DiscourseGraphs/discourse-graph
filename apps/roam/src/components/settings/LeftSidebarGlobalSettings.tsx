@@ -5,6 +5,11 @@ import {
   setGlobalSetting,
   getGlobalSetting,
 } from "~/components/settings/utils/accessors";
+import {
+  GLOBAL_KEYS,
+  LEFT_SIDEBAR_KEYS,
+  LEFT_SIDEBAR_SETTINGS_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import type { LeftSidebarGlobalSettings } from "~/components/settings/utils/zodSchema";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
@@ -106,7 +111,7 @@ const LeftSidebarGlobalSectionsContent = ({
       setIsInitializing(true);
       const globalSectionText = "Global-Section";
       const globalValues = getGlobalSetting<LeftSidebarGlobalSettings>([
-        "Left sidebar",
+        GLOBAL_KEYS.leftSidebar,
       ]);
       const config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
 
@@ -174,7 +179,10 @@ const LeftSidebarGlobalSectionsContent = ({
       newPages.splice(newIndex, 0, removed);
 
       setPages(newPages);
-      setGlobalSetting(["Left sidebar", "Children"], pagesToUids(newPages));
+      setGlobalSetting(
+        [GLOBAL_KEYS.leftSidebar, LEFT_SIDEBAR_KEYS.children],
+        pagesToUids(newPages),
+      );
 
       if (childrenUid) {
         const order = direction === "down" ? newIndex + 1 : newIndex;
@@ -219,7 +227,7 @@ const LeftSidebarGlobalSectionsContent = ({
         const updatedPages = [...pages, newPage];
         setPages(updatedPages);
         setGlobalSetting(
-          ["Left sidebar", "Children"],
+          [GLOBAL_KEYS.leftSidebar, LEFT_SIDEBAR_KEYS.children],
           pagesToUids(updatedPages),
         );
 
@@ -247,7 +255,7 @@ const LeftSidebarGlobalSectionsContent = ({
         const updatedPages = pages.filter((p) => p.uid !== page.uid);
         setPages(updatedPages);
         setGlobalSetting(
-          ["Left sidebar", "Children"],
+          [GLOBAL_KEYS.leftSidebar, LEFT_SIDEBAR_KEYS.children],
           pagesToUids(updatedPages),
         );
 
@@ -296,7 +304,11 @@ const LeftSidebarGlobalSectionsContent = ({
         <GlobalFlagPanel
           title="Folded"
           description="If children are present, start with global section collapsed in left sidebar"
-          settingKeys={["Left sidebar", "Settings", "Folded"]}
+          settingKeys={[
+            GLOBAL_KEYS.leftSidebar,
+            LEFT_SIDEBAR_KEYS.settings,
+            LEFT_SIDEBAR_SETTINGS_KEYS.folded,
+          ]}
           initialValue={globalSection.settings?.folded?.value || false}
           order={0}
           uid={globalSection.settings?.folded?.uid || ""}
@@ -306,7 +318,11 @@ const LeftSidebarGlobalSectionsContent = ({
         <GlobalFlagPanel
           title="Collapsable"
           description="Make global section collapsable"
-          settingKeys={["Left sidebar", "Settings", "Collapsable"]}
+          settingKeys={[
+            GLOBAL_KEYS.leftSidebar,
+            LEFT_SIDEBAR_KEYS.settings,
+            LEFT_SIDEBAR_SETTINGS_KEYS.collapsable,
+          ]}
           initialValue={globalSection.settings?.collapsable?.value || false}
           order={1}
           uid={globalSection.settings?.collapsable?.uid || ""}

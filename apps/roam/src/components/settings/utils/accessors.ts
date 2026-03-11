@@ -12,6 +12,9 @@ import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { roamNodeToCondition } from "~/utils/parseQuery";
+import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
+import type { DiscourseNode } from "~/utils/getDiscourseNodes";
+import type { Condition } from "~/utils/types";
 import { z } from "zod";
 
 import {
@@ -27,8 +30,9 @@ import {
   type GlobalSettings,
   type PersonalSettings,
   type DiscourseNodeSettings,
-  type DiscourseRelationSettings,
+  type Condition as SchemaCondition,
 } from "./zodSchema";
+import { PERSONAL_KEYS, QUERY_KEYS } from "./settingKeys";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -172,23 +176,41 @@ const DEFAULT_LEGACY_QUERY = {
 };
 
 const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
-  [pathKey(["Discourse context overlay"]), "discourse-context-overlay"],
-  [pathKey(["Suggestive mode overlay"]), "suggestive-mode-overlay"],
-  [pathKey(["Text selection popup"]), "text-selection-popup"],
-  [pathKey(["Disable sidebar open"]), "disable-sidebar-open"],
-  [pathKey(["Page preview"]), "page-preview"],
-  [pathKey(["Hide feedback button"]), "hide-feedback-button"],
-  [pathKey(["Auto canvas relations"]), "auto-canvas-relations"],
-  [pathKey(["Overlay in canvas"]), "discourse-context-overlay-in-canvas"],
-  [pathKey(["Streamline styling"]), "streamline-styling"],
-  [pathKey(["Disable product diagnostics"]), "disallow-diagnostics"],
-  [pathKey(["Discourse tool shortcut"]), "discourse-tool-shortcut"],
-  [pathKey(["Personal node menu trigger"]), "personal-node-menu-trigger"],
-  [pathKey(["Node search menu trigger"]), "node-search-trigger"],
-  [pathKey(["Query", "Hide query metadata"]), "hide-metadata"],
-  [pathKey(["Query", "Default page size"]), "default-page-size"],
-  [pathKey(["Query", "Query pages"]), "query-pages"],
-  [pathKey(["Query", "Default filters"]), "default-filters"],
+  [
+    pathKey([PERSONAL_KEYS.discourseContextOverlay]),
+    "discourse-context-overlay",
+  ],
+  [pathKey([PERSONAL_KEYS.suggestiveModeOverlay]), "suggestive-mode-overlay"],
+  [pathKey([PERSONAL_KEYS.textSelectionPopup]), "text-selection-popup"],
+  [pathKey([PERSONAL_KEYS.disableSidebarOpen]), "disable-sidebar-open"],
+  [pathKey([PERSONAL_KEYS.pagePreview]), "page-preview"],
+  [pathKey([PERSONAL_KEYS.hideFeedbackButton]), "hide-feedback-button"],
+  [pathKey([PERSONAL_KEYS.autoCanvasRelations]), "auto-canvas-relations"],
+  [
+    pathKey([PERSONAL_KEYS.overlayInCanvas]),
+    "discourse-context-overlay-in-canvas",
+  ],
+  [pathKey([PERSONAL_KEYS.streamlineStyling]), "streamline-styling"],
+  [pathKey([PERSONAL_KEYS.disableProductDiagnostics]), "disallow-diagnostics"],
+  [pathKey([PERSONAL_KEYS.discourseToolShortcut]), "discourse-tool-shortcut"],
+  [
+    pathKey([PERSONAL_KEYS.personalNodeMenuTrigger]),
+    "personal-node-menu-trigger",
+  ],
+  [pathKey([PERSONAL_KEYS.nodeSearchMenuTrigger]), "node-search-trigger"],
+  [
+    pathKey([PERSONAL_KEYS.query, QUERY_KEYS.hideQueryMetadata]),
+    "hide-metadata",
+  ],
+  [
+    pathKey([PERSONAL_KEYS.query, QUERY_KEYS.defaultPageSize]),
+    "default-page-size",
+  ],
+  [pathKey([PERSONAL_KEYS.query, QUERY_KEYS.queryPages]), "query-pages"],
+  [
+    pathKey([PERSONAL_KEYS.query, QUERY_KEYS.defaultFilters]),
+    "default-filters",
+  ],
 ]);
 
 const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
@@ -250,11 +272,6 @@ const getLegacyPersonalSetting = (keys: string[]): unknown => {
   return undefined;
 };
 
-// NOTE(ENG-1469): This returns the block props schema shape (Record<uid, {label, source,
-// destination, complement, ifConditions}>). Runtime consumers use getDiscourseRelations()
-// which returns a flat DiscourseRelation[] with a different structure (one entry per
-// if-block, triples at top level, no nodePositions). When migrating getDiscourseRelations()
-// to read from block props, it will need a conversion from this shape to the flat array.
 const getLegacyRelationsSetting = (): Record<string, unknown> => {
   const settingsUid = getPageUidByPageTitle(DG_BLOCK_PROP_SETTINGS_PAGE_TITLE);
   if (!settingsUid) return DEFAULT_GLOBAL_SETTINGS.Relations;
@@ -768,13 +785,19 @@ export const setGlobalSetting = (keys: string[], value: json): void => {
   });
 };
 
-export const getAllRelations = (): DiscourseRelationSettings[] => {
+export const getAllRelations = (): DiscourseRelation[] => {
   const settings = getGlobalSettings();
 
-  return Object.entries(settings.Relations).map(([id, relation]) => ({
-    ...relation,
-    id,
-  }));
+  return Object.entries(settings.Relations).flatMap(([id, relation]) =>
+    relation.ifConditions.map((ifCondition) => ({
+      id,
+      label: relation.label,
+      source: relation.source,
+      destination: relation.destination,
+      complement: relation.complement,
+      triples: ifCondition.triples,
+    })),
+  );
 };
 
 export const getPersonalSettings = (): PersonalSettings => {
@@ -940,7 +963,52 @@ export const setDiscourseNodeSetting = (
   setBlockPropAtPath(pageUid, keys, value);
 };
 
-export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
+const addConditionUids = (conditions: SchemaCondition[]): Condition[] =>
+  conditions.map((c) => {
+    const uid = window.roamAlphaAPI.util.generateUID();
+    if (c.type === "or" || c.type === "not or") {
+      return {
+        uid,
+        type: c.type,
+        conditions: c.conditions.map(addConditionUids),
+      };
+    }
+    return {
+      uid,
+      type: c.type,
+      source: c.source,
+      relation: c.relation,
+      target: c.target,
+      not: c.not,
+    };
+  }) as Condition[];
+
+const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
+  text: settings.text,
+  type: settings.type,
+  shortcut: settings.shortcut,
+  tag: settings.tag || undefined,
+  format: settings.format,
+  description: settings.description || undefined,
+  graphOverview: settings.graphOverview || undefined,
+  backedBy: "user",
+  specification: addConditionUids(
+    settings.specification.query.conditions as SchemaCondition[],
+  ),
+  canvasSettings: Object.fromEntries(
+    Object.entries(settings.canvasSettings).map(([k, v]) => [
+      k,
+      typeof v === "boolean" ? (v ? "true" : "") : String(v),
+    ]),
+  ),
+  template: settings.template.length > 0 ? settings.template : undefined,
+  embeddingRef: settings.suggestiveRules.embeddingRef || undefined,
+  isFirstChild: settings.suggestiveRules.isFirstChild
+    ? { uid: "", value: true }
+    : undefined,
+});
+
+export const getAllDiscourseNodes = (): DiscourseNode[] => {
   const results = window.roamAlphaAPI.data.fast.q(`
     [:find ?uid ?title (pull ?page [:block/props])
      :where
@@ -949,7 +1017,7 @@ export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
      [(clojure.string/starts-with? ?title "${DISCOURSE_NODE_PAGE_PREFIX}")]]
   `) as [string, string, Record<string, json> | null][];
 
-  const nodes: DiscourseNodeSettings[] = [];
+  const nodes: DiscourseNode[] = [];
 
   for (const [pageUid, title, rawProps] of results) {
     if (typeof pageUid !== "string" || typeof title !== "string") continue;
@@ -966,11 +1034,13 @@ export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
 
     const result = DiscourseNodeSchema.safeParse(blockProps);
     if (result.success) {
-      nodes.push({
-        ...result.data,
-        type: pageUid,
-        text: title.replace(DISCOURSE_NODE_PAGE_PREFIX, ""),
-      });
+      nodes.push(
+        toDiscourseNode({
+          ...result.data,
+          type: pageUid,
+          text: title.replace(DISCOURSE_NODE_PAGE_PREFIX, ""),
+        }),
+      );
     } else {
       internalError({
         error: result.error,

@@ -1,9 +1,10 @@
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "..";
 import { getGlobalSetting } from "~/components/settings/utils/accessors";
+import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
 
 export const isCanvasPage = ({ title }: { title: string }) => {
   const format =
-    getGlobalSetting<string>(["Canvas page format"]) ||
+    getGlobalSetting<string>([GLOBAL_KEYS.canvasPageFormat]) ||
     DEFAULT_CANVAS_PAGE_FORMAT;
   const canvasRegex = new RegExp(`^${format}$`.replace(/\*/g, ".+"));
   return canvasRegex.test(title);

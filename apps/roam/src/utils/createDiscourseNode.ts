@@ -13,6 +13,7 @@ import runQuery from "./runQuery";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import posthog from "posthog-js";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 
 type Props = {
   text: string;
@@ -33,7 +34,7 @@ const createDiscourseNode = async ({
     text: text,
   });
   const handleOpenInSidebar = (uid: string) => {
-    if (getPersonalSetting<boolean>(["Disable sidebar open"])) return;
+    if (getPersonalSetting<boolean>([PERSONAL_KEYS.disableSidebarOpen])) return;
     void openBlockInSidebar(uid);
     setTimeout(() => {
       const sidebarTitle = document.querySelector(

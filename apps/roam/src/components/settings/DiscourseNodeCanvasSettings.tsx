@@ -17,6 +17,10 @@ import {
   getDiscourseNodeSetting,
   setDiscourseNodeSetting,
 } from "~/components/settings/utils/accessors";
+import {
+  DISCOURSE_NODE_KEYS,
+  CANVAS_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 export const formatHexColor = (color: string) => {
   if (!color) return "";
@@ -39,32 +43,36 @@ const DiscourseNodeCanvasSettings = ({
 }) => {
   const [color, setColor] = useState<string>(() => {
     const color =
-      getDiscourseNodeSetting<string>(nodeType, ["canvasSettings", "color"]) ??
-      "";
+      getDiscourseNodeSetting<string>(nodeType, [
+        DISCOURSE_NODE_KEYS.canvasSettings,
+        CANVAS_KEYS.color,
+      ]) ?? "";
     return formatHexColor(color);
   });
   const alias =
-    getDiscourseNodeSetting<string>(nodeType, ["canvasSettings", "alias"]) ??
-    "";
+    getDiscourseNodeSetting<string>(nodeType, [
+      DISCOURSE_NODE_KEYS.canvasSettings,
+      CANVAS_KEYS.alias,
+    ]) ?? "";
   const [queryBuilderAlias, setQueryBuilderAlias] = useState<string>(
     () =>
       getDiscourseNodeSetting<string>(nodeType, [
-        "canvasSettings",
-        "query-builder-alias",
+        DISCOURSE_NODE_KEYS.canvasSettings,
+        CANVAS_KEYS.queryBuilderAlias,
       ]) ?? "",
   );
   const [isKeyImage, setIsKeyImage] = useState(
     () =>
       getDiscourseNodeSetting<boolean>(nodeType, [
-        "canvasSettings",
-        "key-image",
+        DISCOURSE_NODE_KEYS.canvasSettings,
+        CANVAS_KEYS.keyImage,
       ]) ?? false,
   );
   const [keyImageOption, setKeyImageOption] = useState(
     () =>
       getDiscourseNodeSetting<string>(nodeType, [
-        "canvasSettings",
-        "key-image-option",
+        DISCOURSE_NODE_KEYS.canvasSettings,
+        CANVAS_KEYS.keyImageOption,
       ]) ?? "",
   );
 
@@ -87,7 +95,7 @@ const DiscourseNodeCanvasSettings = ({
               });
               setDiscourseNodeSetting(
                 nodeType,
-                ["canvasSettings", "color"],
+                [DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.color],
                 colorValue,
               );
             }}
@@ -105,7 +113,7 @@ const DiscourseNodeCanvasSettings = ({
                 });
                 setDiscourseNodeSetting(
                   nodeType,
-                  ["canvasSettings", "color"],
+                  [DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.color],
                   "",
                 );
               }}
@@ -117,7 +125,7 @@ const DiscourseNodeCanvasSettings = ({
         nodeType={nodeType}
         title="Display alias"
         description=""
-        settingKeys={["canvasSettings", "alias"]}
+        settingKeys={[DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.alias]}
         initialValue={alias}
         onChange={(val) => {
           void setInputSetting({
@@ -131,7 +139,7 @@ const DiscourseNodeCanvasSettings = ({
         nodeType={nodeType}
         title="Key image"
         description="Add an image to the discourse node"
-        settingKeys={["canvasSettings", "key-image"]}
+        settingKeys={[DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.keyImage]}
         initialValue={isKeyImage}
         onChange={(checked) => {
           setIsKeyImage(checked);
@@ -157,7 +165,7 @@ const DiscourseNodeCanvasSettings = ({
           });
           setDiscourseNodeSetting(
             nodeType,
-            ["canvasSettings", "key-image-option"],
+            [DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.keyImageOption],
             value,
           );
         }}
@@ -188,7 +196,7 @@ const DiscourseNodeCanvasSettings = ({
           });
           setDiscourseNodeSetting(
             nodeType,
-            ["canvasSettings", "query-builder-alias"],
+            [DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.queryBuilderAlias],
             val,
           );
         }}

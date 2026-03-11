@@ -6,6 +6,7 @@ import getFirstChildUidByBlockUid from "roamjs-components/queries/getFirstChildU
 import updateBlock from "roamjs-components/writes/updateBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import { DISCOURSE_NODE_KEYS } from "~/components/settings/utils/settingKeys";
 
 type Attribute = {
   uid: string;
@@ -82,7 +83,7 @@ const NodeAttributes = ({
   const syncToBlockProps = () => {
     setDiscourseNodeSetting(
       nodeType,
-      ["attributes"],
+      [DISCOURSE_NODE_KEYS.attributes],
       toRecord(attributesRef.current),
     );
   };
@@ -107,7 +108,7 @@ const NodeAttributes = ({
                 setAttributes(updated);
                 setDiscourseNodeSetting(
                   nodeType,
-                  ["attributes"],
+                  [DISCOURSE_NODE_KEYS.attributes],
                   toRecord(updated),
                 );
               })
@@ -145,7 +146,7 @@ const NodeAttributes = ({
                 setNewAttribute("");
                 setDiscourseNodeSetting(
                   nodeType,
-                  ["attributes"],
+                  [DISCOURSE_NODE_KEYS.attributes],
                   toRecord(updated),
                 );
               });
