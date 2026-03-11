@@ -360,10 +360,10 @@ const buildConfig = (): LeftSidebarConfig => {
 
 export const useConfig = () => {
 
-  const [config, setConfig] = useState(() => getCurrentLeftSidebarConfig());
+  const [config, setConfig] = useState(() => buildConfig());
   useEffect(() => {
     const handleUpdate = () => {
-      setConfig(getCurrentLeftSidebarConfig());
+      setConfig(buildConfig());
     };
     const unsubGlobal = onSettingChange(
       settingKeys.globalLeftSidebar,
