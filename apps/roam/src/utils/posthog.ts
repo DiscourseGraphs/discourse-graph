@@ -18,11 +18,8 @@ const doInitPostHog = (): void => {
     "$geoip_postal_code",
     "$geoip_subdivision_1_name",
     "$raw_user_agent",
-    "$current_url",
     "$referrer",
     "$referring_domain",
-    "$initial_current_url",
-    "$pathname",
   ]);
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
     /* eslint-disable @typescript-eslint/naming-convention  */
