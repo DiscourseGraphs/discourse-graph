@@ -11,6 +11,7 @@ import {
 } from "./DiscourseRelationUtil";
 import { discourseContext } from "~/components/canvas/Tldraw";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
+import { setCurrentToolToSelectIfUnlocked } from "~/components/canvas/toolLock";
 
 export type AddReferencedNodeType = Record<string, ReferenceFormatType[]>;
 type ReferenceFormatType = {
@@ -28,6 +29,7 @@ export const createAllReferencedNodeTools = (
     class ReferencedNodeTool extends StateNode {
       static override initial = "idle";
       static override id = action;
+      static override isLockable = true;
       static override children = (): TLStateNodeConstructor[] => [
         this.Idle,
         this.Pointing,
@@ -278,7 +280,7 @@ export const createAllReferencedNodeTools = (
         };
 
         override onCancel = () => {
-          this.editor.setCurrentTool("select");
+          setCurrentToolToSelectIfUnlocked(this.editor);
         };
 
         override onKeyUp: TLEventHandlers["onKeyUp"] = (info) => {
@@ -315,6 +317,7 @@ export const createAllRelationShapeTools = (
     class RelationShapeTool extends StateNode {
       static override initial = "idle";
       static override id = name;
+      static override isLockable = true;
       static override children = (): TLStateNodeConstructor[] => [
         this.Idle,
         this.Pointing,
@@ -574,7 +577,7 @@ export const createAllRelationShapeTools = (
         };
 
         override onCancel = () => {
-          this.editor.setCurrentTool("select");
+          setCurrentToolToSelectIfUnlocked(this.editor);
         };
 
         override onKeyUp: TLEventHandlers["onKeyUp"] = (info) => {

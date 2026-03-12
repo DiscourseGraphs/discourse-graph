@@ -86,7 +86,10 @@ const getCanvasPageUidFromDOM = (): string | null => {
   // With multiple canvases, find the one that contains the currently focused element
   // or has been recently interacted with (has :focus-within)
   for (const container of containers) {
-    if (container.matches(":focus-within") || container.contains(document.activeElement)) {
+    if (
+      container.matches(":focus-within") ||
+      container.contains(document.activeElement)
+    ) {
       return container.getAttribute("data-page-uid");
     }
   }
@@ -108,6 +111,7 @@ import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import internalError from "~/utils/internalError";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import { setCurrentToolToSelectIfUnlocked } from "~/components/canvas/toolLock";
 
 const COLOR_ARRAY = Array.from(DefaultColorStyle.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
@@ -1084,7 +1088,7 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
   static override props = arrowShapeProps;
 
   cancelAndWarn = (title: string) => {
-    this.editor.setCurrentTool("select");
+    setCurrentToolToSelectIfUnlocked(this.editor);
     dispatchToastEvent({
       id: `tldraw-cancel-and-warn-${title}`,
       title,
