@@ -11,6 +11,8 @@ import ReactDOM from "react-dom";
 import { ContextContent } from "./DiscourseContext";
 import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
+import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import { getSetting } from "~/utils/extensionSettings";
 import deriveDiscourseNodeAttribute from "~/utils/deriveDiscourseNodeAttribute";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
@@ -31,18 +33,11 @@ type DiscourseData = {
   refs: number;
 };
 
-const cache: {
-  [tag: string]: DiscourseData;
-} = {};
-
 const getOverlayInfo = async (
   tag: string,
   ignoreCache?: boolean,
 ): Promise<DiscourseData> => {
   try {
-    if (ignoreCache) delete cache[tag];
-    if (cache[tag]) return cache[tag];
-
     const relations = getDiscourseRelations();
     const nodes = getDiscourseNodes(relations);
 
@@ -58,10 +53,10 @@ const getOverlayInfo = async (
       ),
     ]);
 
-    return (cache[tag] = {
+    return {
       results,
       refs: refs.length,
-    });
+    };
   } catch (error) {
     console.error(`Error getting overlay info for ${tag}:`, error);
     return {
@@ -226,6 +221,8 @@ const useDiscourseContext = (uid: string, tag: string) => {
                     uid,
                     score,
                     numResults,
+                    ignoreCache,
+                    reified: getSetting<boolean>(USE_REIFIED_RELATIONS),
                   },
                 });
               }
