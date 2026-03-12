@@ -1,4 +1,5 @@
 import type { FrontMatterCache, TFile } from "obsidian";
+import { Notice } from "obsidian";
 import type { default as DiscourseGraphPlugin } from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import { addFile } from "@repo/database/lib/files";
@@ -371,6 +372,13 @@ export const publishNodeToGroup = async ({
   for (const attachment of attachments) {
     const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
     if (mimetype.startsWith("text/")) continue;
+    // Do not use standard upload for large files
+    if (attachment.stat.size >= 6 * 1024 * 1024) {
+      new Notice(
+        `Asset file ${attachment.path} is larger than 6Mb and will not be uploaded`,
+      );
+      continue;
+    }
     existingFiles.push(attachment.path);
     const existingRef = existingReferencesByPath[attachment.path];
     if (
