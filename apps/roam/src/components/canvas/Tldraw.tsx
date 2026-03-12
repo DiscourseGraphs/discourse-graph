@@ -142,66 +142,6 @@ export const MAX_WIDTH = "400px";
 
 const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
 
-// hack for "cannot change atoms during reaction cycle" bug
-const isAtomReactionCycleError = (error: unknown): error is Error =>
-  error instanceof Error &&
-  /cannot change atoms during reaction cycle/i.test(error.message);
-const installSafeHintingSetter = ({
-  app,
-  title,
-  pageUid,
-}: {
-  app: Editor;
-  title?: string;
-  pageUid?: string;
-}): void => {
-  const originalSetHintingShapes = app.setHintingShapes.bind(app);
-
-  app.setHintingShapes = ((shapeIds: TLShapeId[]) => {
-    try {
-      return originalSetHintingShapes(shapeIds);
-    } catch (error) {
-      if (!isAtomReactionCycleError(error)) {
-        throw error;
-      }
-
-      internalError({
-        error,
-        type: "Canvas Atom Reaction Cycle Error",
-        context: {
-          phase: "setHintingShapes.sync",
-          title,
-          pageUid,
-        },
-        sendEmail: false,
-      });
-
-      app.timers.setTimeout(() => {
-        try {
-          originalSetHintingShapes(shapeIds);
-        } catch (deferredError) {
-          if (isAtomReactionCycleError(deferredError)) {
-            internalError({
-              error: deferredError,
-              type: "Canvas Atom Reaction Cycle Error",
-              context: {
-                phase: "setHintingShapes.deferred",
-                title,
-                pageUid,
-              },
-              sendEmail: false,
-            });
-            return;
-          }
-          // Ignore deferred hinting updates if the editor is gone or still reacting.
-        }
-      }, 0);
-
-      return app;
-    }
-  }) as Editor["setHintingShapes"];
-};
-
 /** Valid file size for asset props; undefined when unknown (e.g. Roam/file API not a real File) to avoid persisting null. */
 const getValidFileSize = (file: { size?: number }): number | undefined =>
   typeof file.size === "number" && Number.isFinite(file.size) && file.size > 0
@@ -383,8 +323,6 @@ const TldrawCanvasShared = ({
   );
 
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
-  // hack for "cannot change atoms during reaction cycle" bug
-  const [hasMountedEditor, setHasMountedEditor] = useState(false);
 
   const updateViewportScreenBounds = useCallback((el: HTMLDivElement) => {
     // Use tldraw's built-in viewport bounds update with centering
@@ -872,16 +810,13 @@ const TldrawCanvasShared = ({
     });
   }, [error, pageUid, title, customShapeTypes, customBindingTypes]);
 
-  // Keep the mounted editor alive through transient reconnect errors,
-  // but still surface errors when the store is unavailable.
-  const blockingStoreError =
-    error && (!hasMountedEditor || !store) ? error : null;
   const isCanvasBlocked =
+    isLoading ||
+    !!error ||
     !store ||
     !assetLoading.done ||
     !extensionAPI ||
-    !isPluginReady ||
-    (!hasMountedEditor && (isLoading || !!error));
+    !isPluginReady;
 
   return (
     <div
@@ -931,19 +866,17 @@ const TldrawCanvasShared = ({
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
-              {blockingStoreError || assetLoading.error
+              {error || assetLoading.error
                 ? "Error Loading Canvas"
                 : "Loading Canvas"}
             </h2>
             <p className="mb-4 text-gray-600">
-              {blockingStoreError || assetLoading.error ? (
+              {error || assetLoading.error ? (
                 <span>
-                  {blockingStoreError?.message?.includes("invalidRecord")
+                  {error?.message?.includes("invalidRecord")
                     ? "Cloudflare sync rejected a custom Discourse Graph record (invalidRecord). The sync worker schema must include DG custom shapes and bindings."
                     : "There was a problem loading the Tldraw canvas."}{" "}
-                  {blockingStoreError?.message
-                    ? `Details: ${blockingStoreError.message}`
-                    : ""}
+                  {error?.message ? `Details: ${error.message}` : ""}
                 </span>
               ) : (
                 <DefaultSpinner />
@@ -978,9 +911,6 @@ const TldrawCanvasShared = ({
 
               appRef.current = app;
 
-              // hack for "cannot change atoms during reaction cycle" bug
-              installSafeHintingSetter({ app, title, pageUid });
-              setHasMountedEditor(true);
               void syncCanvasNodeTitlesOnLoad(
                 app,
                 allNodes.map((n) => n.type),
