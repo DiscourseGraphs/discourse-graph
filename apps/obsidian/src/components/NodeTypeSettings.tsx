@@ -365,6 +365,7 @@ const NodeTypeSettings = () => {
       format: "",
       template: "",
       tag: "",
+      color: "#808080",
       created: now,
       modified: now,
     };
