@@ -293,11 +293,12 @@ export const importRelationsForImportedNodes = async ({
       const sourceSchemaId = byConceptId[sourceData.id];
       const destSchemaId = byConceptId[destData.id];
       if (sourceSchemaId != null && destSchemaId != null) {
+        const uniqueSchemaIds = [...new Set([sourceSchemaId, destSchemaId])];
         const { data: schemaRows } = await client
           .from("my_concepts")
           .select("id, source_local_id")
-          .in("id", [sourceSchemaId, destSchemaId]);
-        if (schemaRows && schemaRows.length === 2) {
+          .in("id", uniqueSchemaIds);
+        if (schemaRows && schemaRows.length === uniqueSchemaIds.length) {
           const schemaIdToLocalId = Object.fromEntries(
             (schemaRows as Array<{ id: number; source_local_id: string }>).map(
               (row) => [row.id, row.source_local_id],
