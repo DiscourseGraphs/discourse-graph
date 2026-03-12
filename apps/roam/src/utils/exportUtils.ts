@@ -1,5 +1,10 @@
 import type { Result } from "roamjs-components/types/query-builder";
-import { PullBlock, TreeNode, ViewType } from "roamjs-components/types";
+import {
+  BlockViewType,
+  PullBlock,
+  TreeNode,
+  ViewType,
+} from "roamjs-components/types";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import matchDiscourseNode from "./matchDiscourseNode";
 
@@ -126,6 +131,8 @@ export const pullBlockToTreeNode = (
   uid: n[":block/uid"] || "",
   heading: n[":block/heading"] || 0,
   viewType: (n[":children/view-type"] || v).slice(1) as ViewType,
+  blockViewType: (n[":block/view-type"]?.slice(1) ??
+    "outline") as BlockViewType,
   editTime: new Date(n[":edit/time"] || 0),
   props: { imageResize: {}, iframe: {} },
   textAlign: n[":block/text-align"] || "left",

@@ -52,9 +52,6 @@ import {
   StateNode,
   DefaultSpinner,
   Box,
-  MigrationSequence,
-  TLAnyBindingUtilConstructor,
-  TLAnyShapeUtilConstructor,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
@@ -71,7 +68,6 @@ import {
   BaseDiscourseNodeUtil,
   DiscourseNodeShape,
   createNodeShapeTools,
-  createNodeShapeUtils,
 } from "./DiscourseNodeUtil";
 import { useRoamStore } from "./useRoamStore";
 import {
@@ -88,24 +84,16 @@ import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import renderToast from "roamjs-components/components/Toast";
 import {
-  createAllReferencedNodeUtils,
-  createAllRelationShapeUtils,
-} from "./DiscourseRelationShape/DiscourseRelationUtil";
-import {
   AddReferencedNodeType,
   createAllReferencedNodeTools,
   createAllRelationShapeTools,
 } from "./DiscourseRelationShape/DiscourseRelationTool";
-import {
-  createAllReferencedNodeBindings,
-  createAllRelationBindings,
-} from "./DiscourseRelationShape/DiscourseRelationBindings";
 import ConvertToDialog from "./ConvertToDialog";
-import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
 import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import internalError from "~/utils/internalError";
+import { syncCanvasNodeTitlesOnLoad } from "~/utils/syncCanvasNodeTitlesOnLoad";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
@@ -120,6 +108,10 @@ import {
   getEffectiveCanvasSyncMode,
   setCanvasSyncMode,
 } from "./canvasSyncMode";
+import {
+  CanvasStoreAdapterArgs,
+  useCanvasStoreAdapterArgs,
+} from "./useCanvasStoreAdapterArgs";
 import posthog from "posthog-js";
 
 declare global {
@@ -149,66 +141,6 @@ export const DEFAULT_HEIGHT = 64;
 export const MAX_WIDTH = "400px";
 
 const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
-
-// hack for "cannot change atoms during reaction cycle" bug
-const isAtomReactionCycleError = (error: unknown): error is Error =>
-  error instanceof Error &&
-  /cannot change atoms during reaction cycle/i.test(error.message);
-const installSafeHintingSetter = ({
-  app,
-  title,
-  pageUid,
-}: {
-  app: Editor;
-  title?: string;
-  pageUid?: string;
-}): void => {
-  const originalSetHintingShapes = app.setHintingShapes.bind(app);
-
-  app.setHintingShapes = ((shapeIds: TLShapeId[]) => {
-    try {
-      return originalSetHintingShapes(shapeIds);
-    } catch (error) {
-      if (!isAtomReactionCycleError(error)) {
-        throw error;
-      }
-
-      internalError({
-        error,
-        type: "Canvas Atom Reaction Cycle Error",
-        context: {
-          phase: "setHintingShapes.sync",
-          title,
-          pageUid,
-        },
-        sendEmail: false,
-      });
-
-      app.timers.setTimeout(() => {
-        try {
-          originalSetHintingShapes(shapeIds);
-        } catch (deferredError) {
-          if (isAtomReactionCycleError(deferredError)) {
-            internalError({
-              error: deferredError,
-              type: "Canvas Atom Reaction Cycle Error",
-              context: {
-                phase: "setHintingShapes.deferred",
-                title,
-                pageUid,
-              },
-              sendEmail: false,
-            });
-            return;
-          }
-          // Ignore deferred hinting updates if the editor is gone or still reacting.
-        }
-      }, 0);
-
-      return app;
-    }
-  }) as Editor["setHintingShapes"];
-};
 
 /** Valid file size for asset props; undefined when unknown (e.g. Roam/file API not a real File) to avoid persisting null. */
 const getValidFileSize = (file: { size?: number }): number | undefined =>
@@ -266,15 +198,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       onCanvasSyncModeChange={onCanvasSyncModeChange}
     />
   );
-};
-
-type CanvasStoreAdapterArgs = {
-  pageUid: string;
-  migrations: MigrationSequence[];
-  customShapeUtils: readonly TLAnyShapeUtilConstructor[];
-  customBindingUtils: readonly TLAnyBindingUtilConstructor[];
-  customShapeTypes: string[];
-  customBindingTypes: string[];
 };
 
 type CanvasStoreAdapterResult = {
@@ -400,8 +323,6 @@ const TldrawCanvasShared = ({
   );
 
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
-  // hack for "cannot change atoms during reaction cycle" bug
-  const [hasMountedEditor, setHasMountedEditor] = useState(false);
 
   const updateViewportScreenBounds = useCallback((el: HTMLDivElement) => {
     // Use tldraw's built-in viewport bounds update with centering
@@ -714,17 +635,19 @@ const TldrawCanvasShared = ({
     onCanvasSyncModeChange,
   });
 
-  // UTILS
-  const discourseNodeUtils = createNodeShapeUtils(allNodes);
-  const discourseRelationUtils = createAllRelationShapeUtils(allRelationIds);
-  const referencedNodeUtils = createAllReferencedNodeUtils(
+  const storeAdapterArgs = useCanvasStoreAdapterArgs({
+    pageUid,
+    isCloudflareSync,
+    allNodes,
+    allRelationIds,
     allAddReferencedNodeByAction,
-  );
-  const customShapeUtils = [
-    ...discourseNodeUtils,
-    ...discourseRelationUtils,
-    ...referencedNodeUtils,
-  ];
+  });
+  const {
+    customShapeUtils,
+    customBindingUtils,
+    customShapeTypes,
+    customBindingTypes,
+  } = storeAdapterArgs;
 
   // TOOLS
   const discourseGraphTool = class DiscourseGraphTool extends StateNode {
@@ -743,19 +666,6 @@ const TldrawCanvasShared = ({
     ...referencedNodeTools,
   ];
 
-  // BINDINGS
-  const relationBindings = createAllRelationBindings(allRelationIds);
-  const referencedNodeBindings = createAllReferencedNodeBindings(
-    allAddReferencedNodeByAction,
-  );
-  const customBindingUtils = [...relationBindings, ...referencedNodeBindings];
-  const customShapeTypes = customShapeUtils
-    .map((s) => (s as unknown as { type?: string }).type)
-    .filter((t): t is string => !!t);
-  const customBindingTypes = customBindingUtils
-    .map((b) => (b as unknown as { type?: string }).type)
-    .filter((t): t is string => !!t);
-
   // UI OVERRIDES
   const uiOverrides = createUiOverrides({
     allNodes,
@@ -773,26 +683,8 @@ const TldrawCanvasShared = ({
       inSidebar: !!containerRef.current?.closest(".rm-sidebar-outline"),
     });
   }, [pageUid]);
-  const arrowShapeMigrations = useMemo(
-    () =>
-      createMigrations({
-        allRelationIds,
-        allAddReferencedNodeActions,
-        allNodeTypes: allNodes.map((node) => node.type),
-      }),
-    [allRelationIds, allAddReferencedNodeActions, allNodes],
-  );
-
-  const migrations = [arrowShapeMigrations];
   const { store, needsUpgrade, performUpgrade, error, isLoading } =
-    useStoreAdapter({
-      migrations,
-      customShapeUtils,
-      customBindingUtils,
-      customShapeTypes,
-      customBindingTypes,
-      pageUid,
-    });
+    useStoreAdapter(storeAdapterArgs);
 
   // ASSETS
   const assetLoading = usePreloadAssets(defaultEditorAssetUrls);
@@ -918,20 +810,18 @@ const TldrawCanvasShared = ({
     });
   }, [error, pageUid, title, customShapeTypes, customBindingTypes]);
 
-  // Keep the mounted editor alive through transient reconnect errors,
-  // but still surface errors when the store is unavailable.
-  const blockingStoreError =
-    error && (!hasMountedEditor || !store) ? error : null;
   const isCanvasBlocked =
+    isLoading ||
+    !!error ||
     !store ||
     !assetLoading.done ||
     !extensionAPI ||
-    !isPluginReady ||
-    (!hasMountedEditor && (isLoading || !!error));
+    !isPluginReady;
 
   return (
     <div
       className="roamjs-tldraw-canvas-container relative z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white"
+      data-page-uid={pageUid ?? undefined}
       ref={containerRef}
       tabIndex={-1}
       onDragOver={handleDragOver}
@@ -976,19 +866,17 @@ const TldrawCanvasShared = ({
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
-              {blockingStoreError || assetLoading.error
+              {error || assetLoading.error
                 ? "Error Loading Canvas"
                 : "Loading Canvas"}
             </h2>
             <p className="mb-4 text-gray-600">
-              {blockingStoreError || assetLoading.error ? (
+              {error || assetLoading.error ? (
                 <span>
-                  {blockingStoreError?.message?.includes("invalidRecord")
+                  {error?.message?.includes("invalidRecord")
                     ? "Cloudflare sync rejected a custom Discourse Graph record (invalidRecord). The sync worker schema must include DG custom shapes and bindings."
                     : "There was a problem loading the Tldraw canvas."}{" "}
-                  {blockingStoreError?.message
-                    ? `Details: ${blockingStoreError.message}`
-                    : ""}
+                  {error?.message ? `Details: ${error.message}` : ""}
                 </span>
               ) : (
                 <DefaultSpinner />
@@ -1023,9 +911,16 @@ const TldrawCanvasShared = ({
 
               appRef.current = app;
 
-              // hack for "cannot change atoms during reaction cycle" bug
-              installSafeHintingSetter({ app, title, pageUid });
-              setHasMountedEditor(true);
+              void syncCanvasNodeTitlesOnLoad(
+                app,
+                allNodes.map((n) => n.type),
+                allRelationIds,
+              ).catch((error) => {
+                internalError({
+                  error,
+                  type: "Canvas: Sync node titles on load",
+                });
+              });
 
               app.on("change", (entry) => {
                 lastActionsRef.current.push(entry);
