@@ -152,14 +152,14 @@ export default class DiscourseGraphPlugin extends Plugin {
     );
 
     this.registerEvent(
-      // @ts-ignore - file-menu event exists but is not in the type definitions
+      // @ts-expect-error - file-menu event exists but is not in the type definitions
       this.app.workspace.on("file-menu", (menu: Menu, file: TFile) => {
         if (isImageFile(file)) {
-          addConvertSubmenu(
+          addConvertSubmenu({
             menu,
-            "Convert into",
-            this.settings.nodeTypes,
-            (nodeType) => {
+            label: "Convert into",
+            nodeTypes: this.settings.nodeTypes,
+            onClick: (nodeType) => {
               new ModifyNodeModal(this.app, {
                 nodeTypes: this.settings.nodeTypes,
                 plugin: this,
@@ -192,7 +192,7 @@ export default class DiscourseGraphPlugin extends Plugin {
                 },
               }).open();
             },
-          );
+          });
           return;
         }
 
@@ -205,11 +205,11 @@ export default class DiscourseGraphPlugin extends Plugin {
             (nodeType) => nodeType.id === fileNodeType,
           )
         ) {
-          addConvertSubmenu(
+          addConvertSubmenu({
             menu,
-            "Convert into",
-            this.settings.nodeTypes,
-            (nodeType) => {
+            label: "Convert into",
+            nodeTypes: this.settings.nodeTypes,
+            onClick: (nodeType) => {
               new ModifyNodeModal(this.app, {
                 nodeTypes: this.settings.nodeTypes,
                 plugin: this,
@@ -225,7 +225,7 @@ export default class DiscourseGraphPlugin extends Plugin {
                 },
               }).open();
             },
-          );
+          });
         }
       }),
     );
@@ -237,11 +237,11 @@ export default class DiscourseGraphPlugin extends Plugin {
         const selection = editor.getSelection().trim();
         const imageEmbed = isImageEmbed(selection);
 
-        addConvertSubmenu(
+        addConvertSubmenu({
           menu,
-          "Turn into discourse node",
-          this.settings.nodeTypes,
-          async (nodeType) => {
+          label: "Turn into discourse node",
+          nodeTypes: this.settings.nodeTypes,
+          onClick: async (nodeType) => {
             if (imageEmbed) {
               new ModifyNodeModal(this.app, {
                 nodeTypes: this.settings.nodeTypes,
@@ -278,7 +278,7 @@ export default class DiscourseGraphPlugin extends Plugin {
               });
             }
           },
-        );
+        });
       }),
     );
 

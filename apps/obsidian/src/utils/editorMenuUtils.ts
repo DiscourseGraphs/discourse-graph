@@ -5,18 +5,23 @@ import { DiscourseNode } from "~/types";
  * Add a "Convert into" / "Turn into discourse node" submenu to a context menu,
  * with one item per node type.
  */
-export const addConvertSubmenu = (
-  menu: Menu,
-  label: string,
-  nodeTypes: DiscourseNode[],
-  onClick: (nodeType: DiscourseNode) => void | Promise<void>,
-) => {
+export const addConvertSubmenu = ({
+  menu,
+  label,
+  nodeTypes,
+  onClick,
+}: {
+  menu: Menu;
+  label: string;
+  nodeTypes: DiscourseNode[];
+  onClick: (nodeType: DiscourseNode) => void | Promise<void>;
+}) => {
   menu.addItem((menuItem) => {
     menuItem.setTitle(label);
     menuItem.setIcon("file-type");
 
-    // @ts-ignore - setSubmenu is not officially in the API but works
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+    // @ts-expect-error - setSubmenu is not officially in the API but works
     const submenu = menuItem.setSubmenu();
 
     nodeTypes.forEach((nodeType) => {
@@ -26,6 +31,7 @@ export const addConvertSubmenu = (
           .setIcon("file-type")
           .onClick(() => void onClick(nodeType));
       });
+      /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
     });
   });
 };
