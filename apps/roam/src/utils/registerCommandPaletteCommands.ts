@@ -25,18 +25,6 @@ import posthog from "posthog-js";
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
 
-  const insertPageReferenceAtCursor = async ({
-    blockUid,
-    pageTitle,
-    selectionStart,
-    windowId,
-  }: {
-    blockUid: string;
-    pageTitle: string;
-    selectionStart: number;
-    windowId: string;
-  }): Promise<void> => {};
-
   const createQueryBlock = async () => {
     {
       const uid = window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
@@ -189,7 +177,6 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     posthog.capture("Discourse Node: Create Command Triggered");
     const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
     const uid = focusedBlock?.["block-uid"];
-    console.log("focusedBlock", focusedBlock);
     const windowId = focusedBlock?.["window-id"] || "main-window";
 
     const selectionStart = uid ? getSelectionStartForBlock(uid) : 0;
