@@ -263,9 +263,7 @@ export default class DiscourseGraphPlugin extends Plugin {
 
                   if (!targetFile) return;
 
-                  if (!selectedExistingNode) {
-                    await this.app.vault.append(targetFile, `\n${selection}\n`);
-                  }
+                  await this.app.vault.append(targetFile, `\n${selection}\n`);
                   editor.replaceSelection(`[[${targetFile.basename}]]`);
                 },
               }).open();
