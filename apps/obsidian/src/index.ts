@@ -13,7 +13,6 @@ import { SettingsTab } from "~/components/Settings";
 import { Settings, VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import {
   addConvertSubmenu,
-  isImageEmbed,
   isImageFile,
   replaceImageEmbedInEditor,
 } from "~/utils/editorMenuUtils";
@@ -188,7 +187,11 @@ export default class DiscourseGraphPlugin extends Plugin {
                     targetFile,
                     `\n![[${imageLink}]]\n`,
                   );
-                  replaceImageEmbedInEditor(this.app, file, targetFile);
+                  replaceImageEmbedInEditor({
+                    app: this.app,
+                    imageFile: file,
+                    targetFile,
+                  });
                 },
               }).open();
             },
@@ -235,46 +238,17 @@ export default class DiscourseGraphPlugin extends Plugin {
         if (!editor.getSelection()) return;
 
         const selection = editor.getSelection().trim();
-        const imageEmbed = isImageEmbed(selection);
-
         addConvertSubmenu({
           menu,
           label: "Turn into discourse node",
           nodeTypes: this.settings.nodeTypes,
           onClick: async (nodeType) => {
-            if (imageEmbed) {
-              new ModifyNodeModal(this.app, {
-                nodeTypes: this.settings.nodeTypes,
-                plugin: this,
-                initialTitle: "",
-                initialNodeType: nodeType,
-                onSubmit: async ({
-                  nodeType: selectedType,
-                  title,
-                  selectedExistingNode,
-                }) => {
-                  const targetFile =
-                    selectedExistingNode ??
-                    (await createDiscourseNode({
-                      plugin: this,
-                      nodeType: selectedType,
-                      text: title,
-                    }));
-
-                  if (!targetFile) return;
-
-                  await this.app.vault.append(targetFile, `\n${selection}\n`);
-                  editor.replaceSelection(`[[${targetFile.basename}]]`);
-                },
-              }).open();
-            } else {
-              await createDiscourseNode({
-                plugin: this,
-                editor,
-                nodeType,
-                text: selection,
-              });
-            }
+            await createDiscourseNode({
+              plugin: this,
+              editor,
+              nodeType,
+              text: selection,
+            });
           },
         });
       }),
