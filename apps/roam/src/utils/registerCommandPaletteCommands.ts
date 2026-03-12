@@ -201,25 +201,28 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     renderSettings({ onloadArgs });
   };
 
-  const createDiscourseNodeFromCommand = () => {
-    const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
-    const blockUid = focusedBlock?.["block-uid"];
-    const windowId = focusedBlock?.["window-id"] || "main-window";
+  const getSelectionStartForBlock = (uid: string): number => {
     const activeElement = document.activeElement;
     const isFocusedTextarea =
       activeElement instanceof HTMLTextAreaElement &&
-      activeElement.classList.contains("rm-block-input");
-    const selectionStart = isFocusedTextarea
-      ? activeElement.selectionStart
-      : null;
-
-    if (!blockUid || selectionStart === null) {
-      renderToast({
-        id: "create-discourse-node-command-focus",
-        content: "Place your cursor in a block before running this command.",
-      });
-      return;
+      activeElement.classList.contains("rm-block-input") &&
+      getUids(activeElement).blockUid === uid;
+    if (isFocusedTextarea) return activeElement.selectionStart;
+    const textareas = document.querySelectorAll("textarea.rm-block-input");
+    for (const el of textareas) {
+      const textarea = el as HTMLTextAreaElement;
+      if (getUids(textarea).blockUid === uid) return textarea.selectionStart;
     }
+    return (getTextByBlockUid(uid) || "").length;
+  };
+
+  const createDiscourseNodeFromCommand = () => {
+    posthog.capture("Discourse Node: Create Command Triggered");
+    const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
+    const uid = focusedBlock?.["block-uid"];
+    const windowId = focusedBlock?.["window-id"] || "main-window";
+
+    const selectionStart = uid ? getSelectionStartForBlock(uid) : 0;
 
     const defaultNodeType =
       getDiscourseNodes().filter(excludeDefaultNodes)[0]?.type;
@@ -237,8 +240,15 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
       initialValue: { text: "", uid: "" },
       extensionAPI,
       onSuccess: async (result) => {
+        if (!uid) {
+          renderToast({
+            id: "create-discourse-node-command-no-block",
+            content: "No block focused to insert a discourse node.",
+          });
+          return;
+        }
         await insertPageReferenceAtCursor({
-          blockUid,
+          blockUid: uid,
           pageTitle: result.text,
           selectionStart,
           windowId,
@@ -310,7 +320,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
   void addCommand("DG: Open - Query drawer", openQueryDrawerWithArgs);
   void addCommand(
-    "DG: Create - Discourse node at cursor",
+    "DG: Create/Insert Discourse node",
     createDiscourseNodeFromCommand,
   );
   void addCommand(
