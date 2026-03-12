@@ -255,46 +255,50 @@ export const computeImportPreview = async ({
 
   // Maps numeric schema id -> source_local_id for relation types
   const relSchemaIdToLocalId = new Map<number, string>();
+  // Batch-fetched: schema id -> name + literal_content (few schemata, many relations)
+  const relSchemaIdToDetails = new Map<
+    number,
+    { name: string; literal_content: unknown }
+  >();
 
   if (relationSchemaIds.length > 0) {
-    // Resolve schema numeric ids to source_local_id
-    const { data: schemaIdRows } = await client
+    const { data: schemaRows } = await client
       .from("my_concepts")
-      .select("id, source_local_id")
+      .select("id, source_local_id, name, literal_content")
       .in("id", relationSchemaIds);
 
-    for (const row of (schemaIdRows ?? []) as Array<{
+    for (const row of (schemaRows ?? []) as Array<{
       id: number;
       source_local_id: string;
+      name: string | null;
+      literal_content: unknown;
     }>) {
       relSchemaIdToLocalId.set(row.id, row.source_local_id);
+      if (row.name != null) {
+        relSchemaIdToDetails.set(row.id, {
+          name: row.name,
+          literal_content: row.literal_content,
+        });
+      }
     }
 
-    // For each unique relation type local id, check if it's new
     const uniqueRelTypeLocalIds = [...new Set(relSchemaIdToLocalId.values())];
 
     for (const relTypeLocalId of uniqueRelTypeLocalIds) {
       if (seenRelationTypeIds.has(relTypeLocalId)) continue;
       seenRelationTypeIds.add(relTypeLocalId);
 
-      // Check against local relation types (mirrors mapRelationTypeToLocal logic without side effects)
       const matchById = plugin.settings.relationTypes.find(
         (rt) => rt.id === relTypeLocalId,
       );
       if (matchById) continue;
 
-      // Need to fetch the schema's name and literal_content to get label/complement
       const schemaNumericId = [...relSchemaIdToLocalId.entries()].find(
         ([, localId]) => localId === relTypeLocalId,
       )?.[0];
       if (schemaNumericId == null) continue;
 
-      const { data: schemaData } = await client
-        .from("my_concepts")
-        .select("name, literal_content, space_id")
-        .eq("id", schemaNumericId)
-        .maybeSingle();
-
+      const schemaData = relSchemaIdToDetails.get(schemaNumericId);
       if (!schemaData?.name) continue;
 
       const obj =
@@ -304,7 +308,6 @@ export const computeImportPreview = async ({
       const label = (obj.label as string) || schemaData.name;
       const complement = (obj.complement as string) || "";
 
-      // Track for triplet display
       relationTypeIdToInfo.set(relTypeLocalId, { label, complement });
 
       const matchByLabel = plugin.settings.relationTypes.find(

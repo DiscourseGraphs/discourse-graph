@@ -382,7 +382,6 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
 
     const hasNewNodeTypes = previewData.newNodeTypeSchemas.length > 0;
     const hasNewRelationTypes = previewData.newRelationTypeSchemas.length > 0;
-    const hasRelations = previewData.relationInstanceCount > 0;
     const newTriplets = previewData.relationTriplets.filter(
       (t) => t.isNewTriplet,
     );
