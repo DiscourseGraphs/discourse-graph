@@ -196,11 +196,13 @@ export default class DiscourseGraphPlugin extends Plugin {
       this.app.workspace.on("editor-menu", (menu: Menu, editor: Editor) => {
         if (!editor.getSelection()) return;
 
+        const selection = editor.getSelection().trim();
+        const imageFile = this.resolveImageEmbedToFile(selection);
+
         menu.addItem((menuItem) => {
           menuItem.setTitle("Turn into discourse node");
           menuItem.setIcon("file-type");
 
-          // Create submenu using the unofficial API pattern
           // @ts-ignore - setSubmenu is not officially in the API but works
           const submenu = menuItem.setSubmenu();
 
@@ -210,12 +212,43 @@ export default class DiscourseGraphPlugin extends Plugin {
                 .setTitle(nodeType.name)
                 .setIcon("file-type")
                 .onClick(async () => {
-                  await createDiscourseNode({
-                    plugin: this,
-                    editor,
-                    nodeType,
-                    text: editor.getSelection().trim() || "",
-                  });
+                  if (imageFile) {
+                    new ModifyNodeModal(this.app, {
+                      nodeTypes: this.settings.nodeTypes,
+                      plugin: this,
+                      initialTitle: "",
+                      initialNodeType: nodeType,
+                      onSubmit: async ({ nodeType: selectedType, title }) => {
+                        const newFile = await createDiscourseNode({
+                          plugin: this,
+                          nodeType: selectedType,
+                          text: title,
+                        });
+
+                        if (newFile) {
+                          const imageLink =
+                            this.app.metadataCache.fileToLinktext(
+                              imageFile,
+                              newFile.path,
+                            );
+                          await this.app.vault.process(
+                            newFile,
+                            (data: string) => {
+                              return `${data}\n![[${imageLink}]]\n`;
+                            },
+                          );
+                          editor.replaceSelection(`[[${newFile.basename}]]`);
+                        }
+                      },
+                    }).open();
+                  } else {
+                    await createDiscourseNode({
+                      plugin: this,
+                      editor,
+                      nodeType,
+                      text: selection,
+                    });
+                  }
                 });
             });
           });
@@ -225,6 +258,66 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     // Register editor keydown listener for node tag hotkey
     this.setupNodeTagHotkey();
+  }
+
+  private readonly IMAGE_EXTENSIONS =
+    /^(png|jpe?g|gif|svg|bmp|webp|avif|tiff?)$/i;
+
+  /**
+   * If `selection` is a single image embed (wikilink, markdown, or HTML img),
+   * resolve it to the vault TFile. Returns null when the selection is not an
+   * image embed or the file cannot be found.
+   */
+  private resolveImageEmbedToFile(selection: string): TFile | null {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) return null;
+
+    let rawPath: string | null = null;
+
+    // Wikilink embed: ![[path/image.png|optional alias or size]]
+    const wikiMatch = selection.match(/^!\[\[([^\]]+)\]\]$/);
+    if (wikiMatch?.[1]) {
+      rawPath = wikiMatch[1].split("|")[0]?.split("#")[0]?.trim() ?? null;
+    }
+
+    // Markdown image: ![alt](path "optional title")
+    if (!rawPath) {
+      const mdMatch = selection.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+      if (mdMatch?.[2]) {
+        let target = mdMatch[2].trim();
+        // Strip optional title: ![alt](path "title")
+        target = target.replace(/\s+"[^"]*"\s*$/, "");
+        // Unwrap angle brackets: ![alt](<path with spaces>)
+        target = target.replace(/^<(.+)>$/, "$1");
+        // Skip external URLs
+        if (/^https?:\/\//i.test(target)) return null;
+        rawPath = target;
+      }
+    }
+
+    // HTML img tag: <img src="path" ...>
+    if (!rawPath) {
+      const htmlMatch = selection.match(
+        /^<img\s[^>]*src=["']([^"']+)["'][^>]*\/?>$/i,
+      );
+      if (htmlMatch?.[1]) {
+        const target = htmlMatch[1].trim();
+        if (/^https?:\/\//i.test(target)) return null;
+        rawPath = target;
+      }
+    }
+
+    if (!rawPath) return null;
+
+    const resolved = this.app.metadataCache.getFirstLinkpathDest(
+      rawPath,
+      activeFile.path,
+    );
+    if (!resolved) return null;
+
+    if (!this.IMAGE_EXTENSIONS.test(resolved.extension)) return null;
+
+    return resolved;
   }
 
   private setupNodeTagHotkey() {
