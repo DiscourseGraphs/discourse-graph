@@ -35,38 +35,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     pageTitle: string;
     selectionStart: number;
     windowId: string;
-  }): Promise<void> => {
-    const originalText = getTextByBlockUid(blockUid) || "";
-    const pageRef = `[[${pageTitle}]]`;
-    const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionStart)}`;
-    const newCursorPosition = selectionStart + pageRef.length;
-
-    await updateBlock({ uid: blockUid, text: newText });
-
-    if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
-      await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-        location: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "block-uid": blockUid,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "window-id": windowId,
-        },
-        selection: { start: newCursorPosition },
-      });
-      return;
-    }
-
-    setTimeout(() => {
-      const textareaElements = document.querySelectorAll("textarea");
-      for (const el of textareaElements) {
-        if (getUids(el).blockUid === blockUid) {
-          el.focus();
-          el.setSelectionRange(newCursorPosition, newCursorPosition);
-          break;
-        }
-      }
-    }, 50);
-  };
+  }): Promise<void> => {};
 
   const createQueryBlock = async () => {
     {
@@ -220,6 +189,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     posthog.capture("Discourse Node: Create Command Triggered");
     const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
     const uid = focusedBlock?.["block-uid"];
+    console.log("focusedBlock", focusedBlock);
     const windowId = focusedBlock?.["window-id"] || "main-window";
 
     const selectionStart = uid ? getSelectionStartForBlock(uid) : 0;
@@ -247,12 +217,23 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
           });
           return;
         }
-        await insertPageReferenceAtCursor({
-          blockUid: uid,
-          pageTitle: result.text,
-          selectionStart,
-          windowId,
+        const originalText = getTextByBlockUid(uid) || "";
+        const pageRef = `[[${result.text}]]`;
+        const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionStart)}`;
+        const newCursorPosition = selectionStart + pageRef.length;
+
+        await updateBlock({ uid, text: newText });
+
+        await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+          location: {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "block-uid": uid,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "window-id": windowId,
+          },
+          selection: { start: newCursorPosition },
         });
+        return;
       },
       onClose: () => {},
     });
@@ -315,14 +296,14 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   // Roam organizes commands alphabetically
+  void addCommand(
+    "DG: Create/Insert discourse node",
+    createDiscourseNodeFromCommand,
+  );
   void addCommand("DG: Export - Current page", exportCurrentPage);
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
   void addCommand("DG: Open - Query drawer", openQueryDrawerWithArgs);
-  void addCommand(
-    "DG: Create/Insert Discourse node",
-    createDiscourseNodeFromCommand,
-  );
   void addCommand(
     "DG: Toggle - Discourse context overlay",
     toggleDiscourseContextOverlay,
