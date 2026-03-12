@@ -49,7 +49,7 @@ export const replaceImageEmbedInEditor = ({
   app: App;
   imageFile: TFile;
   targetFile: TFile;
-}) => {
+}): void => {
   const activeView = app.workspace.getActiveViewOfType(MarkdownView);
   if (!activeView?.file) return;
 
