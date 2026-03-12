@@ -20,11 +20,13 @@ export const addConvertSubmenu = ({
     menuItem.setTitle(label);
     menuItem.setIcon("file-type");
 
-    /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+    /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment*/
     // @ts-expect-error - setSubmenu is not officially in the API but works
     const submenu = menuItem.setSubmenu();
 
     nodeTypes.forEach((nodeType) => {
+      // setSubmenu is not officially in the API but works
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       submenu.addItem((item: any) => {
         item
           .setTitle(nodeType.name)
