@@ -12,18 +12,17 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import { getSetting } from "~/utils/extensionSettings";
 import getDiscourseRelations, {
   type DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import { getDiscourseNodeFormatInnerExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { Result } from "~/utils/types";
 import internalError from "~/utils/internalError";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import posthog from "posthog-js";
 
 export type CreateRelationDialogProps = {
@@ -384,8 +383,8 @@ export const renderCreateRelationDialog = (
 export const CreateRelationButton = (
   props: CreateRelationDialogProps,
 ): React.JSX.Element | null => {
-  const showAddRelation = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
-  if (!showAddRelation) return null;
+  const storedRelationsEnabled = getStoredRelationsEnabled();
+  if (!storedRelationsEnabled) return null;
   let extProps: ExtendedCreateRelationDialogProps | null = null;
   try {
     extProps = extendProps(props);

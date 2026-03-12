@@ -9,4 +9,4 @@ export const DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY =
   "discourse-context-overlay-in-canvas";
 export const STREAMLINE_STYLING_KEY = "streamline-styling";
 export const DISALLOW_DIAGNOSTICS = "disallow-diagnostics";
-export const USE_REIFIED_RELATIONS = "use-reified-relations";
+export const USE_STORED_RELATIONS = "use-reified-relations"; // "use-reified-relations" is legacy terminology, but we keep it for backwards compatibility

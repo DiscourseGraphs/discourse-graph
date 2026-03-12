@@ -5,24 +5,22 @@ author: ""
 published: true
 ---
 
-One of the main features of the Discourse Graph extension is the ability to **create formal discourse relations between nodes just by writing and outlining!**
+Creating relationships in Discourse Graph means creating **stored relations**. Stored relations are the default way to connect discourse nodes.
 
-The extension has an in-built [grammar](./grammar) that enables it to recognize when certain patterns of writing and outlining are meant to express particular discourse relations (e.g., support, oppose, inform) between discourse nodes. When it recognizes these patterns, it "writes" them to a formal discourse graph data structure, that you can then use to explore or query your discourse graph.
+> Note: If you're still using pattern relations, or if you're not sure which system your graph is using, start with [**Migration to stored relations**](./migration-to-stored-relations).
 
-## Deprecation notice
+## Quick start
 
-Pattern-based relations are being deprecated. Please plan to move to [**stored relations**](./stored-relations), which will be the recommended way to define and persist discourse relations. Migration guidance is available in [**Migration to stored relations**](./migration-to-stored-relations).
+1. Open the [**Discourse context overlay**](./discourse-context-overlay) for a node.
+2. Click **Add relation**.
+3. Choose the relation type.
+4. Choose the source and destination nodes.
+5. Save the relation.
 
-## Stock Patterns
+The relation is stored immediately and becomes available throughout your graph.
 
-- Take a look at [Relations Patterns](./relations-patterns)
+## Read next
 
-### Verifying relations
-
-You can verify any created relations by checking the [discourse context](./discourse-context) of the claim, evidence, or question page.
-
-Or by running a [query](./querying-discourse-graph) for the specific relation.
-
-## Digging deeper
-
-Want to recognize other patterns that aren't listed here? Or don't like these? You can [change them](./extending-personalizing-graph)! But you might first want to [understand how the grammar works](./grammar).
+- Learn how stored relations work in [**Stored relations**](./stored-relations)
+- Explore relationships from the [**Discourse context overlay**](./discourse-context-overlay)
+- If you're still using the legacy workflow, see [**Relations and patterns**](./relations-patterns)
