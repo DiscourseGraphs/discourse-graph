@@ -15,7 +15,7 @@ export const addConvertSubmenu = ({
   label: string;
   nodeTypes: DiscourseNode[];
   onClick: (nodeType: DiscourseNode) => void | Promise<void>;
-}) => {
+}): void => {
   menu.addItem((menuItem) => {
     menuItem.setTitle(label);
     menuItem.setIcon("file-type");
