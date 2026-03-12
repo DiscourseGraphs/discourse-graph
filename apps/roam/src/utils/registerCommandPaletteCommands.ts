@@ -12,12 +12,14 @@ import getDiscourseNodes from "./getDiscourseNodes";
 import fireQuery from "./fireQuery";
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";
+import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
 } from "./pageRefObserverHandlers";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
@@ -204,6 +206,83 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     });
   };
 
+  const createDiscourseNodeFromCommand = () => {
+    const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
+    const blockUid = focusedBlock?.["block-uid"];
+
+    if (!blockUid) {
+      renderToast({
+        id: "discourse-node-create-no-focus",
+        content: "Must be focused on a block to create a discourse node",
+      });
+      return;
+    }
+
+    const userNodeType = getDiscourseNodes().find(
+      (node) => node.backedBy === "user",
+    )?.type;
+
+    if (!userNodeType) {
+      renderToast({
+        id: "discourse-node-create-no-type",
+        content: "No user discourse node type is configured",
+      });
+      return;
+    }
+
+    const activeElement = document.activeElement;
+    const focusedTextarea =
+      activeElement instanceof HTMLTextAreaElement ? activeElement : null;
+    const currentText = getTextByBlockUid(blockUid);
+    const selectionStart = focusedTextarea
+      ? focusedTextarea.selectionStart
+      : currentText.length;
+    const selectionEnd = focusedTextarea
+      ? focusedTextarea.selectionEnd
+      : currentText.length;
+
+    const selectedText = currentText.substring(selectionStart, selectionEnd);
+    posthog.capture("Discourse Node: Create Command Triggered", {
+      hasSelectedText: !!selectedText,
+      nodeType: userNodeType,
+    });
+
+    renderModifyNodeDialog({
+      mode: "create",
+      nodeType: userNodeType,
+      initialValue: { text: selectedText, uid: "" },
+      extensionAPI,
+      onSuccess: async ({ text }) => {
+        const latestBlockText = getTextByBlockUid(blockUid);
+        const pageRef = `[[${text}]]`;
+        const updatedText = `${latestBlockText.substring(
+          0,
+          selectionStart,
+        )}${pageRef}${latestBlockText.substring(selectionEnd)}`;
+
+        await updateBlock({
+          uid: blockUid,
+          text: updatedText,
+        });
+
+        const cursorPosition = selectionStart + pageRef.length;
+        if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
+          await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+            location: {
+              "block-uid": blockUid,
+              "window-id": focusedBlock?.["window-id"] || "main-window",
+            },
+            selection: {
+              start: cursorPosition,
+              end: cursorPosition,
+            },
+          });
+        }
+      },
+      onClose: () => {},
+    });
+  };
+
   const addCommand = (label: string, callback: () => void) => {
     return extensionAPI.ui.commandPalette.addCommand({
       label,
@@ -215,6 +294,10 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Export - Current page", exportCurrentPage);
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
+  void addCommand(
+    "DG: Open - Create discourse node",
+    createDiscourseNodeFromCommand,
+  );
   void addCommand("DG: Open - Query drawer", openQueryDrawerWithArgs);
   void addCommand(
     "DG: Toggle - Discourse context overlay",
