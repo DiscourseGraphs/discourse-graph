@@ -33,7 +33,7 @@ export const addConvertSubmenu = ({
           .setIcon("file-type")
           .onClick(() => void onClick(nodeType));
       });
-      /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+      /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
     });
   });
 };
