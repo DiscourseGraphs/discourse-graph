@@ -14,6 +14,7 @@ import {
   TLDATA_DELIMITER_END,
   TLDATA_DELIMITER_START,
   TLDRAW_VERSION,
+  VIEW_TYPE_TLDRAW_DG_PREVIEW,
 } from "~/constants";
 import DiscourseGraphPlugin from "~/index";
 import { checkAndCreateFolder, getNewUniqueFilepath } from "~/utils/file";
@@ -178,8 +179,7 @@ export const createCanvas = async (plugin: DiscourseGraphPlugin) => {
   try {
     const filename = `Canvas-${format(new Date(), "yyyy-MM-dd-HHmm")}`;
     const folderpath = plugin.settings.canvasFolderPath;
-    const attachmentsFolder =
-      plugin.settings.canvasAttachmentsFolderPath;
+    const attachmentsFolder = plugin.settings.canvasAttachmentsFolderPath;
 
     await checkAndCreateFolder(folderpath, plugin.app.vault);
     await checkAndCreateFolder(attachmentsFolder, plugin.app.vault);
@@ -193,6 +193,10 @@ export const createCanvas = async (plugin: DiscourseGraphPlugin) => {
     const file = await plugin.app.vault.create(fname, content);
     const leaf = plugin.app.workspace.getLeaf(false);
     await leaf.openFile(file);
+    await leaf.setViewState({
+      type: VIEW_TYPE_TLDRAW_DG_PREVIEW,
+      state: { file: file.path },
+    });
 
     return file;
   } catch (e) {
