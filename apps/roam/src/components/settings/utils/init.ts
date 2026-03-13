@@ -8,6 +8,10 @@ import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
 import DEFAULT_RELATIONS_BLOCK_PROPS from "~/components/settings/data/defaultRelationsBlockProps";
 import { getAllDiscourseNodes } from "./accessors";
 import {
+  migrateGraphLevel,
+  migratePersonalSettings,
+} from "./migrateLegacyToBlockProps";
+import {
   DiscourseNodeSchema,
   getTopLevelBlockPropsConfig,
 } from "~/components/settings/utils/zodSchema";
@@ -147,7 +151,6 @@ const initSingleDiscourseNode = async (
       tag: node.tag || "",
       graphOverview: node.graphOverview ?? false,
       canvasSettings: node.canvasSettings || {},
-      backedBy: "user",
     });
 
     setBlockProps(pageUid, nodeData, false);
@@ -256,6 +259,8 @@ export type InitSchemaResult = {
 
 export const initSchema = async (): Promise<InitSchemaResult> => {
   const blockUids = await initSettingsPageBlocks();
+  await migrateGraphLevel(blockUids);
   const nodePageUids = await initDiscourseNodePages();
+  await migratePersonalSettings(blockUids);
   return { blockUids, nodePageUids };
 };
