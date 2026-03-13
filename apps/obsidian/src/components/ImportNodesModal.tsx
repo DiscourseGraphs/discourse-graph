@@ -12,6 +12,10 @@ import {
   importSelectedNodes,
 } from "~/utils/importNodes";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import {
+  computeImportPreview,
+  type ImportPreviewData,
+} from "~/utils/importPreview";
 
 type ImportNodesModalProps = {
   plugin: DiscourseGraphPlugin;
@@ -19,15 +23,19 @@ type ImportNodesModalProps = {
 };
 
 const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
-  const [step, setStep] = useState<"loading" | "select" | "importing">(
-    "loading",
-  );
+  const [step, setStep] = useState<
+    "loading" | "select" | "preview" | "importing"
+  >("loading");
   const [groupsWithNodes, setGroupsWithNodes] = useState<GroupWithNodes[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [importProgress, setImportProgress] = useState({
     current: 0,
     total: 0,
   });
+  const [previewData, setPreviewData] = useState<ImportPreviewData | null>(
+    null,
+  );
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const loadImportableNodes = useCallback(async () => {
     setIsLoading(true);
@@ -146,16 +154,42 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
     );
   };
 
-  const handleImport = async () => {
-    const selectedNodes: ImportableNode[] = [];
+  const getSelectedNodes = (): ImportableNode[] => {
+    const selected: ImportableNode[] = [];
     for (const group of groupsWithNodes) {
       for (const node of group.nodes) {
         if (node.selected) {
-          selectedNodes.push(node);
+          selected.push(node);
         }
       }
     }
+    return selected;
+  };
 
+  const handleNext = async () => {
+    const selectedNodes = getSelectedNodes();
+    if (selectedNodes.length === 0) {
+      new Notice("Please select at least one node to import");
+      return;
+    }
+
+    setPreviewLoading(true);
+    try {
+      const preview = await computeImportPreview({ plugin, selectedNodes });
+      setPreviewData(preview);
+      setStep("preview");
+    } catch (error) {
+      console.error("Error computing preview:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      new Notice(`Failed to compute preview: ${errorMessage}`, 5000);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleImport = async () => {
+    const selectedNodes = getSelectedNodes();
     if (selectedNodes.length === 0) {
       new Notice("Please select at least one node to import");
       return;
@@ -171,6 +205,14 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         onProgress: (current, total) => {
           setImportProgress({ current, total });
         },
+        precomputedData: previewData
+          ? {
+              nodeKeys: previewData.nodeKeys,
+              keyToRid: previewData.keyToRid,
+              keyToRelationEndpointId: previewData.keyToRelationEndpointId,
+              relationInstancesBySpace: previewData.relationInstancesBySpace,
+            }
+          : undefined,
       });
 
       if (result.failed > 0) {
@@ -323,12 +365,141 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
           </button>
           <button
             onClick={() => {
+              void handleNext();
+            }}
+            className="!bg-accent !text-on-accent rounded px-4 py-2"
+            disabled={selectedCount === 0 || previewLoading}
+          >
+            {previewLoading ? "Loading..." : `Next (${selectedCount})`}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPreviewStep = () => {
+    if (!previewData) return null;
+
+    const hasNewNodeTypes = previewData.newNodeTypeSchemas.length > 0;
+    const hasNewRelationTypes = previewData.newRelationTypeSchemas.length > 0;
+    const newTriplets = previewData.relationTriplets.filter(
+      (t) => t.isNewTriplet,
+    );
+    const hasNewTriplets = newTriplets.length > 0;
+    const hasAnyNew = hasNewNodeTypes || hasNewRelationTypes || hasNewTriplets;
+
+    return (
+      <div>
+        <h3 className="mb-2">Import Preview</h3>
+        <p className="text-muted mb-4 text-sm">
+          Review what will be imported and created.
+        </p>
+
+        <div className="max-h-96 overflow-y-auto">
+          {/* Summary section */}
+          <div className="mb-4 rounded border p-3">
+            <div className="mb-1 text-sm font-medium uppercase tracking-wide opacity-60">
+              Summary
+            </div>
+            <div className="flex gap-6 text-sm">
+              <div>
+                <span className="font-semibold">
+                  {previewData.selectedNodeCount}
+                </span>{" "}
+                node{previewData.selectedNodeCount !== 1 ? "s" : ""}
+              </div>
+              <div>
+                <span className="font-semibold">
+                  {previewData.relationInstanceCount}
+                </span>{" "}
+                relation{previewData.relationInstanceCount !== 1 ? "s" : ""}
+              </div>
+            </div>
+          </div>
+
+          {/* New schemas section */}
+          {hasAnyNew && (
+            <div className="mb-4 rounded border p-3">
+              <div className="mb-2 text-sm font-medium uppercase tracking-wide opacity-60">
+                New schemas to create
+              </div>
+
+              {hasNewNodeTypes && (
+                <div className="mb-2">
+                  <div className="mb-1 text-sm font-medium">Node types</div>
+                  <div className="flex flex-wrap gap-1">
+                    {previewData.newNodeTypeSchemas.map((nt) => (
+                      <span
+                        key={nt.id}
+                        className="bg-accent/15 text-accent rounded px-2 py-0.5 text-xs"
+                      >
+                        {nt.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {hasNewRelationTypes && (
+                <div className="mb-2">
+                  <div className="mb-1 text-sm font-medium">Relation types</div>
+                  <div className="flex flex-wrap gap-1">
+                    {previewData.newRelationTypeSchemas.map((rt) => (
+                      <span
+                        key={rt.id}
+                        className="bg-accent/15 text-accent rounded px-2 py-0.5 text-xs"
+                      >
+                        {rt.label}
+                        {rt.complement ? ` / ${rt.complement}` : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {hasNewTriplets && (
+                <div>
+                  <div className="mb-1 text-sm font-medium">
+                    Discourse relations
+                  </div>
+                  <div className="space-y-1">
+                    {newTriplets.map((t, i) => (
+                      <div key={i} className="flex items-center gap-1 text-xs">
+                        <span className="rounded bg-secondary px-1.5 py-0.5">
+                          {t.sourceNodeTypeName}
+                        </span>
+                        <span className="text-accent font-medium">
+                          {t.relationTypeLabel}
+                        </span>
+                        <span className="rounded bg-secondary px-1.5 py-0.5">
+                          {t.destNodeTypeName}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!hasAnyNew && (
+            <div className="text-muted rounded border p-3 text-center text-sm">
+              No new schemas or relations will be created.
+            </div>
+          )}
+        </div>
+
+        <div className="mt-6 flex justify-between">
+          <button onClick={() => setStep("select")} className="px-4 py-2">
+            Back
+          </button>
+          <button
+            onClick={() => {
               void handleImport();
             }}
             className="!bg-accent !text-on-accent rounded px-4 py-2"
-            disabled={selectedCount === 0}
           >
-            Import ({selectedCount})
+            Confirm Import
           </button>
         </div>
       </div>
@@ -361,6 +532,8 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
   switch (step) {
     case "select":
       return renderSelectStep();
+    case "preview":
+      return renderPreviewStep();
     case "importing":
       return renderImportingStep();
     default:
