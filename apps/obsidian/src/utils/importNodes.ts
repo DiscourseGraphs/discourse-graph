@@ -491,11 +491,7 @@ const updateMarkdownAssetLinks = ({
   app: App;
   originalNodePath?: string;
 }): string => {
-  if (oldPathToNewPath.size === 0) {
-    return content;
-  }
-
-  // Create a set of all new paths for quick lookup (used by findImportedAssetFile)
+  // Create a set of all new paths for quick lookup (used by findImportedAssetFile when pathMapping has entries)
   const newPaths = new Set(oldPathToNewPath.values());
 
   let updatedContent = content;
@@ -503,6 +499,13 @@ const updateMarkdownAssetLinks = ({
   const noteDir = targetFile.path.includes("/")
     ? targetFile.path.replace(/\/[^/]*$/, "")
     : "";
+
+  // When the note is under import/{spaceName}/, only treat wiki links as resolved if the target is in this folder (not some other vault file).
+  const pathParts = targetFile.path.split("/");
+  const importFolder =
+    pathParts[0] === "import" && pathParts.length >= 2
+      ? pathParts.slice(0, 2).join("/")
+      : null;
 
   /** Path of targetFile relative to the current note, for use in links. Obsidian resolves relative links from the note's directory. */
   const getRelativeLinkPath = (assetPath: string): string => {
@@ -607,48 +610,100 @@ const updateMarkdownAssetLinks = ({
     return null;
   };
 
+  const processLink = (linkPath: string): string => {
+    // Skip external URLs
+    if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
+      return linkPath;
+    }
+
+    // First, try to find if this link resolves to one of our imported assets
+    const importedAssetFile = findImportedAssetFile(linkPath);
+    if (importedAssetFile) {
+      return getRelativeLinkPath(importedAssetFile.path);
+    }
+
+    // Direct lookup from pathMapping (record built when we downloaded each asset)
+    const newPath = getNewPathForLink(linkPath);
+    if (newPath) {
+      const newFile = app.metadataCache.getFirstLinkpathDest(
+        newPath,
+        targetFile.path,
+      );
+      if (newFile) {
+        return getRelativeLinkPath(newFile.path);
+      }
+    }
+
+    // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
+    const resolvedFile = app.metadataCache.getFirstLinkpathDest(
+      linkPath,
+      targetFile.path,
+    );
+    const isInImportFolder =
+      importFolder &&
+      resolvedFile &&
+      resolvedFile.path.startsWith(importFolder + "/");
+    if (isInImportFolder && resolvedFile) {
+      return getRelativeLinkPath(resolvedFile.path);
+    }
+
+    // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
+    if (importFolder && originalNodePath && !resolvedFile) {
+      // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
+      const canonicalSourcePath =
+        linkPath.includes("/") &&
+        !linkPath.startsWith(".") &&
+        !linkPath.startsWith("/")
+          ? normalizePathForLookup(linkPath)
+          : (getCanonicalFromOriginalNote(linkPath) ??
+            normalizePathForLookup(linkPath));
+      return `${importFolder}/${canonicalSourcePath}`;
+    }
+
+    return linkPath;
+  };
+
   // Match wiki links: [[path]] or [[path|alias]]
   const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
   updatedContent = updatedContent.replace(
     wikiLinkRegex,
-    (match, linkContent) => {
+    (match, linkContent: string) => {
       // Extract path and optional alias
       const [linkPath, alias] = linkContent
         .split("|")
         .map((s: string) => s.trim());
+      if (!linkPath) return match;
+      let processedPath = processLink(linkPath);
+      if (processedPath.endsWith(".md") && !linkPath.endsWith(".md"))
+        processedPath = processedPath.substring(0, processedPath.length - 3);
+      if (alias) {
+        return `[[${processedPath}|${alias}]]`;
+      }
+      return `[[${processedPath}|${linkPath}]]`;
+    },
+  );
 
-      // Skip external URLs
+  // Match markdown links (non-image): [text](path) — internal paths resolved like wikilinks, href kept URL-encoded
+  const markdownLinkRegex = /(?<!!)\[([^\]]*)\]\(([^)]+)\)/g;
+  updatedContent = updatedContent.replace(
+    markdownLinkRegex,
+    (match, linkText: string, linkPath: string) => {
+      if (!linkPath) return match;
+      linkPath = linkPath
+        .split("/")
+        .map((segment) => {
+          try {
+            return decodeURIComponent(segment);
+          } catch {
+            return segment;
+          }
+        })
+        .join("/");
       if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
         return match;
       }
-
-      // First, try to find if this link resolves to one of our imported assets
-      const importedAssetFile = findImportedAssetFile(linkPath);
-      if (importedAssetFile) {
-        const linkText = getRelativeLinkPath(importedAssetFile.path);
-        if (alias) {
-          return `[[${linkText}|${alias}]]`;
-        }
-        return `[[${linkText}]]`;
-      }
-
-      // Direct lookup from pathMapping (record built when we downloaded each asset)
-      const newPath = getNewPathForLink(linkPath);
-      if (newPath) {
-        const newFile = app.metadataCache.getFirstLinkpathDest(
-          newPath,
-          targetFile.path,
-        );
-        if (newFile) {
-          const linkText = getRelativeLinkPath(newFile.path);
-          if (alias) {
-            return `[[${linkText}|${alias}]]`;
-          }
-          return `[[${linkText}]]`;
-        }
-      }
-
-      return match;
+      const processedPath = encodePathForMarkdownLink(processLink(linkPath));
+      return `[${linkText}](${processedPath})`;
     },
   );
 
@@ -898,7 +953,6 @@ const importAssetsForNode = async ({
 
       // Track path mapping (raw + normalized key so updateMarkdownAssetLinks can lookup by link text)
       setPathMapping(filepath, targetPath);
-      console.log(`Imported asset: ${filepath} -> ${targetPath}`);
     } catch (error) {
       const errorMsg = `Error importing asset ${fileRef.filepath}: ${error}`;
       errors.push(errorMsg);
@@ -919,6 +973,15 @@ const sanitizeFileName = (fileName: string): string => {
     .replace(/[<>:"/\\|?*]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+};
+
+/** Sanitize each path segment for use under import folder (preserves source vault folder structure). */
+const sanitizePathForImport = (path: string): string => {
+  return path
+    .split("/")
+    .map((segment) => sanitizeFileName(segment))
+    .filter(Boolean)
+    .join("/");
 };
 
 type ParsedFrontmatter = {
@@ -1221,11 +1284,13 @@ export const importSelectedNodes = async ({
           content,
           createdAt: contentCreatedAt,
           modifiedAt: contentModifiedAt,
-          filePath,
+          filePath: contentFilePath,
         } = nodeContent;
         const createdAt = node.createdAt ?? contentCreatedAt;
         const modifiedAt = node.modifiedAt ?? contentModifiedAt;
-        const originalNodePath: string | undefined = node.filePath;
+        // Use source vault path from Content direct variant metadata for wikilink rewriting and asset placement
+        const originalNodePath: string | undefined =
+          contentFilePath ?? node.filePath;
 
         // Sanitize file name
         const sanitizedFileName = sanitizeFileName(fileName);
@@ -1235,14 +1300,20 @@ export const importSelectedNodes = async ({
           // Update existing file - use its current path
           finalFilePath = existingFile.path;
         } else {
-          // Create new file in the import folder
-          finalFilePath = `${importFolderPath}/${sanitizedFileName}.md`;
+          // Preserve source vault folder structure under import/{vaultName} when we have filePath from Content
+          const pathUnderImport =
+            contentFilePath && contentFilePath.includes("/")
+              ? sanitizePathForImport(contentFilePath)
+              : `${sanitizedFileName}.md`;
+          finalFilePath = `${importFolderPath}/${pathUnderImport}`;
 
-          // Check if file path already exists (edge case: same title but different nodeInstanceId)
-          let counter = 1;
-          while (await plugin.app.vault.adapter.exists(finalFilePath)) {
-            finalFilePath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
-            counter++;
+          // Ensure all parent folders exist (e.g. import/VaultName/Discourse Nodes/SubFolder)
+          const dirParts = finalFilePath.split("/");
+          for (let i = 1; i < dirParts.length - 1; i++) {
+            const folderPath = dirParts.slice(0, i + 1).join("/");
+            if (!(await plugin.app.vault.adapter.exists(folderPath))) {
+              await plugin.app.vault.createFolder(folderPath);
+            }
           }
         }
 
@@ -1254,7 +1325,7 @@ export const importSelectedNodes = async ({
           sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
           rawContent: content,
-          originalFilePath: filePath,
+          originalFilePath: contentFilePath,
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
@@ -1285,21 +1356,18 @@ export const importSelectedNodes = async ({
           originalNodePath,
         });
 
-        // Update markdown content with new asset paths if assets were imported
-        if (assetImportResult.pathMapping.size > 0) {
-          const currentContent = await plugin.app.vault.read(processedFile);
-          const updatedContent = updateMarkdownAssetLinks({
-            content: currentContent,
-            oldPathToNewPath: assetImportResult.pathMapping,
-            targetFile: processedFile,
-            app: plugin.app,
-            originalNodePath,
-          });
+        // Update markdown content: rewrite asset paths from pathMapping and normalize all wiki links to relative paths
+        const currentContent = await plugin.app.vault.read(processedFile);
+        const updatedContent = updateMarkdownAssetLinks({
+          content: currentContent,
+          oldPathToNewPath: assetImportResult.pathMapping,
+          targetFile: processedFile,
+          app: plugin.app,
+          originalNodePath,
+        });
 
-          // Only update if content changed
-          if (updatedContent !== currentContent) {
-            await plugin.app.vault.modify(processedFile, updatedContent);
-          }
+        if (updatedContent !== currentContent) {
+          await plugin.app.vault.modify(processedFile, updatedContent);
         }
 
         // Log asset import errors if any
@@ -1460,4 +1528,12 @@ export const refreshAllImportedFiles = async (
   }
 
   return { success: successCount, failed: failedCount, errors };
+};
+
+const encodePathForMarkdownLink = (linkPath: string): string => {
+  // Input is already decoded; encode each segment (spaces → %20) but keep / as separator
+  return linkPath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
 };
