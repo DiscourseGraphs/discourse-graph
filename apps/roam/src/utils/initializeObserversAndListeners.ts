@@ -57,6 +57,10 @@ import {
   getGlobalSetting,
 } from "~/components/settings/utils/accessors";
 import {
+  onSettingChange,
+  settingKeys,
+} from "~/components/settings/utils/settingsEmitter";
+import {
   PERSONAL_KEYS,
   GLOBAL_KEYS,
 } from "~/components/settings/utils/settingKeys";
@@ -95,6 +99,7 @@ export const initObservers = ({
     discourseNodeSearchTriggerListener: EventListener;
     nodeCreationPopoverListener: EventListener;
   };
+  cleanups: Array<() => void>;
 } => {
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
@@ -196,9 +201,18 @@ export const initObservers = ({
       });
   }) as EventListener;
 
+  const suggestiveHandler = getSuggestiveOverlayHandler(onloadArgs);
+  const toggleSuggestiveOverlay = onPageRefObserverChange(suggestiveHandler);
   if (getPersonalSetting<boolean>([PERSONAL_KEYS.suggestiveModeOverlay])) {
-    addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
+    addPageRefObserver(suggestiveHandler);
   }
+
+  const unsubSuggestiveOverlay = onSettingChange(
+    settingKeys.personalSuggestiveModeOverlay,
+    (newValue) => {
+      toggleSuggestiveOverlay(Boolean(newValue));
+    },
+  );
 
   const graphOverviewExportObserver = createHTMLObserver({
     tag: "DIV",
@@ -241,16 +255,35 @@ export const initObservers = ({
     }
   };
 
-  const globalTrigger = (
+  let globalTrigger = (
     getGlobalSetting<string>([GLOBAL_KEYS.trigger]) ?? "\\"
   ).trim();
   const personalTriggerCombo = getPersonalSetting<IKeyCombo>([
     PERSONAL_KEYS.personalNodeMenuTrigger,
   ]);
-  const personalTrigger = personalTriggerCombo?.key;
-  const personalModifiers = personalTriggerCombo
+  let personalTrigger = personalTriggerCombo?.key;
+  let personalModifiers = personalTriggerCombo
     ? getModifiersFromCombo(personalTriggerCombo)
     : [];
+
+  const unsubGlobalTrigger = onSettingChange(
+    settingKeys.globalTrigger,
+    (newValue) => {
+      globalTrigger = (newValue as string).trim();
+    },
+  );
+
+  const unsubPersonalTrigger = onSettingChange(
+    settingKeys.personalNodeMenuTrigger,
+    (newValue) => {
+      const combo =
+        newValue && typeof newValue === "object"
+          ? (newValue as IKeyCombo)
+          : undefined;
+      personalTrigger = combo?.key;
+      personalModifiers = combo ? getModifiersFromCombo(combo) : [];
+    },
+  );
 
   const leftSidebarObserver = createHTMLObserver({
     tag: "DIV",
@@ -309,8 +342,15 @@ export const initObservers = ({
     }
   };
 
-  const customTrigger =
+  let customTrigger =
     getPersonalSetting<string>([PERSONAL_KEYS.nodeSearchMenuTrigger]) ?? "@";
+
+  const unsubSearchTrigger = onSettingChange(
+    settingKeys.nodeSearchMenuTrigger,
+    (newValue) => {
+      customTrigger = newValue as string;
+    },
+  );
 
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
@@ -414,5 +454,11 @@ export const initObservers = ({
       discourseNodeSearchTriggerListener,
       nodeCreationPopoverListener,
     },
+    cleanups: [
+      unsubGlobalTrigger,
+      unsubPersonalTrigger,
+      unsubSearchTrigger,
+      unsubSuggestiveOverlay,
+    ],
   };
 };

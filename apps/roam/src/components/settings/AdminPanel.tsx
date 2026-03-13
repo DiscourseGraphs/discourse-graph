@@ -20,6 +20,10 @@ import {
   setFeatureFlag,
 } from "~/components/settings/utils/accessors";
 import {
+  onSettingChange,
+  settingKeys,
+} from "~/components/settings/utils/settingsEmitter";
+import {
   getSupabaseContext,
   getLoggedInClient,
   SupabaseContext,
@@ -433,14 +437,10 @@ const FeatureFlagsTab = (): React.ReactElement => {
         <p>Are you sure you want to proceed?</p>
       </Alert>
 
-      {/* TODO(ENG-1484): Add pull watcher reactivity so toggling suggestive mode
-          starts/stops sync and shows the tab without requiring a reload. */}
       <Alert
         isOpen={isInstructionOpen}
-        onConfirm={() => window.location.reload()}
-        onCancel={() => setIsInstructionOpen(false)}
-        confirmButtonText="Reload Graph"
-        cancelButtonText="Later"
+        onConfirm={() => setIsInstructionOpen(false)}
+        confirmButtonText="OK"
         intent={Intent.PRIMARY}
       >
         <p>
@@ -448,11 +448,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
           upload all node embeddings to supabase.
         </p>
         <p>
-          Please reload the graph to see the new &apos;Suggestive Mode&apos;
-          tab.
-        </p>
-        <p>
-          Then go to Suggestive Mode{" "}
+          Go to Suggestive Mode{" "}
           {"-> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"}
         </p>
       </Alert>
@@ -509,6 +505,15 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
 const AdminPanel = (): React.ReactElement => {
   const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
+  const [showSuggestiveTab, setShowSuggestiveTab] = useState(
+    getFeatureFlag("Suggestive mode enabled"),
+  );
+
+  useEffect(() => {
+    return onSettingChange(settingKeys.suggestiveModeEnabled, (newValue) => {
+      setShowSuggestiveTab(Boolean(newValue));
+    });
+  }, []);
 
   return (
     <Tabs
@@ -543,7 +548,7 @@ const AdminPanel = (): React.ReactElement => {
           </div>
         }
       />
-      {getFeatureFlag("Suggestive mode enabled") && (
+      {showSuggestiveTab && (
         <Tab
           id="suggestive-mode-settings"
           title="Suggestive mode"

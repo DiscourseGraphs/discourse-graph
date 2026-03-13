@@ -39,20 +39,12 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     <div className="flex flex-col gap-4 p-1">
       <Label>
         Personal node menu trigger
-        <Description
-          description={
-            "Override the global trigger for the discourse node menu. Must refresh after editing."
-          }
-        />
+        <Description description="Override the global trigger for the discourse node menu." />
         <NodeMenuTriggerComponent extensionAPI={extensionAPI} />
       </Label>
       <Label>
         Node search menu trigger
-        <Description
-          description={
-            "Set the trigger character for the node search menu. Must refresh after editing."
-          }
-        />
+        <Description description="Set the trigger character for the node search menu." />
         <NodeSearchMenuTriggerSetting onloadArgs={onloadArgs} />
       </Label>
       <KeyboardShortcutInput

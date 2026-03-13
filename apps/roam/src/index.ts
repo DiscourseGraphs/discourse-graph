@@ -105,7 +105,7 @@ export default runExtension(async (onloadArgs) => {
     streamlineStyleElement.id = "streamline-styling";
   }
 
-  const { observers, listeners } = initObservers({ onloadArgs });
+  const { observers, listeners, cleanups } = initObservers({ onloadArgs });
   const {
     pageActionListener,
     hashChangeListener,
@@ -119,11 +119,20 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  const isSuggestiveModeEnabled = getFeatureFlag("Suggestive mode enabled");
-
-  if (isSuggestiveModeEnabled) {
+  if (getFeatureFlag("Suggestive mode enabled")) {
     initializeSupabaseSync();
   }
+
+  const unsubSuggestiveMode = onSettingChange(
+    settingKeys.suggestiveModeEnabled,
+    (newValue) => {
+      if (newValue) {
+        initializeSupabaseSync();
+      } else {
+        setSyncActivity(false);
+      }
+    },
+  );
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
@@ -194,7 +203,9 @@ export default runExtension(async (onloadArgs) => {
     observers: observers,
     unload: () => {
       unsubLeftSidebarFlag();
+      unsubSuggestiveMode();
       cleanupPullWatchers();
+      cleanups.forEach((fn) => fn());
       setSyncActivity(false);
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
       // @ts-expect-error - tldraw throws a warning on multiple loads
