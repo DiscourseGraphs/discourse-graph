@@ -103,6 +103,7 @@ For UI changes or new features with visual elements, insert a placeholder:
 
 ```markdown
 <!-- TODO: Add screenshot of [describe the UI element or feature] -->
+
 ![Screenshot placeholder](placeholder)
 ```
 
