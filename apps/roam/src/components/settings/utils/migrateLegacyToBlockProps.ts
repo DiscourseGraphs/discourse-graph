@@ -111,7 +111,7 @@ const migrateSection = ({
 };
 
 const migrateDiscourseNodes = async (): Promise<boolean> => {
-  const nodePages = (await window.roamAlphaAPI.data.backend.q(`
+  const nodePages = (await window.roamAlphaAPI.data.async.fast.q(`
     [:find ?uid ?title
      :where
      [?page :node/title ?title]
