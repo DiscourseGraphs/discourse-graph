@@ -24,7 +24,6 @@ import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { CONTEXT_OVERLAY_SUGGESTION } from "~/utils/predefinedSelections";
 import { strictQueryForReifiedBlocks } from "~/utils/createReifiedBlock";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
-import internalError from "~/utils/internalError";
 import {
   RenderRoamBlock,
   RenderRoamPage,
