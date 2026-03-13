@@ -19,7 +19,7 @@ import type { RoamBasicNode } from "roamjs-components/types";
 import { extractRef, getSubTree } from "roamjs-components/util";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import discourseConfigRef from "~/utils/discourseConfigRef";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import {
   getLeftSidebarGlobalSectionConfig,
   mergeGlobalSectionWithAccessor,

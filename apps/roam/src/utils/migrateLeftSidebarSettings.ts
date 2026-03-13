@@ -4,7 +4,7 @@ import updateBlock from "roamjs-components/writes/updateBlock";
 import createBlock from "roamjs-components/writes/createBlock";
 import discourseConfigRef from "./discourseConfigRef";
 import { getLeftSidebarSettings } from "./getLeftSidebarSettings";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "./renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import refreshConfigTree from "./refreshConfigTree";
 
 const migrateSectionChildren = async (
@@ -54,8 +54,7 @@ export const migrateLeftSidebarSettings = async () => {
 
   const allPersonalSections = leftSidebarSettings.allPersonalSections;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/naming-convention
-  for (const [_, userPersonalSection] of Object.entries(allPersonalSections)) {
+  for (const userPersonalSection of Object.values(allPersonalSections)) {
     for (const section of userPersonalSection.sections) {
       const children = section.children || [];
       if (children.length > 0) {

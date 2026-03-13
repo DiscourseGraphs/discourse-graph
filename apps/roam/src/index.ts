@@ -105,7 +105,7 @@ export default runExtension(async (onloadArgs) => {
     streamlineStyleElement.id = "streamline-styling";
   }
 
-  const { observers, listeners } = await initObservers({ onloadArgs });
+  const { observers, listeners } = initObservers({ onloadArgs });
   const {
     pageActionListener,
     hashChangeListener,
