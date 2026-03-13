@@ -12,7 +12,7 @@ import {
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import DiscourseRelationConfigPanel from "./DiscourseRelationConfigPanel";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import discourseConfigRef from "~/utils/discourseConfigRef";
 import DiscourseGraphHome from "./GeneralSettings";
 import DiscourseGraphExport from "./ExportSettings";
 import QuerySettings from "./QuerySettings";
@@ -73,7 +73,13 @@ export const SettingsDialog = ({
   selectedTabId?: TabId;
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
-  const settings = getFormattedConfigTree();
+  const grammarNode = discourseConfigRef.tree.find(
+    (node) => node.text === "grammar",
+  );
+  const relationsNode = grammarNode?.children.find(
+    (node) => node.text === "relations",
+  );
+  const nodesNode = grammarNode?.children.find((node) => node.text === "nodes");
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
   const [activeTabId, setActiveTabId] = useState<TabId>(
     selectedTabId ?? "discourse-graph-home-personal",
@@ -204,8 +210,8 @@ export const SettingsDialog = ({
               <DiscourseRelationConfigPanel
                 defaultValue={DEFAULT_RELATION_VALUES}
                 title="Relations"
-                parentUid={settings.grammarUid}
-                uid={settings.relationsUid}
+                parentUid={grammarNode?.uid || ""}
+                uid={relationsNode?.uid || ""}
               />
             }
           />
@@ -216,8 +222,8 @@ export const SettingsDialog = ({
             panel={
               <DiscourseNodeConfigPanel
                 title="Nodes"
-                uid={settings.nodesUid}
-                parentUid={settings.grammarUid}
+                uid={nodesNode?.uid || ""}
+                parentUid={grammarNode?.uid || ""}
                 defaultValue={[]}
                 setSelectedTabId={setActiveTabId}
                 isPopup={true}

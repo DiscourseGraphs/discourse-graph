@@ -140,10 +140,6 @@ export const DiscourseNodeSchema = z.object({
     .optional()
     .transform((val) => val ?? defaultNodeIndex()),
   suggestiveRules: SuggestiveRulesSchema.default({}),
-  backedBy: z
-    .enum(["user", "default", "relation"])
-    .nullable()
-    .transform((val) => val ?? "user"),
 });
 
 export const TripleSchema = z.tuple([z.string(), z.string(), z.string()]);

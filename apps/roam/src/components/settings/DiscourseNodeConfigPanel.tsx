@@ -107,7 +107,6 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                   type: valueUid,
                   shortcut,
                   format,
-                  backedBy: "user",
                 }),
               );
               setNodes([
