@@ -50,9 +50,6 @@ export class QueryEngine {
       return [];
     }
     if (!this.dc) {
-      console.warn(
-        "Datacore API not available. Search functionality is not available.",
-      );
       return [];
     }
 
@@ -88,9 +85,6 @@ export class QueryEngine {
    */
   getDiscourseNodeById = (nodeInstanceId: string): TFile | null => {
     if (!this.dc) {
-      console.warn(
-        "Datacore API not available. Search functionality is not available.",
-      );
       return null;
     }
 
@@ -125,9 +119,6 @@ export class QueryEngine {
       return [];
     }
     if (!this.dc) {
-      console.warn(
-        "Datacore API not available. Search functionality is not available.",
-      );
       return [];
     }
 
@@ -245,9 +236,6 @@ export class QueryEngine {
     const candidates: BulkImportCandidate[] = [];
 
     if (!this.dc) {
-      console.warn(
-        "Datacore API not available. Falling back to vault iteration.",
-      );
       return this.fallbackScanVault(patterns, validNodeTypes);
     }
 
@@ -290,9 +278,6 @@ export class QueryEngine {
               );
 
               if (!matchedNodeType) {
-                console.warn(
-                  `No matching node type found for pattern with nodeTypeId: ${pattern.nodeTypeId}`,
-                );
                 continue;
               }
 
@@ -348,7 +333,7 @@ export class QueryEngine {
           }
         }
       } catch (error) {
-        console.warn("Error querying DataCore for imported file:", error);
+        // Silently fail and continue
       }
     }
 
@@ -403,9 +388,6 @@ export class QueryEngine {
           );
 
           if (!matchedNodeType) {
-            console.warn(
-              `No matching node type found for pattern with nodeTypeId: ${pattern.nodeTypeId}`,
-            );
             continue;
           }
 

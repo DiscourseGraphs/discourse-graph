@@ -106,12 +106,10 @@ export const applyTemplate = async ({
     const { isEnabled, folderPath } = getTemplatePluginInfo(app);
 
     if (!isEnabled) {
-      console.warn("Templates plugin is not enabled");
       return false;
     }
 
     if (!folderPath) {
-      console.warn("Template folder is not configured");
       return false;
     }
 
@@ -119,7 +117,6 @@ export const applyTemplate = async ({
     const templateFile = app.vault.getAbstractFileByPath(templateFilePath);
 
     if (!templateFile || !(templateFile instanceof TFile)) {
-      console.warn(`Template file not found: ${templateFilePath}`);
       return false;
     }
 
