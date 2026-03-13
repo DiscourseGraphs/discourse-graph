@@ -82,13 +82,20 @@ If no docs update is needed, inform the dev and stop.
 
 ### Navigation Mapping
 
-If a **new page** is created, register it in the appropriate `docMap.ts`:
+If a **new page** is created, register it in the appropriate `docMap.ts` and `navigation.ts`:
+
+**docMap.ts** (maps slugs to content directories — only needed for shared pages; platform-specific pages use the default):
 
 - Obsidian: `apps/website/app/(docs)/docs/obsidian/docMap.ts`
 - Roam: `apps/website/app/(docs)/docs/roam/docMap.ts`
 - Shared: `apps/website/app/(docs)/docs/shared/docMap.ts`
 
-Add the page slug as a new key mapping to the platform's pages directory.
+**navigation.ts** (controls sidebar — must be updated for every new page):
+
+- Obsidian: `apps/website/app/(docs)/docs/obsidian/navigation.ts`
+- Roam: `apps/website/app/(docs)/docs/roam/navigation.ts`
+
+Add the page to the appropriate section in the navigation array so it appears in the sidebar.
 
 ### Screenshot Placeholders
 
