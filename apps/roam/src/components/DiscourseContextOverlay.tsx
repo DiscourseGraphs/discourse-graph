@@ -11,7 +11,7 @@ import ReactDOM from "react-dom";
 import { ContextContent } from "./DiscourseContext";
 import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import { USE_STORED_RELATIONS } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import deriveDiscourseNodeAttribute from "~/utils/deriveDiscourseNodeAttribute";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
@@ -222,7 +222,7 @@ const useDiscourseContext = (uid: string, tag: string) => {
                     score,
                     numResults,
                     ignoreCache,
-                    reified: getSetting<boolean>(USE_REIFIED_RELATIONS),
+                    reified: getSetting<boolean>(USE_STORED_RELATIONS),
                   },
                 });
               }
