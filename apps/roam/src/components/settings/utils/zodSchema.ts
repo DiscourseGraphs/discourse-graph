@@ -285,10 +285,11 @@ const staticTopLevelEntries = [
   },
 ];
 
-export const TOP_LEVEL_BLOCK_PROP_KEYS = {
-  featureFlags: "Feature Flags",
-  global: "Global",
-} as const;
+export const TOP_LEVEL_BLOCK_PROP_KEYS = Object.fromEntries(
+  staticTopLevelEntries.map((e) => [e.propKey, e.key]),
+) as {
+  readonly [E in (typeof staticTopLevelEntries)[number] as E["propKey"]]: E["key"];
+};
 
 export const getTopLevelBlockPropsConfig = () => [
   ...staticTopLevelEntries,
