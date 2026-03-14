@@ -5,6 +5,7 @@ config();
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  devIndicators: false,
   serverRuntimeConfig: {
     maxDuration: 300,
   },
