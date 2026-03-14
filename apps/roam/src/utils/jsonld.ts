@@ -17,6 +17,7 @@ export const jsonLdContext = (baseUrl: string): Record<string, string> => ({
   prov: "http://www.w3.org/ns/prov#",
   sioc: "http://rdfs.org/sioc/ns#",
   dgb: "https://discoursegraphs.com/schema/dg_base",
+  dg: "https://discoursegraphs.com/schema/dg_core",
   subClassOf: "rdfs:subClassOf",
   title: "dc:title",
   label: "rdfs:label",
@@ -32,6 +33,7 @@ export const jsonLdContext = (baseUrl: string): Record<string, string> => ({
   relationDef: "dgb:RelationDef",
   relationInstance: "dgb:RelationInstance",
   inverseOf: "owl:inverseOf",
+  backlink: "dg:backlink",
   pages: `${baseUrl}/page/`,
 });
 
@@ -105,7 +107,10 @@ export const getJsonLdData = async ({
   nodeLabelByType: Record<string, string>;
   updateExportProgress: (progress: number) => Promise<void>;
 }): Promise<
-  Record<string, string | Record<string, string> | Record<string, string>[]>
+  Record<
+    string,
+    string | Record<string, string> | Record<string, string | string[]>[]
+  >
 > => {
   const roamUrl = canonicalRoamUrl();
   const getRelationData = () =>
@@ -131,40 +136,71 @@ export const getJsonLdData = async ({
       .filter((s) => s.content !== undefined)
       .map((node) => [node.label, node["@id"]]),
   );
+  const nodeSet = new Set(pageData.map((n) => n.uid));
 
-  await Promise.all(
+  const nodes = await Promise.all(
     pageData.map(async (page: Result) => {
-      const r = await pageToMarkdown(page, {
+      const md = await pageToMarkdown(page, {
         ...settings,
         allNodes,
         linkType: "roam url",
       });
-      page.content = r.content;
+      const { content } = md;
+      page.content = content;
+      const { text, uid, type } = page;
+      const { date, displayName, modified } = getPageMetadata(text);
+      const nodeType = nodeSchemaUriByName[type as string];
+      if (!nodeType) {
+        internalError({
+          error: `Unknown node type "${type as string}" for page "${text}"`,
+        });
+      }
+      const directBacklinks = (
+        await (window.roamAlphaAPI.data.backend.q(
+          `[:find ?uid
+        :where
+          [?page :block/uid "${uid}"]
+          [?refBlock :block/refs ?page]
+          [?refBlock :block/page ?refPage]
+          [?refPage :block/uid ?uid]
+          ]`,
+        ) as Promise<Array<[string]>>)
+      )
+        .map((x) => x[0])
+        .filter((x) => nodeSet.has(x));
+      const indirectBacklinks = (
+        await (window.roamAlphaAPI.data.backend.q(
+          `[:find ?uid
+        :where
+          [?page :block/uid "${uid}"]
+          [?block :block/page ?page]
+          [?refBlock :block/refs ?block]
+          [?refBlock :block/page ?refPage]
+          [?refPage :block/uid ?uid]
+          ]`,
+        ) as Promise<Array<[string]>>)
+      )
+        .map((x) => x[0])
+        .filter((x) => nodeSet.has(x));
+      directBacklinks.push(...indirectBacklinks);
+      const backlinks = [...new Set(directBacklinks)];
+      const r: Record<string, string | string[]> = {
+        "@id": `pages:${uid}`, // eslint-disable-line @typescript-eslint/naming-convention
+        "@type": nodeType, // eslint-disable-line @typescript-eslint/naming-convention
+        title: text,
+        content,
+        modified: modified?.toJSON(),
+        created: date.toJSON(),
+        creator: displayName,
+      };
+      if (backlinks.length > 0) {
+        r["backlink"] = backlinks.map((x) => `pages:${x}`);
+      }
       numTreatedPages += 1;
       await updateExportProgress(0.1 + (numTreatedPages / numPages) * 0.75);
+      return r;
     }),
   );
-
-  const nodes = pageData.map(({ text, uid, content, type }) => {
-    const { date, displayName, modified } = getPageMetadata(text);
-    const nodeType = nodeSchemaUriByName[type];
-    if (!nodeType) {
-      internalError({
-        error: `Unknown node type "${type}" for page "${text}"`,
-      });
-    }
-    const r = {
-      "@id": `pages:${uid}`, // eslint-disable-line @typescript-eslint/naming-convention
-      "@type": nodeType ?? "nodeSchema", // eslint-disable-line @typescript-eslint/naming-convention
-      title: text,
-      content: content as string,
-      modified: modified?.toJSON(),
-      created: date.toJSON(),
-      creator: displayName,
-    };
-    return r;
-  });
-  const nodeSet = new Set(pageData.map((n) => n.uid));
   const rels = await getRelationData();
   await updateExportProgress(1);
   const relations = uniqJsonArray(
