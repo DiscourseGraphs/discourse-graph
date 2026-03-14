@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -72,10 +73,12 @@ export const envFilePath = () => {
 };
 
 export const envContents = () => {
+  const variant = getVariant();
   const path = envFilePath();
   if (!path) {
     // Fallback to process.env when running in production environments
     const raw = {
+      SUPABASE_USE_DB: variant,
       SUPABASE_URL: process.env.SUPABASE_URL,
       SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY,
       NEXT_API_ROOT: process.env.NEXT_API_ROOT,
@@ -83,7 +86,10 @@ export const envContents = () => {
     return Object.fromEntries(Object.entries(raw).filter(([, v]) => !!v));
   }
   const data = readFileSync(path, "utf8");
-  return dotenv.parse(data);
+  return {
+    ...dotenv.parse(data),
+    SUPABASE_USE_DB: variant,
+  };
 };
 
 let configDone = false;
