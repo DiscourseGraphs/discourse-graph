@@ -815,6 +815,8 @@ const registerDiscourseDatalogTranslators = () => {
               [
                 { from: source, to: source },
                 { from: target, to: target },
+                { from: "relSchema", to: "relSchema" },
+                { from: "relSource", to: "relSource" },
                 { from: true, to: (v) => `${uid}-${v}` },
               ],
               clauses,
