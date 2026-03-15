@@ -126,6 +126,7 @@ const ConfirmCloudSyncDialog = ({
           type="primary"
           onClick={() => {
             onConfirm();
+            posthog.capture("Canvas: Toggle cloud sync");
           }}
         >
           <TldrawUiButtonLabel>Move to cloud sync</TldrawUiButtonLabel>
@@ -335,7 +336,6 @@ export const createUiComponents = ({
               disabled={canvasSyncMode === "sync"}
               onToggle={() => {
                 void actions["toggle-cloud-sync"].onSelect("menu");
-                posthog.capture("Canvas: Toggle cloud sync");
               }}
             />
           </TldrawUiMenuGroup>
