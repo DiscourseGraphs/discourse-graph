@@ -197,25 +197,34 @@ export const compile = ({
             build.onEnd(async () => {
               if (!mirror) return;
 
-              const normalizedMirrorPath = path.normalize(mirror);
-              const resolvedMirrorPath = path.resolve(
-                root,
-                normalizedMirrorPath,
-              );
+              const mirrorPaths = mirror
+                .split(",")
+                .map((p) => p.trim())
+                .filter(Boolean);
 
-              if (!fs.existsSync(resolvedMirrorPath)) {
-                fs.mkdirSync(resolvedMirrorPath, { recursive: true });
+              for (const mirrorPath of mirrorPaths) {
+                const normalizedMirrorPath = path.normalize(mirrorPath);
+                const resolvedMirrorPath = path.resolve(
+                  root,
+                  normalizedMirrorPath,
+                );
+
+                if (!fs.existsSync(resolvedMirrorPath)) {
+                  fs.mkdirSync(resolvedMirrorPath, { recursive: true });
+                }
+
+                readDir(outdir)
+                  .filter((file) => fs.existsSync(appPath(file)))
+                  .forEach((file) => {
+                    const destinationPath = path.join(
+                      resolvedMirrorPath,
+                      path.relative(outdir, file),
+                    );
+                    fs.cpSync(appPath(file), destinationPath);
+                  });
+
+                console.log(`mirrored to ${resolvedMirrorPath}`);
               }
-
-              readDir(outdir)
-                .filter((file) => fs.existsSync(appPath(file)))
-                .forEach((file) => {
-                  const destinationPath = path.join(
-                    resolvedMirrorPath,
-                    path.relative(outdir, file),
-                  );
-                  fs.cpSync(appPath(file), destinationPath);
-                });
             });
           },
         },
