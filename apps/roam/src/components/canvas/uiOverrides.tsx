@@ -4,6 +4,7 @@ import {
   TLImageShape,
   TLShape,
   TLTextShape,
+  TLUiDialogProps,
   TLUiOverrides,
   TLUiTranslationKey,
   createShapeId,
@@ -34,7 +35,11 @@ import {
   ZoomToSelectionMenuItem,
   useEditor,
   useValue,
-  useToasts,
+  TldrawUiDialogHeader,
+  TldrawUiDialogTitle,
+  TldrawUiDialogCloseButton,
+  TldrawUiDialogBody,
+  TldrawUiDialogFooter,
 } from "tldraw";
 import { IKeyCombo } from "@blueprintjs/core";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
@@ -51,6 +56,7 @@ import { getSetting } from "~/utils/extensionSettings";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
+import posthog from "posthog-js";
 
 const SyncModeMenuSwitchItem = ({
   checked,
@@ -83,6 +89,50 @@ const SyncModeMenuSwitchItem = ({
         </span>
       </TldrawUiButton>
     </TldrawUiDropdownMenuItem>
+  );
+};
+
+const ConfirmCloudSyncDialog = ({
+  onCancel,
+  onConfirm,
+}: TLUiDialogProps & {
+  onCancel: () => void;
+  onConfirm: () => void;
+}): ReactElement => {
+  return (
+    <>
+      <TldrawUiDialogHeader>
+        <TldrawUiDialogTitle>Move canvas to cloud sync</TldrawUiDialogTitle>
+        <TldrawUiDialogCloseButton />
+      </TldrawUiDialogHeader>
+      <TldrawUiDialogBody>
+        <p>Your current canvas will be migrated to the shared cloud backend.</p>
+        <p>
+          This will enable{" "}
+          <span className="font-bold">real-time collaboration</span> between
+          multiple users.
+        </p>
+      </TldrawUiDialogBody>
+      <TldrawUiDialogFooter className="tlui-dialog__footer__actions">
+        <TldrawUiButton
+          type="normal"
+          onClick={() => {
+            onCancel();
+          }}
+        >
+          <TldrawUiButtonLabel>Cancel</TldrawUiButtonLabel>
+        </TldrawUiButton>
+        <TldrawUiButton
+          type="primary"
+          onClick={() => {
+            onConfirm();
+            posthog.capture("Canvas: Toggle cloud sync");
+          }}
+        >
+          <TldrawUiButtonLabel>Move to cloud sync</TldrawUiButtonLabel>
+        </TldrawUiButton>
+      </TldrawUiDialogFooter>
+    </>
   );
 };
 
@@ -225,13 +275,11 @@ export const createUiComponents = ({
   allAddReferencedNodeActions,
   allRelationNames,
   canvasSyncMode,
-  onCanvasSyncModeChange,
 }: {
   allNodes: DiscourseNode[];
   allRelationNames: string[];
   allAddReferencedNodeActions: string[];
   canvasSyncMode: CanvasSyncMode;
-  onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
 }): TLUiComponents => {
   return {
     Toolbar: (props) => {
@@ -262,6 +310,7 @@ export const createUiComponents = ({
       );
     },
     MainMenu: () => {
+      const actions = useActions();
       const CustomViewMenu = () => {
         const actions = useActions();
         return (
@@ -277,11 +326,6 @@ export const createUiComponents = ({
           </TldrawUiMenuSubmenu>
         );
       };
-      const onToggleSyncMode = (): void => {
-        const nextMode: CanvasSyncMode =
-          canvasSyncMode === "sync" ? "local" : "sync";
-        onCanvasSyncModeChange(nextMode);
-      };
 
       return (
         <DefaultMainMenu>
@@ -289,7 +333,10 @@ export const createUiComponents = ({
             <SyncModeMenuSwitchItem
               label="(Beta) Use cloud canvas"
               checked={canvasSyncMode === "sync"}
-              onToggle={onToggleSyncMode}
+              disabled={canvasSyncMode === "sync"}
+              onToggle={() => {
+                void actions["toggle-cloud-sync"].onSelect("menu");
+              }}
             />
           </TldrawUiMenuGroup>
           <EditSubmenu />
@@ -314,6 +361,8 @@ export const createUiOverrides = ({
   allRelationNames,
   allAddReferencedNodeByAction,
   discourseContext,
+  canvasSyncMode,
+  onCanvasSyncModeChange,
   toggleMaximized,
   setConvertToDialogOpen,
 }: {
@@ -321,6 +370,8 @@ export const createUiOverrides = ({
   allRelationNames: string[];
   allAddReferencedNodeByAction: AddReferencedNodeType;
   discourseContext: DiscourseContextType;
+  canvasSyncMode: CanvasSyncMode;
+  onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
   toggleMaximized: () => void;
   setConvertToDialogOpen: (open: boolean) => void;
 }): TLUiOverrides => ({
@@ -404,14 +455,35 @@ export const createUiOverrides = ({
 
     return tools;
   },
-  actions: (editor, actions) => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { addToast } = useToasts();
+  actions: (_editor, actions, helpers) => {
+    const { addToast, addDialog } = helpers;
     actions["convert-to"] = {
       id: "convert-to",
       label: "action.convert-to" as TLUiTranslationKey,
       kbd: "?C",
       onSelect: () => setConvertToDialogOpen(true),
+      readonlyOk: true,
+    };
+    actions["toggle-cloud-sync"] = {
+      id: "toggle-cloud-sync",
+      label: "action.toggle-cloud-sync" as TLUiTranslationKey,
+      kbd: "",
+      onSelect: () => {
+        if (canvasSyncMode === "sync") return;
+
+        addDialog({
+          component: ({ onClose }) => (
+            <ConfirmCloudSyncDialog
+              onClose={onClose}
+              onCancel={onClose}
+              onConfirm={() => {
+                onCanvasSyncModeChange("sync");
+                onClose();
+              }}
+            />
+          ),
+        });
+      },
       readonlyOk: true,
     };
     actions["toggle-full-screen"] = {
@@ -456,6 +528,7 @@ export const createUiOverrides = ({
       ...Object.fromEntries(
         allNodes.map((node) => [`shape.node.${node.type}`, node.text]),
       ),
+      "action.toggle-cloud-sync": "Toggle cloud canvas sync",
       "action.toggle-full-screen": "Toggle Full Screen",
       "tool.discourse-tool": "Discourse Graph",
     },
