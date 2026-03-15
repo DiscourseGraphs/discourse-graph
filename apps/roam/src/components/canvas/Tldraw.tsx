@@ -10,7 +10,7 @@ import { Icon } from "@blueprintjs/core";
 import ExtensionApiContextProvider, {
   useExtensionAPI,
 } from "roamjs-components/components/ExtensionApiContext";
-import { OnloadArgs } from "roamjs-components/types";
+import { OnloadArgs, PullBlock } from "roamjs-components/types";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 
 import {
@@ -116,6 +116,7 @@ import {
   useCanvasStoreAdapterArgs,
 } from "./useCanvasStoreAdapterArgs";
 import posthog from "posthog-js";
+import { json, normalizeProps } from "~/utils/getBlockProps";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -173,6 +174,34 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   useEffect(() => {
     setCanvasSyncModeState(ensureCanvasSyncMode({ pageUid }));
   }, [pageUid]);
+
+  // Convert from local to sync when the block props change
+  // EG: When UserA sets the canvas sync mode to sync
+  // UserB's canvas should be converted to sync
+  useEffect(() => {
+    if (!pageUid || canvasSyncMode !== "local") return;
+
+    const pullWatchProps = [
+      "[:block/props]",
+      `[:block/uid "${pageUid}"]`,
+      (_before: PullBlock | null, after: PullBlock | null) => {
+        const blockProps = normalizeProps(
+          (after?.[":block/props"] || {}) as json,
+        ) as Record<string, json>;
+        const rjsqb = blockProps?.["roamjs-query-builder"] as Record<
+          string,
+          unknown
+        >;
+        if (rjsqb?.canvasSyncMode !== "sync") return;
+        setCanvasSyncModeState("sync");
+      },
+    ] as const;
+
+    window.roamAlphaAPI.data.addPullWatch(...pullWatchProps);
+    return () => {
+      window.roamAlphaAPI.data.removePullWatch(...pullWatchProps);
+    };
+  }, [canvasSyncMode, pageUid]);
 
   const onCanvasSyncModeChange = useCallback(
     (mode: CanvasSyncMode) => {
