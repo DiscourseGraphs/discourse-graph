@@ -104,9 +104,12 @@ import { BLOCK_REF_REGEX } from "roamjs-components/dom";
 import { defaultHandleExternalTextContent } from "./defaultHandleExternalTextContent";
 import {
   CanvasSyncMode,
+  getCanvasSyncMigrationState,
+  getReadyCanvasStore,
   ensureCanvasSyncMode,
   getEffectiveCanvasSyncMode,
-  setCanvasSyncMode,
+  migrateLocalCanvasToCloud,
+  setCanvasSyncSettings,
 } from "./canvasSyncMode";
 import {
   CanvasStoreAdapterArgs,
@@ -173,7 +176,14 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   const onCanvasSyncModeChange = useCallback(
     (mode: CanvasSyncMode) => {
-      setCanvasSyncMode({ pageUid, mode });
+      const currentMigrationState = getCanvasSyncMigrationState({ pageUid });
+      const nextMigrationState =
+        mode === "sync" && !currentMigrationState ? "pending" : undefined;
+      setCanvasSyncSettings({
+        pageUid,
+        mode,
+        migrationState: nextMigrationState,
+      });
       setCanvasSyncModeState(mode);
     },
     [pageUid],
@@ -254,6 +264,7 @@ const useCloudflareCanvasStore = ({
     performUpgrade: () => {},
   };
 };
+
 const TldrawCanvasRoam = ({
   title,
   pageUid,
@@ -632,7 +643,6 @@ const TldrawCanvasShared = ({
     allRelationNames,
     allAddReferencedNodeActions,
     canvasSyncMode,
-    onCanvasSyncModeChange,
   });
 
   const storeAdapterArgs = useCanvasStoreAdapterArgs({
@@ -643,6 +653,7 @@ const TldrawCanvasShared = ({
     allAddReferencedNodeByAction,
   });
   const {
+    migrations,
     customShapeUtils,
     customBindingUtils,
     customShapeTypes,
@@ -671,6 +682,8 @@ const TldrawCanvasShared = ({
     allNodes,
     allRelationNames,
     allAddReferencedNodeByAction,
+    canvasSyncMode,
+    onCanvasSyncModeChange,
     toggleMaximized: handleMaximizedChange,
     setConvertToDialogOpen,
     discourseContext,
@@ -685,6 +698,55 @@ const TldrawCanvasShared = ({
   }, [pageUid]);
   const { store, needsUpgrade, performUpgrade, error, isLoading } =
     useStoreAdapter(storeAdapterArgs);
+  const migratedCloudStoreRef = useRef<string | null>(null);
+
+  // Migrate local canvas to cloud sync
+  useEffect(() => {
+    if (!isCloudflareSync || canvasSyncMode !== "sync") return;
+    if (getCanvasSyncMigrationState({ pageUid }) !== "pending") return;
+
+    const readyStore = getReadyCanvasStore(store);
+    if (!readyStore) return;
+
+    const storeId = `${pageUid}:${readyStore.id}`;
+    if (migratedCloudStoreRef.current === storeId) return;
+    migratedCloudStoreRef.current = storeId;
+
+    try {
+      const { migrated } = migrateLocalCanvasToCloud({
+        pageUid,
+        store: readyStore,
+        migrations,
+        customShapeUtils,
+        customBindingUtils,
+      });
+      if (migrated)
+        renderToast({
+          id: "tldraw-cloud-migration",
+          intent: "success",
+          content: "Migrated local canvas to cloud sync.",
+        });
+    } catch (migrationError) {
+      migratedCloudStoreRef.current = null;
+      internalError({
+        error: migrationError,
+        type: "Canvas: Local to cloud migration failed",
+        context: {
+          pageUid,
+          title,
+        },
+      });
+    }
+  }, [
+    canvasSyncMode,
+    customBindingUtils,
+    customShapeUtils,
+    isCloudflareSync,
+    migrations,
+    pageUid,
+    store,
+    title,
+  ]);
 
   // ASSETS
   const assetLoading = usePreloadAssets(defaultEditorAssetUrls);

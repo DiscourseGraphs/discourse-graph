@@ -80,6 +80,108 @@ const filterUserRecords = (data: SerializedStore<TLRecord>) => {
   );
 };
 
+const createCanvasStore = ({
+  migrations,
+  customShapeUtils,
+  customBindingUtils,
+}: {
+  migrations: MigrationSequence[];
+  customShapeUtils: readonly TLAnyShapeUtilConstructor[];
+  customBindingUtils: readonly TLAnyBindingUtilConstructor[];
+}): TLStore =>
+  createTLStore({
+    migrations,
+    shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
+    bindingUtils: [...defaultBindingUtils, ...customBindingUtils],
+  });
+
+const getPersistedRoamCanvasState = ({
+  pageUid,
+}: {
+  pageUid: string;
+}): {
+  initialSnapshot: TLStoreSnapshot | null;
+  oldData: SerializedStore<TLRecord> | null;
+} => {
+  const props = getBlockProps(pageUid) as Record<string, unknown>;
+  const rjsqb =
+    typeof props["roamjs-query-builder"] === "object"
+      ? (props["roamjs-query-builder"] as Record<string, unknown>)
+      : {};
+
+  if (isTLStoreSnapshot(rjsqb.tldraw))
+    return {
+      initialSnapshot: rjsqb.tldraw,
+      oldData: null,
+    };
+
+  return {
+    initialSnapshot: null,
+    oldData: rjsqb?.tldraw ? (rjsqb.tldraw as SerializedStore<TLRecord>) : null,
+  };
+};
+
+const upgradeLegacyStoreSnapshot = ({
+  oldData,
+  migrations,
+  customShapeUtils,
+  customBindingUtils,
+}: {
+  oldData: SerializedStore<TLRecord>;
+  migrations: MigrationSequence[];
+  customShapeUtils: readonly TLAnyShapeUtilConstructor[];
+  customBindingUtils: readonly TLAnyBindingUtilConstructor[];
+}): TLStoreSnapshot => {
+  const newStore = createCanvasStore({
+    migrations,
+    customShapeUtils,
+    customBindingUtils,
+  });
+  const filteredData = filterUserRecords(oldData);
+  const dataWithFixedShapes = fixShapeIndices(filteredData);
+
+  loadSnapshot(newStore, {
+    store: dataWithFixedShapes,
+    schema: LEGACY_SCHEMA,
+  });
+
+  return newStore.getStoreSnapshot();
+};
+
+export const getRoamCanvasSnapshot = ({
+  pageUid,
+  migrations,
+  customShapeUtils,
+  customBindingUtils,
+  includePersonalRecords = true,
+}: {
+  pageUid: string;
+  migrations: MigrationSequence[];
+  customShapeUtils: readonly TLAnyShapeUtilConstructor[];
+  customBindingUtils: readonly TLAnyBindingUtilConstructor[];
+  includePersonalRecords?: boolean;
+}): TLStoreSnapshot | null => {
+  const { initialSnapshot, oldData } = getPersistedRoamCanvasState({ pageUid });
+
+  const snapshot = initialSnapshot
+    ? initialSnapshot
+    : oldData
+      ? upgradeLegacyStoreSnapshot({
+          oldData,
+          migrations,
+          customShapeUtils,
+          customBindingUtils,
+        })
+      : null;
+
+  if (!snapshot || includePersonalRecords) return snapshot;
+
+  return {
+    ...snapshot,
+    store: filterUserRecords(snapshot.store),
+  };
+};
+
 export const useRoamStore = ({
   customShapeUtils,
   customBindingUtils,
@@ -111,18 +213,15 @@ export const useRoamStore = ({
     if (!persisted.uid) {
       void createBlock({ node: { text: "State" }, parentUid: pageUid });
     }
-    const props = getBlockProps(pageUid) as Record<string, unknown>;
-    const rjsqb =
-      typeof props["roamjs-query-builder"] === "object"
-        ? (props["roamjs-query-builder"] as Record<string, unknown>)
-        : {};
-    if (isTLStoreSnapshot(rjsqb.tldraw)) {
-      setInitialSnapshot(rjsqb.tldraw);
+    const { initialSnapshot, oldData } = getPersistedRoamCanvasState({
+      pageUid,
+    });
+    if (initialSnapshot) {
+      setInitialSnapshot(initialSnapshot);
       setLoading(false);
-    } else if (rjsqb?.tldraw) {
-      const oldStore = rjsqb.tldraw as SerializedStore<TLRecord>;
+    } else if (oldData) {
       setNeedsUpgrade(true);
-      setOldData(oldStore);
+      setOldData(oldData);
       setLoading(false);
     } else {
       // Create a new store
@@ -161,10 +260,10 @@ export const useRoamStore = ({
     let _store: TLStore;
 
     try {
-      _store = createTLStore({
-        migrations: migrations,
-        shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
-        bindingUtils: [...defaultBindingUtils, ...customBindingUtils],
+      _store = createCanvasStore({
+        migrations,
+        customShapeUtils,
+        customBindingUtils,
       });
     } catch (e) {
       handleStoreError({
@@ -260,19 +359,12 @@ export const useRoamStore = ({
   const performUpgrade = () => {
     if (!oldData) return;
     try {
-      const newStore = createTLStore({
-        migrations: migrations,
-        shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
-        bindingUtils: [...defaultBindingUtils, ...customBindingUtils],
+      const snapshot = upgradeLegacyStoreSnapshot({
+        oldData,
+        migrations,
+        customShapeUtils,
+        customBindingUtils,
       });
-      const filteredData = filterUserRecords(oldData);
-      const dataWithFixedShapes = fixShapeIndices(filteredData);
-
-      loadSnapshot(newStore, {
-        store: dataWithFixedShapes,
-        schema: LEGACY_SCHEMA,
-      });
-      const snapshot = newStore.getStoreSnapshot();
       const props = getBlockProps(pageUid) as Record<string, unknown>;
       const rjsqb =
         typeof props["roamjs-query-builder"] === "object"
