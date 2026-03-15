@@ -51,6 +51,7 @@ export type ModifyNodeDialogProps = {
     text: string;
     uid: string;
     action: string;
+    nodeType: string;
   }) => Promise<void>;
   onClose: () => void;
 };
@@ -334,6 +335,7 @@ const ModifyNodeDialog = ({
             text: content.text,
             uid: content.uid,
             action: "create",
+            nodeType: selectedNodeType.type,
           });
 
           onClose();
@@ -442,6 +444,7 @@ const ModifyNodeDialog = ({
           text: formattedTitle,
           uid: newPageUid,
           action: "create",
+          nodeType: selectedNodeType.type,
         });
       } else {
         // Edit mode: update the existing block
@@ -478,6 +481,7 @@ const ModifyNodeDialog = ({
           text: updatedContent,
           uid: sourceBlockUid || content.uid,
           action: "edit",
+          nodeType: selectedNodeType.type,
         });
       }
       onClose();
