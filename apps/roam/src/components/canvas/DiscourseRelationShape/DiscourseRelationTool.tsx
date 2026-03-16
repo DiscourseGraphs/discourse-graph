@@ -11,6 +11,7 @@ import {
 } from "./DiscourseRelationUtil";
 import { discourseContext } from "~/components/canvas/Tldraw";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
+import { getDiscourseNodeTypeId } from "~/components/canvas/DiscourseNodeUtil";
 
 export type AddReferencedNodeType = Record<string, ReferenceFormatType[]>;
 type ReferenceFormatType = {
@@ -78,7 +79,10 @@ export const createAllReferencedNodeTools = (
 
           const sourceType = allAddReferencedNodeByAction[action][0].sourceType;
           const sourceName = allAddReferencedNodeByAction[action][0].sourceName;
-          if (target?.type === sourceType) {
+          if (
+            target &&
+            getDiscourseNodeTypeId({ shape: target }) === sourceType
+          ) {
             this.shapeType = `${action}`;
           } else {
             this.cancelAndWarn(`Starting node must be one of ${sourceName}`);
@@ -360,8 +364,13 @@ export const createAllRelationShapeTools = (
             // }
           );
 
+          const targetNodeTypeId = target
+            ? getDiscourseNodeTypeId({ shape: target })
+            : undefined;
           const relation = discourseContext.relations[name].find(
-            (r) => r.source === target?.type || r.destination === target?.type,
+            (r) =>
+              r.source === targetNodeTypeId ||
+              r.destination === targetNodeTypeId,
           );
           if (relation) {
             this.shapeType = relation.id;
