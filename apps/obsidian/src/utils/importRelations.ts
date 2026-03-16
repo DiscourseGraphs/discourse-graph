@@ -11,6 +11,7 @@ import {
   findRelationBySourceDestinationType,
 } from "./relationsStore";
 import { DEFAULT_TLDRAW_COLOR } from "./tldrawColors";
+import { mapNodeTypeIdToLocal } from "./importNodes";
 
 type ConceptInRelation = {
   id: number;
@@ -307,7 +308,6 @@ export const importRelationsForImportedNodes = async ({
           const remoteSourceNodeTypeId = schemaIdToLocalId[sourceSchemaId];
           const remoteDestNodeTypeId = schemaIdToLocalId[destSchemaId];
           if (remoteSourceNodeTypeId && remoteDestNodeTypeId) {
-            const { mapNodeTypeIdToLocal } = await import("./importNodes.js");
             mappedSourceNodeTypeId = await mapNodeTypeIdToLocal({
               plugin,
               client,
