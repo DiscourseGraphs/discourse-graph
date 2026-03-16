@@ -200,7 +200,7 @@ export const compile = ({
               let mirrorPaths: string[];
               try {
                 const parsed = JSON.parse(mirror);
-                mirrorPaths = Array.isArray(parsed) ? parsed : [mirror];
+                mirrorPaths = Array.isArray(parsed) ? parsed : [parsed];
               } catch {
                 mirrorPaths = [mirror];
               }
