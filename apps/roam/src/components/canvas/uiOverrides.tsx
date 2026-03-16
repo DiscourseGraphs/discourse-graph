@@ -57,6 +57,7 @@ import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
 import posthog from "posthog-js";
+import { DISCOURSE_NODE_SHAPE_TYPE } from "./DiscourseNodeUtil";
 
 const SyncModeMenuSwitchItem = ({
   checked,
@@ -178,7 +179,7 @@ export const getOnSelectForShape = ({
         });
         editor.createShapes([
           {
-            type: nodeType,
+            type: DISCOURSE_NODE_SHAPE_TYPE,
             id: createShapeId(),
             props: {
               uid,
@@ -188,6 +189,7 @@ export const getOnSelectForShape = ({
               imageUrl: nodeImageUrl,
               fontFamily: "sans",
               size: "s",
+              nodeTypeId: nodeType,
             },
             x,
             y,

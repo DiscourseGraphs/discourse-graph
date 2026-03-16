@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -14,6 +15,7 @@ import {
 import { createMigrationIds } from "tldraw";
 import { RelationBinding } from "./DiscourseRelationBindings";
 import { getRelationColor } from "./DiscourseRelationUtil";
+import { DISCOURSE_NODE_SHAPE_TYPE } from "~/components/canvas/DiscourseNodeUtil";
 
 const SEQUENCE_ID_BASE = "com.roam-research.discourse-graphs";
 
@@ -35,6 +37,7 @@ export const createMigrations = ({
     "2.3.0": 2,
     AddSizeAndFontFamily: 3,
     RemoveNullAssetFileSize: 4,
+    MigrateNodeTypeToDiscourseNode: 5,
   });
   return createMigrationSequence({
     sequenceId: `${SEQUENCE_ID_BASE}`,
@@ -154,6 +157,16 @@ export const createMigrations = ({
           r.props?.fileSize === null,
         up: (asset: any) => {
           delete asset.props.fileSize;
+        },
+      },
+      {
+        id: versions["MigrateNodeTypeToDiscourseNode"],
+        scope: "record",
+        filter: (r: any) =>
+          r.typeName === "shape" && allNodeTypes.includes(r.type),
+        up: (shape: any) => {
+          shape.props.nodeTypeId = shape.type;
+          shape.type = DISCOURSE_NODE_SHAPE_TYPE;
         },
       },
     ],

@@ -5,7 +5,7 @@ import {
   TLAnyShapeUtilConstructor,
 } from "tldraw";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-import { createNodeShapeUtils } from "./DiscourseNodeUtil";
+import { DiscourseNodeUtil } from "./DiscourseNodeUtil";
 import {
   createAllReferencedNodeUtils,
   createAllRelationShapeUtils,
@@ -56,7 +56,6 @@ const getUtilTypes = <T extends { type: string }>({
 };
 
 const createShapeUtils = ({
-  allNodes,
   allRelationIds,
   allAddReferencedNodeByAction,
 }: {
@@ -65,7 +64,7 @@ const createShapeUtils = ({
   allAddReferencedNodeByAction: AddReferencedNodeType;
 }): TLAnyShapeUtilConstructor[] => {
   return [
-    ...createNodeShapeUtils(allNodes),
+    DiscourseNodeUtil,
     ...createAllRelationShapeUtils(allRelationIds),
     ...createAllReferencedNodeUtils(allAddReferencedNodeByAction),
   ];

@@ -1,5 +1,8 @@
 import type { Editor } from "tldraw";
-import type { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
+import {
+  DISCOURSE_NODE_SHAPE_TYPE,
+  type DiscourseNodeShape,
+} from "~/components/canvas/DiscourseNodeUtil";
 
 /**
  * Query Roam for current :node/title or :block/string for each uid.
@@ -64,12 +67,13 @@ export const syncCanvasNodeTitlesOnLoad = async (
   const nodeTypeSet = new Set(nodeTypeIds);
   const relationIds = new Set(relationShapeTypeIds);
   const allRecords = editor.store.allRecords();
-  const discourseNodeShapes = allRecords.filter(
-    (r) =>
-      r.typeName === "shape" &&
-      nodeTypeSet.has((r as DiscourseNodeShape).type) &&
-      typeof (r as DiscourseNodeShape).props?.uid === "string",
-  ) as DiscourseNodeShape[];
+  const discourseNodeShapes = allRecords.filter((r) => {
+    if (r.typeName !== "shape") return false;
+    if (r.type !== DISCOURSE_NODE_SHAPE_TYPE) return false;
+    const shape = r as DiscourseNodeShape;
+    if (!nodeTypeSet.has(shape.props.nodeTypeId)) return false;
+    return typeof shape.props?.uid === "string";
+  }) as DiscourseNodeShape[];
 
   const uids = [...new Set(discourseNodeShapes.map((s) => s.props.uid))];
   if (uids.length === 0) return;
