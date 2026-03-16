@@ -83,24 +83,4 @@ export const navigation: NavigationList = [
 ];
 ```
 
-**To add a new page:** Insert a `{ title: "Page Title", href: \`${ROOT}/slug\` }` entry in the appropriate section's `links` array.
-
-### Existing sections (Obsidian)
-
-| Section | Content type |
-|---------|-------------|
-| Getting started | Onboarding, installation |
-| Fundamentals | Concepts (discourse graph, grammar) |
-| Configuration | Settings, node types, relationship types |
-| Core features | Creating nodes/relationships, canvas, tags |
-| Advanced features | Commands, power-user features |
-| Use cases | Literature review, research notes, etc. |
-
-### Existing sections (Roam)
-
-| Section | Content type |
-|---------|-------------|
-| Welcome! | Onboarding, installation |
-| Guides | Step-by-step how-tos |
-| Fundamentals | Concepts (discourse graph, grammar) |
-| Use cases | Literature review, zettelkasten, etc. |
+**To add a new page:** Insert a `{ title: "Page Title", href: \`${ROOT}/slug\` }`entry in the appropriate section's`links` array.
