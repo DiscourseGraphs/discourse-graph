@@ -7,9 +7,18 @@ import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
-import { spaceUriAndLocalIdToRid, ridToSpaceUriAndLocalId } from "./rid";
+import {
+  getImportedNodesInfo,
+  getLocalNodeKeyToEndpointId,
+} from "~/utils/relationsStore";
+import { spaceUriAndLocalIdToRid } from "./rid";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Tables } from "@repo/database/dbTypes";
+import { getSpaceNameIdFromRid } from "./spaceFromRid";
+import {
+  importRelationsForImportedNodes,
+  type RemoteRelationInstance,
+} from "./importRelations";
 
 export const getAvailableGroupIds = async (
   client: DGSupabaseClient,
@@ -133,13 +142,13 @@ export const getPublishedNodesForGroups = async ({
 export const getLocalNodeInstanceIds = (
   plugin: DiscourseGraphPlugin,
 ): Set<string> => {
-  const allFiles = plugin.app.vault.getMarkdownFiles();
+  const queryEngine = new QueryEngine(plugin.app);
+  const files = queryEngine.getFilesWithNodeInstanceId();
   const nodeInstanceIds = new Set<string>();
 
-  for (const file of allFiles) {
+  for (const file of files) {
     const cache = plugin.app.metadataCache.getFileCache(file);
     const frontmatter = cache?.frontmatter;
-
     if (frontmatter?.nodeInstanceId) {
       nodeInstanceIds.add(frontmatter.nodeInstanceId as string);
     }
@@ -148,6 +157,10 @@ export const getLocalNodeInstanceIds = (
   return nodeInstanceIds;
 };
 
+/**
+ * Returns the space name for a given space ID.
+ * Falls back to "space-{id}" if the lookup fails.
+ */
 export const getSpaceNameFromId = async (
   client: DGSupabaseClient,
   spaceId: number,
@@ -166,24 +179,7 @@ export const getSpaceNameFromId = async (
   return data.name;
 };
 
-export const getSpaceNameIdFromRid = async (
-  client: DGSupabaseClient,
-  rid: string,
-): Promise<{ spaceName: string; spaceId: number }> => {
-  const { spaceUri } = ridToSpaceUriAndLocalId(rid);
-  const { data, error } = await client
-    .from("Space")
-    .select("name, id")
-    .eq("url", spaceUri)
-    .maybeSingle();
-
-  if (error || !data) {
-    console.error("Error fetching space name:", error);
-    return { spaceName: "", spaceId: -1 };
-  }
-
-  return { spaceName: data.name, spaceId: data.id };
-};
+export { getSpaceNameIdFromRid } from "./spaceFromRid";
 
 export const getSpaceNameFromIds = async (
   client: DGSupabaseClient,
@@ -1025,7 +1021,7 @@ const parseSchemaLiteralContent = (
   };
 };
 
-const mapNodeTypeIdToLocal = async ({
+export const mapNodeTypeIdToLocal = async ({
   plugin,
   client,
   sourceSpaceId,
@@ -1188,10 +1184,17 @@ export const importSelectedNodes = async ({
   plugin,
   selectedNodes,
   onProgress,
+  precomputedData,
 }: {
   plugin: DiscourseGraphPlugin;
   selectedNodes: ImportableNode[];
   onProgress?: (current: number, total: number) => void;
+  precomputedData?: {
+    nodeKeys: Set<string>;
+    keyToRid: Map<string, string>;
+    keyToRelationEndpointId: Map<string, string>;
+    relationInstancesBySpace: Map<number, RemoteRelationInstance[]>;
+  };
 }): Promise<{ success: number; failed: number }> => {
   const client = await getLoggedInClient(plugin);
   if (!client) {
@@ -1386,6 +1389,39 @@ export const importSelectedNodes = async ({
         onProgress?.(processedCount, totalNodes);
       }
     }
+
+    // Import relations where both endpoints resolve in this vault (imported or local)
+    try {
+      let keyToRelationEndpointId: Map<string, string>;
+      if (precomputedData?.keyToRelationEndpointId) {
+        keyToRelationEndpointId = precomputedData.keyToRelationEndpointId;
+      } else {
+        const { keyToRid } = precomputedData
+          ? { keyToRid: precomputedData.keyToRid }
+          : await getImportedNodesInfo({
+              queryEngine,
+              plugin,
+              client,
+            });
+        const localMap = getLocalNodeKeyToEndpointId(plugin, context.spaceId);
+        keyToRelationEndpointId = new Map([...keyToRid, ...localMap]);
+      }
+      const precomputedRelationInstances =
+        precomputedData?.relationInstancesBySpace.get(spaceId);
+      const { imported } = await importRelationsForImportedNodes({
+        plugin,
+        client,
+        spaceId,
+        spaceUri,
+        keyToRelationEndpointId,
+        precomputedRelationInstances,
+      });
+      if (imported > 0) {
+        console.debug(`Imported ${imported} relation(s) for space ${spaceId}`);
+      }
+    } catch (error) {
+      console.warn("Failed to import relations for imported nodes:", error);
+    }
   }
 
   return { success: successCount, failed: failedCount };
@@ -1442,8 +1478,8 @@ export const refreshImportedFile = async ({
   const metadata = metadataResp.data?.metadata;
   const filePath: string | undefined =
     typeof metadata === "object" &&
-    typeof (metadata as Record<string, any>).filePath === "string"
-      ? (metadata as Record<string, any>).filePath
+    typeof (metadata as Record<string, unknown>).filePath === "string"
+      ? ((metadata as Record<string, unknown>).filePath as string)
       : undefined;
   const result = await importSelectedNodes({
     plugin,
@@ -1476,19 +1512,11 @@ export const refreshAllImportedFiles = async (
   failed: number;
   errors: Array<{ file: string; error: string }>;
 }> => {
-  const allFiles = plugin.app.vault.getMarkdownFiles();
-  const importedFiles: TFile[] = [];
+  const queryEngine = new QueryEngine(plugin.app);
+  const importedFiles = queryEngine.getImportedNodePages();
   const client = await getLoggedInClient(plugin);
   if (!client) {
     throw new Error("Cannot get Supabase client");
-  }
-  // Find all imported files
-  for (const file of allFiles) {
-    const cache = plugin.app.metadataCache.getFileCache(file);
-    const frontmatter = cache?.frontmatter;
-    if (frontmatter?.importedFromRid && frontmatter?.nodeInstanceId) {
-      importedFiles.push(file);
-    }
   }
 
   if (importedFiles.length === 0) {

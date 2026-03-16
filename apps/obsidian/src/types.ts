@@ -47,6 +47,8 @@ export type RelationInstance = {
   lastModified?: number;
   publishedToGroupId?: string[];
   importedFromRid?: string;
+  /** Pre-emptive: for future UI where user approves relations. On first import, set to false. */
+  provisional?: boolean;
 };
 
 export type Settings = {

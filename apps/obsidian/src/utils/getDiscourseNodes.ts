@@ -1,5 +1,6 @@
 import type { TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
+import { QueryEngine } from "~/services/QueryEngine";
 import { ensureNodeInstanceId } from "./nodeInstanceId";
 
 export type DiscourseNodeInVault = {
@@ -10,37 +11,28 @@ export type DiscourseNodeInVault = {
 };
 
 /**
- * Step 1: Collect all discourse nodes from the vault
- * Filters markdown files that have nodeTypeId in frontmatter
+ * Collect all discourse nodes from the vault.
+ * Uses DataCore when available; falls back to vault iteration otherwise.
+ * When includeImported is false (default), excludes files with importedFromRid/importedFromSpaceUri.
  */
 export const collectDiscourseNodesFromVault = async (
   plugin: DiscourseGraphPlugin,
   includeImported?: boolean,
 ): Promise<DiscourseNodeInVault[]> => {
-  const allFiles = plugin.app.vault.getMarkdownFiles();
+  const queryEngine = new QueryEngine(plugin.app);
+  const excludeImported = includeImported !== true;
+  const files = queryEngine.getFilesWithNodeTypeId({
+    excludeImported,
+  });
   const dgNodes: DiscourseNodeInVault[] = [];
 
-  for (const file of allFiles) {
+  for (const file of files) {
     const cache = plugin.app.metadataCache.getFileCache(file);
     const frontmatter = cache?.frontmatter;
-
-    // Not a discourse node
-    if (!frontmatter?.nodeTypeId) {
-      continue;
-    }
-
-    if (
-      // note: importedFromSpaceUri is legacy
-      (frontmatter.importedFromRid || frontmatter.importedFromSpaceUri) &&
-      includeImported !== true
-    ) {
-      continue;
-    }
+    if (!frontmatter?.nodeTypeId) continue;
 
     const nodeTypeId = frontmatter.nodeTypeId as string;
-    if (!nodeTypeId) {
-      continue;
-    }
+    if (!nodeTypeId) continue;
 
     const nodeInstanceId = await ensureNodeInstanceId(
       plugin,
