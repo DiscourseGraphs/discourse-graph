@@ -83,4 +83,4 @@ export const navigation: NavigationList = [
 ];
 ```
 
-**To add a new page:** Insert a `{ title: "Page Title", href: \`${ROOT}/slug\` }`entry in the appropriate section's`links` array.
+**To add a new page:** Insert a `{ title: "Page Title", href: \`${ROOT}/slug\` }` entry in the appropriate section's `links` array.
