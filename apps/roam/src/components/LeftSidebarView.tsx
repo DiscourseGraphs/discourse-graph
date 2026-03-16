@@ -36,6 +36,7 @@ import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
 import {
   getGlobalSetting,
   getPersonalSetting,
+  getPersonalSettings,
   setGlobalSetting,
   setPersonalSetting,
 } from "~/components/settings/utils/accessors";
@@ -45,10 +46,7 @@ import {
   LEFT_SIDEBAR_KEYS,
   LEFT_SIDEBAR_SETTINGS_KEYS,
 } from "~/components/settings/utils/settingKeys";
-import type {
-  LeftSidebarGlobalSettings,
-  PersonalSection,
-} from "~/components/settings/utils/zodSchema";
+import type { LeftSidebarGlobalSettings } from "~/components/settings/utils/zodSchema";
 import { createBlock } from "roamjs-components/writes";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -112,7 +110,7 @@ const openTarget = async (e: React.MouseEvent, targetUid: string) => {
   }
 };
 
-const toggleFoldedState = ({
+const toggleFoldedState = async ({
   isOpen,
   setIsOpen,
   folded,
@@ -130,22 +128,25 @@ const toggleFoldedState = ({
   const newFolded = !isOpen;
 
   if (isOpen) {
-    setIsOpen(false);
-    if (folded.uid) {
-      void deleteBlock(folded.uid);
-      folded.uid = undefined;
-      folded.value = false;
-    }
+    const children = getBasicTreeByParentUid(parentUid);
+    await Promise.all(
+      children
+        .filter((c) => c.text === "Folded")
+        .map((c) => deleteBlock(c.uid)),
+    );
+    folded.uid = undefined;
+    folded.value = false;
   } else {
-    setIsOpen(true);
     const newUid = window.roamAlphaAPI.util.generateUID();
-    void createBlock({
+    await createBlock({
       parentUid,
       node: { text: "Folded", uid: newUid },
     });
     folded.uid = newUid;
     folded.value = true;
   }
+
+  refreshConfigTree();
 
   if (isGlobal) {
     setGlobalSetting(
@@ -157,13 +158,20 @@ const toggleFoldedState = ({
       newFolded,
     );
   } else if (sectionIndex !== undefined) {
-    const sections =
-      getPersonalSetting<PersonalSection[]>([PERSONAL_KEYS.leftSidebar]) || [];
+    const sections = [...getPersonalSettings()[PERSONAL_KEYS.leftSidebar]];
     if (sections[sectionIndex]) {
-      sections[sectionIndex].Settings.Folded = newFolded;
+      sections[sectionIndex] = {
+        ...sections[sectionIndex],
+        Settings: {
+          ...sections[sectionIndex].Settings,
+          Folded: newFolded,
+        },
+      };
       setPersonalSetting([PERSONAL_KEYS.leftSidebar], sections);
     }
   }
+
+  setIsOpen(newFolded);
 };
 
 const SectionChildren = ({
@@ -225,7 +233,7 @@ const PersonalSectionItem = ({
   const handleChevronClick = () => {
     if (!section.settings) return;
 
-    toggleFoldedState({
+    void toggleFoldedState({
       isOpen,
       setIsOpen,
       folded: section.settings.folded,
@@ -297,7 +305,7 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
         className="sidebar-title-button flex w-full items-center border-none bg-transparent py-1 pl-6 pr-2.5 font-semibold outline-none"
         onClick={() => {
           if (!isCollapsable || !config.settings) return;
-          toggleFoldedState({
+          void toggleFoldedState({
             isOpen,
             setIsOpen,
             folded: config.settings.folded,
@@ -333,9 +341,9 @@ const buildConfig = (): LeftSidebarConfig => {
   const globalValues = getGlobalSetting<LeftSidebarGlobalSettings>([
     GLOBAL_KEYS.leftSidebar,
   ]);
-  const personalValues = getPersonalSetting<PersonalSection[]>([
-    PERSONAL_KEYS.leftSidebar,
-  ]);
+  const personalValues = getPersonalSetting<
+    ReturnType<typeof getPersonalSettings>[typeof PERSONAL_KEYS.leftSidebar]
+  >([PERSONAL_KEYS.leftSidebar]);
 
   // Read UIDs from old system (needed for fold CRUD during dual-write)
   const oldConfig = getCurrentLeftSidebarConfig();

@@ -125,14 +125,9 @@ const SectionItem = memo(
             order: 0,
             node: { text: "Settings" },
           });
-          const foldedUid = await createBlock({
-            parentUid: settingsUid,
-            order: 0,
-            node: { text: "Folded" },
-          });
           const truncateSettingUid = await createBlock({
             parentUid: settingsUid,
-            order: 1,
+            order: 0,
             node: { text: "Truncate-result?", children: [{ text: "75" }] },
           });
 
@@ -149,7 +144,7 @@ const SectionItem = memo(
                   ...s,
                   settings: {
                     uid: settingsUid,
-                    folded: { uid: foldedUid, value: false },
+                    folded: { uid: undefined, value: false },
                     truncateResult: { uid: truncateSettingUid, value: 75 },
                   },
                   childrenUid,
@@ -167,7 +162,7 @@ const SectionItem = memo(
                     ...s,
                     settings: {
                       uid: settingsUid,
-                      folded: { uid: foldedUid, value: false },
+                      folded: { uid: undefined, value: false },
                       truncateResult: { uid: truncateSettingUid, value: 75 },
                     },
                     children: [],

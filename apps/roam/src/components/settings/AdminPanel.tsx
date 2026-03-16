@@ -294,12 +294,15 @@ const FeatureFlagsTab = (): React.ReactElement => {
           if (checked) {
             setIsAlertOpen(true);
           } else {
-            if (suggestiveModeUid) {
-              void deleteBlock(suggestiveModeUid);
-              setSuggestiveModeUid(undefined);
-            }
-            setSuggestiveModeEnabled(false);
-            setFeatureFlag("Suggestive mode enabled", false);
+            void (async () => {
+              if (suggestiveModeUid) {
+                await deleteBlock(suggestiveModeUid);
+                setSuggestiveModeUid(undefined);
+              }
+              refreshConfigTree();
+              setSuggestiveModeEnabled(false);
+              setFeatureFlag("Suggestive mode enabled", false);
+            })();
           }
         }}
         labelElement={
@@ -321,6 +324,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
             node: { text: "(BETA) Suggestive Mode Enabled" },
           }).then((uid) => {
             setSuggestiveModeUid(uid);
+            refreshConfigTree();
             setSuggestiveModeEnabled(true);
             setFeatureFlag("Suggestive mode enabled", true);
             setIsAlertOpen(false);

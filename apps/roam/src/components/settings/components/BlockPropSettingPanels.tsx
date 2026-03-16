@@ -18,6 +18,7 @@ import {
 import Description from "roamjs-components/components/Description";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
+import refreshConfigTree from "~/utils/refreshConfigTree";
 import {
   getGlobalSetting,
   getPersonalSetting,
@@ -143,8 +144,9 @@ const BaseTextPanel = ({
     window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
       if (errorRef.current) return;
-      setter(settingKeys, newValue);
       syncToBlock?.(newValue);
+      refreshConfigTree();
+      setter(settingKeys, newValue);
     }, DEBOUNCE_MS);
   };
 
@@ -227,8 +229,9 @@ const BaseFlagPanel = ({
     }
 
     setInternalValue(checked);
-    setter(settingKeys, checked);
     await syncFlagToBlock(checked);
+    refreshConfigTree();
+    setter(settingKeys, checked);
     onChange?.(checked);
   };
 
@@ -276,8 +279,9 @@ const BaseNumberPanel = ({
   const handleChange = (valueAsNumber: number) => {
     if (Number.isNaN(valueAsNumber)) return;
     setValue(valueAsNumber);
-    setter(settingKeys, valueAsNumber);
     syncToBlock?.(valueAsNumber);
+    refreshConfigTree();
+    setter(settingKeys, valueAsNumber);
     onChange?.(valueAsNumber);
   };
 
@@ -323,8 +327,9 @@ const BaseSelectPanel = ({
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
-    setter(settingKeys, newValue);
     syncToBlock?.(newValue);
+    refreshConfigTree();
+    setter(settingKeys, newValue);
   };
 
   return (
@@ -400,6 +405,7 @@ const BaseMultiTextPanel = ({
           },
         });
         childUidsRef.current = [...childUidsRef.current, valueUid];
+        refreshConfigTree();
       }
     }
   };
@@ -408,7 +414,6 @@ const BaseMultiTextPanel = ({
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const newValues = values.filter((_, i) => i !== index);
     setValues(newValues);
-    setter(settingKeys, newValues);
     onChange?.(newValues);
 
     if (hasBlockSync) {
@@ -420,7 +425,9 @@ const BaseMultiTextPanel = ({
         // eslint-disable-next-line @typescript-eslint/naming-convention
         (_, i) => i !== index,
       );
+      refreshConfigTree();
     }
+    setter(settingKeys, newValues);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
