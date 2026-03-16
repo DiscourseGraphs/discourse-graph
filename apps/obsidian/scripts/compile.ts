@@ -193,14 +193,18 @@ export const compile = ({
         },
         {
           name: "mirrorFiles",
-          setup(build) {
+          setup: (build) => {
             build.onEnd(async () => {
               if (!mirror) return;
 
-              const mirrorPaths = mirror
-                .split(",")
-                .map((p) => p.trim())
-                .filter(Boolean);
+              let mirrorPaths: string[];
+              try {
+                const parsed = JSON.parse(mirror);
+                mirrorPaths = Array.isArray(parsed) ? parsed : [mirror];
+              } catch {
+                mirrorPaths = [mirror];
+              }
+              mirrorPaths = mirrorPaths.map((p) => p.trim()).filter(Boolean);
 
               for (const mirrorPath of mirrorPaths) {
                 const normalizedMirrorPath = path.normalize(mirrorPath);
