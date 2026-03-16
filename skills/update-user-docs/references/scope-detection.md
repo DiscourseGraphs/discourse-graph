@@ -27,9 +27,9 @@ If no docs update is needed, inform the dev and stop.
 
 Use changed file paths to determine which platform's docs are affected:
 
-| File path pattern | Platform | Doc directory |
-|-------------------|----------|---------------|
-| `apps/obsidian/` | Obsidian | `apps/website/app/(docs)/docs/obsidian/pages/` |
-| `apps/roam/` | Roam | `apps/website/app/(docs)/docs/roam/pages/` |
-| `packages/` | Ask dev | Could affect either or both platforms |
-| `apps/website/` | Website | Usually not user-facing docs (unless it's the docs site itself) |
+| File path pattern | Platform | Doc directory                                                   |
+| ----------------- | -------- | --------------------------------------------------------------- |
+| `apps/obsidian/`  | Obsidian | `apps/website/app/(docs)/docs/obsidian/pages/`                  |
+| `apps/roam/`      | Roam     | `apps/website/app/(docs)/docs/roam/pages/`                      |
+| `packages/`       | Ask dev  | Could affect either or both platforms                           |
+| `apps/website/`   | Website  | Usually not user-facing docs (unless it's the docs site itself) |
