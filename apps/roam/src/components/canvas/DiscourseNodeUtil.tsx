@@ -653,34 +653,44 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
                   includeDefaultNodes: true,
                   onSuccess: async ({ text, uid }) => {
                     if (!extensionAPI) return;
-                    editor.deleteShapes([shape.id]);
-                    const {
-                      h,
-                      w,
-                      imageUrl: nodeImageUrl,
-                    } = await calcCanvasNodeSizeAndImg({
-                      nodeText: text,
-                      extensionAPI,
-                      nodeType: node.type,
-                      uid,
-                    });
-                    editor.createShapes([
-                      {
-                        type: node.type,
-                        id: createShapeId(),
-                        props: {
-                          uid,
-                          title: text,
-                          h,
-                          w,
-                          imageUrl: nodeImageUrl,
-                          fontFamily: "sans",
-                          size: "s",
+                    try {
+                      const {
+                        h,
+                        w,
+                        imageUrl: nodeImageUrl,
+                      } = await calcCanvasNodeSizeAndImg({
+                        nodeText: text,
+                        extensionAPI,
+                        nodeType: node.type,
+                        uid,
+                      });
+                      editor.createShapes([
+                        {
+                          type: node.type,
+                          id: createShapeId(),
+                          props: {
+                            uid,
+                            title: text,
+                            h,
+                            w,
+                            imageUrl: nodeImageUrl,
+                            fontFamily: "sans",
+                            size: "s",
+                          },
+                          x,
+                          y,
                         },
-                        x,
-                        y,
-                      },
-                    ]);
+                      ]);
+                      editor.deleteShapes([shape.id]);
+                    } catch (error) {
+                      renderToast({
+                        id: `discourse-node-convert-error-${Date.now()}`,
+                        intent: "danger",
+                        content: (
+                          <span>Error converting block: {String(error)}</span>
+                        ),
+                      });
+                    }
                   },
                   onClose: () => {},
                 });
