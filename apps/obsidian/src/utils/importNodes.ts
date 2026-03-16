@@ -1363,11 +1363,14 @@ export const importSelectedNodes = async ({
 
         // If title changed and file exists, rename it to match the new title
         if (existingFile && processedFile.basename !== sanitizedFileName) {
-          const newPath = `${importFolderPath}/${sanitizedFileName}.md`;
+          const currentDir = processedFile.path.includes("/")
+            ? processedFile.path.replace(/\/[^/]*$/, "")
+            : importFolderPath;
+          const newPath = `${currentDir}/${sanitizedFileName}.md`;
           let targetPath = newPath;
           let counter = 1;
           while (await plugin.app.vault.adapter.exists(targetPath)) {
-            targetPath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
+            targetPath = `${currentDir}/${sanitizedFileName} (${counter}).md`;
             counter++;
           }
           await plugin.app.fileManager.renameFile(processedFile, targetPath);
