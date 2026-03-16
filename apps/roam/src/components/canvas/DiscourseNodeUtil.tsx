@@ -29,6 +29,8 @@ import { Button, Icon } from "@blueprintjs/core";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { isPageUid } from "./Tldraw";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { discourseContext } from "./Tldraw";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
@@ -43,6 +45,8 @@ import { getSetting } from "~/utils/extensionSettings";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
+
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -448,6 +452,33 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
     const [overlayMounted, setOverlayMounted] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const dialogRenderedRef = useRef(false);
+
+    // Detect discourse node tags in block text for blck-node shapes
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const matchedNodeForConversion = useMemo(() => {
+      if (shape.type !== "blck-node") return null;
+      if (!isLiveBlock(shape.props.uid)) return null;
+      const blockText = getTextByBlockUid(shape.props.uid);
+      if (!blockText) return null;
+      const nodes = Object.values(discourseContext.nodes);
+      const tagPattern = /#(?:\[\[([^\]]*)\]\]|([^\s#[\]]+))/g;
+      for (const node of nodes) {
+        const tag = node.tag;
+        if (!tag) continue;
+        const normalizedNodeTag = getCleanTagText(tag);
+        let match;
+        tagPattern.lastIndex = 0;
+        while ((match = tagPattern.exec(blockText)) !== null) {
+          const tagFromBlock = match[1] ?? match[2] ?? "";
+          const normalizedBlockTag = getCleanTagText(tagFromBlock);
+          if (normalizedBlockTag === normalizedNodeTag) {
+            return { node, blockText };
+          }
+        }
+      }
+      return null;
+    }, [shape.type, shape.props.uid]);
+
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       if (
@@ -588,6 +619,93 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
             onPointerDown={(e) => e.stopPropagation()}
             title="Open in sidebar (Shift+Click)"
           />
+
+          {/* Convert to Node Type Button */}
+          {matchedNodeForConversion && (
+            <Button
+              className="absolute left-7 top-1 z-10"
+              minimal
+              small
+              icon={
+                <Icon icon="plus" color={textColor} className="opacity-50" />
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                const { node, blockText } = matchedNodeForConversion;
+                const tag = node.tag;
+                if (!tag) return;
+                const cleanTag = getCleanTagText(tag);
+                const escapedCleanTag = escapeRegExp(cleanTag);
+                // Strip the tag from block text (same pattern as detection above)
+                const cleanedText = blockText
+                  .replace(
+                    new RegExp(`#\\[\\[${escapedCleanTag}\\]\\]`, "i"),
+                    "",
+                  )
+                  .replace(new RegExp(`#${escapedCleanTag}`, "i"), "")
+                  .trim();
+                const { x, y } = shape;
+                renderModifyNodeDialog({
+                  mode: "create",
+                  nodeType: node.type,
+                  initialValue: { text: cleanedText, uid: "" },
+                  extensionAPI,
+                  includeDefaultNodes: true,
+                  onSuccess: async ({ text, uid }) => {
+                    if (!extensionAPI) return;
+                    try {
+                      const {
+                        h,
+                        w,
+                        imageUrl: nodeImageUrl,
+                      } = await calcCanvasNodeSizeAndImg({
+                        nodeText: text,
+                        extensionAPI,
+                        nodeType: node.type,
+                        uid,
+                      });
+                      editor.createShapes([
+                        {
+                          type: node.type,
+                          id: createShapeId(),
+                          props: {
+                            uid,
+                            title: text,
+                            h,
+                            w,
+                            imageUrl: nodeImageUrl,
+                            fontFamily: "sans",
+                            size: "s",
+                          },
+                          x,
+                          y,
+                        },
+                      ]);
+                      editor.deleteShapes([shape.id]);
+                    } catch (error) {
+                      renderToast({
+                        id: `discourse-node-convert-error-${Date.now()}`,
+                        intent: "danger",
+                        content: (
+                          <span>Error converting block: {String(error)}</span>
+                        ),
+                      });
+                    }
+                  },
+                  onClose: () => {},
+                });
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              title={`Convert to ${matchedNodeForConversion.node.text}`}
+            >
+              <span
+                className="opacity-70"
+                style={{ color: textColor, fontSize: "11px" }}
+              >
+                Convert to {matchedNodeForConversion.node.text}
+              </span>
+            </Button>
+          )}
 
           {shape.props.imageUrl && isKeyImage === "true" ? (
             <div className="mt-2 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
