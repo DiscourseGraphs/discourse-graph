@@ -23,7 +23,7 @@ const DocsLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div
       className={clsx(
-        "flex min-h-full w-full bg-white dark:bg-slate-900 [&::-webkit-scrollbar]:hidden",
+        "flex min-h-screen w-full bg-white antialiased dark:bg-slate-900 [&::-webkit-scrollbar]:hidden",
         inter.variable,
         customScrollbar,
       )}
