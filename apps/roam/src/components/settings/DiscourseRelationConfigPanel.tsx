@@ -49,13 +49,14 @@ import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import {
-  getFeatureFlag,
   getGlobalSetting,
   setGlobalSetting,
   getGlobalSettings,
 } from "~/components/settings/utils/accessors";
 import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
+import { RenderRoamBlock } from "~/utils/roamReactComponents";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",
@@ -63,21 +64,6 @@ const DEFAULT_SELECTED_RELATION = {
   left: 0,
   relation: "references",
   id: "",
-};
-
-const RelationEditPreview = ({ previewUid }: { previewUid: string }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = containerRef.current;
-    if (el)
-      window.roamAlphaAPI.ui.components.renderBlock({
-        el,
-        uid: previewUid,
-      });
-  }, [previewUid, containerRef]);
-  return (
-    <div ref={containerRef} className={"roamjs-discourse-editor-preview"}></div>
-  );
 };
 
 const edgeDisplayByUid = (uid: string) =>
@@ -106,7 +92,7 @@ export const RelationEditPanel = ({
       ),
     [nodes],
   );
-  const useReifiedRelations = getFeatureFlag("Reified relation triples");
+  const storedRelationsEnabled = getStoredRelationsEnabled();
   const containerRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
   const cyRef = useRef<cytoscape.Core>();
@@ -410,7 +396,7 @@ export const RelationEditPanel = ({
   );
 
   const loadCytoscape = useCallback(async () => {
-    if (useReifiedRelations) return;
+    if (storedRelationsEnabled) return;
     cyRef.current?.destroy?.();
     const cytoscape = await window.RoamLazy?.Cytoscape();
     if (!cytoscape) return;
@@ -490,7 +476,7 @@ export const RelationEditPanel = ({
     setSelectedRelation,
     tab,
     unsavedChanges,
-    useReifiedRelations,
+    storedRelationsEnabled,
   ]);
   useEffect(() => {
     loadCytoscape();
@@ -792,7 +778,7 @@ export const RelationEditPanel = ({
           />
         </Label>
       </ControlGroup>
-      {!useReifiedRelations && (
+      {!storedRelationsEnabled && (
         <>
           <Tabs
             selectedTabId={tab}
@@ -861,7 +847,11 @@ export const RelationEditPanel = ({
                 }
               }}
             />
-            {isPreview && <RelationEditPreview previewUid={previewUid} />}
+            {isPreview && (
+              <div className={"roamjs-discourse-editor-preview"}>
+                <RenderRoamBlock uid={previewUid} />
+              </div>
+            )}
             <Menu
               style={{
                 position: "absolute",
@@ -1030,7 +1020,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
     null,
   );
-  const shouldHideCanvasRelation = getFeatureFlag("Reified relation triples");
+  const shouldHideCanvasRelation = getStoredRelationsEnabled();
   const visibleRelations = useMemo(() => {
     if (!shouldHideCanvasRelation) {
       return relations;
@@ -1080,20 +1070,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
     setGlobalSetting([GLOBAL_KEYS.relations], remaining);
   };
   const handleDuplicate = (rel: Relation) => {
-    const baseText = rel.text
-      .split(" ")
-      .filter((s) => !/^\(\d+\)$/.test(s))
-      .join(" ");
-    const copy = relations.reduce((p, c) => {
-      if (c.text.startsWith(baseText)) {
-        const copyIndex = Number(/\((\d+)\)$/.exec(c.text)?.[1]);
-        if (copyIndex && copyIndex > p) {
-          return copyIndex;
-        }
-      }
-      return p;
-    }, 0);
-    const text = `${rel.text} (${copy + 1})`;
+    const text = rel.text;
     const copyTree = getBasicTreeByParentUid(rel.uid);
     const stripUid = (n: RoamBasicNode[]): InputTextNode[] =>
       n.map((c) => ({

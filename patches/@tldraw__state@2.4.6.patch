@@ -1,0 +1,63 @@
+diff --git a/dist-esm/lib/transactions.mjs b/dist-esm/lib/transactions.mjs
+index 18138b47..5b3657fc 100644
+--- a/dist-esm/lib/transactions.mjs
++++ b/dist-esm/lib/transactions.mjs
+@@ -21,7 +21,11 @@ class Transaction {
+    * @public
+    */
+   commit() {
+-    if (this.isRoot) {
++    if (inst.globalIsReacting) {
++      for (const atom of this.initialAtomValues.keys()) {
++        traverseAtomForCleanup(atom);
++      }
++    } else if (this.isRoot) {
+       flushChanges(this.initialAtomValues.keys());
+     } else {
+       this.initialAtomValues.forEach((value, atom) => {
+@@ -77,9 +81,11 @@ function traverse(reactors, child) {
+ }
+ function flushChanges(atoms) {
+   if (inst.globalIsReacting) {
+-    throw new Error("cannot change atoms during reaction cycle");
++    throw new Error("flushChanges cannot be called during a reaction");
+   }
++  const outerTxn = inst.currentTransaction;
+   try {
++    inst.currentTransaction = null;
+     inst.globalIsReacting = true;
+     inst.reactionEpoch = inst.globalEpoch;
+     const reactors = /* @__PURE__ */ new Set();
+@@ -103,18 +109,26 @@ function flushChanges(atoms) {
+   } finally {
+     inst.cleanupReactors = null;
+     inst.globalIsReacting = false;
++    inst.currentTransaction = outerTxn;
+   }
+ }
+ function atomDidChange(atom, previousValue) {
+-  if (inst.globalIsReacting) {
+-    const rs = inst.cleanupReactors ??= /* @__PURE__ */ new Set();
+-    atom.children.visit((child) => traverse(rs, child));
+-  } else if (!inst.currentTransaction) {
++  if (inst.currentTransaction) {
++    // from https://github.com/tldraw/tldraw/pull/4645
++    // fixed in https://github.com/tldraw/tldraw/releases/tag/v3.3.0
++    if (!inst.currentTransaction.initialAtomValues.has(atom)) {
++      inst.currentTransaction.initialAtomValues.set(atom, previousValue);
++    }
++  } else if (inst.globalIsReacting) {
++    traverseAtomForCleanup(atom);
++  } else {
+     flushChanges([atom]);
+-  } else if (!inst.currentTransaction.initialAtomValues.has(atom)) {
+-    inst.currentTransaction.initialAtomValues.set(atom, previousValue);
+   }
+ }
++function traverseAtomForCleanup(atom) {
++  const rs = inst.cleanupReactors ??= /* @__PURE__ */ new Set();
++  atom.children.visit((child) => traverse(rs, child));
++}
+ function advanceGlobalEpoch() {
+   inst.globalEpoch++;
+ }

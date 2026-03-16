@@ -431,7 +431,7 @@ const ResultsView: ResultsViewComponent = ({
 
     newViews
       .map((v) => ({
-        text: v.column,
+        text: v.uid,
         children: [
           { text: v.mode, children: v.value ? [{ text: v.value }] : [] },
         ],
@@ -1051,7 +1051,7 @@ const ResultsView: ResultsViewComponent = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
-                      {views.map(({ column, mode, value }, i) => (
+                      {views.map(({ column, mode, value, uid }, i) => (
                         <tr key={i}>
                           <td className="whitespace-nowrap">{column}</td>
                           <td className="whitespace-nowrap">
@@ -1074,7 +1074,10 @@ const ResultsView: ResultsViewComponent = ({
                                   },
                                 );
 
-                                onViewChange({ mode: m, column, value }, i);
+                                onViewChange(
+                                  { mode: m, column, value, uid },
+                                  i,
+                                );
                               }}
                             />
                           </td>
@@ -1089,6 +1092,7 @@ const ResultsView: ResultsViewComponent = ({
                                         mode,
                                         column,
                                         value: e.target.value,
+                                        uid,
                                       },
                                       i,
                                     )
@@ -1110,6 +1114,7 @@ const ResultsView: ResultsViewComponent = ({
                                             nextValue === "default"
                                               ? ""
                                               : nextValue,
+                                          uid,
                                         },
                                         i,
                                       );

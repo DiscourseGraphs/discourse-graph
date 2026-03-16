@@ -11,6 +11,7 @@ export type DiscourseNode = {
   color?: string;
   tag?: string;
   keyImage?: boolean;
+  folderPath?: string;
   created: number;
   modified: number;
   importedFromRid?: string;
@@ -60,6 +61,8 @@ export type Settings = {
   spacePassword?: string;
   accountLocalId?: string;
   syncModeEnabled?: boolean;
+  /** Maps spaceUri (e.g. "obsidian:abc123") to human-readable name (e.g. "My Vault") */
+  spaceNames?: Record<string, string>;
 };
 
 export type BulkImportCandidate = {

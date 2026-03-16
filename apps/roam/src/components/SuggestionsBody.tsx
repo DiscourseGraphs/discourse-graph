@@ -25,16 +25,14 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import { type RelationDetails } from "~/utils/hyde";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import {
-  getFeatureFlag,
-  getGlobalSetting,
-} from "~/components/settings/utils/accessors";
+import { getGlobalSetting } from "~/components/settings/utils/accessors";
 import {
   GLOBAL_KEYS,
   SUGGESTIVE_MODE_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import type { PageGroup } from "~/components/settings/utils/zodSchema";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import posthog from "posthog-js";
 
 export type DiscourseData = {
@@ -316,7 +314,7 @@ const SuggestionsBody = ({
   };
 
   const handleCreateBlock = async (node: SuggestedNode) => {
-    if (getFeatureFlag("Reified relation triples")) {
+    if (getStoredRelationsEnabled()) {
       if (discourseNode === false) {
         renderToast({
           id: "suggestions-create-block-error",
@@ -380,7 +378,7 @@ const SuggestionsBody = ({
       tag,
       nodeType: node.type,
       nodeText: node.text,
-      useReifiedRelations: getFeatureFlag("Reified relation triples"),
+      useReifiedRelations: getStoredRelationsEnabled(),
     });
     setHydeFilteredNodes((prev) => prev.filter((n) => n.uid !== node.uid));
   };

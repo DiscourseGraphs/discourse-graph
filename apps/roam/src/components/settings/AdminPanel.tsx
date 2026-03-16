@@ -14,7 +14,6 @@ import {
 } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { Select } from "@blueprintjs/select";
-import { setSetting } from "~/utils/extensionSettings";
 import {
   getFeatureFlag,
   setFeatureFlag,
@@ -35,8 +34,6 @@ import {
   type NodeSignature,
   type PConceptFull,
 } from "@repo/database/lib/queries";
-import migrateRelations from "~/utils/migrateRelations";
-import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import internalError from "~/utils/internalError";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
@@ -44,8 +41,6 @@ import discourseConfigRef from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
-import posthog from "posthog-js";
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { getUidAndBooleanSetting } from "~/utils/getExportSettings";
@@ -269,98 +264,7 @@ const NodeListTab = (): React.ReactElement => {
   );
 };
 
-const MigrationTab = (): React.ReactElement => {
-  let initial = true;
-  const [useMigrationResults, setMigrationResults] = useState<string>("");
-  const [useOngoing, setOngoing] = useState<boolean>(false);
-  const [useDryRun, setDryRun] = useState<boolean>(false);
-  const enabled = getFeatureFlag("Reified relation triples");
-  const doMigrateRelations = async () => {
-    setOngoing(true);
-    try {
-      posthog.capture("Reified Relations: Migration Started", {
-        dryRun: useDryRun,
-      });
-      const before = await countReifiedRelations();
-      const numProcessed = await migrateRelations(useDryRun);
-      const after = await countReifiedRelations();
-      if (after - before < numProcessed)
-        setMigrationResults(
-          `${after - before} new relations created out of ${numProcessed} distinct relations processed`,
-        );
-      else setMigrationResults(`${numProcessed} new relations created`);
-      posthog.capture("Reified Relations: Migration Completed", {
-        dryRun: useDryRun,
-        processed: numProcessed,
-        before,
-        after,
-        created: after - before,
-      });
-    } catch (e) {
-      console.error("Relation migration failed", e);
-      setMigrationResults(
-        `Migration failed: ${(e as Error).message ?? "see console for details"}`,
-      );
-      posthog.capture("Reified Relations: Migration Failed", {
-        dryRun: useDryRun,
-        error: (e as Error).message ?? "unknown error",
-      });
-    } finally {
-      setOngoing(false);
-    }
-  };
-  useEffect(() => {
-    void (async () => {
-      if (initial) {
-        const numRelations = await countReifiedRelations();
-        setMigrationResults(
-          numRelations > 0
-            ? `${numRelations} already migrated`
-            : "No migrated relations",
-        );
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        initial = false;
-      }
-    })();
-    return () => {
-      initial;
-    };
-  }, []);
-
-  return (
-    <>
-      <p>
-        <Button
-          className="p-4"
-          onClick={() => {
-            void doMigrateRelations();
-          }}
-          disabled={!enabled || useOngoing}
-          text="Migrate all relations"
-        ></Button>
-        <Checkbox
-          className="left-6 inline-block"
-          defaultChecked={useDryRun}
-          onChange={(e) => {
-            const target = e.target as HTMLInputElement;
-            setDryRun(target.checked);
-          }}
-          labelElement={<>Dry run</>}
-        />
-      </p>
-      {useOngoing ? (
-        <Spinner />
-      ) : (
-        <p id="migrationResultsLabel">{useMigrationResults}</p>
-      )}
-    </>
-  );
-};
-
 const FeatureFlagsTab = (): React.ReactElement => {
-  const [useReifiedRelations, setUseReifiedRelations] = useState<boolean>(
-    getFeatureFlag("Reified relation triples"),
-  );
   const legacySuggestiveModeMeta = useMemo(() => {
     refreshConfigTree();
     return {
@@ -453,31 +357,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
         </p>
       </Alert>
 
-      <Checkbox
-        defaultChecked={useReifiedRelations}
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          setUseReifiedRelations(target.checked);
-          void setSetting(USE_REIFIED_RELATIONS, target.checked).catch(
-            () => undefined,
-          );
-          setFeatureFlag("Reified relation triples", target.checked);
-          posthog.capture("Reified Relations: Toggled", {
-            enabled: target.checked,
-          });
-        }}
-        labelElement={
-          <>
-            Reified relation triples
-            <Description
-              description={
-                "When ON, relations are read/written as reifiedRelationUid in [[roam/js/discourse-graph/relations]]."
-              }
-            />
-          </>
-        }
-      />
-
       <FeatureFlagPanel
         title="Use new settings store"
         description="When enabled, accessor getters read from block props instead of the old system. Surfaces dual-write gaps during development."
@@ -527,15 +406,6 @@ const AdminPanel = (): React.ReactElement => {
         panel={
           <div className="flex flex-col gap-4 p-1">
             <FeatureFlagsTab />
-          </div>
-        }
-      />
-      <Tab
-        id="migration"
-        title="Migration"
-        panel={
-          <div className="flex flex-col gap-4 p-1">
-            <MigrationTab />
           </div>
         }
       />

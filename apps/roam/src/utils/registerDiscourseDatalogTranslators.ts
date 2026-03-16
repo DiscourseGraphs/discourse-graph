@@ -19,8 +19,8 @@ import replaceDatalogVariables from "./replaceDatalogVariables";
 import parseQuery from "./parseQuery";
 import { fireQuerySync, getWhereClauses } from "./fireQuery";
 import { toVar } from "./compileDatalog";
-import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import { getExistingRelationPageUid } from "./createReifiedBlock";
+import { getStoredRelationsEnabled } from "./storedRelations";
 
 const hasTag = (node: DiscourseNode): node is DiscourseNode & { tag: string } =>
   !!node.tag;
@@ -409,9 +409,7 @@ const registerDiscourseDatalogTranslators = () => {
       registerDatalogTranslator({
         key: label,
         callback: ({ source, target, uid }) => {
-          const useReifiedRelations = getFeatureFlag(
-            "Reified relation triples",
-          );
+          const storedRelationsEnabled = getStoredRelationsEnabled();
           const relationPageUid = getExistingRelationPageUid();
 
           const filteredRelations = getFilteredRelations({
@@ -493,7 +491,7 @@ const registerDiscourseDatalogTranslators = () => {
             }
           };
 
-          if (useReifiedRelations && relationPageUid !== undefined) {
+          if (storedRelationsEnabled && relationPageUid !== undefined) {
             const relClauseBasis: DatalogClause[] = [
               {
                 type: "data-pattern",

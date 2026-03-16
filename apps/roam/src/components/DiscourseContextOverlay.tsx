@@ -14,6 +14,7 @@ import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import deriveDiscourseNodeAttribute from "~/utils/deriveDiscourseNodeAttribute";
 import { getDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 import { DISCOURSE_NODE_KEYS } from "~/components/settings/utils/settingKeys";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import nanoid from "nanoid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
@@ -23,24 +24,18 @@ import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+import internalError from "~/utils/internalError";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
   refs: number;
 };
 
-const cache: {
-  [tag: string]: DiscourseData;
-} = {};
-
 const getOverlayInfo = async (
   tag: string,
   ignoreCache?: boolean,
 ): Promise<DiscourseData> => {
   try {
-    if (ignoreCache) delete cache[tag];
-    if (cache[tag]) return cache[tag];
-
     const relations = getDiscourseRelations();
     const nodes = getDiscourseNodes(relations);
 
@@ -56,10 +51,10 @@ const getOverlayInfo = async (
       ),
     ]);
 
-    return (cache[tag] = {
+    return {
       results,
       refs: refs.length,
-    });
+    };
   } catch (error) {
     console.error(`Error getting overlay info for ${tag}:`, error);
     return {
@@ -180,6 +175,19 @@ const useDiscourseContext = (uid: string, tag: string) => {
         .then(({ refs, results }) => {
           const discourseNode = findDiscourseNode({ uid: uid });
           if (discourseNode) {
+            const numResults = results
+              .map(
+                (entry) =>
+                  Object.keys(
+                    (
+                      entry as unknown as {
+                        label: string;
+                        results: Record<string, unknown>;
+                      }
+                    ).results,
+                  ).length,
+              )
+              .reduce((acc, cur) => acc + cur, 0);
             const attribute =
               getDiscourseNodeSetting<string>(discourseNode.type, [
                 DISCOURSE_NODE_KEYS.overlay,
@@ -191,6 +199,24 @@ const useDiscourseContext = (uid: string, tag: string) => {
               setResults(results);
               setRefs(refs);
               setScore(score);
+
+              const scoreFormula =
+                getDiscourseNodeSetting<string>(discourseNode.type, [
+                  DISCOURSE_NODE_KEYS.attributes,
+                  attribute,
+                ]) ?? "";
+              if (scoreFormula === "" && score !== numResults) {
+                internalError({
+                  error: "DiscourseContext: Score does not match Num relations",
+                  context: {
+                    uid,
+                    score,
+                    numResults,
+                    ignoreCache,
+                    reified: getStoredRelationsEnabled(),
+                  },
+                });
+              }
             });
           }
         })

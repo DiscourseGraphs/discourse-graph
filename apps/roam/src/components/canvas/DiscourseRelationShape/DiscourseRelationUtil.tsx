@@ -63,8 +63,8 @@ import {
   shapeAtTranslationStart,
   updateArrowTerminal,
 } from "./helpers";
-import { getSetting } from "~/utils/extensionSettings";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import { discourseContext, isPageUid } from "~/components/canvas/Tldraw";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
@@ -86,7 +86,10 @@ const getCanvasPageUidFromDOM = (): string | null => {
   // With multiple canvases, find the one that contains the currently focused element
   // or has been recently interacted with (has :focus-within)
   for (const container of containers) {
-    if (container.matches(":focus-within") || container.contains(document.activeElement)) {
+    if (
+      container.matches(":focus-within") ||
+      container.contains(document.activeElement)
+    ) {
       return container.getAttribute("data-page-uid");
     }
   }
@@ -107,7 +110,6 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import internalError from "~/utils/internalError";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 
 const COLOR_ARRAY = Array.from(DefaultColorStyle.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
@@ -638,7 +640,7 @@ export const createAllRelationShapeUtils = (
         if (arrow.type !== target.type) {
           editor.updateShapes([{ id: arrow.id, type: target.type }]);
         }
-        if (getSetting<boolean>(USE_REIFIED_RELATIONS, false)) {
+        if (getStoredRelationsEnabled()) {
           const sourceAsDNS = asDiscourseNodeShape(source, editor);
           const targetAsDNS = asDiscourseNodeShape(target, editor);
 

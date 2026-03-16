@@ -6,6 +6,12 @@ import generateUid from "~/utils/generateUid";
 import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
+import {
+  getImportInfo,
+  formatImportSource,
+  getAndFormatImportSource,
+} from "~/utils/typeUtils";
+import { FolderSuggestInput } from "./GeneralSettings";
 
 const generateTagPlaceholder = (format: string, nodeName?: string): string => {
   if (!format) return "Enter tag (e.g., clm-candidate)";
@@ -44,7 +50,7 @@ type BaseFieldConfig = {
   ) => { isValid: boolean; error?: string };
 };
 
-const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
+const FIELD_CONFIGS: Partial<Record<EditableFieldKey, BaseFieldConfig>> = {
   name: {
     key: "name",
     label: "Name",
@@ -134,14 +140,17 @@ const FIELD_CONFIG_ARRAY = Object.values(FIELD_CONFIGS);
 const BooleanField = ({
   value,
   onChange,
+  disabled,
 }: {
   value: boolean;
   onChange: (value: boolean) => void;
+  disabled?: boolean;
 }) => (
   <input
     type="checkbox"
     checked={!!value}
     onChange={(e) => onChange((e.target as HTMLInputElement).checked)}
+    disabled={disabled}
   />
 );
 
@@ -151,12 +160,14 @@ const TextField = ({
   error,
   onChange,
   nodeType,
+  disabled,
 }: {
   fieldConfig: BaseFieldConfig;
   value: string;
   error?: string;
   onChange: (value: string) => void;
   nodeType?: DiscourseNode;
+  disabled?: boolean;
 }) => {
   // Generate dynamic placeholder for tag field based on node format and name
   const getPlaceholder = (): string => {
@@ -173,6 +184,7 @@ const TextField = ({
       onChange={(e) => onChange(e.target.value)}
       placeholder={getPlaceholder()}
       className={`w-full ${error ? "input-error" : ""}`}
+      disabled={disabled}
     />
   );
 };
@@ -181,16 +193,19 @@ const ColorField = ({
   value,
   error,
   onChange,
+  disabled,
 }: {
   value: string;
   error?: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) => (
   <input
     type="color"
     value={value || "#000000"}
     onChange={(e) => onChange(e.target.value)}
     className={`h-8 w-20 ${error ? "input-error" : ""}`}
+    disabled={disabled}
   />
 );
 
@@ -200,18 +215,22 @@ const TemplateField = ({
   onChange,
   templateConfig,
   templateFiles,
+  disabled,
 }: {
   value: string;
   error?: string;
   onChange: (value: string) => void;
   templateConfig: { isEnabled: boolean; folderPath: string };
   templateFiles: string[];
+  disabled?: boolean;
 }) => (
   <select
     value={value || ""}
     onChange={(e) => onChange(e.target.value)}
     className={`w-full ${error ? "input-error" : ""}`}
-    disabled={!templateConfig.isEnabled || !templateConfig.folderPath}
+    disabled={
+      disabled || !templateConfig.isEnabled || !templateConfig.folderPath
+    }
   >
     <option value="">
       {!templateConfig.isEnabled || !templateConfig.folderPath
@@ -346,6 +365,7 @@ const NodeTypeSettings = () => {
       format: "",
       template: "",
       tag: "",
+      color: "#808080",
       created: now,
       modified: now,
     };
@@ -465,6 +485,10 @@ const NodeTypeSettings = () => {
     return isValid;
   };
 
+  const isEditingImported = getImportInfo(
+    editingNodeType?.importedFromRid,
+  ).isImported;
+
   const renderField = (fieldConfig: BaseFieldConfig) => {
     if (!editingNodeType) return null;
 
@@ -486,15 +510,21 @@ const NodeTypeSettings = () => {
             onChange={handleChange}
             templateConfig={templateConfig}
             templateFiles={templateFiles}
+            disabled={isEditingImported}
           />
         ) : fieldConfig.type === "color" ? (
           <ColorField
             value={value as string}
             error={error}
             onChange={handleChange}
+            disabled={isEditingImported}
           />
         ) : fieldConfig.type === "boolean" ? (
-          <BooleanField value={value as boolean} onChange={handleChange} />
+          <BooleanField
+            value={value as boolean}
+            onChange={handleChange}
+            disabled={isEditingImported}
+          />
         ) : (
           <TextField
             fieldConfig={fieldConfig}
@@ -502,69 +532,128 @@ const NodeTypeSettings = () => {
             error={error}
             onChange={handleChange}
             nodeType={editingNodeType}
+            disabled={isEditingImported}
           />
         )}
       </FieldWrapper>
     );
   };
 
-  const renderNodeList = () => (
-    <div className="node-type-list">
-      <button onClick={handleAddNodeType} className="mod-cta">
-        Add Node Type
-      </button>
-      {nodeTypes.map((nodeType, index) => (
+  const renderNodeList = () => {
+    const localNodeTypes = nodeTypes.filter(
+      (nodeType) => !nodeType.importedFromRid,
+    );
+    const importedNodeTypes = nodeTypes.filter(
+      (nodeType) => nodeType.importedFromRid,
+    );
+
+    const renderNodeTypeItem = (nodeType: DiscourseNode, index: number) => {
+      const importInfo = getImportInfo(nodeType.importedFromRid);
+      const isImported = importInfo.isImported;
+
+      return (
         <div
           key={nodeType.id}
           className="node-type-item hover:bg-secondary-lt flex cursor-pointer flex-col gap-1 p-2"
           onClick={() => startEditing(index)}
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {nodeType.color && (
-                <div
-                  className="h-4 w-4 rounded-full"
-                  style={{ backgroundColor: nodeType.color }}
-                />
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                {nodeType.color && (
+                  <div
+                    className="h-4 w-4 rounded-full"
+                    style={{ backgroundColor: nodeType.color }}
+                  />
+                )}
+                <span>{nodeType.name}</span>
+              </div>
+              {isImported && importInfo.spaceUri && (
+                <span className="text-muted pl-6 text-xs">
+                  from{" "}
+                  {formatImportSource(
+                    importInfo.spaceUri || "",
+                    plugin.settings.spaceNames,
+                  )}
+                </span>
               )}
-              <span>{nodeType.name}</span>
             </div>
-            <div className="flex gap-2">
-              <button
-                className="icon-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  startEditing(index);
-                }}
-                aria-label="Edit node type"
-              >
-                <div
-                  className="icon"
-                  ref={(el) => (el && setIcon(el, "pencil")) || undefined}
-                />
-              </button>
-              <button
-                className="icon-button mod-warning"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  confirmDeleteNodeType(index);
-                }}
-                aria-label="Delete node type"
-              >
-                <div
-                  className="icon"
-                  ref={(el) => (el && setIcon(el, "trash")) || undefined}
-                />
-              </button>
-            </div>
+            {!isImported && (
+              <div className="flex gap-2">
+                <button
+                  className="icon-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startEditing(index);
+                  }}
+                  aria-label="Edit node type"
+                >
+                  <div
+                    className="icon"
+                    ref={(el) => (el && setIcon(el, "pencil")) || undefined}
+                  />
+                </button>
+                <button
+                  className="icon-button mod-warning"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    confirmDeleteNodeType(index);
+                  }}
+                  aria-label="Delete node type"
+                >
+                  <div
+                    className="icon"
+                    ref={(el) => (el && setIcon(el, "trash")) || undefined}
+                  />
+                </button>
+              </div>
+            )}
           </div>
           {nodeType.description && (
             <span className="text-muted text-sm">{nodeType.description}</span>
           )}
         </div>
-      ))}
-    </div>
-  );
+      );
+    };
+
+    return (
+      <div className="node-type-list">
+        <button onClick={handleAddNodeType} className="mod-cta">
+          Add Node Type
+        </button>
+
+        {localNodeTypes.length > 0 && (
+          <div className="mt-4">
+            {importedNodeTypes.length > 0 && (
+              <h4 className="text-muted mb-2 text-sm font-semibold uppercase tracking-wide">
+                Local
+              </h4>
+            )}
+            <div className="flex flex-col gap-0.5">
+              {localNodeTypes.map((nodeType) => {
+                const index = nodeTypes.indexOf(nodeType);
+                return renderNodeTypeItem(nodeType, index);
+              })}
+            </div>
+          </div>
+        )}
+
+        {importedNodeTypes.length > 0 && (
+          <div className="border-modifier-border mt-6 border-t pt-4">
+            <h4 className="text-muted mb-2 text-sm font-semibold uppercase tracking-wide">
+              Imported
+            </h4>
+            <div className="border-modifier-border flex flex-col gap-0.5 rounded border bg-secondary p-2">
+              {importedNodeTypes.map((nodeType) => {
+                const index = nodeTypes.indexOf(nodeType);
+                return renderNodeTypeItem(nodeType, index);
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderEditForm = () => {
     if (!editingNodeType) return null;
@@ -582,10 +671,32 @@ const NodeTypeSettings = () => {
               ref={(el) => (el && setIcon(el, "arrow-left")) || undefined}
             />
           </button>
-          <h3 className="dg-h3">Edit Node Type</h3>
+          <h3 className="dg-h3">
+            {isEditingImported
+              ? `[Read only] Imported from ${getAndFormatImportSource(editingNodeType.importedFromRid || "", plugin.settings.spaceNames)}`
+              : "Edit Node Type"}
+          </h3>
         </div>
         {FIELD_CONFIG_ARRAY.map(renderField)}
-        {hasUnsavedChanges && (
+        <div className="setting-item">
+          <div className="setting-item-info">
+            <div className="setting-item-name">Folder path</div>
+            <div className="setting-item-description">
+              Folder where new nodes of this type will be created. Leave empty
+              to use the default discourse nodes folder path from general
+              settings.
+            </div>
+          </div>
+          <div className="setting-item-control">
+            <FolderSuggestInput
+              value={editingNodeType.folderPath || ""}
+              onChange={(value) => handleNodeTypeChange("folderPath", value)}
+              placeholder="Example: folder 1/folder"
+              disabled={isEditingImported}
+            />
+          </div>
+        </div>
+        {hasUnsavedChanges && !isEditingImported && (
           <div className="mt-4 flex justify-end gap-2">
             <button onClick={handleCancel} className="mod-muted">
               Cancel

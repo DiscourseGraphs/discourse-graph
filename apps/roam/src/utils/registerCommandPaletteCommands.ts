@@ -12,6 +12,9 @@ import getDiscourseNodes from "./getDiscourseNodes";
 import fireQuery from "./fireQuery";
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";
+import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import getUids from "roamjs-components/dom/getUids";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
@@ -163,6 +166,74 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     renderSettings({ onloadArgs });
   };
 
+  const getSelectionStartForBlock = (uid: string): number => {
+    const activeElement = document.activeElement;
+    const isFocusedTextarea =
+      activeElement instanceof HTMLTextAreaElement &&
+      activeElement.classList.contains("rm-block-input") &&
+      getUids(activeElement).blockUid === uid;
+    if (isFocusedTextarea) return activeElement.selectionStart;
+    const textareas = document.querySelectorAll("textarea.rm-block-input");
+    for (const el of textareas) {
+      const textarea = el as HTMLTextAreaElement;
+      if (getUids(textarea).blockUid === uid) return textarea.selectionStart;
+    }
+    return (getTextByBlockUid(uid) || "").length;
+  };
+
+  const createDiscourseNodeFromCommand = () => {
+    posthog.capture("Discourse Node: Create Command Triggered");
+    const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
+    const uid = focusedBlock?.["block-uid"];
+    const windowId = focusedBlock?.["window-id"] || "main-window";
+
+    const selectionStart = uid ? getSelectionStartForBlock(uid) : 0;
+
+    const defaultNodeType =
+      getDiscourseNodes().filter(excludeDefaultNodes)[0]?.type;
+    if (!defaultNodeType) {
+      renderToast({
+        id: "create-discourse-node-command-no-types",
+        content: "No discourse node types found in settings.",
+      });
+      return;
+    }
+
+    renderModifyNodeDialog({
+      mode: "create",
+      nodeType: defaultNodeType,
+      initialValue: { text: "", uid: "" },
+      extensionAPI,
+      onSuccess: async (result) => {
+        if (!uid) {
+          renderToast({
+            id: "create-discourse-node-command-no-block",
+            content: "No block focused to insert a discourse node.",
+          });
+          return;
+        }
+        const originalText = getTextByBlockUid(uid) || "";
+        const pageRef = `[[${result.text}]]`;
+        const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionStart)}`;
+        const newCursorPosition = selectionStart + pageRef.length;
+
+        await updateBlock({ uid, text: newText });
+
+        await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+          location: {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "block-uid": uid,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "window-id": windowId,
+          },
+          selection: { start: newCursorPosition },
+        });
+        return;
+      },
+      onClose: () => {},
+    });
+  };
+
   const toggleDiscourseContextOverlay = async () => {
     const currentValue = getPersonalSetting<boolean>([
       PERSONAL_KEYS.discourseContextOverlay,
@@ -227,6 +298,10 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   // Roam organizes commands alphabetically
+  void addCommand(
+    "DG: Create/Insert discourse node",
+    createDiscourseNodeFromCommand,
+  );
   void addCommand("DG: Export - Current page", exportCurrentPage);
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);

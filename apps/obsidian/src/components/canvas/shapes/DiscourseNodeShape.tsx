@@ -164,6 +164,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
           if (formattedName) {
             // Rename the file
             const folderPath =
+              nodeType?.folderPath?.trim() ||
               this.options.plugin.settings.nodesFolderPath.trim();
             let newPath = "";
             if (folderPath) {

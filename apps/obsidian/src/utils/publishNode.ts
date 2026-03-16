@@ -1,4 +1,5 @@
 import type { FrontMatterCache, TFile } from "obsidian";
+import { Notice } from "obsidian";
 import type { default as DiscourseGraphPlugin } from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import { addFile } from "@repo/database/lib/files";
@@ -182,7 +183,6 @@ export const publishNodeRelations = async ({
         (fm.publishedToGroups as string[]) || [];
       if (!publishedToGroups.includes(myGroup)) return;
     }
-    if (fm.importedFromRid) return; // temporary, should be removed after eng-1475
     relevantNodeTypeById[id] = fm.nodeTypeId as string;
   });
   relations.map((relation) => {
@@ -199,6 +199,7 @@ export const publishNodeRelations = async ({
       resourceIds.add(triple.id);
     }
   });
+  if (resourceIds.size === 0) return;
   const publishResponse = await client.from("ResourceAccess").upsert(
     [...resourceIds.values()].map((sourceLocalId: string) => ({
       /* eslint-disable @typescript-eslint/naming-convention */
@@ -371,6 +372,13 @@ export const publishNodeToGroup = async ({
   for (const attachment of attachments) {
     const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
     if (mimetype.startsWith("text/")) continue;
+    // Do not use standard upload for large files
+    if (attachment.stat.size >= 6 * 1024 * 1024) {
+      new Notice(
+        `Asset file ${attachment.path} is larger than 6Mb and will not be uploaded`,
+      );
+      continue;
+    }
     existingFiles.push(attachment.path);
     const existingRef = existingReferencesByPath[attachment.path];
     if (

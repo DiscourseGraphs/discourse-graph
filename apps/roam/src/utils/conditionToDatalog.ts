@@ -13,14 +13,27 @@ import { Condition } from "./types";
 import gatherDatalogVariablesFromClause from "./gatherDatalogVariablesFromClause";
 import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import getPageTitlesStartingWithPrefix from "roamjs-components/queries/getPageTitlesStartingWithPrefix";
 import extractRef from "roamjs-components/util/extractRef";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 import getPageTitleByBlockUid from "roamjs-components/queries/getPageTitleByBlockUid";
+import { getFormattedConfigTree } from "./discourseConfigRef";
+import { getCanvasMembershipShapeClauses } from "./isInCanvasDatalog";
 
 type ConditionToDatalog = (condition: Condition) => DatalogClause[];
 
 const INPUT_REGEX = /^:in /;
+const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
+
+const getCanvasPageTargets = (): string[] => {
+  const { canvasPageFormat } = getFormattedConfigTree();
+  const canvasFormat = canvasPageFormat.value || DEFAULT_CANVAS_PAGE_FORMAT;
+  const formatRegex = new RegExp(
+    `^${canvasFormat
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      .replace(/\\\*/g, ".+")}$`,
+  );
+  return getAllPageNames().filter((title) => formatRegex.test(title));
+};
 
 const isRegex = (str: string) => /^\/.+\/(i)?$/.test(str);
 const regexRePatternValue = (str: string) => {
@@ -82,7 +95,7 @@ export const getTitleDatalog = ({
           { type: "constant", value: ":node/title" },
           {
             type: "constant",
-            value: `"${getPageTitleByPageUid(mainWindowUid)}"`,
+            value: `"${normalizePageTitle(getPageTitleByPageUid(mainWindowUid))}"`,
           },
         ],
       },
@@ -98,7 +111,7 @@ export const getTitleDatalog = ({
           { type: "constant", value: ":node/title" },
           {
             type: "constant",
-            value: `"${getPageTitleByBlockUid(uid)}"`,
+            value: `"${normalizePageTitle(getPageTitleByBlockUid(uid))}"`,
           },
         ],
       },
@@ -112,7 +125,10 @@ export const getTitleDatalog = ({
         arguments: [
           { type: "variable", value: source },
           { type: "constant", value: ":node/title" },
-          { type: "constant", value: `"${getCurrentUserDisplayName()}"` },
+          {
+            type: "constant",
+            value: `"${normalizePageTitle(getCurrentUserDisplayName())}"`,
+          },
         ],
       },
     ];
@@ -159,7 +175,10 @@ export const getTitleDatalog = ({
         arguments: [
           { type: "variable", value: source },
           { type: "constant", value: ":node/title" },
-          { type: "variable", value: target.replace(INPUT_REGEX, "") },
+          {
+            type: "variable",
+            value: target.replace(INPUT_REGEX, ""),
+          },
         ],
       },
     ];
@@ -308,7 +327,7 @@ const translator: Record<string, Translator> = {
               { type: "variable", value: `${source}-Title` },
               {
                 type: "constant",
-                value: `"${getPageTitleByPageUid(uid)}"`,
+                value: `"${normalizePageTitle(getPageTitleByPageUid(uid))}"`,
               },
             ],
           },
@@ -337,7 +356,7 @@ const translator: Record<string, Translator> = {
         arguments: [
           { type: "variable", value: `${target}-Attribute` },
           { type: "constant", value: ":node/title" },
-          { type: "constant", value: `"${target}"` },
+          { type: "constant", value: `"${normalizePageTitle(target)}"` },
         ],
       },
       {
@@ -448,7 +467,10 @@ const translator: Record<string, Translator> = {
             pred: "clojure.string/includes?",
             arguments: [
               { type: "variable", value: `${source}-String` },
-              { type: "constant", value: `"${getCurrentUserDisplayName()}"` },
+              {
+                type: "constant",
+                value: `"${normalizePageTitle(getCurrentUserDisplayName())}"`,
+              },
             ],
           },
         ];
@@ -908,49 +930,9 @@ const translator: Record<string, Translator> = {
           variable: { type: "variable", value: `${target}-Canvas-RQB` },
         },
       },
-      {
-        type: "fn-expr",
-        fn: "get",
-        arguments: [
-          { type: "variable", value: `${target}-Canvas-RQB` },
-          { type: "constant", value: ":tldraw" },
-        ],
-        binding: {
-          type: "bind-rel",
-          args: [
-            { type: "variable", value: `${target}-TLDraw-Key` },
-            { type: "variable", value: `${target}-TLDraw-Value` },
-          ],
-        },
-      },
-      {
-        type: "fn-expr",
-        fn: "get",
-        arguments: [
-          { type: "variable", value: `${target}-TLDraw-Value` },
-          { type: "constant", value: ":props" },
-        ],
-        binding: {
-          type: "bind-scalar",
-          variable: { type: "variable", value: `${target}-Shape-Props` },
-        },
-      },
-      {
-        type: "fn-expr",
-        fn: "get",
-        arguments: [
-          { type: "variable", value: `${target}-Shape-Props` },
-          { type: "constant", value: ":uid" },
-        ],
-        binding: {
-          type: "bind-scalar",
-          variable: { type: "variable", value: `${source}-uid` },
-        },
-      },
+      ...getCanvasMembershipShapeClauses({ source, target }),
     ],
-    targetOptions: () =>
-      // TODO - use roam depot setting
-      getPageTitlesStartingWithPrefix("Canvas/").concat(["{current}"]),
+    targetOptions: () => getCanvasPageTargets().concat(["{current}"]),
     placeholder: "Enter a page name",
   },
   "has block reference": {
@@ -1026,7 +1008,7 @@ const conditionToDatalog: ConditionToDatalog = (con) => {
         type: "or-join-clause",
         clauses,
         variables: Object.entries(variableSet)
-          .filter(([_, v]) => v === clauses.length)
+          .filter(([, v]) => v === clauses.length)
           .map(([value]) => ({
             type: "variable",
             value,

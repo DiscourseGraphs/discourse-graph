@@ -1586,6 +1586,20 @@ export type Database = {
         }
         Returns: string
       }
+      rid_or_local_id_to_concept_db_id: {
+        Args: { default_space_id: number; rid: string }
+        Returns: number
+      }
+      rid_to_space_id_and_local_id: {
+        Args: { rid: string }
+        Returns: Database["public"]["CompositeTypes"]["accessible_resource"]
+        SetofOptions: {
+          from: "*"
+          to: "accessible_resource"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       schema_of_concept:
         | {
             Args: { concept: Database["public"]["Tables"]["Concept"]["Row"] }
@@ -1967,3 +1981,4 @@ export const Constants = {
     },
   },
 } as const
+

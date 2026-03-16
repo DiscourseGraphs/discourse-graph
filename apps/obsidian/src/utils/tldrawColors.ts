@@ -58,3 +58,26 @@ export const COLOR_PALETTE: Record<string, string> = {
   white: "#ffffff",
   yellow: "#ffc078",
 };
+
+/**
+ * Ensures a color value is a valid TldrawColorName.
+ * If the value is already a valid name, returns it directly.
+ * If it's a hex value, finds the matching tldraw color.
+ * Falls back to DEFAULT_TLDRAW_COLOR if no match is found.
+ */
+export const toTldrawColor = (color: string | undefined): TldrawColorName => {
+  if (!color) return DEFAULT_TLDRAW_COLOR;
+
+  if (TLDRAW_COLOR_NAMES.includes(color as TldrawColorName)) {
+    return color as TldrawColorName;
+  }
+
+  const hex = color.toLowerCase();
+  for (const [name, paletteHex] of Object.entries(COLOR_PALETTE)) {
+    if (paletteHex.toLowerCase() === hex) {
+      return name as TldrawColorName;
+    }
+  }
+
+  return DEFAULT_TLDRAW_COLOR;
+};
