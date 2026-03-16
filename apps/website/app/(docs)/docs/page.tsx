@@ -1,9 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 
-export default function DocsPage() {
+const DocsPage = () => {
   return (
-    <main className="flex min-h-screen w-full items-center justify-center lg:pl-72">
+    <main className="flex min-h-screen w-full items-center justify-center">
       <div className="space-y-4 text-center">
         <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
           Future Home of All the Docs
@@ -12,6 +12,10 @@ export default function DocsPage() {
           For now, here are the{" "}
           <Link href={"docs/roam"} className="underline">
             Roam Docs{" "}
+          </Link>
+          and the{" "}
+          <Link href={"docs/obsidian"} className="underline">
+            Obsidian Docs{" "}
           </Link>
         </p>
         <div className="mt-8 flex items-center justify-center gap-4">
@@ -30,4 +34,6 @@ export default function DocsPage() {
       </div>
     </main>
   );
-}
+};
+
+export default DocsPage;

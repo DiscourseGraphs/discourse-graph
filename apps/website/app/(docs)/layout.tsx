@@ -19,20 +19,18 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+const DocsLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <html
-      lang="en"
-      className={clsx("h-full antialiased", inter.variable, customScrollbar)}
-      suppressHydrationWarning
+    <div
+      className={clsx(
+        "flex min-h-screen w-full bg-white antialiased dark:bg-slate-900 [&::-webkit-scrollbar]:hidden",
+        inter.variable,
+        customScrollbar,
+      )}
     >
-      <body className="flex min-h-full bg-white dark:bg-slate-900 [&::-webkit-scrollbar]:hidden">
-        <div className="w-full">{children}</div>
-      </body>
-    </html>
+      {children}
+    </div>
   );
-}
+};
+
+export default DocsLayout;
