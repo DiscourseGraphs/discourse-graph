@@ -1291,11 +1291,6 @@ export const importSelectedNodes = async ({
           }
         }
 
-        // Log asset import errors if any
-        if (assetImportResult.errors.length > 0) {
-          // Errors are tracked in assetImportResult
-        }
-
         // If title changed and file exists, rename it to match the new title
         if (existingFile && processedFile.basename !== sanitizedFileName) {
           const newPath = `${importFolderPath}/${sanitizedFileName}.md`;

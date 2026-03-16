@@ -333,7 +333,7 @@ export class QueryEngine {
           }
         }
       } catch (error) {
-        // Silently fail and continue
+        // DataCore query may fail; vault-iteration fallback below handles this
       }
     }
 
