@@ -28,6 +28,7 @@ export class QueryEngine {
         query: (query: string) => DatacorePage[];
       }
     | undefined;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   private readonly MIN_QUERY_LENGTH = 2;
 
   constructor(app: App) {
@@ -43,10 +44,10 @@ export class QueryEngine {
   /**
    * Search across all discourse nodes (files that have frontmatter nodeTypeId)
    */
-  searchDiscourseNodesByTitle = async (
+  searchDiscourseNodesByTitle = (
     query: string,
     nodeTypeId?: string,
-  ): Promise<TFile[]> => {
+  ): TFile[] => {
     if (!query || query.length < this.MIN_QUERY_LENGTH) {
       return [];
     }
@@ -61,7 +62,7 @@ export class QueryEngine {
       const dcQuery = nodeTypeId
         ? `@page and exists(nodeTypeId) and nodeTypeId = "${nodeTypeId}"`
         : "@page and exists(nodeTypeId)";
-      const potentialNodes = await this.dc.query(dcQuery);
+      const potentialNodes = this.dc.query(dcQuery);
 
       const searchResults = potentialNodes.filter((p: DatacorePage) =>
         this.fuzzySearch(p.$name, query),
@@ -111,7 +112,7 @@ export class QueryEngine {
     }
   };
 
-  searchCompatibleNodeByTitle = async ({
+  searchCompatibleNodeByTitle = ({
     query,
     compatibleNodeTypeIds,
     activeFile,
@@ -121,7 +122,7 @@ export class QueryEngine {
     compatibleNodeTypeIds: string[];
     activeFile: TFile;
     selectedRelationType: string;
-  }): Promise<TFile[]> => {
+  }): TFile[] => {
     if (!query || query.length < this.MIN_QUERY_LENGTH) {
       return [];
     }
@@ -239,10 +240,10 @@ export class QueryEngine {
     return searchIndex === searchLower.length;
   }
 
-  async scanForBulkImportCandidates(
+  scanForBulkImportCandidates(
     patterns: BulkImportPattern[],
     validNodeTypes: DiscourseNode[],
-  ): Promise<BulkImportCandidate[]> {
+  ): BulkImportCandidate[] {
     const candidates: BulkImportCandidate[] = [];
 
     if (!this.dc) {
@@ -558,17 +559,19 @@ export class QueryEngine {
     return files;
   }
 
-  private async fallbackScanVault(
+  private fallbackScanVault(
     patterns: BulkImportPattern[],
     validNodeTypes: DiscourseNode[],
-  ): Promise<BulkImportCandidate[]> {
+  ): BulkImportCandidate[] {
     const candidates: BulkImportCandidate[] = [];
     const allFiles = this.app.vault.getMarkdownFiles();
 
     for (const file of allFiles) {
       const fileName = file.basename;
       const fileCache = this.app.metadataCache.getFileCache(file);
-      const currentNodeTypeId = fileCache?.frontmatter?.nodeTypeId;
+      const currentNodeTypeId = fileCache?.frontmatter?.nodeTypeId as
+        | string
+        | undefined;
 
       if (
         currentNodeTypeId &&
