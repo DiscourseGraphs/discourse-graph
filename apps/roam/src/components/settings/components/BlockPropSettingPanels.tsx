@@ -232,7 +232,10 @@ const BaseFlagPanel = ({
     await syncFlagToBlock(checked);
     refreshConfigTree();
     setter(settingKeys, checked);
-    onChange?.(checked);
+    // Delay onChange to let the async Roam block.update flush before
+    // the re-render reads block props via dual-read comparison.
+    // TODO(ENG-1471): remove with dual-read cleanup
+    setTimeout(() => onChange?.(checked), 100);
   };
 
   return (

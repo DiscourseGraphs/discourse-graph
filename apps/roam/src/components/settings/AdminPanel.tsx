@@ -277,7 +277,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
   }, []);
 
   const [suggestiveModeEnabled, setSuggestiveModeEnabled] = useState(
-    getFeatureFlag("Suggestive mode enabled"),
+    () => getFeatureFlag("Suggestive mode enabled"),
   );
   const [suggestiveModeUid, setSuggestiveModeUid] = useState(
     legacySuggestiveModeMeta.suggestiveModeEnabledUid,

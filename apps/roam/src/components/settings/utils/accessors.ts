@@ -568,7 +568,7 @@ const getLegacyDiscourseNodeSetting = (
       enabled: specificationUid
         ? getBasicTreeByParentUid(specificationUid).some(
             (c) => c.text === "enabled",
-          ) || specificationQuery.conditions.length > 0
+          )
         : false,
       query: specificationQuery,
     },
@@ -936,11 +936,13 @@ export const setPersonalSetting = (keys: string[], value: json): void => {
   });
 };
 
-const getRawDiscourseNodeBlockProps = (nodeType: string): json | undefined => {
+const getRawDiscourseNodeBlockProps = (
+  nodeType: string,
+): Record<string, json> | undefined => {
   let pageUid = nodeType;
   let blockProps = getBlockPropsByUid(pageUid, []);
 
-  if (!blockProps || Object.keys(blockProps).length === 0) {
+  if (!isRecord(blockProps) || Object.keys(blockProps).length === 0) {
     const lookedUpUid = getPageUidByPageTitle(
       `${DISCOURSE_NODE_PAGE_PREFIX}${nodeType}`,
     );
@@ -950,7 +952,9 @@ const getRawDiscourseNodeBlockProps = (nodeType: string): json | undefined => {
     }
   }
 
-  return blockProps;
+  return isRecord(blockProps) && Object.keys(blockProps).length > 0
+    ? (blockProps as Record<string, json>)
+    : undefined;
 };
 
 export const getDiscourseNodeSettings = (
