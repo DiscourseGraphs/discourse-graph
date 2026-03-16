@@ -5,7 +5,7 @@ import {
   TLAnyShapeUtilConstructor,
 } from "tldraw";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-import { createNodeShapeUtils } from "./DiscourseNodeUtil";
+import { DiscourseNodeUtil } from "./DiscourseNodeUtil";
 import {
   createAllReferencedNodeUtils,
   createAllRelationShapeUtils,
@@ -55,8 +55,19 @@ const getUtilTypes = <T extends { type: string }>({
   return utils.map((u) => u.type);
 };
 
-const createShapeUtils = ({
+const getCustomShapeTypes = ({
   allNodes,
+  utils,
+}: {
+  allNodes: DiscourseNode[];
+  utils: readonly TLAnyShapeUtilConstructor[];
+}): string[] => {
+  return [
+    ...new Set([...getUtilTypes({ utils }), ...allNodes.map((n) => n.type)]),
+  ];
+};
+
+const createShapeUtils = ({
   allRelationIds,
   allAddReferencedNodeByAction,
 }: {
@@ -65,7 +76,7 @@ const createShapeUtils = ({
   allAddReferencedNodeByAction: AddReferencedNodeType;
 }): TLAnyShapeUtilConstructor[] => {
   return [
-    ...createNodeShapeUtils(allNodes),
+    DiscourseNodeUtil,
     ...createAllRelationShapeUtils(allRelationIds),
     ...createAllReferencedNodeUtils(allAddReferencedNodeByAction),
   ];
@@ -106,7 +117,8 @@ export const useCanvasStoreAdapterArgs = ({
     allRelationIds,
     allAddReferencedNodeByAction,
   });
-  const customShapeTypes = getUtilTypes({
+  const customShapeTypes = getCustomShapeTypes({
+    allNodes,
     utils: customShapeUtils,
   });
   const customBindingTypes = getUtilTypes({
@@ -147,11 +159,12 @@ export const useCanvasStoreAdapterArgs = ({
   const stableCustomShapeTypes = useMemo(
     () => ({
       pageUid,
-      value: getUtilTypes({
+      value: getCustomShapeTypes({
+        allNodes,
         utils: stableCustomShapeUtils,
       }),
     }),
-    [pageUid, stableCustomShapeUtils],
+    [pageUid, allNodes, stableCustomShapeUtils],
   ).value;
   const stableCustomBindingTypes = useMemo(
     () => ({

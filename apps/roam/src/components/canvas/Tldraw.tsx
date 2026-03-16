@@ -65,9 +65,10 @@ import {
   createUiOverrides,
 } from "./uiOverrides";
 import {
-  BaseDiscourseNodeUtil,
+  DiscourseNodeUtil,
   DiscourseNodeShape,
   createNodeShapeTools,
+  DISCOURSE_NODE_SHAPE_TYPE,
 } from "./DiscourseNodeUtil";
 import { useRoamStore } from "./useRoamStore";
 import {
@@ -845,13 +846,14 @@ const TldrawCanvasShared = ({
       if (nodeType) {
         app.createShapes([
           {
-            type: nodeType.type,
+            type: DISCOURSE_NODE_SHAPE_TYPE,
             id: createShapeId(),
             props: {
               uid: e.detail.uid,
               title: e.detail.val,
               size: "s",
               fontFamily: "sans",
+              nodeTypeId: nodeType.type,
             },
             ...position,
           },
@@ -1208,7 +1210,7 @@ const InsideEditorAndUiContext = ({
       editor.createShapes([
         {
           id: createShapeId(),
-          type: nodeType,
+          type: DISCOURSE_NODE_SHAPE_TYPE,
           x: position.x - w / 2,
           y: position.y - h / 2,
           props: {
@@ -1219,6 +1221,7 @@ const InsideEditorAndUiContext = ({
             ...(imageUrl && { imageUrl }),
             size: "s",
             fontFamily: "sans",
+            nodeTypeId: nodeType,
           },
         },
       ]);
@@ -1486,7 +1489,7 @@ const InsideEditorAndUiContext = ({
       const removeAfterCreateHandler =
         editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
           const util = editor.getShapeUtil(shape);
-          if (util instanceof BaseDiscourseNodeUtil) {
+          if (util instanceof DiscourseNodeUtil) {
             const autoCanvasRelations = getPersonalSetting<boolean>([
               PERSONAL_KEYS.autoCanvasRelations,
             ]);

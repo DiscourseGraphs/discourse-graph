@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -13,8 +14,21 @@ import {
 import { createMigrationIds } from "tldraw";
 import { RelationBinding } from "./DiscourseRelationBindings";
 import { getRelationColor } from "./DiscourseRelationUtil";
+import { DISCOURSE_NODE_SHAPE_TYPE } from "~/components/canvas/DiscourseNodeUtil";
 
 const SEQUENCE_ID_BASE = "com.roam-research.discourse-graphs";
+
+const getRecordType = (record: unknown): string | undefined => {
+  if (typeof record !== "object" || record === null) return undefined;
+  const candidate = (record as { type?: unknown }).type;
+  return typeof candidate === "string" ? candidate : undefined;
+};
+
+const getRecordTypeName = (record: unknown): string | undefined => {
+  if (typeof record !== "object" || record === null) return undefined;
+  const candidate = (record as { typeName?: unknown }).typeName;
+  return typeof candidate === "string" ? candidate : undefined;
+};
 
 export const createMigrations = ({
   allRelationIds,
@@ -34,6 +48,7 @@ export const createMigrations = ({
     "2.3.0": 2,
     AddSizeAndFontFamily: 3,
     RemoveNullAssetFileSize: 4,
+    MigrateNodeTypeToDiscourseNode: 5,
   });
   return createMigrationSequence({
     sequenceId: `${SEQUENCE_ID_BASE}`,
@@ -59,12 +74,14 @@ export const createMigrations = ({
             { start: OldArrowTerminal; end: OldArrowTerminal }
           >;
 
-          const arrows = Object.values(oldStore).filter(
-            (r: any): r is OldArrow =>
-              r.typeName === "shape" &&
-              "type" in r &&
-              allRelationShapeIds.includes(r.type),
-          );
+          const arrows = Object.values(oldStore).filter((r): r is OldArrow => {
+            const recordType = getRecordType(r);
+            return (
+              getRecordTypeName(r) === "shape" &&
+              !!recordType &&
+              allRelationShapeIds.includes(recordType)
+            );
+          });
 
           for (const a of arrows) {
             const arrow = a as unknown as OldArrow;
@@ -121,7 +138,12 @@ export const createMigrations = ({
         id: versions["2.3.0"],
         scope: "record",
         filter: (r: any) => {
-          return r.typeName === "shape" && allRelationShapeIds.includes(r.type);
+          const recordType = getRecordType(r);
+          return (
+            getRecordTypeName(r) === "shape" &&
+            !!recordType &&
+            allRelationShapeIds.includes(recordType)
+          );
         },
         up: (arrow: any) => {
           arrow.props.start = { x: 0, y: 0 };
@@ -137,8 +159,14 @@ export const createMigrations = ({
       {
         id: versions["AddSizeAndFontFamily"],
         scope: "record",
-        filter: (r: any) =>
-          r.typeName === "shape" && allNodeTypes.includes(r.type),
+        filter: (r: any) => {
+          const recordType = getRecordType(r);
+          return (
+            getRecordTypeName(r) === "shape" &&
+            !!recordType &&
+            allNodeTypes.includes(recordType)
+          );
+        },
         up: (shape: any) => {
           if (!shape.props.size) shape.props.size = "m";
           if (!shape.props.fontFamily) shape.props.fontFamily = "draw";
@@ -153,6 +181,22 @@ export const createMigrations = ({
           r.props?.fileSize === null,
         up: (asset: any) => {
           delete asset.props.fileSize;
+        },
+      },
+      {
+        id: versions["MigrateNodeTypeToDiscourseNode"],
+        scope: "record",
+        filter: (r: any) => {
+          const recordType = getRecordType(r);
+          return (
+            getRecordTypeName(r) === "shape" &&
+            !!recordType &&
+            allNodeTypes.includes(recordType)
+          );
+        },
+        up: (shape: any) => {
+          shape.props.nodeTypeId = shape.type;
+          shape.type = DISCOURSE_NODE_SHAPE_TYPE;
         },
       },
     ],

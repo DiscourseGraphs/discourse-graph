@@ -103,8 +103,10 @@ import createPage from "roamjs-components/writes/createPage";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import triplesToBlocks from "~/utils/triplesToBlocks";
 import {
-  BaseDiscourseNodeUtil,
+  DiscourseNodeUtil,
   DiscourseNodeShape,
+  getDiscourseNodeTypeId,
+  isDiscourseNodeShape as isDiscourseNodeShapeTypeGuard,
 } from "~/components/canvas/DiscourseNodeUtil";
 import { checkConnectionType } from "~/components/canvas/canvasUtils";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -147,8 +149,7 @@ export const createAllReferencedNodeUtils = (
       static override type = action;
 
       isDiscourseNodeShape(shape: TLShape): shape is DiscourseNodeShape {
-        const shapeUtil = this.editor.getShapeUtil(shape.type);
-        return shapeUtil instanceof BaseDiscourseNodeUtil;
+        return isDiscourseNodeShapeTypeGuard(shape);
       }
 
       handleCreateRelationsInRoam = async ({
@@ -178,7 +179,11 @@ export const createAllReferencedNodeUtils = (
         const possibleTargets = allAddReferencedNodeByAction[arrow.type].map(
           (action) => action.destinationType,
         );
-        if (!possibleTargets.includes(target.type)) {
+        if (
+          !possibleTargets.includes(
+            getDiscourseNodeTypeId({ shape: target }) || "",
+          )
+        ) {
           return deleteAndWarn(
             `Target node must be of type ${possibleTargets
               .map((t) => discourseContext.nodes[t].text)
@@ -588,7 +593,7 @@ const asDiscourseNodeShape = (
   editor: Editor,
 ): DiscourseNodeShape | null => {
   const shapeUtil = editor.getShapeUtil(shape.type);
-  return shapeUtil instanceof BaseDiscourseNodeUtil
+  return shapeUtil instanceof DiscourseNodeUtil
     ? (shape as DiscourseNodeShape)
     : null;
 };
@@ -626,8 +631,8 @@ export const createAllRelationShapeUtils = (
         const relation = relations.find((r) => r.id === arrow.type);
         if (!relation) return;
 
-        const sourceNodeType = source.type;
-        const targetNodeType = target.type;
+        const sourceNodeType = getDiscourseNodeTypeId({ shape: source });
+        const targetNodeType = getDiscourseNodeTypeId({ shape: target });
 
         // Check all relations with the same label for a match
         const {
@@ -884,15 +889,18 @@ export const createAllRelationShapeUtils = (
 
         // Validate target node type compatibility before creating binding
         if (
-          target.type !== "arrow" &&
+          isDiscourseNodeShapeTypeGuard(target) &&
           otherBinding &&
           target.id !== otherBinding.toId &&
           (!currentBinding || target.id !== currentBinding.toId)
         ) {
           const sourceNodeId = otherBinding.toId;
           const sourceNode = this.editor.getShape(sourceNodeId);
-          const targetNodeType = target.type;
-          const sourceNodeType = sourceNode?.type;
+          if (!sourceNode || !isDiscourseNodeShapeTypeGuard(sourceNode)) {
+            return update;
+          }
+          const targetNodeType = getDiscourseNodeTypeId({ shape: target });
+          const sourceNodeType = getDiscourseNodeTypeId({ shape: sourceNode });
 
           if (sourceNodeType && targetNodeType && shape.type) {
             const isValidConnection = this.isValidNodeConnection(
@@ -996,8 +1004,10 @@ export const createAllRelationShapeUtils = (
             const endNode = this.editor.getShape(newBindings.end.toId);
 
             if (startNode && endNode) {
-              const startNodeType = startNode.type;
-              const endNodeType = endNode.type;
+              const startNodeType = getDiscourseNodeTypeId({
+                shape: startNode,
+              });
+              const endNodeType = getDiscourseNodeTypeId({ shape: endNode });
 
               const { isReverse, matchingRelation } =
                 this.checkConnectionTypeAcrossLabel(

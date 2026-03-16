@@ -7,6 +7,7 @@ import {
   isDiscourseNodeShape,
 } from "~/components/canvas/canvasUtils";
 import { isRelationComplete } from "~/utils/isRelationComplete";
+import { getDiscourseNodeTypeId } from "~/components/canvas/DiscourseNodeUtil";
 
 type RelationTypeDropdownProps = {
   sourceId: TLShapeId;
@@ -32,15 +33,15 @@ export const RelationTypeDropdown = ({
     const endNode = editor.getShape(targetId);
     if (!startNode || !endNode) return [];
 
-    const startNodeType = startNode.type;
-    const endNodeType = endNode.type;
-
     // Verify both are discourse nodes
     if (
       !isDiscourseNodeShape(editor, startNode) ||
       !isDiscourseNodeShape(editor, endNode)
     )
       return [];
+
+    const startNodeType = getDiscourseNodeTypeId({ shape: startNode });
+    const endNodeType = getDiscourseNodeTypeId({ shape: endNode });
 
     const colorPalette = DefaultColorThemePalette.lightMode;
     const validTypes: { id: string; label: string; color: string }[] = [];

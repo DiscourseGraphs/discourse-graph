@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { TLShapeId, createShapeId, useEditor, useValue } from "tldraw";
-import { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
+import {
+  DiscourseNodeShape,
+  getDiscourseNodeTypeId,
+} from "~/components/canvas/DiscourseNodeUtil";
 import {
   BaseDiscourseRelationUtil,
   DiscourseRelationShape,
@@ -211,7 +214,11 @@ export const DragHandleOverlay = () => {
         }
 
         // Validate that relation types exist between these node types
-        if (!hasValidRelationTypes(selectedNode.type, target.type)) {
+        const selectedNodeTypeId = getDiscourseNodeTypeId({
+          shape: selectedNode,
+        });
+        const targetNodeTypeId = getDiscourseNodeTypeId({ shape: target });
+        if (!hasValidRelationTypes(selectedNodeTypeId, targetNodeTypeId)) {
           dispatchToastEvent({
             id: "tldraw-no-valid-relation",
             title: "No relation types are defined between these node types",
@@ -271,10 +278,22 @@ export const DragHandleOverlay = () => {
       // the arrow is in reverse and should display the complement label.
       const sourceNode = editor.getShape(pending.sourceId);
       const targetNode = editor.getShape(pending.targetId);
+      if (
+        !sourceNode ||
+        !targetNode ||
+        !isDiscourseNodeShape(editor, sourceNode) ||
+        !isDiscourseNodeShape(editor, targetNode)
+      ) {
+        setPending(null);
+        sourceNodeRef.current = null;
+        return;
+      }
+      const sourceNodeTypeId = getDiscourseNodeTypeId({ shape: sourceNode });
+      const targetNodeTypeId = getDiscourseNodeTypeId({ shape: targetNode });
       const { isReverse } = checkConnectionType(
         selectedRelation,
-        sourceNode?.type ?? "",
-        targetNode?.type ?? "",
+        sourceNodeTypeId,
+        targetNodeTypeId,
       );
       const label =
         isReverse && selectedRelation.complement
