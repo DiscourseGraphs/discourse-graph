@@ -82,7 +82,6 @@ export class TldrawView extends TextFileView {
     const store = this.createStore(fileData, assetStore);
 
     if (!store) {
-      console.warn("No tldraw data found in file");
       return;
     }
 
@@ -100,13 +99,11 @@ export class TldrawView extends TextFileView {
       );
 
       if (!match?.[1]) {
-        console.warn("No tldraw data found in file");
         return;
       }
 
       const data = JSON.parse(match[1]) as TLData;
       if (!data.raw) {
-        console.warn("Invalid tldraw data format - missing raw field");
         return;
       }
       if (data.meta?.uuid) {
@@ -116,7 +113,6 @@ export class TldrawView extends TextFileView {
       }
 
       if (!this.file) {
-        console.warn("TldrawView not initialized: missing file");
         return;
       }
 
@@ -152,7 +148,6 @@ export class TldrawView extends TextFileView {
       throw new Error("TldrawView not initialized: missing canvas UUID");
 
     if (!this.assetStore) {
-      console.warn("Asset store is not set");
       return;
     }
 

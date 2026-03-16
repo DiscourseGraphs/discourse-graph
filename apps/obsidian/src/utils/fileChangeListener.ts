@@ -73,8 +73,6 @@ export class FileChangeListener {
       this.handleMetadataChange(file);
     };
     this.plugin.app.metadataCache.on("changed", this.metadataChangeCallback);
-
-    console.debug("FileChangeListener initialized");
   }
 
   /**
@@ -134,7 +132,6 @@ export class FileChangeListener {
       return;
     }
 
-    console.log(`File modified: ${file.path}`);
     this.queueChange(file.path, "content");
   }
 
@@ -146,7 +143,6 @@ export class FileChangeListener {
       return;
     }
 
-    console.log(`File deleted: ${file.path}`);
     this.hasPendingOrphanCleanup = true;
     this.resetDebounceTimer();
   }
@@ -159,7 +155,6 @@ export class FileChangeListener {
       return;
     }
 
-    console.log(`File renamed: ${oldPath} -> ${file.path}`);
     this.queueChange(file.path, "title", oldPath);
   }
 
@@ -180,16 +175,6 @@ export class FileChangeListener {
 
     // Note: pendingCreates helps track files that are created -> added nodeTypeId -> synced to Supabase.
     // If a file is created -> added nodeTypeId manually, it won't be detected until the next global sync (onLoad).
-
-    // Placeholder: Check for relation metadata changes
-    // For now, we'll just log that metadata changed
-    // In the future, this can detect specific relation changes
-    const cache = this.plugin.app.metadataCache.getFileCache(file);
-    if (cache?.frontmatter) {
-      console.debug(
-        `Metadata changed for ${file.path} (relation metadata placeholder)`,
-      );
-    }
   }
 
   /**
@@ -235,7 +220,6 @@ export class FileChangeListener {
    */
   private async processQueue(): Promise<void> {
     if (this.isProcessing) {
-      console.debug("Sync already in progress, skipping");
       return;
     }
 
@@ -283,30 +267,9 @@ export class FileChangeListener {
         }
       }
 
-      if (processedFiles.length > 0) {
-        console.debug(
-          `Successfully processed ${processedFiles.length} file(s):`,
-          processedFiles,
-        );
-      }
-
-      if (failedFiles.length > 0) {
-        console.warn(
-          `Failed to process ${failedFiles.length} file(s), will retry on next change:`,
-          failedFiles,
-        );
-      }
-
       if (this.hasPendingOrphanCleanup) {
-        const deletedCount = await cleanupOrphanedNodes(this.plugin);
-        if (deletedCount > 0) {
-          console.debug(`Deleted ${deletedCount} orphaned node(s)`);
-        }
+        await cleanupOrphanedNodes(this.plugin);
         this.hasPendingOrphanCleanup = false;
-      }
-
-      if (processedFiles.length > 0 || failedFiles.length === 0) {
-        console.debug("Sync queue processed");
       }
     } catch (error) {
       console.error("Error processing sync queue:", error);
@@ -341,7 +304,5 @@ export class FileChangeListener {
     this.changeQueue.clear();
     this.pendingCreates.clear();
     this.isProcessing = false;
-
-    console.debug("FileChangeListener cleaned up");
   }
 }

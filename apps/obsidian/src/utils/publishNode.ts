@@ -42,9 +42,6 @@ const publishSchema = async ({
   }
 
   if (!schemaResponse.data) {
-    console.warn(
-      `Schema with nodeTypeId ${nodeTypeId} not found in space ${spaceId}`,
-    );
     return; // Schema doesn't exist, skip publishing
   }
 
@@ -299,9 +296,6 @@ export const publishNodeToGroup = async ({
         link,
         file.path,
       );
-      if (attachment === null) {
-        console.warn("Could not find file for " + link);
-      }
       return attachment;
     })
     .filter((a) => !!a);
