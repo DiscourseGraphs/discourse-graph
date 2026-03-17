@@ -271,6 +271,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
   );
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isInstructionOpen, setIsInstructionOpen] = useState(false);
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <Checkbox
