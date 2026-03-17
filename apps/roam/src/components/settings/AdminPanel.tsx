@@ -356,8 +356,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
         featureKey="Duplicate node alert enabled"
         initialValue={getFeatureFlag("Duplicate node alert enabled")}
         disabled={!suggestiveModeEnabled}
-        order={0}
-        parentUid={settings.settingsUid}
       />
 
       <Button
