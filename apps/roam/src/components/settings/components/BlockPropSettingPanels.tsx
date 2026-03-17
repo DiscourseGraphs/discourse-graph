@@ -145,8 +145,10 @@ const BaseTextPanel = ({
     debounceRef.current = window.setTimeout(() => {
       if (errorRef.current) return;
       syncToBlock?.(newValue);
-      refreshConfigTree();
-      setter(settingKeys, newValue);
+      setTimeout(() => {
+        refreshConfigTree();
+        setter(settingKeys, newValue);
+      }, 100);
     }, DEBOUNCE_MS);
   };
 
@@ -232,9 +234,6 @@ const BaseFlagPanel = ({
     await syncFlagToBlock(checked);
     refreshConfigTree();
     setter(settingKeys, checked);
-    // Delay onChange to let the async Roam block.update flush before
-    // the re-render reads block props via dual-read comparison.
-    // TODO(ENG-1471): remove with dual-read cleanup
     setTimeout(() => onChange?.(checked), 100);
   };
 

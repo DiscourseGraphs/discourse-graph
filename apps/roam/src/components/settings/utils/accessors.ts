@@ -47,7 +47,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const deepEqual = (a: unknown, b: unknown): boolean => {
   if (a === b) return true;
-  const isEmpty = (v: unknown) => v === undefined || v === "" || v === false;
+  const isEmpty = (v: unknown) =>
+    v === undefined || v === null || v === "" || v === false;
   if (isEmpty(a) && isEmpty(b)) return true;
   if (a == null || b == null) return a === b;
   if (Array.isArray(a) && Array.isArray(b)) {
