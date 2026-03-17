@@ -95,7 +95,7 @@ const featureFlags: FeatureFlags = {
 const defaultFeatureFlags: FeatureFlags = {
   "Enable left sidebar": false,
   "Suggestive mode enabled": false,
-  "Duplicate node alert enabled": true,
+  "Duplicate node alert enabled": false,
 };
 
 const exportSettings: ExportSettings = {
