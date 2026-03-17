@@ -156,6 +156,7 @@ export const DiscourseRelationSchema = z.object({
 export const FeatureFlagsSchema = z.object({
   "Enable left sidebar": z.boolean().default(false),
   "Suggestive mode enabled": z.boolean().default(false),
+  "Duplicate node alert enabled": z.boolean().default(true),
 });
 
 export const ExportSettingsSchema = z.object({
