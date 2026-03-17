@@ -354,6 +354,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
         description="Show possible duplicate nodes when viewing a discourse node page. Requires Suggestive mode to be enabled."
         featureKey="Duplicate node alert enabled"
         initialValue={getFeatureFlag("Duplicate node alert enabled")}
+        disabled={!suggestiveModeEnabled}
         order={0}
         parentUid={settings.settingsUid}
       />
