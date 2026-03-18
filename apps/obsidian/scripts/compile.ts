@@ -139,7 +139,7 @@ export const compile = ({
         },
         {
           name: "combineStyles",
-          setup(build) {
+          setup: (build): void => {
             build.onEnd(async () => {
               const rootStylesPath = path.join(root, "styles.css");
               if (fs.existsSync(rootStylesPath)) {
@@ -181,7 +181,7 @@ export const compile = ({
         },
         {
           name: "copyDefaultFiles",
-          setup(build) {
+          setup: (build): void => {
             build.onEnd(async () => {
               DEFAULT_FILES_INCLUDED.map((f) => path.join(root, f))
                 .filter((f) => fs.existsSync(f))
@@ -194,12 +194,12 @@ export const compile = ({
         {
           name: "mirrorFiles",
           setup: (build) => {
-            build.onEnd(async () => {
+            build.onEnd(() => {
               if (!mirror) return;
 
               let mirrorPaths: string[];
               try {
-                const parsed = JSON.parse(mirror);
+                const parsed: unknown = JSON.parse(mirror);
                 mirrorPaths = Array.isArray(parsed) ? parsed : [parsed];
               } catch {
                 mirrorPaths = [mirror];
