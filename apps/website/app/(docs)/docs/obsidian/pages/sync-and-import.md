@@ -128,7 +128,8 @@ After importing, you can fetch the latest content from the original sources to k
 
 Alternatively, you can click the "Refresh" button in the Discourse Context panel.
 
-## ![Refresh button](/docs/obsidian/refresh-button.png)
+![Refresh button](/docs/obsidian/refresh-button.png)
+
 
 ## Summary of commands
 
