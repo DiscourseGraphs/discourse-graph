@@ -106,7 +106,7 @@ Importing allows you to bring published discourse nodes from other group members
    - Any new relation types that will be added
    - Any new discourse relation triplets (source → relation → destination) that will be established
 
-5. The plugin will import each selected node **and their associated relations**, then display a progress bar. Once complete, a confirmation notice will appear showing how many nodes and relations were imported successfully.
+5. The plugin will import each selected node **and their associated relations**, then display a progress bar. Once complete,you will see a confirmation notice.
 
 Imported nodes are saved in an `import/{spaceName}/` folder in your vault, preserving the original space organization.
 
