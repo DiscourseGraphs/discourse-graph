@@ -194,7 +194,7 @@ export const compile = ({
         },
         {
           name: "mirrorFiles",
-          setup: (build) => {
+          setup: (build): void => {
             build.onEnd(() => {
               if (!mirror) return;
 
