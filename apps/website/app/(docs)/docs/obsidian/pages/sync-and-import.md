@@ -130,7 +130,6 @@ Alternatively, you can click the "Refresh" button in the Discourse Context panel
 
 ![Refresh button](/docs/obsidian/refresh-button.png)
 
-
 ## Summary of commands
 
 - **Sync discourse nodes to Supabase**: Manually sync all discourse nodes to the database
