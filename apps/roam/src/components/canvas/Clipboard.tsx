@@ -56,9 +56,6 @@ import { openBlockInSidebar, createBlock } from "roamjs-components/writes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import findDiscourseNode from "~/utils/findDiscourseNode";
-import getDiscourseNodes, {
-  excludeDefaultNodes,
-} from "~/utils/getDiscourseNodes";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
@@ -432,6 +429,7 @@ const ClipboardPageSection = ({
   searchQuery,
   sortDirection,
   selectedNodeType,
+  onNodeTypesChange,
 }: {
   page: ClipboardPage;
   onRemove: (uid: string) => void;
@@ -439,6 +437,7 @@ const ClipboardPageSection = ({
   searchQuery: string;
   sortDirection: "asc" | "desc";
   selectedNodeType: string;
+  onNodeTypesChange: (pageUid: string, types: string[]) => void;
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [discourseNodes, setDiscourseNodes] = useState<
@@ -590,6 +589,14 @@ const ClipboardPageSection = ({
       sortDirection,
     ],
   );
+
+  useEffect(() => {
+    const candidateNodes = showNodesOnCanvas
+      ? groupedNodes
+      : groupedNodes.filter((n) => n.shapes.length === 0);
+    const types = [...new Set(candidateNodes.map((n) => n.type))];
+    onNodeTypesChange(page.uid, types);
+  }, [groupedNodes, page.uid, onNodeTypesChange, showNodesOnCanvas]);
 
   useEffect(() => {
     setOpenSections((prev) => {
@@ -1132,11 +1139,32 @@ export const ClipboardPanel = () => {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedNodeType, setSelectedNodeType] = useState("All");
+  const [nodeTypesByPage, setNodeTypesByPage] = useState<
+    Record<string, string[]>
+  >({});
+
+  const handleNodeTypesChange = useCallback(
+    (pageUid: string, types: string[]) => {
+      setNodeTypesByPage((prev) => ({ ...prev, [pageUid]: types }));
+    },
+    [],
+  );
 
   const availableNodeTypes = useMemo(() => {
-    const types = getDiscourseNodes().filter(excludeDefaultNodes);
-    return ["All", ...types.map((t) => t.text)];
-  }, []);
+    const pageUids = new Set(pages.map((p) => p.uid));
+    const allTypes = new Set(
+      Object.entries(nodeTypesByPage)
+        .filter(([uid]) => pageUids.has(uid))
+        .flatMap(([, types]) => types),
+    );
+    return ["All", ...Array.from(allTypes).sort()];
+  }, [nodeTypesByPage, pages]);
+
+  useEffect(() => {
+    if (selectedNodeType !== "All" && !availableNodeTypes.includes(selectedNodeType)) {
+      setSelectedNodeType("All");
+    }
+  }, [availableNodeTypes, selectedNodeType]);
 
   const hasActiveFilters = !!searchQuery || selectedNodeType !== "All";
 
@@ -1330,6 +1358,7 @@ export const ClipboardPanel = () => {
                     searchQuery={searchQuery}
                     sortDirection={sortDirection}
                     selectedNodeType={selectedNodeType}
+                    onNodeTypesChange={handleNodeTypesChange}
                   />
                 ))}
               </div>
