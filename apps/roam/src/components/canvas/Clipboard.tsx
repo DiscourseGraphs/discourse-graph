@@ -992,9 +992,15 @@ const ClipboardPageSection = ({
             </div>
           ) : visibleGroupedNodes.length === 0 ? (
             <div className="rounded border border-dashed border-gray-200 p-2">
+
               {searchQuery || selectedNodeType !== "All"
-                ? "No nodes match the current filters."
+                ? showNodesOnCanvas
+                  ? "No nodes match the current filters."
+                  : "No nodes match the current filters, or matching nodes are already on canvas. Turn on \"Show nodes on canvas\" to view them."
+                : showNodesOnCanvas
+                ? "All nodes from this page are already on canvas."
                 : 'All nodes from this page are already on canvas. Turn on "Show nodes on canvas" to view them.'}
+
             </div>
           ) : (
             <div className="space-y-1">
