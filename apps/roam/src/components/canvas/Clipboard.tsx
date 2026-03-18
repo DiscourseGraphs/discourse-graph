@@ -992,15 +992,13 @@ const ClipboardPageSection = ({
             </div>
           ) : visibleGroupedNodes.length === 0 ? (
             <div className="rounded border border-dashed border-gray-200 p-2">
-
               {searchQuery || selectedNodeType !== "All"
                 ? showNodesOnCanvas
                   ? "No nodes match the current filters."
-                  : "No nodes match the current filters, or matching nodes are already on canvas. Turn on \"Show nodes on canvas\" to view them."
+                  : 'No nodes match the current filters, or matching nodes are already on canvas. Turn on "Show nodes on canvas" to view them.'
                 : showNodesOnCanvas
-                ? "All nodes from this page are already on canvas."
-                : 'All nodes from this page are already on canvas. Turn on "Show nodes on canvas" to view them.'}
-
+                  ? "All nodes from this page are already on canvas."
+                  : 'All nodes from this page are already on canvas. Turn on "Show nodes on canvas" to view them.'}
             </div>
           ) : (
             <div className="space-y-1">
@@ -1167,7 +1165,10 @@ export const ClipboardPanel = () => {
   }, [nodeTypesByPage, pages]);
 
   useEffect(() => {
-    if (selectedNodeType !== "All" && !availableNodeTypes.includes(selectedNodeType)) {
+    if (
+      selectedNodeType !== "All" &&
+      !availableNodeTypes.includes(selectedNodeType)
+    ) {
       setSelectedNodeType("All");
     }
   }, [availableNodeTypes, selectedNodeType]);
