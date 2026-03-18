@@ -12,9 +12,10 @@ import autoprefixer from "autoprefixer";
 dotenv.config();
 
 // For local dev: Set SUPABASE_USE_DB=local and run `pnpm run genenv` in packages/database
-let envContents: (() => Record<string, string>) | null = null;
+let envContents: () => Partial<Record<string, string>>;
 try {
   const dbDotEnv = require("@repo/database/dbDotEnv");
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   envContents = dbDotEnv.envContents;
 } catch (error) {
   if ((error as Error).message.includes("Cannot find module")) {
@@ -182,7 +183,7 @@ export const compile = ({
         {
           name: "copyDefaultFiles",
           setup: (build): void => {
-            build.onEnd(async () => {
+            build.onEnd(() => {
               DEFAULT_FILES_INCLUDED.map((f) => path.join(root, f))
                 .filter((f) => fs.existsSync(f))
                 .forEach((f) => {
@@ -200,7 +201,9 @@ export const compile = ({
               let mirrorPaths: string[];
               try {
                 const parsed: unknown = JSON.parse(mirror);
-                mirrorPaths = Array.isArray(parsed) ? parsed : [parsed];
+                mirrorPaths = Array.isArray(parsed)
+                  ? (parsed as string[])
+                  : [parsed as string];
               } catch {
                 mirrorPaths = [mirror];
               }
@@ -247,4 +250,4 @@ const main = async () => {
     process.exit(1);
   }
 };
-if (require.main === module) main();
+if (require.main === module) void main();
