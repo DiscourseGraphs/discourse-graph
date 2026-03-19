@@ -91,10 +91,7 @@ import {
 } from "./DiscourseRelationShape/DiscourseRelationTool";
 import ConvertToDialog from "./ConvertToDialog";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
-import {
-  setCurrentToolToSelectIfUnlocked,
-  unlockToolWhenSelect,
-} from "./toolLock";
+import { setCurrentToolToSelectIfUnlocked } from "./toolLock";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
 import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import internalError from "~/utils/internalError";
@@ -1126,18 +1123,6 @@ const InsideEditorAndUiContext = ({
   const editor = useEditor();
   const toasts = useToasts();
   const msg = useTranslation();
-
-  // When the user selects the select tool, clear tool lock so we only lock while on discourse tools
-  const currentToolId = useValue(
-    "currentToolId",
-    () => editor.getCurrentToolId(),
-    [editor],
-  );
-  useEffect(() => {
-    if (currentToolId === "select") {
-      unlockToolWhenSelect(editor);
-    }
-  }, [currentToolId, editor]);
 
   // const isCustomArrowShape = (shape: TLShape) => {
   //   // TODO: find a better way to identify custom arrow shapes

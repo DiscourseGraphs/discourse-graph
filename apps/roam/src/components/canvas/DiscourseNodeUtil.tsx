@@ -45,7 +45,6 @@ import { getSetting } from "~/utils/extensionSettings";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { unlockTool } from "./toolLock";
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -520,11 +519,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
           this.updateProps(shape.id, shape.type, { h, w, imageUrl });
         };
 
-        // Only unlock when creating — editing is already on the select tool
         const wasToolLocked = this.editor.getInstanceState().isToolLocked;
-        if (isCreating) {
-          unlockTool(this.editor);
-        }
 
         const restoreToolState = () => {
           if (wasToolLocked) {
