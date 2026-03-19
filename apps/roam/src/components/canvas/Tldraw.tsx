@@ -28,7 +28,6 @@ import {
   defaultShapeUtils,
   defaultTools,
   useEditor,
-  useValue,
   VecModel,
   createShapeId,
   TLPointerEventInfo,
