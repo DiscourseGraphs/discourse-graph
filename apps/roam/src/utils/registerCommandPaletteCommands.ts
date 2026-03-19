@@ -21,6 +21,15 @@ import {
 } from "./pageRefObserverHandlers";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
+import { extractRef } from "roamjs-components/util";
+import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import refreshConfigTree from "~/utils/refreshConfigTree";
+import { refreshAndNotify } from "~/components/LeftSidebarView";
+import {
+  setPersonalSetting,
+  setGlobalSetting,
+} from "~/components/settings/utils/accessors";
+import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
 
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
@@ -301,4 +310,143 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   );
   void addCommand("DG: Query block - Create", createQueryBlock);
   void addCommand("DG: Query block - Refresh", refreshCurrentQueryBuilder);
+
+  // Block context menu commands for left sidebar
+  const config = getFormattedConfigTree();
+  if (config.leftSidebarEnabled.value) {
+    const personalSections = config.leftSidebar.personal.sections;
+    const globalSection = config.leftSidebar.global;
+
+    for (const section of personalSections) {
+      if (!section.childrenUid) continue;
+
+      const sectionName = section.text.startsWith("((")
+        ? getTextByBlockUid(extractRef(section.text)) || section.text
+        : section.text;
+
+      window.roamAlphaAPI.ui.blockContextMenu.addCommand({
+        label: `DG: Left sidebar - Add to "${sectionName}" (personal)`,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        callback: (props: { "block-uid": string }) => {
+          void addBlockToPersonalSection({
+            blockUid: props["block-uid"],
+            sectionUid: section.uid,
+            onloadArgs,
+          });
+        },
+      });
+    }
+
+    if (globalSection.childrenUid) {
+      window.roamAlphaAPI.ui.blockContextMenu.addCommand({
+        label: "DG: Left sidebar - Add to Global",
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        callback: (props: { "block-uid": string }) => {
+          void addBlockToGlobalSection({
+            blockUid: props["block-uid"],
+            onloadArgs,
+          });
+        },
+      });
+    }
+  }
+};
+
+const addBlockToPersonalSection = async ({
+  blockUid,
+  sectionUid,
+  onloadArgs,
+}: {
+  blockUid: string;
+  sectionUid: string;
+  onloadArgs: OnloadArgs;
+}) => {
+  refreshConfigTree();
+  const sections = getFormattedConfigTree().leftSidebar.personal.sections;
+  const section = sections.find((s) => s.uid === sectionUid);
+  if (!section?.childrenUid) return;
+
+  const blockRef = `((${blockUid}))`;
+
+  try {
+    const newChildBlockUid = await createBlock({
+      parentUid: section.childrenUid,
+      order: "last",
+      node: { text: blockRef },
+    });
+
+    const updatedSections = sections.map((s) =>
+      s.uid === sectionUid
+        ? {
+            ...s,
+            children: [
+              ...(s.children || []),
+              {
+                text: blockRef,
+                uid: newChildBlockUid,
+                children: [],
+                alias: { value: "" },
+              },
+            ],
+          }
+        : s,
+    );
+
+    setPersonalSetting(["Left sidebar"], sectionsToBlockProps(updatedSections));
+    refreshAndNotify();
+    renderSettings({
+      onloadArgs,
+      selectedTabId: "left-sidebar-personal-settings",
+      expandedSectionUid: sectionUid,
+    });
+  } catch {
+    renderToast({
+      content: "Failed to add block to section",
+      intent: "danger",
+      id: "add-block-to-section-error",
+    });
+  }
+};
+
+const addBlockToGlobalSection = async ({
+  blockUid,
+  onloadArgs,
+}: {
+  blockUid: string;
+  onloadArgs: OnloadArgs;
+}) => {
+  refreshConfigTree();
+  const globalSection = getFormattedConfigTree().leftSidebar.global;
+  if (!globalSection.childrenUid) return;
+
+  const blockRef = `((${blockUid}))`;
+
+  try {
+    const newChildBlockUid = await createBlock({
+      parentUid: globalSection.childrenUid,
+      order: "last",
+      node: { text: blockRef },
+    });
+
+    const updatedChildren = [
+      ...globalSection.children,
+      { text: blockRef, uid: newChildBlockUid, children: [] },
+    ];
+
+    setGlobalSetting(
+      ["Left sidebar", "Children"],
+      updatedChildren.map((c) => c.text),
+    );
+    refreshAndNotify();
+    renderSettings({
+      onloadArgs,
+      selectedTabId: "left-sidebar-global-settings",
+    });
+  } catch {
+    renderToast({
+      content: "Failed to add block to global section",
+      intent: "danger",
+      id: "add-block-to-global-section-error",
+    });
+  }
 };

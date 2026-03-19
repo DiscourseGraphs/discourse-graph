@@ -66,11 +66,13 @@ export const SettingsDialog = ({
   isOpen,
   onClose,
   selectedTabId,
+  expandedSectionUid,
 }: {
   onloadArgs: OnloadArgs;
   isOpen?: boolean;
   onClose?: () => void;
   selectedTabId?: TabId;
+  expandedSectionUid?: string;
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const settings = getFormattedConfigTree();
@@ -172,7 +174,11 @@ export const SettingsDialog = ({
             id="left-sidebar-personal-settings"
             title="Left sidebar"
             className="overflow-y-auto"
-            panel={<LeftSidebarPersonalSections />}
+            panel={
+              <LeftSidebarPersonalSections
+                expandedSectionUid={expandedSectionUid}
+              />
+            }
           />
           <SectionHeader className="text-lg font-semibold text-neutral-dark">
             Global Settings
@@ -275,11 +281,15 @@ export const SettingsDialog = ({
 
 type Props = {
   onloadArgs: OnloadArgs;
+  selectedTabId?: TabId;
+  expandedSectionUid?: string;
 };
 export const render = (props: Props) =>
   renderOverlay({
     Overlay: SettingsDialog,
     props: {
       onloadArgs: props.onloadArgs,
+      selectedTabId: props.selectedTabId,
+      expandedSectionUid: props.expandedSectionUid,
     },
   });
