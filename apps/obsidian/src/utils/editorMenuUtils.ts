@@ -20,20 +20,15 @@ export const addConvertSubmenu = ({
     menuItem.setTitle(label);
     menuItem.setIcon("file-type");
 
-    /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment*/
-    // @ts-expect-error - setSubmenu is not officially in the API but works
     const submenu = menuItem.setSubmenu();
 
     nodeTypes.forEach((nodeType) => {
-      // setSubmenu is not officially in the API but works
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      submenu.addItem((item: any) => {
+      submenu.addItem((item) => {
         item
           .setTitle(nodeType.name)
           .setIcon("file-type")
           .onClick(() => void onClick(nodeType));
       });
-      /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
     });
   });
 };
@@ -65,7 +60,11 @@ export const replaceImageEmbedInEditor = ({
 
   const from = activeView.editor.offsetToPos(embed.position.start.offset);
   const to = activeView.editor.offsetToPos(embed.position.end.offset);
-  activeView.editor.replaceRange(`[[${targetFile.basename}]]`, from, to);
+  const linkText = app.metadataCache.fileToLinktext(
+    targetFile,
+    activeView.file.path,
+  );
+  activeView.editor.replaceRange(`[[${linkText}]]`, from, to);
 };
 
 const IMAGE_EXTENSIONS = /^(png|jpe?g|gif|svg|bmp|webp|avif|tiff?)$/i;

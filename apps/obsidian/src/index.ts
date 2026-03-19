@@ -151,7 +151,6 @@ export default class DiscourseGraphPlugin extends Plugin {
     );
 
     this.registerEvent(
-      // @ts-expect-error - file-menu event exists but is not in the type definitions
       this.app.workspace.on("file-menu", (menu: Menu, file: TFile) => {
         if (isImageFile(file)) {
           addConvertSubmenu({
