@@ -75,6 +75,12 @@
   padding: 8px;
 }
 
+.roamjs-query-results-view
+  .roamjs-query-link-cell:not(:hover)
+  .rm-page-ref[data-tag^="."] {
+  display: none !important;
+}
+
 .roamjs-view-select button {
   width: 100%;
   display: flex;
