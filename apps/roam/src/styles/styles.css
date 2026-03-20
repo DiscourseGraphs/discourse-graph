@@ -75,9 +75,7 @@
   padding: 8px;
 }
 
-.roamjs-query-results-view
-  .roamjs-query-link-cell:not(:hover)
-  .rm-page-ref[data-tag^="."] {
+.roamjs-query-results-view td:not(:hover) .rm-page-ref[data-tag^="."] {
   display: none !important;
 }
 
