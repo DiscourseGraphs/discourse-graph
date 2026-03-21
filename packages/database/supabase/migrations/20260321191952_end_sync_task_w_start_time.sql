@@ -51,3 +51,33 @@ BEGIN
         WHERE id=t_id;
 END;
 $$;
+
+ALTER FUNCTION public.end_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    s_status public.task_status,
+    s_started_at timestamp
+) OWNER TO "postgres";
+
+GRANT ALL ON FUNCTION public.end_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    s_status public.task_status,
+    s_started_at timestamp
+) TO "anon";
+GRANT ALL ON FUNCTION public.end_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    s_status public.task_status,
+    s_started_at timestamp
+) TO "authenticated";
+GRANT ALL ON FUNCTION public.end_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    s_status public.task_status,
+    s_started_at timestamp
+) TO "service_role";
