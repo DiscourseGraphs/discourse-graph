@@ -47,6 +47,7 @@ import isDiscourseNode from "~/utils/isDiscourseNode";
 import {
   DiscourseNodeShape,
   DEFAULT_STYLE_PROPS,
+  DISCOURSE_NODE_SHAPE_TYPE,
   FONT_SIZES,
 } from "./DiscourseNodeUtil";
 import { openBlockInSidebar, createBlock } from "roamjs-components/writes";
@@ -658,7 +659,7 @@ const ClipboardPageSection = ({
       const shapeId = createShapeId();
       const shape = {
         id: shapeId,
-        type: nodeType.type,
+        type: DISCOURSE_NODE_SHAPE_TYPE,
         x: pagePoint.x - w / 2,
         y: pagePoint.y - h / 2,
         props: {
@@ -669,6 +670,7 @@ const ClipboardPageSection = ({
           imageUrl,
           size: "s" as TLDefaultSizeStyle,
           fontFamily: "sans" as TLDefaultFontStyle,
+          nodeTypeId: nodeType.type,
         },
       };
       editor.createShape<DiscourseNodeShape>(shape);

@@ -103,8 +103,10 @@ import createPage from "roamjs-components/writes/createPage";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import triplesToBlocks from "~/utils/triplesToBlocks";
 import {
-  BaseDiscourseNodeUtil,
+  DiscourseNodeUtil,
   DiscourseNodeShape,
+  getDiscourseNodeTypeId,
+  isDiscourseNodeShape as isDiscourseNodeShapeTypeGuard,
 } from "~/components/canvas/DiscourseNodeUtil";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
@@ -146,8 +148,7 @@ export const createAllReferencedNodeUtils = (
       static override type = action;
 
       isDiscourseNodeShape(shape: TLShape): shape is DiscourseNodeShape {
-        const shapeUtil = this.editor.getShapeUtil(shape.type);
-        return shapeUtil instanceof BaseDiscourseNodeUtil;
+        return isDiscourseNodeShapeTypeGuard(shape);
       }
 
       handleCreateRelationsInRoam = async ({
@@ -177,7 +178,11 @@ export const createAllReferencedNodeUtils = (
         const possibleTargets = allAddReferencedNodeByAction[arrow.type].map(
           (action) => action.destinationType,
         );
-        if (!possibleTargets.includes(target.type)) {
+        if (
+          !possibleTargets.includes(
+            getDiscourseNodeTypeId({ shape: target }) || "",
+          )
+        ) {
           return deleteAndWarn(
             `Target node must be of type ${possibleTargets
               .map((t) => discourseContext.nodes[t].text)
@@ -587,7 +592,7 @@ const asDiscourseNodeShape = (
   editor: Editor,
 ): DiscourseNodeShape | null => {
   const shapeUtil = editor.getShapeUtil(shape.type);
-  return shapeUtil instanceof BaseDiscourseNodeUtil
+  return shapeUtil instanceof DiscourseNodeUtil
     ? (shape as DiscourseNodeShape)
     : null;
 };
@@ -628,7 +633,11 @@ export const createAllRelationShapeUtils = (
           .filter((r) => r.source === relation.source)
           .map((r) => r.destination);
 
-        if (!possibleTargets.includes(target.type)) {
+        if (
+          !possibleTargets.includes(
+            getDiscourseNodeTypeId({ shape: target }) || "",
+          )
+        ) {
           const uniqueTargets = [...new Set(possibleTargets)];
           const uniqueTargetTexts = uniqueTargets.map(
             (t) => discourseContext.nodes[t].text,
@@ -637,8 +646,9 @@ export const createAllRelationShapeUtils = (
             `Target node must be of type ${uniqueTargetTexts.join(", ")}`,
           );
         }
-        if (arrow.type !== target.type) {
-          editor.updateShapes([{ id: arrow.id, type: target.type }]);
+        const targetNodeTypeId = getDiscourseNodeTypeId({ shape: target });
+        if (targetNodeTypeId && arrow.type !== targetNodeTypeId) {
+          editor.updateShapes([{ id: arrow.id, type: targetNodeTypeId }]);
         }
         if (getStoredRelationsEnabled()) {
           const sourceAsDNS = asDiscourseNodeShape(source, editor);

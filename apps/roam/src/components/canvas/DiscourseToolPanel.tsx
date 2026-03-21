@@ -15,7 +15,11 @@ import { useAtom } from "@tldraw/state-react";
 import { TOOL_ARROW_ICON_SVG, NODE_COLOR_ICON_SVG } from "~/icons";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./Tldraw";
-import { DEFAULT_STYLE_PROPS, FONT_SIZES } from "./DiscourseNodeUtil";
+import {
+  DEFAULT_STYLE_PROPS,
+  DISCOURSE_NODE_SHAPE_TYPE,
+  FONT_SIZES,
+} from "./DiscourseNodeUtil";
 
 export type DiscourseGraphPanelProps = {
   nodes: DiscourseNode[];
@@ -184,10 +188,14 @@ const DiscourseGraphPanel = ({
             const shapeId = createShapeId();
             editor.createShape({
               id: shapeId,
-              type: current.item.id,
+              type: DISCOURSE_NODE_SHAPE_TYPE,
               x: pagePoint.x - offsetX,
               y: pagePoint.y - offsetY,
-              props: { fontFamily: "sans", size: "s" },
+              props: {
+                fontFamily: "sans",
+                size: "s",
+                nodeTypeId: current.item.id,
+              },
             });
             editor.setEditingShape(shapeId);
             editor.setCurrentTool("select");
