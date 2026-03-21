@@ -67,11 +67,17 @@ const notifyEndSyncFailure = ({
   });
 };
 
-export const endSyncTask = async (
-  worker: string,
-  status: Enums<"task_status">,
-  showToast: boolean = false,
-): Promise<void> => {
+export const endSyncTask = async ({
+  worker,
+  status,
+  showToast = false,
+  startTime,
+}: {
+  worker: string;
+  status: Enums<"task_status">;
+  showToast: boolean;
+  startTime: Date;
+}): Promise<void> => {
   try {
     const supabaseClient = await getLoggedInClient();
     if (!supabaseClient) return;
@@ -85,6 +91,7 @@ export const endSyncTask = async (
       s_function: SYNC_FUNCTION,
       s_worker: worker,
       s_status: status,
+      s_started_at: startTime.toISOString(),
     });
     if (error) {
       console.error("endSyncTask: Error calling end_sync_task:", error);
@@ -392,7 +399,7 @@ export const setSyncActivity = (active: boolean) => {
 export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
   if (!doSync) return;
   console.debug("starting createOrUpdateDiscourseEmbedding");
-  const startTime = new Date().valueOf();
+  const startTime = new Date();
   let success = true;
   let claimed = false;
   const worker = window.roamAlphaAPI.user.uid();
@@ -455,14 +462,15 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
       context,
     });
     await cleanupOrphanedNodes(supabaseClient, context);
-    await endSyncTask(worker, "complete", showToast);
-    const duration = (new Date().valueOf() - startTime) / 1000.0;
+    await endSyncTask({ worker, status: "complete", showToast, startTime });
+    const duration = (new Date().valueOf() - startTime.valueOf()) / 1000.0;
     posthog.capture("Sync complete", { duration });
   } catch (error) {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
     success = false;
-    if (worker && claimed) await endSyncTask(worker, "failed", showToast);
-    const duration = (new Date().valueOf() - startTime) / 1000.0;
+    if (worker && claimed)
+      await endSyncTask({ worker, status: "failed", showToast, startTime });
+    const duration = (new Date().valueOf() - startTime.valueOf()) / 1000.0;
     posthog.capture("Sync error", { duration });
     if (error instanceof FatalError) {
       doSync = false;
