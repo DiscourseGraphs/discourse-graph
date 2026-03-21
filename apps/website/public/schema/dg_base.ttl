@@ -43,11 +43,6 @@ dgb:destination a dgb:Role ;
     rdfs:range dgb:NodeSchema ;
     rdfs:comment "The destination of a binary relation"@en .
 
-dgb:textRefersToNode a owl:ObjectProperty;
-  rdfs:domain dgb:NodeSchema;
-  rdfs:range dgb:NodeSchema;
-  rdfs:comment "The text of a node refers to another node"@en .
-
 
 # examples
 
