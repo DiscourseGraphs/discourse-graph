@@ -51,7 +51,7 @@ CREATE OR REPLACE FUNCTION public.end_sync_task(
     s_function character varying,
     s_worker character varying,
     s_status public.task_status,
-    s_started_at timestamp = NULL
+    s_started_at timestamptz = NULL
 ) RETURNS void
 SET search_path = ''
 LANGUAGE plpgsql
@@ -99,7 +99,7 @@ ALTER FUNCTION public.end_sync_task(
     s_function character varying,
     s_worker character varying,
     s_status public.task_status,
-    s_started_at timestamp
+    s_started_at timestamptz
 ) OWNER TO "postgres";
 
 
@@ -197,21 +197,21 @@ GRANT ALL ON FUNCTION public.end_sync_task(
     s_function character varying,
     s_worker character varying,
     s_status public.task_status,
-    s_started_at timestamp
+    s_started_at timestamptz
 ) TO "anon";
 GRANT ALL ON FUNCTION public.end_sync_task(
     s_target bigint,
     s_function character varying,
     s_worker character varying,
     s_status public.task_status,
-    s_started_at timestamp
+    s_started_at timestamptz
 ) TO "authenticated";
 GRANT ALL ON FUNCTION public.end_sync_task(
     s_target bigint,
     s_function character varying,
     s_worker character varying,
     s_status public.task_status,
-    s_started_at timestamp
+    s_started_at timestamptz
 ) TO "service_role";
 
 GRANT ALL ON FUNCTION public.propose_sync_task(
