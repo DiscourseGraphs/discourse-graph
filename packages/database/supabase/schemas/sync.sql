@@ -68,7 +68,7 @@ BEGIN
         INTO STRICT t_id, t_worker, t_status, t_failure_count, t_last_task_start, t_last_task_end, t_last_success_start
         FROM public.sync_info WHERE sync_target = s_target AND sync_function = s_function;
     ASSERT s_status > 'active';
-    IF t_worker != s_worker AND COALESCE(s_started_at, last_task_start) < last_task_start THEN
+    IF t_worker != s_worker AND COALESCE(s_started_at, t_last_task_start) < t_last_task_start THEN
         -- we probably took too long. Let the other task have priority.
         RETURN;
     END IF;
