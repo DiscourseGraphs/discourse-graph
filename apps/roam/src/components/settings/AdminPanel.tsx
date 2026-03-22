@@ -33,7 +33,11 @@ import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
-import { setFeatureFlag } from "~/components/settings/utils/accessors";
+import {
+  setFeatureFlag,
+  getFeatureFlag,
+} from "~/components/settings/utils/accessors";
+import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -345,6 +349,14 @@ const FeatureFlagsTab = (): React.ReactElement => {
           {"-> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"}
         </p>
       </Alert>
+
+      <FeatureFlagPanel
+        title="Duplicate node alert"
+        description="Show possible duplicate nodes when viewing a discourse node page. Requires Suggestive mode to be enabled."
+        featureKey="Duplicate node alert enabled"
+        initialValue={getFeatureFlag("Duplicate node alert enabled")}
+        disabled={!suggestiveModeEnabled}
+      />
 
       <Button
         className="w-96"

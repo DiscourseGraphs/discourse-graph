@@ -54,6 +54,7 @@ import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSetting
 import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
+import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
@@ -116,7 +117,10 @@ export const initObservers = async ({
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
         renderDiscourseContext({ h1, uid });
-        if (isSuggestiveModeEnabled) {
+        if (
+          isSuggestiveModeEnabled &&
+          getFeatureFlag("Duplicate node alert enabled")
+        ) {
           renderPossibleDuplicates(h1, title, node);
         }
         const linkedReferencesDiv = document.querySelector(

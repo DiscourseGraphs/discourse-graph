@@ -89,11 +89,13 @@ const discourseNodeSettings: DiscourseNodeSettings = {
 const featureFlags: FeatureFlags = {
   "Enable left sidebar": true,
   "Suggestive mode enabled": true,
+  "Duplicate node alert enabled": true,
 };
 
 const defaultFeatureFlags: FeatureFlags = {
   "Enable left sidebar": false,
   "Suggestive mode enabled": false,
+  "Duplicate node alert enabled": false,
 };
 
 const exportSettings: ExportSettings = {

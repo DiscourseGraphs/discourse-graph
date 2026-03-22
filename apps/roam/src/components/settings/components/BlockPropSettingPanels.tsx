@@ -501,6 +501,7 @@ export const FeatureFlagPanel = ({
   description,
   featureKey,
   initialValue,
+  disabled,
   onBeforeEnable,
   onAfterChange,
   parentUid,
@@ -511,6 +512,7 @@ export const FeatureFlagPanel = ({
   description: string;
   featureKey: keyof FeatureFlags;
   initialValue?: boolean;
+  disabled?: boolean;
   onBeforeEnable?: () => Promise<boolean>;
   onAfterChange?: (checked: boolean) => void;
 } & RoamBlockSyncProps) => {
@@ -532,6 +534,7 @@ export const FeatureFlagPanel = ({
       settingKeys={[featureKey as string]}
       setter={featureFlagSetter}
       initialValue={initialValue}
+      disabled={disabled}
       onBeforeChange={handleBeforeChange}
       onChange={onAfterChange}
       parentUid={parentUid}
