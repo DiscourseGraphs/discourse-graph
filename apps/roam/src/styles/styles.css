@@ -75,6 +75,9 @@
   padding: 8px;
 }
 
+/* Solves dot-tags (.#sticky, .#meeting) flashing on when hovering anywhere on the
+   Query Table. Roam shows them via .rm-block__self:hover and the entire table lives
+   in one block, so we scope visibility to the individual cell instead. */
 .roamjs-query-results-view td:not(:hover) .rm-page-ref[data-tag^="."] {
   display: none !important;
 }
