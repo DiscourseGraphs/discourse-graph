@@ -109,13 +109,16 @@ const ModifyNodeDialog = ({
       : allNodes.filter(excludeDefaultNodes);
   }, [includeDefaultNodes]);
 
-  const [selectedNodeType, setSelectedNodeType] = useState(() => {
+  const [selectedNodeType, setSelectedNodeType] = useState<
+    (typeof discourseNodes)[number] | null
+  >(() => {
+    if (!nodeType) return null;
     const node = discourseNodes.find((n) => n.type === nodeType);
-    return node || discourseNodes[0];
+    return node || null;
   });
 
   const nodeFormat = useMemo(() => {
-    return selectedNodeType.format || "";
+    return selectedNodeType?.format || "";
   }, [selectedNodeType]);
 
   const referencedNode = useMemo(() => {
@@ -159,6 +162,39 @@ const ModifyNodeDialog = ({
           });
           if (contentRequestIdRef.current === req && alive) {
             setOptions((prev) => ({ ...prev, content: results }));
+          }
+        } else {
+          // Query all discourse node types in parallel
+          const allResults = await Promise.all(
+            discourseNodes.map(async (node) => {
+              const conditionUid = window.roamAlphaAPI.util.generateUID();
+              const results = await fireQuery({
+                returnNode: "node",
+                selections: [],
+                conditions: [
+                  {
+                    source: "node",
+                    relation: "is a",
+                    target: node.type,
+                    uid: conditionUid,
+                    type: "clause",
+                  },
+                ],
+              });
+              return results.map((r) => ({
+                ...r,
+                _discourseNodeType: node.type,
+              }));
+            }),
+          );
+          const seen = new Set<string>();
+          const deduped = allResults.flat().filter((r) => {
+            if (seen.has(r.uid)) return false;
+            seen.add(r.uid);
+            return true;
+          });
+          if (contentRequestIdRef.current === req && alive) {
+            setOptions((prev) => ({ ...prev, content: deduped }));
           }
         }
       } catch (error) {
@@ -226,9 +262,20 @@ const ModifyNodeDialog = ({
     };
   }, [selectedNodeType, referencedNode]);
 
-  const setValue = useCallback((r: Result) => {
-    setContent(r);
-  }, []);
+  const setValue = useCallback(
+    (r: Result) => {
+      setContent(r);
+      if (!selectedNodeType && r.uid) {
+        const detectedType = (r as Record<string, unknown>)
+          ._discourseNodeType as string | undefined;
+        if (detectedType) {
+          const nt = discourseNodes.find((n) => n.type === detectedType);
+          if (nt) setSelectedNodeType(nt);
+        }
+      }
+    },
+    [selectedNodeType, discourseNodes],
+  );
 
   const setReferencedNodeValueCallback = useCallback((r: Result) => {
     setReferencedNodeValue(r);
@@ -304,9 +351,13 @@ const ModifyNodeDialog = ({
 
   const onSubmit = async () => {
     if (!content.text.trim()) return;
+    if (!selectedNodeType && !isContentLocked) {
+      setError("Please select a node type");
+      return;
+    }
     posthog.capture("Modify Node Dialog: Submit Triggered", {
       mode,
-      nodeType: selectedNodeType.type,
+      nodeType: selectedNodeType?.type,
     });
     try {
       if (mode === "create") {
@@ -326,7 +377,7 @@ const ModifyNodeDialog = ({
               await addImageToPage({
                 pageUid,
                 imageUrl,
-                configPageUid: selectedNodeType.type,
+                configPageUid: selectedNodeType!.type,
                 extensionAPI,
               });
             }
@@ -373,7 +424,7 @@ const ModifyNodeDialog = ({
         } else {
           formattedTitle = await getNewDiscourseNodeText({
             text: content.text.trim(),
-            nodeType: selectedNodeType.type,
+            nodeType: selectedNodeType!.type,
             blockUid: sourceBlockUid,
           });
         }
@@ -384,7 +435,7 @@ const ModifyNodeDialog = ({
         // Create new discourse node
         const newPageUid = await createDiscourseNode({
           text: formattedTitle,
-          configPageUid: selectedNodeType.type,
+          configPageUid: selectedNodeType!.type,
           extensionAPI,
           imageUrl,
         });
@@ -505,34 +556,6 @@ const ModifyNodeDialog = ({
         style={{ pointerEvents: "all" }}
       >
         <div className={`${Classes.DIALOG_BODY} flex flex-col gap-4`}>
-          {/* Node Type Selector */}
-          <div className="flex w-full">
-            <Label autoFocus={false}>
-              Node Type
-              <MenuItemSelect
-                items={discourseNodes.map((n) => n.type)}
-                transformItem={(t) =>
-                  discourseNodes.find((n) => n.type === t)?.text || t
-                }
-                activeItem={selectedNodeType.type}
-                onItemSelect={(t) => {
-                  const nt = discourseNodes.find((n) => n.type === t);
-                  if (nt) {
-                    setSelectedNodeType(nt);
-                    setReferencedNodeValue({ text: "", uid: "" });
-                  }
-                }}
-                disabled={mode === "edit" || disableNodeTypeChange}
-                popoverProps={{ openOnTargetFocus: false }}
-                className={
-                  mode === "edit" || disableNodeTypeChange
-                    ? "cursor-not-allowed opacity-50"
-                    : ""
-                }
-              />
-            </Label>
-          </div>
-
           {/* Content Input */}
           <div className="w-full">
             <Label>Content</Label>
@@ -543,12 +566,44 @@ const ModifyNodeDialog = ({
               placeholder={
                 loading
                   ? "..."
-                  : `Enter a ${selectedNodeType.text.toLowerCase()} ...`
+                  : selectedNodeType
+                    ? `Enter a ${selectedNodeType.text.toLowerCase()} ...`
+                    : "Search all nodes..."
               }
               mode={mode}
               isLocked={isContentLocked}
               autoFocus={!isContentLocked}
             />
+          </div>
+
+          {/* Node Type Selector */}
+          <div className="flex w-full">
+            <Label autoFocus={false}>
+              Node Type
+              <MenuItemSelect
+                items={discourseNodes.map((n) => n.type)}
+                transformItem={(t) =>
+                  discourseNodes.find((n) => n.type === t)?.text || t
+                }
+                activeItem={selectedNodeType?.type ?? null}
+                onItemSelect={(t) => {
+                  const nt = discourseNodes.find((n) => n.type === t);
+                  if (nt) {
+                    setSelectedNodeType(nt);
+                    setReferencedNodeValue({ text: "", uid: "" });
+                  }
+                }}
+                disabled={
+                  mode === "edit" || disableNodeTypeChange || isContentLocked
+                }
+                popoverProps={{ openOnTargetFocus: false }}
+                className={
+                  mode === "edit" || disableNodeTypeChange
+                    ? "cursor-not-allowed opacity-50"
+                    : ""
+                }
+              />
+            </Label>
           </div>
 
           {/* Referenced Node Input */}
