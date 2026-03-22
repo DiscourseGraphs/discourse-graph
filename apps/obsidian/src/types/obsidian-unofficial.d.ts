@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
 // Unofficial Obsidian APIs — may break on Obsidian updates.
 // Only declare what we actually use.
 import "obsidian";
