@@ -330,7 +330,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
         : section.text;
 
       window.roamAlphaAPI.ui.blockContextMenu.addCommand({
-        label: `DG: Left sidebar - Add to "${sectionName}" (personal)`,
+        label: `DG: Favorites - Add to "${sectionName}" section`,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         callback: (props: { "block-uid": string }) => {
           void addBlockToPersonalSection({
