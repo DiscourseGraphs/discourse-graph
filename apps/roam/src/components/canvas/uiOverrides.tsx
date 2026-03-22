@@ -162,6 +162,7 @@ export const getOnSelectForShape = ({
       initialValue: { text: initialText, uid: "" },
       extensionAPI,
       includeDefaultNodes: true,
+      disableNodeTypeChange: true,
       imageUrl,
       onSuccess: async ({ text, uid }) => {
         editor.deleteShapes([shape.id]);

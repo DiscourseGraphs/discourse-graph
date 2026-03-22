@@ -530,6 +530,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
               : undefined,
           extensionAPI,
           includeDefaultNodes: true,
+          disableNodeTypeChange: true,
           onSuccess: async ({ text, uid, action }) => {
             if (action === "edit") {
               if (isPageUid(shape.props.uid))
@@ -651,6 +652,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
                   initialValue: { text: cleanedText, uid: "" },
                   extensionAPI,
                   includeDefaultNodes: true,
+                  disableNodeTypeChange: true,
                   onSuccess: async ({ text, uid }) => {
                     if (!extensionAPI) return;
                     try {
