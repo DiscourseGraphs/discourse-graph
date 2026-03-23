@@ -146,5 +146,5 @@ Alternatively, you can click the "Refresh" button in the Discourse Context panel
 
 - **"You are not a member of any groups"** — You need to be added to a group before you can import nodes. Contact your team administrator
 - **No importable nodes found** — Either no nodes have been published to your groups, or you have already imported all available nodes
-- If you want to see more information about imported nodes, you can unhide frontmatter information in the setting panel
+- The frontmatter fields related to sync are normally hidden. You can choose to display them in the setting panel
   ![Show frontmatter](/docs/obsidian/show-frontmatter.png)
