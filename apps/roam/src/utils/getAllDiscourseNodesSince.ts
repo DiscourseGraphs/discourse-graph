@@ -20,20 +20,23 @@ export type RoamDiscourseNodeData = {
 export const getDiscourseNodeTypeWithSettingsBlockNodes = async (
   node: DiscourseNode,
   sinceMs: number,
-  pageUids: string[],
 ): Promise<RoamDiscourseNodeData[]> => {
   const firstChildUid = extractRef(node.embeddingRef || "");
-  if (!firstChildUid || !pageUids.length) {
+  if (!firstChildUid) {
     return [];
   }
 
+  const regex = getDiscourseNodeFormatExpression(node.format);
+  const regexPattern = regex.source.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   const queryBlock = `[
-      :find ?childString ?pageUid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name ?node-title
+      :find ?childString ?nodeUid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name ?node-title
       :keys text source_local_id created last_modified author_local_id author_name node_title
-      :in $ [?pageUid ...] ?firstChildUid ?since
+      :in $ ?firstChildUid ?since
       :where
-        [?node :block/uid ?pageUid]
+        [(re-pattern "${regexPattern}") ?title-regex]
         [?node :node/title ?node-title]
+        [(re-find ?title-regex ?node-title)]
+        [?node :block/uid ?nodeUid]
         [?node :create/time ?nodeCreateTime]
         [(get-else $ ?node :edit/time ?nodeCreateTime) ?nodeEditTime]
         [?s :block/uid ?firstChildUid]
@@ -55,7 +58,6 @@ export const getDiscourseNodeTypeWithSettingsBlockNodes = async (
 
   return (await window.roamAlphaAPI.data.backend.q(
     queryBlock,
-    pageUids,
     String(firstChildUid),
     sinceMs,
   )) as unknown[] as RoamDiscourseNodeData[];
@@ -103,7 +105,6 @@ export const getAllDiscourseNodesSince = async (
   )) as unknown[] as RoamDiscourseNodeData[];
 
   const resultMap = new Map<string, RoamDiscourseNodeData>();
-  const pageUidsByType = new Map<string, string[]>();
   const blockBackedNodeTypes = nodeTypes.filter((node) =>
     Boolean(extractRef(node.embeddingRef || "")),
   );
@@ -116,9 +117,6 @@ export const getAllDiscourseNodesSince = async (
             ...page,
             type: node.type,
           });
-          const pageUids = pageUidsByType.get(node.type) || [];
-          pageUids.push(page.source_local_id);
-          pageUidsByType.set(node.type, pageUids);
         }
         break;
       }
@@ -130,7 +128,6 @@ export const getAllDiscourseNodesSince = async (
       const blockNodes = await getDiscourseNodeTypeWithSettingsBlockNodes(
         node,
         sinceMs,
-        pageUidsByType.get(node.type) || [],
       );
 
       blockNodes.forEach((blockNode) => {
