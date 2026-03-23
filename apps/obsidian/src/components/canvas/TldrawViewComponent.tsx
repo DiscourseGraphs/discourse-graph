@@ -46,6 +46,8 @@ import {
 } from "~/components/canvas/shapes/DiscourseRelationBinding";
 import ToastListener from "./ToastListener";
 import { RelationsOverlay } from "./overlays/RelationOverlay";
+import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
+import { showToast } from "./utils/toastUtils";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { CustomContextMenu } from "./CustomContextMenu";
 import {
@@ -474,7 +476,10 @@ export const TldrawPreviewComponent = ({
                 );
               },
               InFrontOfTheCanvas: () => (
-                <RelationsOverlay plugin={plugin} file={file} />
+                <>
+                  <RelationsOverlay plugin={plugin} file={file} />
+                  <DragHandleOverlay plugin={plugin} file={file} />
+                </>
               ),
             }}
           />
