@@ -1,6 +1,6 @@
 import { type DiscourseNode } from "./getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
-import { extractRef } from "roamjs-components/util";
+import extractRef from "roamjs-components/util/extractRef";
 
 type ISODateString = string;
 
@@ -17,27 +17,23 @@ export type RoamDiscourseNodeData = {
 };
 /* eslint-enable @typescript-eslint/naming-convention */
 
-export type DiscourseNodesSinceResult = {
-  pageNodes: RoamDiscourseNodeData[];
-  blockNodes: RoamDiscourseNodeData[];
-};
-
 export const getDiscourseNodeTypeWithSettingsBlockNodes = async (
   node: DiscourseNode,
   sinceMs: number,
+  pageUids: string[],
 ): Promise<RoamDiscourseNodeData[]> => {
-  const regex = getDiscourseNodeFormatExpression(node.format);
-  const regexPattern = regex.source.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  const firstChildUid = extractRef(node.embeddingRef);
+  const firstChildUid = extractRef(node.embeddingRef || "");
+  if (!firstChildUid || !pageUids.length) {
+    return [];
+  }
+
   const queryBlock = `[
-      :find ?childString ?nodeUid        ?nodeCreateTime ?nodeEditTime ?author_local_id ?type ?author_name ?node-title
-      :keys text         source_local_id created         last_modified author_local_id   type author_name  node_title
-      :in $ ?firstChildUid ?type ?since
+      :find ?childString ?pageUid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name ?node-title
+      :keys text source_local_id created last_modified author_local_id author_name node_title
+      :in $ [?pageUid ...] ?firstChildUid ?since
       :where
-        [(re-pattern "${regexPattern}") ?title-regex]
+        [?node :block/uid ?pageUid]
         [?node :node/title ?node-title]
-        [(re-find ?title-regex ?node-title)]
-        [?node :block/uid ?nodeUid]
         [?node :create/time ?nodeCreateTime]
         [(get-else $ ?node :edit/time ?nodeCreateTime) ?nodeEditTime]
         [?s :block/uid ?firstChildUid]
@@ -57,13 +53,12 @@ export const getDiscourseNodeTypeWithSettingsBlockNodes = async (
          [(> ?nodeEditTime ?since)]]
         ]`;
 
-  const blockNode = (await window.roamAlphaAPI.data.backend.q(
+  return (await window.roamAlphaAPI.data.backend.q(
     queryBlock,
+    pageUids,
     String(firstChildUid),
-    String(node.type),
     sinceMs,
   )) as unknown[] as RoamDiscourseNodeData[];
-  return blockNode;
 };
 
 export const getAllDiscourseNodesSince = async (
@@ -71,61 +66,84 @@ export const getAllDiscourseNodesSince = async (
   nodeTypes: DiscourseNode[],
 ): Promise<RoamDiscourseNodeData[]> => {
   const sinceMs = new Date(since).getTime();
+  if (!nodeTypes.length) {
+    return [];
+  }
+
+  const typeMatchers = nodeTypes.map((node) => ({
+    node,
+    regex: getDiscourseNodeFormatExpression(node.format),
+  }));
+  const regexPattern = typeMatchers
+    .map(({ regex }) => `(?:${regex.source})`)
+    .join("|")
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"');
+
+  const query = `[
+    :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name
+    :keys text source_local_id created last_modified author_local_id author_name
+    :in $ ?since
+    :where
+      [(re-pattern "${regexPattern}") ?title-regex]
+      [?node :node/title ?node-title]
+      [(re-find ?title-regex ?node-title)]
+      [?node :block/uid ?uid]
+      [?node :create/time ?nodeCreateTime]
+      [?node :create/user ?user-eid]
+      [?user-eid :user/uid ?author_local_id]
+      [(get-else $ ?user-eid :user/display-name "Anonymous User") ?author_name]
+      [(get-else $ ?node :edit/time ?nodeCreateTime) ?nodeEditTime]
+      [(> ?nodeEditTime ?since)]
+  ]`;
+
+  const allPages = (await window.roamAlphaAPI.data.backend.q(
+    query,
+    sinceMs,
+  )) as unknown[] as RoamDiscourseNodeData[];
+
   const resultMap = new Map<string, RoamDiscourseNodeData>();
+  const pageUidsByType = new Map<string, string[]>();
+  const blockBackedNodeTypes = nodeTypes.filter((node) =>
+    Boolean(extractRef(node.embeddingRef || "")),
+  );
+
+  for (const page of allPages) {
+    for (const { node, regex } of typeMatchers) {
+      if (regex.test(page.text)) {
+        if (page.source_local_id) {
+          resultMap.set(page.source_local_id, {
+            ...page,
+            type: node.type,
+          });
+          const pageUids = pageUidsByType.get(node.type) || [];
+          pageUids.push(page.source_local_id);
+          pageUidsByType.set(node.type, pageUids);
+        }
+        break;
+      }
+    }
+  }
 
   await Promise.all(
-    nodeTypes.map(async (node) => {
-      const regex = getDiscourseNodeFormatExpression(node.format);
-      const regexPattern = regex.source
-        .replace(/\\/g, "\\\\")
-        .replace(/"/g, '\\"');
-
-      const query = `[
-        :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name ?type
-        :keys text source_local_id created last_modified author_local_id author_name type
-        :in $ ?since ?type
-        :where
-          [(re-pattern "${regexPattern}") ?title-regex]
-          [?node :node/title ?node-title]
-          [(re-find ?title-regex ?node-title)]
-          [?node :block/uid ?uid]
-          [?node :create/time ?nodeCreateTime]
-          [?node :create/user ?user-eid]
-          [?user-eid :user/uid ?author_local_id]
-          [(get-else $ ?user-eid :user/display-name "Anonymous User") ?author_name]
-          [(get-else $ ?node :edit/time ?nodeCreateTime) ?nodeEditTime]
-          [(> ?nodeEditTime ?since)]
-      ]`;
-
-      const nodesOfType = (await window.roamAlphaAPI.data.backend.q(
-        query,
+    blockBackedNodeTypes.map(async (node) => {
+      const blockNodes = await getDiscourseNodeTypeWithSettingsBlockNodes(
+        node,
         sinceMs,
-        String(node.type),
-      )) as unknown[] as RoamDiscourseNodeData[];
+        pageUidsByType.get(node.type) || [],
+      );
 
-      nodesOfType.forEach((n) => {
-        if (n.source_local_id) {
-          resultMap.set(n.source_local_id, n);
-        }
-      });
-
-      const hasBlockSettings =
-        node.embeddingRef && extractRef(node.embeddingRef);
-      if (hasBlockSettings) {
-        const blockNodes = await getDiscourseNodeTypeWithSettingsBlockNodes(
-          node,
-          sinceMs,
-        );
-        if (blockNodes) {
-          blockNodes.forEach((blockNode) => {
-            if (blockNode.source_local_id) {
-              resultMap.set(blockNode.source_local_id, blockNode);
-            }
+      blockNodes.forEach((blockNode) => {
+        if (blockNode.source_local_id) {
+          resultMap.set(blockNode.source_local_id, {
+            ...blockNode,
+            type: node.type,
           });
         }
-      }
+      });
     }),
   );
+
   return Array.from(resultMap.values());
 };
 
