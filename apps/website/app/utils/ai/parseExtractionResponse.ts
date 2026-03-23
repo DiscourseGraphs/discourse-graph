@@ -18,8 +18,6 @@ export const parseExtractionResponse = (raw: string): ExtractionResult => {
     cleaned = cleaned.slice(firstBrace, lastBrace + 1);
   }
 
-  cleaned = cleaned.replace(/,\s*([}\]])/g, "$1");
-
   const parsed: unknown = JSON.parse(cleaned);
   return ExtractionResultSchema.parse(parsed);
 };
