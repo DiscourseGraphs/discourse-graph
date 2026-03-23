@@ -10,6 +10,7 @@ The Sync and Import feature allows you to synchronize your discourse nodes with 
 > **Note:** This feature is currently in **beta**. The sync functionality requires an active connection to the Discourse Graph database.
 
 > **Warning:** When using sync and import:
+>
 > - Don't edit the things you imported
 > - Don't click to create new files (from imported nodes)
 > - Don't delete imported node types
@@ -65,18 +66,22 @@ Before publishing, make sure:
 2. **Open the command palette** by pressing `Cmd/Ctrl + P`
 
 3. **Search for the publish command** by typing "Publish" and select **"Discourse Graph: Publish current node to lab space"**
-![Publish command in palette](/docs/obsidian/publish-command.png)
+   ![Publish command in palette](/docs/obsidian/publish-command.png)
 
 4. The plugin will:
    - Publish the node to your group
+   - **Automatically publish any relations** connected to this node where the other endpoint has already been published to the same group
    - Sync any embedded assets (images, attachments) to the shared storage
    - Update the node's frontmatter with a `publishedToGroups` field
 
 5. A confirmation notice will appear: **"Published"**
-![Node published successfully](/docs/obsidian/publish-success.png)
+   ![Node published successfully](/docs/obsidian/publish-success.png)
 
-> **Tip:** If you see the message "Please sync the node first", wait a moment for the automatic sync to complete, or manually trigger a sync via the command palette using **"Discourse Graph: Sync discourse nodes to Supabase"**.
-![Sync command](/docs/obsidian/sync-command.png)
+**Note on publishing relations:** Relations between nodes are published **automatically** — you do not need to publish them separately. When you publish a node, the plugin checks all its relations and publishes any where:
+
+- Both the source and destination nodes are published to the same group, **and**
+- The relation type is defined in your discourse relation settings
+
 ---
 
 ## Importing discourse nodes from another space
@@ -95,11 +100,19 @@ Importing allows you to bring published discourse nodes from other group members
 
 ![Selecting nodes to import](/docs/obsidian/import-modal.png)
 
-4. The plugin will import each selected node and display a progress bar. Once complete, a confirmation notice will appear showing how many nodes were imported successfully.
+4. Before importing, the modal shows an **import preview** summarizing everything that will be created:
+   - Number of nodes and relations to be imported
+   - Any new node types that will be added to your vault
+   - Any new relation types that will be added
+   - Any new discourse relation triplets (source → relation → destination) that will be established
+
+5. The plugin will import each selected node **and their associated relations**, then display a progress bar. Once complete, you will see a confirmation notice.
 
 Imported nodes are saved in an `import/{spaceName}/` folder in your vault, preserving the original space organization.
 
 ![Import location](/docs/obsidian/import-location.png)
+
+> **Note:** Relations are only imported when **both** the source and destination nodes are present in your local vault (either as previously imported nodes or nodes you already have locally). Relations whose endpoints are missing will be skipped.
 
 ---
 
@@ -116,21 +129,22 @@ After importing, you can fetch the latest content from the original sources to k
 Alternatively, you can click the "Refresh" button in the Discourse Context panel.
 
 ![Refresh button](/docs/obsidian/refresh-button.png)
----
 
 ## Summary of commands
 
-- **Sync discourse nodes to Supabase**:  Manually sync all discourse nodes to the database
-- **Publish current node to lab space**: Publish the active discourse node to your group            
-- **Import nodes from another space**: Open the import modal to browse and import shared nodes    
-- **Fetch latest content from imported nodes**: Refresh all imported nodes with the latest content         
-
+- **Sync discourse nodes to Supabase**: Manually sync all discourse nodes to the database
+- **Publish current node to lab space**: Publish the active discourse node to your group, including any relations whose other endpoint is already published to the same group
+- **Import nodes from another space**: Open the import modal to browse and import shared nodes along with their relations
+- **Fetch latest content from imported nodes**: Refresh all imported nodes with the latest content
 
 ## Troubleshooting
 
 - **"Sync mode is not enabled"** — You need to enable sync mode in the admin panel first (see [Enabling sync mode](#enabling-sync-mode) above)
-- **"Please sync the node first"** — The node hasn't been synced yet. Wait for automatic sync or trigger a manual sync
+- **"Please sync the node first"** — The node hasn't been synced yet. Wait for automatic sync or trigger a manual sync via the command palette using **"Discourse Graph: Sync discourse nodes to Supabase"**.
+
+![Sync command](/docs/obsidian/sync-command.png)
+
 - **"You are not a member of any groups"** — You need to be added to a group before you can import nodes. Contact your team administrator
 - **No importable nodes found** — Either no nodes have been published to your groups, or you have already imported all available nodes
-- If you want to see more information about imported nodes, you can unhide frontmatter information in the setting panel
-![Show frontmatter](/docs/obsidian/show-frontmatter.png)
+- The frontmatter fields related to sync are normally hidden. You can choose to display them in the setting panel
+  ![Show frontmatter](/docs/obsidian/show-frontmatter.png)
