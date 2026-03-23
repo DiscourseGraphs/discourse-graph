@@ -63,7 +63,7 @@ export const ExtractionResultSchema = z.object({
 export type ExtractionResult = z.infer<typeof ExtractionResultSchema>;
 
 export const ExtractionRequestSchema = z.object({
-  pdfBase64: z.string().min(1),
+  pdfBase64: z.string().min(1).max(44_000_000),
   researchQuestion: z.string().optional(),
   nodeTypes: z.array(z.enum(NODE_TYPES)).min(1),
   model: z.string().min(1),

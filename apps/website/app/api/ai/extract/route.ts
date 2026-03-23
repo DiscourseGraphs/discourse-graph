@@ -161,7 +161,7 @@ export const POST = async (
     return NextResponse.json(
       {
         success: false,
-        error: `API key not configured for ${provider}. Set ${config.base.apiKeyEnvVar} in environment variables.`,
+        error: `API key not configured for ${provider}.`,
       },
       { status: 500 },
     );
@@ -181,6 +181,7 @@ export const POST = async (
           userPrompt,
         }),
       ),
+      signal: AbortSignal.timeout(270_000),
     });
 
     if (!response.ok) {
@@ -207,19 +208,20 @@ export const POST = async (
     const result = parseExtractionResponse(rawText);
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
-    const message =
-      error instanceof SyntaxError
-        ? "Failed to parse extraction response — invalid JSON from LLM"
-        : error instanceof Error && error.name === "ZodError"
-          ? "Failed to parse extraction response — unexpected JSON shape from LLM"
-          : error instanceof Error
-            ? `Extraction failed — ${error.message}`
-            : "Extraction failed";
+    const isUpstreamError =
+      error instanceof SyntaxError ||
+      (error instanceof Error && error.name === "ZodError");
+
+    const message = isUpstreamError
+      ? "Failed to parse extraction response — LLM returned invalid output"
+      : error instanceof Error
+        ? `Extraction failed — ${error.message}`
+        : "Extraction failed";
 
     console.error("AI extraction failed:", error);
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 },
+      { status: isUpstreamError ? 502 : 500 },
     );
   }
 };
