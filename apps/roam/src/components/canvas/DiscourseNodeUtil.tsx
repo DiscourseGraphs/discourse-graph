@@ -583,13 +583,6 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
                 });
               }
             }
-
-            if (action === "create") {
-              restoreToolState();
-            } else {
-              editor.setEditingShape(null);
-              dialogRenderedRef.current = false;
-            }
           },
           onClose: () => {
             if (isCreating) {
