@@ -90,7 +90,6 @@ import {
 } from "./DiscourseRelationShape/DiscourseRelationTool";
 import ConvertToDialog from "./ConvertToDialog";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
-import { setCurrentToolToSelectIfUnlocked } from "./toolLock";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
 import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import internalError from "~/utils/internalError";

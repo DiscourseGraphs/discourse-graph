@@ -56,7 +56,6 @@ import findDiscourseNode from "~/utils/findDiscourseNode";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
-import { setCurrentToolToSelectIfUnlocked } from "./toolLock";
 import { MAX_WIDTH } from "./Tldraw";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";

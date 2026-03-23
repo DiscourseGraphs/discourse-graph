@@ -53,7 +53,6 @@ import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
-import { setCurrentToolToSelectIfUnlocked } from "./toolLock";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
