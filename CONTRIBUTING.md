@@ -47,15 +47,11 @@ Blog posts are located in `/apps/website/app/(home)/blog/posts/`
 
 ### Plugin Documentation
 
-Plugin documentation is organized in `/apps/website/app/(docs)/docs/` with separate folders:
+Detailed guidance for plugin docs lives next to the update-user-docs skill:
 
-- `/obsidian/pages/` - Obsidian plugin documentation
-- `/roam/pages/` - Roam Research extension documentation
-- `/sharedPages/` - Documentation shared between platforms
-
-1. **Create your documentation file**: Add a new `.md` file in the appropriate platform's `pages/` folder
-2. **Use standard Markdown**: No special frontmatter is required for documentation files
-3. **Update navigation**: You may need to update the corresponding `navigation.ts` file to include your new page in the sidebar
+- **[navigation-mapping.md](./skills/update-user-docs/references/navigation-mapping.md)** — where files live, `docMap.ts` (shared pages), and `navigation.ts` (every new page)
+- **[doc-conventions.md](./skills/update-user-docs/references/doc-conventions.md)** — filenames, frontmatter, screenshots, and cross-links
+- **[scope-detection.md](./skills/update-user-docs/references/scope-detection.md)** — how changed file paths map to Obsidian vs Roam vs shared docs (useful when unsure where a doc belongs)
 
 ### Documentation Images
 
