@@ -820,7 +820,6 @@ const TldrawCanvasShared = ({
             ...position,
           },
         ]);
-        setCurrentToolToSelectIfUnlocked(app);
         lastInsertRef.current = position;
         e.detail.onRefresh();
       }
@@ -1178,7 +1177,6 @@ const InsideEditorAndUiContext = ({
           },
         },
       ]);
-      setCurrentToolToSelectIfUnlocked(editor);
     },
     [editor, extensionAPI],
   );

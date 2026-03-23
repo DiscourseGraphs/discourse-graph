@@ -157,7 +157,6 @@ export const getOnSelectForShape = ({
     initialText: string;
     imageUrl?: string;
   }) => {
-    editor.updateInstanceState({ isToolLocked: false });
     renderModifyNodeDialog({
       mode: "create",
       nodeType,
@@ -195,7 +194,6 @@ export const getOnSelectForShape = ({
             y,
           },
         ]);
-        setCurrentToolToSelectIfUnlocked(editor);
       },
       onClose: () => {},
     });

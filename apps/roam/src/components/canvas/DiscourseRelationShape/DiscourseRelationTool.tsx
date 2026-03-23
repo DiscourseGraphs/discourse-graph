@@ -279,10 +279,6 @@ export const createAllReferencedNodeTools = (
           this.editor.setCursor({ type: "cross" });
         };
 
-        override onCancel = () => {
-          setCurrentToolToSelectIfUnlocked(this.editor);
-        };
-
         override onKeyUp: TLEventHandlers["onKeyUp"] = (info) => {
           if (info.key === "Enter") {
             if (this.editor.getInstanceState().isReadonly) return null;
@@ -574,10 +570,6 @@ export const createAllRelationShapeTools = (
 
         override onEnter = () => {
           this.editor.setCursor({ type: "cross", rotation: 0 });
-        };
-
-        override onCancel = () => {
-          setCurrentToolToSelectIfUnlocked(this.editor);
         };
 
         override onKeyUp: TLEventHandlers["onKeyUp"] = (info) => {

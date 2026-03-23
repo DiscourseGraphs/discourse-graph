@@ -673,7 +673,6 @@ const ClipboardPageSection = ({
         },
       };
       editor.createShape<DiscourseNodeShape>(shape);
-      setCurrentToolToSelectIfUnlocked(editor);
     },
     [editor, extensionAPI, showNodesOnCanvas],
   );
