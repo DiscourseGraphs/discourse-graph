@@ -437,6 +437,35 @@ const Home = async () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
+                    Toward Modular Open Science
+                  </h3>
+                  <p className="mb-2 text-neutral-dark">
+                    March 27, 2026 | ATScience Conference, Vancouver
+                  </p>
+                  <Link
+                    href="https://bsky.app/profile/atproto.science/post/3mh6kak5agk2z"
+                    className="text-primary transition-colors hover:text-primary/80"
+                  >
+                    View event post →
+                  </Link>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
+                    Seminar: McGill University Quantitative Life Sciences
+                    program
+                  </h3>
+                  <p className="mb-2 text-neutral-dark">
+                    March 24, 2026 | Montreal
+                  </p>
+                  <Link
+                    href="https://www.mcgill.ca/qls/channels/event/qls-seminar-series-matthew-akamatsu-371875"
+                    className="text-primary transition-colors hover:text-primary/80"
+                  >
+                    View seminar details →
+                  </Link>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
                     Metagov x Future of Science Seminar: Interoperable LLM - and
                     Human-Centered Research with Discourse Graphs with Matt
                     Akamatsu
