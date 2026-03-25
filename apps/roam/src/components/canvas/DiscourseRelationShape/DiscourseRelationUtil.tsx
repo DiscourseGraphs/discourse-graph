@@ -675,12 +675,18 @@ export const createAllRelationShapeUtils = (
           const sourceAsDNS = asDiscourseNodeShape(source, editor);
           const targetAsDNS = asDiscourseNodeShape(target, editor);
 
-          if (sourceAsDNS && targetAsDNS)
+          if (sourceAsDNS && targetAsDNS) {
+            const isOriginal = isDirect;
             await createReifiedRelation({
-              sourceUid: sourceAsDNS.props.uid,
-              destinationUid: targetAsDNS.props.uid,
+              sourceUid: isOriginal
+                ? sourceAsDNS.props.uid
+                : targetAsDNS.props.uid,
+              destinationUid: isOriginal
+                ? targetAsDNS.props.uid
+                : sourceAsDNS.props.uid,
               relationBlockUid: matchingRelation.id,
             });
+          }
           else {
             void internalError({
               error: "attempt to create a relation between non discourse nodes",
@@ -689,7 +695,7 @@ export const createAllRelationShapeUtils = (
           }
         } else {
           const { triples } = matchingRelation;
-          const isOriginal = isDirect && !isReverse;
+          const isOriginal = isDirect;
 
           const newTriples = triples
             .map((t) => {
