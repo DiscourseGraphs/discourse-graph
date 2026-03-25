@@ -6,7 +6,7 @@ import { extractContentFromTitle } from "~/utils/extractContentFromTitle";
 
 // This is a workaround to get the datacore API.
 // TODO: Remove once we can use datacore npm package
-type AppWithPlugins = App & {
+export type AppWithPlugins = App & {
   plugins: {
     plugins: {
       [key: string]: {
