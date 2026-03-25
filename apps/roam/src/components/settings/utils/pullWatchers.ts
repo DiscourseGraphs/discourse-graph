@@ -1,7 +1,7 @@
 import { type json, normalizeProps } from "~/utils/getBlockProps";
 import type { AddPullWatch, PullBlock } from "roamjs-components/types";
 import {
-  TOP_LEVEL_BLOCK_PROP_KEYS,
+  STATIC_TOP_LEVEL_ENTRIES,
   getPersonalSettingsKey,
   FeatureFlagsSchema,
   GlobalSettingsSchema,
@@ -165,8 +165,8 @@ export const setupPullWatchOnSettingsPage = (
   const watches: Parameters<AddPullWatch>[] = [];
 
   const featureFlagsBlockUid =
-    blockUids[TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags];
-  const globalSettingsBlockUid = blockUids[TOP_LEVEL_BLOCK_PROP_KEYS.global];
+    blockUids[STATIC_TOP_LEVEL_ENTRIES.featureFlags.key];
+  const globalSettingsBlockUid = blockUids[STATIC_TOP_LEVEL_ENTRIES.global.key];
   const personalSettingsKey = getPersonalSettingsKey();
   const personalSettingsBlockUid = blockUids[personalSettingsKey];
 

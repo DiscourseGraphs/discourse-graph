@@ -11,7 +11,7 @@ import { z } from "zod";
 import {
   DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
   DISCOURSE_NODE_PAGE_PREFIX,
-  TOP_LEVEL_BLOCK_PROP_KEYS,
+  STATIC_TOP_LEVEL_ENTRIES,
   FeatureFlagsSchema,
   GlobalSettingsSchema,
   PersonalSettingsSchema,
@@ -274,7 +274,7 @@ const setBlockPropBasedSettings = ({
 
 export const getFeatureFlags = (): FeatureFlags => {
   const { blockProps } = getBlockPropBasedSettings({
-    keys: [TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags],
+    keys: [STATIC_TOP_LEVEL_ENTRIES.featureFlags.key],
   });
 
   return FeatureFlagsSchema.parse(blockProps || {});
@@ -292,14 +292,14 @@ export const setFeatureFlag = (
   const validatedValue = z.boolean().parse(value);
 
   setBlockPropBasedSettings({
-    keys: [TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags, key],
+    keys: [STATIC_TOP_LEVEL_ENTRIES.featureFlags.key, key],
     value: validatedValue,
   });
 };
 
 export const getGlobalSettings = (): GlobalSettings => {
   const { blockProps } = getBlockPropBasedSettings({
-    keys: [TOP_LEVEL_BLOCK_PROP_KEYS.global],
+    keys: [STATIC_TOP_LEVEL_ENTRIES.global.key],
   });
 
   return GlobalSettingsSchema.parse(blockProps || {});
@@ -337,7 +337,7 @@ export const setGlobalSetting = (keys: string[], value: json): void => {
   }
 
   setBlockPropBasedSettings({
-    keys: [TOP_LEVEL_BLOCK_PROP_KEYS.global, ...keys],
+    keys: [STATIC_TOP_LEVEL_ENTRIES.global.key, ...keys],
     value,
   });
 };
