@@ -65,6 +65,7 @@ import {
 } from "./helpers";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
+import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import { discourseContext, isPageUid } from "~/components/canvas/Tldraw";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
@@ -628,48 +629,24 @@ export const createAllRelationShapeUtils = (
         const sourceNodeType = source.type;
         const targetNodeType = target.type;
 
-        // First check if the current relation matches
-        let { isDirect, isReverse } = this.checkConnectionType(
-          relation,
+        // Check all relations with the same label for a match
+        const {
+          isDirect,
+          isReverse,
+          matchingRelation: foundRelation,
+        } = this.checkConnectionTypeAcrossLabel(
+          relation.label,
           sourceNodeType,
           targetNodeType,
         );
-
-        // If current relation doesn't match, check all relations with the same label
-        let matchingRelation = relation;
-        if (!isDirect && !isReverse) {
-          const relationsWithSameLabel =
-            discourseContext.relations[relation.label];
-          if (relationsWithSameLabel) {
-            for (const rel of relationsWithSameLabel) {
-              const connectionCheck = this.checkConnectionType(
-                rel,
-                sourceNodeType,
-                targetNodeType,
-              );
-              if (connectionCheck.isDirect || connectionCheck.isReverse) {
-                matchingRelation = rel;
-                isDirect = connectionCheck.isDirect;
-                isReverse = connectionCheck.isReverse;
-                break;
-              }
-            }
-          }
-        }
+        const matchingRelation = foundRelation ?? relation;
 
         if (!isDirect && !isReverse) {
-          const possibleTargets = discourseContext.relations[relation.label]
-            .filter((r) => r.source === relation.source)
-            .map((r) => r.destination);
-          const possibleReverseTargets = discourseContext.relations[
-            relation.label
-          ]
-            .filter((r) => r.destination === relation.source)
-            .map((r) => r.source);
-          const allPossibleTargets = [
-            ...new Set([...possibleTargets, ...possibleReverseTargets]),
-          ];
-          const uniqueTargetTexts = allPossibleTargets.map(
+          const validTargets = this.getValidTargetTypes(
+            relation.label,
+            sourceNodeType,
+          );
+          const uniqueTargetTexts = validTargets.map(
             (t) => discourseContext.nodes[t]?.text || t,
           );
           return deleteAndWarn(
@@ -1036,11 +1013,12 @@ export const createAllRelationShapeUtils = (
               const startNodeType = startNode.type;
               const endNodeType = endNode.type;
 
-              const { isDirect, isReverse } = this.checkConnectionType(
-                relation,
-                startNodeType,
-                endNodeType,
-              );
+              const { isDirect, isReverse } =
+                this.checkConnectionTypeAcrossLabel(
+                  relation.label,
+                  startNodeType,
+                  endNodeType,
+                );
 
               const newText =
                 isReverse && !isDirect ? relation.complement : relation.label;
@@ -1749,6 +1727,46 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     return { isDirect, isReverse };
   }
 
+  checkConnectionTypeAcrossLabel(
+    label: string,
+    sourceNodeType: string,
+    targetNodeType: string,
+  ): {
+    isDirect: boolean;
+    isReverse: boolean;
+    matchingRelation: DiscourseRelation | null;
+  } {
+    const relationsWithLabel = discourseContext.relations[label];
+    if (!relationsWithLabel) {
+      return { isDirect: false, isReverse: false, matchingRelation: null };
+    }
+
+    for (const rel of relationsWithLabel) {
+      const { isDirect, isReverse } = this.checkConnectionType(
+        rel,
+        sourceNodeType,
+        targetNodeType,
+      );
+      if (isDirect || isReverse) {
+        return { isDirect, isReverse, matchingRelation: rel };
+      }
+    }
+
+    return { isDirect: false, isReverse: false, matchingRelation: null };
+  }
+
+  getValidTargetTypes(label: string, sourceNodeType: string): string[] {
+    const relationsWithLabel = discourseContext.relations[label];
+    if (!relationsWithLabel) return [];
+
+    const targets = new Set<string>();
+    for (const rel of relationsWithLabel) {
+      if (rel.source === sourceNodeType) targets.add(rel.destination);
+      if (rel.destination === sourceNodeType) targets.add(rel.source);
+    }
+    return [...targets];
+  }
+
   isValidNodeConnection(
     sourceNodeType: string,
     targetNodeType: string,
@@ -1758,24 +1776,12 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     const relation = relations.find((r) => r.id === relationId);
     if (!relation) return false;
 
-    // Get all relations with the same label as this relation
-    const relationsWithSameLabel = discourseContext.relations[relation.label];
-    if (!relationsWithSameLabel) return false;
-
-    // Check if any relation with the same label matches the source-target connection
-    for (const rel of relationsWithSameLabel) {
-      const { isDirect, isReverse } = this.checkConnectionType(
-        rel,
-        sourceNodeType,
-        targetNodeType,
-      );
-
-      if (isDirect || isReverse) {
-        return true;
-      }
-    }
-
-    return false;
+    const { isDirect, isReverse } = this.checkConnectionTypeAcrossLabel(
+      relation.label,
+      sourceNodeType,
+      targetNodeType,
+    );
+    return isDirect || isReverse;
   }
 
   component(shape: DiscourseRelationShape) {
