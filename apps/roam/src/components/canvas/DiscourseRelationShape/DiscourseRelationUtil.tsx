@@ -903,27 +903,8 @@ export const createAllRelationShapeUtils = (
             );
 
             if (!isValidConnection) {
-              const sourceNodeTypeText =
-                discourseContext.nodes[sourceNodeType]?.text || sourceNodeType;
-              const targetNodeTypeText =
-                discourseContext.nodes[targetNodeType]?.text || targetNodeType;
-              const relations = Object.values(
-                discourseContext.relations,
-              ).flat();
-              const relation = relations.find((r) => r.id === shape.type);
-              const relationLabel = relation?.label || shape.type;
-
-              const errorMessage = `Cannot connect "${sourceNodeTypeText}" to "${targetNodeTypeText}" with "${relationLabel}" relation`;
-              dispatchToastEvent({
-                id: `tldraw-invalid-connection-${shape.id}`,
-                title: "Invalid Connection",
-                description: errorMessage,
-                severity: "error",
-              });
-
               removeArrowBinding(this.editor, shape, handleId);
               update.props![handleId] = { x: handle.x, y: handle.y };
-              this.editor.deleteShapes([shape.id]);
               return update;
             }
           }
