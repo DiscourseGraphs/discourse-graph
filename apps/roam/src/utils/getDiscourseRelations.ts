@@ -35,16 +35,23 @@ export const getRelationsNode = (grammarNode = getGrammarNode()) => {
   return grammarNode?.children.find(matchNodeText("relations"));
 };
 
-const getDiscourseRelations = () => {
-  if (isNewSettingsStoreEnabled()) {
-    return getAllRelations();
-  }
+let cachedRelations: DiscourseRelation[] | null = null;
 
-  const grammarNode = getGrammarNode();
-  const relationsNode = getRelationsNode(grammarNode);
-  const relationNodes = relationsNode?.children || DEFAULT_RELATION_VALUES;
-  const discourseRelations = relationNodes.flatMap(
-    (r: InputTextNode, i: number) => {
+export const invalidateDiscourseRelationsCache = () => {
+  cachedRelations = null;
+};
+
+const getDiscourseRelations = (): DiscourseRelation[] => {
+  if (cachedRelations) return cachedRelations;
+
+  let result: DiscourseRelation[];
+  if (isNewSettingsStoreEnabled()) {
+    result = getAllRelations();
+  } else {
+    const grammarNode = getGrammarNode();
+    const relationsNode = getRelationsNode(grammarNode);
+    const relationNodes = relationsNode?.children || DEFAULT_RELATION_VALUES;
+    result = relationNodes.flatMap((r: InputTextNode, i: number) => {
       const tree = (r?.children || []) as TextNode[];
       const data = {
         id: r.uid || `${r.text}-${i}`,
@@ -63,10 +70,11 @@ const getDiscourseRelations = () => {
             return [t.text, t.children[0]?.text, target] as const;
           }),
       }));
-    },
-  );
+    });
+  }
 
-  return discourseRelations;
+  cachedRelations = result;
+  return result;
 };
 
 export default getDiscourseRelations;

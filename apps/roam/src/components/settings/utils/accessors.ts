@@ -155,6 +155,31 @@ const readPathValue = (root: unknown, keys: string[]): unknown =>
     return current[key];
   }, root);
 
+const setPathValue = (
+  root: Record<string, unknown>,
+  keys: string[],
+  value: unknown,
+): void => {
+  if (keys.length === 0) return;
+
+  let current: Record<string, unknown> = root;
+  const lastIndex = keys.length - 1;
+
+  keys.forEach((key, index) => {
+    if (index === lastIndex) {
+      current[key] = value;
+      return;
+    }
+
+    const next = current[key];
+    if (!isRecord(next)) {
+      current[key] = {};
+    }
+
+    current = current[key] as Record<string, unknown>;
+  });
+};
+
 const pathKey = (keys: string[]): string => keys.join("::");
 
 const validateSettingValue = ({
@@ -258,45 +283,89 @@ const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
   /* eslint-enable @typescript-eslint/naming-convention */
 };
 
-const getLegacyPersonalSetting = (keys: string[]): unknown => {
-  if (keys.length === 0) return undefined;
+const _settingsBlockUidCache = new Map<string, string>();
+let _featureFlagsCache: FeatureFlags | null = null;
+let _globalSettingsCache: GlobalSettings | null = null;
+let _personalSettingsCache: PersonalSettings | null = null;
+let _newSettingsStoreCache: boolean | null = null;
+let _legacyGlobalSettingsCache: Record<string, unknown> | null = null;
+let _legacyPersonalSettingsCache: Record<string, unknown> | null = null;
+const _legacyDiscourseNodeSettingsCache = new Map<
+  string,
+  Record<string, unknown> | undefined
+>();
+const _rawDiscourseNodeBlockPropsCache = new Map<
+  string,
+  Record<string, json> | undefined
+>();
+let _allDiscourseNodesCache: DiscourseNode[] | null = null;
 
-  const mappedOldKey = PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY.get(pathKey(keys));
-  if (mappedOldKey) {
-    return getSetting<unknown>(
-      mappedOldKey,
-      readPathValue(DEFAULT_PERSONAL_SETTINGS, keys),
+const getTopLevelSettingsBlockUid = (key: string): string => {
+  const cachedUid = _settingsBlockUidCache.get(key);
+  if (cachedUid) {
+    return cachedUid;
+  }
+
+  const blockUid = getBlockUidByTextOnPage({
+    text: key,
+    title: DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
+  });
+
+  if (blockUid) {
+    _settingsBlockUidCache.set(key, blockUid);
+  }
+
+  return blockUid || "";
+};
+
+export const invalidateSettingsAccessorCaches = (): void => {
+  _settingsBlockUidCache.clear();
+  _featureFlagsCache = null;
+  _globalSettingsCache = null;
+  _personalSettingsCache = null;
+  _newSettingsStoreCache = null;
+  _legacyGlobalSettingsCache = null;
+  _legacyPersonalSettingsCache = null;
+  _legacyDiscourseNodeSettingsCache.clear();
+  _rawDiscourseNodeBlockPropsCache.clear();
+  _allDiscourseNodesCache = null;
+};
+
+const buildLegacyPersonalSettings = (): Record<string, unknown> => {
+  const personalSettings: Record<string, unknown> = {};
+
+  for (const [
+    path,
+    legacyKey,
+  ] of PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY.entries()) {
+    const keys = path.split("::");
+    setPathValue(
+      personalSettings,
+      keys,
+      getSetting<unknown>(
+        legacyKey,
+        readPathValue(DEFAULT_PERSONAL_SETTINGS, keys),
+      ),
     );
   }
 
-  if (keys.length === 1 && keys[0] === "Query") {
-    const querySettings: Record<string, unknown> = {};
-    querySettings["Hide query metadata"] = getLegacyPersonalSetting([
-      "Query",
-      "Hide query metadata",
-    ]);
-    querySettings["Default page size"] = getLegacyPersonalSetting([
-      "Query",
-      "Default page size",
-    ]);
-    querySettings["Query pages"] = getLegacyPersonalSetting([
-      "Query",
-      "Query pages",
-    ]);
-    querySettings["Default filters"] = getLegacyPersonalSetting([
-      "Query",
-      "Default filters",
-    ]);
-    return querySettings;
+  setPathValue(
+    personalSettings,
+    [PERSONAL_KEYS.leftSidebar],
+    getLegacyPersonalLeftSidebarSetting(),
+  );
+
+  return personalSettings;
+};
+
+const getLegacyPersonalSetting = (keys: string[]): unknown => {
+  if (keys.length === 0) return undefined;
+
+  if (!_legacyPersonalSettingsCache) {
+    _legacyPersonalSettingsCache = buildLegacyPersonalSettings();
   }
 
-  if (keys[0] === "Left sidebar") {
-    const leftSidebarSettings = getLegacyPersonalLeftSidebarSetting();
-    if (keys.length === 1) return leftSidebarSettings;
-    return readPathValue(leftSidebarSettings, keys.slice(1));
-  }
-
-  return undefined;
+  return readPathValue(_legacyPersonalSettingsCache, keys);
 };
 
 const getLegacyRelationsSetting = (): Record<string, unknown> => {
@@ -365,101 +434,80 @@ const getLegacyRelationsSetting = (): Record<string, unknown> => {
   );
 };
 
+const buildLegacyGlobalSettings = (): Record<string, unknown> => {
+  const tree = discourseConfigRef.tree;
+  const sidebar = getLeftSidebarSettings(tree);
+  const exp = getExportSettingsAndUids();
+  const sm = getSuggestiveModeConfigAndUids(tree);
+
+  return {
+    [GLOBAL_KEYS.trigger]:
+      getUidAndStringSetting({ tree, text: "trigger" }).value ||
+      DEFAULT_GLOBAL_SETTINGS.Trigger,
+    [GLOBAL_KEYS.canvasPageFormat]:
+      getUidAndStringSetting({ tree, text: "Canvas Page Format" }).value ||
+      DEFAULT_GLOBAL_SETTINGS["Canvas page format"],
+    [GLOBAL_KEYS.leftSidebar]: {
+      Children: sidebar.global.children.map((c) => c.text),
+      Settings: {
+        Collapsable:
+          sidebar.global.settings?.collapsable.value ??
+          DEFAULT_GLOBAL_SETTINGS["Left sidebar"].Settings.Collapsable,
+        Folded:
+          sidebar.global.settings?.folded.value ??
+          DEFAULT_GLOBAL_SETTINGS["Left sidebar"].Settings.Folded,
+      },
+    },
+    [GLOBAL_KEYS.export]: {
+      "Remove special characters":
+        exp.removeSpecialCharacters.value ??
+        DEFAULT_GLOBAL_SETTINGS.Export["Remove special characters"],
+      "Resolve block references":
+        exp.optsRefs.value ??
+        DEFAULT_GLOBAL_SETTINGS.Export["Resolve block references"],
+      "Resolve block embeds":
+        exp.optsEmbeds.value ??
+        DEFAULT_GLOBAL_SETTINGS.Export["Resolve block embeds"],
+      "Append referenced node":
+        exp.appendRefNodeContext.value ??
+        DEFAULT_GLOBAL_SETTINGS.Export["Append referenced node"],
+      "Link type":
+        exp.linkType.value || DEFAULT_GLOBAL_SETTINGS.Export["Link type"],
+      "Max filename length":
+        exp.maxFilenameLength.value ??
+        DEFAULT_GLOBAL_SETTINGS.Export["Max filename length"],
+      Frontmatter:
+        exp.frontmatter.values ?? DEFAULT_GLOBAL_SETTINGS.Export.Frontmatter,
+    },
+    [GLOBAL_KEYS.suggestiveMode]: {
+      "Include current page relations":
+        sm.includePageRelations.value ??
+        DEFAULT_GLOBAL_SETTINGS["Suggestive mode"][
+          "Include current page relations"
+        ],
+      "Include parent and child blocks":
+        sm.includeParentAndChildren.value ??
+        DEFAULT_GLOBAL_SETTINGS["Suggestive mode"][
+          "Include parent and child blocks"
+        ],
+      "Page groups": sm.pageGroups.groups.map((group) => ({
+        name: group.name,
+        pages: group.pages.map((page) => page.name),
+      })),
+    },
+    [GLOBAL_KEYS.relations]: getLegacyRelationsSetting(),
+  };
+};
+
 // Reconstructs global settings from legacy Roam tree to match block-props schema shape
 const getLegacyGlobalSetting = (keys: string[]): unknown => {
   if (keys.length === 0) return undefined;
 
-  const tree = discourseConfigRef.tree;
-  const firstKey = keys[0];
-
-  if (firstKey === "Trigger") {
-    return (
-      getUidAndStringSetting({ tree, text: "trigger" }).value ||
-      DEFAULT_GLOBAL_SETTINGS.Trigger
-    );
+  if (!_legacyGlobalSettingsCache) {
+    _legacyGlobalSettingsCache = buildLegacyGlobalSettings();
   }
 
-  if (firstKey === "Canvas page format") {
-    return (
-      getUidAndStringSetting({ tree, text: "Canvas Page Format" }).value ||
-      DEFAULT_GLOBAL_SETTINGS["Canvas page format"]
-    );
-  }
-
-  if (firstKey === "Left sidebar") {
-    const sidebar = getLeftSidebarSettings(tree);
-    const leftSidebarSettings: Record<string, unknown> = {};
-    leftSidebarSettings["Children"] = sidebar.global.children.map(
-      (c) => c.text,
-    );
-    const sidebarSettingValues: Record<string, unknown> = {};
-    sidebarSettingValues["Collapsable"] =
-      sidebar.global.settings?.collapsable.value ??
-      DEFAULT_GLOBAL_SETTINGS["Left sidebar"].Settings.Collapsable;
-    sidebarSettingValues["Folded"] =
-      sidebar.global.settings?.folded.value ??
-      DEFAULT_GLOBAL_SETTINGS["Left sidebar"].Settings.Folded;
-    leftSidebarSettings["Settings"] = sidebarSettingValues;
-    if (keys.length === 1) return leftSidebarSettings;
-    return readPathValue(leftSidebarSettings, keys.slice(1));
-  }
-
-  if (firstKey === "Export") {
-    const exp = getExportSettingsAndUids();
-    const exportSettings: Record<string, unknown> = {};
-    exportSettings["Remove special characters"] =
-      exp.removeSpecialCharacters.value ??
-      DEFAULT_GLOBAL_SETTINGS.Export["Remove special characters"];
-    exportSettings["Resolve block references"] =
-      exp.optsRefs.value ??
-      DEFAULT_GLOBAL_SETTINGS.Export["Resolve block references"];
-    exportSettings["Resolve block embeds"] =
-      exp.optsEmbeds.value ??
-      DEFAULT_GLOBAL_SETTINGS.Export["Resolve block embeds"];
-    exportSettings["Append referenced node"] =
-      exp.appendRefNodeContext.value ??
-      DEFAULT_GLOBAL_SETTINGS.Export["Append referenced node"];
-    exportSettings["Link type"] =
-      exp.linkType.value || DEFAULT_GLOBAL_SETTINGS.Export["Link type"];
-    exportSettings["Max filename length"] =
-      exp.maxFilenameLength.value ??
-      DEFAULT_GLOBAL_SETTINGS.Export["Max filename length"];
-    exportSettings["Frontmatter"] =
-      exp.frontmatter.values ?? DEFAULT_GLOBAL_SETTINGS.Export.Frontmatter;
-    if (keys.length === 1) return exportSettings;
-    return readPathValue(exportSettings, keys.slice(1));
-  }
-
-  if (firstKey === "Suggestive mode") {
-    const sm = getSuggestiveModeConfigAndUids(tree);
-    const suggestiveModeSettings: Record<string, unknown> = {};
-    suggestiveModeSettings["Include current page relations"] =
-      sm.includePageRelations.value ??
-      DEFAULT_GLOBAL_SETTINGS["Suggestive mode"][
-        "Include current page relations"
-      ];
-    suggestiveModeSettings["Include parent and child blocks"] =
-      sm.includeParentAndChildren.value ??
-      DEFAULT_GLOBAL_SETTINGS["Suggestive mode"][
-        "Include parent and child blocks"
-      ];
-    suggestiveModeSettings["Page groups"] = sm.pageGroups.groups.map(
-      (group) => ({
-        name: group.name,
-        pages: group.pages.map((page) => page.name),
-      }),
-    );
-    if (keys.length === 1) return suggestiveModeSettings;
-    return readPathValue(suggestiveModeSettings, keys.slice(1));
-  }
-
-  if (firstKey === "Relations") {
-    const relationsSettings = getLegacyRelationsSetting();
-    if (keys.length === 1) return relationsSettings;
-    return readPathValue(relationsSettings, keys.slice(1));
-  }
-
-  return undefined;
+  return readPathValue(_legacyGlobalSettingsCache, keys);
 };
 
 const getLegacyQuerySettingByParentUid = (parentUid: string) => {
@@ -488,11 +536,9 @@ const getLegacyQuerySettingByParentUid = (parentUid: string) => {
   };
 };
 
-// Reconstructs per-node settings from Roam tree structure to match block-props schema shape
-const getLegacyDiscourseNodeSetting = (
+const buildLegacyDiscourseNodeSettings = (
   nodeType: string,
-  keys: string[],
-): unknown => {
+): Record<string, unknown> | undefined => {
   let nodeUid = nodeType;
   let tree = getBasicTreeByParentUid(nodeUid);
 
@@ -575,7 +621,33 @@ const getLegacyDiscourseNodeSetting = (
     },
   };
 
-  return readPathValue(legacySettings, keys);
+  return legacySettings;
+};
+
+// Reconstructs per-node settings from Roam tree structure to match block-props schema shape
+const getLegacyDiscourseNodeSetting = (
+  nodeType: string,
+  keys: string[],
+): unknown => {
+  if (!_legacyDiscourseNodeSettingsCache.has(nodeType)) {
+    const legacySettings = buildLegacyDiscourseNodeSettings(nodeType);
+    _legacyDiscourseNodeSettingsCache.set(nodeType, legacySettings);
+
+    const resolvedNodeType =
+      legacySettings && typeof legacySettings.type === "string"
+        ? legacySettings.type
+        : undefined;
+    if (resolvedNodeType && resolvedNodeType !== nodeType) {
+      _legacyDiscourseNodeSettingsCache.set(resolvedNodeType, legacySettings);
+    }
+  }
+
+  const legacySettings = _legacyDiscourseNodeSettingsCache.get(nodeType);
+  if (!legacySettings) return undefined;
+
+  return keys.length === 0
+    ? legacySettings
+    : readPathValue(legacySettings, keys);
 };
 
 const getBlockPropsByUid = (
@@ -648,6 +720,7 @@ const setBlockPropAtPath = (
   }, updatedProps);
 
   setBlockProps(blockUid, updatedProps, false);
+  invalidateSettingsAccessorCaches();
 };
 
 const getBlockPropBasedSettings = ({
@@ -663,10 +736,7 @@ const getBlockPropBasedSettings = ({
     return { blockProps: undefined, blockUid: "" };
   }
 
-  const blockUid = getBlockUidByTextOnPage({
-    text: keys[0],
-    title: DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
-  });
+  const blockUid = getTopLevelSettingsBlockUid(keys[0]);
 
   if (!blockUid) {
     return { blockProps: undefined, blockUid: "" };
@@ -692,10 +762,7 @@ const setBlockPropBasedSettings = ({
     return;
   }
 
-  const blockUid = getBlockUidByTextOnPage({
-    text: keys[0],
-    title: DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
-  });
+  const blockUid = getTopLevelSettingsBlockUid(keys[0]);
 
   if (!blockUid) {
     internalError({
@@ -709,11 +776,16 @@ const setBlockPropBasedSettings = ({
 };
 
 export const getFeatureFlags = (): FeatureFlags => {
+  if (_featureFlagsCache) {
+    return _featureFlagsCache;
+  }
+
   const { blockProps } = getBlockPropBasedSettings({
     keys: [TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags],
   });
 
-  return FeatureFlagsSchema.parse(blockProps || {});
+  _featureFlagsCache = FeatureFlagsSchema.parse(blockProps || {});
+  return _featureFlagsCache;
 };
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -759,7 +831,13 @@ export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
 };
 
 export const isNewSettingsStoreEnabled = (): boolean => {
-  return getFeatureFlag("Use new settings store");
+  if (_newSettingsStoreCache !== null) return _newSettingsStoreCache;
+  _newSettingsStoreCache = getFeatureFlag("Use new settings store");
+  return _newSettingsStoreCache;
+};
+
+export const invalidateNewSettingsStoreCache = (): void => {
+  invalidateSettingsAccessorCaches();
 };
 
 export const readAllLegacyFeatureFlags = (): Partial<FeatureFlags> => {
@@ -806,14 +884,23 @@ export const setFeatureFlag = (
     keys: [TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags, key],
     value: validatedValue,
   });
+
+  if (key === "Use new settings store") {
+    invalidateNewSettingsStoreCache();
+  }
 };
 
 export const getGlobalSettings = (): GlobalSettings => {
+  if (_globalSettingsCache) {
+    return _globalSettingsCache;
+  }
+
   const { blockProps } = getBlockPropBasedSettings({
     keys: [TOP_LEVEL_BLOCK_PROP_KEYS.global],
   });
 
-  return GlobalSettingsSchema.parse(blockProps || {});
+  _globalSettingsCache = GlobalSettingsSchema.parse(blockProps || {});
+  return _globalSettingsCache;
 };
 
 export const getGlobalSetting = <T = unknown>(
@@ -879,13 +966,18 @@ export const getAllRelations = (): DiscourseRelation[] => {
 };
 
 export const getPersonalSettings = (): PersonalSettings => {
+  if (_personalSettingsCache) {
+    return _personalSettingsCache;
+  }
+
   const personalKey = getPersonalSettingsKey();
 
   const { blockProps } = getBlockPropBasedSettings({
     keys: [personalKey],
   });
 
-  return PersonalSettingsSchema.parse(blockProps || {});
+  _personalSettingsCache = PersonalSettingsSchema.parse(blockProps || {});
+  return _personalSettingsCache;
 };
 
 export const getPersonalSetting = <T = unknown>(
@@ -940,6 +1032,10 @@ export const setPersonalSetting = (keys: string[], value: json): void => {
 const getRawDiscourseNodeBlockProps = (
   nodeType: string,
 ): Record<string, json> | undefined => {
+  if (_rawDiscourseNodeBlockPropsCache.has(nodeType)) {
+    return _rawDiscourseNodeBlockPropsCache.get(nodeType);
+  }
+
   let pageUid = nodeType;
   let blockProps = getBlockPropsByUid(pageUid, []);
 
@@ -953,9 +1049,17 @@ const getRawDiscourseNodeBlockProps = (
     }
   }
 
-  return isRecord(blockProps) && Object.keys(blockProps).length > 0
-    ? (blockProps as Record<string, json>)
-    : undefined;
+  const result =
+    isRecord(blockProps) && Object.keys(blockProps).length > 0
+      ? (blockProps as Record<string, json>)
+      : undefined;
+
+  _rawDiscourseNodeBlockPropsCache.set(nodeType, result);
+  if (pageUid !== nodeType) {
+    _rawDiscourseNodeBlockPropsCache.set(pageUid, result);
+  }
+
+  return result;
 };
 
 export const getDiscourseNodeSettings = (
@@ -1152,6 +1256,10 @@ const migrateNodeBlockProps = (
 };
 
 export const getAllDiscourseNodes = (): DiscourseNode[] => {
+  if (_allDiscourseNodesCache) {
+    return _allDiscourseNodesCache;
+  }
+
   const results = window.roamAlphaAPI.data.fast.q(`
     [:find ?uid ?title (pull ?page [:block/props])
      :where
@@ -1211,5 +1319,6 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
     }
   }
 
+  _allDiscourseNodesCache = nodes;
   return nodes;
 };

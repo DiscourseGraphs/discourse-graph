@@ -72,6 +72,7 @@ export const SettingsDialog = ({
   onClose?: () => void;
   selectedTabId?: TabId;
 }) => {
+  console.time("[DG Perf] SettingsDialog render setup");
   const extensionAPI = onloadArgs.extensionAPI;
   const grammarNode = discourseConfigRef.tree.find(
     (node) => node.text === "grammar",
@@ -87,6 +88,7 @@ export const SettingsDialog = ({
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
+  console.timeEnd("[DG Perf] SettingsDialog render setup");
 
   useEffect(() => {
     posthog.capture("Settings: Dialog Opened", {
@@ -282,10 +284,14 @@ export const SettingsDialog = ({
 type Props = {
   onloadArgs: OnloadArgs;
 };
-export const render = (props: Props) =>
-  renderOverlay({
+export const render = (props: Props) => {
+  console.time("[DG Perf] Settings: renderOverlay");
+  const result = renderOverlay({
     Overlay: SettingsDialog,
     props: {
       onloadArgs: props.onloadArgs,
     },
   });
+  console.timeEnd("[DG Perf] Settings: renderOverlay");
+  return result;
+};

@@ -6,7 +6,7 @@ const discourseNodeTypeCache: Record<string, DiscourseNode | false> = {};
 const findDiscourseNode = ({
   uid,
   title,
-  nodes = getDiscourseNodes(),
+  nodes,
 }: {
   uid: string;
   title?: string;
@@ -16,8 +16,9 @@ const findDiscourseNode = ({
     return discourseNodeTypeCache[uid];
   }
 
+  const resolvedNodes = nodes ?? getDiscourseNodes();
   const matchingNode =
-    nodes.find((node) =>
+    resolvedNodes.find((node) =>
       title === undefined
         ? matchDiscourseNode({ ...node, uid })
         : matchDiscourseNode({ ...node, title }),

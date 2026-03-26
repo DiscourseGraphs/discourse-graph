@@ -106,7 +106,18 @@ const getUidAndBooleanSetting = ({
   };
 };
 
-const getDiscourseNodes = (relations = getDiscourseRelations()) => {
+let cachedNodes: DiscourseNode[] | null = null;
+
+export const invalidateDiscourseNodesCache = () => {
+  cachedNodes = null;
+};
+
+const getDiscourseNodes = (
+  relations?: ReturnType<typeof getDiscourseRelations>,
+) => {
+  if (!relations && cachedNodes) return cachedNodes;
+
+  const resolvedRelations = relations ?? getDiscourseRelations();
   const configuredNodes = (
     isNewSettingsStoreEnabled()
       ? getAllDiscourseNodes()
@@ -158,7 +169,7 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
           },
         )
   ).concat(
-    relations
+    resolvedRelations
       .filter((r) => r.triples.some((t) => t.some((n) => /anchor/i.test(n))))
       .map((r) => ({
         format: "",
@@ -188,7 +199,11 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
   const defaultNodes = DEFAULT_NODES.filter(
     (n) => !configuredNodeTexts.has(n.text),
   );
-  return configuredNodes.concat(defaultNodes);
+  const result = configuredNodes.concat(defaultNodes);
+  if (!relations) {
+    cachedNodes = result;
+  }
+  return result;
 };
 
 export default getDiscourseNodes;
