@@ -205,11 +205,11 @@ export const RelationTypeDropdown = ({
               textAlign: "left",
             }}
             onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor =
+              (e.currentTarget as HTMLElement).style.backgroundColor =
                 "var(--color-hover, #f0f0f0)";
             }}
             onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = "transparent";
+              (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
             }}
           >
             <span
