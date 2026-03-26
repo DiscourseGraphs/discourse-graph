@@ -50,7 +50,8 @@ CREATE OR REPLACE FUNCTION public.end_sync_task(
     s_target bigint,
     s_function character varying,
     s_worker character varying,
-    s_status public.task_status
+    s_status public.task_status,
+    s_started_at timestamptz = NULL
 ) RETURNS void
 SET search_path = ''
 LANGUAGE plpgsql
@@ -67,6 +68,10 @@ BEGIN
         INTO STRICT t_id, t_worker, t_status, t_failure_count, t_last_task_start, t_last_task_end, t_last_success_start
         FROM public.sync_info WHERE sync_target = s_target AND sync_function = s_function;
     ASSERT s_status > 'active';
+    IF t_worker != s_worker AND COALESCE(s_started_at, t_last_task_start) < t_last_task_start THEN
+        -- we probably took too long. Let the other task have priority.
+        RETURN;
+    END IF;
     ASSERT t_worker = s_worker, 'Wrong worker';
     ASSERT s_status >= t_status, 'do not go back in status';
     IF s_status = 'complete' THEN
@@ -93,7 +98,8 @@ ALTER FUNCTION public.end_sync_task(
     s_target bigint,
     s_function character varying,
     s_worker character varying,
-    s_status public.task_status
+    s_status public.task_status,
+    s_started_at timestamptz
 ) OWNER TO "postgres";
 
 
@@ -190,19 +196,22 @@ GRANT ALL ON FUNCTION public.end_sync_task(
     s_target bigint,
     s_function character varying,
     s_worker character varying,
-    s_status public.task_status
+    s_status public.task_status,
+    s_started_at timestamptz
 ) TO "anon";
 GRANT ALL ON FUNCTION public.end_sync_task(
     s_target bigint,
     s_function character varying,
     s_worker character varying,
-    s_status public.task_status
+    s_status public.task_status,
+    s_started_at timestamptz
 ) TO "authenticated";
 GRANT ALL ON FUNCTION public.end_sync_task(
     s_target bigint,
     s_function character varying,
     s_worker character varying,
-    s_status public.task_status
+    s_status public.task_status,
+    s_started_at timestamptz
 ) TO "service_role";
 
 GRANT ALL ON FUNCTION public.propose_sync_task(
