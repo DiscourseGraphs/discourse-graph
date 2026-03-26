@@ -28,6 +28,7 @@ import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { TagNodeHandler } from "~/utils/tagNodeHandler";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
+import { InlineNodeTypePicker } from "~/components/InlineNodeTypePicker";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
 import generateUid from "~/utils/generateUid";
@@ -271,12 +272,26 @@ export default class DiscourseGraphPlugin extends Plugin {
 
         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (activeView?.editor) {
-          // Open the node tag suggest popover
-          const popover = new NodeTagSuggestPopover(
-            activeView.editor,
-            this.settings.nodeTypes,
-          );
-          popover.open();
+          const editor = activeView.editor;
+          const selectedText = editor.getSelection();
+
+          if (selectedText && selectedText.trim().length > 0) {
+            // Text is selected: open node type picker to create node from selection
+            const picker = new InlineNodeTypePicker({
+              editor,
+              nodeTypes: this.settings.nodeTypes,
+              plugin: this,
+              selectedText: selectedText.trim(),
+            });
+            picker.open();
+          } else {
+            // No selection: open the candidate node tag popover
+            const popover = new NodeTagSuggestPopover(
+              editor,
+              this.settings.nodeTypes,
+            );
+            popover.open();
+          }
         }
 
         return true;
