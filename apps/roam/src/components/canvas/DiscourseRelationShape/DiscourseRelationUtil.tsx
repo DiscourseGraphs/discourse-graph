@@ -1086,7 +1086,6 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
   static override props = arrowShapeProps;
 
   cancelAndWarn = (title: string) => {
-    this.editor.setCurrentTool("select");
     dispatchToastEvent({
       id: `tldraw-cancel-and-warn-${title}`,
       title,

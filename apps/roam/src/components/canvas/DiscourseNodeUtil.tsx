@@ -110,6 +110,7 @@ export const createNodeShapeTools = (
     return class DiscourseNodeTool extends StateNode {
       static id = n.type;
       static initial = "idle";
+      static isLockable = true;
       shapeType = n.type;
 
       override onEnter = () => {
@@ -130,7 +131,6 @@ export const createNodeShapeTools = (
           props: { fontFamily: "sans", size: "s" },
         });
         this.editor.setEditingShape(shapeId);
-        this.editor.setCurrentTool("select");
       };
     };
   });
@@ -519,6 +519,19 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
           this.updateProps(shape.id, shape.type, { h, w, imageUrl });
         };
 
+        const wasToolLocked = this.editor.getInstanceState().isToolLocked;
+
+        const restoreToolState = () => {
+          if (wasToolLocked) {
+            this.editor.updateInstanceState({ isToolLocked: true });
+            this.editor.setCurrentTool(shape.type);
+          } else {
+            this.editor.setCurrentTool("select");
+          }
+          editor.setEditingShape(null);
+          dialogRenderedRef.current = false;
+        };
+
         renderModifyNodeDialog({
           mode: isCreating ? "create" : "edit",
           nodeType: shape.type,
@@ -570,13 +583,14 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
                 });
               }
             }
-
-            editor.setEditingShape(null);
-            dialogRenderedRef.current = false;
           },
           onClose: () => {
-            editor.setEditingShape(null);
-            dialogRenderedRef.current = false;
+            if (isCreating) {
+              restoreToolState();
+            } else {
+              editor.setEditingShape(null);
+              dialogRenderedRef.current = false;
+            }
           },
         });
 

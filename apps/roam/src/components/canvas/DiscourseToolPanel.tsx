@@ -190,7 +190,6 @@ const DiscourseGraphPanel = ({
               props: { fontFamily: "sans", size: "s" },
             });
             editor.setEditingShape(shapeId);
-            editor.setCurrentTool("select");
           } else {
             // For relations, just activate the tool
             editor.setCurrentTool(current.item.id);

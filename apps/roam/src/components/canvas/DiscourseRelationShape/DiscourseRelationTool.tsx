@@ -28,6 +28,7 @@ export const createAllReferencedNodeTools = (
     class ReferencedNodeTool extends StateNode {
       static override initial = "idle";
       static override id = action;
+      static override isLockable = true;
       static override children = (): TLStateNodeConstructor[] => [
         this.Idle,
         this.Pointing,
@@ -277,10 +278,6 @@ export const createAllReferencedNodeTools = (
           this.editor.setCursor({ type: "cross" });
         };
 
-        override onCancel = () => {
-          this.editor.setCurrentTool("select");
-        };
-
         override onKeyUp: TLEventHandlers["onKeyUp"] = (info) => {
           if (info.key === "Enter") {
             if (this.editor.getInstanceState().isReadonly) return null;
@@ -315,6 +312,7 @@ export const createAllRelationShapeTools = (
     class RelationShapeTool extends StateNode {
       static override initial = "idle";
       static override id = name;
+      static override isLockable = true;
       static override children = (): TLStateNodeConstructor[] => [
         this.Idle,
         this.Pointing,
@@ -571,10 +569,6 @@ export const createAllRelationShapeTools = (
 
         override onEnter = () => {
           this.editor.setCursor({ type: "cross", rotation: 0 });
-        };
-
-        override onCancel = () => {
-          this.editor.setCurrentTool("select");
         };
 
         override onKeyUp: TLEventHandlers["onKeyUp"] = (info) => {

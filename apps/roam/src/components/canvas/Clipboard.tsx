@@ -672,7 +672,6 @@ const ClipboardPageSection = ({
         },
       };
       editor.createShape<DiscourseNodeShape>(shape);
-      editor.setCurrentTool("select");
     },
     [editor, extensionAPI, showNodesOnCanvas],
   );
