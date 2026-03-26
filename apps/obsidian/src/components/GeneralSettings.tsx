@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { usePlugin } from "./PluginContext";
-import { Notice, setIcon } from "obsidian";
+import { setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
 import { SLACK_LOGO, WHITE_LOGO_SVG } from "~/icons";
 
@@ -157,57 +157,51 @@ const GeneralSettings = () => {
   const [nodeTagHotkey, setNodeTagHotkey] = useState<string>(
     plugin.settings.nodeTagHotkey,
   );
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const handleToggleChange = (newValue: boolean) => {
     setShowIdsInFrontmatter(newValue);
-    setHasUnsavedChanges(true);
+    plugin.settings.showIdsInFrontmatter = newValue;
+    void plugin.saveSettings();
   };
 
-  const handleFolderPathChange = useCallback((newValue: string) => {
-    setNodesFolderPath(newValue);
-    setHasUnsavedChanges(true);
-  }, []);
+  const handleFolderPathChange = useCallback(
+    (newValue: string) => {
+      setNodesFolderPath(newValue);
+      plugin.settings.nodesFolderPath = newValue.trim();
+      void plugin.saveSettings();
+    },
+    [plugin],
+  );
 
-  const handleCanvasFolderPathChange = useCallback((newValue: string) => {
-    setCanvasFolderPath(newValue);
-    setHasUnsavedChanges(true);
-  }, []);
+  const handleCanvasFolderPathChange = useCallback(
+    (newValue: string) => {
+      setCanvasFolderPath(newValue);
+      plugin.settings.canvasFolderPath = newValue.trim();
+      void plugin.saveSettings();
+    },
+    [plugin],
+  );
 
   const handleCanvasAttachmentsFolderPathChange = useCallback(
     (newValue: string) => {
       setCanvasAttachmentsFolderPath(newValue);
-      setHasUnsavedChanges(true);
+      plugin.settings.canvasAttachmentsFolderPath = newValue.trim();
+      void plugin.saveSettings();
     },
-    [],
+    [plugin],
   );
 
-  const handleNodeTagHotkeyChange = useCallback((newValue: string) => {
-    // Only allow single character
-    if (newValue.length <= 1) {
-      setNodeTagHotkey(newValue);
-      setHasUnsavedChanges(true);
-    }
-  }, []);
-
-  const handleSave = async () => {
-    const trimmedNodesFolderPath = nodesFolderPath.trim();
-    const trimmedCanvasFolderPath = canvasFolderPath.trim();
-    const trimmedCanvasAttachmentsFolderPath =
-      canvasAttachmentsFolderPath.trim();
-    plugin.settings.showIdsInFrontmatter = showIdsInFrontmatter;
-    plugin.settings.nodesFolderPath = trimmedNodesFolderPath;
-    plugin.settings.canvasFolderPath = trimmedCanvasFolderPath;
-    plugin.settings.canvasAttachmentsFolderPath =
-      trimmedCanvasAttachmentsFolderPath;
-    plugin.settings.nodeTagHotkey = nodeTagHotkey || "";
-    setNodesFolderPath(trimmedNodesFolderPath);
-    setCanvasFolderPath(trimmedCanvasFolderPath);
-    setCanvasAttachmentsFolderPath(trimmedCanvasAttachmentsFolderPath);
-    await plugin.saveSettings();
-    new Notice("General settings saved");
-    setHasUnsavedChanges(false);
-  };
+  const handleNodeTagHotkeyChange = useCallback(
+    (newValue: string) => {
+      // Only allow single character
+      if (newValue.length <= 1) {
+        setNodeTagHotkey(newValue);
+        plugin.settings.nodeTagHotkey = newValue;
+        void plugin.saveSettings();
+      }
+    },
+    [plugin],
+  );
 
   return (
     <div className="general-settings">
@@ -313,19 +307,6 @@ const GeneralSettings = () => {
         </div>
       </div>
 
-      <div className="setting-item">
-        <button
-          onClick={() => void handleSave()}
-          className={hasUnsavedChanges ? "mod-cta" : ""}
-          disabled={!hasUnsavedChanges}
-        >
-          Save Changes
-        </button>
-      </div>
-
-      {hasUnsavedChanges && (
-        <div className="text-muted mt-2">You have unsaved changes</div>
-      )}
       <InfoSection />
     </div>
   );

@@ -8,31 +8,27 @@ export const AdminPanelSettings = () => {
   const [syncModeEnabled, setSyncModeEnabled] = useState<boolean>(
     plugin.settings.syncModeEnabled ?? false,
   );
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  const handleSyncModeToggle = useCallback((newValue: boolean) => {
-    setSyncModeEnabled(newValue);
-    setHasUnsavedChanges(true);
-  }, []);
+  const handleSyncModeToggle = useCallback(
+    async (newValue: boolean) => {
+      setSyncModeEnabled(newValue);
+      plugin.settings.syncModeEnabled = newValue;
+      await plugin.saveSettings();
 
-  const handleSave = async () => {
-    plugin.settings.syncModeEnabled = syncModeEnabled;
-    await plugin.saveSettings();
-    new Notice("Admin panel settings saved");
-    setHasUnsavedChanges(false);
-
-    if (syncModeEnabled) {
-      try {
-        await initializeSupabaseSync(plugin);
-        new Notice("Sync mode initialized successfully");
-      } catch (error) {
-        console.error("Failed to initialize sync mode:", error);
-        new Notice(
-          `Failed to initialize sync mode: ${error instanceof Error ? error.message : String(error)}`,
-        );
+      if (newValue) {
+        try {
+          await initializeSupabaseSync(plugin);
+          new Notice("Sync mode initialized successfully");
+        } catch (error) {
+          console.error("Failed to initialize sync mode:", error);
+          new Notice(
+            `Failed to initialize sync mode: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
       }
-    }
-  };
+    },
+    [plugin],
+  );
 
   return (
     <div className="general-settings">
@@ -46,26 +42,12 @@ export const AdminPanelSettings = () => {
         <div className="setting-item-control">
           <div
             className={`checkbox-container ${syncModeEnabled ? "is-enabled" : ""}`}
-            onClick={() => handleSyncModeToggle(!syncModeEnabled)}
+            onClick={() => void handleSyncModeToggle(!syncModeEnabled)}
           >
             <input type="checkbox" checked={syncModeEnabled} />
           </div>
         </div>
       </div>
-
-      <div className="setting-item">
-        <button
-          onClick={() => void handleSave()}
-          className={hasUnsavedChanges ? "mod-cta" : ""}
-          disabled={!hasUnsavedChanges}
-        >
-          Save Changes
-        </button>
-      </div>
-
-      {hasUnsavedChanges && (
-        <div className="text-muted mt-2">You have unsaved changes</div>
-      )}
     </div>
   );
 };
