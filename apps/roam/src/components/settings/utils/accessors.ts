@@ -777,6 +777,18 @@ export const setFeatureFlag = (
 ): void => {
   const validatedValue = z.boolean().parse(value);
 
+  const legacyReader = FEATURE_FLAG_LEGACY_MAP[key];
+  const legacyValue = legacyReader ? legacyReader() : undefined;
+  const currentBlockProps = getFeatureFlags()[key];
+  const match = currentBlockProps === legacyValue;
+  console.groupCollapsed(
+    `[DG Dual-Read] Set Feature Flag > ${key} — ${match ? "Settings match" : "Settings don't match"}`,
+  );
+  console.log("Legacy:", legacyValue);
+  console.log("Block props:", currentBlockProps);
+  console.log("New value:", validatedValue);
+  console.groupEnd();
+
   setBlockPropBasedSettings({
     keys: [TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags, key],
     value: validatedValue,
@@ -831,6 +843,18 @@ export const setGlobalSetting = (keys: string[], value: json): void => {
   ) {
     return;
   }
+
+  const currentBlockProps = readPathValue(getGlobalSettings(), keys);
+  const legacyValue = getLegacyGlobalSetting(keys);
+  const match =
+    JSON.stringify(currentBlockProps) === JSON.stringify(legacyValue);
+  console.groupCollapsed(
+    `[DG Dual-Read] Set Global > ${formatSettingPath(keys)} — ${match ? "Settings match" : "Settings don't match"}`,
+  );
+  console.log("Legacy:", legacyValue);
+  console.log("Block props:", currentBlockProps);
+  console.log("New value:", value);
+  console.groupEnd();
 
   setBlockPropBasedSettings({
     keys: [TOP_LEVEL_BLOCK_PROP_KEYS.global, ...keys],
@@ -905,6 +929,18 @@ export const setPersonalSetting = (keys: string[], value: json): void => {
   ) {
     return;
   }
+
+  const currentBlockProps = readPathValue(getPersonalSettings(), keys);
+  const legacyValue = getLegacyPersonalSetting(keys);
+  const match =
+    JSON.stringify(currentBlockProps) === JSON.stringify(legacyValue);
+  console.groupCollapsed(
+    `[DG Dual-Read] Set Personal > ${formatSettingPath(keys)} — ${match ? "Settings match" : "Settings don't match"}`,
+  );
+  console.log("Legacy:", legacyValue);
+  console.log("Block props:", currentBlockProps);
+  console.log("New value:", value);
+  console.groupEnd();
 
   setBlockPropBasedSettings({
     keys: [personalKey, ...keys],
@@ -1012,6 +1048,21 @@ export const setDiscourseNodeSetting = (
     });
     return;
   }
+
+  const currentSettings = getDiscourseNodeSettings(nodeType);
+  const currentBlockPropsValue = currentSettings
+    ? readPathValue(currentSettings, keys)
+    : undefined;
+  const legacyValue = getLegacyDiscourseNodeSetting(nodeType, keys);
+  const match =
+    JSON.stringify(currentBlockPropsValue) === JSON.stringify(legacyValue);
+  console.groupCollapsed(
+    `[DG Dual-Read] Set Discourse Node (${nodeType}) > ${formatSettingPath(keys)} — ${match ? "Settings match" : "Settings don't match"}`,
+  );
+  console.log("Legacy:", legacyValue);
+  console.log("Block props:", currentBlockPropsValue);
+  console.log("New value:", value);
+  console.groupEnd();
 
   setBlockPropAtPath(pageUid, keys, value);
 };
