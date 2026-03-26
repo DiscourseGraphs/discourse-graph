@@ -100,8 +100,8 @@ const RelationshipTypeSettings = () => {
   );
   const [errors, setErrors] = useState<Record<number, string>>({});
   // Ref to always have the latest state for onBlur handlers
+  // Updated in handleRelationTypeChange, not on render, to avoid stale reads
   const relationTypesRef = useRef(relationTypes);
-  relationTypesRef.current = relationTypes;
 
   type EditableFieldKey = keyof Omit<
     DiscourseRelationType,
@@ -144,7 +144,14 @@ const RelationshipTypeSettings = () => {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    plugin.settings.relationTypes = updatedRelationTypes;
+    // Only persist complete local types + all imported types
+    const importedTypes = updatedRelationTypes.filter(
+      (rt) => rt.importedFromRid,
+    );
+    plugin.settings.relationTypes = [
+      ...completeTypes.filter((rt) => !rt.importedFromRid),
+      ...importedTypes,
+    ];
     void plugin.saveSettings();
   };
 
@@ -175,6 +182,7 @@ const RelationshipTypeSettings = () => {
     };
     updatedRelationTypes[index] = updated;
     setRelationTypes(updatedRelationTypes);
+    relationTypesRef.current = updatedRelationTypes;
     if (field === "color") {
       // Color is a discrete input — save immediately
       saveSettings(updatedRelationTypes);
