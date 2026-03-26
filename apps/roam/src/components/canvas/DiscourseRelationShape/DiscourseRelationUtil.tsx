@@ -686,8 +686,7 @@ export const createAllRelationShapeUtils = (
                 : sourceAsDNS.props.uid,
               relationBlockUid: matchingRelation.id,
             });
-          }
-          else {
+          } else {
             void internalError({
               error: "attempt to create a relation between non discourse nodes",
               type: "Canvas create relation",
@@ -1000,15 +999,19 @@ export const createAllRelationShapeUtils = (
               const startNodeType = startNode.type;
               const endNodeType = endNode.type;
 
-              const { isDirect, isReverse } =
+              const { isReverse, matchingRelation } =
                 this.checkConnectionTypeAcrossLabel(
                   relation.label,
                   startNodeType,
                   endNodeType,
                 );
 
+              const effectiveRelation = matchingRelation ?? relation;
+
               const newText =
-                isReverse && !isDirect && relation.complement ? relation.complement : relation.label;
+                isReverse && effectiveRelation.complement
+                  ? effectiveRelation.complement
+                  : effectiveRelation.label;
 
               if (shape.props.text !== newText) {
                 update.props = update.props || {};
