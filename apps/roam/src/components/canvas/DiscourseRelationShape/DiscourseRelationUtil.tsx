@@ -1008,7 +1008,7 @@ export const createAllRelationShapeUtils = (
                 );
 
               const newText =
-                isReverse && !isDirect ? relation.complement : relation.label;
+                isReverse && !isDirect && relation.complement ? relation.complement : relation.label;
 
               if (shape.props.text !== newText) {
                 update.props = update.props || {};
