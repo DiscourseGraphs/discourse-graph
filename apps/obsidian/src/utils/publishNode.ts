@@ -11,6 +11,7 @@ import {
   getFileForNodeInstanceIds,
   loadRelations,
   saveRelations,
+  type RelationsFile,
 } from "./relationsStore";
 import type { RelationInstance } from "~/types";
 import { getAvailableGroupIds } from "./importNodes";
@@ -270,15 +271,18 @@ export const publishNode = async ({
 export const ensurePublishedRelationsAccuracy = async ({
   client,
   context,
+  plugin,
   allNodesById,
-  relationInstances,
+  relationInstancesData,
 }: {
   client: DGSupabaseClient;
   context: SupabaseContext;
+  plugin: DiscourseGraphPlugin;
   allNodesById: Record<string, DiscourseNodeInVault>;
-  relationInstances: RelationInstance[];
+  relationInstancesData: RelationsFile;
 }): Promise<void> => {
   const myGroups = await getAvailableGroupIds(client);
+  const relationInstances = Object.values(relationInstancesData.relations);
   const syncedRelationIdsResult = await client
     .from("Concept")
     .select("source_local_id")
@@ -310,11 +314,13 @@ export const ensurePublishedRelationsAccuracy = async ({
       }
     }
   }
+  let changed = false;
   const missingPublishRecords: TablesInsert<"ResourceAccess">[] = [];
   for (const group of myGroups) {
     const publishableRelations = relationInstances.filter(
       (r) =>
         !r.importedFromRid &&
+        syncedRelationIds.has(r.id) &&
         (
           (allNodesById[r.source]?.frontmatter?.publishedToGroups as
             | string[]
@@ -369,11 +375,36 @@ export const ensurePublishedRelationsAccuracy = async ({
         .eq("space_id", context.spaceId)
         .in("source_local_id", [...extraPublishableIds]);
       if (r.error) console.error(r.error);
+      else {
+        for (const id of extraPublishableIds) {
+          const rel = relationInstancesData.relations[id];
+          const pos = (rel?.publishedToGroupId || []).indexOf(group);
+          if (pos >= 0) {
+            rel!.publishedToGroupId!.splice(pos, 1);
+            changed = true;
+          }
+        }
+      }
     }
   }
   if (missingPublishRecords.length > 0) {
     const r = await client.from("ResourceAccess").upsert(missingPublishRecords);
     if (r.error) console.error(r.error);
+    else {
+      for (const record of missingPublishRecords) {
+        const rel = relationInstancesData.relations[record.source_local_id];
+        const group = record.account_uid;
+        const pos = (rel?.publishedToGroupId || []).indexOf(group);
+        if (rel && pos < 1) {
+          if (rel.publishedToGroupId === undefined) rel.publishedToGroupId = [];
+          rel.publishedToGroupId.push(group);
+          changed = true;
+        }
+      }
+    }
+  }
+  if (changed) {
+    await saveRelations(plugin, relationInstancesData);
   }
 };
 

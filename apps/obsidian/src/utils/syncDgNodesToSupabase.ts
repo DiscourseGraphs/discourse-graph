@@ -570,8 +570,9 @@ const convertDgToSupabaseConcepts = async ({
       await ensurePublishedRelationsAccuracy({
         client: supabaseClient,
         context,
+        plugin,
         allNodesById,
-        relationInstances: Object.values(relationInstancesData.relations),
+        relationInstancesData,
       });
     }
   }
