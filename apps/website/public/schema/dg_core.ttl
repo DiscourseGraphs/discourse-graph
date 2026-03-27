@@ -69,7 +69,9 @@ dg:sourceDocument a dgb:RelationDef;
   rdfs:domain dg:Evidence;
   rdfs:range dg:SourceDocument.
 
-dg:ClaimOrEvidence a owl:Class; owl:unionOf (dg:Evidence dg:Claim).
+dg:ClaimOrEvidence owl:equivalentClass [
+  owl:unionOf (dg:Evidence dg:Claim)
+].
 
 dg:opposes a dgb:RelationDef;
   rdfs:label "Opposes"@en;
