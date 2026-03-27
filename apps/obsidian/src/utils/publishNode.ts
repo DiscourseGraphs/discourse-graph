@@ -395,7 +395,7 @@ export const ensurePublishedRelationsAccuracy = async ({
         const rel = relationInstancesData.relations[record.source_local_id];
         const group = record.account_uid;
         const pos = (rel?.publishedToGroupId || []).indexOf(group);
-        if (rel && pos < 1) {
+        if (rel && pos < 0) {
           if (rel.publishedToGroupId === undefined) rel.publishedToGroupId = [];
           rel.publishedToGroupId.push(group);
           changed = true;
