@@ -341,7 +341,16 @@ const logDualReadComparison = (): void => {
 
   const legacyFlags = readAllLegacyFeatureFlags();
   const blockFlags = getFeatureFlags();
-  const flagsMatch = deepEqual(blockFlags, legacyFlags);
+  const omitStoreFlag = (
+    flags: Record<string, unknown>,
+  ): Record<string, unknown> =>
+    Object.fromEntries(
+      Object.entries(flags).filter(([k]) => k !== "Use new settings store"),
+    );
+  const flagsMatch = deepEqual(
+    omitStoreFlag(blockFlags),
+    omitStoreFlag(legacyFlags),
+  );
 
   const legacyGlobal = readAllLegacyGlobalSettings();
   const blockGlobal = getGlobalSettings();
@@ -374,7 +383,7 @@ const logDualReadComparison = (): void => {
     !globalMatch && "Global",
     !personalMatch && "Personal",
     ...nodeResults.filter((n) => !n.match).map((n) => n.name),
-  ].filter(Boolean) as string[];
+  ].filter((x): x is string => Boolean(x));
 
   const summary =
     mismatches.length === 0
@@ -406,7 +415,11 @@ export const initSchema = async (): Promise<InitSchemaResult> => {
   await migrateGraphLevel(blockUids);
   const nodePageUids = await initDiscourseNodePages();
   await migratePersonalSettings(blockUids);
-  logDualReadComparison();
+  try {
+    logDualReadComparison();
+  } catch (e) {
+    console.warn("[DG Dual-Read] Comparison failed:", e);
+  }
   (window as unknown as Record<string, unknown>).dgDualReadLog =
     logDualReadComparison;
   return { blockUids, nodePageUids };
