@@ -58,6 +58,7 @@ export default runExtension(async (onloadArgs) => {
   if (!isEncrypted && !isOffline && !disallowDiagnostics) {
     initPostHog();
   }
+
   initFeedbackWidget();
 
   if (window?.roamjs?.loaded?.has("query-builder")) {
@@ -82,17 +83,12 @@ export default runExtension(async (onloadArgs) => {
   initPluginTimer();
 
   await initializeDiscourseNodes();
-
   refreshConfigTree();
 
   addGraphViewNodeStyling();
-
   registerCommandPaletteCommands(onloadArgs);
-
   createSettingsPanel(onloadArgs);
-
   registerSmartBlock(onloadArgs);
-
   setInitialQueryPages(onloadArgs);
 
   const style = addStyle(styles);
@@ -110,7 +106,6 @@ export default runExtension(async (onloadArgs) => {
   }
 
   const { observers, listeners, cleanups } = initObservers({ onloadArgs });
-
   const {
     pageActionListener,
     hashChangeListener,
@@ -195,9 +190,7 @@ export default runExtension(async (onloadArgs) => {
   );
 
   const { blockUids } = await initSchema();
-
   const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
-
   console.log(`[DG Perf] Total init: ${performance.now() - initStartedAt} ms`);
 
   return {

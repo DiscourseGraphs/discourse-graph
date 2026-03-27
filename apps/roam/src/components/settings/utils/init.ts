@@ -181,7 +181,6 @@ const initializeSettingsBlockProps = (
 
 const initSettingsPageBlocks = async (): Promise<Record<string, string>> => {
   const pageUid = await ensurePageExists(DG_BLOCK_PROP_SETTINGS_PAGE_TITLE);
-
   const blockMap = buildBlockMap(pageUid);
 
   const topLevelBlocks = getTopLevelBlockPropsConfig().map(({ key }) => key);
@@ -330,14 +329,9 @@ export type InitSchemaResult = {
 
 export const initSchema = async (): Promise<InitSchemaResult> => {
   const blockUids = await initSettingsPageBlocks();
-
   await migrateGraphLevel(blockUids);
-
   const nodePageUids = await initDiscourseNodePages();
-
   await migratePersonalSettings(blockUids);
-
   invalidateSettingsAccessorCaches();
-
   return { blockUids, nodePageUids };
 };
