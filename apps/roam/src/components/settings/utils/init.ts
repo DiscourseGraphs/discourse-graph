@@ -381,12 +381,8 @@ const logDualReadComparison = (): void => {
       ? "All settings match"
       : `(${mismatches.length}) Settings don't match: ${mismatches.join(", ")}`;
 
-  const nodeLegacy: Record<string, unknown> = {};
-  const nodeBlockProps: Record<string, unknown> = {};
-  for (const node of nodeResults) {
-    nodeLegacy[node.name] = node.legacy;
-    nodeBlockProps[node.name] = node.blockProps;
-  }
+  const nodeMap = (key: "legacy" | "blockProps") =>
+    Object.fromEntries(nodeResults.map((n) => [n.name, n[key]]));
 
   /* eslint-disable @typescript-eslint/naming-convention */
   console.log(`[DG Dual-Read] ${summary}`);
@@ -394,25 +390,13 @@ const logDualReadComparison = (): void => {
     "Feature Flags": legacyFlags,
     Global: legacyGlobal,
     Personal: legacyPersonal,
-    ...nodeResults.reduce(
-      (acc, n) => {
-        acc[n.name] = n.legacy;
-        return acc;
-      },
-      {} as Record<string, unknown>,
-    ),
+    ...nodeMap("legacy"),
   });
   console.log("[DG Dual-Read] Block props:", {
     "Feature Flags": blockFlags,
     Global: blockGlobal,
     Personal: blockPersonal,
-    ...nodeResults.reduce(
-      (acc, n) => {
-        acc[n.name] = n.blockProps;
-        return acc;
-      },
-      {} as Record<string, unknown>,
-    ),
+    ...nodeMap("blockProps"),
   });
   /* eslint-enable @typescript-eslint/naming-convention */
 };
