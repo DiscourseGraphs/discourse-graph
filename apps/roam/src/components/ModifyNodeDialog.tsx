@@ -47,6 +47,7 @@ export type ModifyNodeDialogProps = {
   extensionAPI?: OnloadArgs["extensionAPI"];
   includeDefaultNodes?: boolean; // Include default nodes (Page, Block) in node type selector
   imageUrl?: string; // For image conversion from canvas
+  disableNodeTypeChange?: boolean; // Disable node type selector (e.g. canvas contexts)
   onSuccess: (result: {
     text: string;
     uid: string;
@@ -65,6 +66,7 @@ const ModifyNodeDialog = ({
   extensionAPI,
   includeDefaultNodes = false,
   imageUrl,
+  disableNodeTypeChange = false,
   onSuccess,
   onClose,
 }: RoamOverlayProps<ModifyNodeDialogProps>) => {
@@ -520,8 +522,13 @@ const ModifyNodeDialog = ({
                     setReferencedNodeValue({ text: "", uid: "" });
                   }
                 }}
-                disabled={mode === "edit"}
+                disabled={mode === "edit" || disableNodeTypeChange}
                 popoverProps={{ openOnTargetFocus: false }}
+                className={
+                  mode === "edit" || disableNodeTypeChange
+                    ? "cursor-not-allowed opacity-50"
+                    : ""
+                }
               />
             </Label>
           </div>
