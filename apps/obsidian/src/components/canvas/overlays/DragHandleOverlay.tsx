@@ -34,38 +34,43 @@ type HandlePosition = {
 
 const HANDLE_RADIUS = 5;
 const HANDLE_HIT_AREA = 12;
-const HANDLE_PADDING = 8; // px offset outward from the node edge
+const HANDLE_PADDING = 8; // px offset in viewport space, outward from the node edge
 
+/** Page-space edge midpoints and their outward direction vectors. */
 const getEdgeMidpoints = (bounds: {
   minX: number;
   minY: number;
   maxX: number;
   maxY: number;
-}): HandlePosition[] => {
+}): (HandlePosition & { direction: { x: number; y: number } })[] => {
   return [
     // Top
     {
       x: (bounds.minX + bounds.maxX) / 2,
-      y: bounds.minY - HANDLE_PADDING,
+      y: bounds.minY,
       anchor: { x: 0.5, y: 0 },
+      direction: { x: 0, y: -1 },
     },
     // Right
     {
-      x: bounds.maxX + HANDLE_PADDING,
+      x: bounds.maxX,
       y: (bounds.minY + bounds.maxY) / 2,
       anchor: { x: 1, y: 0.5 },
+      direction: { x: 1, y: 0 },
     },
     // Bottom
     {
       x: (bounds.minX + bounds.maxX) / 2,
-      y: bounds.maxY + HANDLE_PADDING,
+      y: bounds.maxY,
       anchor: { x: 0.5, y: 1 },
+      direction: { x: 0, y: 1 },
     },
     // Left
     {
-      x: bounds.minX - HANDLE_PADDING,
+      x: bounds.minX,
       y: (bounds.minY + bounds.maxY) / 2,
       anchor: { x: 0, y: 0.5 },
+      direction: { x: -1, y: 0 },
     },
   ];
 };
@@ -108,7 +113,11 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
       const midpoints = getEdgeMidpoints(bounds);
       return midpoints.map((mp) => {
         const vp = editor.pageToViewport({ x: mp.x, y: mp.y });
-        return { left: vp.x, top: vp.y, anchor: mp.anchor };
+        return {
+          left: vp.x + mp.direction.x * HANDLE_PADDING,
+          top: vp.y + mp.direction.y * HANDLE_PADDING,
+          anchor: mp.anchor,
+        };
       });
     },
     [editor, selectedNode?.id, pendingArrowId, isDragging],
@@ -397,8 +406,8 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         const util = editor.getShapeUtil(updatedShape);
         if (util instanceof DiscourseRelationUtil) {
           util.updateRelationTextForDirection(updatedShape, bindings);
-          // Persist to frontmatter
-          void util.reifyRelationInFrontmatter(updatedShape, bindings);
+          // Persist to relations JSON
+          void util.reifyRelation(updatedShape, bindings);
         }
       }
 

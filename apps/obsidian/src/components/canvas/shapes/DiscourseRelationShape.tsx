@@ -1167,10 +1167,10 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
   }
 
   /**
-   * Reifies the relation in the frontmatter of both connected files.
+   * Reifies the relation in the relations JSON of both connected files.
    * This creates the bidirectional links that make the relation persistent.
    */
-  async reifyRelationInFrontmatter(
+  async reifyRelation(
     shape: DiscourseRelationShape,
     bindings: RelationBindings,
   ): Promise<void> {
@@ -1243,7 +1243,7 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
         });
       }
     } catch (error) {
-      console.error("Failed to reify relation in frontmatter:", error);
+      console.error("Failed to reify relation:", error);
       showToast({
         severity: "error",
         title: "Failed to Save Relation",
