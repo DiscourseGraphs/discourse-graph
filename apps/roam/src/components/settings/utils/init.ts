@@ -389,6 +389,7 @@ const logDualReadComparison = (): void => {
     nodeBlockProps[node.name] = node.blockProps;
   }
 
+  /* eslint-disable @typescript-eslint/naming-convention */
   console.log(`[DG Dual-Read] ${summary}`);
   console.log("[DG Dual-Read] Legacy:", {
     "Feature Flags": legacyFlags,
@@ -414,6 +415,7 @@ const logDualReadComparison = (): void => {
       {} as Record<string, unknown>,
     ),
   });
+  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 export const initSchema = async (): Promise<InitSchemaResult> => {
