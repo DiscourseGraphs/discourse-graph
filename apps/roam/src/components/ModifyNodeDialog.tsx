@@ -260,17 +260,20 @@ const ModifyNodeDialog = ({
       alive = false;
       refAlive = false;
     };
-  }, [selectedNodeType, referencedNode]);
+  }, [selectedNodeType, referencedNode, discourseNodes]);
 
   const setValue = useCallback(
     (r: Result) => {
       setContent(r);
       if (!selectedNodeType && r.uid) {
         const detectedType = (r as Record<string, unknown>)
-          ._discourseNodeType as string | undefined;
+          .discourseNodeType as string | undefined;
         if (detectedType) {
           const nt = discourseNodes.find((n) => n.type === detectedType);
-          if (nt) setSelectedNodeType(nt);
+          if (nt) {
+            setSelectedNodeType(nt);
+            setError("");
+          }
         }
       }
     },
@@ -591,6 +594,7 @@ const ModifyNodeDialog = ({
                   if (nt) {
                     setSelectedNodeType(nt);
                     setReferencedNodeValue({ text: "", uid: "" });
+                    setError("");
                   }
                 }}
                 disabled={
