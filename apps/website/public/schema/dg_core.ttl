@@ -33,7 +33,7 @@ dg:observationStatement a dgb:RelationDef;
   rdfs:range dg:Claim.
 
 dg:observationOf a dgb:RelationDef;
-  rdfs:label "observation statement"@en;
+  rdfs:label "observation of"@en;
   rdfs:domain dg:Evidence;
   rdfs:range [a owl:Class; owl:unionOf (schema:DigitalDocument schema:Dataset)].
   # That range is very, very provisional.
