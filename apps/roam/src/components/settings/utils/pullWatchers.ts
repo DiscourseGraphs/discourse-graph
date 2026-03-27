@@ -13,7 +13,7 @@ import {
   type DiscourseNodeSettings,
 } from "./zodSchema";
 import { emitSettingChange, settingKeys } from "./settingsEmitter";
-import { invalidateSettingsAccessorCaches } from "./accessors";
+import { invalidateSettingsValueCaches } from "./accessors";
 
 type PullWatchCallback = Parameters<AddPullWatch>[2];
 
@@ -65,7 +65,7 @@ const createSettingsWatchCallback = <T>(
 
     if (!afterResult.success) return;
 
-    invalidateSettingsAccessorCaches();
+    invalidateSettingsValueCaches();
 
     const oldSettings = beforeResult.success
       ? (beforeResult.data ?? null)

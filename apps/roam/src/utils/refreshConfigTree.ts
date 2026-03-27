@@ -21,13 +21,8 @@ const getPagesStartingWithPrefix = (prefix: string) =>
   }));
 
 const refreshConfigTree = () => {
-  invalidateSettingsAccessorCaches();
-  invalidateDiscourseRelationsCache();
-  invalidateDiscourseNodesCache();
+  const previousRelationLabels = getDiscourseRelationLabels();
 
-  getDiscourseRelationLabels().forEach((key) =>
-    unregisterDatalogTranslator({ key }),
-  );
   discourseConfigRef.tree = getBasicTreeByParentUid(
     getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
   );
@@ -43,6 +38,12 @@ const refreshConfigTree = () => {
       ];
     }),
   );
+
+  invalidateSettingsAccessorCaches();
+  invalidateDiscourseRelationsCache();
+  invalidateDiscourseNodesCache();
+
+  previousRelationLabels.forEach((key) => unregisterDatalogTranslator({ key }));
   registerDiscourseDatalogTranslators();
 };
 

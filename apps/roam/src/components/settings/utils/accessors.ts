@@ -320,18 +320,22 @@ const getTopLevelSettingsBlockUid = (key: string): string => {
   return blockUid || "";
 };
 
-export const invalidateSettingsAccessorCaches = (): void => {
-  settingsBlockUidCache.clear();
+export const invalidateSettingsValueCaches = (): void => {
   featureFlagsCache = null;
   globalSettingsCache = null;
   personalSettingsCache = null;
   newSettingsStoreCache = null;
-  legacyGlobalSettingsCache = null;
-  legacyPersonalSettingsCache = null;
-  legacyDiscourseNodeSettingsCache.clear();
   rawDiscourseNodeBlockPropsCache.clear();
   allDiscourseNodesCache = null;
   bumpConfigCacheVersion();
+};
+
+export const invalidateSettingsAccessorCaches = (): void => {
+  settingsBlockUidCache.clear();
+  legacyGlobalSettingsCache = null;
+  legacyPersonalSettingsCache = null;
+  legacyDiscourseNodeSettingsCache.clear();
+  invalidateSettingsValueCaches();
 };
 
 const buildLegacyPersonalSettings = (): Record<string, unknown> => {
@@ -725,7 +729,7 @@ const setBlockPropAtPath = (
   }, updatedProps);
 
   setBlockProps(blockUid, updatedProps, false);
-  invalidateSettingsAccessorCaches();
+  invalidateSettingsValueCaches();
 };
 
 const getBlockPropBasedSettings = ({

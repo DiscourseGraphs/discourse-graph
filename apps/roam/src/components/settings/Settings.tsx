@@ -300,7 +300,9 @@ type Props = {
   selectedTabId?: TabId;
 };
 
-export const openSettingsDialog = (props: Props) => {
+export const openSettingsDialog = (
+  props: Props,
+): ReturnType<typeof renderOverlay> => {
   const openedAt = performance.now();
   return renderOverlay({
     Overlay: SettingsDialog,
