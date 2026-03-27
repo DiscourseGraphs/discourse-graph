@@ -1,14 +1,14 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix : <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dct: <http://purl.org/dc/terms/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix dgb: <https://discoursegraphs.com/schema/dg_base#> .
 @prefix bibo: <http://purl.org/ontology/bibo/> .
 @prefix status: <http://purl.org/ontology/bibo/status/> .
 
 <https://discoursegraphs.com/schema/dg_base#> a owl:Ontology;
-    dc:date "2025-12-22" ;
+    dct:created "2025-12-22" ;
     rdfs:comment "DiscourseGraph foundation vocabulary"@en ;
     rdfs:label "DiscourseGraph foundation vocabulary"@en ;
     bibo:status status:draft;

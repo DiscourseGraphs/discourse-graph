@@ -1,7 +1,7 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix : <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dct: <http://purl.org/dc/terms/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix vs: <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
 @prefix sioc: <http://rdfs.org/sioc/ns#> .
@@ -13,8 +13,8 @@
 @prefix status: <http://purl.org/ontology/bibo/status/> .
 
 <https://discoursegraphs.com/schema/dg_core#> a owl:Ontology;
-  dc:date "2025-12-22" ;
-  dc:modified "2026-03-26" ;
+  dct:created "2025-12-22" ;
+  dct:modified "2026-03-26" ;
   rdfs:comment "DiscourseGraph core vocabulary"@en ;
   rdfs:label "DiscourseGraph core vocabulary"@en ;
   bibo:status status:draft;
