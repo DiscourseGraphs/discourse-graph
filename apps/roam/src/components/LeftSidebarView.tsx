@@ -52,9 +52,8 @@ import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { Dispatch, SetStateAction } from "react";
-import { SettingsDialog } from "./settings/Settings";
+import { openSettingsDialog } from "./settings/Settings";
 import { OnloadArgs } from "roamjs-components/types";
-import renderOverlay from "roamjs-components/util/renderOverlay";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -445,12 +444,9 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   }, [handleGlobalPointerDownCapture, isMenuOpen]);
 
   const renderSettingsDialog = (tabId: TabId) => {
-    renderOverlay({
-      Overlay: SettingsDialog,
-      props: {
-        onloadArgs,
-        selectedTabId: tabId,
-      },
+    openSettingsDialog({
+      onloadArgs,
+      selectedTabId: tabId,
     });
   };
 

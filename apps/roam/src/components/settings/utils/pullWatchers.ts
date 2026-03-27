@@ -13,10 +13,7 @@ import {
   type DiscourseNodeSettings,
 } from "./zodSchema";
 import { emitSettingChange, settingKeys } from "./settingsEmitter";
-import {
-  invalidateNewSettingsStoreCache,
-  invalidateSettingsAccessorCaches,
-} from "./accessors";
+import { invalidateSettingsAccessorCaches } from "./accessors";
 
 type PullWatchCallback = Parameters<AddPullWatch>[2];
 
@@ -98,9 +95,6 @@ export const featureFlagHandlers: Partial<
   >
 > = {
   /* eslint-disable @typescript-eslint/naming-convention */
-  "Use new settings store": () => {
-    invalidateNewSettingsStoreCache();
-  },
   "Enable left sidebar": (newValue, oldValue) => {
     emitSettingChange(settingKeys.leftSidebarFlag, newValue, oldValue);
   },

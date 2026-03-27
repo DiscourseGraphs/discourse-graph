@@ -11,6 +11,7 @@ import {
   getAllRelations,
 } from "~/components/settings/utils/accessors";
 import discourseConfigRef from "./discourseConfigRef";
+import { getConfigCacheVersion } from "./configCacheVersion";
 
 export type Triple = readonly [string, string, string];
 export type DiscourseRelation = {
@@ -36,13 +37,18 @@ export const getRelationsNode = (grammarNode = getGrammarNode()) => {
 };
 
 let cachedRelations: DiscourseRelation[] | null = null;
+let cachedRelationsVersion = -1;
 
 export const invalidateDiscourseRelationsCache = () => {
   cachedRelations = null;
+  cachedRelationsVersion = -1;
 };
 
 const getDiscourseRelations = (): DiscourseRelation[] => {
-  if (cachedRelations) return cachedRelations;
+  const cacheVersion = getConfigCacheVersion();
+  if (cachedRelations && cachedRelationsVersion === cacheVersion) {
+    return cachedRelations;
+  }
 
   let result: DiscourseRelation[];
   if (isNewSettingsStoreEnabled()) {
@@ -74,6 +80,7 @@ const getDiscourseRelations = (): DiscourseRelation[] => {
   }
 
   cachedRelations = result;
+  cachedRelationsVersion = cacheVersion;
   return result;
 };
 

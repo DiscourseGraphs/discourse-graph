@@ -9,6 +9,7 @@ import getDiscourseRelations from "./getDiscourseRelations";
 import { roamNodeToCondition } from "./parseQuery";
 import { Condition } from "./types";
 import { InputTextNode, RoamBasicNode } from "roamjs-components/types";
+import { getConfigCacheVersion } from "./configCacheVersion";
 
 export const excludeDefaultNodes = (node: DiscourseNode) => {
   return node.backedBy !== "default";
@@ -107,15 +108,20 @@ const getUidAndBooleanSetting = ({
 };
 
 let cachedNodes: DiscourseNode[] | null = null;
+let cachedNodesVersion = -1;
 
 export const invalidateDiscourseNodesCache = () => {
   cachedNodes = null;
+  cachedNodesVersion = -1;
 };
 
 const getDiscourseNodes = (
   relations?: ReturnType<typeof getDiscourseRelations>,
 ) => {
-  if (!relations && cachedNodes) return cachedNodes;
+  const cacheVersion = getConfigCacheVersion();
+  if (!relations && cachedNodes && cachedNodesVersion === cacheVersion) {
+    return cachedNodes;
+  }
 
   const resolvedRelations = relations ?? getDiscourseRelations();
   const configuredNodes = (
@@ -202,6 +208,7 @@ const getDiscourseNodes = (
   const result = configuredNodes.concat(defaultNodes);
   if (!relations) {
     cachedNodes = result;
+    cachedNodesVersion = cacheVersion;
   }
   return result;
 };

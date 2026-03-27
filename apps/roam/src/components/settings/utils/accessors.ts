@@ -24,6 +24,7 @@ import {
 } from "~/utils/getExportSettings";
 import { getSuggestiveModeConfigAndUids } from "~/utils/getSuggestiveModeConfigSettings";
 import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
+import { bumpConfigCacheVersion } from "~/utils/configCacheVersion";
 
 import {
   DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
@@ -283,25 +284,26 @@ const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
   /* eslint-enable @typescript-eslint/naming-convention */
 };
 
-const _settingsBlockUidCache = new Map<string, string>();
-let _featureFlagsCache: FeatureFlags | null = null;
-let _globalSettingsCache: GlobalSettings | null = null;
-let _personalSettingsCache: PersonalSettings | null = null;
-let _newSettingsStoreCache: boolean | null = null;
-let _legacyGlobalSettingsCache: Record<string, unknown> | null = null;
-let _legacyPersonalSettingsCache: Record<string, unknown> | null = null;
-const _legacyDiscourseNodeSettingsCache = new Map<
+const settingsBlockUidCache = new Map<string, string>();
+let featureFlagsCache: FeatureFlags | null = null;
+let globalSettingsCache: GlobalSettings | null = null;
+let personalSettingsCache: PersonalSettings | null = null;
+let newSettingsStoreCache: boolean | null = null;
+// TODO(ENG-1471): Remove legacy dual-read caches once the legacy settings path is deleted.
+let legacyGlobalSettingsCache: Record<string, unknown> | null = null;
+let legacyPersonalSettingsCache: Record<string, unknown> | null = null;
+const legacyDiscourseNodeSettingsCache = new Map<
   string,
   Record<string, unknown> | undefined
 >();
-const _rawDiscourseNodeBlockPropsCache = new Map<
+const rawDiscourseNodeBlockPropsCache = new Map<
   string,
   Record<string, json> | undefined
 >();
-let _allDiscourseNodesCache: DiscourseNode[] | null = null;
+let allDiscourseNodesCache: DiscourseNode[] | null = null;
 
 const getTopLevelSettingsBlockUid = (key: string): string => {
-  const cachedUid = _settingsBlockUidCache.get(key);
+  const cachedUid = settingsBlockUidCache.get(key);
   if (cachedUid) {
     return cachedUid;
   }
@@ -312,23 +314,24 @@ const getTopLevelSettingsBlockUid = (key: string): string => {
   });
 
   if (blockUid) {
-    _settingsBlockUidCache.set(key, blockUid);
+    settingsBlockUidCache.set(key, blockUid);
   }
 
   return blockUid || "";
 };
 
 export const invalidateSettingsAccessorCaches = (): void => {
-  _settingsBlockUidCache.clear();
-  _featureFlagsCache = null;
-  _globalSettingsCache = null;
-  _personalSettingsCache = null;
-  _newSettingsStoreCache = null;
-  _legacyGlobalSettingsCache = null;
-  _legacyPersonalSettingsCache = null;
-  _legacyDiscourseNodeSettingsCache.clear();
-  _rawDiscourseNodeBlockPropsCache.clear();
-  _allDiscourseNodesCache = null;
+  settingsBlockUidCache.clear();
+  featureFlagsCache = null;
+  globalSettingsCache = null;
+  personalSettingsCache = null;
+  newSettingsStoreCache = null;
+  legacyGlobalSettingsCache = null;
+  legacyPersonalSettingsCache = null;
+  legacyDiscourseNodeSettingsCache.clear();
+  rawDiscourseNodeBlockPropsCache.clear();
+  allDiscourseNodesCache = null;
+  bumpConfigCacheVersion();
 };
 
 const buildLegacyPersonalSettings = (): Record<string, unknown> => {
@@ -361,11 +364,11 @@ const buildLegacyPersonalSettings = (): Record<string, unknown> => {
 const getLegacyPersonalSetting = (keys: string[]): unknown => {
   if (keys.length === 0) return undefined;
 
-  if (!_legacyPersonalSettingsCache) {
-    _legacyPersonalSettingsCache = buildLegacyPersonalSettings();
+  if (!legacyPersonalSettingsCache) {
+    legacyPersonalSettingsCache = buildLegacyPersonalSettings();
   }
 
-  return readPathValue(_legacyPersonalSettingsCache, keys);
+  return readPathValue(legacyPersonalSettingsCache, keys);
 };
 
 const getLegacyRelationsSetting = (): Record<string, unknown> => {
@@ -440,6 +443,7 @@ const buildLegacyGlobalSettings = (): Record<string, unknown> => {
   const exp = getExportSettingsAndUids();
   const sm = getSuggestiveModeConfigAndUids(tree);
 
+  /* eslint-disable @typescript-eslint/naming-convention */
   return {
     [GLOBAL_KEYS.trigger]:
       getUidAndStringSetting({ tree, text: "trigger" }).value ||
@@ -497,17 +501,18 @@ const buildLegacyGlobalSettings = (): Record<string, unknown> => {
     },
     [GLOBAL_KEYS.relations]: getLegacyRelationsSetting(),
   };
+  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 // Reconstructs global settings from legacy Roam tree to match block-props schema shape
 const getLegacyGlobalSetting = (keys: string[]): unknown => {
   if (keys.length === 0) return undefined;
 
-  if (!_legacyGlobalSettingsCache) {
-    _legacyGlobalSettingsCache = buildLegacyGlobalSettings();
+  if (!legacyGlobalSettingsCache) {
+    legacyGlobalSettingsCache = buildLegacyGlobalSettings();
   }
 
-  return readPathValue(_legacyGlobalSettingsCache, keys);
+  return readPathValue(legacyGlobalSettingsCache, keys);
 };
 
 const getLegacyQuerySettingByParentUid = (parentUid: string) => {
@@ -629,20 +634,20 @@ const getLegacyDiscourseNodeSetting = (
   nodeType: string,
   keys: string[],
 ): unknown => {
-  if (!_legacyDiscourseNodeSettingsCache.has(nodeType)) {
+  if (!legacyDiscourseNodeSettingsCache.has(nodeType)) {
     const legacySettings = buildLegacyDiscourseNodeSettings(nodeType);
-    _legacyDiscourseNodeSettingsCache.set(nodeType, legacySettings);
+    legacyDiscourseNodeSettingsCache.set(nodeType, legacySettings);
 
     const resolvedNodeType =
       legacySettings && typeof legacySettings.type === "string"
         ? legacySettings.type
         : undefined;
     if (resolvedNodeType && resolvedNodeType !== nodeType) {
-      _legacyDiscourseNodeSettingsCache.set(resolvedNodeType, legacySettings);
+      legacyDiscourseNodeSettingsCache.set(resolvedNodeType, legacySettings);
     }
   }
 
-  const legacySettings = _legacyDiscourseNodeSettingsCache.get(nodeType);
+  const legacySettings = legacyDiscourseNodeSettingsCache.get(nodeType);
   if (!legacySettings) return undefined;
 
   return keys.length === 0
@@ -776,16 +781,16 @@ const setBlockPropBasedSettings = ({
 };
 
 export const getFeatureFlags = (): FeatureFlags => {
-  if (_featureFlagsCache) {
-    return _featureFlagsCache;
+  if (featureFlagsCache) {
+    return featureFlagsCache;
   }
 
   const { blockProps } = getBlockPropBasedSettings({
     keys: [TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags],
   });
 
-  _featureFlagsCache = FeatureFlagsSchema.parse(blockProps || {});
-  return _featureFlagsCache;
+  featureFlagsCache = FeatureFlagsSchema.parse(blockProps || {});
+  return featureFlagsCache;
 };
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -831,13 +836,9 @@ export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
 };
 
 export const isNewSettingsStoreEnabled = (): boolean => {
-  if (_newSettingsStoreCache !== null) return _newSettingsStoreCache;
-  _newSettingsStoreCache = getFeatureFlag("Use new settings store");
-  return _newSettingsStoreCache;
-};
-
-export const invalidateNewSettingsStoreCache = (): void => {
-  invalidateSettingsAccessorCaches();
+  if (newSettingsStoreCache !== null) return newSettingsStoreCache;
+  newSettingsStoreCache = getFeatureFlag("Use new settings store");
+  return newSettingsStoreCache;
 };
 
 export const readAllLegacyFeatureFlags = (): Partial<FeatureFlags> => {
@@ -884,23 +885,19 @@ export const setFeatureFlag = (
     keys: [TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags, key],
     value: validatedValue,
   });
-
-  if (key === "Use new settings store") {
-    invalidateNewSettingsStoreCache();
-  }
 };
 
 export const getGlobalSettings = (): GlobalSettings => {
-  if (_globalSettingsCache) {
-    return _globalSettingsCache;
+  if (globalSettingsCache) {
+    return globalSettingsCache;
   }
 
   const { blockProps } = getBlockPropBasedSettings({
     keys: [TOP_LEVEL_BLOCK_PROP_KEYS.global],
   });
 
-  _globalSettingsCache = GlobalSettingsSchema.parse(blockProps || {});
-  return _globalSettingsCache;
+  globalSettingsCache = GlobalSettingsSchema.parse(blockProps || {});
+  return globalSettingsCache;
 };
 
 export const getGlobalSetting = <T = unknown>(
@@ -966,8 +963,8 @@ export const getAllRelations = (): DiscourseRelation[] => {
 };
 
 export const getPersonalSettings = (): PersonalSettings => {
-  if (_personalSettingsCache) {
-    return _personalSettingsCache;
+  if (personalSettingsCache) {
+    return personalSettingsCache;
   }
 
   const personalKey = getPersonalSettingsKey();
@@ -976,8 +973,8 @@ export const getPersonalSettings = (): PersonalSettings => {
     keys: [personalKey],
   });
 
-  _personalSettingsCache = PersonalSettingsSchema.parse(blockProps || {});
-  return _personalSettingsCache;
+  personalSettingsCache = PersonalSettingsSchema.parse(blockProps || {});
+  return personalSettingsCache;
 };
 
 export const getPersonalSetting = <T = unknown>(
@@ -1032,8 +1029,8 @@ export const setPersonalSetting = (keys: string[], value: json): void => {
 const getRawDiscourseNodeBlockProps = (
   nodeType: string,
 ): Record<string, json> | undefined => {
-  if (_rawDiscourseNodeBlockPropsCache.has(nodeType)) {
-    return _rawDiscourseNodeBlockPropsCache.get(nodeType);
+  if (rawDiscourseNodeBlockPropsCache.has(nodeType)) {
+    return rawDiscourseNodeBlockPropsCache.get(nodeType);
   }
 
   let pageUid = nodeType;
@@ -1054,9 +1051,9 @@ const getRawDiscourseNodeBlockProps = (
       ? (blockProps as Record<string, json>)
       : undefined;
 
-  _rawDiscourseNodeBlockPropsCache.set(nodeType, result);
+  rawDiscourseNodeBlockPropsCache.set(nodeType, result);
   if (pageUid !== nodeType) {
-    _rawDiscourseNodeBlockPropsCache.set(pageUid, result);
+    rawDiscourseNodeBlockPropsCache.set(pageUid, result);
   }
 
   return result;
@@ -1256,8 +1253,8 @@ const migrateNodeBlockProps = (
 };
 
 export const getAllDiscourseNodes = (): DiscourseNode[] => {
-  if (_allDiscourseNodesCache) {
-    return _allDiscourseNodesCache;
+  if (allDiscourseNodesCache) {
+    return allDiscourseNodesCache;
   }
 
   const results = window.roamAlphaAPI.data.fast.q(`
@@ -1319,6 +1316,6 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
     }
   }
 
-  _allDiscourseNodesCache = nodes;
+  allDiscourseNodesCache = nodes;
   return nodes;
 };

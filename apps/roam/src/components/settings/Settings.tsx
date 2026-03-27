@@ -50,7 +50,7 @@ export const SettingsPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       <Button
         onClick={() => {
           posthog.capture("Settings: Opened from Roam Settings Panel");
-          render({
+          openSettingsDialog({
             onloadArgs,
           });
         }}
@@ -66,13 +66,14 @@ export const SettingsDialog = ({
   isOpen,
   onClose,
   selectedTabId,
+  openedAt,
 }: {
   onloadArgs: OnloadArgs;
   isOpen?: boolean;
   onClose?: () => void;
   selectedTabId?: TabId;
+  openedAt?: number;
 }) => {
-  console.time("[DG Perf] SettingsDialog render setup");
   const extensionAPI = onloadArgs.extensionAPI;
   const grammarNode = discourseConfigRef.tree.find(
     (node) => node.text === "grammar",
@@ -88,7 +89,6 @@ export const SettingsDialog = ({
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
-  console.timeEnd("[DG Perf] SettingsDialog render setup");
 
   useEffect(() => {
     posthog.capture("Settings: Dialog Opened", {
@@ -110,6 +110,20 @@ export const SettingsDialog = ({
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen || openedAt === undefined) {
+      return;
+    }
+
+    const rafId = window.requestAnimationFrame(() => {
+      console.log(
+        `[DG Perf] Settings open: ${performance.now() - openedAt} ms`,
+      );
+    });
+
+    return () => window.cancelAnimationFrame(rafId);
+  }, [isOpen, openedAt]);
   return (
     <Dialog
       isOpen={isOpen}
@@ -283,15 +297,18 @@ export const SettingsDialog = ({
 
 type Props = {
   onloadArgs: OnloadArgs;
+  selectedTabId?: TabId;
 };
-export const render = (props: Props) => {
-  console.time("[DG Perf] Settings: renderOverlay");
-  const result = renderOverlay({
+
+export const openSettingsDialog = (props: Props) => {
+  const openedAt = performance.now();
+  return renderOverlay({
     Overlay: SettingsDialog,
     props: {
-      onloadArgs: props.onloadArgs,
+      ...props,
+      openedAt,
     },
   });
-  console.timeEnd("[DG Perf] Settings: renderOverlay");
-  return result;
 };
+
+export const render = openSettingsDialog;

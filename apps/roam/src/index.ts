@@ -49,9 +49,7 @@ import { mountLeftSidebar } from "./components/LeftSidebarView";
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
-  console.time("[DG Perf] Total init");
-
-  console.time("[DG Perf] initPostHog");
+  const initStartedAt = performance.now();
   const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
   const isOffline = window.roamAlphaAPI.graph.type === "offline";
   const disallowDiagnostics = getPersonalSetting<boolean>([
@@ -60,11 +58,7 @@ export default runExtension(async (onloadArgs) => {
   if (!isEncrypted && !isOffline && !disallowDiagnostics) {
     initPostHog();
   }
-  console.timeEnd("[DG Perf] initPostHog");
-
-  console.time("[DG Perf] initFeedbackWidget");
   initFeedbackWidget();
-  console.timeEnd("[DG Perf] initFeedbackWidget");
 
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
@@ -87,35 +81,20 @@ export default runExtension(async (onloadArgs) => {
 
   initPluginTimer();
 
-  console.time("[DG Perf] initializeDiscourseNodes");
   await initializeDiscourseNodes();
-  console.timeEnd("[DG Perf] initializeDiscourseNodes");
 
-  console.time("[DG Perf] refreshConfigTree");
   refreshConfigTree();
-  console.timeEnd("[DG Perf] refreshConfigTree");
 
-  console.time("[DG Perf] addGraphViewNodeStyling");
   addGraphViewNodeStyling();
-  console.timeEnd("[DG Perf] addGraphViewNodeStyling");
 
-  console.time("[DG Perf] registerCommandPaletteCommands");
   registerCommandPaletteCommands(onloadArgs);
-  console.timeEnd("[DG Perf] registerCommandPaletteCommands");
 
-  console.time("[DG Perf] createSettingsPanel");
   createSettingsPanel(onloadArgs);
-  console.timeEnd("[DG Perf] createSettingsPanel");
 
-  console.time("[DG Perf] registerSmartBlock");
   registerSmartBlock(onloadArgs);
-  console.timeEnd("[DG Perf] registerSmartBlock");
 
-  console.time("[DG Perf] setInitialQueryPages");
   setInitialQueryPages(onloadArgs);
-  console.timeEnd("[DG Perf] setInitialQueryPages");
 
-  console.time("[DG Perf] styles injection");
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
@@ -129,11 +108,8 @@ export default runExtension(async (onloadArgs) => {
     streamlineStyleElement = addStyle(streamlineStyling);
     streamlineStyleElement.id = "streamline-styling";
   }
-  console.timeEnd("[DG Perf] styles injection");
 
-  console.time("[DG Perf] initObservers");
   const { observers, listeners, cleanups } = initObservers({ onloadArgs });
-  console.timeEnd("[DG Perf] initObservers");
 
   const {
     pageActionListener,
@@ -179,9 +155,7 @@ export default runExtension(async (onloadArgs) => {
     getDiscourseNodes: getDiscourseNodes,
   };
 
-  console.time("[DG Perf] installDiscourseFloatingMenu");
   installDiscourseFloatingMenu(onloadArgs);
-  console.timeEnd("[DG Perf] installDiscourseFloatingMenu");
 
   const leftSidebarScript = document.querySelector<HTMLScriptElement>(
     'script#roam-left-sidebar[src="https://sid597.github.io/roam-left-sidebar/js/main.js"]',
@@ -220,15 +194,11 @@ export default runExtension(async (onloadArgs) => {
     },
   );
 
-  console.time("[DG Perf] initSchema");
   const { blockUids } = await initSchema();
-  console.timeEnd("[DG Perf] initSchema");
 
-  console.time("[DG Perf] setupPullWatchOnSettingsPage");
   const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
-  console.timeEnd("[DG Perf] setupPullWatchOnSettingsPage");
 
-  console.timeEnd("[DG Perf] Total init");
+  console.log(`[DG Perf] Total init: ${performance.now() - initStartedAt} ms`);
 
   return {
     elements: [

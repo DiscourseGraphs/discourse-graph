@@ -101,7 +101,6 @@ export const initObservers = ({
   };
   cleanups: Array<() => void>;
 } => {
-  console.time("[DG Perf] observer: pageTitleObserver");
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
@@ -132,16 +131,12 @@ export const initObservers = ({
       else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
     },
   });
-  console.timeEnd("[DG Perf] observer: pageTitleObserver");
 
-  console.time("[DG Perf] observer: queryBlockObserver");
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
     render: (b) => renderQueryBlock(b, onloadArgs),
   });
-  console.timeEnd("[DG Perf] observer: queryBlockObserver");
 
-  console.time("[DG Perf] observer: nodeTagPopupButtonObserver");
   const nodeTagPopupButtonObserver = createHTMLObserver({
     className: "rm-page-ref--tag",
     tag: "SPAN",
@@ -184,7 +179,6 @@ export const initObservers = ({
       }
     },
   });
-  console.timeEnd("[DG Perf] observer: nodeTagPopupButtonObserver");
 
   const pageActionListener = ((
     e: CustomEvent<{
@@ -207,7 +201,6 @@ export const initObservers = ({
       });
   }) as EventListener;
 
-  console.time("[DG Perf] observer: suggestiveOverlaySetup");
   const suggestiveHandler = getSuggestiveOverlayHandler(onloadArgs);
   const toggleSuggestiveOverlay = onPageRefObserverChange(suggestiveHandler);
   if (getPersonalSetting<boolean>([PERSONAL_KEYS.suggestiveModeOverlay])) {
@@ -220,9 +213,7 @@ export const initObservers = ({
       toggleSuggestiveOverlay(Boolean(newValue));
     },
   );
-  console.timeEnd("[DG Perf] observer: suggestiveOverlaySetup");
 
-  console.time("[DG Perf] observer: graphOverviewExportObserver");
   const graphOverviewExportObserver = createHTMLObserver({
     tag: "DIV",
     className: "rm-graph-view-control-panel__main-options",
@@ -231,9 +222,7 @@ export const initObservers = ({
       renderGraphOverviewExport(div);
     },
   });
-  console.timeEnd("[DG Perf] observer: graphOverviewExportObserver");
 
-  console.time("[DG Perf] observer: imageMenuObserver");
   const imageMenuObserver = createHTMLObserver({
     tag: "IMG",
     className: "rm-inline-img",
@@ -243,9 +232,7 @@ export const initObservers = ({
       }
     },
   });
-  console.timeEnd("[DG Perf] observer: imageMenuObserver");
 
-  console.time("[DG Perf] observer: pageRefObserverSetup");
   if (getPersonalSetting<boolean>([PERSONAL_KEYS.pagePreview]))
     addPageRefObserver(previewPageRefHandler);
   if (getPersonalSetting<boolean>([PERSONAL_KEYS.discourseContextOverlay])) {
@@ -253,9 +240,7 @@ export const initObservers = ({
     onPageRefObserverChange(overlayHandler)(true);
   }
   if (getPageRefObserversSize()) enablePageRefObserver();
-  console.timeEnd("[DG Perf] observer: pageRefObserverSetup");
 
-  console.time("[DG Perf] observer: listenersAndTriggerSetup");
   const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
 
   const hashChangeListener = (e: Event) => {
@@ -300,9 +285,6 @@ export const initObservers = ({
     },
   );
 
-  console.timeEnd("[DG Perf] observer: listenersAndTriggerSetup");
-
-  console.time("[DG Perf] observer: leftSidebarObserver");
   const leftSidebarObserver = createHTMLObserver({
     tag: "DIV",
     useBody: true,
@@ -318,7 +300,6 @@ export const initObservers = ({
       })();
     },
   });
-  console.timeEnd("[DG Perf] observer: leftSidebarObserver");
 
   const handleNodeMenuRender = (target: HTMLElement, evt: KeyboardEvent) => {
     if (

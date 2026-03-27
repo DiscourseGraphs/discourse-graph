@@ -180,26 +180,16 @@ const initializeSettingsBlockProps = (
 };
 
 const initSettingsPageBlocks = async (): Promise<Record<string, string>> => {
-  console.time("[DG Perf] initSchema > ensurePageExists");
   const pageUid = await ensurePageExists(DG_BLOCK_PROP_SETTINGS_PAGE_TITLE);
-  console.timeEnd("[DG Perf] initSchema > ensurePageExists");
 
-  console.time("[DG Perf] initSchema > buildBlockMap");
   const blockMap = buildBlockMap(pageUid);
-  console.timeEnd("[DG Perf] initSchema > buildBlockMap");
 
-  console.time("[DG Perf] initSchema > ensureBlocksExist");
   const topLevelBlocks = getTopLevelBlockPropsConfig().map(({ key }) => key);
   await ensureBlocksExist(pageUid, topLevelBlocks, blockMap);
-  console.timeEnd("[DG Perf] initSchema > ensureBlocksExist");
 
-  console.time("[DG Perf] initSchema > ensureLegacyConfigBlocks");
   await ensureLegacyConfigBlocks(pageUid);
-  console.timeEnd("[DG Perf] initSchema > ensureLegacyConfigBlocks");
 
-  console.time("[DG Perf] initSchema > initializeSettingsBlockProps");
   initializeSettingsBlockProps(pageUid, blockMap);
-  console.timeEnd("[DG Perf] initSchema > initializeSettingsBlockProps");
 
   return blockMap;
 };
@@ -339,21 +329,13 @@ export type InitSchemaResult = {
 };
 
 export const initSchema = async (): Promise<InitSchemaResult> => {
-  console.time("[DG Perf] initSchema > initSettingsPageBlocks");
   const blockUids = await initSettingsPageBlocks();
-  console.timeEnd("[DG Perf] initSchema > initSettingsPageBlocks");
 
-  console.time("[DG Perf] initSchema > migrateGraphLevel");
   await migrateGraphLevel(blockUids);
-  console.timeEnd("[DG Perf] initSchema > migrateGraphLevel");
 
-  console.time("[DG Perf] initSchema > initDiscourseNodePages");
   const nodePageUids = await initDiscourseNodePages();
-  console.timeEnd("[DG Perf] initSchema > initDiscourseNodePages");
 
-  console.time("[DG Perf] initSchema > migratePersonalSettings");
   await migratePersonalSettings(blockUids);
-  console.timeEnd("[DG Perf] initSchema > migratePersonalSettings");
 
   invalidateSettingsAccessorCaches();
 
