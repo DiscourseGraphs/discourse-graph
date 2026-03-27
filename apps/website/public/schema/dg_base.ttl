@@ -4,13 +4,15 @@
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix dgb: <https://discoursegraphs.com/schema/dg_base#> .
+@prefix bibo: <http://purl.org/ontology/bibo/> .
+@prefix status: <http://purl.org/ontology/bibo/status/> .
 
-<https://discoursegraphs.com/schema/dg_base#>
+<https://discoursegraphs.com/schema/dg_base>
     dc:date "2025-12-22" ;
     rdfs:comment "DiscourseGraph foundation vocabulary"@en ;
     rdfs:label "DiscourseGraph foundation vocabulary"@en ;
-    owl:versionInfo "0 (tentative)" ;
-    a owl:Ontology.
+    bibo:status status:draft;
+    owl:versionInfo "0 (tentative)".
 
 # This is inspired by https://hyperknowledge.org/schemas/hyperknowledge_frames.ttl
 # and topic mapping
