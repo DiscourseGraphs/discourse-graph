@@ -565,16 +565,17 @@ const convertDgToSupabaseConcepts = async ({
             ? error
             : JSON.stringify(error, null, 2);
       throw new Error(`upsert_concepts failed: ${errorMessage}`);
-    } else if (startupRun === true) {
-      // occasional extra work: Make sure relations that should be published are.
-      await ensurePublishedRelationsAccuracy({
-        client: supabaseClient,
-        context,
-        plugin,
-        allNodesById,
-        relationInstancesData,
-      });
     }
+  }
+  if (startupRun === true) {
+    // occasional extra work: Make sure relations that should be published are.
+    await ensurePublishedRelationsAccuracy({
+      client: supabaseClient,
+      context,
+      plugin,
+      allNodesById,
+      relationInstancesData,
+    });
   }
 };
 
