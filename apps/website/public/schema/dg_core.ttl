@@ -21,8 +21,8 @@ dg:Claim a dgb:NodeSchema;
 dg:Evidence a dgb:NodeSchema;
   rdfs:label "Evidence"@en;
   rdfs:comment "A specific empirical observation from a particular application of a research method"@en;
-  owl:subClassOf [rdf:type owl:Restriction ; owl:onProperty dg:observationStatement ; owl:cardinality "1"],
-    [rdf:type owl:Restriction ; owl:onProperty dg:observationBase ; owl:cardinality "1"].
+  owl:subClassOf [rdf:type owl:Restriction ; owl:onProperty dg:observationStatement ; owl:cardinality 1],
+    [rdf:type owl:Restriction ; owl:onProperty dg:observationBase ; owl:cardinality 1].
   # Ideally also dg:observationOriginActivity, but maybe not a hard constraint.
 
 dg:describesActivity a dgb:RelationDef;
@@ -31,8 +31,9 @@ dg:describesActivity a dgb:RelationDef;
   rdfs:range prov:Activity.
 
 dg:SourceDocument a dgb:NodeSchema;
+  rdfs:label "Source document"@en;
   rdfs:comment "Some research source document that reports/generates evidence, like a book, conference paper, or journal article"@en;
-  owl:subClassOf schema:CreativeWork, [rdf:type owl:Restriction ; owl:onProperty dg:describesActivity ; owl:minCardinality "1"].
+  owl:subClassOf schema:CreativeWork, [rdf:type owl:Restriction ; owl:onProperty dg:describesActivity ; owl:minCardinality 1].
 
 dg:observationStatement a dgb:RelationDef;
   rdfs:label "Observation statement"@en;
@@ -61,7 +62,7 @@ dg:observationBase a dgb:RelationDef;
   # But it is not strictly accurate; the activity may generate many entities.
   # HOWEVER it is true that the observationBase should follow one of these chains, which should exist.
 
-dg:sourceDocument a owl:objectProperty;
+dg:sourceDocument a dgb:RelationDef;
   rdfs:label "Source document"@en;
   rdfs:comment "A document that described the activity which led to the data on which the observation is based"@en;
   rdfs:domain dg:Evidence;
