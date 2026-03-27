@@ -110,11 +110,6 @@ const getUidAndBooleanSetting = ({
 let cachedNodes: DiscourseNode[] | null = null;
 let cachedNodesVersion = -1;
 
-export const invalidateDiscourseNodesCache = () => {
-  cachedNodes = null;
-  cachedNodesVersion = -1;
-};
-
 const getDiscourseNodes = (
   relations?: ReturnType<typeof getDiscourseRelations>,
 ) => {

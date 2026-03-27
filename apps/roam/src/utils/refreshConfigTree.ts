@@ -6,8 +6,6 @@ import registerDiscourseDatalogTranslators from "./registerDiscourseDatalogTrans
 import { unregisterDatalogTranslator } from "./conditionToDatalog";
 import type { PullBlock } from "roamjs-components/types/native";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
-import { invalidateDiscourseRelationsCache } from "./getDiscourseRelations";
-import { invalidateDiscourseNodesCache } from "./getDiscourseNodes";
 import { invalidateSettingsAccessorCaches } from "~/components/settings/utils/accessors";
 
 const getPagesStartingWithPrefix = (prefix: string) =>
@@ -40,8 +38,6 @@ const refreshConfigTree = () => {
   );
 
   invalidateSettingsAccessorCaches();
-  invalidateDiscourseRelationsCache();
-  invalidateDiscourseNodesCache();
 
   previousRelationLabels.forEach((key) => unregisterDatalogTranslator({ key }));
   registerDiscourseDatalogTranslators();

@@ -39,11 +39,6 @@ export const getRelationsNode = (grammarNode = getGrammarNode()) => {
 let cachedRelations: DiscourseRelation[] | null = null;
 let cachedRelationsVersion = -1;
 
-export const invalidateDiscourseRelationsCache = () => {
-  cachedRelations = null;
-  cachedRelationsVersion = -1;
-};
-
 const getDiscourseRelations = (): DiscourseRelation[] => {
   const cacheVersion = getConfigCacheVersion();
   if (cachedRelations && cachedRelationsVersion === cacheVersion) {
