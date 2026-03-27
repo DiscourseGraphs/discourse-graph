@@ -26,6 +26,7 @@ dg:Evidence a dgb:NodeSchema;
   # Ideally also dg:observationOriginActivity, but maybe not a hard constraint.
 
 dg:describesActivity a dgb:RelationDef;
+  rdfs:label "Describes activity"@en;
   rdfs:subPropertyOf dc:subject;
   rdfs:domain schema:CreativeWork;
   rdfs:range prov:Activity.
