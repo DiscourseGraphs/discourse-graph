@@ -142,13 +142,13 @@ const DiscourseNodeCanvasSettings = ({
         settingKeys={[DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.keyImage]}
         initialValue={isKeyImage}
         onChange={(checked) => {
-          setIsKeyImage(checked);
           if (checked && !keyImageOption) setKeyImageOption("first-image");
           void setInputSetting({
             blockUid: uid,
             key: "key-image",
             value: checked ? "true" : "false",
           });
+          setTimeout(() => setIsKeyImage(checked), 100);
         }}
       />
       <RadioGroup

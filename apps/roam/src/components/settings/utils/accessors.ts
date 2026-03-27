@@ -45,6 +45,25 @@ import { PERSONAL_KEYS, QUERY_KEYS, GLOBAL_KEYS } from "./settingKeys";
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const deepEqual = (a: unknown, b: unknown): boolean => {
+  if (a === b) return true;
+  const isEmpty = (v: unknown) =>
+    v === undefined || v === null || v === "" || v === false;
+  if (isEmpty(a) && isEmpty(b)) return true;
+  if (a == null || b == null) return a === b;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    return a.every((v, i) => deepEqual(v, b[i]));
+  }
+  if (isRecord(a) && isRecord(b)) {
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every((k) => k in b && deepEqual(a[k], b[k]));
+  }
+  return false;
+};
+
 const unwrapSchema = (schema: z.ZodTypeAny): z.ZodTypeAny => {
   let current = schema;
   let didUnwrap = true;
@@ -444,7 +463,10 @@ const getLegacyGlobalSetting = (keys: string[]): unknown => {
 };
 
 const getLegacyQuerySettingByParentUid = (parentUid: string) => {
-  const scratchNode = getSubTree({ parentUid, key: "scratch" });
+  const scratchNode = getSubTree({
+    tree: getBasicTreeByParentUid(parentUid),
+    key: "scratch",
+  });
   const conditionsNode = getSubTree({
     tree: scratchNode.children,
     key: "conditions",
@@ -514,6 +536,9 @@ const getLegacyDiscourseNodeSetting = (
   }).children;
   const indexUid = getSubTree({ tree, key: "Index" }).uid;
   const specificationUid = getSubTree({ tree, key: "Specification" }).uid;
+  const specificationQuery = specificationUid
+    ? getLegacyQuerySettingByParentUid(specificationUid)
+    : DEFAULT_LEGACY_QUERY;
 
   const legacySettings = {
     type: nodeUid,
@@ -542,11 +567,11 @@ const getLegacyDiscourseNodeSetting = (
       : DEFAULT_LEGACY_QUERY,
     specification: {
       enabled: specificationUid
-        ? !!getSubTree({ parentUid: specificationUid, key: "enabled" }).uid
+        ? getBasicTreeByParentUid(specificationUid).some(
+            (c) => c.text === "enabled",
+          )
         : false,
-      query: specificationUid
-        ? getLegacyQuerySettingByParentUid(specificationUid)
-        : DEFAULT_LEGACY_QUERY,
+      query: specificationQuery,
     },
   };
 
@@ -815,7 +840,7 @@ export const getGlobalSetting = <T = unknown>(
   const settings = getGlobalSettings();
   const blockPropsValue = readPathValue(settings, keys);
   const legacyValue = getLegacyGlobalSetting(keys);
-  if (JSON.stringify(blockPropsValue) !== JSON.stringify(legacyValue)) {
+  if (!deepEqual(blockPropsValue, legacyValue)) {
     console.warn(
       `[DG Dual-Read] Mismatch at Global > ${formatSettingPath(keys)}`,
       { blockProps: blockPropsValue, legacy: legacyValue },
@@ -899,7 +924,7 @@ export const getPersonalSetting = <T = unknown>(
   const settings = getPersonalSettings();
   const blockPropsValue = readPathValue(settings, keys);
   const legacyValue = getLegacyPersonalSetting(keys);
-  if (JSON.stringify(blockPropsValue) !== JSON.stringify(legacyValue)) {
+  if (!deepEqual(blockPropsValue, legacyValue)) {
     console.warn(
       `[DG Dual-Read] Mismatch at Personal > ${formatSettingPath(keys)}`,
       { blockProps: blockPropsValue, legacy: legacyValue },
@@ -948,11 +973,13 @@ export const setPersonalSetting = (keys: string[], value: json): void => {
   });
 };
 
-const getRawDiscourseNodeBlockProps = (nodeType: string): json | undefined => {
+const getRawDiscourseNodeBlockProps = (
+  nodeType: string,
+): Record<string, json> | undefined => {
   let pageUid = nodeType;
   let blockProps = getBlockPropsByUid(pageUid, []);
 
-  if (!blockProps || Object.keys(blockProps).length === 0) {
+  if (!isRecord(blockProps) || Object.keys(blockProps).length === 0) {
     const lookedUpUid = getPageUidByPageTitle(
       `${DISCOURSE_NODE_PAGE_PREFIX}${nodeType}`,
     );
@@ -962,7 +989,9 @@ const getRawDiscourseNodeBlockProps = (nodeType: string): json | undefined => {
     }
   }
 
-  return blockProps;
+  return isRecord(blockProps) && Object.keys(blockProps).length > 0
+    ? (blockProps as Record<string, json>)
+    : undefined;
 };
 
 export const getDiscourseNodeSettings = (
@@ -995,7 +1024,7 @@ export const getDiscourseNodeSetting = <T = unknown>(
   const settings = getDiscourseNodeSettings(nodeType);
   const blockPropsValue = settings ? readPathValue(settings, keys) : undefined;
   const legacyValue = getLegacyDiscourseNodeSetting(nodeType, keys);
-  if (JSON.stringify(blockPropsValue) !== JSON.stringify(legacyValue)) {
+  if (!deepEqual(blockPropsValue, legacyValue)) {
     console.warn(
       `[DG Dual-Read] Mismatch at Discourse Node (${nodeType}) > ${formatSettingPath(keys)}`,
       { blockProps: blockPropsValue, legacy: legacyValue },

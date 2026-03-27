@@ -5,6 +5,7 @@ import setBlockProps from "~/utils/setBlockProps";
 import getBlockProps from "~/utils/getBlockProps";
 import type { json } from "~/utils/getBlockProps";
 import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
+import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import DEFAULT_RELATIONS_BLOCK_PROPS from "~/components/settings/data/defaultRelationsBlockProps";
 import { getAllDiscourseNodes } from "./accessors";
 import {
@@ -72,6 +73,70 @@ const buildBlockMap = (pageUid: string): Record<string, string> => {
   return blockMap;
 };
 
+const ensureLegacyConfigBlocks = async (pageUid: string): Promise<void> => {
+  const pageBlockMap = buildBlockMap(pageUid);
+
+  await ensureBlocksExist(
+    pageUid,
+    ["trigger", "grammar", "export", "Suggestive Mode", "Left Sidebar"],
+    pageBlockMap,
+  );
+
+  const triggerMap = buildBlockMap(pageBlockMap["trigger"]);
+  if (Object.keys(triggerMap).length === 0) {
+    await createBlock({
+      parentUid: pageBlockMap["trigger"],
+      node: { text: "\\" },
+    });
+  }
+
+  const grammarMap = buildBlockMap(pageBlockMap["grammar"]);
+  await ensureBlocksExist(pageBlockMap["grammar"], ["relations"], grammarMap);
+  const relationsChildren = getShallowTreeByParentUid(grammarMap["relations"]);
+  if (relationsChildren.length === 0) {
+    for (const relation of DEFAULT_RELATION_VALUES) {
+      await createBlock({
+        parentUid: grammarMap["relations"],
+        node: relation,
+      });
+    }
+  }
+
+  const suggestiveMap = buildBlockMap(pageBlockMap["Suggestive Mode"]);
+  await ensureBlocksExist(
+    pageBlockMap["Suggestive Mode"],
+    ["Page Groups"],
+    suggestiveMap,
+  );
+
+  const leftSidebarMap = buildBlockMap(pageBlockMap["Left Sidebar"]);
+  await ensureBlocksExist(
+    pageBlockMap["Left Sidebar"],
+    ["Global-Section"],
+    leftSidebarMap,
+  );
+  const globalSectionMap = buildBlockMap(leftSidebarMap["Global-Section"]);
+  await ensureBlocksExist(
+    leftSidebarMap["Global-Section"],
+    ["Children", "Settings"],
+    globalSectionMap,
+  );
+
+  const exportMap = buildBlockMap(pageBlockMap["export"]);
+  await ensureBlocksExist(
+    pageBlockMap["export"],
+    ["max filename length"],
+    exportMap,
+  );
+  const maxFilenameMap = buildBlockMap(exportMap["max filename length"]);
+  if (Object.keys(maxFilenameMap).length === 0) {
+    await createBlock({
+      parentUid: exportMap["max filename length"],
+      node: { text: "64" },
+    });
+  }
+};
+
 const initializeSettingsBlockProps = (
   pageUid: string,
   blockMap: Record<string, string>,
@@ -117,6 +182,8 @@ const initSettingsPageBlocks = async (): Promise<Record<string, string>> => {
 
   const topLevelBlocks = getTopLevelBlockPropsConfig().map(({ key }) => key);
   await ensureBlocksExist(pageUid, topLevelBlocks, blockMap);
+
+  await ensureLegacyConfigBlocks(pageUid);
 
   initializeSettingsBlockProps(pageUid, blockMap);
 
