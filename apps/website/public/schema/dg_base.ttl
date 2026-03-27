@@ -7,7 +7,7 @@
 @prefix bibo: <http://purl.org/ontology/bibo/> .
 @prefix status: <http://purl.org/ontology/bibo/status/> .
 
-<https://discoursegraphs.com/schema/dg_base> a owl:Ontology;
+<https://discoursegraphs.com/schema/dg_base#> a owl:Ontology;
     dc:date "2025-12-22" ;
     rdfs:comment "DiscourseGraph foundation vocabulary"@en ;
     rdfs:label "DiscourseGraph foundation vocabulary"@en ;
