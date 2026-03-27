@@ -54,8 +54,8 @@ dg:observationBase a dgb:RelationDef;
   rdfs:comment "The data on which the observation is based"@en;
   rdfs:range prov:Entity;
   # That range is very, very provisional. could also involve schema:DigitalDocument , schema:Dataset
-  # The Entity should be prov:wasGeneratedBy the Activity that is either the Source, or one subject of the Source.
   rdfs:domain dg:Evidence.
+  # The Entity should be prov:wasGeneratedBy the Activity that is either the Source, or one subject of the Source.
   # I would like to add:
   #  owl:propertyChainAxiom (dg:observationOriginActivity prov:generated).
   # But it is not strictly accurate; the activity may generate many entities.
