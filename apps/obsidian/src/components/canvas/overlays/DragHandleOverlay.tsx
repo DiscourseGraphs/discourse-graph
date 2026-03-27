@@ -128,7 +128,10 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
 
       // Get the source node's page bounds for start position
       const sourceBounds = editor.getShapePageBounds(selectedNode.id);
-      if (!sourceBounds) { setIsDragging(false); return; }
+      if (!sourceBounds) {
+        setIsDragging(false);
+        return;
+      }
 
       const startX = sourceBounds.minX + anchor.x * sourceBounds.width;
       const startY = sourceBounds.minY + anchor.y * sourceBounds.height;
@@ -161,7 +164,10 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
       });
 
       const createdShape = editor.getShape<DiscourseRelationShape>(arrowId);
-      if (!createdShape) { setIsDragging(false); return; }
+      if (!createdShape) {
+        setIsDragging(false);
+        return;
+      }
 
       // Bind the start handle to the source node
       createOrUpdateArrowBinding(editor, createdShape, selectedNode.id, {
@@ -325,7 +331,14 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
       containerEl.addEventListener("pointermove", onPointerMove);
       containerEl.addEventListener("pointerup", onPointerUp);
     },
-    [selectedNode, editor, cleanupArrow, file.path],
+    [
+      selectedNode,
+      editor,
+      cleanupArrow,
+      file.path,
+      plugin.settings.discourseRelations,
+      plugin.settings.relationTypes,
+    ],
   );
 
   const handleDropdownSelect = useCallback(
