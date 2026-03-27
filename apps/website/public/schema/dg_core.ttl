@@ -30,14 +30,9 @@ dg:describesActivity a dgb:RelationDef;
   rdfs:domain schema:CreativeWork;
   rdfs:range prov:Activity.
 
-dg:SourceDocument a dgb:NodeSchema;
+dg:Source a dgb:NodeSchema;
   rdfs:comment "Some research source document that reports/generates evidence, like a book, conference paper, or journal article"@en;
   owl:subClassOf schema:CreativeWork, [rdf:type owl:Restriction ; owl:onProperty dg:describesActivity ; owl:minCardinality "1"].
-
-dg:Source a dgb:NodeSchema;
-  rdfs:label "Source"@en;
-  rdfs:comment "Some research source that reports/generates evidence, like an experiment/study, or a book, conference paper, or journal article that describes an experiment/study"@en;
-  owl:unionOf (prov:Activity dg:SourceDocument).
 
 dg:observationStatement a dgb:RelationDef;
   rdfs:label "Observation statement"@en;
@@ -70,7 +65,7 @@ dg:sourceDocument a owl:objectProperty;
   rdfs:label "Source document"@en;
   rdfs:comment "A document that described the activity which led to the data on which the observation is based"@en;
   rdfs:domain dg:Evidence;
-  rdfs:range dg:SourceDocument.
+  rdfs:range dg:Source.
 
 dg:ClaimOrEvidence a owl:Class; owl:unionOf (dg:Evidence dg:Claim).
 
