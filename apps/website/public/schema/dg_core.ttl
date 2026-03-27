@@ -22,21 +22,30 @@ dg:Evidence a dgb:NodeSchema;
   rdfs:label "Evidence"@en;
   rdfs:comment "A specific empirical observation from a particular application of a research method"@en.
 
+dg:describesActivity a owl:ObjectProperty;
+  rdfs:subPropertyOf dc:subject;
+  rdfs:range prov:Activity.
+
+dg:SourceDocument a dgb:NodeSchema;
+  rdfs:comment "Some research source document that reports/generates evidence, like a book, conference paper, or journal article"@en;
+  owl:subClassOf schema:CreativeWork, [rdf:type owl:Restriction ; owl:onProperty dg:describesActivity ; owl:minCardinality "1"].
+
 dg:Source a dgb:NodeSchema;
   rdfs:label "Source"@en;
-  rdfs:comment "Some research source that reports/generates evidence, like an experiment/study, book, conference paper, or journal article"@en;
-  owl:unionOf (prov:Activity schema:CreativeWork).
+  rdfs:comment "Some research source that reports/generates evidence, like an experiment/study, or a book, conference paper, or journal article that describes an experiment/study"@en;
+  owl:unionOf (prov:Activity dg:SourceDocument).
 
 dg:observationStatement a dgb:RelationDef;
-  rdfs:label "observation statement"@en;
+  rdfs:label "Observation statement"@en;
   rdfs:domain dg:Evidence;
   rdfs:range dg:Claim.
 
 dg:observationOf a dgb:RelationDef;
-  rdfs:label "observation of"@en;
+  rdfs:label "Observation of"@en;
   rdfs:domain dg:Evidence;
-  rdfs:range [a owl:Class; owl:unionOf (schema:DigitalDocument schema:Dataset)].
-  # That range is very, very provisional.
+  rdfs:range prov:Entity.
+  # That range is very, very provisional. could also involve schema:DigitalDocument , schema:Dataset
+  # The Entity should be prov:wasGeneratedBy the Activity that is either the Source, or one subject of the Source.
 
 dg:curatedTo a dgb:RelationDef;
   rdfs:label "Curated to"@en;
