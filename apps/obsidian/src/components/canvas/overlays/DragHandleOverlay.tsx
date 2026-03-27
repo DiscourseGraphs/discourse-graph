@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TFile } from "obsidian";
 import {
   TLArrowBindingProps,
@@ -75,6 +75,14 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
   const [pendingArrowId, setPendingArrowId] = useState<TLShapeId | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const sourceNodeRef = useRef<DiscourseNodeShape | null>(null);
+  const dragCleanupRef = useRef<(() => void) | null>(null);
+
+  // Clean up drag listeners on unmount
+  useEffect(() => {
+    return () => {
+      dragCleanupRef.current?.();
+    };
+  }, []);
 
   // Track the single selected discourse node — mirrors RelationsOverlay pattern
   const selectedNode = useValue<DiscourseNodeShape | null>(
@@ -248,6 +256,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
       const onPointerUp = () => {
         containerEl.removeEventListener("pointermove", onPointerMove);
         containerEl.removeEventListener("pointerup", onPointerUp);
+        dragCleanupRef.current = null;
         editor.setHintingShapes([]);
         setIsDragging(false);
 
@@ -330,6 +339,12 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
 
       containerEl.addEventListener("pointermove", onPointerMove);
       containerEl.addEventListener("pointerup", onPointerUp);
+
+      dragCleanupRef.current = () => {
+        containerEl.removeEventListener("pointermove", onPointerMove);
+        containerEl.removeEventListener("pointerup", onPointerUp);
+        dragCleanupRef.current = null;
+      };
     },
     [
       selectedNode,
