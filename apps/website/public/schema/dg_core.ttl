@@ -8,6 +8,7 @@
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix dgb: <https://discoursegraphs.com/schema/dg_base#> .
 @prefix dg: <https://discoursegraphs.com/schema/dg_core#> .
+@prefix schema: <http://schema.org/> .
 
 dg:Question a dgb:NodeSchema;
   rdfs:label "Question"@en;
@@ -19,54 +20,77 @@ dg:Claim a dgb:NodeSchema;
 
 dg:Evidence a dgb:NodeSchema;
   rdfs:label "Evidence"@en;
-  rdfs:comment "A specific empirical observation from a particular application of a research method"@en.
+  rdfs:comment "A specific empirical observation from a particular application of a research method"@en;
+  owl:subClassOf [rdf:type owl:Restriction ; owl:onProperty dg:observationStatement ; owl:cardinality 1],
+    [rdf:type owl:Restriction ; owl:onProperty dg:observationBase ; owl:cardinality 1].
+  # Ideally also dg:observationOriginActivity, but maybe not a hard constraint.
 
-dg:Source a dgb:NodeSchema;
-  rdfs:label "Source"@en;
-  rdfs:comment "Some research source that reports/generates evidence, like an experiment/study, book, conference paper, or journal article"@en.
+dg:describesActivity a dgb:RelationDef;
+  rdfs:label "Describes activity"@en;
+  rdfs:subPropertyOf dc:subject;
+  rdfs:domain schema:CreativeWork;
+  rdfs:range prov:Activity.
 
-dg:opposesCE a dgb:RelationDef;
+dg:SourceDocument a dgb:NodeSchema;
+  rdfs:label "Source document"@en;
+  rdfs:comment "Some research source document that reports/generates evidence, like a book, conference paper, or journal article"@en;
+  owl:subClassOf schema:CreativeWork, [rdf:type owl:Restriction ; owl:onProperty dg:describesActivity ; owl:minCardinality 1].
+
+dg:observationStatement a dgb:RelationDef;
+  rdfs:label "Observation statement"@en;
+  rdfs:domain dg:Evidence;
+  rdfs:range dg:Claim.
+
+dg:observationOriginActivity a dgb:RelationDef;
+  rdfs:label "Observation origin process"@en;
+  rdfs:comment "An experiment or study at the origin of the data on which the observation is based"@en;
+  rdfs:domain dg:Evidence;
+  rdfs:range prov:Activity.
+# I would like to add:
+#  owl:propertyChainAxiom (dg:sourceDocument dg:describesActivity).
+# But it is not strictly accurate; the document may describe many activities
+# HOWEVER it is true that, if sourceDocument is defined, the observationOriginActivity should should follow one of these chains.
+
+dg:observationBase a dgb:RelationDef;
+  rdfs:label "Observation base"@en;
+  rdfs:comment "The data on which the observation is based"@en;
+  rdfs:range prov:Entity;
+  # That range is very, very provisional. could also involve schema:DigitalDocument , schema:Dataset
+  rdfs:domain dg:Evidence.
+  # The Entity should be prov:wasGeneratedBy the Activity that is either the Source, or one subject of the Source.
+  # I would like to add:
+  #  owl:propertyChainAxiom (dg:observationOriginActivity prov:generated).
+  # But it is not strictly accurate; the activity may generate many entities.
+  # HOWEVER it is true that the observationBase should follow one of these chains, which should exist.
+
+dg:sourceDocument a dgb:RelationDef;
+  rdfs:label "Source document"@en;
+  rdfs:comment "A document that described the activity which led to the data on which the observation is based"@en;
+  rdfs:domain dg:Evidence;
+  rdfs:range dg:SourceDocument.
+
+dg:ClaimOrEvidence a owl:Class; owl:unionOf (dg:Evidence dg:Claim).
+
+dg:opposes a dgb:RelationDef;
   rdfs:label "Opposes"@en;
   rdfs:range dg:Claim;
-  rdfs:domain dg:Evidence.
+  rdfs:domain dg:ClaimOrEvidence.
 
-dg:opposedByEC a dgb:RelationDef;
+dg:opposedBy a dgb:RelationDef;
   rdfs:label "Opposed by"@en;
-  owl:inverseOf dg:opposesCE;
-  rdfs:range dg:Evidence;
+  owl:inverseOf dg:opposes;
+  rdfs:range dg:ClaimOrEvidence;
   rdfs:domain dg:Claim.
 
-dg:supportsCE a dgb:RelationDef;
+dg:supports a dgb:RelationDef;
   rdfs:label "Supports"@en;
   rdfs:range dg:Claim;
-  rdfs:domain dg:Evidence.
+  rdfs:domain dg:ClaimOrEvidence.
 
-dg:supportedByEC a dgb:RelationDef;
+dg:supportedBy a dgb:RelationDef;
   rdfs:label "Supported by"@en;
-  owl:inverseOf dg:supportsCE;
-  rdfs:range dg:Evidence;
-  rdfs:domain dg:Claim.
-
-dg:opposesCC a dgb:RelationDef;
-  rdfs:label "Opposes"@en;
-  rdfs:range dg:Claim;
-  rdfs:domain dg:Claim.
-
-dg:opposedByCC a dgb:RelationDef;
-  rdfs:label "Opposed by"@en;
-  owl:inverseOf dg:opposesCC;
-  rdfs:range dg:Claim;
-  rdfs:domain dg:Claim.
-
-dg:supportsCC a dgb:RelationDef;
-  rdfs:label "Supports"@en;
-  rdfs:range dg:Claim;
-  rdfs:domain dg:Claim.
-
-dg:supportedByCC a dgb:RelationDef;
-  rdfs:label "Supported by"@en;
-  owl:inverseOf dg:supportsCC;
-  rdfs:range dg:Claim;
+  owl:inverseOf dg:supports;
+  rdfs:range dg:ClaimOrEvidence;
   rdfs:domain dg:Claim.
 
 dg:addresses a dgb:RelationDef;
@@ -79,14 +103,3 @@ dg:addressedBy a dgb:RelationDef;
   owl:inverseOf dg:addresses;
   rdfs:range dg:Claim;
   rdfs:domain dg:Question.
-
-dg:curatedTo a dgb:RelationDef;
-  rdfs:label "Curated to"@en;
-  rdfs:range dg:Source;
-  rdfs:domain dg:Evidence.
-
-dg:curatedFrom a dgb:RelationDef;
-  owl:inverseOf dg:curatedTo;
-  rdfs:label "Curated from"@en;
-  rdfs:range dg:Evidence;
-  rdfs:domain dg:Source.
