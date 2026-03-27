@@ -13,13 +13,13 @@ To create a discourse node, first select the text you want to turn into a node:
 
 There are two ways you can create a node:
 
-### 1. Using command keys (recommended)
+### 1. Using a hotkey (recommended)
 
-The default hotkey is `Cmd + \` (or `Ctrl + \` on Windows/Linux). You can [customize this hotkey](./command-palette#customizing-hotkeys) in Obsidian's settings under Hotkeys → "Open node type menu".
+To use this method, first [set up a hotkey](./command-palette#customizing-hotkeys) in Obsidian's settings under Hotkeys → "Open node type menu".
 
 #### 1.1 Turn selected text into discourse node
 
-1. Press `Cmd + \` (or your configured hotkey)
+1. Press your configured hotkey
 2. The node menu will open as a popup
 ![node menu](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FS6eU6y70eX.png?alt=media&token=00e61ddf-877b-4752-a65b-272e80a0a19c)
 3. Select the node type you want to turn the text into
@@ -27,7 +27,7 @@ The default hotkey is `Cmd + \` (or `Ctrl + \` on Windows/Linux). You can [custo
 ![node created](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2F1VNkJC0aH8.png?alt=media&token=df9a26aa-997b-4b56-a307-87a80e350b28)
 
 #### 1.2 Creating new node from scratch
-1. Press `Cmd + \` (or your configured hotkey) without selecting any text
+1. Press your configured hotkey without selecting any text
 2. Enter the title and node type
 ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FyYxtLKkx6B.png?alt=media&token=7f4f02df-d1fe-4529-8530-90acb0dc74b8)
 
