@@ -10,6 +10,7 @@ import DEFAULT_RELATIONS_BLOCK_PROPS from "~/components/settings/data/defaultRel
 import {
   getAllDiscourseNodes,
   isNewSettingsStoreEnabled,
+  deepEqual,
   getFeatureFlags,
   getGlobalSettings,
   getPersonalSettings,
@@ -340,17 +341,15 @@ const logDualReadComparison = (): void => {
 
   const legacyFlags = readAllLegacyFeatureFlags();
   const blockFlags = getFeatureFlags();
-  const flagsMatch = JSON.stringify(blockFlags) === JSON.stringify(legacyFlags);
+  const flagsMatch = deepEqual(blockFlags, legacyFlags);
 
   const legacyGlobal = readAllLegacyGlobalSettings();
   const blockGlobal = getGlobalSettings();
-  const globalMatch =
-    JSON.stringify(blockGlobal) === JSON.stringify(legacyGlobal);
+  const globalMatch = deepEqual(blockGlobal, legacyGlobal);
 
   const legacyPersonal = readAllLegacyPersonalSettings();
   const blockPersonal = getPersonalSettings();
-  const personalMatch =
-    JSON.stringify(blockPersonal) === JSON.stringify(legacyPersonal);
+  const personalMatch = deepEqual(blockPersonal, legacyPersonal);
 
   const nodes = getAllDiscourseNodes();
   const nodeResults: {
@@ -364,7 +363,7 @@ const logDualReadComparison = (): void => {
     const blockProps = getDiscourseNodeSettings(node.type);
     nodeResults.push({
       name: node.text,
-      match: JSON.stringify(blockProps) === JSON.stringify(legacy),
+      match: deepEqual(blockProps, legacy),
       legacy,
       blockProps,
     });
