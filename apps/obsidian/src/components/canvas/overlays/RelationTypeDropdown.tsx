@@ -209,7 +209,8 @@ export const RelationTypeDropdown = ({
                 "var(--color-hover, #f0f0f0)";
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
+              (e.currentTarget as HTMLElement).style.backgroundColor =
+                "transparent";
             }}
           >
             <span
