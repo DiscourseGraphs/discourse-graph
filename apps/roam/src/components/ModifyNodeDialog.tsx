@@ -183,7 +183,7 @@ const ModifyNodeDialog = ({
               });
               return results.map((r) => ({
                 ...r,
-                _discourseNodeType: node.type,
+                discourseNodeType: node.type,
               }));
             }),
           );

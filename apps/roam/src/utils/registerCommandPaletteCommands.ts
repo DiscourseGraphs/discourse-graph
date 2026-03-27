@@ -189,9 +189,19 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
 
     const selectionStart = uid ? getSelectionStartForBlock(uid) : 0;
 
+    const defaultNodeType =
+      getDiscourseNodes().filter(excludeDefaultNodes)[0]?.type;
+    if (!defaultNodeType) {
+      renderToast({
+        id: "create-discourse-node-command-no-types",
+        content: "No discourse node types found in settings.",
+      });
+      return;
+    }
+
     renderModifyNodeDialog({
       mode: "create",
-      nodeType: "",
+      nodeType: defaultNodeType,
       initialValue: { text: "", uid: "" },
       extensionAPI,
       onSuccess: async (result) => {
