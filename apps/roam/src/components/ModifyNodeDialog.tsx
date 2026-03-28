@@ -380,7 +380,7 @@ const ModifyNodeDialog = ({
               await addImageToPage({
                 pageUid,
                 imageUrl,
-                configPageUid: selectedNodeType!.type,
+                configPageUid: selectedNodeType?.type || "",
                 extensionAPI,
               });
             }
@@ -602,7 +602,7 @@ const ModifyNodeDialog = ({
                 }
                 popoverProps={{ openOnTargetFocus: false }}
                 className={
-                  mode === "edit" || disableNodeTypeChange
+                  mode === "edit" || disableNodeTypeChange || isContentLocked
                     ? "cursor-not-allowed opacity-50"
                     : ""
                 }
