@@ -6,7 +6,7 @@ import {
   getArrowBindings,
   getArrowInfo,
 } from "~/components/canvas/utils/relationUtils";
-import { COLOR_PALETTE } from "~/utils/tldrawColors";
+import { getValidRelationTypesForNodePair } from "~/components/canvas/utils/relationTypeUtils";
 
 type RelationTypeDropdownProps = {
   arrowId: TLShapeId;
@@ -56,34 +56,11 @@ export const RelationTypeDropdown = ({
 
     if (!startNodeTypeId || !endNodeTypeId) return [];
 
-    // Find relation types that are valid for this node type pair
-    const validTypes: {
-      id: string;
-      label: string;
-      color: string;
-    }[] = [];
-
-    for (const relationType of plugin.settings.relationTypes) {
-      // Check if there's a discourse relation that matches this pair
-      const isValid = plugin.settings.discourseRelations.some(
-        (relation) =>
-          relation.relationshipTypeId === relationType.id &&
-          ((relation.sourceId === startNodeTypeId &&
-            relation.destinationId === endNodeTypeId) ||
-            (relation.sourceId === endNodeTypeId &&
-              relation.destinationId === startNodeTypeId)),
-      );
-
-      if (isValid) {
-        validTypes.push({
-          id: relationType.id,
-          label: relationType.label,
-          color: COLOR_PALETTE[relationType.color] ?? COLOR_PALETTE["black"]!,
-        });
-      }
-    }
-
-    return validTypes;
+    return getValidRelationTypesForNodePair(
+      plugin.settings,
+      startNodeTypeId,
+      endNodeTypeId,
+    );
   }, [arrow, editor, plugin]);
 
   // Position dropdown at arrow midpoint
@@ -150,77 +127,28 @@ export const RelationTypeDropdown = ({
   return (
     <div
       ref={dropdownRef}
+      className="pointer-events-auto absolute z-30 -translate-x-1/2 -translate-y-1/2"
       style={{
-        position: "absolute",
         left: `${dropdownPosition.left}px`,
         top: `${dropdownPosition.top}px`,
-        transform: "translate(-50%, -50%)",
-        pointerEvents: "all",
-        zIndex: 30,
       }}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <div
-        style={{
-          backgroundColor: "var(--color-background, #fff)",
-          border: "1px solid var(--color-border, #e0e0e0)",
-          borderRadius: "8px",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
-          padding: "4px",
-          minWidth: "160px",
-          maxHeight: "240px",
-          overflowY: "auto",
-        }}
-      >
-        <div
-          style={{
-            padding: "4px 8px",
-            fontSize: "11px",
-            color: "var(--color-text-lighter, #999)",
-            fontWeight: 500,
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
+      <div className="min-w-40 max-h-60 overflow-y-auto rounded-lg border bg-white p-1 shadow-lg">
+        <div className="px-2 py-1 text-xs font-medium uppercase tracking-wide text-gray-500">
           Relation Type
         </div>
         {validRelationTypes.map((rt) => (
           <button
             key={rt.id}
             onClick={() => handleSelect(rt.id)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              width: "100%",
-              padding: "6px 8px",
-              border: "none",
-              borderRadius: "4px",
-              backgroundColor: "transparent",
-              cursor: "pointer",
-              fontSize: "13px",
-              color: "var(--color-text, #333)",
-              textAlign: "left",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.backgroundColor =
-                "var(--color-hover, #f0f0f0)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.backgroundColor =
-                "transparent";
-            }}
+            className="flex w-full cursor-pointer items-center gap-2 rounded border-none bg-transparent px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100"
           >
             <span
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                backgroundColor: rt.color,
-                flexShrink: 0,
-              }}
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{ backgroundColor: rt.color }}
             />
             {rt.label}
           </button>

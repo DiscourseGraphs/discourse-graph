@@ -60,6 +60,7 @@ import {
 import { RelationBindings } from "./DiscourseRelationBinding";
 import { DiscourseNodeShape, DiscourseNodeUtil } from "./DiscourseNodeShape";
 import { addRelationToRelationsJson } from "~/components/canvas/utils/relationJsonUtils";
+import { getRelationDirection } from "~/components/canvas/utils/relationTypeUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
 
 export enum ArrowHandles {
@@ -1098,25 +1099,16 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
 
     if (!relationType) return;
 
-    // Check if this is a direct connection (start -> end)
-    const isDirectConnection = plugin.settings.discourseRelations.some(
-      (relation) =>
-        relation.relationshipTypeId === relationTypeId &&
-        relation.sourceId === startNodeTypeId &&
-        relation.destinationId === endNodeTypeId,
-    );
-
-    // Check if this is a reverse connection (end -> start, so we need complement)
-    const isReverseConnection = plugin.settings.discourseRelations.some(
-      (relation) =>
-        relation.relationshipTypeId === relationTypeId &&
-        relation.sourceId === endNodeTypeId &&
-        relation.destinationId === startNodeTypeId,
+    const { direct, reverse } = getRelationDirection(
+      plugin.settings.discourseRelations,
+      relationTypeId,
+      startNodeTypeId,
+      endNodeTypeId,
     );
 
     let newText = relationType.label; // Default to main label
 
-    if (isReverseConnection && !isDirectConnection) {
+    if (reverse && !direct) {
       // This is purely a reverse connection, use complement
       newText = relationType.complement;
     }
@@ -1142,28 +1134,14 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
     targetNodeTypeId: string,
     relationTypeId: string,
   ): boolean {
-    const plugin = this.options.plugin;
-
-    // Check direct connection (source -> target)
-    const directConnection = plugin.settings.discourseRelations.some(
-      (relation) =>
-        relation.relationshipTypeId === relationTypeId &&
-        relation.sourceId === sourceNodeTypeId &&
-        relation.destinationId === targetNodeTypeId,
+    const { direct, reverse } = getRelationDirection(
+      this.options.plugin.settings.discourseRelations,
+      relationTypeId,
+      sourceNodeTypeId,
+      targetNodeTypeId,
     );
 
-    if (directConnection) return true;
-
-    // Check reverse connection (target -> source)
-    // This handles bidirectional relations where the complement is used
-    const reverseConnection = plugin.settings.discourseRelations.some(
-      (relation) =>
-        relation.relationshipTypeId === relationTypeId &&
-        relation.sourceId === targetNodeTypeId &&
-        relation.destinationId === sourceNodeTypeId,
-    );
-
-    return reverseConnection;
+    return direct || reverse;
   }
 
   /**

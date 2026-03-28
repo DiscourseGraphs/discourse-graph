@@ -19,6 +19,7 @@ import {
 } from "~/components/canvas/utils/relationUtils";
 import { DEFAULT_TLDRAW_COLOR } from "~/utils/tldrawColors";
 import { showToast } from "~/components/canvas/utils/toastUtils";
+import { hasValidRelationTypeForNodePair } from "~/components/canvas/utils/relationTypeUtils";
 import { RelationTypeDropdown } from "./RelationTypeDropdown";
 
 type DragHandleOverlayProps = {
@@ -295,15 +296,10 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
             const hasValidRelationType =
               startNodeTypeId &&
               endNodeTypeId &&
-              plugin.settings.discourseRelations.some(
-                (r) =>
-                  plugin.settings.relationTypes.some(
-                    (rt) => rt.id === r.relationshipTypeId,
-                  ) &&
-                  ((r.sourceId === startNodeTypeId &&
-                    r.destinationId === endNodeTypeId) ||
-                    (r.sourceId === endNodeTypeId &&
-                      r.destinationId === startNodeTypeId)),
+              hasValidRelationTypeForNodePair(
+                plugin.settings,
+                startNodeTypeId,
+                endNodeTypeId,
               );
 
             if (!hasValidRelationType) {
@@ -360,8 +356,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
       editor,
       cleanupArrow,
       file.path,
-      plugin.settings.discourseRelations,
-      plugin.settings.relationTypes,
+      plugin.settings,
     ],
   );
 
