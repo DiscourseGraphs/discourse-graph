@@ -15,7 +15,7 @@ const RelationshipSettings = () => {
   const [discourseRelations, setDiscourseRelations] = useState<
     DiscourseRelation[]
   >(() => plugin.settings.discourseRelations ?? []);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [errors, setErrors] = useState<Record<number, string>>({});
 
   const findRelationTypeById = (
     id: string,
@@ -28,11 +28,42 @@ const RelationshipSettings = () => {
     "id" | "modified" | "created" | "importedFromRid"
   >;
 
-  const handleRelationChange = async (
+  const saveSettings = (relations: DiscourseRelation[]): void => {
+    const newErrors: Record<number, string> = {};
+    const completeRelations = relations.filter(
+      (r) => r.relationshipTypeId && r.sourceId && r.destinationId,
+    );
+
+    // Check for duplicates among complete relations
+    const seenKeys = new Map<string, number>();
+    for (const r of completeRelations) {
+      const idx = relations.indexOf(r);
+      const key = `${r.relationshipTypeId}-${r.sourceId}-${r.destinationId}`;
+      const prev = seenKeys.get(key);
+      if (prev !== undefined) {
+        newErrors[idx] = "Duplicate relation";
+        if (!newErrors[prev]) newErrors[prev] = "Duplicate relation";
+      }
+      seenKeys.set(key, idx);
+    }
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    // Persist complete local relations + all imported relations
+    const importedRelations = relations.filter((r) => r.importedFromRid);
+    plugin.settings.discourseRelations = [
+      ...completeRelations.filter((r) => !r.importedFromRid),
+      ...importedRelations,
+    ];
+    void plugin.saveSettings();
+  };
+
+  const handleRelationChange = (
     index: number,
     field: EditableFieldKey,
     value: string,
-  ): Promise<void> => {
+  ): void => {
     const updatedRelations = [...discourseRelations];
 
     const now = new Date().getTime();
@@ -48,10 +79,13 @@ const RelationshipSettings = () => {
       };
     }
 
-    updatedRelations[index][field] = value;
-    updatedRelations[index].modified = now;
+    updatedRelations[index] = {
+      ...updatedRelations[index],
+      [field]: value,
+      modified: now,
+    };
     setDiscourseRelations(updatedRelations);
-    setHasUnsavedChanges(true);
+    saveSettings(updatedRelations);
   };
 
   const handleAddRelation = (): void => {
@@ -69,7 +103,6 @@ const RelationshipSettings = () => {
       },
     ];
     setDiscourseRelations(updatedRelations);
-    setHasUnsavedChanges(true);
   };
 
   const confirmDeleteRelation = (index: number): void => {
@@ -111,32 +144,6 @@ const RelationshipSettings = () => {
     new Notice("Relation deleted");
   };
 
-  const handleSave = async (): Promise<void> => {
-    for (const relation of discourseRelations) {
-      if (
-        !relation.relationshipTypeId ||
-        !relation.sourceId ||
-        !relation.destinationId
-      ) {
-        new Notice("All fields are required for relations.");
-        return;
-      }
-    }
-
-    const relationKeys = discourseRelations.map(
-      (r) => `${r.relationshipTypeId}-${r.sourceId}-${r.destinationId}`,
-    );
-    if (new Set(relationKeys).size !== relationKeys.length) {
-      new Notice("Duplicate relations are not allowed.");
-      return;
-    }
-
-    plugin.settings.discourseRelations = discourseRelations;
-    await plugin.saveSettings();
-    new Notice("Relations saved");
-    setHasUnsavedChanges(false);
-  };
-
   const localRelations = discourseRelations.filter(
     (relation) => !relation.importedFromRid,
   );
@@ -147,6 +154,7 @@ const RelationshipSettings = () => {
   const renderRelationItem = (relation: DiscourseRelation, index: number) => {
     const importInfo = getImportInfo(relation.importedFromRid);
     const isImported = importInfo.isImported;
+    const error = errors[index];
 
     return (
       <div key={index} className="setting-item">
@@ -155,9 +163,9 @@ const RelationshipSettings = () => {
             <select
               value={relation.sourceId}
               onChange={(e) =>
-                void handleRelationChange(index, "sourceId", e.target.value)
+                handleRelationChange(index, "sourceId", e.target.value)
               }
-              className="flex-1 pl-2"
+              className={`flex-1 pl-2 ${error ? "input-error" : ""}`}
               disabled={isImported}
             >
               <option value="">Source Node Type</option>
@@ -171,13 +179,13 @@ const RelationshipSettings = () => {
             <select
               value={relation.relationshipTypeId}
               onChange={(e) =>
-                void handleRelationChange(
+                handleRelationChange(
                   index,
                   "relationshipTypeId",
                   e.target.value,
                 )
               }
-              className="flex-1 pl-2"
+              className={`flex-1 pl-2 ${error ? "input-error" : ""}`}
               disabled={isImported}
             >
               <option value="">Relation Type</option>
@@ -191,13 +199,9 @@ const RelationshipSettings = () => {
             <select
               value={relation.destinationId}
               onChange={(e) =>
-                void handleRelationChange(
-                  index,
-                  "destinationId",
-                  e.target.value,
-                )
+                handleRelationChange(index, "destinationId", e.target.value)
               }
-              className="flex-1 pl-2"
+              className={`flex-1 pl-2 ${error ? "input-error" : ""}`}
               disabled={isImported}
             >
               <option value="">Target Node Type</option>
@@ -217,6 +221,7 @@ const RelationshipSettings = () => {
               </button>
             )}
           </div>
+          {error && <div className="text-error text-xs">{error}</div>}
           {isImported && (
             <div className="text-muted flex items-center gap-2 text-xs">
               {importInfo.spaceUri && (
@@ -274,18 +279,8 @@ const RelationshipSettings = () => {
               <button onClick={handleAddRelation} className="p-2">
                 Add Relation
               </button>
-              <button
-                onClick={handleSave}
-                className={`p-2 ${hasUnsavedChanges ? "mod-cta" : ""}`}
-                disabled={!hasUnsavedChanges}
-              >
-                Save Changes
-              </button>
             </div>
           </div>
-          {hasUnsavedChanges && (
-            <div className="text-muted mt-2">You have unsaved changes</div>
-          )}
         </>
       )}
     </div>
