@@ -231,9 +231,9 @@ const ResultRow = ({
           {...buttonProps}
           onClick={(event) => {
             const targetCanvasPageUid =
-              event.currentTarget
-                .closest<HTMLElement>("[data-page-uid]")
-                ?.dataset.pageUid || undefined;
+              event.currentTarget.closest<HTMLElement>(
+                ".roamjs-tldraw-canvas-container[data-page-uid]",
+              )?.dataset.pageUid || undefined;
             document.dispatchEvent(
               new CustomEvent("roamjs:query-builder:action", {
                 detail: {

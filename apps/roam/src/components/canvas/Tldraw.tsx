@@ -749,7 +749,8 @@ const TldrawCanvasShared = ({
 
   useEffect(() => {
     return () => {
-      if (activeCanvasPageUid === pageUid) {
+      const editor = appRef.current;
+      if (activeCanvasPageUid === pageUid && activeCanvasEditor === editor) {
         activeCanvasEditor?.blur();
         activeCanvasPageUid = null;
         activeCanvasEditor = null;
@@ -953,6 +954,7 @@ const TldrawCanvasShared = ({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onPointerDownCapture={() => {
+        if (!appRef.current) return;
         setActiveCanvas({ pageUid, editor: appRef.current });
       }}
     >
