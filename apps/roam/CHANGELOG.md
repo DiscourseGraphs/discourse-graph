@@ -9,20 +9,46 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 - Minor version bumps are released on a regular cadence.
 - Patch version bumps are for bugfixes and hotfixes.
 
-## [0.17.0] – 2026-02-08
+## [0.18.0] - 2026-03-29
 
 ### Added
 
-- **Create Node flow** — new consolidated node creation experience in Roam
-- **Canvas: paste references into canvas** — paste block or page references directly into the canvas
-- **Canvas: drag-and-drop blocks** — drag Roam blocks directly into the canvas
-- **Node colors in settings** — show node colors for nodes via settings
+- **Create Node command** - add a dedicated discourse node creation command in Roam
+- **Canvas clipboard awareness** - show or hide nodes that are already on the canvas and support formalizing candidate nodes directly from canvas embeds
+- **Real-time canvas migration** - add an explicit sync mode and migration path from local canvases to real-time canvases
 
 ### Changed
 
-- **Discourse Context placement** — move context panel to top of discourse node pages
+- **Left sidebar** - allow adding blocks to custom favorites in the sidebar
+- **Stored relations settings** - move stored-relations controls into Personal Settings and make the migration flow more user-facing
+- **Canvas relations** - improve relation-arrow labeling and keep the relation tool flow active after creating a relation
+- **Canvas refresh** - update canvas node titles when source page titles change
+- **Query Builder** - improve DNP detection and support `is in canvas` for newer canvas schemas
+
+### Fixed
+
+- **Canvas stability** - fix multiple canvas loading and runtime errors, including old canvases failing to open and asset metadata crashes
+- **Create Node flow** - fix node-type mismatches, focus-jump issues, unbounded search results, and incorrect `@source` title handling
+- **Canvas tools** - fix tool-lock behavior for the discourse tool
+- **Performance** - fix a slow sync or query regression caused by discourse-node change detection
+- **Query Builder** - fix column layout preferences not being preserved
+- **Release build** - fix the official deployment build missing required database environment variables
+- **Canvas titles** - fix incorrect auto-generated page titles when a canvas is opened in the right sidebar
+
+## [0.17.0] - 2026-02-08
+
+### Added
+
+- **Create Node flow** - new consolidated node creation experience in Roam
+- **Canvas: paste references into canvas** - paste block or page references directly into the canvas
+- **Canvas: drag-and-drop blocks** - drag Roam blocks directly into the canvas
+- **Node colors in settings** - show node colors for nodes via settings
+
+### Changed
+
+- **Discourse Context placement** - move context panel to top of discourse node pages
 - Node Summoning Menu - collapse filter menu behavior after clicking "only"
-- **Canvas** — Upgrade tldraw to 2.4.0
+- **Canvas** - Upgrade tldraw to 2.4.0
 
 ### Fixed
 
@@ -54,7 +80,7 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 - **Discourse Context Overlay:**
   - fix failure to add reified relations from the overlay
   - component not loading
-- **Canvas:** inconsistent “send nodes to canvas” behavior
+- **Canvas:** inconsistent "send nodes to canvas" behavior
 - **Relations:** prevent moving the entire relation arrow; drag only changes bend in Roam
 
 ## [0.15.0] - 2025-12-24
@@ -68,7 +94,7 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 - Node Tags are:
   - Configurable in the plugin settings (with **Evidence** and **Claim** provided as defaults).
   - Visually distinct with color-coding.
-  - Supported on images — allowing images to function as nodes.
+  - Supported on images - allowing images to function as nodes.
 
 #### Left Sidebar for Favorites
 
@@ -78,13 +104,13 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
   - Custom nicknames (aliases) for any item.
   - Grouping favorites into custom user-defined sections.
   - Drag-and-drop reordering.
-- Fully customizable per user — great for multiplayer workspaces.
+- Fully customizable per user - great for multiplayer workspaces.
 
 #### Node Search Menu Improvements
 
 - The node-summoning menu now supports:
   - **Multi-select filtering**, allowing multiple filters/tags to narrow results.
-  - A new default trigger key: `@` — for easier and quicker access.
+  - A new default trigger key: `@` - for easier and quicker access.
 
 #### Quick Toggle for Context Overlay
 
@@ -107,13 +133,13 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 
 #### Canvas & Visualization Updates
 
-- We’ve upgraded to **tldraw v2.3.0** — a major update:
-  - You’ll be prompted to migrate your canvases when reopening them.
+- We've upgraded to **tldraw v2.3.0** - a major update:
+  - You'll be prompted to migrate your canvases when reopening them.
   - Contact us if you experience any migration issues.
 - Additional enhancements:
   - You can now open the canvas in the **Roam sidebar** for split-view editing.
   - The new **Canvas Clipboard panel** allows drag-and-drop from a node list into the canvas.
-  - Support for `.webp` image files has been added — these now display properly.
+  - Support for `.webp` image files has been added - these now display properly.
   - A new setting allows you to disable **auto-adding discourse relations** when adding a node to the canvas.
   - The canvas drawer has been moved inside the tldraw interface.
 
@@ -136,7 +162,7 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 
 ### Fixed
 
-- Fixed an issue where canvases would get stuck at **“Loading…”**
+- Fixed an issue where canvases would get stuck at **"Loading..."**
 - Resolved compatibility problems with the **Roam Highlighter** extension.
 - Fixed a bug where the node-summoning menu sometimes missed relevant results.
 - Multiple Query Builder issues resolved:
