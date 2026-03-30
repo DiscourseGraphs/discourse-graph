@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
-  Checkbox,
   HTMLTable,
   Alert,
   Intent,
@@ -12,7 +11,6 @@ import {
   TabId,
   Tabs,
 } from "@blueprintjs/core";
-import Description from "roamjs-components/components/Description";
 import { Select } from "@blueprintjs/select";
 import {
   getSupabaseContext,
@@ -29,15 +27,13 @@ import {
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import internalError from "~/utils/internalError";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
-import refreshConfigTree from "~/utils/refreshConfigTree";
-import createBlock from "roamjs-components/writes/createBlock";
-import deleteBlock from "roamjs-components/writes/deleteBlock";
 import {
   setFeatureFlag,
   getFeatureFlag,
+  isSyncEnabled,
 } from "~/components/settings/utils/accessors";
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
+import type { FeatureFlags } from "./utils/zodSchema";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -258,63 +254,89 @@ const NodeListTab = (): React.ReactElement => {
 };
 
 const FeatureFlagsTab = (): React.ReactElement => {
-  const settings = useMemo(() => {
-    refreshConfigTree();
-    return getFormattedConfigTree();
-  }, []);
+  const [isConsentAlertOpen, setIsConsentAlertOpen] = useState(false);
+  const [isInstructionAlertOpen, setIsInstructionAlertOpen] = useState(false);
+  const [isFirstSyncEnable, setIsFirstSyncEnable] = useState(false);
+  const [pendingFeatureKey, setPendingFeatureKey] = useState<
+    keyof FeatureFlags | null
+  >(null);
+  const [duplicateNodeAlertValue, setDuplicateNodeAlertValue] = useState(
+    getFeatureFlag("Duplicate node alert enabled"),
+  );
+  const [suggestiveOverlayValue, setSuggestiveOverlayValue] = useState(
+    getFeatureFlag("Suggestive mode overlay enabled"),
+  );
 
-  const [suggestiveModeEnabled, setSuggestiveModeEnabled] = useState(
-    settings.suggestiveModeEnabled.value || false,
-  );
-  const [suggestiveModeUid, setSuggestiveModeUid] = useState(
-    settings.suggestiveModeEnabled.uid,
-  );
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [isInstructionOpen, setIsInstructionOpen] = useState(false);
+  const syncAlreadyEnabled = duplicateNodeAlertValue || suggestiveOverlayValue;
+
+  const ensureSyncEnabled = (
+    featureKey: keyof FeatureFlags,
+  ): Promise<boolean> => {
+    if (syncAlreadyEnabled) {
+      return Promise.resolve(true);
+    }
+    setPendingFeatureKey(featureKey);
+    setIsConsentAlertOpen(true);
+    return Promise.resolve(false);
+  };
+
+  const handleFeatureToggled = (
+    checked: boolean,
+    setter: (v: boolean) => void,
+  ) => {
+    setter(checked);
+    if (checked) {
+      setIsInstructionAlertOpen(true);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <Checkbox
-        checked={suggestiveModeEnabled}
-        onChange={(e) => {
-          const checked = (e.target as HTMLInputElement).checked;
-          if (checked) {
-            setIsAlertOpen(true);
-          } else {
-            if (suggestiveModeUid) {
-              void deleteBlock(suggestiveModeUid);
-              setSuggestiveModeUid(undefined);
-            }
-            setSuggestiveModeEnabled(false);
-            setFeatureFlag("Suggestive mode enabled", false);
-          }
-        }}
-        labelElement={
-          <>
-            (BETA) Suggestive mode enabled
-            <Description
-              description={
-                "Whether or not to enable the suggestive mode, if this is first time enabling it, you will need to generate and upload all node embeddings to supabase. Go to Suggestive Mode -> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"
-              }
-            />
-          </>
+      <FeatureFlagPanel
+        title="Duplicate node alert"
+        description="Show possible duplicate nodes when viewing a discourse node page."
+        featureKey="Duplicate node alert enabled"
+        value={duplicateNodeAlertValue}
+        onBeforeEnable={() => ensureSyncEnabled("Duplicate node alert enabled")}
+        onAfterChange={(checked) =>
+          handleFeatureToggled(checked, setDuplicateNodeAlertValue)
         }
       />
+
+      <FeatureFlagPanel
+        title="Suggestive mode overlay"
+        description="Overlay suggestive mode button over discourse node references."
+        featureKey="Suggestive mode overlay enabled"
+        value={suggestiveOverlayValue}
+        onBeforeEnable={() =>
+          ensureSyncEnabled("Suggestive mode overlay enabled")
+        }
+        onAfterChange={(checked) =>
+          handleFeatureToggled(checked, setSuggestiveOverlayValue)
+        }
+      />
+
       <Alert
-        isOpen={isAlertOpen}
+        isOpen={isConsentAlertOpen}
         onConfirm={() => {
-          void createBlock({
-            parentUid: settings.settingsUid,
-            node: { text: "(BETA) Suggestive Mode Enabled" },
-          }).then((uid) => {
-            setSuggestiveModeUid(uid);
-            setSuggestiveModeEnabled(true);
-            setFeatureFlag("Suggestive mode enabled", true);
-            setIsAlertOpen(false);
-            setIsInstructionOpen(true);
-          });
+          if (pendingFeatureKey) {
+            setFeatureFlag(pendingFeatureKey, true);
+            if (pendingFeatureKey === "Duplicate node alert enabled") {
+              setDuplicateNodeAlertValue(true);
+            } else if (
+              pendingFeatureKey === "Suggestive mode overlay enabled"
+            ) {
+              setSuggestiveOverlayValue(true);
+            }
+          }
+          setIsConsentAlertOpen(false);
+          setIsFirstSyncEnable(true);
+          setIsInstructionAlertOpen(true);
         }}
-        onCancel={() => setIsAlertOpen(false)}
+        onCancel={() => {
+          setPendingFeatureKey(null);
+          setIsConsentAlertOpen(false);
+        }}
         canEscapeKeyCancel={true}
         canOutsideClickCancel={true}
         intent={Intent.PRIMARY}
@@ -322,41 +344,39 @@ const FeatureFlagsTab = (): React.ReactElement => {
         cancelButtonText="Cancel"
       >
         <p>
-          Enabling Suggestive Mode will send your data (nodes) to our servers
-          and OpenAI servers to generate embeddings and suggestions.
+          Enabling this feature will send your data (nodes) to our servers and
+          OpenAI servers to generate embeddings and suggestions.
         </p>
         <p>Are you sure you want to proceed?</p>
       </Alert>
 
       <Alert
-        isOpen={isInstructionOpen}
+        isOpen={isInstructionAlertOpen}
         onConfirm={() => window.location.reload()}
-        onCancel={() => setIsInstructionOpen(false)}
+        onCancel={() => {
+          setIsInstructionAlertOpen(false);
+          setIsFirstSyncEnable(false);
+        }}
         confirmButtonText="Reload Graph"
         cancelButtonText="Later"
         intent={Intent.PRIMARY}
       >
-        <p>
-          If this is the first time enabling it, you will need to generate and
-          upload all node embeddings to supabase.
-        </p>
-        <p>
-          Please reload the graph to see the new &apos;Suggestive Mode&apos;
-          tab.
-        </p>
-        <p>
-          Then go to Suggestive Mode{" "}
-          {"-> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"}
-        </p>
+        <p>Please reload the graph for this change to take effect.</p>
+        {isFirstSyncEnable && (
+          <>
+            <p>
+              If this is the first time enabling sync, you will need to generate
+              and upload all node embeddings.
+            </p>
+            <p>
+              After reloading, go to Sync mode{" "}
+              {
+                "-> Sync config -> Click on 'Generate & Upload All Node Embeddings'"
+              }
+            </p>
+          </>
+        )}
       </Alert>
-
-      <FeatureFlagPanel
-        title="Duplicate node alert"
-        description="Show possible duplicate nodes when viewing a discourse node page. Requires Suggestive mode to be enabled."
-        featureKey="Duplicate node alert enabled"
-        initialValue={getFeatureFlag("Duplicate node alert enabled")}
-        disabled={!suggestiveModeEnabled}
-      />
 
       <Button
         className="w-96"
@@ -379,10 +399,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
 const AdminPanel = (): React.ReactElement => {
   const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
-  const settings = useMemo(() => {
-    refreshConfigTree();
-    return getFormattedConfigTree();
-  }, []);
 
   return (
     <Tabs
@@ -408,10 +424,10 @@ const AdminPanel = (): React.ReactElement => {
           </div>
         }
       />
-      {settings.suggestiveModeEnabled.value && (
+      {isSyncEnabled() && (
         <Tab
-          id="suggestive-mode-settings"
-          title="Suggestive mode"
+          id="sync-mode-settings"
+          title="Sync mode"
           className="overflow-y-auto"
           panel={<SuggestiveModeSettings />}
         />

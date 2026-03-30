@@ -88,14 +88,14 @@ const discourseNodeSettings: DiscourseNodeSettings = {
 
 const featureFlags: FeatureFlags = {
   "Enable left sidebar": true,
-  "Suggestive mode enabled": true,
   "Duplicate node alert enabled": true,
+  "Suggestive mode overlay enabled": true,
 };
 
 const defaultFeatureFlags: FeatureFlags = {
   "Enable left sidebar": false,
-  "Suggestive mode enabled": false,
   "Duplicate node alert enabled": false,
+  "Suggestive mode overlay enabled": false,
 };
 
 const exportSettings: ExportSettings = {
@@ -364,7 +364,6 @@ const personalSettings: PersonalSettings = {
   "Node search menu trigger": "//",
   "Discourse tool shortcut": { modifiers: 0, key: "d" },
   "Discourse context overlay": true,
-  "Suggestive mode overlay": true,
   "Overlay in canvas": false,
   "Text selection popup": true,
   "Disable sidebar open": false,
@@ -393,7 +392,6 @@ const defaultPersonalSettings: PersonalSettings = {
   "Node search menu trigger": "",
   "Discourse tool shortcut": { modifiers: 0, key: "" },
   "Discourse context overlay": false,
-  "Suggestive mode overlay": false,
   "Overlay in canvas": false,
   "Text selection popup": true,
   "Disable sidebar open": false,
