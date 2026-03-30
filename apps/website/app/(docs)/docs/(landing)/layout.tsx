@@ -3,16 +3,16 @@ import DocsThemeLayout from "../_components/DocsThemeLayout";
 import "../../../(nextra)/nextra-css.css";
 import "nextra-theme-docs/style-prefixed.css";
 
-type RoamDocsLayoutProps = {
+type DocsLandingLayoutProps = {
   children: React.ReactNode;
 };
 
-const RoamDocsLayout = async ({
+const DocsLandingLayout = async ({
   children,
-}: RoamDocsLayoutProps): Promise<React.ReactElement> => {
-  const pageMap = await getPageMap("/docs/roam");
+}: DocsLandingLayoutProps): Promise<React.ReactElement> => {
+  const pageMap = await getPageMap("/docs");
 
   return <DocsThemeLayout pageMap={pageMap}>{children}</DocsThemeLayout>;
 };
 
-export default RoamDocsLayout;
+export default DocsLandingLayout;

@@ -1,0 +1,76 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { generateStaticParamsFor, importPage } from "nextra/pages";
+import { useMDXComponents } from "../../../../../mdx-components";
+
+type DocsPageProps = {
+  params: Promise<{
+    mdxPath?: string[];
+  }>;
+};
+
+type ImportedPage = Awaited<ReturnType<typeof importPage>>;
+
+const { wrapper } = useMDXComponents();
+
+const Wrapper = wrapper as React.ComponentType<{
+  children: React.ReactNode;
+  metadata: ImportedPage["metadata"];
+  toc: ImportedPage["toc"];
+}>;
+
+const generateAllStaticParams = generateStaticParamsFor("mdxPath");
+
+const loadPage = async (mdxPath?: string[]): Promise<ImportedPage> =>
+  importPage(["roam", ...(mdxPath ?? [])]);
+
+export const generateStaticParams = async (): Promise<
+  Array<{ mdxPath?: string[] }>
+> => {
+  const staticParams = await generateAllStaticParams();
+
+  return staticParams.flatMap(({ mdxPath }) => {
+    if (!Array.isArray(mdxPath) || mdxPath[0] !== "roam") {
+      return [];
+    }
+
+    const platformPath = mdxPath.slice(1);
+
+    return platformPath.length ? [{ mdxPath: platformPath }] : [{}];
+  });
+};
+
+const Page = async ({ params }: DocsPageProps): Promise<React.ReactElement> => {
+  try {
+    const { mdxPath } = await params;
+    const { default: MDXContent, metadata, toc } = await loadPage(mdxPath);
+
+    return (
+      <Wrapper metadata={metadata} toc={toc}>
+        <MDXContent params={{ mdxPath: mdxPath ?? [] }} />
+      </Wrapper>
+    );
+  } catch (error) {
+    console.error("Error rendering Roam docs page:", error);
+    notFound();
+  }
+};
+
+export const generateMetadata = async ({
+  params,
+}: DocsPageProps): Promise<Metadata> => {
+  try {
+    const { mdxPath } = await params;
+    const { metadata } = await loadPage(mdxPath);
+
+    return metadata;
+  } catch (error) {
+    console.error("Error generating Roam docs metadata:", error);
+
+    return {
+      title: "Roam docs",
+    };
+  }
+};
+
+export default Page;

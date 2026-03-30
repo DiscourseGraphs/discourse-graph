@@ -1,10 +1,18 @@
-import { navigation } from "./navigation";
-import { Layout } from "~/components/DocsLayout";
+import { getPageMap } from "nextra/page-map";
+import DocsThemeLayout from "../_components/DocsThemeLayout";
+import "../../../(nextra)/nextra-css.css";
+import "nextra-theme-docs/style-prefixed.css";
 
-export default function RootLayout({
-  children,
-}: {
+type ObsidianDocsLayoutProps = {
   children: React.ReactNode;
-}) {
-  return <Layout navigationList={navigation}>{children}</Layout>;
-}
+};
+
+const ObsidianDocsLayout = async ({
+  children,
+}: ObsidianDocsLayoutProps): Promise<React.ReactElement> => {
+  const pageMap = await getPageMap("/docs/obsidian");
+
+  return <DocsThemeLayout pageMap={pageMap}>{children}</DocsThemeLayout>;
+};
+
+export default ObsidianDocsLayout;

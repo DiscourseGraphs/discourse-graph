@@ -6,31 +6,49 @@ import { usePathname } from "next/navigation";
 import { PlatformBadge } from "./PlatformBadge";
 
 const DOCS_PLATFORMS = {
-  "/docs/obsidian/": "obsidian",
-  "/docs/roam/": "roam",
+  "/docs/obsidian": "obsidian",
+  "/docs/roam": "roam",
 } as const;
 
-export const Logo = () => {
+type LogoProps = {
+  linked?: boolean;
+  textClassName?: string;
+};
+
+export const Logo = ({
+  linked = true,
+  textClassName = "text-neutral-dark",
+}: LogoProps) => {
   const pathname = usePathname();
 
   const platform = Object.entries(DOCS_PLATFORMS).find(([path]) =>
     pathname.includes(path),
   )?.[1];
 
+  const brand = (
+    <>
+      <Image
+        src="/logo-screenshot-48.png"
+        alt="Discourse Graphs Logo"
+        width={48}
+        height={48}
+      />
+
+      <span className={`text-3xl font-bold ${textClassName}`}>
+        Discourse Graphs
+      </span>
+    </>
+  );
+
   return (
     <div className="flex items-center space-x-2">
-      <Link href="/" className="flex items-center space-x-2">
-        <Image
-          src="/logo-screenshot-48.png"
-          alt="Discourse Graphs Logo"
-          width={48}
-          height={48}
-        />
-
-        <span className="text-3xl font-bold text-neutral-dark">
-          Discourse Graphs
-        </span>
-      </Link>
+      {linked ? (
+        <Link href="/" className="flex items-center space-x-2">
+          {brand}
+        </Link>
+      ) : (
+        <div className="flex items-center space-x-2">{brand}</div>
+      )}
       {platform && (
         <div className="">
           <PlatformBadge platform={platform} />
