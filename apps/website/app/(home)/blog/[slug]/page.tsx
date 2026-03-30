@@ -1,10 +1,9 @@
 import fs from "fs/promises";
-import path from "path";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getProcessedMarkdownFile } from "~/utils/getProcessedMarkdownFile";
-import { BLOG_PATH } from "~/data/constants";
 import { getFileMetadata } from "~/utils/getFileMetadata";
+import { BLOG_DIRECTORY } from "~/(home)/blog/blogDirectory";
 
 type Params = {
   params: Promise<{
@@ -17,7 +16,7 @@ const BlogPost = async ({ params }: Params) => {
     const { slug } = await params;
     const { data, contentHtml } = await getProcessedMarkdownFile({
       slug,
-      directory: BLOG_PATH,
+      directory: BLOG_DIRECTORY,
     });
 
     return (
@@ -46,9 +45,8 @@ const BlogPost = async ({ params }: Params) => {
 
 export const generateStaticParams = async () => {
   try {
-    const blogPath = path.resolve(process.cwd(), BLOG_PATH);
     const directoryExists = await fs
-      .stat(blogPath)
+      .stat(BLOG_DIRECTORY)
       .then((stats) => stats.isDirectory())
       .catch(() => false);
 
@@ -59,7 +57,7 @@ export const generateStaticParams = async () => {
       return [];
     }
 
-    const files = await fs.readdir(blogPath);
+    const files = await fs.readdir(BLOG_DIRECTORY);
 
     const mdFiles = files.filter((filename) => filename.endsWith(".md"));
 
@@ -68,7 +66,7 @@ export const generateStaticParams = async () => {
         try {
           const { published } = await getFileMetadata({
             filename,
-            directory: BLOG_PATH,
+            directory: BLOG_DIRECTORY,
           });
           return { filename, published };
         } catch (error) {
@@ -100,7 +98,7 @@ export const generateMetadata = async ({
     const { slug } = await params;
     const { data } = await getProcessedMarkdownFile({
       slug,
-      directory: BLOG_PATH,
+      directory: BLOG_DIRECTORY,
     });
 
     return {
