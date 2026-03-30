@@ -864,7 +864,7 @@ const TldrawCanvasShared = ({
         actionListener,
       );
     };
-  }, [appRef, allNodes]);
+  }, [appRef, allNodes, pageUid]);
 
   // Catch a custom event we used patch-package to add
   useEffect(() => {
