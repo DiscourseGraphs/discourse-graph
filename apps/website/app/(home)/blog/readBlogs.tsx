@@ -1,10 +1,8 @@
 import path from "path";
 import fs from "fs/promises";
 import matter from "gray-matter";
-import { BLOG_PATH } from "~/data/constants";
 import { PageSchema, type PageData } from "~/types/schema";
-
-const BLOG_DIRECTORY = path.join(process.cwd(), BLOG_PATH);
+import { BLOG_DIRECTORY } from "./blogDirectory";
 
 async function validateBlogDirectory(): Promise<boolean> {
   try {
