@@ -129,15 +129,38 @@ export type DiscourseContextType = {
   nodes: Record<string, DiscourseNode & { index: number }>;
   // { [Relation.Label] => DiscourseRelation[] }
   relations: Record<string, DiscourseRelation[]>;
-  lastAppEvent: string;
-  lastActions: HistoryEntry<TLRecord>[];
 };
 
 export const discourseContext: DiscourseContextType = {
   nodes: {},
   relations: {},
-  lastAppEvent: "",
-  lastActions: [],
+};
+
+let activeCanvasPageUid: string | null = null;
+let activeCanvasEditor: Editor | null = null;
+
+const setActiveCanvas = ({
+  pageUid,
+  editor,
+}: {
+  pageUid: string;
+  editor: Editor | null;
+}) => {
+  if (activeCanvasPageUid === pageUid && activeCanvasEditor === editor) {
+    if (editor && !editor.getInstanceState().isFocused) editor.focus();
+    return;
+  }
+
+  if (activeCanvasEditor && activeCanvasEditor !== editor) {
+    activeCanvasEditor.blur();
+  }
+
+  activeCanvasPageUid = pageUid;
+  activeCanvasEditor = editor;
+
+  if (editor && !editor.getInstanceState().isFocused) {
+    editor.focus();
+  }
 };
 
 export const DEFAULT_WIDTH = 160;
@@ -358,9 +381,7 @@ const TldrawCanvasShared = ({
   const appRef = useRef<Editor | null>(null);
   const lastInsertRef = useRef<VecModel>();
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastActionsRef = useRef<HistoryEntry<TLRecord>[]>(
-    discourseContext.lastActions,
-  );
+  const lastActionsRef = useRef<HistoryEntry<TLRecord>[]>([]);
 
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
 
@@ -725,6 +746,16 @@ const TldrawCanvasShared = ({
       inSidebar: !!containerRef.current?.closest(".rm-sidebar-outline"),
     });
   }, [pageUid]);
+
+  useEffect(() => {
+    return () => {
+      if (activeCanvasPageUid === pageUid) {
+        activeCanvasEditor?.blur();
+        activeCanvasPageUid = null;
+        activeCanvasEditor = null;
+      }
+    };
+  }, [pageUid]);
   const { store, needsUpgrade, performUpgrade, error, isLoading } =
     useStoreAdapter(storeAdapterArgs);
   const migratedCloudStoreRef = useRef<string | null>(null);
@@ -788,10 +819,14 @@ const TldrawCanvasShared = ({
         uid?: string;
         val?: string;
         shapeId?: TLShapeId;
+        targetCanvasPageUid?: string;
         onRefresh: () => void;
       }>,
     ) => {
       if (!/canvas/i.test(e.detail.action)) return;
+      const targetCanvasPageUid =
+        e.detail.targetCanvasPageUid ?? activeCanvasPageUid;
+      if (targetCanvasPageUid !== pageUid) return;
       const app = appRef.current;
       if (!app) return;
       const { x, y } = app.getViewportScreenCenter();
@@ -917,6 +952,9 @@ const TldrawCanvasShared = ({
       tabIndex={-1}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onPointerDownCapture={() => {
+        setActiveCanvas({ pageUid, editor: appRef.current });
+      }}
     >
       {isCloudflareSync && (
         <div
@@ -987,6 +1025,7 @@ const TldrawCanvasShared = ({
           <TldrawEditor
             // baseUrl="https://samepage.network/assets/tldraw/"
             // instanceId={initialState.instanceId}
+            autoFocus={false}
             initialState="select"
             shapeUtils={[...defaultShapeUtils, ...customShapeUtils]}
             tools={[...defaultTools, ...defaultShapeTools, ...customTools]}
@@ -1001,6 +1040,10 @@ const TldrawCanvasShared = ({
               }
 
               appRef.current = app;
+
+              if (!activeCanvasPageUid || activeCanvasPageUid === pageUid) {
+                setActiveCanvas({ pageUid, editor: app });
+              }
 
               void syncCanvasNodeTitlesOnLoad(
                 app,
@@ -1021,8 +1064,6 @@ const TldrawCanvasShared = ({
 
               app.on("event", (event) => {
                 const e = event as TLPointerEventInfo;
-
-                discourseContext.lastAppEvent = e.name;
 
                 // Handle relation creation on pointer_down
                 handleRelationCreation(app, e);

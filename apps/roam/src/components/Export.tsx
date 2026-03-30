@@ -65,7 +65,7 @@ import {
   createNodeShapeUtils,
   DiscourseNodeShape,
 } from "~/components/canvas/DiscourseNodeUtil";
-import { discourseContext, MAX_WIDTH } from "~/components/canvas/Tldraw";
+import { MAX_WIDTH } from "~/components/canvas/Tldraw";
 import internalError from "~/utils/internalError";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import { isTLStoreSnapshot } from "./canvas/useRoamStore";
@@ -79,9 +79,7 @@ import {
   createAllReferencedNodeUtils,
 } from "./canvas/DiscourseRelationShape/DiscourseRelationUtil";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import getDiscourseRelations, {
-  DiscourseRelation,
-} from "~/utils/getDiscourseRelations";
+import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import { AddReferencedNodeType } from "./canvas/DiscourseRelationShape/DiscourseRelationTool";
 import posthog from "posthog-js";
 
@@ -312,17 +310,6 @@ const ExportDialog: ExportDialogComponent = ({
     // TODO lots of this is reused in tldraw.tsx, use a function to avoid duplication
     if (!isTLStore) {
       const relations = getDiscourseRelations();
-      discourseContext.relations = relations.reduce(
-        (acc, r) => {
-          if (acc[r.label]) {
-            acc[r.label].push(r);
-          } else {
-            acc[r.label] = [r];
-          }
-          return acc;
-        },
-        {} as Record<string, DiscourseRelation[]>,
-      );
       const allRelations = relations;
       const allRelationIds = allRelations.map((r) => r.id);
       const allNodes = getDiscourseNodes(allRelations);

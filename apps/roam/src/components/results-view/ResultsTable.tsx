@@ -229,7 +229,11 @@ const ResultRow = ({
       return (
         <Button
           {...buttonProps}
-          onClick={() => {
+          onClick={(event) => {
+            const targetCanvasPageUid =
+              event.currentTarget
+                .closest<HTMLElement>("[data-page-uid]")
+                ?.dataset.pageUid || undefined;
             document.dispatchEvent(
               new CustomEvent("roamjs:query-builder:action", {
                 detail: {
@@ -238,6 +242,7 @@ const ResultRow = ({
                   val: r["text"],
                   onRefresh,
                   queryUid: parentUid,
+                  targetCanvasPageUid,
                 },
               }),
             );
