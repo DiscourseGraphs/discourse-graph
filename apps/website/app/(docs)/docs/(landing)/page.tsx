@@ -1,47 +1,95 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { importPage } from "nextra/pages";
-import { useMDXComponents } from "../../../../mdx-components";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { Card, CardContent } from "@repo/ui/components/ui/card";
+import { PlatformBadge } from "~/components/PlatformBadge";
+import { Logo } from "~/components/Logo";
 
-type ImportedPage = Awaited<ReturnType<typeof importPage>>;
-
-const { wrapper } = useMDXComponents();
-
-const Wrapper = wrapper as React.ComponentType<{
-  children: React.ReactNode;
-  metadata: ImportedPage["metadata"];
-  toc: ImportedPage["toc"];
-}>;
-
-const loadPage = async (): Promise<ImportedPage> => importPage([]);
-
-const Page = async (): Promise<React.ReactElement> => {
-  try {
-    const { default: MDXContent, metadata, toc } = await loadPage();
-
-    return (
-      <Wrapper metadata={metadata} toc={toc}>
-        <MDXContent params={{ mdxPath: [] }} />
-      </Wrapper>
-    );
-  } catch (error) {
-    console.error("Error rendering docs landing page:", error);
-    notFound();
-  }
+export const metadata: Metadata = {
+  title: "Documentation",
+  description:
+    "Choose the Discourse Graphs documentation for Roam Research or Obsidian.",
 };
 
-export const generateMetadata = async (): Promise<Metadata> => {
-  try {
-    const { metadata } = await loadPage();
+const DOCS_DESTINATIONS = [
+  {
+    description:
+      "Installation, graph building, querying, and advanced workflows for the Roam Research plugin.",
+    href: "/docs/roam",
+    platform: "roam",
+    title: "Roam docs",
+  },
+  {
+    description:
+      "Setup, node and relation authoring, sync, and workspace configuration for the Obsidian plugin.",
+    href: "/docs/obsidian",
+    platform: "obsidian",
+    title: "Obsidian docs",
+  },
+] as const;
 
-    return metadata;
-  } catch (error) {
-    console.error("Error generating docs landing metadata:", error);
+const DocsLandingPage = (): React.ReactElement => {
+  return (
+    <div className="min-h-screen bg-neutral-light font-[family:var(--font-inter)] text-neutral-dark">
+      <header className="border-b border-black/5 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
+          <Logo />
+          <Link
+            href="/"
+            className="text-sm font-medium text-neutral-dark/70 hover:text-neutral-dark"
+          >
+            Back to site
+          </Link>
+        </div>
+      </header>
 
-    return {
-      title: "Docs",
-    };
-  }
+      <main className="px-6 py-16 sm:py-24">
+        <div className="mx-auto max-w-6xl">
+          <section className="max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-secondary">
+              Documentation
+            </p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-primary sm:text-5xl">
+              Choose your docs
+            </h1>
+            <p className="mt-6 text-lg leading-8 text-neutral-dark/80">
+              Discourse Graphs has separate documentation for each client. Pick
+              the one you are using to get the right setup instructions,
+              workflows, and reference pages.
+            </p>
+          </section>
+
+          <section className="mt-12 grid gap-6 md:grid-cols-2">
+            {DOCS_DESTINATIONS.map(({ description, href, platform, title }) => (
+              <Link key={href} href={href} className="group block h-full">
+                <Card className="h-full rounded-2xl border border-black/5 bg-white shadow-sm transition-transform duration-200 group-hover:-translate-y-1 group-hover:shadow-lg">
+                  <CardContent className="flex h-full flex-col gap-8 p-8">
+                    <div className="flex items-start justify-between gap-4">
+                      <PlatformBadge platform={platform} />
+                      <ArrowRight className="h-5 w-5 shrink-0 text-neutral-dark/40 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-secondary" />
+                    </div>
+
+                    <div className="space-y-4">
+                      <h2 className="text-2xl font-semibold tracking-tight text-primary">
+                        {title}
+                      </h2>
+                      <p className="text-base leading-7 text-neutral-dark/75">
+                        {description}
+                      </p>
+                    </div>
+
+                    <p className="mt-auto text-sm font-semibold text-secondary">
+                      Open documentation
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </section>
+        </div>
+      </main>
+    </div>
+  );
 };
 
-export default Page;
+export default DocsLandingPage;
