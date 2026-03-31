@@ -12,7 +12,11 @@ const ObsidianDocsLayout = async ({
 }: ObsidianDocsLayoutProps): Promise<React.ReactElement> => {
   const pageMap = await getPageMap("/docs/obsidian");
 
-  return <DocsThemeLayout pageMap={pageMap}>{children}</DocsThemeLayout>;
+  return (
+    <DocsThemeLayout pageMap={pageMap} searchScope="obsidian">
+      {children}
+    </DocsThemeLayout>
+  );
 };
 
 export default ObsidianDocsLayout;

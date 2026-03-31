@@ -5,12 +5,17 @@ import matter from "gray-matter";
 import { createIndex, close } from "pagefind";
 
 /**
+ * @typedef {Record<string, string[]>} SearchFilters
+ */
+
+/**
  * @typedef {{
  *   url: string;
  *   content: string;
  *   meta: {
  *     title: string;
  *   };
+ *   filters?: SearchFilters;
  * }} SearchRecord
  */
 
@@ -71,6 +76,24 @@ export const routePathFromContentFile = (absoluteFilePath) => {
 
 /**
  * @param {string} absoluteFilePath
+ * @returns {SearchFilters | undefined}
+ */
+export const searchFiltersFromContentFile = (absoluteFilePath) => {
+  const relativePath = path.relative(CONTENT_ROOT, absoluteFilePath);
+  const normalizedPath = relativePath.replace(/\\/g, "/");
+  const [topLevelDirectory] = normalizedPath.split("/");
+
+  if (DOC_DIRECTORIES.includes(topLevelDirectory)) {
+    return {
+      platform: [topLevelDirectory],
+    };
+  }
+
+  return undefined;
+};
+
+/**
+ * @param {string} absoluteFilePath
  * @returns {string}
  */
 const titleFromFilePath = (absoluteFilePath) =>
@@ -125,6 +148,7 @@ const readDocRecord = async (absoluteFilePath) => {
       ? data.title.trim()
       : titleFromFilePath(absoluteFilePath);
   const searchText = markdownToSearchText(content);
+  const filters = searchFiltersFromContentFile(absoluteFilePath);
 
   if (!searchText.length) {
     return null;
@@ -136,6 +160,7 @@ const readDocRecord = async (absoluteFilePath) => {
     meta: {
       title,
     },
+    ...(filters ? { filters } : {}),
   };
 };
 
@@ -148,11 +173,10 @@ const collectDocRecords = async () => {
       collectMarkdownFiles(path.join(CONTENT_ROOT, directory)),
     ),
   );
-  const topLevelDocs = [path.join(CONTENT_ROOT, "index.mdx")];
-  const allFiles = [...topLevelDocs, ...docFiles.flat()];
+  const allFiles = docFiles.flat();
   const records = await Promise.all(allFiles.map(readDocRecord));
 
-  return records.filter(Boolean);
+  return records.filter((record) => record !== null);
 };
 
 /**
@@ -198,7 +222,7 @@ const buildDocsSearchIndex = async () => {
 
 const isDirectExecution =
   process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href;
+  import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 
 if (isDirectExecution) {
   void buildDocsSearchIndex()

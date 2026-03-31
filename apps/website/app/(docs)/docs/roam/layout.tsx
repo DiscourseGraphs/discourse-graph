@@ -12,7 +12,11 @@ const RoamDocsLayout = async ({
 }: RoamDocsLayoutProps): Promise<React.ReactElement> => {
   const pageMap = await getPageMap("/docs/roam");
 
-  return <DocsThemeLayout pageMap={pageMap}>{children}</DocsThemeLayout>;
+  return (
+    <DocsThemeLayout pageMap={pageMap} searchScope="roam">
+      {children}
+    </DocsThemeLayout>
+  );
 };
 
 export default RoamDocsLayout;
