@@ -155,6 +155,7 @@ export class InlineNodeTypePicker {
       if (e.key === "ArrowDown") {
         e.preventDefault();
         e.stopPropagation();
+        if (this.items.length === 0) return;
         const newIndex = Math.min(
           this.selectedIndex + 1,
           this.items.length - 1,
