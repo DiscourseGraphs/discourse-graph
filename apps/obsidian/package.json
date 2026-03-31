@@ -43,6 +43,7 @@
     "@repo/utils": "workspace:*",
     "@supabase/supabase-js": "catalog:",
     "date-fns": "^4.1.0",
+    "driver.js": "^1.4.0",
     "gray-matter": "^4.0.3",
     "mime-types": "^3.0.1",
     "nanoid": "^4.0.2",

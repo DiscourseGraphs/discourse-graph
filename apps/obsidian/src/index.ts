@@ -32,9 +32,15 @@ import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
 import generateUid from "~/utils/generateUid";
 import { migrateFrontmatterRelationsToRelationsJson } from "~/utils/relationsStore";
+import { DriverjsOnboardingTourManager } from "~/components/onboarding-driverjs/DriverjsOnboardingTourManager";
+import { OnboardingTourManager } from "./components/onboarding/OnboardingTourManager";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
+  onboardingTourManager:
+    | OnboardingTourManager
+    | DriverjsOnboardingTourManager
+    | null = null;
   private styleElement: HTMLStyleElement | null = null;
   private tagNodeHandler: TagNodeHandler | null = null;
   private fileChangeListener: FileChangeListener | null = null;
@@ -255,6 +261,34 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     // Register editor keydown listener for node tag hotkey
     this.setupNodeTagHotkey();
+
+    // Show onboarding notice once workspace is ready
+    this.app.workspace.onLayoutReady(() => {
+      this.showOnboardingNotice();
+    });
+  }
+
+  private showOnboardingNotice() {
+    const fragment = document.createDocumentFragment();
+
+    const text = document.createElement("span");
+    text.textContent = "Welcome to Discourse Graphs! ";
+    fragment.appendChild(text);
+
+    const link = document.createElement("a");
+    link.textContent = "Take a quick tour";
+    link.href = "#";
+    link.style.cursor = "pointer";
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (!this.onboardingTourManager) {
+        this.onboardingTourManager = new DriverjsOnboardingTourManager(this);
+      }
+      this.onboardingTourManager.start();
+    });
+    fragment.appendChild(link);
+
+    new Notice(fragment, 0); // 0 = stays until dismissed
   }
 
   private setupNodeTagHotkey() {
@@ -440,6 +474,12 @@ export default class DiscourseGraphPlugin extends Plugin {
       this.fileChangeListener.cleanup();
       this.fileChangeListener = null;
     }
+
+    if (this.onboardingTourManager) {
+      this.onboardingTourManager.stop();
+      this.onboardingTourManager = null;
+    }
+
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_DISCOURSE_CONTEXT);
   }
 }

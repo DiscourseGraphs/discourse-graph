@@ -13,6 +13,8 @@ import { publishNode } from "./publishNode";
 import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 import type { DiscourseNode } from "~/types";
 import { TldrawView } from "~/components/canvas/TldrawView";
+import { DriverjsOnboardingTourManager } from "~/components/onboarding-driverjs/DriverjsOnboardingTourManager";
+import { OnboardingTourManager } from "~/components/onboarding/OnboardingTourManager";
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;
@@ -249,6 +251,18 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       return true;
     },
   });
+  plugin.addCommand({
+    id: "start-onboarding-tour",
+    name: "Start onboarding tour",
+    callback: () => {
+      if (!plugin.onboardingTourManager) {
+        // plugin.onboardingTourManager = new DriverjsOnboardingTourManager(plugin);
+        plugin.onboardingTourManager = new OnboardingTourManager(plugin);
+      }
+      plugin.onboardingTourManager.start();
+    },
+  });
+
   plugin.addCommand({
     id: "publish-discourse-node",
     name: "Publish current node to lab space",
