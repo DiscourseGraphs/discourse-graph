@@ -1,1 +1,5 @@
 @tailwind utilities;
+
+.nextra-reset {
+  --nextra-content-width: 90rem;
+}
