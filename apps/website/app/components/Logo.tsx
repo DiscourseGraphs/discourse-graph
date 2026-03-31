@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { PlatformBadge } from "./PlatformBadge";
 
@@ -27,11 +26,19 @@ export const Logo = ({
 
   const brand = (
     <>
-      <Image
-        src="/logo-screenshot-48.png"
-        alt="Discourse Graphs Logo"
-        width={48}
-        height={48}
+      <span
+        aria-hidden="true"
+        className={`block h-12 w-12 shrink-0 bg-current ${textClassName}`}
+        style={{
+          WebkitMaskImage: "url('/logo-light-48.svg')",
+          maskImage: "url('/logo-light-48.svg')",
+          WebkitMaskPosition: "center",
+          maskPosition: "center",
+          WebkitMaskRepeat: "no-repeat",
+          maskRepeat: "no-repeat",
+          WebkitMaskSize: "contain",
+          maskSize: "contain",
+        }}
       />
 
       <span className={`text-3xl font-bold ${textClassName}`}>
