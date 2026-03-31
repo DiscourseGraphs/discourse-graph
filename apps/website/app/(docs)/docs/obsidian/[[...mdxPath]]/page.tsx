@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { generateStaticParamsFor, importPage } from "nextra/pages";
-import { useMDXComponents } from "../../../../../mdx-components";
+import DocsPageTemplate from "../../_components/DocsPageTemplate";
 
 type DocsPageProps = {
   params: Promise<{
@@ -10,14 +10,6 @@ type DocsPageProps = {
 };
 
 type ImportedPage = Awaited<ReturnType<typeof importPage>>;
-
-const { wrapper } = useMDXComponents();
-
-const Wrapper = wrapper as React.ComponentType<{
-  children: React.ReactNode;
-  metadata: ImportedPage["metadata"];
-  toc: ImportedPage["toc"];
-}>;
 
 const generateAllStaticParams = generateStaticParamsFor("mdxPath");
 
@@ -43,12 +35,13 @@ export const generateStaticParams = async (): Promise<
 const Page = async ({ params }: DocsPageProps): Promise<React.ReactElement> => {
   try {
     const { mdxPath } = await params;
-    const { default: MDXContent, metadata, toc } = await loadPage(mdxPath);
+    const result = await loadPage(mdxPath);
+    const { default: MDXContent, ...wrapperProps } = result;
 
     return (
-      <Wrapper metadata={metadata} toc={toc}>
+      <DocsPageTemplate {...wrapperProps}>
         <MDXContent params={{ mdxPath: mdxPath ?? [] }} />
-      </Wrapper>
+      </DocsPageTemplate>
     );
   } catch (error) {
     console.error("Error rendering Obsidian docs page:", error);
