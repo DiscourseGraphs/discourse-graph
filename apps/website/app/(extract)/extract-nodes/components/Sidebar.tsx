@@ -1,3 +1,4 @@
+import { Button } from "@repo/ui/components/ui/button";
 import { ChevronDown } from "lucide-react";
 
 const NODE_TYPES = [
@@ -80,13 +81,13 @@ export const Sidebar = () => {
 
         <section className="mb-6">
           <h3 className={SECTION_LABEL_CLASS}>Model</h3>
-          <button
-            type="button"
-            className="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-[16px] font-medium text-slate-700"
+          <Button
+            variant="outline"
+            className="w-full justify-between rounded-xl border-slate-300 px-3.5 py-3 text-[16px] font-medium text-slate-700"
           >
             <span>Claude Sonnet 4.6</span>
             <ChevronDown className="h-4 w-4 text-slate-500" />
-          </button>
+          </Button>
         </section>
 
         <section className="mb-5">
@@ -154,12 +155,9 @@ export const Sidebar = () => {
         <p className="mb-2 text-[14px] font-medium text-slate-500">
           Ready to run extraction.
         </p>
-        <button
-          type="button"
-          className="flex w-full items-center justify-center rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 px-4 py-3.5 text-[17px] font-semibold text-white shadow-[0_14px_24px_-18px_rgba(15,23,42,0.85),inset_0_1px_0_rgba(255,255,255,0.12)] hover:from-slate-700 hover:to-slate-800"
-        >
+        <Button className="w-full rounded-xl bg-slate-900 py-6 text-[17px] font-semibold text-white hover:bg-slate-800">
           Re-Extract
-        </button>
+        </Button>
       </div>
     </aside>
   );

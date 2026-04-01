@@ -1,3 +1,4 @@
+import { Button } from "@repo/ui/components/ui/button";
 import { Copy } from "lucide-react";
 
 const NODE_TYPE_COLORS: Record<string, string> = {
@@ -223,24 +224,22 @@ export const MainContent = () => {
 
         <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200/85 bg-white/95 px-4 py-3.5 backdrop-blur sm:flex-row sm:items-center sm:justify-between lg:px-5">
           <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              className="rounded-full border border-slate-200 bg-white px-3.5 py-2 text-[14px] font-semibold text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full border-slate-200 text-slate-600"
             >
               Deselect All
-            </button>
+            </Button>
             <span className="text-[14px] font-medium tabular-nums text-slate-500">
               {SAMPLE_NODES.length} of {SAMPLE_NODES.length} selected
             </span>
           </div>
 
-          <button
-            type="button"
-            className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-slate-800 to-slate-900 px-4 py-2.5 text-[15px] font-semibold text-white shadow-[0_14px_24px_-18px_rgba(15,23,42,0.85),inset_0_1px_0_rgba(255,255,255,0.12)] hover:from-slate-700 hover:to-slate-800"
-          >
+          <Button className="gap-2 rounded-full bg-slate-900 text-white hover:bg-slate-800">
             <Copy className="h-4 w-4" />
             Copy to Clipboard
-          </button>
+          </Button>
         </div>
       </div>
     </section>
