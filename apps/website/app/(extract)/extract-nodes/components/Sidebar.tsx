@@ -12,7 +12,7 @@ const NODE_TYPES = [
 
 const CHECKED_TYPES = new Set(["CLM", "EVD"]);
 
-const sectionLabelClass =
+const SECTION_LABEL_CLASS =
   "mb-3 block px-1 text-[18px] font-semibold tracking-[-0.016em] text-slate-800";
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -21,7 +21,7 @@ export const Sidebar = () => {
     <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-[24px] border border-slate-200/85 bg-white shadow-[0_26px_52px_-38px_rgba(15,23,42,0.6)] lg:w-[390px] xl:w-[420px]">
       <div className="flex-1 overflow-y-auto p-4 lg:p-5">
         <section className="mb-6">
-          <h3 className={sectionLabelClass}>Paper</h3>
+          <h3 className={SECTION_LABEL_CLASS}>Paper</h3>
           <div className="group relative flex w-full items-start gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-3.5 text-left">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-b from-rose-500 to-rose-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]">
               <span className="text-[11px] font-bold tracking-[0.02em] text-white">
@@ -41,7 +41,7 @@ export const Sidebar = () => {
         </section>
 
         <section className="mb-6">
-          <h3 className={sectionLabelClass}>Model</h3>
+          <h3 className={SECTION_LABEL_CLASS}>Model</h3>
           <div className="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white py-3 pl-3.5 pr-3.5 text-left text-[16px] font-medium text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
             <span>Claude Sonnet 4.6</span>
             <svg
@@ -61,7 +61,7 @@ export const Sidebar = () => {
         </section>
 
         <section className="mb-5">
-          <h3 className={sectionLabelClass}>Research Question</h3>
+          <h3 className={SECTION_LABEL_CLASS}>Research Question</h3>
           <div className="w-full resize-none rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-[16px] text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
             What are the molecular determinants of lumenoid formation in hiPSCs?
           </div>
