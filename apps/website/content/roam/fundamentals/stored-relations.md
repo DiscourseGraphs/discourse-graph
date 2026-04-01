@@ -13,7 +13,7 @@ A stored relation connects two discourse nodes with a named relation type, such 
 
 Stored relations are:
 
-- Created directly in the [**Discourse context overlay**](/docs/roam/views-and-tools/discourse-context-overlay)
+- Created directly in the [**Discourse context overlay**](/docs/roam/guides/exploring-discourse-graph/discourse-context-overlay)
 - Persisted in your graph as structured data
 - Available anywhere Discourse Graph reads relationships
 
@@ -47,7 +47,7 @@ The relation is stored immediately.
 
 Stored relations appear throughout Discourse Graph:
 
-- The [**Discourse context overlay**](/docs/roam/views-and-tools/discourse-context-overlay) shows relations for the current node
+- The [**Discourse context overlay**](/docs/roam/guides/exploring-discourse-graph/discourse-context-overlay) shows relations for the current node
 - Queries can resolve relations from stored data
 - Canvases can use the same stored relationships
 

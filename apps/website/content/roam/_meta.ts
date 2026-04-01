@@ -8,7 +8,6 @@ const meta: MetaRecord = {
   welcome: "Welcome",
   guides: "Guides",
   fundamentals: "Fundamentals",
-  "views-and-tools": "Views and tools",
   "use-cases": "Use cases",
 };
 

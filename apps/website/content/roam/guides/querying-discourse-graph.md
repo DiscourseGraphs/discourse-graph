@@ -45,7 +45,7 @@ Example: find all evidence that informs a question, and select a methods attribu
 
 ### Select discourse attributes to display as attributes of results
 
-If you have defined [Discourse Attributes](/docs/roam/views-and-tools/discourse-attributes) for the node you want to query, you can select it as a column in your query. The syntax for accessing a node's discourse attribute as a select is`discourse:discourseAttributeName`.
+If you have defined [Discourse Attributes](/docs/roam/guides/exploring-discourse-graph/discourse-attributes) for the node you want to query, you can select it as a column in your query. The syntax for accessing a node's discourse attribute as a select is`discourse:discourseAttributeName`.
 
 Example: find all claims and display their "Evidence" discourse attributes (number of supporting evidence relations) as a column.
 

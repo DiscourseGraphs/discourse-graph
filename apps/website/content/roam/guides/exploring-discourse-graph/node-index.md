@@ -5,10 +5,10 @@ author: ""
 published: true
 ---
 
-- [Discourse context](/docs/roam/views-and-tools/discourse-context)
-- [Discourse context overlay](/docs/roam/views-and-tools/discourse-context-overlay)
-- [Discourse attributes](/docs/roam/views-and-tools/discourse-attributes)
-- [Node index](/docs/roam/views-and-tools/node-index)
+- [Discourse context](/docs/roam/guides/exploring-discourse-graph/discourse-context)
+- [Discourse context overlay](/docs/roam/guides/exploring-discourse-graph/discourse-context-overlay)
+- [Discourse attributes](/docs/roam/guides/exploring-discourse-graph/discourse-attributes)
+- [Node index](/docs/roam/guides/exploring-discourse-graph/node-index)
 
 The extension has node settings tabs for each node you define, which provides a query over all of your nodes of that type. For example, you can go to the Claim tab to see all the Claim nodes in your graph.
 

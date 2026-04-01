@@ -5,10 +5,10 @@ author: ""
 published: true
 ---
 
-- [Discourse context](/docs/roam/views-and-tools/discourse-context)
-- [Discourse context overlay](/docs/roam/views-and-tools/discourse-context-overlay)
-- [Discourse attributes](/docs/roam/views-and-tools/discourse-attributes)
-- [Node index](/docs/roam/views-and-tools/node-index)
+- [Discourse context](/docs/roam/guides/exploring-discourse-graph/discourse-context)
+- [Discourse context overlay](/docs/roam/guides/exploring-discourse-graph/discourse-context-overlay)
+- [Discourse attributes](/docs/roam/guides/exploring-discourse-graph/discourse-attributes)
+- [Node index](/docs/roam/guides/exploring-discourse-graph/node-index)
 
 The discourse context component adds a "higher-signal" linked references section to each discourse node, that allows you to explore _discourse_ relations (e.g., inform, support, etc.) between this node and other nodes in your discourse graph.
 

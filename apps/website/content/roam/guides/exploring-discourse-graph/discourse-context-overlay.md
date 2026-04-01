@@ -5,14 +5,14 @@ author: ""
 published: true
 ---
 
-- [Discourse context](/docs/roam/views-and-tools/discourse-context)
-- [Discourse context overlay](/docs/roam/views-and-tools/discourse-context-overlay)
-- [Discourse attributes](/docs/roam/views-and-tools/discourse-attributes)
-- [Node index](/docs/roam/views-and-tools/node-index)
+- [Discourse context](/docs/roam/guides/exploring-discourse-graph/discourse-context)
+- [Discourse context overlay](/docs/roam/guides/exploring-discourse-graph/discourse-context-overlay)
+- [Discourse attributes](/docs/roam/guides/exploring-discourse-graph/discourse-attributes)
+- [Node index](/docs/roam/guides/exploring-discourse-graph/node-index)
 
 The discourse context overlay adds an icon next to each discourse node wherever it is referenced. This icon provides access to two key features:
 
-1. a popover to view the [Discourse context](/docs/roam/views-and-tools/discourse-context) of the node inline, and
+1. a popover to view the [Discourse context](/docs/roam/guides/exploring-discourse-graph/discourse-context) of the node inline, and
 2. a "Discourse score" component that displays a customizable score for the node that is some function of its relations to other nodes in the discourse graph.
 
 The overlay is an optional feature that is turned off by default. To turn it on, go to the grammar tab in the config page and check the box for overlay.
@@ -21,7 +21,7 @@ The overlay is an optional feature that is turned off by default. To turn it on,
 
 ## Popover
 
-The popover is simple to operate. Simply click on the icon to bring up the [discourse context](/docs/roam/views-and-tools/discourse-context) component in-line for quick reference.
+The popover is simple to operate. Simply click on the icon to bring up the [discourse context](/docs/roam/guides/exploring-discourse-graph/discourse-context) component in-line for quick reference.
 
 ![](/docs/roam/discourse-context-overlay.gif)
 
@@ -33,7 +33,7 @@ For example, the following score display denotes that the node participates in 5
 
 ![](/docs/roam/discourse-context-overlay-score.png)
 
-You can think of this default discourse score as a rough sense of how "robust" a given node is (discourse relations are more structured, high-signal relationships) relative to how "important" it is (raw references are often noisy). If you'd like, you can also experiment with different functions of discourse relations to a node by defining your own [Discourse attributes](/docs/roam/views-and-tools/discourse-attributes), and have them show up in the overlay!
+You can think of this default discourse score as a rough sense of how "robust" a given node is (discourse relations are more structured, high-signal relationships) relative to how "important" it is (raw references are often noisy). If you'd like, you can also experiment with different functions of discourse relations to a node by defining your own [Discourse attributes](/docs/roam/guides/exploring-discourse-graph/discourse-attributes), and have them show up in the overlay!
 
 ## Demo
 

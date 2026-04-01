@@ -5,10 +5,10 @@ author: ""
 published: true
 ---
 
-- [Discourse context](/docs/roam/views-and-tools/discourse-context)
-- [Discourse context overlay](/docs/roam/views-and-tools/discourse-context-overlay)
-- [Discourse attributes](/docs/roam/views-and-tools/discourse-attributes)
-- [Node index](/docs/roam/views-and-tools/node-index)
+- [Discourse context](/docs/roam/guides/exploring-discourse-graph/discourse-context)
+- [Discourse context overlay](/docs/roam/guides/exploring-discourse-graph/discourse-context-overlay)
+- [Discourse attributes](/docs/roam/guides/exploring-discourse-graph/discourse-attributes)
+- [Node index](/docs/roam/guides/exploring-discourse-graph/node-index)
 
 ## Define Discourse Attributes
 
@@ -18,7 +18,7 @@ These attributes can be handy for sorting/querying nodes. For instance, if you c
 
 ![](/docs/roam/settings-discourse-attributes.png)
 
-You can add discourse attributes as a column to display and sort/filter by when [Querying your discourse graph](./querying-discourse-graph.md) by adding a `discourse:{label}` selection.
+You can add discourse attributes as a column to display and sort/filter by when [Querying your discourse graph](/docs/roam/guides/querying-discourse-graph) by adding a `discourse:{label}` selection.
 
 For example, in the index for Claims, you can return the Evidence attribute as a column (Select), and then sort in descending order by that attribute.
 

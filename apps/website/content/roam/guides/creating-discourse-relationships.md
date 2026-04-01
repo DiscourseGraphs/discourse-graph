@@ -11,7 +11,7 @@ Creating relationships in Discourse Graph means creating **stored relations**. S
 
 ## Quick start
 
-1. Open the [**Discourse context overlay**](/docs/roam/views-and-tools/discourse-context-overlay) for a node.
+1. Open the [**Discourse context overlay**](/docs/roam/guides/exploring-discourse-graph/discourse-context-overlay) for a node.
 2. Click **Add relation**.
 3. Choose the relation type.
 4. Choose the source and destination nodes.
@@ -22,5 +22,5 @@ The relation is stored immediately and becomes available throughout your graph.
 ## Read next
 
 - Learn how stored relations work in [**Stored relations**](/docs/roam/fundamentals/stored-relations)
-- Explore relationships from the [**Discourse context overlay**](/docs/roam/views-and-tools/discourse-context-overlay)
+- Explore relationships from the [**Discourse context overlay**](/docs/roam/guides/exploring-discourse-graph/discourse-context-overlay)
 - If you're still using the legacy workflow, see [**Relations and patterns**](/docs/roam/fundamentals/relations-patterns)
