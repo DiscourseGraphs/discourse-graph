@@ -5,18 +5,16 @@ author: ""
 published: true
 ---
 
-## Base grammar
-
 This is what ships with the extension.
 
-### Nodes
+## Nodes
 
 - QUE - Question
 - CLM - Claim
 - EVD - Evidence
 - Source
 
-### Relations
+## Relations
 
 - EVD Informs QUE
 - EVD Supports CLM

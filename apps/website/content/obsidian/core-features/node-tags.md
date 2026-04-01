@@ -5,8 +5,6 @@ author: ""
 published: true
 ---
 
-## Overview
-
 Node tags allow you to quickly create discourse nodes from tagged lines in your notes. When you assign a tag to a node type, any line containing that tag becomes a clickable element that can be converted into a discourse node.
 
 This feature streamlines your workflow by letting you mark potential discourse nodes with tags as you write, then easily convert them to full discourse nodes later.

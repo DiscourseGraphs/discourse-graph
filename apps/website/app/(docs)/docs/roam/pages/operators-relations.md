@@ -64,7 +64,3 @@ published: true
 - **description**: exact match to user-defined `discourse nodes` only (ALTHOUGH the autocomplete will allow you to specify other stuff that don't make sense)
 - **source**: a `page` (since all discourse nodes must be pages)
 - **target**: a `discourse node` (defined in your grammar)
-
-## Next
-
-- [Stored relations](./stored-relations)

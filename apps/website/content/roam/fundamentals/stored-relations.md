@@ -5,8 +5,6 @@ author: ""
 published: true
 ---
 
-## Overview
-
 Stored relations are explicit relationships between discourse nodes. They are created directly in the graph and saved as data, so they can be used consistently across overlays, queries, and canvases.
 
 ## What is a stored relation?

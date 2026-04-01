@@ -5,8 +5,6 @@ author: ""
 published: true
 ---
 
-## Overview
-
 Node tags allow you to quickly create discourse nodes from tagged lines in your notes. When you assign a tag to a node type, any line containing that tag becomes a clickable element that can be converted into a discourse node.
 
 This feature streamlines your workflow by letting you mark potential discourse nodes with tags as you write, then easily convert them to full discourse nodes later.
@@ -25,6 +23,7 @@ This feature streamlines your workflow by letting you mark potential discourse n
 ### Tag naming rules
 
 Tags must follow these rules:
+
 - **No spaces**: Tags cannot contain whitespace
 - **Allowed characters**: Only letters (a-z, A-Z), numbers (0-9), and dashes (-)
 - **No special characters**: Characters like #, @, /, \, etc. are not allowed
@@ -33,12 +32,14 @@ Tags must follow these rules:
 #### Tag examples
 
 **Valid tags:**
+
 - `clm-candidate`
 - `question-idea`
 - `evidence2024`
 - `my-argument`
 
 **Invalid tags:**
+
 - `clm candidate` (contains space)
 - `#clm-candidate` (contains #)
 - `clm/candidate` (contains /)
@@ -57,9 +58,9 @@ When you hover over a tagged line, a button appears above the tag:
 
 1. **Hover** over the tag you want to convert
 2. Wait for the **"Create [Node Type]"** button to appear
-![On hover](/docs/obsidian/on-hover-node-tag.png)
+   ![On hover](/docs/obsidian/on-hover-node-tag.png)
 3. **Click** the button to open the node creation dialog
-![Node creation dialog](/docs/obsidian/create-node-dialog-node-tag.png)
+   ![Node creation dialog](/docs/obsidian/create-node-dialog-node-tag.png)
 4. Click "Confirm" to create node
 
 You'll see that the candidate node is now replaced with a formalized node
