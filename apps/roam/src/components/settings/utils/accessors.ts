@@ -45,7 +45,7 @@ import { PERSONAL_KEYS, QUERY_KEYS, GLOBAL_KEYS } from "./settingKeys";
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const deepEqual = (a: unknown, b: unknown): boolean => {
+export const deepEqual = (a: unknown, b: unknown): boolean => {
   if (a === b) return true;
   const isEmpty = (v: unknown) =>
     v === undefined || v === null || v === "" || v === false;

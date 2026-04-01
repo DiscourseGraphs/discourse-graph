@@ -7,7 +7,19 @@ import type { json } from "~/utils/getBlockProps";
 import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import DEFAULT_RELATIONS_BLOCK_PROPS from "~/components/settings/data/defaultRelationsBlockProps";
-import { getAllDiscourseNodes } from "./accessors";
+import {
+  getAllDiscourseNodes,
+  isNewSettingsStoreEnabled,
+  deepEqual,
+  getFeatureFlags,
+  getGlobalSettings,
+  getPersonalSettings,
+  getDiscourseNodeSettings,
+  readAllLegacyFeatureFlags,
+  readAllLegacyGlobalSettings,
+  readAllLegacyPersonalSettings,
+  readAllLegacyDiscourseNodeSettings,
+} from "./accessors";
 import {
   migrateGraphLevel,
   migratePersonalSettings,
@@ -324,10 +336,91 @@ export type InitSchemaResult = {
   nodePageUids: Record<string, string>;
 };
 
+const logDualReadComparison = (): void => {
+  if (!isNewSettingsStoreEnabled()) return;
+
+  const legacyFlags = readAllLegacyFeatureFlags();
+  const blockFlags = getFeatureFlags();
+  const omitStoreFlag = (
+    flags: Record<string, unknown>,
+  ): Record<string, unknown> =>
+    Object.fromEntries(
+      Object.entries(flags).filter(([k]) => k !== "Use new settings store"),
+    );
+  const flagsMatch = deepEqual(
+    omitStoreFlag(blockFlags),
+    omitStoreFlag(legacyFlags),
+  );
+
+  const legacyGlobal = readAllLegacyGlobalSettings();
+  const blockGlobal = getGlobalSettings();
+  const globalMatch = deepEqual(blockGlobal, legacyGlobal);
+
+  const legacyPersonal = readAllLegacyPersonalSettings();
+  const blockPersonal = getPersonalSettings();
+  const personalMatch = deepEqual(blockPersonal, legacyPersonal);
+
+  const nodes = getAllDiscourseNodes();
+  const nodeResults: {
+    name: string;
+    match: boolean;
+    legacy: unknown;
+    blockProps: unknown;
+  }[] = [];
+  for (const node of nodes) {
+    const legacy = readAllLegacyDiscourseNodeSettings(node.type, node.text);
+    const blockProps = getDiscourseNodeSettings(node.type);
+    nodeResults.push({
+      name: node.text,
+      match: deepEqual(blockProps, legacy),
+      legacy,
+      blockProps,
+    });
+  }
+
+  const mismatches = [
+    !flagsMatch && "Feature Flags",
+    !globalMatch && "Global",
+    !personalMatch && "Personal",
+    ...nodeResults.filter((n) => !n.match).map((n) => n.name),
+  ].filter((x): x is string => Boolean(x));
+
+  const summary =
+    mismatches.length === 0
+      ? "All settings match"
+      : `(${mismatches.length}) Settings don't match: ${mismatches.join(", ")}`;
+
+  const nodeMap = (key: "legacy" | "blockProps") =>
+    Object.fromEntries(nodeResults.map((n) => [n.name, n[key]]));
+
+  /* eslint-disable @typescript-eslint/naming-convention */
+  console.log(`[DG Dual-Read] ${summary}`);
+  console.log("[DG Dual-Read] Legacy:", {
+    "Feature Flags": legacyFlags,
+    Global: legacyGlobal,
+    Personal: legacyPersonal,
+    ...nodeMap("legacy"),
+  });
+  console.log("[DG Dual-Read] Block props:", {
+    "Feature Flags": blockFlags,
+    Global: blockGlobal,
+    Personal: blockPersonal,
+    ...nodeMap("blockProps"),
+  });
+  /* eslint-enable @typescript-eslint/naming-convention */
+};
+
 export const initSchema = async (): Promise<InitSchemaResult> => {
   const blockUids = await initSettingsPageBlocks();
   await migrateGraphLevel(blockUids);
   const nodePageUids = await initDiscourseNodePages();
   await migratePersonalSettings(blockUids);
+  try {
+    logDualReadComparison();
+  } catch (e) {
+    console.warn("[DG Dual-Read] Comparison failed:", e);
+  }
+  (window as unknown as Record<string, unknown>).dgDualReadLog =
+    logDualReadComparison;
   return { blockUids, nodePageUids };
 };
