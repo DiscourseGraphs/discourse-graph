@@ -7,7 +7,7 @@ published: true
 
 Stored relations make relations load faster and more reliably. Discourse Graph installs as of v0.18.0 use them by default. Older installs need a one-time migration that copies existing pattern-based relations into the new format.
 
-This guide covers the migration flow from **Personal Settings** for older installs. If you're new to stored relations, start with the [stored relations overview](/docs/roam/fundamentals/stored-relations).
+This guide covers the migration flow from **Personal Settings** for older installs. If you're new to stored relations, start with the [stored relations overview](/docs/roam/fundamentals/grammar/stored-relations).
 
 ## Turn on stored relations for an existing install
 

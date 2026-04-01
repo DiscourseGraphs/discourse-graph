@@ -5,7 +5,7 @@ author: ""
 published: true
 ---
 
-Pattern-based relations are a **legacy workflow**. New graphs use [**stored relations**](/docs/roam/fundamentals/stored-relations) by default. If you're still using patterns or you're not sure which system your graph is on, see [**Migration to stored relations**](/docs/roam/fundamentals/migration-to-stored-relations).
+Pattern-based relations are a **legacy workflow**. New graphs use [**stored relations**](/docs/roam/fundamentals/grammar/stored-relations) by default. If you're still using patterns or you're not sure which system your graph is on, see [**Migration to stored relations**](/docs/roam/guides/migration-to-stored-relations).
 
 The legacy pattern workflow recognizes a few common writing and outlining structures and converts them into discourse relations.
 

@@ -10,7 +10,7 @@ This page covers ways to extend and personalize Discourse Graph beyond the defau
 ## Stored relations
 
 If you want to use the current relation workflow, start with the
-[Stored relations](/docs/roam/fundamentals/stored-relations) guide.
+[Stored relations](/docs/roam/fundamentals/grammar/stored-relations) guide.
 
 ## Pattern relation legacy
 
