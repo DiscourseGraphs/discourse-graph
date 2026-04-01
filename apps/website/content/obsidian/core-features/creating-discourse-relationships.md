@@ -5,8 +5,6 @@ author: ""
 published: true
 ---
 
-## Creating a relationship
-
 To create a relationship between discourse nodes:
 
 1. Open a note that you want to create a relationship from
@@ -29,8 +27,6 @@ To create a relationship between discourse nodes:
 6. Click "Confirm" to create the relationship
    ![relationship created](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FK8XAhCqrUL.png?alt=media&token=a559c477-c7f6-4b3e-8b00-ece7da5d4fec)
 
-## Next steps
-
-After creating relationships:
+## Related
 
 - [Learn how to explore your graph](/docs/obsidian/core-features/canvas)

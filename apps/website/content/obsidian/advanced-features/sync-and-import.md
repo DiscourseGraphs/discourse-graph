@@ -44,8 +44,6 @@ The sync feature is located in a hidden **admin panel** tab that is not visible 
 
 Once enabled, your discourse nodes will begin syncing automatically to the Discourse Graph database. The plugin monitors file changes in your vault (with a short delay) and syncs them in the background.
 
----
-
 ## Publishing a discourse node
 
 Publishing makes a synced discourse node available to other members of your group. This is how you share your work with collaborators.
@@ -81,8 +79,6 @@ Before publishing, make sure:
 
 - Both the source and destination nodes are published to the same group, **and**
 - The relation type is defined in your discourse relation settings
-
----
 
 ## Importing discourse nodes from another space
 

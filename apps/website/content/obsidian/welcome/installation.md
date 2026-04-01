@@ -36,11 +36,3 @@ published: true
    ![Add discourse graph](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FSBCK-2lkcu.png?alt=media&token=0375c828-da4d-43b4-8f2c-e691692cb019)
 5. Check the box for "Enable after installing the plugin"
 6. Click "Add Plugin"
-
-## Next Steps
-
-After installation, you'll want to:
-
-1. [Configure your node types](/docs/obsidian/configuration/node-types-templates)
-2. [Set up relationship types](/docs/obsidian/configuration/relationship-types)
-3. [Create your first node](/docs/obsidian/core-features/creating-discourse-nodes)

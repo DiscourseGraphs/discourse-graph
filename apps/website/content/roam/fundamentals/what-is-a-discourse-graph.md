@@ -1,5 +1,5 @@
 ---
-title: "What is a Discourse Graph"
+title: "What is a discourse graph"
 date: "2025-01-01"
 author: ""
 published: true

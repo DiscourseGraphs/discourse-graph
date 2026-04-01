@@ -5,11 +5,11 @@ author: ""
 published: true
 ---
 
-## Configuring Node Types
+## Configuring node types
 
 Node types are the building blocks of your discourse graph. Each node type represents a different kind of content or concept in your notes.
 
-### Adding a Node Type
+### Adding a node type
 
 1. Under "Node Types," click "Add Node Type"
 2. Enter a name for your node type (e.g., "Claim", "Evidence", "Question")
@@ -23,11 +23,11 @@ Node types are the building blocks of your discourse graph. Each node type repre
 
    - Click "Save Changes"
 
-## Working with Templates
+## Working with templates
 
 Templates allow you to automatically add predefined content when creating new nodes. They're especially useful for maintaining consistent structure across similar types of notes.
 
-### Setting Up Templates
+### Setting up templates
 
 1. Create a new folder for templates
    ![new folder](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FyTtJ1a0iI2.png?alt=media&token=b5d09b10-f170-47cd-a239-ee5f7acd89dc)
@@ -38,14 +38,14 @@ Templates allow you to automatically add predefined content when creating new no
 3. Create template files
    ![create template file](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FtTr9vOnXnX.png?alt=media&token=dda1fe25-3ccf-42b4-8f3c-1cd29f82c3f7)
 
-## Template Requirements
+## Template requirements
 
 - Templates must be stored in your designated template folder
 - The Templates core plugin must be enabled
 - Template files should use Markdown format
 - Templates can include any valid Markdown content
 
-## Next Steps
+## Related
 
 - [Configure relationship types](/docs/obsidian/configuration/relationship-types)
 - [Learn about creating nodes](/docs/obsidian/core-features/creating-discourse-nodes)

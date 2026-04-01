@@ -5,8 +5,6 @@ author: ""
 published: true
 ---
 
-## Base grammar
-
 This is what ships with the extension.
 
 ### Nodes

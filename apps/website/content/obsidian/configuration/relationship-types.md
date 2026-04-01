@@ -49,7 +49,7 @@ Here are some common relationship types:
 - Evidence → contradicts → Claim
 - Source → informs → Question
 
-## Next steps
+## Related
 
 - [Create your first relationship](/docs/obsidian/core-features/creating-discourse-relationships)
 - [Learn about the discourse context](/docs/obsidian/core-features/discourse-context)

@@ -13,9 +13,9 @@ To create a discourse node, first select the text you want to turn into a node:
 
 There are two ways you can create a node:
 
-### 1. Using command keys (recommended)
+### Using command keys (recommended)
 
-#### 1.1 Turn selected text into discourse node
+#### Turn selected text into discourse node
 
 1. Press `Cmd + \` (or your configured hotkey)
 2. The Node Menu will open as a popup
@@ -24,20 +24,20 @@ There are two ways you can create a node:
 4. A new discourse node will be created
    ![node created](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2F1VNkJC0aH8.png?alt=media&token=df9a26aa-997b-4b56-a307-87a80e350b28)
 
-#### 1.2 Creating new node from scratch
+#### Creating new node from scratch
 
 1. Press `Cmd + \` (or your configured hotkey)
 2. Enter the title and node type
    ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FyYxtLKkx6B.png?alt=media&token=7f4f02df-d1fe-4529-8530-90acb0dc74b8)
 
-### 2. Using the right-click menu
+### Using the right-click menu
 
 1. Right-click on the selected text
    Alternatively, you can right-click on the selected text
 
 ![right click menu](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2F4UqeVkqLz7.png?alt=media&token=d2373152-d251-45fe-afb6-56373d6092aa) 2. Choose a node type from the "Turn into discourse node" menu
 
-### 3. Turn existing page into discourse node
+### Turn existing page into discourse node
 
 If a page is not a discourse node, you can turn it into one by clicking on the file menu, and chosing "Convert into" option
 ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FCAGcQrCONJ.png?alt=media&token=fba6a6c9-038c-4a63-a46f-920bb8b37df1)
@@ -51,7 +51,7 @@ When creating a node, if you've configured a [template for that node type](/docs
 
 The new node will be saved in the designated folder that you created in the [General settings](/docs/obsidian/configuration/general-settings)
 
-## Next Steps
+## Related
 
 After creating nodes:
 
