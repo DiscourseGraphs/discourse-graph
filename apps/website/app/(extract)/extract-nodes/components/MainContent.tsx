@@ -1,63 +1,80 @@
-import { Badge } from "@repo/ui/components/ui/badge";
 import { Button } from "@repo/ui/components/ui/button";
-import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { Copy } from "lucide-react";
+
+const NODE_TYPE_COLORS: Record<string, string> = {
+  claim: "#7DA13E",
+  evidence: "#dc0c4a",
+  question: "#99890E",
+  hypothesis: "#7C4DFF",
+  result: "#E6A23C",
+  source: "#9E9E9E",
+  theory: "#8B5CF6",
+};
 
 const SAMPLE_NODES = [
   {
-    label: "Claim",
-    candidateTag: "#clm-candidate",
-    confidence: 95,
-    page: "p.9",
+    nodeType: "claim",
     content:
       "Basolateral secretion of Wnt5a is essential for establishing apical-basal polarity in epithelial cells.",
+    supportSnippet:
+      '"Wnt5a secreted from the basolateral surface was both necessary and sufficient for the establishment of apical-basal polarity" (p.9)',
+    sourceSection: "Discussion",
   },
   {
-    label: "Evidence",
-    candidateTag: "#evd-candidate",
-    confidence: 97,
-    page: "p.3",
+    nodeType: "evidence",
     content:
       "Wnt5a was detected exclusively in the basolateral medium of polarized MDCK cells grown on Transwell filters, with no detectable signal in the apical fraction.",
+    supportSnippet:
+      '"Western blot analysis of conditioned media showed Wnt5a protein exclusively in the basolateral fraction (Fig. 2A, lanes 3-4)"',
+    sourceSection: "Results",
   },
   {
-    label: "Claim",
-    candidateTag: "#clm-candidate",
-    confidence: 92,
-    page: "p.5",
+    nodeType: "claim",
     content:
       "Loss of Wnt5a function disrupts lumen formation in 3D cyst cultures derived from epithelial cells.",
+    supportSnippet:
+      '"These data demonstrate that Wnt5a is required for proper lumen formation in three-dimensional culture systems"',
+    sourceSection: "Discussion",
   },
   {
-    label: "Evidence",
-    candidateTag: "#evd-candidate",
-    confidence: 96,
-    page: "p.7",
+    nodeType: "evidence",
     content:
       "shRNA-mediated knockdown of Wnt5a resulted in multi-lumen cysts in 68% of colonies compared to 12% in control conditions.",
+    supportSnippet:
+      '"Quantification of cyst morphology revealed 68 ± 4% multi-lumen cysts in Wnt5a-KD versus 12 ± 3% in controls (Fig. 4B, p < 0.001)"',
+    sourceSection: "Results",
   },
   {
-    label: "Claim",
-    candidateTag: "#clm-candidate",
-    confidence: 90,
-    page: "p.11",
+    nodeType: "claim",
     content:
       "Wnt5a signals through the non-canonical planar cell polarity pathway to regulate lumen morphogenesis.",
+    supportSnippet:
+      '"Our findings place Wnt5a upstream of the PCP pathway in the regulation of epithelial lumen morphogenesis"',
+    sourceSection: "Discussion",
   },
   {
-    label: "Evidence",
-    candidateTag: "#evd-candidate",
-    confidence: 94,
-    page: "p.8",
+    nodeType: "evidence",
     content:
       "Co-immunoprecipitation showed that Wnt5a preferentially binds Ror2 receptor at the basolateral surface.",
+    supportSnippet:
+      '"IP-Western analysis demonstrated direct Wnt5a-Ror2 interaction in basolateral but not apical membrane fractions (Fig. 5C)"',
+    sourceSection: "Results",
   },
-] as const;
+];
+
+const typeCounts = SAMPLE_NODES.reduce<Record<string, number>>((acc, node) => {
+  acc[node.nodeType] = (acc[node.nodeType] ?? 0) + 1;
+  return acc;
+}, {});
 
 const TABS = [
-  { id: "all", label: "All", count: 6 },
-  { id: "clm", label: "Claim", count: 3 },
-  { id: "evd", label: "Evidence", count: 3 },
+  { id: "all", label: "All", count: SAMPLE_NODES.length, color: undefined },
+  ...Object.entries(typeCounts).map(([nodeType, count]) => ({
+    id: nodeType,
+    label: nodeType.charAt(0).toUpperCase() + nodeType.slice(1),
+    count,
+    color: NODE_TYPE_COLORS[nodeType],
+  })),
 ];
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -79,51 +96,86 @@ export const MainContent = () => {
         <div className="shrink-0 border-b border-slate-200/70 bg-white/95 px-4 lg:px-5">
           <div className="flex gap-1 py-2">
             {TABS.map((tab) => (
-              <Badge
+              <div
                 key={tab.id}
-                variant={tab.id === "all" ? "default" : "secondary"}
-                className="cursor-pointer px-3 py-1.5 text-[14px] font-semibold"
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] font-semibold ${
+                  tab.id === "all"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-600"
+                }`}
               >
-                {tab.label} {tab.count}
-              </Badge>
+                {tab.color && (
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: tab.color }}
+                  />
+                )}
+                <span>
+                  {tab.label} {tab.count}
+                </span>
+              </div>
             ))}
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto bg-[radial-gradient(120%_100%_at_50%_0%,#f8fbff_0%,#f8fafc_52%,#f3f7fb_100%)] p-4 lg:p-5">
           <div className="space-y-2.5">
-            {SAMPLE_NODES.map((node, index) => (
-              <div
-                key={index}
-                className="rounded-2xl border border-slate-200/85 bg-white p-4 shadow-[0_8px_20px_-16px_rgba(15,23,42,0.45)]"
-              >
-                <div className="flex items-start gap-3">
-                  <Checkbox checked className="mt-1" />
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex items-center gap-2">
-                      <Badge variant="outline" className="text-[11px]">
-                        {node.label}
-                      </Badge>
-                      <span className="text-[13px] font-semibold tabular-nums text-slate-500">
-                        {node.confidence}%
-                      </span>
-                      <span className="text-[13px] text-slate-400">
-                        {node.page}
-                      </span>
-                    </div>
-                    <p className="text-[15px] leading-relaxed text-slate-800">
-                      {node.content}
-                    </p>
-                    <button
-                      type="button"
-                      className="mt-2 text-[13px] font-medium text-slate-400"
+            {SAMPLE_NODES.map((node, index) => {
+              const color = NODE_TYPE_COLORS[node.nodeType] ?? "#64748b";
+              return (
+                <div
+                  key={index}
+                  className="rounded-2xl border border-slate-200/85 bg-white p-4 shadow-[0_8px_20px_-16px_rgba(15,23,42,0.45)]"
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px]"
+                      style={{
+                        backgroundColor: color,
+                        boxShadow: `0 1px 2px ${color}40`,
+                      }}
                     >
-                      Show details
-                    </button>
+                      <svg
+                        className="h-[10px] w-[10px] text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={3.5}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span
+                          className="rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white"
+                          style={{ backgroundColor: color }}
+                        >
+                          {node.nodeType}
+                        </span>
+                        {node.sourceSection && (
+                          <span className="text-[13px] text-slate-400">
+                            {node.sourceSection}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[15px] leading-relaxed text-slate-800">
+                        {node.content}
+                      </p>
+                      <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
+                        <p className="text-[13px] italic leading-relaxed text-slate-500">
+                          {node.supportSnippet}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -133,7 +185,7 @@ export const MainContent = () => {
               Deselect All
             </Button>
             <span className="text-[14px] font-medium tabular-nums text-slate-500">
-              6 of 6 selected
+              {SAMPLE_NODES.length} of {SAMPLE_NODES.length} selected
             </span>
           </div>
 

@@ -1,18 +1,57 @@
 import { Button } from "@repo/ui/components/ui/button";
-import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { ChevronDown } from "lucide-react";
 
 const NODE_TYPES = [
-  { label: "Claim", candidateTag: "#clm-candidate" },
-  { label: "Question", candidateTag: "#que-candidate" },
-  { label: "Hypothesis", candidateTag: "#hyp-candidate" },
-  { label: "Evidence", candidateTag: "#evd-candidate" },
-  { label: "Result", candidateTag: "#res-candidate" },
-  { label: "Source", candidateTag: "#src-candidate" },
-  { label: "Theory", candidateTag: "#the-candidate" },
-] as const;
+  {
+    label: "Claim",
+    description:
+      "An assertion about how something works or should work. Usually a single declarative sentence.",
+    candidateTag: "#clm-candidate",
+    color: "#7DA13E",
+  },
+  {
+    label: "Question",
+    description:
+      "An unknown being explored through research. Framed as a question that can be investigated.",
+    candidateTag: "#que-candidate",
+    color: "#99890E",
+  },
+  {
+    label: "Hypothesis",
+    description:
+      "A proposed answer to a question. Collects evidence for or against.",
+    candidateTag: "#hyp-candidate",
+    color: "#7C4DFF",
+  },
+  {
+    label: "Evidence",
+    description:
+      "A discrete observation from a published dataset or experiment. Usually in past tense with observable, model system, and method.",
+    candidateTag: "#evd-candidate",
+    color: "#dc0c4a",
+  },
+  {
+    label: "Result",
+    description:
+      "A discrete observation from ongoing research, in past tense. Includes source context.",
+    candidateTag: "#res-candidate",
+    color: "#E6A23C",
+  },
+  {
+    label: "Source",
+    description: "A referenced publication or external resource.",
+    candidateTag: "#src-candidate",
+    color: "#9E9E9E",
+  },
+  {
+    label: "Theory",
+    description: "A theoretical framework or model that explains phenomena.",
+    candidateTag: "#the-candidate",
+    color: "#8B5CF6",
+  },
+];
 
-const CHECKED_TYPES = new Set(["#clm-candidate", "#evd-candidate"]);
+const CHECKED_TAGS = new Set(["#clm-candidate", "#evd-candidate"]);
 
 const SECTION_LABEL_CLASS =
   "mb-3 block px-1 text-[18px] font-semibold tracking-[-0.016em] text-slate-800";
@@ -68,28 +107,59 @@ export const Sidebar = () => {
               Node Types
             </h3>
             <span className="text-[13px] font-semibold tabular-nums text-slate-500">
-              {CHECKED_TYPES.size}/{NODE_TYPES.length}
+              {CHECKED_TAGS.size}/{NODE_TYPES.length}
             </span>
           </div>
 
           <div className="space-y-1.5">
             {NODE_TYPES.map((type) => {
-              const isChecked = CHECKED_TYPES.has(type.candidateTag);
+              const isChecked = CHECKED_TAGS.has(type.candidateTag);
               return (
-                <label
+                <div
                   key={type.candidateTag}
-                  className={`flex w-full cursor-pointer items-center gap-2.5 rounded-xl border px-2.5 py-2 ${
+                  className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 ${
                     isChecked
                       ? "border-slate-200 bg-white text-slate-800 shadow-sm"
                       : "border-transparent text-slate-500"
                   }`}
                 >
-                  <Checkbox checked={isChecked} />
-                  <span className="text-[16px] font-medium">{type.label}</span>
-                  <span className="ml-auto text-[12px] font-medium text-slate-400">
+                  <div
+                    className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px]"
+                    style={{
+                      backgroundColor: isChecked ? type.color : "transparent",
+                      boxShadow: isChecked
+                        ? `0 1px 2px ${type.color}40`
+                        : "inset 0 0 0 1.8px #cbd5e1",
+                    }}
+                  >
+                    {isChecked && (
+                      <svg
+                        className="h-[10px] w-[10px] text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={3.5}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[16px] font-medium">
+                      {type.label}
+                    </span>
+                    <p className="truncate text-[12px] text-slate-400">
+                      {type.description}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-[11px] font-medium text-slate-400">
                     {type.candidateTag}
                   </span>
-                </label>
+                </div>
               );
             })}
           </div>
