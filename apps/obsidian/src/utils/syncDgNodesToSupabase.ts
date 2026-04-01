@@ -416,7 +416,7 @@ export const syncAllNodesAndRelations = async (
       accountLocalId,
       plugin,
       allNodes,
-      startupRun: true,
+      fullSync: true,
     });
 
     // When synced nodes are already published, ensure non-text assets are in storage.
@@ -434,7 +434,7 @@ const convertDgToSupabaseConcepts = async ({
   accountLocalId,
   plugin,
   allNodes,
-  startupRun,
+  fullSync,
 }: {
   nodesSince: ObsidianDiscourseNodeData[];
   supabaseClient: DGSupabaseClient;
@@ -442,7 +442,7 @@ const convertDgToSupabaseConcepts = async ({
   accountLocalId: string;
   plugin: DiscourseGraphPlugin;
   allNodes?: DiscourseNodeInVault[];
-  startupRun?: boolean;
+  fullSync?: boolean;
 }): Promise<void> => {
   const lastNodeSchemaSync = (
     await getLastNodeSchemaSyncTime(supabaseClient, context.spaceId)
@@ -567,7 +567,7 @@ const convertDgToSupabaseConcepts = async ({
       throw new Error(`upsert_concepts failed: ${errorMessage}`);
     }
   }
-  if (startupRun === true) {
+  if (fullSync === true) {
     // occasional extra work: Make sure relations that should be published are.
     await ensurePublishedRelationsAccuracy({
       client: supabaseClient,
