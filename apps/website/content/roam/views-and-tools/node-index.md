@@ -15,4 +15,3 @@ The extension has node settings tabs for each node you define, which provides a 
 ![](/docs/roam/settings-node-index.png)
 
 This can be quite handy in multiplayer settings, for example, to quickly view the latest question nodes that have been added to the graph, or who authored them, by modifying the default index query, just like a [regular query](/docs/roam/guides/querying-discourse-graph).
-

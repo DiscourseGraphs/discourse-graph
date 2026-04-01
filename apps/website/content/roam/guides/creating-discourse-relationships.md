@@ -24,4 +24,3 @@ The relation is stored immediately and becomes available throughout your graph.
 - Learn how stored relations work in [**Stored relations**](/docs/roam/fundamentals/stored-relations)
 - Explore relationships from the [**Discourse context overlay**](/docs/roam/views-and-tools/discourse-context-overlay)
 - If you're still using the legacy workflow, see [**Relations and patterns**](/docs/roam/fundamentals/relations-patterns)
-

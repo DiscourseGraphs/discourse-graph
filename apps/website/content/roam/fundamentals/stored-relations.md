@@ -76,4 +76,3 @@ Stored relations are implemented as:
 - Source and destination nodes referenced by UID
 
 This structure allows fast lookup, consistent rendering, and future extensions such as metadata, provenance, and annotations.
-

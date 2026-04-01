@@ -40,4 +40,3 @@ Learn the fundamentals of the Discourse Graph plugin to get a deeper understandi
 - [What is a Discourse Graph?](/docs/obsidian/fundamentals/what-is-a-discourse-graph)
 - [Relationship types](/docs/obsidian/configuration/relationship-types)
 - [The Base Grammar: questions, claims, and evidence](/docs/obsidian/fundamentals/base-grammar)
-

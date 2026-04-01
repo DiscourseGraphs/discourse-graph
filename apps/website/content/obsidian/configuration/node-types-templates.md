@@ -50,4 +50,3 @@ Templates allow you to automatically add predefined content when creating new no
 - [Configure relationship types](/docs/obsidian/configuration/relationship-types)
 - [Learn about creating nodes](/docs/obsidian/core-features/creating-discourse-nodes)
 - [Explore advanced template usage](/docs/obsidian/configuration/node-types-templates#working-with-templates)
-

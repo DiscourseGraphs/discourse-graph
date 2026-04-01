@@ -148,4 +148,3 @@ Alternatively, you can click the "Refresh" button in the Discourse Context panel
 - **No importable nodes found** — Either no nodes have been published to your groups, or you have already imported all available nodes
 - The frontmatter fields related to sync are normally hidden. You can choose to display them in the setting panel
   ![Show frontmatter](/docs/obsidian/show-frontmatter.png)
-

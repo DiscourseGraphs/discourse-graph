@@ -68,4 +68,3 @@ published: true
 ## Next
 
 - [Stored relations](/docs/roam/fundamentals/stored-relations)
-

@@ -39,4 +39,3 @@ Hover your mouse over the node tag, and click "Create Evidence"
 ## Candidate node styling
 
 Candidate node styling is currently controlled in roam/css. You can borrow our node styling here: [template-lab CSS page](https://roamresearch.com/#/app/template-lab/page/X8V4gy32s)
-

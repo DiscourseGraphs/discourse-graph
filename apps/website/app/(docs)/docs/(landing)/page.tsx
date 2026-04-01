@@ -30,7 +30,7 @@ const DOCS_DESTINATIONS = [
 
 const DocsLandingPage = (): React.ReactElement => {
   return (
-    <div className="min-h-screen bg-neutral-light font-[family:var(--font-inter)] text-neutral-dark">
+    <div className="font-[family:var(--font-inter)] min-h-screen bg-neutral-light text-neutral-dark">
       <header className="border-b border-black/5 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
           <Logo />

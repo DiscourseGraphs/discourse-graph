@@ -30,4 +30,3 @@ Learn the fundamentals of the Discourse Graph extension to get a deeper understa
 - [What is a Discourse Graph?](/docs/roam/fundamentals/what-is-a-discourse-graph)
 - [The Discourse Graph extension grammar](/docs/roam/fundamentals/grammar)
 - [The base grammar: questions, claims, and evidence](/docs/roam/fundamentals/base-grammar)
-

@@ -25,4 +25,3 @@ This is what ships with the extension.
 Motivation for this base grammar is described in this [article](https://oasislab.pubpub.org/pub/54t0y9mk/release/3).
 
 This base grammar may be most useful for projects that interact with empirical evidence where you want to clearly distinguish between theory and evidence, and retain provenance to the source citations if you want to get more context.
-

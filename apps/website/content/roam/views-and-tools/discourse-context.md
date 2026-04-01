@@ -23,4 +23,3 @@ The discourse context component adds a "higher-signal" linked references section
 ## Demo
 
 https://www.loom.com/share/0c66e95d0c71426e8090a8bc1cbf8544
-

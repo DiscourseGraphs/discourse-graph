@@ -38,7 +38,10 @@ const collapseWhitespace = (value) => value.replace(/\s+/g, " ").trim();
 export const markdownToSearchText = (source) => {
   const withoutImports = source.replace(/^\s*(import|export)\s.+$/gm, " ");
   const withoutFences = withoutImports.replace(/```[\s\S]*?```/g, " ");
-  const withoutImages = withoutFences.replace(/!\[([^\]]*)\]\([^)]+\)/g, " $1 ");
+  const withoutImages = withoutFences.replace(
+    /!\[([^\]]*)\]\([^)]+\)/g,
+    " $1 ",
+  );
   const withoutLinks = withoutImages.replace(/\[([^\]]+)\]\([^)]+\)/g, " $1 ");
   const withoutHtml = withoutLinks.replace(/<[^>]+>/g, " ");
   const withoutInlineCode = withoutHtml.replace(/`([^`]+)`/g, " $1 ");

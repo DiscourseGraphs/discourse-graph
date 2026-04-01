@@ -31,4 +31,3 @@ For example, here is a demo of creating a "consistent with" relation pattern tha
 [https://www.loom.com/share/cb9e526a98764e95a459a6db2b66e46a](https://www.loom.com/share/cb9e526a98764e95a459a6db2b66e46a)
 
 If you want to explore or understand that legacy workflow, it will be useful to [learn more about the extension grammar](/docs/roam/fundamentals/grammar).
-

@@ -10,7 +10,13 @@ import {
 void test("routePathFromContentFile maps content files to canonical docs routes", () => {
   assert.equal(
     routePathFromContentFile(
-      path.join(process.cwd(), "content", "roam", "welcome", "getting-started.md"),
+      path.join(
+        process.cwd(),
+        "content",
+        "roam",
+        "welcome",
+        "getting-started.md",
+      ),
     ),
     "/docs/roam/welcome/getting-started",
   );
@@ -42,14 +48,20 @@ Choose the \`/docs\` routes.
 
   assert.equal(
     markdownToSearchText(source),
-    'Documentation Choose the /docs routes. Shared conceptual docs stay stable. Roam docs',
+    "Documentation Choose the /docs routes. Shared conceptual docs stay stable. Roam docs",
   );
 });
 
 void test("searchFiltersFromContentFile scopes docs records by platform", () => {
   assert.deepEqual(
     searchFiltersFromContentFile(
-      path.join(process.cwd(), "content", "roam", "welcome", "getting-started.md"),
+      path.join(
+        process.cwd(),
+        "content",
+        "roam",
+        "welcome",
+        "getting-started.md",
+      ),
     ),
     { platform: ["roam"] },
   );
@@ -60,7 +72,9 @@ void test("searchFiltersFromContentFile scopes docs records by platform", () => 
     { platform: ["obsidian"] },
   );
   assert.equal(
-    searchFiltersFromContentFile(path.join(process.cwd(), "content", "index.mdx")),
+    searchFiltersFromContentFile(
+      path.join(process.cwd(), "content", "index.mdx"),
+    ),
     undefined,
   );
 });

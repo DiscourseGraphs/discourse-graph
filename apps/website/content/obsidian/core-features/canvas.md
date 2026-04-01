@@ -147,4 +147,3 @@ Then you will see the image show up if any is present in the file.
 ### Getting Help
 
 If you encounter issues with the canvas feature, reach out to our dev team via [Slack](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg)
-

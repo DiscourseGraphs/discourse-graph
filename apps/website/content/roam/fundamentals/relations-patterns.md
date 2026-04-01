@@ -51,4 +51,3 @@ Like this:
 ![](/docs/roam/relation-opposes.png)
 
 The system recognizes that this piece of evidence **opposes** that claim.
-

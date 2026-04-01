@@ -41,4 +41,3 @@ You can use this view to:
 - Understand how nodes connect to each other
 - Add new relationships
 - Get a quick overview of your graph structure
-

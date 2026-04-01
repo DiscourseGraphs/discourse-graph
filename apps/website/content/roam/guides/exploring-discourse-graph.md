@@ -11,4 +11,3 @@ The extension adds features to enable you to seamlessly explore your discourse g
 - [Discourse context overlay](/docs/roam/views-and-tools/discourse-context-overlay)
 - [Discourse attributes](/docs/roam/views-and-tools/discourse-attributes)
 - [Node index](/docs/roam/views-and-tools/node-index)
-

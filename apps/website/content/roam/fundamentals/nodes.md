@@ -20,4 +20,3 @@ When in doubt, check the preview of your relation pattern to ensure you're corre
 ## Next
 
 - [Operators and relations](/docs/roam/fundamentals/operators-relations)
-

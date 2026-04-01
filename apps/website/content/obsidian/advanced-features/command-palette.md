@@ -21,4 +21,3 @@ You can customize how commands appear in the Command Palette:
 2. Go to "Hotkeys"
 3. Search for "Discourse"
 4. Modify the commands or add hotkeys
-

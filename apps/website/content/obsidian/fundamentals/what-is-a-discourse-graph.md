@@ -18,4 +18,3 @@ Consider how that information model foregrounds the conceptual building blocks a
 This information model (theoretically!) has high potential for augmenting individual and collective "research-grade" synthesis (e.g., lit reviews for a dissertation or grant proposal).
 
 Discourse Graphs are not a new idea (you can read more about it in [this short (academic-focused) write-up](http://joelchan.me/assets/pdf/Discourse_Graphs_for_Augmented_Knowledge_Synthesis_What_and_Why.pdf) or this more [practically-oriented article](https://oasislab.pubpub.org/pub/54t0y9mk/release/3)), but the potential to use it for everyday research work is!
-

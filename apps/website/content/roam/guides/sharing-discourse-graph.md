@@ -58,4 +58,3 @@ Here is a brief explanation of each option:
 ## Example
 
 Here is an example of a discourse graph exported to Obsidian-compatible markdown: [https://publish.obsidian.md/joelchan-notes](https://publish.obsidian.md/joelchan-notes)
-

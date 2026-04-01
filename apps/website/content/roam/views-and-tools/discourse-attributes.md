@@ -63,4 +63,3 @@ The syntax for these compound discourse functions is:
 `{operation:relationName:targetType:targetDiscourseAttribute}`
 
 This generalizes the syntax for the basic discourse functions by adding a discourse attribute to access from the targets, and the option of using additional operations than `count` (for now, we only support `sum` and `average`) for the function.
-

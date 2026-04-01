@@ -13,4 +13,3 @@ published: true
 ## Relation grammar building blocks
 
 - [Nodes](/docs/roam/fundamentals/nodes)
-

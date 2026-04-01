@@ -64,4 +64,3 @@ You can save a query to its own page if you want to keep it around for easier ac
 ![](/docs/roam/query-drawer-save-to-page.png)
 
 It will be saved to the namespace `discourse-graph/queries/` by default.
-

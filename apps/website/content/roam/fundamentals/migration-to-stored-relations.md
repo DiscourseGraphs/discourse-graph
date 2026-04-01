@@ -88,4 +88,3 @@ Stored relations are implemented as:
 - `roam/js/discourse-graph/relations`
 
 Each relation is a **block**, with relation data stored in the block's **hidden properties**.
-

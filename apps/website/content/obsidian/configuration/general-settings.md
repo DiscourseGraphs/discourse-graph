@@ -25,4 +25,3 @@ This setting determines where new discourse nodes will be created in your vault.
 - Example format: `folder1/folder2`
 
 Changes to these settings will only take effect after clicking the "Save Changes" button. The interface will indicate when you have unsaved changes pending.
-
