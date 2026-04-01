@@ -56,9 +56,9 @@ const SAMPLE_NODES = [
 ] as const;
 
 const TABS = [
-  { id: "all" as const, label: "All", count: 17, color: undefined },
-  { id: "CLM" as const, label: "Claim", count: 6, color: "#7DA13E" },
-  { id: "EVD" as const, label: "Evidence", count: 11, color: "#DB134A" },
+  { id: "all" as const, label: "All", count: 6, color: undefined },
+  { id: "CLM" as const, label: "Claim", count: 3, color: "#7DA13E" },
+  { id: "EVD" as const, label: "Evidence", count: 3, color: "#DB134A" },
 ];
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -168,7 +168,7 @@ export const MainContent = () => {
               Deselect All
             </span>
             <span className="text-[14px] font-medium tabular-nums text-slate-500">
-              17 of 17 selected
+              6 of 6 selected
             </span>
           </div>
 
