@@ -1,4 +1,7 @@
+import { Badge } from "@repo/ui/components/ui/badge";
 import { Button } from "@repo/ui/components/ui/button";
+import { Card, CardContent } from "@repo/ui/components/ui/card";
+import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { Copy } from "lucide-react";
 
 const NODE_TYPE_COLORS: Record<string, string> = {
@@ -121,24 +124,23 @@ export const MainContent = () => {
         <div className="shrink-0 border-b border-slate-200/70 bg-white/95 px-4 lg:px-5">
           <div className="flex gap-1 py-2">
             {TABS.map((tab) => (
-              <div
+              <Badge
                 key={tab.id}
-                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] font-semibold ${
+                variant={tab.id === "all" ? "default" : "outline"}
+                className={
                   tab.id === "all"
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-600"
-                }`}
+                    ? "bg-slate-900 px-3 py-1.5 text-[14px] font-semibold text-white hover:bg-slate-800"
+                    : "px-3 py-1.5 text-[14px] font-semibold text-slate-600"
+                }
               >
                 {tab.color && (
                   <span
-                    className="h-2 w-2 rounded-full"
+                    className="mr-1.5 inline-block h-2 w-2 rounded-full"
                     style={{ backgroundColor: tab.color }}
                   />
                 )}
-                <span>
-                  {tab.label} {tab.count}
-                </span>
-              </div>
+                {tab.label} {tab.count}
+              </Badge>
             ))}
           </div>
         </div>
@@ -149,74 +151,55 @@ export const MainContent = () => {
               const color = NODE_TYPE_COLORS[node.nodeType] ?? "#64748b";
               const isExpanded = EXPANDED_INDICES.has(index);
               return (
-                <div
-                  key={index}
-                  className="rounded-2xl border border-slate-200/85 bg-white p-4 shadow-[0_8px_20px_-16px_rgba(15,23,42,0.45)]"
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px]"
-                      style={{
-                        backgroundColor: color,
-                        boxShadow: `0 1px 2px ${color}40`,
-                      }}
-                    >
-                      <svg
-                        className="h-[10px] w-[10px] text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={3.5}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <span
-                          className="rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white"
-                          style={{ backgroundColor: color }}
-                        >
-                          {node.nodeType}
-                        </span>
-                        {node.sourceSection && (
-                          <span className="text-[13px] text-slate-400">
-                            {node.sourceSection}
+                <Card key={index} className="rounded-2xl border-slate-200/85">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Checkbox checked className="mt-1" />
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <span
+                            className="rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white"
+                            style={{ backgroundColor: color }}
+                          >
+                            {node.nodeType}
                           </span>
+                          {node.sourceSection && (
+                            <span className="text-[13px] text-slate-400">
+                              {node.sourceSection}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[15px] leading-relaxed text-slate-800">
+                          {node.content}
+                        </p>
+                        {isExpanded ? (
+                          <>
+                            <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
+                              <p className="text-[13px] italic leading-relaxed text-slate-500">
+                                {node.supportSnippet}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-1 h-auto p-0 text-[13px] font-medium text-slate-400 hover:text-slate-600"
+                            >
+                              Hide details
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-1 h-auto p-0 text-[13px] font-medium text-slate-400 hover:text-slate-600"
+                          >
+                            Show details
+                          </Button>
                         )}
                       </div>
-                      <p className="text-[15px] leading-relaxed text-slate-800">
-                        {node.content}
-                      </p>
-                      {isExpanded ? (
-                        <>
-                          <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
-                            <p className="text-[13px] italic leading-relaxed text-slate-500">
-                              {node.supportSnippet}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            className="mt-2 text-[13px] font-medium text-slate-400"
-                          >
-                            Hide details
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          className="mt-2 text-[13px] font-medium text-slate-400"
-                        >
-                          Show details
-                        </button>
-                      )}
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>

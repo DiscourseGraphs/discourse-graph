@@ -1,4 +1,5 @@
 import { Button } from "@repo/ui/components/ui/button";
+import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { ChevronDown } from "lucide-react";
 
 const NODE_TYPES = [
@@ -111,31 +112,11 @@ export const Sidebar = () => {
 
           <div className="space-y-1.5">
             {NODE_TYPES.map((type) => (
-              <div
+              <label
                 key={type.candidateTag}
-                className="flex w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-slate-800 shadow-sm"
+                className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-slate-800 shadow-sm"
               >
-                <div
-                  className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px]"
-                  style={{
-                    backgroundColor: type.color,
-                    boxShadow: `0 1px 2px ${type.color}40`,
-                  }}
-                >
-                  <svg
-                    className="h-[10px] w-[10px] text-white"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={3.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
+                <Checkbox checked />
                 <div className="min-w-0 flex-1">
                   <span className="text-[16px] font-medium">{type.label}</span>
                   <p className="truncate text-[12px] text-slate-400">
@@ -145,7 +126,7 @@ export const Sidebar = () => {
                 <span className="shrink-0 text-[11px] font-medium text-slate-400">
                   {type.candidateTag}
                 </span>
-              </div>
+              </label>
             ))}
           </div>
         </section>
