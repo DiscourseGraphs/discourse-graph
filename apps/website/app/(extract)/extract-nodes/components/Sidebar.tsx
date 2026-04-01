@@ -1,4 +1,3 @@
-import { Button } from "@repo/ui/components/ui/button";
 import { ChevronDown } from "lucide-react";
 
 const NODE_TYPES = [
@@ -51,8 +50,6 @@ const NODE_TYPES = [
   },
 ];
 
-const CHECKED_TAGS = new Set(["#clm-candidate", "#evd-candidate"]);
-
 const SECTION_LABEL_CLASS =
   "mb-3 block px-1 text-[18px] font-semibold tracking-[-0.016em] text-slate-800";
 
@@ -83,13 +80,13 @@ export const Sidebar = () => {
 
         <section className="mb-6">
           <h3 className={SECTION_LABEL_CLASS}>Model</h3>
-          <Button
-            variant="outline"
-            className="w-full justify-between rounded-xl py-3 text-[16px] font-medium"
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-[16px] font-medium text-slate-700"
           >
             <span>Claude Sonnet 4.6</span>
             <ChevronDown className="h-4 w-4 text-slate-500" />
-          </Button>
+          </button>
         </section>
 
         <section className="mb-5">
@@ -107,61 +104,48 @@ export const Sidebar = () => {
               Node Types
             </h3>
             <span className="text-[13px] font-semibold tabular-nums text-slate-500">
-              {CHECKED_TAGS.size}/{NODE_TYPES.length}
+              {NODE_TYPES.length}/{NODE_TYPES.length}
             </span>
           </div>
 
           <div className="space-y-1.5">
-            {NODE_TYPES.map((type) => {
-              const isChecked = CHECKED_TAGS.has(type.candidateTag);
-              return (
+            {NODE_TYPES.map((type) => (
+              <div
+                key={type.candidateTag}
+                className="flex w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-slate-800 shadow-sm"
+              >
                 <div
-                  key={type.candidateTag}
-                  className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 ${
-                    isChecked
-                      ? "border-slate-200 bg-white text-slate-800 shadow-sm"
-                      : "border-transparent text-slate-500"
-                  }`}
+                  className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px]"
+                  style={{
+                    backgroundColor: type.color,
+                    boxShadow: `0 1px 2px ${type.color}40`,
+                  }}
                 >
-                  <div
-                    className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px]"
-                    style={{
-                      backgroundColor: isChecked ? type.color : "transparent",
-                      boxShadow: isChecked
-                        ? `0 1px 2px ${type.color}40`
-                        : "inset 0 0 0 1.8px #cbd5e1",
-                    }}
+                  <svg
+                    className="h-[10px] w-[10px] text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3.5}
                   >
-                    {isChecked && (
-                      <svg
-                        className="h-[10px] w-[10px] text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={3.5}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[16px] font-medium">
-                      {type.label}
-                    </span>
-                    <p className="truncate text-[12px] text-slate-400">
-                      {type.description}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-[11px] font-medium text-slate-400">
-                    {type.candidateTag}
-                  </span>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
                 </div>
-              );
-            })}
+                <div className="min-w-0 flex-1">
+                  <span className="text-[16px] font-medium">{type.label}</span>
+                  <p className="truncate text-[12px] text-slate-400">
+                    {type.description}
+                  </p>
+                </div>
+                <span className="shrink-0 text-[11px] font-medium text-slate-400">
+                  {type.candidateTag}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
       </div>
@@ -170,9 +154,12 @@ export const Sidebar = () => {
         <p className="mb-2 text-[14px] font-medium text-slate-500">
           Ready to run extraction.
         </p>
-        <Button className="w-full rounded-xl py-6 text-[17px] font-semibold">
+        <button
+          type="button"
+          className="flex w-full items-center justify-center rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 px-4 py-3.5 text-[17px] font-semibold text-white shadow-[0_14px_24px_-18px_rgba(15,23,42,0.85),inset_0_1px_0_rgba(255,255,255,0.12)] hover:from-slate-700 hover:to-slate-800"
+        >
           Re-Extract
-        </Button>
+        </button>
       </div>
     </aside>
   );

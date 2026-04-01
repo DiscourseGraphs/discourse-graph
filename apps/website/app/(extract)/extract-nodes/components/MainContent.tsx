@@ -1,11 +1,10 @@
-import { Button } from "@repo/ui/components/ui/button";
 import { Copy } from "lucide-react";
 
 const NODE_TYPE_COLORS: Record<string, string> = {
   claim: "#7DA13E",
-  evidence: "#dc0c4a",
   question: "#99890E",
   hypothesis: "#7C4DFF",
+  evidence: "#dc0c4a",
   result: "#E6A23C",
   source: "#9E9E9E",
   theory: "#8B5CF6",
@@ -29,15 +28,23 @@ const SAMPLE_NODES = [
     sourceSection: "Results",
   },
   {
-    nodeType: "claim",
+    nodeType: "question",
     content:
-      "Loss of Wnt5a function disrupts lumen formation in 3D cyst cultures derived from epithelial cells.",
+      "What is the mechanism by which Wnt5a polarized secretion is directed to the basolateral membrane?",
     supportSnippet:
-      '"These data demonstrate that Wnt5a is required for proper lumen formation in three-dimensional culture systems"',
+      '"The mechanism that directs Wnt5a specifically to the basolateral surface remains an open question" (p.11)',
     sourceSection: "Discussion",
   },
   {
-    nodeType: "evidence",
+    nodeType: "hypothesis",
+    content:
+      "Ror2 receptor activation at the basolateral surface mediates Wnt5a-dependent lumen positioning.",
+    supportSnippet:
+      '"We hypothesize that Ror2, as the primary receptor for Wnt5a at the basolateral membrane, transduces the polarity signal required for single-lumen formation"',
+    sourceSection: "Discussion",
+  },
+  {
+    nodeType: "result",
     content:
       "shRNA-mediated knockdown of Wnt5a resulted in multi-lumen cysts in 68% of colonies compared to 12% in control conditions.",
     supportSnippet:
@@ -45,11 +52,18 @@ const SAMPLE_NODES = [
     sourceSection: "Results",
   },
   {
-    nodeType: "claim",
-    content:
-      "Wnt5a signals through the non-canonical planar cell polarity pathway to regulate lumen morphogenesis.",
+    nodeType: "source",
+    content: "Yamamoto et al. (2015) Nature Cell Biology 17(8):1024-1035",
     supportSnippet:
-      '"Our findings place Wnt5a upstream of the PCP pathway in the regulation of epithelial lumen morphogenesis"',
+      "Primary research article on Wnt5a basolateral secretion and lumen formation in polarized epithelia.",
+    sourceSection: "References",
+  },
+  {
+    nodeType: "theory",
+    content:
+      "Non-canonical Wnt signaling through the planar cell polarity pathway is a conserved mechanism for epithelial lumen morphogenesis.",
+    supportSnippet:
+      '"Our findings place Wnt5a upstream of the PCP pathway in the regulation of epithelial lumen morphogenesis, consistent with the broader role of non-canonical Wnt signaling in tissue polarity"',
     sourceSection: "Discussion",
   },
   {
@@ -60,7 +74,17 @@ const SAMPLE_NODES = [
       '"IP-Western analysis demonstrated direct Wnt5a-Ror2 interaction in basolateral but not apical membrane fractions (Fig. 5C)"',
     sourceSection: "Results",
   },
+  {
+    nodeType: "claim",
+    content:
+      "Loss of Wnt5a function disrupts lumen formation in 3D cyst cultures derived from epithelial cells.",
+    supportSnippet:
+      '"These data demonstrate that Wnt5a is required for proper lumen formation in three-dimensional culture systems"',
+    sourceSection: "Discussion",
+  },
 ];
+
+const EXPANDED_INDICES = new Set([0, 1]);
 
 const typeCounts = SAMPLE_NODES.reduce<Record<string, number>>((acc, node) => {
   acc[node.nodeType] = (acc[node.nodeType] ?? 0) + 1;
@@ -122,6 +146,7 @@ export const MainContent = () => {
           <div className="space-y-2.5">
             {SAMPLE_NODES.map((node, index) => {
               const color = NODE_TYPE_COLORS[node.nodeType] ?? "#64748b";
+              const isExpanded = EXPANDED_INDICES.has(index);
               return (
                 <div
                   key={index}
@@ -166,11 +191,28 @@ export const MainContent = () => {
                       <p className="text-[15px] leading-relaxed text-slate-800">
                         {node.content}
                       </p>
-                      <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
-                        <p className="text-[13px] italic leading-relaxed text-slate-500">
-                          {node.supportSnippet}
-                        </p>
-                      </div>
+                      {isExpanded ? (
+                        <>
+                          <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
+                            <p className="text-[13px] italic leading-relaxed text-slate-500">
+                              {node.supportSnippet}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="mt-2 text-[13px] font-medium text-slate-400"
+                          >
+                            Hide details
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="mt-2 text-[13px] font-medium text-slate-400"
+                        >
+                          Show details
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -181,18 +223,24 @@ export const MainContent = () => {
 
         <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200/85 bg-white/95 px-4 py-3.5 backdrop-blur sm:flex-row sm:items-center sm:justify-between lg:px-5">
           <div className="flex items-center gap-2.5">
-            <Button variant="outline" size="sm" className="rounded-full">
+            <button
+              type="button"
+              className="rounded-full border border-slate-200 bg-white px-3.5 py-2 text-[14px] font-semibold text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+            >
               Deselect All
-            </Button>
+            </button>
             <span className="text-[14px] font-medium tabular-nums text-slate-500">
               {SAMPLE_NODES.length} of {SAMPLE_NODES.length} selected
             </span>
           </div>
 
-          <Button className="gap-2 rounded-full">
+          <button
+            type="button"
+            className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-slate-800 to-slate-900 px-4 py-2.5 text-[15px] font-semibold text-white shadow-[0_14px_24px_-18px_rgba(15,23,42,0.85),inset_0_1px_0_rgba(255,255,255,0.12)] hover:from-slate-700 hover:to-slate-800"
+          >
             <Copy className="h-4 w-4" />
             Copy to Clipboard
-          </Button>
+          </button>
         </div>
       </div>
     </section>
