@@ -4,27 +4,13 @@ export const ROAM_DOC_SECTIONS = {
     "creating-discourse-nodes",
     "tagging-candidate-nodes",
     "creating-discourse-relationships",
+    "migration-to-stored-relations",
     "exploring-discourse-graph",
     "querying-discourse-graph",
     "extending-personalizing-graph",
     "sharing-discourse-graph",
   ],
-  fundamentals: [
-    "what-is-a-discourse-graph",
-    "grammar",
-    "nodes",
-    "operators-relations",
-    "base-grammar",
-    "stored-relations",
-    "migration-to-stored-relations",
-    "relations-patterns",
-  ],
-  "views-and-tools": [
-    "discourse-context",
-    "discourse-context-overlay",
-    "discourse-attributes",
-    "node-index",
-  ],
+  fundamentals: ["what-is-a-discourse-graph", "grammar", "relations-patterns"],
   "use-cases": [
     "literature-reviewing",
     "enhanced-zettelkasten",
@@ -64,6 +50,12 @@ type Redirect = {
   permanent: boolean;
 };
 
+const createRedirect = (source: string, destination: string): Redirect => ({
+  source,
+  destination,
+  permanent: true,
+});
+
 const buildPlatformRedirects = (
   platform: "roam" | "obsidian",
   sections: Record<string, readonly string[]>,
@@ -76,7 +68,76 @@ const buildPlatformRedirects = (
     })),
   );
 
+const ROAM_CUSTOM_REDIRECTS: Redirect[] = [
+  createRedirect(
+    "/docs/roam/discourse-context",
+    "/docs/roam/guides/exploring-discourse-graph/discourse-context",
+  ),
+  createRedirect(
+    "/docs/roam/discourse-context-overlay",
+    "/docs/roam/guides/exploring-discourse-graph/discourse-context-overlay",
+  ),
+  createRedirect(
+    "/docs/roam/discourse-attributes",
+    "/docs/roam/guides/exploring-discourse-graph/discourse-attributes",
+  ),
+  createRedirect(
+    "/docs/roam/node-index",
+    "/docs/roam/guides/exploring-discourse-graph/node-index",
+  ),
+  createRedirect(
+    "/docs/roam/views-and-tools/discourse-context",
+    "/docs/roam/guides/exploring-discourse-graph/discourse-context",
+  ),
+  createRedirect(
+    "/docs/roam/views-and-tools/discourse-context-overlay",
+    "/docs/roam/guides/exploring-discourse-graph/discourse-context-overlay",
+  ),
+  createRedirect(
+    "/docs/roam/views-and-tools/discourse-attributes",
+    "/docs/roam/guides/exploring-discourse-graph/discourse-attributes",
+  ),
+  createRedirect(
+    "/docs/roam/views-and-tools/node-index",
+    "/docs/roam/guides/exploring-discourse-graph/node-index",
+  ),
+  createRedirect("/docs/roam/nodes", "/docs/roam/fundamentals/grammar/nodes"),
+  createRedirect(
+    "/docs/roam/operators-relations",
+    "/docs/roam/fundamentals/grammar/operators-relations",
+  ),
+  createRedirect(
+    "/docs/roam/base-grammar",
+    "/docs/roam/fundamentals/grammar/base-grammar",
+  ),
+  createRedirect(
+    "/docs/roam/stored-relations",
+    "/docs/roam/fundamentals/grammar/stored-relations",
+  ),
+  createRedirect(
+    "/docs/roam/fundamentals/nodes",
+    "/docs/roam/fundamentals/grammar/nodes",
+  ),
+  createRedirect(
+    "/docs/roam/fundamentals/operators-relations",
+    "/docs/roam/fundamentals/grammar/operators-relations",
+  ),
+  createRedirect(
+    "/docs/roam/fundamentals/base-grammar",
+    "/docs/roam/fundamentals/grammar/base-grammar",
+  ),
+  createRedirect(
+    "/docs/roam/fundamentals/stored-relations",
+    "/docs/roam/fundamentals/grammar/stored-relations",
+  ),
+  createRedirect(
+    "/docs/roam/fundamentals/migration-to-stored-relations",
+    "/docs/roam/guides/migration-to-stored-relations",
+  ),
+];
+
 export const DOCS_REDIRECTS: Redirect[] = [
+  ...ROAM_CUSTOM_REDIRECTS,
   ...buildPlatformRedirects("roam", ROAM_DOC_SECTIONS),
   ...buildPlatformRedirects("obsidian", OBSIDIAN_DOC_SECTIONS),
 ];
