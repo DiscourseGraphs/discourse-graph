@@ -6,8 +6,7 @@ const generateBaseYaml = (nodeType: DiscourseNode): string => {
   return [
     "views:",
     "  - type: table",
-    `    name: "${nodeType.name.replace(/"/g, '\\"')} Nodes"`,
-
+    `    name: "${nodeType.name.replace(/\\/g, "\\\\").replace(/"/g, '\\"')} Nodes"`,
     "    order:",
     "      - file.name",
     "    filters:",
@@ -42,9 +41,7 @@ export const createBaseForNodeType = async (
     await plugin.app.workspace.openLinkText(filename, "");
     new Notice(`Created Base view for ${nodeType.name}`);
   } catch (e) {
-    new Notice(
-      e instanceof Error ? e.message : "Failed to create Base view",
-    );
+    new Notice(e instanceof Error ? e.message : "Failed to create Base view");
     console.error("Failed to create Base view:", e);
   }
 };
