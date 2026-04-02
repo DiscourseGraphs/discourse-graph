@@ -93,7 +93,6 @@ import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
 import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import internalError from "~/utils/internalError";
-import { syncCanvasNodeTitlesOnLoad } from "~/utils/syncCanvasNodeTitlesOnLoad";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
@@ -117,6 +116,7 @@ import {
 } from "./useCanvasStoreAdapterArgs";
 import posthog from "posthog-js";
 import { json, normalizeProps } from "~/utils/getBlockProps";
+import { syncCanvasNodesOnLoad } from "~/utils/syncCanvasNodesOnLoad";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -1003,14 +1003,15 @@ const TldrawCanvasShared = ({
 
               appRef.current = app;
 
-              void syncCanvasNodeTitlesOnLoad(
-                app,
-                allNodes.map((n) => n.type),
-                allRelationIds,
-              ).catch((error) => {
+              void syncCanvasNodesOnLoad({
+                editor: app,
+                nodeTypeIds: allNodes.map((n) => n.type),
+                relationShapeTypeIds: allRelationIds,
+                extensionAPI,
+              }).catch((error) => {
                 internalError({
                   error,
-                  type: "Canvas: Sync node titles on load",
+                  type: "Canvas: Sync nodes on load",
                 });
               });
 

@@ -1,5 +1,7 @@
 import type { Editor } from "tldraw";
+import type { OnloadArgs } from "roamjs-components/types";
 import type { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
+import calcCanvasNodeSizeAndImg from "./calcCanvasNodeSizeAndImg";
 
 /**
  * Query Roam for current :node/title or :block/string for each uid.
@@ -56,11 +58,37 @@ const deleteNodeShapeAndRelations = (
  * - Updates shapes whose title changed
  * - Removes shapes whose uid no longer exists in the graph
  */
+export const syncCanvasNodesOnLoad = async ({
+  editor,
+  nodeTypeIds,
+  relationShapeTypeIds,
+  extensionAPI,
+}: {
+  editor: Editor;
+  nodeTypeIds: string[];
+  relationShapeTypeIds: string[];
+  extensionAPI: OnloadArgs["extensionAPI"];
+}): Promise<void> => {
+  const { discourseNodeShapes, uidToTitle } = await syncCanvasNodeTitlesOnLoad(
+    editor,
+    nodeTypeIds,
+    relationShapeTypeIds,
+  );
+  await syncCanvasKeyImagesOnLoad({
+    editor,
+    discourseNodeShapes,
+    uidToTitle,
+    extensionAPI,
+  });
+};
 export const syncCanvasNodeTitlesOnLoad = async (
   editor: Editor,
   nodeTypeIds: string[],
   relationShapeTypeIds: string[],
-): Promise<void> => {
+): Promise<{
+  discourseNodeShapes: DiscourseNodeShape[];
+  uidToTitle: Map<string, string>;
+}> => {
   const nodeTypeSet = new Set(nodeTypeIds);
   const relationIds = new Set(relationShapeTypeIds);
   const allRecords = editor.store.allRecords();
@@ -72,7 +100,8 @@ export const syncCanvasNodeTitlesOnLoad = async (
   ) as DiscourseNodeShape[];
 
   const uids = [...new Set(discourseNodeShapes.map((s) => s.props.uid))];
-  if (uids.length === 0) return;
+  if (uids.length === 0)
+    return { discourseNodeShapes: [], uidToTitle: new Map() };
 
   const uidToTitle = await queryTitlesByUids(uids);
 
@@ -103,5 +132,51 @@ export const syncCanvasNodeTitlesOnLoad = async (
         props: { title: newTitle },
       })),
     );
+  }
+
+  return { discourseNodeShapes, uidToTitle };
+};
+
+const syncCanvasKeyImagesOnLoad = async ({
+  editor,
+  discourseNodeShapes,
+  uidToTitle,
+  extensionAPI,
+}: {
+  editor: Editor;
+  discourseNodeShapes: DiscourseNodeShape[];
+  uidToTitle: Map<string, string>;
+  extensionAPI: OnloadArgs["extensionAPI"];
+}): Promise<void> => {
+  const survivingShapes = discourseNodeShapes.filter((s) =>
+    uidToTitle.has(s.props.uid),
+  );
+  const imageUpdates: {
+    id: DiscourseNodeShape["id"];
+    type: string;
+    props: { imageUrl: string; w: number; h: number };
+  }[] = [];
+
+  await Promise.all(
+    survivingShapes.map(async (shape) => {
+      const title = uidToTitle.get(shape.props.uid) ?? shape.props.title ?? "";
+      const { w, h, imageUrl } = await calcCanvasNodeSizeAndImg({
+        nodeText: title,
+        uid: shape.props.uid,
+        nodeType: shape.type,
+        extensionAPI,
+      });
+      if ((shape.props.imageUrl ?? "") !== imageUrl) {
+        imageUpdates.push({
+          id: shape.id,
+          type: shape.type,
+          props: { imageUrl, w, h },
+        });
+      }
+    }),
+  );
+
+  if (imageUpdates.length > 0) {
+    editor.updateShapes(imageUpdates);
   }
 };
