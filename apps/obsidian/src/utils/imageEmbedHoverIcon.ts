@@ -32,7 +32,13 @@ const createConvertIcon = (
   plugin: DiscourseGraphPlugin,
 ): HTMLButtonElement => {
   const btn = document.createElement("button");
-  btn.className = `${ICON_CLASS} absolute top-0 right-[26px] z-10 flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded border-none bg-transparent p-1 text-muted opacity-0 transition-opacity duration-150 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto hover:text-normal`;
+  btn.className = `${ICON_CLASS} absolute z-[2] right-[42px] w-[26px] h-[26px] flex cursor-[var(--cursor)] border-none opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto`;
+  btn.style.cssText = `
+    top: var(--size-2-2);
+    padding: var(--size-2-2) var(--size-2-3);
+    color: var(--text-muted);
+    background-color: var(--background-primary);
+  `;
   btn.title = "Convert to node";
   setIcon(btn, "file-input");
 
