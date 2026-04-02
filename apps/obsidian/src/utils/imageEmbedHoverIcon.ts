@@ -88,7 +88,10 @@ export const createImageEmbedHoverExtension = (
 ): ViewPlugin<PluginValue> => {
   return ViewPlugin.fromClass(
     class {
+      private dom: HTMLElement;
+
       constructor(view: EditorView) {
+        this.dom = view.dom;
         processContainer(view.dom, plugin);
       }
 
@@ -99,9 +102,8 @@ export const createImageEmbedHoverExtension = (
       }
 
       destroy(): void {
-        const icons = document.querySelectorAll(`.${ICON_CLASS}`);
+        const icons = this.dom.querySelectorAll(`.${ICON_CLASS}`);
         icons.forEach((icon) => icon.remove());
       }
     },
-  );
 };
