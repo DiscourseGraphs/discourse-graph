@@ -8,10 +8,10 @@ import {
 
 const ICON_CLASS = "dg-image-convert-icon";
 
-function resolveImageFile(
+const resolveImageFile = (
   embedEl: HTMLElement,
   plugin: DiscourseGraphPlugin,
-): TFile | null {
+): TFile | null => {
   const src = embedEl.getAttribute("src");
   if (!src) return null;
 
@@ -25,14 +25,14 @@ function resolveImageFile(
   if (!resolved || !isImageFile(resolved)) return null;
 
   return resolved;
-}
+};
 
-function createConvertIcon(
+const createConvertIcon = (
   embedEl: HTMLElement,
   plugin: DiscourseGraphPlugin,
-): HTMLButtonElement {
+): HTMLButtonElement => {
   const btn = document.createElement("button");
-  btn.className = ICON_CLASS;
+  btn.className = `${ICON_CLASS} absolute top-0 right-[26px] z-10 flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded border-none bg-transparent p-1 text-muted opacity-0 transition-opacity duration-150 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto hover:text-normal`;
   btn.title = "Convert to node";
   setIcon(btn, "file-input");
 
@@ -47,12 +47,12 @@ function createConvertIcon(
   });
 
   return btn;
-}
+};
 
-function processContainer(
+const processContainer = (
   container: HTMLElement,
   plugin: DiscourseGraphPlugin,
-) {
+) => {
   const embeds = container.querySelectorAll<HTMLElement>(
     ".internal-embed.image-embed",
   );
@@ -63,15 +63,18 @@ function processContainer(
     const imageFile = resolveImageFile(embedEl, plugin);
     if (!imageFile) continue;
 
+    embedEl.classList.add("group", "relative");
     embedEl.appendChild(createConvertIcon(embedEl, plugin));
   }
-}
+};
 
 /**
  * CodeMirror ViewPlugin that adds a "Convert to node" hover icon
  * on embedded images in the live-preview editor.
  */
-export function createImageEmbedHoverExtension(plugin: DiscourseGraphPlugin) {
+export const createImageEmbedHoverExtension = (
+  plugin: DiscourseGraphPlugin,
+) => {
   return ViewPlugin.fromClass(
     class {
       constructor(view: EditorView) {
@@ -83,4 +86,4 @@ export function createImageEmbedHoverExtension(plugin: DiscourseGraphPlugin) {
       }
     },
   );
-}
+};
