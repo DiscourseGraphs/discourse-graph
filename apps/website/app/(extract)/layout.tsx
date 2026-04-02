@@ -19,7 +19,9 @@ type ExtractLayoutProps = {
   children: React.ReactNode;
 };
 
-const ExtractLayout = ({ children }: ExtractLayoutProps) => {
+const ExtractLayout = ({
+  children,
+}: ExtractLayoutProps): React.ReactElement => {
   return (
     <div
       className={`${inter.className} flex h-screen min-h-screen flex-col bg-[#eef2f7] antialiased`}
