@@ -1,4 +1,9 @@
-import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
+import {
+  type PluginValue,
+  EditorView,
+  ViewPlugin,
+  ViewUpdate,
+} from "@codemirror/view";
 import { setIcon, TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import {
@@ -58,7 +63,7 @@ const createConvertIcon = (
 const processContainer = (
   container: HTMLElement,
   plugin: DiscourseGraphPlugin,
-) => {
+): void => {
   const embeds = container.querySelectorAll<HTMLElement>(
     ".internal-embed.image-embed",
   );
@@ -80,15 +85,22 @@ const processContainer = (
  */
 export const createImageEmbedHoverExtension = (
   plugin: DiscourseGraphPlugin,
-) => {
+): ViewPlugin<PluginValue> => {
   return ViewPlugin.fromClass(
     class {
       constructor(view: EditorView) {
         processContainer(view.dom, plugin);
       }
 
-      update(_update: ViewUpdate) {
-        processContainer(_update.view.dom, plugin);
+      update(update: ViewUpdate): void {
+        if (update.docChanged || update.viewportChanged) {
+          processContainer(update.view.dom, plugin);
+        }
+      }
+
+      destroy(): void {
+        const icons = document.querySelectorAll(`.${ICON_CLASS}`);
+        icons.forEach((icon) => icon.remove());
       }
     },
   );
