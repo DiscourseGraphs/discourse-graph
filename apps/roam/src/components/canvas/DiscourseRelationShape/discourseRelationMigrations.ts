@@ -141,8 +141,8 @@ export const createMigrations = ({
         filter: (r: any) =>
           r.typeName === "shape" && allNodeTypes.includes(r.type),
         up: (shape: any) => {
-          shape.props.size = "m";
-          shape.props.fontFamily = "draw";
+          if (!shape.props.size) shape.props.size = "m";
+          if (!shape.props.fontFamily) shape.props.fontFamily = "draw";
         },
       },
       {
