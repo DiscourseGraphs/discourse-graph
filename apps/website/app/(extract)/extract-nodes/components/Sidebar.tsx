@@ -114,15 +114,12 @@ export const Sidebar = () => {
             {NODE_TYPES.map((type) => (
               <label
                 key={type.candidateTag}
-                className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-slate-800 shadow-sm"
+                className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 text-slate-800 shadow-sm"
               >
                 <Checkbox checked />
-                <div className="min-w-0 flex-1">
-                  <span className="text-[16px] font-medium">{type.label}</span>
-                  <p className="truncate text-[12px] text-slate-400">
-                    {type.description}
-                  </p>
-                </div>
+                <span className="min-w-0 flex-1 text-[16px] font-medium">
+                  {type.label}
+                </span>
                 <span className="shrink-0 text-[11px] font-medium text-slate-400">
                   {type.candidateTag}
                 </span>
