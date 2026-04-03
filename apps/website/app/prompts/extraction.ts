@@ -11,21 +11,6 @@ Extract discrete, atomic nodes from the paper. Each node is one idea: one claim,
 - **Theory**: A theoretical framework or model used or proposed. Name it, state its core proposition.
 - **Source**: A cited publication. Author(s) and year.
 
-## Output
-
-Return JSON only, no markdown fences:
-
-{
-  "nodes": [
-    {
-      "nodeType": "Evidence|Claim|Question|Result|Theory|Source",
-      "content": "clear, self-contained statement",
-      "supportSnippet": "exact quote or figure/table ref from paper, under 250 chars",
-      "sourceSection": "Introduction|Methods|Results|Discussion|etc"
-    }
-  ]
-}
-
 ## Quality
 
 - Atomic: one idea per node. Split compound sentences.

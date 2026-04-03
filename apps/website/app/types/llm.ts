@@ -10,7 +10,7 @@ export type Settings = {
   maxTokens: number;
   temperature: number;
   systemPrompt?: string;
-  responseMimeType?: string;
+  outputSchema?: Record<string, unknown>;
   safetySettings?: Array<{
     category: string;
     threshold: string;

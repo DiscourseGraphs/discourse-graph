@@ -17,6 +17,16 @@ export const openaiConfig: LLMProviderConfig = {
     ],
     temperature: settings.temperature,
     max_completion_tokens: settings.maxTokens,
+    ...(settings.outputSchema && {
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "extraction_result",
+          strict: true,
+          schema: settings.outputSchema,
+        },
+      },
+    }),
   }),
   extractResponseText: (responseData: any) =>
     responseData.choices?.[0]?.message?.content,
@@ -42,8 +52,9 @@ export const geminiConfig: LLMProviderConfig = {
     generationConfig: {
       maxOutputTokens: settings.maxTokens,
       temperature: settings.temperature,
-      ...(settings.responseMimeType && {
-        responseMimeType: settings.responseMimeType,
+      ...(settings.outputSchema && {
+        responseMimeType: "application/json",
+        responseJsonSchema: settings.outputSchema,
       }),
     },
     safetySettings: settings.safetySettings,
@@ -67,6 +78,14 @@ export const anthropicConfig: LLMProviderConfig = {
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     temperature: settings.temperature,
     ...(settings.systemPrompt && { system: settings.systemPrompt }),
+    ...(settings.outputSchema && {
+      output_config: {
+        format: {
+          type: "json_schema",
+          schema: settings.outputSchema,
+        },
+      },
+    }),
   }),
   extractResponseText: (responseData: any) => responseData.content?.[0]?.text,
   errorMessagePath: "error?.message",

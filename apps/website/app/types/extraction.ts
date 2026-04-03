@@ -9,7 +9,7 @@ export const ExtractedNodeSchema = z.object({
   nodeType: z.string(),
   content: z.string(),
   supportSnippet: z.string(),
-  sourceSection: z.string().optional(),
+  sourceSection: z.string().nullable(),
 });
 
 export type ExtractedNode = z.infer<typeof ExtractedNodeSchema>;
@@ -31,6 +31,28 @@ export const ExtractionRequestSchema = z.object({
 });
 
 export type ExtractionRequest = z.infer<typeof ExtractionRequestSchema>;
+
+export const EXTRACTION_RESULT_JSON_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    nodes: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          nodeType: { type: "string" },
+          content: { type: "string" },
+          supportSnippet: { type: "string" },
+          sourceSection: { type: ["string", "null"] },
+        },
+        required: ["nodeType", "content", "supportSnippet", "sourceSection"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["nodes"],
+  additionalProperties: false,
+};
 
 export type ExtractionResponse =
   | { success: true; data: ExtractionResult }

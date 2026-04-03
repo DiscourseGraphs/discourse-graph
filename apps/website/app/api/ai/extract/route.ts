@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   ExtractionRequestSchema,
+  EXTRACTION_RESULT_JSON_SCHEMA,
   type ExtractionResponse,
   type ProviderId,
 } from "~/types/extraction";
@@ -127,11 +128,9 @@ export const POST = async (
   const settings: Settings = {
     model,
     maxTokens: 16384,
-    temperature: 0.2,
+    temperature: 0.6,
     systemPrompt: systemPrompt ?? DEFAULT_EXTRACTION_PROMPT,
-    ...(provider === "gemini" && {
-      responseMimeType: "application/json",
-    }),
+    outputSchema: EXTRACTION_RESULT_JSON_SCHEMA,
   };
 
   const apiUrl =
