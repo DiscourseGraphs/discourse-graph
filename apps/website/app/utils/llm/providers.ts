@@ -18,8 +18,10 @@ export const openaiConfig: LLMProviderConfig = {
     temperature: settings.temperature,
     max_completion_tokens: settings.maxTokens,
     ...(settings.outputSchema && {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       response_format: {
         type: "json_schema",
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         json_schema: {
           name: "extraction_result",
           strict: true,
@@ -79,6 +81,7 @@ export const anthropicConfig: LLMProviderConfig = {
     temperature: settings.temperature,
     ...(settings.systemPrompt && { system: settings.systemPrompt }),
     ...(settings.outputSchema && {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       output_config: {
         format: {
           type: "json_schema",
