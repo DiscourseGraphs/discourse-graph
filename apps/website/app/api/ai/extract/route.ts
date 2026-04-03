@@ -35,8 +35,6 @@ const buildExtractionMessages = ({
   pdfBase64: string;
   userPrompt: string;
 }): Message[] => {
-  const textBlock = { type: "text", text: userPrompt };
-
   switch (provider) {
     case "anthropic":
       return [
@@ -51,7 +49,7 @@ const buildExtractionMessages = ({
                 data: pdfBase64,
               },
             },
-            textBlock,
+            { type: "text", text: userPrompt },
           ],
         },
       ];
@@ -67,7 +65,7 @@ const buildExtractionMessages = ({
                 file_data: `data:application/pdf;base64,${pdfBase64}`, // eslint-disable-line @typescript-eslint/naming-convention
               },
             },
-            textBlock,
+            { type: "text", text: userPrompt },
           ],
         },
       ];
@@ -82,7 +80,7 @@ const buildExtractionMessages = ({
                 data: pdfBase64,
               },
             },
-            textBlock,
+            { text: userPrompt },
           ],
         },
       ];
