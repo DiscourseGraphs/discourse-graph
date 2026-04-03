@@ -124,15 +124,11 @@ export const applyTemplate = async ({
 
     const templateFrontmatter =
       app.metadataCache.getFileCache(templateFile)?.frontmatter || {};
-    const currentFrontmatter =
-      app.metadataCache.getFileCache(targetFile)?.frontmatter || {};
 
-    const mergedFrontmatter = mergeFrontmatter(
-      templateFrontmatter,
-      currentFrontmatter,
-    );
-
+    // Read the actual current frontmatter inside processFrontMatter to avoid
+    // stale metadata cache (newly created files may not be indexed yet).
     await app.fileManager.processFrontMatter(targetFile, (fm) => {
+      const mergedFrontmatter = mergeFrontmatter(templateFrontmatter, fm);
       Object.assign(fm, mergedFrontmatter);
     });
 
