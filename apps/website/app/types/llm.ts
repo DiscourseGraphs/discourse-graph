@@ -1,12 +1,16 @@
+export type ContentBlock = Record<string, unknown>;
+
 export type Message = {
   role: string;
-  content: string;
+  content: string | ContentBlock[];
 };
 
 export type Settings = {
   model: string;
   maxTokens: number;
   temperature: number;
+  systemPrompt?: string;
+  responseMimeType?: string;
   safetySettings?: Array<{
     category: string;
     threshold: string;

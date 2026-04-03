@@ -4,6 +4,7 @@ import {
   type ExtractionResponse,
   type ProviderId,
 } from "~/types/extraction";
+import type { LLMProviderConfig, Message, Settings } from "~/types/llm";
 import {
   anthropicConfig,
   openaiConfig,
@@ -14,49 +15,26 @@ import {
   buildUserPrompt,
 } from "~/prompts/extraction";
 import { parseExtractionResponse } from "~/utils/ai/parseExtractionResponse";
-import { z } from "zod";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-type ExtractionParams = {
-  model: string;
-  systemPrompt: string;
-  pdfBase64: string;
-  userPrompt: string;
-  apiKey: string;
+const PROVIDER_CONFIGS: Record<ProviderId, LLMProviderConfig> = {
+  anthropic: anthropicConfig,
+  openai: openaiConfig,
+  gemini: geminiConfig,
 };
 
-type ProviderExtractionConfig = {
-  apiKeyEnvVar: string;
-  apiHeaders: (apiKey: string) => Record<string, string>;
-  apiUrl: (params: ExtractionParams) => string;
-  buildRequestBody: (params: ExtractionParams) => unknown;
-  extractResponseText: (data: unknown) => string | null;
-};
+const buildExtractionMessages = (
+  provider: ProviderId,
+  pdfBase64: string,
+  userPrompt: string,
+): Message[] => {
+  const textBlock = { type: "text", text: userPrompt };
 
-const openaiResponseSchema = z.object({
-  output: z.array(
-    z.object({
-      type: z.string(),
-      content: z
-        .array(z.object({ type: z.string(), text: z.string() }))
-        .optional(),
-    }),
-  ),
-});
-
-const PROVIDERS: Record<ProviderId, ProviderExtractionConfig> = {
-  anthropic: {
-    apiKeyEnvVar: anthropicConfig.apiKeyEnvVar,
-    apiHeaders: anthropicConfig.apiHeaders,
-    apiUrl: () => "https://api.anthropic.com/v1/messages",
-    buildRequestBody: ({ model, systemPrompt, pdfBase64, userPrompt }) => ({
-      model,
-      max_tokens: 16384, // eslint-disable-line @typescript-eslint/naming-convention
-      temperature: 0.2,
-      system: systemPrompt,
-      messages: [
+  switch (provider) {
+    case "anthropic":
+      return [
         {
           role: "user",
           content: [
@@ -68,71 +46,42 @@ const PROVIDERS: Record<ProviderId, ProviderExtractionConfig> = {
                 data: pdfBase64,
               },
             },
-            { type: "text", text: userPrompt },
+            textBlock,
           ],
         },
-      ],
-    }),
-    extractResponseText: anthropicConfig.extractResponseText,
-  },
-  openai: {
-    apiKeyEnvVar: openaiConfig.apiKeyEnvVar,
-    apiHeaders: openaiConfig.apiHeaders,
-    apiUrl: () => "https://api.openai.com/v1/responses",
-    buildRequestBody: ({ model, systemPrompt, pdfBase64, userPrompt }) => ({
-      model,
-      instructions: systemPrompt,
-      input: [
+      ];
+    case "openai":
+      return [
         {
           role: "user",
           content: [
             {
-              type: "input_file",
-              filename: "paper.pdf",
-              file_data: `data:application/pdf;base64,${pdfBase64}`, // eslint-disable-line @typescript-eslint/naming-convention
+              type: "file",
+              file: {
+                filename: "paper.pdf",
+                file_data: `data:application/pdf;base64,${pdfBase64}`, // eslint-disable-line @typescript-eslint/naming-convention
+              },
             },
-            { type: "input_text", text: userPrompt },
+            textBlock,
           ],
         },
-      ],
-      temperature: 0.2,
-      max_output_tokens: 16384, // eslint-disable-line @typescript-eslint/naming-convention
-    }),
-    extractResponseText: (data: unknown) => {
-      const parsed = openaiResponseSchema.safeParse(data);
-      if (!parsed.success) return null;
-      const message = parsed.data.output.find((o) => o.type === "message");
-      return (
-        message?.content?.find((c) => c.type === "output_text")?.text ?? null
-      );
-    },
-  },
-  gemini: {
-    apiKeyEnvVar: geminiConfig.apiKeyEnvVar,
-    apiHeaders: geminiConfig.apiHeaders,
-    apiUrl: ({ apiKey, model }) =>
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    buildRequestBody: ({ systemPrompt, pdfBase64, userPrompt }) => ({
-      system_instruction: { parts: [{ text: systemPrompt }] }, // eslint-disable-line @typescript-eslint/naming-convention
-      contents: [
+      ];
+    case "gemini":
+      return [
         {
           role: "user",
-          parts: [
+          content: [
             {
-              inline_data: { mime_type: "application/pdf", data: pdfBase64 }, // eslint-disable-line @typescript-eslint/naming-convention
+              inlineData: {
+                mimeType: "application/pdf",
+                data: pdfBase64,
+              },
             },
-            { text: userPrompt },
+            textBlock,
           ],
         },
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 16384,
-        responseMimeType: "application/json",
-      },
-    }),
-    extractResponseText: geminiConfig.extractResponseText,
-  },
+      ];
+  }
 };
 
 export const POST = async (
@@ -159,7 +108,7 @@ export const POST = async (
   const { pdfBase64, researchQuestion, model, provider, systemPrompt } =
     validated.data;
 
-  const config = PROVIDERS[provider];
+  const config = PROVIDER_CONFIGS[provider];
   const apiKey = process.env[config.apiKeyEnvVar];
 
   if (!apiKey) {
@@ -169,21 +118,32 @@ export const POST = async (
     );
   }
 
-  const resolvedSystemPrompt = systemPrompt ?? DEFAULT_EXTRACTION_PROMPT;
-  const userPrompt = buildUserPrompt(researchQuestion);
-  const params: ExtractionParams = {
-    model,
-    systemPrompt: resolvedSystemPrompt,
+  const messages = buildExtractionMessages(
+    provider,
     pdfBase64,
-    userPrompt,
-    apiKey,
+    buildUserPrompt(researchQuestion),
+  );
+
+  const settings: Settings = {
+    model,
+    maxTokens: 16384,
+    temperature: 0.2,
+    systemPrompt: systemPrompt ?? DEFAULT_EXTRACTION_PROMPT,
+    ...(provider === "gemini" && {
+      responseMimeType: "application/json",
+    }),
   };
 
+  const apiUrl =
+    typeof config.apiUrl === "function"
+      ? config.apiUrl(settings)
+      : config.apiUrl;
+
   try {
-    const response = await fetch(config.apiUrl(params), {
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: config.apiHeaders(apiKey),
-      body: JSON.stringify(config.buildRequestBody(params)),
+      body: JSON.stringify(config.formatRequestBody(messages, settings)),
       signal: AbortSignal.timeout(270_000),
     });
 
