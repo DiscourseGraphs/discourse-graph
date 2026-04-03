@@ -43,6 +43,7 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
+import { isSmartBlockUid } from "~/utils/createDiscourseNode";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -120,6 +121,39 @@ const toggleFoldedState = ({
   }
 };
 
+const RoamRenderedBlock = ({ uid }: { uid: string }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.innerHTML = "";
+    void window.roamAlphaAPI.ui.components.renderBlock({
+      uid,
+      el,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "open?": false,
+    });
+
+    const handleClick = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (target.closest("[data-roamjs-smartblock-button]")) {
+        void window.roamAlphaAPI.ui.mainWindow.openBlock({
+          block: { uid },
+        });
+      }
+    };
+    el.addEventListener("click", handleClick);
+
+    return () => {
+      el.innerHTML = "";
+      el.removeEventListener("click", handleClick);
+    };
+  }, [uid]);
+
+  return <div ref={containerRef} className="dg-sidebar-rendered-block" />;
+};
+
 const SectionChildren = ({
   childrenNodes,
   truncateAt,
@@ -133,6 +167,18 @@ const SectionChildren = ({
       {childrenNodes.map((child) => {
         const ref = parseReference(child.text);
         const alias = child.alias?.value;
+        const isSmartBlock = ref.type === "block" && isSmartBlockUid(ref.uid);
+
+        if (isSmartBlock) {
+          return (
+            <div key={child.uid} className="pl-8 pr-2.5">
+              <div className="section-child-item rounded-sm leading-normal text-gray-600">
+                <RoamRenderedBlock uid={ref.uid} />
+              </div>
+            </div>
+          );
+        }
+
         const display =
           ref.type === "page"
             ? getPageTitleByPageUid(ref.display)
@@ -518,6 +564,22 @@ export const mountLeftSidebar = async (
   onloadArgs: OnloadArgs,
 ): Promise<void> => {
   if (!wrapper) return;
+
+  const styleId = "dg-sidebar-rendered-block-styles";
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      .dg-sidebar-rendered-block .rm-bullet { display: none; }
+      .dg-sidebar-rendered-block .rm-block-separator { display: none; }
+      .dg-sidebar-rendered-block .controls { display: none; }
+      .dg-sidebar-rendered-block .block-expand { display: none; }
+      .dg-sidebar-rendered-block .block-border-left { display: none; }
+      .dg-sidebar-rendered-block .block-ref-count-button { display: none; }
+      .dg-sidebar-rendered-block .rm-block-main { min-height: unset; padding: 0; }
+    `;
+    document.head.appendChild(style);
+  }
 
   const id = "dg-left-sidebar-root";
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
