@@ -97,8 +97,19 @@ export const createImageEmbedHoverExtension = (
 
         // Obsidian renders embeds asynchronously after doc changes,
         // so we need a MutationObserver to catch newly added image embeds.
-        this.observer = new MutationObserver(() => {
-          processContainer(this.dom, plugin);
+        this.observer = new MutationObserver((mutations) => {
+          const hasRelevantMutation = mutations.some((m) =>
+            Array.from(m.addedNodes).some(
+              (n) =>
+                n instanceof HTMLElement &&
+                !n.classList.contains(ICON_CLASS) &&
+                (n.matches(".internal-embed.image-embed") ||
+                  n.querySelector(".internal-embed.image-embed")),
+            ),
+          );
+          if (hasRelevantMutation) {
+            processContainer(this.dom, plugin);
+          }
         });
         this.observer.observe(this.dom, {
           childList: true,
