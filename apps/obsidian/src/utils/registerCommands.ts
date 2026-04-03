@@ -13,6 +13,7 @@ import { publishNode } from "./publishNode";
 import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 import type { DiscourseNode } from "~/types";
 import { TldrawView } from "~/components/canvas/TldrawView";
+import { createBaseForNodeType } from "./baseForNodeType";
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;
@@ -65,7 +66,14 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       const hasSelection = !!editor.getSelection();
 
       if (hasSelection) {
-        new NodeTypeModal(editor, plugin.settings.nodeTypes, plugin).open();
+        new NodeTypeModal(plugin, (nodeType) => {
+          void createDiscourseNode({
+            plugin,
+            editor,
+            nodeType,
+            text: editor.getSelection().trim() || "",
+          });
+        }).open();
       } else {
         const currentFile =
           plugin.app.workspace.getActiveViewOfType(MarkdownView)?.file ||
@@ -249,6 +257,16 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       return true;
     },
   });
+  plugin.addCommand({
+    id: "create-base-for-node-type",
+    name: "Create Base view for node type",
+    callback: () => {
+      new NodeTypeModal(plugin, (nodeType) => {
+        void createBaseForNodeType(plugin, nodeType);
+      }).open();
+    },
+  });
+
   plugin.addCommand({
     id: "publish-discourse-node",
     name: "Publish current node to lab space",

@@ -4,6 +4,7 @@ import {
   WorkspaceLeaf,
   Notice,
   FrontMatterCache,
+  setIcon,
 } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import DiscourseGraphPlugin from "~/index";
@@ -14,6 +15,7 @@ import { PluginProvider, usePlugin } from "~/components/PluginContext";
 import { getNodeTypeById } from "~/utils/typeUtils";
 import { refreshImportedFile } from "~/utils/importNodes";
 import { publishNode } from "~/utils/publishNode";
+import { createBaseForNodeType } from "~/utils/baseForNodeType";
 import { useState, useEffect } from "react";
 
 type DiscourseContextProps = {
@@ -154,6 +156,18 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
               />
             )}
             {nodeType.name || "Unnamed Node Type"}
+            <button
+              onClick={() => {
+                void createBaseForNodeType(plugin, nodeType);
+              }}
+              className="clickable-icon ml-1"
+              title={`Create Base view for ${nodeType.name}`}
+              aria-label={`Create Base view for ${nodeType.name}`}
+            >
+              <div
+                ref={(el) => (el && setIcon(el, "layout-list")) || undefined}
+              />
+            </button>
             {isImported && (
               <button
                 onClick={() => {

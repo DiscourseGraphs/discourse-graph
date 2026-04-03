@@ -63,6 +63,10 @@ export const navigation: NavigationList = [
         title: "Node tags",
         href: `${ROOT}/node-tags`,
       },
+      {
+        title: "Querying your discourse graph",
+        href: `${ROOT}/querying-discourse-graph`,
+      },
     ],
   },
 
