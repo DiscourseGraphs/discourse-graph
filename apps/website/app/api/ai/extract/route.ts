@@ -26,11 +26,15 @@ const PROVIDER_CONFIGS: Record<ProviderId, LLMProviderConfig> = {
   gemini: geminiConfig,
 };
 
-const buildExtractionMessages = (
-  provider: ProviderId,
-  pdfBase64: string,
-  userPrompt: string,
-): Message[] => {
+const buildExtractionMessages = ({
+  provider,
+  pdfBase64,
+  userPrompt,
+}: {
+  provider: ProviderId;
+  pdfBase64: string;
+  userPrompt: string;
+}): Message[] => {
   const textBlock = { type: "text", text: userPrompt };
 
   switch (provider) {
@@ -119,11 +123,11 @@ export const POST = async (
     );
   }
 
-  const messages = buildExtractionMessages(
+  const messages = buildExtractionMessages({
     provider,
     pdfBase64,
-    buildUserPrompt(researchQuestion),
-  );
+    userPrompt: buildUserPrompt(researchQuestion),
+  });
 
   const settings: Settings = {
     model,
