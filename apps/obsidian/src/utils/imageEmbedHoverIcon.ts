@@ -89,10 +89,21 @@ export const createImageEmbedHoverExtension = (
   return ViewPlugin.fromClass(
     class {
       private dom: HTMLElement;
+      private observer: MutationObserver;
 
       constructor(view: EditorView) {
         this.dom = view.dom;
         processContainer(view.dom, plugin);
+
+        // Obsidian renders embeds asynchronously after doc changes,
+        // so we need a MutationObserver to catch newly added image embeds.
+        this.observer = new MutationObserver(() => {
+          processContainer(this.dom, plugin);
+        });
+        this.observer.observe(this.dom, {
+          childList: true,
+          subtree: true,
+        });
       }
 
       update(update: ViewUpdate): void {
@@ -102,8 +113,10 @@ export const createImageEmbedHoverExtension = (
       }
 
       destroy(): void {
+        this.observer.disconnect();
         const icons = this.dom.querySelectorAll(`.${ICON_CLASS}`);
         icons.forEach((icon) => icon.remove());
       }
     },
+  );
 };
