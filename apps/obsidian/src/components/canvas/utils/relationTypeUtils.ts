@@ -1,6 +1,15 @@
 import type { DiscourseRelation, DiscourseRelationType } from "~/types";
 import { COLOR_PALETTE } from "~/utils/tldrawColors";
 
+/**
+ * Extracts the nodeTypeId from any tldraw shape that may have it.
+ * Avoids repeating the same unsafe cast across multiple files.
+ */
+export const getDiscourseNodeTypeId = (shape: unknown): string | undefined => {
+  const typed = shape as { props?: { nodeTypeId?: string } } | null | undefined;
+  return typed?.props?.nodeTypeId;
+};
+
 type RelationTypeSettings = {
   discourseRelations: DiscourseRelation[];
   relationTypes: DiscourseRelationType[];
@@ -11,12 +20,17 @@ type RelationTypeSettings = {
  * Returns whether the relation exists in the direct (source→target)
  * and/or reverse (target→source) direction.
  */
-export const getRelationDirection = (
-  discourseRelations: DiscourseRelation[],
-  relationTypeId: string,
-  sourceNodeTypeId: string,
-  targetNodeTypeId: string,
-): { direct: boolean; reverse: boolean } => {
+export const getRelationDirection = ({
+  discourseRelations,
+  relationTypeId,
+  sourceNodeTypeId,
+  targetNodeTypeId,
+}: {
+  discourseRelations: DiscourseRelation[];
+  relationTypeId: string;
+  sourceNodeTypeId: string;
+  targetNodeTypeId: string;
+}): { direct: boolean; reverse: boolean } => {
   let direct = false;
   let reverse = false;
 
@@ -44,20 +58,24 @@ export const getRelationDirection = (
  * Returns the list of valid relation types for a given pair of node types,
  * checking both directions of the discourse relations.
  */
-export const getValidRelationTypesForNodePair = (
-  settings: RelationTypeSettings,
-  sourceNodeTypeId: string,
-  targetNodeTypeId: string,
-): { id: string; label: string; color: string }[] => {
+export const getValidRelationTypesForNodePair = ({
+  settings,
+  sourceNodeTypeId,
+  targetNodeTypeId,
+}: {
+  settings: RelationTypeSettings;
+  sourceNodeTypeId: string;
+  targetNodeTypeId: string;
+}): { id: string; label: string; color: string }[] => {
   const validTypes: { id: string; label: string; color: string }[] = [];
 
   for (const relationType of settings.relationTypes) {
-    const { direct, reverse } = getRelationDirection(
-      settings.discourseRelations,
-      relationType.id,
+    const { direct, reverse } = getRelationDirection({
+      discourseRelations: settings.discourseRelations,
+      relationTypeId: relationType.id,
       sourceNodeTypeId,
       targetNodeTypeId,
-    );
+    });
 
     if (direct || reverse) {
       validTypes.push({
@@ -72,13 +90,65 @@ export const getValidRelationTypesForNodePair = (
 };
 
 /**
+ * Checks whether a specific relation type can connect the given source and
+ * target node types (in either direction).
+ */
+export const isValidRelationConnection = ({
+  discourseRelations,
+  relationTypeId,
+  sourceNodeTypeId,
+  targetNodeTypeId,
+}: {
+  discourseRelations: DiscourseRelation[];
+  relationTypeId: string;
+  sourceNodeTypeId: string;
+  targetNodeTypeId: string;
+}): boolean => {
+  const { direct, reverse } = getRelationDirection({
+    discourseRelations,
+    relationTypeId,
+    sourceNodeTypeId,
+    targetNodeTypeId,
+  });
+  return direct || reverse;
+};
+
+/**
+ * Returns the valid target node type IDs for a given relation type and source
+ * node type, checking both forward and reverse directions.
+ */
+export const getCompatibleTargetNodeTypeIds = ({
+  discourseRelations,
+  relationTypeId,
+  sourceNodeTypeId,
+}: {
+  discourseRelations: DiscourseRelation[];
+  relationTypeId: string;
+  sourceNodeTypeId: string;
+}): string[] => {
+  const targets = new Set<string>();
+  for (const relation of discourseRelations) {
+    if (relation.relationshipTypeId !== relationTypeId) continue;
+    if (relation.sourceId === sourceNodeTypeId)
+      targets.add(relation.destinationId);
+    if (relation.destinationId === sourceNodeTypeId)
+      targets.add(relation.sourceId);
+  }
+  return [...targets];
+};
+
+/**
  * Checks whether any valid relation type exists between two node types.
  */
-export const hasValidRelationTypeForNodePair = (
-  settings: RelationTypeSettings,
-  sourceNodeTypeId: string,
-  targetNodeTypeId: string,
-): boolean => {
+export const hasValidRelationTypeForNodePair = ({
+  settings,
+  sourceNodeTypeId,
+  targetNodeTypeId,
+}: {
+  settings: RelationTypeSettings;
+  sourceNodeTypeId: string;
+  targetNodeTypeId: string;
+}): boolean => {
   return settings.discourseRelations.some(
     (r) =>
       settings.relationTypes.some((rt) => rt.id === r.relationshipTypeId) &&

@@ -60,7 +60,12 @@ import {
 import { RelationBindings } from "./DiscourseRelationBinding";
 import { DiscourseNodeShape, DiscourseNodeUtil } from "./DiscourseNodeShape";
 import { addRelationToRelationsJson } from "~/components/canvas/utils/relationJsonUtils";
-import { getRelationDirection } from "~/components/canvas/utils/relationTypeUtils";
+import {
+  getDiscourseNodeTypeId,
+  getRelationDirection,
+  isValidRelationConnection,
+} from "~/components/canvas/utils/relationTypeUtils";
+import { getNodeTypeById, getRelationTypeById } from "~/utils/typeUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
 
 export enum ArrowHandles {
@@ -355,28 +360,29 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
     ) {
       const sourceNodeId = otherBinding.toId;
       const sourceNode = this.editor.getShape(sourceNodeId);
-      const targetNodeTypeId = (target as { props?: { nodeTypeId?: string } })
-        .props?.nodeTypeId;
-      const sourceNodeTypeId = (
-        sourceNode as { props?: { nodeTypeId?: string } } | null
-      )?.props?.nodeTypeId;
+      const targetNodeTypeId = getDiscourseNodeTypeId(target);
+      const sourceNodeTypeId = getDiscourseNodeTypeId(sourceNode);
 
       if (sourceNodeTypeId && targetNodeTypeId && shape.props.relationTypeId) {
-        const isValidConnection = this.isValidNodeConnection(
+        const isValidConnection = isValidRelationConnection({
+          discourseRelations: this.options.plugin.settings.discourseRelations,
+          relationTypeId: shape.props.relationTypeId,
           sourceNodeTypeId,
           targetNodeTypeId,
-          shape.props.relationTypeId,
-        );
+        });
 
         if (!isValidConnection) {
-          const sourceNodeType = this.options.plugin.settings.nodeTypes.find(
-            (nt) => nt.id === sourceNodeTypeId,
+          const sourceNodeType = getNodeTypeById(
+            this.options.plugin,
+            sourceNodeTypeId,
           );
-          const targetNodeType = this.options.plugin.settings.nodeTypes.find(
-            (nt) => nt.id === targetNodeTypeId,
+          const targetNodeType = getNodeTypeById(
+            this.options.plugin,
+            targetNodeTypeId,
           );
-          const relationType = this.options.plugin.settings.relationTypes.find(
-            (rt) => rt.id === shape.props.relationTypeId,
+          const relationType = getRelationTypeById(
+            this.options.plugin,
+            shape.props.relationTypeId,
           );
 
           // Show error toast and delete the entire relation shape
@@ -1086,25 +1092,21 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
 
     if (!startNode || !endNode) return;
 
-    const startNodeTypeId = (startNode as { props?: { nodeTypeId?: string } })
-      ?.props?.nodeTypeId;
-    const endNodeTypeId = (endNode as { props?: { nodeTypeId?: string } })
-      ?.props?.nodeTypeId;
+    const startNodeTypeId = getDiscourseNodeTypeId(startNode);
+    const endNodeTypeId = getDiscourseNodeTypeId(endNode);
 
     if (!startNodeTypeId || !endNodeTypeId) return;
 
-    const relationType = plugin.settings.relationTypes.find(
-      (rt) => rt.id === relationTypeId,
-    );
+    const relationType = getRelationTypeById(plugin, relationTypeId);
 
     if (!relationType) return;
 
-    const { direct, reverse } = getRelationDirection(
-      plugin.settings.discourseRelations,
+    const { direct, reverse } = getRelationDirection({
+      discourseRelations: plugin.settings.discourseRelations,
       relationTypeId,
-      startNodeTypeId,
-      endNodeTypeId,
-    );
+      sourceNodeTypeId: startNodeTypeId,
+      targetNodeTypeId: endNodeTypeId,
+    });
 
     let newText = relationType.label; // Default to main label
 
@@ -1134,14 +1136,12 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
     targetNodeTypeId: string,
     relationTypeId: string,
   ): boolean {
-    const { direct, reverse } = getRelationDirection(
-      this.options.plugin.settings.discourseRelations,
+    return isValidRelationConnection({
+      discourseRelations: this.options.plugin.settings.discourseRelations,
       relationTypeId,
       sourceNodeTypeId,
       targetNodeTypeId,
-    );
-
-    return direct || reverse;
+    });
   }
 
   /**
@@ -1209,8 +1209,9 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
         });
       }
 
-      const relationType = this.options.plugin.settings.relationTypes.find(
-        (rt) => rt.id === shape.props.relationTypeId,
+      const relationType = getRelationTypeById(
+        this.options.plugin,
+        shape.props.relationTypeId,
       );
 
       if (relationType && !alreadyExisted) {

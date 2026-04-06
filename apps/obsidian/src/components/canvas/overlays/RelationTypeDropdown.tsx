@@ -6,7 +6,10 @@ import {
   getArrowBindings,
   getArrowInfo,
 } from "~/components/canvas/utils/relationUtils";
-import { getValidRelationTypesForNodePair } from "~/components/canvas/utils/relationTypeUtils";
+import {
+  getDiscourseNodeTypeId,
+  getValidRelationTypesForNodePair,
+} from "~/components/canvas/utils/relationTypeUtils";
 
 type RelationTypeDropdownProps = {
   arrowId: TLShapeId;
@@ -49,18 +52,16 @@ export const RelationTypeDropdown = ({
 
     if (!startNode || !endNode) return [];
 
-    const startNodeTypeId = (startNode as { props?: { nodeTypeId?: string } })
-      ?.props?.nodeTypeId;
-    const endNodeTypeId = (endNode as { props?: { nodeTypeId?: string } })
-      ?.props?.nodeTypeId;
+    const startNodeTypeId = getDiscourseNodeTypeId(startNode);
+    const endNodeTypeId = getDiscourseNodeTypeId(endNode);
 
     if (!startNodeTypeId || !endNodeTypeId) return [];
 
-    return getValidRelationTypesForNodePair(
-      plugin.settings,
-      startNodeTypeId,
-      endNodeTypeId,
-    );
+    return getValidRelationTypesForNodePair({
+      settings: plugin.settings,
+      sourceNodeTypeId: startNodeTypeId,
+      targetNodeTypeId: endNodeTypeId,
+    });
   }, [arrow, editor, plugin]);
 
   // Position dropdown at arrow midpoint

@@ -8,6 +8,7 @@ import {
   useValue,
 } from "tldraw";
 import DiscourseGraphPlugin from "~/index";
+import { getRelationTypeById } from "~/utils/typeUtils";
 import { DiscourseNodeShape } from "~/components/canvas/shapes/DiscourseNodeShape";
 import {
   DiscourseRelationShape,
@@ -19,7 +20,10 @@ import {
 } from "~/components/canvas/utils/relationUtils";
 import { DEFAULT_TLDRAW_COLOR } from "~/utils/tldrawColors";
 import { showToast } from "~/components/canvas/utils/toastUtils";
-import { hasValidRelationTypeForNodePair } from "~/components/canvas/utils/relationTypeUtils";
+import {
+  getDiscourseNodeTypeId,
+  hasValidRelationTypeForNodePair,
+} from "~/components/canvas/utils/relationTypeUtils";
 import { RelationTypeDropdown } from "./RelationTypeDropdown";
 
 type DragHandleOverlayProps = {
@@ -284,23 +288,19 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
           const endTarget = editor.getShape(bindings.end.toId);
           if (endTarget && endTarget.type === "discourse-node") {
             // Check if any relation types are valid for this node pair
-            const startNodeTypeId = (
-              editor.getShape(bindings.start.toId) as {
-                props?: { nodeTypeId?: string };
-              }
-            )?.props?.nodeTypeId;
-            const endNodeTypeId = (
-              endTarget as { props?: { nodeTypeId?: string } }
-            )?.props?.nodeTypeId;
+            const startNodeTypeId = getDiscourseNodeTypeId(
+              editor.getShape(bindings.start.toId),
+            );
+            const endNodeTypeId = getDiscourseNodeTypeId(endTarget);
 
             const hasValidRelationType =
               startNodeTypeId &&
               endNodeTypeId &&
-              hasValidRelationTypeForNodePair(
-                plugin.settings,
-                startNodeTypeId,
-                endNodeTypeId,
-              );
+              hasValidRelationTypeForNodePair({
+                settings: plugin.settings,
+                sourceNodeTypeId: startNodeTypeId,
+                targetNodeTypeId: endNodeTypeId,
+              });
 
             if (!hasValidRelationType) {
               cleanupArrow(arrowId);
@@ -370,9 +370,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         return;
       }
 
-      const relationType = plugin.settings.relationTypes.find(
-        (rt) => rt.id === relationTypeId,
-      );
+      const relationType = getRelationTypeById(plugin, relationTypeId);
       if (!relationType) {
         cleanupArrow(pendingArrowId);
         setPendingArrowId(null);
