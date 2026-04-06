@@ -105,15 +105,6 @@ export const initObservers = ({
   };
   cleanups: Array<() => void>;
 } => {
-  let markT = performance.now();
-  const markPhase = (label: string) => {
-    const now = performance.now();
-    console.log(
-      `[DG Plugin] initObservers.${label}: ${Math.round(now - markT)}ms`,
-    );
-    markT = now;
-  };
-
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
@@ -156,13 +147,11 @@ export const initObservers = ({
       }
     },
   });
-  markPhase("pageTitleObserver");
 
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
     render: (b) => renderQueryBlock(b, onloadArgs),
   });
-  markPhase("queryBlockObserver");
 
   let batchedTagNodes: DiscourseNode[] | null = null;
   const getNodesForTagBatch = (): DiscourseNode[] => {
@@ -218,7 +207,6 @@ export const initObservers = ({
       }
     },
   });
-  markPhase("nodeTagPopupButtonObserver");
 
   const pageActionListener = ((
     e: CustomEvent<{
@@ -257,7 +245,6 @@ export const initObservers = ({
       toggleSuggestiveOverlay(Boolean(newValue));
     },
   );
-  markPhase("pageAction/suggestive handlers");
 
   const graphOverviewExportObserver = createHTMLObserver({
     tag: "DIV",
@@ -277,7 +264,6 @@ export const initObservers = ({
       }
     },
   });
-  markPhase("graphOverviewExport + imageMenu observers");
 
   if (
     readPathValue(settingsSnapshot.personalSettings, [
@@ -296,17 +282,11 @@ export const initObservers = ({
   }
 
   if (getPageRefObserversSize()) enablePageRefObserver();
-  markPhase("pageRef observer wiring");
 
   const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
-  markPhase("configPageUid lookup");
 
   const hashChangeListener = (e: Event) => {
     const evt = e as HashChangeEvent;
-    const hashStart = performance.now();
-    console.log(
-      `[DG Nav] hashChange fired t=${Math.round(hashStart)} old=${evt.oldURL} new=${evt.newURL}`,
-    );
     const navSnapshot = bulkReadSettings();
     // Attempt to refresh config navigating away from config page
     // doesn't work if they update via sidebar
@@ -317,12 +297,8 @@ export const initObservers = ({
       )
     ) {
       refreshConfigTree(navSnapshot);
-      console.log(
-        `[DG Nav] hashChange refreshConfigTree +${Math.round(performance.now() - hashStart)}ms`,
-      );
     }
   };
-  markPhase("hashChangeListener closure");
 
   let globalTrigger = (
     (readPathValue(settingsSnapshot.globalSettings, [GLOBAL_KEYS.trigger]) as
@@ -356,7 +332,6 @@ export const initObservers = ({
       personalModifiers = combo ? getModifiersFromCombo(combo) : [];
     },
   );
-  markPhase("trigger snapshot reads + onSettingChange");
 
   const leftSidebarObserver = createHTMLObserver({
     tag: "DIV",
@@ -375,7 +350,6 @@ export const initObservers = ({
       })();
     },
   });
-  markPhase("leftSidebarObserver");
 
   const handleNodeMenuRender = (target: HTMLElement, evt: KeyboardEvent) => {
     if (
@@ -516,7 +490,6 @@ export const initObservers = ({
       removeTextSelectionPopup();
     }
   }, 150);
-  markPhase("listener closures (nodeMenu/search/creationPopover)");
 
   return {
     observers: [

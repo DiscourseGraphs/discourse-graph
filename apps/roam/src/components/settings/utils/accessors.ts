@@ -918,13 +918,10 @@ export type SettingsSnapshot = {
 };
 
 export const bulkReadSettings = (): SettingsSnapshot => {
-  const start = performance.now();
-
   const pageResult = window.roamAlphaAPI.pull(
     "[{:block/children [:block/string :block/props]}]",
     [":node/title", DG_BLOCK_PROP_SETTINGS_PAGE_TITLE],
   ) as Record<string, json> | null;
-  const afterQuery = performance.now();
 
   const children = (pageResult?.[":block/children"] ?? []) as Record<
     string,
@@ -952,18 +949,11 @@ export const bulkReadSettings = (): SettingsSnapshot => {
     }
   }
 
-  const snapshot: SettingsSnapshot = {
+  return {
     featureFlags: FeatureFlagsSchema.parse(featureFlagsProps || {}),
     globalSettings: GlobalSettingsSchema.parse(globalProps || {}),
     personalSettings: PersonalSettingsSchema.parse(personalProps || {}),
   };
-
-  const end = performance.now();
-  console.log(
-    `[DG Plugin] bulkReadSettings: ${Math.round(end - start)}ms (query ${Math.round(afterQuery - start)}ms, parse ${Math.round(end - afterQuery)}ms)`,
-  );
-
-  return snapshot;
 };
 
 export const setPersonalSetting = (keys: string[], value: json): void => {

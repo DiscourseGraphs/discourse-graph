@@ -31,7 +31,7 @@ import {
   initializeSupabaseSync,
   setSyncActivity,
 } from "./utils/syncDgNodesToSupabase";
-import { getPluginElapsedTime, initPluginTimer } from "./utils/pluginTimer";
+import { initPluginTimer } from "./utils/pluginTimer";
 import { initPostHog } from "./utils/posthog";
 import { initSchema } from "./components/settings/utils/init";
 import {
@@ -50,33 +50,18 @@ export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
   initPluginTimer();
-  console.log("[DG Plugin] load: start");
-  let lastMark = performance.now();
-  const mark = (label: string) => {
-    const now = performance.now();
-    console.log(
-      `[DG Plugin] ${label}: +${Math.round(now - lastMark)}ms (total ${getPluginElapsedTime()}ms)`,
-    );
-    lastMark = now;
-  };
 
   const settingsSnapshot = bulkReadSettings();
-  mark("bulkReadSettings");
 
   const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
-  mark("encrypted check");
   const isOffline = window.roamAlphaAPI.graph.type === "offline";
-  mark("offline check");
   const disallowDiagnostics = readPathValue(settingsSnapshot.personalSettings, [
     PERSONAL_KEYS.disableProductDiagnostics,
   ]) as boolean | undefined;
-  mark("diagnostics check");
   if (!isEncrypted && !isOffline && !disallowDiagnostics) {
     initPostHog();
   }
-  mark("posthog init");
   initFeedbackWidget();
-  mark("feedback widget init");
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
       timeout: 10000,
@@ -95,33 +80,21 @@ export default runExtension(async (onloadArgs) => {
       timeout: 500,
     });
   }
-  mark("posthog + feedback widget + load check");
   await initializeDiscourseNodes(settingsSnapshot);
-  mark("initializeDiscourseNodes");
 
   refreshConfigTree(settingsSnapshot);
-  mark("refreshConfigTree");
 
   addGraphViewNodeStyling();
-  mark("graph view styling");
   registerCommandPaletteCommands(onloadArgs);
-  mark("command palette commands");
   createSettingsPanel(onloadArgs);
-  mark("settings panel");
   registerSmartBlock(onloadArgs);
-  mark("registerSmartBlock");
 
   setInitialQueryPages(onloadArgs, settingsSnapshot);
-  mark("setInitialQueryPages");
 
   const style = addStyle(styles);
-  mark("addStyle styles");
   const discourseGraphStyle = addStyle(discourseGraphStyles);
-  mark("addStyle discourseGraphStyles");
   const settingsStyle = addStyle(settingsStyles);
-  mark("addStyle settingsStyles");
   const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
-  mark("addStyle discourseFloatingMenuStyles");
 
   // Add streamline styling only if enabled
   const isStreamlineStylingEnabled = readPathValue(
@@ -133,13 +106,11 @@ export default runExtension(async (onloadArgs) => {
     streamlineStyleElement = addStyle(streamlineStyling);
     streamlineStyleElement.id = "streamline-styling";
   }
-  mark("streamline style check");
 
   const { observers, listeners, cleanups } = initObservers({
     onloadArgs,
     settingsSnapshot,
   });
-  mark("initObservers");
   const {
     pageActionListener,
     hashChangeListener,
@@ -148,20 +119,14 @@ export default runExtension(async (onloadArgs) => {
     nodeCreationPopoverListener,
   } = listeners;
   document.addEventListener("roamjs:query-builder:action", pageActionListener);
-  mark("pageActionListener addEventListener");
   window.addEventListener("hashchange", hashChangeListener);
-  mark("hashChangeListener addEventListener");
   document.addEventListener("keydown", nodeMenuTriggerListener);
-  mark("nodeMenuTriggerListener addEventListener");
   document.addEventListener("input", discourseNodeSearchTriggerListener);
-  mark("discourseNodeSearchTriggerListener addEventListener");
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
-  mark("document event listeners");
 
   if (settingsSnapshot.featureFlags["Suggestive mode enabled"]) {
     initializeSupabaseSync();
   }
-  mark("suggestive supabase init");
 
   const unsubSuggestiveMode = onSettingChange(
     settingKeys.suggestiveModeEnabled,
@@ -173,7 +138,6 @@ export default runExtension(async (onloadArgs) => {
       }
     },
   );
-  mark("unsubSuggestiveMode onSettingChange");
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
@@ -190,15 +154,12 @@ export default runExtension(async (onloadArgs) => {
     // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
   };
-  mark("roamjs.extension.queryBuilder assign");
 
   installDiscourseFloatingMenu(onloadArgs, settingsSnapshot);
-  mark("installDiscourseFloatingMenu");
 
   const leftSidebarScript = document.querySelector<HTMLScriptElement>(
     'script#roam-left-sidebar[src="https://sid597.github.io/roam-left-sidebar/js/main.js"]',
   );
-  mark("leftSidebarScript querySelector");
 
   if (leftSidebarScript) {
     renderToast({
@@ -209,7 +170,6 @@ export default runExtension(async (onloadArgs) => {
         "Discourse Graph detected the Roam left sidebar script. Running both sidebars may cause issues. Please remove the Roam left sidebar script from your Roam instance, and reload the graph.",
     });
   }
-  mark("leftSidebarScript conflict toast");
 
   const unsubLeftSidebarFlag = onSettingChange(
     settingKeys.leftSidebarFlag,
@@ -233,14 +193,9 @@ export default runExtension(async (onloadArgs) => {
       }
     },
   );
-  mark("unsubLeftSidebarFlag onSettingChange");
 
   const { blockUids } = await initSchema();
-  mark("initSchema");
   const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
-  mark("setupPullWatchOnSettingsPage");
-
-  console.log(`[DG Plugin] load: done in ${getPluginElapsedTime()}ms`);
 
   return {
     elements: [

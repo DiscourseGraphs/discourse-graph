@@ -80,10 +80,6 @@ const truncate = (s: string, max: number | undefined): string => {
 };
 
 const openTarget = async (e: React.MouseEvent, targetUid: string) => {
-  const _navStart = performance.now();
-  console.log(
-    `[DG Nav] openTarget click t=${Math.round(_navStart)} target=${targetUid}`,
-  );
   e.preventDefault();
   e.stopPropagation();
   const target = parseReference(targetUid);
@@ -94,17 +90,11 @@ const openTarget = async (e: React.MouseEvent, targetUid: string) => {
   if (target.type === "block") {
     if (e.shiftKey) {
       await openBlockInSidebar(target.uid);
-      console.log(
-        `[DG Nav] openBlockInSidebar resolved +${Math.round(performance.now() - _navStart)}ms`,
-      );
       return;
     }
     await window.roamAlphaAPI.ui.mainWindow.openBlock({
       block: { uid: target.uid },
     });
-    console.log(
-      `[DG Nav] openBlock resolved +${Math.round(performance.now() - _navStart)}ms`,
-    );
     return;
   }
 
@@ -114,16 +104,10 @@ const openTarget = async (e: React.MouseEvent, targetUid: string) => {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       window: { type: "outline", "block-uid": targetUid },
     });
-    console.log(
-      `[DG Nav] rightSidebar.addWindow resolved +${Math.round(performance.now() - _navStart)}ms`,
-    );
   } else {
     await window.roamAlphaAPI.ui.mainWindow.openPage({
       page: { uid: targetUid },
     });
-    console.log(
-      `[DG Nav] openPage resolved +${Math.round(performance.now() - _navStart)}ms`,
-    );
   }
 };
 
