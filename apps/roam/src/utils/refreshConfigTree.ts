@@ -6,6 +6,7 @@ import registerDiscourseDatalogTranslators from "./registerDiscourseDatalogTrans
 import { unregisterDatalogTranslator } from "./conditionToDatalog";
 import type { PullBlock } from "roamjs-components/types/native";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
+import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
 
 const getPagesStartingWithPrefix = (prefix: string) =>
   (
@@ -17,14 +18,29 @@ const getPagesStartingWithPrefix = (prefix: string) =>
     uid: r[0][":block/uid"] || "",
   }));
 
-const refreshConfigTree = () => {
-  getDiscourseRelationLabels().forEach((key) =>
-    unregisterDatalogTranslator({ key }),
-  );
+const refreshConfigTree = (snapshot?: SettingsSnapshot) => {
+  let t = performance.now();
+  const mark = (label: string) => {
+    const now = performance.now();
+    console.log(
+      `[DG Plugin] refreshConfigTree.${label}: ${Math.round(now - t)}ms`,
+    );
+    t = now;
+  };
+
+  const labels = getDiscourseRelationLabels(undefined, snapshot);
+  mark("getDiscourseRelationLabels");
+  labels.forEach((key) => unregisterDatalogTranslator({ key }));
+  mark("unregisterDatalogTranslator loop");
+
   discourseConfigRef.tree = getBasicTreeByParentUid(
     getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
   );
+  mark("getBasicTreeByParentUid(DG config page)");
+
   const pages = getPagesStartingWithPrefix("discourse-graph/nodes");
+  mark(`getPagesStartingWithPrefix (${pages.length} pages)`);
+
   discourseConfigRef.nodes = Object.fromEntries(
     pages.map(({ title, uid }) => {
       return [
@@ -36,7 +52,10 @@ const refreshConfigTree = () => {
       ];
     }),
   );
-  registerDiscourseDatalogTranslators();
+  mark(`getBasicTreeByParentUid per-page loop (${pages.length} pages)`);
+
+  registerDiscourseDatalogTranslators(snapshot);
+  mark("registerDiscourseDatalogTranslators");
 };
 
 export default refreshConfigTree;

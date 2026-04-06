@@ -25,7 +25,9 @@ import {
   onPageRefObserverChange,
   getSuggestiveOverlayHandler,
 } from "~/utils/pageRefObserverHandlers";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import getDiscourseNodes, {
+  type DiscourseNode,
+} from "~/utils/getDiscourseNodes";
 import { OnloadArgs } from "roamjs-components/types";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { render as renderGraphOverviewExport } from "~/components/ExportDiscourseContext";
@@ -52,9 +54,9 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import findDiscourseNode from "./findDiscourseNode";
 import {
-  getPersonalSetting,
-  getFeatureFlag,
-  getGlobalSetting,
+  readPathValue,
+  bulkReadSettings,
+  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import {
   onSettingChange,
@@ -88,8 +90,10 @@ const getTitleAndUidFromHeader = (h1: HTMLHeadingElement) => {
 
 export const initObservers = ({
   onloadArgs,
+  settingsSnapshot,
 }: {
   onloadArgs: OnloadArgs;
+  settingsSnapshot: SettingsSnapshot;
 }): {
   observers: MutationObserver[];
   listeners: {
@@ -101,17 +105,33 @@ export const initObservers = ({
   };
   cleanups: Array<() => void>;
 } => {
+  let markT = performance.now();
+  const markPhase = (label: string) => {
+    const now = performance.now();
+    console.log(
+      `[DG Plugin] initObservers.${label}: ${Math.round(now - markT)}ms`,
+    );
+    markT = now;
+  };
+
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
     callback: (e) => {
       const h1 = e as HTMLHeadingElement;
       const { title, uid } = getTitleAndUidFromHeader(h1);
+
+      const callbackSnapshot = bulkReadSettings();
+
       const props = { title, h1, onloadArgs };
 
-      const isSuggestiveModeEnabled = getFeatureFlag("Suggestive mode enabled");
-
-      const node = findDiscourseNode({ uid, title });
+      const isSuggestiveModeEnabled =
+        callbackSnapshot.featureFlags["Suggestive mode enabled"];
+      const node = findDiscourseNode({
+        uid,
+        title,
+        snapshot: callbackSnapshot,
+      });
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
         renderDiscourseContext({ h1, uid });
@@ -125,17 +145,36 @@ export const initObservers = ({
           renderCanvasReferences(linkedReferencesDiv, uid, onloadArgs);
         }
       }
-
-      if (isQueryPage({ title })) renderQueryPage(props);
-      else if (isCurrentPageCanvas(props)) renderTldrawCanvas(props);
-      else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
+      if (isQueryPage({ title, snapshot: callbackSnapshot })) {
+        renderQueryPage(props);
+      } else if (
+        isCurrentPageCanvas({ title, h1, snapshot: callbackSnapshot })
+      ) {
+        renderTldrawCanvas(props);
+      } else if (isSidebarCanvas({ title, h1, snapshot: callbackSnapshot })) {
+        renderTldrawCanvasInSidebar(props);
+      }
     },
   });
+  markPhase("pageTitleObserver");
 
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
     render: (b) => renderQueryBlock(b, onloadArgs),
   });
+  markPhase("queryBlockObserver");
+
+  let batchedTagNodes: DiscourseNode[] | null = null;
+  const getNodesForTagBatch = (): DiscourseNode[] => {
+    if (batchedTagNodes === null) {
+      const snap = bulkReadSettings();
+      batchedTagNodes = getDiscourseNodes(undefined, snap);
+      queueMicrotask(() => {
+        batchedTagNodes = null;
+      });
+    }
+    return batchedTagNodes;
+  };
 
   const nodeTagPopupButtonObserver = createHTMLObserver({
     className: "rm-page-ref--tag",
@@ -145,7 +184,7 @@ export const initObservers = ({
       if (tag) {
         const normalizedTag = getCleanTagText(tag);
 
-        for (const node of getDiscourseNodes()) {
+        for (const node of getNodesForTagBatch()) {
           const normalizedNodeTag = node.tag ? getCleanTagText(node.tag) : "";
           if (normalizedTag === normalizedNodeTag) {
             renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
@@ -179,6 +218,7 @@ export const initObservers = ({
       }
     },
   });
+  markPhase("nodeTagPopupButtonObserver");
 
   const pageActionListener = ((
     e: CustomEvent<{
@@ -203,7 +243,11 @@ export const initObservers = ({
 
   const suggestiveHandler = getSuggestiveOverlayHandler(onloadArgs);
   const toggleSuggestiveOverlay = onPageRefObserverChange(suggestiveHandler);
-  if (getPersonalSetting<boolean>([PERSONAL_KEYS.suggestiveModeOverlay])) {
+  if (
+    readPathValue(settingsSnapshot.personalSettings, [
+      PERSONAL_KEYS.suggestiveModeOverlay,
+    ])
+  ) {
     addPageRefObserver(suggestiveHandler);
   }
 
@@ -213,6 +257,7 @@ export const initObservers = ({
       toggleSuggestiveOverlay(Boolean(newValue));
     },
   );
+  markPhase("pageAction/suggestive handlers");
 
   const graphOverviewExportObserver = createHTMLObserver({
     tag: "DIV",
@@ -232,35 +277,62 @@ export const initObservers = ({
       }
     },
   });
+  markPhase("graphOverviewExport + imageMenu observers");
 
-  if (getPersonalSetting<boolean>([PERSONAL_KEYS.pagePreview]))
+  if (
+    readPathValue(settingsSnapshot.personalSettings, [
+      PERSONAL_KEYS.pagePreview,
+    ])
+  )
     addPageRefObserver(previewPageRefHandler);
-  if (getPersonalSetting<boolean>([PERSONAL_KEYS.discourseContextOverlay])) {
+
+  if (
+    readPathValue(settingsSnapshot.personalSettings, [
+      PERSONAL_KEYS.discourseContextOverlay,
+    ])
+  ) {
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(true);
   }
+
   if (getPageRefObserversSize()) enablePageRefObserver();
+  markPhase("pageRef observer wiring");
 
   const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
+  markPhase("configPageUid lookup");
 
   const hashChangeListener = (e: Event) => {
     const evt = e as HashChangeEvent;
+    const hashStart = performance.now();
+    console.log(
+      `[DG Nav] hashChange fired t=${Math.round(hashStart)} old=${evt.oldURL} new=${evt.newURL}`,
+    );
+    const navSnapshot = bulkReadSettings();
     // Attempt to refresh config navigating away from config page
     // doesn't work if they update via sidebar
     if (
       (configPageUid && evt.oldURL.endsWith(configPageUid)) ||
-      getDiscourseNodes().some(({ type }) => evt.oldURL.endsWith(type))
+      getDiscourseNodes(undefined, navSnapshot).some(({ type }) =>
+        evt.oldURL.endsWith(type),
+      )
     ) {
-      refreshConfigTree();
+      refreshConfigTree(navSnapshot);
+      console.log(
+        `[DG Nav] hashChange refreshConfigTree +${Math.round(performance.now() - hashStart)}ms`,
+      );
     }
   };
+  markPhase("hashChangeListener closure");
 
   let globalTrigger = (
-    getGlobalSetting<string>([GLOBAL_KEYS.trigger]) ?? "\\"
+    (readPathValue(settingsSnapshot.globalSettings, [GLOBAL_KEYS.trigger]) as
+      | string
+      | undefined) ?? "\\"
   ).trim();
-  const personalTriggerCombo = getPersonalSetting<IKeyCombo>([
-    PERSONAL_KEYS.personalNodeMenuTrigger,
-  ]);
+  const personalTriggerCombo = readPathValue(
+    settingsSnapshot.personalSettings,
+    [PERSONAL_KEYS.personalNodeMenuTrigger],
+  ) as IKeyCombo | undefined;
   let personalTrigger = personalTriggerCombo?.key;
   let personalModifiers = personalTriggerCombo
     ? getModifiersFromCombo(personalTriggerCombo)
@@ -284,6 +356,7 @@ export const initObservers = ({
       personalModifiers = combo ? getModifiersFromCombo(combo) : [];
     },
   );
+  markPhase("trigger snapshot reads + onSettingChange");
 
   const leftSidebarObserver = createHTMLObserver({
     tag: "DIV",
@@ -291,15 +364,18 @@ export const initObservers = ({
     className: "starred-pages-wrapper",
     callback: (el) => {
       void (async () => {
-        const isLeftSidebarEnabled = getFeatureFlag("Enable left sidebar");
+        const callbackSnapshot = bulkReadSettings();
+        const isLeftSidebarEnabled =
+          callbackSnapshot.featureFlags["Enable left sidebar"];
         const container = el as HTMLDivElement;
         if (isLeftSidebarEnabled) {
           container.style.padding = "0";
-          await mountLeftSidebar(container, onloadArgs);
+          await mountLeftSidebar(container, onloadArgs, callbackSnapshot);
         }
       })();
     },
   });
+  markPhase("leftSidebarObserver");
 
   const handleNodeMenuRender = (target: HTMLElement, evt: KeyboardEvent) => {
     if (
@@ -343,7 +419,9 @@ export const initObservers = ({
   };
 
   let customTrigger =
-    getPersonalSetting<string>([PERSONAL_KEYS.nodeSearchMenuTrigger]) ?? "@";
+    (readPathValue(settingsSnapshot.personalSettings, [
+      PERSONAL_KEYS.nodeSearchMenuTrigger,
+    ]) as string | undefined) ?? "@";
 
   const unsubSearchTrigger = onSettingChange(
     settingKeys.nodeSearchMenuTrigger,
@@ -403,8 +481,9 @@ export const initObservers = ({
   };
 
   const nodeCreationPopoverListener = debounce(() => {
+    const snap = bulkReadSettings();
     const isTextSelectionPopupEnabled =
-      getPersonalSetting<boolean>([PERSONAL_KEYS.textSelectionPopup]) !== false;
+      snap.personalSettings[PERSONAL_KEYS.textSelectionPopup] !== false;
 
     if (!isTextSelectionPopupEnabled) return;
 
@@ -437,6 +516,7 @@ export const initObservers = ({
       removeTextSelectionPopup();
     }
   }, 150);
+  markPhase("listener closures (nodeMenu/search/creationPopover)");
 
   return {
     observers: [

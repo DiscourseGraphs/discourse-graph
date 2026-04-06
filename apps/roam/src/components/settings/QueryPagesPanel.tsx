@@ -4,7 +4,9 @@ import React, { useState } from "react";
 import type { OnloadArgs } from "roamjs-components/types";
 import {
   getPersonalSetting,
+  readPathValue,
   setPersonalSetting,
+  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import {
   PERSONAL_KEYS,
@@ -13,11 +15,16 @@ import {
 
 // Legacy extensionAPI stored query-pages as string | string[] | Record<string, string>.
 // Coerce to string[] for backward compatibility with old stored formats.
-export const getQueryPages = (): string[] => {
-  const value = getPersonalSetting<string[] | string | Record<string, string>>([
-    PERSONAL_KEYS.query,
-    QUERY_KEYS.queryPages,
-  ]);
+export const getQueryPages = (snapshot?: SettingsSnapshot): string[] => {
+  const value = snapshot
+    ? (readPathValue(snapshot.personalSettings, [
+        PERSONAL_KEYS.query,
+        QUERY_KEYS.queryPages,
+      ]) as string[] | string | Record<string, string> | undefined)
+    : getPersonalSetting<string[] | string | Record<string, string>>([
+        PERSONAL_KEYS.query,
+        QUERY_KEYS.queryPages,
+      ]);
   return typeof value === "string"
     ? [value]
     : Array.isArray(value)

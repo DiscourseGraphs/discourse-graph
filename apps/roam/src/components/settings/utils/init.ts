@@ -189,15 +189,29 @@ const initializeSettingsBlockProps = (
 };
 
 const initSettingsPageBlocks = async (): Promise<Record<string, string>> => {
+  let t = performance.now();
+  const mark = (label: string) => {
+    const now = performance.now();
+    console.log(
+      `[DG Plugin] initSettingsPageBlocks.${label}: ${Math.round(now - t)}ms`,
+    );
+    t = now;
+  };
+
   const pageUid = await ensurePageExists(DG_BLOCK_PROP_SETTINGS_PAGE_TITLE);
+  mark("ensurePageExists");
   const blockMap = buildBlockMap(pageUid);
+  mark("buildBlockMap");
 
   const topLevelBlocks = getTopLevelBlockPropsConfig().map(({ key }) => key);
   await ensureBlocksExist(pageUid, topLevelBlocks, blockMap);
+  mark("ensureBlocksExist (top-level)");
 
   await ensureLegacyConfigBlocks(pageUid);
+  mark("ensureLegacyConfigBlocks");
 
   initializeSettingsBlockProps(pageUid, blockMap);
+  mark("initializeSettingsBlockProps");
 
   return blockMap;
 };
@@ -411,16 +425,25 @@ const logDualReadComparison = (): void => {
 };
 
 export const initSchema = async (): Promise<InitSchemaResult> => {
+  console.log("[DG Plugin] Initializing schema...");
+  let t = performance.now();
+  const mark = (label: string) => {
+    const now = performance.now();
+    console.log(`[DG Plugin] initSchema.${label}: ${Math.round(now - t)}ms`);
+    t = now;
+  };
+
   const blockUids = await initSettingsPageBlocks();
+  mark("initSettingsPageBlocks");
+
   await migrateGraphLevel(blockUids);
+  mark("migrateGraphLevel");
+
   const nodePageUids = await initDiscourseNodePages();
+  mark("initDiscourseNodePages");
+
   await migratePersonalSettings(blockUids);
-  try {
-    logDualReadComparison();
-  } catch (e) {
-    console.warn("[DG Dual-Read] Comparison failed:", e);
-  }
-  (window as unknown as Record<string, unknown>).dgDualReadLog =
-    logDualReadComparison;
+  mark("migratePersonalSettings");
+
   return { blockUids, nodePageUids };
 };

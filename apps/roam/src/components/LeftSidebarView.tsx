@@ -39,6 +39,7 @@ import {
   getPersonalSettings,
   setGlobalSetting,
   setPersonalSetting,
+  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import {
   PERSONAL_KEYS,
@@ -79,6 +80,10 @@ const truncate = (s: string, max: number | undefined): string => {
 };
 
 const openTarget = async (e: React.MouseEvent, targetUid: string) => {
+  const _navStart = performance.now();
+  console.log(
+    `[DG Nav] openTarget click t=${Math.round(_navStart)} target=${targetUid}`,
+  );
   e.preventDefault();
   e.stopPropagation();
   const target = parseReference(targetUid);
@@ -89,11 +94,17 @@ const openTarget = async (e: React.MouseEvent, targetUid: string) => {
   if (target.type === "block") {
     if (e.shiftKey) {
       await openBlockInSidebar(target.uid);
+      console.log(
+        `[DG Nav] openBlockInSidebar resolved +${Math.round(performance.now() - _navStart)}ms`,
+      );
       return;
     }
     await window.roamAlphaAPI.ui.mainWindow.openBlock({
       block: { uid: target.uid },
     });
+    console.log(
+      `[DG Nav] openBlock resolved +${Math.round(performance.now() - _navStart)}ms`,
+    );
     return;
   }
 
@@ -103,10 +114,16 @@ const openTarget = async (e: React.MouseEvent, targetUid: string) => {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       window: { type: "outline", "block-uid": targetUid },
     });
+    console.log(
+      `[DG Nav] rightSidebar.addWindow resolved +${Math.round(performance.now() - _navStart)}ms`,
+    );
   } else {
     await window.roamAlphaAPI.ui.mainWindow.openPage({
       page: { uid: targetUid },
     });
+    console.log(
+      `[DG Nav] openPage resolved +${Math.round(performance.now() - _navStart)}ms`,
+    );
   }
 };
 
@@ -336,14 +353,16 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
 
 // TODO(ENG-1471): Remove old-system merge when migration complete — just use accessor values directly.
 // See mergeGlobalSectionWithAccessor/mergePersonalSectionsWithAccessor for why the merge exists.
-const buildConfig = (): LeftSidebarConfig => {
+const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
   // Read VALUES from accessor (handles flag routing + mismatch detection)
-  const globalValues = getGlobalSetting<LeftSidebarGlobalSettings>([
-    GLOBAL_KEYS.leftSidebar,
-  ]);
-  const personalValues = getPersonalSetting<
-    ReturnType<typeof getPersonalSettings>[typeof PERSONAL_KEYS.leftSidebar]
-  >([PERSONAL_KEYS.leftSidebar]);
+  const globalValues = snapshot
+    ? snapshot.globalSettings[GLOBAL_KEYS.leftSidebar]
+    : getGlobalSetting<LeftSidebarGlobalSettings>([GLOBAL_KEYS.leftSidebar]);
+  const personalValues = snapshot
+    ? snapshot.personalSettings[PERSONAL_KEYS.leftSidebar]
+    : getPersonalSetting<
+        ReturnType<typeof getPersonalSettings>[typeof PERSONAL_KEYS.leftSidebar]
+      >([PERSONAL_KEYS.leftSidebar]);
 
   // Read UIDs from old system (needed for fold CRUD during dual-write)
   const oldConfig = getCurrentLeftSidebarConfig();
@@ -364,8 +383,8 @@ const buildConfig = (): LeftSidebarConfig => {
   };
 };
 
-export const useConfig = () => {
-  const [config, setConfig] = useState(() => buildConfig());
+export const useConfig = (initialSnapshot?: SettingsSnapshot) => {
+  const [config, setConfig] = useState(() => buildConfig(initialSnapshot));
   useEffect(() => {
     const handleUpdate = () => {
       setConfig(buildConfig());
@@ -504,8 +523,14 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   );
 };
 
-const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const { config } = useConfig();
+const LeftSidebarView = ({
+  onloadArgs,
+  initialSnapshot,
+}: {
+  onloadArgs: OnloadArgs;
+  initialSnapshot?: SettingsSnapshot;
+}) => {
+  const { config } = useConfig(initialSnapshot);
 
   return (
     <>
@@ -613,6 +638,7 @@ const migrateFavorites = async () => {
 export const mountLeftSidebar = async (
   wrapper: HTMLElement,
   onloadArgs: OnloadArgs,
+  initialSnapshot?: SettingsSnapshot,
 ): Promise<void> => {
   if (!wrapper) return;
 
@@ -630,7 +656,10 @@ export const mountLeftSidebar = async (
   } else {
     root.className = "starred-pages";
   }
-  ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
+  ReactDOM.render(
+    <LeftSidebarView onloadArgs={onloadArgs} initialSnapshot={initialSnapshot} />,
+    root,
+  );
 };
 
 export default LeftSidebarView;

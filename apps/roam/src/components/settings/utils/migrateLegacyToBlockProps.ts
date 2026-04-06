@@ -1,7 +1,6 @@
 import getBlockProps from "~/utils/getBlockProps";
 import type { json } from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
-import getBlockUidByTextOnPage from "roamjs-components/queries/getBlockUidByTextOnPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { createBlock } from "roamjs-components/writes";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
@@ -29,11 +28,8 @@ const GRAPH_MIGRATION_MARKER = "Block props migrated";
 const PERSONAL_MIGRATION_MARKER = "dg-personal-settings-migrated";
 const MAX_ERROR_CONTEXT_LENGTH = 5000;
 
-const hasGraphMigrationMarker = (): boolean =>
-  !!getBlockUidByTextOnPage({
-    text: GRAPH_MIGRATION_MARKER,
-    title: DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
-  });
+const hasGraphMigrationMarker = (blockMap: Record<string, string>): boolean =>
+  !!blockMap[GRAPH_MIGRATION_MARKER];
 
 const isPropsValid = (
   schema: z.ZodTypeAny,
@@ -182,7 +178,7 @@ export const migrateGraphLevel = async (
     return;
   }
 
-  if (hasGraphMigrationMarker()) {
+  if (hasGraphMigrationMarker(blockUids)) {
     console.log(`${LOG_PREFIX} graph-level: skipped (already migrated)`);
     return;
   }

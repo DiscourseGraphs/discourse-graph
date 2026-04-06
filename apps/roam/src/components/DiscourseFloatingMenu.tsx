@@ -13,7 +13,10 @@ import {
 import { FeedbackWidget } from "./BirdEatsBugs";
 import { render as renderSettings } from "~/components/settings/Settings";
 import posthog from "posthog-js";
-import { getPersonalSetting } from "./settings/utils/accessors";
+import {
+  getPersonalSetting,
+  type SettingsSnapshot,
+} from "./settings/utils/accessors";
 import { PERSONAL_KEYS } from "./settings/utils/settingKeys";
 
 type DiscourseFloatingMenuProps = {
@@ -118,6 +121,7 @@ export const showDiscourseFloatingMenu = () => {
 
 export const installDiscourseFloatingMenu = (
   onLoadArgs: OnloadArgs,
+  snapshot?: SettingsSnapshot,
   props: DiscourseFloatingMenuProps = {
     position: "bottom-right",
     theme: "bp3-light",
@@ -130,7 +134,10 @@ export const installDiscourseFloatingMenu = (
     floatingMenuAnchor.id = ANCHOR_ID;
     document.getElementById("app")?.appendChild(floatingMenuAnchor);
   }
-  if (getPersonalSetting<boolean>([PERSONAL_KEYS.hideFeedbackButton])) {
+  const hideFeedbackButton = snapshot
+    ? snapshot.personalSettings[PERSONAL_KEYS.hideFeedbackButton]
+    : getPersonalSetting<boolean>([PERSONAL_KEYS.hideFeedbackButton]);
+  if (hideFeedbackButton) {
     floatingMenuAnchor.classList.add("hidden");
   }
   ReactDOM.render(

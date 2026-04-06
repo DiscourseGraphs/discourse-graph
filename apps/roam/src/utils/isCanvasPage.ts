@@ -1,10 +1,24 @@
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "..";
-import { getGlobalSetting } from "~/components/settings/utils/accessors";
+import {
+  getGlobalSetting,
+  readPathValue,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
 import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
 
-export const isCanvasPage = ({ title }: { title: string }) => {
+export const isCanvasPage = ({
+  title,
+  snapshot,
+}: {
+  title: string;
+  snapshot?: SettingsSnapshot;
+}) => {
   const format =
-    getGlobalSetting<string>([GLOBAL_KEYS.canvasPageFormat]) ||
+    (snapshot
+      ? (readPathValue(snapshot.globalSettings, [
+          GLOBAL_KEYS.canvasPageFormat,
+        ]) as string | undefined)
+      : getGlobalSetting<string>([GLOBAL_KEYS.canvasPageFormat])) ||
     DEFAULT_CANVAS_PAGE_FORMAT;
   const canvasRegex = new RegExp(`^${format}$`.replace(/\*/g, ".+"));
   return canvasRegex.test(title);
@@ -13,19 +27,25 @@ export const isCanvasPage = ({ title }: { title: string }) => {
 export const isCurrentPageCanvas = ({
   title,
   h1,
+  snapshot,
 }: {
   title: string;
   h1: HTMLHeadingElement;
+  snapshot?: SettingsSnapshot;
 }) => {
-  return isCanvasPage({ title }) && !!h1.closest(".roam-article");
+  return isCanvasPage({ title, snapshot }) && !!h1.closest(".roam-article");
 };
 
 export const isSidebarCanvas = ({
   title,
   h1,
+  snapshot,
 }: {
   title: string;
   h1: HTMLHeadingElement;
+  snapshot?: SettingsSnapshot;
 }) => {
-  return isCanvasPage({ title }) && !!h1.closest(".rm-sidebar-outline");
+  return (
+    isCanvasPage({ title, snapshot }) && !!h1.closest(".rm-sidebar-outline")
+  );
 };

@@ -1,20 +1,24 @@
 import { OnloadArgs } from "roamjs-components/types";
 import {
-  getPersonalSetting,
+  readPathValue,
   setPersonalSetting,
+  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import {
   PERSONAL_KEYS,
   QUERY_KEYS,
 } from "~/components/settings/utils/settingKeys";
 
-export const setInitialQueryPages = (onloadArgs: OnloadArgs) => {
+export const setInitialQueryPages = (
+  onloadArgs: OnloadArgs,
+  settingsSnapshot: SettingsSnapshot,
+) => {
   // Legacy extensionAPI stored query-pages as string | string[] | Record<string, string>.
   // Coerce to string[] for backward compatibility with old stored formats.
-  const raw = getPersonalSetting<string[] | string | Record<string, string>>([
+  const raw = readPathValue(settingsSnapshot.personalSettings, [
     PERSONAL_KEYS.query,
     QUERY_KEYS.queryPages,
-  ]);
+  ]) as string[] | string | Record<string, string> | undefined;
   const queryPageArray = Array.isArray(raw)
     ? raw
     : typeof raw === "string" && raw

@@ -1,7 +1,14 @@
 import { getQueryPages } from "~/components/settings/QueryPagesPanel";
+import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
 
-export const isQueryPage = ({ title }: { title: string }): boolean => {
-  const queryPages = getQueryPages();
+export const isQueryPage = ({
+  title,
+  snapshot,
+}: {
+  title: string;
+  snapshot?: SettingsSnapshot;
+}): boolean => {
+  const queryPages = getQueryPages(snapshot);
 
   const matchesQueryPage = queryPages.some((queryPage) => {
     const escapedPattern = queryPage
