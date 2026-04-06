@@ -54,7 +54,6 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import findDiscourseNode from "./findDiscourseNode";
 import {
-  readPathValue,
   bulkReadSettings,
   type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
@@ -231,11 +230,7 @@ export const initObservers = ({
 
   const suggestiveHandler = getSuggestiveOverlayHandler(onloadArgs);
   const toggleSuggestiveOverlay = onPageRefObserverChange(suggestiveHandler);
-  if (
-    readPathValue(settingsSnapshot.personalSettings, [
-      PERSONAL_KEYS.suggestiveModeOverlay,
-    ])
-  ) {
+  if (settingsSnapshot.personalSettings[PERSONAL_KEYS.suggestiveModeOverlay]) {
     addPageRefObserver(suggestiveHandler);
   }
 
@@ -265,17 +260,11 @@ export const initObservers = ({
     },
   });
 
-  if (
-    readPathValue(settingsSnapshot.personalSettings, [
-      PERSONAL_KEYS.pagePreview,
-    ])
-  )
+  if (settingsSnapshot.personalSettings[PERSONAL_KEYS.pagePreview])
     addPageRefObserver(previewPageRefHandler);
 
   if (
-    readPathValue(settingsSnapshot.personalSettings, [
-      PERSONAL_KEYS.discourseContextOverlay,
-    ])
+    settingsSnapshot.personalSettings[PERSONAL_KEYS.discourseContextOverlay]
   ) {
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(true);
@@ -300,15 +289,14 @@ export const initObservers = ({
     }
   };
 
-  let globalTrigger = (
-    (readPathValue(settingsSnapshot.globalSettings, [GLOBAL_KEYS.trigger]) as
-      | string
-      | undefined) ?? "\\"
-  ).trim();
-  const personalTriggerCombo = readPathValue(
-    settingsSnapshot.personalSettings,
-    [PERSONAL_KEYS.personalNodeMenuTrigger],
-  ) as IKeyCombo | undefined;
+  let globalTrigger =
+    settingsSnapshot.globalSettings[GLOBAL_KEYS.trigger].trim();
+  const personalTriggerComboRaw =
+    settingsSnapshot.personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger];
+  const personalTriggerCombo =
+    typeof personalTriggerComboRaw === "object"
+      ? (personalTriggerComboRaw as IKeyCombo)
+      : undefined;
   let personalTrigger = personalTriggerCombo?.key;
   let personalModifiers = personalTriggerCombo
     ? getModifiersFromCombo(personalTriggerCombo)
@@ -393,9 +381,7 @@ export const initObservers = ({
   };
 
   let customTrigger =
-    (readPathValue(settingsSnapshot.personalSettings, [
-      PERSONAL_KEYS.nodeSearchMenuTrigger,
-    ]) as string | undefined) ?? "@";
+    settingsSnapshot.personalSettings[PERSONAL_KEYS.nodeSearchMenuTrigger];
 
   const unsubSearchTrigger = onSettingChange(
     settingKeys.nodeSearchMenuTrigger,

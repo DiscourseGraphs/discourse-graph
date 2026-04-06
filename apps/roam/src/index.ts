@@ -34,10 +34,7 @@ import {
 import { initPluginTimer } from "./utils/pluginTimer";
 import { initPostHog } from "./utils/posthog";
 import { initSchema } from "./components/settings/utils/init";
-import {
-  bulkReadSettings,
-  readPathValue,
-} from "./components/settings/utils/accessors";
+import { bulkReadSettings } from "./components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "./components/settings/utils/settingKeys";
 import { setupPullWatchOnSettingsPage } from "./components/settings/utils/pullWatchers";
 import {
@@ -49,19 +46,18 @@ import { mountLeftSidebar } from "./components/LeftSidebarView";
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
-  initPluginTimer();
-
   const settingsSnapshot = bulkReadSettings();
 
   const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
   const isOffline = window.roamAlphaAPI.graph.type === "offline";
-  const disallowDiagnostics = readPathValue(settingsSnapshot.personalSettings, [
-    PERSONAL_KEYS.disableProductDiagnostics,
-  ]) as boolean | undefined;
+  const disallowDiagnostics =
+    settingsSnapshot.personalSettings[PERSONAL_KEYS.disableProductDiagnostics];
   if (!isEncrypted && !isOffline && !disallowDiagnostics) {
     initPostHog();
   }
+
   initFeedbackWidget();
+
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
       timeout: 10000,
@@ -80,6 +76,9 @@ export default runExtension(async (onloadArgs) => {
       timeout: 500,
     });
   }
+
+  initPluginTimer();
+
   await initializeDiscourseNodes(settingsSnapshot);
 
   refreshConfigTree(settingsSnapshot);
@@ -97,10 +96,8 @@ export default runExtension(async (onloadArgs) => {
   const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
 
   // Add streamline styling only if enabled
-  const isStreamlineStylingEnabled = readPathValue(
-    settingsSnapshot.personalSettings,
-    [PERSONAL_KEYS.streamlineStyling],
-  ) as boolean | undefined;
+  const isStreamlineStylingEnabled =
+    settingsSnapshot.personalSettings[PERSONAL_KEYS.streamlineStyling];
   let streamlineStyleElement: HTMLStyleElement | null = null;
   if (isStreamlineStylingEnabled) {
     streamlineStyleElement = addStyle(streamlineStyling);
