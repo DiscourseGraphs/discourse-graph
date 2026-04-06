@@ -416,7 +416,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
           <div
             key={i}
             onPointerDown={(e) => handlePointerDown(e, pos.anchor)}
-            className="pointer-events-auto absolute z-20 flex items-center justify-center cursor-crosshair"
+            className="pointer-events-auto absolute z-20 flex cursor-crosshair items-center justify-center"
             style={{
               left: `${pos.left}px`,
               top: `${pos.top}px`,

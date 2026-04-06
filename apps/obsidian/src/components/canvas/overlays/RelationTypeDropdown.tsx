@@ -137,7 +137,7 @@ export const RelationTypeDropdown = ({
       onPointerUp={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="min-w-40 max-h-60 overflow-y-auto rounded-lg border bg-white p-1 shadow-lg">
+      <div className="max-h-60 min-w-40 overflow-y-auto rounded-lg border bg-white p-1 shadow-lg">
         <div className="px-2 py-1 text-xs font-medium uppercase tracking-wide text-gray-500">
           Relation Type
         </div>
