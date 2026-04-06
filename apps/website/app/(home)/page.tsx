@@ -345,7 +345,7 @@ const Home = async () => {
           {/* Resources */}
           <Card id="resources" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Resources
               </CardTitle>
             </CardHeader>
@@ -429,7 +429,7 @@ const Home = async () => {
           {/* Events */}
           <Card id="events" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Events
               </CardTitle>
             </CardHeader>
@@ -501,7 +501,7 @@ const Home = async () => {
           {blogs.length > 0 && (
             <Card id="updates" className="rounded-xl bg-white/50 p-8 shadow-md">
               <CardHeader>
-                <CardTitle className="mb-8 text-4xl font-bold text-primary">
+                <CardTitle className="text-4xl font-bold text-primary">
                   Latest Updates
                 </CardTitle>
               </CardHeader>
@@ -546,7 +546,7 @@ const Home = async () => {
           {/* Talks */}
           <Card id="talks" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Talks
               </CardTitle>
             </CardHeader>
@@ -667,7 +667,7 @@ const Home = async () => {
           {/* Team */}
           <Card id="team" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Team
               </CardTitle>
             </CardHeader>
@@ -686,7 +686,7 @@ const Home = async () => {
             className="rounded-xl bg-white/50 p-8 shadow-md"
           >
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Supporters
               </CardTitle>
             </CardHeader>
@@ -761,7 +761,7 @@ const Home = async () => {
           {/* Contact */}
           <Card id="contact" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Contact
               </CardTitle>
             </CardHeader>
