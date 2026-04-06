@@ -76,7 +76,15 @@ const getFirstImageByUid = (uid: string): string | null => {
   return findFirstImage(tree);
 };
 
-const calcCanvasNodeSizeAndImg = async ({
+const getNodeCanvasSettings = (nodeType: string) => {
+  const allNodes = getDiscourseNodes();
+  const canvasSettings = Object.fromEntries(
+    allNodes.map((n) => [n.type, { ...n.canvasSettings }]),
+  );
+  return canvasSettings[nodeType] || {};
+};
+
+export const getCanvasNodeKeyImageUrl = async ({
   nodeText,
   uid,
   nodeType,
@@ -86,26 +94,16 @@ const calcCanvasNodeSizeAndImg = async ({
   uid: string;
   nodeType: string;
   extensionAPI: OnloadArgs["extensionAPI"];
-}) => {
-  const allNodes = getDiscourseNodes();
-  const canvasSettings = Object.fromEntries(
-    allNodes.map((n) => [n.type, { ...n.canvasSettings }]),
-  );
+}): Promise<string> => {
   const {
     "query-builder-alias": qbAlias = "",
     "key-image": isKeyImage = "",
     "key-image-option": keyImageOption = "",
-  } = canvasSettings[nodeType] || {};
+  } = getNodeCanvasSettings(nodeType);
 
-  const { w, h } = measureCanvasNodeText({
-    ...DEFAULT_STYLE_PROPS,
-    maxWidth: MAX_WIDTH,
-    text: nodeText,
-  });
+  if (!isKeyImage) return "";
 
-  if (!isKeyImage) return { w, h, imageUrl: "" };
-
-  let imageUrl;
+  let imageUrl: string | null;
   if (keyImageOption === "query-builder") {
     const parentUid = resolveQueryBuilderRef({
       queryRef: qbAlias,
@@ -122,14 +120,46 @@ const calcCanvasNodeSizeAndImg = async ({
   } else {
     imageUrl = getFirstImageByUid(uid);
   }
+  return imageUrl ?? "";
+};
+
+const calcCanvasNodeSizeAndImg = async ({
+  nodeText,
+  uid,
+  nodeType,
+  extensionAPI,
+}: {
+  nodeText: string;
+  uid: string;
+  nodeType: string;
+  extensionAPI: OnloadArgs["extensionAPI"];
+}) => {
+  const { w, h } = measureCanvasNodeText({
+    ...DEFAULT_STYLE_PROPS,
+    maxWidth: MAX_WIDTH,
+    text: nodeText,
+  });
+
+  const imageUrl = await getCanvasNodeKeyImageUrl({
+    nodeText,
+    uid,
+    nodeType,
+    extensionAPI,
+  });
+
   if (!imageUrl) return { w, h, imageUrl: "" };
 
   try {
     const { width, height } = await loadImage(imageUrl);
-    if (!width || !height || !Number.isFinite(width) || !Number.isFinite(height)) {
+    if (
+      !width ||
+      !height ||
+      !Number.isFinite(width) ||
+      !Number.isFinite(height)
+    ) {
       return { w, h, imageUrl: "" };
     }
-    
+
     const aspectRatio = width / height;
     const nodeImageHeight = w / aspectRatio;
     const newHeight = h + nodeImageHeight;

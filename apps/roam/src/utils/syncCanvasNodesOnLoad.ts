@@ -1,7 +1,9 @@
 import type { Editor } from "tldraw";
 import type { OnloadArgs } from "roamjs-components/types";
 import type { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
-import calcCanvasNodeSizeAndImg from "./calcCanvasNodeSizeAndImg";
+import calcCanvasNodeSizeAndImg, {
+  getCanvasNodeKeyImageUrl,
+} from "./calcCanvasNodeSizeAndImg";
 
 /**
  * Query Roam for current :node/title or :block/string for each uid.
@@ -157,22 +159,38 @@ const syncCanvasKeyImagesOnLoad = async ({
     props: { imageUrl: string; w: number; h: number };
   }[] = [];
 
-  await Promise.all(
+  // First pass: cheaply fetch imageUrls (no image loading) to find which shapes changed.
+  const urlResults = await Promise.all(
     survivingShapes.map(async (shape) => {
       const title = uidToTitle.get(shape.props.uid) ?? shape.props.title ?? "";
+      const imageUrl = await getCanvasNodeKeyImageUrl({
+        nodeText: title,
+        uid: shape.props.uid,
+        nodeType: shape.type,
+        extensionAPI,
+      });
+      return { shape, title, imageUrl };
+    }),
+  );
+
+  const changedShapes = urlResults.filter(
+    ({ shape, imageUrl }) => (shape.props.imageUrl ?? "") !== imageUrl,
+  );
+
+  // Second pass: load images only for shapes whose URL changed, to compute new dimensions.
+  await Promise.all(
+    changedShapes.map(async ({ shape, title }) => {
       const { w, h, imageUrl } = await calcCanvasNodeSizeAndImg({
         nodeText: title,
         uid: shape.props.uid,
         nodeType: shape.type,
         extensionAPI,
       });
-      if ((shape.props.imageUrl ?? "") !== imageUrl) {
-        imageUpdates.push({
-          id: shape.id,
-          type: shape.type,
-          props: { imageUrl, w, h },
-        });
-      }
+      imageUpdates.push({
+        id: shape.id,
+        type: shape.type,
+        props: { imageUrl, w, h },
+      });
     }),
   );
 
