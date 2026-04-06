@@ -56,9 +56,11 @@ import { openBlockInSidebar, createBlock } from "roamjs-components/writes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import findDiscourseNode from "~/utils/findDiscourseNode";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { MAX_WIDTH } from "./Tldraw";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
@@ -427,7 +429,6 @@ const ClipboardPageSection = ({
   onRemove,
   showNodesOnCanvas,
   searchQuery,
-  sortDirection,
   selectedNodeType,
   onNodeTypesChange,
 }: {
@@ -435,7 +436,6 @@ const ClipboardPageSection = ({
   onRemove: (uid: string) => void;
   showNodesOnCanvas: boolean;
   searchQuery: string;
-  sortDirection: "asc" | "desc";
   selectedNodeType: string;
   onNodeTypesChange: (pageUid: string, types: string[]) => void;
 }) => {
@@ -576,18 +576,8 @@ const ClipboardPageSection = ({
             ? group.type === selectedNodeType
             : true,
         )
-        .sort((a, b) =>
-          sortDirection === "asc"
-            ? a.text.localeCompare(b.text)
-            : b.text.localeCompare(a.text),
-        ),
-    [
-      groupedNodes,
-      showNodesOnCanvas,
-      searchQuery,
-      selectedNodeType,
-      sortDirection,
-    ],
+        .sort((a, b) => a.text.localeCompare(b.text)),
+    [groupedNodes, showNodesOnCanvas, searchQuery, selectedNodeType],
   );
 
   useEffect(() => {
@@ -1140,8 +1130,6 @@ export const ClipboardPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedNodeType, setSelectedNodeType] = useState("All");
   const [nodeTypesByPage, setNodeTypesByPage] = useState<
     Record<string, string[]>
@@ -1163,6 +1151,15 @@ export const ClipboardPanel = () => {
     );
     return ["All", ...Array.from(allTypes).sort()];
   }, [nodeTypesByPage, pages]);
+
+  const nodeTypeColorMap = useMemo(() => {
+    return Object.fromEntries(
+      getDiscourseNodes().map((n) => [
+        n.text,
+        formatHexColor(n.canvasSettings?.color) || "#000000",
+      ]),
+    );
+  }, []);
 
   useEffect(() => {
     if (
@@ -1202,7 +1199,7 @@ export const ClipboardPanel = () => {
         </h2>
         <div className="flex-shrink-0">
           <Button
-            icon={<Icon icon={isCollapsed ? "chevron-down" : "minus"} />}
+            icon={<Icon icon="minus" />}
             onClick={() => setIsCollapsed(!isCollapsed)}
             minimal
             small
@@ -1221,126 +1218,99 @@ export const ClipboardPanel = () => {
       </div>
       {!isCollapsed && (
         <>
-          {isSearchExpanded ? (
-            <div
-              className="px-2 py-1"
-              style={{ borderTop: "1px solid hsl(0, 0%, 91%)" }}
-            >
-              <InputGroup
-                autoFocus
-                leftIcon="search"
-                placeholder="Find page"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onBlur={() => {
-                  if (!searchQuery) setIsSearchExpanded(false);
-                }}
-                rightElement={
+          <div
+            className="flex items-center gap-1 px-2 py-1"
+            style={{ borderTop: "1px solid hsl(0, 0%, 91%)" }}
+          >
+            <InputGroup
+              small
+              leftIcon="search"
+              placeholder="Find page"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1"
+              rightElement={
+                searchQuery ? (
                   <Button
                     minimal
                     small
                     icon="cross"
-                    onClick={() => {
-                      setSearchQuery("");
-                      setIsSearchExpanded(false);
-                    }}
+                    onClick={() => setSearchQuery("")}
                   />
-                }
-              />
-            </div>
-          ) : (
-            <div
-              className="flex items-center gap-1 px-2 py-1"
-              style={{ borderTop: "1px solid hsl(0, 0%, 91%)" }}
+                ) : undefined
+              }
+            />
+            <Popover
+              position={Position.BOTTOM}
+              content={
+                <Menu>
+                  {availableNodeTypes.map((type) => (
+                    <MenuItem
+                      key={type}
+                      active={selectedNodeType === type}
+                      onClick={() => setSelectedNodeType(type)}
+                      text={
+                        <span className="flex items-center gap-2">
+                          {type !== "All" && (
+                            <span
+                              className="inline-block h-3 w-3 shrink-0 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  nodeTypeColorMap[type] || "#000000",
+                              }}
+                            />
+                          )}
+                          {type}
+                        </span>
+                      }
+                    />
+                  ))}
+                </Menu>
+              }
             >
               <Button
                 minimal
                 small
-                icon="search"
-                onClick={() => setIsSearchExpanded(true)}
+                rightIcon="caret-down"
+                text={selectedNodeType}
               />
-              <Button
-                minimal
-                small
-                icon={
-                  sortDirection === "asc"
-                    ? "sort-alphabetical"
-                    : "sort-alphabetical-desc"
-                }
-                title={
-                  sortDirection === "asc"
-                    ? "Sorted A→Z (click for Z→A)"
-                    : "Sorted Z→A (click for A→Z)"
-                }
-                onClick={() =>
-                  setSortDirection((d) => (d === "asc" ? "desc" : "asc"))
-                }
-              />
-              <Popover
-                position={Position.BOTTOM}
-                content={
-                  <Menu>
-                    {availableNodeTypes.map((type) => (
-                      <MenuItem
-                        key={type}
-                        text={type}
-                        active={selectedNodeType === type}
-                        onClick={() => setSelectedNodeType(type)}
-                      />
-                    ))}
-                  </Menu>
-                }
-              >
-                <Button
-                  minimal
-                  small
-                  rightIcon="caret-down"
-                  text={selectedNodeType}
-                />
-              </Popover>
-              {hasActiveFilters && (
-                <Button
-                  minimal
-                  small
-                  icon="filter-remove"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSelectedNodeType("All");
-                  }}
-                  title="Clear filters"
-                />
-              )}
-              <Popover
-                position={Position.BOTTOM_RIGHT}
-                content={
-                  <div
-                    className="p-3"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    style={{ pointerEvents: "all" }}
-                  >
-                    <Switch
-                      checked={showNodesOnCanvas}
-                      alignIndicator="right"
-                      className="m-0 w-full"
-                      label="Show nodes on canvas"
-                      onChange={(e) =>
-                        setShowNodesOnCanvas(
-                          (e.target as HTMLInputElement).checked,
-                        )
-                      }
-                    />
-                  </div>
-                }
-              >
-                <Button
-                  minimal
-                  small
-                  icon="settings"
-                  title="Clipboard options"
-                />
-              </Popover>
-            </div>
-          )}
+            </Popover>
+            <Button
+              minimal
+              small
+              icon="filter-remove"
+              disabled={!hasActiveFilters}
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedNodeType("All");
+              }}
+              title="Clear filters"
+            />
+            <Popover
+              position={Position.BOTTOM_RIGHT}
+              content={
+                <div
+                  className="p-3"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  style={{ pointerEvents: "all" }}
+                >
+                  <Switch
+                    checked={showNodesOnCanvas}
+                    alignIndicator="right"
+                    className="m-0 w-full"
+                    label="Show nodes on canvas"
+                    onChange={(e) =>
+                      setShowNodesOnCanvas(
+                        (e.target as HTMLInputElement).checked,
+                      )
+                    }
+                  />
+                </div>
+              }
+            >
+              <Button minimal small icon="settings" title="Clipboard options" />
+            </Popover>
+          </div>
           <div className="max-h-96 overflow-y-auto px-4 pb-4">
             {pages.length === 0 ? (
               <NonIdealState
@@ -1363,7 +1333,6 @@ export const ClipboardPanel = () => {
                     onRemove={removePage}
                     showNodesOnCanvas={showNodesOnCanvas}
                     searchQuery={searchQuery}
-                    sortDirection={sortDirection}
                     selectedNodeType={selectedNodeType}
                     onNodeTypesChange={handleNodeTypesChange}
                   />
