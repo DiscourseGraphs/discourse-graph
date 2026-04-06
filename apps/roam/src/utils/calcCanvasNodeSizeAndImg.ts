@@ -76,7 +76,7 @@ const getFirstImageByUid = (uid: string): string | null => {
   return findFirstImage(tree);
 };
 
-const getNodeCanvasSettings = (nodeType: string) => {
+const getNodeCanvasSettings = (nodeType: string): Record<string, string> => {
   const allNodes = getDiscourseNodes();
   const canvasSettings = Object.fromEntries(
     allNodes.map((n) => [n.type, { ...n.canvasSettings }]),
