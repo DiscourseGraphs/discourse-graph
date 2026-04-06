@@ -61,6 +61,7 @@ import { RelationBindings } from "./DiscourseRelationBinding";
 import { DiscourseNodeShape, DiscourseNodeUtil } from "./DiscourseNodeShape";
 import { addRelationToRelationsJson } from "~/components/canvas/utils/relationJsonUtils";
 import {
+  getDiscourseNodeAtPoint,
   getDiscourseNodeTypeId,
   getRelationDirection,
   isValidRelationConnection,
@@ -247,29 +248,10 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
       .getShapePageTransform(shape.id)
       .applyToPoint(info.handle);
 
-    const target = this.editor.getShapeAtPoint(point, {
-      hitInside: true,
-      hitFrameInside: true,
-      margin: 0,
-      filter: (targetShape) => {
-        return (
-          !targetShape.isLocked &&
-          this.editor.canBindShapes({
-            fromShape: shape,
-            toShape: targetShape,
-            binding: shape.type,
-          })
-        );
-      },
-    });
+    // Exclude the arrow shape itself to avoid self-binding on initial drag
+    const target = getDiscourseNodeAtPoint(this.editor, point, shape.id);
 
-    if (
-      !target ||
-      // TODO - this is a hack/fix
-      // the shape is targeting itself on initial drag
-      // find out why
-      target.id === shape.id
-    ) {
+    if (!target) {
       // TODO re-implement this on pointer up
       // if (
       //   currentBinding &&

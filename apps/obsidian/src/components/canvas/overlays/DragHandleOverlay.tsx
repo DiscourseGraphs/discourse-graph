@@ -21,6 +21,7 @@ import {
 import { DEFAULT_TLDRAW_COLOR } from "~/utils/tldrawColors";
 import { showToast } from "~/components/canvas/utils/toastUtils";
 import {
+  getDiscourseNodeAtPoint,
   getDiscourseNodeTypeId,
   hasValidRelationTypeForNodePair,
 } from "~/components/canvas/utils/relationTypeUtils";
@@ -220,18 +221,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         const dy = point.y - currentShape.y;
 
         // Check for a target shape under the cursor
-        const target = editor.getShapeAtPoint(point, {
-          hitInside: true,
-          hitFrameInside: true,
-          margin: 0,
-          filter: (targetShape) => {
-            return (
-              targetShape.type === "discourse-node" &&
-              targetShape.id !== selectedNode.id &&
-              !targetShape.isLocked
-            );
-          },
-        });
+        const target = getDiscourseNodeAtPoint(editor, point, selectedNode.id);
 
         if (target) {
           // Bind end to target
@@ -351,13 +341,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         dragCleanupRef.current = null;
       };
     },
-    [
-      selectedNode,
-      editor,
-      cleanupArrow,
-      file.path,
-      plugin.settings,
-    ],
+    [selectedNode, editor, cleanupArrow, file.path, plugin.settings],
   );
 
   const handleDropdownSelect = useCallback(
@@ -425,35 +409,28 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
   const showHandles = !!handlePositions && !pendingArrowId;
 
   return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+    <div className="pointer-events-none absolute inset-0">
       {/* Drag handle dots */}
       {showHandles &&
         handlePositions.map((pos, i) => (
           <div
             key={i}
             onPointerDown={(e) => handlePointerDown(e, pos.anchor)}
+            className="pointer-events-auto absolute z-20 flex items-center justify-center cursor-crosshair"
             style={{
-              position: "absolute",
               left: `${pos.left}px`,
               top: `${pos.top}px`,
-              transform: "translate(-50%, -50%)",
               width: `${HANDLE_HIT_AREA * 2}px`,
               height: `${HANDLE_HIT_AREA * 2}px`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "crosshair",
-              pointerEvents: "all",
-              zIndex: 20,
+              transform: "translate(-50%, -50%)",
             }}
           >
             <div
               style={{
                 width: `${HANDLE_RADIUS * 2}px`,
                 height: `${HANDLE_RADIUS * 2}px`,
-                borderRadius: "50%",
-                backgroundColor: "#adb5bd",
               }}
+              className="rounded-full bg-[#adb5bd]"
             />
           </div>
         ))}

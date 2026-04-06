@@ -1,5 +1,26 @@
+import type { Editor, TLShape, TLShapeId, VecLike } from "tldraw";
 import type { DiscourseRelation, DiscourseRelationType } from "~/types";
 import { COLOR_PALETTE } from "~/utils/tldrawColors";
+
+/**
+ * Finds the discourse node shape at a given page point, excluding an optional
+ * shape by ID (e.g. the source node or the relation arrow itself).
+ */
+export const getDiscourseNodeAtPoint = (
+  editor: Editor,
+  point: VecLike,
+  excludeShapeId?: TLShapeId,
+): TLShape | undefined => {
+  return editor.getShapeAtPoint(point, {
+    hitInside: true,
+    hitFrameInside: true,
+    margin: 0,
+    filter: (targetShape) =>
+      targetShape.type === "discourse-node" &&
+      !targetShape.isLocked &&
+      targetShape.id !== excludeShapeId,
+  });
+};
 
 /**
  * Extracts the nodeTypeId from any tldraw shape that may have it.
