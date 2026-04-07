@@ -1,5 +1,5 @@
 export const ROAM_DOC_SECTIONS = {
-  welcome: ["getting-started", "installation", "installation-roam-depot"],
+  welcome: ["getting-started", "installation"],
   guides: [
     "creating-discourse-nodes",
     "tagging-candidate-nodes",
