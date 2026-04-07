@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import { PlatformBadge } from "./PlatformBadge";
 
 const DOCS_PLATFORMS = {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   "/docs/obsidian": "obsidian",
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   "/docs/roam": "roam",
 } as const;
 
@@ -30,12 +32,16 @@ export const Logo = ({
         aria-hidden="true"
         className={`block h-12 w-12 shrink-0 bg-current ${textClassName}`}
         style={{
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           WebkitMaskImage: "url('/logo-light-48.svg')",
           maskImage: "url('/logo-light-48.svg')",
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           WebkitMaskPosition: "center",
           maskPosition: "center",
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           WebkitMaskRepeat: "no-repeat",
           maskRepeat: "no-repeat",
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           WebkitMaskSize: "contain",
           maskSize: "contain",
         }}
