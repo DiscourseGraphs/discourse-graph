@@ -1,12 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import {
-  TLShapeId,
-  useEditor,
-  DefaultColorThemePalette,
-} from "tldraw";
-import { discourseContext } from "~/components/canvas/Tldraw";
-import { BaseDiscourseNodeUtil } from "~/components/canvas/DiscourseNodeUtil";
+import { TLShapeId, useEditor, DefaultColorThemePalette } from "tldraw";
 import { getRelationColor } from "~/components/canvas/DiscourseRelationShape/DiscourseRelationUtil";
+import {
+  getAllRelations,
+  isDiscourseNodeShape,
+} from "~/components/canvas/canvasUtils";
 
 type RelationTypeDropdownProps = {
   sourceId: TLShapeId;
@@ -36,21 +34,15 @@ export const RelationTypeDropdown = ({
     const endNodeType = endNode.type;
 
     // Verify both are discourse nodes
-    try {
-      const startUtil = editor.getShapeUtil(startNode);
-      const endUtil = editor.getShapeUtil(endNode);
-      if (
-        !(startUtil instanceof BaseDiscourseNodeUtil) ||
-        !(endUtil instanceof BaseDiscourseNodeUtil)
-      )
-        return [];
-    } catch {
+    if (
+      !isDiscourseNodeShape(editor, startNode) ||
+      !isDiscourseNodeShape(editor, endNode)
+    )
       return [];
-    }
 
     const colorPalette = DefaultColorThemePalette.lightMode;
     const validTypes: { id: string; label: string; color: string }[] = [];
-    const allRelations = Object.values(discourseContext.relations).flat();
+    const allRelations = getAllRelations();
     const seenLabels = new Set<string>();
 
     for (const relation of allRelations) {

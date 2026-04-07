@@ -56,6 +56,7 @@ import {
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
 import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
+import { isDiscourseNodeShape } from "./canvasUtils";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseRelations, {
   DiscourseRelation,
@@ -507,12 +508,6 @@ const TldrawCanvasShared = ({
     );
   };
 
-  const isDiscourseNodeShape = (
-    shape: TLShape,
-  ): shape is DiscourseNodeShape => {
-    return allNodes.some((node) => node.type === shape.type);
-  };
-
   // Add state for tracking relation creation
   const relationCreationRef = useRef<{
     isCreating: boolean;
@@ -537,7 +532,7 @@ const TldrawCanvasShared = ({
         relationCreationRef.current.toolType = currentToolId;
 
         // If we clicked on a discourse node, record it as the source
-        if (shapeAtPoint && isDiscourseNodeShape(shapeAtPoint)) {
+        if (shapeAtPoint && isDiscourseNodeShape(app, shapeAtPoint)) {
           relationCreationRef.current.sourceShapeId = shapeAtPoint.id;
         }
       }
@@ -562,7 +557,7 @@ const TldrawCanvasShared = ({
           relationCreationRef.current.relationShapeId = relationShape.id;
 
           // Check if we have a target shape
-          if (shapeAtPoint && isDiscourseNodeShape(shapeAtPoint)) {
+          if (shapeAtPoint && isDiscourseNodeShape(app, shapeAtPoint)) {
             posthog.capture("Canvas: Relation Created", {
               relationType: relationShape.type,
               toolType: relationCreationRef.current.toolType || "",

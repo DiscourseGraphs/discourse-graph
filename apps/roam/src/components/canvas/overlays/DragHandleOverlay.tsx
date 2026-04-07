@@ -1,23 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  TLShapeId,
-  createShapeId,
-  useEditor,
-  useValue,
-} from "tldraw";
-import {
-  BaseDiscourseNodeUtil,
-  DiscourseNodeShape,
-} from "~/components/canvas/DiscourseNodeUtil";
+import { TLShapeId, createShapeId, useEditor, useValue } from "tldraw";
+import { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
 import {
   BaseDiscourseRelationUtil,
   DiscourseRelationShape,
   getRelationColor,
 } from "~/components/canvas/DiscourseRelationShape/DiscourseRelationUtil";
+import { createOrUpdateArrowBinding } from "~/components/canvas/DiscourseRelationShape/helpers";
 import {
-  createOrUpdateArrowBinding,
-} from "~/components/canvas/DiscourseRelationShape/helpers";
-import { discourseContext } from "~/components/canvas/Tldraw";
+  getAllRelations,
+  hasValidRelationTypes,
+  isDiscourseNodeShape,
+} from "~/components/canvas/canvasUtils";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import { RelationTypeDropdown } from "./RelationTypeDropdown";
 
@@ -67,30 +61,6 @@ const getEdgeMidpoints = (bounds: {
   },
 ];
 
-const isDiscourseNode = (
-  editor: ReturnType<typeof useEditor>,
-  shapeType: string,
-): boolean => {
-  try {
-    const util = editor.getShapeUtil(shapeType);
-    return util instanceof BaseDiscourseNodeUtil;
-  } catch {
-    return false;
-  }
-};
-
-const hasValidRelationTypes = (
-  sourceNodeType: string,
-  targetNodeType: string,
-): boolean => {
-  const allRelations = Object.values(discourseContext.relations).flat();
-  return allRelations.some(
-    (r) =>
-      (r.source === sourceNodeType && r.destination === targetNodeType) ||
-      (r.source === targetNodeType && r.destination === sourceNodeType),
-  );
-};
-
 export const DragHandleOverlay = () => {
   const editor = useEditor();
 
@@ -120,7 +90,7 @@ export const DragHandleOverlay = () => {
     () => {
       if (isDragging || pending) return sourceNodeRef.current;
       const shape = editor.getOnlySelectedShape();
-      if (shape && isDiscourseNode(editor, shape.type)) {
+      if (shape && isDiscourseNodeShape(editor, shape)) {
         return shape as DiscourseNodeShape;
       }
       return null;
@@ -187,7 +157,7 @@ export const DragHandleOverlay = () => {
           hitFrameInside: true,
           margin: 0,
           filter: (s) =>
-            isDiscourseNode(editor, s.type) &&
+            isDiscourseNodeShape(editor, s) &&
             s.id !== selectedNode.id &&
             !s.isLocked,
         });
@@ -215,7 +185,7 @@ export const DragHandleOverlay = () => {
           hitFrameInside: true,
           margin: 0,
           filter: (s) =>
-            isDiscourseNode(editor, s.type) &&
+            isDiscourseNodeShape(editor, s) &&
             s.id !== selectedNode.id &&
             !s.isLocked,
         });
@@ -276,8 +246,9 @@ export const DragHandleOverlay = () => {
     (relationId: string) => {
       if (!pending) return;
 
-      const allRelations = Object.values(discourseContext.relations).flat();
-      const selectedRelation = allRelations.find((r) => r.id === relationId);
+      const selectedRelation = getAllRelations().find(
+        (r) => r.id === relationId,
+      );
       if (!selectedRelation) {
         setPending(null);
         sourceNodeRef.current = null;
