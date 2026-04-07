@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { PlatformBadge } from "~/components/PlatformBadge";
@@ -30,16 +29,18 @@ const DOCS_DESTINATIONS = [
 
 const DocsLandingPage = (): React.ReactElement => {
   return (
-    <div className="font-[family:var(--font-inter)] min-h-screen bg-neutral-light text-neutral-dark">
+    <div className="marketing-site font-[family:var(--font-inter)] min-h-screen bg-neutral-light text-neutral-dark">
       <header className="border-b border-black/5 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
           <Logo />
-          <Link
+          {/* Use hard navigations across the marketing/docs boundary because Next client transitions can leave the wrong route CSS active. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a
             href="/"
             className="text-sm font-medium text-neutral-dark/70 hover:text-neutral-dark"
           >
             Back to site
-          </Link>
+          </a>
         </div>
       </header>
 
@@ -61,7 +62,9 @@ const DocsLandingPage = (): React.ReactElement => {
 
           <section className="mt-12 grid gap-6 md:grid-cols-2">
             {DOCS_DESTINATIONS.map(({ description, href, platform, title }) => (
-              <Link key={href} href={href} className="group block h-full">
+              // Use a document navigation here so Nextra and marketing CSS do not coexist during client-side route transitions.
+              /* eslint-disable-next-line @next/next/no-html-link-for-pages */
+              <a key={href} href={href} className="group block h-full">
                 <Card className="h-full rounded-2xl border border-black/5 bg-white shadow-sm transition-transform duration-200 group-hover:-translate-y-1 group-hover:shadow-lg">
                   <CardContent className="flex h-full flex-col gap-8 p-8">
                     <div className="flex items-start justify-between gap-4">
@@ -83,7 +86,7 @@ const DocsLandingPage = (): React.ReactElement => {
                     </p>
                   </CardContent>
                 </Card>
-              </Link>
+              </a>
             ))}
           </section>
         </div>

@@ -38,7 +38,7 @@ const HomeLayout = async ({ children }: { children: React.ReactNode }) => {
   return (
     <PostHogProvider>
       <div
-        className={`flex min-h-screen flex-col bg-neutral-light antialiased ${inter.className}`}
+        className={`marketing-site flex min-h-screen flex-col bg-neutral-light antialiased ${inter.className}`}
       >
         <header className="flex flex-col items-center justify-between space-y-4 px-6 py-4 md:flex-row md:space-y-0">
           <Logo />
