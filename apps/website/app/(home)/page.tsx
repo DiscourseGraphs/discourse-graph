@@ -402,7 +402,9 @@ const Home = async () => {
                     </span>
                     <ul className="ml-6 mt-2 list-inside list-disc space-y-2">
                       <li className="text-neutral-dark">
-                        <Link href="/docs/roam/">Documentation</Link>
+                        {/* Use a hard navigation into docs because client-side transitions can leak marketing CSS into the Nextra docs app. */}
+                        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                        <a href="/docs/roam/">Documentation</a>
                       </li>
                     </ul>
                   </li>
@@ -418,7 +420,9 @@ const Home = async () => {
                     </span>
                     <ul className="ml-6 mt-2 list-inside list-disc space-y-2">
                       <li className="text-neutral-dark">
-                        <Link href="/docs/obsidian/">Documentation</Link>
+                        {/* Use a hard navigation into docs because client-side transitions can leak marketing CSS into the Nextra docs app. */}
+                        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                        <a href="/docs/obsidian/">Documentation</a>
                       </li>
                     </ul>
                   </li>

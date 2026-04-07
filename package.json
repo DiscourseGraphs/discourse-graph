@@ -7,7 +7,7 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "deploy": "turbo deploy",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format": "prettier --write \"**/*.{js,mjs,ts,tsx,md,mdx}\"",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -34,7 +34,7 @@
     "tailwindConfig": "./packages/tailwind-config/tailwind.config.ts"
   },
   "lint-staged": {
-    "*.{ts,tsx,md,mdx}": "prettier -w"
+    "*.{js,mjs,ts,tsx,md,mdx}": "prettier -w"
   },
   "dependencies": {
     "posthog-js": "catalog:"
