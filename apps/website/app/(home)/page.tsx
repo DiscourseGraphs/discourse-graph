@@ -345,7 +345,7 @@ const Home = async () => {
           {/* Resources */}
           <Card id="resources" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Resources
               </CardTitle>
             </CardHeader>
@@ -433,7 +433,7 @@ const Home = async () => {
           {/* Events */}
           <Card id="events" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Events
               </CardTitle>
             </CardHeader>
@@ -505,7 +505,7 @@ const Home = async () => {
           {blogs.length > 0 && (
             <Card id="updates" className="rounded-xl bg-white/50 p-8 shadow-md">
               <CardHeader>
-                <CardTitle className="mb-8 text-4xl font-bold text-primary">
+                <CardTitle className="text-4xl font-bold text-primary">
                   Latest Updates
                 </CardTitle>
               </CardHeader>
@@ -550,7 +550,7 @@ const Home = async () => {
           {/* Talks */}
           <Card id="talks" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Talks
               </CardTitle>
             </CardHeader>
@@ -627,13 +627,51 @@ const Home = async () => {
                     Karola Kirsanow, NYC Protocol Labs Research Seminar
                   </p>
                 </div>
+
+                <div className="space-y-4">
+                  <div className="relative aspect-video">
+                    <iframe
+                      className="absolute inset-0 h-full w-full rounded-lg"
+                      src="https://www.youtube-nocookie.com/embed/JOn_dJ-g3vY"
+                      title="HCIL Brown Bag Speaker Series: Matt Akamatsu (February 2026)"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                  <h3 className="text-xl font-semibold text-neutral-dark">
+                    HCIL Brown Bag Speaker Series: Matt Akamatsu
+                  </h3>
+                  <p className="text-neutral-dark">Matt Akamatsu</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex aspect-video items-center justify-center rounded-lg bg-neutral-100 p-6 text-center">
+                    <div className="space-y-3">
+                      <p className="text-sm text-neutral-dark">
+                        Hosted on Atmosphere Conf VODs
+                      </p>
+                      <Link
+                        href="https://atmosphereconf-vods.wisp.place/videos/keynote-towards-modular-open-science"
+                        className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:text-white"
+                      >
+                        Watch talk →
+                      </Link>
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-neutral-dark">
+                    Keynote: Towards Modular Open Science
+                  </h3>
+                  <p className="text-neutral-dark">
+                    Rowan Cockett, Matt Akamatsu
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
           {/* Team */}
           <Card id="team" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Team
               </CardTitle>
             </CardHeader>
@@ -652,7 +690,7 @@ const Home = async () => {
             className="rounded-xl bg-white/50 p-8 shadow-md"
           >
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Supporters
               </CardTitle>
             </CardHeader>
@@ -727,7 +765,7 @@ const Home = async () => {
           {/* Contact */}
           <Card id="contact" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Contact
               </CardTitle>
             </CardHeader>
