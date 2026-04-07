@@ -34,7 +34,7 @@
     "tailwindConfig": "./packages/tailwind-config/tailwind.config.ts"
   },
   "lint-staged": {
-    "*.{ts,mjs,ts,tsx,md,mdx}": "prettier -w"
+    "*.{js,mjs,ts,tsx,md,mdx}": "prettier -w"
   },
   "dependencies": {
     "posthog-js": "catalog:"
