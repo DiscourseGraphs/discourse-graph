@@ -50,6 +50,7 @@ type BaseTextPanelProps = {
   multiline?: boolean;
   error?: string;
   onChange?: (value: string) => void;
+  inputStyle?: React.CSSProperties;
 } & RoamBlockSyncProps;
 
 type BaseFlagPanelProps = {
@@ -105,6 +106,7 @@ const BaseTextPanel = ({
   multiline,
   error,
   onChange,
+  inputStyle,
   parentUid,
   uid,
   order,
@@ -162,6 +164,7 @@ const BaseTextPanel = ({
             value={value}
             onChange={handleChange}
             placeholder={placeholder || initialValue}
+            style={inputStyle}
           />
         )}
       </Label>
@@ -612,6 +615,7 @@ export const DiscourseNodeTextPanel = ({
     multiline?: boolean;
     error?: string;
     onChange?: (value: string) => void;
+    inputStyle?: React.CSSProperties;
   }) => (
   <BaseTextPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
 );

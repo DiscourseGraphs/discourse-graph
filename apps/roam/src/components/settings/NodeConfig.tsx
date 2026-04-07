@@ -12,6 +12,7 @@ import {
   ControlGroup,
   Tooltip,
   Icon,
+  Tag,
 } from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
@@ -206,6 +207,7 @@ const NodeConfig = ({
                 order={2}
                 parentUid={node.type}
                 uid={tagUid}
+                inputStyle={color ? { color } : undefined}
               />
               <div>
                 <Label style={{ marginBottom: "4px" }}>Color</Label>
