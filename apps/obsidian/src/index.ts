@@ -33,7 +33,10 @@ import { InlineNodeTypePicker } from "~/components/InlineNodeTypePicker";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
 import generateUid from "~/utils/generateUid";
-import { migrateFrontmatterRelationsToRelationsJson } from "~/utils/relationsStore";
+import {
+  migrateFrontmatterRelationsToRelationsJson,
+  mergeAllRelationsJsonToRoot,
+} from "~/utils/relationsStore";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -45,6 +48,10 @@ export default class DiscourseGraphPlugin extends Plugin {
 
   async onload() {
     await this.loadSettings();
+
+    await mergeAllRelationsJsonToRoot(this).catch((error) => {
+      console.error("Failed to merge relations.json files:", error);
+    });
 
     await migrateFrontmatterRelationsToRelationsJson(this).catch((error) => {
       console.error("Failed to migrate frontmatter relations:", error);
