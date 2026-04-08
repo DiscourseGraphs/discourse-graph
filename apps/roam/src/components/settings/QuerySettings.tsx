@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
@@ -13,6 +13,7 @@ import {
   PERSONAL_KEYS,
   QUERY_KEYS,
 } from "~/components/settings/utils/settingKeys";
+import { bulkReadSettings } from "./utils/accessors";
 import posthog from "posthog-js";
 
 const QuerySettings = ({
@@ -20,12 +21,15 @@ const QuerySettings = ({
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
 }) => {
+  const [snapshot] = useState(() => bulkReadSettings());
+  const querySettings = snapshot.personalSettings.Query;
   return (
     <div className="flex flex-col gap-4 p-1">
       <PersonalFlagPanel
         title="Hide query metadata"
         description="Hide the Roam blocks that are used to power each query"
         settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.hideQueryMetadata]}
+        initialValue={querySettings[QUERY_KEYS.hideQueryMetadata]}
         onChange={(checked) => {
           void extensionAPI.settings.set(HIDE_METADATA_KEY, checked);
           posthog.capture("Query Settings: Hide Metadata Toggled", {
@@ -37,6 +41,7 @@ const QuerySettings = ({
         title="Default page size"
         description="The default page size used for query results"
         settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.defaultPageSize]}
+        initialValue={querySettings[QUERY_KEYS.defaultPageSize]}
         onChange={(value) => {
           void extensionAPI.settings.set(DEFAULT_PAGE_SIZE_KEY, value);
           posthog.capture("Query Settings: Default Page Size Changed", {
@@ -48,6 +53,7 @@ const QuerySettings = ({
         title="Query pages"
         description="The title formats of pages that you would like to serve as pages that generate queries"
         settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.queryPages]}
+        initialValue={querySettings[QUERY_KEYS.queryPages]}
         onChange={(values) => {
           void extensionAPI.settings.set("query-pages", values);
         }}

@@ -556,7 +556,7 @@ export const GlobalTextPanel = (props: TextWrapperProps) => (
   <BaseTextPanel
     {...props}
     initialValue={
-      getGlobalSetting<string>(props.settingKeys) ?? props.initialValue
+      props.initialValue ?? getGlobalSetting<string>(props.settingKeys)
     }
     {...globalAccessors.text}
   />
@@ -566,7 +566,7 @@ export const GlobalFlagPanel = (props: FlagWrapperProps) => (
   <BaseFlagPanel
     {...props}
     initialValue={
-      getGlobalSetting<boolean>(props.settingKeys) ?? props.initialValue
+      props.initialValue ?? getGlobalSetting<boolean>(props.settingKeys)
     }
     {...globalAccessors.flag}
   />
@@ -576,7 +576,7 @@ export const GlobalNumberPanel = (props: NumberWrapperProps) => (
   <BaseNumberPanel
     {...props}
     initialValue={
-      getGlobalSetting<number>(props.settingKeys) ?? props.initialValue
+      props.initialValue ?? getGlobalSetting<number>(props.settingKeys)
     }
     {...globalAccessors.number}
   />
@@ -586,7 +586,7 @@ export const GlobalSelectPanel = (props: SelectWrapperProps) => (
   <BaseSelectPanel
     {...props}
     initialValue={
-      getGlobalSetting<string>(props.settingKeys) ?? props.initialValue
+      props.initialValue ?? getGlobalSetting<string>(props.settingKeys)
     }
     {...globalAccessors.text}
   />
@@ -596,7 +596,7 @@ export const GlobalMultiTextPanel = (props: MultiTextWrapperProps) => (
   <BaseMultiTextPanel
     {...props}
     initialValue={
-      getGlobalSetting<string[]>(props.settingKeys) ?? props.initialValue
+      props.initialValue ?? getGlobalSetting<string[]>(props.settingKeys)
     }
     {...globalAccessors.multiText}
   />
@@ -606,15 +606,12 @@ export const PersonalTextPanel = ({ setter, ...props }: TextWrapperProps) => (
   <BaseTextPanel
     {...props}
     initialValue={
-      getPersonalSetting<string>(props.settingKeys) ?? props.initialValue
+      props.initialValue ?? getPersonalSetting<string>(props.settingKeys)
     }
     setter={setter ?? personalAccessors.text.setter}
   />
 );
 
-// Prop wins so HomePersonalSettings can hand down a value from the dialog-open
-// snapshot. QuerySettings still calls without `initialValue`, so the fallback
-// handles that path.
 export const PersonalFlagPanel = (props: FlagWrapperProps) => (
   <BaseFlagPanel
     {...props}
@@ -632,7 +629,7 @@ export const PersonalNumberPanel = ({
   <BaseNumberPanel
     {...props}
     initialValue={
-      getPersonalSetting<number>(props.settingKeys) ?? props.initialValue
+      props.initialValue ?? getPersonalSetting<number>(props.settingKeys)
     }
     setter={setter ?? personalAccessors.number.setter}
   />
@@ -642,7 +639,7 @@ export const PersonalSelectPanel = (props: SelectWrapperProps) => (
   <BaseSelectPanel
     {...props}
     initialValue={
-      getPersonalSetting<string>(props.settingKeys) ?? props.initialValue
+      props.initialValue ?? getPersonalSetting<string>(props.settingKeys)
     }
     {...personalAccessors.text}
   />
@@ -652,7 +649,7 @@ export const PersonalMultiTextPanel = (props: MultiTextWrapperProps) => (
   <BaseMultiTextPanel
     {...props}
     initialValue={
-      getPersonalSetting<string[]>(props.settingKeys) ?? props.initialValue
+      props.initialValue ?? getPersonalSetting<string[]>(props.settingKeys)
     }
     {...personalAccessors.multiText}
   />

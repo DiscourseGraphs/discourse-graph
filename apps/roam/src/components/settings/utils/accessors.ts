@@ -4,6 +4,7 @@ import getBlockProps, {
 } from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
+import getBlockUidByTextOnPage from "roamjs-components/queries/getBlockUidByTextOnPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { getSubTree } from "roamjs-components/util";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
@@ -649,52 +650,6 @@ const setBlockPropAtPath = (
   setBlockProps(blockUid, updatedProps, false);
 };
 
-// Single pull on the settings page returns all top-level children
-// (Feature Flags / Global / <user-uid>) with their string + uid + props.
-// Avoids the slow `q`-based getBlockUidByTextOnPage (~290ms per call).
-const getBlockPropBasedSettings = ({
-  keys,
-}: {
-  keys: string[];
-}): { blockProps: json | undefined; blockUid: string } => {
-  if (keys.length === 0) {
-    internalError({
-      error: "getBlockPropBasedSettings called with no keys",
-      type: "DG Accessor",
-    });
-    return { blockProps: undefined, blockUid: "" };
-  }
-
-  const pageResult = window.roamAlphaAPI.pull(
-    "[{:block/children [:block/string :block/uid :block/props]}]",
-    [":node/title", DG_BLOCK_PROP_SETTINGS_PAGE_TITLE],
-  ) as Record<string, json> | null;
-
-  const children = (pageResult?.[":block/children"] ?? []) as Record<
-    string,
-    json
-  >[];
-  const child = children.find((c) => c[":block/string"] === keys[0]);
-  if (!child) {
-    return { blockProps: undefined, blockUid: "" };
-  }
-
-  const blockUid = (child[":block/uid"] as string) || "";
-  const rawProps = child[":block/props"];
-  const allBlockProps: json =
-    rawProps && typeof rawProps === "object" ? normalizeProps(rawProps) : {};
-
-  if (keys.length === 1) {
-    return { blockProps: allBlockProps, blockUid };
-  }
-
-  const blockProps = readPathValue(allBlockProps, keys.slice(1)) as
-    | json
-    | undefined;
-
-  return { blockProps, blockUid };
-};
-
 const setBlockPropBasedSettings = ({
   keys,
   value,
@@ -710,7 +665,10 @@ const setBlockPropBasedSettings = ({
     return;
   }
 
-  const { blockUid } = getBlockPropBasedSettings({ keys: [keys[0]] });
+  const blockUid = getBlockUidByTextOnPage({
+    text: keys[0],
+    title: DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
+  });
 
   if (!blockUid) {
     internalError({
@@ -724,11 +682,7 @@ const setBlockPropBasedSettings = ({
 };
 
 export const getFeatureFlags = (): FeatureFlags => {
-  const { blockProps } = getBlockPropBasedSettings({
-    keys: [TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags],
-  });
-
-  return FeatureFlagsSchema.parse(blockProps || {});
+  return bulkReadSettings().featureFlags;
 };
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -824,11 +778,7 @@ export const setFeatureFlag = (
 };
 
 export const getGlobalSettings = (): GlobalSettings => {
-  const { blockProps } = getBlockPropBasedSettings({
-    keys: [TOP_LEVEL_BLOCK_PROP_KEYS.global],
-  });
-
-  return GlobalSettingsSchema.parse(blockProps || {});
+  return bulkReadSettings().globalSettings;
 };
 
 export const getGlobalSetting = <T = unknown>(
@@ -879,7 +829,7 @@ export const setGlobalSetting = (keys: string[], value: json): void => {
 };
 
 export const getAllRelations = (
-  snapshot?: Pick<SettingsSnapshot, "globalSettings">,
+  snapshot?: SettingsSnapshot,
 ): DiscourseRelation[] => {
   const settings = snapshot ? snapshot.globalSettings : getGlobalSettings();
 
@@ -896,13 +846,7 @@ export const getAllRelations = (
 };
 
 export const getPersonalSettings = (): PersonalSettings => {
-  const personalKey = getPersonalSettingsKey();
-
-  const { blockProps } = getBlockPropBasedSettings({
-    keys: [personalKey],
-  });
-
-  return PersonalSettingsSchema.parse(blockProps || {});
+  return bulkReadSettings().personalSettings;
 };
 
 export const getPersonalSetting = <T = unknown>(

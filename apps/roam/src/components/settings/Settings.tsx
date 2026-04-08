@@ -28,7 +28,6 @@ import { FeedbackWidget } from "~/components/BirdEatsBugs";
 import { getVersionWithDate } from "~/utils/getVersion";
 import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
 import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
-import { bulkReadSettings } from "./utils/accessors";
 import posthog from "posthog-js";
 
 type SectionHeaderProps = {
@@ -82,11 +81,8 @@ export const SettingsDialog = ({
     (node) => node.text === "relations",
   );
   const nodesNode = grammarNode?.children.find((node) => node.text === "nodes");
-  const [settingsSnapshot, setSettingsSnapshot] = useState(() =>
-    bulkReadSettings(),
-  );
   const [nodes] = useState(() =>
-    getDiscourseNodes(undefined, settingsSnapshot).filter(excludeDefaultNodes),
+    getDiscourseNodes().filter(excludeDefaultNodes),
   );
   const [activeTabId, setActiveTabId] = useState<TabId>(
     selectedTabId ?? "discourse-graph-home-personal",
@@ -95,7 +91,6 @@ export const SettingsDialog = ({
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
 
-  // ENG-1617: surface settings dialog open time in devtools for perf monitoring.
   useEffect(() => {
     console.log(
       `[settings] open ${(performance.now() - mountStart).toFixed(0)}ms`,
@@ -164,13 +159,6 @@ export const SettingsDialog = ({
         <Tabs
           className="dg-settings-tabs flex h-full"
           onChange={(id) => {
-            // Tab panels mount lazily (`renderActiveTabPanelOnly`), so each
-            // re-mount re-seeds child `useState` from `initialValue`. Refresh
-            // the snapshot when navigating back to Home so user toggles made
-            // earlier in the same dialog session don't visually revert.
-            if (id === "discourse-graph-home-personal") {
-              setSettingsSnapshot(bulkReadSettings());
-            }
             setActiveTabId(id);
             posthog.capture("Settings: Tab Opened", {
               tabId: String(id),
@@ -187,13 +175,7 @@ export const SettingsDialog = ({
             id="discourse-graph-home-personal"
             title="Home"
             className="overflow-y-auto"
-            panel={
-              <HomePersonalSettings
-                onloadArgs={onloadArgs}
-                featureFlags={settingsSnapshot.featureFlags}
-                personalSettings={settingsSnapshot.personalSettings}
-              />
-            }
+            panel={<HomePersonalSettings onloadArgs={onloadArgs} />}
           />
           <Tab
             id="query-settings"
