@@ -133,8 +133,8 @@ export type AddRelationParams = {
   author?: string;
   importedFromRid?: string;
   publishedToGroupId?: string[];
-  /** On first import, set to false. For future approval UI. */
-  provisional?: boolean;
+  /** On first import, set to false. true or undefined = accepted/local. */
+  tentative?: boolean;
 };
 
 /**
@@ -158,8 +158,8 @@ export const addRelationNoCheck = async (
     author,
     importedFromRid: params.importedFromRid,
     publishedToGroupId: params.publishedToGroupId,
-    ...(params.provisional !== undefined && {
-      provisional: params.provisional,
+    ...(params.tentative !== undefined && {
+      tentative: params.tentative,
     }),
   };
   const data = await loadRelations(plugin);
@@ -213,6 +213,17 @@ export const removeRelationById = async (
   delete data.relations[relationInstanceId];
   await saveRelations(plugin, data);
   return true;
+};
+
+export const updateRelation = async (
+  plugin: DiscourseGraphPlugin,
+  id: string,
+  patch: Partial<RelationInstance>,
+): Promise<void> => {
+  const data = await loadRelations(plugin);
+  if (!data.relations[id]) return;
+  data.relations[id] = { ...data.relations[id], ...patch };
+  await saveRelations(plugin, data);
 };
 
 export const getRelationsForNodeInstanceId = async (
