@@ -93,7 +93,7 @@ export const mergeAllRelationsJsonToRoot = async (
 
   // Process non-root files first so root values win on duplicate IDs.
   const sortedFiles = [
-    ...relationsFiles.filter((f) => f.path !== rootPath),
+    ...nonRootFiles,
     ...relationsFiles.filter((f) => f.path === rootPath),
   ];
   const merged = defaultRelationsFile();
