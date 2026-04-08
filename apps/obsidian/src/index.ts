@@ -14,8 +14,9 @@ import { Settings, VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import {
   addConvertSubmenu,
   isImageFile,
-  replaceImageEmbedInEditor,
+  openConvertImageToNodeModal,
 } from "~/utils/editorMenuUtils";
+import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
 import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
 import { VIEW_TYPE_TLDRAW_DG_PREVIEW, FRONTMATTER_KEY } from "~/constants";
@@ -159,41 +160,11 @@ export default class DiscourseGraphPlugin extends Plugin {
             label: "Convert into",
             nodeTypes: this.settings.nodeTypes,
             onClick: (nodeType) => {
-              new ModifyNodeModal(this.app, {
-                nodeTypes: this.settings.nodeTypes,
+              openConvertImageToNodeModal({
                 plugin: this,
-                initialTitle: "",
+                imageFile: file,
                 initialNodeType: nodeType,
-                onSubmit: async ({
-                  nodeType: selectedType,
-                  title,
-                  selectedExistingNode,
-                }) => {
-                  const targetFile =
-                    selectedExistingNode ??
-                    (await createDiscourseNode({
-                      plugin: this,
-                      nodeType: selectedType,
-                      text: title,
-                    }));
-
-                  if (!targetFile) return;
-
-                  const imageLink = this.app.metadataCache.fileToLinktext(
-                    file,
-                    targetFile.path,
-                  );
-                  await this.app.vault.append(
-                    targetFile,
-                    `\n![[${imageLink}]]\n`,
-                  );
-                  replaceImageEmbedInEditor({
-                    app: this.app,
-                    imageFile: file,
-                    targetFile,
-                  });
-                },
-              }).open();
+              });
             },
           });
           return;
@@ -300,6 +271,9 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.registerEditorExtension(nodeTagHotkeyExtension);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    this.registerEditorExtension(createImageEmbedHoverExtension(this));
   }
 
   private createStyleElement() {
