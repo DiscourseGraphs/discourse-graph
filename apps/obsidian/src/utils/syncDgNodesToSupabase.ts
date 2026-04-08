@@ -27,6 +27,7 @@ import {
   type DiscourseNodeInVault,
   collectDiscourseNodesFromVault,
 } from "./getDiscourseNodes";
+import { isAcceptedSchema } from "./typeUtils";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
@@ -456,8 +457,12 @@ const convertDgToSupabaseConcepts = async ({
     await getLastRelationSyncTime(supabaseClient, context.spaceId)
   ).getTime();
   const nodeTypes = plugin.settings.nodeTypes ?? [];
-  const relationTypes = plugin.settings.relationTypes ?? [];
-  const discourseRelations = plugin.settings.discourseRelations ?? [];
+  const relationTypes = (plugin.settings.relationTypes ?? []).filter(
+    isAcceptedSchema,
+  );
+  const discourseRelations = (plugin.settings.discourseRelations ?? []).filter(
+    isAcceptedSchema,
+  );
   allNodes = allNodes ?? (await collectDiscourseNodesFromVault(plugin, true));
   const allNodesById = Object.fromEntries(
     allNodes.map((n) => [n.nodeInstanceId, n]),
@@ -530,6 +535,7 @@ const convertDgToSupabaseConcepts = async ({
     .filter(
       (relationInstanceData) =>
         !relationInstanceData.importedFromRid &&
+        !relationInstanceData.provisional &&
         (relationInstanceData.lastModified || relationInstanceData.created) >
           lastRelationsSync,
     )
