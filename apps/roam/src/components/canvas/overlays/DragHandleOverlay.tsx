@@ -8,6 +8,7 @@ import {
 } from "~/components/canvas/DiscourseRelationShape/DiscourseRelationUtil";
 import { createOrUpdateArrowBinding } from "~/components/canvas/DiscourseRelationShape/helpers";
 import {
+  checkConnectionType,
   getAllRelations,
   hasValidRelationTypes,
   isDiscourseNodeShape,
@@ -266,6 +267,20 @@ export const DragHandleOverlay = () => {
 
       const color = getRelationColor(selectedRelation.label);
 
+      // Determine direction: if we dragged from the relation's destination type,
+      // the arrow is in reverse and should display the complement label.
+      const sourceNode = editor.getShape(pending.sourceId);
+      const targetNode = editor.getShape(pending.targetId);
+      const { isReverse } = checkConnectionType(
+        selectedRelation,
+        sourceNode?.type ?? "",
+        targetNode?.type ?? "",
+      );
+      const label =
+        isReverse && selectedRelation.complement
+          ? selectedRelation.complement
+          : selectedRelation.label;
+
       // Get source bounds for arrow positioning
       const sourceBounds = editor.getShapePageBounds(pending.sourceId);
       if (!sourceBounds) {
@@ -283,8 +298,7 @@ export const DragHandleOverlay = () => {
         y: sourceBounds.midY,
         props: {
           color,
-          labelColor: color,
-          text: selectedRelation.label,
+          text: label,
           dash: "draw",
           size: "m",
           fill: "none",

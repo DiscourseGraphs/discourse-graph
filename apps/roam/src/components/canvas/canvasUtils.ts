@@ -19,6 +19,19 @@ export const isDiscourseNodeShape = (
 export const getAllRelations = () =>
   Object.values(discourseContext.relations).flat();
 
+export const checkConnectionType = (
+  relation: { source: string; destination: string },
+  sourceNodeType: string,
+  targetNodeType: string,
+): { isDirect: boolean; isReverse: boolean } => ({
+  isDirect:
+    sourceNodeType === relation.source &&
+    targetNodeType === relation.destination,
+  isReverse:
+    sourceNodeType === relation.destination &&
+    targetNodeType === relation.source,
+});
+
 export const hasValidRelationTypes = (
   sourceNodeType: string,
   targetNodeType: string,

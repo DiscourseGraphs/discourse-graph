@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { TLShapeId, useEditor, DefaultColorThemePalette } from "tldraw";
 import { getRelationColor } from "~/components/canvas/DiscourseRelationShape/DiscourseRelationUtil";
 import {
+  checkConnectionType,
   getAllRelations,
   isDiscourseNodeShape,
 } from "~/components/canvas/canvasUtils";
@@ -46,21 +47,22 @@ export const RelationTypeDropdown = ({
     const seenLabels = new Set<string>();
 
     for (const relation of allRelations) {
-      const matches =
-        (relation.source === startNodeType &&
-          relation.destination === endNodeType) ||
-        (relation.source === endNodeType &&
-          relation.destination === startNodeType);
+      const { isDirect: isForward, isReverse } = checkConnectionType(
+        relation,
+        startNodeType,
+        endNodeType,
+      );
 
-      if (matches && !seenLabels.has(relation.label)) {
-        seenLabels.add(relation.label);
+      if (!isForward && !isReverse) continue;
+
+      const label =
+        isReverse && relation.complement ? relation.complement : relation.label;
+
+      if (!seenLabels.has(label)) {
+        seenLabels.add(label);
         const tldrawColor = getRelationColor(relation.label);
         const hexColor = colorPalette[tldrawColor]?.solid ?? "#333";
-        validTypes.push({
-          id: relation.id,
-          label: relation.label,
-          color: hexColor,
-        });
+        validTypes.push({ id: relation.id, label, color: hexColor });
       }
     }
 
