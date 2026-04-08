@@ -91,8 +91,14 @@ export const mergeAllRelationsJsonToRoot = async (
 
   if (nonRootFiles.length === 0) return;
 
+  // Process non-root files first so root values win on duplicate IDs.
+  const sortedFiles = [
+    ...relationsFiles.filter((f) => f.path !== rootPath),
+    ...relationsFiles.filter((f) => f.path === rootPath),
+  ];
   const merged = defaultRelationsFile();
-  for (const file of relationsFiles) {
+  const validatedNonRootFiles: TFile[] = [];
+  for (const file of sortedFiles) {
     try {
       const content = await plugin.app.vault.read(file);
       const data = JSON.parse(content) as RelationsFile;
@@ -107,6 +113,7 @@ export const mergeAllRelationsJsonToRoot = async (
         merged.lastModified,
         data.lastModified ?? 0,
       );
+      if (file.path !== rootPath) validatedNonRootFiles.push(file);
     } catch {
       // skip unreadable or unparseable files
     }
@@ -114,7 +121,7 @@ export const mergeAllRelationsJsonToRoot = async (
 
   await saveRelations(plugin, merged);
 
-  for (const file of nonRootFiles) {
+  for (const file of validatedNonRootFiles) {
     await plugin.app.vault.delete(file);
   }
 };
