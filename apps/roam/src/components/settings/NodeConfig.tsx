@@ -12,7 +12,6 @@ import {
   ControlGroup,
   Tooltip,
   Icon,
-  Tag,
 } from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
