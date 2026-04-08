@@ -82,7 +82,9 @@ export const SettingsDialog = ({
     (node) => node.text === "relations",
   );
   const nodesNode = grammarNode?.children.find((node) => node.text === "nodes");
-  const [settingsSnapshot] = useState(() => bulkReadSettings());
+  const [settingsSnapshot, setSettingsSnapshot] = useState(() =>
+    bulkReadSettings(),
+  );
   const [nodes] = useState(() =>
     getDiscourseNodes(undefined, settingsSnapshot).filter(excludeDefaultNodes),
   );
@@ -162,6 +164,13 @@ export const SettingsDialog = ({
         <Tabs
           className="dg-settings-tabs flex h-full"
           onChange={(id) => {
+            // Tab panels mount lazily (`renderActiveTabPanelOnly`), so each
+            // re-mount re-seeds child `useState` from `initialValue`. Refresh
+            // the snapshot when navigating back to Home so user toggles made
+            // earlier in the same dialog session don't visually revert.
+            if (id === "discourse-graph-home-personal") {
+              setSettingsSnapshot(bulkReadSettings());
+            }
             setActiveTabId(id);
             posthog.capture("Settings: Tab Opened", {
               tabId: String(id),

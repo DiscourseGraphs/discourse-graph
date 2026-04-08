@@ -688,13 +688,9 @@ const getBlockPropBasedSettings = ({
     return { blockProps: allBlockProps, blockUid };
   }
 
-  const blockProps = keys.slice(1).reduce<json | undefined>((current, key) => {
-    if (current && typeof current === "object" && !Array.isArray(current)) {
-      const value = current[key];
-      return value === undefined ? undefined : value;
-    }
-    return undefined;
-  }, allBlockProps);
+  const blockProps = readPathValue(allBlockProps, keys.slice(1)) as
+    | json
+    | undefined;
 
   return { blockProps, blockUid };
 };
