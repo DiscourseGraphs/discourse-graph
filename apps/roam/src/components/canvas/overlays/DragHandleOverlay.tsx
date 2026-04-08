@@ -23,6 +23,7 @@ type HandlePosition = {
   x: number;
   y: number;
   anchor: { x: number; y: number };
+  direction: { x: number; y: number };
 };
 
 /** Pending connection: source + target nodes identified, waiting for relation type pick */
@@ -41,23 +42,27 @@ const getEdgeMidpoints = (bounds: {
 }): HandlePosition[] => [
   {
     x: (bounds.minX + bounds.maxX) / 2,
-    y: bounds.minY - HANDLE_PADDING,
+    y: bounds.minY,
     anchor: { x: 0.5, y: 0 },
+    direction: { x: 0, y: -1 },
   },
   {
-    x: bounds.maxX + HANDLE_PADDING,
+    x: bounds.maxX,
     y: (bounds.minY + bounds.maxY) / 2,
     anchor: { x: 1, y: 0.5 },
+    direction: { x: 1, y: 0 },
   },
   {
     x: (bounds.minX + bounds.maxX) / 2,
-    y: bounds.maxY + HANDLE_PADDING,
+    y: bounds.maxY,
     anchor: { x: 0.5, y: 1 },
+    direction: { x: 0, y: 1 },
   },
   {
-    x: bounds.minX - HANDLE_PADDING,
+    x: bounds.minX,
     y: (bounds.minY + bounds.maxY) / 2,
     anchor: { x: 0, y: 0.5 },
+    direction: { x: -1, y: 0 },
   },
 ];
 
@@ -110,7 +115,11 @@ export const DragHandleOverlay = () => {
       const midpoints = getEdgeMidpoints(bounds);
       return midpoints.map((mp) => {
         const vp = editor.pageToViewport({ x: mp.x, y: mp.y });
-        return { left: vp.x, top: vp.y, anchor: mp.anchor };
+        return {
+          left: vp.x + mp.direction.x * HANDLE_PADDING,
+          top: vp.y + mp.direction.y * HANDLE_PADDING,
+          anchor: mp.anchor,
+        };
       });
     },
     [editor, selectedNode?.id, pending, isDragging],
