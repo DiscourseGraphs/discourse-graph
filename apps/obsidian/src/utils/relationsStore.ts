@@ -86,8 +86,10 @@ export const mergeAllRelationsJsonToRoot = async (
 ): Promise<void> => {
   const allFiles = plugin.app.vault.getFiles();
   const relationsFiles = allFiles.filter((f) => f.name === RELATIONS_FILE_NAME);
+  const rootPath = normalizePath(RELATIONS_FILE_NAME);
+  const nonRootFiles = relationsFiles.filter((f) => f.path !== rootPath);
 
-  if (relationsFiles.length <= 1) return;
+  if (nonRootFiles.length === 0) return;
 
   const merged = defaultRelationsFile();
   for (const file of relationsFiles) {
@@ -112,11 +114,8 @@ export const mergeAllRelationsJsonToRoot = async (
 
   await saveRelations(plugin, merged);
 
-  const rootPath = normalizePath(RELATIONS_FILE_NAME);
-  for (const file of relationsFiles) {
-    if (file.path !== rootPath) {
-      await plugin.app.vault.delete(file);
-    }
+  for (const file of nonRootFiles) {
+    await plugin.app.vault.delete(file);
   }
 };
 
