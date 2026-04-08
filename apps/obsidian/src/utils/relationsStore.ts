@@ -3,7 +3,6 @@ import { uuidv7 } from "uuidv7";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type DiscourseGraphPlugin from "~/index";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
-import { checkAndCreateFolder } from "~/utils/file";
 import { getVaultId, getLocalSpaceUri } from "./supabaseContext";
 import type { RelationInstance } from "~/types";
 import { QueryEngine, getImportedNodesRaw } from "~/services/QueryEngine";
@@ -14,13 +13,9 @@ import { getSpaceIdsBySpaceUris } from "./spaceFromRid";
 const RELATIONS_FILE_NAME = "relations.json";
 const RELATIONS_FILE_VERSION = 1;
 
-/** Vault-relative path for relations.json, under the same folder as nodes (nodesFolderPath). */
-export const getRelationsFilePath = (plugin: DiscourseGraphPlugin): string => {
-  const folderPath = plugin.settings.nodesFolderPath.trim();
-  return folderPath
-    ? normalizePath(`${folderPath}/${RELATIONS_FILE_NAME}`)
-    : normalizePath(RELATIONS_FILE_NAME);
-};
+/** Vault-relative path for relations.json — always at vault root. */
+export const getRelationsFilePath = (): string =>
+  normalizePath(RELATIONS_FILE_NAME);
 
 export type RelationsFile = {
   version: number;
@@ -37,7 +32,7 @@ const defaultRelationsFile = (): RelationsFile => ({
 export const loadRelations = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<RelationsFile> => {
-  const path = getRelationsFilePath(plugin);
+  const path = getRelationsFilePath();
   const file = plugin.app.vault.getAbstractFileByPath(path);
   if (!file || !(file instanceof TFile)) {
     return defaultRelationsFile();
@@ -67,11 +62,7 @@ export const saveRelations = async (
   plugin: DiscourseGraphPlugin,
   data: RelationsFile,
 ): Promise<void> => {
-  const folderPath = plugin.settings.nodesFolderPath.trim();
-  if (folderPath) {
-    await checkAndCreateFolder(folderPath, plugin.app.vault);
-  }
-  const path = getRelationsFilePath(plugin);
+  const path = getRelationsFilePath();
   const toWrite: RelationsFile = {
     ...data,
     lastModified: Date.now(),
@@ -82,6 +73,50 @@ export const saveRelations = async (
     await plugin.app.vault.modify(file, content);
   } else {
     await plugin.app.vault.create(path, content);
+  }
+};
+
+/**
+ * On plugin load, finds all relations.json files in the vault and merges them
+ * into the canonical location at vault root, then deletes the non-root copies.
+ * Handles the case where a user changed nodesFolderPath, leaving old files behind.
+ */
+export const mergeAllRelationsJsonToRoot = async (
+  plugin: DiscourseGraphPlugin,
+): Promise<void> => {
+  const allFiles = plugin.app.vault.getFiles();
+  const relationsFiles = allFiles.filter((f) => f.name === RELATIONS_FILE_NAME);
+
+  if (relationsFiles.length <= 1) return;
+
+  const merged = defaultRelationsFile();
+  for (const file of relationsFiles) {
+    try {
+      const content = await plugin.app.vault.read(file);
+      const data = JSON.parse(content) as RelationsFile;
+      if (
+        typeof data.version !== "number" ||
+        typeof data.relations !== "object" ||
+        data.relations === null
+      )
+        continue;
+      Object.assign(merged.relations, data.relations);
+      merged.lastModified = Math.max(
+        merged.lastModified,
+        data.lastModified ?? 0,
+      );
+    } catch {
+      // skip unreadable or unparseable files
+    }
+  }
+
+  await saveRelations(plugin, merged);
+
+  const rootPath = normalizePath(RELATIONS_FILE_NAME);
+  for (const file of relationsFiles) {
+    if (file.path !== rootPath) {
+      await plugin.app.vault.delete(file);
+    }
   }
 };
 
