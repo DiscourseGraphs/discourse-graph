@@ -295,7 +295,7 @@ export const initObservers = ({
     settingsSnapshot.personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger];
   const personalTriggerCombo =
     typeof personalTriggerComboRaw === "object"
-      ? (personalTriggerComboRaw as IKeyCombo)
+      ? personalTriggerComboRaw
       : undefined;
   let personalTrigger = personalTriggerCombo?.key;
   let personalModifiers = personalTriggerCombo
@@ -333,7 +333,11 @@ export const initObservers = ({
         const container = el as HTMLDivElement;
         if (isLeftSidebarEnabled) {
           container.style.padding = "0";
-          await mountLeftSidebar(container, onloadArgs, callbackSnapshot);
+          await mountLeftSidebar({
+            wrapper: container,
+            onloadArgs,
+            initialSnapshot: callbackSnapshot,
+          });
         }
       })();
     },
@@ -442,10 +446,7 @@ export const initObservers = ({
 
   const nodeCreationPopoverListener = debounce(() => {
     const snap = bulkReadSettings();
-    const isTextSelectionPopupEnabled =
-      snap.personalSettings[PERSONAL_KEYS.textSelectionPopup] !== false;
-
-    if (!isTextSelectionPopupEnabled) return;
+    if (!snap.personalSettings[PERSONAL_KEYS.textSelectionPopup]) return;
 
     const selection = window.getSelection();
 

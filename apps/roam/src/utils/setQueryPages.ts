@@ -1,6 +1,5 @@
 import { OnloadArgs } from "roamjs-components/types";
 import {
-  getPersonalSetting,
   setPersonalSetting,
   type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
@@ -11,21 +10,10 @@ import {
 
 export const setInitialQueryPages = (
   onloadArgs: OnloadArgs,
-  snapshot?: SettingsSnapshot,
+  snapshot: SettingsSnapshot,
 ) => {
-  // Legacy extensionAPI stored query-pages as string | string[] | Record<string, string>.
-  // Coerce to string[] for backward compatibility with old stored formats.
-  const raw: string[] | string | Record<string, string> | undefined = snapshot
-    ? snapshot.personalSettings[PERSONAL_KEYS.query][QUERY_KEYS.queryPages]
-    : getPersonalSetting<string[] | string | Record<string, string>>([
-        PERSONAL_KEYS.query,
-        QUERY_KEYS.queryPages,
-      ]);
-  const queryPageArray = Array.isArray(raw)
-    ? raw
-    : typeof raw === "string" && raw
-      ? [raw]
-      : [];
+  const queryPageArray =
+    snapshot.personalSettings[PERSONAL_KEYS.query][QUERY_KEYS.queryPages];
   if (!queryPageArray.includes("discourse-graph/queries/*")) {
     const updated = [...queryPageArray, "discourse-graph/queries/*"];
     void onloadArgs.extensionAPI.settings.set("query-pages", updated);

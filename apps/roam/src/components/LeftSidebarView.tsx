@@ -619,11 +619,15 @@ const migrateFavorites = async () => {
   refreshConfigTree();
 };
 
-export const mountLeftSidebar = async (
-  wrapper: HTMLElement,
-  onloadArgs: OnloadArgs,
-  initialSnapshot?: SettingsSnapshot,
-): Promise<void> => {
+export const mountLeftSidebar = async ({
+  wrapper,
+  onloadArgs,
+  initialSnapshot,
+}: {
+  wrapper: HTMLElement;
+  onloadArgs: OnloadArgs;
+  initialSnapshot?: SettingsSnapshot;
+}): Promise<void> => {
   if (!wrapper) return;
 
   const id = "dg-left-sidebar-root";
@@ -640,8 +644,12 @@ export const mountLeftSidebar = async (
   } else {
     root.className = "starred-pages";
   }
+  // eslint-disable-next-line react/no-deprecated
   ReactDOM.render(
-    <LeftSidebarView onloadArgs={onloadArgs} initialSnapshot={initialSnapshot} />,
+    <LeftSidebarView
+      onloadArgs={onloadArgs}
+      initialSnapshot={initialSnapshot}
+    />,
     root,
   );
 };

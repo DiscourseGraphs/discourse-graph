@@ -5,7 +5,7 @@ import type { CaptureResult } from "posthog-js";
 
 let initialized = false;
 
-const doInitPostHog = (): void => {
+export const initPostHog = (): void => {
   if (initialized) return;
   const propertyDenylist = new Set([
     "$ip",
@@ -56,14 +56,10 @@ const doInitPostHog = (): void => {
 };
 
 export const enablePostHog = (): void => {
-  doInitPostHog();
+  initPostHog();
   posthog.opt_in_capturing();
 };
 
 export const disablePostHog = (): void => {
   if (initialized) posthog.opt_out_capturing();
-};
-
-export const initPostHog = (): void => {
-  doInitPostHog();
 };

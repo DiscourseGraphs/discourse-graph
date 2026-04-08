@@ -143,7 +143,7 @@ const getSchemaAtPath = (
 const formatSettingPath = (keys: string[]): string =>
   keys.length === 0 ? "(root)" : keys.join(" > ");
 
-export const readPathValue = (root: unknown, keys: string[]): unknown =>
+const readPathValue = (root: unknown, keys: string[]): unknown =>
   keys.reduce<unknown>((current, key) => {
     if (Array.isArray(current)) {
       const index = Number(key);

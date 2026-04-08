@@ -180,7 +180,7 @@ export default runExtension(async (onloadArgs) => {
       if (!wrapper) return;
       if (enabled) {
         wrapper.style.padding = "0";
-        void mountLeftSidebar(wrapper, onloadArgs);
+        void mountLeftSidebar({ wrapper, onloadArgs });
       } else {
         const root = wrapper.querySelector("#dg-left-sidebar-root");
         if (root) {
