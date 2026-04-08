@@ -25,10 +25,7 @@ import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { Result } from "~/utils/types";
 import MiniSearch from "minisearch";
-import {
-  getPersonalSetting,
-  setPersonalSetting,
-} from "~/components/settings/utils/accessors";
+import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 
 type Props = {
@@ -709,12 +706,14 @@ export const renderDiscourseNodeSearchMenu = (props: Props) => {
 
 export const NodeSearchMenuTriggerSetting = ({
   onloadArgs,
+  initialValue,
 }: {
   onloadArgs: OnloadArgs;
+  initialValue: string;
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const [nodeSearchTrigger, setNodeSearchTrigger] = useState<string>(
-    getPersonalSetting<string>([PERSONAL_KEYS.nodeSearchMenuTrigger]) ?? "@",
+    () => initialValue,
   );
 
   const handleNodeSearchTriggerChange = (

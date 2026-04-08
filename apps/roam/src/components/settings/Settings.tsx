@@ -28,6 +28,7 @@ import { FeedbackWidget } from "~/components/BirdEatsBugs";
 import { getVersionWithDate } from "~/utils/getVersion";
 import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
 import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
+import { bulkReadSettings } from "./utils/accessors";
 import posthog from "posthog-js";
 
 type SectionHeaderProps = {
@@ -72,6 +73,7 @@ export const SettingsDialog = ({
   onClose?: () => void;
   selectedTabId?: TabId;
 }) => {
+  const [mountStart] = useState(() => performance.now());
   const extensionAPI = onloadArgs.extensionAPI;
   const grammarNode = discourseConfigRef.tree.find(
     (node) => node.text === "grammar",
@@ -80,13 +82,23 @@ export const SettingsDialog = ({
     (node) => node.text === "relations",
   );
   const nodesNode = grammarNode?.children.find((node) => node.text === "nodes");
-  const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
+  const [settingsSnapshot] = useState(() => bulkReadSettings());
+  const [nodes] = useState(() =>
+    getDiscourseNodes(undefined, settingsSnapshot).filter(excludeDefaultNodes),
+  );
   const [activeTabId, setActiveTabId] = useState<TabId>(
     selectedTabId ?? "discourse-graph-home-personal",
   );
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
+
+  // ENG-1617: surface settings dialog open time in devtools for perf monitoring.
+  useEffect(() => {
+    console.log(
+      `[settings] open ${(performance.now() - mountStart).toFixed(0)}ms`,
+    );
+  }, [mountStart]);
 
   useEffect(() => {
     posthog.capture("Settings: Dialog Opened", {
@@ -166,7 +178,13 @@ export const SettingsDialog = ({
             id="discourse-graph-home-personal"
             title="Home"
             className="overflow-y-auto"
-            panel={<HomePersonalSettings onloadArgs={onloadArgs} />}
+            panel={
+              <HomePersonalSettings
+                onloadArgs={onloadArgs}
+                featureFlags={settingsSnapshot.featureFlags}
+                personalSettings={settingsSnapshot.personalSettings}
+              />
+            }
           />
           <Tab
             id="query-settings"

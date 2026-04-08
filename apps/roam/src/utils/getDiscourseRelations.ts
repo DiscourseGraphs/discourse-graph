@@ -36,7 +36,9 @@ export const getRelationsNode = (grammarNode = getGrammarNode()) => {
   return grammarNode?.children.find(matchNodeText("relations"));
 };
 
-const getDiscourseRelations = (snapshot?: SettingsSnapshot) => {
+const getDiscourseRelations = (
+  snapshot?: Pick<SettingsSnapshot, "featureFlags" | "globalSettings">,
+) => {
   const newStoreEnabled = snapshot
     ? snapshot.featureFlags["Use new settings store"]
     : isNewSettingsStoreEnabled();

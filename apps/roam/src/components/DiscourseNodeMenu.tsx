@@ -27,11 +27,9 @@ import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
-import {
-  getPersonalSetting,
-  setPersonalSetting,
-} from "~/components/settings/utils/accessors";
+import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
+import type { PersonalSettings } from "~/components/settings/utils/zodSchema";
 
 type Props = {
   textarea?: HTMLTextAreaElement;
@@ -420,19 +418,15 @@ export const comboToString = (combo: IKeyCombo): string => {
 
 export const NodeMenuTriggerComponent = ({
   extensionAPI,
+  initialValue,
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
+  initialValue: PersonalSettings["Personal node menu trigger"];
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isActive, setIsActive] = useState(false);
-  const [comboKey, setComboKey] = useState<IKeyCombo>(
-    () =>
-      getPersonalSetting<IKeyCombo>([
-        PERSONAL_KEYS.personalNodeMenuTrigger,
-      ]) || {
-        modifiers: 0,
-        key: "",
-      },
+  const [comboKey, setComboKey] = useState<IKeyCombo>(() =>
+    typeof initialValue === "object" ? initialValue : { modifiers: 0, key: "" },
   );
 
   const handleKeyDown = useCallback(

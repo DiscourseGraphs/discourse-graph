@@ -109,7 +109,7 @@ const getUidAndBooleanSetting = ({
 
 const getDiscourseNodes = (
   relations?: ReturnType<typeof getDiscourseRelations>,
-  snapshot?: SettingsSnapshot,
+  snapshot?: Pick<SettingsSnapshot, "featureFlags" | "globalSettings">,
 ) => {
   const resolvedRelations = relations ?? getDiscourseRelations(snapshot);
   const newStoreEnabled = snapshot

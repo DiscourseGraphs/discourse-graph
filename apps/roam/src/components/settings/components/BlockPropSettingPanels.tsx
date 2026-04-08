@@ -612,11 +612,14 @@ export const PersonalTextPanel = ({ setter, ...props }: TextWrapperProps) => (
   />
 );
 
+// Prop wins so HomePersonalSettings can hand down a value from the dialog-open
+// snapshot. QuerySettings still calls without `initialValue`, so the fallback
+// handles that path.
 export const PersonalFlagPanel = (props: FlagWrapperProps) => (
   <BaseFlagPanel
     {...props}
     initialValue={
-      getPersonalSetting<boolean>(props.settingKeys) ?? props.initialValue
+      props.initialValue ?? getPersonalSetting<boolean>(props.settingKeys)
     }
     {...personalAccessors.flag}
   />
