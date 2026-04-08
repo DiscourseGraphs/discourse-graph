@@ -11,7 +11,7 @@ import SearchBar from "./SearchBar";
 import { DiscourseNode } from "~/types";
 import DropdownSelect from "./DropdownSelect";
 import { usePlugin } from "./PluginContext";
-import { getNodeTypeById, formatImportSource } from "~/utils/typeUtils";
+import { getNodeTypeById, getAndFormatImportSource } from "~/utils/typeUtils";
 import type { RelationInstance } from "~/types";
 import {
   getNodeInstanceIdForFile,
@@ -21,7 +21,6 @@ import {
   removeRelationBySourceDestinationType,
   updateRelation,
 } from "~/utils/relationsStore";
-import { ridToSpaceUriAndLocalId } from "~/utils/rid";
 
 type RelationTypeOption = {
   id: string;
@@ -381,18 +380,6 @@ type CurrentRelationshipsProps = RelationshipSectionProps & {
   onRelationsChange?: () => void;
 };
 
-const getSpaceNameFromRid = (
-  rid: string,
-  spaceNames?: Record<string, string>,
-): string => {
-  try {
-    const { spaceUri } = ridToSpaceUriAndLocalId(rid);
-    return formatImportSource(spaceUri, spaceNames);
-  } catch {
-    return rid;
-  }
-};
-
 const buildGroupedRelations = (
   relations: RelationInstance[],
   activeIds: Set<string>,
@@ -614,7 +601,7 @@ const CurrentRelationships = ({
                       }}
                       title={
                         entry.relation.importedFromRid
-                          ? `Accept relation from space ${getSpaceNameFromRid(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
+                          ? `Accept relation from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
                           : "Accept relationship"
                       }
                     >
