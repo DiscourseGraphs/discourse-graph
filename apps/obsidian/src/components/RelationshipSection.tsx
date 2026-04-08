@@ -491,9 +491,16 @@ const CurrentRelationships = ({
 
   const acceptRelation = useCallback(
     async (relationId: string) => {
-      await updateRelation(plugin, relationId, { tentative: true });
-      await loadCurrentRelationships();
-      onRelationsChange?.();
+      try {
+        await updateRelation(plugin, relationId, { tentative: true });
+        await loadCurrentRelationships();
+        onRelationsChange?.();
+      } catch (error) {
+        console.error("Failed to accept relationship:", error);
+        new Notice(
+          `Failed to accept relationship: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+      }
     },
     [plugin, loadCurrentRelationships, onRelationsChange],
   );
