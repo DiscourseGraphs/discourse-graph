@@ -91,7 +91,7 @@ export const DragHandleOverlay = () => {
       if (isDragging || pending) return sourceNodeRef.current;
       const shape = editor.getOnlySelectedShape();
       if (shape && isDiscourseNodeShape(editor, shape)) {
-        return shape as DiscourseNodeShape;
+        return shape;
       }
       return null;
     },
@@ -117,7 +117,7 @@ export const DragHandleOverlay = () => {
   );
 
   const handlePointerDown = useCallback(
-    (e: React.PointerEvent, _anchor: { x: number; y: number }) => {
+    (e: React.PointerEvent) => {
       if (!selectedNode) return;
       e.preventDefault();
       e.stopPropagation();
@@ -315,9 +315,15 @@ export const DragHandleOverlay = () => {
       const util = editor.getShapeUtil(newArrow);
       if (
         util instanceof BaseDiscourseRelationUtil &&
-        typeof (util as any).handleCreateRelationsInRoam === "function"
+        "handleCreateRelationsInRoam" in util
       ) {
-        void (util as any).handleCreateRelationsInRoam({
+        type UtilWithRoamPersistence = BaseDiscourseRelationUtil & {
+          handleCreateRelationsInRoam: (args: {
+            arrow: DiscourseRelationShape;
+            targetId: TLShapeId;
+          }) => Promise<void>;
+        };
+        void (util as UtilWithRoamPersistence).handleCreateRelationsInRoam({
           arrow: editor.getShape<DiscourseRelationShape>(arrowId) ?? newArrow,
           targetId: pending.targetId,
         });
@@ -347,7 +353,7 @@ export const DragHandleOverlay = () => {
         handlePositions.map((pos, i) => (
           <div
             key={i}
-            onPointerDown={(e) => handlePointerDown(e, pos.anchor)}
+            onPointerDown={handlePointerDown}
             style={{
               position: "absolute",
               left: `${pos.left}px`,
