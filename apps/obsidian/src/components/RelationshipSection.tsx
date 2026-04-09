@@ -76,6 +76,7 @@ const AddRelationship = ({
 
     const relations = plugin.settings.discourseRelations.filter(
       (relation) =>
+        isAcceptedSchema(relation) &&
         relation.relationshipTypeId === selectedRelationType.id &&
         (selectedRelationType.isSource
           ? relation.sourceId === activeNodeTypeId

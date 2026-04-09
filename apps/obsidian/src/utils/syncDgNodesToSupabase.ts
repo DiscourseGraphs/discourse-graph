@@ -535,7 +535,7 @@ const convertDgToSupabaseConcepts = async ({
     .filter(
       (relationInstanceData) =>
         !relationInstanceData.importedFromRid &&
-        !relationInstanceData.provisional &&
+        relationInstanceData.tentative !== false &&
         (relationInstanceData.lastModified || relationInstanceData.created) >
           lastRelationsSync,
     )
