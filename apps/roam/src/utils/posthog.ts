@@ -42,7 +42,7 @@ const doInitPostHog = (): void => {
       const { version, buildDate } = getVersionWithDate();
       const userUid = window.roamAlphaAPI.user.uid() || "";
       const graphName = window.roamAlphaAPI.graph.name;
-      posthog.identify(userUid);
+      if (userUid) posthog.identify(userUid);
       posthog.register_for_session({
         version: version || "-",
         buildDate: buildDate || "-",
