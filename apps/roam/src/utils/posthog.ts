@@ -20,8 +20,8 @@ const doInitPostHog = (): void => {
     "$referrer",
     "$referring_domain",
   ]);
+  /* eslint-disable @typescript-eslint/naming-convention  */
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
-    /* eslint-disable @typescript-eslint/naming-convention  */
     autocapture: false,
     disable_session_recording: true,
     api_host: "https://us.i.posthog.com",
@@ -38,7 +38,6 @@ const doInitPostHog = (): void => {
       }
       return result;
     },
-    /* eslint-enable @typescript-eslint/naming-convention  */
     loaded: (posthog) => {
       const { version, buildDate } = getVersionWithDate();
       const userUid = window.roamAlphaAPI.user.uid() || "";
@@ -53,6 +52,7 @@ const doInitPostHog = (): void => {
       initialized = true;
     },
   });
+  /* eslint-enable @typescript-eslint/naming-convention  */
 };
 
 export const enablePostHog = (): void => {
