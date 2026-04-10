@@ -703,17 +703,7 @@ const FEATURE_FLAG_LEGACY_MAP: Partial<
 /* eslint-enable @typescript-eslint/naming-convention */
 
 export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
-  const legacyReader = FEATURE_FLAG_LEGACY_MAP[key];
-
-  if (!legacyReader) {
-    return getFeatureFlags()[key];
-  }
-
-  if (!isNewSettingsStoreEnabled()) {
-    return legacyReader();
-  }
-
-  return getFeatureFlags()[key];
+  return bulkReadSettings().featureFlags[key];
 };
 
 export const isNewSettingsStoreEnabled = (): boolean => {
@@ -774,12 +764,9 @@ export const getGlobalSetting = <T = unknown>(
   keys: string[],
 ): T | undefined => {
   if (keys.length === 0) return undefined;
-
-  if (!isNewSettingsStoreEnabled()) {
-    return getLegacyGlobalSetting(keys) as T | undefined;
-  }
-
-  return readPathValue(getGlobalSettings(), keys) as T | undefined;
+  return readPathValue(bulkReadSettings().globalSettings, keys) as
+    | T
+    | undefined;
 };
 
 export const setGlobalSetting = (keys: string[], value: json): void => {
@@ -833,12 +820,9 @@ export const getPersonalSetting = <T = unknown>(
   keys: string[],
 ): T | undefined => {
   if (keys.length === 0) return undefined;
-
-  if (!isNewSettingsStoreEnabled()) {
-    return getLegacyPersonalSetting(keys) as T | undefined;
-  }
-
-  return readPathValue(getPersonalSettings(), keys) as T | undefined;
+  return readPathValue(bulkReadSettings().personalSettings, keys) as
+    | T
+    | undefined;
 };
 
 export type SettingsSnapshot = {
@@ -970,7 +954,7 @@ export const getDiscourseNodeSetting = <T = unknown>(
   nodeType: string,
   keys: string[],
 ): T | undefined => {
-  if (!isNewSettingsStoreEnabled()) {
+  if (!bulkReadSettings().featureFlags["Use new settings store"]) {
     return getLegacyDiscourseNodeSetting(nodeType, keys) as T | undefined;
   }
 
