@@ -251,22 +251,30 @@ export const publishNode = async ({
   plugin,
   file,
   frontmatter,
+  republish,
 }: {
   plugin: DiscourseGraphPlugin;
   file: TFile;
   frontmatter: FrontMatterCache;
+  republish?: boolean;
 }): Promise<void> => {
   const client = await getLoggedInClient(plugin);
   if (!client) throw new Error("Cannot get client");
   const myGroups = new Set(await getAvailableGroupIds(client));
   if (myGroups.size === 0) throw new Error("Cannot get group");
-  await syncAllNodesAndRelations(plugin);
   const existingPublish =
     (frontmatter.publishedToGroups as undefined | string[]) || [];
+  if (!republish) await syncAllNodesAndRelations(plugin);
   const commonGroups = existingPublish.filter((g) => myGroups.has(g));
   // temporary single-group assumption
   const myGroup = (commonGroups.length > 0 ? commonGroups : [...myGroups])[0]!;
-  return await publishNodeToGroup({ plugin, file, frontmatter, myGroup });
+  return await publishNodeToGroup({
+    plugin,
+    file,
+    frontmatter,
+    myGroup,
+    republish,
+  });
 };
 
 export const ensurePublishedRelationsAccuracy = async ({
@@ -414,11 +422,13 @@ export const publishNodeToGroup = async ({
   file,
   frontmatter,
   myGroup,
+  republish,
 }: {
   plugin: DiscourseGraphPlugin;
   file: TFile;
   frontmatter: FrontMatterCache;
   myGroup: string;
+  republish?: boolean;
 }): Promise<void> => {
   const nodeId = frontmatter.nodeInstanceId as string | undefined;
   if (!nodeId) throw new Error("Please sync the node first");
@@ -465,7 +475,8 @@ export const publishNodeToGroup = async ({
   );
 
   const skipPublishAccess =
-    existingPublish.includes(myGroup) && lastModified <= lastModifiedDb;
+    republish ||
+    (existingPublish.includes(myGroup) && lastModified <= lastModifiedDb);
 
   if (!skipPublishAccess) {
     const publishSpaceResponse = await client.from("SpaceAccess").upsert(

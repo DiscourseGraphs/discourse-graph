@@ -598,6 +598,7 @@ const syncPublishedNodesAssets = async (
         plugin,
         file: node.file,
         frontmatter: node.frontmatter as FrontMatterCache,
+        republish: true,
       });
     } catch (error) {
       console.error(
