@@ -258,6 +258,7 @@ export const PersonalSettingsSchema = z.object({
   "Streamline styling": z.boolean().default(false),
   "Auto canvas relations": z.boolean().default(false),
   "Disable product diagnostics": z.boolean().default(false),
+  "Canvas node shortcuts": z.record(z.string(), z.string()).default({}),
   Query: QuerySettingsSchema.default({}),
 });
 

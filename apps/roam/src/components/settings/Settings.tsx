@@ -23,6 +23,7 @@ import getDiscourseNodes, {
 } from "~/utils/getDiscourseNodes";
 import NodeConfig from "./NodeConfig";
 import HomePersonalSettings from "./HomePersonalSettings";
+import CanvasShortcutSettings from "./CanvasShortcutSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
 import { getVersionWithDate } from "~/utils/getVersion";
@@ -169,6 +170,12 @@ export const SettingsDialog = ({
             title="Queries"
             className="overflow-y-auto"
             panel={<QuerySettings extensionAPI={extensionAPI} />}
+          />
+          <Tab
+            id="canvas-shortcuts-personal-settings"
+            title="Canvas shortcuts"
+            className="overflow-y-auto"
+            panel={<CanvasShortcutSettings />}
           />
           <Tab
             id="left-sidebar-personal-settings"

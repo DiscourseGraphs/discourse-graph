@@ -53,6 +53,7 @@ import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
@@ -396,13 +397,17 @@ export const createUiOverrides = ({
         editor.setCurrentTool("discourse-tool");
       },
     };
+    const canvasNodeShortcuts =
+      getPersonalSetting<Record<string, string>>(["Canvas node shortcuts"]) ??
+      {};
+
     allNodes.forEach((node, index) => {
       const nodeId = node.type;
       tools[nodeId] = {
         id: nodeId,
         icon: "color",
         label: `shape.node.${node.type}` as TLUiTranslationKey,
-        kbd: node.shortcut,
+        kbd: canvasNodeShortcuts[nodeId] ?? node.shortcut,
         onSelect: () => {
           editor.setCurrentTool(nodeId);
         },
