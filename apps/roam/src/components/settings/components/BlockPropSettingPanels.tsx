@@ -48,7 +48,7 @@ type BaseTextPanelProps = {
   description: string;
   settingKeys: string[];
   setter: TextSetter;
-  initialValue?: string;
+  initialValue: string;
   placeholder?: string;
   multiline?: boolean;
   error?: string;
@@ -60,7 +60,7 @@ type BaseFlagPanelProps = {
   description: string;
   settingKeys: string[];
   setter: FlagSetter;
-  initialValue?: boolean;
+  initialValue: boolean;
   value?: boolean;
   disabled?: boolean;
   onBeforeChange?: (checked: boolean) => Promise<boolean>;
@@ -72,7 +72,7 @@ type BaseNumberPanelProps = {
   description: string;
   settingKeys: string[];
   setter: NumberSetter;
-  initialValue?: number;
+  initialValue: number;
   min?: number;
   max?: number;
   onChange?: (value: number) => void;
@@ -84,7 +84,7 @@ type BaseSelectPanelProps = {
   settingKeys: string[];
   setter: TextSetter;
   options: string[];
-  initialValue?: string;
+  initialValue: string;
 } & RoamBlockSyncProps;
 
 type BaseMultiTextPanelProps = {
@@ -92,7 +92,7 @@ type BaseMultiTextPanelProps = {
   description: string;
   settingKeys: string[];
   setter: MultiTextSetter;
-  initialValue?: string[];
+  initialValue: string[];
   onChange?: (values: string[]) => void;
 } & RoamBlockSyncProps;
 
@@ -468,32 +468,15 @@ const BaseMultiTextPanel = ({
   );
 };
 
-type TextWrapperProps = Omit<BaseTextPanelProps, "setter" | "initialValue"> & {
+type TextWrapperProps = Omit<BaseTextPanelProps, "setter"> & {
   setter?: TextSetter;
-  initialValue: string;
 };
-type FlagWrapperProps = Omit<BaseFlagPanelProps, "setter" | "initialValue"> & {
-  initialValue: boolean;
-};
-type NumberWrapperProps = Omit<
-  BaseNumberPanelProps,
-  "setter" | "initialValue"
-> & {
+type FlagWrapperProps = Omit<BaseFlagPanelProps, "setter">;
+type NumberWrapperProps = Omit<BaseNumberPanelProps, "setter"> & {
   setter?: NumberSetter;
-  initialValue: number;
 };
-type SelectWrapperProps = Omit<
-  BaseSelectPanelProps,
-  "setter" | "initialValue"
-> & {
-  initialValue: string;
-};
-type MultiTextWrapperProps = Omit<
-  BaseMultiTextPanelProps,
-  "setter" | "initialValue"
-> & {
-  initialValue: string[];
-};
+type SelectWrapperProps = Omit<BaseSelectPanelProps, "setter">;
+type MultiTextWrapperProps = Omit<BaseMultiTextPanelProps, "setter">;
 
 const featureFlagSetter: FlagSetter = (keys, value) => {
   const key = keys[0];
@@ -642,7 +625,8 @@ export const DiscourseNodeTextPanel = ({
     {...props}
     initialValue={
       getDiscourseNodeSetting<string>(nodeType, props.settingKeys) ??
-      props.initialValue
+      props.initialValue ??
+      ""
     }
     setter={createDiscourseNodeSetter(nodeType)}
   />
@@ -662,7 +646,8 @@ export const DiscourseNodeFlagPanel = ({
     {...props}
     initialValue={
       getDiscourseNodeSetting<boolean>(nodeType, props.settingKeys) ??
-      props.initialValue
+      props.initialValue ??
+      false
     }
     setter={createDiscourseNodeSetter(nodeType)}
   />
@@ -677,7 +662,8 @@ export const DiscourseNodeSelectPanel = ({
     {...props}
     initialValue={
       getDiscourseNodeSetting<string>(nodeType, props.settingKeys) ??
-      props.initialValue
+      props.initialValue ??
+      ""
     }
     setter={createDiscourseNodeSetter(nodeType)}
   />
@@ -696,7 +682,8 @@ export const DiscourseNodeNumberPanel = ({
     {...props}
     initialValue={
       getDiscourseNodeSetting<number>(nodeType, props.settingKeys) ??
-      props.initialValue
+      props.initialValue ??
+      0
     }
     setter={createDiscourseNodeSetter(nodeType)}
   />
