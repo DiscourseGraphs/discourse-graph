@@ -407,7 +407,7 @@ export const createUiOverrides = ({
         id: nodeId,
         icon: "color",
         label: `shape.node.${node.type}` as TLUiTranslationKey,
-        kbd: canvasNodeShortcuts[nodeId] ?? node.shortcut,
+        kbd: canvasNodeShortcuts[nodeId] || node.shortcut,
         onSelect: () => {
           editor.setCurrentTool(nodeId);
         },

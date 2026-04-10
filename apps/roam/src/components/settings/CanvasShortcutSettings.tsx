@@ -27,6 +27,7 @@ const CanvasShortcutSettings = () => {
               node.type,
             ]) || node.shortcut
           }
+          placeholder={node.shortcut}
         />
       ))}
     </div>
