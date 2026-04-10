@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
@@ -13,16 +13,17 @@ import {
   PERSONAL_KEYS,
   QUERY_KEYS,
 } from "~/components/settings/utils/settingKeys";
-import { bulkReadSettings } from "./utils/accessors";
+import { type SettingsSnapshot } from "./utils/accessors";
 import posthog from "posthog-js";
 
 const QuerySettings = ({
   extensionAPI,
+  personalSettings,
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
+  personalSettings: SettingsSnapshot["personalSettings"];
 }) => {
-  const [snapshot] = useState(() => bulkReadSettings());
-  const querySettings = snapshot.personalSettings.Query;
+  const querySettings = personalSettings.Query;
   return (
     <div className="flex flex-col gap-4 p-1">
       <PersonalFlagPanel
@@ -65,7 +66,10 @@ const QuerySettings = ({
             "Any filters that should be applied to your results by default"
           }
         />
-        <DefaultFilters extensionAPI={extensionAPI} />
+        <DefaultFilters
+          extensionAPI={extensionAPI}
+          defaultFilters={querySettings[QUERY_KEYS.defaultFilters]}
+        />
       </Label>
     </div>
   );

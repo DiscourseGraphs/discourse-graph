@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { getExportSettingsAndUids } from "~/utils/getExportSettings";
 import {
   GlobalFlagPanel,
@@ -10,11 +10,14 @@ import {
   GLOBAL_KEYS,
   EXPORT_KEYS,
 } from "~/components/settings/utils/settingKeys";
-import { bulkReadSettings } from "./utils/accessors";
+import { type SettingsSnapshot } from "./utils/accessors";
 
-const DiscourseGraphExport = () => {
-  const [snapshot] = useState(() => bulkReadSettings());
-  const exportBlockProps = snapshot.globalSettings.Export;
+const DiscourseGraphExport = ({
+  globalSettings,
+}: {
+  globalSettings: SettingsSnapshot["globalSettings"];
+}) => {
+  const exportBlockProps = globalSettings.Export;
   const exportSettings = getExportSettingsAndUids();
   const parentUid = exportSettings.exportUid;
   return (

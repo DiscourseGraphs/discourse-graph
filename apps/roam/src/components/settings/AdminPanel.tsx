@@ -15,8 +15,8 @@ import {
 import Description from "roamjs-components/components/Description";
 import { Select } from "@blueprintjs/select";
 import {
-  getFeatureFlag,
   setFeatureFlag,
+  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import {
   onSettingChange,
@@ -264,7 +264,11 @@ const NodeListTab = (): React.ReactElement => {
   );
 };
 
-const FeatureFlagsTab = (): React.ReactElement => {
+const FeatureFlagsTab = ({
+  featureFlags,
+}: {
+  featureFlags: SettingsSnapshot["featureFlags"];
+}): React.ReactElement => {
   const legacySuggestiveModeMeta = useMemo(() => {
     refreshConfigTree();
     return {
@@ -276,8 +280,8 @@ const FeatureFlagsTab = (): React.ReactElement => {
     };
   }, []);
 
-  const [suggestiveModeEnabled, setSuggestiveModeEnabled] = useState(() =>
-    getFeatureFlag("Suggestive mode enabled"),
+  const [suggestiveModeEnabled, setSuggestiveModeEnabled] = useState(
+    featureFlags["Suggestive mode enabled"],
   );
   const [suggestiveModeUid, setSuggestiveModeUid] = useState(
     legacySuggestiveModeMeta.suggestiveModeEnabledUid,
@@ -365,6 +369,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
         title="Use new settings store"
         description="When enabled, accessor getters read from block props instead of the old system. Surfaces dual-write gaps during development."
         featureKey="Use new settings store"
+        initialValue={featureFlags["Use new settings store"]}
       />
 
       <Button
@@ -386,10 +391,16 @@ const FeatureFlagsTab = (): React.ReactElement => {
   );
 };
 
-const AdminPanel = (): React.ReactElement => {
+const AdminPanel = ({
+  featureFlags,
+  globalSettings,
+}: {
+  featureFlags: SettingsSnapshot["featureFlags"];
+  globalSettings: SettingsSnapshot["globalSettings"];
+}): React.ReactElement => {
   const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
   const [showSuggestiveTab, setShowSuggestiveTab] = useState(
-    getFeatureFlag("Suggestive mode enabled"),
+    featureFlags["Suggestive mode enabled"],
   );
 
   useEffect(() => {
@@ -409,7 +420,7 @@ const AdminPanel = (): React.ReactElement => {
         title="Admin"
         panel={
           <div className="flex flex-col gap-4 p-1">
-            <FeatureFlagsTab />
+            <FeatureFlagsTab featureFlags={featureFlags} />
           </div>
         }
       />
@@ -427,7 +438,7 @@ const AdminPanel = (): React.ReactElement => {
           id="suggestive-mode-settings"
           title="Suggestive mode"
           className="overflow-y-auto"
-          panel={<SuggestiveModeSettings />}
+          panel={<SuggestiveModeSettings globalSettings={globalSettings} />}
         />
       )}
     </Tabs>

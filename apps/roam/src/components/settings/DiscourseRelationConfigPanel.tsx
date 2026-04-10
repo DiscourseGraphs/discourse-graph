@@ -43,7 +43,6 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import { CustomField } from "roamjs-components/components/ConfigPanels/types";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
@@ -51,9 +50,9 @@ import posthog from "posthog-js";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import {
-  getGlobalSetting,
   setGlobalSetting,
   getGlobalSettings,
+  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { RenderRoamBlock } from "~/utils/roamReactComponents";
@@ -78,12 +77,14 @@ export const RelationEditPanel = ({
   back,
   translatorKeys,
   previewUid,
+  globalSettings,
 }: {
   editingRelationInfo: TreeNode;
   back: () => void;
   nodes: Record<string, { label: string; format: string; color: string }>;
   translatorKeys: string[];
   previewUid: string;
+  globalSettings: SettingsSnapshot["globalSettings"];
 }) => {
   const nodeFormatsByLabel = useMemo(
     () =>
@@ -124,42 +125,21 @@ export const RelationEditPanel = ({
     DEFAULT_SELECTED_RELATION,
   );
   const [tab, setTab] = useState(0);
-  const initialSourceUid = useMemo(
-    () =>
-      getGlobalSetting<string>([
-        GLOBAL_KEYS.relations,
-        editingRelationInfo.uid,
-        "source",
-      ]) ?? "",
-    [],
-  );
+  const relation = globalSettings.Relations[editingRelationInfo.uid];
+  const initialSourceUid = relation?.source ?? "";
   const initialSource = useMemo(
     () => edgeDisplayByUid(initialSourceUid),
     [initialSourceUid],
   );
   const [source, setSource] = useState(initialSourceUid);
-  const initialDestinationUid = useMemo(
-    () =>
-      getGlobalSetting<string>([
-        GLOBAL_KEYS.relations,
-        editingRelationInfo.uid,
-        "destination",
-      ]) ?? "",
-    [],
-  );
+  const initialDestinationUid = relation?.destination ?? "";
   const initialDestination = useMemo(
     () => edgeDisplayByUid(initialDestinationUid),
     [initialDestinationUid],
   );
   const [destination, setDestination] = useState(initialDestinationUid);
   const [label, setLabel] = useState(editingRelationInfo.text);
-  const [complement, setComplement] = useState(
-    getGlobalSetting<string>([
-      GLOBAL_KEYS.relations,
-      editingRelationInfo.uid,
-      "complement",
-    ]) ?? "",
-  );
+  const [complement, setComplement] = useState(relation?.complement ?? "");
 
   const edgeCallback = useCallback(
     (edge: cytoscape.EdgeSingular) => {
@@ -980,9 +960,16 @@ type Relation = {
   source: string | undefined;
   destination: string | undefined;
 };
-const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
+const DiscourseRelationConfigPanel = ({
   uid,
   parentUid,
+  globalSettings,
+}: {
+  uid: string;
+  parentUid: string;
+  defaultValue: unknown;
+  title: string;
+  globalSettings: SettingsSnapshot["globalSettings"];
 }) => {
   const refreshRelations = useCallback(
     () =>
@@ -1122,6 +1109,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
           back={handleBack}
           translatorKeys={translatorKeys}
           previewUid={previewUid}
+          globalSettings={globalSettings}
         />
       </div>
     );

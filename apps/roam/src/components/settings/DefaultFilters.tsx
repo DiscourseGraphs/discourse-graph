@@ -1,12 +1,9 @@
 import { Button, Intent, InputGroup } from "@blueprintjs/core";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { OnloadArgs } from "roamjs-components/types";
 import type { Filters } from "roamjs-components/components/Filter";
 import posthog from "posthog-js";
-import {
-  getPersonalSetting,
-  setPersonalSetting,
-} from "~/components/settings/utils/accessors";
+import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import {
   PERSONAL_KEYS,
   QUERY_KEYS,
@@ -106,18 +103,15 @@ const Filter = ({
 
 const DefaultFilters = ({
   extensionAPI,
+  defaultFilters,
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
+  defaultFilters: Record<string, StoredFilters>;
 }) => {
   const [newColumn, setNewColumn] = useState("");
   const [filters, setFilters] = useState(() =>
     Object.fromEntries(
-      Object.entries(
-        getPersonalSetting<Record<string, StoredFilters>>([
-          PERSONAL_KEYS.query,
-          QUERY_KEYS.defaultFilters,
-        ]) ?? {},
-      ).map(([k, v]) => [
+      Object.entries(defaultFilters).map(([k, v]) => [
         k,
         {
           includes: Object.fromEntries(
@@ -131,7 +125,12 @@ const DefaultFilters = ({
     ),
   );
 
+  const isInitialMount = useRef(true);
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     const serialized = Object.fromEntries(
       Object.entries(filters).map(([k, v]) => [
         k,
@@ -156,7 +155,7 @@ const DefaultFilters = ({
       [PERSONAL_KEYS.query, QUERY_KEYS.defaultFilters],
       serialized,
     );
-  }, [filters]);
+  }, [filters, extensionAPI.settings]);
   return (
     <div
       style={{

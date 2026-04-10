@@ -20,8 +20,6 @@ import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSi
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import {
-  getGlobalSetting,
-  getPersonalSetting,
   getFeatureFlag,
   getDiscourseNodeSetting,
   setGlobalSetting,
@@ -470,15 +468,32 @@ const BaseMultiTextPanel = ({
   );
 };
 
-type TextWrapperProps = Omit<BaseTextPanelProps, "setter"> & {
+type TextWrapperProps = Omit<BaseTextPanelProps, "setter" | "initialValue"> & {
   setter?: TextSetter;
+  initialValue: string;
 };
-type FlagWrapperProps = Omit<BaseFlagPanelProps, "setter">;
-type NumberWrapperProps = Omit<BaseNumberPanelProps, "setter"> & {
+type FlagWrapperProps = Omit<BaseFlagPanelProps, "setter" | "initialValue"> & {
+  initialValue: boolean;
+};
+type NumberWrapperProps = Omit<
+  BaseNumberPanelProps,
+  "setter" | "initialValue"
+> & {
   setter?: NumberSetter;
+  initialValue: number;
 };
-type SelectWrapperProps = Omit<BaseSelectPanelProps, "setter">;
-type MultiTextWrapperProps = Omit<BaseMultiTextPanelProps, "setter">;
+type SelectWrapperProps = Omit<
+  BaseSelectPanelProps,
+  "setter" | "initialValue"
+> & {
+  initialValue: string;
+};
+type MultiTextWrapperProps = Omit<
+  BaseMultiTextPanelProps,
+  "setter" | "initialValue"
+> & {
+  initialValue: string[];
+};
 
 const featureFlagSetter: FlagSetter = (keys, value) => {
   const key = keys[0];
@@ -513,6 +528,7 @@ export const FeatureFlagPanel = ({
   title,
   description,
   featureKey,
+  initialValue,
   onBeforeEnable,
   onAfterChange,
   parentUid,
@@ -522,6 +538,7 @@ export const FeatureFlagPanel = ({
   title: string;
   description: string;
   featureKey: keyof FeatureFlags;
+  initialValue?: boolean;
   onBeforeEnable?: () => Promise<boolean>;
   onAfterChange?: (checked: boolean) => void;
 } & RoamBlockSyncProps) => {
@@ -542,7 +559,7 @@ export const FeatureFlagPanel = ({
       description={description}
       settingKeys={[featureKey as string]}
       setter={featureFlagSetter}
-      initialValue={getFeatureFlag(featureKey)}
+      initialValue={initialValue ?? getFeatureFlag(featureKey)}
       onBeforeChange={handleBeforeChange}
       onChange={onAfterChange}
       parentUid={parentUid}
@@ -553,73 +570,31 @@ export const FeatureFlagPanel = ({
 };
 
 export const GlobalTextPanel = (props: TextWrapperProps) => (
-  <BaseTextPanel
-    {...props}
-    initialValue={
-      props.initialValue ?? getGlobalSetting<string>(props.settingKeys)
-    }
-    {...globalAccessors.text}
-  />
+  <BaseTextPanel {...props} {...globalAccessors.text} />
 );
 
 export const GlobalFlagPanel = (props: FlagWrapperProps) => (
-  <BaseFlagPanel
-    {...props}
-    initialValue={
-      props.initialValue ?? getGlobalSetting<boolean>(props.settingKeys)
-    }
-    {...globalAccessors.flag}
-  />
+  <BaseFlagPanel {...props} {...globalAccessors.flag} />
 );
 
 export const GlobalNumberPanel = (props: NumberWrapperProps) => (
-  <BaseNumberPanel
-    {...props}
-    initialValue={
-      props.initialValue ?? getGlobalSetting<number>(props.settingKeys)
-    }
-    {...globalAccessors.number}
-  />
+  <BaseNumberPanel {...props} {...globalAccessors.number} />
 );
 
 export const GlobalSelectPanel = (props: SelectWrapperProps) => (
-  <BaseSelectPanel
-    {...props}
-    initialValue={
-      props.initialValue ?? getGlobalSetting<string>(props.settingKeys)
-    }
-    {...globalAccessors.text}
-  />
+  <BaseSelectPanel {...props} {...globalAccessors.text} />
 );
 
 export const GlobalMultiTextPanel = (props: MultiTextWrapperProps) => (
-  <BaseMultiTextPanel
-    {...props}
-    initialValue={
-      props.initialValue ?? getGlobalSetting<string[]>(props.settingKeys)
-    }
-    {...globalAccessors.multiText}
-  />
+  <BaseMultiTextPanel {...props} {...globalAccessors.multiText} />
 );
 
 export const PersonalTextPanel = ({ setter, ...props }: TextWrapperProps) => (
-  <BaseTextPanel
-    {...props}
-    initialValue={
-      props.initialValue ?? getPersonalSetting<string>(props.settingKeys)
-    }
-    setter={setter ?? personalAccessors.text.setter}
-  />
+  <BaseTextPanel {...props} setter={setter ?? personalAccessors.text.setter} />
 );
 
 export const PersonalFlagPanel = (props: FlagWrapperProps) => (
-  <BaseFlagPanel
-    {...props}
-    initialValue={
-      props.initialValue ?? getPersonalSetting<boolean>(props.settingKeys)
-    }
-    {...personalAccessors.flag}
-  />
+  <BaseFlagPanel {...props} {...personalAccessors.flag} />
 );
 
 export const PersonalNumberPanel = ({
@@ -628,31 +603,16 @@ export const PersonalNumberPanel = ({
 }: NumberWrapperProps) => (
   <BaseNumberPanel
     {...props}
-    initialValue={
-      props.initialValue ?? getPersonalSetting<number>(props.settingKeys)
-    }
     setter={setter ?? personalAccessors.number.setter}
   />
 );
 
 export const PersonalSelectPanel = (props: SelectWrapperProps) => (
-  <BaseSelectPanel
-    {...props}
-    initialValue={
-      props.initialValue ?? getPersonalSetting<string>(props.settingKeys)
-    }
-    {...personalAccessors.text}
-  />
+  <BaseSelectPanel {...props} {...personalAccessors.text} />
 );
 
 export const PersonalMultiTextPanel = (props: MultiTextWrapperProps) => (
-  <BaseMultiTextPanel
-    {...props}
-    initialValue={
-      props.initialValue ?? getPersonalSetting<string[]>(props.settingKeys)
-    }
-    {...personalAccessors.multiText}
-  />
+  <BaseMultiTextPanel {...props} {...personalAccessors.multiText} />
 );
 
 const createDiscourseNodeSetter =

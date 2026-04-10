@@ -706,25 +706,14 @@ export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
   const legacyReader = FEATURE_FLAG_LEGACY_MAP[key];
 
   if (!legacyReader) {
-    // Block-props-only flag (no legacy equivalent)
-    const flags = getFeatureFlags();
-    return flags[key];
+    return getFeatureFlags()[key];
   }
 
   if (!isNewSettingsStoreEnabled()) {
     return legacyReader();
   }
 
-  const flags = getFeatureFlags();
-  const blockPropsValue = flags[key];
-  const legacyValue = legacyReader();
-  if (blockPropsValue !== legacyValue) {
-    console.warn(`[DG Dual-Read] Mismatch at Feature Flag > ${key}`, {
-      blockProps: blockPropsValue,
-      legacy: legacyValue,
-    });
-  }
-  return blockPropsValue;
+  return getFeatureFlags()[key];
 };
 
 export const isNewSettingsStoreEnabled = (): boolean => {
@@ -790,16 +779,7 @@ export const getGlobalSetting = <T = unknown>(
     return getLegacyGlobalSetting(keys) as T | undefined;
   }
 
-  const settings = getGlobalSettings();
-  const blockPropsValue = readPathValue(settings, keys);
-  const legacyValue = getLegacyGlobalSetting(keys);
-  if (!deepEqual(blockPropsValue, legacyValue)) {
-    console.warn(
-      `[DG Dual-Read] Mismatch at Global > ${formatSettingPath(keys)}`,
-      { blockProps: blockPropsValue, legacy: legacyValue },
-    );
-  }
-  return blockPropsValue as T | undefined;
+  return readPathValue(getGlobalSettings(), keys) as T | undefined;
 };
 
 export const setGlobalSetting = (keys: string[], value: json): void => {
@@ -858,16 +838,7 @@ export const getPersonalSetting = <T = unknown>(
     return getLegacyPersonalSetting(keys) as T | undefined;
   }
 
-  const settings = getPersonalSettings();
-  const blockPropsValue = readPathValue(settings, keys);
-  const legacyValue = getLegacyPersonalSetting(keys);
-  if (!deepEqual(blockPropsValue, legacyValue)) {
-    console.warn(
-      `[DG Dual-Read] Mismatch at Personal > ${formatSettingPath(keys)}`,
-      { blockProps: blockPropsValue, legacy: legacyValue },
-    );
-  }
-  return blockPropsValue as T | undefined;
+  return readPathValue(getPersonalSettings(), keys) as T | undefined;
 };
 
 export type SettingsSnapshot = {
@@ -992,15 +963,9 @@ export const getDiscourseNodeSetting = <T = unknown>(
   }
 
   const settings = getDiscourseNodeSettings(nodeType);
-  const blockPropsValue = settings ? readPathValue(settings, keys) : undefined;
-  const legacyValue = getLegacyDiscourseNodeSetting(nodeType, keys);
-  if (!deepEqual(blockPropsValue, legacyValue)) {
-    console.warn(
-      `[DG Dual-Read] Mismatch at Discourse Node (${nodeType}) > ${formatSettingPath(keys)}`,
-      { blockProps: blockPropsValue, legacy: legacyValue },
-    );
-  }
-  return blockPropsValue as T | undefined;
+  return (settings ? readPathValue(settings, keys) : undefined) as
+    | T
+    | undefined;
 };
 
 export const setDiscourseNodeSetting = (

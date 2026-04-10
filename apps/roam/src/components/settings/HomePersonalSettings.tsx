@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { Label, Dialog, Button, Intent, Classes } from "@blueprintjs/core";
@@ -34,7 +34,7 @@ import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import posthog from "posthog-js";
 import internalError from "~/utils/internalError";
-import { bulkReadSettings, setPersonalSetting } from "./utils/accessors";
+import { setPersonalSetting, type SettingsSnapshot } from "./utils/accessors";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 
 const enum RelationMigrationDialog {
@@ -44,10 +44,15 @@ const enum RelationMigrationDialog {
   "reactivate",
 }
 
-const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const [snapshot] = useState(() => bulkReadSettings());
-  const personalSettings = snapshot.personalSettings;
-  const featureFlags = snapshot.featureFlags;
+const HomePersonalSettings = ({
+  onloadArgs,
+  personalSettings,
+  featureFlags,
+}: {
+  onloadArgs: OnloadArgs;
+  personalSettings: SettingsSnapshot["personalSettings"];
+  featureFlags: SettingsSnapshot["featureFlags"];
+}) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
   const [activeRelationMigration, setActiveRelationMigration] =

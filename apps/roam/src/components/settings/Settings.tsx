@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import {
   Classes,
@@ -29,6 +29,7 @@ import { getVersionWithDate } from "~/utils/getVersion";
 import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
 import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
 import posthog from "posthog-js";
+import { bulkReadSettings } from "./utils/accessors";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -42,6 +43,25 @@ const SectionHeader = ({ children, className }: SectionHeaderProps) => {
       {children}
     </div>
   );
+};
+
+type TabTimingProps = {
+  label: string;
+  startRef: React.MutableRefObject<number>;
+  children: React.ReactNode;
+};
+const TabTiming = ({ label, startRef, children }: TabTimingProps) => {
+  useEffect(() => {
+    const commit = performance.now() - startRef.current;
+    requestAnimationFrame(() => {
+      const paint = performance.now() - startRef.current;
+      console.log(
+        `[settings-tab] ${label}: commit ${commit.toFixed(0)}ms, paint ${paint.toFixed(0)}ms`,
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return <>{children}</>;
 };
 
 export const SettingsPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
@@ -73,6 +93,8 @@ export const SettingsDialog = ({
   selectedTabId?: TabId;
 }) => {
   const [mountStart] = useState(() => performance.now());
+  const [snapshot] = useState(() => bulkReadSettings());
+  const tabSwitchStartRef = useRef<number>(mountStart);
   const extensionAPI = onloadArgs.extensionAPI;
   const grammarNode = discourseConfigRef.tree.find(
     (node) => node.text === "grammar",
@@ -81,9 +103,7 @@ export const SettingsDialog = ({
     (node) => node.text === "relations",
   );
   const nodesNode = grammarNode?.children.find((node) => node.text === "nodes");
-  const [nodes] = useState(() =>
-    getDiscourseNodes().filter(excludeDefaultNodes),
-  );
+  const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
   const [activeTabId, setActiveTabId] = useState<TabId>(
     selectedTabId ?? "discourse-graph-home-personal",
   );
@@ -159,6 +179,7 @@ export const SettingsDialog = ({
         <Tabs
           className="dg-settings-tabs flex h-full"
           onChange={(id) => {
+            tabSwitchStartRef.current = performance.now();
             setActiveTabId(id);
             posthog.capture("Settings: Tab Opened", {
               tabId: String(id),
@@ -175,19 +196,43 @@ export const SettingsDialog = ({
             id="discourse-graph-home-personal"
             title="Home"
             className="overflow-y-auto"
-            panel={<HomePersonalSettings onloadArgs={onloadArgs} />}
+            panel={
+              <TabTiming label="Home (personal)" startRef={tabSwitchStartRef}>
+                <HomePersonalSettings
+                  onloadArgs={onloadArgs}
+                  personalSettings={snapshot.personalSettings}
+                  featureFlags={snapshot.featureFlags}
+                />
+              </TabTiming>
+            }
           />
           <Tab
             id="query-settings"
             title="Queries"
             className="overflow-y-auto"
-            panel={<QuerySettings extensionAPI={extensionAPI} />}
+            panel={
+              <TabTiming label="Queries" startRef={tabSwitchStartRef}>
+                <QuerySettings
+                  extensionAPI={extensionAPI}
+                  personalSettings={snapshot.personalSettings}
+                />
+              </TabTiming>
+            }
           />
           <Tab
             id="left-sidebar-personal-settings"
             title="Left sidebar"
             className="overflow-y-auto"
-            panel={<LeftSidebarPersonalSections />}
+            panel={
+              <TabTiming
+                label="Left sidebar (personal)"
+                startRef={tabSwitchStartRef}
+              >
+                <LeftSidebarPersonalSections
+                  personalSettings={snapshot.personalSettings}
+                />
+              </TabTiming>
+            }
           />
           <SectionHeader className="text-lg font-semibold text-neutral-dark">
             Global Settings
@@ -196,19 +241,41 @@ export const SettingsDialog = ({
             id="discourse-graph-home"
             title="Home"
             className="overflow-y-auto"
-            panel={<DiscourseGraphHome />}
+            panel={
+              <TabTiming label="Home (global)" startRef={tabSwitchStartRef}>
+                <DiscourseGraphHome
+                  globalSettings={snapshot.globalSettings}
+                  featureFlags={snapshot.featureFlags}
+                />
+              </TabTiming>
+            }
           />
           <Tab
             id="discourse-graph-export"
             title="Export"
             className="overflow-y-auto"
-            panel={<DiscourseGraphExport />}
+            panel={
+              <TabTiming label="Export" startRef={tabSwitchStartRef}>
+                <DiscourseGraphExport
+                  globalSettings={snapshot.globalSettings}
+                />
+              </TabTiming>
+            }
           />
           <Tab
             id="left-sidebar-global-settings"
             title="Left sidebar"
             className="overflow-y-auto"
-            panel={<LeftSidebarGlobalSections />}
+            panel={
+              <TabTiming
+                label="Left sidebar (global)"
+                startRef={tabSwitchStartRef}
+              >
+                <LeftSidebarGlobalSections
+                  globalSettings={snapshot.globalSettings}
+                />
+              </TabTiming>
+            }
           />
           <SectionHeader>Grammar</SectionHeader>
           <Tab
@@ -216,12 +283,15 @@ export const SettingsDialog = ({
             title="Relations"
             className="overflow-y-auto"
             panel={
-              <DiscourseRelationConfigPanel
-                defaultValue={DEFAULT_RELATION_VALUES}
-                title="Relations"
-                parentUid={grammarNode?.uid || ""}
-                uid={relationsNode?.uid || ""}
-              />
+              <TabTiming label="Relations" startRef={tabSwitchStartRef}>
+                <DiscourseRelationConfigPanel
+                  defaultValue={DEFAULT_RELATION_VALUES}
+                  title="Relations"
+                  parentUid={grammarNode?.uid || ""}
+                  uid={relationsNode?.uid || ""}
+                  globalSettings={snapshot.globalSettings}
+                />
+              </TabTiming>
             }
           />
           <Tab
@@ -229,14 +299,16 @@ export const SettingsDialog = ({
             title="Nodes"
             className="overflow-y-auto"
             panel={
-              <DiscourseNodeConfigPanel
-                title="Nodes"
-                uid={nodesNode?.uid || ""}
-                parentUid={grammarNode?.uid || ""}
-                defaultValue={[]}
-                setSelectedTabId={setActiveTabId}
-                isPopup={true}
-              />
+              <TabTiming label="Nodes" startRef={tabSwitchStartRef}>
+                <DiscourseNodeConfigPanel
+                  title="Nodes"
+                  uid={nodesNode?.uid || ""}
+                  parentUid={grammarNode?.uid || ""}
+                  defaultValue={[]}
+                  setSelectedTabId={setActiveTabId}
+                  isPopup={true}
+                />
+              </TabTiming>
             }
           />
           <SectionHeader>Nodes</SectionHeader>
@@ -245,7 +317,18 @@ export const SettingsDialog = ({
               id={n.type}
               title={n.text}
               className="overflow-y-auto"
-              panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
+              panel={
+                <TabTiming
+                  label={`Node: ${n.text}`}
+                  startRef={tabSwitchStartRef}
+                >
+                  <NodeConfig
+                    node={n}
+                    onloadArgs={onloadArgs}
+                    featureFlags={snapshot.featureFlags}
+                  />
+                </TabTiming>
+              }
             />
           ))}
           <Tabs.Expander />
@@ -255,7 +338,14 @@ export const SettingsDialog = ({
             id="secret-admin-panel"
             title="Admin"
             className="overflow-y-auto"
-            panel={<AdminPanel />}
+            panel={
+              <TabTiming label="Admin" startRef={tabSwitchStartRef}>
+                <AdminPanel
+                  featureFlags={snapshot.featureFlags}
+                  globalSettings={snapshot.globalSettings}
+                />
+              </TabTiming>
+            }
           />
         </Tabs>
       </div>

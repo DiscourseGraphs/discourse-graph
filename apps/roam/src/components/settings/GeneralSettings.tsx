@@ -7,7 +7,7 @@ import {
   FeatureFlagPanel,
 } from "./components/BlockPropSettingPanels";
 import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
-import { bulkReadSettings, isNewSettingsStoreEnabled } from "./utils/accessors";
+import { type SettingsSnapshot } from "./utils/accessors";
 import posthog from "posthog-js";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import {
@@ -16,9 +16,13 @@ import {
 } from "~/utils/getExportSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 
-const DiscourseGraphHome = () => {
-  const [snapshot] = useState(() => bulkReadSettings());
-  const globalSettings = snapshot.globalSettings;
+const DiscourseGraphHome = ({
+  globalSettings,
+  featureFlags,
+}: {
+  globalSettings: SettingsSnapshot["globalSettings"];
+  featureFlags: SettingsSnapshot["featureFlags"];
+}) => {
   const settings = useMemo(() => {
     refreshConfigTree();
     const tree = discourseConfigRef.tree;
@@ -63,11 +67,12 @@ const DiscourseGraphHome = () => {
         title="(BETA) Left Sidebar"
         description="Whether or not to enable the left sidebar."
         featureKey="Enable left sidebar"
+        initialValue={featureFlags["Enable left sidebar"]}
         order={2}
         uid={settings.leftSidebarEnabledUid}
         parentUid={settings.settingsUid}
         onAfterChange={(checked: boolean) => {
-          if (checked && !isNewSettingsStoreEnabled()) {
+          if (checked && !featureFlags["Use new settings store"]) {
             setIsAlertOpen(true);
           }
           posthog.capture("General Settings: Left Sidebar Toggled", {
