@@ -43,7 +43,7 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
-import { isSmartBlockUid } from "~/utils/createDiscourseNode";
+import { isSmartBlockUid } from "~/utils/getLeftSidebarSettings";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -122,36 +122,26 @@ const toggleFoldedState = ({
 };
 
 const RoamRenderedBlock = ({ uid }: { uid: string }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const Block = window.roamAlphaAPI.ui.components.react.block;
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    el.innerHTML = "";
-    void window.roamAlphaAPI.ui.components.renderBlock({
-      uid,
-      el,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "open?": false,
-    });
-
-    const handleClick = (e: Event) => {
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest("[data-roamjs-smartblock-button]")) {
         void window.roamAlphaAPI.ui.mainWindow.openBlock({
           block: { uid },
         });
       }
-    };
-    el.addEventListener("click", handleClick);
+    },
+    [uid],
+  );
 
-    return () => {
-      el.innerHTML = "";
-      el.removeEventListener("click", handleClick);
-    };
-  }, [uid]);
-
-  return <div ref={containerRef} className="dg-sidebar-rendered-block" />;
+  return (
+    <div className="dg-sidebar-rendered-block" onClick={handleClick}>
+      <Block uid={uid} open={false} />
+    </div>
+  );
 };
 
 const SectionChildren = ({

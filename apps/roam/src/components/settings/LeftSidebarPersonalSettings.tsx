@@ -39,7 +39,7 @@ import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { memo, Dispatch, SetStateAction } from "react";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import posthog from "posthog-js";
-import { isSmartBlockUid } from "~/utils/createDiscourseNode";
+import { isSmartBlockUid } from "~/utils/getLeftSidebarSettings";
 
 const isSmartBlockRef = (text: string): boolean => {
   if (!text.startsWith("((") || !text.endsWith("))")) return false;

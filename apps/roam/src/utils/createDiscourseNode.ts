@@ -12,25 +12,6 @@ import { OnloadArgs, RoamBasicNode } from "roamjs-components/types";
 import runQuery from "./runQuery";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import posthog from "posthog-js";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-
-const hasSmartBlockSyntax = (node: RoamBasicNode): boolean => {
-  if (node.text.includes("<%")) return true;
-  if (node.children) return node.children.some(hasSmartBlockSyntax);
-  return false;
-};
-
-export const isSmartBlockUid = (uid: string): boolean => {
-  const text = getTextByBlockUid(uid);
-  if (!text) return false;
-  if (text.includes(":SmartBlock:")) return true;
-  return hasSmartBlockSyntax({
-    text,
-    uid,
-    children: getBasicTreeByParentUid(uid),
-  });
-};
 
 type Props = {
   text: string;
@@ -182,6 +163,11 @@ const createDiscourseNode = async ({
     await handleImageCreation(pageUid);
   };
 
+  const hasSmartBlockSyntax = (node: RoamBasicNode): boolean => {
+    if (node.text.includes("<%")) return true;
+    if (node.children) return node.children.some(hasSmartBlockSyntax);
+    return false;
+  };
   const useSmartBlocks = hasSmartBlockSyntax(templateNode);
 
   if (useSmartBlocks && !window.roamjs?.extension?.smartblocks) {
