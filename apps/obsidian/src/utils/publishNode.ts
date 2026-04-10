@@ -260,6 +260,7 @@ export const publishNode = async ({
   if (!client) throw new Error("Cannot get client");
   const myGroups = new Set(await getAvailableGroupIds(client));
   if (myGroups.size === 0) throw new Error("Cannot get group");
+  await syncAllNodesAndRelations(plugin);
   const existingPublish =
     (frontmatter.publishedToGroups as undefined | string[]) || [];
   const commonGroups = existingPublish.filter((g) => myGroups.has(g));
