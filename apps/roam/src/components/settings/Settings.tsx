@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import {
   Classes,
@@ -73,7 +73,6 @@ export const SettingsDialog = ({
   onClose?: () => void;
   selectedTabId?: TabId;
 }) => {
-  const [snapshot] = useState(() => bulkReadSettings());
   const extensionAPI = onloadArgs.extensionAPI;
   const grammarNode = discourseConfigRef.tree.find(
     (node) => node.text === "grammar",
@@ -86,6 +85,8 @@ export const SettingsDialog = ({
   const [activeTabId, setActiveTabId] = useState<TabId>(
     selectedTabId ?? "discourse-graph-home-personal",
   );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const snapshot = useMemo(() => bulkReadSettings(), [activeTabId]);
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
