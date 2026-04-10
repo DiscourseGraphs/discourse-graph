@@ -48,13 +48,9 @@ export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 export default runExtension(async (onloadArgs) => {
   const pluginLoadStart = performance.now();
 
-  const settingsSnapshot = bulkReadSettings();
+  const settings = bulkReadSettings();
 
-  const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
-  const isOffline = window.roamAlphaAPI.graph.type === "offline";
-  const disallowDiagnostics =
-    settingsSnapshot.personalSettings[PERSONAL_KEYS.disableProductDiagnostics];
-  if (!isEncrypted && !isOffline && !disallowDiagnostics) {
+  if (!settings.personalSettings[PERSONAL_KEYS.disableProductDiagnostics]) {
     initPostHog();
   }
 
@@ -81,16 +77,16 @@ export default runExtension(async (onloadArgs) => {
 
   initPluginTimer();
 
-  await initializeDiscourseNodes(settingsSnapshot);
+  await initializeDiscourseNodes(settings);
 
-  refreshConfigTree(settingsSnapshot);
+  refreshConfigTree(settings);
 
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
 
-  setInitialQueryPages(onloadArgs, settingsSnapshot);
+  setInitialQueryPages(onloadArgs, settings);
 
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
@@ -99,7 +95,7 @@ export default runExtension(async (onloadArgs) => {
 
   // Add streamline styling only if enabled
   const isStreamlineStylingEnabled =
-    settingsSnapshot.personalSettings[PERSONAL_KEYS.streamlineStyling];
+    settings.personalSettings[PERSONAL_KEYS.streamlineStyling];
   let streamlineStyleElement: HTMLStyleElement | null = null;
   if (isStreamlineStylingEnabled) {
     streamlineStyleElement = addStyle(streamlineStyling);
@@ -108,7 +104,7 @@ export default runExtension(async (onloadArgs) => {
 
   const { observers, listeners, cleanups } = initObservers({
     onloadArgs,
-    settingsSnapshot,
+    settings,
   });
   const {
     pageActionListener,
@@ -123,7 +119,7 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  if (settingsSnapshot.featureFlags["Suggestive mode enabled"]) {
+  if (settings.featureFlags["Suggestive mode enabled"]) {
     initializeSupabaseSync();
   }
 
@@ -154,7 +150,7 @@ export default runExtension(async (onloadArgs) => {
     getDiscourseNodes: getDiscourseNodes,
   };
 
-  installDiscourseFloatingMenu(onloadArgs, settingsSnapshot);
+  installDiscourseFloatingMenu(onloadArgs, settings);
 
   const leftSidebarScript = document.querySelector<HTMLScriptElement>(
     'script#roam-left-sidebar[src="https://sid597.github.io/roam-left-sidebar/js/main.js"]',

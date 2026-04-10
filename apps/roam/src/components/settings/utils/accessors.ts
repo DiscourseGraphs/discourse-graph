@@ -949,8 +949,20 @@ export const bulkReadSettings = (): SettingsSnapshot => {
     }
   }
 
+  const featureFlags = FeatureFlagsSchema.parse(featureFlagsProps || {});
+
+  if (!featureFlags["Use new settings store"]) {
+    return {
+      featureFlags,
+      globalSettings: GlobalSettingsSchema.parse(readAllLegacyGlobalSettings()),
+      personalSettings: PersonalSettingsSchema.parse(
+        readAllLegacyPersonalSettings(),
+      ),
+    };
+  }
+
   return {
-    featureFlags: FeatureFlagsSchema.parse(featureFlagsProps || {}),
+    featureFlags,
     globalSettings: GlobalSettingsSchema.parse(globalProps || {}),
     personalSettings: PersonalSettingsSchema.parse(personalProps || {}),
   };

@@ -7,6 +7,8 @@ let initialized = false;
 
 export const initPostHog = (): void => {
   if (initialized) return;
+  if (window.roamAlphaAPI.graph.isEncrypted) return;
+  if (window.roamAlphaAPI.graph.type === "offline") return;
   const propertyDenylist = new Set([
     "$ip",
     "$device_id",
