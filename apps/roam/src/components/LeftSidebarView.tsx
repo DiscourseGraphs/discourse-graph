@@ -122,6 +122,7 @@ const toggleFoldedState = ({
 };
 
 const RoamRenderedBlock = ({ uid }: { uid: string }) => {
+  // @ts-expect-error - .react.block is available but not in the type definitions yet
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const Block = window.roamAlphaAPI.ui.components.react.block;
 
