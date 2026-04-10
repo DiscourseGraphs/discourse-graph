@@ -663,6 +663,7 @@ export const DiscourseNodeSelectPanel = ({
     initialValue={
       getDiscourseNodeSetting<string>(nodeType, props.settingKeys) ??
       props.initialValue ??
+      props.options[0] ??
       ""
     }
     setter={createDiscourseNodeSetter(nodeType)}
