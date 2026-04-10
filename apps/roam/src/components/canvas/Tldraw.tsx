@@ -129,11 +129,15 @@ export type DiscourseContextType = {
   nodes: Record<string, DiscourseNode & { index: number }>;
   // { [Relation.Label] => DiscourseRelation[] }
   relations: Record<string, DiscourseRelation[]>;
+  lastAppEvent: string;
+  lastActions: HistoryEntry<TLRecord>[];
 };
 
 export const discourseContext: DiscourseContextType = {
   nodes: {},
   relations: {},
+  lastAppEvent: "",
+  lastActions: [],
 };
 
 let activeCanvasPageUid: string | null = null;
@@ -381,7 +385,9 @@ const TldrawCanvasShared = ({
   const appRef = useRef<Editor | null>(null);
   const lastInsertRef = useRef<VecModel>();
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastActionsRef = useRef<HistoryEntry<TLRecord>[]>([]);
+  const lastActionsRef = useRef<HistoryEntry<TLRecord>[]>(
+    discourseContext.lastActions,
+  );
 
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
 
@@ -1066,6 +1072,8 @@ const TldrawCanvasShared = ({
 
               app.on("event", (event) => {
                 const e = event as TLPointerEventInfo;
+
+                discourseContext.lastAppEvent = e.name;
 
                 // Handle relation creation on pointer_down
                 handleRelationCreation(app, e);
