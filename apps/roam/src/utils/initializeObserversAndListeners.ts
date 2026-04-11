@@ -106,21 +106,11 @@ export const initObservers = async ({
       const { title, uid } = getTitleAndUidFromHeader(h1);
       const props = { title, h1, onloadArgs };
 
-      const isSuggestiveModeEnabled = getUidAndBooleanSetting({
-        tree: getBasicTreeByParentUid(
-          getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-        ),
-        text: "(BETA) Suggestive Mode Enabled",
-      }).value;
-
       const node = findDiscourseNode({ uid, title });
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
         renderDiscourseContext({ h1, uid });
-        if (
-          isSuggestiveModeEnabled &&
-          getFeatureFlag("Duplicate node alert enabled")
-        ) {
+        if (getFeatureFlag("Duplicate node alert enabled")) {
           renderPossibleDuplicates(h1, title, node);
         }
         const linkedReferencesDiv = document.querySelector(
@@ -207,7 +197,7 @@ export const initObservers = async ({
       });
   }) as EventListener;
 
-  if (onloadArgs.extensionAPI.settings.get("suggestive-mode-overlay")) {
+  if (getFeatureFlag("Suggestive mode overlay enabled")) {
     addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
   }
 
