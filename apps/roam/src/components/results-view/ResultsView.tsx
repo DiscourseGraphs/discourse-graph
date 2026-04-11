@@ -1288,9 +1288,7 @@ const ResultsView: ResultsViewComponent = ({
                       setIsExportOpen(true);
                     }}
                   />
-                  {(isEditBlock || !preventSavingSettings || onDeleteQuery) && (
-                    <Divider />
-                  )}
+                  <Divider />
                   {isEditBlock && (
                     <MenuItem
                       icon={"edit"}
@@ -1310,43 +1308,40 @@ const ResultsView: ResultsViewComponent = ({
                       }}
                     />
                   )}
-                  {!preventSavingSettings && (
-                    <MenuItem
-                      icon={"clipboard"}
-                      text={"Copy Query"}
-                      onClick={() => {
-                        const getTextFromTreeToPaste = (
-                          items: RoamBasicNode[],
-                          indentLevel = 0,
-                        ): string => {
-                          const indentation = "    ".repeat(indentLevel);
+                  <MenuItem
+                    icon={"clipboard"}
+                    text={"Copy Query"}
+                    onClick={() => {
+                      const getTextFromTreeToPaste = (
+                        items: RoamBasicNode[],
+                        indentLevel = 0,
+                      ): string => {
+                        const indentation = "    ".repeat(indentLevel);
 
-                          return items
-                            .map((item) => {
-                              const childrenText =
-                                item.children.length > 0
-                                  ? getTextFromTreeToPaste(
-                                      item.children,
-                                      indentLevel + 1,
-                                    )
-                                  : "";
-                              return `${indentation}- ${item.text}\n${childrenText}`;
-                            })
-                            .join("");
-                        };
-                        const tree = getBasicTreeByParentUid(parentUid);
-                        void navigator.clipboard.writeText(
-                          "- {{query block}}\n" +
-                            getTextFromTreeToPaste(tree, 1),
-                        );
-                        renderToast({
-                          id: "query-copy",
-                          content: "Copied Query",
-                          intent: Intent.PRIMARY,
-                        });
-                      }}
-                    />
-                  )}
+                        return items
+                          .map((item) => {
+                            const childrenText =
+                              item.children.length > 0
+                                ? getTextFromTreeToPaste(
+                                    item.children,
+                                    indentLevel + 1,
+                                  )
+                                : "";
+                            return `${indentation}- ${item.text}\n${childrenText}`;
+                          })
+                          .join("");
+                      };
+                      const tree = getBasicTreeByParentUid(parentUid);
+                      void navigator.clipboard.writeText(
+                        "- {{query block}}\n" + getTextFromTreeToPaste(tree, 1),
+                      );
+                      renderToast({
+                        id: "query-copy",
+                        content: "Copied Query",
+                        intent: Intent.PRIMARY,
+                      });
+                    }}
+                  />
                   {onDeleteQuery && (
                     <>
                       <MenuItem
