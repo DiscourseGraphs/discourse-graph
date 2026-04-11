@@ -15,9 +15,9 @@ import {
 
 // Legacy extensionAPI stored query-pages as string | string[] | Record<string, string>.
 // Coerce to string[] for backward compatibility with old stored formats.
-export const getQueryPages = (snapshot?: SettingsSnapshot): string[] => {
-  const value = snapshot
-    ? (readPathValue(snapshot.personalSettings, [
+export const getQueryPages = (settings?: SettingsSnapshot): string[] => {
+  const value = settings
+    ? (readPathValue(settings.personalSettings, [
         PERSONAL_KEYS.query,
         QUERY_KEYS.queryPages,
       ]) as string[] | string | Record<string, string> | undefined)

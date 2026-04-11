@@ -796,11 +796,13 @@ export const setGlobalSetting = (keys: string[], value: json): void => {
 };
 
 export const getAllRelations = (
-  snapshot?: SettingsSnapshot,
+  settings?: SettingsSnapshot,
 ): DiscourseRelation[] => {
-  const settings = snapshot ? snapshot.globalSettings : getGlobalSettings();
+  const globalSettings = settings
+    ? settings.globalSettings
+    : getGlobalSettings();
 
-  return Object.entries(settings.Relations).flatMap(([id, relation]) =>
+  return Object.entries(globalSettings.Relations).flatMap(([id, relation]) =>
     relation.ifConditions.map((ifCondition) => ({
       id,
       label: relation.label,

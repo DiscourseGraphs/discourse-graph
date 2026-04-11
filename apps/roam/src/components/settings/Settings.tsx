@@ -86,7 +86,7 @@ export const SettingsDialog = ({
     selectedTabId ?? "discourse-graph-home-personal",
   );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const snapshot = useMemo(() => bulkReadSettings(), [activeTabId]);
+  const settings = useMemo(() => bulkReadSettings(), [activeTabId]);
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
@@ -172,8 +172,8 @@ export const SettingsDialog = ({
             panel={
               <HomePersonalSettings
                 onloadArgs={onloadArgs}
-                personalSettings={snapshot.personalSettings}
-                featureFlags={snapshot.featureFlags}
+                personalSettings={settings.personalSettings}
+                featureFlags={settings.featureFlags}
               />
             }
           />
@@ -184,7 +184,7 @@ export const SettingsDialog = ({
             panel={
               <QuerySettings
                 extensionAPI={extensionAPI}
-                personalSettings={snapshot.personalSettings}
+                personalSettings={settings.personalSettings}
               />
             }
           />
@@ -194,7 +194,7 @@ export const SettingsDialog = ({
             className="overflow-y-auto"
             panel={
               <LeftSidebarPersonalSections
-                personalSettings={snapshot.personalSettings}
+                personalSettings={settings.personalSettings}
               />
             }
           />
@@ -207,8 +207,8 @@ export const SettingsDialog = ({
             className="overflow-y-auto"
             panel={
               <DiscourseGraphHome
-                globalSettings={snapshot.globalSettings}
-                featureFlags={snapshot.featureFlags}
+                globalSettings={settings.globalSettings}
+                featureFlags={settings.featureFlags}
               />
             }
           />
@@ -217,7 +217,7 @@ export const SettingsDialog = ({
             title="Export"
             className="overflow-y-auto"
             panel={
-              <DiscourseGraphExport globalSettings={snapshot.globalSettings} />
+              <DiscourseGraphExport globalSettings={settings.globalSettings} />
             }
           />
           <Tab
@@ -226,7 +226,7 @@ export const SettingsDialog = ({
             className="overflow-y-auto"
             panel={
               <LeftSidebarGlobalSections
-                globalSettings={snapshot.globalSettings}
+                globalSettings={settings.globalSettings}
               />
             }
           />
@@ -241,7 +241,7 @@ export const SettingsDialog = ({
                 title="Relations"
                 parentUid={grammarNode?.uid || ""}
                 uid={relationsNode?.uid || ""}
-                globalSettings={snapshot.globalSettings}
+                globalSettings={settings.globalSettings}
               />
             }
           />
@@ -270,7 +270,7 @@ export const SettingsDialog = ({
                 <NodeConfig
                   node={n}
                   onloadArgs={onloadArgs}
-                  featureFlags={snapshot.featureFlags}
+                  featureFlags={settings.featureFlags}
                 />
               }
             />
@@ -284,8 +284,8 @@ export const SettingsDialog = ({
             className="overflow-y-auto"
             panel={
               <AdminPanel
-                featureFlags={snapshot.featureFlags}
-                globalSettings={snapshot.globalSettings}
+                featureFlags={settings.featureFlags}
+                globalSettings={settings.globalSettings}
               />
             }
           />
