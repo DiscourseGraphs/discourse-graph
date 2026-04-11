@@ -1185,7 +1185,7 @@ const ResultsView: ResultsViewComponent = ({
                           setMoreMenuOpen(false);
                           setShowSearchFilter((s) => !s);
                           if (!preventSavingSettings) {
-                            setInputSetting({
+                            void setInputSetting({
                               blockUid: settings.resultNodeUid,
                               key: "showSearchFilter",
                               value: showSearchFilter ? "hide" : "show",
@@ -1261,7 +1261,7 @@ const ResultsView: ResultsViewComponent = ({
                           key: "results",
                           parentUid,
                         });
-                        setInputSetting({
+                        void setInputSetting({
                           key: "interface",
                           value: showInterface ? "hide" : "show",
                           blockUid: resultNode.uid,
@@ -1335,7 +1335,7 @@ const ResultsView: ResultsViewComponent = ({
                             .join("");
                         };
                         const tree = getBasicTreeByParentUid(parentUid);
-                        navigator.clipboard.writeText(
+                        void navigator.clipboard.writeText(
                           "- {{query block}}\n" +
                             getTextFromTreeToPaste(tree, 1),
                         );
