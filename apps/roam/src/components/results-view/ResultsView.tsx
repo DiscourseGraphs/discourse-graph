@@ -1377,6 +1377,7 @@ const ResultsView: ResultsViewComponent = ({
                   setActiveSort={resultViewSetActiveSort}
                   filters={filters}
                   setFilters={setFilters}
+                  preventSavingSettings={preventSavingSettings}
                   views={views}
                   onRefresh={onRefresh}
                   allResults={results}
