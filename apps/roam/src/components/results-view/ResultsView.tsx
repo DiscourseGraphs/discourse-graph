@@ -1149,120 +1149,128 @@ const ResultsView: ResultsViewComponent = ({
                       }}
                     />
                   )}
-                  <Divider />
-                  <MenuItem
-                    icon={"list"}
-                    text={"Results"}
-                    className={isMenuIconDirty ? "roamjs-item-dirty" : ""}
-                  >
+                  {(!preventSavingSettings || onEdit) && <Divider />}
+                  {!preventSavingSettings && (
                     <MenuItem
-                      icon={"layout"}
-                      text={"Layout"}
-                      onClick={() => {
-                        setIsEditLayout(true);
-                      }}
-                    />
-                    <MenuItem
-                      icon={"eye-open"}
-                      text={"Column Views"}
-                      className={isColumnViewsDirty ? "roamjs-item-dirty" : ""}
-                      onClick={() => {
-                        setIsEditViews(true);
-                      }}
-                    />
-                    <MenuItem
-                      icon={showSearchFilter ? "zoom-out" : "search"}
-                      text={showSearchFilter ? "Hide Search" : "Search"}
-                      className={
-                        searchFilter && !showSearchFilter
-                          ? "roamjs-item-dirty"
-                          : ""
-                      }
-                      onClick={() => {
-                        setMoreMenuOpen(false);
-                        setShowSearchFilter((s) => !s);
-                        if (!preventSavingSettings) {
+                      icon={"list"}
+                      text={"Results"}
+                      className={isMenuIconDirty ? "roamjs-item-dirty" : ""}
+                    >
+                      <MenuItem
+                        icon={"layout"}
+                        text={"Layout"}
+                        onClick={() => {
+                          setIsEditLayout(true);
+                        }}
+                      />
+                      <MenuItem
+                        icon={"eye-open"}
+                        text={"Column Views"}
+                        className={
+                          isColumnViewsDirty ? "roamjs-item-dirty" : ""
+                        }
+                        onClick={() => {
+                          setIsEditViews(true);
+                        }}
+                      />
+                      <MenuItem
+                        icon={showSearchFilter ? "zoom-out" : "search"}
+                        text={showSearchFilter ? "Hide Search" : "Search"}
+                        className={
+                          searchFilter && !showSearchFilter
+                            ? "roamjs-item-dirty"
+                            : ""
+                        }
+                        onClick={() => {
+                          setMoreMenuOpen(false);
+                          setShowSearchFilter((s) => !s);
+                          if (!preventSavingSettings) {
+                            setInputSetting({
+                              blockUid: settings.resultNodeUid,
+                              key: "showSearchFilter",
+                              value: showSearchFilter ? "hide" : "show",
+                            });
+                          }
+                        }}
+                      />
+                      <MenuItem
+                        icon={showInputs ? "minus" : "plus"}
+                        text={showInputs ? "Hide Inputs" : "Inputs"}
+                        onClick={() => {
+                          setMoreMenuOpen(false);
+                          setShowInputs(!showInputs);
                           setInputSetting({
                             blockUid: settings.resultNodeUid,
-                            key: "showSearchFilter",
-                            value: showSearchFilter ? "hide" : "show",
+                            key: "showInputs",
+                            value: showInputs ? "hide" : "show",
                           });
+                        }}
+                      />
+                      <MenuItem
+                        icon={"filter"}
+                        text={"Filters"}
+                        className={
+                          columnFilters.length ? "roamjs-item-dirty" : ""
                         }
-                      }}
-                    />
+                        onClick={() => {
+                          setIsEditColumnFilter(true);
+                        }}
+                      />
+                      <MenuItem
+                        icon={"sort"}
+                        text={"Sort"}
+                        className={activeSort.length ? "roamjs-item-dirty" : ""}
+                        onClick={() => {
+                          setIsEditColumnSort(true);
+                        }}
+                      />
+                      <MenuItem
+                        icon={"random"}
+                        text={"Get Random"}
+                        className={random.count ? "roamjs-item-dirty" : ""}
+                        onClick={() => setIsEditRandom(true)}
+                      />
+                      <MenuItem
+                        icon={"numbered-list"}
+                        text={"Rows per page"}
+                        onClick={() => setIsEditPageSize(true)}
+                      />
+                    </MenuItem>
+                  )}
+                  {!preventSavingSettings && (
                     <MenuItem
-                      icon={showInputs ? "minus" : "plus"}
-                      text={showInputs ? "Hide Inputs" : "Inputs"}
+                      icon={"tag"}
+                      text={showAlias ? "Hide Alias" : "Alias"}
                       onClick={() => {
-                        setMoreMenuOpen(false);
-                        setShowInputs(!showInputs);
                         setInputSetting({
                           blockUid: settings.resultNodeUid,
-                          key: "showInputs",
-                          value: showInputs ? "hide" : "show",
+                          key: "showAlias",
+                          value: showAlias ? "hide" : "show",
                         });
+                        setShowAlias(!showAlias);
+                        setMoreMenuOpen(false);
                       }}
                     />
+                  )}
+                  {!preventSavingSettings && (
                     <MenuItem
-                      icon={"filter"}
-                      text={"Filters"}
-                      className={
-                        columnFilters.length ? "roamjs-item-dirty" : ""
-                      }
+                      icon={showInterface ? "th-disconnect" : "th"}
+                      text={showInterface ? "Hide Interface" : "Show Interface"}
                       onClick={() => {
-                        setIsEditColumnFilter(true);
+                        const resultNode = getSubTree({
+                          key: "results",
+                          parentUid,
+                        });
+                        setInputSetting({
+                          key: "interface",
+                          value: showInterface ? "hide" : "show",
+                          blockUid: resultNode.uid,
+                        });
+                        setShowInterface((s) => !s);
+                        setMoreMenuOpen(false);
                       }}
                     />
-                    <MenuItem
-                      icon={"sort"}
-                      text={"Sort"}
-                      className={activeSort.length ? "roamjs-item-dirty" : ""}
-                      onClick={() => {
-                        setIsEditColumnSort(true);
-                      }}
-                    />
-                    <MenuItem
-                      icon={"random"}
-                      text={"Get Random"}
-                      className={random.count ? "roamjs-item-dirty" : ""}
-                      onClick={() => setIsEditRandom(true)}
-                    />
-                    <MenuItem
-                      icon={"numbered-list"}
-                      text={"Rows per page"}
-                      onClick={() => setIsEditPageSize(true)}
-                    />
-                  </MenuItem>
-                  <MenuItem
-                    icon={"tag"}
-                    text={showAlias ? "Hide Alias" : "Alias"}
-                    onClick={() => {
-                      setInputSetting({
-                        blockUid: settings.resultNodeUid,
-                        key: "showAlias",
-                        value: showAlias ? "hide" : "show",
-                      });
-                      setShowAlias(!showAlias);
-                      setMoreMenuOpen(false);
-                    }}
-                  />
-                  <MenuItem
-                    icon={showInterface ? "th-disconnect" : "th"}
-                    text={showInterface ? "Hide Interface" : "Show Interface"}
-                    onClick={() => {
-                      const resultNode = getSubTree({
-                        key: "results",
-                        parentUid,
-                      });
-                      setInputSetting({
-                        key: "interface",
-                        value: showInterface ? "hide" : "show",
-                        blockUid: resultNode.uid,
-                      });
-                      setShowInterface((s) => !s);
-                      setMoreMenuOpen(false);
-                    }}
-                  />
+                  )}
                   <MenuItem
                     icon={"export"}
                     text={"Share Data"}
@@ -1280,7 +1288,9 @@ const ResultsView: ResultsViewComponent = ({
                       setIsExportOpen(true);
                     }}
                   />
-                  <Divider />
+                  {(isEditBlock || !preventSavingSettings || onDeleteQuery) && (
+                    <Divider />
+                  )}
                   {isEditBlock && (
                     <MenuItem
                       icon={"edit"}
@@ -1300,40 +1310,43 @@ const ResultsView: ResultsViewComponent = ({
                       }}
                     />
                   )}
-                  <MenuItem
-                    icon={"clipboard"}
-                    text={"Copy Query"}
-                    onClick={() => {
-                      const getTextFromTreeToPaste = (
-                        items: RoamBasicNode[],
-                        indentLevel = 0,
-                      ): string => {
-                        const indentation = "    ".repeat(indentLevel);
+                  {!preventSavingSettings && (
+                    <MenuItem
+                      icon={"clipboard"}
+                      text={"Copy Query"}
+                      onClick={() => {
+                        const getTextFromTreeToPaste = (
+                          items: RoamBasicNode[],
+                          indentLevel = 0,
+                        ): string => {
+                          const indentation = "    ".repeat(indentLevel);
 
-                        return items
-                          .map((item) => {
-                            const childrenText =
-                              item.children.length > 0
-                                ? getTextFromTreeToPaste(
-                                    item.children,
-                                    indentLevel + 1,
-                                  )
-                                : "";
-                            return `${indentation}- ${item.text}\n${childrenText}`;
-                          })
-                          .join("");
-                      };
-                      const tree = getBasicTreeByParentUid(parentUid);
-                      navigator.clipboard.writeText(
-                        "- {{query block}}\n" + getTextFromTreeToPaste(tree, 1),
-                      );
-                      renderToast({
-                        id: "query-copy",
-                        content: "Copied Query",
-                        intent: Intent.PRIMARY,
-                      });
-                    }}
-                  />
+                          return items
+                            .map((item) => {
+                              const childrenText =
+                                item.children.length > 0
+                                  ? getTextFromTreeToPaste(
+                                      item.children,
+                                      indentLevel + 1,
+                                    )
+                                  : "";
+                              return `${indentation}- ${item.text}\n${childrenText}`;
+                            })
+                            .join("");
+                        };
+                        const tree = getBasicTreeByParentUid(parentUid);
+                        navigator.clipboard.writeText(
+                          "- {{query block}}\n" +
+                            getTextFromTreeToPaste(tree, 1),
+                        );
+                        renderToast({
+                          id: "query-copy",
+                          content: "Copied Query",
+                          intent: Intent.PRIMARY,
+                        });
+                      }}
+                    />
+                  )}
                   {onDeleteQuery && (
                     <>
                       <MenuItem
