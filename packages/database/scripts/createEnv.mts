@@ -29,12 +29,17 @@ const getVercelToken = () => {
 };
 
 const makeFnEnv = (envTxt: string): string => {
-  return envTxt.split('\n').filter(l=>l.match(/^SUPABASE_\w+_KEY/)).map((l)=> l.replace('SUPABASE_', 'SB_')).join('\n');
-}
+  return envTxt
+    .split("\n")
+    .filter((l) => l.match(/^SUPABASE_\w+_KEY/))
+    .map((l) => l.replace("SUPABASE_", "SB_"))
+    .join("\n");
+};
 
 const makeLocalEnv = () => {
   execSync("supabase start", {
-    cwd: projectRoot, stdio: "inherit"
+    cwd: projectRoot,
+    stdio: "inherit",
   });
   const stdout = execSync("supabase status -o env", {
     encoding: "utf8",
@@ -54,8 +59,8 @@ const makeLocalEnv = () => {
   );
   writeFileSync(
     join(projectRoot, "supabase/functions/.env"),
-    makeFnEnv(prefixed)
-  )
+    makeFnEnv(prefixed),
+  );
 };
 
 const makeBranchEnv = async (vercel: Vercel, vercelToken: string) => {
@@ -94,11 +99,11 @@ const makeBranchEnv = async (vercel: Vercel, vercelToken: string) => {
     throw err;
   }
   appendFileSync(".env.branch", `NEXT_API_ROOT="https://${url}/api"\n`);
-  const fromVercel = readFileSync('.env.branch').toString();
+  const fromVercel = readFileSync(".env.branch").toString();
   writeFileSync(
     join(projectRoot, "supabase/functions/.env"),
-    makeFnEnv(fromVercel)
-  )
+    makeFnEnv(fromVercel),
+  );
 };
 
 const makeProductionEnv = async (vercel: Vercel, vercelToken: string) => {
@@ -117,22 +122,26 @@ const makeProductionEnv = async (vercel: Vercel, vercelToken: string) => {
     `vercel -t ${vercelToken} env pull --environment production .env.production`,
   );
   appendFileSync(".env.production", `NEXT_API_ROOT="https://${url}/api"\n`);
-  const fromVercel = readFileSync('.env.production').toString();
+  const fromVercel = readFileSync(".env.production").toString();
   writeFileSync(
     join(projectRoot, "supabase/functions/.env"),
-    makeFnEnv(fromVercel)
-  )
+    makeFnEnv(fromVercel),
+  );
 };
 
 const main = async (variant: Variant) => {
   if (process.env.ROAM_BUILD_SCRIPT) {
     // special case: production build
     try {
-      const response = execSync('curl https://discoursegraphs.com/api/supabase/env');
+      const response = execSync(
+        "curl https://discoursegraphs.com/api/supabase/env",
+      );
       const asJson = JSON.parse(response.toString()) as Record<string, string>;
       writeFileSync(
         join(projectRoot, ".env"),
-        Object.entries(asJson).map(([k,v])=>`${k}=${v}`).join('\n')
+        Object.entries(asJson)
+          .map(([k, v]) => `${k}=${v}`)
+          .join("\n"),
       );
       return;
     } catch (e) {
@@ -140,10 +149,10 @@ const main = async (variant: Variant) => {
         return;
       throw new Error("Could not get environment from site");
     }
-  }
-  else if (
+  } else if (
     process.env.HOME === "/vercel" ||
-    process.env.GITHUB_ACTIONS !== undefined
+    (process.env.GITHUB_ACTIONS !== undefined &&
+      process.env.GITHUB_TEST !== "test")
   )
     // Do not execute in deployment or github action.
     return;

@@ -33,6 +33,7 @@
     "lint:fix": "eslint --fix . && tsx scripts/lintSchemas.ts -f && tsx scripts/lintFunctions.ts",
     "migrate": "tsx scripts/migrate.ts",
     "test": "pnpm run build && cucumber-js",
+    "test:withserve": "pnpm run build && tsx scripts/serve_and_test.ts",
     "genenv": "tsx scripts/createEnv.mts",
     "gentypes": "tsx scripts/genTypes.ts",
     "dbdiff": "supabase stop && supabase db diff --use-pg-schema",

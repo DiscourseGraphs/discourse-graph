@@ -6,7 +6,10 @@ import { getVariant } from "@repo/database/dbDotEnv";
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, "..");
 
-if (process.env.HOME === "/vercel" || process.env.GITHUB_ACTIONS === "true") {
+if (
+  process.env.HOME === "/vercel" ||
+  (process.env.GITHUB_ACTIONS === "true" && process.env.GITHUB_TEST !== "test")
+) {
   console.log("Skipping in production environment");
   process.exit(0);
 }

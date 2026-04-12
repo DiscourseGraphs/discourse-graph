@@ -23,9 +23,8 @@ export const getVariant = () => {
       : process.env["SUPABASE_USE_DB"];
   if (variant === undefined) {
     dotenv.config();
-    const dbGlobalEnv = join(findRoot(),'.env');
-    if (existsSync(dbGlobalEnv))
-      dotenv.config({path: dbGlobalEnv});
+    const dbGlobalEnv = join(findRoot(), ".env");
+    if (existsSync(dbGlobalEnv)) dotenv.config({ path: dbGlobalEnv });
     variant = process.env["SUPABASE_USE_DB"];
   }
   const processHasVars =
@@ -39,7 +38,11 @@ export const getVariant = () => {
     throw new Error("Invalid variant: " + variant);
   }
 
-  if (process.env.HOME === "/vercel" || process.env.GITHUB_ACTIONS === "true") {
+  if (
+    process.env.HOME === "/vercel" ||
+    (process.env.GITHUB_ACTIONS === "true" &&
+      process.env.GITHUB_TEST !== "test")
+  ) {
     // deployment should have variables
     if (!processHasVars) {
       console.error("Missing SUPABASE variables in deployment");
