@@ -1,0 +1,138 @@
+---
+title: "Example Post - How to Create Blog Posts"
+date: "2024-01-01"
+author: "Devs"
+published: false
+tags:
+  - example
+description: "Template post showing how to author new Discourse Graphs blog updates in Nextra."
+---
+
+import { Callout, FileTree, Steps, Table, Tabs } from "nextra/components";
+
+# Example post
+
+This is a template post that shows how to create new blog posts. Keep this file as a reference and create new posts by following these instructions.
+
+<Callout type="important">
+  Blog posts now live in `apps/website/content/blog` and render through the
+  Nextra-backed `/blog` route.
+</Callout>
+
+## Creating blog posts
+
+<Steps>
+  ### Create the file
+  Copy this file (`EXAMPLE.mdx`) to create a new post.
+
+### Rename it to the final slug
+
+Use the filename as the public URL slug, for example
+`my-new-post.mdx` becomes `/blog/my-new-post`.
+
+### Update frontmatter and content
+
+Fill in the metadata, write the body, and set `published: true` when the post
+is ready to appear publicly.
+
+</Steps>
+
+You can still follow the normal workflow:
+
+1. [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and [clone](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) the repository.
+2. [Create a new branch](https://docs.github.com/en/desktop/contributing-and-collaborating-using-github-desktop/managing-branches) for your update.
+3. Copy this file (`EXAMPLE.mdx`) to create a new post.
+4. Rename the file to your desired URL slug.
+5. Update the frontmatter and content.
+6. Set `published: true` when ready.
+7. Push your branch and open a pull request.
+
+## Content location
+
+<FileTree>
+  <FileTree.Folder name="apps" defaultOpen>
+    <FileTree.Folder name="website" defaultOpen>
+      <FileTree.Folder name="content" defaultOpen>
+        <FileTree.Folder name="blog" defaultOpen>
+          <FileTree.File name="index.mdx" />
+          <FileTree.File name="EXAMPLE.mdx" />
+          <FileTree.File name="my-new-post.mdx" />
+        </FileTree.Folder>
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+## Frontmatter reference
+
+Every post must start with frontmatter in YAML format:
+
+```yaml
+---
+title: "Your post title"
+date: "YYYY-MM-DD"
+author: "Author name"
+published: true
+tags:
+  - release
+description: "Optional summary used for metadata."
+---
+```
+
+<Table>
+  <thead>
+    <Table.Tr>
+      <Table.Th>Field</Table.Th>
+      <Table.Th>Required</Table.Th>
+      <Table.Th>Purpose</Table.Th>
+    </Table.Tr>
+  </thead>
+  <tbody>
+    <Table.Tr>
+      <Table.Td>`title`</Table.Td>
+      <Table.Td>Yes</Table.Td>
+      <Table.Td>Displayed on the index, post page, and metadata.</Table.Td>
+    </Table.Tr>
+    <Table.Tr>
+      <Table.Td>`date`</Table.Td>
+      <Table.Td>Yes</Table.Td>
+      <Table.Td>Shown in the blog list and post header.</Table.Td>
+    </Table.Tr>
+    <Table.Tr>
+      <Table.Td>`author`</Table.Td>
+      <Table.Td>Yes</Table.Td>
+      <Table.Td>Used in the post header and metadata authors list.</Table.Td>
+    </Table.Tr>
+    <Table.Tr>
+      <Table.Td>`published`</Table.Td>
+      <Table.Td>Yes</Table.Td>
+      <Table.Td>Controls whether the post appears publicly.</Table.Td>
+    </Table.Tr>
+    <Table.Tr>
+      <Table.Td>`tags`</Table.Td>
+      <Table.Td>No</Table.Td>
+      <Table.Td>Shown as pills in the post header.</Table.Td>
+    </Table.Tr>
+    <Table.Tr>
+      <Table.Td>`description`</Table.Td>
+      <Table.Td>No</Table.Td>
+      <Table.Td>Used for page metadata and previews.</Table.Td>
+    </Table.Tr>
+  </tbody>
+</Table>
+
+## Extra components you can use
+
+<Tabs items={["Callouts", "Steps", "Other MDX"]} defaultIndex={0}>
+  <Tabs.Tab>
+    Use Nextra components such as `Callout` to highlight release notes,
+    warnings, or key context.
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Use `Steps` when you are describing a workflow or upgrade sequence.
+  </Tabs.Tab>
+  <Tabs.Tab>
+    You can also use other MDX features such as code fences, tables, lists, and
+    links inside blog posts.
+  </Tabs.Tab>
+</Tabs>

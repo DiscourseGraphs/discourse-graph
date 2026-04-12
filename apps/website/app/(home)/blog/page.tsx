@@ -1,16 +1,35 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { importPage } from "nextra/pages";
 import { getAllBlogs } from "./readBlogs";
 
-export default async function BlogIndex() {
+type ImportedPage = Awaited<ReturnType<typeof importPage>>;
+
+const hasPrimaryHeading = (sourceCode: string): boolean =>
+  /(^|\n)#\s+\S/m.test(sourceCode);
+
+const loadBlogIndex = async (): Promise<ImportedPage> => importPage(["blog"]);
+
+const BlogIndex = async (): Promise<React.ReactElement> => {
   const blogs = await getAllBlogs();
+  const { default: MDXContent, metadata, sourceCode } = await loadBlogIndex();
+  const showsPrimaryHeading = hasPrimaryHeading(sourceCode);
+
   return (
     <div className="flex-1 bg-gray-50">
       <div className="mx-auto max-w-6xl space-y-12 px-6 py-12">
-        <div className="rounded-xl bg-white p-8 shadow-md">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-primary">All Updates</h1>
+        <article className="rounded-xl bg-white p-8 shadow-md">
+          <div className="space-y-4">
+            {!showsPrimaryHeading && (
+              <h1 className="text-4xl font-bold text-primary">
+                {metadata.title}
+              </h1>
+            )}
+            <div className="text-gray-600">
+              <MDXContent />
+            </div>
           </div>
-          <div>
+          <div className="mt-8">
             <ul className="space-y-6">
               {blogs.length === 0 ? (
                 <p className="text-left text-lg text-gray-600">
@@ -41,8 +60,24 @@ export default async function BlogIndex() {
               )}
             </ul>
           </div>
-        </div>
+        </article>
       </div>
     </div>
   );
-}
+};
+
+export const generateMetadata = async (): Promise<Metadata> => {
+  try {
+    const { metadata } = await loadBlogIndex();
+
+    return metadata;
+  } catch (error) {
+    console.error("Error generating blog index metadata:", error);
+
+    return {
+      title: "All Updates",
+    };
+  }
+};
+
+export default BlogIndex;
