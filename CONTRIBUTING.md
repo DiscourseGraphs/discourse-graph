@@ -28,22 +28,25 @@ The Discourse Graphs website hosts documentation for plugins and general informa
 
 ### Blog Posts
 
-Blog posts are located in `/apps/website/app/(home)/blog/posts/`
+Blog posts are located in `/apps/website/content/blog/`
 
-1. **Create your post file**: Copy `EXAMPLE.md` as a starting template and rename it to your desired URL slug (e.g., `my-new-post.md`)
+1. **Create your post file**: Copy `EXAMPLE.mdx` as a starting template and rename it to your desired URL slug (for example, `my-new-post.mdx`)
 
-2. **Required metadata**: Every blog post must start with YAML frontmatter (reference `EXAMPLE.md` for the exact format):
+2. **Required metadata**: Every blog post must start with YAML frontmatter (reference `EXAMPLE.mdx` for the exact format):
 
    ```yaml
    ---
-   title: "Your Post Title"
+   title: "Your post title"
    date: "YYYY-MM-DD"
-   author: "Author's name"
-   published: true # Set to true to make the post visible
+   author: "Author name"
+   published: true
+   tags:
+     - release
+   description: "Optional summary used for metadata."
    ---
    ```
 
-3. **Content**: Write your content below the frontmatter using standard Markdown
+3. **Content**: Write your content below the frontmatter using Markdown or MDX. Blog posts render through Nextra, so standard markdown features and Nextra components are available.
 
 ### Plugin Documentation
 
