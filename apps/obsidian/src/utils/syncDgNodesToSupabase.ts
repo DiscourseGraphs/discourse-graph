@@ -745,7 +745,7 @@ const syncChangedNodesToSupabase = async ({
     await syncPublishedNodesAssets(plugin, changedNodes);
   } catch (error) {
     // console.error(
-    //   `Failed to sync published node assets for ${node.file.path}:`,
+    //   `Failed to sync published node assets`,
     //   error,
     // );
   }
