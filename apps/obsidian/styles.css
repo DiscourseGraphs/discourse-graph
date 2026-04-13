@@ -35,6 +35,27 @@
   background: var(--interactive-accent-hover);
 }
 
+/* Drag handle next to wikilinks in Live Preview */
+.dg-wikilink-drag-handle {
+  display: inline-block;
+  cursor: grab;
+  opacity: 0;
+  font-size: 10px;
+  vertical-align: middle;
+  margin-left: 2px;
+  color: var(--text-muted);
+  transition: opacity 0.15s ease;
+  user-select: none;
+}
+
+.cm-line:hover .dg-wikilink-drag-handle {
+  opacity: 0.6;
+}
+
+.dg-wikilink-drag-handle:hover {
+  opacity: 1 !important;
+}
+
 /* Neutralize host button styling inside our editor */
 .tldraw__editor button {
   background: transparent !important;

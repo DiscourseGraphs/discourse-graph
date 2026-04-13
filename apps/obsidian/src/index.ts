@@ -17,6 +17,10 @@ import {
   openConvertImageToNodeModal,
 } from "~/utils/editorMenuUtils";
 import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
+import {
+  createWikilinkDragExtension,
+  wikilinkDragPostProcessor,
+} from "~/utils/wikilinkDragHandler";
 import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
 import { VIEW_TYPE_TLDRAW_DG_PREVIEW, FRONTMATTER_KEY } from "~/constants";
@@ -232,6 +236,9 @@ export default class DiscourseGraphPlugin extends Plugin {
       }),
     );
 
+    // Make wikilinks draggable so they can be dropped onto tldraw canvases
+    this.registerMarkdownPostProcessor(wikilinkDragPostProcessor(this));
+
     // Register editor keydown listener for node tag hotkey
     this.setupNodeTagHotkey();
   }
@@ -281,6 +288,9 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.registerEditorExtension(createImageEmbedHoverExtension(this));
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    this.registerEditorExtension(createWikilinkDragExtension(this));
   }
 
   private createStyleElement() {
