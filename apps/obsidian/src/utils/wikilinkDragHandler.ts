@@ -150,9 +150,9 @@ class WikilinkDragHandleWidget extends WidgetType {
   }
 }
 
-// Matches wikilinks [[...]] (not embeds ![[...]]) and markdown links [text](path)
-const INTERNAL_LINK_RE =
-  /(?<!!)\[\[([^\]]+)\]\]|(?<!!)\[([^\]]+)\]\(([^)]+\.md)\)/g;
+// Matches wikilinks [[...]] and markdown links [text](path.md).
+// Embed exclusion (![[...]] and ![text](...)) is handled in the loop.
+const INTERNAL_LINK_RE = /\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)]+\.md)\)/g;
 
 const buildWidgetDecorations = (
   view: EditorView,
@@ -166,6 +166,10 @@ const buildWidgetDecorations = (
     INTERNAL_LINK_RE.lastIndex = 0;
 
     while ((match = INTERNAL_LINK_RE.exec(text)) !== null) {
+      let isEmbed = false;
+      if (match.index > 0) isEmbed = text[match.index - 1] === "!";
+      isEmbed = view.state.doc.sliceString(from - 1, from) === "!";
+      if (isEmbed) continue;
       const matchEnd = from + match.index + match[0].length;
       const linkPath = extractLinkPath(match[0]);
       const widget = new WikilinkDragHandleWidget(linkPath, plugin);
