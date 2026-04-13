@@ -29,7 +29,7 @@ jobs:
         working-directory: ./packages/database
         run: echo "SUPABASE_VERSION=$(./node_modules/.bin/supabase --version)" >> $GITHUB_ENV
       - name: Cache Docker images.
-        uses: ScribeMD/docker-cache@0.5.0
+        uses: AndreKurait/docker-cache@0.6.0
         with:
           key: docker-${{ runner.os }}-${{ env.SUPABASE_VERSION }}
       - name: Setup database
