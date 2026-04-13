@@ -1,98 +1,234 @@
-# J. V0 scope: portable package
+# J. V0 portable-package handoff contract
 
-## Summary
+## Purpose
 
-This doc scopes the first Discourse Graph portable package as a transport contract that sits downstream of the internal data layer defined in `ENG-1636`.
+This note is the milestone-three deliverable from [H. V0 scope: data-layer definition and crosswalk](./H-v0-data-layer-scope.md).
 
-The v0 portable package should be:
+Its job is to define the minimum v0 contract for what must survive translation out of the current data layer into a portable package.
 
-- a normalized projection over the internal data layer, not a copy of DB tables or current API payloads
-- shared across Obsidian, Roam, and the website
-- scoped around one root node plus one-hop closure (TBD)
-- required to carry `ATJSON` content under `content`
-- required to include referenced assets (TBD)
+This is not the implementation plan for the package itself. It is the handoff contract an engineer should be able to use to start package work without re-opening the data-layer definition.
 
-The immediate goal is one package contract that supports:
+## Short answer
 
-- Obsidian to Obsidian
-- Obsidian to Roam
-- Roam to Roam
-- website display in Next.js
+The v0 portable package should be defined as a serialization of a `Subgraph`.
 
-The same contract should also be reusable later for an API that returns the portable package for a specific node.
+That means:
+
+- the package is downstream of the internal database model
+- the package is not the primary runtime abstraction for the current internal app-sharing flows
+- the package should carry the same normalized extracted graph shape that app consumers would otherwise materialize directly
+
+In other words:
+
+```text
+source app
+  -> ingest
+  -> persist
+  -> share
+  -> extractSubgraph(...)
+  -> Subgraph
+  -> toObsidian / toRoam / toWebsite / toPortablePackage
+```
 
 ## Problem
 
-- We now have a clearer definition of the internal data layer, but we still do not have one portable package contract that all sharing flows use.
-- Obsidian-to-Obsidian sharing is currently handled by bespoke share/import logic over shared persistence, especially `my_contents`, relation queries, and `FileReference` asset import.
-- Roam and website sharing do not currently use the same transport pattern.
-- This makes cross-app transport inconsistent and leaves no single package shape that a future sharing API can expose.
-- Content is also moving toward `ATJSON`, but current transport behavior is still tied to app-native or ad hoc representations.
+- The current repo now has a clearer definition of schema layer, data layer, and transport layer, but the portable-package work still needs a concrete handoff contract.
+- The current Obsidian sharing flow works through DB-backed sharing and import, not through a portable package.
+- Roam and website flows are not yet aligned on one transport shape.
+- Without a handoff contract, package work risks re-deciding:
+  - which concepts are canonical
+  - how relation instances are represented
+  - whether content, document, and asset records are required
+  - whether access and sharing state belong in the package
 
-## Solution
+## Architectural position
 
-- Define a v0 portable package as a shared app-agnostic transport contract derived from the internal data layer.
-- Scope the package around a single root node bundle.
-- The bundle includes:
-  - the root node instance
-  - required node schemas and relation schemas
-  - directly connected relation instances
-  - counterpart nodes needed to keep those direct relations usable
-  - `ATJSON` content payloads under `content`
-  - document or source metadata needed to preserve origin
-  - stable source identity such as RID or equivalent source space plus local ID
-  - referenced file assets and asset metadata
-- Keep HTML out of the required package payload. Website rendering should derive HTML downstream from `ATJSON`.
-- Allow opaque app-specific fidelity metadata only where needed to avoid data loss, but do not make app-local storage quirks the primary public contract.
-- Require the same producer or consumer pattern for Obsidian, Roam, and website use cases so the current bespoke Obsidian path can later migrate onto the same contract.
+For the immediate internal use cases, the database remains the interchange hub.
+
+The current sharing model is selection-driven:
+
+- a user chooses nodes to share
+- the system shares those nodes
+- relations are shared only when both endpoints are in the included node set
+- schemas and assets are shared as needed for the included resources
+
+That means the portable package should not define the inclusion rules for app sharing.
+
+Instead:
+
+- sharing decides what resource set should be available
+- extraction turns that resource set into a normalized `Subgraph`
+- the portable package serializes that `Subgraph`
+
+The portable package is therefore a transport artifact, not the core runtime sharing abstraction.
+
+## V0 package input
+
+The input to `toPortablePackage(...)` should be a `Subgraph`.
+
+A v0 `Subgraph` should be able to contain:
+
+- one or more included node instances
+- included relation instances
+- required node schemas
+- required relation schemas
+- canonical content for included nodes
+- source or document metadata where needed
+- referenced file assets
+- stable transport identity
+
+The v0 package does not need to care whether that `Subgraph` was derived from:
+
+- an explicit shared node set
+- a one-node API request
+- a future context-expansion request
+
+That extraction choice happens upstream.
+
+## Minimum portable concepts that must survive
+
+These are the concepts milestone three should lock as required.
+
+### Required payload concepts
+
+- node instances
+- relation instances
+- node schemas
+- relation schemas
+- canonical content
+- source or document metadata where needed to preserve origin
+- file assets and asset metadata
+- stable transport identity
+
+### Required preserved semantics
+
+- node type identity must survive translation out of `Concept`
+- relation type identity must survive translation out of `Concept`
+- relation endpoint bindings must survive translation out of `reference_content`
+- content must survive in one canonical portable representation rather than the current multi-variant storage story
+- enough source metadata must survive to preserve provenance and origin context needed by importers and renderers
+- asset references must survive in a way that allows the destination to restore embeds or attachments
+- cross-space identity must survive in a stable form such as RID or an equivalent source-space plus local-ID pair
+
+## Required exclusions
+
+These should be explicitly out of the v0 portable-package requirement even if they exist in the current data layer.
+
+- `SpaceAccess`, `ResourceAccess`, and group membership state
+- local share bookkeeping such as `publishedToGroups`
+- sync bookkeeping
+- embeddings
+- DB-native numeric IDs
+- HTML as a required payload format
+- app-specific storage quirks as first-class top-level concepts
+
+Those things may still exist in the runtime system. They are just not part of the minimum portable-package contract.
+
+## Current-model caveats the contract must absorb
+
+The package contract has to normalize several current implementation issues rather than exposing them directly.
+
+### Relation-instance caveat
+
+The current shared data model does not have a dedicated edge or assertion table.
+
+A relation instance is currently represented as:
+
+- one `Concept` row
+- `schema_id` pointing to the relation schema
+- `reference_content` holding role bindings
+
+The package must preserve that meaning, but it should not expose the current DB encoding as the public abstraction.
+
+### Concept-to-content caveat
+
+The current shared model links concepts to content only indirectly through source identity and helpers such as `content_of_concept`.
+
+A single concept can correspond to multiple content variants such as:
+
+- `direct`
+- `full`
+- `direct_and_description`
+
+The package contract should therefore require one canonical portable `content` representation, not a raw dump of current content variants.
+
+### Client-divergence caveat
+
+Obsidian and Roam do not currently have symmetric client-local representations, especially for relations and body-content completeness.
+
+The package should preserve shared semantics, but it should not require every destination to materialize them with identical local storage structures.
+
+## Recommended v0 shape
+
+At the logical level, the package should contain:
+
+- `nodes`
+- `relations`
+- `nodeTypes`
+- `relationTypes`
+- `content`
+- `assets`
+- `sourceMetadata`
+- `identity`
+
+For the actual artifact format, the likely direction is:
+
+- manifest JSON
+- binary asset payloads alongside it
+- optional archive wrapper such as zip
+
+But the archive or container choice is not part of milestone three.
+
+## Immediate use cases vs future use cases
+
+### Immediate internal use cases
+
+These should continue to be thought of as DB-centered flows:
+
+- Obsidian -> DB -> Obsidian
+- Obsidian -> DB -> Roam
+- Roam -> DB -> Roam
+- app -> DB -> website
+
+The package is not required to be the primary runtime path for those flows in v0.
+
+### Future-facing use cases
+
+These are where the package is more likely to be a first-class output:
+
+- API returns a portable package for a requested node or node set
+- external app interoperability
+- file-based export or transfer
+
+The contract should support those future use cases without forcing the internal app flows to route through the package immediately.
+
+## Deferred improvements
+
+These are explicitly not blockers for milestone three.
+
+- locking the final package archive format
+- full recursive subgraph export
+- richer provenance objects
+- explicit assertion or edge tables
+- explicit concept-content link tables
+- full Roam parity for relations and body content
+- HTML as an alternate package content format
+- evidence-bundle-specific packaging rules
 
 ## Done when
 
-- There is one agreed v0 package contract that traces cleanly back to the internal data layer defined in `ENG-1636`.
-- The contract explicitly carries:
-  - root node identity
-  - included node instances and relation instances
-  - required node and relation schemas
-  - `ATJSON` content payloads under `content`
-  - document or source metadata
-  - stable source identity
-  - referenced file assets and asset metadata
-- The bundle boundary is explicit: one root node plus one-hop closure (TBD), not root-only and not full recursive graph export.
-- The contract is stated as the common transport shape for the four immediate v0 use cases.
-- The contract is also clear enough that a future API can return the same package for one requested node without redefining the shape.
+- the portable package is explicitly defined as a serialization of a `Subgraph`
+- the minimum portable concepts are named clearly enough for implementation
+- required preserved semantics are separated from excluded runtime-only data
+- the current relation-instance and concept-to-content caveats are called out explicitly
+- an engineer can start `toPortablePackage(subgraph)` work without reopening what the current data layer means
 
-## Out of scope
+## Validation questions
 
-- implementing the portable package
-- locking the final archive or container format such as zip versus directory
-- embedding HTML in the package payload
-- access control, group membership, `ResourceAccess`, sync state, embeddings, or sharing workflow metadata as package requirements
-- redesigning the internal data model or adding new assertion, occurrence, or concept-content-link tables
-- fixing the current concept-to-content storage model
-- full recursive subgraph export
-- richer provenance or evidence modeling beyond what the current data layer already exposes
+An engineer reading this note should be able to answer:
 
-## Notes
-
-- Use `content`, not `narrative`.
-- `ATJSON` is the required content representation for v0.
-- HTML may still be produced by downstream consumers, especially the website, but it is not a required package payload in v0.
-- Assets are included in v0 because the current Obsidian import path already depends on file transfer and the website will need the same behavior for evidence and media display.
-- Preserve relation semantics without making Obsidian triple-schema leakage the public package abstraction. If admissibility rules need to survive, carry them as schema metadata rather than as the top-level transport concept.
-- Roam may initially have less complete body-content coverage than Obsidian. The package contract should still be shared, with completeness limited only by what the upstream `ATJSON` layer can currently produce.
-
-## Validation scenarios
-
-- Obsidian to Obsidian: export a node with body content, a directly connected relation, and assets; import it through the v0 package path and confirm round-trip behavior.
-- Obsidian to Roam: import the same bundle and confirm the root node, counterpart node, and direct relation remain usable.
-- Roam to Roam: export and import through the same contract and confirm the package path works even if content coverage is initially partial.
-- website: consume the package and render from `ATJSON` without relying on HTML embedded in the package.
-- future API fit: confirm the bundle shape can be returned for one requested node without adding new required fields.
-
-## Assumptions and defaults
-
-- `ENG-1636` remains the upstream definition of schema, data-layer, and transport-layer precedence.
-- The portable package is a normalized projection over the internal data layer.
-- The v0 unit is one root node bundle with one-hop closure.
-- The required content representation is `ATJSON` only.
-- Referenced assets are included in the package.
+- What must survive from the current data layer into the package?
+- What current DB details should be normalized rather than exposed directly?
+- What current runtime data is intentionally excluded from the package?
+- How does the package relate to the new `Subgraph` abstraction?
+- Why is the package downstream of sharing and extraction rather than the center of the current internal app-sharing flow?
