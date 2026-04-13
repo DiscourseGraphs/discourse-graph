@@ -621,7 +621,7 @@ export const syncPublishedNodeAssets = async ({
   }
   const existingReferencesByPath = Object.fromEntries(
     existingReferencesReq.data.map((ref) => [ref.filepath, ref]),
-  );
+  ) as Record<string, (typeof existingReferencesReq.data)[0]>;
 
   for (const attachment of attachments) {
     const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
