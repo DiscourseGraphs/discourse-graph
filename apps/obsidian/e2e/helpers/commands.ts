@@ -8,11 +8,12 @@ export const executeCommand = async (
   page: Page,
   commandId: string,
 ): Promise<void> => {
+  /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
   await page.evaluate((id) => {
     // @ts-expect-error - Obsidian's global `app` is available at runtime
     app.commands.executeCommandById(`@discourse-graph/obsidian:${id}`);
   }, commandId);
-  await page.waitForTimeout(500);
+  /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 };
 
 /**
@@ -24,13 +25,16 @@ export const executeCommandViaPalette = async (
   commandLabel: string,
 ): Promise<void> => {
   await page.keyboard.press("Meta+p");
-  await page.waitForTimeout(500);
+  await page.waitForSelector(".prompt-input", { timeout: 10_000 });
 
   await page.keyboard.type(commandLabel, { delay: 30 });
-  await page.waitForTimeout(500);
+  await page.waitForSelector(".suggestion-item", { timeout: 10_000 });
 
   await page.keyboard.press("Enter");
-  await page.waitForTimeout(1_000);
+  await page.waitForSelector(".prompt-container", {
+    state: "hidden",
+    timeout: 10_000,
+  });
 };
 
 /**
@@ -38,6 +42,7 @@ export const executeCommandViaPalette = async (
  * Required before running editorCallback commands like "Create discourse node".
  */
 export const ensureActiveEditor = async (page: Page): Promise<void> => {
+  /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
   await page.evaluate(async () => {
     // @ts-expect-error - Obsidian's global `app` is available at runtime
     const vault = app.vault;
@@ -46,5 +51,6 @@ export const ensureActiveEditor = async (page: Page): Promise<void> => {
     // @ts-expect-error - Obsidian's global `app` is available at runtime
     await app.workspace.openLinkText(file.path, "", false);
   });
-  await page.waitForTimeout(1_000);
+  /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
+  await page.waitForSelector(".cm-editor", { timeout: 10_000 });
 };
