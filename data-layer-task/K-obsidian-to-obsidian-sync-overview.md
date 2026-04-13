@@ -19,13 +19,13 @@ The current Obsidian-to-Obsidian flow is **not** a portable-package flow.
 It is a three-stage pipeline:
 
 1. local Obsidian nodes and relations are synced into shared Supabase persistence
-2. selected nodes are published to other spaces or groups through access records
+2. selected nodes are shared to other spaces or groups through access records
 3. another Obsidian vault imports those nodes by querying shared persistence, then reconstructs local files, relations, node types, relation types, and assets
 
 That means the current implementation already has many pieces that a portable package will need, but they are split across:
 
 - internal sync logic
-- publication and access logic
+- sharing and access logic
 - remote query and import logic
 
 For v0, the portable package should mainly replace the **remote query/import layer** first. It does not need to replace the entire local sync stack.
@@ -46,7 +46,7 @@ What it does:
 - detects changed node titles and content
 - writes content records
 - writes concept records
-- syncs assets for already-published nodes
+- syncs assets for already-shared nodes
 
 Important helper functions:
 
@@ -56,7 +56,7 @@ Important helper functions:
 | `buildChangedNodesFromNodes`                   | `syncDgNodesToSupabase.ts`              | Detects which local files need sync and what changed          | Internal only                                   |
 | `upsertNodesToSupabaseAsContentWithEmbeddings` | `upsertNodesAsContentWithEmbeddings.ts` | Writes `Content` and `Document` records, including embeddings | Not package logic                               |
 | `convertDgToSupabaseConcepts`                  | `syncDgNodesToSupabase.ts`              | Writes `Concept` rows for schemas, nodes, and relations       | Upstream of the package                         |
-| `syncPublishedNodesAssets`                     | `syncDgNodesToSupabase.ts`              | Ensures published nodes push non-text assets to storage       | Useful conceptually, not as shared package code |
+| `syncPublishedNodesAssets`                     | `syncDgNodesToSupabase.ts`              | Ensures shared nodes push non-text assets to storage          | Useful conceptually, not as shared package code |
 
 ### 2. Concept mapping during sync
 
@@ -86,7 +86,7 @@ Important helper functions:
 | `relationInstanceToLocalConcept`              | Local relation instance to `LocalConceptDataInput` | Important for relation semantics                |
 | `orderConceptsByDependency`                   | Ensures schemas are upserted before instances      | Reusable pattern, not package-specific          |
 
-### 3. Publish and access layer
+### 3. Share and access layer
 
 This stage exposes already-synced data to other spaces or groups.
 
@@ -96,24 +96,24 @@ Primary file:
 
 What it does:
 
-- publishes a node to a group
-- publishes schemas needed by that node
-- publishes relations that are valid to share
+- shares a node to a group
+- shares schemas needed by that node
+- shares relations that are valid to share
 - uploads non-text file assets
 - creates or updates `SpaceAccess` and `ResourceAccess`
 
 Important helper functions:
 
-| Function                           | Scope today                                                     | Portable-package relevance                     |
-| ---------------------------------- | --------------------------------------------------------------- | ---------------------------------------------- |
-| `publishNode`                      | Entry point for publishing a local note                         | Publication wrapper, not package logic         |
-| `publishNodeToGroup`               | Creates access records and uploads assets                       | Not package logic                              |
-| `publishSchema`                    | Publishes schema resources for the node                         | Useful for identifying package dependencies    |
-| `publishNodeRelations`             | Publishes related relation resources                            | Useful conceptually, not portable package code |
-| `publishNewRelation`               | Publishes a newly created relation if endpoints are publishable | Publication-side only                          |
-| `ensurePublishedRelationsAccuracy` | Repairs mismatch between relation state and publish records     | Publication-side only                          |
+| Function                           | Scope today                                                | Portable-package relevance                     |
+| ---------------------------------- | ---------------------------------------------------------- | ---------------------------------------------- |
+| `publishNode`                      | Entry point for sharing a local note                       | Share wrapper, not package logic               |
+| `publishNodeToGroup`               | Creates access records and uploads assets                  | Not package logic                              |
+| `publishSchema`                    | Shares schema resources for the node                       | Useful for identifying package dependencies    |
+| `publishNodeRelations`             | Shares related relation resources                          | Useful conceptually, not portable package code |
+| `publishNewRelation`               | Shares a newly created relation if endpoints are shareable | Share-side only                                |
+| `ensurePublishedRelationsAccuracy` | Repairs mismatch between relation state and share records  | Share-side only                                |
 
-This is the clearest place where current Obsidian-to-Obsidian sync differs from a portable package. A portable package should not need `SpaceAccess`, `ResourceAccess`, or group-specific publication state in order to move a node bundle.
+This is the clearest place where current Obsidian-to-Obsidian sync differs from a portable package. A portable package should not need `SpaceAccess`, `ResourceAccess`, or group-specific sharing state in order to move a node bundle.
 
 ## How nodes are queried today
 
@@ -174,7 +174,7 @@ Important observation:
 
 Assets are part of the current Obsidian-to-Obsidian path already.
 
-### On publish
+### On share
 
 Inside `publishNodeToGroup`:
 

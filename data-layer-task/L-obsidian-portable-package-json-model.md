@@ -275,7 +275,7 @@ These are useful, but not necessary to reproduce today’s behavior.
 
 - DB-native numeric IDs like `space_id`, `Concept.id`, `Content.id`
 - separate `Document` rows as top-level package objects
-- access or publication data such as `SpaceAccess`, `ResourceAccess`, or `publishedToGroups`
+- access or sharing data such as `SpaceAccess`, `ResourceAccess`, or `publishedToGroups`
 - embeddings
 - a separate triple-schema section
 

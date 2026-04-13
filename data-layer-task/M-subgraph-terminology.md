@@ -8,7 +8,7 @@ Use `Subgraph` as the canonical term for the v0 shared abstraction.
 
 This replaces earlier placeholder terms such as `NodeBundle` and `DiscourseContextSlice`.
 
-The important clarification is that `Subgraph` is **not** the same thing as the user's publish selection. Publishing is selection-driven. The subgraph is the extracted result after the system resolves which related resources are needed for a given use case.
+The important clarification is that `Subgraph` is **not** the same thing as the user's share selection. Sharing is selection-driven. The subgraph is the extracted result after the system resolves which related resources are needed for a given use case.
 
 ## Why this term
 
@@ -16,7 +16,7 @@ The important clarification is that `Subgraph` is **not** the same thing as the 
 - It avoids collision with the planned `EvidenceBundle` node type.
 - It keeps `package` reserved for the transport artifact rather than the in-memory shared abstraction.
 - It is broad enough to cover both:
-  - published node-set extraction
+  - shared node-set extraction
   - future one-hop or deeper context expansion
 
 ## Existing repo language
@@ -43,7 +43,7 @@ There is not already a clean Obsidian-side noun for "the extracted shared data n
 
 It should be understood as a **derived subgraph**, not as the thing the user directly selects.
 
-In the current sharing model, the user selects nodes to publish. The system then derives the resources that should travel with that published set.
+In the current sharing model, the user selects nodes to share. The system then derives the resources that should travel with that shared set.
 
 In v0, a `Subgraph` should be able to contain:
 
@@ -56,7 +56,7 @@ In v0, a `Subgraph` should be able to contain:
 
 For the current Obsidian sharing behavior, the default rule is:
 
-- include the explicitly selected or published nodes
+- include the explicitly selected or shared nodes
 - include relations only when both endpoints are in the included node set
 - include the schemas and assets needed by those included resources
 
@@ -64,13 +64,13 @@ This is a runtime or domain abstraction, not the transport artifact itself.
 
 ## Architectural position
 
-The conceptual flow for the current publish and import model is:
+The conceptual flow for the current share and import model is:
 
 ```text
 source app
   -> app-specific ingest adapter
   -> internal database model
-  -> publish selection
+  -> share selection
   -> shared resource closure
   -> shared extraction pipeline
   -> Subgraph
@@ -81,7 +81,7 @@ source app
 That means:
 
 - the database remains the interchange hub for the immediate internal use cases
-- publishing is driven by an explicit node set, not by automatic one-hop expansion
+- sharing is driven by an explicit node set, not by automatic one-hop expansion
 - Obsidian, Roam, and website flows can consume the same extracted unit directly
 - the portable package is a downstream serialization of a `Subgraph`
 
@@ -90,13 +90,13 @@ That means:
 The current share and import behavior is best described like this:
 
 ```text
-publisher selects nodes
+user selects nodes to share
   -> sync selected nodes to DB
-  -> publish selected nodes to group
-  -> auto-publish schemas and assets for those nodes
-  -> auto-publish relations only when both endpoints are published
+  -> share selected nodes to group
+  -> auto-share schemas and assets for those nodes
+  -> auto-share relations only when both endpoints are shared
 
-recipient sees published nodes
+recipient sees shared nodes
   -> chooses nodes to import
   -> extract Subgraph for the chosen node set
   -> materialize into Obsidian / Roam / website / portable package
@@ -105,8 +105,8 @@ recipient sees published nodes
 The future shared abstraction should support at least two extraction modes:
 
 ```text
-Mode 1: published-set mode
-  seed nodes = explicit selected or published nodes
+Mode 1: shared-set mode
+  seed nodes = explicit selected or shared nodes
   relation policy = only relations between included nodes
 
 Mode 2: context-expansion mode
@@ -120,13 +120,13 @@ Mode 2: context-expansion mode
 The current Obsidian implementation does not yet have an explicit
 `extractSubgraph(...)` function.
 
-Instead, the behavior is split across publish, discovery, preview, content import,
+Instead, the behavior is split across share, discovery, preview, content import,
 asset import, and relation import functions.
 
-### Current publish flow in code
+### Current share flow in code
 
 ```text
-user runs Publish command on active note
+user runs Share command on active note
   -> registerCommands.ts -> publishNode(...)
   -> publishNodeToGroup(...)
   -> publishNodeRelations(...)
@@ -137,16 +137,16 @@ user runs Publish command on active note
 
 Concrete code points:
 
-- The publish command entrypoint is in `registerCommands.ts`.
+- The share command entrypoint is in `registerCommands.ts`.
 - `publishNode(...)` is called from the command handler.
-- `publishNodeToGroup(...)` is the main publish implementation.
-- `publishNodeRelations(...)` auto-publishes relation resources only when both endpoints are published to the same group.
-- `publishSchema(...)` publishes the node schema through `ResourceAccess`.
+- `publishNodeToGroup(...)` is the main share implementation in the current code.
+- `publishNodeRelations(...)` auto-shares relation resources only when both endpoints are shared to the same group.
+- `publishSchema(...)` shares the node schema through `ResourceAccess`.
 - `addFile(...)` uploads non-text assets and creates the related file records.
 
 Important current limitation:
 
-- publishing does **not** auto-sync an unsynced node first
+- sharing does **not** auto-sync an unsynced node first
 - the command currently shows `Please sync the node first`
 - `registerCommands.ts` contains a TODO comment for "Maybe sync the node now if unsynced"
 
@@ -182,12 +182,12 @@ Concrete code points:
 The current rule is set-driven, not one-hop-expansion-driven.
 
 ```text
-if node A and node B are both published
+if node A and node B are both shared
   and A -> B relation exists
-then publish the relation resources
+then share the relation resources
 
-if only node A is published
-then do not publish A -> B relation resources
+if only node A is shared
+then do not share A -> B relation resources
 ```
 
 This rule is implemented by:
@@ -214,11 +214,11 @@ The future architecture should preserve the same current behavior, but move the
 DB-query-heavy import logic behind one shared extraction step.
 
 ```text
-user selects nodes to publish
-  -> current publish flow stays app-specific
+user selects nodes to share
+  -> current share flow stays app-specific
   -> DB records + group access are created
 
-recipient selects published nodes to import
+recipient selects shared nodes to import
   -> future extractSubgraph(seedNodeIds, relationPolicy="between-included-nodes")
   -> toObsidian(subgraph)
 ```
@@ -253,4 +253,4 @@ The extraction entry point should eventually accept inclusion rules rather than 
 
 - Avoid `bundle` in shared abstraction names.
 - Avoid `package` for the in-memory object; keep that term for the serialized artifact.
-- Do not treat `Subgraph` as a synonym for "published node set." The published node set is an input to extraction, not the extracted result.
+- Do not treat `Subgraph` as a synonym for "shared node set." The shared node set is an input to extraction, not the extracted result.

@@ -24,7 +24,7 @@ The same contract should also be reusable later for an API that returns the port
 ## Problem
 
 - We now have a clearer definition of the internal data layer, but we still do not have one portable package contract that all sharing flows use.
-- Obsidian-to-Obsidian sharing is currently handled by bespoke publish/import logic over shared persistence, especially `my_contents`, relation queries, and `FileReference` asset import.
+- Obsidian-to-Obsidian sharing is currently handled by bespoke share/import logic over shared persistence, especially `my_contents`, relation queries, and `FileReference` asset import.
 - Roam and website sharing do not currently use the same transport pattern.
 - This makes cross-app transport inconsistent and leaves no single package shape that a future sharing API can expose.
 - Content is also moving toward `ATJSON`, but current transport behavior is still tied to app-native or ad hoc representations.
@@ -66,7 +66,7 @@ The same contract should also be reusable later for an API that returns the port
 - implementing the portable package
 - locking the final archive or container format such as zip versus directory
 - embedding HTML in the package payload
-- access control, group membership, `ResourceAccess`, sync state, embeddings, or publication workflow metadata as package requirements
+- access control, group membership, `ResourceAccess`, sync state, embeddings, or sharing workflow metadata as package requirements
 - redesigning the internal data model or adding new assertion, occurrence, or concept-content-link tables
 - fixing the current concept-to-content storage model
 - full recursive subgraph export
