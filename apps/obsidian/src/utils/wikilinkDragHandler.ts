@@ -7,13 +7,10 @@ import {
   type DecorationSet,
   EditorView,
 } from "@codemirror/view";
-// @ts-expect-error - no types for @codemirror/state
-import type { Range } from "@codemirror/state";
 import { TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 
 const DRAG_ATTR = "data-dg-draggable";
-const DRAG_HANDLE_CLASS = "dg-wikilink-drag-handle";
 
 const buildObsidianUrl = (vaultName: string, filePath: string): string => {
   return `obsidian://open?vault=${encodeURIComponent(vaultName)}&file=${encodeURIComponent(filePath)}`;
@@ -127,10 +124,18 @@ class WikilinkDragHandleWidget extends WidgetType {
 
   toDOM(): HTMLElement {
     const handle = document.createElement("span");
-    handle.className = DRAG_HANDLE_CLASS;
+    handle.className =
+      "inline-block cursor-grab opacity-30 text-[10px] text-[var(--text-muted)] align-middle ml-0.5 transition-opacity duration-150 ease-in-out select-none";
     handle.draggable = true;
     handle.setAttribute("aria-label", "Drag to canvas");
     handle.textContent = "⠿";
+
+    handle.addEventListener("mouseenter", () => {
+      handle.style.opacity = "1";
+    });
+    handle.addEventListener("mouseleave", () => {
+      handle.style.opacity = "";
+    });
 
     handle.addEventListener("dragstart", (e) => {
       const file = resolveFileFromLinkText(this.linkPath, this.plugin);
@@ -153,7 +158,7 @@ const buildWidgetDecorations = (
   view: EditorView,
   plugin: DiscourseGraphPlugin,
 ): DecorationSet => {
-  const widgets: Range<Decoration>[] = [];
+  const widgets = [];
 
   for (const { from, to } of view.visibleRanges) {
     const text = view.state.doc.sliceString(from, to);
@@ -190,11 +195,7 @@ export const createWikilinkDragExtension = (
       }
 
       update(update: ViewUpdate): void {
-        if (
-          update.docChanged ||
-          update.viewportChanged ||
-          update.selectionSet
-        ) {
+        if (update.docChanged || update.viewportChanged) {
           this.decorations = buildWidgetDecorations(update.view, plugin);
         }
       }
