@@ -38,7 +38,6 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
     asChild?: boolean;
   };
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention

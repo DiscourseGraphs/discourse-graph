@@ -105,7 +105,6 @@ const TABS = [
   })),
 ];
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const MainContent = (): React.ReactElement => {
   return (
     <section className="flex min-h-[420px] flex-1 overflow-hidden rounded-[24px] border border-slate-200/85 bg-white shadow-[0_24px_48px_-36px_rgba(15,23,42,0.55)]">

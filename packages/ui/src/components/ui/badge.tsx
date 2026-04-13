@@ -26,7 +26,6 @@ const badgeVariants = cva(
 type BadgeProps = React.HTMLAttributes<HTMLDivElement> &
   VariantProps<typeof badgeVariants>;
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const Badge = ({ className, variant, ...props }: BadgeProps) => {
   return (
     <div className={cn(badgeVariants({ variant }), className)} {...props} />

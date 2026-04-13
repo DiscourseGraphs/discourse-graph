@@ -55,7 +55,6 @@ const NODE_TYPES = [
 const SECTION_LABEL_CLASS =
   "mb-3 block px-1 text-[18px] font-semibold tracking-[-0.016em] text-slate-800";
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const Sidebar = (): React.ReactElement => {
   return (
     <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-[24px] border border-slate-200/85 bg-white shadow-[0_26px_52px_-38px_rgba(15,23,42,0.6)] lg:w-[390px] xl:w-[420px]">
