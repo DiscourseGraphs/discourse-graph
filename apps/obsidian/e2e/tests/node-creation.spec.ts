@@ -2,15 +2,22 @@ import { test, expect, type Browser, type Page } from "@playwright/test";
 import path from "path";
 import type { ChildProcess } from "child_process";
 import {
-  createTestVault,
+  ensureVaultWithPlugin,
   cleanTestVault,
   launchObsidian,
+  restoreObsidianConfig,
+  resolveVaultPath,
+  isCustomVault,
 } from "../helpers/obsidian-setup";
 import {
   ensureActiveEditor,
   executeCommandViaPalette,
 } from "../helpers/commands";
-import { findFilesByPrefix, readFileContent } from "../helpers/vault";
+import {
+  findFilesByPrefix,
+  readFileContent,
+  waitForPluginLoaded,
+} from "../helpers/vault";
 import {
   waitForModal,
   selectNodeType,
@@ -19,31 +26,32 @@ import {
 } from "../helpers/modal";
 import { captureStep } from "../helpers/screenshots";
 
-const VAULT_PATH = path.join(__dirname, "..", "test-vault-node-creation");
+const VAULT_PATH = resolveVaultPath(
+  path.join(__dirname, "..", "test-vault-node-creation"),
+);
 
 let browser: Browser;
 let page: Page;
 let obsidianProcess: ChildProcess;
+let originalObsidianConfig: string | undefined;
 
 test.beforeAll(async () => {
-  createTestVault(VAULT_PATH);
+  ensureVaultWithPlugin(VAULT_PATH);
   const launched = await launchObsidian(VAULT_PATH);
   browser = launched.browser;
   page = launched.page;
   obsidianProcess = launched.obsidianProcess;
+  originalObsidianConfig = launched.originalObsidianConfig;
 
-  // Wait for plugins to initialize
-  await page.waitForTimeout(5_000);
+  // Wait for plugin to initialize (polls instead of blind sleep)
+  await waitForPluginLoaded(page, "@discourse-graph/obsidian");
 });
 
 test.afterAll(async () => {
-  if (browser) {
-    await browser.close();
-  }
-  if (obsidianProcess) {
-    obsidianProcess.kill();
-  }
-  cleanTestVault(VAULT_PATH);
+  if (browser) await browser.close();
+  if (obsidianProcess) obsidianProcess.kill();
+  if (originalObsidianConfig) restoreObsidianConfig(originalObsidianConfig);
+  if (!isCustomVault()) cleanTestVault(VAULT_PATH);
 });
 
 test("Create a Question node via command palette", async () => {
