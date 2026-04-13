@@ -9,3 +9,4 @@
 - [G. Suggested next refactors](./G-suggested-next-refactors.md)
 - [H. V0 scope: data-layer definition and crosswalk](./H-v0-data-layer-scope.md)
 - [I. Current layer architecture note](./I-current-layer-architecture-note.md)
+- [J. V0 scope: portable package](./J-v0-portable-package-scope.md)
