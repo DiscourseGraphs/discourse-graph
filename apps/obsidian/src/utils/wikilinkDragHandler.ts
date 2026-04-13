@@ -7,6 +7,7 @@ import {
   type DecorationSet,
   EditorView,
 } from "@codemirror/view";
+// @ts-expect-error - no types for @codemirror/state
 import type { Range } from "@codemirror/state";
 import { TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
