@@ -126,8 +126,8 @@ const buildWidgetDecorations = (
 
     while ((match = INTERNAL_LINK_RE.exec(text)) !== null) {
       let isEmbed = false;
-      if (match.index > 0) isEmbed = text[match.index - 1] === "!";
-      isEmbed = view.state.doc.sliceString(from - 1, from) === "!";
+      const checkPos = from + match.index - 1;
+      const isEmbed = checkPos >= 0 && view.state.doc.sliceString(checkPos, checkPos + 1) === "!";
       if (isEmbed) continue;
       const matchEnd = from + match.index + match[0].length;
       const linkPath = extractLinkPath(match[0]);
