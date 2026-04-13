@@ -9,9 +9,26 @@ export const openaiConfig: LLMProviderConfig = {
   }),
   formatRequestBody: (messages: Message[], settings: Settings) => ({
     model: settings.model,
-    messages: messages,
+    messages: [
+      ...(settings.systemPrompt
+        ? [{ role: "system", content: settings.systemPrompt }]
+        : []),
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
+    ],
     temperature: settings.temperature,
     max_completion_tokens: settings.maxTokens,
+    ...(settings.outputSchema && {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      response_format: {
+        type: "json_schema",
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        json_schema: {
+          name: "extraction_result",
+          strict: true,
+          schema: settings.outputSchema,
+        },
+      },
+    }),
   }),
   extractResponseText: (responseData: any) =>
     responseData.choices?.[0]?.message?.content,
@@ -26,13 +43,21 @@ export const geminiConfig: LLMProviderConfig = {
     "Content-Type": "application/json",
   }),
   formatRequestBody: (messages: Message[], settings: Settings) => ({
+    ...(settings.systemPrompt && {
+      systemInstruction: { parts: [{ text: settings.systemPrompt }] },
+    }),
     contents: messages.map((msg) => ({
       role: msg.role === "user" ? "user" : "model",
-      parts: [{ text: msg.content }],
+      parts:
+        typeof msg.content === "string" ? [{ text: msg.content }] : msg.content,
     })),
     generationConfig: {
       maxOutputTokens: settings.maxTokens,
       temperature: settings.temperature,
+      ...(settings.outputSchema && {
+        responseMimeType: "application/json",
+        responseJsonSchema: settings.outputSchema,
+      }),
     },
     safetySettings: settings.safetySettings,
   }),
@@ -52,8 +77,18 @@ export const anthropicConfig: LLMProviderConfig = {
   formatRequestBody: (messages: Message[], settings: Settings) => ({
     model: settings.model,
     max_tokens: settings.maxTokens,
-    messages: messages,
+    messages: messages.map((m) => ({ role: m.role, content: m.content })),
     temperature: settings.temperature,
+    ...(settings.systemPrompt && { system: settings.systemPrompt }),
+    ...(settings.outputSchema && {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      output_config: {
+        format: {
+          type: "json_schema",
+          schema: settings.outputSchema,
+        },
+      },
+    }),
   }),
   extractResponseText: (responseData: any) => responseData.content?.[0]?.text,
   errorMessagePath: "error?.message",
