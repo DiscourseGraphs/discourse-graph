@@ -686,15 +686,22 @@ const syncPublishedNodesAssets = async (
       0,
   );
   for (const node of published) {
-    const nodeId = node.frontmatter.nodeInstanceId as string | undefined;
-    if (!nodeId) throw new Error("Please sync the node first");
-    await syncPublishedNodeAssets({
-      plugin,
-      client,
-      nodeId,
-      spaceId,
-      file: node.file,
-    });
+    try {
+      const nodeId = node.frontmatter.nodeInstanceId as string | undefined;
+      if (!nodeId) throw new Error("Please sync the node first");
+      await syncPublishedNodeAssets({
+        plugin,
+        client,
+        nodeId,
+        spaceId,
+        file: node.file,
+      });
+    } catch (error) {
+      console.error(
+        `Failed to sync published node assets for ${node.file.path}:`,
+        error,
+      );
+    }
   }
 };
 
