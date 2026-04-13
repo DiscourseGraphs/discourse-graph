@@ -57,7 +57,11 @@ const extractLinkPath = (match: string): string => {
   // Markdown link: [text](path)
   const parenOpen = match.lastIndexOf("(");
   const rawPath = match.slice(parenOpen + 1, -1);
-  return decodeURIComponent(rawPath);
+  try {
+    return decodeURIComponent(rawPath);
+  } catch (error) {
+    return rawPath;
+  }
 };
 
 /**
