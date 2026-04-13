@@ -10,8 +10,6 @@ import {
 import { TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 
-const DRAG_ATTR = "data-dg-draggable";
-
 const buildObsidianUrl = (vaultName: string, filePath: string): string => {
   return `obsidian://open?vault=${encodeURIComponent(vaultName)}&file=${encodeURIComponent(filePath)}`;
 };
@@ -39,49 +37,6 @@ const setDragData = (
   const url = buildObsidianUrl(vaultName, file.path);
   e.dataTransfer?.setData("text/uri-list", url);
   e.dataTransfer?.setData("text/plain", url);
-};
-
-// --- Reading view ---
-
-const makeReadingLinkDraggable = (
-  linkEl: HTMLAnchorElement,
-  plugin: DiscourseGraphPlugin,
-): void => {
-  if (linkEl.hasAttribute(DRAG_ATTR)) return;
-  linkEl.setAttribute(DRAG_ATTR, "true");
-  linkEl.draggable = true;
-
-  linkEl.addEventListener("dragstart", (e) => {
-    const href = linkEl.getAttr("data-href") ?? linkEl.getAttr("href");
-    if (!href) {
-      e.preventDefault();
-      return;
-    }
-
-    const file = resolveFileFromLinkText(href, plugin);
-    if (!file) {
-      e.preventDefault();
-      return;
-    }
-
-    setDragData(e, file, plugin);
-  });
-};
-
-/**
- * Markdown post-processor that makes wikilinks draggable in Reading view.
- */
-export const wikilinkDragPostProcessor = (
-  plugin: DiscourseGraphPlugin,
-): ((el: HTMLElement) => void) => {
-  return (el: HTMLElement) => {
-    const links = el.querySelectorAll<HTMLAnchorElement>(
-      "a.internal-link:not(.internal-embed)",
-    );
-    for (const link of links) {
-      makeReadingLinkDraggable(link, plugin);
-    }
-  };
 };
 
 // --- Live Preview ---
