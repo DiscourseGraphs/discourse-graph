@@ -1,10 +1,14 @@
 import { spawn, execSync } from "node:child_process";
 import { join, dirname } from "path";
 
-const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, "..");
+const scriptDir = dirname(__filename);
+const projectRoot = join(scriptDir, "..");
 
 if (process.env.GITHUB_TEST !== "test") {
+  console.error("Please set the GITHUB_TEST variable to 'test'");
+}
+if (process.env.SUPABASE_PROJECT_ID !== "test") {
+  console.error("Please set the SUPABASE_PROJECT_ID variable to 'test'");
 }
 
 const serve = spawn("supabase", ["functions", "serve"], {
@@ -13,11 +17,9 @@ const serve = spawn("supabase", ["functions", "serve"], {
 });
 
 let resolveCallback: ((v: unknown) => void) | undefined = undefined;
-let rejectCallback: ((v: unknown) => void) | undefined = undefined;
 
-const servingReady = new Promise((rsc, rjc) => {
+const servingReady = new Promise((rsc) => {
   resolveCallback = rsc;
-  rejectCallback = rjc;
 });
 
 serve.stdout.on("data", (data: string) => {
