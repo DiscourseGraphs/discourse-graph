@@ -595,7 +595,7 @@ export const syncPublishedNodeAssets = async ({
   spaceId: number;
   file: TFile;
   attachments?: TFile[];
-}) => {
+}): Promise<void> => {
   if (attachments === undefined) {
     const embeds = plugin.app.metadataCache.getFileCache(file)?.embeds ?? [];
     attachments = embeds
