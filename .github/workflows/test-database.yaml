@@ -25,13 +25,13 @@ jobs:
           cache: "pnpm"
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
-      - name: Get supabase version
-        working-directory: ./packages/database
-        run: echo "SUPABASE_VERSION=$(./node_modules/.bin/supabase --version)" >> $GITHUB_ENV
-      - name: Cache Docker images.
-        uses: AndreKurait/docker-cache@0.6.0
-        with:
-          key: docker-${{ runner.os }}-${{ env.SUPABASE_VERSION }}
+      # - name: Get supabase version
+      #   working-directory: ./packages/database
+      #   run: echo "SUPABASE_VERSION=$(./node_modules/.bin/supabase --version)" >> $GITHUB_ENV
+      # - name: Cache Docker images.
+      #   uses: AndreKurait/docker-cache@0.6.0
+      #   with:
+      #     key: docker-${{ runner.os }}-${{ env.SUPABASE_VERSION }}
       - name: Setup database
         working-directory: ./packages/database
         run: pnpm run setup
