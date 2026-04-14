@@ -5,6 +5,7 @@ import {
   Notice,
   FrontMatterCache,
   setIcon,
+  setTooltip,
 } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import DiscourseGraphPlugin from "~/index";
@@ -157,12 +158,14 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
             )}
             {nodeType.name || "Unnamed Node Type"}
             <button
+              ref={(el) => {
+                if (el)
+                  setTooltip(el, `Create Base view for ${nodeType.name} nodes`);
+              }}
               onClick={() => {
                 void createBaseForNodeType(plugin, nodeType);
               }}
               className="clickable-icon ml-1"
-              title={`Create Base view for ${nodeType.name}`}
-              aria-label={`Create Base view for ${nodeType.name}`}
             >
               <div
                 ref={(el) => (el && setIcon(el, "layout-list")) || undefined}
