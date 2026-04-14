@@ -251,12 +251,10 @@ export const publishNode = async ({
   plugin,
   file,
   frontmatter,
-  republish,
 }: {
   plugin: DiscourseGraphPlugin;
   file: TFile;
   frontmatter: FrontMatterCache;
-  republish?: boolean;
 }): Promise<void> => {
   const client = await getLoggedInClient(plugin);
   if (!client) throw new Error("Cannot get client");
@@ -264,17 +262,12 @@ export const publishNode = async ({
   if (myGroups.size === 0) throw new Error("Cannot get group");
   const existingPublish =
     (frontmatter.publishedToGroups as undefined | string[]) || [];
-  if (!republish) await syncAllNodesAndRelations(plugin);
+  // Hopefully temporary workaround for sync bug
+  await syncAllNodesAndRelations(plugin);
   const commonGroups = existingPublish.filter((g) => myGroups.has(g));
   // temporary single-group assumption
   const myGroup = (commonGroups.length > 0 ? commonGroups : [...myGroups])[0]!;
-  return await publishNodeToGroup({
-    plugin,
-    file,
-    frontmatter,
-    myGroup,
-    republish,
-  });
+  return await publishNodeToGroup({ plugin, file, frontmatter, myGroup });
 };
 
 export const ensurePublishedRelationsAccuracy = async ({
@@ -422,13 +415,11 @@ export const publishNodeToGroup = async ({
   file,
   frontmatter,
   myGroup,
-  republish,
 }: {
   plugin: DiscourseGraphPlugin;
   file: TFile;
   frontmatter: FrontMatterCache;
   myGroup: string;
-  republish?: boolean;
 }): Promise<void> => {
   const nodeId = frontmatter.nodeInstanceId as string | undefined;
   if (!nodeId) throw new Error("Please sync the node first");
@@ -475,8 +466,7 @@ export const publishNodeToGroup = async ({
   );
 
   const skipPublishAccess =
-    republish ||
-    (existingPublish.includes(myGroup) && lastModified <= lastModifiedDb);
+    existingPublish.includes(myGroup) && lastModified <= lastModifiedDb;
 
   if (!skipPublishAccess) {
     const publishSpaceResponse = await client.from("SpaceAccess").upsert(
@@ -518,15 +508,14 @@ export const publishNodeToGroup = async ({
       });
     }
   }
-  if (!republish)
-    await syncPublishedNodeAssets({
-      plugin,
-      client,
-      nodeId,
-      spaceId,
-      file,
-      attachments,
-    });
+  await syncPublishedNodeAssets({
+    plugin,
+    client,
+    nodeId,
+    spaceId,
+    file,
+    attachments,
+  });
   if (!existingPublish.includes(myGroup))
     await plugin.app.fileManager.processFrontMatter(
       file,
