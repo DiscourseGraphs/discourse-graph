@@ -751,10 +751,8 @@ const syncChangedNodesToSupabase = async ({
   try {
     await syncPublishedNodesAssets(plugin, changedNodes);
   } catch (error) {
-    // console.error(
-    //   `Failed to sync published node assets`,
-    //   error,
-    // );
+    console.error(`Failed to sync published node assets`, error);
+    new Notice(`Failed to sync published node assets.`);
   }
 };
 
