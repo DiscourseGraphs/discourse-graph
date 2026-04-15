@@ -19,7 +19,7 @@ export const extractFirstImageUrl = (text: string): string | null => {
 // Matches embed, embed-path, and embed-children syntax:
 // {{[[embed]]: ((block-uid)) }}, {{[[embed-path]]: ((block-uid)) }}, {{[[embed-children]]: ((block-uid)) }}
 // Also handles multiple parentheses: {{[[embed]]: ((((block-uid)))) }}
-const EMBED_REGEX =
+export const EMBED_REGEX =
   /{{\[\[(?:embed|embed-path|embed-children)\]\]:\s*\(\(+([^)]+?)\)+\)\s*}}/i;
 
 const getBlockReferences = (
@@ -37,7 +37,7 @@ const getBlockReferences = (
   return result[":block/refs"] || [];
 };
 
-const findFirstImage = (
+export const findFirstImage = (
   node: TreeNode,
   visited = new Set<string>(),
 ): string | null => {
@@ -123,57 +123,19 @@ export const getCanvasNodeKeyImageUrl = async ({
   return imageUrl ?? "";
 };
 
-/**
- * Compute canvas node dimensions using a pre-fetched imageUrl.
- * Skips querying for the imageUrl — caller must supply it.
- */
-export const calcCanvasNodeDimensionsWithUrl = async ({
-  nodeText,
-  imageUrl,
-}: {
-  nodeText: string;
-  imageUrl: string;
-}): Promise<{ w: number; h: number }> => {
-  const { w, h } = measureCanvasNodeText({
-    ...DEFAULT_STYLE_PROPS,
-    maxWidth: MAX_WIDTH,
-    text: nodeText,
-  });
-
-  if (!imageUrl) return { w, h };
-
-  try {
-    const { width, height } = await loadImage(imageUrl);
-    if (
-      !width ||
-      !height ||
-      !Number.isFinite(width) ||
-      !Number.isFinite(height)
-    ) {
-      return { w, h };
-    }
-    const aspectRatio = width / height;
-    return { w, h: h + w / aspectRatio };
-  } catch {
-    renderToast({
-      id: "tldraw-image-load-fail",
-      content: "Failed to load image",
-      intent: "warning",
-    });
-    return { w, h };
-  }
-};
-
 const calcCanvasNodeSizeAndImg = async ({
   nodeText,
   uid,
   nodeType,
   extensionAPI,
+  imageUrl: preloadedImageUrl,
 }: {
   nodeText: string;
   uid: string;
   nodeType: string;
   extensionAPI: OnloadArgs["extensionAPI"];
+  /** Pre-fetched image URL. When provided, skips calling getCanvasNodeKeyImageUrl. */
+  imageUrl?: string;
 }) => {
   const { w, h } = measureCanvasNodeText({
     ...DEFAULT_STYLE_PROPS,
@@ -181,12 +143,15 @@ const calcCanvasNodeSizeAndImg = async ({
     text: nodeText,
   });
 
-  const imageUrl = await getCanvasNodeKeyImageUrl({
-    nodeText,
-    uid,
-    nodeType,
-    extensionAPI,
-  });
+  const imageUrl =
+    preloadedImageUrl !== undefined
+      ? preloadedImageUrl
+      : await getCanvasNodeKeyImageUrl({
+          nodeText,
+          uid,
+          nodeType,
+          extensionAPI,
+        });
 
   if (!imageUrl) return { w, h, imageUrl: "" };
 
@@ -202,10 +167,7 @@ const calcCanvasNodeSizeAndImg = async ({
     }
 
     const aspectRatio = width / height;
-    const nodeImageHeight = w / aspectRatio;
-    const newHeight = h + nodeImageHeight;
-
-    return { w, h: newHeight, imageUrl };
+    return { w, h: h + w / aspectRatio, imageUrl };
   } catch {
     renderToast({
       id: "tldraw-image-load-fail",

@@ -3,10 +3,10 @@ import type { OnloadArgs } from "roamjs-components/types";
 import type { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
 import { DEFAULT_STYLE_PROPS } from "~/components/canvas/DiscourseNodeUtil";
 import { MAX_WIDTH } from "~/components/canvas/Tldraw";
-import {
-  extractFirstImageUrl,
+import type { TreeNode } from "roamjs-components/types";
+import calcCanvasNodeSizeAndImg, {
+  findFirstImage,
   getFirstImageByUid,
-  calcCanvasNodeDimensionsWithUrl,
 } from "./calcCanvasNodeSizeAndImg";
 import getDiscourseNodes from "./getDiscourseNodes";
 import resolveQueryBuilderRef from "./resolveQueryBuilderRef";
@@ -82,11 +82,11 @@ export const syncCanvasNodesOnLoad = async ({
   relationShapeTypeIds: string[];
   extensionAPI: OnloadArgs["extensionAPI"];
 }): Promise<void> => {
-  const { discourseNodeShapes, uidToTitle } = await syncCanvasNodeTitlesOnLoad(
+  const { discourseNodeShapes, uidToTitle } = await syncCanvasNodeTitlesOnLoad({
     editor,
     nodeTypeIds,
     relationShapeTypeIds,
-  );
+  });
   await syncCanvasKeyImagesOnLoad({
     editor,
     discourseNodeShapes,
@@ -94,11 +94,15 @@ export const syncCanvasNodesOnLoad = async ({
     extensionAPI,
   });
 };
-export const syncCanvasNodeTitlesOnLoad = async (
-  editor: Editor,
-  nodeTypeIds: string[],
-  relationShapeTypeIds: string[],
-): Promise<{
+export const syncCanvasNodeTitlesOnLoad = async ({
+  editor,
+  nodeTypeIds,
+  relationShapeTypeIds,
+}: {
+  editor: Editor;
+  nodeTypeIds: string[];
+  relationShapeTypeIds: string[];
+}): Promise<{
   discourseNodeShapes: DiscourseNodeShape[];
   uidToTitle: Map<string, string>;
 }> => {
@@ -152,82 +156,111 @@ export const syncCanvasNodeTitlesOnLoad = async (
 
 type BlockNode = {
   uid: string;
-  string: string;
+  text: string;
   order: number;
   parentUid: string;
   children: BlockNode[];
 };
 
-const findFirstImageDfs = (blocks: BlockNode[]): string | null => {
-  for (const block of blocks) {
-    const imageUrl = extractFirstImageUrl(block.string);
-    if (imageUrl) return imageUrl;
-    const nested = findFirstImageDfs(block.children);
-    if (nested) return nested;
-  }
-  return null;
-};
-
 /**
- * Single Roam query to find the first markdown image URL across multiple pages.
- * Fetches all blocks with their parent UIDs, reconstructs the tree in JS,
- * then DFS-traverses in page order to find the first image.
+ * Batch-fetch the first markdown image URL for multiple UIDs.
+ *
+ * The naive alternative — calling getFirstImageByUid() per shape — uses
+ * window.roamAlphaAPI.pull, which is synchronous and blocks the main thread.
+ * For a canvas with many shapes this causes a noticeable UI freeze on load.
+ *
+ * Instead, we use a single async Datalog query (data.async.fast.q) that fetches
+ * all block strings for all page UIDs off the main thread, reconstruct the tree
+ * in JS, then DFS with findFirstImage (handling embeds and block refs).
+ *
+ * Trade-off: unlike getFirstImageByUid, this fetches all blocks on the page with
+ * no early termination. For very large pages this may transfer more data, but the
+ * async execution avoids blocking the UI entirely.
+ *
+ * Block UIDs (discourse nodes that are blocks, not pages) are partitioned out
+ * and handled with getFirstImageByUid individually since the page-scoped Datalog
+ * query does not apply to them.
  */
 const batchGetFirstImageUrlsByUids = async (
   uids: string[],
 ): Promise<Map<string, string>> => {
   if (uids.length === 0) return new Map();
 
-  // Each row: [pageUid, blockUid, string, order, parentUid]
-  // parentUid === pageUid for top-level blocks, a block uid for nested ones.
-  const results = (await window.roamAlphaAPI.data.async.fast.q(
-    `[:find ?pageUid ?blockUid ?string ?order ?parentUid
-      :in $ [?pageUid ...]
-      :where [?page :block/uid ?pageUid]
-             [?block :block/page ?page]
-             [?block :block/uid ?blockUid]
-             [?block :block/string ?string]
-             [?block :block/order ?order]
-             [?parent :block/children ?block]
-             [?parent :block/uid ?parentUid]]`,
+  // Identify which UIDs are page UIDs — the batch tree query only works for pages.
+  const pageUidRows = (await window.roamAlphaAPI.data.async.fast.q(
+    `[:find ?uid
+      :in $ [?uid ...]
+      :where [?e :block/uid ?uid]
+             [?e :node/title]]`,
     uids,
-  )) as [string, string, string, number, string][];
+  )) as [string][];
 
-  // Build a flat block map per page.
-  const pageToBlockMap = new Map<string, Map<string, BlockNode>>();
-  for (const [pageUid, blockUid, str, order, parentUid] of results) {
-    if (!pageToBlockMap.has(pageUid)) pageToBlockMap.set(pageUid, new Map());
-    pageToBlockMap.get(pageUid)!.set(blockUid, {
-      uid: blockUid,
-      string: str,
-      order,
-      parentUid,
-      children: [],
-    });
-  }
-
-  // Reconstruct the tree and collect root blocks (direct children of the page).
-  const pageToRootBlocks = new Map<string, BlockNode[]>();
-  for (const [pageUid, blockMap] of pageToBlockMap) {
-    const rootBlocks: BlockNode[] = [];
-    for (const block of blockMap.values()) {
-      if (block.parentUid === pageUid) {
-        rootBlocks.push(block);
-      } else {
-        blockMap.get(block.parentUid)?.children.push(block);
-      }
-    }
-    for (const block of blockMap.values()) {
-      block.children.sort((a, b) => a.order - b.order);
-    }
-    rootBlocks.sort((a, b) => a.order - b.order);
-    pageToRootBlocks.set(pageUid, rootBlocks);
-  }
+  const pageUidSet = new Set(pageUidRows.map(([uid]) => uid));
+  const pageUids = [...pageUidSet];
+  const blockUids = uids.filter((uid) => !pageUidSet.has(uid));
 
   const uidToImageUrl = new Map<string, string>();
-  for (const uid of uids) {
-    const rootBlocks = pageToRootBlocks.get(uid) ?? [];
-    uidToImageUrl.set(uid, findFirstImageDfs(rootBlocks) ?? "");
+
+  // Batch tree query for page UIDs.
+  if (pageUids.length > 0) {
+    // Each row: [pageUid, blockUid, string, order, parentUid]
+    // parentUid === pageUid for top-level blocks, a block uid for nested ones.
+    const results = (await window.roamAlphaAPI.data.async.fast.q(
+      `[:find ?pageUid ?blockUid ?string ?order ?parentUid
+        :in $ [?pageUid ...]
+        :where [?page :block/uid ?pageUid]
+               [?block :block/page ?page]
+               [?block :block/uid ?blockUid]
+               [?block :block/string ?string]
+               [?block :block/order ?order]
+               [?parent :block/children ?block]
+               [?parent :block/uid ?parentUid]]`,
+      pageUids,
+    )) as [string, string, string, number, string][];
+
+    const pageToBlockMap = new Map<string, Map<string, BlockNode>>();
+    for (const [pageUid, blockUid, text, order, parentUid] of results) {
+      if (!pageToBlockMap.has(pageUid)) pageToBlockMap.set(pageUid, new Map());
+      pageToBlockMap.get(pageUid)!.set(blockUid, {
+        uid: blockUid,
+        text,
+        order,
+        parentUid,
+        children: [],
+      });
+    }
+
+    for (const pageUid of pageUids) {
+      const blockMap = pageToBlockMap.get(pageUid);
+      if (!blockMap) {
+        uidToImageUrl.set(pageUid, "");
+        continue;
+      }
+      const rootBlocks: BlockNode[] = [];
+      for (const block of blockMap.values()) {
+        if (block.parentUid === pageUid) {
+          rootBlocks.push(block);
+        } else {
+          blockMap.get(block.parentUid)?.children.push(block);
+        }
+      }
+      for (const block of blockMap.values()) {
+        block.children.sort((a, b) => a.order - b.order);
+      }
+      rootBlocks.sort((a, b) => a.order - b.order);
+      // Use a synthetic root so findFirstImage can traverse all top-level blocks.
+      const syntheticRoot = {
+        uid: pageUid,
+        text: "",
+        children: rootBlocks as unknown as TreeNode[],
+      } as TreeNode;
+      uidToImageUrl.set(pageUid, findFirstImage(syntheticRoot) ?? "");
+    }
+  }
+
+  // Block UIDs: getFirstImageByUid handles both pages and blocks correctly.
+  for (const uid of blockUids) {
+    uidToImageUrl.set(uid, getFirstImageByUid(uid) ?? "");
   }
 
   return uidToImageUrl;
@@ -326,8 +359,12 @@ const syncCanvasKeyImagesOnLoad = async ({
 
       if (prevImageUrl === "" && imageUrl !== "") {
         // Image newly added: compute dimensions including image height.
-        const { w, h } = await calcCanvasNodeDimensionsWithUrl({
+        // Pass the pre-fetched imageUrl to skip re-fetching it.
+        const { w, h } = await calcCanvasNodeSizeAndImg({
           nodeText: title,
+          uid: shape.props.uid,
+          nodeType: shape.type,
+          extensionAPI,
           imageUrl,
         });
         imageUpdates.push({
