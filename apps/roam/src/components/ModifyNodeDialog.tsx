@@ -1,6 +1,7 @@
 import {
   Button,
   Classes,
+  Colors,
   Dialog,
   Intent,
   Label,
@@ -22,7 +23,9 @@ import renderOverlay, {
 import fireQuery from "~/utils/fireQuery";
 import getDiscourseNodes, {
   excludeDefaultNodes,
+  type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
+import { getAllDiscourseNodeInstances } from "~/utils/getAllDiscourseNodeInstances";
 import FuzzySelectInput from "./FuzzySelectInput";
 import { createBlock, updateBlock } from "roamjs-components/writes";
 import {
@@ -40,7 +43,7 @@ import posthog from "posthog-js";
 export type ModifyNodeDialogMode = "create" | "edit";
 export type ModifyNodeDialogProps = {
   mode: ModifyNodeDialogMode;
-  nodeType: string;
+  nodeType?: string;
   initialValue: { text: string; uid: string };
   initialReferencedNode?: { text: string; uid: string };
   sourceBlockUid?: string; //the block that we started modifying from
@@ -110,11 +113,10 @@ const ModifyNodeDialog = ({
   }, [includeDefaultNodes]);
 
   const [selectedNodeType, setSelectedNodeType] = useState<
-    (typeof discourseNodes)[number] | null
+    DiscourseNode | undefined
   >(() => {
-    if (!nodeType) return null;
     const node = discourseNodes.find((n) => n.type === nodeType);
-    return node || null;
+    return node;
   });
 
   const nodeFormat = useMemo(() => {
@@ -164,37 +166,9 @@ const ModifyNodeDialog = ({
             setOptions((prev) => ({ ...prev, content: results }));
           }
         } else {
-          // Query all discourse node types in parallel
-          const allResults = await Promise.all(
-            discourseNodes.map(async (node) => {
-              const conditionUid = window.roamAlphaAPI.util.generateUID();
-              const results = await fireQuery({
-                returnNode: "node",
-                selections: [],
-                conditions: [
-                  {
-                    source: "node",
-                    relation: "is a",
-                    target: node.type,
-                    uid: conditionUid,
-                    type: "clause",
-                  },
-                ],
-              });
-              return results.map((r) => ({
-                ...r,
-                discourseNodeType: node.type,
-              }));
-            }),
-          );
-          const seen = new Set<string>();
-          const deduped = allResults.flat().filter((r) => {
-            if (seen.has(r.uid)) return false;
-            seen.add(r.uid);
-            return true;
-          });
+          const results = await getAllDiscourseNodeInstances(discourseNodes);
           if (contentRequestIdRef.current === req && alive) {
-            setOptions((prev) => ({ ...prev, content: deduped }));
+            setOptions((prev) => ({ ...prev, content: results }));
           }
         }
       } catch (error) {
@@ -266,8 +240,7 @@ const ModifyNodeDialog = ({
     (r: Result) => {
       setContent(r);
       if (!selectedNodeType && r.uid) {
-        const detectedType = (r as Record<string, unknown>)
-          .discourseNodeType as string | undefined;
+        const detectedType = r.discourseNodeType as string | undefined;
         if (detectedType) {
           const nt = discourseNodes.find((n) => n.type === detectedType);
           if (nt) {
@@ -560,8 +533,8 @@ const ModifyNodeDialog = ({
       >
         <div className={`${Classes.DIALOG_BODY} flex flex-col gap-4`}>
           {/* Content Input */}
-          <div className="w-full">
-            <Label>Content</Label>
+          <Label className="w-full">
+            Content
             <FuzzySelectInput
               value={content}
               setValue={setValue}
@@ -577,11 +550,11 @@ const ModifyNodeDialog = ({
               isLocked={isContentLocked}
               autoFocus={!isContentLocked}
             />
-          </div>
+          </Label>
 
           {/* Node Type Selector */}
           <div className="flex w-full">
-            <Label autoFocus={false}>
+            <Label autoFocus={false} className="w-full">
               Node Type
               <MenuItemSelect
                 items={discourseNodes.map((n) => n.type)}
@@ -601,19 +574,26 @@ const ModifyNodeDialog = ({
                   mode === "edit" || disableNodeTypeChange || isContentLocked
                 }
                 popoverProps={{ openOnTargetFocus: false }}
-                className={
-                  mode === "edit" || disableNodeTypeChange || isContentLocked
-                    ? "cursor-not-allowed opacity-50"
-                    : ""
-                }
+                ButtonProps={{
+                  className:
+                    mode === "edit" || disableNodeTypeChange || isContentLocked
+                      ? "cursor-not-allowed opacity-50"
+                      : "",
+                  onFocus: (e) => {
+                    e.currentTarget.style.boxShadow = `0 0 0 2px ${Colors.BLUE3}, 0 0 0 4px ${Colors.BLUE3}4d`;
+                  },
+                  onBlur: (e) => {
+                    e.currentTarget.style.boxShadow = "";
+                  },
+                }}
               />
             </Label>
           </div>
 
           {/* Referenced Node Input */}
           {referencedNode && !isContentLocked && mode === "create" && (
-            <div className="w-full">
-              <Label>{referencedNode.name}</Label>
+            <Label className="w-full">
+              {referencedNode.name}
               <FuzzySelectInput
                 value={referencedNodeValue}
                 setValue={setReferencedNodeValueCallback}
@@ -623,7 +603,7 @@ const ModifyNodeDialog = ({
                 isLocked={isReferencedNodeLocked}
                 autoFocus={false}
               />
-            </div>
+            </Label>
           )}
         </div>
         {/* Submit Button */}
