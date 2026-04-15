@@ -8,8 +8,6 @@ import { cn } from "@repo/ui/lib/utils";
 
 const Select = SelectPrimitive.Root;
 
-const SelectGroup = SelectPrimitive.Group;
-
 const SelectValue = SelectPrimitive.Value;
 
 const SelectTrigger = React.forwardRef<
@@ -19,14 +17,14 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground [&>span]:line-clamp-1",
+      "flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2",
       className,
     )}
     {...props}
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 data-[state=open]:rotate-180" />
+      <ChevronDown className="h-4 w-4 shrink-0 opacity-50 data-[state=open]:rotate-180" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -40,9 +38,8 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-96 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2",
-        position === "popper" &&
-          "w-[var(--radix-select-trigger-width)] data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1",
+        "relative z-50 max-h-96 overflow-hidden rounded-md border border-slate-200 bg-white text-slate-900 shadow-md",
+        position === "popper" && "w-[var(--radix-select-trigger-width)]",
         className,
       )}
       position={position}
@@ -56,18 +53,6 @@ const SelectContent = React.forwardRef<
 ));
 SelectContent.displayName = SelectPrimitive.Content.displayName;
 
-const SelectLabel = React.forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Label>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
->(({ className, ...props }, ref) => (
-  <SelectPrimitive.Label
-    ref={ref}
-    className={cn("py-1.5 pl-3 pr-2 text-sm font-semibold", className)}
-    {...props}
-  />
-));
-SelectLabel.displayName = SelectPrimitive.Label.displayName;
-
 const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
@@ -75,7 +60,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-3 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[state=checked]:font-semibold data-[disabled]:opacity-50",
+      "relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-3 pr-8 text-sm outline-none focus:bg-slate-100 data-[state=checked]:font-semibold",
       className,
     )}
     {...props}
@@ -90,25 +75,4 @@ const SelectItem = React.forwardRef<
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
-const SelectSeparator = React.forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Separator>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
->(({ className, ...props }, ref) => (
-  <SelectPrimitive.Separator
-    ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-muted", className)}
-    {...props}
-  />
-));
-SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
-
-export {
-  Select,
-  SelectGroup,
-  SelectValue,
-  SelectTrigger,
-  SelectContent,
-  SelectLabel,
-  SelectItem,
-  SelectSeparator,
-};
+export { Select, SelectValue, SelectTrigger, SelectContent, SelectItem };
