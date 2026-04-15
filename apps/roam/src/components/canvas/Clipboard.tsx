@@ -46,7 +46,6 @@ import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import { Result } from "roamjs-components/types/query-builder";
 import fuzzy from "fuzzy";
 import getAllReferencesOnPage from "~/utils/getAllReferencesOnPage";
-import isDiscourseNode from "~/utils/isDiscourseNode";
 import {
   DiscourseNodeShape,
   DEFAULT_STYLE_PROPS,
@@ -441,7 +440,7 @@ const ClipboardPageSection = ({
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [discourseNodes, setDiscourseNodes] = useState<
-    Array<{ uid: string; text: string }>
+    Array<{ uid: string; text: string; type: string }>
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -465,9 +464,17 @@ const ClipboardPageSection = ({
       setIsLoading(true);
       try {
         const referencedPages = await getAllReferencesOnPage(page.text);
-        const nodes = referencedPages.filter((refPage) =>
-          isDiscourseNode(refPage.uid),
-        );
+        const nodes = referencedPages.flatMap((refPage) => {
+          const discourseNode = findDiscourseNode({ uid: refPage.uid });
+          if (!discourseNode || discourseNode.backedBy === "default") return [];
+          return [
+            {
+              uid: refPage.uid,
+              text: refPage.text,
+              type: discourseNode.text,
+            },
+          ];
+        });
         setDiscourseNodes(nodes);
       } catch (error) {
         internalError({
@@ -546,11 +553,10 @@ const ClipboardPageSection = ({
   const groupedNodes = useMemo(() => {
     const groups: NodeGroup[] = discourseNodes.map((node) => {
       const shapes = shapesByUid.get(node.uid) ?? [];
-      const discourseNode = findDiscourseNode({ uid: node.uid });
       return {
         uid: node.uid,
         text: node.text,
-        type: discourseNode ? discourseNode.text : "Unknown",
+        type: node.type,
         shapes,
         isDuplicate: shapes.length > 1,
       };
@@ -1243,29 +1249,34 @@ export const ClipboardPanel = () => {
             <Popover
               position={Position.BOTTOM}
               content={
-                <Menu>
-                  {availableNodeTypes.map((type) => (
-                    <MenuItem
-                      key={type}
-                      active={selectedNodeType === type}
-                      onClick={() => setSelectedNodeType(type)}
-                      text={
-                        <span className="flex items-center gap-2">
-                          {type !== "All" && (
-                            <span
-                              className="inline-block h-3 w-3 shrink-0 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  nodeTypeColorMap[type] || "#000000",
-                              }}
-                            />
-                          )}
-                          {type}
-                        </span>
-                      }
-                    />
-                  ))}
-                </Menu>
+                <div
+                  onPointerDown={(e) => e.stopPropagation()}
+                  style={{ pointerEvents: "all" }}
+                >
+                  <Menu>
+                    {availableNodeTypes.map((type) => (
+                      <MenuItem
+                        key={type}
+                        active={selectedNodeType === type}
+                        onClick={() => setSelectedNodeType(type)}
+                        text={
+                          <span className="flex items-center gap-2">
+                            {type !== "All" && (
+                              <span
+                                className="inline-block h-3 w-3 shrink-0 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    nodeTypeColorMap[type] || "#000000",
+                                }}
+                              />
+                            )}
+                            {type}
+                          </span>
+                        }
+                      />
+                    ))}
+                  </Menu>
+                </div>
               }
             >
               <Button
