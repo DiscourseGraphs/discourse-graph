@@ -6,7 +6,7 @@ export const isQueryPage = ({
   snapshot,
 }: {
   title: string;
-  snapshot?: SettingsSnapshot;
+  snapshot: SettingsSnapshot;
 }): boolean => {
   const queryPages = getQueryPages(snapshot);
 

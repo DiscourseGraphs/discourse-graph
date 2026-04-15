@@ -34,10 +34,7 @@ import {
 import { initPluginTimer } from "./utils/pluginTimer";
 import { initPostHog } from "./utils/posthog";
 import { initSchema } from "./components/settings/utils/init";
-import {
-  bulkReadSettings,
-  readPathValue,
-} from "./components/settings/utils/accessors";
+import { bulkReadSettings } from "./components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "./components/settings/utils/settingKeys";
 import { setupPullWatchOnSettingsPage } from "./components/settings/utils/pullWatchers";
 import {
@@ -49,19 +46,16 @@ import { mountLeftSidebar } from "./components/LeftSidebarView";
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
-  initPluginTimer();
+  const pluginLoadStart = performance.now();
 
-  const settingsSnapshot = bulkReadSettings();
+  const settings = bulkReadSettings();
 
-  const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
-  const isOffline = window.roamAlphaAPI.graph.type === "offline";
-  const disallowDiagnostics = readPathValue(settingsSnapshot.personalSettings, [
-    PERSONAL_KEYS.disableProductDiagnostics,
-  ]) as boolean | undefined;
-  if (!isEncrypted && !isOffline && !disallowDiagnostics) {
+  if (!settings.personalSettings[PERSONAL_KEYS.disableProductDiagnostics]) {
     initPostHog();
   }
+
   initFeedbackWidget();
+
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
       timeout: 10000,
@@ -80,16 +74,19 @@ export default runExtension(async (onloadArgs) => {
       timeout: 500,
     });
   }
-  await initializeDiscourseNodes(settingsSnapshot);
 
-  refreshConfigTree(settingsSnapshot);
+  initPluginTimer();
+
+  await initializeDiscourseNodes(settings);
+
+  refreshConfigTree(settings);
 
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
 
-  setInitialQueryPages(onloadArgs, settingsSnapshot);
+  setInitialQueryPages(onloadArgs, settings);
 
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
@@ -97,10 +94,8 @@ export default runExtension(async (onloadArgs) => {
   const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
 
   // Add streamline styling only if enabled
-  const isStreamlineStylingEnabled = readPathValue(
-    settingsSnapshot.personalSettings,
-    [PERSONAL_KEYS.streamlineStyling],
-  ) as boolean | undefined;
+  const isStreamlineStylingEnabled =
+    settings.personalSettings[PERSONAL_KEYS.streamlineStyling];
   let streamlineStyleElement: HTMLStyleElement | null = null;
   if (isStreamlineStylingEnabled) {
     streamlineStyleElement = addStyle(streamlineStyling);
@@ -109,7 +104,7 @@ export default runExtension(async (onloadArgs) => {
 
   const { observers, listeners, cleanups } = initObservers({
     onloadArgs,
-    settingsSnapshot,
+    settings,
   });
   const {
     pageActionListener,
@@ -124,7 +119,7 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  if (settingsSnapshot.featureFlags["Suggestive mode enabled"]) {
+  if (settings.featureFlags["Suggestive mode enabled"]) {
     initializeSupabaseSync();
   }
 
@@ -155,7 +150,7 @@ export default runExtension(async (onloadArgs) => {
     getDiscourseNodes: getDiscourseNodes,
   };
 
-  installDiscourseFloatingMenu(onloadArgs, settingsSnapshot);
+  installDiscourseFloatingMenu(onloadArgs, settings);
 
   const leftSidebarScript = document.querySelector<HTMLScriptElement>(
     'script#roam-left-sidebar[src="https://sid597.github.io/roam-left-sidebar/js/main.js"]',
@@ -181,7 +176,7 @@ export default runExtension(async (onloadArgs) => {
       if (!wrapper) return;
       if (enabled) {
         wrapper.style.padding = "0";
-        void mountLeftSidebar(wrapper, onloadArgs);
+        void mountLeftSidebar({ wrapper, onloadArgs });
       } else {
         const root = wrapper.querySelector("#dg-left-sidebar-root");
         if (root) {
@@ -196,6 +191,10 @@ export default runExtension(async (onloadArgs) => {
 
   const { blockUids } = await initSchema();
   const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
+
+  console.log(
+    `[DG Plugin] Total load: ${Math.round(performance.now() - pluginLoadStart)}ms`,
+  );
 
   return {
     elements: [
