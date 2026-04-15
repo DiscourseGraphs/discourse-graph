@@ -2,9 +2,12 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import { createPage } from "roamjs-components/writes";
 import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
 import getDiscourseNodes, { excludeDefaultNodes } from "./getDiscourseNodes";
+import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
 
-const initializeDiscourseNodes = async () => {
-  const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
+const initializeDiscourseNodes = async (snapshot: SettingsSnapshot) => {
+  const nodes = getDiscourseNodes(undefined, snapshot).filter(
+    excludeDefaultNodes,
+  );
   if (nodes.length === 0) {
     await Promise.all(
       INITIAL_NODE_VALUES.map(

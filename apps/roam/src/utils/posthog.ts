@@ -2,13 +2,13 @@ import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
 import { getVersionWithDate } from "./getVersion";
 import posthog from "posthog-js";
 import type { CaptureResult } from "posthog-js";
-import { getPersonalSetting } from "~/components/settings/utils/accessors";
-import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 
 let initialized = false;
 
-const doInitPostHog = (): void => {
+export const initPostHog = (): void => {
   if (initialized) return;
+  if (window.roamAlphaAPI.graph.isEncrypted) return;
+  if (window.roamAlphaAPI.graph.type === "offline") return;
   const propertyDenylist = new Set([
     "$ip",
     "$device_id",
@@ -58,19 +58,10 @@ const doInitPostHog = (): void => {
 };
 
 export const enablePostHog = (): void => {
-  doInitPostHog();
+  initPostHog();
   posthog.opt_in_capturing();
 };
 
 export const disablePostHog = (): void => {
   if (initialized) posthog.opt_out_capturing();
-};
-
-export const initPostHog = (): void => {
-  const disabled = getPersonalSetting<boolean>([
-    PERSONAL_KEYS.disableProductDiagnostics,
-  ]);
-  if (!disabled) {
-    doInitPostHog();
-  }
 };

@@ -336,6 +336,9 @@ export type InitSchemaResult = {
   nodePageUids: Record<string, string>;
 };
 
+// On-demand dual-read comparison. Not called automatically on init —
+// invoke from the console via window.dgDualReadLog() to inspect the legacy
+// settings tree vs. the block-prop store.
 const logDualReadComparison = (): void => {
   if (!isNewSettingsStoreEnabled()) return;
 
@@ -415,11 +418,6 @@ export const initSchema = async (): Promise<InitSchemaResult> => {
   await migrateGraphLevel(blockUids);
   const nodePageUids = await initDiscourseNodePages();
   await migratePersonalSettings(blockUids);
-  try {
-    logDualReadComparison();
-  } catch (e) {
-    console.warn("[DG Dual-Read] Comparison failed:", e);
-  }
   (window as unknown as Record<string, unknown>).dgDualReadLog =
     logDualReadComparison;
   return { blockUids, nodePageUids };

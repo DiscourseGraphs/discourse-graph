@@ -3,6 +3,7 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import {
   isNewSettingsStoreEnabled,
   getAllDiscourseNodes,
+  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import discourseConfigRef from "./discourseConfigRef";
 import getDiscourseRelations from "./getDiscourseRelations";
@@ -106,9 +107,16 @@ const getUidAndBooleanSetting = ({
   };
 };
 
-const getDiscourseNodes = (relations = getDiscourseRelations()) => {
+const getDiscourseNodes = (
+  relations?: ReturnType<typeof getDiscourseRelations>,
+  snapshot?: SettingsSnapshot,
+) => {
+  const resolvedRelations = relations ?? getDiscourseRelations(snapshot);
+  const newStoreEnabled = snapshot
+    ? snapshot.featureFlags["Use new settings store"]
+    : isNewSettingsStoreEnabled();
   const configuredNodes = (
-    isNewSettingsStoreEnabled()
+    newStoreEnabled
       ? getAllDiscourseNodes()
       : Object.entries(discourseConfigRef.nodes).map(
           ([type, { text, children }]): DiscourseNode => {
@@ -158,7 +166,7 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
           },
         )
   ).concat(
-    relations
+    resolvedRelations
       .filter((r) => r.triples.some((t) => t.some((n) => /anchor/i.test(n))))
       .map((r) => ({
         format: "",

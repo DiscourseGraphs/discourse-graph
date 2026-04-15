@@ -39,6 +39,7 @@ import {
   getPersonalSettings,
   setGlobalSetting,
   setPersonalSetting,
+  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import {
   PERSONAL_KEYS,
@@ -336,14 +337,16 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
 
 // TODO(ENG-1471): Remove old-system merge when migration complete — just use accessor values directly.
 // See mergeGlobalSectionWithAccessor/mergePersonalSectionsWithAccessor for why the merge exists.
-const buildConfig = (): LeftSidebarConfig => {
+const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
   // Read VALUES from accessor (handles flag routing + mismatch detection)
-  const globalValues = getGlobalSetting<LeftSidebarGlobalSettings>([
-    GLOBAL_KEYS.leftSidebar,
-  ]);
-  const personalValues = getPersonalSetting<
-    ReturnType<typeof getPersonalSettings>[typeof PERSONAL_KEYS.leftSidebar]
-  >([PERSONAL_KEYS.leftSidebar]);
+  const globalValues = snapshot
+    ? snapshot.globalSettings[GLOBAL_KEYS.leftSidebar]
+    : getGlobalSetting<LeftSidebarGlobalSettings>([GLOBAL_KEYS.leftSidebar]);
+  const personalValues = snapshot
+    ? snapshot.personalSettings[PERSONAL_KEYS.leftSidebar]
+    : getPersonalSetting<
+        ReturnType<typeof getPersonalSettings>[typeof PERSONAL_KEYS.leftSidebar]
+      >([PERSONAL_KEYS.leftSidebar]);
 
   // Read UIDs from old system (needed for fold CRUD during dual-write)
   const oldConfig = getCurrentLeftSidebarConfig();
@@ -364,8 +367,8 @@ const buildConfig = (): LeftSidebarConfig => {
   };
 };
 
-export const useConfig = () => {
-  const [config, setConfig] = useState(() => buildConfig());
+export const useConfig = (initialSnapshot?: SettingsSnapshot) => {
+  const [config, setConfig] = useState(() => buildConfig(initialSnapshot));
   useEffect(() => {
     const handleUpdate = () => {
       setConfig(buildConfig());
@@ -504,8 +507,14 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   );
 };
 
-const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const { config } = useConfig();
+const LeftSidebarView = ({
+  onloadArgs,
+  initialSnapshot,
+}: {
+  onloadArgs: OnloadArgs;
+  initialSnapshot?: SettingsSnapshot;
+}) => {
+  const { config } = useConfig(initialSnapshot);
 
   return (
     <>
@@ -610,10 +619,15 @@ const migrateFavorites = async () => {
   refreshConfigTree();
 };
 
-export const mountLeftSidebar = async (
-  wrapper: HTMLElement,
-  onloadArgs: OnloadArgs,
-): Promise<void> => {
+export const mountLeftSidebar = async ({
+  wrapper,
+  onloadArgs,
+  initialSnapshot,
+}: {
+  wrapper: HTMLElement;
+  onloadArgs: OnloadArgs;
+  initialSnapshot?: SettingsSnapshot;
+}): Promise<void> => {
   if (!wrapper) return;
 
   const id = "dg-left-sidebar-root";
@@ -630,7 +644,14 @@ export const mountLeftSidebar = async (
   } else {
     root.className = "starred-pages";
   }
-  ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
+  // eslint-disable-next-line react/no-deprecated
+  ReactDOM.render(
+    <LeftSidebarView
+      onloadArgs={onloadArgs}
+      initialSnapshot={initialSnapshot}
+    />,
+    root,
+  );
 };
 
 export default LeftSidebarView;

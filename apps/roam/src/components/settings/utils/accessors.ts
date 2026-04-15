@@ -863,8 +863,10 @@ export const setGlobalSetting = (keys: string[], value: json): void => {
   });
 };
 
-export const getAllRelations = (): DiscourseRelation[] => {
-  const settings = getGlobalSettings();
+export const getAllRelations = (
+  snapshot?: SettingsSnapshot,
+): DiscourseRelation[] => {
+  const settings = snapshot ? snapshot.globalSettings : getGlobalSettings();
 
   return Object.entries(settings.Relations).flatMap(([id, relation]) =>
     relation.ifConditions.map((ifCondition) => ({
@@ -907,6 +909,61 @@ export const getPersonalSetting = <T = unknown>(
     );
   }
   return blockPropsValue as T | undefined;
+};
+
+export type SettingsSnapshot = {
+  featureFlags: FeatureFlags;
+  globalSettings: GlobalSettings;
+  personalSettings: PersonalSettings;
+};
+
+export const bulkReadSettings = (): SettingsSnapshot => {
+  const pageResult = window.roamAlphaAPI.pull(
+    "[{:block/children [:block/string :block/props]}]",
+    [":node/title", DG_BLOCK_PROP_SETTINGS_PAGE_TITLE],
+  ) as Record<string, json> | null;
+
+  const children = (pageResult?.[":block/children"] ?? []) as Record<
+    string,
+    json
+  >[];
+  const personalKey = getPersonalSettingsKey();
+  let featureFlagsProps: json = {};
+  let globalProps: json = {};
+  let personalProps: json = {};
+
+  for (const child of children) {
+    const text = child[":block/string"];
+    if (typeof text !== "string") continue;
+    const rawBlockProps = child[":block/props"];
+    const blockProps =
+      rawBlockProps && typeof rawBlockProps === "object"
+        ? normalizeProps(rawBlockProps)
+        : {};
+    if (text === TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags) {
+      featureFlagsProps = blockProps;
+    } else if (text === TOP_LEVEL_BLOCK_PROP_KEYS.global) {
+      globalProps = blockProps;
+    } else if (text === personalKey) {
+      personalProps = blockProps;
+    }
+  }
+
+  const featureFlags = FeatureFlagsSchema.parse(featureFlagsProps || {});
+
+  if (!featureFlags["Use new settings store"]) {
+    return {
+      featureFlags,
+      globalSettings: readAllLegacyGlobalSettings() as GlobalSettings,
+      personalSettings: readAllLegacyPersonalSettings() as PersonalSettings,
+    };
+  }
+
+  return {
+    featureFlags,
+    globalSettings: GlobalSettingsSchema.parse(globalProps || {}),
+    personalSettings: PersonalSettingsSchema.parse(personalProps || {}),
+  };
 };
 
 export const setPersonalSetting = (keys: string[], value: json): void => {

@@ -9,6 +9,7 @@ import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import {
   isNewSettingsStoreEnabled,
   getAllRelations,
+  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import discourseConfigRef from "./discourseConfigRef";
 
@@ -35,9 +36,12 @@ export const getRelationsNode = (grammarNode = getGrammarNode()) => {
   return grammarNode?.children.find(matchNodeText("relations"));
 };
 
-const getDiscourseRelations = () => {
-  if (isNewSettingsStoreEnabled()) {
-    return getAllRelations();
+const getDiscourseRelations = (snapshot?: SettingsSnapshot) => {
+  const newStoreEnabled = snapshot
+    ? snapshot.featureFlags["Use new settings store"]
+    : isNewSettingsStoreEnabled();
+  if (newStoreEnabled) {
+    return getAllRelations(snapshot);
   }
 
   const grammarNode = getGrammarNode();
