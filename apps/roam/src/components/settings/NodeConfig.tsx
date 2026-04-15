@@ -211,47 +211,28 @@ const NodeConfig = ({
                 <Label>
                   Color
                   <Description description="Changes the color of tags and canvas nodes" />
-                </Label>
-                <ControlGroup>
-                  <InputGroup
-                    style={{ width: 120 }}
-                    type={"color"}
-                    value={color}
-                    onChange={(e) => {
-                      const colorValue = e.target.value.replace("#", ""); // remove hash to not create roam link
-                      setColor(e.target.value);
-                      void setInputSetting({
-                        blockUid: canvasUid,
-                        key: "color",
-                        value: colorValue,
-                      });
-                      setDiscourseNodeSetting(
-                        node.type,
-                        ["canvasSettings", "color"],
-                        colorValue,
-                      );
-                    }}
-                  />
-                  <Tooltip content={color ? "Unset" : "Color not set"}>
-                    <Icon
-                      className={"ml-2 align-middle opacity-80"}
-                      icon={color ? "delete" : "info-sign"}
-                      onClick={() => {
-                        setColor("");
+                  <ControlGroup>
+                    <InputGroup
+                      style={{ width: 120 }}
+                      type={"color"}
+                      value={color}
+                      onChange={(e) => {
+                        const colorValue = e.target.value.replace("#", ""); // remove hash to not create roam link
+                        setColor(e.target.value);
                         void setInputSetting({
                           blockUid: canvasUid,
                           key: "color",
-                          value: "",
+                          value: colorValue,
                         });
                         setDiscourseNodeSetting(
                           node.type,
                           ["canvasSettings", "color"],
-                          "",
+                          colorValue,
                         );
                       }}
                     />
-                  </Tooltip>
-                </ControlGroup>
+                  </ControlGroup>
+                </Label>
               </>
             </div>
           }
