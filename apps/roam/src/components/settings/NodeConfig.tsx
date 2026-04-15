@@ -10,8 +10,6 @@ import {
   TabId,
   InputGroup,
   ControlGroup,
-  Tooltip,
-  Icon,
 } from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
