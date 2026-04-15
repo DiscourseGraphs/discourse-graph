@@ -197,15 +197,13 @@ const batchGetFirstImageUrlsByUids = async (
   const pageToBlockMap = new Map<string, Map<string, BlockNode>>();
   for (const [pageUid, blockUid, str, order, parentUid] of results) {
     if (!pageToBlockMap.has(pageUid)) pageToBlockMap.set(pageUid, new Map());
-    pageToBlockMap
-      .get(pageUid)!
-      .set(blockUid, {
-        uid: blockUid,
-        string: str,
-        order,
-        parentUid,
-        children: [],
-      });
+    pageToBlockMap.get(pageUid)!.set(blockUid, {
+      uid: blockUid,
+      string: str,
+      order,
+      parentUid,
+      children: [],
+    });
   }
 
   // Reconstruct the tree and collect root blocks (direct children of the page).
@@ -270,21 +268,10 @@ const syncCanvasKeyImagesOnLoad = async ({
     }
   }
 
-  console.log("nodeTypeToCanvasSettings", nodeTypeToCanvasSettings);
-  console.log(
-    "firstImageShapes",
-    firstImageShapes.map((s) => ({ type: s.type, uid: s.props.uid })),
-  );
-  console.log(
-    "queryBuilderShapes",
-    queryBuilderShapes.map((s) => ({ type: s.type, uid: s.props.uid })),
-  );
-
   // Batch query for "First image on page" shapes — one Roam query for all.
   const uidToFirstImage = await batchGetFirstImageUrlsByUids(
     firstImageShapes.map((s) => s.props.uid),
   );
-  console.log("uidToFirstImage", Object.fromEntries(uidToFirstImage));
 
   // Per-shape queries for "Query builder" shapes (inherently per-node).
   const qbResults = await Promise.all(
@@ -319,13 +306,10 @@ const syncCanvasKeyImagesOnLoad = async ({
     })),
     ...qbResults,
   ];
-  console.log("urlResults", urlResults);
 
   const changedShapes = urlResults.filter(
     ({ shape, imageUrl }) => (shape.props.imageUrl ?? "") !== imageUrl,
   );
-
-  console.log("changedShapes", changedShapes);
 
   // Only load images when imageUrl transitions between empty and non-empty,
   // since those are the only cases that require recomputing dimensions.
