@@ -32,7 +32,7 @@ const SAMPLE_NODES: ExtractedNode[] = [
     sourceSection: "Discussion",
   },
   {
-    nodeType: "Hypothesis",
+    nodeType: "Claim",
     content:
       "Ror2 receptor activation at the basolateral surface mediates Wnt5a-dependent lumen positioning.",
     supportSnippet:
@@ -40,7 +40,7 @@ const SAMPLE_NODES: ExtractedNode[] = [
     sourceSection: "Discussion",
   },
   {
-    nodeType: "Result",
+    nodeType: "Evidence",
     content:
       "shRNA-mediated knockdown of Wnt5a resulted in multi-lumen cysts in 68% of colonies compared to 12% in control conditions.",
     supportSnippet:
@@ -48,14 +48,15 @@ const SAMPLE_NODES: ExtractedNode[] = [
     sourceSection: "Results",
   },
   {
-    nodeType: "Source",
-    content: "Yamamoto et al. (2015) Nature Cell Biology 17(8):1024-1035",
+    nodeType: "Artifact",
+    content:
+      "MDCK 3D cyst culture model grown on Matrigel, used to visualize lumen formation by confocal live imaging of F-actin and podocalyxin markers.",
     supportSnippet:
-      "Primary research article on Wnt5a basolateral secretion and lumen formation in polarized epithelia.",
-    sourceSection: "References",
+      '"We used MDCK II cells seeded in 100% Matrigel and imaged cyst development over 96 hours using spinning-disk confocal microscopy (Materials and Methods)"',
+    sourceSection: "Methods",
   },
   {
-    nodeType: "Theory",
+    nodeType: "Pattern",
     content:
       "Non-canonical Wnt signaling through the planar cell polarity pathway is a conserved mechanism for epithelial lumen morphogenesis.",
     supportSnippet:
