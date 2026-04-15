@@ -34,10 +34,7 @@ import {
 import { initPluginTimer } from "./utils/pluginTimer";
 import { initPostHog } from "./utils/posthog";
 import { initSchema } from "./components/settings/utils/init";
-import {
-  getFeatureFlag,
-  getPersonalSetting,
-} from "./components/settings/utils/accessors";
+import { bulkReadSettings } from "./components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "./components/settings/utils/settingKeys";
 import { setupPullWatchOnSettingsPage } from "./components/settings/utils/pullWatchers";
 import {
@@ -49,12 +46,11 @@ import { mountLeftSidebar } from "./components/LeftSidebarView";
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
-  const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
-  const isOffline = window.roamAlphaAPI.graph.type === "offline";
-  const disallowDiagnostics = getPersonalSetting<boolean>([
-    PERSONAL_KEYS.disableProductDiagnostics,
-  ]);
-  if (!isEncrypted && !isOffline && !disallowDiagnostics) {
+  const pluginLoadStart = performance.now();
+
+  const settings = bulkReadSettings();
+
+  if (!settings.personalSettings[PERSONAL_KEYS.disableProductDiagnostics]) {
     initPostHog();
   }
 
@@ -81,14 +77,16 @@ export default runExtension(async (onloadArgs) => {
 
   initPluginTimer();
 
-  await initializeDiscourseNodes();
-  refreshConfigTree();
+  await initializeDiscourseNodes(settings);
+
+  refreshConfigTree(settings);
 
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
-  setInitialQueryPages(onloadArgs);
+
+  setInitialQueryPages(onloadArgs, settings);
 
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
@@ -96,16 +94,18 @@ export default runExtension(async (onloadArgs) => {
   const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
 
   // Add streamline styling only if enabled
-  const isStreamlineStylingEnabled = getPersonalSetting<boolean>([
-    PERSONAL_KEYS.streamlineStyling,
-  ]);
+  const isStreamlineStylingEnabled =
+    settings.personalSettings[PERSONAL_KEYS.streamlineStyling];
   let streamlineStyleElement: HTMLStyleElement | null = null;
   if (isStreamlineStylingEnabled) {
     streamlineStyleElement = addStyle(streamlineStyling);
     streamlineStyleElement.id = "streamline-styling";
   }
 
-  const { observers, listeners, cleanups } = initObservers({ onloadArgs });
+  const { observers, listeners, cleanups } = initObservers({
+    onloadArgs,
+    settings,
+  });
   const {
     pageActionListener,
     hashChangeListener,
@@ -119,7 +119,7 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  if (getFeatureFlag("Suggestive mode enabled")) {
+  if (settings.featureFlags["Suggestive mode enabled"]) {
     initializeSupabaseSync();
   }
 
@@ -150,7 +150,7 @@ export default runExtension(async (onloadArgs) => {
     getDiscourseNodes: getDiscourseNodes,
   };
 
-  installDiscourseFloatingMenu(onloadArgs);
+  installDiscourseFloatingMenu(onloadArgs, settings);
 
   const leftSidebarScript = document.querySelector<HTMLScriptElement>(
     'script#roam-left-sidebar[src="https://sid597.github.io/roam-left-sidebar/js/main.js"]',
@@ -176,7 +176,7 @@ export default runExtension(async (onloadArgs) => {
       if (!wrapper) return;
       if (enabled) {
         wrapper.style.padding = "0";
-        void mountLeftSidebar(wrapper, onloadArgs);
+        void mountLeftSidebar({ wrapper, onloadArgs });
       } else {
         const root = wrapper.querySelector("#dg-left-sidebar-root");
         if (root) {
@@ -191,6 +191,10 @@ export default runExtension(async (onloadArgs) => {
 
   const { blockUids } = await initSchema();
   const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
+
+  console.log(
+    `[DG Plugin] Total load: ${Math.round(performance.now() - pluginLoadStart)}ms`,
+  );
 
   return {
     elements: [

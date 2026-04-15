@@ -9,14 +9,16 @@ import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
-import { getDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import {
+  getDiscourseNodeSetting,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
 import {
   DISCOURSE_NODE_KEYS,
   SPECIFICATION_KEYS,
   TEMPLATE_SETTING_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
-import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import {
   DiscourseNodeTextPanel,
   DiscourseNodeFlagPanel,
@@ -43,9 +45,11 @@ const generateTagPlaceholder = (node: DiscourseNode): string => {
 const NodeConfig = ({
   node,
   onloadArgs,
+  featureFlags,
 }: {
   node: DiscourseNode;
   onloadArgs: OnloadArgs;
+  featureFlags: SettingsSnapshot["featureFlags"];
 }) => {
   const getUid = (key: string) =>
     getSubTree({
@@ -299,7 +303,7 @@ const NodeConfig = ({
             </div>
           }
         />
-        {getFeatureFlag("Suggestive mode enabled") && (
+        {featureFlags["Suggestive mode enabled"] && (
           <Tab
             id="suggestive-mode"
             title="Suggestive mode"

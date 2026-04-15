@@ -9,7 +9,7 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { GlobalFlagPanel } from "./components/BlockPropSettingPanels";
-import { getGlobalSetting } from "~/components/settings/utils/accessors";
+import { type SettingsSnapshot } from "~/components/settings/utils/accessors";
 import {
   GLOBAL_KEYS,
   SUGGESTIVE_MODE_KEYS,
@@ -17,7 +17,11 @@ import {
 import posthog from "posthog-js";
 import { getSuggestiveModeConfigAndUids } from "~/utils/getSuggestiveModeConfigSettings";
 
-const SuggestiveModeSettings = () => {
+const SuggestiveModeSettings = ({
+  globalSettings,
+}: {
+  globalSettings: SettingsSnapshot["globalSettings"];
+}) => {
   const suggestiveMode = getSuggestiveModeConfigAndUids(
     discourseConfigRef.tree,
   );
@@ -27,11 +31,10 @@ const SuggestiveModeSettings = () => {
   );
   const pageGroupsUid = suggestiveMode.pageGroups.uid;
 
+  const suggestiveModeSettings = globalSettings[GLOBAL_KEYS.suggestiveMode];
+
   const [includePageRelations, setIncludePageRelations] = useState(
-    getGlobalSetting<boolean>([
-      GLOBAL_KEYS.suggestiveMode,
-      SUGGESTIVE_MODE_KEYS.includeCurrentPageRelations,
-    ]) ?? false,
+    suggestiveModeSettings[SUGGESTIVE_MODE_KEYS.includeCurrentPageRelations],
   );
 
   useEffect(() => {
@@ -91,6 +94,11 @@ const SuggestiveModeSettings = () => {
                     GLOBAL_KEYS.suggestiveMode,
                     SUGGESTIVE_MODE_KEYS.includeCurrentPageRelations,
                   ]}
+                  initialValue={
+                    suggestiveModeSettings[
+                      SUGGESTIVE_MODE_KEYS.includeCurrentPageRelations
+                    ]
+                  }
                   order={0}
                   uid={suggestiveMode.includePageRelations.uid}
                   parentUid={effectiveSuggestiveModeUid}
@@ -108,6 +116,11 @@ const SuggestiveModeSettings = () => {
                     GLOBAL_KEYS.suggestiveMode,
                     SUGGESTIVE_MODE_KEYS.includeParentAndChildBlocks,
                   ]}
+                  initialValue={
+                    suggestiveModeSettings[
+                      SUGGESTIVE_MODE_KEYS.includeParentAndChildBlocks
+                    ]
+                  }
                   value={includePageRelations ? true : undefined}
                   order={1}
                   uid={suggestiveMode.includeParentAndChildren.uid}

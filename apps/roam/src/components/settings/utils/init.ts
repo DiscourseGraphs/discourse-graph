@@ -5,8 +5,21 @@ import setBlockProps from "~/utils/setBlockProps";
 import getBlockProps from "~/utils/getBlockProps";
 import type { json } from "~/utils/getBlockProps";
 import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
+import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import DEFAULT_RELATIONS_BLOCK_PROPS from "~/components/settings/data/defaultRelationsBlockProps";
-import { getAllDiscourseNodes } from "./accessors";
+import {
+  getAllDiscourseNodes,
+  isNewSettingsStoreEnabled,
+  deepEqual,
+  getFeatureFlags,
+  getGlobalSettings,
+  getPersonalSettings,
+  getDiscourseNodeSettings,
+  readAllLegacyFeatureFlags,
+  readAllLegacyGlobalSettings,
+  readAllLegacyPersonalSettings,
+  readAllLegacyDiscourseNodeSettings,
+} from "./accessors";
 import {
   migrateGraphLevel,
   migratePersonalSettings,
@@ -72,6 +85,70 @@ const buildBlockMap = (pageUid: string): Record<string, string> => {
   return blockMap;
 };
 
+const ensureLegacyConfigBlocks = async (pageUid: string): Promise<void> => {
+  const pageBlockMap = buildBlockMap(pageUid);
+
+  await ensureBlocksExist(
+    pageUid,
+    ["trigger", "grammar", "export", "Suggestive Mode", "Left Sidebar"],
+    pageBlockMap,
+  );
+
+  const triggerMap = buildBlockMap(pageBlockMap["trigger"]);
+  if (Object.keys(triggerMap).length === 0) {
+    await createBlock({
+      parentUid: pageBlockMap["trigger"],
+      node: { text: "\\" },
+    });
+  }
+
+  const grammarMap = buildBlockMap(pageBlockMap["grammar"]);
+  await ensureBlocksExist(pageBlockMap["grammar"], ["relations"], grammarMap);
+  const relationsChildren = getShallowTreeByParentUid(grammarMap["relations"]);
+  if (relationsChildren.length === 0) {
+    for (const relation of DEFAULT_RELATION_VALUES) {
+      await createBlock({
+        parentUid: grammarMap["relations"],
+        node: relation,
+      });
+    }
+  }
+
+  const suggestiveMap = buildBlockMap(pageBlockMap["Suggestive Mode"]);
+  await ensureBlocksExist(
+    pageBlockMap["Suggestive Mode"],
+    ["Page Groups"],
+    suggestiveMap,
+  );
+
+  const leftSidebarMap = buildBlockMap(pageBlockMap["Left Sidebar"]);
+  await ensureBlocksExist(
+    pageBlockMap["Left Sidebar"],
+    ["Global-Section"],
+    leftSidebarMap,
+  );
+  const globalSectionMap = buildBlockMap(leftSidebarMap["Global-Section"]);
+  await ensureBlocksExist(
+    leftSidebarMap["Global-Section"],
+    ["Children", "Settings"],
+    globalSectionMap,
+  );
+
+  const exportMap = buildBlockMap(pageBlockMap["export"]);
+  await ensureBlocksExist(
+    pageBlockMap["export"],
+    ["max filename length"],
+    exportMap,
+  );
+  const maxFilenameMap = buildBlockMap(exportMap["max filename length"]);
+  if (Object.keys(maxFilenameMap).length === 0) {
+    await createBlock({
+      parentUid: exportMap["max filename length"],
+      node: { text: "64" },
+    });
+  }
+};
+
 const initializeSettingsBlockProps = (
   pageUid: string,
   blockMap: Record<string, string>,
@@ -117,6 +194,8 @@ const initSettingsPageBlocks = async (): Promise<Record<string, string>> => {
 
   const topLevelBlocks = getTopLevelBlockPropsConfig().map(({ key }) => key);
   await ensureBlocksExist(pageUid, topLevelBlocks, blockMap);
+
+  await ensureLegacyConfigBlocks(pageUid);
 
   initializeSettingsBlockProps(pageUid, blockMap);
 
@@ -257,10 +336,89 @@ export type InitSchemaResult = {
   nodePageUids: Record<string, string>;
 };
 
+// On-demand dual-read comparison. Not called automatically on init —
+// invoke from the console via window.dgDualReadLog() to inspect the legacy
+// settings tree vs. the block-prop store.
+const logDualReadComparison = (): void => {
+  if (!isNewSettingsStoreEnabled()) return;
+
+  const legacyFlags = readAllLegacyFeatureFlags();
+  const blockFlags = getFeatureFlags();
+  const omitStoreFlag = (
+    flags: Record<string, unknown>,
+  ): Record<string, unknown> =>
+    Object.fromEntries(
+      Object.entries(flags).filter(([k]) => k !== "Use new settings store"),
+    );
+  const flagsMatch = deepEqual(
+    omitStoreFlag(blockFlags),
+    omitStoreFlag(legacyFlags),
+  );
+
+  const legacyGlobal = readAllLegacyGlobalSettings();
+  const blockGlobal = getGlobalSettings();
+  const globalMatch = deepEqual(blockGlobal, legacyGlobal);
+
+  const legacyPersonal = readAllLegacyPersonalSettings();
+  const blockPersonal = getPersonalSettings();
+  const personalMatch = deepEqual(blockPersonal, legacyPersonal);
+
+  const nodes = getAllDiscourseNodes();
+  const nodeResults: {
+    name: string;
+    match: boolean;
+    legacy: unknown;
+    blockProps: unknown;
+  }[] = [];
+  for (const node of nodes) {
+    const legacy = readAllLegacyDiscourseNodeSettings(node.type, node.text);
+    const blockProps = getDiscourseNodeSettings(node.type);
+    nodeResults.push({
+      name: node.text,
+      match: deepEqual(blockProps, legacy),
+      legacy,
+      blockProps,
+    });
+  }
+
+  const mismatches = [
+    !flagsMatch && "Feature Flags",
+    !globalMatch && "Global",
+    !personalMatch && "Personal",
+    ...nodeResults.filter((n) => !n.match).map((n) => n.name),
+  ].filter((x): x is string => Boolean(x));
+
+  const summary =
+    mismatches.length === 0
+      ? "All settings match"
+      : `(${mismatches.length}) Settings don't match: ${mismatches.join(", ")}`;
+
+  const nodeMap = (key: "legacy" | "blockProps") =>
+    Object.fromEntries(nodeResults.map((n) => [n.name, n[key]]));
+
+  /* eslint-disable @typescript-eslint/naming-convention */
+  console.log(`[DG Dual-Read] ${summary}`);
+  console.log("[DG Dual-Read] Legacy:", {
+    "Feature Flags": legacyFlags,
+    Global: legacyGlobal,
+    Personal: legacyPersonal,
+    ...nodeMap("legacy"),
+  });
+  console.log("[DG Dual-Read] Block props:", {
+    "Feature Flags": blockFlags,
+    Global: blockGlobal,
+    Personal: blockPersonal,
+    ...nodeMap("blockProps"),
+  });
+  /* eslint-enable @typescript-eslint/naming-convention */
+};
+
 export const initSchema = async (): Promise<InitSchemaResult> => {
   const blockUids = await initSettingsPageBlocks();
   await migrateGraphLevel(blockUids);
   const nodePageUids = await initDiscourseNodePages();
   await migratePersonalSettings(blockUids);
+  (window as unknown as Record<string, unknown>).dgDualReadLog =
+    logDualReadComparison;
   return { blockUids, nodePageUids };
 };

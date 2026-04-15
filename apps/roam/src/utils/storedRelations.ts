@@ -3,8 +3,8 @@
 // ENG-1521: Update internal terminology to use "stored" instead of "reified"
 
 import { USE_STORED_RELATIONS } from "~/data/userSettings";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import { getSetting, setSetting } from "./extensionSettings";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "./renderNodeConfigPage";
 
 const INSTALL_CUTOFF = Date.parse("2026-03-01T00:00:00.000Z");
 

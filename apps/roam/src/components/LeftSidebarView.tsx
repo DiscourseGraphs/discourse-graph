@@ -36,8 +36,10 @@ import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
 import {
   getGlobalSetting,
   getPersonalSetting,
+  getPersonalSettings,
   setGlobalSetting,
   setPersonalSetting,
+  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import {
   PERSONAL_KEYS,
@@ -45,10 +47,7 @@ import {
   LEFT_SIDEBAR_KEYS,
   LEFT_SIDEBAR_SETTINGS_KEYS,
 } from "~/components/settings/utils/settingKeys";
-import type {
-  LeftSidebarGlobalSettings,
-  PersonalSection,
-} from "~/components/settings/utils/zodSchema";
+import type { LeftSidebarGlobalSettings } from "~/components/settings/utils/zodSchema";
 import { createBlock } from "roamjs-components/writes";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -112,7 +111,7 @@ const openTarget = async (e: React.MouseEvent, targetUid: string) => {
   }
 };
 
-const toggleFoldedState = ({
+const toggleFoldedState = async ({
   isOpen,
   setIsOpen,
   folded,
@@ -130,22 +129,25 @@ const toggleFoldedState = ({
   const newFolded = !isOpen;
 
   if (isOpen) {
-    setIsOpen(false);
-    if (folded.uid) {
-      void deleteBlock(folded.uid);
-      folded.uid = undefined;
-      folded.value = false;
-    }
+    const children = getBasicTreeByParentUid(parentUid);
+    await Promise.all(
+      children
+        .filter((c) => c.text === "Folded")
+        .map((c) => deleteBlock(c.uid)),
+    );
+    folded.uid = undefined;
+    folded.value = false;
   } else {
-    setIsOpen(true);
     const newUid = window.roamAlphaAPI.util.generateUID();
-    void createBlock({
+    await createBlock({
       parentUid,
       node: { text: "Folded", uid: newUid },
     });
     folded.uid = newUid;
     folded.value = true;
   }
+
+  refreshConfigTree();
 
   if (isGlobal) {
     setGlobalSetting(
@@ -157,13 +159,20 @@ const toggleFoldedState = ({
       newFolded,
     );
   } else if (sectionIndex !== undefined) {
-    const sections =
-      getPersonalSetting<PersonalSection[]>([PERSONAL_KEYS.leftSidebar]) || [];
+    const sections = [...getPersonalSettings()[PERSONAL_KEYS.leftSidebar]];
     if (sections[sectionIndex]) {
-      sections[sectionIndex].Settings.Folded = newFolded;
+      sections[sectionIndex] = {
+        ...sections[sectionIndex],
+        Settings: {
+          ...sections[sectionIndex].Settings,
+          Folded: newFolded,
+        },
+      };
       setPersonalSetting([PERSONAL_KEYS.leftSidebar], sections);
     }
   }
+
+  setIsOpen(newFolded);
 };
 
 const SectionChildren = ({
@@ -225,7 +234,7 @@ const PersonalSectionItem = ({
   const handleChevronClick = () => {
     if (!section.settings) return;
 
-    toggleFoldedState({
+    void toggleFoldedState({
       isOpen,
       setIsOpen,
       folded: section.settings.folded,
@@ -297,7 +306,7 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
         className="sidebar-title-button flex w-full items-center border-none bg-transparent py-1 pl-6 pr-2.5 font-semibold outline-none"
         onClick={() => {
           if (!isCollapsable || !config.settings) return;
-          toggleFoldedState({
+          void toggleFoldedState({
             isOpen,
             setIsOpen,
             folded: config.settings.folded,
@@ -328,14 +337,16 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
 
 // TODO(ENG-1471): Remove old-system merge when migration complete — just use accessor values directly.
 // See mergeGlobalSectionWithAccessor/mergePersonalSectionsWithAccessor for why the merge exists.
-const buildConfig = (): LeftSidebarConfig => {
+const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
   // Read VALUES from accessor (handles flag routing + mismatch detection)
-  const globalValues = getGlobalSetting<LeftSidebarGlobalSettings>([
-    GLOBAL_KEYS.leftSidebar,
-  ]);
-  const personalValues = getPersonalSetting<PersonalSection[]>([
-    PERSONAL_KEYS.leftSidebar,
-  ]);
+  const globalValues = snapshot
+    ? snapshot.globalSettings[GLOBAL_KEYS.leftSidebar]
+    : getGlobalSetting<LeftSidebarGlobalSettings>([GLOBAL_KEYS.leftSidebar]);
+  const personalValues = snapshot
+    ? snapshot.personalSettings[PERSONAL_KEYS.leftSidebar]
+    : getPersonalSetting<
+        ReturnType<typeof getPersonalSettings>[typeof PERSONAL_KEYS.leftSidebar]
+      >([PERSONAL_KEYS.leftSidebar]);
 
   // Read UIDs from old system (needed for fold CRUD during dual-write)
   const oldConfig = getCurrentLeftSidebarConfig();
@@ -356,8 +367,8 @@ const buildConfig = (): LeftSidebarConfig => {
   };
 };
 
-export const useConfig = () => {
-  const [config, setConfig] = useState(() => buildConfig());
+export const useConfig = (initialSnapshot?: SettingsSnapshot) => {
+  const [config, setConfig] = useState(() => buildConfig(initialSnapshot));
   useEffect(() => {
     const handleUpdate = () => {
       setConfig(buildConfig());
@@ -496,8 +507,14 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   );
 };
 
-const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const { config } = useConfig();
+const LeftSidebarView = ({
+  onloadArgs,
+  initialSnapshot,
+}: {
+  onloadArgs: OnloadArgs;
+  initialSnapshot?: SettingsSnapshot;
+}) => {
+  const { config } = useConfig(initialSnapshot);
 
   return (
     <>
@@ -602,10 +619,15 @@ const migrateFavorites = async () => {
   refreshConfigTree();
 };
 
-export const mountLeftSidebar = async (
-  wrapper: HTMLElement,
-  onloadArgs: OnloadArgs,
-): Promise<void> => {
+export const mountLeftSidebar = async ({
+  wrapper,
+  onloadArgs,
+  initialSnapshot,
+}: {
+  wrapper: HTMLElement;
+  onloadArgs: OnloadArgs;
+  initialSnapshot?: SettingsSnapshot;
+}): Promise<void> => {
   if (!wrapper) return;
 
   const id = "dg-left-sidebar-root";
@@ -622,7 +644,14 @@ export const mountLeftSidebar = async (
   } else {
     root.className = "starred-pages";
   }
-  ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
+  // eslint-disable-next-line react/no-deprecated
+  ReactDOM.render(
+    <LeftSidebarView
+      onloadArgs={onloadArgs}
+      initialSnapshot={initialSnapshot}
+    />,
+    root,
+  );
 };
 
 export default LeftSidebarView;

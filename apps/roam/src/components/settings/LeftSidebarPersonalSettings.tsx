@@ -21,10 +21,9 @@ import updateBlock from "roamjs-components/writes/updateBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
 import {
   setPersonalSetting,
-  getPersonalSetting,
+  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
-import type { PersonalSection } from "~/components/settings/utils/zodSchema";
 import {
   PersonalNumberPanel,
   PersonalTextPanel,
@@ -125,14 +124,9 @@ const SectionItem = memo(
             order: 0,
             node: { text: "Settings" },
           });
-          const foldedUid = await createBlock({
-            parentUid: settingsUid,
-            order: 0,
-            node: { text: "Folded" },
-          });
           const truncateSettingUid = await createBlock({
             parentUid: settingsUid,
-            order: 1,
+            order: 0,
             node: { text: "Truncate-result?", children: [{ text: "75" }] },
           });
 
@@ -149,7 +143,7 @@ const SectionItem = memo(
                   ...s,
                   settings: {
                     uid: settingsUid,
-                    folded: { uid: foldedUid, value: false },
+                    folded: { uid: undefined, value: false },
                     truncateResult: { uid: truncateSettingUid, value: 75 },
                   },
                   childrenUid,
@@ -167,7 +161,7 @@ const SectionItem = memo(
                     ...s,
                     settings: {
                       uid: settingsUid,
-                      folded: { uid: foldedUid, value: false },
+                      folded: { uid: undefined, value: false },
                       truncateResult: { uid: truncateSettingUid, value: 75 },
                     },
                     children: [],
@@ -570,8 +564,10 @@ SectionItem.displayName = "SectionItem";
 
 const LeftSidebarPersonalSectionsContent = ({
   leftSidebar,
+  personalSettings,
 }: {
   leftSidebar: RoamBasicNode;
+  personalSettings: SettingsSnapshot["personalSettings"];
 }) => {
   const [sections, setSections] = useState<LeftSidebarPersonalSectionConfig[]>(
     [],
@@ -609,9 +605,7 @@ const LeftSidebarPersonalSectionsContent = ({
       } else {
         setPersonalSectionUid(personalSection.uid);
 
-        const personalValues = getPersonalSetting<PersonalSection[]>([
-          PERSONAL_KEYS.leftSidebar,
-        ]);
+        const personalValues = personalSettings[PERSONAL_KEYS.leftSidebar];
         const loadedSections = getLeftSidebarPersonalSectionConfig(
           leftSidebar.children,
         ).sections;
@@ -622,7 +616,7 @@ const LeftSidebarPersonalSectionsContent = ({
     };
 
     void initialize();
-  }, [leftSidebar]);
+  }, [leftSidebar, personalSettings]);
 
   const addSection = useCallback(
     async (sectionName: string) => {
@@ -837,7 +831,11 @@ const LeftSidebarPersonalSectionsContent = ({
   );
 };
 
-export const LeftSidebarPersonalSections = () => {
+export const LeftSidebarPersonalSections = ({
+  personalSettings,
+}: {
+  personalSettings: SettingsSnapshot["personalSettings"];
+}) => {
   const [leftSidebar, setLeftSidebar] = useState<RoamBasicNode | null>(null);
 
   useEffect(() => {
@@ -865,5 +863,10 @@ export const LeftSidebarPersonalSections = () => {
     return null;
   }
 
-  return <LeftSidebarPersonalSectionsContent leftSidebar={leftSidebar} />;
+  return (
+    <LeftSidebarPersonalSectionsContent
+      leftSidebar={leftSidebar}
+      personalSettings={personalSettings}
+    />
+  );
 };

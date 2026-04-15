@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import {
   Classes,
@@ -29,6 +29,7 @@ import { getVersionWithDate } from "~/utils/getVersion";
 import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
 import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
 import posthog from "posthog-js";
+import { bulkReadSettings } from "./utils/accessors";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -84,6 +85,8 @@ export const SettingsDialog = ({
   const [activeTabId, setActiveTabId] = useState<TabId>(
     selectedTabId ?? "discourse-graph-home-personal",
   );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const settings = useMemo(() => bulkReadSettings(), [activeTabId]);
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
@@ -166,19 +169,34 @@ export const SettingsDialog = ({
             id="discourse-graph-home-personal"
             title="Home"
             className="overflow-y-auto"
-            panel={<HomePersonalSettings onloadArgs={onloadArgs} />}
+            panel={
+              <HomePersonalSettings
+                onloadArgs={onloadArgs}
+                personalSettings={settings.personalSettings}
+                featureFlags={settings.featureFlags}
+              />
+            }
           />
           <Tab
             id="query-settings"
             title="Queries"
             className="overflow-y-auto"
-            panel={<QuerySettings extensionAPI={extensionAPI} />}
+            panel={
+              <QuerySettings
+                extensionAPI={extensionAPI}
+                personalSettings={settings.personalSettings}
+              />
+            }
           />
           <Tab
             id="left-sidebar-personal-settings"
             title="Left sidebar"
             className="overflow-y-auto"
-            panel={<LeftSidebarPersonalSections />}
+            panel={
+              <LeftSidebarPersonalSections
+                personalSettings={settings.personalSettings}
+              />
+            }
           />
           <SectionHeader className="text-lg font-semibold text-neutral-dark">
             Global Settings
@@ -187,19 +205,30 @@ export const SettingsDialog = ({
             id="discourse-graph-home"
             title="Home"
             className="overflow-y-auto"
-            panel={<DiscourseGraphHome />}
+            panel={
+              <DiscourseGraphHome
+                globalSettings={settings.globalSettings}
+                featureFlags={settings.featureFlags}
+              />
+            }
           />
           <Tab
             id="discourse-graph-export"
             title="Export"
             className="overflow-y-auto"
-            panel={<DiscourseGraphExport />}
+            panel={
+              <DiscourseGraphExport globalSettings={settings.globalSettings} />
+            }
           />
           <Tab
             id="left-sidebar-global-settings"
             title="Left sidebar"
             className="overflow-y-auto"
-            panel={<LeftSidebarGlobalSections />}
+            panel={
+              <LeftSidebarGlobalSections
+                globalSettings={settings.globalSettings}
+              />
+            }
           />
           <SectionHeader>Grammar</SectionHeader>
           <Tab
@@ -212,6 +241,7 @@ export const SettingsDialog = ({
                 title="Relations"
                 parentUid={grammarNode?.uid || ""}
                 uid={relationsNode?.uid || ""}
+                globalSettings={settings.globalSettings}
               />
             }
           />
@@ -236,7 +266,13 @@ export const SettingsDialog = ({
               id={n.type}
               title={n.text}
               className="overflow-y-auto"
-              panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
+              panel={
+                <NodeConfig
+                  node={n}
+                  onloadArgs={onloadArgs}
+                  featureFlags={settings.featureFlags}
+                />
+              }
             />
           ))}
           <Tabs.Expander />
@@ -246,7 +282,12 @@ export const SettingsDialog = ({
             id="secret-admin-panel"
             title="Admin"
             className="overflow-y-auto"
-            panel={<AdminPanel />}
+            panel={
+              <AdminPanel
+                featureFlags={settings.featureFlags}
+                globalSettings={settings.globalSettings}
+              />
+            }
           />
         </Tabs>
       </div>

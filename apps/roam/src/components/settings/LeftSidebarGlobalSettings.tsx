@@ -3,14 +3,13 @@ import { Button, ButtonGroup, Collapse } from "@blueprintjs/core";
 import { GlobalFlagPanel } from "~/components/settings/components/BlockPropSettingPanels";
 import {
   setGlobalSetting,
-  getGlobalSetting,
+  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import {
   GLOBAL_KEYS,
   LEFT_SIDEBAR_KEYS,
   LEFT_SIDEBAR_SETTINGS_KEYS,
 } from "~/components/settings/utils/settingKeys";
-import type { LeftSidebarGlobalSettings } from "~/components/settings/utils/zodSchema";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import createBlock from "roamjs-components/writes/createBlock";
@@ -92,8 +91,10 @@ PageItem.displayName = "PageItem";
 
 const LeftSidebarGlobalSectionsContent = ({
   leftSidebar,
+  globalSettings,
 }: {
   leftSidebar: RoamBasicNode;
+  globalSettings: SettingsSnapshot["globalSettings"];
 }) => {
   const [globalSection, setGlobalSection] =
     useState<LeftSidebarGlobalSectionConfig | null>(null);
@@ -110,9 +111,7 @@ const LeftSidebarGlobalSectionsContent = ({
     const initialize = async () => {
       setIsInitializing(true);
       const globalSectionText = "Global-Section";
-      const globalValues = getGlobalSetting<LeftSidebarGlobalSettings>([
-        GLOBAL_KEYS.leftSidebar,
-      ]);
+      const globalValues = globalSettings[GLOBAL_KEYS.leftSidebar];
       const config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
 
       const existingGlobalSection = leftSidebar.children.find(
@@ -166,7 +165,7 @@ const LeftSidebarGlobalSectionsContent = ({
     };
 
     void initialize();
-  }, [leftSidebar]);
+  }, [leftSidebar, globalSettings]);
 
   const movePage = useCallback(
     (index: number, direction: "up" | "down") => {
@@ -402,7 +401,11 @@ const LeftSidebarGlobalSectionsContent = ({
   );
 };
 
-export const LeftSidebarGlobalSections = () => {
+export const LeftSidebarGlobalSections = ({
+  globalSettings,
+}: {
+  globalSettings: SettingsSnapshot["globalSettings"];
+}) => {
   const [leftSidebar, setLeftSidebar] = useState<RoamBasicNode | null>(null);
 
   useEffect(() => {
@@ -430,5 +433,10 @@ export const LeftSidebarGlobalSections = () => {
     return null;
   }
 
-  return <LeftSidebarGlobalSectionsContent leftSidebar={leftSidebar} />;
+  return (
+    <LeftSidebarGlobalSectionsContent
+      leftSidebar={leftSidebar}
+      globalSettings={globalSettings}
+    />
+  );
 };
