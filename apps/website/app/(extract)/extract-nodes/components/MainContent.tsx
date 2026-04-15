@@ -7,15 +7,21 @@ import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { Copy } from "lucide-react";
 import type { ExtractedNode } from "~/types/extraction";
+import { NODE_TYPE_DEFINITIONS } from "../nodeTypes";
 
-const NODE_TYPE_COLORS: Record<string, string> = {
-  claim: "#7DA13E",
-  question: "#99890E",
-  hypothesis: "#7C4DFF",
-  evidence: "#dc0c4a",
-  result: "#E6A23C",
-  source: "#9E9E9E",
-  theory: "#8B5CF6",
+const findNodeTypeDefinition = (nodeType: string) =>
+  NODE_TYPE_DEFINITIONS.find(
+    (t) => t.label.toLowerCase() === nodeType.toLowerCase(),
+  );
+
+const formatNodeForClipboard = (node: ExtractedNode): string => {
+  const meta = findNodeTypeDefinition(node.nodeType);
+  const header = meta ? `${node.content} ${meta.candidateTag}` : node.content;
+  const lines = [header, `\tSource quote: "${node.supportSnippet}"`];
+  if (node.sourceSection) {
+    lines.push(`\tSection: ${node.sourceSection}`);
+  }
+  return lines.join("\n");
 };
 
 type MainContentProps = {
@@ -28,7 +34,9 @@ export const MainContent = ({
   paperTitle,
 }: MainContentProps): React.ReactElement => {
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<Set<number>>(new Set());
   const [activeFilter, setActiveFilter] = useState("all");
+  const [copied, setCopied] = useState(false);
 
   const typeCounts = useMemo(
     () =>
@@ -47,19 +55,23 @@ export const MainContent = ({
         id: nodeType,
         label: nodeType.charAt(0).toUpperCase() + nodeType.slice(1),
         count,
-        color: NODE_TYPE_COLORS[nodeType],
+        color: findNodeTypeDefinition(nodeType)?.color,
       })),
     ],
     [nodes.length, typeCounts],
   );
 
-  const filteredNodes = useMemo(
-    () =>
-      activeFilter === "all"
-        ? nodes
-        : nodes.filter((node) => node.nodeType.toLowerCase() === activeFilter),
-    [nodes, activeFilter],
-  );
+  const filteredNodes = useMemo(() => {
+    const indexed = nodes.map((node, originalIndex) => ({
+      node,
+      originalIndex,
+    }));
+    return activeFilter === "all"
+      ? indexed
+      : indexed.filter(
+          ({ node }) => node.nodeType.toLowerCase() === activeFilter,
+        );
+  }, [nodes, activeFilter]);
 
   const toggleExpanded = (index: number): void => {
     setExpandedNodes((prev) => {
@@ -71,6 +83,36 @@ export const MainContent = ({
       }
       return next;
     });
+  };
+
+  const toggleSelected = (index: number): void => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  const selectAll = (): void => {
+    setSelected(new Set(nodes.keys()));
+  };
+
+  const deselectAll = (): void => {
+    setSelected(new Set());
+  };
+
+  const handleCopy = async (): Promise<void> => {
+    const text = [...selected]
+      .sort((a, b) => a - b)
+      .map((i) => formatNodeForClipboard(nodes[i]!))
+      .join("\n");
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   if (nodes.length === 0) {
@@ -127,15 +169,23 @@ export const MainContent = ({
 
         <div className="flex-1 overflow-y-auto bg-[radial-gradient(120%_100%_at_50%_0%,#f8fbff_0%,#f8fafc_52%,#f3f7fb_100%)] p-4 lg:p-5">
           <div className="space-y-2.5">
-            {filteredNodes.map((node, index) => {
+            {filteredNodes.map(({ node, originalIndex }) => {
               const color =
-                NODE_TYPE_COLORS[node.nodeType.toLowerCase()] ?? "#64748b";
-              const isExpanded = expandedNodes.has(index);
+                findNodeTypeDefinition(node.nodeType)?.color ?? "#64748b";
+              const isExpanded = expandedNodes.has(originalIndex);
+              const isSelected = selected.has(originalIndex);
               return (
-                <Card key={index} className="rounded-2xl border-slate-200/85">
+                <Card
+                  key={originalIndex}
+                  className="rounded-2xl border-slate-200/85"
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <Checkbox checked className="mt-1" />
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelected(originalIndex)}
+                        className="mt-1"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="mb-2 flex flex-wrap items-center gap-2">
                           <span
@@ -164,7 +214,7 @@ export const MainContent = ({
                               variant="ghost"
                               size="sm"
                               className="mt-1 h-auto p-0 text-[13px] font-medium text-slate-400 hover:text-slate-600"
-                              onClick={() => toggleExpanded(index)}
+                              onClick={() => toggleExpanded(originalIndex)}
                             >
                               Hide details
                             </Button>
@@ -174,7 +224,7 @@ export const MainContent = ({
                             variant="ghost"
                             size="sm"
                             className="mt-1 h-auto p-0 text-[13px] font-medium text-slate-400 hover:text-slate-600"
-                            onClick={() => toggleExpanded(index)}
+                            onClick={() => toggleExpanded(originalIndex)}
                           >
                             Show details
                           </Button>
@@ -190,21 +240,41 @@ export const MainContent = ({
 
         <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200/85 bg-white/95 px-4 py-3.5 backdrop-blur sm:flex-row sm:items-center sm:justify-between lg:px-5">
           <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full border-slate-200 text-slate-600"
-            >
-              Deselect All
-            </Button>
-            <span className="text-[14px] font-medium tabular-nums text-slate-500">
-              {nodes.length} of {nodes.length} selected
+            <div className="inline-flex items-center overflow-hidden rounded-full border border-slate-200">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={selected.size === nodes.length}
+                onClick={selectAll}
+                className="rounded-none text-slate-600"
+              >
+                Select all
+              </Button>
+              <div className="h-5 w-px bg-slate-200" />
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={selected.size === 0}
+                onClick={deselectAll}
+                className="rounded-none text-slate-600"
+              >
+                Deselect all
+              </Button>
+            </div>
+            <span className="text-sm font-medium tabular-nums text-slate-500">
+              {selected.size} of {nodes.length} selected
             </span>
           </div>
 
-          <Button className="gap-2 rounded-full bg-slate-900 text-white hover:bg-slate-800">
+          <Button
+            disabled={selected.size === 0}
+            onClick={() => {
+              void handleCopy();
+            }}
+            className="gap-2 rounded-full bg-slate-900 text-white hover:bg-slate-800"
+          >
             <Copy className="h-4 w-4" />
-            Copy to Clipboard
+            {copied ? "Copied!" : "Copy to Clipboard"}
           </Button>
         </div>
       </div>
