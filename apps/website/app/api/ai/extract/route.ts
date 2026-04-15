@@ -11,10 +11,7 @@ import {
   openaiConfig,
   geminiConfig,
 } from "~/utils/llm/providers";
-import {
-  DEFAULT_EXTRACTION_PROMPT,
-  buildUserPrompt,
-} from "~/prompts/extraction";
+import { buildUserPrompt } from "~/prompts/extraction";
 import { parseExtractionResponse } from "~/utils/ai/parseExtractionResponse";
 
 export const runtime = "nodejs";
@@ -131,7 +128,7 @@ export const POST = async (
     model,
     maxTokens: 16384,
     temperature: 0.6,
-    systemPrompt: systemPrompt ?? DEFAULT_EXTRACTION_PROMPT,
+    systemPrompt,
     outputSchema: EXTRACTION_RESULT_JSON_SCHEMA,
   };
 

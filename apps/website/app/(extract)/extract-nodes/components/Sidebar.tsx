@@ -3,7 +3,7 @@ import { useRef } from "react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { Textarea } from "@repo/ui/components/ui/textarea";
-import { ChevronDown, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { NODE_TYPE_DEFINITIONS } from "~/types/extraction";
 
 const SECTION_LABEL_CLASS =
@@ -16,6 +16,9 @@ type SidebarProps = {
   onResearchQuestionChange: (value: string) => void;
   selectedTypes: Set<string>;
   onToggleType: (candidateTag: string) => void;
+  onExtract: () => void;
+  canExtract: boolean;
+  isExtracting: boolean;
 };
 
 export const Sidebar = ({
@@ -25,6 +28,9 @@ export const Sidebar = ({
   onResearchQuestionChange,
   selectedTypes,
   onToggleType,
+  onExtract,
+  canExtract,
+  isExtracting,
 }: SidebarProps): React.ReactElement => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,17 +98,6 @@ export const Sidebar = ({
           )}
         </section>
 
-        <section className="mb-6">
-          <h3 className={SECTION_LABEL_CLASS}>Model</h3>
-          <Button
-            variant="outline"
-            className="w-full justify-between rounded-xl border-slate-300 px-3.5 py-3 text-[16px] font-medium text-slate-700"
-          >
-            <span>Claude Sonnet 4.6</span>
-            <ChevronDown className="h-4 w-4 text-slate-500" />
-          </Button>
-        </section>
-
         <section className="mb-5">
           <h3 className={SECTION_LABEL_CLASS}>Research Question</h3>
           <Textarea
@@ -153,8 +148,12 @@ export const Sidebar = ({
         <p className="mb-2 text-[14px] font-medium text-slate-500">
           Ready to run extraction.
         </p>
-        <Button className="w-full rounded-xl bg-slate-900 py-6 text-[17px] font-semibold text-white hover:bg-slate-800">
-          Re-Extract
+        <Button
+          onClick={onExtract}
+          disabled={!canExtract}
+          className="w-full rounded-xl bg-slate-900 py-6 text-[17px] font-semibold text-white hover:bg-slate-800"
+        >
+          {isExtracting ? "Extracting…" : "Re-Extract"}
         </Button>
       </div>
     </aside>
