@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { Copy } from "lucide-react";
 import type { ExtractedNode } from "~/types/extraction";
-import { NODE_TYPE_DEFINITIONS } from "../nodeTypes";
+import { NODE_TYPE_DEFINITIONS, type NodeTypeDefinition } from "../nodeTypes";
 
-const findNodeTypeDefinition = (nodeType: string) =>
+const findNodeTypeDefinition = (
+  nodeType: string,
+): NodeTypeDefinition | undefined =>
   NODE_TYPE_DEFINITIONS.find(
     (t) => t.label.toLowerCase() === nodeType.toLowerCase(),
   );
@@ -37,6 +39,10 @@ export const MainContent = ({
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [activeFilter, setActiveFilter] = useState("all");
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setSelected(new Set());
+  }, [nodes]);
 
   const typeCounts = useMemo(
     () =>
