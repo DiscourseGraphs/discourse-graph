@@ -7,7 +7,8 @@ import {
   type DecorationSet,
   EditorView,
 } from "@codemirror/view";
-import { TFile } from "obsidian";
+import { TFile, WorkspaceLeaf } from "obsidian";
+import { VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import type DiscourseGraphPlugin from "~/index";
 
 const buildObsidianUrl = (vaultName: string, filePath: string): string => {
@@ -113,10 +114,18 @@ class WikilinkDragHandleWidget extends WidgetType {
 // Embed exclusion (![[...]] and ![text](...)) is handled in the loop.
 const INTERNAL_LINK_RE = /\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)]+\.md)\)/g;
 
+const hasVisibleCanvasLeaf = (plugin: DiscourseGraphPlugin): boolean =>
+  plugin.app.workspace
+    .getLeavesOfType(VIEW_TYPE_TLDRAW_DG_PREVIEW)
+    .some((leaf) =>
+      (leaf as WorkspaceLeaf & { isVisible(): boolean }).isVisible(),
+    );
 const buildWidgetDecorations = (
   view: EditorView,
   plugin: DiscourseGraphPlugin,
 ): DecorationSet => {
+  if (!hasVisibleCanvasLeaf(plugin)) return Decoration.none;
+
   const widgets = [];
 
   for (const { from, to } of view.visibleRanges) {
@@ -153,13 +162,21 @@ export const createWikilinkDragExtension = (
   return ViewPlugin.fromClass(
     class {
       decorations: DecorationSet;
+      private canvasVisible: boolean;
 
       constructor(view: EditorView) {
+        this.canvasVisible = hasVisibleCanvasLeaf(plugin);
         this.decorations = buildWidgetDecorations(view, plugin);
       }
 
       update(update: ViewUpdate): void {
-        if (update.docChanged || update.viewportChanged) {
+        const canvasVisible = hasVisibleCanvasLeaf(plugin);
+        if (
+          update.docChanged ||
+          update.viewportChanged ||
+          canvasVisible !== this.canvasVisible
+        ) {
+          this.canvasVisible = canvasVisible;
           this.decorations = buildWidgetDecorations(update.view, plugin);
         }
       }
