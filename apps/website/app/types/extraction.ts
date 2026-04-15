@@ -65,6 +65,19 @@ export type NodeTypeDefinition = {
   color?: string;
 };
 
+type ModelOption = {
+  id: string;
+  label: string;
+};
+
+export const MODEL_OPTIONS: ModelOption[] = [
+  { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
+  { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
+];
+
+export const DEFAULT_MODEL_ID = "claude-sonnet-4-6";
+
 export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {
     label: "Evidence",

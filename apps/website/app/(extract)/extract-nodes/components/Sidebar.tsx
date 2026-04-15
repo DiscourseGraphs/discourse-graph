@@ -2,9 +2,16 @@
 import { useRef } from "react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/ui/select";
 import { Textarea } from "@repo/ui/components/ui/textarea";
 import { Upload } from "lucide-react";
-import { NODE_TYPE_DEFINITIONS } from "~/types/extraction";
+import { MODEL_OPTIONS, NODE_TYPE_DEFINITIONS } from "~/types/extraction";
 
 const SECTION_LABEL_CLASS =
   "mb-3 block px-1 text-[18px] font-semibold tracking-[-0.016em] text-slate-800";
@@ -16,6 +23,8 @@ type SidebarProps = {
   onResearchQuestionChange: (value: string) => void;
   selectedTypes: Set<string>;
   onToggleType: (candidateTag: string) => void;
+  model: string;
+  onModelChange: (model: string) => void;
   onExtract: () => void;
   canExtract: boolean;
   isExtracting: boolean;
@@ -28,6 +37,8 @@ export const Sidebar = ({
   onResearchQuestionChange,
   selectedTypes,
   onToggleType,
+  model,
+  onModelChange,
   onExtract,
   canExtract,
   isExtracting,
@@ -98,6 +109,26 @@ export const Sidebar = ({
           )}
         </section>
 
+        <section className="mb-6">
+          <h3 className={SECTION_LABEL_CLASS}>Model</h3>
+          <Select value={model} onValueChange={onModelChange}>
+            <SelectTrigger className="h-12 rounded-xl text-base font-medium">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl shadow-lg">
+              {MODEL_OPTIONS.map((option) => (
+                <SelectItem
+                  key={option.id}
+                  value={option.id}
+                  className="text-base"
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </section>
+
         <section className="mb-5">
           <h3 className={SECTION_LABEL_CLASS}>Research Question</h3>
           <Textarea
@@ -123,23 +154,30 @@ export const Sidebar = ({
           </div>
 
           <div className="space-y-1.5">
-            {NODE_TYPE_DEFINITIONS.map((type) => (
-              <label
-                key={type.candidateTag}
-                className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 text-slate-800 shadow-sm"
-              >
-                <Checkbox
-                  checked={selectedTypes.has(type.candidateTag)}
-                  onCheckedChange={() => onToggleType(type.candidateTag)}
-                />
-                <span className="min-w-0 flex-1 text-[16px] font-medium">
-                  {type.label}
-                </span>
-                <span className="shrink-0 text-[11px] font-medium text-slate-400">
-                  {type.candidateTag}
-                </span>
-              </label>
-            ))}
+            {NODE_TYPE_DEFINITIONS.map((type) => {
+              const isChecked = selectedTypes.has(type.candidateTag);
+              return (
+                <label
+                  key={type.candidateTag}
+                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 text-slate-800 shadow-sm"
+                >
+                  <Checkbox
+                    checked={isChecked}
+                    onCheckedChange={() => onToggleType(type.candidateTag)}
+                    style={{
+                      borderColor: type.color,
+                      backgroundColor: isChecked ? type.color : undefined,
+                    }}
+                  />
+                  <span className="min-w-0 flex-1 text-base font-medium">
+                    {type.label}
+                  </span>
+                  <span className="shrink-0 text-[11px] font-medium text-slate-400">
+                    {type.candidateTag}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </section>
       </div>
