@@ -206,10 +206,12 @@ const NodeConfig = ({
                 order={2}
                 parentUid={node.type}
                 uid={tagUid}
-                inputStyle={color ? { color } : undefined}
               />
-              <div>
-                <Label style={{ marginBottom: "4px" }}>Color</Label>
+              <>
+                <Label>
+                  Color
+                  <Description description="Changes the color of tags and canvas nodes" />
+                </Label>
                 <ControlGroup>
                   <InputGroup
                     style={{ width: 120 }}
@@ -250,7 +252,7 @@ const NodeConfig = ({
                     />
                   </Tooltip>
                 </ControlGroup>
-              </div>
+              </>
             </div>
           }
         />
