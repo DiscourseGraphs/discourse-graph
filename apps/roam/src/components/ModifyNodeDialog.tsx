@@ -25,7 +25,7 @@ import getDiscourseNodes, {
   excludeDefaultNodes,
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
-import { getAllDiscourseNodeInstances } from "~/utils/getAllDiscourseNodeInstances";
+import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
 import FuzzySelectInput from "./FuzzySelectInput";
 import { createBlock, updateBlock } from "roamjs-components/writes";
 import {
@@ -166,7 +166,15 @@ const ModifyNodeDialog = ({
             setOptions((prev) => ({ ...prev, content: results }));
           }
         } else {
-          const results = await getAllDiscourseNodeInstances(discourseNodes);
+          const rawResults = await getAllDiscourseNodesSince(
+            undefined,
+            discourseNodes,
+          );
+          const results = rawResults.map((r) => ({
+            text: r.text,
+            uid: r.source_local_id,
+            discourseNodeType: r.type,
+          }));
           if (contentRequestIdRef.current === req && alive) {
             setOptions((prev) => ({ ...prev, content: results }));
           }
@@ -240,7 +248,7 @@ const ModifyNodeDialog = ({
     (r: Result) => {
       setContent(r);
       if (!selectedNodeType && r.uid) {
-        const detectedType = r.discourseNodeType as string | undefined;
+        const detectedType = r.discourseNodeType;
         if (detectedType) {
           const nt = discourseNodes.find((n) => n.type === detectedType);
           if (nt) {
