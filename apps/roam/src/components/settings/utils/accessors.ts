@@ -650,33 +650,6 @@ const setBlockPropAtPath = (
   setBlockProps(blockUid, updatedProps, false);
 };
 
-const getBlockPropBasedSettings = ({
-  keys,
-}: {
-  keys: string[];
-}): { blockProps: json | undefined; blockUid: string } => {
-  if (keys.length === 0) {
-    internalError({
-      error: "getBlockPropBasedSettings called with no keys",
-      type: "DG Accessor",
-    });
-    return { blockProps: undefined, blockUid: "" };
-  }
-
-  const blockUid = getBlockUidByTextOnPage({
-    text: keys[0],
-    title: DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
-  });
-
-  if (!blockUid) {
-    return { blockProps: undefined, blockUid: "" };
-  }
-
-  const blockProps = getBlockPropsByUid(blockUid, keys.slice(1));
-
-  return { blockProps, blockUid };
-};
-
 const setBlockPropBasedSettings = ({
   keys,
   value,
@@ -709,11 +682,7 @@ const setBlockPropBasedSettings = ({
 };
 
 export const getFeatureFlags = (): FeatureFlags => {
-  const { blockProps } = getBlockPropBasedSettings({
-    keys: [TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags],
-  });
-
-  return FeatureFlagsSchema.parse(blockProps || {});
+  return bulkReadSettings().featureFlags;
 };
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -734,28 +703,7 @@ const FEATURE_FLAG_LEGACY_MAP: Partial<
 /* eslint-enable @typescript-eslint/naming-convention */
 
 export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
-  const legacyReader = FEATURE_FLAG_LEGACY_MAP[key];
-
-  if (!legacyReader) {
-    // Block-props-only flag (no legacy equivalent)
-    const flags = getFeatureFlags();
-    return flags[key];
-  }
-
-  if (!isNewSettingsStoreEnabled()) {
-    return legacyReader();
-  }
-
-  const flags = getFeatureFlags();
-  const blockPropsValue = flags[key];
-  const legacyValue = legacyReader();
-  if (blockPropsValue !== legacyValue) {
-    console.warn(`[DG Dual-Read] Mismatch at Feature Flag > ${key}`, {
-      blockProps: blockPropsValue,
-      legacy: legacyValue,
-    });
-  }
-  return blockPropsValue;
+  return bulkReadSettings().featureFlags[key];
 };
 
 export const isNewSettingsStoreEnabled = (): boolean => {
@@ -809,32 +757,16 @@ export const setFeatureFlag = (
 };
 
 export const getGlobalSettings = (): GlobalSettings => {
-  const { blockProps } = getBlockPropBasedSettings({
-    keys: [TOP_LEVEL_BLOCK_PROP_KEYS.global],
-  });
-
-  return GlobalSettingsSchema.parse(blockProps || {});
+  return bulkReadSettings().globalSettings;
 };
 
 export const getGlobalSetting = <T = unknown>(
   keys: string[],
 ): T | undefined => {
   if (keys.length === 0) return undefined;
-
-  if (!isNewSettingsStoreEnabled()) {
-    return getLegacyGlobalSetting(keys) as T | undefined;
-  }
-
-  const settings = getGlobalSettings();
-  const blockPropsValue = readPathValue(settings, keys);
-  const legacyValue = getLegacyGlobalSetting(keys);
-  if (!deepEqual(blockPropsValue, legacyValue)) {
-    console.warn(
-      `[DG Dual-Read] Mismatch at Global > ${formatSettingPath(keys)}`,
-      { blockProps: blockPropsValue, legacy: legacyValue },
-    );
-  }
-  return blockPropsValue as T | undefined;
+  return readPathValue(bulkReadSettings().globalSettings, keys) as
+    | T
+    | undefined;
 };
 
 export const setGlobalSetting = (keys: string[], value: json): void => {
@@ -864,11 +796,13 @@ export const setGlobalSetting = (keys: string[], value: json): void => {
 };
 
 export const getAllRelations = (
-  snapshot?: SettingsSnapshot,
+  settings?: SettingsSnapshot,
 ): DiscourseRelation[] => {
-  const settings = snapshot ? snapshot.globalSettings : getGlobalSettings();
+  const globalSettings = settings
+    ? settings.globalSettings
+    : getGlobalSettings();
 
-  return Object.entries(settings.Relations).flatMap(([id, relation]) =>
+  return Object.entries(globalSettings.Relations).flatMap(([id, relation]) =>
     relation.ifConditions.map((ifCondition) => ({
       id,
       label: relation.label,
@@ -881,34 +815,16 @@ export const getAllRelations = (
 };
 
 export const getPersonalSettings = (): PersonalSettings => {
-  const personalKey = getPersonalSettingsKey();
-
-  const { blockProps } = getBlockPropBasedSettings({
-    keys: [personalKey],
-  });
-
-  return PersonalSettingsSchema.parse(blockProps || {});
+  return bulkReadSettings().personalSettings;
 };
 
 export const getPersonalSetting = <T = unknown>(
   keys: string[],
 ): T | undefined => {
   if (keys.length === 0) return undefined;
-
-  if (!isNewSettingsStoreEnabled()) {
-    return getLegacyPersonalSetting(keys) as T | undefined;
-  }
-
-  const settings = getPersonalSettings();
-  const blockPropsValue = readPathValue(settings, keys);
-  const legacyValue = getLegacyPersonalSetting(keys);
-  if (!deepEqual(blockPropsValue, legacyValue)) {
-    console.warn(
-      `[DG Dual-Read] Mismatch at Personal > ${formatSettingPath(keys)}`,
-      { blockProps: blockPropsValue, legacy: legacyValue },
-    );
-  }
-  return blockPropsValue as T | undefined;
+  return readPathValue(bulkReadSettings().personalSettings, keys) as
+    | T
+    | undefined;
 };
 
 export type SettingsSnapshot = {
@@ -1038,20 +954,14 @@ export const getDiscourseNodeSetting = <T = unknown>(
   nodeType: string,
   keys: string[],
 ): T | undefined => {
-  if (!isNewSettingsStoreEnabled()) {
+  if (!bulkReadSettings().featureFlags["Use new settings store"]) {
     return getLegacyDiscourseNodeSetting(nodeType, keys) as T | undefined;
   }
 
   const settings = getDiscourseNodeSettings(nodeType);
-  const blockPropsValue = settings ? readPathValue(settings, keys) : undefined;
-  const legacyValue = getLegacyDiscourseNodeSetting(nodeType, keys);
-  if (!deepEqual(blockPropsValue, legacyValue)) {
-    console.warn(
-      `[DG Dual-Read] Mismatch at Discourse Node (${nodeType}) > ${formatSettingPath(keys)}`,
-      { blockProps: blockPropsValue, legacy: legacyValue },
-    );
-  }
-  return blockPropsValue as T | undefined;
+  return (settings ? readPathValue(settings, keys) : undefined) as
+    | T
+    | undefined;
 };
 
 export const setDiscourseNodeSetting = (

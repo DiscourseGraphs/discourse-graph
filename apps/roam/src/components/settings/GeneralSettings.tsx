@@ -7,7 +7,7 @@ import {
   FeatureFlagPanel,
 } from "./components/BlockPropSettingPanels";
 import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
-import { isNewSettingsStoreEnabled } from "./utils/accessors";
+import { type SettingsSnapshot } from "./utils/accessors";
 import posthog from "posthog-js";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import {
@@ -16,7 +16,13 @@ import {
 } from "~/utils/getExportSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 
-const DiscourseGraphHome = () => {
+const DiscourseGraphHome = ({
+  globalSettings,
+  featureFlags,
+}: {
+  globalSettings: SettingsSnapshot["globalSettings"];
+  featureFlags: SettingsSnapshot["featureFlags"];
+}) => {
   const settings = useMemo(() => {
     refreshConfigTree();
     const tree = discourseConfigRef.tree;
@@ -43,6 +49,7 @@ const DiscourseGraphHome = () => {
         title="trigger"
         description="The trigger to create the node menu."
         settingKeys={[GLOBAL_KEYS.trigger]}
+        initialValue={globalSettings[GLOBAL_KEYS.trigger]}
         order={0}
         uid={settings.triggerUid}
         parentUid={settings.settingsUid}
@@ -51,6 +58,7 @@ const DiscourseGraphHome = () => {
         title="Canvas Page Format"
         description="The page format for canvas pages"
         settingKeys={[GLOBAL_KEYS.canvasPageFormat]}
+        initialValue={globalSettings[GLOBAL_KEYS.canvasPageFormat]}
         order={1}
         uid={settings.canvasPageFormatUid}
         parentUid={settings.settingsUid}
@@ -59,11 +67,12 @@ const DiscourseGraphHome = () => {
         title="(BETA) Left Sidebar"
         description="Whether or not to enable the left sidebar."
         featureKey="Enable left sidebar"
+        initialValue={featureFlags["Enable left sidebar"]}
         order={2}
         uid={settings.leftSidebarEnabledUid}
         parentUid={settings.settingsUid}
         onAfterChange={(checked: boolean) => {
-          if (checked && !isNewSettingsStoreEnabled()) {
+          if (checked && !featureFlags["Use new settings store"]) {
             setIsAlertOpen(true);
           }
           posthog.capture("General Settings: Left Sidebar Toggled", {
