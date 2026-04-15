@@ -10,7 +10,7 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import { loadImage } from "./loadImage";
 import { DEFAULT_STYLE_PROPS } from "~/components/canvas/DiscourseNodeUtil";
 
-const extractFirstImageUrl = (text: string): string | null => {
+export const extractFirstImageUrl = (text: string): string | null => {
   const regex = /!\[.*?\]\((https:\/\/[^)]+)\)/;
   const result = text.match(regex) || resolveRefs(text).match(regex);
   return result ? result[1] : null;
@@ -71,7 +71,7 @@ const findFirstImage = (
   return null;
 };
 
-const getFirstImageByUid = (uid: string): string | null => {
+export const getFirstImageByUid = (uid: string): string | null => {
   const tree = getFullTreeByParentUid(uid);
   return findFirstImage(tree);
 };
@@ -121,6 +121,47 @@ export const getCanvasNodeKeyImageUrl = async ({
     imageUrl = getFirstImageByUid(uid);
   }
   return imageUrl ?? "";
+};
+
+/**
+ * Compute canvas node dimensions using a pre-fetched imageUrl.
+ * Skips querying for the imageUrl — caller must supply it.
+ */
+export const calcCanvasNodeDimensionsWithUrl = async ({
+  nodeText,
+  imageUrl,
+}: {
+  nodeText: string;
+  imageUrl: string;
+}): Promise<{ w: number; h: number }> => {
+  const { w, h } = measureCanvasNodeText({
+    ...DEFAULT_STYLE_PROPS,
+    maxWidth: MAX_WIDTH,
+    text: nodeText,
+  });
+
+  if (!imageUrl) return { w, h };
+
+  try {
+    const { width, height } = await loadImage(imageUrl);
+    if (
+      !width ||
+      !height ||
+      !Number.isFinite(width) ||
+      !Number.isFinite(height)
+    ) {
+      return { w, h };
+    }
+    const aspectRatio = width / height;
+    return { w, h: h + w / aspectRatio };
+  } catch {
+    renderToast({
+      id: "tldraw-image-load-fail",
+      content: "Failed to load image",
+      intent: "warning",
+    });
+    return { w, h };
+  }
 };
 
 const calcCanvasNodeSizeAndImg = async ({
