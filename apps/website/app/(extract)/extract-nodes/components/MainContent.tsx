@@ -42,6 +42,8 @@ export const MainContent = ({
 
   useEffect(() => {
     setSelected(new Set());
+    setExpandedNodes(new Set());
+    setActiveFilter("all");
   }, [nodes]);
 
   const typeCounts = useMemo(
