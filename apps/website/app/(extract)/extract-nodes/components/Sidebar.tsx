@@ -14,7 +14,7 @@ import { Upload } from "lucide-react";
 import { MODEL_OPTIONS, NODE_TYPE_DEFINITIONS } from "~/types/extraction";
 
 const SECTION_LABEL_CLASS =
-  "mb-3 block px-1 text-[18px] font-semibold tracking-[-0.016em] text-slate-800";
+  "mb-3 block px-1 text-lg font-semibold tracking-[-0.016em] text-slate-800";
 
 type SidebarProps = {
   pdfFile: File | null;
@@ -72,15 +72,15 @@ export const Sidebar = ({
               className="group flex w-full items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-left transition-colors hover:border-slate-300"
             >
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-b from-rose-500 to-rose-600">
-                <span className="text-[11px] font-bold tracking-[0.02em] text-white">
+                <span className="text-xs font-bold tracking-[0.02em] text-white">
                   PDF
                 </span>
               </div>
               <div className="min-w-0 flex-1 pt-0.5">
-                <p className="truncate text-[16px] font-semibold leading-tight text-slate-900">
+                <p className="truncate text-base font-semibold leading-tight text-slate-900">
                   {pdfFile.name}
                 </p>
-                <p className="mt-1 text-[14px] leading-tight text-slate-500">
+                <p className="mt-1 text-sm leading-tight text-slate-500">
                   {(pdfFile.size / 1024 / 1024).toFixed(1)} MB &middot;{" "}
                   <span className="font-medium transition-colors group-hover:text-sky-700">
                     Replace file
@@ -98,10 +98,10 @@ export const Sidebar = ({
                 <Upload className="h-5 w-5 text-slate-500" />
               </div>
               <div>
-                <p className="text-[16px] font-semibold text-slate-800">
+                <p className="text-base font-semibold text-slate-800">
                   Upload PDF
                 </p>
-                <p className="mt-1 text-[14px] text-slate-500">
+                <p className="mt-1 text-sm text-slate-500">
                   Click to choose a file
                 </p>
               </div>
@@ -137,7 +137,7 @@ export const Sidebar = ({
               onResearchQuestionChange(e.target.value)
             }
             placeholder="e.g., What are the molecular determinants of lumenoid formation in hiPSCs?"
-            className="min-h-[72px] resize-none rounded-xl border-slate-300 bg-white px-3.5 py-3 text-[16px] text-slate-700 placeholder:text-slate-400"
+            className="min-h-[72px] resize-none rounded-xl border-slate-300 bg-white px-3.5 py-3 text-base text-slate-700 placeholder:text-slate-400"
           />
         </section>
 
@@ -145,10 +145,10 @@ export const Sidebar = ({
 
         <section>
           <div className="mb-2.5 flex items-center justify-between px-1">
-            <h3 className="text-[18px] font-semibold tracking-[-0.016em] text-slate-800">
+            <h3 className="text-lg font-semibold tracking-[-0.016em] text-slate-800">
               Node Types
             </h3>
-            <span className="text-[13px] font-semibold tabular-nums text-slate-500">
+            <span className="text-sm font-semibold tabular-nums text-slate-500">
               {selectedTypes.size}/{NODE_TYPE_DEFINITIONS.length}
             </span>
           </div>
@@ -172,7 +172,7 @@ export const Sidebar = ({
                   <span className="min-w-0 flex-1 text-base font-medium">
                     {type.label}
                   </span>
-                  <span className="shrink-0 text-[11px] font-medium text-slate-400">
+                  <span className="shrink-0 text-xs font-medium text-slate-400">
                     {type.candidateTag}
                   </span>
                 </label>
@@ -183,13 +183,13 @@ export const Sidebar = ({
       </div>
 
       <div className="border-t border-slate-200/90 bg-white/95 p-4 backdrop-blur-xl">
-        <p className="mb-2 text-[14px] font-medium text-slate-500">
+        <p className="mb-2 text-sm font-medium text-slate-500">
           Ready to run extraction.
         </p>
         <Button
           onClick={onExtract}
           disabled={!canExtract}
-          className="w-full rounded-xl bg-slate-900 py-6 text-[17px] font-semibold text-white hover:bg-slate-800"
+          className="w-full rounded-xl bg-slate-900 py-6 text-base font-semibold text-white hover:bg-slate-800"
         >
           {isExtracting ? "Extracting…" : "Re-Extract"}
         </Button>
