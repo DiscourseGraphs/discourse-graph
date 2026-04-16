@@ -12,14 +12,52 @@ import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormat
 import { RelationshipSection } from "~/components/RelationshipSection";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { PluginProvider, usePlugin } from "~/components/PluginContext";
-import { getNodeTypeById } from "~/utils/typeUtils";
+import { getNodeTypeById, getAndFormatImportSource } from "~/utils/typeUtils";
 import { refreshImportedFile } from "~/utils/importNodes";
 import { publishNode } from "~/utils/publishNode";
 import { createBaseForNodeType } from "~/utils/baseForNodeType";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type DiscourseContextProps = {
   activeFile: TFile | null;
+};
+
+type InfoTooltipProps = {
+  content: string;
+};
+
+const InfoTooltip = ({ content }: InfoTooltipProps) => {
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setVisible(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [visible]);
+
+  return (
+    <div ref={ref} className="relative inline-flex items-center">
+      <button
+        className="clickable-icon text-muted hover:text-normal flex h-4 w-4 items-center justify-center"
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onClick={() => setVisible((v) => !v)}
+      >
+        <div ref={(el) => (el && setIcon(el, "info")) || undefined} />
+      </button>
+      {visible && (
+        <div className="absolute left-6 top-0 z-50 w-56 rounded border border-gray-300 bg-gray-800 p-2 text-xs text-gray-100 shadow-md dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100">
+          {content}
+        </div>
+      )}
+    </div>
+  );
 };
 
 const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
@@ -206,8 +244,19 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
             )}
           </div>
 
+          {isImported && (
+            <div className="mt-3 flex items-center gap-1.5">
+              <span className="cursor-default rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                View only
+              </span>
+              <InfoTooltip
+                content={`Imported from ${getAndFormatImportSource(frontmatter.importedFromRid as string, plugin.settings.spaceNames)}. Direct edits will be overwritten when refreshed.`}
+              />
+            </div>
+          )}
+
           {nodeType.format && (
-            <div className="mb-1">
+            <div className="mb-1 mt-2">
               <span className="font-bold">Content: </span>
               {extractContentFromTitle(nodeType.format, activeFile.basename)}
             </div>
