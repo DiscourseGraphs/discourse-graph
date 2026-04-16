@@ -106,8 +106,12 @@ export const MainContent = ({
   };
 
   const selectAll = (): void => {
-    setSelected(new Set(nodes.keys()));
+    setSelected(new Set(filteredNodes.map((f) => f.originalIndex)));
   };
+
+  const visibleSelectedCount = filteredNodes.filter((f) =>
+    selected.has(f.originalIndex),
+  ).length;
 
   const deselectAll = (): void => {
     setSelected(new Set());
@@ -252,7 +256,7 @@ export const MainContent = ({
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={selected.size === nodes.length}
+                disabled={visibleSelectedCount === filteredNodes.length}
                 onClick={selectAll}
                 className="rounded-none text-slate-600"
               >
@@ -270,7 +274,7 @@ export const MainContent = ({
               </Button>
             </div>
             <span className="text-sm font-medium tabular-nums text-slate-500">
-              {selected.size} of {nodes.length} selected
+              {visibleSelectedCount} of {filteredNodes.length} selected
             </span>
           </div>
 
