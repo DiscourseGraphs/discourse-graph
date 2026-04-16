@@ -19,6 +19,7 @@ if (process.env.SUPABASE_PROJECT_ID !== "test") {
 const serve = spawn("supabase", ["functions", "serve"], {
   cwd: projectRoot,
   detached: true,
+  stdio: ["ignore", "pipe", "inherit"],
 });
 
 let resolveCallback: ((value: unknown) => void) | undefined = undefined;
@@ -56,15 +57,21 @@ serve.on("error", (err) => {
 });
 
 const doTest = async () => {
-  await servingReady;
   try {
+    await servingReady;
     execSync("cucumber-js", {
       cwd: projectRoot,
       stdio: "inherit",
     });
     // will throw on failure
   } finally {
-    if (serve.pid) process.kill(-serve.pid);
+    if (serve.pid)
+      try {
+        process.kill(-serve.pid);
+      } catch (e) {
+        console.error("Could not kill the process");
+        // maybe it just ended on its own.
+      }
   }
 };
 
