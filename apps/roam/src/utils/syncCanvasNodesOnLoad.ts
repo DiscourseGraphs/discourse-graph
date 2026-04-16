@@ -360,7 +360,11 @@ const syncCanvasKeyImagesOnLoad = async ({
       if (prevImageUrl === "" && imageUrl !== "") {
         // Image newly added: compute dimensions including image height.
         // Pass the pre-fetched imageUrl to skip re-fetching it.
-        const { w, h } = await calcCanvasNodeSizeAndImg({
+        const {
+          w,
+          h,
+          imageUrl: resolvedImageUrl,
+        } = await calcCanvasNodeSizeAndImg({
           nodeText: title,
           uid: shape.props.uid,
           nodeType: shape.type,
@@ -370,7 +374,7 @@ const syncCanvasKeyImagesOnLoad = async ({
         imageUpdates.push({
           id: shape.id,
           type: shape.type,
-          props: { imageUrl, w, h },
+          props: { imageUrl: resolvedImageUrl, w, h },
         });
       } else if (prevImageUrl !== "" && imageUrl === "") {
         // Image removed: recompute as text-only dimensions.
