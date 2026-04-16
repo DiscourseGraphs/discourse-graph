@@ -106,12 +106,17 @@ export const MainContent = ({
   };
 
   const selectAll = (): void => {
-    setSelected(new Set(filteredNodes.map((f) => f.originalIndex)));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      filteredNodes.forEach((f) => next.add(f.originalIndex));
+      return next;
+    });
   };
 
   const visibleSelectedCount = filteredNodes.filter((f) =>
     selected.has(f.originalIndex),
   ).length;
+  const hasHiddenSelections = selected.size > visibleSelectedCount;
 
   const deselectAll = (): void => {
     setSelected(new Set());
@@ -274,7 +279,9 @@ export const MainContent = ({
               </Button>
             </div>
             <span className="text-sm font-medium tabular-nums text-slate-500">
-              {visibleSelectedCount} of {filteredNodes.length} selected
+              {hasHiddenSelections
+                ? `${visibleSelectedCount} of ${filteredNodes.length} in view · ${selected.size} selected total`
+                : `${visibleSelectedCount} of ${filteredNodes.length} selected`}
             </span>
           </div>
 
