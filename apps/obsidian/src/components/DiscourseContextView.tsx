@@ -45,8 +45,8 @@ const InfoTooltip = ({ content }: InfoTooltipProps) => {
     <div ref={ref} className="relative inline-flex items-center">
       <button
         className="clickable-icon text-muted hover:text-normal flex h-4 w-4 items-center justify-center"
-        onMouseEnter={() => setVisible(true)}
-        onMouseLeave={() => setVisible(false)}
+        onPointerEnter={(e) => e.pointerType === "mouse" && setVisible(true)}
+        onPointerLeave={(e) => e.pointerType === "mouse" && setVisible(false)}
         onClick={() => setVisible((v) => !v)}
       >
         <div ref={(el) => (el && setIcon(el, "info")) || undefined} />
@@ -246,7 +246,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
 
           {isImported && (
             <div className="mt-3 flex items-center gap-1.5">
-              <span className="cursor-default rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+              <span className="cursor-default rounded bg-amber-300 px-2 py-1 text-xs font-semibold text-amber-950 dark:bg-amber-900/40 dark:text-amber-300">
                 View only
               </span>
               <InfoTooltip
