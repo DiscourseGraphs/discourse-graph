@@ -105,8 +105,7 @@ export const POST = async (
     );
   }
 
-  const { pdfBase64, researchQuestion, model, provider, systemPrompt } =
-    validated.data;
+  const { pdfBase64, model, provider, systemPrompt } = validated.data;
 
   const config = PROVIDER_CONFIGS[provider];
   const apiKey = process.env[config.apiKeyEnvVar];
@@ -121,7 +120,7 @@ export const POST = async (
   const messages = buildExtractionMessages({
     provider,
     pdfBase64,
-    userPrompt: buildUserPrompt(researchQuestion),
+    userPrompt: buildUserPrompt(),
   });
 
   const settings: Settings = {

@@ -48,12 +48,14 @@ const ExtractNodesPage = (): React.ReactElement => {
       const nodeTypes = NODE_TYPE_DEFINITIONS.filter((t) =>
         selectedTypes.has(t.candidateTag),
       );
-      const systemPrompt = buildSystemPrompt(nodeTypes);
+      const systemPrompt = buildSystemPrompt({
+        nodeTypes,
+        researchQuestion: researchQuestion || undefined,
+      });
       const requestBody = {
         pdfBase64,
         provider: "anthropic",
         model,
-        researchQuestion: researchQuestion || undefined,
         systemPrompt,
       };
       console.log("extraction request body:", requestBody);

@@ -94,13 +94,24 @@ Excerpt (Results):
 }
 </example>`;
 
-export const buildSystemPrompt = (nodeTypes: NodeTypeDefinition[]): string => {
+export const buildSystemPrompt = ({
+  nodeTypes,
+  researchQuestion,
+}: {
+  nodeTypes: NodeTypeDefinition[];
+  researchQuestion?: string;
+}): string => {
   const nodeTypesBlock = nodeTypes
     .map((t) => `${t.label}: ${t.definition}`)
     .join("\n");
+  const trimmedResearchQuestion = researchQuestion?.trim();
+  const researchQuestionBlock = trimmedResearchQuestion
+    ? `\n<research-question>\n${trimmedResearchQuestion}\n</research-question>`
+    : "";
 
   return `You are a research analyst extracting discourse graph nodes from academic papers.
 Extract discrete, atomic nodes from the paper. Each node is one idea: one claim, one observation, one question.
+${trimmedResearchQuestion ? `Focus extraction around the research question provided below when it is relevant.\n` : ""}${researchQuestionBlock}
 <node-types>
 ${nodeTypesBlock}
 </node-types>
@@ -112,12 +123,5 @@ ${FEW_SHOT_EXAMPLES}
 </examples>`;
 };
 
-export const buildUserPrompt = (researchQuestion?: string): string => {
-  let prompt = "Extract discourse graph nodes from the attached paper.";
-
-  if (researchQuestion) {
-    prompt += `\n\nFocus extraction around this research question: ${researchQuestion}`;
-  }
-
-  return prompt;
-};
+export const buildUserPrompt = (): string =>
+  "Extract discourse graph nodes from the attached paper.";
