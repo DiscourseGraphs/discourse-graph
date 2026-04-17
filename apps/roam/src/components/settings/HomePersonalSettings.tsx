@@ -7,7 +7,6 @@ import { addStyle } from "roamjs-components/dom";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
   getOverlayHandler,
-  getSuggestiveOverlayHandler,
   onPageRefObserverChange,
   previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
@@ -47,11 +46,9 @@ const enum RelationMigrationDialog {
 const HomePersonalSettings = ({
   onloadArgs,
   personalSettings,
-  featureFlags,
 }: {
   onloadArgs: OnloadArgs;
   personalSettings: SettingsSnapshot["personalSettings"];
-  featureFlags: SettingsSnapshot["featureFlags"];
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
@@ -158,21 +155,6 @@ const HomePersonalSettings = ({
           });
         }}
       />
-      {featureFlags["Suggestive mode enabled"] && (
-        <PersonalFlagPanel
-          title="Suggestive mode overlay"
-          description="Whether or not to overlay suggestive mode button over discourse node references."
-          settingKeys={[PERSONAL_KEYS.suggestiveModeOverlay]}
-          initialValue={personalSettings[PERSONAL_KEYS.suggestiveModeOverlay]}
-          onChange={(checked) => {
-            void setSetting("suggestive-mode-overlay", checked);
-            onPageRefObserverChange(getSuggestiveOverlayHandler(onloadArgs))(
-              checked,
-            );
-          }}
-        />
-      )}
-
       <PersonalFlagPanel
         title="Enable stored relations"
         description="Use stored relations instead of legacy pattern-based relations"

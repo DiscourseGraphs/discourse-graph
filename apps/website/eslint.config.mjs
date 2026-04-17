@@ -15,6 +15,15 @@ export default [
     },
   },
   {
-    ignores: [".next/**"],
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+      },
+    },
+  },
+  {
+    ignores: [".next/**", "public/_pagefind/**"],
   },
 ];

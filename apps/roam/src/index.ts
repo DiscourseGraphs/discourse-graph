@@ -34,7 +34,10 @@ import {
 import { initPluginTimer } from "./utils/pluginTimer";
 import { initPostHog } from "./utils/posthog";
 import { initSchema } from "./components/settings/utils/init";
-import { bulkReadSettings } from "./components/settings/utils/accessors";
+import {
+  bulkReadSettings,
+  isSyncEnabled,
+} from "./components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "./components/settings/utils/settingKeys";
 import { setupPullWatchOnSettingsPage } from "./components/settings/utils/pullWatchers";
 import {
@@ -119,20 +122,9 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  if (settings.featureFlags["Suggestive mode enabled"]) {
+  if (isSyncEnabled()) {
     initializeSupabaseSync();
   }
-
-  const unsubSuggestiveMode = onSettingChange(
-    settingKeys.suggestiveModeEnabled,
-    (newValue) => {
-      if (newValue) {
-        initializeSupabaseSync();
-      } else {
-        setSyncActivity(false);
-      }
-    },
-  );
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
@@ -207,7 +199,6 @@ export default runExtension(async (onloadArgs) => {
     observers: observers,
     unload: () => {
       unsubLeftSidebarFlag();
-      unsubSuggestiveMode();
       cleanupPullWatchers();
       cleanups.forEach((fn) => fn());
       setSyncActivity(false);

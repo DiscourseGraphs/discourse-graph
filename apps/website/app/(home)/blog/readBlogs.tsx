@@ -1,58 +1,100 @@
-import path from "path";
-import fs from "fs/promises";
+import fs from "node:fs/promises";
+import path from "node:path";
 import matter from "gray-matter";
-import { BLOG_PATH } from "~/data/constants";
-import { PageSchema, type PageData } from "~/types/schema";
+import { BLOG_DIRECTORY } from "./blogDirectory";
+import { BlogFrontmatterSchema, type BlogData } from "./blogSchema";
 
-const BLOG_DIRECTORY = path.join(process.cwd(), BLOG_PATH);
+const BLOG_FILE_EXTENSION_RE = /\.mdx?$/u;
+const BLOG_INDEX_FILE_RE = /^index\.mdx?$/u;
 
-async function validateBlogDirectory(): Promise<boolean> {
+const validateBlogDirectory = async (): Promise<boolean> => {
   try {
     const stats = await fs.stat(BLOG_DIRECTORY);
     return stats.isDirectory();
   } catch {
-    console.log("No app/blog/posts directory found.");
+    console.log("No blog content directory found.");
     return false;
   }
-}
+};
 
-async function processBlogFile(filename: string): Promise<PageData | null> {
+const isBlogContentFile = (filename: string): boolean =>
+  BLOG_FILE_EXTENSION_RE.test(filename) && !BLOG_INDEX_FILE_RE.test(filename);
+
+const getSlugFromFilename = (filename: string): string =>
+  filename.replace(BLOG_FILE_EXTENSION_RE, "");
+
+const processBlogFile = async (filename: string): Promise<BlogData | null> => {
   try {
     const filePath = path.resolve(BLOG_DIRECTORY, filename);
     const fileContent = await fs.readFile(filePath, "utf-8");
     const { data } = matter(fileContent);
-    const validatedData = PageSchema.parse(data);
+    const validatedData = BlogFrontmatterSchema.parse(data);
 
     return {
-      slug: filename.replace(/\.md$/, ""),
+      slug: getSlugFromFilename(filename),
       ...validatedData,
     };
   } catch (error) {
     console.error(`Error processing blog file ${filename}:`, error);
     return null;
   }
-}
+};
 
-export async function getAllBlogs(): Promise<PageData[]> {
+const sortBlogsByDate = (left: BlogData, right: BlogData): number =>
+  new Date(right.date).getTime() - new Date(left.date).getTime();
+
+const listBlogFiles = async (): Promise<string[]> => {
+  const directoryExists = await validateBlogDirectory();
+
+  if (!directoryExists) {
+    return [];
+  }
+
+  const files = await fs.readdir(BLOG_DIRECTORY);
+
+  return files.filter(isBlogContentFile);
+};
+
+export const getAllBlogs = async (): Promise<BlogData[]> => {
   try {
-    const directoryExists = await validateBlogDirectory();
-    if (!directoryExists) return [];
+    const files = await listBlogFiles();
+    const blogs = await Promise.all(files.map(processBlogFile));
+    const validBlogs = blogs.filter((blog): blog is BlogData => blog !== null);
 
-    const files = await fs.readdir(BLOG_DIRECTORY);
-    const blogs = await Promise.all(
-      files.filter((filename) => filename.endsWith(".md")).map(processBlogFile),
-    );
-    const validBlogs = blogs.filter((blog): blog is PageData => blog !== null);
-    return validBlogs.filter((blog) => blog.published);
+    return validBlogs.filter((blog) => blog.published).sort(sortBlogsByDate);
   } catch (error) {
     console.error("Error reading blog directory:", error);
     return [];
   }
-}
+};
 
-export async function getLatestBlogs(): Promise<PageData[]> {
-  const blogs = await getAllBlogs();
-  return blogs
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 3);
-}
+export const getLatestBlogs = async (): Promise<BlogData[]> =>
+  (await getAllBlogs()).slice(0, 3);
+
+export const getBlogBySlug = async (slug: string): Promise<BlogData | null> => {
+  const safeSlug = path.basename(slug);
+
+  if (safeSlug !== slug) {
+    return null;
+  }
+
+  try {
+    const files = await listBlogFiles();
+    const filename = files.find((file) => getSlugFromFilename(file) === slug);
+
+    if (!filename) {
+      return null;
+    }
+
+    const blog = await processBlogFile(filename);
+
+    if (!blog?.published) {
+      return null;
+    }
+
+    return blog;
+  } catch (error) {
+    console.error(`Error reading blog "${slug}":`, error);
+    return null;
+  }
+};

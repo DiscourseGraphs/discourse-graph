@@ -12,9 +12,10 @@ import autoprefixer from "autoprefixer";
 dotenv.config();
 
 // For local dev: Set SUPABASE_USE_DB=local and run `pnpm run genenv` in packages/database
-let envContents: (() => Record<string, string>) | null = null;
+let envContents: () => Partial<Record<string, string>>;
 try {
   const dbDotEnv = require("@repo/database/dbDotEnv");
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   envContents = dbDotEnv.envContents;
 } catch (error) {
   if ((error as Error).message.includes("Cannot find module")) {
@@ -139,7 +140,7 @@ export const compile = ({
         },
         {
           name: "combineStyles",
-          setup(build) {
+          setup: (build): void => {
             build.onEnd(async () => {
               const rootStylesPath = path.join(root, "styles.css");
               if (fs.existsSync(rootStylesPath)) {
@@ -181,8 +182,8 @@ export const compile = ({
         },
         {
           name: "copyDefaultFiles",
-          setup(build) {
-            build.onEnd(async () => {
+          setup: (build): void => {
+            build.onEnd(() => {
               DEFAULT_FILES_INCLUDED.map((f) => path.join(root, f))
                 .filter((f) => fs.existsSync(f))
                 .forEach((f) => {
@@ -193,29 +194,44 @@ export const compile = ({
         },
         {
           name: "mirrorFiles",
-          setup(build) {
-            build.onEnd(async () => {
+          setup: (build): void => {
+            build.onEnd(() => {
               if (!mirror) return;
 
-              const normalizedMirrorPath = path.normalize(mirror);
-              const resolvedMirrorPath = path.resolve(
-                root,
-                normalizedMirrorPath,
-              );
-
-              if (!fs.existsSync(resolvedMirrorPath)) {
-                fs.mkdirSync(resolvedMirrorPath, { recursive: true });
+              let mirrorPaths: string[];
+              try {
+                const parsed: unknown = JSON.parse(mirror);
+                mirrorPaths = Array.isArray(parsed)
+                  ? (parsed as string[])
+                  : [parsed as string];
+              } catch {
+                mirrorPaths = [mirror];
               }
+              mirrorPaths = mirrorPaths.map((p) => p.trim()).filter(Boolean);
 
-              readDir(outdir)
-                .filter((file) => fs.existsSync(appPath(file)))
-                .forEach((file) => {
-                  const destinationPath = path.join(
-                    resolvedMirrorPath,
-                    path.relative(outdir, file),
-                  );
-                  fs.cpSync(appPath(file), destinationPath);
-                });
+              for (const mirrorPath of mirrorPaths) {
+                const normalizedMirrorPath = path.normalize(mirrorPath);
+                const resolvedMirrorPath = path.resolve(
+                  root,
+                  normalizedMirrorPath,
+                );
+
+                if (!fs.existsSync(resolvedMirrorPath)) {
+                  fs.mkdirSync(resolvedMirrorPath, { recursive: true });
+                }
+
+                readDir(outdir)
+                  .filter((file) => fs.existsSync(appPath(file)))
+                  .forEach((file) => {
+                    const destinationPath = path.join(
+                      resolvedMirrorPath,
+                      path.relative(outdir, file),
+                    );
+                    fs.cpSync(appPath(file), destinationPath);
+                  });
+
+                console.log(`mirrored to ${resolvedMirrorPath}`);
+              }
             });
           },
         },
@@ -234,4 +250,4 @@ const main = async () => {
     process.exit(1);
   }
 };
-if (require.main === module) main();
+if (require.main === module) void main();

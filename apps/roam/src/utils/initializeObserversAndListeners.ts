@@ -46,6 +46,7 @@ import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { renderImageToolsMenu } from "./renderImageToolsMenu";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
+import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
@@ -115,8 +116,6 @@ export const initObservers = ({
 
       const props = { title, h1, onloadArgs };
 
-      const isSuggestiveModeEnabled =
-        settings.featureFlags["Suggestive mode enabled"];
       const node = findDiscourseNode({
         uid,
         title,
@@ -125,7 +124,7 @@ export const initObservers = ({
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
         renderDiscourseContext({ h1, uid });
-        if (isSuggestiveModeEnabled) {
+        if (getFeatureFlag("Duplicate node alert enabled")) {
           renderPossibleDuplicates(h1, title, node);
         }
         const linkedReferencesDiv = document.querySelector(
@@ -226,18 +225,9 @@ export const initObservers = ({
       });
   }) as EventListener;
 
-  const suggestiveHandler = getSuggestiveOverlayHandler(onloadArgs);
-  const toggleSuggestiveOverlay = onPageRefObserverChange(suggestiveHandler);
-  if (settings.personalSettings[PERSONAL_KEYS.suggestiveModeOverlay]) {
-    addPageRefObserver(suggestiveHandler);
+  if (getFeatureFlag("Suggestive mode overlay enabled")) {
+    addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
   }
-
-  const unsubSuggestiveOverlay = onSettingChange(
-    settingKeys.personalSuggestiveModeOverlay,
-    (newValue) => {
-      toggleSuggestiveOverlay(Boolean(newValue));
-    },
-  );
 
   const graphOverviewExportObserver = createHTMLObserver({
     tag: "DIV",
@@ -489,11 +479,6 @@ export const initObservers = ({
       discourseNodeSearchTriggerListener,
       nodeCreationPopoverListener,
     },
-    cleanups: [
-      unsubGlobalTrigger,
-      unsubPersonalTrigger,
-      unsubSearchTrigger,
-      unsubSuggestiveOverlay,
-    ],
+    cleanups: [unsubGlobalTrigger, unsubPersonalTrigger, unsubSearchTrigger],
   };
 };

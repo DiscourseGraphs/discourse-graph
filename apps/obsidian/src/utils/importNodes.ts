@@ -7,9 +7,18 @@ import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
-import { spaceUriAndLocalIdToRid, ridToSpaceUriAndLocalId } from "./rid";
+import {
+  getImportedNodesInfo,
+  getLocalNodeKeyToEndpointId,
+} from "~/utils/relationsStore";
+import { spaceUriAndLocalIdToRid } from "./rid";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Tables } from "@repo/database/dbTypes";
+import { getSpaceNameIdFromRid } from "./spaceFromRid";
+import {
+  importRelationsForImportedNodes,
+  type RemoteRelationInstance,
+} from "./importRelations";
 
 export const getAvailableGroupIds = async (
   client: DGSupabaseClient,
@@ -133,13 +142,13 @@ export const getPublishedNodesForGroups = async ({
 export const getLocalNodeInstanceIds = (
   plugin: DiscourseGraphPlugin,
 ): Set<string> => {
-  const allFiles = plugin.app.vault.getMarkdownFiles();
+  const queryEngine = new QueryEngine(plugin.app);
+  const files = queryEngine.getFilesWithNodeInstanceId();
   const nodeInstanceIds = new Set<string>();
 
-  for (const file of allFiles) {
+  for (const file of files) {
     const cache = plugin.app.metadataCache.getFileCache(file);
     const frontmatter = cache?.frontmatter;
-
     if (frontmatter?.nodeInstanceId) {
       nodeInstanceIds.add(frontmatter.nodeInstanceId as string);
     }
@@ -148,6 +157,10 @@ export const getLocalNodeInstanceIds = (
   return nodeInstanceIds;
 };
 
+/**
+ * Returns the space name for a given space ID.
+ * Falls back to "space-{id}" if the lookup fails.
+ */
 export const getSpaceNameFromId = async (
   client: DGSupabaseClient,
   spaceId: number,
@@ -166,24 +179,7 @@ export const getSpaceNameFromId = async (
   return data.name;
 };
 
-export const getSpaceNameIdFromRid = async (
-  client: DGSupabaseClient,
-  rid: string,
-): Promise<{ spaceName: string; spaceId: number }> => {
-  const { spaceUri } = ridToSpaceUriAndLocalId(rid);
-  const { data, error } = await client
-    .from("Space")
-    .select("name, id")
-    .eq("url", spaceUri)
-    .maybeSingle();
-
-  if (error || !data) {
-    console.error("Error fetching space name:", error);
-    return { spaceName: "", spaceId: -1 };
-  }
-
-  return { spaceName: data.name, spaceId: data.id };
-};
+export { getSpaceNameIdFromRid } from "./spaceFromRid";
 
 export const getSpaceNameFromIds = async (
   client: DGSupabaseClient,
@@ -354,12 +350,6 @@ const fetchNodeContentForImport = async ({
     full.created == null ||
     full.last_modified == null
   ) {
-    if (!direct?.text) {
-      console.warn(`No direct variant found for node ${nodeInstanceId}`);
-    }
-    if (!full?.text) {
-      console.warn(`No full variant found for node ${nodeInstanceId}`);
-    }
     return null;
   }
 
@@ -458,12 +448,10 @@ const downloadFileFromStorage = async ({
       .download(filehash);
 
     if (error) {
-      console.warn(`Error downloading file ${filehash}:`, error);
       return null;
     }
 
     if (!data) {
-      console.warn(`No data returned for file ${filehash}`);
       return null;
     }
 
@@ -491,11 +479,7 @@ const updateMarkdownAssetLinks = ({
   app: App;
   originalNodePath?: string;
 }): string => {
-  if (oldPathToNewPath.size === 0) {
-    return content;
-  }
-
-  // Create a set of all new paths for quick lookup (used by findImportedAssetFile)
+  // Create a set of all new paths for quick lookup (used by findImportedAssetFile when pathMapping has entries)
   const newPaths = new Set(oldPathToNewPath.values());
 
   let updatedContent = content;
@@ -503,6 +487,13 @@ const updateMarkdownAssetLinks = ({
   const noteDir = targetFile.path.includes("/")
     ? targetFile.path.replace(/\/[^/]*$/, "")
     : "";
+
+  // When the note is under import/{spaceName}/, only treat wiki links as resolved if the target is in this folder (not some other vault file).
+  const pathParts = targetFile.path.split("/");
+  const importFolder =
+    pathParts[0] === "import" && pathParts.length >= 2
+      ? pathParts.slice(0, 2).join("/")
+      : null;
 
   /** Path of targetFile relative to the current note, for use in links. Obsidian resolves relative links from the note's directory. */
   const getRelativeLinkPath = (assetPath: string): string => {
@@ -607,48 +598,100 @@ const updateMarkdownAssetLinks = ({
     return null;
   };
 
+  const processLink = (linkPath: string): string => {
+    // Skip external URLs
+    if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
+      return linkPath;
+    }
+
+    // First, try to find if this link resolves to one of our imported assets
+    const importedAssetFile = findImportedAssetFile(linkPath);
+    if (importedAssetFile) {
+      return getRelativeLinkPath(importedAssetFile.path);
+    }
+
+    // Direct lookup from pathMapping (record built when we downloaded each asset)
+    const newPath = getNewPathForLink(linkPath);
+    if (newPath) {
+      const newFile = app.metadataCache.getFirstLinkpathDest(
+        newPath,
+        targetFile.path,
+      );
+      if (newFile) {
+        return getRelativeLinkPath(newFile.path);
+      }
+    }
+
+    // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
+    const resolvedFile = app.metadataCache.getFirstLinkpathDest(
+      linkPath,
+      targetFile.path,
+    );
+    const isInImportFolder =
+      importFolder &&
+      resolvedFile &&
+      resolvedFile.path.startsWith(importFolder + "/");
+    if (isInImportFolder && resolvedFile) {
+      return getRelativeLinkPath(resolvedFile.path);
+    }
+
+    // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
+    if (importFolder && originalNodePath && !resolvedFile) {
+      // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
+      const canonicalSourcePath =
+        linkPath.includes("/") &&
+        !linkPath.startsWith(".") &&
+        !linkPath.startsWith("/")
+          ? normalizePathForLookup(linkPath)
+          : (getCanonicalFromOriginalNote(linkPath) ??
+            normalizePathForLookup(linkPath));
+      return `${importFolder}/${canonicalSourcePath}`;
+    }
+
+    return linkPath;
+  };
+
   // Match wiki links: [[path]] or [[path|alias]]
   const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
   updatedContent = updatedContent.replace(
     wikiLinkRegex,
-    (match, linkContent) => {
+    (match, linkContent: string) => {
       // Extract path and optional alias
       const [linkPath, alias] = linkContent
         .split("|")
         .map((s: string) => s.trim());
+      if (!linkPath) return match;
+      let processedPath = processLink(linkPath);
+      if (processedPath.endsWith(".md") && !linkPath.endsWith(".md"))
+        processedPath = processedPath.substring(0, processedPath.length - 3);
+      if (alias) {
+        return `[[${processedPath}|${alias}]]`;
+      }
+      return `[[${processedPath}|${linkPath}]]`;
+    },
+  );
 
-      // Skip external URLs
+  // Match markdown links (non-image): [text](path) — internal paths resolved like wikilinks, href kept URL-encoded
+  const markdownLinkRegex = /(?<!!)\[([^\]]*)\]\(([^)]+)\)/g;
+  updatedContent = updatedContent.replace(
+    markdownLinkRegex,
+    (match, linkText: string, linkPath: string) => {
+      if (!linkPath) return match;
+      linkPath = linkPath
+        .split("/")
+        .map((segment) => {
+          try {
+            return decodeURIComponent(segment);
+          } catch {
+            return segment;
+          }
+        })
+        .join("/");
       if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
         return match;
       }
-
-      // First, try to find if this link resolves to one of our imported assets
-      const importedAssetFile = findImportedAssetFile(linkPath);
-      if (importedAssetFile) {
-        const linkText = getRelativeLinkPath(importedAssetFile.path);
-        if (alias) {
-          return `[[${linkText}|${alias}]]`;
-        }
-        return `[[${linkText}]]`;
-      }
-
-      // Direct lookup from pathMapping (record built when we downloaded each asset)
-      const newPath = getNewPathForLink(linkPath);
-      if (newPath) {
-        const newFile = app.metadataCache.getFirstLinkpathDest(
-          newPath,
-          targetFile.path,
-        );
-        if (newFile) {
-          const linkText = getRelativeLinkPath(newFile.path);
-          if (alias) {
-            return `[[${linkText}|${alias}]]`;
-          }
-          return `[[${linkText}]]`;
-        }
-      }
-
-      return match;
+      const processedPath = encodePathForMarkdownLink(processLink(linkPath));
+      return `[${linkText}](${processedPath})`;
     },
   );
 
@@ -858,7 +901,6 @@ const importAssetsForNode = async ({
 
       if (!fileContent) {
         errors.push(`Failed to download file: ${filepath}`);
-        console.warn(`Failed to download file ${filepath} (hash: ${filehash})`);
         continue;
       }
 
@@ -898,7 +940,6 @@ const importAssetsForNode = async ({
 
       // Track path mapping (raw + normalized key so updateMarkdownAssetLinks can lookup by link text)
       setPathMapping(filepath, targetPath);
-      console.log(`Imported asset: ${filepath} -> ${targetPath}`);
     } catch (error) {
       const errorMsg = `Error importing asset ${fileRef.filepath}: ${error}`;
       errors.push(errorMsg);
@@ -919,6 +960,15 @@ const sanitizeFileName = (fileName: string): string => {
     .replace(/[<>:"/\\|?*]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+};
+
+/** Sanitize each path segment for use under import folder (preserves source vault folder structure). */
+const sanitizePathForImport = (path: string): string => {
+  return path
+    .split("/")
+    .map((segment) => sanitizeFileName(segment))
+    .filter(Boolean)
+    .join("/");
 };
 
 type ParsedFrontmatter = {
@@ -971,7 +1021,7 @@ const parseSchemaLiteralContent = (
   };
 };
 
-const mapNodeTypeIdToLocal = async ({
+export const mapNodeTypeIdToLocal = async ({
   plugin,
   client,
   sourceSpaceId,
@@ -1081,7 +1131,7 @@ const processFileContent = async ({
   if (!file) {
     file = await plugin.app.vault.create(filePath, rawContent, stat);
   } else {
-    await plugin.app.vault.modify(file, rawContent, stat);
+    await plugin.app.vault.process(file, () => rawContent, stat);
   }
 
   // 2. Parse frontmatter from rawContent (metadataCache is updated async and is
@@ -1134,10 +1184,17 @@ export const importSelectedNodes = async ({
   plugin,
   selectedNodes,
   onProgress,
+  precomputedData,
 }: {
   plugin: DiscourseGraphPlugin;
   selectedNodes: ImportableNode[];
   onProgress?: (current: number, total: number) => void;
+  precomputedData?: {
+    nodeKeys: Set<string>;
+    keyToRid: Map<string, string>;
+    keyToRelationEndpointId: Map<string, string>;
+    relationInstancesBySpace: Map<number, RemoteRelationInstance[]>;
+  };
 }): Promise<{ success: number; failed: number }> => {
   const client = await getLoggedInClient(plugin);
   if (!client) {
@@ -1173,7 +1230,6 @@ export const importSelectedNodes = async ({
     const importFolderPath = `import/${sanitizeFileName(spaceName)}`;
     const spaceUri = spaceUris.get(spaceId);
     if (!spaceUri) {
-      console.warn(`Missing URI for space ${spaceId}`);
       for (const _node of nodes) {
         failedCount++;
         processedCount++;
@@ -1221,11 +1277,13 @@ export const importSelectedNodes = async ({
           content,
           createdAt: contentCreatedAt,
           modifiedAt: contentModifiedAt,
-          filePath,
+          filePath: contentFilePath,
         } = nodeContent;
         const createdAt = node.createdAt ?? contentCreatedAt;
         const modifiedAt = node.modifiedAt ?? contentModifiedAt;
-        const originalNodePath: string | undefined = node.filePath;
+        // Use source vault path from Content direct variant metadata for wikilink rewriting and asset placement
+        const originalNodePath: string | undefined =
+          contentFilePath ?? node.filePath;
 
         // Sanitize file name
         const sanitizedFileName = sanitizeFileName(fileName);
@@ -1235,14 +1293,20 @@ export const importSelectedNodes = async ({
           // Update existing file - use its current path
           finalFilePath = existingFile.path;
         } else {
-          // Create new file in the import folder
-          finalFilePath = `${importFolderPath}/${sanitizedFileName}.md`;
+          // Preserve source vault folder structure under import/{vaultName} when we have filePath from Content
+          const pathUnderImport =
+            contentFilePath && contentFilePath.includes("/")
+              ? sanitizePathForImport(contentFilePath)
+              : `${sanitizedFileName}.md`;
+          finalFilePath = `${importFolderPath}/${pathUnderImport}`;
 
-          // Check if file path already exists (edge case: same title but different nodeInstanceId)
-          let counter = 1;
-          while (await plugin.app.vault.adapter.exists(finalFilePath)) {
-            finalFilePath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
-            counter++;
+          // Ensure all parent folders exist (e.g. import/VaultName/Discourse Nodes/SubFolder)
+          const dirParts = finalFilePath.split("/");
+          for (let i = 1; i < dirParts.length - 1; i++) {
+            const folderPath = dirParts.slice(0, i + 1).join("/");
+            if (!(await plugin.app.vault.adapter.exists(folderPath))) {
+              await plugin.app.vault.createFolder(folderPath);
+            }
           }
         }
 
@@ -1254,7 +1318,7 @@ export const importSelectedNodes = async ({
           sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
           rawContent: content,
-          originalFilePath: filePath,
+          originalFilePath: contentFilePath,
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
@@ -1285,38 +1349,31 @@ export const importSelectedNodes = async ({
           originalNodePath,
         });
 
-        // Update markdown content with new asset paths if assets were imported
-        if (assetImportResult.pathMapping.size > 0) {
-          const currentContent = await plugin.app.vault.read(processedFile);
-          const updatedContent = updateMarkdownAssetLinks({
-            content: currentContent,
-            oldPathToNewPath: assetImportResult.pathMapping,
-            targetFile: processedFile,
-            app: plugin.app,
-            originalNodePath,
-          });
+        // Update markdown content: rewrite asset paths from pathMapping and normalize all wiki links to relative paths
+        const currentContent = await plugin.app.vault.read(processedFile);
+        const updatedContent = updateMarkdownAssetLinks({
+          content: currentContent,
+          oldPathToNewPath: assetImportResult.pathMapping,
+          targetFile: processedFile,
+          app: plugin.app,
+          originalNodePath,
+        });
 
-          // Only update if content changed
-          if (updatedContent !== currentContent) {
-            await plugin.app.vault.modify(processedFile, updatedContent);
-          }
-        }
-
-        // Log asset import errors if any
-        if (assetImportResult.errors.length > 0) {
-          console.warn(
-            `Some assets failed to import for node ${node.nodeInstanceId}:`,
-            assetImportResult.errors,
-          );
+        // Only update if content changed
+        if (updatedContent !== currentContent) {
+          await plugin.app.vault.process(processedFile, () => updatedContent);
         }
 
         // If title changed and file exists, rename it to match the new title
         if (existingFile && processedFile.basename !== sanitizedFileName) {
-          const newPath = `${importFolderPath}/${sanitizedFileName}.md`;
+          const currentDir = processedFile.path.includes("/")
+            ? processedFile.path.replace(/\/[^/]*$/, "")
+            : importFolderPath;
+          const newPath = `${currentDir}/${sanitizedFileName}.md`;
           let targetPath = newPath;
           let counter = 1;
           while (await plugin.app.vault.adapter.exists(targetPath)) {
-            targetPath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
+            targetPath = `${currentDir}/${sanitizedFileName} (${counter}).md`;
             counter++;
           }
           await plugin.app.fileManager.renameFile(processedFile, targetPath);
@@ -1331,6 +1388,39 @@ export const importSelectedNodes = async ({
         processedCount++;
         onProgress?.(processedCount, totalNodes);
       }
+    }
+
+    // Import relations where both endpoints resolve in this vault (imported or local)
+    try {
+      let keyToRelationEndpointId: Map<string, string>;
+      if (precomputedData?.keyToRelationEndpointId) {
+        keyToRelationEndpointId = precomputedData.keyToRelationEndpointId;
+      } else {
+        const { keyToRid } = precomputedData
+          ? { keyToRid: precomputedData.keyToRid }
+          : await getImportedNodesInfo({
+              queryEngine,
+              plugin,
+              client,
+            });
+        const localMap = getLocalNodeKeyToEndpointId(plugin, context.spaceId);
+        keyToRelationEndpointId = new Map([...keyToRid, ...localMap]);
+      }
+      const precomputedRelationInstances =
+        precomputedData?.relationInstancesBySpace.get(spaceId);
+      const { imported } = await importRelationsForImportedNodes({
+        plugin,
+        client,
+        spaceId,
+        spaceUri,
+        keyToRelationEndpointId,
+        precomputedRelationInstances,
+      });
+      if (imported > 0) {
+        console.debug(`Imported ${imported} relation(s) for space ${spaceId}`);
+      }
+    } catch (error) {
+      console.warn("Failed to import relations for imported nodes:", error);
     }
   }
 
@@ -1388,8 +1478,8 @@ export const refreshImportedFile = async ({
   const metadata = metadataResp.data?.metadata;
   const filePath: string | undefined =
     typeof metadata === "object" &&
-    typeof (metadata as Record<string, any>).filePath === "string"
-      ? (metadata as Record<string, any>).filePath
+    typeof (metadata as Record<string, unknown>).filePath === "string"
+      ? ((metadata as Record<string, unknown>).filePath as string)
       : undefined;
   const result = await importSelectedNodes({
     plugin,
@@ -1422,19 +1512,11 @@ export const refreshAllImportedFiles = async (
   failed: number;
   errors: Array<{ file: string; error: string }>;
 }> => {
-  const allFiles = plugin.app.vault.getMarkdownFiles();
-  const importedFiles: TFile[] = [];
+  const queryEngine = new QueryEngine(plugin.app);
+  const importedFiles = queryEngine.getImportedNodePages();
   const client = await getLoggedInClient(plugin);
   if (!client) {
     throw new Error("Cannot get Supabase client");
-  }
-  // Find all imported files
-  for (const file of allFiles) {
-    const cache = plugin.app.metadataCache.getFileCache(file);
-    const frontmatter = cache?.frontmatter;
-    if (frontmatter?.importedFromRid && frontmatter?.nodeInstanceId) {
-      importedFiles.push(file);
-    }
   }
 
   if (importedFiles.length === 0) {
@@ -1460,4 +1542,12 @@ export const refreshAllImportedFiles = async (
   }
 
   return { success: successCount, failed: failedCount, errors };
+};
+
+const encodePathForMarkdownLink = (linkPath: string): string => {
+  // Input is already decoded; encode each segment (spaces → %20) but keep / as separator
+  return linkPath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
 };

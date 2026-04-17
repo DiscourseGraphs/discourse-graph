@@ -12,7 +12,6 @@ import type {
 
 export const PERSONAL_KEYS = {
   discourseContextOverlay: "Discourse context overlay",
-  suggestiveModeOverlay: "Suggestive mode overlay",
   textSelectionPopup: "Text selection popup",
   disableSidebarOpen: "Disable sidebar open",
   pagePreview: "Page preview",

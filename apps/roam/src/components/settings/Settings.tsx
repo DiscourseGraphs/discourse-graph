@@ -67,11 +67,13 @@ export const SettingsDialog = ({
   isOpen,
   onClose,
   selectedTabId,
+  expandedSectionUid,
 }: {
   onloadArgs: OnloadArgs;
   isOpen?: boolean;
   onClose?: () => void;
   selectedTabId?: TabId;
+  expandedSectionUid?: string;
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const grammarNode = discourseConfigRef.tree.find(
@@ -173,7 +175,6 @@ export const SettingsDialog = ({
               <HomePersonalSettings
                 onloadArgs={onloadArgs}
                 personalSettings={settings.personalSettings}
-                featureFlags={settings.featureFlags}
               />
             }
           />
@@ -195,6 +196,7 @@ export const SettingsDialog = ({
             panel={
               <LeftSidebarPersonalSections
                 personalSettings={settings.personalSettings}
+                expandedSectionUid={expandedSectionUid}
               />
             }
           />
@@ -263,16 +265,11 @@ export const SettingsDialog = ({
           <SectionHeader>Nodes</SectionHeader>
           {nodes.map((n) => (
             <Tab
+              key={n.type}
               id={n.type}
               title={n.text}
               className="overflow-y-auto"
-              panel={
-                <NodeConfig
-                  node={n}
-                  onloadArgs={onloadArgs}
-                  featureFlags={settings.featureFlags}
-                />
-              }
+              panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
             />
           ))}
           <Tabs.Expander />
@@ -282,12 +279,7 @@ export const SettingsDialog = ({
             id="secret-admin-panel"
             title="Admin"
             className="overflow-y-auto"
-            panel={
-              <AdminPanel
-                featureFlags={settings.featureFlags}
-                globalSettings={settings.globalSettings}
-              />
-            }
+            panel={<AdminPanel globalSettings={settings.globalSettings} />}
           />
         </Tabs>
       </div>
@@ -322,11 +314,15 @@ export const SettingsDialog = ({
 
 type Props = {
   onloadArgs: OnloadArgs;
+  selectedTabId?: TabId;
+  expandedSectionUid?: string;
 };
 export const render = (props: Props) =>
   renderOverlay({
     Overlay: SettingsDialog,
     props: {
       onloadArgs: props.onloadArgs,
+      selectedTabId: props.selectedTabId,
+      expandedSectionUid: props.expandedSectionUid,
     },
   });

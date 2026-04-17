@@ -30,10 +30,6 @@ export const addRelationToRelationsJson = async ({
     const missing: string[] = [];
     if (!sourceId) missing.push(`source (${sourceFile.basename})`);
     if (!destId) missing.push(`target (${targetFile.basename})`);
-    console.warn(
-      "Could not resolve nodeInstanceIds for relation files:",
-      missing.join(", "),
-    );
     new Notice(
       "Could not create relation: one or both files are not discourse nodes or metadata is not ready.",
       3000,
@@ -74,9 +70,6 @@ export const addRelationIfRequested = async (
     getNodeTypeIdForFile(plugin, relationshipTargetFile),
   ]);
   if (!typeA || !typeB) {
-    console.warn(
-      "addRelationIfRequested: could not resolve node types for one or both files",
-    );
     return;
   }
 
@@ -92,9 +85,6 @@ export const addRelationIfRequested = async (
     sourceFile = createdOrSelectedFile;
     targetFile = relationshipTargetFile;
   } else {
-    console.warn(
-      "addRelationIfRequested: file node types do not match relation definition",
-    );
     return;
   }
 

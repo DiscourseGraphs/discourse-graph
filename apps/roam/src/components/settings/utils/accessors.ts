@@ -28,7 +28,7 @@ import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
 import {
   DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
   DISCOURSE_NODE_PAGE_PREFIX,
-  TOP_LEVEL_BLOCK_PROP_KEYS,
+  STATIC_TOP_LEVEL_ENTRIES,
   FeatureFlagsSchema,
   GlobalSettingsSchema,
   PersonalSettingsSchema,
@@ -207,7 +207,6 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
     pathKey([PERSONAL_KEYS.discourseContextOverlay]),
     "discourse-context-overlay",
   ],
-  [pathKey([PERSONAL_KEYS.suggestiveModeOverlay]), "suggestive-mode-overlay"],
   [pathKey([PERSONAL_KEYS.textSelectionPopup]), "text-selection-popup"],
   [pathKey([PERSONAL_KEYS.disableSidebarOpen]), "disable-sidebar-open"],
   [pathKey([PERSONAL_KEYS.pagePreview]), "page-preview"],
@@ -689,11 +688,6 @@ export const getFeatureFlags = (): FeatureFlags => {
 const FEATURE_FLAG_LEGACY_MAP: Partial<
   Record<keyof FeatureFlags, () => boolean>
 > = {
-  "Suggestive mode enabled": () =>
-    getUidAndBooleanSetting({
-      tree: discourseConfigRef.tree,
-      text: "(BETA) Suggestive Mode Enabled",
-    }).value,
   "Enable left sidebar": () =>
     getUidAndBooleanSetting({
       tree: discourseConfigRef.tree,
@@ -744,6 +738,10 @@ export const readAllLegacyDiscourseNodeSettings = (
   return { ...(raw as Record<string, unknown>), text: nodeTitle };
 };
 
+export const isSyncEnabled = (): boolean =>
+  getFeatureFlag("Duplicate node alert enabled") ||
+  getFeatureFlag("Suggestive mode overlay enabled");
+
 export const setFeatureFlag = (
   key: keyof FeatureFlags,
   value: boolean,
@@ -751,7 +749,7 @@ export const setFeatureFlag = (
   const validatedValue = z.boolean().parse(value);
 
   setBlockPropBasedSettings({
-    keys: [TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags, key],
+    keys: [STATIC_TOP_LEVEL_ENTRIES.featureFlags.key, key],
     value: validatedValue,
   });
 };
@@ -790,7 +788,7 @@ export const setGlobalSetting = (keys: string[], value: json): void => {
   }
 
   setBlockPropBasedSettings({
-    keys: [TOP_LEVEL_BLOCK_PROP_KEYS.global, ...keys],
+    keys: [STATIC_TOP_LEVEL_ENTRIES.global.key, ...keys],
     value,
   });
 };
@@ -856,9 +854,9 @@ export const bulkReadSettings = (): SettingsSnapshot => {
       rawBlockProps && typeof rawBlockProps === "object"
         ? normalizeProps(rawBlockProps)
         : {};
-    if (text === TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags) {
+    if (text === STATIC_TOP_LEVEL_ENTRIES.featureFlags.key) {
       featureFlagsProps = blockProps;
-    } else if (text === TOP_LEVEL_BLOCK_PROP_KEYS.global) {
+    } else if (text === STATIC_TOP_LEVEL_ENTRIES.global.key) {
       globalProps = blockProps;
     } else if (text === personalKey) {
       personalProps = blockProps;

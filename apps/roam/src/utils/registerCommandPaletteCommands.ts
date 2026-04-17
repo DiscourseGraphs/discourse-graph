@@ -29,6 +29,13 @@ import {
   PERSONAL_KEYS,
   QUERY_KEYS,
 } from "~/components/settings/utils/settingKeys";
+import { extractRef } from "roamjs-components/util";
+import discourseConfigRef from "~/utils/discourseConfigRef";
+import { getLeftSidebarPersonalSectionConfig } from "~/utils/getLeftSidebarSettings";
+import { getUidAndBooleanSetting } from "~/utils/getExportSettings";
+import refreshConfigTree from "~/utils/refreshConfigTree";
+import { refreshAndNotify } from "~/components/LeftSidebarView";
+import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
 
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
@@ -316,4 +323,98 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   );
   void addCommand("DG: Query block - Create", createQueryBlock);
   void addCommand("DG: Query block - Refresh", refreshCurrentQueryBuilder);
+
+  const leftSidebarEnabled = getUidAndBooleanSetting({
+    tree: discourseConfigRef.tree,
+    text: "(BETA) Left Sidebar",
+  });
+  if (leftSidebarEnabled.value) {
+    const leftSidebarNode = discourseConfigRef.tree.find(
+      (node) => node.text === "Left Sidebar",
+    );
+    const personalSections = getLeftSidebarPersonalSectionConfig(
+      leftSidebarNode?.children || [],
+    ).sections;
+
+    for (const section of personalSections) {
+      if (!section.childrenUid) continue;
+
+      const sectionName = section.text.startsWith("((")
+        ? getTextByBlockUid(extractRef(section.text)) || section.text
+        : section.text;
+
+      window.roamAlphaAPI.ui.blockContextMenu.addCommand({
+        label: `DG: Favorites - Add to "${sectionName}" section`,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        callback: (props: { "block-uid": string }) => {
+          void addBlockToPersonalSection({
+            blockUid: props["block-uid"],
+            sectionUid: section.uid,
+            onloadArgs,
+          });
+        },
+      });
+    }
+  }
+};
+
+const addBlockToPersonalSection = async ({
+  blockUid,
+  sectionUid,
+  onloadArgs,
+}: {
+  blockUid: string;
+  sectionUid: string;
+  onloadArgs: OnloadArgs;
+}) => {
+  refreshConfigTree();
+  const leftSidebarNode = discourseConfigRef.tree.find(
+    (node) => node.text === "Left Sidebar",
+  );
+  const sections = getLeftSidebarPersonalSectionConfig(
+    leftSidebarNode?.children || [],
+  ).sections;
+  const section = sections.find((s) => s.uid === sectionUid);
+  if (!section?.childrenUid) return;
+
+  const blockRef = `((${blockUid}))`;
+
+  try {
+    const newChildBlockUid = await createBlock({
+      parentUid: section.childrenUid,
+      order: "last",
+      node: { text: blockRef },
+    });
+
+    const updatedSections = sections.map((s) =>
+      s.uid === sectionUid
+        ? {
+            ...s,
+            children: [
+              ...(s.children || []),
+              {
+                text: blockRef,
+                uid: newChildBlockUid,
+                children: [],
+                alias: { value: "" },
+              },
+            ],
+          }
+        : s,
+    );
+
+    setPersonalSetting(["Left sidebar"], sectionsToBlockProps(updatedSections));
+    refreshAndNotify();
+    renderSettings({
+      onloadArgs,
+      selectedTabId: "left-sidebar-personal-settings",
+      expandedSectionUid: sectionUid,
+    });
+  } catch {
+    renderToast({
+      content: "Failed to add block to section",
+      intent: "danger",
+      id: "add-block-to-section-error",
+    });
+  }
 };

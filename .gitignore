@@ -40,3 +40,4 @@ local/*
 .cursor/debug.log
 apps/tldraw-sync-worker/tsconfig.tsbuildinfo
 apps/tldraw-sync-worker/.wrangler/*
+.claude/*

@@ -160,7 +160,8 @@ export const DiscourseRelationSchema = z.object({
 
 export const FeatureFlagsSchema = z.object({
   "Enable left sidebar": z.boolean().default(false),
-  "Suggestive mode enabled": z.boolean().default(false),
+  "Duplicate node alert enabled": z.boolean().default(false),
+  "Suggestive mode overlay enabled": z.boolean().default(false),
   "Use new settings store": z.boolean().default(false),
 });
 
@@ -254,7 +255,6 @@ export const PersonalSettingsSchema = z.object({
     .default({ modifiers: 0, key: "" }),
   "Discourse context overlay": z.boolean().default(false),
   "Reified relation triples": z.boolean().default(false),
-  "Suggestive mode overlay": z.boolean().default(false),
   "Overlay in canvas": z.boolean().default(false),
   "Text selection popup": z.boolean().default(true),
   "Disable sidebar open": z.boolean().default(false),
@@ -278,26 +278,19 @@ export const getPersonalSettingsKey = (): string => {
   return cachedPersonalSettingsKey;
 };
 
-const staticTopLevelEntries = [
-  {
-    propKey: "featureFlags" as const,
+export const STATIC_TOP_LEVEL_ENTRIES = {
+  featureFlags: {
     key: "Feature Flags",
     schema: FeatureFlagsSchema,
   },
-  {
-    propKey: "global" as const,
+  global: {
     key: "Global",
     schema: GlobalSettingsSchema,
   },
-];
-
-export const TOP_LEVEL_BLOCK_PROP_KEYS = {
-  featureFlags: "Feature Flags",
-  global: "Global",
 } as const;
 
 export const getTopLevelBlockPropsConfig = () => [
-  ...staticTopLevelEntries,
+  ...Object.values(STATIC_TOP_LEVEL_ENTRIES),
   { key: getPersonalSettingsKey(), schema: PersonalSettingsSchema },
 ];
 

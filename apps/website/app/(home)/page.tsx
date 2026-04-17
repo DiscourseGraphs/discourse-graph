@@ -345,7 +345,7 @@ const Home = async () => {
           {/* Resources */}
           <Card id="resources" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Resources
               </CardTitle>
             </CardHeader>
@@ -402,7 +402,9 @@ const Home = async () => {
                     </span>
                     <ul className="ml-6 mt-2 list-inside list-disc space-y-2">
                       <li className="text-neutral-dark">
-                        <Link href="/docs/roam/">Documentation</Link>
+                        {/* Use a hard navigation into docs because client-side transitions can leak marketing CSS into the Nextra docs app. */}
+                        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                        <a href="/docs/roam/">Documentation</a>
                       </li>
                     </ul>
                   </li>
@@ -418,7 +420,9 @@ const Home = async () => {
                     </span>
                     <ul className="ml-6 mt-2 list-inside list-disc space-y-2">
                       <li className="text-neutral-dark">
-                        <Link href="/docs/obsidian/">Documentation</Link>
+                        {/* Use a hard navigation into docs because client-side transitions can leak marketing CSS into the Nextra docs app. */}
+                        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                        <a href="/docs/obsidian/">Documentation</a>
                       </li>
                     </ul>
                   </li>
@@ -429,12 +433,41 @@ const Home = async () => {
           {/* Events */}
           <Card id="events" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Events
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
+                <div>
+                  <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
+                    Toward Modular Open Science
+                  </h3>
+                  <p className="mb-2 text-neutral-dark">
+                    March 27, 2026 | ATScience Conference, Vancouver
+                  </p>
+                  <Link
+                    href="https://bsky.app/profile/atproto.science/post/3mh6kak5agk2z"
+                    className="text-primary transition-colors hover:text-primary/80"
+                  >
+                    View event post →
+                  </Link>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
+                    Seminar: McGill University Quantitative Life Sciences
+                    program
+                  </h3>
+                  <p className="mb-2 text-neutral-dark">
+                    March 24, 2026 | Montreal
+                  </p>
+                  <Link
+                    href="https://www.mcgill.ca/qls/channels/event/qls-seminar-series-matthew-akamatsu-371875"
+                    className="text-primary transition-colors hover:text-primary/80"
+                  >
+                    View seminar details →
+                  </Link>
+                </div>
                 <div>
                   <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
                     Metagov x Future of Science Seminar: Interoperable LLM - and
@@ -472,7 +505,7 @@ const Home = async () => {
           {blogs.length > 0 && (
             <Card id="updates" className="rounded-xl bg-white/50 p-8 shadow-md">
               <CardHeader>
-                <CardTitle className="mb-8 text-4xl font-bold text-primary">
+                <CardTitle className="text-4xl font-bold text-primary">
                   Latest Updates
                 </CardTitle>
               </CardHeader>
@@ -517,7 +550,7 @@ const Home = async () => {
           {/* Talks */}
           <Card id="talks" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Talks
               </CardTitle>
             </CardHeader>
@@ -594,13 +627,51 @@ const Home = async () => {
                     Karola Kirsanow, NYC Protocol Labs Research Seminar
                   </p>
                 </div>
+
+                <div className="space-y-4">
+                  <div className="relative aspect-video">
+                    <iframe
+                      className="absolute inset-0 h-full w-full rounded-lg"
+                      src="https://www.youtube-nocookie.com/embed/JOn_dJ-g3vY"
+                      title="HCIL Brown Bag Speaker Series: Matt Akamatsu (February 2026)"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                  <h3 className="text-xl font-semibold text-neutral-dark">
+                    HCIL Brown Bag Speaker Series: Matt Akamatsu
+                  </h3>
+                  <p className="text-neutral-dark">Matt Akamatsu</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex aspect-video items-center justify-center rounded-lg bg-neutral-100 p-6 text-center">
+                    <div className="space-y-3">
+                      <p className="text-sm text-neutral-dark">
+                        Hosted on Atmosphere Conf VODs
+                      </p>
+                      <Link
+                        href="https://atmosphereconf-vods.wisp.place/videos/keynote-towards-modular-open-science"
+                        className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:text-white"
+                      >
+                        Watch talk →
+                      </Link>
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-neutral-dark">
+                    Keynote: Towards Modular Open Science
+                  </h3>
+                  <p className="text-neutral-dark">
+                    Rowan Cockett, Matt Akamatsu
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
           {/* Team */}
           <Card id="team" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Team
               </CardTitle>
             </CardHeader>
@@ -619,7 +690,7 @@ const Home = async () => {
             className="rounded-xl bg-white/50 p-8 shadow-md"
           >
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Supporters
               </CardTitle>
             </CardHeader>
@@ -694,7 +765,7 @@ const Home = async () => {
           {/* Contact */}
           <Card id="contact" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+              <CardTitle className="text-4xl font-bold text-primary">
                 Contact
               </CardTitle>
             </CardHeader>

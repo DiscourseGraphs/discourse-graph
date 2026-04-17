@@ -1469,6 +1469,7 @@ export type Database = {
       end_sync_task: {
         Args: {
           s_function: string
+          s_started_at?: string
           s_status: Database["public"]["Enums"]["task_status"]
           s_target: number
           s_worker: string

@@ -47,6 +47,8 @@ export type RelationInstance = {
   lastModified?: number;
   publishedToGroupId?: string[];
   importedFromRid?: string;
+  /** Tracks acceptance of imported relations. false = imported, not yet accepted. true or undefined = accepted/local. */
+  tentative?: boolean;
 };
 
 export type Settings = {

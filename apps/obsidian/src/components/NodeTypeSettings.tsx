@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { validateNodeFormat, validateNodeName } from "~/utils/validateNodeType";
 import { usePlugin } from "./PluginContext";
 import { Notice, setIcon } from "obsidian";
@@ -12,6 +12,7 @@ import {
   getAndFormatImportSource,
 } from "~/utils/typeUtils";
 import { FolderSuggestInput } from "./GeneralSettings";
+import { createBaseForNodeType } from "~/utils/baseForNodeType";
 
 const generateTagPlaceholder = (format: string, nodeName?: string): string => {
   if (!format) return "Enter tag (e.g., clm-candidate)";
@@ -159,6 +160,7 @@ const TextField = ({
   value,
   error,
   onChange,
+  onBlur,
   nodeType,
   disabled,
 }: {
@@ -166,6 +168,7 @@ const TextField = ({
   value: string;
   error?: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   nodeType?: DiscourseNode;
   disabled?: boolean;
 }) => {
@@ -182,6 +185,7 @@ const TextField = ({
       type="text"
       value={value || ""}
       onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
       placeholder={getPlaceholder()}
       className={`w-full ${error ? "input-error" : ""}`}
       disabled={disabled}
@@ -279,7 +283,6 @@ const NodeTypeSettings = () => {
   const [errors, setErrors] = useState<
     Partial<Record<EditableFieldKey, string>>
   >({});
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [templateFiles, setTemplateFiles] = useState<string[]>([]);
   const [templateConfig, setTemplateConfig] = useState({
     isEnabled: false,
@@ -288,6 +291,8 @@ const NodeTypeSettings = () => {
   const [selectedNodeIndex, setSelectedNodeIndex] = useState<number | null>(
     null,
   );
+  // Ref to always have the latest editing state for onBlur handlers
+  const editingRef = useRef<DiscourseNode | null>(null);
 
   useEffect(() => {
     const config = getTemplatePluginInfo(plugin.app);
@@ -339,11 +344,61 @@ const NodeTypeSettings = () => {
     return true;
   };
 
+  const validateNodeType = (nodeType: DiscourseNode): boolean => {
+    let isValid = true;
+    const newErrors: Partial<Record<EditableFieldKey, string>> = {};
+
+    Object.entries(FIELD_CONFIGS).forEach(([key, config]) => {
+      const field = key as EditableFieldKey;
+      const value = nodeType[field] as string;
+
+      if (config.required && !value?.trim()) {
+        newErrors[field] = `${config.label} is required`;
+        isValid = false;
+        return;
+      }
+
+      if (config.validate && value) {
+        const { isValid: fieldValid, error } = config.validate(
+          value,
+          nodeType,
+          nodeTypes,
+        );
+        if (!fieldValid) {
+          newErrors[field] = error || `Invalid ${config.label.toLowerCase()}`;
+          isValid = false;
+        }
+      }
+    });
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const saveSettings = (nodeTypeToSave: DiscourseNode) => {
+    if (!validateNodeType(nodeTypeToSave)) return;
+
+    const updatedNodeTypes = [...nodeTypes];
+    if (
+      selectedNodeIndex !== null &&
+      selectedNodeIndex < updatedNodeTypes.length
+    ) {
+      updatedNodeTypes[selectedNodeIndex] = nodeTypeToSave;
+    } else {
+      updatedNodeTypes.push(nodeTypeToSave);
+      setSelectedNodeIndex(updatedNodeTypes.length - 1);
+    }
+
+    plugin.settings.nodeTypes = updatedNodeTypes;
+    setNodeTypes(updatedNodeTypes);
+    void plugin.saveSettings();
+  };
+
   const handleNodeTypeChange = (
     field: EditableFieldKey,
     value: string | boolean,
-  ): void => {
-    if (!editingNodeType) return;
+  ): DiscourseNode | null => {
+    if (!editingNodeType) return null;
 
     const updatedNodeType = {
       ...editingNodeType,
@@ -354,7 +409,8 @@ const NodeTypeSettings = () => {
       validateField(field, value, updatedNodeType);
     }
     setEditingNodeType(updatedNodeType);
-    setHasUnsavedChanges(true);
+    editingRef.current = updatedNodeType;
+    return updatedNodeType;
   };
 
   const handleAddNodeType = (): void => {
@@ -370,8 +426,8 @@ const NodeTypeSettings = () => {
       modified: now,
     };
     setEditingNodeType(newNodeType);
+    editingRef.current = newNodeType;
     setSelectedNodeIndex(nodeTypes.length);
-    setHasUnsavedChanges(true);
     setErrors({});
   };
 
@@ -379,10 +435,17 @@ const NodeTypeSettings = () => {
     const nodeType = nodeTypes[index];
     if (nodeType) {
       setEditingNodeType({ ...nodeType });
+      editingRef.current = { ...nodeType };
       setSelectedNodeIndex(index);
-      setHasUnsavedChanges(false);
       setErrors({});
     }
+  };
+
+  const handleBack = (): void => {
+    setEditingNodeType(null);
+    editingRef.current = null;
+    setSelectedNodeIndex(null);
+    setErrors({});
   };
 
   const confirmDeleteNodeType = (index: number): void => {
@@ -417,85 +480,32 @@ const NodeTypeSettings = () => {
     setNodeTypes(updatedNodeTypes);
     setSelectedNodeIndex(null);
     setEditingNodeType(null);
+    editingRef.current = null;
     new Notice("Node type deleted successfully");
-  };
-
-  const handleSave = async (): Promise<void> => {
-    if (!editingNodeType) return;
-
-    if (!validateNodeType(editingNodeType)) {
-      return;
-    }
-
-    const updatedNodeTypes = [...nodeTypes];
-    if (
-      selectedNodeIndex !== null &&
-      selectedNodeIndex < updatedNodeTypes.length
-    ) {
-      updatedNodeTypes[selectedNodeIndex] = editingNodeType;
-    } else {
-      updatedNodeTypes.push(editingNodeType);
-    }
-
-    plugin.settings.nodeTypes = updatedNodeTypes;
-    await plugin.saveSettings();
-    setNodeTypes(updatedNodeTypes);
-    new Notice("Node type saved");
-    setHasUnsavedChanges(false);
-    setSelectedNodeIndex(null);
-    setEditingNodeType(null);
-    setErrors({});
-  };
-
-  const handleCancel = (): void => {
-    setEditingNodeType(null);
-    setSelectedNodeIndex(null);
-    setHasUnsavedChanges(false);
-    setErrors({});
-  };
-
-  const validateNodeType = (nodeType: DiscourseNode): boolean => {
-    let isValid = true;
-    const newErrors: Partial<Record<EditableFieldKey, string>> = {};
-
-    Object.entries(FIELD_CONFIGS).forEach(([key, config]) => {
-      const field = key as EditableFieldKey;
-      const value = nodeType[field] as string;
-
-      if (config.required && !value?.trim()) {
-        newErrors[field] = `${config.label} is required`;
-        isValid = false;
-        return;
-      }
-
-      if (config.validate && value) {
-        const { isValid: fieldValid, error } = config.validate(
-          value,
-          nodeType,
-          nodeTypes,
-        );
-        if (!fieldValid) {
-          newErrors[field] = error || `Invalid ${config.label.toLowerCase()}`;
-          isValid = false;
-        }
-      }
-    });
-
-    setErrors(newErrors);
-    return isValid;
   };
 
   const isEditingImported = getImportInfo(
     editingNodeType?.importedFromRid,
   ).isImported;
 
+  const handleBlur = () => {
+    if (editingRef.current) saveSettings(editingRef.current);
+  };
+
   const renderField = (fieldConfig: BaseFieldConfig) => {
     if (!editingNodeType) return null;
 
     const value = editingNodeType[fieldConfig.key] as string | boolean;
     const error = errors[fieldConfig.key];
-    const handleChange = (newValue: string | boolean) =>
-      handleNodeTypeChange(fieldConfig.key, newValue);
+
+    // Text fields: update local state on change, save on blur
+    // Discrete fields (color, boolean, select): update + save on change
+    const handleChange = (newValue: string | boolean) => {
+      const updated = handleNodeTypeChange(fieldConfig.key, newValue);
+      if (fieldConfig.type !== "text" && updated) {
+        saveSettings(updated);
+      }
+    };
 
     return (
       <FieldWrapper
@@ -531,6 +541,7 @@ const NodeTypeSettings = () => {
             value={value as string}
             error={error}
             onChange={handleChange}
+            onBlur={handleBlur}
             nodeType={editingNodeType}
             disabled={isEditingImported}
           />
@@ -662,7 +673,7 @@ const NodeTypeSettings = () => {
       <div>
         <div className="mb-4 flex items-center gap-2">
           <button
-            onClick={handleCancel}
+            onClick={handleBack}
             className="icon-button"
             aria-label="Back to node type list"
           >
@@ -690,28 +701,32 @@ const NodeTypeSettings = () => {
           <div className="setting-item-control">
             <FolderSuggestInput
               value={editingNodeType.folderPath || ""}
-              onChange={(value) => handleNodeTypeChange("folderPath", value)}
+              onChange={(value) => {
+                const updated = handleNodeTypeChange("folderPath", value);
+                if (updated) saveSettings(updated);
+              }}
               placeholder="Example: folder 1/folder"
               disabled={isEditingImported}
             />
           </div>
         </div>
-        {hasUnsavedChanges && !isEditingImported && (
-          <div className="mt-4 flex justify-end gap-2">
-            <button onClick={handleCancel} className="mod-muted">
-              Cancel
-            </button>
-            <button
-              onClick={() => void handleSave()}
-              className="mod-cta"
-              disabled={
-                Object.keys(errors).length > 0 ||
-                !editingNodeType.name ||
-                !editingNodeType.format
-              }
-            >
-              Save Changes
-            </button>
+        {selectedNodeIndex !== null && selectedNodeIndex < nodeTypes.length && (
+          <div className="setting-item">
+            <div className="setting-item-info">
+              <div className="setting-item-name">Base view</div>
+              <div className="setting-item-description">
+                Create a new Base view filtered to this node type
+              </div>
+            </div>
+            <div className="setting-item-control">
+              <button
+                onClick={() =>
+                  void createBaseForNodeType(plugin, editingNodeType)
+                }
+              >
+                Create Base view
+              </button>
+            </div>
           </div>
         )}
       </div>

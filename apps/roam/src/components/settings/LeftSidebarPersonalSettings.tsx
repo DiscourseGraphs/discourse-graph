@@ -46,7 +46,9 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import posthog from "posthog-js";
 
 /* eslint-disable @typescript-eslint/naming-convention */
-const sectionsToBlockProps = (sections: LeftSidebarPersonalSectionConfig[]) =>
+export const sectionsToBlockProps = (
+  sections: LeftSidebarPersonalSectionConfig[],
+) =>
   sections.map((s) => ({
     name: s.text,
     Children: (s.children || []).map((c) => ({
@@ -80,6 +82,7 @@ const SectionItem = memo(
     isFirst,
     isLast,
     onMoveSection,
+    initiallyExpanded,
   }: {
     section: LeftSidebarPersonalSectionConfig;
     setSections: Dispatch<SetStateAction<LeftSidebarPersonalSectionConfig[]>>;
@@ -90,6 +93,7 @@ const SectionItem = memo(
     isFirst: boolean;
     isLast: boolean;
     onMoveSection: (index: number, direction: "up" | "down") => void;
+    initiallyExpanded?: boolean;
   }) => {
     const ref = extractRef(section.text);
     const blockText = getTextByBlockUid(ref);
@@ -98,7 +102,7 @@ const SectionItem = memo(
     const [childInputKey, setChildInputKey] = useState(0);
 
     const [expandedChildLists, setExpandedChildLists] = useState<Set<string>>(
-      new Set(),
+      new Set(initiallyExpanded ? [section.uid] : []),
     );
     const isExpanded = expandedChildLists.has(section.uid);
     const [childSettingsUid, setChildSettingsUid] = useState<string | null>(
@@ -565,9 +569,11 @@ SectionItem.displayName = "SectionItem";
 const LeftSidebarPersonalSectionsContent = ({
   leftSidebar,
   personalSettings,
+  expandedSectionUid,
 }: {
   leftSidebar: RoamBasicNode;
   personalSettings: SettingsSnapshot["personalSettings"];
+  expandedSectionUid?: string;
 }) => {
   const [sections, setSections] = useState<LeftSidebarPersonalSectionConfig[]>(
     [],
@@ -745,6 +751,7 @@ const LeftSidebarPersonalSectionsContent = ({
               isFirst={index === 0}
               isLast={index === sections.length - 1}
               onMoveSection={moveSection}
+              initiallyExpanded={section.uid === expandedSectionUid}
             />
           </div>
         ))}
@@ -833,8 +840,10 @@ const LeftSidebarPersonalSectionsContent = ({
 
 export const LeftSidebarPersonalSections = ({
   personalSettings,
+  expandedSectionUid,
 }: {
   personalSettings: SettingsSnapshot["personalSettings"];
+  expandedSectionUid?: string;
 }) => {
   const [leftSidebar, setLeftSidebar] = useState<RoamBasicNode | null>(null);
 
@@ -867,6 +876,7 @@ export const LeftSidebarPersonalSections = ({
     <LeftSidebarPersonalSectionsContent
       leftSidebar={leftSidebar}
       personalSettings={personalSettings}
+      expandedSectionUid={expandedSectionUid}
     />
   );
 };

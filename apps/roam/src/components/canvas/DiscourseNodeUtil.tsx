@@ -29,6 +29,8 @@ import { Button, Icon } from "@blueprintjs/core";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { isPageUid } from "./Tldraw";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { discourseContext } from "./Tldraw";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
@@ -40,6 +42,9 @@ import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import { RenderRoamBlockString } from "~/utils/roamReactComponents";
+
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -103,6 +108,7 @@ export const createNodeShapeTools = (
     return class DiscourseNodeTool extends StateNode {
       static id = n.type;
       static initial = "idle";
+      static isLockable = true;
       shapeType = n.type;
 
       override onEnter = () => {
@@ -123,7 +129,6 @@ export const createNodeShapeTools = (
           props: { fontFamily: "sans", size: "s" },
         });
         this.editor.setEditingShape(shapeId);
-        this.editor.setCurrentTool("select");
       };
     };
   });
@@ -438,31 +443,39 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
 
     const isEditing = this.editor.getEditingShapeId() === shape.id;
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const contentRef = useRef<HTMLDivElement>(null);
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [loaded, setLoaded] = useState("");
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const [overlayMounted, setOverlayMounted] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const dialogRenderedRef = useRef(false);
+
+    // Detect discourse node tags in block text for blck-node shapes
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    useEffect(() => {
-      if (
-        shape.props.uid !== loaded &&
-        !isPageUid(shape.props.uid) &&
-        contentRef.current &&
-        isLiveBlock(shape.props.uid)
-      ) {
-        window.roamAlphaAPI.ui.components.renderBlock({
-          el: contentRef.current,
-          uid: shape.props.uid,
-        });
-        // TODO: resize shape props once this is rendered
-        setLoaded(shape.props.uid);
+    const matchedNodeForConversion = useMemo(() => {
+      if (shape.type !== "blck-node") return null;
+      if (!isLiveBlock(shape.props.uid)) return null;
+      const blockText = getTextByBlockUid(shape.props.uid);
+      if (!blockText) return null;
+      const nodes = Object.values(discourseContext.nodes);
+      const tagPattern = /#(?:\[\[([^\]]*)\]\]|([^\s#[\]]+))/g;
+      for (const node of nodes) {
+        const tag = node.tag;
+        if (!tag) continue;
+        const normalizedNodeTag = getCleanTagText(tag);
+        let match;
+        tagPattern.lastIndex = 0;
+        while ((match = tagPattern.exec(blockText)) !== null) {
+          const tagFromBlock = match[1] ?? match[2] ?? "";
+          const normalizedBlockTag = getCleanTagText(tagFromBlock);
+          if (normalizedBlockTag === normalizedNodeTag) {
+            return { node, blockText };
+          }
+        }
       }
-    }, [setLoaded, loaded, contentRef, shape.props.uid]);
+      return null;
+    }, [shape.type, shape.props.uid]);
 
     const { backgroundColor, textColor } = this.getColors();
+    const showEmbeddedRoamBlock =
+      !isPageUid(shape.props.uid) && isLiveBlock(shape.props.uid);
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
@@ -485,6 +498,19 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
           this.updateProps(shape.id, shape.type, { h, w, imageUrl });
         };
 
+        const wasToolLocked = this.editor.getInstanceState().isToolLocked;
+
+        const restoreToolState = () => {
+          if (wasToolLocked) {
+            this.editor.updateInstanceState({ isToolLocked: true });
+            this.editor.setCurrentTool(shape.type);
+          } else {
+            this.editor.setCurrentTool("select");
+          }
+          editor.setEditingShape(null);
+          dialogRenderedRef.current = false;
+        };
+
         renderModifyNodeDialog({
           mode: isCreating ? "create" : "edit",
           nodeType: shape.type,
@@ -496,6 +522,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
               : undefined,
           extensionAPI,
           includeDefaultNodes: true,
+          disableNodeTypeChange: true,
           onSuccess: async ({ text, uid, action }) => {
             if (action === "edit") {
               if (isPageUid(shape.props.uid))
@@ -535,13 +562,14 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
                 });
               }
             }
-
-            editor.setEditingShape(null);
-            dialogRenderedRef.current = false;
           },
           onClose: () => {
-            editor.setEditingShape(null);
-            dialogRenderedRef.current = false;
+            if (isCreating) {
+              restoreToolState();
+            } else {
+              editor.setEditingShape(null);
+              dialogRenderedRef.current = false;
+            }
           },
         });
 
@@ -585,6 +613,94 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
             title="Open in sidebar (Shift+Click)"
           />
 
+          {/* Convert to Node Type Button */}
+          {matchedNodeForConversion && (
+            <Button
+              className="absolute left-7 top-1 z-10"
+              minimal
+              small
+              icon={
+                <Icon icon="plus" color={textColor} className="opacity-50" />
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                const { node, blockText } = matchedNodeForConversion;
+                const tag = node.tag;
+                if (!tag) return;
+                const cleanTag = getCleanTagText(tag);
+                const escapedCleanTag = escapeRegExp(cleanTag);
+                // Strip the tag from block text (same pattern as detection above)
+                const cleanedText = blockText
+                  .replace(
+                    new RegExp(`#\\[\\[${escapedCleanTag}\\]\\]`, "i"),
+                    "",
+                  )
+                  .replace(new RegExp(`#${escapedCleanTag}`, "i"), "")
+                  .trim();
+                const { x, y } = shape;
+                renderModifyNodeDialog({
+                  mode: "create",
+                  nodeType: node.type,
+                  initialValue: { text: cleanedText, uid: "" },
+                  extensionAPI,
+                  includeDefaultNodes: true,
+                  disableNodeTypeChange: true,
+                  onSuccess: async ({ text, uid }) => {
+                    if (!extensionAPI) return;
+                    try {
+                      const {
+                        h,
+                        w,
+                        imageUrl: nodeImageUrl,
+                      } = await calcCanvasNodeSizeAndImg({
+                        nodeText: text,
+                        extensionAPI,
+                        nodeType: node.type,
+                        uid,
+                      });
+                      editor.createShapes([
+                        {
+                          type: node.type,
+                          id: createShapeId(),
+                          props: {
+                            uid,
+                            title: text,
+                            h,
+                            w,
+                            imageUrl: nodeImageUrl,
+                            fontFamily: "sans",
+                            size: "s",
+                          },
+                          x,
+                          y,
+                        },
+                      ]);
+                      editor.deleteShapes([shape.id]);
+                    } catch (error) {
+                      renderToast({
+                        id: `discourse-node-convert-error-${Date.now()}`,
+                        intent: "danger",
+                        content: (
+                          <span>Error converting block: {String(error)}</span>
+                        ),
+                      });
+                    }
+                  },
+                  onClose: () => {},
+                });
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              title={`Convert to ${matchedNodeForConversion.node.text}`}
+            >
+              <span
+                className="opacity-70"
+                style={{ color: textColor, fontSize: "11px" }}
+              >
+                Convert to {matchedNodeForConversion.node.text}
+              </span>
+            </Button>
+          )}
+
           {shape.props.imageUrl && isKeyImage === "true" ? (
             <div className="mt-2 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
               <img
@@ -599,7 +715,6 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
           ) : null}
 
           <div
-            ref={contentRef}
             className="relative"
             style={{
               ...DEFAULT_STYLE_PROPS,
@@ -622,10 +737,21 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
                 />
               </div>
             )}
-            {alias
-              ? new RegExp(alias).exec(shape.props.title)?.[1] ||
-                shape.props.title
-              : shape.props.title}
+            {showEmbeddedRoamBlock ? (
+              <div className="w-full min-w-0">
+                <RenderRoamBlockString
+                  key={shape.props.uid}
+                  string={
+                    getTextByBlockUid(shape.props.uid) || shape.props.title
+                  }
+                />
+              </div>
+            ) : alias ? (
+              new RegExp(alias).exec(shape.props.title)?.[1] ||
+              shape.props.title
+            ) : (
+              shape.props.title
+            )}
           </div>
         </div>
       </HTMLContainer>

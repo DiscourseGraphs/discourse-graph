@@ -1,0 +1,219 @@
+---
+title: Nextra templates
+description: Showcase of Nextra built-in components for docs — Callout, Cards, Tabs, Steps, FileTree, Bleed, and Table.
+---
+
+import {
+  Callout,
+  Cards,
+  Tabs,
+  Steps,
+  FileTree,
+  Bleed,
+  Table,
+} from "nextra/components";
+
+# Nextra templates
+
+This page demonstrates the main Nextra built-in components so you can copy patterns into your docs.
+
+---
+
+## Code
+
+Nextra renders standard Markdown code: **inline code** with single backticks (e.g. `like this`) and **fenced code blocks** with triple backticks and an optional language.
+
+Inline example: use the `type` prop for callout styling, or run `pnpm build` in the project root.
+
+Block example:
+
+```ts
+const greeting = "Hello, Nextra!";
+console.log(greeting);
+```
+
+With syntax highlighting (specify the language after the opening backticks):
+
+```bash
+pnpm add nextra nextra-theme-docs
+```
+
+---
+
+## Callouts
+
+Callouts highlight important information. Use `type` for styling and optional `emoji` to override the default icon.
+
+<Callout type="default">
+  **Default** — Helpful advice for doing things better or more easily.
+</Callout>
+
+<Callout type="info">
+  **Info** — Useful information that users should know, even when skimming
+  content.
+</Callout>
+
+<Callout type="warning">
+  **Warning** — Urgent info that needs immediate user attention to avoid
+  problems.
+</Callout>
+
+<Callout type="error">
+  **Error** — Advises about risks or negative outcomes of certain actions.
+</Callout>
+
+<Callout type="important">
+  **Important** — Key information users need to know to achieve their goal.
+</Callout>
+
+<Callout type="info" emoji="⭐">
+  Custom emoji — You can pass any emoji (or React node) via the `emoji` prop.
+</Callout>
+
+---
+
+## Cards
+
+Grouped cards with `Cards` and `Cards.Card`, and a single standalone card.
+
+<Cards>
+  <Cards.Card href="/docs" title="Docs overview" icon="🏠" />
+  <Cards.Card href="/getting-started" title="Getting started" icon="🚀" />
+  <Cards.Card href="/templates" title="Templates" icon="🎨" />
+</Cards>
+<div className="mt-4">
+  <Cards.Card href="/docs" title="Single card (not grouped)" arrow />
+</div>
+You can set `num` on `Cards` to control columns (e.g. `num={2}` for two
+columns).
+
+---
+
+## Tabs
+
+Tabs organize related content. Use `items` for labels and `Tabs.Tab` for each panel. Optionally set `defaultIndex` or `storageKey` to persist the selection.
+
+<Tabs items={["Install", "Configure", "Run"]} defaultIndex={0}>
+  <Tabs.Tab>
+    **Install** — e.g. `pnpm add nextra nextra-theme-docs`. Use the package
+    manager of your choice.
+  </Tabs.Tab>
+  <Tabs.Tab>
+    **Configure** — Wrap your Next config with `withNextra()` and add the theme
+    layout and styles.
+  </Tabs.Tab>
+  <Tabs.Tab>
+    **Run** — Start the dev server and open `/docs` to see your Nextra-powered
+    docs.
+  </Tabs.Tab>
+</Tabs>
+
+---
+
+## Steps
+
+Wrap markdown headings (e.g. `###`) with `<Steps>` to render a visual step list. Use HTML `<h3>` instead of `###` if you want to hide steps from the table of contents.
+
+<Steps>
+  ### First step
+  Do the first thing: install dependencies and open the project.
+
+### Second step
+
+Do the second thing: create an MDX page under your docs route.
+
+### Third step
+
+Do the third thing: use Nextra components like Callout, Cards, and Tabs.
+
+</Steps>
+
+---
+
+## FileTree
+
+Use `FileTree`, `FileTree.Folder`, and `FileTree.File` to show a directory structure. Set `defaultOpen` on folders to expand them by default.
+
+<FileTree>
+  <FileTree.Folder name="app" defaultOpen>
+    <FileTree.Folder name="(docs)" defaultOpen>
+      <FileTree.Folder name="docs" defaultOpen>
+        <FileTree.Folder name="(nextra)">
+          <FileTree.File name="page.mdx" />
+          <FileTree.File name="layout.tsx" />
+          <FileTree.Folder name="getting-started">
+            <FileTree.File name="page.mdx" />
+          </FileTree.Folder>
+          <FileTree.Folder name="templates">
+            <FileTree.File name="page.mdx" />
+          </FileTree.Folder>
+        </FileTree.Folder>
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+---
+
+## Bleed
+
+Bleed lets content extend slightly (or fully) beyond the normal content width — useful for images, blockquotes, or embeds.
+
+<Bleed>
+  **Bleed (default)** — This block extends a bit past the container on both
+  sides. Good for pull quotes or emphasis.
+</Bleed>
+
+<Bleed full>
+  **Full bleed** — This variant goes to the edges of the viewport. Use for hero
+  images or full-width code/embeds.
+</Bleed>
+
+---
+
+## Table
+
+Nextra’s `Table` components give you styled, non-markdown tables. Use `Table`, `Table.Tr`, `Table.Th`, and `Table.Td` for consistent docs styling.
+
+<Table>
+  <thead>
+    <Table.Tr>
+      <Table.Th>Component</Table.Th>
+      <Table.Th>Purpose</Table.Th>
+    </Table.Tr>
+  </thead>
+  <tbody>
+    <Table.Tr>
+      <Table.Td>Callout</Table.Td>
+      <Table.Td>Highlight important or contextual information</Table.Td>
+    </Table.Tr>
+    <Table.Tr>
+      <Table.Td>Cards</Table.Td>
+      <Table.Td>Link cards and grouped card grids</Table.Td>
+    </Table.Tr>
+    <Table.Tr>
+      <Table.Td>Tabs</Table.Td>
+      <Table.Td>Tabbed content with optional persistence</Table.Td>
+    </Table.Tr>
+    <Table.Tr>
+      <Table.Td>Steps</Table.Td>
+      <Table.Td>Numbered step-by-step instructions</Table.Td>
+    </Table.Tr>
+    <Table.Tr>
+      <Table.Td>FileTree</Table.Td>
+      <Table.Td>Collapsible file/folder trees</Table.Td>
+    </Table.Tr>
+    <Table.Tr>
+      <Table.Td>Bleed</Table.Td>
+      <Table.Td>Wide or full-bleed content</Table.Td>
+    </Table.Tr>
+    <Table.Tr>
+      <Table.Td>Table</Table.Td>
+      <Table.Td>Styled tables (this one)</Table.Td>
+    </Table.Tr>
+  </tbody>
+</Table>
+
+---
+
+All of these are exported from `nextra/components`. For layout components (Banner, Head, Search) and advanced ones (MDXRemote, Playground, TSDoc), see the [Nextra built-ins docs](https://nextra.site/docs/built-ins).

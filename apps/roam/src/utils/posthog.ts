@@ -1,4 +1,3 @@
-import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
 import { getVersionWithDate } from "./getVersion";
 import posthog from "posthog-js";
 import type { CaptureResult } from "posthog-js";
@@ -21,8 +20,10 @@ export const initPostHog = (): void => {
     "$referrer",
     "$referring_domain",
   ]);
+  /* eslint-disable @typescript-eslint/naming-convention  */
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
-    /* eslint-disable @typescript-eslint/naming-convention  */
+    autocapture: false,
+    disable_session_recording: true,
     api_host: "https://us.i.posthog.com",
     person_profiles: "identified_only",
     capture_pageview: false,
@@ -37,16 +38,12 @@ export const initPostHog = (): void => {
       }
       return result;
     },
-    /* eslint-enable @typescript-eslint/naming-convention  */
-    autocapture: false,
     loaded: (posthog) => {
       const { version, buildDate } = getVersionWithDate();
-      const userUid = getCurrentUserUid();
+      const userUid = window.roamAlphaAPI.user.uid() || "";
       const graphName = window.roamAlphaAPI.graph.name;
-      posthog.identify(userUid, {
-        graphName,
-      });
-      posthog.register({
+      if (userUid) posthog.identify(userUid);
+      posthog.register_for_session({
         version: version || "-",
         buildDate: buildDate || "-",
         graphName,
@@ -55,6 +52,7 @@ export const initPostHog = (): void => {
       initialized = true;
     },
   });
+  /* eslint-enable @typescript-eslint/naming-convention  */
 };
 
 export const enablePostHog = (): void => {

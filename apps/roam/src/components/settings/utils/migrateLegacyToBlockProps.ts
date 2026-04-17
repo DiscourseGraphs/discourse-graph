@@ -18,7 +18,7 @@ import {
   DiscourseNodeSchema,
   DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
   DISCOURSE_NODE_PAGE_PREFIX,
-  TOP_LEVEL_BLOCK_PROP_KEYS,
+  STATIC_TOP_LEVEL_ENTRIES,
   getPersonalSettingsKey,
 } from "./zodSchema";
 import type { z } from "zod";
@@ -185,10 +185,10 @@ export const migrateGraphLevel = async (
 
   let failures = 0;
 
-  const featureFlagUid = blockUids[TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags];
+  const featureFlagUid = blockUids[STATIC_TOP_LEVEL_ENTRIES.featureFlags.key];
   if (!featureFlagUid) {
     internalError({
-      error: `Missing block uid for ${TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags}`,
+      error: `Missing block uid for ${STATIC_TOP_LEVEL_ENTRIES.featureFlags.key}`,
       type: "DG Block Props Migration",
       context: {
         scope: "graph",
@@ -211,10 +211,10 @@ export const migrateGraphLevel = async (
     }
   }
 
-  const globalUid = blockUids[TOP_LEVEL_BLOCK_PROP_KEYS.global];
+  const globalUid = blockUids[STATIC_TOP_LEVEL_ENTRIES.global.key];
   if (!globalUid) {
     internalError({
-      error: `Missing block uid for ${TOP_LEVEL_BLOCK_PROP_KEYS.global}`,
+      error: `Missing block uid for ${STATIC_TOP_LEVEL_ENTRIES.global.key}`,
       type: "DG Block Props Migration",
       context: {
         scope: "graph",

@@ -11,7 +11,7 @@ import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
 import {
   getDiscourseNodeSetting,
-  type SettingsSnapshot,
+  isSyncEnabled,
 } from "~/components/settings/utils/accessors";
 import {
   DISCOURSE_NODE_KEYS,
@@ -45,11 +45,9 @@ const generateTagPlaceholder = (node: DiscourseNode): string => {
 const NodeConfig = ({
   node,
   onloadArgs,
-  featureFlags,
 }: {
   node: DiscourseNode;
   onloadArgs: OnloadArgs;
-  featureFlags: SettingsSnapshot["featureFlags"];
 }) => {
   const getUid = (key: string) =>
     getSubTree({
@@ -303,7 +301,7 @@ const NodeConfig = ({
             </div>
           }
         />
-        {featureFlags["Suggestive mode enabled"] && (
+        {isSyncEnabled() && (
           <Tab
             id="suggestive-mode"
             title="Suggestive mode"

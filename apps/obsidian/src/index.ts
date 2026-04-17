@@ -11,6 +11,12 @@ import {
 import { EditorView } from "@codemirror/view";
 import { SettingsTab } from "~/components/Settings";
 import { Settings, VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
+import {
+  addConvertSubmenu,
+  isImageFile,
+  openConvertImageToNodeModal,
+} from "~/utils/editorMenuUtils";
+import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
 import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
 import { VIEW_TYPE_TLDRAW_DG_PREVIEW, FRONTMATTER_KEY } from "~/constants";
@@ -23,10 +29,14 @@ import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { TagNodeHandler } from "~/utils/tagNodeHandler";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
+import { InlineNodeTypePicker } from "~/components/InlineNodeTypePicker";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
 import generateUid from "~/utils/generateUid";
-import { migrateFrontmatterRelationsToRelationsJson } from "~/utils/relationsStore";
+import {
+  migrateFrontmatterRelationsToRelationsJson,
+  mergeAllRelationsJsonToRoot,
+} from "~/utils/relationsStore";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -38,6 +48,10 @@ export default class DiscourseGraphPlugin extends Plugin {
 
   async onload() {
     await this.loadSettings();
+
+    await mergeAllRelationsJsonToRoot(this).catch((error) => {
+      console.error("Failed to merge relations.json files:", error);
+    });
 
     await migrateFrontmatterRelationsToRelationsJson(this).catch((error) => {
       console.error("Failed to migrate frontmatter relations:", error);
@@ -146,8 +160,23 @@ export default class DiscourseGraphPlugin extends Plugin {
     );
 
     this.registerEvent(
-      // @ts-ignore - file-menu event exists but is not in the type definitions
       this.app.workspace.on("file-menu", (menu: Menu, file: TFile) => {
+        if (isImageFile(file)) {
+          addConvertSubmenu({
+            menu,
+            label: "Convert into",
+            nodeTypes: this.settings.nodeTypes,
+            onClick: (nodeType) => {
+              openConvertImageToNodeModal({
+                plugin: this,
+                imageFile: file,
+                initialNodeType: nodeType,
+              });
+            },
+          });
+          return;
+        }
+
         const fileCache = this.app.metadataCache.getFileCache(file);
         const fileNodeType = fileCache?.frontmatter?.nodeTypeId;
 
@@ -157,36 +186,26 @@ export default class DiscourseGraphPlugin extends Plugin {
             (nodeType) => nodeType.id === fileNodeType,
           )
         ) {
-          menu.addItem((menuItem) => {
-            menuItem.setTitle("Convert into");
-            menuItem.setIcon("file-type");
-
-            // @ts-ignore - setSubmenu is not officially in the API but works
-            const submenu = menuItem.setSubmenu();
-
-            this.settings.nodeTypes.forEach((nodeType) => {
-              submenu.addItem((item: any) => {
-                item
-                  .setTitle(nodeType.name)
-                  .setIcon("file-type")
-                  .onClick(() => {
-                    new ModifyNodeModal(this.app, {
-                      nodeTypes: this.settings.nodeTypes,
-                      plugin: this,
-                      initialTitle: file.basename,
-                      initialNodeType: nodeType,
-                      onSubmit: async ({ nodeType, title }) => {
-                        await convertPageToDiscourseNode({
-                          plugin: this,
-                          file,
-                          nodeType,
-                          title,
-                        });
-                      },
-                    }).open();
+          addConvertSubmenu({
+            menu,
+            label: "Convert into",
+            nodeTypes: this.settings.nodeTypes,
+            onClick: (nodeType) => {
+              new ModifyNodeModal(this.app, {
+                nodeTypes: this.settings.nodeTypes,
+                plugin: this,
+                initialTitle: file.basename,
+                initialNodeType: nodeType,
+                onSubmit: async ({ nodeType, title }) => {
+                  await convertPageToDiscourseNode({
+                    plugin: this,
+                    file,
+                    nodeType,
+                    title,
                   });
-              });
-            });
+                },
+              }).open();
+            },
           });
         }
       }),
@@ -196,29 +215,19 @@ export default class DiscourseGraphPlugin extends Plugin {
       this.app.workspace.on("editor-menu", (menu: Menu, editor: Editor) => {
         if (!editor.getSelection()) return;
 
-        menu.addItem((menuItem) => {
-          menuItem.setTitle("Turn into discourse node");
-          menuItem.setIcon("file-type");
-
-          // Create submenu using the unofficial API pattern
-          // @ts-ignore - setSubmenu is not officially in the API but works
-          const submenu = menuItem.setSubmenu();
-
-          this.settings.nodeTypes.forEach((nodeType) => {
-            submenu.addItem((item: any) => {
-              item
-                .setTitle(nodeType.name)
-                .setIcon("file-type")
-                .onClick(async () => {
-                  await createDiscourseNode({
-                    plugin: this,
-                    editor,
-                    nodeType,
-                    text: editor.getSelection().trim() || "",
-                  });
-                });
+        const selection = editor.getSelection().trim();
+        addConvertSubmenu({
+          menu,
+          label: "Turn into discourse node",
+          nodeTypes: this.settings.nodeTypes,
+          onClick: async (nodeType) => {
+            await createDiscourseNode({
+              plugin: this,
+              editor,
+              nodeType,
+              text: selection,
             });
-          });
+          },
         });
       }),
     );
@@ -241,12 +250,26 @@ export default class DiscourseGraphPlugin extends Plugin {
 
         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (activeView?.editor) {
-          // Open the node tag suggest popover
-          const popover = new NodeTagSuggestPopover(
-            activeView.editor,
-            this.settings.nodeTypes,
-          );
-          popover.open();
+          const editor = activeView.editor;
+          const selectedText = editor.getSelection();
+
+          if (selectedText && selectedText.trim().length > 0) {
+            // Text is selected: open node type picker to create node from selection
+            const picker = new InlineNodeTypePicker({
+              editor,
+              nodeTypes: this.settings.nodeTypes,
+              plugin: this,
+              selectedText: selectedText.trim(),
+            });
+            picker.open();
+          } else {
+            // No selection: open the candidate node tag popover
+            const popover = new NodeTagSuggestPopover(
+              editor,
+              this.settings.nodeTypes,
+            );
+            popover.open();
+          }
         }
 
         return true;
@@ -255,6 +278,9 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.registerEditorExtension(nodeTagHotkeyExtension);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    this.registerEditorExtension(createImageEmbedHoverExtension(this));
   }
 
   private createStyleElement() {

@@ -98,12 +98,62 @@ const RelationshipTypeSettings = () => {
   const [relationTypes, setRelationTypes] = useState<DiscourseRelationType[]>(
     () => plugin.settings.relationTypes ?? [],
   );
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [errors, setErrors] = useState<Record<number, string>>({});
+  // Ref to always have the latest state for onBlur handlers
+  // Updated in handleRelationTypeChange, not on render, to avoid stale reads
+  const relationTypesRef = useRef(relationTypes);
 
   type EditableFieldKey = keyof Omit<
     DiscourseRelationType,
     "id" | "modified" | "created" | "importedFromRid"
   >;
+
+  const saveSettings = (updatedRelationTypes: DiscourseRelationType[]) => {
+    const newErrors: Record<number, string> = {};
+
+    // Validate only complete types (ones with all required fields)
+    const completeTypes = updatedRelationTypes.filter(
+      (rt) => rt.id && rt.label && rt.complement,
+    );
+
+    // Check for duplicate labels
+    const seenLabels = new Map<string, number>();
+    for (const rt of completeTypes) {
+      const idx = updatedRelationTypes.indexOf(rt);
+      const prev = seenLabels.get(rt.label);
+      if (prev !== undefined) {
+        newErrors[idx] = `Duplicate label "${rt.label}"`;
+        if (!newErrors[prev]) newErrors[prev] = `Duplicate label "${rt.label}"`;
+      }
+      seenLabels.set(rt.label, idx);
+    }
+
+    // Check for duplicate complements
+    const seenComplements = new Map<string, number>();
+    for (const rt of completeTypes) {
+      const idx = updatedRelationTypes.indexOf(rt);
+      const prev = seenComplements.get(rt.complement);
+      if (prev !== undefined) {
+        newErrors[idx] = `Duplicate complement "${rt.complement}"`;
+        if (!newErrors[prev])
+          newErrors[prev] = `Duplicate complement "${rt.complement}"`;
+      }
+      seenComplements.set(rt.complement, idx);
+    }
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    // Only persist complete local types + all imported types
+    const importedTypes = updatedRelationTypes.filter(
+      (rt) => rt.importedFromRid,
+    );
+    plugin.settings.relationTypes = [
+      ...completeTypes.filter((rt) => !rt.importedFromRid),
+      ...importedTypes,
+    ];
+    void plugin.saveSettings();
+  };
 
   const handleRelationTypeChange = (
     index: number,
@@ -123,14 +173,20 @@ const RelationshipTypeSettings = () => {
         modified: now,
       };
     }
-    updatedRelationTypes[index].modified = now;
-    if (field === "color") {
-      updatedRelationTypes[index].color = value as TldrawColorName;
-    } else {
-      updatedRelationTypes[index][field] = value;
-    }
+    const updated = {
+      ...updatedRelationTypes[index],
+      modified: now,
+      ...(field === "color"
+        ? { color: value as TldrawColorName }
+        : { [field]: value }),
+    };
+    updatedRelationTypes[index] = updated;
     setRelationTypes(updatedRelationTypes);
-    setHasUnsavedChanges(true);
+    relationTypesRef.current = updatedRelationTypes;
+    if (field === "color") {
+      // Color is a discrete input — save immediately
+      saveSettings(updatedRelationTypes);
+    }
   };
 
   const handleAddRelationType = (): void => {
@@ -149,7 +205,6 @@ const RelationshipTypeSettings = () => {
       },
     ];
     setRelationTypes(updatedRelationTypes);
-    setHasUnsavedChanges(true);
   };
 
   const confirmDeleteRelationType = (index: number): void => {
@@ -187,32 +242,6 @@ const RelationshipTypeSettings = () => {
     new Notice("Relation type deleted successfully");
   };
 
-  const handleSave = async (): Promise<void> => {
-    for (const relType of relationTypes) {
-      if (!relType.id || !relType.label || !relType.complement) {
-        new Notice("All fields are required for relation types.");
-        return;
-      }
-    }
-
-    const labels = relationTypes.map((rt) => rt.label);
-    if (new Set(labels).size !== labels.length) {
-      new Notice("Relation type labels must be unique.");
-      return;
-    }
-
-    const complements = relationTypes.map((rt) => rt.complement);
-    if (new Set(complements).size !== complements.length) {
-      new Notice("Relation type complements must be unique.");
-      return;
-    }
-
-    plugin.settings.relationTypes = relationTypes;
-    await plugin.saveSettings();
-    setHasUnsavedChanges(false);
-    new Notice("Relation types saved.");
-  };
-
   const localRelationTypes = relationTypes.filter(
     (relationType) => !relationType.importedFromRid,
   );
@@ -227,6 +256,8 @@ const RelationshipTypeSettings = () => {
     const importInfo = getImportInfo(relationType.importedFromRid);
     const isImported = importInfo.isImported;
 
+    const error = errors[index];
+
     return (
       <div key={index} className="setting-item">
         <div className="flex w-full flex-col gap-1">
@@ -238,7 +269,8 @@ const RelationshipTypeSettings = () => {
               onChange={(e) =>
                 handleRelationTypeChange(index, "label", e.target.value)
               }
-              className="flex-2"
+              onBlur={() => saveSettings(relationTypesRef.current)}
+              className={`flex-2 ${error ? "input-error" : ""}`}
               disabled={isImported}
             />
             <input
@@ -248,7 +280,8 @@ const RelationshipTypeSettings = () => {
               onChange={(e) =>
                 handleRelationTypeChange(index, "complement", e.target.value)
               }
-              className="flex-1"
+              onBlur={() => saveSettings(relationTypesRef.current)}
+              className={`flex-1 ${error ? "input-error" : ""}`}
               disabled={isImported}
             />
             <ColorPicker
@@ -267,6 +300,7 @@ const RelationshipTypeSettings = () => {
               </button>
             )}
           </div>
+          {error && <div className="text-error text-xs">{error}</div>}
           {isImported && (
             <div className="text-muted flex items-center gap-2 text-xs">
               {importInfo.spaceUri && (
@@ -318,18 +352,8 @@ const RelationshipTypeSettings = () => {
           <button onClick={handleAddRelationType} className="p-2">
             Add Relation Type
           </button>
-          <button
-            onClick={() => void handleSave()}
-            className={`p-2 ${hasUnsavedChanges ? "mod-cta" : ""}`}
-            disabled={!hasUnsavedChanges}
-          >
-            Save Changes
-          </button>
         </div>
       </div>
-      {hasUnsavedChanges && (
-        <div className="text-muted mt-2">You have unsaved changes</div>
-      )}
     </div>
   );
 };

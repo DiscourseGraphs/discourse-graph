@@ -28,34 +28,33 @@ The Discourse Graphs website hosts documentation for plugins and general informa
 
 ### Blog Posts
 
-Blog posts are located in `/apps/website/app/(home)/blog/posts/`
+Blog posts are located in `/apps/website/content/blog/`
 
-1. **Create your post file**: Copy `EXAMPLE.md` as a starting template and rename it to your desired URL slug (e.g., `my-new-post.md`)
+1. **Create your post file**: Copy `EXAMPLE.mdx` as a starting template and rename it to your desired URL slug (for example, `my-new-post.mdx`)
 
-2. **Required metadata**: Every blog post must start with YAML frontmatter (reference `EXAMPLE.md` for the exact format):
+2. **Required metadata**: Every blog post must start with YAML frontmatter (reference `EXAMPLE.mdx` for the exact format):
 
    ```yaml
    ---
-   title: "Your Post Title"
+   title: "Your post title"
    date: "YYYY-MM-DD"
-   author: "Author's name"
-   published: true # Set to true to make the post visible
+   author: "Author name"
+   published: true
+   tags:
+     - release
+   description: "Optional summary used for metadata."
    ---
    ```
 
-3. **Content**: Write your content below the frontmatter using standard Markdown
+3. **Content**: Write your content below the frontmatter using Markdown or MDX. Blog posts render through Nextra, so standard markdown features and Nextra components are available.
 
 ### Plugin Documentation
 
-Plugin documentation is organized in `/apps/website/app/(docs)/docs/` with separate folders:
+Detailed guidance for plugin docs lives next to the update-user-docs skill:
 
-- `/obsidian/pages/` - Obsidian plugin documentation
-- `/roam/pages/` - Roam Research extension documentation
-- `/sharedPages/` - Documentation shared between platforms
-
-1. **Create your documentation file**: Add a new `.md` file in the appropriate platform's `pages/` folder
-2. **Use standard Markdown**: No special frontmatter is required for documentation files
-3. **Update navigation**: You may need to update the corresponding `navigation.ts` file to include your new page in the sidebar
+- **[navigation-mapping.md](./skills/update-user-docs/references/navigation-mapping.md)** — where files live, `docMap.ts` (shared pages), and `navigation.ts` (every new page)
+- **[doc-conventions.md](./skills/update-user-docs/references/doc-conventions.md)** — filenames, frontmatter, screenshots, and cross-links
+- **[scope-detection.md](./skills/update-user-docs/references/scope-detection.md)** — how changed file paths map to Obsidian vs Roam vs shared docs (useful when unsure where a doc belongs)
 
 ### Documentation Images
 

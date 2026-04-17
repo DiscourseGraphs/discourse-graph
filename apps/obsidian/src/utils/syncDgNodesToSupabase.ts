@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { FrontMatterCache, Notice, TFile } from "obsidian";
+import { Notice, TFile } from "obsidian";
+import { addFile } from "@repo/database/lib/files";
+import mime from "mime-types";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json } from "@repo/database/dbTypes";
@@ -9,7 +11,7 @@ import {
   type SupabaseContext,
 } from "./supabaseContext";
 import { default as DiscourseGraphPlugin } from "~/index";
-import { publishNode } from "./publishNode";
+import { ensurePublishedRelationsAccuracy } from "./publishNode";
 import { upsertNodesToSupabaseAsContentWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
 import {
   orderConceptsByDependency,
@@ -314,33 +316,6 @@ const detectNodeChanges = (
   return changeTypes;
 };
 
-const logNodeChanges = ({
-  node,
-  changeTypes,
-  existingTitle,
-  lastSyncTime,
-}: {
-  node: DiscourseNodeInVault;
-  changeTypes: ChangeType[];
-  existingTitle: string | undefined;
-  lastSyncTime: Date;
-}): void => {
-  const currentFilename = node.file.basename;
-  const fileModifiedTime = new Date(node.file.stat.mtime);
-
-  if (changeTypes.includes("title")) {
-    console.log(
-      `Title changed for ${node.nodeInstanceId}: "${existingTitle}" -> "${currentFilename}"`,
-    );
-  }
-
-  if (changeTypes.includes("content")) {
-    console.log(
-      `Content changed for ${node.nodeInstanceId} (filename: "${currentFilename}") - file mtime: ${fileModifiedTime.toISOString()}, lastSyncTime: ${lastSyncTime.toISOString()}`,
-    );
-  }
-};
-
 const buildChangedNodesFromNodes = async ({
   nodes,
   supabaseClient,
@@ -383,13 +358,6 @@ const buildChangedNodesFromNodes = async ({
       continue;
     }
 
-    logNodeChanges({
-      node,
-      changeTypes: finalChangeTypes,
-      existingTitle,
-      lastSyncTime,
-    });
-
     changedNodes.push({
       file: node.file,
       frontmatter: node.frontmatter,
@@ -410,19 +378,15 @@ export const syncAllNodesAndRelations = async (
   relationsOnly?: boolean,
 ): Promise<void> => {
   try {
-    console.debug("Starting syncAllNodesAndRelations");
-
     const context = supabaseContext ?? (await getSupabaseContext(plugin));
     if (!context) {
       throw new Error("Could not create Supabase context");
     }
 
     const supabaseClient = await getLoggedInClient(plugin);
-    console.log("supabaseClient", supabaseClient);
     if (!supabaseClient) {
       throw new Error("Could not log in to Supabase client");
     }
-    console.debug("Supabase client:", supabaseClient);
 
     const allNodes = await collectDiscourseNodesFromVault(plugin, true);
 
@@ -433,8 +397,6 @@ export const syncAllNodesAndRelations = async (
           supabaseClient,
           context,
         });
-
-    console.debug(`Found ${changedNodeInstances.length} nodes to sync`);
 
     const accountLocalId = plugin.settings.accountLocalId;
     if (!accountLocalId) {
@@ -456,12 +418,11 @@ export const syncAllNodesAndRelations = async (
       accountLocalId,
       plugin,
       allNodes,
+      fullSync: true,
     });
 
     // When synced nodes are already published, ensure non-text assets are in storage.
     await syncPublishedNodesAssets(plugin, changedNodeInstances);
-
-    console.debug("Sync completed successfully");
   } catch (error) {
     console.error("syncAllNodesAndRelations: Process failed:", error);
     throw error;
@@ -475,6 +436,7 @@ const convertDgToSupabaseConcepts = async ({
   accountLocalId,
   plugin,
   allNodes,
+  fullSync,
 }: {
   nodesSince: ObsidianDiscourseNodeData[];
   supabaseClient: DGSupabaseClient;
@@ -482,6 +444,7 @@ const convertDgToSupabaseConcepts = async ({
   accountLocalId: string;
   plugin: DiscourseGraphPlugin;
   allNodes?: DiscourseNodeInVault[];
+  fullSync?: boolean;
 }): Promise<void> => {
   const lastNodeSchemaSync = (
     await getLastNodeSchemaSyncTime(supabaseClient, context.spaceId)
@@ -606,6 +569,102 @@ const convertDgToSupabaseConcepts = async ({
       throw new Error(`upsert_concepts failed: ${errorMessage}`);
     }
   }
+  if (fullSync === true) {
+    // occasional extra work: Make sure relations that should be published are.
+    await ensurePublishedRelationsAccuracy({
+      client: supabaseClient,
+      context,
+      plugin,
+      allNodesById,
+      relationInstancesData,
+    });
+  }
+};
+
+export const syncPublishedNodeAssets = async ({
+  plugin,
+  client,
+  nodeId,
+  spaceId,
+  file,
+  attachments,
+}: {
+  plugin: DiscourseGraphPlugin;
+  client: DGSupabaseClient;
+  nodeId: string;
+  spaceId: number;
+  file: TFile;
+  attachments?: TFile[];
+}): Promise<void> => {
+  if (attachments === undefined) {
+    const embeds = plugin.app.metadataCache.getFileCache(file)?.embeds ?? [];
+    attachments = embeds
+      .map(({ link }) => {
+        const attachment = plugin.app.metadataCache.getFirstLinkpathDest(
+          link,
+          file.path,
+        );
+        return attachment;
+      })
+      .filter((a) => !!a);
+  }
+  // Always sync non-text assets when node is published to this group
+  const existingFiles: string[] = [];
+  const existingReferencesReq = await client
+    .from("my_file_references")
+    .select("*")
+    .eq("space_id", spaceId)
+    .eq("source_local_id", nodeId);
+  if (existingReferencesReq.error) {
+    console.error(existingReferencesReq.error);
+    return;
+  }
+  const existingReferencesByPath = Object.fromEntries(
+    existingReferencesReq.data.map((ref) => [ref.filepath, ref]),
+  ) as Record<string, (typeof existingReferencesReq.data)[0]>;
+
+  for (const attachment of attachments) {
+    const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
+    if (mimetype.startsWith("text/")) continue;
+    // Do not use standard upload for large files
+    if (attachment.stat.size >= 6 * 1024 * 1024) {
+      new Notice(
+        `Asset file ${attachment.path} is larger than 6Mb and will not be uploaded`,
+      );
+      continue;
+    }
+    existingFiles.push(attachment.path);
+    const existingRef = existingReferencesByPath[attachment.path];
+    if (
+      !existingRef ||
+      new Date(existingRef.last_modified + "Z").valueOf() <
+        attachment.stat.mtime
+    ) {
+      const content = await plugin.app.vault.readBinary(attachment);
+      await addFile({
+        client,
+        spaceId,
+        sourceLocalId: nodeId,
+        fname: attachment.path,
+        mimetype,
+        created: new Date(attachment.stat.ctime),
+        lastModified: new Date(attachment.stat.mtime),
+        content,
+      });
+    }
+  }
+  let cleanupCommand = client
+    .from("FileReference")
+    .delete()
+    .eq("space_id", spaceId)
+    .eq("source_local_id", nodeId);
+  if (existingFiles.length)
+    cleanupCommand = cleanupCommand.notIn("filepath", [
+      ...new Set(existingFiles),
+    ]);
+  const cleanupResult = await cleanupCommand;
+  // do not fail on cleanup
+  if (cleanupResult.error) console.error(cleanupResult.error);
 };
 
 /**
@@ -616,6 +675,11 @@ const syncPublishedNodesAssets = async (
   plugin: DiscourseGraphPlugin,
   nodes: ObsidianDiscourseNodeData[],
 ): Promise<void> => {
+  const context = await getSupabaseContext(plugin);
+  if (!context) throw new Error("Cannot get context");
+  const spaceId = context.spaceId;
+  const client = await getLoggedInClient(plugin);
+  if (!client) throw new Error("Cannot get client");
   const published = nodes.filter(
     (n) =>
       ((n.frontmatter.publishedToGroups as string[] | undefined)?.length ?? 0) >
@@ -623,10 +687,14 @@ const syncPublishedNodesAssets = async (
   );
   for (const node of published) {
     try {
-      await publishNode({
+      const nodeId = node.frontmatter.nodeInstanceId as string | undefined;
+      if (!nodeId) throw new Error("Please sync the node first");
+      await syncPublishedNodeAssets({
         plugin,
+        client,
+        nodeId,
+        spaceId,
         file: node.file,
-        frontmatter: node.frontmatter as FrontMatterCache,
       });
     } catch (error) {
       console.error(
@@ -680,7 +748,12 @@ const syncChangedNodesToSupabase = async ({
 
   // When file changes affect an already-published node, ensure new non-text
   // assets (e.g. images) are pushed to storage.
-  await syncPublishedNodesAssets(plugin, changedNodes);
+  try {
+    await syncPublishedNodesAssets(plugin, changedNodes);
+  } catch (error) {
+    console.error(`Failed to sync published node assets`, error);
+    new Notice(`Failed to sync published node assets.`);
+  }
 };
 
 /**
@@ -695,7 +768,6 @@ const collectDiscourseNodesFromPaths = async (
   for (const filePath of filePaths) {
     const file = plugin.app.vault.getAbstractFileByPath(filePath);
     if (!(file instanceof TFile)) {
-      console.debug(`File not found or not a TFile: ${filePath}`);
       continue;
     }
 
@@ -709,12 +781,10 @@ const collectDiscourseNodesFromPaths = async (
 
     // Not a discourse node
     if (!frontmatter?.nodeTypeId) {
-      console.debug(`File is not a DG node: ${filePath}`);
       continue;
     }
 
     if (frontmatter.importedFromRid) {
-      console.debug(`Skipping imported file: ${filePath}`);
       continue;
     }
 
@@ -767,12 +837,7 @@ export const syncDiscourseNodeChanges = async (
   try {
     const filePaths = Array.from(changeTypesByPath.keys());
 
-    console.debug(
-      `Syncing ${filePaths.length} file change(s) with explicit types`,
-    );
-
     if (filePaths.length === 0) {
-      console.debug("No files to sync");
       return;
     }
 
@@ -792,7 +857,6 @@ export const syncDiscourseNodeChanges = async (
     );
 
     if (dgNodesInVault.length === 0) {
-      console.debug("No DG nodes found in specified files");
       return;
     }
 
@@ -815,8 +879,6 @@ export const syncDiscourseNodeChanges = async (
       context,
       accountLocalId,
     });
-
-    console.debug(`Successfully synced ${changedNodes.length} node(s)`);
   } catch (error) {
     console.error("syncDiscourseNodeChanges: Process failed:", error);
     throw error;

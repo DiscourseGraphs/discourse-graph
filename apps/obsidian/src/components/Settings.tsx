@@ -9,6 +9,7 @@ import NodeTypeSettings from "./NodeTypeSettings";
 import GeneralSettings from "./GeneralSettings";
 import { AdminPanelSettings } from "./AdminPanelSettings";
 import { PluginProvider } from "./PluginContext";
+import { DatacoreCallout } from "./DatacoreCallout";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
@@ -29,6 +30,7 @@ const Settings = () => {
 
   return (
     <div className="flex flex-col gap-4">
+      <DatacoreCallout />
       <div className="border-modifier-border flex w-full overflow-x-auto border-b p-2">
         <button
           onClick={() => setActiveTab("general")}

@@ -61,8 +61,14 @@ export const getVaultId = (app: DiscourseGraphPlugin["app"]): string => {
   return (app as unknown as { appId: string }).appId;
 };
 
-const canonicalObsidianUrl = (vaultId: string): string => {
+/** Canonical space URL for an Obsidian vault; stored as Space.url in the DB. */
+export const canonicalObsidianUrl = (vaultId: string): string => {
   return `obsidian:${vaultId}`;
+};
+
+/** This vault's spaceUri (no DB call). Use for "is this RID our vault?" and local RID construction. */
+export const getLocalSpaceUri = (app: DiscourseGraphPlugin["app"]): string => {
+  return canonicalObsidianUrl(getVaultId(app));
 };
 
 export const getSupabaseContext = async (
@@ -71,12 +77,11 @@ export const getSupabaseContext = async (
   if (contextCache === null) {
     try {
       const vaultName = plugin.app.vault.getName() || "obsidian-vault";
-      const vaultId = getVaultId(plugin.app);
 
       const spacePassword = await getOrCreateSpacePassword(plugin);
       const accountLocalId = await getOrCreateAccountLocalId(plugin, vaultName);
 
-      const url = canonicalObsidianUrl(vaultId);
+      const url = getLocalSpaceUri(plugin.app);
       const platform: Platform = "Obsidian";
 
       const spaceResult = await fetchOrCreateSpaceDirect({

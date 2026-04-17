@@ -28,6 +28,7 @@ export const createAllReferencedNodeTools = (
     class ReferencedNodeTool extends StateNode {
       static override initial = "idle";
       static override id = action;
+      static override isLockable = true;
       static override children = (): TLStateNodeConstructor[] => [
         this.Idle,
         this.Pointing,
@@ -277,10 +278,6 @@ export const createAllReferencedNodeTools = (
           this.editor.setCursor({ type: "cross" });
         };
 
-        override onCancel = () => {
-          this.editor.setCurrentTool("select");
-        };
-
         override onKeyUp: TLEventHandlers["onKeyUp"] = (info) => {
           if (info.key === "Enter") {
             if (this.editor.getInstanceState().isReadonly) return null;
@@ -315,6 +312,7 @@ export const createAllRelationShapeTools = (
     class RelationShapeTool extends StateNode {
       static override initial = "idle";
       static override id = name;
+      static override isLockable = true;
       static override children = (): TLStateNodeConstructor[] => [
         this.Idle,
         this.Pointing,
@@ -363,14 +361,17 @@ export const createAllRelationShapeTools = (
           );
 
           const relation = discourseContext.relations[name].find(
-            (r) => r.source === target?.type,
+            (r) => r.source === target?.type || r.destination === target?.type,
           );
           if (relation) {
             this.shapeType = relation.id;
           } else {
-            const acceptableTypes = discourseContext.relations[name].map(
-              (r) => discourseContext.nodes[r.source].text,
-            );
+            const acceptableTypes = discourseContext.relations[name]
+              .flatMap((r) => [
+                discourseContext.nodes[r.source]?.text,
+                discourseContext.nodes[r.destination]?.text,
+              ])
+              .filter(Boolean);
             const uniqueTypes = [...new Set(acceptableTypes)];
             this.cancelAndWarn(
               `Starting node must be one of ${uniqueTypes.join(", ")}`,
@@ -571,10 +572,6 @@ export const createAllRelationShapeTools = (
 
         override onEnter = () => {
           this.editor.setCursor({ type: "cross", rotation: 0 });
-        };
-
-        override onCancel = () => {
-          this.editor.setCurrentTool("select");
         };
 
         override onKeyUp: TLEventHandlers["onKeyUp"] = (info) => {

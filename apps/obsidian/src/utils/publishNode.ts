@@ -1,9 +1,6 @@
 import type { FrontMatterCache, TFile } from "obsidian";
-import { Notice } from "obsidian";
 import type { default as DiscourseGraphPlugin } from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
-import { addFile } from "@repo/database/lib/files";
-import mime from "mime-types";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
   getRelationsForNodeInstanceId,
@@ -11,10 +8,17 @@ import {
   getFileForNodeInstanceIds,
   loadRelations,
   saveRelations,
+  type RelationsFile,
 } from "./relationsStore";
 import type { RelationInstance } from "~/types";
 import { getAvailableGroupIds } from "./importNodes";
-import { syncAllNodesAndRelations } from "./syncDgNodesToSupabase";
+import {
+  syncAllNodesAndRelations,
+  syncPublishedNodeAssets,
+} from "./syncDgNodesToSupabase";
+import type { DiscourseNodeInVault } from "./getDiscourseNodes";
+import type { SupabaseContext } from "./supabaseContext";
+import type { TablesInsert } from "@repo/database/dbTypes";
 
 const publishSchema = async ({
   client,
@@ -42,9 +46,6 @@ const publishSchema = async ({
   }
 
   if (!schemaResponse.data) {
-    console.warn(
-      `Schema with nodeTypeId ${nodeTypeId} not found in space ${spaceId}`,
-    );
     return; // Schema doesn't exist, skip publishing
   }
 
@@ -75,6 +76,21 @@ const intersection = <T>(set1: Set<T>, set2: Set<T>): Set<T> => {
     if (set2.has(x)) r.add(x);
   }
   return r;
+};
+
+const difference = <T>(set1: Set<T>, set2: Set<T>): Set<T> => {
+  // @ts-expect-error - Set.difference is ES2025 feature
+  if (set1.difference) return set1.difference(set2); // eslint-disable-line
+  const result = new Set(set1);
+  if (set1.size <= set2.size)
+    for (const e of set1) {
+      if (set2.has(e)) result.delete(e);
+    }
+  else
+    for (const e of set2) {
+      if (result.has(e)) result.delete(e);
+    }
+  return result;
 };
 
 export const publishNewRelation = async (
@@ -246,10 +262,152 @@ export const publishNode = async ({
   if (myGroups.size === 0) throw new Error("Cannot get group");
   const existingPublish =
     (frontmatter.publishedToGroups as undefined | string[]) || [];
+  // Hopefully temporary workaround for sync bug
+  await syncAllNodesAndRelations(plugin);
   const commonGroups = existingPublish.filter((g) => myGroups.has(g));
   // temporary single-group assumption
   const myGroup = (commonGroups.length > 0 ? commonGroups : [...myGroups])[0]!;
   return await publishNodeToGroup({ plugin, file, frontmatter, myGroup });
+};
+
+export const ensurePublishedRelationsAccuracy = async ({
+  client,
+  context,
+  plugin,
+  allNodesById,
+  relationInstancesData,
+}: {
+  client: DGSupabaseClient;
+  context: SupabaseContext;
+  plugin: DiscourseGraphPlugin;
+  allNodesById: Record<string, DiscourseNodeInVault>;
+  relationInstancesData: RelationsFile;
+}): Promise<void> => {
+  const myGroups = await getAvailableGroupIds(client);
+  const relationInstances = Object.values(relationInstancesData.relations);
+  const syncedRelationIdsResult = await client
+    .from("Concept")
+    .select("source_local_id")
+    .eq("space_id", context.spaceId)
+    .eq("is_schema", false)
+    .gt("arity", 0);
+  if (syncedRelationIdsResult.error) {
+    console.error(
+      "Could not get synced relation ids",
+      syncedRelationIdsResult.error,
+    );
+    return;
+  }
+  const syncedRelationIds = new Set(
+    (syncedRelationIdsResult.data || []).map((x) => x.source_local_id!),
+  );
+  // Also a good time to look at orphan relations
+  const existingRelationIds = new Set(relationInstances.map((r) => r.id));
+  const orphanRelationIds = difference(syncedRelationIds, existingRelationIds);
+  if (orphanRelationIds.size) {
+    const r = await client
+      .from("Concept")
+      .delete()
+      .eq("space_id", context.spaceId)
+      .in("source_local_id", [...orphanRelationIds]);
+    if (!r.error) {
+      for (const id of orphanRelationIds) {
+        syncedRelationIds.delete(id);
+      }
+    }
+  }
+  let changed = false;
+  const missingPublishRecords: TablesInsert<"ResourceAccess">[] = [];
+  for (const group of myGroups) {
+    const publishableRelations = relationInstances.filter(
+      (r) =>
+        !r.importedFromRid &&
+        syncedRelationIds.has(r.id) &&
+        (
+          (allNodesById[r.source]?.frontmatter?.publishedToGroups as
+            | string[]
+            | undefined) || []
+        ).indexOf(group) >= 0 &&
+        (
+          (allNodesById[r.destination]?.frontmatter?.publishedToGroups as
+            | string[]
+            | undefined) || []
+        ).indexOf(group) >= 0,
+    );
+    const publishableRelationIds = new Set(
+      publishableRelations.map((x) => x.id),
+    );
+    const publishedIds = await client
+      .from("ResourceAccess")
+      .select("source_local_id")
+      .eq("account_uid", group)
+      .eq("space_id", context.spaceId);
+    if (publishedIds.error) {
+      console.error("Could not get synced relation ids", publishedIds.error);
+      continue;
+    }
+    const publishedRelationIds = intersection(
+      syncedRelationIds,
+      new Set((publishedIds.data || []).map((x) => x.source_local_id)),
+    );
+    const missingPublishableIds = difference(
+      publishableRelationIds,
+      publishedRelationIds,
+    );
+    if (missingPublishableIds.size > 0) {
+      missingPublishRecords.push(
+        /* eslint-disable @typescript-eslint/naming-convention */
+        ...[...missingPublishableIds].map((source_local_id) => ({
+          source_local_id,
+          space_id: context.spaceId,
+          account_uid: group,
+        })),
+        /* eslint-enable @typescript-eslint/naming-convention */
+      );
+    }
+    const extraPublishableIds = difference(
+      publishedRelationIds,
+      publishableRelationIds,
+    );
+    if (extraPublishableIds.size > 0) {
+      const r = await client
+        .from("ResourceAccess")
+        .delete()
+        .eq("account_uid", group)
+        .eq("space_id", context.spaceId)
+        .in("source_local_id", [...extraPublishableIds]);
+      if (r.error) console.error(r.error);
+      else {
+        for (const id of extraPublishableIds) {
+          const rel = relationInstancesData.relations[id];
+          const pos = (rel?.publishedToGroupId || []).indexOf(group);
+          if (pos >= 0) {
+            rel!.publishedToGroupId!.splice(pos, 1);
+            changed = true;
+          }
+        }
+      }
+    }
+  }
+  if (missingPublishRecords.length > 0) {
+    const r = await client.from("ResourceAccess").upsert(missingPublishRecords);
+    if (r.error) console.error(r.error);
+    else {
+      for (const record of missingPublishRecords) {
+        const rel = relationInstancesData.relations[record.source_local_id];
+        const group = record.account_uid;
+        const pos = (rel?.publishedToGroupId || []).indexOf(group);
+        if (rel && pos < 0) {
+          if (rel.publishedToGroupId === undefined) rel.publishedToGroupId = [];
+          rel.publishedToGroupId.push(group);
+          changed = true;
+        }
+      }
+    }
+  }
+  if (changed) {
+    await saveRelations(plugin, relationInstancesData);
+  }
 };
 
 export const publishNodeToGroup = async ({
@@ -299,9 +457,6 @@ export const publishNodeToGroup = async ({
         link,
         file.path,
       );
-      if (attachment === null) {
-        console.warn("Could not find file for " + link);
-      }
       return attachment;
     })
     .filter((a) => !!a);
@@ -353,65 +508,14 @@ export const publishNodeToGroup = async ({
       });
     }
   }
-
-  // Always sync non-text assets when node is published to this group
-  const existingFiles: string[] = [];
-  const existingReferencesReq = await client
-    .from("my_file_references")
-    .select("*")
-    .eq("space_id", spaceId)
-    .eq("source_local_id", nodeId);
-  if (existingReferencesReq.error) {
-    console.error(existingReferencesReq.error);
-    return;
-  }
-  const existingReferencesByPath = Object.fromEntries(
-    existingReferencesReq.data.map((ref) => [ref.filepath, ref]),
-  );
-
-  for (const attachment of attachments) {
-    const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
-    if (mimetype.startsWith("text/")) continue;
-    // Do not use standard upload for large files
-    if (attachment.stat.size >= 6 * 1024 * 1024) {
-      new Notice(
-        `Asset file ${attachment.path} is larger than 6Mb and will not be uploaded`,
-      );
-      continue;
-    }
-    existingFiles.push(attachment.path);
-    const existingRef = existingReferencesByPath[attachment.path];
-    if (
-      !existingRef ||
-      new Date(existingRef.last_modified + "Z").valueOf() <
-        attachment.stat.mtime
-    ) {
-      const content = await plugin.app.vault.readBinary(attachment);
-      await addFile({
-        client,
-        spaceId,
-        sourceLocalId: nodeId,
-        fname: attachment.path,
-        mimetype,
-        created: new Date(attachment.stat.ctime),
-        lastModified: new Date(attachment.stat.mtime),
-        content,
-      });
-    }
-  }
-  let cleanupCommand = client
-    .from("FileReference")
-    .delete()
-    .eq("space_id", spaceId)
-    .eq("source_local_id", nodeId);
-  if (existingFiles.length)
-    cleanupCommand = cleanupCommand.notIn("filepath", [
-      ...new Set(existingFiles),
-    ]);
-  const cleanupResult = await cleanupCommand;
-  // do not fail on cleanup
-  if (cleanupResult.error) console.error(cleanupResult.error);
-
+  await syncPublishedNodeAssets({
+    plugin,
+    client,
+    nodeId,
+    spaceId,
+    file,
+    attachments,
+  });
   if (!existingPublish.includes(myGroup))
     await plugin.app.fileManager.processFrontMatter(
       file,
