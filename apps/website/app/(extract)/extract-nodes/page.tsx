@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { ExtractedNode } from "~/types/extraction";
 import { MainContent } from "./components/MainContent";
 import { Sidebar } from "./components/Sidebar";
 
-// TODO(ENG-1592): Replace with actual extraction results from API
 const SAMPLE_NODES: ExtractedNode[] = [
   {
     nodeType: "Claim",
@@ -82,12 +81,35 @@ const SAMPLE_NODES: ExtractedNode[] = [
 ];
 
 const ExtractNodesPage = (): React.ReactElement => {
-  // TODO(ENG-1592): Wire to actual extraction API results
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [researchQuestion, setResearchQuestion] = useState("");
+  const [selectedTypes, setSelectedTypes] = useState(
+    () => new Set(["#evd-candidate", "#clm-candidate"]),
+  );
   const [nodes] = useState<ExtractedNode[]>(SAMPLE_NODES);
+
+  const toggleType = useCallback((candidateTag: string) => {
+    setSelectedTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(candidateTag)) {
+        next.delete(candidateTag);
+      } else {
+        next.add(candidateTag);
+      }
+      return next;
+    });
+  }, []);
 
   return (
     <div className="flex h-full w-full flex-1 flex-col gap-4 p-4 lg:flex-row lg:gap-5 lg:p-5">
-      <Sidebar />
+      <Sidebar
+        pdfFile={pdfFile}
+        onFileSelect={setPdfFile}
+        researchQuestion={researchQuestion}
+        onResearchQuestionChange={setResearchQuestion}
+        selectedTypes={selectedTypes}
+        onToggleType={toggleType}
+      />
       <MainContent nodes={nodes} />
     </div>
   );

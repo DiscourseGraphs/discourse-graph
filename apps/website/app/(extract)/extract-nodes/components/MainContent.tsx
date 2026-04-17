@@ -6,8 +6,11 @@ import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { Copy } from "lucide-react";
-import type { ExtractedNode } from "~/types/extraction";
-import { NODE_TYPE_DEFINITIONS, type NodeTypeDefinition } from "../nodeTypes";
+import {
+  NODE_TYPE_DEFINITIONS,
+  type ExtractedNode,
+  type NodeTypeDefinition,
+} from "~/types/extraction";
 
 const findNodeTypeDefinition = (
   nodeType: string,
@@ -134,12 +137,12 @@ export const MainContent = ({
 
   if (nodes.length === 0) {
     return (
-      <section className="flex min-h-[420px] flex-1 items-center justify-center overflow-hidden rounded-[24px] border border-slate-200/85 bg-white shadow-[0_24px_48px_-36px_rgba(15,23,42,0.55)]">
+      <section className="flex min-h-96 flex-1 items-center justify-center overflow-hidden rounded-3xl border border-slate-200/85 bg-white shadow-xl">
         <div className="text-center">
-          <p className="text-[18px] font-medium text-slate-400">
+          <p className="text-lg font-medium text-slate-400">
             No extracted nodes yet
           </p>
-          <p className="mt-1 text-[15px] text-slate-400">
+          <p className="mt-1 text-sm text-slate-400">
             Upload a paper and run extraction to see results here.
           </p>
         </div>
@@ -148,12 +151,12 @@ export const MainContent = ({
   }
 
   return (
-    <section className="flex min-h-[420px] flex-1 overflow-hidden rounded-[24px] border border-slate-200/85 bg-white shadow-[0_24px_48px_-36px_rgba(15,23,42,0.55)]">
+    <section className="flex min-h-96 flex-1 overflow-hidden rounded-3xl border border-slate-200/85 bg-white shadow-xl">
       <div className="flex flex-1 flex-col overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]">
         {paperTitle && (
           <div className="relative shrink-0 border-b border-slate-200/80 bg-[linear-gradient(135deg,#ffffff_0%,#f8fbff_100%)] px-4 py-4 lg:px-5">
-            <div className="absolute inset-x-0 top-0 h-[2px] bg-[linear-gradient(90deg,#0ea5e9_0%,#22d3ee_45%,#34d399_100%)]" />
-            <h2 className="text-[24px] font-semibold tracking-[-0.024em] text-slate-900">
+            <div className="absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,#0ea5e9_0%,#22d3ee_45%,#34d399_100%)]" />
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
               {paperTitle}
             </h2>
           </div>
@@ -162,13 +165,18 @@ export const MainContent = ({
         <div className="shrink-0 border-b border-slate-200/70 bg-white/95 px-4 lg:px-5">
           <div className="flex gap-1 py-2">
             {tabs.map((tab) => (
-              <button key={tab.id} onClick={() => setActiveFilter(tab.id)}>
+              <Button
+                key={tab.id}
+                variant="ghost"
+                onClick={() => setActiveFilter(tab.id)}
+                className="h-auto rounded-full p-0 hover:bg-transparent"
+              >
                 <Badge
                   variant={tab.id === activeFilter ? "default" : "outline"}
                   className={
                     tab.id === activeFilter
-                      ? "bg-slate-900 px-3 py-1.5 text-[14px] font-semibold text-white hover:bg-slate-800"
-                      : "px-3 py-1.5 text-[14px] font-semibold text-slate-600"
+                      ? "bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-800"
+                      : "px-3 py-1.5 text-sm font-semibold text-slate-600"
                   }
                 >
                   {tab.color && (
@@ -179,7 +187,7 @@ export const MainContent = ({
                   )}
                   {tab.label} {tab.count}
                 </Badge>
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -206,31 +214,31 @@ export const MainContent = ({
                       <div className="min-w-0 flex-1">
                         <div className="mb-2 flex flex-wrap items-center gap-2">
                           <span
-                            className="rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white"
+                            className="rounded px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider text-white"
                             style={{ backgroundColor: color }}
                           >
                             {node.nodeType}
                           </span>
                           {node.sourceSection && (
-                            <span className="text-[13px] text-slate-400">
+                            <span className="text-xs text-slate-400">
                               {node.sourceSection}
                             </span>
                           )}
                         </div>
-                        <p className="text-[15px] leading-relaxed text-slate-800">
+                        <p className="text-sm leading-relaxed text-slate-800">
                           {node.content}
                         </p>
                         {isExpanded ? (
                           <>
                             <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
-                              <p className="text-[13px] italic leading-relaxed text-slate-500">
+                              <p className="text-xs italic leading-relaxed text-slate-500">
                                 {node.supportSnippet}
                               </p>
                             </div>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="mt-1 h-auto p-0 text-[13px] font-medium text-slate-400 hover:text-slate-600"
+                              className="mt-1 h-auto p-0 text-xs font-medium text-slate-400 hover:text-slate-600"
                               onClick={() => toggleExpanded(originalIndex)}
                             >
                               Hide details
@@ -240,7 +248,7 @@ export const MainContent = ({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="mt-1 h-auto p-0 text-[13px] font-medium text-slate-400 hover:text-slate-600"
+                            className="mt-1 h-auto p-0 text-xs font-medium text-slate-400 hover:text-slate-600"
                             onClick={() => toggleExpanded(originalIndex)}
                           >
                             Show details
