@@ -38,7 +38,7 @@ export const Sidebar = ({
   };
 
   return (
-    <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-3xl border border-slate-200/85 bg-white shadow-[0_26px_52px_-38px_rgba(15,23,42,0.6)] lg:w-[390px] xl:w-[420px]">
+    <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-3xl border border-slate-200/85 bg-white shadow-xl lg:w-96">
       <div className="flex-1 overflow-y-auto p-4 lg:p-5">
         <section className="mb-6">
           <h3 className={SECTION_LABEL_CLASS}>Paper</h3>
