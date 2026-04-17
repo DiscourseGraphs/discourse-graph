@@ -143,7 +143,8 @@ const BaseTextPanel = ({
     debounceRef.current = window.setTimeout(() => {
       if (errorRef.current) return;
       syncToBlock?.(newValue);
-      setTimeout(() => {
+      debounceRef.current = window.setTimeout(() => {
+        if (errorRef.current) return;
         refreshConfigTree();
         setter(settingKeys, newValue);
       }, 100);
@@ -275,14 +276,22 @@ const BaseNumberPanel = ({
     toStr: (v: number) => `${v}`,
   });
   const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
+  const refreshTimeoutRef = useRef(0);
+
+  useEffect(() => {
+    return () => window.clearTimeout(refreshTimeoutRef.current);
+  }, []);
 
   const handleChange = (valueAsNumber: number) => {
     if (Number.isNaN(valueAsNumber)) return;
     setValue(valueAsNumber);
     syncToBlock?.(valueAsNumber);
-    refreshConfigTree();
-    setter(settingKeys, valueAsNumber);
-    onChange?.(valueAsNumber);
+    window.clearTimeout(refreshTimeoutRef.current);
+    refreshTimeoutRef.current = window.setTimeout(() => {
+      refreshConfigTree();
+      setter(settingKeys, valueAsNumber);
+      onChange?.(valueAsNumber);
+    }, 100);
   };
 
   return (
@@ -323,13 +332,21 @@ const BaseSelectPanel = ({
     toStr: (s: string) => s,
   });
   const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
+  const refreshTimeoutRef = useRef(0);
+
+  useEffect(() => {
+    return () => window.clearTimeout(refreshTimeoutRef.current);
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
     syncToBlock?.(newValue);
-    refreshConfigTree();
-    setter(settingKeys, newValue);
+    window.clearTimeout(refreshTimeoutRef.current);
+    refreshTimeoutRef.current = window.setTimeout(() => {
+      refreshConfigTree();
+      setter(settingKeys, newValue);
+    }, 100);
   };
 
   return (
