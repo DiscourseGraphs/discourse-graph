@@ -237,6 +237,7 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
     pathKey([PERSONAL_KEYS.query, QUERY_KEYS.defaultFilters]),
     "default-filters",
   ],
+  [pathKey([PERSONAL_KEYS.reifiedRelationTriples]), "use-reified-relations"],
 ]);
 
 const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {

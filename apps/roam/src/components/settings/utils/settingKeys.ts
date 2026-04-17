@@ -25,6 +25,7 @@ export const PERSONAL_KEYS = {
   nodeSearchMenuTrigger: "Node search menu trigger",
   leftSidebar: "Left sidebar",
   query: "Query",
+  reifiedRelationTriples: "Reified relation triples",
 } as const satisfies Record<string, keyof PersonalSettings>;
 
 export const QUERY_KEYS = {
