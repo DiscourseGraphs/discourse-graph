@@ -256,6 +256,7 @@ export const publishNode = async ({
   file: TFile;
   frontmatter: FrontMatterCache;
 }): Promise<void> => {
+  console.log("[DG Publish] publishNode: starting for:", file.path);
   const client = await getLoggedInClient(plugin);
   if (!client) throw new Error("Cannot get client");
   const myGroups = new Set(await getAvailableGroupIds(client));
@@ -264,6 +265,9 @@ export const publishNode = async ({
     (frontmatter.publishedToGroups as undefined | string[]) || [];
   // Hopefully temporary workaround for sync bug
   await syncAllNodesAndRelations(plugin);
+  console.log(
+    "[DG Publish] publishNode: pre-sync complete, proceeding to group publish",
+  );
   const commonGroups = existingPublish.filter((g) => myGroups.has(g));
   // temporary single-group assumption
   const myGroup = (commonGroups.length > 0 ? commonGroups : [...myGroups])[0]!;
@@ -468,6 +472,15 @@ export const publishNodeToGroup = async ({
   const skipPublishAccess =
     existingPublish.includes(myGroup) && lastModified <= lastModifiedDb;
 
+  console.log("[DG Publish] publishNodeToGroup:", {
+    nodeId,
+    myGroup,
+    fileLastModified: new Date(lastModified).toISOString(),
+    dbLastModified: new Date(lastModifiedDb).toISOString(),
+    existingPublish,
+    skipPublishAccess,
+  });
+
   if (!skipPublishAccess) {
     const publishSpaceResponse = await client.from("SpaceAccess").upsert(
       {
@@ -478,6 +491,10 @@ export const publishNodeToGroup = async ({
         permissions: "partial",
       },
       { ignoreDuplicates: true },
+    );
+    console.log(
+      "[DG Publish] SpaceAccess upsert result:",
+      publishSpaceResponse.error ?? "OK",
     );
     if (
       publishSpaceResponse.error &&
@@ -494,6 +511,10 @@ export const publishNodeToGroup = async ({
         /* eslint-enable @typescript-eslint/naming-convention */
       },
       { ignoreDuplicates: true },
+    );
+    console.log(
+      "[DG Publish] ResourceAccess upsert result:",
+      publishResponse.error ?? "OK",
     );
     if (publishResponse.error && publishResponse.error.code !== "23505")
       throw publishResponse.error;
