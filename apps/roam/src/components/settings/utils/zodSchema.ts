@@ -237,7 +237,7 @@ export const StoredFiltersSchema = z.object({
 export const QuerySettingsSchema = z.object({
   "Hide query metadata": z.boolean().default(true),
   "Default page size": z.number().default(10),
-  "Query pages": z.array(z.string()).default([]),
+  "Query pages": z.array(z.string()).default(["discourse-graph/queries/*"]),
   "Default filters": z.record(z.string(), StoredFiltersSchema).default({}),
 });
 
