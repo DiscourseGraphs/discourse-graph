@@ -2,6 +2,7 @@
 import { useRef } from "react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
+import { Label } from "@repo/ui/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,7 @@ import { Upload } from "lucide-react";
 import { MODEL_OPTIONS, NODE_TYPE_DEFINITIONS } from "~/types/extraction";
 
 const SECTION_LABEL_CLASS =
-  "mb-3 block px-1 text-lg font-semibold tracking-[-0.016em] text-slate-800";
+  "mb-3 block px-1 text-lg font-semibold tracking-tight text-slate-800";
 
 type SidebarProps = {
   pdfFile: File | null;
@@ -54,7 +55,7 @@ export const Sidebar = ({
   };
 
   return (
-    <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-[24px] border border-slate-200/85 bg-white shadow-[0_26px_52px_-38px_rgba(15,23,42,0.6)] lg:w-[390px] xl:w-[420px]">
+    <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-3xl border border-slate-200/85 bg-white shadow-xl lg:w-96">
       <div className="flex-1 overflow-y-auto p-4 lg:p-5">
         <section className="mb-6">
           <h3 className={SECTION_LABEL_CLASS}>Paper</h3>
@@ -66,13 +67,14 @@ export const Sidebar = ({
             onChange={handleFileInput}
           />
           {pdfFile ? (
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              className="group flex w-full items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-left transition-colors hover:border-slate-300"
+              className="group h-auto w-full items-start justify-start gap-3 whitespace-normal rounded-2xl border-slate-200 p-3.5 text-left hover:border-slate-300 hover:bg-white"
             >
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-b from-rose-500 to-rose-600">
-                <span className="text-xs font-bold tracking-[0.02em] text-white">
+                <span className="text-xs font-bold tracking-wide text-white">
                   PDF
                 </span>
               </div>
@@ -87,15 +89,16 @@ export const Sidebar = ({
                   </span>
                 </p>
               </div>
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              className="flex w-full flex-col items-center gap-2.5 rounded-2xl border-[1.8px] border-dashed border-slate-300 bg-white px-4 py-9 text-center transition-colors hover:border-slate-400 hover:bg-slate-50"
+              className="h-auto w-full flex-col gap-2.5 rounded-2xl border-2 border-dashed border-slate-300 px-4 py-9 text-center hover:border-slate-400 hover:bg-slate-50 [&_svg]:size-5"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100">
-                <Upload className="h-5 w-5 text-slate-500" />
+                <Upload className="text-slate-500" />
               </div>
               <div>
                 <p className="text-base font-semibold text-slate-800">
@@ -105,7 +108,7 @@ export const Sidebar = ({
                   Click to choose a file
                 </p>
               </div>
-            </button>
+            </Button>
           )}
         </section>
 
@@ -137,7 +140,7 @@ export const Sidebar = ({
               onResearchQuestionChange(e.target.value)
             }
             placeholder="e.g., What are the molecular determinants of lumenoid formation in hiPSCs?"
-            className="min-h-[72px] resize-none rounded-xl border-slate-300 bg-white px-3.5 py-3 text-base text-slate-700 placeholder:text-slate-400"
+            className="min-h-36 resize-none rounded-xl border-slate-300 bg-white px-3.5 py-3 text-base text-slate-700 placeholder:text-slate-400"
           />
         </section>
 
@@ -145,7 +148,7 @@ export const Sidebar = ({
 
         <section>
           <div className="mb-2.5 flex items-center justify-between px-1">
-            <h3 className="text-lg font-semibold tracking-[-0.016em] text-slate-800">
+            <h3 className="text-lg font-semibold tracking-tight text-slate-800">
               Node Types
             </h3>
             <span className="text-sm font-semibold tabular-nums text-slate-500">
@@ -157,7 +160,7 @@ export const Sidebar = ({
             {NODE_TYPE_DEFINITIONS.map((type) => {
               const isChecked = selectedTypes.has(type.candidateTag);
               return (
-                <label
+                <Label
                   key={type.candidateTag}
                   className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 text-slate-800 shadow-sm"
                 >
@@ -175,7 +178,7 @@ export const Sidebar = ({
                   <span className="shrink-0 text-xs font-medium text-slate-400">
                     {type.candidateTag}
                   </span>
-                </label>
+                </Label>
               );
             })}
           </div>
@@ -189,7 +192,7 @@ export const Sidebar = ({
         <Button
           onClick={onExtract}
           disabled={!canExtract}
-          className="w-full rounded-xl bg-slate-900 py-6 text-base font-semibold text-white hover:bg-slate-800"
+          className="w-full rounded-xl bg-slate-900 py-6 text-lg font-semibold text-white hover:bg-slate-800"
         >
           {isExtracting ? "Extracting…" : "Re-Extract"}
         </Button>
