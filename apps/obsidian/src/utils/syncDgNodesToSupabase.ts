@@ -171,7 +171,14 @@ const getLastContentSyncTime = async (
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
-  return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
+  const result = new Date((data?.last_modified || DEFAULT_TIME) + "Z");
+  console.log(
+    "[DG Sync] getLastContentSyncTime:",
+    data?.last_modified,
+    "→",
+    result.toISOString(),
+  );
+  return result;
 };
 
 const getLastNodeSchemaSyncTime = async (
@@ -315,6 +322,16 @@ const detectNodeChanges = (
     changeTypes.push("content");
   }
 
+  console.log("[DG Sync] detectNodeChanges:", {
+    file: node.file.basename,
+    fileModifiedTime: fileModifiedTime.toISOString(),
+    lastSyncTime: lastSyncTime.toISOString(),
+    isNewFile,
+    titleChanged,
+    contentChanged,
+    result: changeTypes,
+  });
+
   return changeTypes;
 };
 
@@ -371,6 +388,12 @@ const buildChangedNodesFromNodes = async ({
     });
   }
 
+  console.log(
+    "[DG Sync] buildChangedNodes: total:",
+    nodes.length,
+    "→ changed:",
+    changedNodes.length,
+  );
   return changedNodes;
 };
 
@@ -399,6 +422,11 @@ export const syncAllNodesAndRelations = async (
           supabaseClient,
           context,
         });
+
+    console.log(
+      "[DG Sync] syncAllNodesAndRelations: changedNodeInstances:",
+      changedNodeInstances.length,
+    );
 
     const accountLocalId = plugin.settings.accountLocalId;
     if (!accountLocalId) {
@@ -868,6 +896,13 @@ export const syncDiscourseNodeChanges = async (
       filePaths,
     );
 
+    console.log(
+      "[DG Sync] syncDiscourseNodeChanges: paths:",
+      filePaths,
+      "foundNodes:",
+      dgNodesInVault.length,
+    );
+
     if (dgNodesInVault.length === 0) {
       return;
     }
@@ -878,6 +913,11 @@ export const syncDiscourseNodeChanges = async (
       context,
       changeTypesByPath,
     });
+
+    console.log(
+      "[DG Sync] syncDiscourseNodeChanges: changedNodes:",
+      changedNodes.length,
+    );
 
     const accountLocalId = plugin.settings.accountLocalId;
     if (!accountLocalId) {

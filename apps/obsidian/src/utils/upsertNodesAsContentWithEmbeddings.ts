@@ -43,6 +43,13 @@ const createNodeContentEntries = async (
 ): Promise<LocalContentDataInput[]> => {
   const variantsToCreate = getVariantsToCreate(node.changeTypes);
 
+  console.log(
+    "[DG Upsert] createNodeContentEntries:",
+    node.file.path,
+    "variants:",
+    variantsToCreate,
+  );
+
   if (variantsToCreate.length === 0) {
     return [];
   }
@@ -72,6 +79,12 @@ const createNodeContentEntries = async (
   if (variantsToCreate.includes("full")) {
     try {
       const fullContent = await plugin.app.vault.read(node.file);
+      console.log(
+        "[DG Upsert] vault.read success for:",
+        node.file.path,
+        "content length:",
+        fullContent.length,
+      );
       entries.push({
         ...baseEntry,
         text: fullContent,
@@ -79,7 +92,11 @@ const createNodeContentEntries = async (
         metadata: node.frontmatter as Json,
       });
     } catch (error) {
-      console.error(`Error reading file content for ${node.file.path}:`, error);
+      console.error(
+        "[DG Upsert] vault.read FAILED for:",
+        node.file.path,
+        error,
+      );
     }
   }
 
@@ -109,6 +126,14 @@ export const fetchEmbeddingsForNodes = async (
 
   for (let i = 0; i < allNodesTexts.length; i += EMBEDDING_BATCH_SIZE) {
     const batch = allNodesTexts.slice(i, i + EMBEDDING_BATCH_SIZE);
+    console.log(
+      "[DG Upsert] fetchEmbeddings: batch",
+      Math.floor(i / EMBEDDING_BATCH_SIZE) + 1,
+      "of",
+      Math.ceil(allNodesTexts.length / EMBEDDING_BATCH_SIZE),
+      "size:",
+      batch.length,
+    );
     const response = await fetch(nextApiRoot() + "/embeddings/openai/small", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -131,6 +156,10 @@ export const fetchEmbeddingsForNodes = async (
       );
     }
 
+    console.log(
+      "[DG Upsert] fetchEmbeddings: batch success, response status:",
+      response.status,
+    );
     const data = (await response.json()) as EmbeddingApiResponse;
     if (!data || !Array.isArray(data.data)) {
       throw new Error(
@@ -166,6 +195,14 @@ const uploadBatches = async (
   const { spaceId, userId } = context;
   for (let idx = 0; idx < batches.length; idx++) {
     const batch = batches[idx];
+    console.log(
+      "[DG Upsert] uploadBatch:",
+      idx + 1,
+      "of",
+      batches.length,
+      "size:",
+      batch.length,
+    );
     const { error } = await supabaseClient.rpc("upsert_content", {
       data: batch as unknown as Json,
       v_space_id: spaceId,
@@ -177,6 +214,7 @@ const uploadBatches = async (
       console.error(`upsert_content failed for batch ${idx + 1}:`, error);
       throw error;
     }
+    console.log("[DG Upsert] uploadBatch:", idx + 1, "success");
   }
 };
 
@@ -202,6 +240,8 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async ({
     return;
   }
 
+  console.log("[DG Upsert] upsertNodes: obsidianNodes:", obsidianNodes.length);
+
   // Create two entries per node: one "direct" (title) and one "full" (content)
   const allContentEntries = await convertObsidianNodeToLocalContent({
     nodes: obsidianNodes,
@@ -216,6 +256,13 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async ({
     (entry) => entry.variant === "full",
   );
 
+  console.log(
+    "[DG Upsert] upsertNodes: direct entries:",
+    directVariantEntries.length,
+    "full entries:",
+    fullVariantEntries.length,
+  );
+
   let directEntriesWithEmbeddings: LocalContentDataInput[];
   try {
     directEntriesWithEmbeddings =
@@ -227,6 +274,11 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async ({
     );
     throw new Error(errorMessage);
   }
+
+  console.log(
+    "[DG Upsert] upsertNodes: directEntriesWithEmbeddings count:",
+    directEntriesWithEmbeddings.length,
+  );
 
   if (directEntriesWithEmbeddings.length !== directVariantEntries.length) {
     console.error(
@@ -241,6 +293,11 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async ({
     ...directEntriesWithEmbeddings,
     ...fullVariantEntries,
   ];
+
+  console.log(
+    "[DG Upsert] upsertNodes: total to upload:",
+    allEntriesToUpload.length,
+  );
 
   const batchSize = 200;
 
