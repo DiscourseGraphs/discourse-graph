@@ -114,7 +114,7 @@ export const Sidebar = ({
               onResearchQuestionChange(e.target.value)
             }
             placeholder="e.g., What are the molecular determinants of lumenoid formation in hiPSCs?"
-            className="min-h-20 resize-none rounded-xl border-slate-300 bg-white px-3.5 py-3 text-base text-slate-700 placeholder:text-slate-400"
+            className="min-h-36 resize-none rounded-xl border-slate-300 bg-white px-3.5 py-3 text-base text-slate-700 placeholder:text-slate-400"
           />
         </section>
 
