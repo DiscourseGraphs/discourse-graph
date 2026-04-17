@@ -1,11 +1,9 @@
 import {
   InputGroup,
-  Label,
   Radio,
   RadioGroup,
   Tooltip,
   Icon,
-  ControlGroup,
 } from "@blueprintjs/core";
 import React, { useState, useMemo } from "react";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
@@ -37,10 +35,6 @@ const DiscourseNodeCanvasSettings = ({
   uid: string;
 }) => {
   const tree = useMemo(() => getBasicTreeByParentUid(uid), [uid]);
-  const [color, setColor] = useState<string>(() => {
-    const color = getSettingValueFromTree({ tree, key: "color" });
-    return formatHexColor(color);
-  });
   const alias = getSettingValueFromTree({ tree, key: "alias" });
   const [queryBuilderAlias, setQueryBuilderAlias] = useState<string>(() =>
     getSettingValueFromTree({ tree, key: "query-builder-alias" }),
@@ -54,49 +48,6 @@ const DiscourseNodeCanvasSettings = ({
 
   return (
     <div>
-      <div className="mb-4">
-        <Label style={{ marginBottom: "4px" }}>Color picker</Label>
-        <ControlGroup>
-          <InputGroup
-            style={{ width: 120 }}
-            type={"color"}
-            value={color}
-            onChange={(e) => {
-              const colorValue = e.target.value.replace("#", ""); // remove hash to not create roam link
-              setColor(e.target.value);
-              void setInputSetting({
-                blockUid: uid,
-                key: "color",
-                value: colorValue,
-              });
-              setDiscourseNodeSetting(
-                nodeType,
-                ["canvasSettings", "color"],
-                colorValue,
-              );
-            }}
-          />
-          <Tooltip content={color ? "Unset" : "Color not set"}>
-            <Icon
-              className={"ml-2 align-middle opacity-80"}
-              icon={color ? "delete" : "info-sign"}
-              onClick={() => {
-                setColor("");
-                void setInputSetting({
-                  blockUid: uid,
-                  key: "color",
-                  value: "",
-                });
-                setDiscourseNodeSetting(
-                  nodeType,
-                  ["canvasSettings", "color"],
-                  "",
-                );
-              }}
-            />
-          </Tooltip>
-        </ControlGroup>
-      </div>
       <DiscourseNodeTextPanel
         nodeType={nodeType}
         title="Display alias"
