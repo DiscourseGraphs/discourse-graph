@@ -51,6 +51,7 @@ export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 export default runExtension(async (onloadArgs) => {
   const pluginLoadStart = performance.now();
 
+  refreshConfigTree();
   const settings = bulkReadSettings();
 
   if (!settings.personalSettings[PERSONAL_KEYS.disableProductDiagnostics]) {
