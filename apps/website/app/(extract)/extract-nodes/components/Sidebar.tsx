@@ -157,30 +157,23 @@ export const Sidebar = ({
           </div>
 
           <div className="space-y-1.5">
-            {NODE_TYPE_DEFINITIONS.map((type) => {
-              const isChecked = selectedTypes.has(type.candidateTag);
-              return (
-                <Label
-                  key={type.candidateTag}
-                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 text-slate-800 shadow-sm"
-                >
-                  <Checkbox
-                    checked={isChecked}
-                    onCheckedChange={() => onToggleType(type.candidateTag)}
-                    style={{
-                      borderColor: type.color,
-                      backgroundColor: isChecked ? type.color : undefined,
-                    }}
-                  />
-                  <span className="min-w-0 flex-1 text-base font-medium">
-                    {type.label}
-                  </span>
-                  <span className="shrink-0 text-xs font-medium text-slate-400">
-                    {type.candidateTag}
-                  </span>
-                </Label>
-              );
-            })}
+            {NODE_TYPE_DEFINITIONS.map((type) => (
+              <Label
+                key={type.candidateTag}
+                className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 text-slate-800 shadow-sm"
+              >
+                <Checkbox
+                  checked={selectedTypes.has(type.candidateTag)}
+                  onCheckedChange={() => onToggleType(type.candidateTag)}
+                />
+                <span className="min-w-0 flex-1 text-base font-medium">
+                  {type.label}
+                </span>
+                <span className="shrink-0 text-xs font-medium text-slate-400">
+                  {type.candidateTag}
+                </span>
+              </Label>
+            ))}
           </div>
         </section>
       </div>
