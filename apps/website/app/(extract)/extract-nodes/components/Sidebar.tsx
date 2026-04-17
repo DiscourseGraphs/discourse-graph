@@ -165,6 +165,7 @@ export const Sidebar = ({
                 <Checkbox
                   checked={selectedTypes.has(type.candidateTag)}
                   onCheckedChange={() => onToggleType(type.candidateTag)}
+                  className="data-[state=checked]:bg-transparent data-[state=checked]:text-slate-800"
                 />
                 <span className="min-w-0 flex-1 text-base font-medium">
                   {type.label}
