@@ -80,11 +80,19 @@ export class FileChangeListener {
    */
   private shouldSyncFile(file: TAbstractFile): boolean {
     if (!(file instanceof TFile)) {
+      console.log(
+        "[DG FileListener] shouldSyncFile: skip (not TFile)",
+        file.path,
+      );
       return false;
     }
 
     // Only process markdown files
     if (!file.path.endsWith(".md")) {
+      console.log(
+        "[DG FileListener] shouldSyncFile: skip (not .md)",
+        file.path,
+      );
       return false;
     }
 
@@ -93,14 +101,31 @@ export class FileChangeListener {
     const nodeTypeId = frontmatter?.nodeTypeId as string | undefined;
 
     if (!nodeTypeId || typeof nodeTypeId !== "string") {
+      console.log(
+        "[DG FileListener] shouldSyncFile: skip (no nodeTypeId in cache)",
+        file.path,
+      );
       return false;
     }
 
     if (frontmatter?.importedFromRid) {
+      console.log(
+        "[DG FileListener] shouldSyncFile: skip (importedFromRid present)",
+        file.path,
+      );
       return false;
     }
 
-    return !!getNodeTypeById(this.plugin, nodeTypeId);
+    const hasType = !!getNodeTypeById(this.plugin, nodeTypeId);
+    console.log(
+      "[DG FileListener] shouldSyncFile:",
+      file.path,
+      "nodeTypeId:",
+      nodeTypeId,
+      "hasType:",
+      hasType,
+    );
+    return hasType;
   }
 
   /**
@@ -128,6 +153,7 @@ export class FileChangeListener {
    * Handle file modification event
    */
   private handleFileModify(file: TAbstractFile): void {
+    console.log("[DG FileListener] handleFileModify fired:", file.path);
     if (!this.shouldSyncFile(file)) {
       return;
     }
@@ -162,6 +188,12 @@ export class FileChangeListener {
    * Handle metadata changes (placeholder for relation metadata)
    */
   private handleMetadataChange(file: TFile): void {
+    console.log(
+      "[DG FileListener] handleMetadataChange fired:",
+      file.path,
+      "inPendingCreates:",
+      this.pendingCreates.has(file.path),
+    );
     if (!this.shouldSyncFile(file)) {
       return;
     }
@@ -199,6 +231,13 @@ export class FileChangeListener {
       });
     }
 
+    console.log(
+      "[DG FileListener] queueChange:",
+      filePath,
+      changeType,
+      "queue size:",
+      this.changeQueue.size,
+    );
     this.resetDebounceTimer();
   }
 
@@ -219,7 +258,16 @@ export class FileChangeListener {
    * Process the queued changes and sync to Supabase
    */
   private async processQueue(): Promise<void> {
+    console.log(
+      "[DG FileListener] processQueue: isProcessing:",
+      this.isProcessing,
+      "queueSize:",
+      this.changeQueue.size,
+    );
     if (this.isProcessing) {
+      console.log(
+        "[DG FileListener] processQueue: already processing, skipping",
+      );
       return;
     }
 
@@ -247,6 +295,12 @@ export class FileChangeListener {
         const [filePath, change] = firstEntry;
 
         try {
+          console.log(
+            "[DG FileListener] processQueue: syncing file:",
+            filePath,
+            "changeTypes:",
+            Array.from(change.changeTypes),
+          );
           const changeTypesByPath = new Map<string, ChangeType[]>();
           changeTypesByPath.set(filePath, Array.from(change.changeTypes));
 
@@ -255,6 +309,7 @@ export class FileChangeListener {
           // Only remove from queue after successful processing
           this.changeQueue.delete(filePath);
           processedFiles.push(filePath);
+          console.log("[DG FileListener] processQueue: success for:", filePath);
         } catch (error) {
           console.error(
             `Error processing file ${filePath}, will retry later:`,
@@ -267,6 +322,12 @@ export class FileChangeListener {
         }
       }
 
+      console.log(
+        "[DG FileListener] processQueue: done. processed:",
+        processedFiles.length,
+        "failed:",
+        failedFiles,
+      );
       if (this.hasPendingOrphanCleanup) {
         await cleanupOrphanedNodes(this.plugin);
         this.hasPendingOrphanCleanup = false;
