@@ -181,8 +181,8 @@ export const PageGroupSchema = z.object({
 });
 
 export const SuggestiveModeGlobalSettingsSchema = z.object({
-  "Include current page relations": z.boolean().default(false),
-  "Include parent and child blocks": z.boolean().default(false),
+  "Include current page relations": z.boolean().default(true),
+  "Include parent and child blocks": z.boolean().default(true),
   "Page groups": z.array(PageGroupSchema).default([]),
 });
 
@@ -237,7 +237,7 @@ export const StoredFiltersSchema = z.object({
 export const QuerySettingsSchema = z.object({
   "Hide query metadata": z.boolean().default(true),
   "Default page size": z.number().default(10),
-  "Query pages": z.array(z.string()).default(["discourse-graph/queries/*"]),
+  "Query pages": z.array(z.string()).default([]),
   "Default filters": z.record(z.string(), StoredFiltersSchema).default({}),
 });
 

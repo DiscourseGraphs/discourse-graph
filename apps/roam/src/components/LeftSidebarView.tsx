@@ -127,6 +127,7 @@ const toggleFoldedState = async ({
   sectionIndex?: number;
 }) => {
   const newFolded = !isOpen;
+  setIsOpen(newFolded);
 
   if (isOpen) {
     const children = getBasicTreeByParentUid(parentUid);
@@ -171,8 +172,6 @@ const toggleFoldedState = async ({
       setPersonalSetting([PERSONAL_KEYS.leftSidebar], sections);
     }
   }
-
-  setIsOpen(newFolded);
 };
 
 const SectionChildren = ({
@@ -230,17 +229,23 @@ const PersonalSectionItem = ({
   const [isOpen, setIsOpen] = useState<boolean>(
     !!section.settings?.folded.value || false,
   );
+  const isTogglingRef = useRef(false);
 
-  const handleChevronClick = () => {
+  const handleChevronClick = async () => {
     if (!section.settings) return;
-
-    void toggleFoldedState({
-      isOpen,
-      setIsOpen,
-      folded: section.settings.folded,
-      parentUid: section.settings.uid || "",
-      sectionIndex,
-    });
+    if (isTogglingRef.current) return;
+    isTogglingRef.current = true;
+    try {
+      await toggleFoldedState({
+        isOpen,
+        setIsOpen,
+        folded: section.settings.folded,
+        parentUid: section.settings.uid || "",
+        sectionIndex,
+      });
+    } finally {
+      isTogglingRef.current = false;
+    }
   };
 
   return (
@@ -251,7 +256,7 @@ const PersonalSectionItem = ({
             className="flex items-center"
             onClick={() => {
               if ((section.children?.length || 0) > 0) {
-                handleChevronClick();
+                void handleChevronClick();
               }
             }}
           >
@@ -260,7 +265,7 @@ const PersonalSectionItem = ({
           {(section.children?.length || 0) > 0 && (
             <span
               className="sidebar-title-button-chevron p-1"
-              onClick={handleChevronClick}
+              onClick={() => void handleChevronClick()}
             >
               <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
             </span>
@@ -297,23 +302,32 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
   const [isOpen, setIsOpen] = useState<boolean>(
     !!config.settings?.folded.value,
   );
+  const isTogglingRef = useRef(false);
   if (!config.children?.length) return null;
   const isCollapsable = config.settings?.collapsable.value;
+
+  const handleToggle = async () => {
+    if (!isCollapsable || !config.settings) return;
+    if (isTogglingRef.current) return;
+    isTogglingRef.current = true;
+    try {
+      await toggleFoldedState({
+        isOpen,
+        setIsOpen,
+        folded: config.settings.folded,
+        parentUid: config.settings.uid,
+        isGlobal: true,
+      });
+    } finally {
+      isTogglingRef.current = false;
+    }
+  };
 
   return (
     <>
       <div
         className="sidebar-title-button flex w-full items-center border-none bg-transparent py-1 pl-6 pr-2.5 font-semibold outline-none"
-        onClick={() => {
-          if (!isCollapsable || !config.settings) return;
-          void toggleFoldedState({
-            isOpen,
-            setIsOpen,
-            folded: config.settings.folded,
-            parentUid: config.settings.uid,
-            isGlobal: true,
-          });
-        }}
+        onClick={() => void handleToggle()}
       >
         <div className="flex w-full items-center justify-between">
           <span>GLOBAL</span>
