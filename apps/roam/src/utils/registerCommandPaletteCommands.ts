@@ -166,19 +166,48 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     renderSettings({ onloadArgs });
   };
 
-  const getSelectionStartForBlock = (uid: string): number => {
+  type BlockSelection = {
+    selectionStart: number;
+    selectionEnd: number;
+    selectedText: string;
+  };
+
+  const getBlockSelection = (uid: string): BlockSelection => {
     const activeElement = document.activeElement;
     const isFocusedTextarea =
       activeElement instanceof HTMLTextAreaElement &&
       activeElement.classList.contains("rm-block-input") &&
       getUids(activeElement).blockUid === uid;
-    if (isFocusedTextarea) return activeElement.selectionStart;
+    if (isFocusedTextarea) {
+      return {
+        selectionStart: activeElement.selectionStart,
+        selectionEnd: activeElement.selectionEnd,
+        selectedText: activeElement.value.substring(
+          activeElement.selectionStart,
+          activeElement.selectionEnd,
+        ),
+      };
+    }
     const textareas = document.querySelectorAll("textarea.rm-block-input");
     for (const el of textareas) {
       const textarea = el as HTMLTextAreaElement;
-      if (getUids(textarea).blockUid === uid) return textarea.selectionStart;
+      if (getUids(textarea).blockUid === uid) {
+        return {
+          selectionStart: textarea.selectionStart,
+          selectionEnd: textarea.selectionEnd,
+          selectedText: textarea.value.substring(
+            textarea.selectionStart,
+            textarea.selectionEnd,
+          ),
+        };
+      }
     }
-    return (getTextByBlockUid(uid) || "").length;
+    const textLength = (getTextByBlockUid(uid) || "").length;
+    return {
+      selectionStart: textLength,
+      selectionEnd: textLength,
+      selectedText: "",
+    };
   };
 
   const createDiscourseNodeFromCommand = () => {
@@ -187,12 +216,14 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     const uid = focusedBlock?.["block-uid"];
     const windowId = focusedBlock?.["window-id"] || "main-window";
 
-    const selectionStart = uid ? getSelectionStartForBlock(uid) : 0;
+    const { selectionStart, selectionEnd, selectedText } = uid
+      ? getBlockSelection(uid)
+      : { selectionStart: 0, selectionEnd: 0, selectedText: "" };
 
     renderModifyNodeDialog({
       mode: "create",
       nodeType: "",
-      initialValue: { text: "", uid: "" },
+      initialValue: { text: selectedText, uid: "" },
       extensionAPI,
       onSuccess: async (result) => {
         if (!uid) {
@@ -204,7 +235,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
         }
         const originalText = getTextByBlockUid(uid) || "";
         const pageRef = `[[${result.text}]]`;
-        const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionStart)}`;
+        const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionEnd)}`;
         const newCursorPosition = selectionStart + pageRef.length;
 
         await updateBlock({ uid, text: newText });
