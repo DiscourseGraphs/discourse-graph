@@ -406,9 +406,10 @@ const ModifyNodeDialog = ({
             },
           );
         } else {
+          if (!selectedNodeType) return;
           formattedTitle = await getNewDiscourseNodeText({
             text: content.text.trim(),
-            nodeType: selectedNodeType!.type,
+            nodeType: selectedNodeType.type,
             blockUid: sourceBlockUid,
           });
         }
@@ -419,7 +420,7 @@ const ModifyNodeDialog = ({
         // Create new discourse node
         const newPageUid = await createDiscourseNode({
           text: formattedTitle,
-          configPageUid: selectedNodeType!.type,
+          configPageUid: selectedNodeType?.type ?? "",
           extensionAPI,
           imageUrl,
         });
