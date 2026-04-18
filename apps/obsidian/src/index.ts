@@ -233,15 +233,22 @@ export default class DiscourseGraphPlugin extends Plugin {
       }),
     );
 
-    // Refresh wikilink drag handles when canvas visibility changes:
-    // layout-change covers splits/moves, active-leaf-change covers tab switches
+    type EditorWithCm = { cm: EditorView };
+    const hasCodeMirrorView = (editor: unknown): editor is EditorWithCm => {
+      if (!editor || typeof editor !== "object") return false;
+      return "cm" in editor;
+    };
+
     // Dispatch a no-op CM6 transaction to every markdown editor so their
     // ViewPlugin re-evaluates hasVisibleCanvasLeaf and shows/hides widgets.
+    // layout-change covers splits/moves, active-leaf-change covers tab switches.
     const refreshMarkdownEditors = (): void => {
       this.app.workspace.iterateAllLeaves((leaf) => {
-        if (leaf.view instanceof MarkdownView) {
-          const cm = (leaf.view.editor as unknown as { cm: EditorView }).cm;
-          cm?.dispatch({});
+        if (
+          leaf.view instanceof MarkdownView &&
+          hasCodeMirrorView(leaf.view.editor)
+        ) {
+          leaf.view.editor.cm.dispatch({});
         }
       });
     };
