@@ -37,6 +37,7 @@ import {
   migrateFrontmatterRelationsToRelationsJson,
   mergeAllRelationsJsonToRoot,
 } from "~/utils/relationsStore";
+import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -55,6 +56,10 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     await migrateFrontmatterRelationsToRelationsJson(this).catch((error) => {
       console.error("Failed to migrate frontmatter relations:", error);
+    });
+
+    await migrateImportFolderMetadata(this).catch((error) => {
+      console.error("Failed to migrate import folder metadata:", error);
     });
 
     if (this.settings.syncModeEnabled === true) {

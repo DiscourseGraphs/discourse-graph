@@ -82,20 +82,6 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         getSpaceUris(client, uniqueSpaceIds),
       ]);
 
-      // Populate plugin settings with current space names so they stay up to date
-      if (uniqueSpaceIds.length > 0) {
-        if (!plugin.settings.spaceNames) plugin.settings.spaceNames = {};
-
-        for (const spaceId of uniqueSpaceIds) {
-          const spaceUri = spaceUris.get(spaceId);
-          const spaceName = spaceNames.get(spaceId);
-          if (spaceUri && spaceName) {
-            plugin.settings.spaceNames[spaceUri] = spaceName;
-          }
-        }
-        await plugin.saveSettings();
-      }
-
       const grouped: Map<string, GroupWithNodes> = new Map();
 
       for (const node of importableNodes) {

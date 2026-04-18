@@ -100,4 +100,10 @@ export type GroupWithNodes = {
   nodes: ImportableNode[];
 };
 
+export type ImportFolderMetadata = {
+  spaceUri: string;
+  spaceName: string;
+  userName?: string;
+};
+
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";
