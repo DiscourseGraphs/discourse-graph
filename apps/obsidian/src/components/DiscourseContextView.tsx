@@ -159,8 +159,10 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
             {nodeType.name || "Unnamed Node Type"}
             <button
               ref={(el) => {
-                if (el)
-                  setTooltip(el, `Create Base view for ${nodeType.name} nodes`);
+                if (el) {
+                  const name = nodeType.name || "Unnamed Node Type";
+                  setTooltip(el, `Create Base view for ${name} nodes`);
+                }
               }}
               onClick={() => {
                 void createBaseForNodeType(plugin, nodeType);
