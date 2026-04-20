@@ -1,9 +1,6 @@
 import type { FrontMatterCache, TFile } from "obsidian";
-import { Notice } from "obsidian";
 import type { default as DiscourseGraphPlugin } from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
-import { addFile } from "@repo/database/lib/files";
-import mime from "mime-types";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
   getRelationsForNodeInstanceId,
@@ -15,7 +12,10 @@ import {
 } from "./relationsStore";
 import type { RelationInstance } from "~/types";
 import { getAvailableGroupIds } from "./importNodes";
-import { syncAllNodesAndRelations } from "./syncDgNodesToSupabase";
+import {
+  syncAllNodesAndRelations,
+  syncPublishedNodeAssets,
+} from "./syncDgNodesToSupabase";
 import type { DiscourseNodeInVault } from "./getDiscourseNodes";
 import type { SupabaseContext } from "./supabaseContext";
 import type { TablesInsert } from "@repo/database/dbTypes";
@@ -262,6 +262,8 @@ export const publishNode = async ({
   if (myGroups.size === 0) throw new Error("Cannot get group");
   const existingPublish =
     (frontmatter.publishedToGroups as undefined | string[]) || [];
+  // Hopefully temporary workaround for sync bug
+  await syncAllNodesAndRelations(plugin);
   const commonGroups = existingPublish.filter((g) => myGroups.has(g));
   // temporary single-group assumption
   const myGroup = (commonGroups.length > 0 ? commonGroups : [...myGroups])[0]!;
@@ -506,65 +508,14 @@ export const publishNodeToGroup = async ({
       });
     }
   }
-
-  // Always sync non-text assets when node is published to this group
-  const existingFiles: string[] = [];
-  const existingReferencesReq = await client
-    .from("my_file_references")
-    .select("*")
-    .eq("space_id", spaceId)
-    .eq("source_local_id", nodeId);
-  if (existingReferencesReq.error) {
-    console.error(existingReferencesReq.error);
-    return;
-  }
-  const existingReferencesByPath = Object.fromEntries(
-    existingReferencesReq.data.map((ref) => [ref.filepath, ref]),
-  );
-
-  for (const attachment of attachments) {
-    const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
-    if (mimetype.startsWith("text/")) continue;
-    // Do not use standard upload for large files
-    if (attachment.stat.size >= 6 * 1024 * 1024) {
-      new Notice(
-        `Asset file ${attachment.path} is larger than 6Mb and will not be uploaded`,
-      );
-      continue;
-    }
-    existingFiles.push(attachment.path);
-    const existingRef = existingReferencesByPath[attachment.path];
-    if (
-      !existingRef ||
-      new Date(existingRef.last_modified + "Z").valueOf() <
-        attachment.stat.mtime
-    ) {
-      const content = await plugin.app.vault.readBinary(attachment);
-      await addFile({
-        client,
-        spaceId,
-        sourceLocalId: nodeId,
-        fname: attachment.path,
-        mimetype,
-        created: new Date(attachment.stat.ctime),
-        lastModified: new Date(attachment.stat.mtime),
-        content,
-      });
-    }
-  }
-  let cleanupCommand = client
-    .from("FileReference")
-    .delete()
-    .eq("space_id", spaceId)
-    .eq("source_local_id", nodeId);
-  if (existingFiles.length)
-    cleanupCommand = cleanupCommand.notIn("filepath", [
-      ...new Set(existingFiles),
-    ]);
-  const cleanupResult = await cleanupCommand;
-  // do not fail on cleanup
-  if (cleanupResult.error) console.error(cleanupResult.error);
-
+  await syncPublishedNodeAssets({
+    plugin,
+    client,
+    nodeId,
+    spaceId,
+    file,
+    attachments,
+  });
   if (!existingPublish.includes(myGroup))
     await plugin.app.fileManager.processFrontMatter(
       file,
