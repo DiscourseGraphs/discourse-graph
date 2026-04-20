@@ -89,6 +89,8 @@ export const discourseRelationTypeToLocalConcept = ({
     created,
     modified,
     importedFromRid,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    status, //destructuring status to not upload it to the database
     ...otherData
   } = relationType;
   // eslint-disable-next-line @typescript-eslint/naming-convention
