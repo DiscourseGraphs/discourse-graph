@@ -39,6 +39,7 @@ import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { memo, Dispatch, SetStateAction } from "react";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import posthog from "posthog-js";
+import { commands } from "~/components/LeftSidebarCommands";
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const sectionsToBlockProps = (
@@ -693,6 +694,10 @@ const LeftSidebarPersonalSectionsContent = ({
   }, [sections, settingsDialogSectionUid]);
 
   const pageNames = useMemo(() => getAllPageNames(), []);
+  const pageAndCommandNames = useMemo(
+    () => [...pageNames, ...Object.keys(commands)],
+    [pageNames],
+  );
 
   if (!personalSectionUid) {
     return null;
@@ -735,7 +740,7 @@ const LeftSidebarPersonalSectionsContent = ({
             <SectionItem
               section={section}
               setSettingsDialogSectionUid={setSettingsDialogSectionUid}
-              pageNames={pageNames}
+              pageNames={pageAndCommandNames}
               setSections={setSections}
               sectionsRef={sectionsRef}
               index={index}

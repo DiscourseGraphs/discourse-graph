@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import ReactDOM from "react-dom";
 import {
+  Button,
   Collapse,
   Icon,
   Popover,
@@ -43,10 +44,13 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
+import { commands } from "~/components/LeftSidebarCommands";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
-  if (text.startsWith("((") && text.endsWith("))")) {
+  if (commands[text]) {
+    return { type: "command" as const, uid: text, display: text };
+  } else if (text.startsWith("((") && text.endsWith("))")) {
     return { type: "block" as const, uid: extracted, display: text };
   } else {
     return { type: "page" as const, display: text };
@@ -58,7 +62,11 @@ const truncate = (s: string, max: number | undefined): string => {
   return s.length > max ? `${s.slice(0, max)}...` : s;
 };
 
-const openTarget = async (e: React.MouseEvent, targetUid: string) => {
+const openTarget = async (
+  e: React.MouseEvent,
+  targetUid: string,
+  onloadArgs: OnloadArgs,
+) => {
   e.preventDefault();
   e.stopPropagation();
   const target = parseReference(targetUid);
@@ -66,6 +74,10 @@ const openTarget = async (e: React.MouseEvent, targetUid: string) => {
     targetType: target.type,
     openInSidebar: e.shiftKey,
   });
+  if (target.type === "command") {
+    await commands[target.uid](onloadArgs);
+    return;
+  }
   if (target.type === "block") {
     if (e.shiftKey) {
       await openBlockInSidebar(target.uid);
@@ -123,9 +135,11 @@ const toggleFoldedState = ({
 const SectionChildren = ({
   childrenNodes,
   truncateAt,
+  onloadArgs,
 }: {
   childrenNodes: { uid: string; text: string; alias?: { value: string } }[];
   truncateAt?: number;
+  onloadArgs: OnloadArgs;
 }) => {
   if (!childrenNodes?.length) return null;
   return (
@@ -134,23 +148,31 @@ const SectionChildren = ({
         const ref = parseReference(child.text);
         const alias = child.alias?.value;
         const display =
-          ref.type === "page"
-            ? getPageTitleByPageUid(ref.display)
-            : getTextByBlockUid(ref.uid);
+          ref.type === "command"
+            ? ref.display
+            : ref.type === "page"
+              ? getPageTitleByPageUid(ref.display)
+              : getTextByBlockUid(ref.uid);
         const label = alias || truncate(display, truncateAt);
         const onClick = (e: React.MouseEvent) => {
-          return void openTarget(e, child.text);
+          return void openTarget(e, child.text, onloadArgs);
         };
         return (
           <div key={child.uid} className="pl-8 pr-2.5">
-            <div
-              className={
-                "section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
-              }
-              onClick={onClick}
-            >
-              {label}
-            </div>
+            {ref.type === "command" ? (
+              <Button onClick={onClick} minimal>
+                {label}
+              </Button>
+            ) : (
+              <div
+                className={
+                  "section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
+                }
+                onClick={onClick}
+              >
+                {label}
+              </div>
+            )}
           </div>
         );
       })}
@@ -160,8 +182,10 @@ const SectionChildren = ({
 
 const PersonalSectionItem = ({
   section,
+  onloadArgs,
 }: {
   section: LeftSidebarPersonalSectionConfig;
+  onloadArgs: OnloadArgs;
 }) => {
   const titleRef = parseReference(section.text);
   const blockText = useMemo(
@@ -213,13 +237,20 @@ const PersonalSectionItem = ({
         <SectionChildren
           childrenNodes={section.children || []}
           truncateAt={truncateAt}
+          onloadArgs={onloadArgs}
         />
       </Collapse>
     </>
   );
 };
 
-const PersonalSections = ({ config }: { config: LeftSidebarConfig }) => {
+const PersonalSections = ({
+  config,
+  onloadArgs,
+}: {
+  config: LeftSidebarConfig;
+  onloadArgs: OnloadArgs;
+}) => {
   const sections = config.personal.sections || [];
 
   if (!sections.length) return null;
@@ -228,14 +259,20 @@ const PersonalSections = ({ config }: { config: LeftSidebarConfig }) => {
     <div className="personal-left-sidebar-sections">
       {sections.map((section) => (
         <div key={section.uid}>
-          <PersonalSectionItem section={section} />
+          <PersonalSectionItem section={section} onloadArgs={onloadArgs} />
         </div>
       ))}
     </div>
   );
 };
 
-const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
+const GlobalSection = ({
+  config,
+  onloadArgs,
+}: {
+  config: LeftSidebarConfig["global"];
+  onloadArgs: OnloadArgs;
+}) => {
   const [isOpen, setIsOpen] = useState<boolean>(
     !!config.settings?.folded.value,
   );
@@ -267,10 +304,16 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
       </div>
       {isCollapsable ? (
         <Collapse isOpen={isOpen}>
-          <SectionChildren childrenNodes={config.children} />
+          <SectionChildren
+            childrenNodes={config.children}
+            onloadArgs={onloadArgs}
+          />
         </Collapse>
       ) : (
-        <SectionChildren childrenNodes={config.children} />
+        <SectionChildren
+          childrenNodes={config.children}
+          onloadArgs={onloadArgs}
+        />
       )}
     </>
   );
@@ -413,8 +456,8 @@ const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   return (
     <>
       <FavoritesPopover onloadArgs={onloadArgs} />
-      <GlobalSection config={config.global} />
-      <PersonalSections config={config} />
+      <GlobalSection config={config.global} onloadArgs={onloadArgs} />
+      <PersonalSections config={config} onloadArgs={onloadArgs} />
     </>
   );
 };
@@ -444,7 +487,7 @@ const migrateFavorites = async () => {
   }
 
   const results = window.roamAlphaAPI.q(`
-    [:find ?uid 
+    [:find ?uid
      :where [?e :page/sidebar]
             [?e :block/uid ?uid]]
   `);
