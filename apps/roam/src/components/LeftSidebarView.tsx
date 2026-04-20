@@ -178,11 +178,11 @@ const PersonalSectionItem = ({
 }: {
   section: LeftSidebarPersonalSectionConfig;
   dragHandle: SortableHandle;
-  onChildrenReorder: (
-    sectionUid: string,
-    oldIndex: number,
-    newIndex: number,
-  ) => void;
+  onChildrenReorder: (args: {
+    sectionUid: string;
+    oldIndex: number;
+    newIndex: number;
+  }) => void;
 }) => {
   const titleRef = parseReference(section.text);
   const blockText = useMemo(
@@ -239,7 +239,7 @@ const PersonalSectionItem = ({
           items={section.children || []}
           getId={(c) => c.uid}
           onReorder={(oldIndex, newIndex) =>
-            onChildrenReorder(section.uid, oldIndex, newIndex)
+            onChildrenReorder({ sectionUid: section.uid, oldIndex, newIndex })
           }
           renderItem={(child, handle) => (
             <div {...handle.attributes} {...handle.listeners}>
@@ -281,11 +281,15 @@ const PersonalSections = ({
     });
   };
 
-  const reorderChildren = (
-    sectionUid: string,
-    oldIndex: number,
-    newIndex: number,
-  ) => {
+  const reorderChildren = ({
+    sectionUid,
+    oldIndex,
+    newIndex,
+  }: {
+    sectionUid: string;
+    oldIndex: number;
+    newIndex: number;
+  }) => {
     const section = sections.find((s) => s.uid === sectionUid);
     const children = section?.children;
     if (!section || !children || !section.childrenUid) return;

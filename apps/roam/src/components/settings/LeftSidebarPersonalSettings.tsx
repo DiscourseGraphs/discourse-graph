@@ -282,11 +282,15 @@ const SectionItem = memo(
     );
 
     const reorderChildren = useCallback(
-      (
-        section: LeftSidebarPersonalSectionConfig,
-        oldIndex: number,
-        newIndex: number,
-      ) => {
+      ({
+        section,
+        oldIndex,
+        newIndex,
+      }: {
+        section: LeftSidebarPersonalSectionConfig;
+        oldIndex: number;
+        newIndex: number;
+      }) => {
         const children = section.children;
         if (!children || !section.childrenUid) return;
         const moved = children[oldIndex];
@@ -406,7 +410,7 @@ const SectionItem = memo(
                   items={section.children || []}
                   getId={(c) => c.uid}
                   onReorder={(oldIndex, newIndex) =>
-                    reorderChildren(section, oldIndex, newIndex)
+                    reorderChildren({ section, oldIndex, newIndex })
                   }
                   className="space-y-1"
                   renderItem={(child, handle) => {
