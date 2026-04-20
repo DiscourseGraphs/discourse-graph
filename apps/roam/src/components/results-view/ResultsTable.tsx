@@ -619,6 +619,7 @@ const ResultsTable = ({
     });
     setColumnWidths(finalWidths);
 
+    if (preventSavingSettings) return;
     const layoutUid = getSubTree({ parentUid, key: "layout" }).uid;
     if (layoutUid) {
       setInputSettings({
@@ -627,7 +628,7 @@ const ResultsTable = ({
         values: Object.entries(finalWidths).map(([k, v]) => `${k} - ${v}`),
       });
     }
-  }, [parentUid, columnWidths, visibleColumns]);
+  }, [parentUid, columnWidths, visibleColumns, preventSavingSettings]);
 
   const resultHeaderSetFilters = React.useCallback(
     (fs: FilterData) => {
