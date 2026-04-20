@@ -285,8 +285,9 @@ const LeftSidebarGlobalSectionsContent = ({
 
   const isAddButtonDisabled = useMemo(() => {
     if (!newPageInput) return true;
-    if (commands[newPageInput]) return false;
-    const targetUid = getPageUidByPageTitle(newPageInput);
+    const targetUid = commands[newPageInput]
+      ? newPageInput
+      : getPageUidByPageTitle(newPageInput);
     return !targetUid || pages.some((p) => p.text === targetUid);
   }, [newPageInput, pages]);
 
