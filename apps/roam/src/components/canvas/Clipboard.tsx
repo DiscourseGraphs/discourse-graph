@@ -14,7 +14,10 @@ import {
   Collapse,
   Dialog,
   Icon,
+  InputGroup,
   Intent,
+  Menu,
+  MenuItem,
   NonIdealState,
   Popover,
   Position,
@@ -43,7 +46,6 @@ import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import { Result } from "roamjs-components/types/query-builder";
 import fuzzy from "fuzzy";
 import getAllReferencesOnPage from "~/utils/getAllReferencesOnPage";
-import isDiscourseNode from "~/utils/isDiscourseNode";
 import {
   DiscourseNodeShape,
   DEFAULT_STYLE_PROPS,
@@ -53,9 +55,11 @@ import { openBlockInSidebar, createBlock } from "roamjs-components/writes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import findDiscourseNode from "~/utils/findDiscourseNode";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { MAX_WIDTH } from "./Tldraw";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
@@ -389,6 +393,7 @@ const AddPageModal = ({ isOpen, onClose, onConfirm }: AddPageModalProps) => {
 type NodeGroup = {
   uid: string;
   text: string;
+  type: string;
   shapes: DiscourseNodeShape[];
   isDuplicate: boolean;
 };
@@ -422,14 +427,20 @@ const ClipboardPageSection = ({
   page,
   onRemove,
   showNodesOnCanvas,
+  searchQuery,
+  selectedNodeType,
+  onNodeTypesChange,
 }: {
   page: ClipboardPage;
   onRemove: (uid: string) => void;
   showNodesOnCanvas: boolean;
+  searchQuery: string;
+  selectedNodeType: string;
+  onNodeTypesChange: (pageUid: string, types: string[]) => void;
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [discourseNodes, setDiscourseNodes] = useState<
-    Array<{ uid: string; text: string }>
+    Array<{ uid: string; text: string; type: string }>
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -453,9 +464,17 @@ const ClipboardPageSection = ({
       setIsLoading(true);
       try {
         const referencedPages = await getAllReferencesOnPage(page.text);
-        const nodes = referencedPages.filter((refPage) =>
-          isDiscourseNode(refPage.uid),
-        );
+        const nodes = referencedPages.flatMap((refPage) => {
+          const discourseNode = findDiscourseNode({ uid: refPage.uid });
+          if (!discourseNode || discourseNode.backedBy === "default") return [];
+          return [
+            {
+              uid: refPage.uid,
+              text: refPage.text,
+              type: discourseNode.text,
+            },
+          ];
+        });
         setDiscourseNodes(nodes);
       } catch (error) {
         internalError({
@@ -537,22 +556,47 @@ const ClipboardPageSection = ({
       return {
         uid: node.uid,
         text: node.text,
+        type: node.type,
         shapes,
         isDuplicate: shapes.length > 1,
       };
     });
 
-    return groups.sort((a, b) => a.text.localeCompare(b.text));
+    return groups;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [discourseNodes, shapesByUid]);
 
   const visibleGroupedNodes = useMemo(
     () =>
-      groupedNodes.filter((group) =>
-        showNodesOnCanvas ? true : group.shapes.length === 0,
-      ),
-    [groupedNodes, showNodesOnCanvas],
+      groupedNodes
+        .filter((group) =>
+          showNodesOnCanvas ? true : group.shapes.length === 0,
+        )
+        .filter((group) =>
+          searchQuery
+            ? group.text.toLowerCase().includes(searchQuery.toLowerCase())
+            : true,
+        )
+        .filter((group) =>
+          selectedNodeType && selectedNodeType !== "All"
+            ? group.type === selectedNodeType
+            : true,
+        )
+        .sort((a, b) => a.text.localeCompare(b.text)),
+    [groupedNodes, showNodesOnCanvas, searchQuery, selectedNodeType],
   );
+
+  // Publish this page's distinct node types up to ClipboardPanel so it can
+  // build a unified filter dropdown across all open pages. When
+  // `showNodesOnCanvas` is off, only consider nodes not yet on the canvas so
+  // the filter options match what the user can actually act on.
+  useEffect(() => {
+    const candidateNodes = showNodesOnCanvas
+      ? groupedNodes
+      : groupedNodes.filter((n) => n.shapes.length === 0);
+    const types = [...new Set(candidateNodes.map((n) => n.type))];
+    onNodeTypesChange(page.uid, types);
+  }, [groupedNodes, page.uid, onNodeTypesChange, showNodesOnCanvas]);
 
   useEffect(() => {
     setOpenSections((prev) => {
@@ -948,8 +992,13 @@ const ClipboardPageSection = ({
             </div>
           ) : visibleGroupedNodes.length === 0 ? (
             <div className="rounded border border-dashed border-gray-200 p-2">
-              All nodes from this page are already on canvas. Turn on &quot;Show
-              nodes on canvas&quot; to view them.
+              {searchQuery || selectedNodeType !== "All"
+                ? showNodesOnCanvas
+                  ? "No nodes match the current filters."
+                  : 'No nodes match the current filters, or matching nodes are already on canvas. Turn on "Show nodes on canvas" to view them.'
+                : showNodesOnCanvas
+                  ? "All nodes from this page are already on canvas."
+                  : 'All nodes from this page are already on canvas. Turn on "Show nodes on canvas" to view them.'}
             </div>
           ) : (
             <div className="space-y-1">
@@ -1090,6 +1139,51 @@ export const ClipboardPanel = () => {
   } = useClipboard();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedNodeType, setSelectedNodeType] = useState("All");
+  const [nodeTypesByPage, setNodeTypesByPage] = useState<
+    Record<string, string[]>
+  >({});
+
+  const handleNodeTypesChange = useCallback(
+    (pageUid: string, types: string[]) => {
+      setNodeTypesByPage((prev) => ({ ...prev, [pageUid]: types }));
+    },
+    [],
+  );
+
+  const availableNodeTypes = useMemo(() => {
+    const pageUids = new Set(pages.map((p) => p.uid));
+    const allTypes = new Set(
+      Object.entries(nodeTypesByPage)
+        .filter(([uid]) => pageUids.has(uid))
+        .flatMap(([, types]) => types),
+    );
+    return ["All", ...Array.from(allTypes).sort()];
+  }, [nodeTypesByPage, pages]);
+
+  const nodeTypeColorMap = useMemo(() => {
+    return Object.fromEntries(
+      getDiscourseNodes().map((n) => [
+        n.text,
+        formatHexColor(n.canvasSettings?.color) || "#000000",
+      ]),
+    );
+  }, []);
+
+  // Reset the filter to "All" when the currently selected type disappears
+  // from `availableNodeTypes` (e.g. the page containing it was removed),
+  // otherwise the dropdown would keep a stale value that filters everything out.
+  useEffect(() => {
+    if (
+      selectedNodeType !== "All" &&
+      !availableNodeTypes.includes(selectedNodeType)
+    ) {
+      setSelectedNodeType("All");
+    }
+  }, [availableNodeTypes, selectedNodeType]);
+
+  const hasActiveFilters = !!searchQuery || selectedNodeType !== "All";
 
   if (!isOpen) return null;
 
@@ -1138,9 +1232,78 @@ export const ClipboardPanel = () => {
       {!isCollapsed && (
         <>
           <div
-            className="flex items-center justify-end px-2 py-1"
+            className="flex items-center gap-1 px-2 py-1"
             style={{ borderTop: "1px solid hsl(0, 0%, 91%)" }}
           >
+            <InputGroup
+              small
+              leftIcon="search"
+              placeholder="Find page"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1"
+              rightElement={
+                searchQuery ? (
+                  <Button
+                    minimal
+                    small
+                    icon="cross"
+                    onClick={() => setSearchQuery("")}
+                  />
+                ) : undefined
+              }
+            />
+            <Popover
+              position={Position.BOTTOM}
+              content={
+                <div
+                  onPointerDown={(e) => e.stopPropagation()}
+                  style={{ pointerEvents: "all" }}
+                >
+                  <Menu>
+                    {availableNodeTypes.map((type) => (
+                      <MenuItem
+                        key={type}
+                        active={selectedNodeType === type}
+                        onClick={() => setSelectedNodeType(type)}
+                        text={
+                          <span className="flex items-center gap-2">
+                            {type !== "All" && (
+                              <span
+                                className="inline-block h-3 w-3 shrink-0 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    nodeTypeColorMap[type] || "#000000",
+                                }}
+                              />
+                            )}
+                            {type}
+                          </span>
+                        }
+                      />
+                    ))}
+                  </Menu>
+                </div>
+              }
+            >
+              <Button
+                minimal
+                small
+                rightIcon="caret-down"
+                text={selectedNodeType}
+              />
+            </Popover>
+            <Button
+              minimal
+              small
+              icon="filter-remove"
+              disabled={!hasActiveFilters}
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedNodeType("All");
+              }}
+              title="Clear filters"
+            />
             <Popover
               position={Position.BOTTOM_RIGHT}
               content={
@@ -1163,7 +1326,7 @@ export const ClipboardPanel = () => {
                 </div>
               }
             >
-              <Button minimal small icon="menu" title="Clipboard options" />
+              <Button minimal small icon="settings" title="Clipboard options" />
             </Popover>
           </div>
           <div className="max-h-96 overflow-y-auto px-4 pb-4">
@@ -1187,6 +1350,9 @@ export const ClipboardPanel = () => {
                     page={page}
                     onRemove={removePage}
                     showNodesOnCanvas={showNodesOnCanvas}
+                    searchQuery={searchQuery}
+                    selectedNodeType={selectedNodeType}
+                    onNodeTypesChange={handleNodeTypesChange}
                   />
                 ))}
               </div>
