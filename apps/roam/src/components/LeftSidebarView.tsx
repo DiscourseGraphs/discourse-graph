@@ -43,7 +43,8 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
-import { isSmartBlockUid } from "~/utils/getLeftSidebarSettings";
+import { isSmartBlockUid } from "~/utils/isSmartBlockUid";
+import { RenderRoamBlock } from "~/utils/roamReactComponents";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -122,10 +123,6 @@ const toggleFoldedState = ({
 };
 
 const RoamRenderedBlock = ({ uid }: { uid: string }) => {
-  // @ts-expect-error - .react.block is available but not in the type definitions yet
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-  const Block = window.roamAlphaAPI.ui.components.react.block;
-
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -140,7 +137,7 @@ const RoamRenderedBlock = ({ uid }: { uid: string }) => {
 
   return (
     <div className="dg-sidebar-rendered-block" onClick={handleClick}>
-      <Block uid={uid} open={false} />
+      <RenderRoamBlock uid={uid} open={false} />
     </div>
   );
 };
