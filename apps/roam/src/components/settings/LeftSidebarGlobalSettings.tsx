@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
 import { Button, ButtonGroup, Collapse } from "@blueprintjs/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import { GlobalFlagPanel } from "~/components/settings/components/BlockPropSettingPanels";
 import { setGlobalSetting } from "~/components/settings/utils/accessors";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
@@ -16,6 +17,8 @@ import { LeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
+import { SortableList, type SortableHandle } from "~/components/SortableList";
+import { moveRoamBlockToIndex } from "~/utils/moveRoamBlock";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import posthog from "posthog-js";
@@ -25,17 +28,11 @@ const pagesToUids = (pages: RoamBasicNode[]) => pages.map((p) => p.text);
 const PageItem = memo(
   ({
     page,
-    index,
-    isFirst,
-    isLast,
-    onMove,
+    dragHandle,
     onRemove,
   }: {
     page: RoamBasicNode;
-    index: number;
-    isFirst: boolean;
-    isLast: boolean;
-    onMove: (index: number, direction: "up" | "down") => void;
+    dragHandle: SortableHandle;
     onRemove: (page: RoamBasicNode) => void;
   }) => {
     const pageDisplayTitle =
@@ -44,25 +41,13 @@ const PageItem = memo(
       page.text;
 
     return (
-      <div className="group flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100">
+      <div
+        {...dragHandle.attributes}
+        {...dragHandle.listeners}
+        className="group flex cursor-grab items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100 active:cursor-grabbing"
+      >
         <div className="mr-2 min-w-0 flex-1 truncate">{pageDisplayTitle}</div>
         <ButtonGroup minimal className="flex-shrink-0">
-          <Button
-            icon="arrow-up"
-            small
-            disabled={isFirst}
-            onClick={() => onMove(index, "up")}
-            title="Move up"
-            className="opacity-0 transition-opacity group-hover:opacity-100"
-          />
-          <Button
-            icon="arrow-down"
-            small
-            disabled={isLast}
-            onClick={() => onMove(index, "down")}
-            title="Move down"
-            className="opacity-0 transition-opacity group-hover:opacity-100"
-          />
           <Button
             icon="trash"
             small
@@ -152,32 +137,23 @@ const LeftSidebarGlobalSectionsContent = ({
     void initialize();
   }, [leftSidebar]);
 
-  const movePage = useCallback(
-    (index: number, direction: "up" | "down") => {
-      if (direction === "up" && index === 0) return;
-      if (direction === "down" && index === pages.length - 1) return;
+  const reorderPages = useCallback(
+    (oldIndex: number, newIndex: number) => {
+      const moved = pages[oldIndex];
+      if (!moved || !childrenUid) return;
 
-      const newPages = [...pages];
-      const [removed] = newPages.splice(index, 1);
-      const newIndex = direction === "up" ? index - 1 : index + 1;
-      newPages.splice(newIndex, 0, removed);
-
+      const newPages = arrayMove(pages, oldIndex, newIndex);
       setPages(newPages);
       setGlobalSetting(["Left sidebar", "Children"], pagesToUids(newPages));
 
-      if (childrenUid) {
-        const order = direction === "down" ? newIndex + 1 : newIndex;
-
-        void window.roamAlphaAPI
-          /* eslint-disable @typescript-eslint/naming-convention */
-          .moveBlock({
-            location: { "parent-uid": childrenUid, order },
-            block: { uid: removed.uid },
-          })
-          .then(() => {
-            refreshAndNotify();
-          });
-      }
+      void moveRoamBlockToIndex({
+        blockUid: moved.uid,
+        parentUid: childrenUid,
+        sourceIndex: oldIndex,
+        destIndex: newIndex,
+      }).then(() => {
+        refreshAndNotify();
+      });
     },
     [pages, childrenUid],
   );
@@ -350,19 +326,19 @@ const LeftSidebarGlobalSectionsContent = ({
               />
             </div>
             {pages.length > 0 ? (
-              <div className="space-y-1">
-                {pages.map((page, index) => (
+              <SortableList
+                items={pages}
+                getId={(p) => p.uid}
+                onReorder={reorderPages}
+                className="space-y-1"
+                renderItem={(page, handle) => (
                   <PageItem
-                    key={page.uid}
                     page={page}
-                    index={index}
-                    isFirst={index === 0}
-                    isLast={index === pages.length - 1}
-                    onMove={movePage}
+                    dragHandle={handle}
                     onRemove={() => void removePage(page)}
                   />
-                ))}
-              </div>
+                )}
+              />
             ) : (
               <div className="text-sm italic text-gray-400">
                 No pages added yet

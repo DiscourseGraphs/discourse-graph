@@ -7,6 +7,9 @@ import React, {
   useState,
 } from "react";
 import ReactDOM from "react-dom";
+import { arrayMove } from "@dnd-kit/sortable";
+import { SortableList, type SortableHandle } from "./SortableList";
+import { moveRoamBlockToIndex } from "~/utils/moveRoamBlock";
 import {
   Collapse,
   Icon,
@@ -120,48 +123,66 @@ const toggleFoldedState = ({
   }
 };
 
+type ChildNode = { uid: string; text: string; alias?: { value: string } };
+
+const ChildRow = ({
+  child,
+  truncateAt,
+}: {
+  child: ChildNode;
+  truncateAt?: number;
+}) => {
+  const ref = parseReference(child.text);
+  const alias = child.alias?.value;
+  const display =
+    ref.type === "page"
+      ? getPageTitleByPageUid(ref.display)
+      : getTextByBlockUid(ref.uid);
+  const label = alias || truncate(display, truncateAt);
+  const onClick = (e: React.MouseEvent) => {
+    return void openTarget(e, child.text);
+  };
+  return (
+    <div className="pl-8 pr-2.5">
+      <div
+        className="section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
+        onClick={onClick}
+      >
+        {label}
+      </div>
+    </div>
+  );
+};
+
 const SectionChildren = ({
   childrenNodes,
   truncateAt,
 }: {
-  childrenNodes: { uid: string; text: string; alias?: { value: string } }[];
+  childrenNodes: ChildNode[];
   truncateAt?: number;
 }) => {
   if (!childrenNodes?.length) return null;
   return (
     <>
-      {childrenNodes.map((child) => {
-        const ref = parseReference(child.text);
-        const alias = child.alias?.value;
-        const display =
-          ref.type === "page"
-            ? getPageTitleByPageUid(ref.display)
-            : getTextByBlockUid(ref.uid);
-        const label = alias || truncate(display, truncateAt);
-        const onClick = (e: React.MouseEvent) => {
-          return void openTarget(e, child.text);
-        };
-        return (
-          <div key={child.uid} className="pl-8 pr-2.5">
-            <div
-              className={
-                "section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
-              }
-              onClick={onClick}
-            >
-              {label}
-            </div>
-          </div>
-        );
-      })}
+      {childrenNodes.map((child) => (
+        <ChildRow key={child.uid} child={child} truncateAt={truncateAt} />
+      ))}
     </>
   );
 };
 
 const PersonalSectionItem = ({
   section,
+  dragHandle,
+  onChildrenReorder,
 }: {
   section: LeftSidebarPersonalSectionConfig;
+  dragHandle: SortableHandle;
+  onChildrenReorder: (
+    sectionUid: string,
+    oldIndex: number,
+    newIndex: number,
+  ) => void;
 }) => {
   const titleRef = parseReference(section.text);
   const blockText = useMemo(
@@ -187,7 +208,11 @@ const PersonalSectionItem = ({
 
   return (
     <>
-      <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none">
+      <div
+        {...dragHandle.attributes}
+        {...dragHandle.listeners}
+        className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none"
+      >
         <div className="flex w-full items-center justify-between">
           <div
             className="flex items-center"
@@ -210,28 +235,94 @@ const PersonalSectionItem = ({
         </div>
       </div>
       <Collapse isOpen={isOpen}>
-        <SectionChildren
-          childrenNodes={section.children || []}
-          truncateAt={truncateAt}
+        <SortableList
+          items={section.children || []}
+          getId={(c) => c.uid}
+          onReorder={(oldIndex, newIndex) =>
+            onChildrenReorder(section.uid, oldIndex, newIndex)
+          }
+          renderItem={(child, handle) => (
+            <div {...handle.attributes} {...handle.listeners}>
+              <ChildRow child={child} truncateAt={truncateAt} />
+            </div>
+          )}
         />
       </Collapse>
     </>
   );
 };
 
-const PersonalSections = ({ config }: { config: LeftSidebarConfig }) => {
+const PersonalSections = ({
+  config,
+  setConfig,
+}: {
+  config: LeftSidebarConfig;
+  setConfig: Dispatch<SetStateAction<LeftSidebarConfig>>;
+}) => {
   const sections = config.personal.sections || [];
 
   if (!sections.length) return null;
 
+  const reorderSections = (oldIndex: number, newIndex: number) => {
+    const moved = sections[oldIndex];
+    if (!moved) return;
+    const reordered = arrayMove(sections, oldIndex, newIndex);
+    setConfig({
+      ...config,
+      personal: { ...config.personal, sections: reordered },
+    });
+    void moveRoamBlockToIndex({
+      blockUid: moved.uid,
+      parentUid: config.personal.uid,
+      sourceIndex: oldIndex,
+      destIndex: newIndex,
+    }).then(() => {
+      refreshAndNotify();
+    });
+  };
+
+  const reorderChildren = (
+    sectionUid: string,
+    oldIndex: number,
+    newIndex: number,
+  ) => {
+    const section = sections.find((s) => s.uid === sectionUid);
+    const children = section?.children;
+    if (!section || !children || !section.childrenUid) return;
+    const child = children[oldIndex];
+    if (!child) return;
+    const reorderedChildren = arrayMove(children, oldIndex, newIndex);
+    const newSections = sections.map((s) =>
+      s.uid === sectionUid ? { ...s, children: reorderedChildren } : s,
+    );
+    setConfig({
+      ...config,
+      personal: { ...config.personal, sections: newSections },
+    });
+    void moveRoamBlockToIndex({
+      blockUid: child.uid,
+      parentUid: section.childrenUid,
+      sourceIndex: oldIndex,
+      destIndex: newIndex,
+    }).then(() => {
+      refreshAndNotify();
+    });
+  };
+
   return (
-    <div className="personal-left-sidebar-sections">
-      {sections.map((section) => (
-        <div key={section.uid}>
-          <PersonalSectionItem section={section} />
-        </div>
-      ))}
-    </div>
+    <SortableList
+      items={sections}
+      getId={(s) => s.uid}
+      onReorder={reorderSections}
+      className="personal-left-sidebar-sections"
+      renderItem={(section, handle) => (
+        <PersonalSectionItem
+          section={section}
+          dragHandle={handle}
+          onChildrenReorder={reorderChildren}
+        />
+      )}
+    />
   );
 };
 
@@ -408,13 +499,13 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 };
 
 const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const { config } = useConfig();
+  const { config, setConfig } = useConfig();
 
   return (
     <>
       <FavoritesPopover onloadArgs={onloadArgs} />
       <GlobalSection config={config.global} />
-      <PersonalSections config={config} />
+      <PersonalSections config={config} setConfig={setConfig} />
     </>
   );
 };
