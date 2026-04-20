@@ -1,7 +1,6 @@
 import React from "react";
 import {
   DndContext,
-  KeyboardSensor,
   PointerSensor,
   closestCenter,
   useSensor,
@@ -12,7 +11,6 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
@@ -72,9 +70,6 @@ export const SortableList = <T,>({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
 
