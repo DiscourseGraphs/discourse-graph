@@ -476,6 +476,10 @@ const getLegacyQuerySettingByParentUid = (parentUid: string) => {
     key: "selections",
   });
   const customNode = getSubTree({ tree: scratchNode.children, key: "custom" });
+  const returnSubtree = getSubTree({
+    tree: scratchNode.children,
+    key: "return",
+  });
 
   return {
     conditions: conditionsNode.children.map(roamNodeToCondition),
@@ -484,7 +488,7 @@ const getLegacyQuerySettingByParentUid = (parentUid: string) => {
       label: s.children[0]?.text || "",
     })),
     custom: customNode.children[0]?.text || "",
-    returnNode: "node",
+    returnNode: returnSubtree.children[0]?.text || "node",
   };
 };
 

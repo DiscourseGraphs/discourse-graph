@@ -342,62 +342,85 @@ export type InitSchemaResult = {
 const logDualReadComparison = (): void => {
   if (!isNewSettingsStoreEnabled()) return;
 
-  const legacyFlags = readAllLegacyFeatureFlags();
-  const blockFlags = getFeatureFlags();
   const omitStoreFlag = (
     flags: Record<string, unknown>,
   ): Record<string, unknown> =>
     Object.fromEntries(
       Object.entries(flags).filter(([k]) => k !== "Use new settings store"),
     );
-  const flagsMatch = deepEqual(
-    omitStoreFlag(blockFlags),
-    omitStoreFlag(legacyFlags),
-  );
 
+  const legacyFlags = readAllLegacyFeatureFlags();
+  const blockFlags = getFeatureFlags();
   const legacyGlobal = readAllLegacyGlobalSettings();
   const blockGlobal = getGlobalSettings();
-  const globalMatch = deepEqual(blockGlobal, legacyGlobal);
-
   const legacyPersonal = readAllLegacyPersonalSettings();
   const blockPersonal = getPersonalSettings();
-  const personalMatch = deepEqual(blockPersonal, legacyPersonal);
 
   const nodes = getAllDiscourseNodes();
-  const nodeResults: {
+  const nodeResults = nodes.map((node) => ({
+    name: node.text,
+    legacy: readAllLegacyDiscourseNodeSettings(node.type, node.text),
+    blockProps: getDiscourseNodeSettings(node.type),
+  }));
+
+  const groups: {
     name: string;
-    match: boolean;
-    legacy: unknown;
-    blockProps: unknown;
-  }[] = [];
-  for (const node of nodes) {
-    const legacy = readAllLegacyDiscourseNodeSettings(node.type, node.text);
-    const blockProps = getDiscourseNodeSettings(node.type);
-    nodeResults.push({
-      name: node.text,
-      match: deepEqual(blockProps, legacy),
-      legacy,
-      blockProps,
-    });
+    legacy: Record<string, unknown>;
+    block: Record<string, unknown>;
+  }[] = [
+    { name: "Personal", legacy: legacyPersonal, block: blockPersonal },
+    { name: "Global", legacy: legacyGlobal, block: blockGlobal },
+    {
+      name: "Feature Flags",
+      legacy: omitStoreFlag(legacyFlags),
+      block: omitStoreFlag(blockFlags),
+    },
+    ...nodeResults.map((n) => ({
+      name: n.name,
+      legacy: n.legacy ?? {},
+      block: (n.blockProps ?? {}) as Record<string, unknown>,
+    })),
+  ];
+
+  const mismatchedGroups: string[] = [];
+
+  // Node-level keys whose legacy and block-prop shapes diverge structurally (not semantically):
+  //   template — legacy carries { uid, children: [] } from getBasicTreeByParentUid; block-prop
+  //     writer (EphemeralBlocksPanel serializeBlockTree) strips both on save.
+  //   specification, index — their query.conditions carry Roam block uids in legacy
+  //     (roamNodeToCondition), but QueryEditor strips uid before saving and ConditionSchema
+  //     omits the field entirely.
+  // Both sides encode the same data; comparing raw produces noise. Skip here until the readers
+  // are aligned.
+  const SKIP_NODE_KEYS = new Set(["template", "specification", "index"]);
+
+  /* eslint-disable @typescript-eslint/naming-convention */
+  for (const g of groups) {
+    const keys = new Set([...Object.keys(g.legacy), ...Object.keys(g.block)]);
+    const mismatchedKeys: string[] = [];
+    for (const key of keys) {
+      if (SKIP_NODE_KEYS.has(key)) continue;
+      if (!deepEqual(g.legacy[key], g.block[key])) mismatchedKeys.push(key);
+    }
+    if (mismatchedKeys.length === 0) continue;
+    mismatchedGroups.push(g.name);
+    console.groupCollapsed(
+      `[DG Dual-Read] ${g.name} — ${mismatchedKeys.length} mismatched key(s): ${mismatchedKeys.join(", ")}`,
+    );
+    for (const key of mismatchedKeys) {
+      console.log(key, { legacy: g.legacy[key], block: g.block[key] });
+    }
+    console.groupEnd();
   }
 
-  const mismatches = [
-    !flagsMatch && "Feature Flags",
-    !globalMatch && "Global",
-    !personalMatch && "Personal",
-    ...nodeResults.filter((n) => !n.match).map((n) => n.name),
-  ].filter((x): x is string => Boolean(x));
-
   const summary =
-    mismatches.length === 0
+    mismatchedGroups.length === 0
       ? "All settings match"
-      : `(${mismatches.length}) Settings don't match: ${mismatches.join(", ")}`;
+      : `(${mismatchedGroups.length}) Settings don't match: ${mismatchedGroups.join(", ")}`;
+  console.log(`[DG Dual-Read] ${summary}`);
 
   const nodeMap = (key: "legacy" | "blockProps") =>
     Object.fromEntries(nodeResults.map((n) => [n.name, n[key]]));
-
-  /* eslint-disable @typescript-eslint/naming-convention */
-  console.log(`[DG Dual-Read] ${summary}`);
   console.log("[DG Dual-Read] Legacy:", {
     "Feature Flags": legacyFlags,
     Global: legacyGlobal,
