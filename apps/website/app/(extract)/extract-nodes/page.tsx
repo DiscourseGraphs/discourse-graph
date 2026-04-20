@@ -24,6 +24,7 @@ const ExtractNodesPage = (): React.ReactElement => {
     () => new Set(["#evd-candidate", "#clm-candidate"]),
   );
   const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
 
   const toggleType = useCallback((candidateTag: string) => {
     setSelectedTypes((prev) => {
@@ -42,6 +43,7 @@ const ExtractNodesPage = (): React.ReactElement => {
   const handleExtract = useCallback(async () => {
     if (!pdfFile) return;
     setIsExtracting(true);
+    setExtractionError(null);
     try {
       const pdfBase64 = await readFileAsBase64(pdfFile);
       const nodeTypes = NODE_TYPE_DEFINITIONS.filter((t) =>
@@ -57,18 +59,20 @@ const ExtractNodesPage = (): React.ReactElement => {
         model: "claude-sonnet-4-6",
         systemPrompt,
       };
-      console.log("extraction request body:", requestBody);
-      console.log("extraction system prompt:\n" + systemPrompt);
       const response = await fetch("/api/ai/extract", {
         method: "POST",
         // eslint-disable-next-line @typescript-eslint/naming-convention
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
-      const json: unknown = await response.json();
-      console.log("extraction result:", json);
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
     } catch (error) {
       console.error("extraction failed:", error);
+      setExtractionError(
+        "We couldn't extract nodes from this PDF. Please try again.",
+      );
     } finally {
       setIsExtracting(false);
     }
@@ -86,6 +90,7 @@ const ExtractNodesPage = (): React.ReactElement => {
         onExtract={() => void handleExtract()}
         canExtract={canExtract}
         isExtracting={isExtracting}
+        extractionError={extractionError}
       />
       <MainContent />
     </div>
