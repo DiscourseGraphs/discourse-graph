@@ -586,6 +586,10 @@ const ClipboardPageSection = ({
     [groupedNodes, showNodesOnCanvas, searchQuery, selectedNodeType],
   );
 
+  // Publish this page's distinct node types up to ClipboardPanel so it can
+  // build a unified filter dropdown across all open pages. When
+  // `showNodesOnCanvas` is off, only consider nodes not yet on the canvas so
+  // the filter options match what the user can actually act on.
   useEffect(() => {
     const candidateNodes = showNodesOnCanvas
       ? groupedNodes
@@ -1167,6 +1171,9 @@ export const ClipboardPanel = () => {
     );
   }, []);
 
+  // Reset the filter to "All" when the currently selected type disappears
+  // from `availableNodeTypes` (e.g. the page containing it was removed),
+  // otherwise the dropdown would keep a stale value that filters everything out.
   useEffect(() => {
     if (
       selectedNodeType !== "All" &&
