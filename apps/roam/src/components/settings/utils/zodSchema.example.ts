@@ -374,7 +374,10 @@ const personalSettings: PersonalSettings = {
   "Auto canvas relations": true,
   "Disable product diagnostics": false,
   "Reified relation triples": true,
-  "Canvas node shortcuts": { "_CLM-node": "X", "_QUE-node": "W" },
+  "Canvas node shortcuts": {
+    "_CLM-node": { value: "X", enabled: true },
+    "_QUE-node": { value: "", enabled: true },
+  },
   Query: {
     "Hide query metadata": true,
     "Default page size": 25,

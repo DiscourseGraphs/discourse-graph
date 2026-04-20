@@ -54,6 +54,7 @@ import DiscourseGraphPanel from "./DiscourseToolPanel";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
+import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
@@ -398,16 +399,16 @@ export const createUiOverrides = ({
       },
     };
     const canvasNodeShortcuts =
-      getPersonalSetting<Record<string, string>>(["Canvas node shortcuts"]) ??
-      {};
+      getPersonalSetting<CanvasNodeShortcuts>(["Canvas node shortcuts"]) ?? {};
 
     allNodes.forEach((node, index) => {
       const nodeId = node.type;
+      const override = canvasNodeShortcuts[nodeId];
       tools[nodeId] = {
         id: nodeId,
         icon: "color",
         label: `shape.node.${node.type}` as TLUiTranslationKey,
-        kbd: canvasNodeShortcuts[nodeId] || node.shortcut,
+        kbd: override?.enabled ? override.value : node.shortcut,
         onSelect: () => {
           editor.setCurrentTool(nodeId);
         },
