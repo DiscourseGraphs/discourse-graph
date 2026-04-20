@@ -107,6 +107,7 @@ import {
   BaseDiscourseNodeUtil,
   DiscourseNodeShape,
 } from "~/components/canvas/DiscourseNodeUtil";
+import { checkConnectionType } from "~/components/canvas/canvasUtils";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
@@ -1705,15 +1706,7 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     sourceNodeType: string,
     targetNodeType: string,
   ): { isDirect: boolean; isReverse: boolean } {
-    const isDirect =
-      sourceNodeType === relation.source &&
-      targetNodeType === relation.destination;
-
-    const isReverse =
-      sourceNodeType === relation.destination &&
-      targetNodeType === relation.source;
-
-    return { isDirect, isReverse };
+    return checkConnectionType(relation, sourceNodeType, targetNodeType);
   }
 
   checkConnectionTypeAcrossLabel(
