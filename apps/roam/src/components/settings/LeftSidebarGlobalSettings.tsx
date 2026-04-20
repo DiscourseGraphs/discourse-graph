@@ -19,7 +19,11 @@ import { refreshAndNotify } from "~/components/LeftSidebarView";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import posthog from "posthog-js";
-import { commands } from "~/components/LeftSidebarCommands";
+import {
+  commands,
+  sidebarCommandPopover,
+} from "~/components/LeftSidebarCommands";
+import { getRoamElements } from "~/utils/suggestiveModeSidebarSizing";
 
 const pagesToUids = (pages: RoamBasicNode[]) => pages.map((p) => p.text);
 
@@ -92,10 +96,12 @@ const LeftSidebarGlobalSectionsContent = ({
   const [autocompleteKey, setAutocompleteKey] = useState(0);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
+  const addPageInputId = "globalAddPageId";
 
   const pageNames = useMemo(() => getAllPageNames(), []);
+  const commandNames = Object.keys(commands);
   const pageAndCommandNames = useMemo(
-    () => [...pageNames, ...Object.keys(commands)],
+    () => [...pageNames, ...commandNames],
     [pageNames],
   );
 
@@ -262,6 +268,17 @@ const LeftSidebarGlobalSectionsContent = ({
     setNewPageInput(value);
   }, []);
 
+  const setPageValue = useCallback(
+    (value: string) => {
+      const input = document.getElementById(addPageInputId) as HTMLInputElement;
+      if (input) {
+        input.value = value;
+        handlePageInputChange(value);
+      }
+    },
+    [handlePageInputChange],
+  );
+
   const toggleChildren = useCallback(() => {
     setIsExpanded((prev) => !prev);
   }, []);
@@ -336,8 +353,9 @@ const LeftSidebarGlobalSectionsContent = ({
             <div className="mb-2 text-sm text-gray-600">
               Add pages that will appear for all users
             </div>
-            <div className="mb-3 flex items-center gap-2">
+            <div className="sidebarCommandPopoverContainer mb-3 flex items-center gap-2">
               <AutocompleteInput
+                id={addPageInputId}
                 key={autocompleteKey}
                 value={newPageInput}
                 setValue={handlePageInputChange}
@@ -355,6 +373,7 @@ const LeftSidebarGlobalSectionsContent = ({
                 onClick={() => void addPage(newPageInput)}
                 title="Add page"
               />
+              {sidebarCommandPopover(setPageValue)}
             </div>
             {pages.length > 0 ? (
               <div className="space-y-1">
