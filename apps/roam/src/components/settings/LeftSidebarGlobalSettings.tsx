@@ -23,7 +23,6 @@ import {
   commands,
   sidebarCommandPopover,
 } from "~/components/LeftSidebarCommands";
-import { getRoamElements } from "~/utils/suggestiveModeSidebarSizing";
 
 const pagesToUids = (pages: RoamBasicNode[]) => pages.map((p) => p.text);
 
@@ -102,7 +101,7 @@ const LeftSidebarGlobalSectionsContent = ({
   const commandNames = Object.keys(commands);
   const pageAndCommandNames = useMemo(
     () => [...pageNames, ...commandNames],
-    [pageNames],
+    [pageNames, commandNames],
   );
 
   useEffect(() => {
