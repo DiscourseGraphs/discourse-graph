@@ -125,48 +125,15 @@ export const RelationTypeDropdown = ({
       onPointerUp={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <div
-        style={{
-          backgroundColor: "#fff",
-          border: "1px solid #e0e0e0",
-          borderRadius: "8px",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
-          padding: "4px",
-          minWidth: "160px",
-          maxHeight: "240px",
-          overflowY: "auto",
-        }}
-      >
-        <div
-          style={{
-            padding: "4px 8px",
-            fontSize: "11px",
-            color: "#999",
-            fontWeight: 500,
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
+      <div className="max-h-[240px] min-w-[160px] overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 shadow-lg">
+        <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
           Relation Type
         </div>
         {validRelationTypes.map((rt) => (
           <button
             key={rt.id}
             onClick={() => handleSelect(rt.id)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              width: "100%",
-              padding: "6px 8px",
-              border: "none",
-              borderRadius: "4px",
-              backgroundColor: "transparent",
-              cursor: "pointer",
-              fontSize: "13px",
-              color: "#333",
-              textAlign: "left",
-            }}
+            className="flex w-full cursor-pointer items-center gap-2 rounded-md border-none bg-transparent px-3 py-2 text-left text-[13px] text-[#333] hover:bg-[#f0f0f0]"
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.backgroundColor =
                 "#f0f0f0";
@@ -178,12 +145,9 @@ export const RelationTypeDropdown = ({
           >
             <span
               style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
                 backgroundColor: rt.color,
-                flexShrink: 0,
               }}
+              className="h-2 w-2 flex-shrink-0 rounded-full bg-[#333]"
             />
             {rt.label}
           </button>

@@ -376,20 +376,15 @@ export const DragHandleOverlay = () => {
         handlePositions.map((pos, i) => (
           <div
             key={i}
+            className="absolute z-20 flex cursor-crosshair items-center justify-center"
             onPointerDown={handlePointerDown}
             style={{
-              position: "absolute",
               left: `${pos.left}px`,
               top: `${pos.top}px`,
-              transform: "translate(-50%, -50%)",
               width: `${HANDLE_HIT_AREA * 2}px`,
               height: `${HANDLE_HIT_AREA * 2}px`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "crosshair",
+              transform: "translate(-50%, -50%)",
               pointerEvents: "all",
-              zIndex: 20,
             }}
           >
             <div
