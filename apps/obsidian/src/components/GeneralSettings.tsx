@@ -152,6 +152,9 @@ const GeneralSettings = () => {
   const [canvasFolderPath, setCanvasFolderPath] = useState<string>(
     plugin.settings.canvasFolderPath,
   );
+  const [username, setUsername] = useState<string>(
+    plugin.settings.username || "",
+  );
   const [canvasAttachmentsFolderPath, setCanvasAttachmentsFolderPath] =
     useState<string>(plugin.settings.canvasAttachmentsFolderPath);
   const [nodeTagHotkey, setNodeTagHotkey] = useState<string>(
@@ -202,6 +205,12 @@ const GeneralSettings = () => {
     },
     [plugin],
   );
+
+  const handleSetUsername = (newValue: string) => {
+    setUsername(newValue);
+    plugin.settings.username = newValue;
+    void plugin.saveSettings();
+  };
 
   return (
     <div className="general-settings">
@@ -303,6 +312,27 @@ const GeneralSettings = () => {
             }}
             placeholder="\\"
             maxLength={1}
+          />
+        </div>
+      </div>
+
+      <div
+        className={
+          "setting-item " + (plugin.settings.syncModeEnabled ? "" : "hidden")
+        }
+      >
+        <div className="setting-item-info">
+          <div className="setting-item-name">Username</div>
+          <div className="setting-item-description">
+            A username that will be associated with your vault if you share
+            data.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => handleSetUsername(e.target.value)}
           />
         </div>
       </div>

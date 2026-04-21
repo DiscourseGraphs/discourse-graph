@@ -77,6 +77,7 @@ export const getSupabaseContext = async (
   if (contextCache === null) {
     try {
       const vaultName = plugin.app.vault.getName() || "obsidian-vault";
+      const username = plugin.settings.username || vaultName;
 
       const spacePassword = await getOrCreateSpacePassword(plugin);
       const accountLocalId = await getOrCreateAccountLocalId(plugin, vaultName);
@@ -100,8 +101,8 @@ export const getSupabaseContext = async (
       const userId = await fetchOrCreatePlatformAccount({
         platform: "Obsidian",
         accountLocalId,
-        name: vaultName,
-        email: accountLocalId,
+        name: username,
+        email: undefined,
         spaceId,
         password: spacePassword,
       });

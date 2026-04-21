@@ -69,6 +69,7 @@ export type Settings = {
   syncModeEnabled?: boolean;
   /** Maps spaceUri (e.g. "obsidian:abc123") to human-readable name (e.g. "My Vault") */
   spaceNames?: Record<string, string>;
+  username?: string;
 };
 
 export type BulkImportCandidate = {
