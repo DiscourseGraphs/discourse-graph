@@ -151,7 +151,7 @@ const main = async (variant: Variant) => {
     }
   } else if (
     process.env.HOME === "/vercel" ||
-    (process.env.GITHUB_ACTIONS !== undefined &&
+    (process.env.GITHUB_ACTIONS === "true" &&
       process.env.GITHUB_TEST !== "test")
   )
     // Do not execute in deployment or github action.
