@@ -10,7 +10,7 @@ import * as React from "react";
 import { TFile } from "obsidian";
 import DiscourseGraphPlugin from "~/index";
 import { openCreateDiscourseNodeAt } from "./utils/nodeCreationFlow";
-import { getNodeTypeById } from "~/utils/typeUtils";
+import { getNodeTypeById, isAcceptedSchema } from "~/utils/typeUtils";
 import { useEffect } from "react";
 import { setDiscourseNodeToolContext } from "./DiscourseNodeTool";
 import {
@@ -195,7 +195,7 @@ export const DiscourseToolPanel = ({
   );
 
   const nodeTypes = plugin.settings.nodeTypes;
-  const relationTypes = plugin.settings.relationTypes;
+  const relationTypes = plugin.settings.relationTypes.filter(isAcceptedSchema);
 
   useEffect(() => {
     if (!focusedNodeTypeId) return;

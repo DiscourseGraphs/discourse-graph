@@ -17,6 +17,7 @@ import {
   openConvertImageToNodeModal,
 } from "~/utils/editorMenuUtils";
 import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
+import { createWikilinkDragExtension } from "~/utils/wikilinkDragHandler";
 import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
 import { VIEW_TYPE_TLDRAW_DG_PREVIEW, FRONTMATTER_KEY } from "~/constants";
@@ -232,6 +233,32 @@ export default class DiscourseGraphPlugin extends Plugin {
       }),
     );
 
+    type EditorWithCm = { cm: EditorView };
+    const hasCodeMirrorView = (editor: unknown): editor is EditorWithCm => {
+      if (!editor || typeof editor !== "object") return false;
+      return "cm" in editor;
+    };
+
+    // Dispatch a no-op CM6 transaction to every markdown editor so their
+    // ViewPlugin re-evaluates hasVisibleCanvasLeaf and shows/hides widgets.
+    // layout-change covers splits/moves, active-leaf-change covers tab switches.
+    const refreshMarkdownEditors = (): void => {
+      this.app.workspace.iterateAllLeaves((leaf) => {
+        if (
+          leaf.view instanceof MarkdownView &&
+          hasCodeMirrorView(leaf.view.editor)
+        ) {
+          leaf.view.editor.cm.dispatch({});
+        }
+      });
+    };
+    this.registerEvent(
+      this.app.workspace.on("layout-change", refreshMarkdownEditors),
+    );
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", refreshMarkdownEditors),
+    );
+
     // Register editor keydown listener for node tag hotkey
     this.setupNodeTagHotkey();
   }
@@ -281,6 +308,9 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.registerEditorExtension(createImageEmbedHoverExtension(this));
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    this.registerEditorExtension(createWikilinkDragExtension(this));
   }
 
   private createStyleElement() {

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { FrontMatterCache, Notice, TFile } from "obsidian";
+import { Notice, TFile } from "obsidian";
+import { addFile } from "@repo/database/lib/files";
+import mime from "mime-types";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json } from "@repo/database/dbTypes";
@@ -9,7 +11,7 @@ import {
   type SupabaseContext,
 } from "./supabaseContext";
 import { default as DiscourseGraphPlugin } from "~/index";
-import { publishNode, ensurePublishedRelationsAccuracy } from "./publishNode";
+import { ensurePublishedRelationsAccuracy } from "./publishNode";
 import { upsertNodesToSupabaseAsContentWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
 import {
   orderConceptsByDependency,
@@ -25,6 +27,7 @@ import {
   type DiscourseNodeInVault,
   collectDiscourseNodesFromVault,
 } from "./getDiscourseNodes";
+import { isAcceptedSchema } from "./typeUtils";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
@@ -454,8 +457,12 @@ const convertDgToSupabaseConcepts = async ({
     await getLastRelationSyncTime(supabaseClient, context.spaceId)
   ).getTime();
   const nodeTypes = plugin.settings.nodeTypes ?? [];
-  const relationTypes = plugin.settings.relationTypes ?? [];
-  const discourseRelations = plugin.settings.discourseRelations ?? [];
+  const relationTypes = (plugin.settings.relationTypes ?? []).filter(
+    isAcceptedSchema,
+  );
+  const discourseRelations = (plugin.settings.discourseRelations ?? []).filter(
+    isAcceptedSchema,
+  );
   allNodes = allNodes ?? (await collectDiscourseNodesFromVault(plugin, true));
   const allNodesById = Object.fromEntries(
     allNodes.map((n) => [n.nodeInstanceId, n]),
@@ -528,6 +535,7 @@ const convertDgToSupabaseConcepts = async ({
     .filter(
       (relationInstanceData) =>
         !relationInstanceData.importedFromRid &&
+        relationInstanceData.tentative !== false &&
         (relationInstanceData.lastModified || relationInstanceData.created) >
           lastRelationsSync,
     )
@@ -579,6 +587,92 @@ const convertDgToSupabaseConcepts = async ({
   }
 };
 
+export const syncPublishedNodeAssets = async ({
+  plugin,
+  client,
+  nodeId,
+  spaceId,
+  file,
+  attachments,
+}: {
+  plugin: DiscourseGraphPlugin;
+  client: DGSupabaseClient;
+  nodeId: string;
+  spaceId: number;
+  file: TFile;
+  attachments?: TFile[];
+}): Promise<void> => {
+  if (attachments === undefined) {
+    const embeds = plugin.app.metadataCache.getFileCache(file)?.embeds ?? [];
+    attachments = embeds
+      .map(({ link }) => {
+        const attachment = plugin.app.metadataCache.getFirstLinkpathDest(
+          link,
+          file.path,
+        );
+        return attachment;
+      })
+      .filter((a) => !!a);
+  }
+  // Always sync non-text assets when node is published to this group
+  const existingFiles: string[] = [];
+  const existingReferencesReq = await client
+    .from("my_file_references")
+    .select("*")
+    .eq("space_id", spaceId)
+    .eq("source_local_id", nodeId);
+  if (existingReferencesReq.error) {
+    console.error(existingReferencesReq.error);
+    return;
+  }
+  const existingReferencesByPath = Object.fromEntries(
+    existingReferencesReq.data.map((ref) => [ref.filepath, ref]),
+  ) as Record<string, (typeof existingReferencesReq.data)[0]>;
+
+  for (const attachment of attachments) {
+    const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
+    if (mimetype.startsWith("text/")) continue;
+    // Do not use standard upload for large files
+    if (attachment.stat.size >= 6 * 1024 * 1024) {
+      new Notice(
+        `Asset file ${attachment.path} is larger than 6Mb and will not be uploaded`,
+      );
+      continue;
+    }
+    existingFiles.push(attachment.path);
+    const existingRef = existingReferencesByPath[attachment.path];
+    if (
+      !existingRef ||
+      new Date(existingRef.last_modified + "Z").valueOf() <
+        attachment.stat.mtime
+    ) {
+      const content = await plugin.app.vault.readBinary(attachment);
+      await addFile({
+        client,
+        spaceId,
+        sourceLocalId: nodeId,
+        fname: attachment.path,
+        mimetype,
+        created: new Date(attachment.stat.ctime),
+        lastModified: new Date(attachment.stat.mtime),
+        content,
+      });
+    }
+  }
+  let cleanupCommand = client
+    .from("FileReference")
+    .delete()
+    .eq("space_id", spaceId)
+    .eq("source_local_id", nodeId);
+  if (existingFiles.length)
+    cleanupCommand = cleanupCommand.notIn("filepath", [
+      ...new Set(existingFiles),
+    ]);
+  const cleanupResult = await cleanupCommand;
+  // do not fail on cleanup
+  if (cleanupResult.error) console.error(cleanupResult.error);
+};
+
 /**
  * For nodes that are already published, ensure non-text assets are pushed to
  * storage. Called after content sync so new embeds (e.g. images) get uploaded.
@@ -587,6 +681,11 @@ const syncPublishedNodesAssets = async (
   plugin: DiscourseGraphPlugin,
   nodes: ObsidianDiscourseNodeData[],
 ): Promise<void> => {
+  const context = await getSupabaseContext(plugin);
+  if (!context) throw new Error("Cannot get context");
+  const spaceId = context.spaceId;
+  const client = await getLoggedInClient(plugin);
+  if (!client) throw new Error("Cannot get client");
   const published = nodes.filter(
     (n) =>
       ((n.frontmatter.publishedToGroups as string[] | undefined)?.length ?? 0) >
@@ -594,10 +693,14 @@ const syncPublishedNodesAssets = async (
   );
   for (const node of published) {
     try {
-      await publishNode({
+      const nodeId = node.frontmatter.nodeInstanceId as string | undefined;
+      if (!nodeId) throw new Error("Please sync the node first");
+      await syncPublishedNodeAssets({
         plugin,
+        client,
+        nodeId,
+        spaceId,
         file: node.file,
-        frontmatter: node.frontmatter as FrontMatterCache,
       });
     } catch (error) {
       console.error(
@@ -651,7 +754,12 @@ const syncChangedNodesToSupabase = async ({
 
   // When file changes affect an already-published node, ensure new non-text
   // assets (e.g. images) are pushed to storage.
-  await syncPublishedNodesAssets(plugin, changedNodes);
+  try {
+    await syncPublishedNodesAssets(plugin, changedNodes);
+  } catch (error) {
+    console.error(`Failed to sync published node assets`, error);
+    new Notice(`Failed to sync published node assets.`);
+  }
 };
 
 /**

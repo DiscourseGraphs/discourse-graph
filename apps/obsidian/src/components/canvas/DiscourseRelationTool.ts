@@ -2,7 +2,7 @@ import { StateNode, TLEventHandlers, TLStateNodeConstructor } from "tldraw";
 import { createShapeId } from "tldraw";
 import type { TFile } from "obsidian";
 import DiscourseGraphPlugin from "~/index";
-import { getRelationTypeById } from "~/utils/typeUtils";
+import { getRelationTypeById, isAcceptedSchema } from "~/utils/typeUtils";
 import { DiscourseRelationShape } from "./shapes/DiscourseRelationShape";
 import { getNodeTypeById } from "~/utils/typeUtils";
 import { showToast } from "./utils/toastUtils";
@@ -95,9 +95,10 @@ class Pointing extends StateNode {
   ): string[] => {
     const compatibleTypes: string[] = [];
 
-    // Find all discourse relations that match the relation type and source
+    // Find all accepted discourse relations that match the relation type and source
     const relations = plugin.settings.discourseRelations.filter(
       (relation) =>
+        isAcceptedSchema(relation) &&
         relation.relationshipTypeId === relationTypeId &&
         relation.sourceId === sourceNodeTypeId,
     );
@@ -109,6 +110,7 @@ class Pointing extends StateNode {
     // Also check reverse relations (where current node is destination)
     const reverseRelations = plugin.settings.discourseRelations.filter(
       (relation) =>
+        isAcceptedSchema(relation) &&
         relation.relationshipTypeId === relationTypeId &&
         relation.destinationId === sourceNodeTypeId,
     );
