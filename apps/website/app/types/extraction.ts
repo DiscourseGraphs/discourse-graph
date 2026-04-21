@@ -26,8 +26,7 @@ export const ExtractionRequestSchema = z.object({
   pdfBase64: z.string().min(1).max(44_000_000),
   provider: z.enum(PROVIDER_IDS),
   model: z.string().min(1),
-  researchQuestion: z.string().optional(),
-  systemPrompt: z.string().optional(),
+  systemPrompt: z.string().min(1),
 });
 
 export type ExtractionRequest = z.infer<typeof ExtractionRequestSchema>;

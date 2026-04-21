@@ -17,6 +17,10 @@ type SidebarProps = {
   onResearchQuestionChange: (value: string) => void;
   selectedTypes: Set<string>;
   onToggleType: (candidateTag: string) => void;
+  onExtract: () => void;
+  canExtract: boolean;
+  isExtracting: boolean;
+  extractionError: string | null;
 };
 
 export const Sidebar = ({
@@ -26,6 +30,10 @@ export const Sidebar = ({
   onResearchQuestionChange,
   selectedTypes,
   onToggleType,
+  onExtract,
+  canExtract,
+  isExtracting,
+  extractionError,
 }: SidebarProps): React.ReactElement => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -153,11 +161,21 @@ export const Sidebar = ({
       </div>
 
       <div className="border-t border-slate-200/90 bg-white/95 p-4 backdrop-blur-xl">
-        <p className="mb-2 text-sm font-medium text-slate-500">
-          Ready to run extraction.
-        </p>
-        <Button className="w-full rounded-xl bg-slate-900 py-6 text-lg font-semibold text-white hover:bg-slate-800">
-          Re-Extract
+        {extractionError ? (
+          <p role="alert" className="mb-2 text-sm font-medium text-red-600">
+            {extractionError}
+          </p>
+        ) : (
+          <p className="mb-2 text-sm font-medium text-slate-500">
+            Ready to run extraction.
+          </p>
+        )}
+        <Button
+          onClick={onExtract}
+          disabled={!canExtract}
+          className="w-full rounded-xl bg-slate-900 py-6 text-lg font-semibold text-white hover:bg-slate-800"
+        >
+          {isExtracting ? "Extracting…" : "Re-Extract"}
         </Button>
       </div>
     </aside>

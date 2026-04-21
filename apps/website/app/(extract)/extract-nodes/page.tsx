@@ -1,9 +1,21 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { ExtractedNode } from "~/types/extraction";
+import { NODE_TYPE_DEFINITIONS, type ExtractedNode } from "~/types/extraction";
+import { buildSystemPrompt } from "~/prompts/extraction";
 import { MainContent } from "./components/MainContent";
 import { Sidebar } from "./components/Sidebar";
+
+const readFileAsBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result);
+      resolve(dataUrl.slice(dataUrl.indexOf(",") + 1));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 
 const SAMPLE_NODES: ExtractedNode[] = [
   {
@@ -86,6 +98,8 @@ const ExtractNodesPage = (): React.ReactElement => {
   const [selectedTypes, setSelectedTypes] = useState(
     () => new Set(["#evd-candidate", "#clm-candidate"]),
   );
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
   const [nodes] = useState<ExtractedNode[]>(SAMPLE_NODES);
 
   const toggleType = useCallback((candidateTag: string) => {
@@ -100,6 +114,46 @@ const ExtractNodesPage = (): React.ReactElement => {
     });
   }, []);
 
+  const canExtract = !!pdfFile && selectedTypes.size > 0 && !isExtracting;
+
+  const handleExtract = useCallback(async () => {
+    if (!pdfFile) return;
+    setIsExtracting(true);
+    setExtractionError(null);
+    try {
+      const pdfBase64 = await readFileAsBase64(pdfFile);
+      const nodeTypes = NODE_TYPE_DEFINITIONS.filter((t) =>
+        selectedTypes.has(t.candidateTag),
+      );
+      const systemPrompt = buildSystemPrompt({
+        nodeTypes,
+        researchQuestion: researchQuestion || undefined,
+      });
+      const requestBody = {
+        pdfBase64,
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        systemPrompt,
+      };
+      const response = await fetch("/api/ai/extract", {
+        method: "POST",
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+    } catch (error) {
+      console.error("extraction failed:", error);
+      setExtractionError(
+        "We couldn't extract nodes from this PDF. Please try again.",
+      );
+    } finally {
+      setIsExtracting(false);
+    }
+  }, [pdfFile, researchQuestion, selectedTypes]);
+
   return (
     <div className="flex h-full w-full flex-1 flex-col gap-4 p-4 lg:flex-row lg:gap-5 lg:p-5">
       <Sidebar
@@ -109,6 +163,10 @@ const ExtractNodesPage = (): React.ReactElement => {
         onResearchQuestionChange={setResearchQuestion}
         selectedTypes={selectedTypes}
         onToggleType={toggleType}
+        onExtract={() => void handleExtract()}
+        canExtract={canExtract}
+        isExtracting={isExtracting}
+        extractionError={extractionError}
       />
       <MainContent nodes={nodes} />
     </div>
