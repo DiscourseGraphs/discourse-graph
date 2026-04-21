@@ -4,7 +4,6 @@ import getBlockProps, {
 } from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getBlockUidByTextOnPage from "roamjs-components/queries/getBlockUidByTextOnPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { getSubTree } from "roamjs-components/util";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
@@ -669,10 +668,17 @@ const setBlockPropBasedSettings = ({
     return;
   }
 
-  const blockUid = getBlockUidByTextOnPage({
-    text: keys[0],
-    title: DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
-  });
+  const pageResult = window.roamAlphaAPI.pull(
+    "[{:block/children [:block/uid :block/string]}]",
+    [":node/title", DG_BLOCK_PROP_SETTINGS_PAGE_TITLE],
+  ) as Record<string, json> | null;
+  const children = (pageResult?.[":block/children"] ?? []) as Record<
+    string,
+    json
+  >[];
+  const match = children.find((child) => child[":block/string"] === keys[0]);
+  const matchedUid = match?.[":block/uid"];
+  const blockUid = typeof matchedUid === "string" ? matchedUid : "";
 
   if (!blockUid) {
     internalError({
