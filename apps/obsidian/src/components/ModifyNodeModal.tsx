@@ -63,6 +63,7 @@ export const ModifyNodeForm = ({
   const popoverRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
   const debounceTimeoutRef = useRef<number | null>(null);
+  const selectedFileRef = useRef<TFile | null>(null);
 
   // Search for nodes when query changes (only in create mode)
   useEffect(() => {
@@ -231,12 +232,13 @@ export const ModifyNodeForm = ({
 
   const handleSelect = useCallback(
     async (file: TFile) => {
+      selectedFileRef.current = file;
       setSelectedExistingNode(file);
       setQuery(file.basename);
       setTitle(file.basename);
       // Auto-detect node type from the selected file's frontmatter
       const nodeTypeId = await getNodeTypeIdForFile(plugin, file);
-      if (nodeTypeId) {
+      if (nodeTypeId && selectedFileRef.current === file) {
         const detected = nodeTypes.find((nt) => nt.id === nodeTypeId);
         if (detected) setSelectedNodeType(detected);
       }
@@ -245,6 +247,7 @@ export const ModifyNodeForm = ({
   );
 
   const handleClearSelection = useCallback(() => {
+    selectedFileRef.current = null;
     setSelectedExistingNode(null);
     setQuery("");
     setTitle("");
@@ -274,7 +277,7 @@ export const ModifyNodeForm = ({
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (isOpen && searchResults[activeIndex]) {
-        handleSelect(searchResults[activeIndex]);
+        void handleSelect(searchResults[activeIndex]);
       } else if (isFormValid && !isSubmitting) {
         void handleConfirm();
       }
@@ -447,7 +450,7 @@ export const ModifyNodeForm = ({
                           }`}
                           onMouseDown={(e) => {
                             e.preventDefault();
-                            handleSelect(file);
+                            void handleSelect(file);
                           }}
                           onMouseEnter={() => setActiveIndex(index)}
                         >
