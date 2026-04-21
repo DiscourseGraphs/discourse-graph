@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { NODE_TYPE_DEFINITIONS, type ExtractedNode } from "~/types/extraction";
+import {
+  DEFAULT_MODEL_ID,
+  NODE_TYPE_DEFINITIONS,
+  type ExtractedNode,
+} from "~/types/extraction";
 import { buildSystemPrompt } from "~/prompts/extraction";
 import { MainContent } from "./components/MainContent";
 import { Sidebar } from "./components/Sidebar";
@@ -98,6 +102,7 @@ const ExtractNodesPage = (): React.ReactElement => {
   const [selectedTypes, setSelectedTypes] = useState(
     () => new Set(["#evd-candidate", "#clm-candidate"]),
   );
+  const [model, setModel] = useState(DEFAULT_MODEL_ID);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
   const [nodes] = useState<ExtractedNode[]>(SAMPLE_NODES);
@@ -132,7 +137,7 @@ const ExtractNodesPage = (): React.ReactElement => {
       const requestBody = {
         pdfBase64,
         provider: "anthropic",
-        model: "claude-sonnet-4-6",
+        model,
         systemPrompt,
       };
       const response = await fetch("/api/ai/extract", {
@@ -152,7 +157,7 @@ const ExtractNodesPage = (): React.ReactElement => {
     } finally {
       setIsExtracting(false);
     }
-  }, [pdfFile, researchQuestion, selectedTypes]);
+  }, [pdfFile, researchQuestion, selectedTypes, model]);
 
   return (
     <div className="flex h-full w-full flex-1 flex-col gap-4 p-4 lg:flex-row lg:gap-5 lg:p-5">
@@ -163,6 +168,8 @@ const ExtractNodesPage = (): React.ReactElement => {
         onResearchQuestionChange={setResearchQuestion}
         selectedTypes={selectedTypes}
         onToggleType={toggleType}
+        model={model}
+        onModelChange={setModel}
         onExtract={() => void handleExtract()}
         canExtract={canExtract}
         isExtracting={isExtracting}
