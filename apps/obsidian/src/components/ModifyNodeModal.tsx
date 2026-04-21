@@ -12,9 +12,9 @@ import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
 import { QueryEngine } from "~/services/QueryEngine";
 import { isProvisionalSchema } from "~/utils/typeUtils";
+import { getNodeTypeIdForFile } from "~/utils/relationsStore";
 
 const MAX_NODE_TITLE_LENGTH = 255;
-import { getNodeTypeIdForFile } from "~/utils/relationsStore";
 
 type ModifyNodeFormProps = {
   nodeTypes: DiscourseNode[];
