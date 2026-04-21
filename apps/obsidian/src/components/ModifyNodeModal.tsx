@@ -425,14 +425,14 @@ export const ModifyNodeForm = ({
                   setTimeout(() => setIsFocused(false), 200);
                 }}
                 disabled={isSubmitting}
-                maxLength={512}
+                maxLength={255}
                 rows={1}
                 className="font-inherit border-background-modifier-border bg-background-primary text-text-normal min-h-[2.5em] w-full resize-none overflow-hidden rounded-md border p-2"
                 autoComplete="off"
               />
               {query.length >= 512 && (
                 <p className="text-error mt-1 text-xs">
-                  Character limit reached (512)
+                  Character limit reached (255)
                 </p>
               )}
               {isOpen && !isEditMode && (
