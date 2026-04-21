@@ -26,7 +26,7 @@ type ModifyNodeSubmitParams = {
 
 const createModifyNodeModalSubmitHandler = (
   plugin: DiscourseGraphPlugin,
-  editor: Editor,
+  editor?: Editor,
 ): ((params: ModifyNodeSubmitParams) => Promise<void>) => {
   return async ({
     nodeType,
@@ -36,7 +36,9 @@ const createModifyNodeModalSubmitHandler = (
     relationshipTargetFile,
   }: ModifyNodeSubmitParams) => {
     if (selectedExistingNode) {
-      editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
+      if (editor) {
+        editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
+      }
       await addRelationIfRequested(plugin, selectedExistingNode, {
         relationshipId,
         relationshipTargetFile,
@@ -66,7 +68,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       const hasSelection = !!editor.getSelection();
 
       if (hasSelection) {
-        new NodeTypeModal(plugin, (nodeType) => {
+        new NodeTypeModal(plugin, (nodeType: DiscourseNode) => {
           void createDiscourseNode({
             plugin,
             editor,
@@ -91,10 +93,12 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
     id: "create-discourse-node",
     name: "Create discourse node",
-    editorCallback: (editor: Editor) => {
+    callback: () => {
       const currentFile =
         plugin.app.workspace.getActiveViewOfType(MarkdownView)?.file ||
         undefined;
+      const editor =
+        plugin.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
       new ModifyNodeModal(plugin.app, {
         nodeTypes: plugin.settings.nodeTypes,
         plugin,
