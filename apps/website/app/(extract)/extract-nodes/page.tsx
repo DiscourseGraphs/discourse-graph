@@ -62,6 +62,11 @@ const ExtractNodesPage = (): React.ReactElement => {
     setExtractionError(null);
   }, []);
 
+  const handleModelChange = useCallback((nextModel: string) => {
+    setModel(nextModel);
+    setExtractionError(null);
+  }, []);
+
   const canExtract = !!pdfFile && selectedTypes.size > 0 && !isExtracting;
 
   const handleExtract = useCallback(async () => {
@@ -121,7 +126,7 @@ const ExtractNodesPage = (): React.ReactElement => {
         selectedTypes={selectedTypes}
         onToggleType={handleToggleType}
         model={model}
-        onModelChange={setModel}
+        onModelChange={handleModelChange}
         onExtract={() => void handleExtract()}
         canExtract={canExtract}
         isExtracting={isExtracting}
