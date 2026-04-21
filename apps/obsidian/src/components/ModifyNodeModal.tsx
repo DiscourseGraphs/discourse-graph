@@ -91,7 +91,7 @@ export const ModifyNodeForm = ({
       setQuery(trimmed);
       setTitle(trimmed);
     }
-  }, [maxTitleLength]);
+  }, [maxTitleLength, query]);
 
   // Search for nodes when query changes (only in create mode)
   useEffect(() => {
