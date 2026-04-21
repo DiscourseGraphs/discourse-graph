@@ -136,11 +136,7 @@ class Pointing extends StateNode {
       }
     }
 
-    if (!target) {
-      this.createArrowShape();
-    } else {
-      this.editor.setHintingShapes([target.id]);
-    }
+    this.editor.setHintingShapes([target.id]);
 
     this.startPreciseTimeout();
   };

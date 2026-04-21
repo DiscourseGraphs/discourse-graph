@@ -1111,23 +1111,6 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
   }
 
   /**
-   * Validates if a connection between source and target node types is allowed
-   * for the given relation type, checking both directions of the relation.
-   */
-  isValidNodeConnection(
-    sourceNodeTypeId: string,
-    targetNodeTypeId: string,
-    relationTypeId: string,
-  ): boolean {
-    return isValidRelationConnection({
-      discourseRelations: this.options.plugin.settings.discourseRelations,
-      relationTypeId,
-      sourceNodeTypeId,
-      targetNodeTypeId,
-    });
-  }
-
-  /**
    * Reifies the relation in the relations JSON of both connected files.
    * This creates the bidirectional links that make the relation persistent.
    */
