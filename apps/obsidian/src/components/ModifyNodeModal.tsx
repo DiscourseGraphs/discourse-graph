@@ -12,6 +12,7 @@ import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
 import { QueryEngine } from "~/services/QueryEngine";
 import { isProvisionalSchema } from "~/utils/typeUtils";
+import { getNodeTypeIdForFile } from "~/utils/relationsStore";
 
 type ModifyNodeFormProps = {
   nodeTypes: DiscourseNode[];
@@ -145,6 +146,11 @@ export const ModifyNodeForm = ({
     }
   }, [activeIndex, isOpen]);
 
+  // Focus the content input on mount so users can start typing immediately
+  useEffect(() => {
+    titleInputRef.current?.focus();
+  }, []);
+
   // Determine available relationships based on current file and selected node type
   const availableRelationships = useMemo(() => {
     if (!currentFile || !selectedNodeType || isEditMode) {
@@ -223,11 +229,20 @@ export const ModifyNodeForm = ({
 
   const isFormValid = title.trim() && selectedNodeType;
 
-  const handleSelect = useCallback((file: TFile) => {
-    setSelectedExistingNode(file);
-    setQuery(file.basename);
-    setTitle(file.basename);
-  }, []);
+  const handleSelect = useCallback(
+    async (file: TFile) => {
+      setSelectedExistingNode(file);
+      setQuery(file.basename);
+      setTitle(file.basename);
+      // Auto-detect node type from the selected file's frontmatter
+      const nodeTypeId = await getNodeTypeIdForFile(plugin, file);
+      if (nodeTypeId) {
+        const detected = nodeTypes.find((nt) => nt.id === nodeTypeId);
+        if (detected) setSelectedNodeType(detected);
+      }
+    },
+    [nodeTypes, plugin],
+  );
 
   const handleClearSelection = useCallback(() => {
     setSelectedExistingNode(null);
@@ -354,25 +369,6 @@ export const ModifyNodeForm = ({
     <div>
       <h2>{isEditMode ? "Modify discourse node" : "Create discourse node"}</h2>
       <div className="setting-item">
-        <div className="setting-item-name">Type</div>
-        <div className="setting-item-control">
-          <select
-            value={selectedNodeType?.id || ""}
-            onChange={handleNodeTypeChange}
-            disabled={isSubmitting || isEditMode}
-            className="w-full"
-          >
-            <option value="">Select node type</option>
-            {nodeTypes.map((nodeType) => (
-              <option key={nodeType.id} value={nodeType.id}>
-                {nodeType.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="setting-item">
         <div className="setting-item-name">Content</div>
         <div className="setting-item-control">
           {selectedExistingNode ? (
@@ -433,18 +429,18 @@ export const ModifyNodeForm = ({
                     className="suggestion-list m-0 list-none py-1"
                   >
                     {isSearching ? (
-                      <li className="suggestion-item px-3 py-2 text-[var(--text-muted)]">
+                      <li className="suggestion-item py-2 text-[var(--text-muted)]">
                         Searching...
                       </li>
                     ) : searchResults.length === 0 ? (
-                      <li className="suggestion-item px-3 py-2 text-[var(--text-muted)]">
+                      <li className="suggestion-item py-2 text-[var(--text-muted)]">
                         No results found
                       </li>
                     ) : (
                       searchResults.map((file, index) => (
                         <li
                           key={file.path}
-                          className={`suggestion-item flex cursor-pointer items-center gap-2 px-3 py-2 ${
+                          className={`suggestion-item flex cursor-pointer items-center gap-2 py-2 ${
                             index === activeIndex
                               ? "is-selected bg-[var(--background-modifier-hover)]"
                               : "bg-transparent"
@@ -464,6 +460,25 @@ export const ModifyNodeForm = ({
               )}
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-name">Type</div>
+        <div className="setting-item-control">
+          <select
+            value={selectedNodeType?.id || ""}
+            onChange={handleNodeTypeChange}
+            disabled={isSubmitting || isEditMode}
+            className="w-full"
+          >
+            <option value="">Select node type</option>
+            {nodeTypes.map((nodeType) => (
+              <option key={nodeType.id} value={nodeType.id}>
+                {nodeType.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
