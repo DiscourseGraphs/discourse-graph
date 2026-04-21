@@ -84,6 +84,15 @@ export const ModifyNodeForm = ({
     );
   }, [selectedNodeType]);
 
+  // Trim existing text if switching node type reduces the allowed length
+  useEffect(() => {
+    if (query.length > maxTitleLength) {
+      const trimmed = query.slice(0, maxTitleLength);
+      setQuery(trimmed);
+      setTitle(trimmed);
+    }
+  }, [maxTitleLength]);
+
   // Search for nodes when query changes (only in create mode)
   useEffect(() => {
     if (isEditMode) {
