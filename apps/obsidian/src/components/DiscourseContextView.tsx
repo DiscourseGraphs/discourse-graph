@@ -5,6 +5,7 @@ import {
   Notice,
   FrontMatterCache,
   setIcon,
+  setTooltip,
 } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import DiscourseGraphPlugin from "~/index";
@@ -16,7 +17,7 @@ import { getNodeTypeById, getAndFormatImportSource } from "~/utils/typeUtils";
 import { refreshImportedFile } from "~/utils/importNodes";
 import { publishNode } from "~/utils/publishNode";
 import { createBaseForNodeType } from "~/utils/baseForNodeType";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 type DiscourseContextProps = {
   activeFile: TFile | null;
@@ -26,39 +27,16 @@ type InfoTooltipProps = {
   content: string;
 };
 
-const InfoTooltip = ({ content }: InfoTooltipProps) => {
-  const [visible, setVisible] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!visible) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setVisible(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [visible]);
-
-  return (
-    <div ref={ref} className="relative inline-flex items-center">
-      <button
-        className="clickable-icon text-muted hover:text-normal flex h-4 w-4 items-center justify-center"
-        onPointerEnter={(e) => e.pointerType === "mouse" && setVisible(true)}
-        onPointerLeave={(e) => e.pointerType === "mouse" && setVisible(false)}
-        onClick={() => setVisible((v) => !v)}
-      >
-        <div ref={(el) => (el && setIcon(el, "info")) || undefined} />
-      </button>
-      {visible && (
-        <div className="absolute left-6 top-0 z-50 w-56 rounded border border-gray-300 bg-gray-800 p-2 text-xs text-gray-100 shadow-md dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100">
-          {content}
-        </div>
-      )}
-    </div>
-  );
-};
+const InfoTooltip = ({ content }: InfoTooltipProps) => (
+  <button
+    ref={(el) => {
+      if (el) setTooltip(el, content);
+    }}
+    className="clickable-icon text-muted hover:text-normal flex h-4 w-4 items-center justify-center"
+  >
+    <div ref={(el) => (el && setIcon(el, "info")) || undefined} />
+  </button>
+);
 
 const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
   const plugin = usePlugin();
