@@ -12,6 +12,8 @@ import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
 import { QueryEngine } from "~/services/QueryEngine";
 import { isProvisionalSchema } from "~/utils/typeUtils";
+
+const MAX_NODE_TITLE_LENGTH = 255;
 import { getNodeTypeIdForFile } from "~/utils/relationsStore";
 
 type ModifyNodeFormProps = {
@@ -425,14 +427,14 @@ export const ModifyNodeForm = ({
                   setTimeout(() => setIsFocused(false), 200);
                 }}
                 disabled={isSubmitting}
-                maxLength={255}
+                maxLength={MAX_NODE_TITLE_LENGTH}
                 rows={1}
                 className="font-inherit border-background-modifier-border bg-background-primary text-text-normal min-h-[2.5em] w-full resize-none overflow-hidden rounded-md border p-2"
                 autoComplete="off"
               />
-              {query.length >= 512 && (
+              {query.length >= MAX_NODE_TITLE_LENGTH && (
                 <p className="text-error mt-1 text-xs">
-                  Character limit reached (255)
+                  Character limit reached ({MAX_NODE_TITLE_LENGTH})
                 </p>
               )}
               {isOpen && !isEditMode && (
