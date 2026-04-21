@@ -286,7 +286,7 @@ $$;
 
 COMMENT ON FUNCTION public.in_space IS 'security utility: does current user have access to this space?';
 
-CREATE OR REPLACE FUNCTION public.account_in_shared_space(p_account_id BIGINT) RETURNS boolean
+CREATE OR REPLACE FUNCTION public.account_in_shared_space(p_account_id BIGINT, access_level public."SpaceAccessPermissions" = 'reader') RETURNS boolean
 STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql AS $$
@@ -296,7 +296,7 @@ LANGUAGE sql AS $$
       JOIN public."SpaceAccess" AS sa USING (space_id)
       JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
       WHERE la.account_id = p_account_id
-      AND sa.permissions >= 'reader'
+      AND sa.permissions >= access_level
     );
 $$;
 
@@ -459,7 +459,7 @@ WHERE id IN (
 DROP POLICY IF EXISTS platform_account_policy ON public."PlatformAccount";
 
 DROP POLICY IF EXISTS platform_account_select_policy ON public."PlatformAccount";
-CREATE POLICY platform_account_select_policy ON public."PlatformAccount" FOR SELECT USING (dg_account = (SELECT auth.uid() LIMIT 1) OR public.account_in_shared_space(id));
+CREATE POLICY platform_account_select_policy ON public."PlatformAccount" FOR SELECT USING (dg_account = (SELECT auth.uid() LIMIT 1) OR public.account_in_shared_space(id, 'partial'));
 
 DROP POLICY IF EXISTS platform_account_delete_policy ON public."PlatformAccount";
 CREATE POLICY platform_account_delete_policy ON public."PlatformAccount" FOR DELETE USING (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
