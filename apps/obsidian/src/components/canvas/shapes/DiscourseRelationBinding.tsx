@@ -159,8 +159,8 @@ export class BaseRelationBindingUtil extends BindingUtil<RelationBinding> {
         BaseRelationBindingUtil.reifiedArrows.add(arrow.id);
         const util = editor.getShapeUtil(arrow);
         if (util instanceof DiscourseRelationUtil) {
-          util.reifyRelationInFrontmatter(arrow, bindings).catch((error) => {
-            console.error("Failed to reify relation in frontmatter:", error);
+          util.reifyRelation(arrow, bindings).catch((error) => {
+            console.error("Failed to reify relation:", error);
             // Remove from reified set on error so it can be retried
             BaseRelationBindingUtil.reifiedArrows.delete(arrow.id);
           });

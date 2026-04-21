@@ -2,9 +2,12 @@ import { StateNode, TLEventHandlers, TLStateNodeConstructor } from "tldraw";
 import { createShapeId } from "tldraw";
 import type { TFile } from "obsidian";
 import DiscourseGraphPlugin from "~/index";
-import { getRelationTypeById, isAcceptedSchema } from "~/utils/typeUtils";
+import { getNodeTypeById, getRelationTypeById } from "~/utils/typeUtils";
+import {
+  getCompatibleTargetNodeTypeIds,
+  getDiscourseNodeTypeId,
+} from "~/components/canvas/utils/relationTypeUtils";
 import { DiscourseRelationShape } from "./shapes/DiscourseRelationShape";
-import { getNodeTypeById } from "~/utils/typeUtils";
 import { showToast } from "./utils/toastUtils";
 import { toTldrawColor } from "~/utils/tldrawColors";
 
@@ -88,40 +91,6 @@ class Pointing extends StateNode {
     this.cancel();
   };
 
-  private getCompatibleNodeTypes = (
-    plugin: DiscourseGraphPlugin,
-    relationTypeId: string,
-    sourceNodeTypeId: string,
-  ): string[] => {
-    const compatibleTypes: string[] = [];
-
-    // Find all accepted discourse relations that match the relation type and source
-    const relations = plugin.settings.discourseRelations.filter(
-      (relation) =>
-        isAcceptedSchema(relation) &&
-        relation.relationshipTypeId === relationTypeId &&
-        relation.sourceId === sourceNodeTypeId,
-    );
-
-    relations.forEach((relation) => {
-      compatibleTypes.push(relation.destinationId);
-    });
-
-    // Also check reverse relations (where current node is destination)
-    const reverseRelations = plugin.settings.discourseRelations.filter(
-      (relation) =>
-        isAcceptedSchema(relation) &&
-        relation.relationshipTypeId === relationTypeId &&
-        relation.destinationId === sourceNodeTypeId,
-    );
-
-    reverseRelations.forEach((relation) => {
-      compatibleTypes.push(relation.sourceId);
-    });
-
-    return [...new Set(compatibleTypes)]; // Remove duplicates
-  };
-
   override onEnter = () => {
     this.didTimeout = false;
 
@@ -143,8 +112,7 @@ class Pointing extends StateNode {
       return;
     }
 
-    const sourceNodeTypeId = (target as { props?: { nodeTypeId?: string } })
-      .props?.nodeTypeId;
+    const sourceNodeTypeId = getDiscourseNodeTypeId(target);
     if (!sourceNodeTypeId) {
       this.showWarning("Source node must have a valid node type");
       return;
@@ -152,11 +120,11 @@ class Pointing extends StateNode {
 
     // Check if this source node type can create relations of this type
     if (sourceNodeTypeId) {
-      const compatibleTargetTypes = this.getCompatibleNodeTypes(
-        plugin,
+      const compatibleTargetTypes = getCompatibleTargetNodeTypeIds({
+        discourseRelations: plugin.settings.discourseRelations,
         relationTypeId,
         sourceNodeTypeId,
-      );
+      });
 
       if (compatibleTargetTypes.length === 0) {
         const sourceNodeType = getNodeTypeById(plugin, sourceNodeTypeId);
@@ -168,11 +136,7 @@ class Pointing extends StateNode {
       }
     }
 
-    if (!target) {
-      this.createArrowShape();
-    } else {
-      this.editor.setHintingShapes([target.id]);
-    }
+    this.editor.setHintingShapes([target.id]);
 
     this.startPreciseTimeout();
   };
