@@ -40,6 +40,8 @@ const ExtractNodesPage = (): React.ReactElement => {
   const handleFileSelect = useCallback((file: File) => {
     setPdfFile(file);
     setExtractionError(null);
+    setNodes([]);
+    setHasExtracted(false);
   }, []);
 
   const handleResearchQuestionChange = useCallback((value: string) => {
