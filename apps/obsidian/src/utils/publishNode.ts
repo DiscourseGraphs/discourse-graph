@@ -16,6 +16,8 @@ import {
   syncAllNodesAndRelations,
   syncPublishedNodeAssets,
 } from "./syncDgNodesToSupabase";
+import { isProvisionalSchema } from "./typeUtils";
+
 import type { DiscourseNodeInVault } from "./getDiscourseNodes";
 import type { SupabaseContext } from "./supabaseContext";
 import type { TablesInsert } from "@repo/database/dbTypes";
@@ -127,6 +129,12 @@ export const publishNewRelation = async (
       triple.destinationId === destinationFm.nodeTypeId,
   );
   if (!triple) return false;
+  if (isProvisionalSchema(triple)) return false;
+  const relationType = plugin.settings.relationTypes.find(
+    (rt) => rt.id === relation.type,
+  );
+  if (relationType && isProvisionalSchema(relationType)) return false;
+  if (relation.tentative === false) return false;
   const resourceIds = [relation.id, relation.type, triple.id];
   const myGroups = await getAvailableGroupIds(client);
   const targetGroups = intersection(

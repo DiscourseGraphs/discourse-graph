@@ -229,7 +229,11 @@ const ResultRow = ({
       return (
         <Button
           {...buttonProps}
-          onClick={() => {
+          onClick={(event) => {
+            const targetCanvasPageUid =
+              event.currentTarget.closest<HTMLElement>(
+                ".roamjs-tldraw-canvas-container[data-page-uid]",
+              )?.dataset.pageUid || undefined;
             document.dispatchEvent(
               new CustomEvent("roamjs:query-builder:action", {
                 detail: {
@@ -238,6 +242,7 @@ const ResultRow = ({
                   val: r["text"],
                   onRefresh,
                   queryUid: parentUid,
+                  targetCanvasPageUid,
                 },
               }),
             );
@@ -619,6 +624,7 @@ const ResultsTable = ({
     });
     setColumnWidths(finalWidths);
 
+    if (preventSavingSettings) return;
     const layoutUid = getSubTree({ parentUid, key: "layout" }).uid;
     if (layoutUid) {
       setInputSettings({
@@ -627,7 +633,7 @@ const ResultsTable = ({
         values: Object.entries(finalWidths).map(([k, v]) => `${k} - ${v}`),
       });
     }
-  }, [parentUid, columnWidths, visibleColumns]);
+  }, [parentUid, columnWidths, visibleColumns, preventSavingSettings]);
 
   const resultHeaderSetFilters = React.useCallback(
     (fs: FilterData) => {

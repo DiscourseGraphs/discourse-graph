@@ -11,6 +11,7 @@ import {
 import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
 import { QueryEngine } from "~/services/QueryEngine";
+import { isProvisionalSchema } from "~/utils/typeUtils";
 
 type ModifyNodeFormProps = {
   nodeTypes: DiscourseNode[];
@@ -159,13 +160,17 @@ export const ModifyNodeForm = ({
       return [];
     }
 
-    // Find all relations that connect the current node type to the selected node type
+    // Find all accepted relations that connect the current node type to the selected node type
     const relevantRelations = plugin.settings.discourseRelations.filter(
-      (relation) =>
-        (relation.sourceId === currentNodeTypeId &&
-          relation.destinationId === selectedNodeType.id) ||
-        (relation.sourceId === selectedNodeType.id &&
-          relation.destinationId === currentNodeTypeId),
+      (relation) => {
+        if (isProvisionalSchema(relation)) return false;
+        return (
+          (relation.sourceId === currentNodeTypeId &&
+            relation.destinationId === selectedNodeType.id) ||
+          (relation.sourceId === selectedNodeType.id &&
+            relation.destinationId === currentNodeTypeId)
+        );
+      },
     );
 
     const relations = relevantRelations
@@ -173,7 +178,7 @@ export const ModifyNodeForm = ({
         const relationType = plugin.settings.relationTypes.find(
           (rt) => rt.id === relation.relationshipTypeId,
         );
-        if (!relationType) return null;
+        if (!relationType || isProvisionalSchema(relationType)) return null;
 
         const isCurrentFileSource = relation.sourceId === currentNodeTypeId;
         return {
