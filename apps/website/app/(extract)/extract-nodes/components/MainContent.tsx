@@ -5,7 +5,7 @@ import { Badge } from "@repo/ui/components/ui/badge";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
-import { Copy } from "lucide-react";
+import { Copy, Loader2 } from "lucide-react";
 import {
   NODE_TYPE_DEFINITIONS,
   type ExtractedNode,
@@ -142,14 +142,10 @@ export const MainContent = ({
   if (isExtracting && nodes.length === 0) {
     return (
       <section className="flex min-h-96 flex-1 items-center justify-center overflow-hidden rounded-3xl border border-slate-200/85 bg-white shadow-xl">
-        <div className="text-center">
-          <p className="text-lg font-medium text-slate-500">
-            Extracting nodes from the PDF…
-          </p>
-          <p className="mt-1 text-sm text-slate-400">
-            This usually takes under a minute.
-          </p>
-        </div>
+        <Loader2
+          aria-label="Extracting nodes"
+          className="h-10 w-10 animate-spin text-slate-400"
+        />
       </section>
     );
   }
