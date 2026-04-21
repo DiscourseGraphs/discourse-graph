@@ -13,8 +13,13 @@ import type DiscourseGraphPlugin from "~/index";
 import { QueryEngine } from "~/services/QueryEngine";
 import { isProvisionalSchema } from "~/utils/typeUtils";
 import { getNodeTypeIdForFile } from "~/utils/relationsStore";
+import { formatNodeName } from "~/utils/createNode";
 
-const MAX_NODE_TITLE_LENGTH = 255;
+// macOS/APFS limit: full filename (including extension) must be ≤ 255 bytes.
+// The file is stored as `{formattedNodeName}.md`, so the formatted name itself
+// can be at most 252 chars (255 - 3 for ".md").
+const MAX_FILENAME_LENGTH = 255;
+const MD_EXTENSION_LENGTH = ".md".length;
 
 type ModifyNodeFormProps = {
   nodeTypes: DiscourseNode[];
@@ -66,6 +71,18 @@ export const ModifyNodeForm = ({
   const menuRef = useRef<HTMLUListElement>(null);
   const debounceTimeoutRef = useRef<number | null>(null);
   const selectedFileRef = useRef<TFile | null>(null);
+
+  // The format prefix/suffix (e.g. "CLM - ") and ".md" extension all count
+  // toward the 255-byte filename limit. Compute how many chars the user can type.
+  const maxTitleLength = useMemo(() => {
+    const formatOverhead = selectedNodeType
+      ? (formatNodeName("", selectedNodeType)?.length ?? 0)
+      : 0;
+    return Math.max(
+      1,
+      MAX_FILENAME_LENGTH - MD_EXTENSION_LENGTH - formatOverhead,
+    );
+  }, [selectedNodeType]);
 
   // Search for nodes when query changes (only in create mode)
   useEffect(() => {
@@ -133,7 +150,7 @@ export const ModifyNodeForm = ({
       popover.style.left = `${inputRect.left}px`;
       popover.style.width = `${inputRect.width}px`;
     }
-  }, [isOpen]);
+  }, [isOpen, query]);
 
   useEffect(() => {
     if (menuRef.current && isOpen && activeIndex >= 0) {
@@ -391,7 +408,7 @@ export const ModifyNodeForm = ({
                 readOnly
                 disabled={isSubmitting}
                 rows={1}
-                className="font-inherit border-background-modifier-border bg-background-secondary text-text-normal min-h-[2.5em] w-full cursor-default resize-none overflow-hidden rounded-md border p-2 pr-8"
+                className="font-inherit border-background-modifier-border bg-background-secondary text-text-normal min-h-[2.5em] w-full cursor-default resize-none overflow-y-auto rounded-md border p-2 pr-8"
               />
               <button
                 onClick={handleClearSelection}
@@ -427,14 +444,14 @@ export const ModifyNodeForm = ({
                   setTimeout(() => setIsFocused(false), 200);
                 }}
                 disabled={isSubmitting}
-                maxLength={MAX_NODE_TITLE_LENGTH}
+                maxLength={maxTitleLength}
                 rows={1}
                 className="font-inherit border-background-modifier-border bg-background-primary text-text-normal min-h-[2.5em] w-full resize-none overflow-hidden rounded-md border p-2"
                 autoComplete="off"
               />
-              {query.length >= MAX_NODE_TITLE_LENGTH && (
+              {query.length >= maxTitleLength && (
                 <p className="text-error mt-1 text-xs">
-                  Character limit reached ({MAX_NODE_TITLE_LENGTH})
+                  Character limit reached ({maxTitleLength})
                 </p>
               )}
               {isOpen && !isEditMode && (
