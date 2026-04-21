@@ -200,7 +200,7 @@ const NodeConfig = ({
                     <span className="text-xs italic text-gray-400">
                       Preview:
                     </span>
-                    <span style={getNodeTagStyles(color)}>
+                    <span style={color ? getNodeTagStyles(color) : undefined}>
                       #{tagValue.replace(/^#/, "")}
                     </span>
                   </div>

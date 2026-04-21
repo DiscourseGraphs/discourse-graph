@@ -143,9 +143,8 @@ export const initObservers = async ({
           const normalizedNodeTag = node.tag ? getCleanTagText(node.tag) : "";
           if (normalizedTag === normalizedNodeTag) {
             renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
-            const tagStyles = getNodeTagStyles(
-              node.canvasSettings?.color ?? "",
-            );
+            const color = node.canvasSettings?.color ?? "";
+            const tagStyles = color ? getNodeTagStyles(color) : {};
             if (tagStyles) {
               Object.assign(s.style, tagStyles);
             }
