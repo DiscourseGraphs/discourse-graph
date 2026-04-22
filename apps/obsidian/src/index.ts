@@ -330,12 +330,13 @@ export default class DiscourseGraphPlugin extends Plugin {
       if (!this.settings.showIdsInFrontmatter) {
         keysToHide.push(
           ...[
-            "nodeTypeId",
-            "importedFromRid",
-            "nodeInstanceId",
-            "publishedToGroups",
-            "lastModified",
+            "authorName",
             "importedAssets",
+            "importedFromRid",
+            "lastModified",
+            "nodeInstanceId",
+            "nodeTypeId",
+            "publishedToGroups",
           ],
         );
         keysToHide.push(...this.settings.relationTypes.map((rt) => rt.id));

@@ -36,6 +36,16 @@ export const getAvailableGroupIds = async (
   return (data || []).map((g) => g.group_id);
 };
 
+type publishedNode = {
+  source_local_id: string;
+  space_id: number;
+  text: string;
+  createdAt: number;
+  modifiedAt: number;
+  filePath: string | undefined;
+  authorName: string | undefined;
+};
+
 export const getPublishedNodesForGroups = async ({
   client,
   groupIds,
@@ -44,16 +54,7 @@ export const getPublishedNodesForGroups = async ({
   client: DGSupabaseClient;
   groupIds: string[];
   currentSpaceId: number;
-}): Promise<
-  Array<{
-    source_local_id: string;
-    space_id: number;
-    text: string;
-    createdAt: number;
-    modifiedAt: number;
-    filePath: string | undefined;
-  }>
-> => {
+}): Promise<Array<publishedNode>> => {
   if (groupIds.length === 0) {
     return [];
   }
@@ -63,7 +64,7 @@ export const getPublishedNodesForGroups = async ({
   const { data, error } = await client
     .from("my_contents")
     .select(
-      "source_local_id, space_id, text, created, last_modified, variant, metadata",
+      "source_local_id, space_id, text, created, last_modified, variant, metadata, author:my_accounts!author_id(name)",
     )
     .neq("space_id", currentSpaceId);
 
@@ -83,6 +84,7 @@ export const getPublishedNodesForGroups = async ({
     created: string | null;
     last_modified: string | null;
     variant: string | null;
+    author: { name: string } | null;
     metadata: Json;
   };
 
@@ -95,14 +97,7 @@ export const getPublishedNodesForGroups = async ({
     groups.get(k)!.push(row);
   }
 
-  const nodes: Array<{
-    source_local_id: string;
-    space_id: number;
-    text: string;
-    createdAt: number;
-    modifiedAt: number;
-    filePath: string | undefined;
-  }> = [];
+  const nodes: Array<publishedNode> = [];
 
   for (const rows of groups.values()) {
     const withDate = rows.filter(
@@ -133,6 +128,7 @@ export const getPublishedNodesForGroups = async ({
       createdAt,
       modifiedAt,
       filePath,
+      authorName: latest.author ? latest.author.name : undefined,
     });
   }
 
@@ -975,6 +971,7 @@ type ParsedFrontmatter = {
   nodeTypeId?: string;
   nodeInstanceId?: string;
   publishedToGroups?: string[];
+  authorName?: string;
   [key: string]: unknown;
 };
 
@@ -1105,6 +1102,7 @@ const processFileContent = async ({
   filePath,
   importedCreatedAt,
   importedModifiedAt,
+  authorName,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
@@ -1115,6 +1113,7 @@ const processFileContent = async ({
   filePath: string;
   importedCreatedAt?: number;
   importedModifiedAt?: number;
+  authorName?: string;
 }): Promise<
   { file: TFile; error?: never } | { file?: never; error: string }
 > => {
@@ -1173,6 +1172,7 @@ const processFileContent = async ({
         "note",
       );
       record.lastModified = importedModifiedAt;
+      if (authorName) record.authorName = authorName;
     },
     stat,
   );
@@ -1322,6 +1322,7 @@ export const importSelectedNodes = async ({
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
+          authorName: node.authorName,
         });
 
         if (result.error) {

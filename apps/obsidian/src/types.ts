@@ -97,6 +97,7 @@ export type ImportableNode = {
   createdAt?: number;
   modifiedAt?: number;
   filePath?: string;
+  authorName?: string;
 };
 
 export type GroupWithNodes = {

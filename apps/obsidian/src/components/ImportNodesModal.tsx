@@ -120,6 +120,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
           createdAt: node.createdAt,
           modifiedAt: node.modifiedAt,
           filePath: node.filePath,
+          authorName: node.authorName,
         });
       }
 
