@@ -1,7 +1,6 @@
 import {
   Button,
   Classes,
-  Colors,
   Dialog,
   Intent,
   Label,
@@ -588,12 +587,6 @@ const ModifyNodeDialog = ({
                     mode === "edit" || disableNodeTypeChange || isContentLocked
                       ? "cursor-not-allowed opacity-50"
                       : "",
-                  onFocus: (e) => {
-                    e.currentTarget.style.boxShadow = `0 0 0 2px ${Colors.BLUE3}, 0 0 0 4px ${Colors.BLUE3}4d`;
-                  },
-                  onBlur: (e) => {
-                    e.currentTarget.style.boxShadow = "";
-                  },
                 }}
               />
             </Label>
