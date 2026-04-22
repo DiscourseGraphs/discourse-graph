@@ -185,7 +185,7 @@ export const migrateImportFolderMetadata = async (
       await writeImportFolderMetadata({
         adapter,
         folderPath,
-        metadata: { spaceUri, spaceName: basename },
+        metadata: { spaceUri, spaceName: spaceNames[spaceUri] ?? basename },
       });
     } else {
       console.debug(
