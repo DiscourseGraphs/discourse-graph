@@ -342,18 +342,10 @@ const SectionItem = memo(
       }
     }, [childInput, section, addChildToSection]);
 
-    const setPageValue = useCallback(
-      (value: string) => {
-        const input = document.getElementById(
-          `sectionPageInput-${section.uid}`,
-        ) as HTMLInputElement;
-        if (input) {
-          input.value = value;
-          setChildInput(value);
-        }
-      },
-      [section],
-    );
+    const setPageValue = useCallback((value: string) => {
+      setChildInput(value);
+      setChildInputKey((prev) => prev + 1);
+    }, []);
 
     const sectionWithoutSettingsAndChildren =
       (!section.settings && section.children?.length === 0) ||
@@ -432,7 +424,6 @@ const SectionItem = memo(
             <div className="ml-6 mt-3">
               <div className="mb-2 flex items-center gap-2">
                 <AutocompleteInput
-                  id={`sectionPageInput-${section.uid}`}
                   key={childInputKey}
                   value={childInput}
                   setValue={setChildInput}

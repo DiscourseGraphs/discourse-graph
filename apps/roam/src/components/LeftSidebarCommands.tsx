@@ -14,10 +14,6 @@ export const commands: Record<string, (ola: OnloadArgs) => Promise<void>> = {
 };
 
 export const sidebarCommandPopover = (onSelect: (value: string) => void) => {
-  const handleClick = (event: MouseEvent) => {
-    onSelect((event.target as Node).textContent!);
-  };
-
   return (
     <Popover
       content={
@@ -26,7 +22,7 @@ export const sidebarCommandPopover = (onSelect: (value: string) => void) => {
             <MenuItem
               key={commandName}
               text={commandName}
-              onClick={handleClick}
+              onClick={() => onSelect(commandName)}
             />
           ))}
         </Menu>

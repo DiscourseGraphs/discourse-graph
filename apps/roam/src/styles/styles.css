@@ -179,6 +179,6 @@
   border-style: solid;
 }
 
-.roam-sidebar-container .bp3-button:not([class*="bp3-intent-"]) :hover {
+/*.roam-sidebar-container .bp3-button:not([class*="bp3-intent-"]):hover {
   color: #f5f8fa;
-}
+}*/

@@ -95,7 +95,6 @@ const LeftSidebarGlobalSectionsContent = ({
   const [autocompleteKey, setAutocompleteKey] = useState(0);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
-  const addPageInputId = "globalAddPageId";
 
   const pageNames = useMemo(() => getAllPageNames(), []);
   const commandNames = Object.keys(commands);
@@ -267,17 +266,10 @@ const LeftSidebarGlobalSectionsContent = ({
     setNewPageInput(value);
   }, []);
 
-  const setPageValue = useCallback(
-    (value: string) => {
-      const input = document.getElementById(addPageInputId) as HTMLInputElement;
-      if (input) {
-        input.value = value;
-        handlePageInputChange(value);
-      }
-    },
-    [handlePageInputChange],
-  );
-
+  const setPageValue = useCallback((value: string) => {
+    setNewPageInput(value);
+    setAutocompleteKey((prev) => prev + 1);
+  }, []);
   const toggleChildren = useCallback(() => {
     setIsExpanded((prev) => !prev);
   }, []);
@@ -355,7 +347,6 @@ const LeftSidebarGlobalSectionsContent = ({
             </div>
             <div className="sidebarCommandPopoverContainer mb-3 flex items-center gap-2">
               <AutocompleteInput
-                id={addPageInputId}
                 key={autocompleteKey}
                 value={newPageInput}
                 setValue={handlePageInputChange}
