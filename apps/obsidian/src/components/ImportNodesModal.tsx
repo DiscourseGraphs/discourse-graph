@@ -106,15 +106,18 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
             groupName:
               spaceNames.get(node.space_id) ?? `Space ${node.space_id}`,
             nodes: [],
+            authors: new Set(),
           });
         }
 
         const group = grouped.get(groupId)!;
+        const spaceName =
+          spaceNames.get(node.space_id) ?? `Space ${node.space_id}`;
         group.nodes.push({
           nodeInstanceId: node.source_local_id,
           title: node.text,
           spaceId: node.space_id,
-          spaceName: spaceNames.get(node.space_id) ?? `Space ${node.space_id}`,
+          spaceName,
           groupId,
           selected: false,
           createdAt: node.createdAt,
@@ -122,6 +125,8 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
           filePath: node.filePath,
           authorName: node.authorName,
         });
+        if (node.authorName && node.authorName !== spaceName)
+          group.authors.add(node.authorName);
       }
 
       setGroupsWithNodes(Array.from(grouped.values()));
@@ -259,6 +264,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       number,
       {
         spaceName: string;
+        authors: Set<string>;
         nodes: Array<{
           node: ImportableNode;
           groupId: string;
@@ -272,6 +278,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         if (!nodesBySpace.has(node.spaceId)) {
           nodesBySpace.set(node.spaceId, {
             spaceName: node.spaceName,
+            authors: group.authors,
             nodes: [],
           });
         }
@@ -323,7 +330,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
 
         <div className="max-h-96 overflow-y-auto rounded border">
           {Array.from(nodesBySpace.entries()).map(
-            ([spaceId, { spaceName, nodes }]) => {
+            ([spaceId, { spaceName, nodes, authors }]) => {
               return (
                 <div key={spaceId} className="border-b">
                   <div className="bg-muted/10 flex items-center px-3 py-2">
@@ -331,6 +338,9 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
                     <span className="text-accent-foreground line-clamp-1 font-medium italic">
                       {spaceName}
                     </span>
+                    {authors.size === 1 && (
+                      <span>&nbsp;({[...authors][0]})</span>
+                    )}
                     <span className="text-muted ml-2 text-sm">
                       ({nodes.length} node{nodes.length !== 1 ? "s" : ""})
                     </span>
@@ -350,6 +360,13 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
                       <div className="min-w-0 flex-1">
                         <div className="line-clamp-3 font-medium">
                           {node.title}
+                          {node.authorName &&
+                            authors.size > 1 &&
+                            node.authorName !== spaceName && (
+                              <span className="font-light">
+                                &nbsp;({node.authorName})
+                              </span>
+                            )}
                         </div>
                       </div>
                     </div>

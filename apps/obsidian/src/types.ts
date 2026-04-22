@@ -104,6 +104,7 @@ export type GroupWithNodes = {
   groupId: string;
   groupName?: string;
   nodes: ImportableNode[];
+  authors: Set<string>;
 };
 
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";
