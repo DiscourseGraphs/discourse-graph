@@ -44,72 +44,84 @@ const NodeSpecification = ({
 
   React.useEffect(() => {
     if (enabled) {
-      const scratchNode = getSubTree({ parentUid, key: "scratch" });
-      if (
-        !scratchNode.children.length ||
-        !getSubTree({ tree: scratchNode.children, key: "conditions" }).children
-          .length
-      ) {
-        const conditionsUid = getSubTree({
-          parentUid: scratchNode.uid,
+      (async () => {
+        const scratchNode = getSubTree({
+          tree: getBasicTreeByParentUid(parentUid),
+          key: "scratch",
+        });
+        const conditionsNode = getSubTree({
+          tree: scratchNode.children,
           key: "conditions",
-        }).uid;
-        const returnUid = getSubTree({
-          parentUid: scratchNode.uid,
-          key: "return",
-        }).uid;
-        createBlock({
-          parentUid: returnUid,
-          node: {
-            text: node.text,
-          },
-        })
-          .then(() =>
-            createBlock({
-              parentUid: conditionsUid,
-              node: {
-                text: "clause",
-                children: [
-                  { text: "source", children: [{ text: node.text }] },
-                  { text: "relation", children: [{ text: "has title" }] },
-                  {
-                    text: "target",
-                    children: [
-                      {
-                        text: `/${
-                          getDiscourseNodeFormatExpression(node.format).source
-                        }/`,
-                      },
-                    ],
-                  },
-                ],
-              },
-            }),
-          )
-          .then(() => {
-            setDiscourseNodeSetting(
-              node.type,
-              [DISCOURSE_NODE_KEYS.specification, SPECIFICATION_KEYS.query],
-              {
-                conditions: [
-                  {
-                    type: "clause" as const,
-                    source: node.text,
-                    relation: "has title",
-                    target: `/${getDiscourseNodeFormatExpression(node.format).source}/`,
-                  },
-                ],
-                selections: [],
-                custom: "",
-                returnNode: node.text,
-              },
-            );
-            setMigrated(true);
+        });
+        if (!scratchNode.children.length || !conditionsNode.children.length) {
+          const scratchUid =
+            scratchNode.uid ||
+            (await createBlock({ parentUid, node: { text: "scratch" } }));
+          const conditionsUid =
+            conditionsNode.uid ||
+            (await createBlock({
+              parentUid: scratchUid,
+              node: { text: "conditions" },
+            }));
+          const returnUid =
+            getSubTree({ tree: scratchNode.children, key: "return" }).uid ||
+            (await createBlock({
+              parentUid: scratchUid,
+              node: { text: "return" },
+            }));
+          createBlock({
+            parentUid: returnUid,
+            node: {
+              text: node.text,
+            },
           })
-          .catch((error) => {
-            internalError({ error });
-          });
-      }
+            .then(() =>
+              createBlock({
+                parentUid: conditionsUid,
+                node: {
+                  text: "clause",
+                  children: [
+                    { text: "source", children: [{ text: node.text }] },
+                    { text: "relation", children: [{ text: "has title" }] },
+                    {
+                      text: "target",
+                      children: [
+                        {
+                          text: `/${
+                            getDiscourseNodeFormatExpression(node.format).source
+                          }/`,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              }),
+            )
+            .then(() => {
+              setDiscourseNodeSetting(
+                node.type,
+                [DISCOURSE_NODE_KEYS.specification, SPECIFICATION_KEYS.query],
+                {
+                  conditions: [
+                    {
+                      type: "clause" as const,
+                      source: node.text,
+                      relation: "has title",
+                      target: `/${getDiscourseNodeFormatExpression(node.format).source}/`,
+                    },
+                  ],
+                  selections: [],
+                  custom: "",
+                  returnNode: node.text,
+                },
+              );
+              setMigrated(true);
+            })
+            .catch((error) => {
+              internalError({ error });
+            });
+        }
+      })().catch((error) => internalError({ error }));
     } else {
       const tree = getBasicTreeByParentUid(parentUid);
       const scratchNode = getSubTree({ tree, key: "scratch" });
