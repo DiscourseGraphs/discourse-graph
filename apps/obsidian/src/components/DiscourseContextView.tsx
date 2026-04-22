@@ -161,6 +161,13 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
       !isImported &&
       !!frontmatter.nodeTypeId;
 
+    const formattedVaultName = isImported
+      ? getAndFormatImportSource(
+          frontmatter.importedFromRid as string,
+          plugin.settings.spaceNames,
+        )
+      : "";
+
     return (
       <>
         <div className="mb-6">
@@ -232,7 +239,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
                 View only
               </span>
               <InfoTooltip
-                content={`Imported from ${getAndFormatImportSource(frontmatter.importedFromRid as string, plugin.settings.spaceNames)}. Direct edits will be overwritten when refreshed.`}
+                content={`Imported from ${formattedVaultName}. Direct edits will be overwritten when refreshed.`}
               />
             </div>
           )}
@@ -244,6 +251,13 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
             </div>
           )}
 
+          {isImported &&
+            frontmatter.authorName &&
+            `Vault ${frontmatter.authorName}` !== formattedVaultName && (
+              <div className="text-modifier-text mt-2 text-xs">
+                <div>Author: {frontmatter.authorName}</div>
+              </div>
+            )}
           {isImported && sourceDates && (
             <div className="text-modifier-text mt-2 text-xs">
               <div>Created in source: {sourceDates.createdAt}</div>
