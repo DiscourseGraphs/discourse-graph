@@ -331,6 +331,7 @@ export const ModifyNodeForm = ({
     setSelectedNodeType(newSelectedType);
 
     if (selectedExistingNode) {
+      selectedFileRef.current = null;
       setSelectedExistingNode(null);
       setQuery("");
       setTitle("");
