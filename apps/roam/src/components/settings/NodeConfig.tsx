@@ -3,15 +3,28 @@ import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
-import { Label, Tabs, Tab, TabId } from "@blueprintjs/core";
+import {
+  Label,
+  Tabs,
+  Tab,
+  TabId,
+  InputGroup,
+  ControlGroup,
+  Tooltip,
+  Icon,
+} from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
-import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
+import DiscourseNodeCanvasSettings, {
+  formatHexColor,
+} from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
+import setInputSetting from "roamjs-components/util/setInputSetting";
 import {
   getDiscourseNodeSetting,
   isSyncEnabled,
+  setDiscourseNodeSetting,
 } from "~/components/settings/utils/accessors";
 import {
   DISCOURSE_NODE_KEYS,
@@ -19,6 +32,7 @@ import {
   TEMPLATE_SETTING_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
+import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import {
   DiscourseNodeTextPanel,
   DiscourseNodeFlagPanel,
@@ -69,6 +83,10 @@ const NodeConfig = ({
     parentUid: node.type,
     key: "Attributes",
   });
+
+  const [color, setColor] = useState<string>(() =>
+    formatHexColor(node.canvasSettings?.color ?? ""),
+  );
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
   const [tagError, setTagError] = useState("");
@@ -169,19 +187,77 @@ const NodeConfig = ({
                 parentUid={node.type}
                 uid={shortcutUid}
               />
-              <DiscourseNodeTextPanel
-                nodeType={node.type}
-                title="Tag"
-                description={`Designate a hashtag for marking potential ${node.text}.`}
-                settingKeys={[DISCOURSE_NODE_KEYS.tag]}
-                initialValue={node.tag}
-                placeholder={generateTagPlaceholder(node)}
-                error={tagError}
-                onChange={setTagValue}
-                order={2}
-                parentUid={node.type}
-                uid={tagUid}
-              />
+              <div>
+                <DiscourseNodeTextPanel
+                  nodeType={node.type}
+                  title="Tag"
+                  description={`Designate a hashtag for marking potential ${node.text}.`}
+                  settingKeys={[DISCOURSE_NODE_KEYS.tag]}
+                  initialValue={node.tag}
+                  placeholder={generateTagPlaceholder(node)}
+                  error={tagError}
+                  onChange={setTagValue}
+                  order={2}
+                  parentUid={node.type}
+                  uid={tagUid}
+                />
+                {tagValue && (
+                  <div className="flex items-center gap-1.5 pl-1">
+                    <span className="text-xs italic text-gray-400">
+                      Preview:
+                    </span>
+                    <span style={color ? getNodeTagStyles(color) : undefined}>
+                      #{tagValue.replace(/^#/, "")}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <>
+                <Label>
+                  Color
+                  <Description description="Changes the color of tags and canvas nodes" />
+                  <ControlGroup>
+                    <InputGroup
+                      style={{ width: 120 }}
+                      type={"color"}
+                      value={color}
+                      onChange={(e) => {
+                        const colorValue = e.target.value.replace("#", ""); // remove hash to not create roam link
+                        setColor(e.target.value);
+                        void setInputSetting({
+                          blockUid: canvasUid,
+                          key: "color",
+                          value: colorValue,
+                        });
+                        setDiscourseNodeSetting(
+                          node.type,
+                          ["canvasSettings", "color"],
+                          colorValue,
+                        );
+                      }}
+                    />
+                    <Tooltip content={color ? "Unset" : "Color not set"}>
+                      <Icon
+                        className={"ml-2 align-middle opacity-80"}
+                        icon={color ? "delete" : "info-sign"}
+                        onClick={() => {
+                          setColor("");
+                          void setInputSetting({
+                            blockUid: canvasUid,
+                            key: "color",
+                            value: "",
+                          });
+                          setDiscourseNodeSetting(
+                            node.type,
+                            ["canvasSettings", "color"],
+                            "",
+                          );
+                        }}
+                      />
+                    </Tooltip>
+                  </ControlGroup>
+                </Label>
+              </>
             </div>
           }
         />

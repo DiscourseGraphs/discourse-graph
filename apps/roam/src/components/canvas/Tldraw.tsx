@@ -55,6 +55,8 @@ import {
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
+import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
+import { isDiscourseNodeShape } from "./canvasUtils";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseRelations, {
   DiscourseRelation,
@@ -138,6 +140,33 @@ export const discourseContext: DiscourseContextType = {
   relations: {},
   lastAppEvent: "",
   lastActions: [],
+};
+
+let activeCanvasPageUid: string | null = null;
+let activeCanvasEditor: Editor | null = null;
+
+const setActiveCanvas = ({
+  pageUid,
+  editor,
+}: {
+  pageUid: string;
+  editor: Editor | null;
+}) => {
+  if (activeCanvasPageUid === pageUid && activeCanvasEditor === editor) {
+    if (editor && !editor.getInstanceState().isFocused) editor.focus();
+    return;
+  }
+
+  if (activeCanvasEditor && activeCanvasEditor !== editor) {
+    activeCanvasEditor.blur();
+  }
+
+  activeCanvasPageUid = pageUid;
+  activeCanvasEditor = editor;
+
+  if (editor && !editor.getInstanceState().isFocused) {
+    editor.focus();
+  }
 };
 
 export const DEFAULT_WIDTH = 160;
@@ -506,12 +535,6 @@ const TldrawCanvasShared = ({
     );
   };
 
-  const isDiscourseNodeShape = (
-    shape: TLShape,
-  ): shape is DiscourseNodeShape => {
-    return allNodes.some((node) => node.type === shape.type);
-  };
-
   // Add state for tracking relation creation
   const relationCreationRef = useRef<{
     isCreating: boolean;
@@ -536,7 +559,7 @@ const TldrawCanvasShared = ({
         relationCreationRef.current.toolType = currentToolId;
 
         // If we clicked on a discourse node, record it as the source
-        if (shapeAtPoint && isDiscourseNodeShape(shapeAtPoint)) {
+        if (shapeAtPoint && isDiscourseNodeShape(app, shapeAtPoint)) {
           relationCreationRef.current.sourceShapeId = shapeAtPoint.id;
         }
       }
@@ -561,7 +584,7 @@ const TldrawCanvasShared = ({
           relationCreationRef.current.relationShapeId = relationShape.id;
 
           // Check if we have a target shape
-          if (shapeAtPoint && isDiscourseNodeShape(shapeAtPoint)) {
+          if (shapeAtPoint && isDiscourseNodeShape(app, shapeAtPoint)) {
             posthog.capture("Canvas: Relation Created", {
               relationType: relationShape.type,
               toolType: relationCreationRef.current.toolType || "",
@@ -666,6 +689,7 @@ const TldrawCanvasShared = ({
   const editorComponents: TLEditorComponents = {
     ...defaultEditorComponents,
     OnTheCanvas: ToastListener,
+    InFrontOfTheCanvas: DragHandleOverlay,
   };
   const customUiComponents: TLUiComponents = createUiComponents({
     allNodes,
@@ -725,6 +749,17 @@ const TldrawCanvasShared = ({
       pageUid,
       inSidebar: !!containerRef.current?.closest(".rm-sidebar-outline"),
     });
+  }, [pageUid]);
+
+  useEffect(() => {
+    return () => {
+      const editor = appRef.current;
+      if (activeCanvasPageUid === pageUid && activeCanvasEditor === editor) {
+        activeCanvasEditor?.blur();
+        activeCanvasPageUid = null;
+        activeCanvasEditor = null;
+      }
+    };
   }, [pageUid]);
   const { store, needsUpgrade, performUpgrade, error, isLoading } =
     useStoreAdapter(storeAdapterArgs);
@@ -789,10 +824,14 @@ const TldrawCanvasShared = ({
         uid?: string;
         val?: string;
         shapeId?: TLShapeId;
+        targetCanvasPageUid?: string;
         onRefresh: () => void;
       }>,
     ) => {
       if (!/canvas/i.test(e.detail.action)) return;
+      const targetCanvasPageUid =
+        e.detail.targetCanvasPageUid ?? activeCanvasPageUid;
+      if (targetCanvasPageUid !== pageUid) return;
       const app = appRef.current;
       if (!app) return;
       const { x, y } = app.getViewportScreenCenter();
@@ -830,7 +869,7 @@ const TldrawCanvasShared = ({
         actionListener,
       );
     };
-  }, [appRef, allNodes]);
+  }, [appRef, allNodes, pageUid]);
 
   // Catch a custom event we used patch-package to add
   useEffect(() => {
@@ -918,6 +957,10 @@ const TldrawCanvasShared = ({
       tabIndex={-1}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onPointerDownCapture={() => {
+        if (!appRef.current) return;
+        setActiveCanvas({ pageUid, editor: appRef.current });
+      }}
     >
       {isCloudflareSync && (
         <div
@@ -988,6 +1031,7 @@ const TldrawCanvasShared = ({
           <TldrawEditor
             // baseUrl="https://samepage.network/assets/tldraw/"
             // instanceId={initialState.instanceId}
+            autoFocus={false}
             initialState="select"
             shapeUtils={[...defaultShapeUtils, ...customShapeUtils]}
             tools={[...defaultTools, ...defaultShapeTools, ...customTools]}
@@ -1002,6 +1046,10 @@ const TldrawCanvasShared = ({
               }
 
               appRef.current = app;
+
+              if (!activeCanvasPageUid || activeCanvasPageUid === pageUid) {
+                setActiveCanvas({ pageUid, editor: app });
+              }
 
               void syncCanvasNodeTitlesOnLoad(
                 app,

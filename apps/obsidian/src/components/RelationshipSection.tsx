@@ -11,7 +11,11 @@ import SearchBar from "./SearchBar";
 import { DiscourseNode } from "~/types";
 import DropdownSelect from "./DropdownSelect";
 import { usePlugin } from "./PluginContext";
-import { getNodeTypeById, getAndFormatImportSource } from "~/utils/typeUtils";
+import {
+  getNodeTypeById,
+  getAndFormatImportSource,
+  isAcceptedSchema,
+} from "~/utils/typeUtils";
 import type { RelationInstance } from "~/types";
 import {
   getNodeInstanceIdForFile,
@@ -72,6 +76,7 @@ const AddRelationship = ({
 
     const relations = plugin.settings.discourseRelations.filter(
       (relation) =>
+        isAcceptedSchema(relation) &&
         relation.relationshipTypeId === selectedRelationType.id &&
         (selectedRelationType.isSource
           ? relation.sourceId === activeNodeTypeId
@@ -100,8 +105,9 @@ const AddRelationship = ({
 
     const relevantRelations = plugin.settings.discourseRelations.filter(
       (relation) =>
-        relation.sourceId === activeNodeTypeId ||
-        relation.destinationId === activeNodeTypeId,
+        isAcceptedSchema(relation) &&
+        (relation.sourceId === activeNodeTypeId ||
+          relation.destinationId === activeNodeTypeId),
     );
 
     relevantRelations.forEach((relation) => {

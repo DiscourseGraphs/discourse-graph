@@ -17,6 +17,8 @@ export type DiscourseNode = {
   importedFromRid?: string;
 };
 
+export type ImportStatus = "provisional" | "accepted";
+
 export type DiscourseRelationType = {
   id: string;
   label: string;
@@ -25,6 +27,7 @@ export type DiscourseRelationType = {
   created: number;
   modified: number;
   importedFromRid?: string;
+  status?: ImportStatus;
 };
 
 export type DiscourseRelation = {
@@ -35,6 +38,7 @@ export type DiscourseRelation = {
   created: number;
   modified: number;
   importedFromRid?: string;
+  status?: ImportStatus;
 };
 
 export type RelationInstance = {

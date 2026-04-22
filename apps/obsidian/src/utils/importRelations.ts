@@ -98,6 +98,7 @@ const mapRelationTypeToLocal = async ({
     created: now,
     modified: now,
     importedFromRid,
+    status: "provisional",
   };
   plugin.settings.relationTypes = [
     ...(plugin.settings.relationTypes ?? []),
@@ -154,6 +155,7 @@ const findOrCreateTriple = async ({
     created,
     modified,
     ...(importedFromRid && { importedFromRid }),
+    status: "provisional",
   };
   plugin.settings.discourseRelations = [
     ...(plugin.settings.discourseRelations ?? []),

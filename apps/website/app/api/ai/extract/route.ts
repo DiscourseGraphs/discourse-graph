@@ -11,10 +11,7 @@ import {
   openaiConfig,
   geminiConfig,
 } from "~/utils/llm/providers";
-import {
-  DEFAULT_EXTRACTION_PROMPT,
-  buildUserPrompt,
-} from "~/prompts/extraction";
+import { buildUserPrompt } from "~/prompts/extraction";
 import { parseExtractionResponse } from "~/utils/ai/parseExtractionResponse";
 
 export const runtime = "nodejs";
@@ -108,8 +105,7 @@ export const POST = async (
     );
   }
 
-  const { pdfBase64, researchQuestion, model, provider, systemPrompt } =
-    validated.data;
+  const { pdfBase64, model, provider, systemPrompt } = validated.data;
 
   const config = PROVIDER_CONFIGS[provider];
   const apiKey = process.env[config.apiKeyEnvVar];
@@ -124,14 +120,14 @@ export const POST = async (
   const messages = buildExtractionMessages({
     provider,
     pdfBase64,
-    userPrompt: buildUserPrompt(researchQuestion),
+    userPrompt: buildUserPrompt(),
   });
 
   const settings: Settings = {
     model,
     maxTokens: 16384,
     temperature: 0.6,
-    systemPrompt: systemPrompt ?? DEFAULT_EXTRACTION_PROMPT,
+    systemPrompt,
     outputSchema: EXTRACTION_RESULT_JSON_SCHEMA,
   };
 
