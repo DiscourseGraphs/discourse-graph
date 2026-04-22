@@ -170,7 +170,7 @@ export const migrateImportFolderMetadata = async (
   const spaceNames = plugin.settings.spaceNames ?? {};
   const nameToSpaceUri = new Map<string, string>();
   for (const [spaceUri, name] of Object.entries(spaceNames)) {
-    nameToSpaceUri.set(name, spaceUri);
+    nameToSpaceUri.set(sanitizeFileName(name), spaceUri);
   }
 
   for (const folderPath of folders) {
