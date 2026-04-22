@@ -15,11 +15,29 @@ import { isProvisionalSchema } from "~/utils/typeUtils";
 import { getNodeTypeIdForFile } from "~/utils/relationsStore";
 import { formatNodeName } from "~/utils/createNode";
 
-// macOS/APFS limit: full filename (including extension) must be ≤ 255 bytes.
-// The file is stored as `{formattedNodeName}.md`, so the formatted name itself
-// can be at most 252 chars (255 - 3 for ".md").
-const MAX_FILENAME_LENGTH = 255;
-const MD_EXTENSION_LENGTH = ".md".length;
+// APFS and ext4 both enforce a 255 UTF-8 byte limit per filename component.
+const MAX_FILENAME_BYTES = 255;
+const MD_EXTENSION_BYTES = 3; // ".md"
+
+const getByteLength = (str: string): number =>
+  new TextEncoder().encode(str).byteLength;
+
+// Remove characters from the end until the string fits within maxBytes.
+const trimToByteLimit = (str: string, maxBytes: number): string => {
+  if (getByteLength(str) <= maxBytes) return str;
+  let trimmed = str;
+  while (trimmed.length > 0 && getByteLength(trimmed) > maxBytes) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  return trimmed;
+};
+
+const computeMaxTitleBytes = (nodeType: DiscourseNode | null): number => {
+  const formatOverhead = nodeType
+    ? getByteLength(formatNodeName("", nodeType) ?? "")
+    : 0;
+  return Math.max(1, MAX_FILENAME_BYTES - MD_EXTENSION_BYTES - formatOverhead);
+};
 
 type ModifyNodeFormProps = {
   nodeTypes: DiscourseNode[];
@@ -72,26 +90,10 @@ export const ModifyNodeForm = ({
   const debounceTimeoutRef = useRef<number | null>(null);
   const selectedFileRef = useRef<TFile | null>(null);
 
-  // The format prefix/suffix (e.g. "CLM - ") and ".md" extension all count
-  // toward the 255-byte filename limit. Compute how many chars the user can type.
-  const maxTitleLength = useMemo(() => {
-    const formatOverhead = selectedNodeType
-      ? (formatNodeName("", selectedNodeType)?.length ?? 0)
-      : 0;
-    return Math.max(
-      1,
-      MAX_FILENAME_LENGTH - MD_EXTENSION_LENGTH - formatOverhead,
-    );
-  }, [selectedNodeType]);
-
-  // Trim existing text if switching node type reduces the allowed length
-  useEffect(() => {
-    if (query.length > maxTitleLength) {
-      const trimmed = query.slice(0, maxTitleLength);
-      setQuery(trimmed);
-      setTitle(trimmed);
-    }
-  }, [maxTitleLength, query]);
+  const maxTitleBytes = useMemo(
+    () => computeMaxTitleBytes(selectedNodeType),
+    [selectedNodeType],
+  );
 
   // Search for nodes when query changes (only in create mode)
   useEffect(() => {
@@ -327,16 +329,25 @@ export const ModifyNodeForm = ({
     const newSelectedType =
       nodeTypes.find((nt) => nt.id === selectedId) || null;
     setSelectedNodeType(newSelectedType);
+
     if (selectedExistingNode) {
       setSelectedExistingNode(null);
       setQuery("");
       setTitle("");
+    } else {
+      const newMaxBytes = computeMaxTitleBytes(newSelectedType);
+      if (getByteLength(query) > newMaxBytes) {
+        const trimmed = trimToByteLimit(query, newMaxBytes);
+        setQuery(trimmed);
+        setTitle(trimmed);
+      }
     }
+
     setSelectedRelationshipKey(undefined);
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newQuery = e.target.value;
+    const newQuery = trimToByteLimit(e.target.value, maxTitleBytes);
     setQuery(newQuery);
     setTitle(newQuery);
     if (selectedExistingNode) {
@@ -453,14 +464,13 @@ export const ModifyNodeForm = ({
                   setTimeout(() => setIsFocused(false), 200);
                 }}
                 disabled={isSubmitting}
-                maxLength={maxTitleLength}
                 rows={1}
                 className="font-inherit border-background-modifier-border bg-background-primary text-text-normal min-h-[2.5em] w-full resize-none overflow-hidden rounded-md border p-2"
                 autoComplete="off"
               />
-              {query.length >= maxTitleLength && (
+              {getByteLength(query) >= maxTitleBytes && (
                 <p className="text-error mt-1 text-xs">
-                  Character limit reached ({maxTitleLength})
+                  Character limit reached
                 </p>
               )}
               {isOpen && !isEditMode && (
