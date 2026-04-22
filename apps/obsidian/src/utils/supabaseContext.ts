@@ -122,6 +122,23 @@ export const getSupabaseContext = async (
   return contextCache;
 };
 
+export const updateUsername = async (
+  plugin: DiscourseGraphPlugin,
+  username: string,
+): Promise<void> => {
+  const context = await getSupabaseContext(plugin);
+  if (!context) return;
+  const client = await getLoggedInClient(plugin);
+  if (!client) return;
+  const result = await client
+    .from("PlatformAccount")
+    .update({ name: username })
+    .eq("id", context.userId);
+  if (result.error) {
+    console.error(result.error);
+  }
+};
+
 let loggedInClient: DGSupabaseClient | null = null;
 
 export const getLoggedInClient = async (

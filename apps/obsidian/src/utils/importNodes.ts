@@ -36,7 +36,7 @@ export const getAvailableGroupIds = async (
   return (data || []).map((g) => g.group_id);
 };
 
-type publishedNode = {
+type PublishedNode = {
   source_local_id: string;
   space_id: number;
   text: string;
@@ -54,7 +54,7 @@ export const getPublishedNodesForGroups = async ({
   client: DGSupabaseClient;
   groupIds: string[];
   currentSpaceId: number;
-}): Promise<Array<publishedNode>> => {
+}): Promise<Array<PublishedNode>> => {
   if (groupIds.length === 0) {
     return [];
   }
@@ -97,7 +97,7 @@ export const getPublishedNodesForGroups = async ({
     groups.get(k)!.push(row);
   }
 
-  const nodes: Array<publishedNode> = [];
+  const nodes: Array<PublishedNode> = [];
 
   for (const rows of groups.values()) {
     const withDate = rows.filter(

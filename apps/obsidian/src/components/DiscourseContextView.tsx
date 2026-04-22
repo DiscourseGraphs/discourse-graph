@@ -253,7 +253,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
 
           {isImported &&
             frontmatter.authorName &&
-            `Vault ${frontmatter.authorName}` !== formattedVaultName && (
+            frontmatter.authorName !== formattedVaultName && (
               <div className="text-modifier-text mt-2 text-xs">
                 <div>Author: {frontmatter.authorName}</div>
               </div>

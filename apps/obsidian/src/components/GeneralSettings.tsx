@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { usePlugin } from "./PluginContext";
 import { setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
+import { updateUsername } from "~/utils/supabaseContext";
 import { SLACK_LOGO, WHITE_LOGO_SVG } from "~/icons";
 
 const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
@@ -206,10 +207,11 @@ const GeneralSettings = () => {
     [plugin],
   );
 
-  const handleSetUsername = (newValue: string) => {
+  const handleSetUsername = async (newValue: string) => {
     setUsername(newValue);
     plugin.settings.username = newValue;
-    void plugin.saveSettings();
+    await plugin.saveSettings();
+    await updateUsername(plugin, newValue);
   };
 
   return (
@@ -332,7 +334,7 @@ const GeneralSettings = () => {
           <input
             type="text"
             value={username}
-            onChange={(e) => handleSetUsername(e.target.value)}
+            onChange={(e) => void handleSetUsername(e.target.value)}
           />
         </div>
       </div>
