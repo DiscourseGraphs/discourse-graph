@@ -453,7 +453,7 @@ WHERE id IN (
     SELECT "LocalAccess".account_id FROM public."LocalAccess"
         JOIN public."SpaceAccess" USING (space_id)
         JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
-    WHERE permissions >= 'reader'
+    WHERE permissions >= 'partial'
 );
 
 DROP POLICY IF EXISTS platform_account_policy ON public."PlatformAccount";
