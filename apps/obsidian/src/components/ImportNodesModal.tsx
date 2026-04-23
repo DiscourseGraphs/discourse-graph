@@ -3,6 +3,7 @@ import { createRoot, Root } from "react-dom/client";
 import { StrictMode, useState, useEffect, useCallback } from "react";
 import type DiscourseGraphPlugin from "../index";
 import type { ImportableNode, GroupWithNodes } from "~/types";
+import { getUserNameById } from "~/utils/typeUtils";
 import {
   getAvailableGroupIds,
   getPublishedNodesForGroups,
@@ -106,7 +107,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
             groupName:
               spaceNames.get(node.space_id) ?? `Space ${node.space_id}`,
             nodes: [],
-            authors: new Set(),
+            authorIds: new Set(),
           });
         }
 
@@ -123,10 +124,9 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
           createdAt: node.createdAt,
           modifiedAt: node.modifiedAt,
           filePath: node.filePath,
-          authorName: node.authorName,
+          authorId: node.authorId,
         });
-        if (node.authorName && node.authorName !== spaceName)
-          group.authors.add(node.authorName);
+        if (node.authorId) group.authorIds.add(node.authorId);
       }
 
       setGroupsWithNodes(Array.from(grouped.values()));
@@ -264,7 +264,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       number,
       {
         spaceName: string;
-        authors: Set<string>;
+        authorIds: Set<number>;
         nodes: Array<{
           node: ImportableNode;
           groupId: string;
@@ -278,7 +278,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         if (!nodesBySpace.has(node.spaceId)) {
           nodesBySpace.set(node.spaceId, {
             spaceName: node.spaceName,
-            authors: group.authors,
+            authorIds: group.authorIds,
             nodes: [],
           });
         }
@@ -330,7 +330,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
 
         <div className="max-h-96 overflow-y-auto rounded border">
           {Array.from(nodesBySpace.entries()).map(
-            ([spaceId, { spaceName, nodes, authors }]) => {
+            ([spaceId, { spaceName, nodes, authorIds }]) => {
               return (
                 <div key={spaceId} className="border-b">
                   <div className="bg-muted/10 flex items-center px-3 py-2">
@@ -338,8 +338,10 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
                     <span className="text-accent-foreground line-clamp-1 font-medium italic">
                       {spaceName}
                     </span>
-                    {authors.size === 1 && (
-                      <span>&nbsp;({[...authors][0]})</span>
+                    {authorIds.size === 1 && (
+                      <span>
+                        &nbsp;({getUserNameById(plugin, [...authorIds][0]!)})
+                      </span>
                     )}
                     <span className="text-muted ml-2 text-sm">
                       ({nodes.length} node{nodes.length !== 1 ? "s" : ""})
@@ -360,13 +362,11 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
                       <div className="min-w-0 flex-1">
                         <div className="line-clamp-3 font-medium">
                           {node.title}
-                          {node.authorName &&
-                            authors.size > 1 &&
-                            node.authorName !== spaceName && (
-                              <span className="font-light">
-                                &nbsp;({node.authorName})
-                              </span>
-                            )}
+                          {node.authorId && authorIds.size > 1 && (
+                            <span className="font-light">
+                              &nbsp;({getUserNameById(plugin, node.authorId)})
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

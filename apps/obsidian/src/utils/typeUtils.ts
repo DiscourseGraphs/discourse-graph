@@ -1,6 +1,7 @@
 import type DiscourseGraphPlugin from "~/index";
 import { DiscourseNode, DiscourseRelationType, ImportStatus } from "~/types";
 import { ridToSpaceUriAndLocalId } from "./rid";
+import { DGSupabaseClient } from "@repo/database/lib/client";
 
 export const getNodeTypeById = (
   plugin: DiscourseGraphPlugin,
@@ -87,4 +88,11 @@ export const getAndFormatImportSource = (
 ): string => {
   const importInfo = getImportInfo(importedFromRid);
   return formatImportSource(importInfo.spaceUri || "", spaceNames);
+};
+
+export const getUserNameById = (
+  plugin: DiscourseGraphPlugin,
+  id: number,
+): string => {
+  return (plugin.settings.userNames || {})[id] || `user ${id}`;
 };

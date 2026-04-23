@@ -15,6 +15,7 @@ export type DiscourseNode = {
   created: number;
   modified: number;
   importedFromRid?: string;
+  authorId?: number;
 };
 
 export type ImportStatus = "provisional" | "accepted";
@@ -28,6 +29,7 @@ export type DiscourseRelationType = {
   modified: number;
   importedFromRid?: string;
   status?: ImportStatus;
+  authorId?: number;
 };
 
 export type DiscourseRelation = {
@@ -39,6 +41,7 @@ export type DiscourseRelation = {
   modified: number;
   importedFromRid?: string;
   status?: ImportStatus;
+  authorId?: number;
 };
 
 export type RelationInstance = {
@@ -53,6 +56,7 @@ export type RelationInstance = {
   importedFromRid?: string;
   /** Tracks acceptance of imported relations. false = imported, not yet accepted. true or undefined = accepted/local. */
   tentative?: boolean;
+  authorId?: number;
 };
 
 export type Settings = {
@@ -70,6 +74,7 @@ export type Settings = {
   /** Maps spaceUri (e.g. "obsidian:abc123") to human-readable name (e.g. "My Vault") */
   spaceNames?: Record<string, string>;
   username?: string;
+  userNames?: Record<number, string>;
 };
 
 export type BulkImportCandidate = {
@@ -97,14 +102,14 @@ export type ImportableNode = {
   createdAt?: number;
   modifiedAt?: number;
   filePath?: string;
-  authorName?: string;
+  authorId?: number;
 };
 
 export type GroupWithNodes = {
   groupId: string;
   groupName?: string;
   nodes: ImportableNode[];
-  authors: Set<string>;
+  authorIds: Set<number>;
 };
 
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";

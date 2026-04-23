@@ -43,7 +43,7 @@ type PublishedNode = {
   createdAt: number;
   modifiedAt: number;
   filePath: string | undefined;
-  authorName: string | undefined;
+  authorId: number | undefined;
 };
 
 export const getPublishedNodesForGroups = async ({
@@ -64,7 +64,7 @@ export const getPublishedNodesForGroups = async ({
   const { data, error } = await client
     .from("my_contents")
     .select(
-      "source_local_id, space_id, text, created, last_modified, variant, metadata, author:my_accounts!author_id(name)",
+      "source_local_id, space_id, text, created, last_modified, variant, metadata, author_id",
     )
     .neq("space_id", currentSpaceId);
 
@@ -84,7 +84,7 @@ export const getPublishedNodesForGroups = async ({
     created: string | null;
     last_modified: string | null;
     variant: string | null;
-    author: { name: string } | null;
+    author_id: number | null;
     metadata: Json;
   };
 
@@ -128,7 +128,7 @@ export const getPublishedNodesForGroups = async ({
       createdAt,
       modifiedAt,
       filePath,
-      authorName: latest.author ? latest.author.name : undefined,
+      authorId: latest.author_id || undefined,
     });
   }
 
@@ -227,6 +227,25 @@ export const getSpaceUris = async (
   });
 
   return spaceMap;
+};
+
+const fetchUserNames = async (
+  plugin: DiscourseGraphPlugin,
+  client: DGSupabaseClient,
+) => {
+  const result = await client
+    .from("PlatformAccount")
+    .select("id, name")
+    .eq("agent_type", "person");
+  if (result.error || !result.data) {
+    console.error(result.error);
+    return;
+  }
+  const nameById: Record<number, string> = Object.fromEntries(
+    result.data.map(({ id, name }) => [id, name]),
+  );
+  plugin.settings.userNames = nameById;
+  await plugin.saveSettings();
 };
 
 export const fetchNodeContent = async ({
@@ -971,7 +990,7 @@ type ParsedFrontmatter = {
   nodeTypeId?: string;
   nodeInstanceId?: string;
   publishedToGroups?: string[];
-  authorName?: string;
+  authorId?: number;
   [key: string]: unknown;
 };
 
@@ -1102,7 +1121,7 @@ const processFileContent = async ({
   filePath,
   importedCreatedAt,
   importedModifiedAt,
-  authorName,
+  authorId,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
@@ -1113,7 +1132,7 @@ const processFileContent = async ({
   filePath: string;
   importedCreatedAt?: number;
   importedModifiedAt?: number;
-  authorName?: string;
+  authorId?: number;
 }): Promise<
   { file: TFile; error?: never } | { file?: never; error: string }
 > => {
@@ -1172,7 +1191,7 @@ const processFileContent = async ({
         "note",
       );
       record.lastModified = importedModifiedAt;
-      if (authorName) record.authorName = authorName;
+      if (authorId) record.authorId = authorId;
     },
     stat,
   );
@@ -1222,6 +1241,7 @@ export const importSelectedNodes = async ({
     nodesBySpace.get(node.spaceId)!.push(node);
   }
 
+  await fetchUserNames(plugin, client);
   const spaceUris = await getSpaceUris(client, [...nodesBySpace.keys()]);
 
   // Process each space
@@ -1322,7 +1342,7 @@ export const importSelectedNodes = async ({
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
-          authorName: node.authorName,
+          authorId: node.authorId,
         });
 
         if (result.error) {

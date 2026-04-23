@@ -330,7 +330,7 @@ export default class DiscourseGraphPlugin extends Plugin {
       if (!this.settings.showIdsInFrontmatter) {
         keysToHide.push(
           ...[
-            "authorName",
+            "authorId",
             "importedAssets",
             "importedFromRid",
             "lastModified",

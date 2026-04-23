@@ -13,7 +13,11 @@ import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormat
 import { RelationshipSection } from "~/components/RelationshipSection";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { PluginProvider, usePlugin } from "~/components/PluginContext";
-import { getNodeTypeById, getAndFormatImportSource } from "~/utils/typeUtils";
+import {
+  getNodeTypeById,
+  getAndFormatImportSource,
+  getUserNameById,
+} from "~/utils/typeUtils";
 import { refreshImportedFile } from "~/utils/importNodes";
 import { publishNode } from "~/utils/publishNode";
 import { createBaseForNodeType } from "~/utils/baseForNodeType";
@@ -251,13 +255,11 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
             </div>
           )}
 
-          {isImported &&
-            frontmatter.authorName &&
-            frontmatter.authorName !== formattedVaultName && (
-              <div className="text-modifier-text mt-2 text-xs">
-                <div>Author: {frontmatter.authorName}</div>
-              </div>
-            )}
+          {isImported && frontmatter.authorId && (
+            <div className="text-modifier-text mt-2 text-xs">
+              <div>Author: {getUserNameById(plugin, frontmatter.authorId)}</div>
+            </div>
+          )}
           {isImported && sourceDates && (
             <div className="text-modifier-text mt-2 text-xs">
               <div>Created in source: {sourceDates.createdAt}</div>
