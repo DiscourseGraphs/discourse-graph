@@ -1,4 +1,4 @@
-import React, { MouseEvent } from "react";
+import React from "react";
 import { Popover, Position, Button, Menu, MenuItem } from "@blueprintjs/core";
 import { OnloadArgs } from "roamjs-components/types";
 import { createDiscourseNodeFromCommand } from "~/utils/registerCommandPaletteCommands";
