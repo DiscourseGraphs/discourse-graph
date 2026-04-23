@@ -3,11 +3,14 @@ import { Popover, Position, Button, Menu, MenuItem } from "@blueprintjs/core";
 import { OnloadArgs } from "roamjs-components/types";
 import { createDiscourseNodeFromCommand } from "~/utils/registerCommandPaletteCommands";
 
-export const commands: Record<string, (ola: OnloadArgs) => Promise<void>> = {
+export const commands: Record<
+  string,
+  (onloadArgs: OnloadArgs) => Promise<void>
+> = {
   /* eslint-disable @typescript-eslint/require-await */
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  "Create Node": async (ola: OnloadArgs) => {
-    createDiscourseNodeFromCommand(ola.extensionAPI);
+  "{create node}": async (onloadArgs: OnloadArgs) => {
+    createDiscourseNodeFromCommand(onloadArgs.extensionAPI);
     // typescript-eslint/naming-convention
   },
   /* eslint-enable @typescript-eslint/require-await */
