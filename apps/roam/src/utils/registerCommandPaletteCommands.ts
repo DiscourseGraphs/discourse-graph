@@ -74,7 +74,7 @@ const getBlockSelection = (uid: string): BlockSelection => {
   };
 };
 
-const createDiscourseNodeFromCommand = (
+export const createDiscourseNodeFromCommand = (
   extensionAPI: OnloadArgs["extensionAPI"],
 ) => {
   posthog.capture("Discourse Node: Create Command Triggered");
