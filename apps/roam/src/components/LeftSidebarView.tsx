@@ -158,9 +158,9 @@ const SectionChildren = ({
           return void openTarget(e, child.text, onloadArgs);
         };
         return (
-          <div key={child.uid} className="pl-8 pr-2.5">
+          <div key={child.uid} className="bp3-dark pl-8 pr-2.5">
             {ref.type === "command" ? (
-              <Button onClick={onClick} minimal>
+              <Button onClick={onClick} minimal className="m-px">
                 {label}
               </Button>
             ) : (
