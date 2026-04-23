@@ -44,7 +44,7 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
-import { commands } from "~/components/LeftSidebarCommands";
+import { commands, cleanCommandName } from "~/components/LeftSidebarCommands";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -161,7 +161,7 @@ const SectionChildren = ({
           <div key={child.uid} className="bp3-dark pl-8 pr-2.5">
             {ref.type === "command" ? (
               <Button onClick={onClick} minimal className="m-px">
-                {label}
+                {cleanCommandName(label)}
               </Button>
             ) : (
               <div

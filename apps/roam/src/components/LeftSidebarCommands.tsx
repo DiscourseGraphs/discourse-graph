@@ -3,6 +3,13 @@ import { Popover, Position, Button, Menu, MenuItem } from "@blueprintjs/core";
 import { OnloadArgs } from "roamjs-components/types";
 import { createDiscourseNodeFromCommand } from "~/utils/registerCommandPaletteCommands";
 
+export const cleanCommandName = (name: string): string => {
+  if (name.startsWith("{") && name.endsWith("}"))
+    name = name.substring(1, name.length - 1);
+  // Should we make it title case as well?
+  return name;
+};
+
 export const commands: Record<
   string,
   (onloadArgs: OnloadArgs) => Promise<void>
