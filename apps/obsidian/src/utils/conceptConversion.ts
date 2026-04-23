@@ -223,7 +223,7 @@ export const relationInstanceToLocalConcept = ({
     space_id: context.spaceId,
     name: `[[${sourceNode.file.basename}]] -${relationType.label}-> [[${destinationNode.file.basename}]]`,
     source_local_id: relationInstanceData.id,
-    author_id: relationInstanceData.authorId,
+    author_id: relationInstanceData.authorId ?? context.userId,
     schema_represented_by_local_id: type,
     is_schema: false,
     created: new Date(created).toISOString(),

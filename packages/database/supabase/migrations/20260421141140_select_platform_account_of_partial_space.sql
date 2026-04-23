@@ -39,3 +39,17 @@ WHERE id IN (
         JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
     WHERE permissions >= 'partial'
 );
+
+CREATE OR REPLACE FUNCTION public.generic_entity_access(target_id BIGINT, target_type public."EntityType") RETURNS boolean
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql AS $$
+    SELECT CASE
+        WHEN target_type = 'Space' THEN public.in_space(target_id)
+        WHEN target_type = 'Content' THEN public.content_in_space(target_id)
+        WHEN target_type = 'Concept' THEN public.concept_in_space(target_id)
+        WHEN target_type = 'Document' THEN public.document_in_space(target_id)
+        WHEN target_type = 'PlatformAccount' THEN public.account_in_shared_space(target_id)
+        ELSE false
+    END;
+$$;
