@@ -1053,7 +1053,7 @@ export const mapNodeTypeIdToLocal = async ({
   // Find the schema in the source space with this nodeTypeId (my_concepts applies RLS)
   const { data: schemaData } = await client
     .from("my_concepts")
-    .select("name, literal_content")
+    .select("name, literal_content, author_id")
     .eq("space_id", sourceSpaceId)
     .eq("is_schema", true)
     .eq("source_local_id", sourceNodeTypeId)
@@ -1104,6 +1104,7 @@ export const mapNodeTypeIdToLocal = async ({
     keyImage: parsed.keyImage,
     created: now,
     modified: now,
+    authorId: schemaData.author_id || undefined,
     importedFromRid,
   };
   plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];

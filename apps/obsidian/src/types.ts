@@ -50,7 +50,6 @@ export type RelationInstance = {
   source: string;
   destination: string;
   created: number;
-  author: string;
   lastModified?: number;
   publishedToGroupId?: string[];
   importedFromRid?: string;
