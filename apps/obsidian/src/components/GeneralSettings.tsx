@@ -334,6 +334,7 @@ const GeneralSettings = () => {
           <input
             type="text"
             value={username}
+            onChange={(e) => setUsername(e.target.value)}
             onBlur={(e) => void handleSetUsername(e.target.value)}
           />
         </div>
