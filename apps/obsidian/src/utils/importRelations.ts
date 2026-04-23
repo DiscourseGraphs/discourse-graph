@@ -100,7 +100,7 @@ const mapRelationTypeToLocal = async ({
     modified: now,
     importedFromRid,
     status: "provisional",
-    authorId: schemaData.author_id || undefined,
+    authorId: schemaData.author_id ?? undefined,
   };
   plugin.settings.relationTypes = [
     ...(plugin.settings.relationTypes ?? []),
@@ -350,7 +350,7 @@ export const importRelationsForImportedNodes = async ({
           ).getTime()
         : undefined;
 
-    const authorId = rel.author_id || undefined;
+    const authorId = rel.author_id ?? undefined;
     if (mappedSourceNodeTypeId && mappedDestNodeTypeId) {
       await findOrCreateTriple({
         plugin,

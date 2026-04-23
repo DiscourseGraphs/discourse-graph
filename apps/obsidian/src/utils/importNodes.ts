@@ -128,7 +128,7 @@ export const getPublishedNodesForGroups = async ({
       createdAt,
       modifiedAt,
       filePath,
-      authorId: latest.author_id || undefined,
+      authorId: latest.author_id ?? undefined,
     });
   }
 
@@ -1104,7 +1104,7 @@ export const mapNodeTypeIdToLocal = async ({
     keyImage: parsed.keyImage,
     created: now,
     modified: now,
-    authorId: schemaData.author_id || undefined,
+    authorId: schemaData.author_id ?? undefined,
     importedFromRid,
   };
   plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];
