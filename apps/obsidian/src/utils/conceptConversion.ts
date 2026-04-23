@@ -16,9 +16,9 @@ import type { Json } from "@repo/database/dbTypes";
  */
 const getNodeExtraData = (
   file: TFile,
+  /* eslint-disable @typescript-eslint/naming-convention */
   author_id: number,
 ): {
-  /* eslint-disable @typescript-eslint/naming-convention */
   author_id: number;
   created: string;
   last_modified: string;

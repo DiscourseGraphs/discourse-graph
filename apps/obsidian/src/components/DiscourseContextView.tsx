@@ -255,11 +255,15 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
             </div>
           )}
 
-          {isImported && frontmatter.authorId && (
-            <div className="text-modifier-text mt-2 text-xs">
-              <div>Author: {getUserNameById(plugin, frontmatter.authorId)}</div>
-            </div>
-          )}
+          {isImported &&
+            frontmatter.authorId &&
+            typeof frontmatter.authorId === "number" && (
+              <div className="text-modifier-text mt-2 text-xs">
+                <div>
+                  Author: {getUserNameById(plugin, frontmatter.authorId)}
+                </div>
+              </div>
+            )}
           {isImported && sourceDates && (
             <div className="text-modifier-text mt-2 text-xs">
               <div>Created in source: {sourceDates.createdAt}</div>

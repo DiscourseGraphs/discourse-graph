@@ -1,7 +1,6 @@
 import type DiscourseGraphPlugin from "~/index";
 import { DiscourseNode, DiscourseRelationType, ImportStatus } from "~/types";
 import { ridToSpaceUriAndLocalId } from "./rid";
-import { DGSupabaseClient } from "@repo/database/lib/client";
 
 export const getNodeTypeById = (
   plugin: DiscourseGraphPlugin,
