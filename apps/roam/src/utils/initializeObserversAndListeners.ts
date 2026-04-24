@@ -103,6 +103,13 @@ export const initObservers = ({
   };
   cleanups: Array<() => void>;
 } => {
+  let _t = performance.now();
+  const _op = (label: string) => {
+    const now = performance.now();
+    console.log(`[DG Load initObservers] ${label}: ${Math.round(now - _t)}ms`);
+    _t = now;
+  };
+
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
@@ -141,11 +148,13 @@ export const initObservers = ({
       }
     },
   });
+  _op("pageTitleObserver");
 
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
     render: (b) => renderQueryBlock(b, onloadArgs),
   });
+  _op("queryBlockObserver");
 
   let batchedTagNodes: DiscourseNode[] | null = null;
   const getNodesForTagBatch = (): DiscourseNode[] => {
@@ -182,6 +191,7 @@ export const initObservers = ({
       }
     },
   });
+  _op("nodeTagPopupButtonObserver");
 
   const pageActionListener = ((
     e: CustomEvent<{
@@ -203,10 +213,12 @@ export const initObservers = ({
         });
       });
   }) as EventListener;
+  _op("pageActionListener");
 
   if (getFeatureFlag("Suggestive mode overlay enabled")) {
     addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
   }
+  _op("suggestiveOverlay check");
 
   const graphOverviewExportObserver = createHTMLObserver({
     tag: "DIV",
@@ -216,6 +228,7 @@ export const initObservers = ({
       renderGraphOverviewExport(div);
     },
   });
+  _op("graphOverviewExportObserver");
 
   const imageMenuObserver = createHTMLObserver({
     tag: "IMG",
@@ -226,18 +239,23 @@ export const initObservers = ({
       }
     },
   });
+  _op("imageMenuObserver");
 
   if (settings.personalSettings[PERSONAL_KEYS.pagePreview])
     addPageRefObserver(previewPageRefHandler);
+  _op("pagePreview check");
 
   if (settings.personalSettings[PERSONAL_KEYS.discourseContextOverlay]) {
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(true);
   }
+  _op("discourseContextOverlay check");
 
   if (getPageRefObserversSize()) enablePageRefObserver();
+  _op("enablePageRefObserver");
 
   const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
+  _op("getPageUidByPageTitle(config)");
 
   const hashChangeListener = (e: Event) => {
     const evt = e as HashChangeEvent;
@@ -253,6 +271,7 @@ export const initObservers = ({
       refreshConfigTree(settings);
     }
   };
+  _op("hashChangeListener");
 
   let globalTrigger = settings.globalSettings[GLOBAL_KEYS.trigger].trim();
   const personalTriggerComboRaw =
@@ -265,6 +284,7 @@ export const initObservers = ({
   let personalModifiers = personalTriggerCombo
     ? getModifiersFromCombo(personalTriggerCombo)
     : [];
+  _op("trigger setup");
 
   const unsubGlobalTrigger = onSettingChange(
     settingKeys.globalTrigger,
@@ -272,6 +292,7 @@ export const initObservers = ({
       globalTrigger = (newValue as string).trim();
     },
   );
+  _op("onSettingChange(globalTrigger)");
 
   const unsubPersonalTrigger = onSettingChange(
     settingKeys.personalNodeMenuTrigger,
@@ -284,6 +305,7 @@ export const initObservers = ({
       personalModifiers = combo ? getModifiersFromCombo(combo) : [];
     },
   );
+  _op("onSettingChange(personalNodeMenuTrigger)");
 
   const leftSidebarObserver = createHTMLObserver({
     tag: "DIV",
@@ -306,6 +328,7 @@ export const initObservers = ({
       })();
     },
   });
+  _op("leftSidebarObserver");
 
   const handleNodeMenuRender = (target: HTMLElement, evt: KeyboardEvent) => {
     if (
@@ -357,6 +380,7 @@ export const initObservers = ({
       customTrigger = newValue as string;
     },
   );
+  _op("onSettingChange(nodeSearchMenuTrigger)");
 
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
