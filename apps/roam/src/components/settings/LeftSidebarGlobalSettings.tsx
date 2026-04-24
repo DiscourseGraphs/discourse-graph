@@ -21,7 +21,7 @@ import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import posthog from "posthog-js";
 import {
   commands,
-  sidebarCommandPopover,
+  SidebarCommandPopover,
 } from "~/components/LeftSidebarCommands";
 
 const pagesToUids = (pages: RoamBasicNode[]) => pages.map((p) => p.text);
@@ -348,7 +348,7 @@ const LeftSidebarGlobalSectionsContent = ({
             <div className="mb-2 text-sm text-gray-600">
               Add pages that will appear for all users
             </div>
-            <div className="sidebarCommandPopoverContainer mb-3 flex items-center gap-2">
+            <div className="mb-3 flex items-center gap-2">
               <AutocompleteInput
                 key={autocompleteKey}
                 value={newPageInput}
@@ -367,7 +367,7 @@ const LeftSidebarGlobalSectionsContent = ({
                 onClick={() => void addPage(newPageInput)}
                 title="Add page"
               />
-              {sidebarCommandPopover(resetAutocomplete)}
+              <SidebarCommandPopover onSelect={resetAutocomplete} />
             </div>
             {pages.length > 0 ? (
               <div className="space-y-1">

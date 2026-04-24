@@ -25,7 +25,11 @@ export const commands: Record<
   /* eslint-enable @typescript-eslint/require-await */
 };
 
-export const sidebarCommandPopover = (onSelect: (value: string) => void) => {
+export const SidebarCommandPopover = ({
+  onSelect,
+}: {
+  onSelect: (value: string) => void;
+}) => {
   return (
     <Popover
       content={

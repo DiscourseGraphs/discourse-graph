@@ -41,7 +41,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import posthog from "posthog-js";
 import {
   commands,
-  sidebarCommandPopover,
+  SidebarCommandPopover,
 } from "~/components/LeftSidebarCommands";
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -444,7 +444,7 @@ const SectionItem = memo(
                   onClick={() => void handleAddChild()}
                   title="Add child"
                 />
-                {sidebarCommandPopover(resetAutocomplete)}
+                <SidebarCommandPopover onSelect={resetAutocomplete} />
               </div>
 
               {(section.children || []).length > 0 && (
