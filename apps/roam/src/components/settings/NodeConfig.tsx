@@ -27,6 +27,7 @@ import {
   setDiscourseNodeSetting,
 } from "~/components/settings/utils/accessors";
 import {
+  CANVAS_KEYS,
   DISCOURSE_NODE_KEYS,
   SPECIFICATION_KEYS,
   TEMPLATE_SETTING_KEYS,
@@ -231,7 +232,10 @@ const NodeConfig = ({
                         });
                         setDiscourseNodeSetting(
                           node.type,
-                          ["canvasSettings", "color"],
+                          [
+                            DISCOURSE_NODE_KEYS.canvasSettings,
+                            CANVAS_KEYS.color,
+                          ],
                           colorValue,
                         );
                       }}
@@ -249,7 +253,10 @@ const NodeConfig = ({
                           });
                           setDiscourseNodeSetting(
                             node.type,
-                            ["canvasSettings", "color"],
+                            [
+                              DISCOURSE_NODE_KEYS.canvasSettings,
+                              CANVAS_KEYS.color,
+                            ],
                             "",
                           );
                         }}
