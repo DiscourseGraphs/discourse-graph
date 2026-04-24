@@ -283,7 +283,7 @@ export const mergePersonalSectionsWithAccessor = (
                 },
               };
             })
-          : undefined,
+          : [],
       childrenUid: legacy?.childrenUid,
     };
   });
