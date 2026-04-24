@@ -312,10 +312,7 @@ const ModifyNodeDialog = ({
       }
 
       if (keyImageOption === "query-builder") {
-        const parentUid = resolveQueryBuilderRef({
-          queryRef: qbAlias,
-          extensionAPI,
-        });
+        const parentUid = resolveQueryBuilderRef({ queryRef: qbAlias });
         const results = await runQuery({
           extensionAPI,
           parentUid,

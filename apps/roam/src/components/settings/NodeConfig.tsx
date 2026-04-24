@@ -20,19 +20,25 @@ import DiscourseNodeCanvasSettings, {
 } from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import setInputSetting from "roamjs-components/util/setInputSetting";
-import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import {
+  getDiscourseNodeSetting,
+  isSyncEnabled,
+  setDiscourseNodeSetting,
+} from "~/components/settings/utils/accessors";
+import {
+  CANVAS_KEYS,
+  DISCOURSE_NODE_KEYS,
+  SPECIFICATION_KEYS,
+  TEMPLATE_SETTING_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
-import { isSyncEnabled } from "~/components/settings/utils/accessors";
 import {
   DiscourseNodeTextPanel,
   DiscourseNodeFlagPanel,
   DiscourseNodeSelectPanel,
 } from "./components/BlockPropSettingPanels";
-
-const TEMPLATE_SETTING_KEYS = ["template"];
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -100,10 +106,11 @@ const NodeConfig = ({
       isSpecificationEnabled?: boolean;
     }) => {
       if (isSpecificationEnabled === undefined)
-        isSpecificationEnabled = !!getSubTree({
-          tree: getBasicTreeByParentUid(specificationUid),
-          key: "enabled",
-        })?.uid?.length;
+        isSpecificationEnabled =
+          getDiscourseNodeSetting<boolean>(node.type, [
+            DISCOURSE_NODE_KEYS.specification,
+            SPECIFICATION_KEYS.enabled,
+          ]) ?? false;
       if (format.trim().length === 0 && !isSpecificationEnabled) {
         setTagError("");
         setFormatError("Error: you must set either a format or specification");
@@ -141,7 +148,7 @@ const NodeConfig = ({
         setFormatError("");
       }
     },
-    [specificationUid],
+    [node.type],
   );
 
   useEffect(() => {
@@ -164,7 +171,7 @@ const NodeConfig = ({
                 nodeType={node.type}
                 title="Description"
                 description={`Describing what the ${node.text} node represents in your graph.`}
-                settingKeys={["description"]}
+                settingKeys={[DISCOURSE_NODE_KEYS.description]}
                 initialValue={node.description}
                 multiline
                 order={1}
@@ -175,7 +182,7 @@ const NodeConfig = ({
                 nodeType={node.type}
                 title="Shortcut"
                 description={`The trigger to quickly create a ${node.text} page from the node menu.`}
-                settingKeys={["shortcut"]}
+                settingKeys={[DISCOURSE_NODE_KEYS.shortcut]}
                 initialValue={node.shortcut}
                 order={0}
                 parentUid={node.type}
@@ -186,7 +193,7 @@ const NodeConfig = ({
                   nodeType={node.type}
                   title="Tag"
                   description={`Designate a hashtag for marking potential ${node.text}.`}
-                  settingKeys={["tag"]}
+                  settingKeys={[DISCOURSE_NODE_KEYS.tag]}
                   initialValue={node.tag}
                   placeholder={generateTagPlaceholder(node)}
                   error={tagError}
@@ -225,7 +232,10 @@ const NodeConfig = ({
                         });
                         setDiscourseNodeSetting(
                           node.type,
-                          ["canvasSettings", "color"],
+                          [
+                            DISCOURSE_NODE_KEYS.canvasSettings,
+                            CANVAS_KEYS.color,
+                          ],
                           colorValue,
                         );
                       }}
@@ -243,7 +253,10 @@ const NodeConfig = ({
                           });
                           setDiscourseNodeSetting(
                             node.type,
-                            ["canvasSettings", "color"],
+                            [
+                              DISCOURSE_NODE_KEYS.canvasSettings,
+                              CANVAS_KEYS.color,
+                            ],
                             "",
                           );
                         }}
@@ -277,7 +290,7 @@ const NodeConfig = ({
                 nodeType={node.type}
                 title="Format"
                 description={`DEPRECATED - Use specification instead. The format ${node.text} pages should have.`}
-                settingKeys={["format"]}
+                settingKeys={[DISCOURSE_NODE_KEYS.format]}
                 initialValue={node.format}
                 error={formatError}
                 onChange={setFormatValue}
@@ -335,9 +348,13 @@ const NodeConfig = ({
                 nodeType={node.type}
                 title="Overlay"
                 description="Select which attribute is used for the discourse overlay"
-                settingKeys={["overlay"]}
+                settingKeys={[DISCOURSE_NODE_KEYS.overlay]}
                 options={attributeNode.children.map((c) => c.text)}
-                initialValue={getBasicTreeByParentUid(overlayUid)[0]?.text}
+                initialValue={
+                  getDiscourseNodeSetting<string>(node.type, [
+                    DISCOURSE_NODE_KEYS.overlay,
+                  ]) ?? ""
+                }
                 order={0}
                 parentUid={node.type}
                 uid={overlayUid}
@@ -358,7 +375,7 @@ const NodeConfig = ({
                 nodeType={node.type}
                 title="Graph Overview"
                 description="Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification."
-                settingKeys={["graphOverview"]}
+                settingKeys={[DISCOURSE_NODE_KEYS.graphOverview]}
                 initialValue={node.graphOverview}
                 order={0}
                 parentUid={node.type}

@@ -5,7 +5,8 @@ import discourseConfigRef from "./discourseConfigRef";
 import registerDiscourseDatalogTranslators from "./registerDiscourseDatalogTranslators";
 import { unregisterDatalogTranslator } from "./conditionToDatalog";
 import type { PullBlock } from "roamjs-components/types/native";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
+import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
 
 const getPagesStartingWithPrefix = (prefix: string) =>
   (
@@ -17,8 +18,8 @@ const getPagesStartingWithPrefix = (prefix: string) =>
     uid: r[0][":block/uid"] || "",
   }));
 
-const refreshConfigTree = () => {
-  getDiscourseRelationLabels().forEach((key) =>
+const refreshConfigTree = (snapshot?: SettingsSnapshot) => {
+  getDiscourseRelationLabels(undefined, snapshot).forEach((key) =>
     unregisterDatalogTranslator({ key }),
   );
   discourseConfigRef.tree = getBasicTreeByParentUid(
@@ -36,7 +37,7 @@ const refreshConfigTree = () => {
       ];
     }),
   );
-  registerDiscourseDatalogTranslators();
+  registerDiscourseDatalogTranslators(snapshot);
 };
 
 export default refreshConfigTree;

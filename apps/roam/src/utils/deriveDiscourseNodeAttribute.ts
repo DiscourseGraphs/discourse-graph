@@ -1,7 +1,6 @@
-import getSubTree from "roamjs-components/util/getSubTree";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import getAttributeValueByBlockAndName from "roamjs-components/queries/getAttributeValueByBlockAndName";
+import { getDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import { DISCOURSE_NODE_KEYS } from "~/components/settings/utils/settingKeys";
 import getDiscourseContextResults from "./getDiscourseContextResults";
 import findDiscourseNode from "./findDiscourseNode";
 import getDiscourseNodes from "./getDiscourseNodes";
@@ -52,15 +51,16 @@ const deriveNodeAttribute = async ({
   const discourseNode = findDiscourseNode({ uid, nodes });
   if (!discourseNode) return 0;
   const nodeType = discourseNode.type;
-  const attributeNode = getSubTree({
-    tree: getBasicTreeByParentUid(nodeType || ""),
-    key: "Attributes",
-  });
-  const scoreFormula = getSettingValueFromTree({
-    tree: attributeNode.children,
-    key: attribute,
-    defaultValue: "{count:Has Any Relation To:any}",
-  });
+  const attributes =
+    getDiscourseNodeSetting<Record<string, string>>(nodeType || "", [
+      DISCOURSE_NODE_KEYS.attributes,
+    ]) ?? {};
+  const match = Object.keys(attributes).find(
+    (k) => k.toLowerCase() === attribute.toLowerCase(),
+  );
+  const scoreFormula =
+    (match ? attributes[match] : undefined) ||
+    "{count:Has Any Relation To:any}";
   let postProcess = scoreFormula;
   let totalOffset = 0;
   const matches = scoreFormula.matchAll(/{([^}]+)}/g);

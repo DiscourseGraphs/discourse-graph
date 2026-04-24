@@ -21,13 +21,20 @@ import {
 } from "./pageRefObserverHandlers";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
+import {
+  getPersonalSetting,
+  setPersonalSetting,
+} from "~/components/settings/utils/accessors";
+import {
+  PERSONAL_KEYS,
+  QUERY_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import { extractRef } from "roamjs-components/util";
 import discourseConfigRef from "~/utils/discourseConfigRef";
 import { getLeftSidebarPersonalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { getUidAndBooleanSetting } from "~/utils/getExportSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
-import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
 
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
@@ -256,12 +263,13 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   const toggleDiscourseContextOverlay = async () => {
-    const currentValue =
-      (extensionAPI.settings.get("discourse-context-overlay") as boolean) ??
-      false;
+    const currentValue = getPersonalSetting<boolean>([
+      PERSONAL_KEYS.discourseContextOverlay,
+    ]);
     const newValue = !currentValue;
     try {
       await extensionAPI.settings.set("discourse-context-overlay", newValue);
+      setPersonalSetting([PERSONAL_KEYS.discourseContextOverlay], newValue);
     } catch (error) {
       const e = error as Error;
       renderToast({
@@ -282,11 +290,17 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   const toggleQueryMetadata = async () => {
-    const currentValue =
-      (extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean) ?? true;
+    const currentValue = getPersonalSetting<boolean>([
+      PERSONAL_KEYS.query,
+      QUERY_KEYS.hideQueryMetadata,
+    ]);
     const newValue = !currentValue;
     try {
       await extensionAPI.settings.set(HIDE_METADATA_KEY, newValue);
+      setPersonalSetting(
+        [PERSONAL_KEYS.query, QUERY_KEYS.hideQueryMetadata],
+        newValue,
+      );
     } catch (error) {
       const e = error as Error;
       renderToast({

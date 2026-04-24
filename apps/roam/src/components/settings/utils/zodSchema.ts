@@ -22,7 +22,7 @@ const QBClauseDataSchema = z.object({
   not: z.boolean().optional(),
 });
 
-type Condition =
+export type Condition =
   | (z.infer<typeof QBClauseDataSchema> & { type: "clause" })
   | (z.infer<typeof QBClauseDataSchema> & { type: "not" })
   | { type: "or"; conditions: Condition[][] }
@@ -95,6 +95,19 @@ const booleanWithDefault = (defaultVal: boolean) =>
     .optional()
     .transform((val) => val ?? defaultVal);
 
+const defaultNodeIndex = () => ({
+  conditions: [] as {
+    type: string;
+    relation: string;
+    source: string;
+    uid: string;
+    not: boolean;
+  }[],
+  selections: [] as { text: string; label: string }[],
+  custom: "",
+  returnNode: "node",
+});
+
 export const DiscourseNodeSchema = z.object({
   text: z.string(),
   type: z.string(),
@@ -109,13 +122,7 @@ export const DiscourseNodeSchema = z.object({
     })
     .nullable()
     .optional()
-    .transform(
-      (val) =>
-        val ?? {
-          enabled: false,
-          query: { conditions: [], selections: [], custom: "", returnNode: "" },
-        },
-    ),
+    .transform((val) => val ?? { enabled: false, query: defaultNodeIndex() }),
   template: z
     .array(RoamNodeSchema)
     .nullable()
@@ -129,12 +136,10 @@ export const DiscourseNodeSchema = z.object({
     .optional()
     .transform((val) => val ?? {}),
   overlay: stringWithDefault(""),
-  index: IndexSchema.nullable().optional(),
+  index: IndexSchema.nullable()
+    .optional()
+    .transform((val) => val ?? defaultNodeIndex()),
   suggestiveRules: SuggestiveRulesSchema.default({}),
-  backedBy: z
-    .enum(["user", "default", "relation"])
-    .nullable()
-    .transform((val) => val ?? "user"),
 });
 
 export const TripleSchema = z.tuple([z.string(), z.string(), z.string()]);
@@ -157,6 +162,7 @@ export const FeatureFlagsSchema = z.object({
   "Enable left sidebar": z.boolean().default(false),
   "Duplicate node alert enabled": z.boolean().default(false),
   "Suggestive mode overlay enabled": z.boolean().default(false),
+  "Use new settings store": z.boolean().default(false),
 });
 
 export const ExportSettingsSchema = z.object({
@@ -175,8 +181,8 @@ export const PageGroupSchema = z.object({
 });
 
 export const SuggestiveModeGlobalSettingsSchema = z.object({
-  "Include current page relations": z.boolean().default(false),
-  "Include parent and child blocks": z.boolean().default(false),
+  "Include current page relations": z.boolean().default(true),
+  "Include parent and child blocks": z.boolean().default(true),
   "Page groups": z.array(PageGroupSchema).default([]),
 });
 
@@ -229,9 +235,9 @@ export const StoredFiltersSchema = z.object({
 });
 
 export const QuerySettingsSchema = z.object({
-  "Hide query metadata": z.boolean().default(false),
+  "Hide query metadata": z.boolean().default(true),
   "Default page size": z.number().default(10),
-  "Query pages": z.array(z.string()).default([]),
+  "Query pages": z.array(z.string()).default(["discourse-graph/queries/*"]),
   "Default filters": z.record(z.string(), StoredFiltersSchema).default({}),
 });
 

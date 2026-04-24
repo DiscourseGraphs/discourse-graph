@@ -8,18 +8,13 @@ import {
   renderCanvasReferences,
   renderDiscourseContext,
 } from "~/utils/renderLinkedReferenceAdditions";
-import { createConfigObserver } from "roamjs-components/components/ConfigPage";
 import {
   renderTldrawCanvas,
   renderTldrawCanvasInSidebar,
 } from "~/components/canvas/Tldraw";
 import { renderQueryPage, renderQueryBlock } from "~/components/QueryBuilder";
-import {
-  DISCOURSE_CONFIG_PAGE_TITLE,
-  renderNodeConfigPage,
-} from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import { isCurrentPageCanvas, isSidebarCanvas } from "~/utils/isCanvasPage";
-import { isDiscourseNodeConfigPage as isNodeConfigPage } from "~/utils/isDiscourseNodeConfigPage";
 import { isQueryPage } from "~/utils/isQueryPage";
 import {
   enablePageRefObserver,
@@ -30,18 +25,17 @@ import {
   onPageRefObserverChange,
   getSuggestiveOverlayHandler,
 } from "~/utils/pageRefObserverHandlers";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import getDiscourseNodes, {
+  type DiscourseNode,
+} from "~/utils/getDiscourseNodes";
 import { OnloadArgs } from "roamjs-components/types";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { render as renderGraphOverviewExport } from "~/components/ExportDiscourseContext";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import { getSettingValueFromTree } from "roamjs-components/util";
 import {
   getModifiersFromCombo,
   render as renderDiscourseNodeMenu,
 } from "~/components/DiscourseNodeMenu";
 import { IKeyCombo } from "@blueprintjs/core";
-import { configPageTabs } from "~/utils/configPageTabs";
 import { renderDiscourseNodeSearchMenu } from "~/components/DiscourseNodeSearchMenu";
 import {
   renderTextSelectionPopup,
@@ -50,9 +44,7 @@ import {
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { renderImageToolsMenu } from "./renderImageToolsMenu";
-import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
-import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
@@ -60,6 +52,18 @@ import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import findDiscourseNode from "./findDiscourseNode";
+import {
+  bulkReadSettings,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
+import {
+  onSettingChange,
+  settingKeys,
+} from "~/components/settings/utils/settingsEmitter";
+import {
+  PERSONAL_KEYS,
+  GLOBAL_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -82,11 +86,13 @@ const getTitleAndUidFromHeader = (h1: HTMLHeadingElement) => {
   return { title, uid };
 };
 
-export const initObservers = async ({
+export const initObservers = ({
   onloadArgs,
+  settings,
 }: {
   onloadArgs: OnloadArgs;
-}): Promise<{
+  settings: SettingsSnapshot;
+}): {
   observers: MutationObserver[];
   listeners: {
     pageActionListener: EventListener;
@@ -95,16 +101,24 @@ export const initObservers = async ({
     discourseNodeSearchTriggerListener: EventListener;
     nodeCreationPopoverListener: EventListener;
   };
-}> => {
+  cleanups: Array<() => void>;
+} => {
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
     callback: (e) => {
       const h1 = e as HTMLHeadingElement;
       const { title, uid } = getTitleAndUidFromHeader(h1);
+
+      const settings = bulkReadSettings();
+
       const props = { title, h1, onloadArgs };
 
-      const node = findDiscourseNode({ uid, title });
+      const node = findDiscourseNode({
+        uid,
+        title,
+        snapshot: settings,
+      });
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
         renderDiscourseContext({ h1, uid });
@@ -118,11 +132,13 @@ export const initObservers = async ({
           renderCanvasReferences(linkedReferencesDiv, uid, onloadArgs);
         }
       }
-
-      if (isNodeConfigPage(title)) renderNodeConfigPage(props);
-      else if (isQueryPage(props)) renderQueryPage(props);
-      else if (isCurrentPageCanvas(props)) renderTldrawCanvas(props);
-      else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
+      if (isQueryPage({ title, snapshot: settings })) {
+        renderQueryPage(props);
+      } else if (isCurrentPageCanvas({ title, h1, snapshot: settings })) {
+        renderTldrawCanvas(props);
+      } else if (isSidebarCanvas({ title, h1, snapshot: settings })) {
+        renderTldrawCanvasInSidebar(props);
+      }
     },
   });
 
@@ -130,6 +146,18 @@ export const initObservers = async ({
     attribute: "query-block",
     render: (b) => renderQueryBlock(b, onloadArgs),
   });
+
+  let batchedTagNodes: DiscourseNode[] | null = null;
+  const getNodesForTagBatch = (): DiscourseNode[] => {
+    if (batchedTagNodes === null) {
+      const settings = bulkReadSettings();
+      batchedTagNodes = getDiscourseNodes(undefined, settings);
+      queueMicrotask(() => {
+        batchedTagNodes = null;
+      });
+    }
+    return batchedTagNodes;
+  };
 
   const nodeTagPopupButtonObserver = createHTMLObserver({
     className: "rm-page-ref--tag",
@@ -139,7 +167,7 @@ export const initObservers = async ({
       if (tag) {
         const normalizedTag = getCleanTagText(tag);
 
-        for (const node of getDiscourseNodes()) {
+        for (const node of getNodesForTagBatch()) {
           const normalizedNodeTag = node.tag ? getCleanTagText(node.tag) : "";
           if (normalizedTag === normalizedNodeTag) {
             renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
@@ -164,11 +192,11 @@ export const initObservers = async ({
     }>,
   ) => {
     if (!/page/i.test(e.detail.action)) return;
-    window.roamAlphaAPI.ui.mainWindow
+    void window.roamAlphaAPI.ui.mainWindow
       .getOpenPageOrBlockUid()
       .then((u) => u || window.roamAlphaAPI.util.dateToPageUid(new Date()))
       .then((parentUid) => {
-        createBlock({
+        return createBlock({
           parentUid,
           order: Number.MAX_VALUE,
           node: { text: `[[${e.detail.val}]]` },
@@ -199,48 +227,63 @@ export const initObservers = async ({
     },
   });
 
-  if (onloadArgs.extensionAPI.settings.get("page-preview"))
+  if (settings.personalSettings[PERSONAL_KEYS.pagePreview])
     addPageRefObserver(previewPageRefHandler);
-  if (onloadArgs.extensionAPI.settings.get("discourse-context-overlay")) {
+
+  if (settings.personalSettings[PERSONAL_KEYS.discourseContextOverlay]) {
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(true);
   }
+
   if (getPageRefObserversSize()) enablePageRefObserver();
 
-  const { pageUid: configPageUid, observer: configPageObserver } =
-    await createConfigObserver({
-      title: DISCOURSE_CONFIG_PAGE_TITLE,
-      config: {
-        tabs: configPageTabs(onloadArgs),
-      },
-    });
-  // refresh config tree after config page is created
-  refreshConfigTree();
+  const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
 
   const hashChangeListener = (e: Event) => {
     const evt = e as HashChangeEvent;
+    const settings = bulkReadSettings();
     // Attempt to refresh config navigating away from config page
     // doesn't work if they update via sidebar
     if (
-      evt.oldURL.endsWith(configPageUid) ||
-      getDiscourseNodes().some(({ type }) => evt.oldURL.endsWith(type))
+      (configPageUid && evt.oldURL.endsWith(configPageUid)) ||
+      getDiscourseNodes(undefined, settings).some(({ type }) =>
+        evt.oldURL.endsWith(type),
+      )
     ) {
-      refreshConfigTree();
+      refreshConfigTree(settings);
     }
   };
 
-  const configTree = getBasicTreeByParentUid(configPageUid);
-  const globalTrigger = getSettingValueFromTree({
-    tree: configTree,
-    key: "trigger",
-    defaultValue: "\\",
-  }).trim();
+  let globalTrigger = settings.globalSettings[GLOBAL_KEYS.trigger].trim();
+  const personalTriggerComboRaw =
+    settings.personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger];
   const personalTriggerCombo =
-    (onloadArgs.extensionAPI.settings.get(
-      "personal-node-menu-trigger",
-    ) as IKeyCombo) || undefined;
-  const personalTrigger = personalTriggerCombo?.key;
-  const personalModifiers = getModifiersFromCombo(personalTriggerCombo);
+    typeof personalTriggerComboRaw === "object"
+      ? personalTriggerComboRaw
+      : undefined;
+  let personalTrigger = personalTriggerCombo?.key;
+  let personalModifiers = personalTriggerCombo
+    ? getModifiersFromCombo(personalTriggerCombo)
+    : [];
+
+  const unsubGlobalTrigger = onSettingChange(
+    settingKeys.globalTrigger,
+    (newValue) => {
+      globalTrigger = (newValue as string).trim();
+    },
+  );
+
+  const unsubPersonalTrigger = onSettingChange(
+    settingKeys.personalNodeMenuTrigger,
+    (newValue) => {
+      const combo =
+        newValue && typeof newValue === "object"
+          ? (newValue as IKeyCombo)
+          : undefined;
+      personalTrigger = combo?.key;
+      personalModifiers = combo ? getModifiersFromCombo(combo) : [];
+    },
+  );
 
   const leftSidebarObserver = createHTMLObserver({
     tag: "DIV",
@@ -248,14 +291,17 @@ export const initObservers = async ({
     className: "starred-pages-wrapper",
     callback: (el) => {
       void (async () => {
-        const isLeftSidebarEnabled = getUidAndBooleanSetting({
-          tree: configTree,
-          text: "(BETA) Left Sidebar",
-        }).value;
+        const settings = bulkReadSettings();
+        const isLeftSidebarEnabled =
+          settings.featureFlags["Enable left sidebar"];
         const container = el as HTMLDivElement;
         if (isLeftSidebarEnabled) {
           container.style.padding = "0";
-          await mountLeftSidebar(container, onloadArgs);
+          await mountLeftSidebar({
+            wrapper: container,
+            onloadArgs,
+            initialSnapshot: settings,
+          });
         }
       })();
     },
@@ -302,7 +348,15 @@ export const initObservers = async ({
     }
   };
 
-  const customTrigger = getSetting("node-search-trigger", "@");
+  let customTrigger =
+    settings.personalSettings[PERSONAL_KEYS.nodeSearchMenuTrigger];
+
+  const unsubSearchTrigger = onSettingChange(
+    settingKeys.nodeSearchMenuTrigger,
+    (newValue) => {
+      customTrigger = newValue as string;
+    },
+  );
 
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
@@ -355,10 +409,8 @@ export const initObservers = async ({
   };
 
   const nodeCreationPopoverListener = debounce(() => {
-    const isTextSelectionPopupEnabled =
-      onloadArgs.extensionAPI.settings.get("text-selection-popup") !== false;
-
-    if (!isTextSelectionPopupEnabled) return;
+    const settings = bulkReadSettings();
+    if (!settings.personalSettings[PERSONAL_KEYS.textSelectionPopup]) return;
 
     const selection = window.getSelection();
 
@@ -394,7 +446,6 @@ export const initObservers = async ({
     observers: [
       pageTitleObserver,
       queryBlockObserver,
-      configPageObserver,
       graphOverviewExportObserver,
       nodeTagPopupButtonObserver,
       leftSidebarObserver,
@@ -407,5 +458,6 @@ export const initObservers = async ({
       discourseNodeSearchTriggerListener,
       nodeCreationPopoverListener,
     },
+    cleanups: [unsubGlobalTrigger, unsubPersonalTrigger, unsubSearchTrigger],
   };
 };

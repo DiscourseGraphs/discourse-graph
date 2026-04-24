@@ -22,14 +22,32 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import extractRef from "roamjs-components/util/extractRef";
 import {
-  getFormattedConfigTree,
-  notify,
-  subscribe,
-} from "~/utils/discourseConfigRef";
-import type {
-  LeftSidebarConfig,
-  LeftSidebarPersonalSectionConfig,
+  onSettingChange,
+  settingKeys,
+} from "~/components/settings/utils/settingsEmitter";
+import {
+  type LeftSidebarConfig,
+  type LeftSidebarPersonalSectionConfig,
+  mergeGlobalSectionWithAccessor,
+  mergePersonalSectionsWithAccessor,
 } from "~/utils/getLeftSidebarSettings";
+import discourseConfigRef, { notify } from "~/utils/discourseConfigRef";
+import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
+import {
+  getGlobalSetting,
+  getPersonalSetting,
+  getPersonalSettings,
+  setGlobalSetting,
+  setPersonalSetting,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
+import {
+  PERSONAL_KEYS,
+  GLOBAL_KEYS,
+  LEFT_SIDEBAR_KEYS,
+  LEFT_SIDEBAR_SETTINGS_KEYS,
+} from "~/components/settings/utils/settingKeys";
+import type { LeftSidebarGlobalSettings } from "~/components/settings/utils/zodSchema";
 import { createBlock } from "roamjs-components/writes";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -39,10 +57,13 @@ import { SettingsDialog } from "./settings/Settings";
 import { OnloadArgs } from "roamjs-components/types";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
+
+const getCurrentLeftSidebarConfig = (): LeftSidebarConfig =>
+  getLeftSidebarSettings(discourseConfigRef.tree);
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -90,33 +111,66 @@ const openTarget = async (e: React.MouseEvent, targetUid: string) => {
   }
 };
 
-const toggleFoldedState = ({
+const toggleFoldedState = async ({
   isOpen,
   setIsOpen,
   folded,
   parentUid,
+  isGlobal,
+  sectionIndex,
 }: {
   isOpen: boolean;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
   folded: { uid?: string; value: boolean };
   parentUid: string;
+  isGlobal?: boolean;
+  sectionIndex?: number;
 }) => {
+  const newFolded = !isOpen;
+  setIsOpen(newFolded);
+
   if (isOpen) {
-    setIsOpen(false);
-    if (folded.uid) {
-      void deleteBlock(folded.uid);
-      folded.uid = undefined;
-      folded.value = false;
-    }
+    const children = getBasicTreeByParentUid(parentUid);
+    await Promise.all(
+      children
+        .filter((c) => c.text === "Folded")
+        .map((c) => deleteBlock(c.uid)),
+    );
+    folded.uid = undefined;
+    folded.value = false;
   } else {
-    setIsOpen(true);
     const newUid = window.roamAlphaAPI.util.generateUID();
-    void createBlock({
+    await createBlock({
       parentUid,
       node: { text: "Folded", uid: newUid },
     });
     folded.uid = newUid;
     folded.value = true;
+  }
+
+  refreshConfigTree();
+
+  if (isGlobal) {
+    setGlobalSetting(
+      [
+        GLOBAL_KEYS.leftSidebar,
+        LEFT_SIDEBAR_KEYS.settings,
+        LEFT_SIDEBAR_SETTINGS_KEYS.folded,
+      ],
+      newFolded,
+    );
+  } else if (sectionIndex !== undefined) {
+    const sections = [...getPersonalSettings()[PERSONAL_KEYS.leftSidebar]];
+    if (sections[sectionIndex]) {
+      sections[sectionIndex] = {
+        ...sections[sectionIndex],
+        Settings: {
+          ...sections[sectionIndex].Settings,
+          Folded: newFolded,
+        },
+      };
+      setPersonalSetting([PERSONAL_KEYS.leftSidebar], sections);
+    }
   }
 };
 
@@ -160,8 +214,10 @@ const SectionChildren = ({
 
 const PersonalSectionItem = ({
   section,
+  sectionIndex,
 }: {
   section: LeftSidebarPersonalSectionConfig;
+  sectionIndex: number;
 }) => {
   const titleRef = parseReference(section.text);
   const blockText = useMemo(
@@ -173,16 +229,23 @@ const PersonalSectionItem = ({
   const [isOpen, setIsOpen] = useState<boolean>(
     !!section.settings?.folded.value || false,
   );
+  const isTogglingRef = useRef(false);
 
-  const handleChevronClick = () => {
+  const handleChevronClick = async () => {
     if (!section.settings) return;
-
-    toggleFoldedState({
-      isOpen,
-      setIsOpen,
-      folded: section.settings.folded,
-      parentUid: section.settings.uid || "",
-    });
+    if (isTogglingRef.current) return;
+    isTogglingRef.current = true;
+    try {
+      await toggleFoldedState({
+        isOpen,
+        setIsOpen,
+        folded: section.settings.folded,
+        parentUid: section.settings.uid || "",
+        sectionIndex,
+      });
+    } finally {
+      isTogglingRef.current = false;
+    }
   };
 
   return (
@@ -193,7 +256,7 @@ const PersonalSectionItem = ({
             className="flex items-center"
             onClick={() => {
               if ((section.children?.length || 0) > 0) {
-                handleChevronClick();
+                void handleChevronClick();
               }
             }}
           >
@@ -202,7 +265,7 @@ const PersonalSectionItem = ({
           {(section.children?.length || 0) > 0 && (
             <span
               className="sidebar-title-button-chevron p-1"
-              onClick={handleChevronClick}
+              onClick={() => void handleChevronClick()}
             >
               <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
             </span>
@@ -226,9 +289,9 @@ const PersonalSections = ({ config }: { config: LeftSidebarConfig }) => {
 
   return (
     <div className="personal-left-sidebar-sections">
-      {sections.map((section) => (
+      {sections.map((section, index) => (
         <div key={section.uid}>
-          <PersonalSectionItem section={section} />
+          <PersonalSectionItem section={section} sectionIndex={index} />
         </div>
       ))}
     </div>
@@ -239,22 +302,32 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
   const [isOpen, setIsOpen] = useState<boolean>(
     !!config.settings?.folded.value,
   );
+  const isTogglingRef = useRef(false);
   if (!config.children?.length) return null;
   const isCollapsable = config.settings?.collapsable.value;
+
+  const handleToggle = async () => {
+    if (!isCollapsable || !config.settings) return;
+    if (isTogglingRef.current) return;
+    isTogglingRef.current = true;
+    try {
+      await toggleFoldedState({
+        isOpen,
+        setIsOpen,
+        folded: config.settings.folded,
+        parentUid: config.settings.uid,
+        isGlobal: true,
+      });
+    } finally {
+      isTogglingRef.current = false;
+    }
+  };
 
   return (
     <>
       <div
         className="sidebar-title-button flex w-full items-center border-none bg-transparent py-1 pl-6 pr-2.5 font-semibold outline-none"
-        onClick={() => {
-          if (!isCollapsable || !config.settings) return;
-          toggleFoldedState({
-            isOpen,
-            setIsOpen,
-            folded: config.settings.folded,
-            parentUid: config.settings.uid,
-          });
-        }}
+        onClick={() => void handleToggle()}
       >
         <div className="flex w-full items-center justify-between">
           <span>GLOBAL</span>
@@ -276,22 +349,63 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
   );
 };
 
-export const useConfig = () => {
-  const [config, setConfig] = useState(
-    () => getFormattedConfigTree().leftSidebar,
-  );
+// TODO(ENG-1471): Remove old-system merge when migration complete — just use accessor values directly.
+// See mergeGlobalSectionWithAccessor/mergePersonalSectionsWithAccessor for why the merge exists.
+const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
+  // Read VALUES from accessor (handles flag routing + mismatch detection)
+  const globalValues = snapshot
+    ? snapshot.globalSettings[GLOBAL_KEYS.leftSidebar]
+    : getGlobalSetting<LeftSidebarGlobalSettings>([GLOBAL_KEYS.leftSidebar]);
+  const personalValues = snapshot
+    ? snapshot.personalSettings[PERSONAL_KEYS.leftSidebar]
+    : getPersonalSetting<
+        ReturnType<typeof getPersonalSettings>[typeof PERSONAL_KEYS.leftSidebar]
+      >([PERSONAL_KEYS.leftSidebar]);
+
+  // Read UIDs from old system (needed for fold CRUD during dual-write)
+  const oldConfig = getCurrentLeftSidebarConfig();
+
+  return {
+    uid: oldConfig.uid,
+    favoritesMigrated: oldConfig.favoritesMigrated,
+    sidebarMigrated: oldConfig.sidebarMigrated,
+    global: mergeGlobalSectionWithAccessor(oldConfig.global, globalValues),
+    personal: {
+      uid: oldConfig.personal.uid,
+      sections: mergePersonalSectionsWithAccessor(
+        oldConfig.personal.sections,
+        personalValues,
+      ),
+    },
+    allPersonalSections: oldConfig.allPersonalSections,
+  };
+};
+
+export const useConfig = (initialSnapshot?: SettingsSnapshot) => {
+  const [config, setConfig] = useState(() => buildConfig(initialSnapshot));
   useEffect(() => {
     const handleUpdate = () => {
-      setConfig(getFormattedConfigTree().leftSidebar);
+      setConfig(buildConfig());
     };
-    const unsubscribe = subscribe(handleUpdate);
+    const unsubGlobal = onSettingChange(
+      settingKeys.globalLeftSidebar,
+      handleUpdate,
+    );
+    const unsubPersonal = onSettingChange(
+      settingKeys.personalLeftSidebar,
+      handleUpdate,
+    );
     return () => {
-      unsubscribe();
+      unsubGlobal();
+      unsubPersonal();
     };
   }, []);
   return { config, setConfig };
 };
 
+// TODO(ENG-1471): refreshAndNotify still needed by settings panels
+// (LeftSidebarGlobalSettings, LeftSidebarPersonalSettings) for old-system CRUD.
+// Remove when settings panels also read via accessors + emitter.
 export const refreshAndNotify = () => {
   refreshConfigTree();
   notify();
@@ -407,8 +521,14 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   );
 };
 
-const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const { config } = useConfig();
+const LeftSidebarView = ({
+  onloadArgs,
+  initialSnapshot,
+}: {
+  onloadArgs: OnloadArgs;
+  initialSnapshot?: SettingsSnapshot;
+}) => {
+  const { config } = useConfig(initialSnapshot);
 
   return (
     <>
@@ -420,7 +540,7 @@ const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 };
 
 const migrateFavorites = async () => {
-  const config = getFormattedConfigTree().leftSidebar;
+  const config = getCurrentLeftSidebarConfig();
 
   if (config.favoritesMigrated.value) return;
 
@@ -513,10 +633,15 @@ const migrateFavorites = async () => {
   refreshConfigTree();
 };
 
-export const mountLeftSidebar = async (
-  wrapper: HTMLElement,
-  onloadArgs: OnloadArgs,
-): Promise<void> => {
+export const mountLeftSidebar = async ({
+  wrapper,
+  onloadArgs,
+  initialSnapshot,
+}: {
+  wrapper: HTMLElement;
+  onloadArgs: OnloadArgs;
+  initialSnapshot?: SettingsSnapshot;
+}): Promise<void> => {
   if (!wrapper) return;
 
   const id = "dg-left-sidebar-root";
@@ -533,7 +658,14 @@ export const mountLeftSidebar = async (
   } else {
     root.className = "starred-pages";
   }
-  ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
+  // eslint-disable-next-line react/no-deprecated
+  ReactDOM.render(
+    <LeftSidebarView
+      onloadArgs={onloadArgs}
+      initialSnapshot={initialSnapshot}
+    />,
+    root,
+  );
 };
 
 export default LeftSidebarView;

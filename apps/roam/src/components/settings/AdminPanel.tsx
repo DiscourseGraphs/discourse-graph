@@ -13,6 +13,12 @@ import {
 } from "@blueprintjs/core";
 import { Select } from "@blueprintjs/select";
 import {
+  setFeatureFlag,
+  getFeatureFlag,
+  isSyncEnabled,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
+import {
   getSupabaseContext,
   getLoggedInClient,
   SupabaseContext,
@@ -27,11 +33,6 @@ import {
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import internalError from "~/utils/internalError";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
-import {
-  setFeatureFlag,
-  getFeatureFlag,
-  isSyncEnabled,
-} from "~/components/settings/utils/accessors";
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 import type { FeatureFlags } from "./utils/zodSchema";
 
@@ -378,6 +379,12 @@ const FeatureFlagsTab = (): React.ReactElement => {
         )}
       </Alert>
 
+      <FeatureFlagPanel
+        title="Use new settings store"
+        description="When enabled, accessor getters read from block props instead of the old system. Surfaces dual-write gaps during development."
+        featureKey="Use new settings store"
+      />
+
       <Button
         className="w-96"
         icon="send-message"
@@ -397,7 +404,11 @@ const FeatureFlagsTab = (): React.ReactElement => {
   );
 };
 
-const AdminPanel = (): React.ReactElement => {
+const AdminPanel = ({
+  globalSettings,
+}: {
+  globalSettings: SettingsSnapshot["globalSettings"];
+}): React.ReactElement => {
   const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
 
   return (
@@ -429,7 +440,7 @@ const AdminPanel = (): React.ReactElement => {
           id="sync-mode-settings"
           title="Sync mode"
           className="overflow-y-auto"
-          panel={<SuggestiveModeSettings />}
+          panel={<SuggestiveModeSettings globalSettings={globalSettings} />}
         />
       )}
     </Tabs>

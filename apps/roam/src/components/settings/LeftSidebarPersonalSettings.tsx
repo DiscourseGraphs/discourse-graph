@@ -19,7 +19,11 @@ import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
-import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import {
+  setPersonalSetting,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import {
   PersonalNumberPanel,
   PersonalTextPanel,
@@ -27,12 +31,13 @@ import {
 import {
   LeftSidebarPersonalSectionConfig,
   getLeftSidebarPersonalSectionConfig,
+  mergePersonalSectionsWithAccessor,
   PersonalSectionChild,
 } from "~/utils/getLeftSidebarSettings";
 import { extractRef, getSubTree } from "roamjs-components/util";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
@@ -60,7 +65,10 @@ export const sectionsToBlockProps = (
 const syncAllSectionsToBlockProps = (
   sections: LeftSidebarPersonalSectionConfig[],
 ) => {
-  setPersonalSetting(["Left sidebar"], sectionsToBlockProps(sections));
+  setPersonalSetting(
+    [PERSONAL_KEYS.leftSidebar],
+    sectionsToBlockProps(sections),
+  );
 };
 
 const SectionItem = memo(
@@ -120,14 +128,9 @@ const SectionItem = memo(
             order: 0,
             node: { text: "Settings" },
           });
-          const foldedUid = await createBlock({
-            parentUid: settingsUid,
-            order: 0,
-            node: { text: "Folded" },
-          });
           const truncateSettingUid = await createBlock({
             parentUid: settingsUid,
-            order: 1,
+            order: 0,
             node: { text: "Truncate-result?", children: [{ text: "75" }] },
           });
 
@@ -144,7 +147,7 @@ const SectionItem = memo(
                   ...s,
                   settings: {
                     uid: settingsUid,
-                    folded: { uid: foldedUid, value: false },
+                    folded: { uid: undefined, value: false },
                     truncateResult: { uid: truncateSettingUid, value: 75 },
                   },
                   childrenUid,
@@ -162,7 +165,7 @@ const SectionItem = memo(
                     ...s,
                     settings: {
                       uid: settingsUid,
-                      folded: { uid: foldedUid, value: false },
+                      folded: { uid: undefined, value: false },
                       truncateResult: { uid: truncateSettingUid, value: 75 },
                     },
                     children: [],
@@ -511,7 +514,7 @@ const SectionItem = memo(
                             <PersonalTextPanel
                               title="Alias"
                               description="Display name for this item"
-                              settingKeys={["Left sidebar"]}
+                              settingKeys={[]}
                               initialValue={child.alias?.value ?? ""}
                               order={0}
                               uid={child.alias?.uid}
@@ -565,9 +568,11 @@ SectionItem.displayName = "SectionItem";
 
 const LeftSidebarPersonalSectionsContent = ({
   leftSidebar,
+  personalSettings,
   expandedSectionUid,
 }: {
   leftSidebar: RoamBasicNode;
+  personalSettings: SettingsSnapshot["personalSettings"];
   expandedSectionUid?: string;
 }) => {
   const [sections, setSections] = useState<LeftSidebarPersonalSectionConfig[]>(
@@ -605,15 +610,19 @@ const LeftSidebarPersonalSectionsContent = ({
         setSections([]);
       } else {
         setPersonalSectionUid(personalSection.uid);
+
+        const personalValues = personalSettings[PERSONAL_KEYS.leftSidebar];
         const loadedSections = getLeftSidebarPersonalSectionConfig(
           leftSidebar.children,
         ).sections;
-        setSections(loadedSections);
+        setSections(
+          mergePersonalSectionsWithAccessor(loadedSections, personalValues),
+        );
       }
     };
 
     void initialize();
-  }, [leftSidebar]);
+  }, [leftSidebar, personalSettings]);
 
   const addSection = useCallback(
     async (sectionName: string) => {
@@ -793,7 +802,7 @@ const LeftSidebarPersonalSectionsContent = ({
               <PersonalNumberPanel
                 title="Truncate-result?"
                 description="Maximum characters to display"
-                settingKeys={["Left sidebar"]}
+                settingKeys={[]}
                 initialValue={
                   activeDialogSection.settings.truncateResult?.value ?? 75
                 }
@@ -830,8 +839,10 @@ const LeftSidebarPersonalSectionsContent = ({
 };
 
 export const LeftSidebarPersonalSections = ({
+  personalSettings,
   expandedSectionUid,
 }: {
+  personalSettings: SettingsSnapshot["personalSettings"];
   expandedSectionUid?: string;
 }) => {
   const [leftSidebar, setLeftSidebar] = useState<RoamBasicNode | null>(null);
@@ -864,6 +875,7 @@ export const LeftSidebarPersonalSections = ({
   return (
     <LeftSidebarPersonalSectionsContent
       leftSidebar={leftSidebar}
+      personalSettings={personalSettings}
       expandedSectionUid={expandedSectionUid}
     />
   );

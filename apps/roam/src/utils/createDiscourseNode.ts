@@ -12,6 +12,8 @@ import { OnloadArgs, RoamBasicNode } from "roamjs-components/types";
 import runQuery from "./runQuery";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import posthog from "posthog-js";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 
 type Props = {
   text: string;
@@ -32,8 +34,8 @@ const createDiscourseNode = async ({
     text: text,
   });
   const handleOpenInSidebar = (uid: string) => {
-    if (extensionAPI?.settings.get("disable-sidebar-open")) return;
-    openBlockInSidebar(uid);
+    if (getPersonalSetting<boolean>([PERSONAL_KEYS.disableSidebarOpen])) return;
+    void openBlockInSidebar(uid);
     setTimeout(() => {
       const sidebarTitle = document.querySelector(
         ".rm-sidebar-outline .rm-title-display",
@@ -80,10 +82,7 @@ const createDiscourseNode = async ({
       if (keyImageOption === "query-builder") {
         if (!extensionAPI) return;
 
-        const parentUid = resolveQueryBuilderRef({
-          queryRef: qbAlias,
-          extensionAPI,
-        });
+        const parentUid = resolveQueryBuilderRef({ queryRef: qbAlias });
         const results = await runQuery({
           extensionAPI,
           parentUid,

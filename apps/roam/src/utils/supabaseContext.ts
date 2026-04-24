@@ -3,7 +3,7 @@ import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserD
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 import canonicalRoamUrl from "./canonicalRoamUrl";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
 import type { Enums } from "@repo/database/dbTypes";

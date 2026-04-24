@@ -1,23 +1,27 @@
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import matchDiscourseNode from "./matchDiscourseNode";
+import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
 
 const discourseNodeTypeCache: Record<string, DiscourseNode | false> = {};
 
 const findDiscourseNode = ({
   uid,
   title,
-  nodes = getDiscourseNodes(),
+  nodes,
+  snapshot,
 }: {
   uid: string;
   title?: string;
   nodes?: DiscourseNode[];
+  snapshot?: SettingsSnapshot;
 }): DiscourseNode | false => {
   if (typeof discourseNodeTypeCache[uid] !== "undefined") {
     return discourseNodeTypeCache[uid];
   }
 
+  const resolvedNodes = nodes ?? getDiscourseNodes(undefined, snapshot);
   const matchingNode =
-    nodes.find((node) =>
+    resolvedNodes.find((node) =>
       title === undefined
         ? matchDiscourseNode({ ...node, uid })
         : matchDiscourseNode({ ...node, title }),

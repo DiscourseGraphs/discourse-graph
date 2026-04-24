@@ -13,6 +13,8 @@ import {
 import { FeedbackWidget } from "./BirdEatsBugs";
 import { render as renderSettings } from "~/components/settings/Settings";
 import posthog from "posthog-js";
+import { type SettingsSnapshot } from "./settings/utils/accessors";
+import { PERSONAL_KEYS } from "./settings/utils/settingKeys";
 
 type DiscourseFloatingMenuProps = {
   // CSS placement class
@@ -116,11 +118,7 @@ export const showDiscourseFloatingMenu = () => {
 
 export const installDiscourseFloatingMenu = (
   onLoadArgs: OnloadArgs,
-  props: DiscourseFloatingMenuProps = {
-    position: "bottom-right",
-    theme: "bp3-light",
-    buttonTheme: "bp3-light",
-  },
+  snapshot: SettingsSnapshot,
 ) => {
   let floatingMenuAnchor = document.getElementById(ANCHOR_ID);
   if (!floatingMenuAnchor) {
@@ -128,14 +126,15 @@ export const installDiscourseFloatingMenu = (
     floatingMenuAnchor.id = ANCHOR_ID;
     document.getElementById("app")?.appendChild(floatingMenuAnchor);
   }
-  if (onLoadArgs.extensionAPI.settings.get("hide-feedback-button") as boolean) {
+  if (snapshot.personalSettings[PERSONAL_KEYS.hideFeedbackButton]) {
     floatingMenuAnchor.classList.add("hidden");
   }
+  // eslint-disable-next-line react/no-deprecated
   ReactDOM.render(
     <DiscourseFloatingMenu
-      position={props.position}
-      theme={props.theme}
-      buttonTheme={props.buttonTheme}
+      position="bottom-right"
+      theme="bp3-light"
+      buttonTheme="bp3-light"
       onloadArgs={onLoadArgs}
     />,
     floatingMenuAnchor,
@@ -146,6 +145,7 @@ export const removeDiscourseFloatingMenu = () => {
   const anchor = document.getElementById(ANCHOR_ID);
   if (anchor) {
     try {
+      // eslint-disable-next-line react/no-deprecated
       ReactDOM.unmountComponentAtNode(anchor);
     } catch (e) {
       // no-op: unmount best-effort

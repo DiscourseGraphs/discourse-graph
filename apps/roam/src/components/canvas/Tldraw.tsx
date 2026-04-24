@@ -96,8 +96,6 @@ import { CanvasDrawerPanel } from "./CanvasDrawer";
 import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import internalError from "~/utils/internalError";
 import { syncCanvasNodeTitlesOnLoad } from "~/utils/syncCanvasNodeTitlesOnLoad";
-import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
-import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 import { HistoryEntry } from "@tldraw/store";
 import { TLRecord } from "@tldraw/tlschema";
@@ -118,6 +116,8 @@ import {
   useCanvasStoreAdapterArgs,
 } from "./useCanvasStoreAdapterArgs";
 import posthog from "posthog-js";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { json, normalizeProps } from "~/utils/getBlockProps";
 
 declare global {
@@ -1489,10 +1489,9 @@ const InsideEditorAndUiContext = ({
         editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
           const util = editor.getShapeUtil(shape);
           if (util instanceof BaseDiscourseNodeUtil) {
-            const autoCanvasRelations = getSetting<boolean>(
-              AUTO_CANVAS_RELATIONS_KEY,
-              false,
-            );
+            const autoCanvasRelations = getPersonalSetting<boolean>([
+              PERSONAL_KEYS.autoCanvasRelations,
+            ]);
             if (autoCanvasRelations) {
               void util.createExistingRelations({
                 shape: shape as DiscourseNodeShape,

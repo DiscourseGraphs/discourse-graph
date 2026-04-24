@@ -28,6 +28,8 @@ import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
+import type { PersonalSettings } from "~/components/settings/utils/zodSchema";
 
 type Props = {
   textarea?: HTMLTextAreaElement;
@@ -416,16 +418,15 @@ export const comboToString = (combo: IKeyCombo): string => {
 
 export const NodeMenuTriggerComponent = ({
   extensionAPI,
+  initialValue,
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
+  initialValue: PersonalSettings["Personal node menu trigger"];
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isActive, setIsActive] = useState(false);
-  const [comboKey, setComboKey] = useState<IKeyCombo>(
-    () =>
-      (extensionAPI.settings.get(
-        "personal-node-menu-trigger",
-      ) as IKeyCombo) || { modifiers: 0, key: "" },
+  const [comboKey, setComboKey] = useState<IKeyCombo>(() =>
+    typeof initialValue === "object" ? initialValue : { modifiers: 0, key: "" },
   );
 
   const handleKeyDown = useCallback(
@@ -438,7 +439,7 @@ export const NodeMenuTriggerComponent = ({
       const combo = { key: comboObj.key, modifiers: comboObj.modifiers };
       setComboKey(combo);
       void extensionAPI.settings.set("personal-node-menu-trigger", combo);
-      setPersonalSetting(["Personal node menu trigger"], combo);
+      setPersonalSetting([PERSONAL_KEYS.personalNodeMenuTrigger], combo);
     },
     [extensionAPI],
   );
@@ -460,7 +461,7 @@ export const NodeMenuTriggerComponent = ({
           onClick={() => {
             setComboKey({ modifiers: 0, key: "" });
             void extensionAPI.settings.set("personal-node-menu-trigger", "");
-            setPersonalSetting(["Personal node menu trigger"], "");
+            setPersonalSetting([PERSONAL_KEYS.personalNodeMenuTrigger], "");
           }}
           minimal
         />

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import {
   Classes,
@@ -12,7 +12,7 @@ import {
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import DiscourseRelationConfigPanel from "./DiscourseRelationConfigPanel";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import discourseConfigRef from "~/utils/discourseConfigRef";
 import DiscourseGraphHome from "./GeneralSettings";
 import DiscourseGraphExport from "./ExportSettings";
 import QuerySettings from "./QuerySettings";
@@ -29,6 +29,7 @@ import { getVersionWithDate } from "~/utils/getVersion";
 import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
 import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
 import posthog from "posthog-js";
+import { bulkReadSettings } from "./utils/accessors";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -75,11 +76,19 @@ export const SettingsDialog = ({
   expandedSectionUid?: string;
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
-  const settings = getFormattedConfigTree();
+  const grammarNode = discourseConfigRef.tree.find(
+    (node) => node.text === "grammar",
+  );
+  const relationsNode = grammarNode?.children.find(
+    (node) => node.text === "relations",
+  );
+  const nodesNode = grammarNode?.children.find((node) => node.text === "nodes");
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
   const [activeTabId, setActiveTabId] = useState<TabId>(
     selectedTabId ?? "discourse-graph-home-personal",
   );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const settings = useMemo(() => bulkReadSettings(), [activeTabId]);
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
@@ -162,13 +171,23 @@ export const SettingsDialog = ({
             id="discourse-graph-home-personal"
             title="Home"
             className="overflow-y-auto"
-            panel={<HomePersonalSettings onloadArgs={onloadArgs} />}
+            panel={
+              <HomePersonalSettings
+                onloadArgs={onloadArgs}
+                personalSettings={settings.personalSettings}
+              />
+            }
           />
           <Tab
             id="query-settings"
             title="Queries"
             className="overflow-y-auto"
-            panel={<QuerySettings extensionAPI={extensionAPI} />}
+            panel={
+              <QuerySettings
+                extensionAPI={extensionAPI}
+                personalSettings={settings.personalSettings}
+              />
+            }
           />
           <Tab
             id="left-sidebar-personal-settings"
@@ -176,6 +195,7 @@ export const SettingsDialog = ({
             className="overflow-y-auto"
             panel={
               <LeftSidebarPersonalSections
+                personalSettings={settings.personalSettings}
                 expandedSectionUid={expandedSectionUid}
               />
             }
@@ -187,19 +207,30 @@ export const SettingsDialog = ({
             id="discourse-graph-home"
             title="Home"
             className="overflow-y-auto"
-            panel={<DiscourseGraphHome />}
+            panel={
+              <DiscourseGraphHome
+                globalSettings={settings.globalSettings}
+                featureFlags={settings.featureFlags}
+              />
+            }
           />
           <Tab
             id="discourse-graph-export"
             title="Export"
             className="overflow-y-auto"
-            panel={<DiscourseGraphExport />}
+            panel={
+              <DiscourseGraphExport globalSettings={settings.globalSettings} />
+            }
           />
           <Tab
             id="left-sidebar-global-settings"
             title="Left sidebar"
             className="overflow-y-auto"
-            panel={<LeftSidebarGlobalSections />}
+            panel={
+              <LeftSidebarGlobalSections
+                globalSettings={settings.globalSettings}
+              />
+            }
           />
           <SectionHeader>Grammar</SectionHeader>
           <Tab
@@ -210,8 +241,9 @@ export const SettingsDialog = ({
               <DiscourseRelationConfigPanel
                 defaultValue={DEFAULT_RELATION_VALUES}
                 title="Relations"
-                parentUid={settings.grammarUid}
-                uid={settings.relationsUid}
+                parentUid={grammarNode?.uid || ""}
+                uid={relationsNode?.uid || ""}
+                globalSettings={settings.globalSettings}
               />
             }
           />
@@ -222,8 +254,8 @@ export const SettingsDialog = ({
             panel={
               <DiscourseNodeConfigPanel
                 title="Nodes"
-                uid={settings.nodesUid}
-                parentUid={settings.grammarUid}
+                uid={nodesNode?.uid || ""}
+                parentUid={grammarNode?.uid || ""}
                 defaultValue={[]}
                 setSelectedTabId={setActiveTabId}
                 isPopup={true}
@@ -233,6 +265,7 @@ export const SettingsDialog = ({
           <SectionHeader>Nodes</SectionHeader>
           {nodes.map((n) => (
             <Tab
+              key={n.type}
               id={n.type}
               title={n.text}
               className="overflow-y-auto"
@@ -246,7 +279,7 @@ export const SettingsDialog = ({
             id="secret-admin-panel"
             title="Admin"
             className="overflow-y-auto"
-            panel={<AdminPanel />}
+            panel={<AdminPanel globalSettings={settings.globalSettings} />}
           />
         </Tabs>
       </div>
