@@ -6,7 +6,9 @@ import { createDiscourseNodeFromCommand } from "~/utils/registerCommandPaletteCo
 export const cleanCommandName = (name: string): string => {
   if (name.startsWith("{") && name.endsWith("}"))
     name = name.substring(1, name.length - 1);
-  // Should we make it title case as well?
+  name = name.trim();
+  // sentence case
+  name = name.charAt(0).toUpperCase() + name.slice(1);
   return name;
 };
 

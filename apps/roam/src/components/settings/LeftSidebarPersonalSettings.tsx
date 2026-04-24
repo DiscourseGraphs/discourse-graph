@@ -336,14 +336,17 @@ const SectionItem = memo(
     const handleAddChild = useCallback(async () => {
       if (childInput && section.childrenUid) {
         await addChildToSection(section, section.childrenUid, childInput);
-        setChildInput("");
-        setChildInputKey((prev) => prev + 1);
+        resetAutocomplete("");
         refreshAndNotify();
       }
     }, [childInput, section, addChildToSection]);
 
-    const setPageValue = useCallback((value: string) => {
-      setChildInput(value);
+    const resetAutocomplete = useCallback((nextValue = "") => {
+      setChildInput(nextValue);
+
+      // AutocompleteInput renders from its internal `query` state, which is only
+      // initialized from the external `value` prop on mount. Bump the key to remount
+      // it so the displayed input reflects the new parent state.
       setChildInputKey((prev) => prev + 1);
     }, []);
 
@@ -441,7 +444,7 @@ const SectionItem = memo(
                   onClick={() => void handleAddChild()}
                   title="Add child"
                 />
-                {sidebarCommandPopover(setPageValue)}
+                {sidebarCommandPopover(resetAutocomplete)}
               </div>
 
               {(section.children || []).length > 0 && (

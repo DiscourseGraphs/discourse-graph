@@ -222,8 +222,7 @@ const LeftSidebarGlobalSectionsContent = ({
           pagesToUids(updatedPages),
         );
 
-        setNewPageInput("");
-        setAutocompleteKey((prev) => prev + 1);
+        resetAutocomplete("");
         posthog.capture("Left Sidebar Global Settings: Page Added", {
           pageName,
         });
@@ -266,10 +265,15 @@ const LeftSidebarGlobalSectionsContent = ({
     setNewPageInput(value);
   }, []);
 
-  const setPageValue = useCallback((value: string) => {
-    setNewPageInput(value);
+  const resetAutocomplete = useCallback((nextValue = "") => {
+    setNewPageInput(nextValue);
+
+    // AutocompleteInput renders from its internal `query` state, which is only
+    // initialized from the external `value` prop on mount. Bump the key to remount
+    // it so the displayed input reflects the new parent state.
     setAutocompleteKey((prev) => prev + 1);
   }, []);
+
   const toggleChildren = useCallback(() => {
     setIsExpanded((prev) => !prev);
   }, []);
@@ -364,7 +368,7 @@ const LeftSidebarGlobalSectionsContent = ({
                 onClick={() => void addPage(newPageInput)}
                 title="Add page"
               />
-              {sidebarCommandPopover(setPageValue)}
+              {sidebarCommandPopover(resetAutocomplete)}
             </div>
             {pages.length > 0 ? (
               <div className="space-y-1">
