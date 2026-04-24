@@ -149,9 +149,11 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("keydown", nodeMenuTriggerListener);
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
+  _p("addEventListener (all)");
 
   if (isSyncEnabled()) {
     initializeSupabaseSync();
+    _p("initializeSupabaseSync");
   }
 
   const { extensionAPI } = onloadArgs;
@@ -169,7 +171,7 @@ export default runExtension(async (onloadArgs) => {
     // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
   };
-  _p("listeners + queryBuilder");
+  _p("queryBuilder registration");
 
   installDiscourseFloatingMenu(onloadArgs, settings);
   _p("installDiscourseFloatingMenu");
