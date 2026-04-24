@@ -158,7 +158,7 @@ const LeftSidebarGlobalSectionsContent = ({
       } else {
         const merged = mergeGlobalSectionWithAccessor(config, globalValues);
         setChildrenUid(merged.childrenUid || null);
-        setPages(merged.children || []);
+        setPages(merged.children);
         setGlobalSection(merged);
       }
       setIsInitializing(false);
