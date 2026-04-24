@@ -29,6 +29,7 @@ type SidebarProps = {
   onExtract: () => void;
   canExtract: boolean;
   isExtracting: boolean;
+  hasExtracted: boolean;
   extractionError: string | null;
 };
 
@@ -44,6 +45,7 @@ export const Sidebar = ({
   onExtract,
   canExtract,
   isExtracting,
+  hasExtracted,
   extractionError,
 }: SidebarProps): React.ReactElement => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -196,7 +198,11 @@ export const Sidebar = ({
           disabled={!canExtract}
           className="w-full rounded-xl bg-slate-900 py-6 text-lg font-semibold text-white hover:bg-slate-800"
         >
-          {isExtracting ? "Extracting…" : "Re-Extract"}
+          {isExtracting
+            ? "Extracting…"
+            : hasExtracted
+              ? "Re-Extract"
+              : "Extract"}
         </Button>
       </div>
     </aside>
