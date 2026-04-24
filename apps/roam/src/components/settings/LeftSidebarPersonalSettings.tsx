@@ -39,6 +39,12 @@ import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { memo, Dispatch, SetStateAction } from "react";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import posthog from "posthog-js";
+import { isSmartBlockUid } from "~/utils/isSmartBlockUid";
+
+const isSmartBlockRef = (text: string): boolean => {
+  if (!text.startsWith("((") || !text.endsWith("))")) return false;
+  return isSmartBlockUid(extractRef(text));
+};
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const sectionsToBlockProps = (
@@ -439,6 +445,7 @@ const SectionItem = memo(
                   {(section.children || []).map((child, index) => {
                     const childAlias = child.alias?.value;
                     const isSettingsOpen = childSettingsUid === child.uid;
+                    const childIsSmartBlock = isSmartBlockRef(child.text);
                     const childDisplayTitle =
                       getPageTitleByPageUid(child.text) ||
                       getTextByBlockUid(extractRef(child.text)) ||
@@ -450,7 +457,7 @@ const SectionItem = memo(
                             className="mr-2 min-w-0 flex-1 truncate"
                             title={childDisplayTitle}
                           >
-                            {childAlias ? (
+                            {childAlias && !childIsSmartBlock ? (
                               <span>
                                 <span className="font-medium">
                                   {childAlias}
@@ -464,13 +471,15 @@ const SectionItem = memo(
                             )}
                           </div>
                           <ButtonGroup minimal className="flex-shrink-0">
-                            <Button
-                              icon="settings"
-                              small
-                              onClick={() => setChildSettingsUid(child.uid)}
-                              title="Child settings"
-                              className="opacity-0 transition-opacity group-hover:opacity-100"
-                            />
+                            {!childIsSmartBlock && (
+                              <Button
+                                icon="settings"
+                                small
+                                onClick={() => setChildSettingsUid(child.uid)}
+                                title="Child settings"
+                                className="opacity-0 transition-opacity group-hover:opacity-100"
+                              />
+                            )}
                             <Button
                               icon="arrow-up"
                               small

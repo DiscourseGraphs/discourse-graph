@@ -43,6 +43,8 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
+import { isSmartBlockUid } from "~/utils/isSmartBlockUid";
+import { RenderRoamBlock } from "~/utils/roamReactComponents";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -120,6 +122,26 @@ const toggleFoldedState = ({
   }
 };
 
+const RoamRenderedBlock = ({ uid }: { uid: string }) => {
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest("[data-roamjs-smartblock-button]")) {
+        void window.roamAlphaAPI.ui.mainWindow.openBlock({
+          block: { uid },
+        });
+      }
+    },
+    [uid],
+  );
+
+  return (
+    <div className="dg-sidebar-rendered-block" onClick={handleClick}>
+      <RenderRoamBlock uid={uid} open={false} />
+    </div>
+  );
+};
+
 const SectionChildren = ({
   childrenNodes,
   truncateAt,
@@ -133,6 +155,18 @@ const SectionChildren = ({
       {childrenNodes.map((child) => {
         const ref = parseReference(child.text);
         const alias = child.alias?.value;
+        const isSmartBlock = ref.type === "block" && isSmartBlockUid(ref.uid);
+
+        if (isSmartBlock) {
+          return (
+            <div key={child.uid} className="pl-8 pr-2.5">
+              <div className="section-child-item rounded-sm leading-normal text-gray-600">
+                <RoamRenderedBlock uid={ref.uid} />
+              </div>
+            </div>
+          );
+        }
+
         const display =
           ref.type === "page"
             ? getPageTitleByPageUid(ref.display)
@@ -518,6 +552,22 @@ export const mountLeftSidebar = async (
   onloadArgs: OnloadArgs,
 ): Promise<void> => {
   if (!wrapper) return;
+
+  const styleId = "dg-sidebar-rendered-block-styles";
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      .dg-sidebar-rendered-block .rm-bullet { display: none; }
+      .dg-sidebar-rendered-block .rm-block-separator { display: none; }
+      .dg-sidebar-rendered-block .controls { display: none; }
+      .dg-sidebar-rendered-block .block-expand { display: none; }
+      .dg-sidebar-rendered-block .block-border-left { display: none; }
+      .dg-sidebar-rendered-block .block-ref-count-button { display: none; }
+      .dg-sidebar-rendered-block .rm-block-main { min-height: unset; padding: 0; }
+    `;
+    document.head.appendChild(style);
+  }
 
   const id = "dg-left-sidebar-root";
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
