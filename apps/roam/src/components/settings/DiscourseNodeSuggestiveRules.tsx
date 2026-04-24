@@ -75,6 +75,7 @@ const DiscourseNodeSuggestiveRules = ({
         description={`The template that auto fills ${node.text} page when generated.`}
         settingKeys={TEMPLATE_SETTING_KEYS}
         uid={templateUid}
+        defaultValue={node.template}
       />
 
       <DiscourseNodeTextPanel
