@@ -157,10 +157,19 @@ export const initObservers = ({
   _op("queryBlockObserver");
 
   let batchedTagNodes: DiscourseNode[] | null = null;
+  let _tagCbCount = 0;
   const getNodesForTagBatch = (): DiscourseNode[] => {
     if (batchedTagNodes === null) {
+      const _bt = performance.now();
       const settings = bulkReadSettings();
+      console.log(
+        `[DG Load tagCb] bulkReadSettings: ${Math.round(performance.now() - _bt)}ms`,
+      );
+      const _bt2 = performance.now();
       batchedTagNodes = getDiscourseNodes(undefined, settings);
+      console.log(
+        `[DG Load tagCb] getDiscourseNodes: ${Math.round(performance.now() - _bt2)}ms`,
+      );
       queueMicrotask(() => {
         batchedTagNodes = null;
       });
@@ -172,6 +181,8 @@ export const initObservers = ({
     className: "rm-page-ref--tag",
     tag: "SPAN",
     callback: (s: HTMLSpanElement) => {
+      _tagCbCount++;
+      const _tcStart = performance.now();
       const tag = s.getAttribute("data-tag");
       if (tag) {
         const normalizedTag = getCleanTagText(tag);
@@ -189,6 +200,9 @@ export const initObservers = ({
           }
         }
       }
+      console.log(
+        `[DG Load tagCb #${_tagCbCount}] tag="${tag}" total: ${Math.round(performance.now() - _tcStart)}ms`,
+      );
     },
   });
   _op("nodeTagPopupButtonObserver");
