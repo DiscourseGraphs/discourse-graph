@@ -110,14 +110,26 @@ export const initObservers = ({
     _t = now;
   };
 
+  let _ptCount = 0;
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
     callback: (e) => {
+      _ptCount++;
+      const _cs = performance.now();
+      const _cl = (l: string) => {
+        const n = performance.now();
+        console.log(
+          `[DG Load ptCb #${_ptCount}] ${l}: ${Math.round(n - _cs)}ms`,
+        );
+      };
+
       const h1 = e as HTMLHeadingElement;
       const { title, uid } = getTitleAndUidFromHeader(h1);
+      _cl(`getTitleAndUid ("${title.slice(0, 30)}")`);
 
       const settings = bulkReadSettings();
+      _cl("bulkReadSettings");
 
       const props = { title, h1, onloadArgs };
 
@@ -126,33 +138,50 @@ export const initObservers = ({
         title,
         snapshot: settings,
       });
+      _cl("findDiscourseNode");
+
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
         renderDiscourseContext({ h1, uid });
+        _cl("renderDiscourseContext");
         if (getFeatureFlag("Duplicate node alert enabled")) {
           renderPossibleDuplicates(h1, title, node);
+          _cl("renderPossibleDuplicates");
         }
         const linkedReferencesDiv = document.querySelector(
           ".rm-reference-main",
         ) as HTMLDivElement;
         if (linkedReferencesDiv) {
           renderCanvasReferences(linkedReferencesDiv, uid, onloadArgs);
+          _cl("renderCanvasReferences");
         }
       }
       if (isQueryPage({ title, snapshot: settings })) {
         renderQueryPage(props);
+        _cl("renderQueryPage");
       } else if (isCurrentPageCanvas({ title, h1, snapshot: settings })) {
         renderTldrawCanvas(props);
+        _cl("renderTldrawCanvas");
       } else if (isSidebarCanvas({ title, h1, snapshot: settings })) {
         renderTldrawCanvasInSidebar(props);
+        _cl("renderTldrawCanvasInSidebar");
       }
+      _cl("TOTAL");
     },
   });
   _op("pageTitleObserver");
 
+  let _qbCount = 0;
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
-    render: (b) => renderQueryBlock(b, onloadArgs),
+    render: (b) => {
+      _qbCount++;
+      const _qs = performance.now();
+      renderQueryBlock(b, onloadArgs);
+      console.log(
+        `[DG Load qbCb #${_qbCount}] renderQueryBlock: ${Math.round(performance.now() - _qs)}ms`,
+      );
+    },
   });
   _op("queryBlockObserver");
 
@@ -234,23 +263,35 @@ export const initObservers = ({
   }
   _op("suggestiveOverlay check");
 
+  let _goCount = 0;
   const graphOverviewExportObserver = createHTMLObserver({
     tag: "DIV",
     className: "rm-graph-view-control-panel__main-options",
     callback: (el) => {
+      _goCount++;
+      const _gs = performance.now();
       const div = el as HTMLDivElement;
       renderGraphOverviewExport(div);
+      console.log(
+        `[DG Load goCb #${_goCount}] renderGraphOverviewExport: ${Math.round(performance.now() - _gs)}ms`,
+      );
     },
   });
   _op("graphOverviewExportObserver");
 
+  let _imCount = 0;
   const imageMenuObserver = createHTMLObserver({
     tag: "IMG",
     className: "rm-inline-img",
     callback: (img: HTMLElement) => {
+      _imCount++;
+      const _is = performance.now();
       if (img instanceof HTMLImageElement) {
         renderImageToolsMenu(img, onloadArgs.extensionAPI);
       }
+      console.log(
+        `[DG Load imCb #${_imCount}] renderImageToolsMenu: ${Math.round(performance.now() - _is)}ms`,
+      );
     },
   });
   _op("imageMenuObserver");
@@ -321,24 +362,38 @@ export const initObservers = ({
   );
   _op("onSettingChange(personalNodeMenuTrigger)");
 
+  let _lsCount = 0;
   const leftSidebarObserver = createHTMLObserver({
     tag: "DIV",
     useBody: true,
     className: "starred-pages-wrapper",
     callback: (el) => {
+      _lsCount++;
+      const _lsN = _lsCount;
       void (async () => {
+        const _ls = performance.now();
         const settings = bulkReadSettings();
+        console.log(
+          `[DG Load lsCb #${_lsN}] bulkReadSettings: ${Math.round(performance.now() - _ls)}ms`,
+        );
         const isLeftSidebarEnabled =
           settings.featureFlags["Enable left sidebar"];
         const container = el as HTMLDivElement;
         if (isLeftSidebarEnabled) {
           container.style.padding = "0";
+          const _lm = performance.now();
           await mountLeftSidebar({
             wrapper: container,
             onloadArgs,
             initialSnapshot: settings,
           });
+          console.log(
+            `[DG Load lsCb #${_lsN}] mountLeftSidebar: ${Math.round(performance.now() - _lm)}ms`,
+          );
         }
+        console.log(
+          `[DG Load lsCb #${_lsN}] TOTAL: ${Math.round(performance.now() - _ls)}ms`,
+        );
       })();
     },
   });
