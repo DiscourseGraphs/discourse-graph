@@ -36,6 +36,7 @@ import { initPostHog } from "./utils/posthog";
 import { initSchema } from "./components/settings/utils/init";
 import {
   bulkReadSettings,
+  isNewSettingsStoreEnabled,
   isSyncEnabled,
 } from "./components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "./components/settings/utils/settingKeys";
@@ -128,6 +129,45 @@ export default runExtension(async (onloadArgs) => {
   }
 
   const { extensionAPI } = onloadArgs;
+  if (isNewSettingsStoreEnabled()) {
+    const personalLegacyKeys = [
+      "discourse-context-overlay",
+      "text-selection-popup",
+      "disable-sidebar-open",
+      "page-preview",
+      "hide-feedback-button",
+      "auto-canvas-relations",
+      "discourse-context-overlay-in-canvas",
+      "streamline-styling",
+      "disallow-diagnostics",
+      "discourse-tool-shortcut",
+      "personal-node-menu-trigger",
+      "node-search-trigger",
+      "hide-metadata",
+      "default-page-size",
+      "query-pages",
+      "default-filters",
+      "use-reified-relations",
+      "canvas-page-format",
+    ];
+    void extensionAPI.ui.commandPalette.addCommand({
+      label: "DG: Dev - Nuke personal legacy settings",
+      callback: () => {
+        const before = Object.fromEntries(
+          personalLegacyKeys.map((k) => [k, extensionAPI.settings.get(k)]),
+        );
+        console.log("[dg] personal legacy BEFORE nuke:", before);
+        void Promise.all(
+          personalLegacyKeys.map((k) => extensionAPI.settings.set(k, null)),
+        ).then(() => {
+          const after = Object.fromEntries(
+            personalLegacyKeys.map((k) => [k, extensionAPI.settings.get(k)]),
+          );
+          console.log("[dg] personal legacy AFTER nuke:", after);
+        });
+      },
+    });
+  }
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>
       runQuery({ parentUid, extensionAPI }).then(
