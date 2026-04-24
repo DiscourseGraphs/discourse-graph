@@ -19,6 +19,10 @@ import { refreshAndNotify } from "~/components/LeftSidebarView";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import posthog from "posthog-js";
+import {
+  commands,
+  SidebarCommandPopover,
+} from "~/components/LeftSidebarCommands";
 
 const pagesToUids = (pages: RoamBasicNode[]) => pages.map((p) => p.text);
 
@@ -92,7 +96,11 @@ const LeftSidebarGlobalSectionsContent = ({
   const [isInitializing, setIsInitializing] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const pageNames = useMemo(() => getAllPageNames(), []);
+  const commandNames = useMemo(() => Object.keys(commands), []);
+  const pageAndCommandNames = useMemo(
+    () => [...commandNames, ...getAllPageNames()],
+    [commandNames],
+  );
 
   useEffect(() => {
     const initialize = async () => {
@@ -182,11 +190,21 @@ const LeftSidebarGlobalSectionsContent = ({
     [pages, childrenUid],
   );
 
+  const resetAutocomplete = useCallback((nextValue = "") => {
+    setNewPageInput(nextValue);
+
+    // AutocompleteInput renders from its internal `query` state, which is only
+    // initialized from the external `value` prop on mount. Bump the key to remount
+    // it so the displayed input reflects the new parent state.
+    setAutocompleteKey((prev) => prev + 1);
+  }, []);
+
   const addPage = useCallback(
     async (pageName: string) => {
       if (!pageName || !childrenUid) return;
-
-      const targetUid = getPageUidByPageTitle(pageName);
+      const targetUid = commands[pageName]
+        ? pageName
+        : getPageUidByPageTitle(pageName);
       if (pages.some((p) => p.text === targetUid)) {
         console.warn(`Page "${pageName}" already exists in global section`);
         return;
@@ -212,8 +230,7 @@ const LeftSidebarGlobalSectionsContent = ({
           pagesToUids(updatedPages),
         );
 
-        setNewPageInput("");
-        setAutocompleteKey((prev) => prev + 1);
+        resetAutocomplete("");
         posthog.capture("Left Sidebar Global Settings: Page Added", {
           pageName,
         });
@@ -226,7 +243,7 @@ const LeftSidebarGlobalSectionsContent = ({
         });
       }
     },
-    [childrenUid, pages],
+    [childrenUid, pages, resetAutocomplete],
   );
 
   const removePage = useCallback(
@@ -262,7 +279,9 @@ const LeftSidebarGlobalSectionsContent = ({
 
   const isAddButtonDisabled = useMemo(() => {
     if (!newPageInput) return true;
-    const targetUid = getPageUidByPageTitle(newPageInput);
+    const targetUid = commands[newPageInput]
+      ? newPageInput
+      : getPageUidByPageTitle(newPageInput);
     return !targetUid || pages.some((p) => p.text === targetUid);
   }, [newPageInput, pages]);
 
@@ -335,7 +354,7 @@ const LeftSidebarGlobalSectionsContent = ({
                 value={newPageInput}
                 setValue={handlePageInputChange}
                 placeholder="Add page…"
-                options={pageNames}
+                options={pageAndCommandNames}
                 maxItemsDisplayed={50}
                 autoFocus
                 onConfirm={() => void addPage(newPageInput)}
@@ -348,6 +367,7 @@ const LeftSidebarGlobalSectionsContent = ({
                 onClick={() => void addPage(newPageInput)}
                 title="Add page"
               />
+              <SidebarCommandPopover onSelect={resetAutocomplete} />
             </div>
             {pages.length > 0 ? (
               <div className="space-y-1">

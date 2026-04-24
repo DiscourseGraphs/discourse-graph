@@ -39,6 +39,10 @@ import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { memo, Dispatch, SetStateAction } from "react";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import posthog from "posthog-js";
+import {
+  commands,
+  SidebarCommandPopover,
+} from "~/components/LeftSidebarCommands";
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const sectionsToBlockProps = (
@@ -329,14 +333,22 @@ const SectionItem = memo(
       [setSections, sectionsRef],
     );
 
+    const resetAutocomplete = useCallback((nextValue = "") => {
+      setChildInput(nextValue);
+
+      // AutocompleteInput renders from its internal `query` state, which is only
+      // initialized from the external `value` prop on mount. Bump the key to remount
+      // it so the displayed input reflects the new parent state.
+      setChildInputKey((prev) => prev + 1);
+    }, []);
+
     const handleAddChild = useCallback(async () => {
       if (childInput && section.childrenUid) {
         await addChildToSection(section, section.childrenUid, childInput);
-        setChildInput("");
-        setChildInputKey((prev) => prev + 1);
+        resetAutocomplete("");
         refreshAndNotify();
       }
-    }, [childInput, section, addChildToSection]);
+    }, [childInput, section, addChildToSection, resetAutocomplete]);
 
     const sectionWithoutSettingsAndChildren =
       (!section.settings && section.children?.length === 0) ||
@@ -432,6 +444,7 @@ const SectionItem = memo(
                   onClick={() => void handleAddChild()}
                   title="Add child"
                 />
+                <SidebarCommandPopover onSelect={resetAutocomplete} />
               </div>
 
               {(section.children || []).length > 0 && (
@@ -693,6 +706,10 @@ const LeftSidebarPersonalSectionsContent = ({
   }, [sections, settingsDialogSectionUid]);
 
   const pageNames = useMemo(() => getAllPageNames(), []);
+  const pageAndCommandNames = useMemo(
+    () => [...Object.keys(commands), ...pageNames],
+    [pageNames],
+  );
 
   if (!personalSectionUid) {
     return null;
@@ -735,7 +752,7 @@ const LeftSidebarPersonalSectionsContent = ({
             <SectionItem
               section={section}
               setSettingsDialogSectionUid={setSettingsDialogSectionUid}
-              pageNames={pageNames}
+              pageNames={pageAndCommandNames}
               setSections={setSections}
               sectionsRef={sectionsRef}
               index={index}
