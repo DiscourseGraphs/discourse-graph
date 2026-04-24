@@ -333,14 +333,6 @@ const SectionItem = memo(
       [setSections, sectionsRef],
     );
 
-    const handleAddChild = useCallback(async () => {
-      if (childInput && section.childrenUid) {
-        await addChildToSection(section, section.childrenUid, childInput);
-        resetAutocomplete("");
-        refreshAndNotify();
-      }
-    }, [childInput, section, addChildToSection]);
-
     const resetAutocomplete = useCallback((nextValue = "") => {
       setChildInput(nextValue);
 
@@ -349,6 +341,14 @@ const SectionItem = memo(
       // it so the displayed input reflects the new parent state.
       setChildInputKey((prev) => prev + 1);
     }, []);
+
+    const handleAddChild = useCallback(async () => {
+      if (childInput && section.childrenUid) {
+        await addChildToSection(section, section.childrenUid, childInput);
+        resetAutocomplete("");
+        refreshAndNotify();
+      }
+    }, [childInput, section, addChildToSection, resetAutocomplete]);
 
     const sectionWithoutSettingsAndChildren =
       (!section.settings && section.children?.length === 0) ||

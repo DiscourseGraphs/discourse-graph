@@ -96,11 +96,10 @@ const LeftSidebarGlobalSectionsContent = ({
   const [isInitializing, setIsInitializing] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const pageNames = useMemo(() => getAllPageNames(), []);
-  const commandNames = Object.keys(commands);
+  const commandNames = useMemo(() => Object.keys(commands), []);
   const pageAndCommandNames = useMemo(
-    () => [...pageNames, ...commandNames],
-    [pageNames, commandNames],
+    () => [...getAllPageNames(), ...commandNames],
+    [commandNames],
   );
 
   useEffect(() => {
@@ -191,6 +190,15 @@ const LeftSidebarGlobalSectionsContent = ({
     [pages, childrenUid],
   );
 
+  const resetAutocomplete = useCallback((nextValue = "") => {
+    setNewPageInput(nextValue);
+
+    // AutocompleteInput renders from its internal `query` state, which is only
+    // initialized from the external `value` prop on mount. Bump the key to remount
+    // it so the displayed input reflects the new parent state.
+    setAutocompleteKey((prev) => prev + 1);
+  }, []);
+
   const addPage = useCallback(
     async (pageName: string) => {
       if (!pageName || !childrenUid) return;
@@ -235,7 +243,7 @@ const LeftSidebarGlobalSectionsContent = ({
         });
       }
     },
-    [childrenUid, pages],
+    [childrenUid, pages, resetAutocomplete],
   );
 
   const removePage = useCallback(
@@ -263,15 +271,6 @@ const LeftSidebarGlobalSectionsContent = ({
 
   const handlePageInputChange = useCallback((value: string) => {
     setNewPageInput(value);
-  }, []);
-
-  const resetAutocomplete = useCallback((nextValue = "") => {
-    setNewPageInput(nextValue);
-
-    // AutocompleteInput renders from its internal `query` state, which is only
-    // initialized from the external `value` prop on mount. Bump the key to remount
-    // it so the displayed input reflects the new parent state.
-    setAutocompleteKey((prev) => prev + 1);
   }, []);
 
   const toggleChildren = useCallback(() => {
