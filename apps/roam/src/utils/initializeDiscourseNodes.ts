@@ -4,7 +4,9 @@ import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
 import getDiscourseNodes, { excludeDefaultNodes } from "./getDiscourseNodes";
 import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
 
-const initializeDiscourseNodes = async (snapshot: SettingsSnapshot) => {
+const initializeDiscourseNodes = async (
+  snapshot: SettingsSnapshot,
+): Promise<boolean> => {
   const nodes = getDiscourseNodes(undefined, snapshot).filter(
     excludeDefaultNodes,
   );
@@ -34,7 +36,9 @@ const initializeDiscourseNodes = async (snapshot: SettingsSnapshot) => {
           }),
       ),
     );
+    return true;
   }
+  return false;
 };
 
 export default initializeDiscourseNodes;

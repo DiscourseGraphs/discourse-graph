@@ -81,9 +81,11 @@ export default runExtension(async (onloadArgs) => {
 
   initPluginTimer();
 
-  await initializeDiscourseNodes(settings);
+  const createdNodes = await initializeDiscourseNodes(settings);
 
-  refreshConfigTree(settings);
+  if (createdNodes) {
+    refreshConfigTree(settings);
+  }
 
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
