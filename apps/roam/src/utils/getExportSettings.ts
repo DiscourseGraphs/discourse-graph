@@ -3,6 +3,8 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import { RoamBasicNode } from "roamjs-components/types";
 import { getSubTree } from "roamjs-components/util";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
+import { bulkReadSettings } from "~/components/settings/utils/accessors";
+import { EXPORT_KEYS } from "~/components/settings/utils/settingKeys";
 
 type UidPair<T> = {
   uid?: string;
@@ -110,16 +112,17 @@ export const getExportSettingsAndUids = (): ExportConfigWithUids => {
 };
 
 export const getExportSettings = (): Omit<ExportConfig, "exportUid"> => {
-  const settings = getExportSettingsAndUids();
+  const exportValues = bulkReadSettings().globalSettings.Export;
+  const legacy = getExportSettingsAndUids();
   return {
-    maxFilenameLength: settings.maxFilenameLength.value,
-    openSidebar: settings.openSidebar.value,
-    removeSpecialCharacters: settings.removeSpecialCharacters.value,
-    simplifiedFilename: settings.simplifiedFilename.value,
-    optsEmbeds: settings.optsEmbeds.value,
-    optsRefs: settings.optsRefs.value,
-    linkType: settings.linkType.value,
-    appendRefNodeContext: settings.appendRefNodeContext.value,
-    frontmatter: settings.frontmatter.values,
+    maxFilenameLength: exportValues[EXPORT_KEYS.maxFilenameLength],
+    removeSpecialCharacters: exportValues[EXPORT_KEYS.removeSpecialCharacters],
+    optsEmbeds: exportValues[EXPORT_KEYS.resolveBlockEmbeds],
+    optsRefs: exportValues[EXPORT_KEYS.resolveBlockReferences],
+    linkType: exportValues[EXPORT_KEYS.linkType],
+    appendRefNodeContext: exportValues[EXPORT_KEYS.appendReferencedNode],
+    frontmatter: exportValues[EXPORT_KEYS.frontmatter],
+    openSidebar: legacy.openSidebar.value,
+    simplifiedFilename: legacy.simplifiedFilename.value,
   };
 };
