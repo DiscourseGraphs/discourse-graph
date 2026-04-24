@@ -707,7 +707,7 @@ const LeftSidebarPersonalSectionsContent = ({
 
   const pageNames = useMemo(() => getAllPageNames(), []);
   const pageAndCommandNames = useMemo(
-    () => [...pageNames, ...Object.keys(commands)],
+    () => [...Object.keys(commands), ...pageNames],
     [pageNames],
   );
 

@@ -98,7 +98,7 @@ const LeftSidebarGlobalSectionsContent = ({
 
   const commandNames = useMemo(() => Object.keys(commands), []);
   const pageAndCommandNames = useMemo(
-    () => [...getAllPageNames(), ...commandNames],
+    () => [...commandNames, ...getAllPageNames()],
     [commandNames],
   );
 
