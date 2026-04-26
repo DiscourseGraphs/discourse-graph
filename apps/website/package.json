@@ -28,6 +28,7 @@
     "posthog-js": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "relational-text": "0.1.1",
     "resend": "^4.0.1",
     "zod": "^3.24.1"
   },

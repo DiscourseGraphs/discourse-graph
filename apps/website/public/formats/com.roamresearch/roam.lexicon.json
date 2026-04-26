@@ -1,0 +1,72 @@
+{
+  "$type": "org.relationaltext.format-lexicon",
+  "id": "com.roamresearch.facet",
+  "version": "1.0",
+  "specUrl": "https://roamresearch.com/",
+  "implicitBlockType": "block",
+  "features": [
+    {
+      "typeId": "com.roamresearch.facet#bold",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "com.roamresearch.facet#italic",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "com.roamresearch.facet#highlight",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "com.roamresearch.facet#code",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "com.roamresearch.facet#page-ref",
+      "featureClass": "entity"
+    },
+    {
+      "typeId": "com.roamresearch.facet#block-ref",
+      "featureClass": "entity"
+    },
+    {
+      "typeId": "com.roamresearch.facet#tag",
+      "featureClass": "entity"
+    },
+    {
+      "typeId": "com.roamresearch.facet#link",
+      "featureClass": "entity"
+    },
+    {
+      "typeId": "com.roamresearch.facet#image",
+      "featureClass": "entity"
+    },
+    {
+      "typeId": "com.roamresearch.facet#block",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "com.roamresearch.facet#page",
+      "featureClass": "block"
+    }
+  ],
+  "wasmLens": {
+    "$type": "org.relationaltext.lens",
+    "id": "com.roamresearch.facet.wasm.v1",
+    "source": "raw:com.roamresearch.facet",
+    "target": "com.roamresearch.facet",
+    "wasmModule": {
+      "data": "",
+      "importFn": "import",
+      "exportFn": "export"
+    }
+  }
+}

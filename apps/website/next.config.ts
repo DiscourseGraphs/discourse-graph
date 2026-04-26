@@ -22,6 +22,13 @@ const nextConfig: NextConfig = {
       "next-mdx-import-source-file": "./mdx-components.tsx",
     },
   },
+  webpack: (config) => {
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+    };
+    return config;
+  },
 };
 
 export default withNextra(nextConfig);
