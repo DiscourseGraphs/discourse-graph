@@ -1,0 +1,54 @@
+{
+  "$type": "org.relationaltext.lens",
+  "id": "org.w3c.html.to.relationaltext.v1",
+  "description": "Transform HTML facets to RelationalText canonical facets",
+  "source": "org.w3c.html.facet",
+  "target": "org.relationaltext.facet",
+  "invertible": false,
+  "passthrough": "drop",
+  "rules": [
+    { "match": { "name": "strong" }, "replace": { "name": "bold" } },
+    { "match": { "name": "b" },      "replace": { "name": "bold" } },
+    { "match": { "name": "em" },     "replace": { "name": "italic" } },
+    { "match": { "name": "i" },      "replace": { "name": "italic" } },
+    { "match": { "name": "s" },      "replace": { "name": "strikethrough" } },
+    { "match": { "name": "strike" }, "replace": { "name": "strikethrough" } },
+    { "match": { "name": "code" },   "replace": { "name": "code" } },
+    { "match": { "name": "u" },      "replace": { "name": "underline" } },
+    { "match": { "name": "sup" },    "replace": { "name": "superscript" } },
+    { "match": { "name": "sub" },    "replace": { "name": "subscript" } },
+    { "match": { "name": "kbd" },    "replace": { "name": "keyboard" } },
+    { "match": { "name": "mark" },   "replace": { "name": "highlight" } },
+    {
+      "match": { "name": "ins" },
+      "replace": { "name": "insertion", "renameAttrs": { "cite": "author", "datetime": "date" } }
+    },
+    {
+      "match": { "name": "del" },
+      "replace": { "name": "deletion", "renameAttrs": { "cite": "author", "datetime": "date" } }
+    },
+    { "match": { "name": "br" },  "replace": { "name": "line-break" } },
+    { "match": { "name": "a" },   "replace": { "name": "link", "renameAttrs": { "href": "url" } } },
+    { "match": { "name": "img" }, "replace": { "name": "image" } },
+    { "match": { "name": "p" },         "replace": { "name": "paragraph" } },
+    { "match": { "name": "h1" }, "replace": { "name": "heading", "addAttrs": { "level": 1 } } },
+    { "match": { "name": "h2" }, "replace": { "name": "heading", "addAttrs": { "level": 2 } } },
+    { "match": { "name": "h3" }, "replace": { "name": "heading", "addAttrs": { "level": 3 } } },
+    { "match": { "name": "h4" }, "replace": { "name": "heading", "addAttrs": { "level": 4 } } },
+    { "match": { "name": "h5" }, "replace": { "name": "heading", "addAttrs": { "level": 5 } } },
+    { "match": { "name": "h6" }, "replace": { "name": "heading", "addAttrs": { "level": 6 } } },
+    { "match": { "name": "pre" },       "replace": { "name": "code-block" } },
+    { "match": { "name": "hr" },        "replace": { "name": "horizontal-rule" } },
+    { "match": { "name": "blockquote"}, "replace": { "name": "blockquote" } },
+    { "match": { "name": "table" },     "replace": { "name": "table" } },
+    { "match": { "name": "dt" },        "replace": { "name": "definition-term" } },
+    { "match": { "name": "dd" },        "replace": { "name": "definition-detail" } },
+    { "match": { "name": "details" },   "replace": { "name": "details" } },
+    {
+      "sql": "UPDATE features SET type_id = 'org.relationaltext.facet', name = 'unordered-list-item', data = json_set_json(data, 'parents', '[]') WHERE strip_version(type_id) = 'org.w3c.html.facet' AND strip_version(name) = 'li' AND json_array_contains(data, 'parents', 'ul')"
+    },
+    {
+      "sql": "UPDATE features SET type_id = 'org.relationaltext.facet', name = 'ordered-list-item', data = json_set_json(data, 'parents', '[]') WHERE strip_version(type_id) = 'org.w3c.html.facet' AND strip_version(name) = 'li' AND json_array_contains(data, 'parents', 'ol')"
+    }
+  ]
+}
