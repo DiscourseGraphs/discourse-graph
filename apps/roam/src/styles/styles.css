@@ -168,3 +168,12 @@
 .fuzzy-select-input-popover .bp3-popover-target {
   width: 100%;
 }
+
+#dg-left-sidebar-root .bp3-dark .bp3-button:not([class*="bp3-intent-"]) {
+  color: #8b97a5;
+  background-color: #333f4c;
+}
+
+#dg-left-sidebar-root .bp3-dark .bp3-button:not([class*="bp3-intent-"]):hover {
+  color: #f5f8fa;
+}

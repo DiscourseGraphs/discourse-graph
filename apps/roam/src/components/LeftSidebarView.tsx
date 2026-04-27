@@ -11,6 +11,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { SortableList, type SortableHandle } from "./SortableList";
 import { moveRoamBlockToIndex } from "~/utils/moveRoamBlock";
 import {
+  Button,
   Collapse,
   Icon,
   Popover,
@@ -46,10 +47,13 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
+import { commands, cleanCommandName } from "~/components/LeftSidebarCommands";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
-  if (text.startsWith("((") && text.endsWith("))")) {
+  if (commands[text]) {
+    return { type: "command" as const, uid: text, display: text };
+  } else if (text.startsWith("((") && text.endsWith("))")) {
     return { type: "block" as const, uid: extracted, display: text };
   } else {
     return { type: "page" as const, display: text };
@@ -61,7 +65,11 @@ const truncate = (s: string, max: number | undefined): string => {
   return s.length > max ? `${s.slice(0, max)}...` : s;
 };
 
-const openTarget = async (e: React.MouseEvent, targetUid: string) => {
+const openTarget = async (
+  e: React.MouseEvent,
+  targetUid: string,
+  onloadArgs: OnloadArgs,
+) => {
   e.preventDefault();
   e.stopPropagation();
   const target = parseReference(targetUid);
@@ -69,6 +77,10 @@ const openTarget = async (e: React.MouseEvent, targetUid: string) => {
     targetType: target.type,
     openInSidebar: e.shiftKey,
   });
+  if (target.type === "command") {
+    await commands[target.uid](onloadArgs);
+    return;
+  }
   if (target.type === "block") {
     if (e.shiftKey) {
       await openBlockInSidebar(target.uid);
@@ -128,28 +140,40 @@ type ChildNode = { uid: string; text: string; alias?: { value: string } };
 const ChildRow = ({
   child,
   truncateAt,
+  onloadArgs,
 }: {
   child: ChildNode;
   truncateAt?: number;
+  onloadArgs: OnloadArgs;
 }) => {
   const ref = parseReference(child.text);
   const alias = child.alias?.value;
   const display =
-    ref.type === "page"
-      ? getPageTitleByPageUid(ref.display)
-      : getTextByBlockUid(ref.uid);
+    ref.type === "command"
+      ? ref.display
+      : ref.type === "page"
+        ? getPageTitleByPageUid(ref.display)
+        : getTextByBlockUid(ref.uid);
   const label = alias || truncate(display, truncateAt);
   const onClick = (e: React.MouseEvent) => {
-    return void openTarget(e, child.text);
+    return void openTarget(e, child.text, onloadArgs);
   };
   return (
     <div className="pl-8 pr-2.5">
-      <div
-        className="section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
-        onClick={onClick}
-      >
-        {label}
-      </div>
+      {ref.type === "command" ? (
+        <span className="bp3-dark">
+          <Button onClick={onClick} minimal className="m-px">
+            {cleanCommandName(label)}
+          </Button>
+        </span>
+      ) : (
+        <div
+          className="section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
+          onClick={onClick}
+        >
+          {label}
+        </div>
+      )}
     </div>
   );
 };
@@ -157,15 +181,22 @@ const ChildRow = ({
 const SectionChildren = ({
   childrenNodes,
   truncateAt,
+  onloadArgs,
 }: {
   childrenNodes: ChildNode[];
   truncateAt?: number;
+  onloadArgs: OnloadArgs;
 }) => {
   if (!childrenNodes?.length) return null;
   return (
     <>
       {childrenNodes.map((child) => (
-        <ChildRow key={child.uid} child={child} truncateAt={truncateAt} />
+        <ChildRow
+          key={child.uid}
+          child={child}
+          truncateAt={truncateAt}
+          onloadArgs={onloadArgs}
+        />
       ))}
     </>
   );
@@ -175,6 +206,7 @@ const PersonalSectionItem = ({
   section,
   dragHandle,
   onChildrenReorder,
+  onloadArgs,
 }: {
   section: LeftSidebarPersonalSectionConfig;
   dragHandle: SortableHandle;
@@ -183,6 +215,7 @@ const PersonalSectionItem = ({
     oldIndex: number;
     newIndex: number;
   }) => void;
+  onloadArgs: OnloadArgs;
 }) => {
   const titleRef = parseReference(section.text);
   const blockText = useMemo(
@@ -243,7 +276,11 @@ const PersonalSectionItem = ({
           }
           renderItem={(child, handle) => (
             <div {...handle.attributes} {...handle.listeners}>
-              <ChildRow child={child} truncateAt={truncateAt} />
+              <ChildRow
+                child={child}
+                truncateAt={truncateAt}
+                onloadArgs={onloadArgs}
+              />
             </div>
           )}
         />
@@ -255,9 +292,11 @@ const PersonalSectionItem = ({
 const PersonalSections = ({
   config,
   setConfig,
+  onloadArgs,
 }: {
   config: LeftSidebarConfig;
   setConfig: Dispatch<SetStateAction<LeftSidebarConfig>>;
+  onloadArgs: OnloadArgs;
 }) => {
   const sections = config.personal.sections || [];
 
@@ -324,13 +363,20 @@ const PersonalSections = ({
           section={section}
           dragHandle={handle}
           onChildrenReorder={reorderChildren}
+          onloadArgs={onloadArgs}
         />
       )}
     />
   );
 };
 
-const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
+const GlobalSection = ({
+  config,
+  onloadArgs,
+}: {
+  config: LeftSidebarConfig["global"];
+  onloadArgs: OnloadArgs;
+}) => {
   const [isOpen, setIsOpen] = useState<boolean>(
     !!config.settings?.folded.value,
   );
@@ -362,10 +408,16 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
       </div>
       {isCollapsable ? (
         <Collapse isOpen={isOpen}>
-          <SectionChildren childrenNodes={config.children} />
+          <SectionChildren
+            childrenNodes={config.children}
+            onloadArgs={onloadArgs}
+          />
         </Collapse>
       ) : (
-        <SectionChildren childrenNodes={config.children} />
+        <SectionChildren
+          childrenNodes={config.children}
+          onloadArgs={onloadArgs}
+        />
       )}
     </>
   );
@@ -508,8 +560,12 @@ const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   return (
     <>
       <FavoritesPopover onloadArgs={onloadArgs} />
-      <GlobalSection config={config.global} />
-      <PersonalSections config={config} setConfig={setConfig} />
+      <GlobalSection config={config.global} onloadArgs={onloadArgs} />
+      <PersonalSections
+        config={config}
+        setConfig={setConfig}
+        onloadArgs={onloadArgs}
+      />
     </>
   );
 };
@@ -539,7 +595,7 @@ const migrateFavorites = async () => {
   }
 
   const results = window.roamAlphaAPI.q(`
-    [:find ?uid 
+    [:find ?uid
      :where [?e :page/sidebar]
             [?e :block/uid ?uid]]
   `);

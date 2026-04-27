@@ -30,6 +30,97 @@ import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
 
+type BlockSelection = {
+  selectionStart: number;
+  selectionEnd: number;
+  selectedText: string;
+};
+
+const getBlockSelection = (uid: string): BlockSelection => {
+  const activeElement = document.activeElement;
+  const isFocusedTextarea =
+    activeElement instanceof HTMLTextAreaElement &&
+    activeElement.classList.contains("rm-block-input") &&
+    getUids(activeElement).blockUid === uid;
+  if (isFocusedTextarea) {
+    return {
+      selectionStart: activeElement.selectionStart,
+      selectionEnd: activeElement.selectionEnd,
+      selectedText: activeElement.value.substring(
+        activeElement.selectionStart,
+        activeElement.selectionEnd,
+      ),
+    };
+  }
+  const textareas = document.querySelectorAll("textarea.rm-block-input");
+  for (const el of textareas) {
+    const textarea = el as HTMLTextAreaElement;
+    if (getUids(textarea).blockUid === uid) {
+      return {
+        selectionStart: textarea.selectionStart,
+        selectionEnd: textarea.selectionEnd,
+        selectedText: textarea.value.substring(
+          textarea.selectionStart,
+          textarea.selectionEnd,
+        ),
+      };
+    }
+  }
+  const textLength = (getTextByBlockUid(uid) || "").length;
+  return {
+    selectionStart: textLength,
+    selectionEnd: textLength,
+    selectedText: "",
+  };
+};
+
+export const createDiscourseNodeFromCommand = (
+  extensionAPI: OnloadArgs["extensionAPI"],
+) => {
+  posthog.capture("Discourse Node: Create Command Triggered");
+  const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
+  const uid = focusedBlock?.["block-uid"];
+  const windowId = focusedBlock?.["window-id"] || "main-window";
+
+  const { selectionStart, selectionEnd, selectedText } = uid
+    ? getBlockSelection(uid)
+    : { selectionStart: 0, selectionEnd: 0, selectedText: "" };
+
+  renderModifyNodeDialog({
+    mode: "create",
+    nodeType: "",
+    initialValue: { text: selectedText, uid: "" },
+    extensionAPI,
+    onSuccess: async (result) => {
+      if (!uid) {
+        renderToast({
+          id: "create-discourse-node-command-no-block",
+          content: "No block focused to insert a discourse node.",
+        });
+        return;
+      }
+      const originalText = getTextByBlockUid(uid) || "";
+      const pageRef = `[[${result.text}]]`;
+      const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionEnd)}`;
+      const newCursorPosition = selectionStart + pageRef.length;
+
+      await updateBlock({ uid, text: newText });
+
+      await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+        location: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "block-uid": uid,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "window-id": windowId,
+        },
+        selection: { start: newCursorPosition },
+      });
+      return;
+    },
+    onClose: () => {},
+  });
+};
+
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
 
@@ -166,95 +257,6 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     renderSettings({ onloadArgs });
   };
 
-  type BlockSelection = {
-    selectionStart: number;
-    selectionEnd: number;
-    selectedText: string;
-  };
-
-  const getBlockSelection = (uid: string): BlockSelection => {
-    const activeElement = document.activeElement;
-    const isFocusedTextarea =
-      activeElement instanceof HTMLTextAreaElement &&
-      activeElement.classList.contains("rm-block-input") &&
-      getUids(activeElement).blockUid === uid;
-    if (isFocusedTextarea) {
-      return {
-        selectionStart: activeElement.selectionStart,
-        selectionEnd: activeElement.selectionEnd,
-        selectedText: activeElement.value.substring(
-          activeElement.selectionStart,
-          activeElement.selectionEnd,
-        ),
-      };
-    }
-    const textareas = document.querySelectorAll("textarea.rm-block-input");
-    for (const el of textareas) {
-      const textarea = el as HTMLTextAreaElement;
-      if (getUids(textarea).blockUid === uid) {
-        return {
-          selectionStart: textarea.selectionStart,
-          selectionEnd: textarea.selectionEnd,
-          selectedText: textarea.value.substring(
-            textarea.selectionStart,
-            textarea.selectionEnd,
-          ),
-        };
-      }
-    }
-    const textLength = (getTextByBlockUid(uid) || "").length;
-    return {
-      selectionStart: textLength,
-      selectionEnd: textLength,
-      selectedText: "",
-    };
-  };
-
-  const createDiscourseNodeFromCommand = () => {
-    posthog.capture("Discourse Node: Create Command Triggered");
-    const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
-    const uid = focusedBlock?.["block-uid"];
-    const windowId = focusedBlock?.["window-id"] || "main-window";
-
-    const { selectionStart, selectionEnd, selectedText } = uid
-      ? getBlockSelection(uid)
-      : { selectionStart: 0, selectionEnd: 0, selectedText: "" };
-
-    renderModifyNodeDialog({
-      mode: "create",
-      nodeType: "",
-      initialValue: { text: selectedText, uid: "" },
-      extensionAPI,
-      onSuccess: async (result) => {
-        if (!uid) {
-          renderToast({
-            id: "create-discourse-node-command-no-block",
-            content: "No block focused to insert a discourse node.",
-          });
-          return;
-        }
-        const originalText = getTextByBlockUid(uid) || "";
-        const pageRef = `[[${result.text}]]`;
-        const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionEnd)}`;
-        const newCursorPosition = selectionStart + pageRef.length;
-
-        await updateBlock({ uid, text: newText });
-
-        await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-          location: {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            "block-uid": uid,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            "window-id": windowId,
-          },
-          selection: { start: newCursorPosition },
-        });
-        return;
-      },
-      onClose: () => {},
-    });
-  };
-
   const toggleDiscourseContextOverlay = async () => {
     const currentValue =
       (extensionAPI.settings.get("discourse-context-overlay") as boolean) ??
@@ -312,9 +314,8 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   // Roam organizes commands alphabetically
-  void addCommand(
-    "DG: Create/Insert discourse node",
-    createDiscourseNodeFromCommand,
+  void addCommand("DG: Create/Insert discourse node", () =>
+    createDiscourseNodeFromCommand(extensionAPI),
   );
   void addCommand("DG: Export - Current page", exportCurrentPage);
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
