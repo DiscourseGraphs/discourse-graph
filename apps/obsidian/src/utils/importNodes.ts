@@ -1222,6 +1222,9 @@ export const importSelectedNodes = async ({
   }
 
   const spaceUris = await getSpaceUris(client, [...nodesBySpace.keys()]);
+  const spaceNames = await getSpaceNameFromIds(client, [
+    ...nodesBySpace.keys(),
+  ]);
 
   // Process each space
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
@@ -1235,7 +1238,7 @@ export const importSelectedNodes = async ({
       continue;
     }
 
-    const spaceName = await getSpaceNameFromId(client, spaceId);
+    const spaceName = spaceNames.get(spaceId) ?? `space-${spaceId}`;
     const importFolderPath = await resolveFolderForSpaceUri({
       adapter: plugin.app.vault.adapter,
       spaceUri,

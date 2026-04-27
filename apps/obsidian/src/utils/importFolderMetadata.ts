@@ -54,6 +54,32 @@ const writeImportFolderMetadata = async ({
   await adapter.write(metadataPath, JSON.stringify(metadata, null, 2));
 };
 
+const resolveMetadataDuplicate = async ({
+  adapter,
+  existingFolderPath,
+  newFolderPath,
+}: {
+  adapter: DataAdapter;
+  existingFolderPath: string;
+  newFolderPath: string;
+}): Promise<string> => {
+  const existingMetadataPath = `${existingFolderPath}/${DG_METADATA_FILE}`;
+  const newMetadataPath = `${newFolderPath}/${DG_METADATA_FILE}`;
+
+  const existingStat = await adapter.stat(existingMetadataPath);
+  const newStat = await adapter.stat(newMetadataPath);
+
+  const newIsNewer =
+    existingStat && newStat && existingStat.mtime < newStat.mtime;
+  if (newIsNewer) {
+    await adapter.remove(existingMetadataPath);
+    return newFolderPath;
+  }
+
+  await adapter.remove(newMetadataPath);
+  return existingFolderPath;
+};
+
 const buildSpaceUriToFolderMap = async (
   adapter: DataAdapter,
 ): Promise<Map<string, string>> => {
@@ -69,9 +95,13 @@ const buildSpaceUriToFolderMap = async (
     if (!metadata) continue;
 
     if (map.has(metadata.spaceUri)) {
-      console.warn(
-        `[importFolderMetadata] Duplicate spaceUri "${metadata.spaceUri}" found in "${folderPath}". Using first occurrence.`,
-      );
+      const existingPath = map.get(metadata.spaceUri)!;
+      const keptPath = await resolveMetadataDuplicate({
+        adapter,
+        existingFolderPath: existingPath,
+        newFolderPath: folderPath,
+      });
+      map.set(metadata.spaceUri, keptPath);
     } else {
       map.set(metadata.spaceUri, folderPath);
     }
@@ -187,10 +217,6 @@ export const migrateImportFolderMetadata = async (
         folderPath,
         metadata: { spaceUri, spaceName: spaceNames[spaceUri] ?? basename },
       });
-    } else {
-      console.debug(
-        `[importFolderMetadata] No spaceUri found for folder "${basename}", skipping migration.`,
-      );
     }
   }
 };
