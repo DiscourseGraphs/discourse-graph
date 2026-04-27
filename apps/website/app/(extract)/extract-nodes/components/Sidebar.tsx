@@ -3,9 +3,16 @@ import { useRef } from "react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { Label } from "@repo/ui/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/ui/select";
 import { Textarea } from "@repo/ui/components/ui/textarea";
-import { ChevronDown, Upload } from "lucide-react";
-import { NODE_TYPE_DEFINITIONS } from "~/types/extraction";
+import { Upload } from "lucide-react";
+import { MODEL_OPTIONS, NODE_TYPE_DEFINITIONS } from "~/types/extraction";
 
 const SECTION_LABEL_CLASS =
   "mb-3 block px-1 text-lg font-semibold tracking-tight text-slate-800";
@@ -17,6 +24,13 @@ type SidebarProps = {
   onResearchQuestionChange: (value: string) => void;
   selectedTypes: Set<string>;
   onToggleType: (candidateTag: string) => void;
+  model: string;
+  onModelChange: (model: string) => void;
+  onExtract: () => void;
+  canExtract: boolean;
+  isExtracting: boolean;
+  hasExtracted: boolean;
+  extractionError: string | null;
 };
 
 export const Sidebar = ({
@@ -26,6 +40,13 @@ export const Sidebar = ({
   onResearchQuestionChange,
   selectedTypes,
   onToggleType,
+  model,
+  onModelChange,
+  onExtract,
+  canExtract,
+  isExtracting,
+  hasExtracted,
+  extractionError,
 }: SidebarProps): React.ReactElement => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -97,13 +118,22 @@ export const Sidebar = ({
 
         <section className="mb-6">
           <h3 className={SECTION_LABEL_CLASS}>Model</h3>
-          <Button
-            variant="outline"
-            className="w-full justify-between rounded-xl border-slate-300 px-3.5 py-3 text-base font-medium text-slate-700"
-          >
-            <span>Claude Sonnet 4.6</span>
-            <ChevronDown className="text-slate-500" />
-          </Button>
+          <Select value={model} onValueChange={onModelChange}>
+            <SelectTrigger className="h-12 rounded-xl text-base font-medium">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl shadow-lg">
+              {MODEL_OPTIONS.map((option) => (
+                <SelectItem
+                  key={option.id}
+                  value={option.id}
+                  className="text-base"
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </section>
 
         <section className="mb-5">
@@ -125,7 +155,7 @@ export const Sidebar = ({
             <h3 className="text-lg font-semibold tracking-tight text-slate-800">
               Node Types
             </h3>
-            <span className="text-xs font-semibold tabular-nums text-slate-500">
+            <span className="text-sm font-semibold tabular-nums text-slate-500">
               {selectedTypes.size}/{NODE_TYPE_DEFINITIONS.length}
             </span>
           </div>
@@ -139,6 +169,7 @@ export const Sidebar = ({
                 <Checkbox
                   checked={selectedTypes.has(type.candidateTag)}
                   onCheckedChange={() => onToggleType(type.candidateTag)}
+                  className="data-[state=checked]:bg-transparent data-[state=checked]:text-slate-800"
                 />
                 <span className="min-w-0 flex-1 text-base font-medium">
                   {type.label}
@@ -153,11 +184,25 @@ export const Sidebar = ({
       </div>
 
       <div className="border-t border-slate-200/90 bg-white/95 p-4 backdrop-blur-xl">
-        <p className="mb-2 text-sm font-medium text-slate-500">
-          Ready to run extraction.
-        </p>
-        <Button className="w-full rounded-xl bg-slate-900 py-6 text-lg font-semibold text-white hover:bg-slate-800">
-          Re-Extract
+        {extractionError ? (
+          <p role="alert" className="mb-2 text-sm font-medium text-red-600">
+            {extractionError}
+          </p>
+        ) : (
+          <p className="mb-2 text-sm font-medium text-slate-500">
+            Ready to run extraction.
+          </p>
+        )}
+        <Button
+          onClick={onExtract}
+          disabled={!canExtract}
+          className="w-full rounded-xl bg-slate-900 py-6 text-lg font-semibold text-white hover:bg-slate-800"
+        >
+          {isExtracting
+            ? "Extracting…"
+            : hasExtracted
+              ? "Re-Extract"
+              : "Extract"}
         </Button>
       </div>
     </aside>

@@ -13,7 +13,7 @@ import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormat
 import { RelationshipSection } from "~/components/RelationshipSection";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { PluginProvider, usePlugin } from "~/components/PluginContext";
-import { getNodeTypeById } from "~/utils/typeUtils";
+import { getNodeTypeById, getAndFormatImportSource } from "~/utils/typeUtils";
 import { refreshImportedFile } from "~/utils/importNodes";
 import { publishNode } from "~/utils/publishNode";
 import { createBaseForNodeType } from "~/utils/baseForNodeType";
@@ -22,6 +22,21 @@ import { useState, useEffect } from "react";
 type DiscourseContextProps = {
   activeFile: TFile | null;
 };
+
+type InfoTooltipProps = {
+  content: string;
+};
+
+const InfoTooltip = ({ content }: InfoTooltipProps) => (
+  <button
+    ref={(el) => {
+      if (el) setTooltip(el, content);
+    }}
+    className="clickable-icon text-muted hover:text-normal flex h-4 w-4 items-center justify-center"
+  >
+    <div ref={(el) => (el && setIcon(el, "info")) || undefined} />
+  </button>
+);
 
 const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
   const plugin = usePlugin();
@@ -211,8 +226,19 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
             )}
           </div>
 
+          {isImported && (
+            <div className="mt-3 flex items-center gap-1.5">
+              <span className="cursor-default rounded bg-amber-300 px-2 py-1 text-xs font-semibold text-amber-950 dark:bg-amber-900/40 dark:text-amber-300">
+                View only
+              </span>
+              <InfoTooltip
+                content={`Imported from ${getAndFormatImportSource(frontmatter.importedFromRid as string, plugin.settings.spaceNames)}. Direct edits will be overwritten when refreshed.`}
+              />
+            </div>
+          )}
+
           {nodeType.format && (
-            <div className="mb-1">
+            <div className="mb-1 mt-2">
               <span className="font-bold">Content: </span>
               {extractContentFromTitle(nodeType.format, activeFile.basename)}
             </div>

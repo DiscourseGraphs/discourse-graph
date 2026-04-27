@@ -26,8 +26,7 @@ export const ExtractionRequestSchema = z.object({
   pdfBase64: z.string().min(1).max(44_000_000),
   provider: z.enum(PROVIDER_IDS),
   model: z.string().min(1),
-  researchQuestion: z.string().optional(),
-  systemPrompt: z.string().optional(),
+  systemPrompt: z.string().min(1),
 });
 
 export type ExtractionRequest = z.infer<typeof ExtractionRequestSchema>;
@@ -54,16 +53,25 @@ export const EXTRACTION_RESULT_JSON_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
-export type ExtractionResponse =
-  | { success: true; data: ExtractionResult }
-  | { success: false; error: string };
-
 export type NodeTypeDefinition = {
   label: string;
   definition: string;
   candidateTag: string;
   color?: string;
 };
+
+type ModelOption = {
+  id: string;
+  label: string;
+};
+
+export const MODEL_OPTIONS: ModelOption[] = [
+  { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
+  { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
+];
+
+export const DEFAULT_MODEL_ID = "claude-sonnet-4-6";
 
 export const NODE_TYPE_DEFINITIONS: NodeTypeDefinition[] = [
   {

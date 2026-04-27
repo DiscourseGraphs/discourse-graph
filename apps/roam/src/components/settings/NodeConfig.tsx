@@ -24,6 +24,7 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import setInputSetting from "roamjs-components/util/setInputSetting";
 import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
+import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import { isSyncEnabled } from "~/components/settings/utils/accessors";
 import {
   DiscourseNodeTextPanel,
@@ -180,19 +181,31 @@ const NodeConfig = ({
                 parentUid={node.type}
                 uid={shortcutUid}
               />
-              <DiscourseNodeTextPanel
-                nodeType={node.type}
-                title="Tag"
-                description={`Designate a hashtag for marking potential ${node.text}.`}
-                settingKeys={["tag"]}
-                initialValue={node.tag}
-                placeholder={generateTagPlaceholder(node)}
-                error={tagError}
-                onChange={setTagValue}
-                order={2}
-                parentUid={node.type}
-                uid={tagUid}
-              />
+              <div>
+                <DiscourseNodeTextPanel
+                  nodeType={node.type}
+                  title="Tag"
+                  description={`Designate a hashtag for marking potential ${node.text}.`}
+                  settingKeys={["tag"]}
+                  initialValue={node.tag}
+                  placeholder={generateTagPlaceholder(node)}
+                  error={tagError}
+                  onChange={setTagValue}
+                  order={2}
+                  parentUid={node.type}
+                  uid={tagUid}
+                />
+                {tagValue && (
+                  <div className="flex items-center gap-1.5 pl-1">
+                    <span className="text-xs italic text-gray-400">
+                      Preview:
+                    </span>
+                    <span style={color ? getNodeTagStyles(color) : undefined}>
+                      #{tagValue.replace(/^#/, "")}
+                    </span>
+                  </div>
+                )}
+              </div>
               <>
                 <Label>
                   Color

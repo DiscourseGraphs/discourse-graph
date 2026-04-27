@@ -12,7 +12,11 @@ import {
   type TldrawColorName,
 } from "~/utils/tldrawColors";
 import { getContrastColor } from "~/utils/colorUtils";
-import { getImportInfo, formatImportSource } from "~/utils/typeUtils";
+import {
+  getImportInfo,
+  formatImportSource,
+  isProvisionalSchema,
+} from "~/utils/typeUtils";
 
 type ColorPickerProps = {
   value: string;
@@ -105,7 +109,7 @@ const RelationshipTypeSettings = () => {
 
   type EditableFieldKey = keyof Omit<
     DiscourseRelationType,
-    "id" | "modified" | "created" | "importedFromRid"
+    "id" | "modified" | "created" | "importedFromRid" | "status"
   >;
 
   const saveSettings = (updatedRelationTypes: DiscourseRelationType[]) => {
@@ -242,6 +246,16 @@ const RelationshipTypeSettings = () => {
     new Notice("Relation type deleted successfully");
   };
 
+  const handleAcceptRelationType = async (index: number): Promise<void> => {
+    const updatedRelationTypes = [...relationTypes];
+    const relType = updatedRelationTypes[index];
+    if (!relType) return;
+    updatedRelationTypes[index] = { ...relType, status: "accepted" };
+    setRelationTypes(updatedRelationTypes);
+    plugin.settings.relationTypes = updatedRelationTypes;
+    await plugin.saveSettings();
+  };
+
   const localRelationTypes = relationTypes.filter(
     (relationType) => !relationType.importedFromRid,
   );
@@ -255,6 +269,10 @@ const RelationshipTypeSettings = () => {
   ) => {
     const importInfo = getImportInfo(relationType.importedFromRid);
     const isImported = importInfo.isImported;
+    const isProvisional = isProvisionalSchema(relationType);
+    const spaceName = importInfo.spaceUri
+      ? formatImportSource(importInfo.spaceUri, plugin.settings.spaceNames)
+      : "imported space";
 
     const error = errors[index];
 
@@ -291,7 +309,25 @@ const RelationshipTypeSettings = () => {
               }
               disabled={isImported}
             />
-            {!isImported && (
+            {isImported ? (
+              <div className="flex gap-2">
+                {isProvisional && (
+                  <button
+                    onClick={() => void handleAcceptRelationType(index)}
+                    className="p-2"
+                    title={`Accept this relation type from ${spaceName} to create relations of this type`}
+                  >
+                    Accept
+                  </button>
+                )}
+                <button
+                  onClick={() => confirmDeleteRelationType(index)}
+                  className="mod-warning p-2"
+                >
+                  Delete
+                </button>
+              </div>
+            ) : (
               <button
                 onClick={() => confirmDeleteRelationType(index)}
                 className="mod-warning p-2"
@@ -303,6 +339,11 @@ const RelationshipTypeSettings = () => {
           {error && <div className="text-error text-xs">{error}</div>}
           {isImported && (
             <div className="text-muted flex items-center gap-2 text-xs">
+              {isProvisional && (
+                <span className="rounded bg-yellow-100 px-1.5 py-0.5 text-xs font-medium text-yellow-800">
+                  Provisional
+                </span>
+              )}
               {importInfo.spaceUri && (
                 <span>
                   from{" "}

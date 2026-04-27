@@ -1,187 +1,262 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
-import { Copy } from "lucide-react";
+import { Copy, Loader2 } from "lucide-react";
+import {
+  NODE_TYPE_DEFINITIONS,
+  type ExtractedNode,
+  type NodeTypeDefinition,
+} from "~/types/extraction";
 
-const NODE_TYPE_COLORS: Record<string, string> = {
-  claim: "#7DA13E",
-  question: "#99890E",
-  hypothesis: "#7C4DFF",
-  evidence: "#dc0c4a",
-  result: "#E6A23C",
-  source: "#9E9E9E",
-  theory: "#8B5CF6",
+const findNodeTypeDefinition = (
+  nodeType: string,
+): NodeTypeDefinition | undefined =>
+  NODE_TYPE_DEFINITIONS.find(
+    (t) => t.label.toLowerCase() === nodeType.toLowerCase(),
+  );
+
+const formatNodeForClipboard = (node: ExtractedNode): string => {
+  const meta = findNodeTypeDefinition(node.nodeType);
+  const header = meta ? `${node.content} ${meta.candidateTag}` : node.content;
+  const lines = [header, `\tSource quote: "${node.supportSnippet}"`];
+  if (node.sourceSection) {
+    lines.push(`\tSection: ${node.sourceSection}`);
+  }
+  return lines.join("\n");
 };
 
-const SAMPLE_NODES = [
-  {
-    nodeType: "claim",
-    content:
-      "Basolateral secretion of Wnt5a is essential for establishing apical-basal polarity in epithelial cells.",
-    supportSnippet:
-      '"Wnt5a secreted from the basolateral surface was both necessary and sufficient for the establishment of apical-basal polarity" (p.9)',
-    sourceSection: "Discussion",
-  },
-  {
-    nodeType: "evidence",
-    content:
-      "Wnt5a was detected exclusively in the basolateral medium of polarized MDCK cells grown on Transwell filters, with no detectable signal in the apical fraction.",
-    supportSnippet:
-      '"Western blot analysis of conditioned media showed Wnt5a protein exclusively in the basolateral fraction (Fig. 2A, lanes 3-4)"',
-    sourceSection: "Results",
-  },
-  {
-    nodeType: "question",
-    content:
-      "What is the mechanism by which Wnt5a polarized secretion is directed to the basolateral membrane?",
-    supportSnippet:
-      '"The mechanism that directs Wnt5a specifically to the basolateral surface remains an open question" (p.11)',
-    sourceSection: "Discussion",
-  },
-  {
-    nodeType: "hypothesis",
-    content:
-      "Ror2 receptor activation at the basolateral surface mediates Wnt5a-dependent lumen positioning.",
-    supportSnippet:
-      '"We hypothesize that Ror2, as the primary receptor for Wnt5a at the basolateral membrane, transduces the polarity signal required for single-lumen formation"',
-    sourceSection: "Discussion",
-  },
-  {
-    nodeType: "result",
-    content:
-      "shRNA-mediated knockdown of Wnt5a resulted in multi-lumen cysts in 68% of colonies compared to 12% in control conditions.",
-    supportSnippet:
-      '"Quantification of cyst morphology revealed 68 ± 4% multi-lumen cysts in Wnt5a-KD versus 12 ± 3% in controls (Fig. 4B, p < 0.001)"',
-    sourceSection: "Results",
-  },
-  {
-    nodeType: "source",
-    content: "Yamamoto et al. (2015) Nature Cell Biology 17(8):1024-1035",
-    supportSnippet:
-      "Primary research article on Wnt5a basolateral secretion and lumen formation in polarized epithelia.",
-    sourceSection: "References",
-  },
-  {
-    nodeType: "theory",
-    content:
-      "Non-canonical Wnt signaling through the planar cell polarity pathway is a conserved mechanism for epithelial lumen morphogenesis.",
-    supportSnippet:
-      '"Our findings place Wnt5a upstream of the PCP pathway in the regulation of epithelial lumen morphogenesis, consistent with the broader role of non-canonical Wnt signaling in tissue polarity"',
-    sourceSection: "Discussion",
-  },
-  {
-    nodeType: "evidence",
-    content:
-      "Co-immunoprecipitation showed that Wnt5a preferentially binds Ror2 receptor at the basolateral surface.",
-    supportSnippet:
-      '"IP-Western analysis demonstrated direct Wnt5a-Ror2 interaction in basolateral but not apical membrane fractions (Fig. 5C)"',
-    sourceSection: "Results",
-  },
-  {
-    nodeType: "claim",
-    content:
-      "Loss of Wnt5a function disrupts lumen formation in 3D cyst cultures derived from epithelial cells.",
-    supportSnippet:
-      '"These data demonstrate that Wnt5a is required for proper lumen formation in three-dimensional culture systems"',
-    sourceSection: "Discussion",
-  },
-];
+type MainContentProps = {
+  nodes: ExtractedNode[];
+  isExtracting: boolean;
+  hasExtracted: boolean;
+  paperTitle?: string;
+};
 
-const EXPANDED_INDICES = new Set([0, 1]);
+export const MainContent = ({
+  nodes,
+  isExtracting,
+  hasExtracted,
+  paperTitle,
+}: MainContentProps): React.ReactElement => {
+  const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [copied, setCopied] = useState(false);
 
-const typeCounts = SAMPLE_NODES.reduce<Record<string, number>>((acc, node) => {
-  acc[node.nodeType] = (acc[node.nodeType] ?? 0) + 1;
-  return acc;
-}, {});
+  useEffect(() => {
+    setSelected(new Set());
+    setExpandedNodes(new Set());
+    setActiveFilter("all");
+  }, [nodes]);
 
-const TABS = [
-  { id: "all", label: "All", count: SAMPLE_NODES.length, color: undefined },
-  ...Object.entries(typeCounts).map(([nodeType, count]) => ({
-    id: nodeType,
-    label: nodeType.charAt(0).toUpperCase() + nodeType.slice(1),
-    count,
-    color: NODE_TYPE_COLORS[nodeType],
-  })),
-];
+  const typeCounts = useMemo(
+    () =>
+      nodes.reduce<Record<string, number>>((acc, node) => {
+        const key = node.nodeType.toLowerCase();
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+      }, {}),
+    [nodes],
+  );
 
-export const MainContent = (): React.ReactElement => {
-  return (
-    <section className="flex min-h-[420px] flex-1 overflow-hidden rounded-[24px] border border-slate-200/85 bg-white shadow-[0_24px_48px_-36px_rgba(15,23,42,0.55)]">
-      <div className="flex flex-1 flex-col overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]">
-        <div className="relative shrink-0 border-b border-slate-200/80 bg-[linear-gradient(135deg,#ffffff_0%,#f8fbff_100%)] px-4 py-4 lg:px-5">
-          <div className="absolute inset-x-0 top-0 h-[2px] bg-[linear-gradient(90deg,#0ea5e9_0%,#22d3ee_45%,#34d399_100%)]" />
-          <h2 className="text-[24px] font-semibold tracking-[-0.024em] text-slate-900">
-            Basolateral secretion of Wnt5a in polarized epithelial cells is
-            required for apical lumen formation
-          </h2>
-          <p className="mt-1 text-[15px] text-slate-500">
-            Yamamoto H, Komekado H, Kikuchi A
-          </p>
+  const tabs = useMemo(
+    () => [
+      { id: "all", label: "All", count: nodes.length, color: undefined },
+      ...Object.entries(typeCounts).map(([nodeType, count]) => ({
+        id: nodeType,
+        label: nodeType.charAt(0).toUpperCase() + nodeType.slice(1),
+        count,
+        color: findNodeTypeDefinition(nodeType)?.color,
+      })),
+    ],
+    [nodes.length, typeCounts],
+  );
+
+  const filteredNodes = useMemo(() => {
+    const indexed = nodes.map((node, originalIndex) => ({
+      node,
+      originalIndex,
+    }));
+    return activeFilter === "all"
+      ? indexed
+      : indexed.filter(
+          ({ node }) => node.nodeType.toLowerCase() === activeFilter,
+        );
+  }, [nodes, activeFilter]);
+
+  const toggleExpanded = (index: number): void => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelected = (index: number): void => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  const selectAll = (): void => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      filteredNodes.forEach((f) => next.add(f.originalIndex));
+      return next;
+    });
+  };
+
+  const visibleSelectedCount = filteredNodes.filter((f) =>
+    selected.has(f.originalIndex),
+  ).length;
+  const hasHiddenSelections = selected.size > visibleSelectedCount;
+
+  const deselectAll = (): void => {
+    setSelected(new Set());
+  };
+
+  const handleCopy = async (): Promise<void> => {
+    const text = [...selected]
+      .sort((a, b) => a - b)
+      .map((i) => formatNodeForClipboard(nodes[i]!))
+      .join("\n");
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  if (isExtracting && nodes.length === 0) {
+    return (
+      <section className="flex min-h-96 flex-1 items-center justify-center overflow-hidden rounded-3xl border border-slate-200/85 bg-white shadow-xl">
+        <Loader2
+          aria-label="Extracting nodes"
+          className="h-10 w-10 animate-spin text-slate-400"
+        />
+      </section>
+    );
+  }
+
+  if (nodes.length === 0) {
+    const title = hasExtracted
+      ? "No extractable nodes found in this PDF"
+      : "No extracted nodes yet";
+    const subtitle = hasExtracted
+      ? "Try a different paper or adjust the selected node types."
+      : "Upload a paper and run extraction to see results here.";
+    return (
+      <section className="flex min-h-96 flex-1 items-center justify-center overflow-hidden rounded-3xl border border-slate-200/85 bg-white shadow-xl">
+        <div className="text-center">
+          <p className="text-lg font-medium text-slate-400">{title}</p>
+          <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
         </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="flex min-h-96 flex-1 overflow-hidden rounded-3xl border border-slate-200/85 bg-white shadow-xl">
+      <div className="flex flex-1 flex-col overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]">
+        {paperTitle && (
+          <div className="relative shrink-0 border-b border-slate-200/80 bg-[linear-gradient(135deg,#ffffff_0%,#f8fbff_100%)] px-4 py-4 lg:px-5">
+            <div className="absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,#0ea5e9_0%,#22d3ee_45%,#34d399_100%)]" />
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+              {paperTitle}
+            </h2>
+          </div>
+        )}
 
         <div className="shrink-0 border-b border-slate-200/70 bg-white/95 px-4 lg:px-5">
           <div className="flex gap-1 py-2">
-            {TABS.map((tab) => (
-              <Badge
+            {tabs.map((tab) => (
+              <Button
                 key={tab.id}
-                variant={tab.id === "all" ? "default" : "outline"}
-                className={
-                  tab.id === "all"
-                    ? "bg-slate-900 px-3 py-1.5 text-[14px] font-semibold text-white hover:bg-slate-800"
-                    : "px-3 py-1.5 text-[14px] font-semibold text-slate-600"
-                }
+                variant="ghost"
+                onClick={() => setActiveFilter(tab.id)}
+                className="h-auto rounded-full p-0 hover:bg-transparent"
               >
-                {tab.color && (
-                  <span
-                    className="mr-1.5 inline-block h-2 w-2 rounded-full"
-                    style={{ backgroundColor: tab.color }}
-                  />
-                )}
-                {tab.label} {tab.count}
-              </Badge>
+                <Badge
+                  variant={tab.id === activeFilter ? "default" : "outline"}
+                  className={
+                    tab.id === activeFilter
+                      ? "bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-800"
+                      : "px-3 py-1.5 text-sm font-semibold text-slate-600"
+                  }
+                >
+                  {tab.color && (
+                    <span
+                      className="mr-1.5 inline-block h-2 w-2 rounded-full"
+                      style={{ backgroundColor: tab.color }}
+                    />
+                  )}
+                  {tab.label} {tab.count}
+                </Badge>
+              </Button>
             ))}
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto bg-[radial-gradient(120%_100%_at_50%_0%,#f8fbff_0%,#f8fafc_52%,#f3f7fb_100%)] p-4 lg:p-5">
           <div className="space-y-2.5">
-            {SAMPLE_NODES.map((node, index) => {
-              const color = NODE_TYPE_COLORS[node.nodeType] ?? "#64748b";
-              const isExpanded = EXPANDED_INDICES.has(index);
+            {filteredNodes.map(({ node, originalIndex }) => {
+              const color =
+                findNodeTypeDefinition(node.nodeType)?.color ?? "#64748b";
+              const isExpanded = expandedNodes.has(originalIndex);
+              const isSelected = selected.has(originalIndex);
               return (
-                <Card key={index} className="rounded-2xl border-slate-200/85">
+                <Card
+                  key={originalIndex}
+                  className="rounded-2xl border-slate-200/85"
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <Checkbox checked className="mt-1" />
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelected(originalIndex)}
+                        className="mt-1"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="mb-2 flex flex-wrap items-center gap-2">
                           <span
-                            className="rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white"
+                            className="rounded px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider text-white"
                             style={{ backgroundColor: color }}
                           >
                             {node.nodeType}
                           </span>
                           {node.sourceSection && (
-                            <span className="text-[13px] text-slate-400">
+                            <span className="text-xs text-slate-400">
                               {node.sourceSection}
                             </span>
                           )}
                         </div>
-                        <p className="text-[15px] leading-relaxed text-slate-800">
+                        <p className="text-sm leading-relaxed text-slate-800">
                           {node.content}
                         </p>
                         {isExpanded ? (
                           <>
                             <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
-                              <p className="text-[13px] italic leading-relaxed text-slate-500">
+                              <p className="text-xs italic leading-relaxed text-slate-500">
                                 {node.supportSnippet}
                               </p>
                             </div>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="mt-1 h-auto p-0 text-[13px] font-medium text-slate-400 hover:text-slate-600"
+                              className="mt-1 h-auto p-0 text-xs font-medium text-slate-400 hover:text-slate-600"
+                              onClick={() => toggleExpanded(originalIndex)}
                             >
                               Hide details
                             </Button>
@@ -190,7 +265,8 @@ export const MainContent = (): React.ReactElement => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="mt-1 h-auto p-0 text-[13px] font-medium text-slate-400 hover:text-slate-600"
+                            className="mt-1 h-auto p-0 text-xs font-medium text-slate-400 hover:text-slate-600"
+                            onClick={() => toggleExpanded(originalIndex)}
                           >
                             Show details
                           </Button>
@@ -206,21 +282,43 @@ export const MainContent = (): React.ReactElement => {
 
         <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200/85 bg-white/95 px-4 py-3.5 backdrop-blur sm:flex-row sm:items-center sm:justify-between lg:px-5">
           <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full border-slate-200 text-slate-600"
-            >
-              Deselect All
-            </Button>
-            <span className="text-[14px] font-medium tabular-nums text-slate-500">
-              {SAMPLE_NODES.length} of {SAMPLE_NODES.length} selected
+            <div className="inline-flex items-center overflow-hidden rounded-full border border-slate-200">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={visibleSelectedCount === filteredNodes.length}
+                onClick={selectAll}
+                className="rounded-none text-slate-600"
+              >
+                Select all
+              </Button>
+              <div className="h-5 w-px bg-slate-200" />
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={selected.size === 0}
+                onClick={deselectAll}
+                className="rounded-none text-slate-600"
+              >
+                Deselect all
+              </Button>
+            </div>
+            <span className="text-sm font-medium tabular-nums text-slate-500">
+              {hasHiddenSelections
+                ? `${visibleSelectedCount} of ${filteredNodes.length} in view · ${selected.size} selected total`
+                : `${visibleSelectedCount} of ${filteredNodes.length} selected`}
             </span>
           </div>
 
-          <Button className="gap-2 rounded-full bg-slate-900 text-white hover:bg-slate-800">
+          <Button
+            disabled={selected.size === 0}
+            onClick={() => {
+              void handleCopy();
+            }}
+            className="gap-2 rounded-full bg-slate-900 text-white hover:bg-slate-800"
+          >
             <Copy className="h-4 w-4" />
-            Copy to Clipboard
+            {copied ? "Copied!" : "Copy to Clipboard"}
           </Button>
         </div>
       </div>

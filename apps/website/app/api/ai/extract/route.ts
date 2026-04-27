@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   ExtractionRequestSchema,
   EXTRACTION_RESULT_JSON_SCHEMA,
-  type ExtractionResponse,
+  type ExtractionResult,
   type ProviderId,
 } from "~/types/extraction";
 import type { LLMProviderConfig, Message, Settings } from "~/types/llm";
@@ -11,10 +11,7 @@ import {
   openaiConfig,
   geminiConfig,
 } from "~/utils/llm/providers";
-import {
-  DEFAULT_EXTRACTION_PROMPT,
-  buildUserPrompt,
-} from "~/prompts/extraction";
+import { buildUserPrompt } from "~/prompts/extraction";
 import { parseExtractionResponse } from "~/utils/ai/parseExtractionResponse";
 
 export const runtime = "nodejs";
@@ -89,34 +86,30 @@ const buildExtractionMessages = ({
 
 export const POST = async (
   request: NextRequest,
-): Promise<NextResponse<ExtractionResponse>> => {
+): Promise<NextResponse<ExtractionResult | { error: string }>> => {
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { success: false, error: "Invalid JSON body" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   const validated = ExtractionRequestSchema.safeParse(body);
   if (!validated.success) {
     return NextResponse.json(
-      { success: false, error: validated.error.message },
+      { error: validated.error.message },
       { status: 400 },
     );
   }
 
-  const { pdfBase64, researchQuestion, model, provider, systemPrompt } =
-    validated.data;
+  const { pdfBase64, model, provider, systemPrompt } = validated.data;
 
   const config = PROVIDER_CONFIGS[provider];
   const apiKey = process.env[config.apiKeyEnvVar];
 
   if (!apiKey) {
     return NextResponse.json(
-      { success: false, error: `API key not configured for ${provider}.` },
+      { error: `API key not configured for ${provider}.` },
       { status: 500 },
     );
   }
@@ -124,14 +117,14 @@ export const POST = async (
   const messages = buildExtractionMessages({
     provider,
     pdfBase64,
-    userPrompt: buildUserPrompt(researchQuestion),
+    userPrompt: buildUserPrompt(),
   });
 
   const settings: Settings = {
     model,
     maxTokens: 16384,
     temperature: 0.6,
-    systemPrompt: systemPrompt ?? DEFAULT_EXTRACTION_PROMPT,
+    systemPrompt,
     outputSchema: EXTRACTION_RESULT_JSON_SCHEMA,
   };
 
@@ -152,7 +145,6 @@ export const POST = async (
       const errorText = await response.text().catch(() => "");
       return NextResponse.json(
         {
-          success: false,
           error: `${provider} API error (${response.status}): ${errorText.slice(0, 200)}`,
         },
         { status: 502 },
@@ -164,12 +156,12 @@ export const POST = async (
 
     if (!rawText) {
       return NextResponse.json(
-        { success: false, error: `Empty response from ${provider}` },
+        { error: `Empty response from ${provider}` },
         { status: 502 },
       );
     }
 
-    let result;
+    let result: ExtractionResult;
     try {
       result = parseExtractionResponse(rawText);
     } catch (parseError) {
@@ -179,23 +171,19 @@ export const POST = async (
           : "LLM returned unexpected response structure";
       return NextResponse.json(
         {
-          success: false,
           error: `Failed to parse extraction response — ${message}`,
         },
         { status: 502 },
       );
     }
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json(result);
   } catch (error) {
     const message =
       error instanceof Error
         ? `Extraction failed — ${error.message}`
         : "Extraction failed";
     console.error("AI extraction failed:", error);
-    return NextResponse.json(
-      { success: false, error: message },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 };
