@@ -49,27 +49,15 @@ import { mountLeftSidebar } from "./components/LeftSidebarView";
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
-  const pluginLoadStart = performance.now();
-  let _t = pluginLoadStart;
-  const _p = (label: string) => {
-    const now = performance.now();
-    console.log(`[DG Load] ${label}: ${Math.round(now - _t)}ms`);
-    _t = now;
-  };
-
   refreshConfigTree();
-  _p("refreshConfigTree");
 
   const settings = bulkReadSettings();
-  _p("bulkReadSettings");
 
   if (!settings.personalSettings[PERSONAL_KEYS.disableProductDiagnostics]) {
     initPostHog();
-    _p("initPostHog");
   }
 
   initFeedbackWidget();
-  _p("initFeedbackWidget");
 
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
@@ -91,36 +79,27 @@ export default runExtension(async (onloadArgs) => {
   }
 
   initPluginTimer();
-  _p("initPluginTimer");
 
   const createdNodes = await initializeDiscourseNodes(settings);
-  _p("initializeDiscourseNodes");
 
   if (createdNodes) {
     refreshConfigTree(settings);
-    _p("refreshConfigTree(settings) — first load");
   }
 
   addGraphViewNodeStyling();
-  _p("addGraphViewNodeStyling");
 
   registerCommandPaletteCommands(onloadArgs);
-  _p("registerCommandPaletteCommands");
 
   createSettingsPanel(onloadArgs);
-  _p("createSettingsPanel");
 
   registerSmartBlock(onloadArgs);
-  _p("registerSmartBlock");
 
   setInitialQueryPages(onloadArgs, settings);
-  _p("setInitialQueryPages");
 
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
   const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
-  _p("addStyle (all)");
 
   // Add streamline styling only if enabled
   const isStreamlineStylingEnabled =
@@ -135,7 +114,6 @@ export default runExtension(async (onloadArgs) => {
     onloadArgs,
     settings,
   });
-  _p("initObservers");
 
   const {
     pageActionListener,
@@ -149,11 +127,9 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("keydown", nodeMenuTriggerListener);
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
-  _p("addEventListener (all)");
 
   if (isSyncEnabled()) {
     initializeSupabaseSync();
-    _p("initializeSupabaseSync");
   }
 
   const { extensionAPI } = onloadArgs;
@@ -171,10 +147,8 @@ export default runExtension(async (onloadArgs) => {
     // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
   };
-  _p("queryBuilder registration");
 
   installDiscourseFloatingMenu(onloadArgs, settings);
-  _p("installDiscourseFloatingMenu");
 
   const leftSidebarScript = document.querySelector<HTMLScriptElement>(
     'script#roam-left-sidebar[src="https://sid597.github.io/roam-left-sidebar/js/main.js"]',
@@ -214,14 +188,8 @@ export default runExtension(async (onloadArgs) => {
   );
 
   const { blockUids } = await initSchema();
-  _p("initSchema");
 
   const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
-  _p("setupPullWatchOnSettingsPage");
-
-  console.log(
-    `[DG Plugin] Total load: ${Math.round(performance.now() - pluginLoadStart)}ms`,
-  );
 
   return {
     elements: [
