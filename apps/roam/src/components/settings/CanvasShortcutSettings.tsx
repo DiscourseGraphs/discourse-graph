@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { Checkbox, InputGroup, Tabs, Tab } from "@blueprintjs/core";
+import Description from "roamjs-components/components/Description";
 import getDiscourseNodes, {
   excludeDefaultNodes,
 } from "~/utils/getDiscourseNodes";
@@ -6,10 +8,6 @@ import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import { CANVAS_NODE_SHORTCUTS_KEY } from "~/data/userSettings";
 import type { CanvasNodeShortcuts } from "./utils/zodSchema";
-import {
-  PersonalFlagPanel,
-  PersonalTextPanel,
-} from "./components/BlockPropSettingPanels";
 
 const BLOCK_PROP_KEY = "Canvas node shortcuts";
 
@@ -38,41 +36,54 @@ const ShortcutRow = ({
   const [enabled, setEnabled] = useState(initialEnabled);
   const [storedValue, setStoredValue] = useState(initialValue);
 
-  const handleEnabledChange = (checked: boolean) => {
+  const persistValue = (value: string) => {
+    setStoredValue(value);
+    setPersonalSetting(valueKey, value);
+    onValueChange(value);
+  };
+
+  const handleEnabledChange = (e: React.FormEvent<HTMLInputElement>) => {
+    const checked = e.currentTarget.checked;
     setEnabled(checked);
+    setPersonalSetting(enabledKey, checked);
     if (!checked) {
-      setStoredValue("");
-      setPersonalSetting(valueKey, "");
+      persistValue("");
     }
     onEnabledChange(checked);
   };
 
-  const handleValueChange = (value: string) => {
-    setStoredValue(value);
-    onValueChange(value);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.key === "Backspace" || e.key === "Delete") {
+      persistValue("");
+    } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      persistValue(e.key);
+    }
   };
 
   return (
-    <div className="flex flex-col gap-1">
-      <PersonalFlagPanel
-        title={`Use custom ${nodeText} shortcut`}
-        description={`Override the canvas keyboard shortcut. Default: ${defaultShortcut || "none"}. Changes take effect next time a canvas is opened.`}
-        settingKeys={enabledKey}
-        value={enabled}
+    <div className="flex items-center gap-3">
+      <Checkbox
+        checked={enabled}
         onChange={handleEnabledChange}
+        className="mb-0"
+        labelElement={
+          <>
+            <span className="font-medium">{nodeText} node</span>{" "}
+            <Description
+              description={`Default: ${defaultShortcut || "none"}`}
+            />
+          </>
+        }
       />
-      <div className="ml-6 max-w-xs">
-        <PersonalTextPanel
-          key={String(enabled)}
-          title=""
-          description=""
-          settingKeys={valueKey}
-          initialValue={storedValue}
-          disabled={!enabled}
-          placeholder={defaultShortcut || "(no shortcut)"}
-          onChange={handleValueChange}
-        />
-      </div>
+      <InputGroup
+        value={enabled ? storedValue : ""}
+        onChange={() => {}}
+        onKeyDown={handleKeyDown}
+        disabled={!enabled}
+        placeholder={defaultShortcut || "(no shortcut)"}
+        className="ml-auto w-20"
+      />
     </div>
   );
 };
@@ -94,28 +105,46 @@ const CanvasShortcutSettings = () => {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-1">
-      {nodes.map((node) => {
-        const override = shortcuts[node.type];
-        return (
-          <ShortcutRow
-            key={node.type}
-            nodeType={node.type}
-            nodeText={node.text}
-            defaultShortcut={node.shortcut}
-            initialEnabled={override?.enabled ?? false}
-            initialValue={override?.value ?? ""}
-            onEnabledChange={(enabled) =>
-              updateShortcut(node.type, {
-                enabled,
-                ...(enabled ? {} : { value: "" }),
-              })
-            }
-            onValueChange={(value) => updateShortcut(node.type, { value })}
-          />
-        );
-      })}
-    </div>
+    <Tabs renderActiveTabPanelOnly={true}>
+      <Tab
+        id="shortcuts"
+        title="Shortcuts"
+        panel={
+          <div className="flex flex-col gap-2 p-1">
+            <div className="mb-2">
+              <div className="text-base">
+                Override the canvas keyboard shortcuts
+              </div>
+              <div className="text-sm italic text-gray-500">
+                Changes take effect next time a canvas is opened
+              </div>
+            </div>
+            {nodes.map((node) => {
+              const override = shortcuts[node.type];
+              return (
+                <ShortcutRow
+                  key={node.type}
+                  nodeType={node.type}
+                  nodeText={node.text}
+                  defaultShortcut={node.shortcut}
+                  initialEnabled={override?.enabled ?? false}
+                  initialValue={override?.value ?? ""}
+                  onEnabledChange={(enabled) =>
+                    updateShortcut(node.type, {
+                      enabled,
+                      ...(enabled ? {} : { value: "" }),
+                    })
+                  }
+                  onValueChange={(value) =>
+                    updateShortcut(node.type, { value })
+                  }
+                />
+              );
+            })}
+          </div>
+        }
+      />
+    </Tabs>
   );
 };
 
