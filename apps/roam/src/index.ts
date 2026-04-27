@@ -52,6 +52,7 @@ export default runExtension(async (onloadArgs) => {
   const pluginLoadStart = performance.now();
 
   refreshConfigTree();
+
   const settings = bulkReadSettings();
 
   if (!settings.personalSettings[PERSONAL_KEYS.disableProductDiagnostics]) {
@@ -81,13 +82,18 @@ export default runExtension(async (onloadArgs) => {
 
   initPluginTimer();
 
-  await initializeDiscourseNodes(settings);
+  const createdNodes = await initializeDiscourseNodes(settings);
 
-  refreshConfigTree(settings);
+  if (createdNodes) {
+    refreshConfigTree(settings);
+  }
 
   addGraphViewNodeStyling();
+
   registerCommandPaletteCommands(onloadArgs);
+
   createSettingsPanel(onloadArgs);
+
   registerSmartBlock(onloadArgs);
 
   setInitialQueryPages(onloadArgs, settings);
@@ -110,6 +116,7 @@ export default runExtension(async (onloadArgs) => {
     onloadArgs,
     settings,
   });
+
   const {
     pageActionListener,
     hashChangeListener,
@@ -183,6 +190,7 @@ export default runExtension(async (onloadArgs) => {
   );
 
   const { blockUids } = await initSchema();
+
   const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
 
   console.log(

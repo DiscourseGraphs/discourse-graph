@@ -10,6 +10,7 @@ import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromT
 import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
 
+import type { RoamBasicNode } from "roamjs-components/types";
 import discourseConfigRef from "~/utils/discourseConfigRef";
 import { roamNodeToCondition } from "~/utils/parseQuery";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
@@ -298,13 +299,13 @@ const getLegacyPersonalSetting = (keys: string[]): unknown => {
   return undefined;
 };
 
-const getLegacyRelationsSetting = (): Record<string, unknown> => {
-  const settingsUid = getPageUidByPageTitle(DG_BLOCK_PROP_SETTINGS_PAGE_TITLE);
-  if (!settingsUid) return DEFAULT_GLOBAL_SETTINGS.Relations;
+const getLegacyRelationsSetting = (
+  tree: RoamBasicNode[],
+): Record<string, unknown> => {
+  if (tree.length === 0) return DEFAULT_GLOBAL_SETTINGS.Relations;
 
-  const configTree = getBasicTreeByParentUid(settingsUid);
   const grammarChildren = getSubTree({
-    tree: configTree,
+    tree,
     key: "grammar",
   }).children;
   const relationNodes = getSubTree({
@@ -404,7 +405,7 @@ const getLegacyGlobalSetting = (keys: string[]): unknown => {
   }
 
   if (firstKey === "Export") {
-    const exp = getExportSettingsAndUids();
+    const exp = getExportSettingsAndUids(tree);
     const exportSettings: Record<string, unknown> = {};
     exportSettings["Remove special characters"] =
       exp.removeSpecialCharacters.value ??
@@ -453,7 +454,7 @@ const getLegacyGlobalSetting = (keys: string[]): unknown => {
   }
 
   if (firstKey === "Relations") {
-    const relationsSettings = getLegacyRelationsSetting();
+    const relationsSettings = getLegacyRelationsSetting(tree);
     if (keys.length === 1) return relationsSettings;
     return readPathValue(relationsSettings, keys.slice(1));
   }
