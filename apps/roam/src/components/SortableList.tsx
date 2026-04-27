@@ -49,9 +49,11 @@ const SortableItem = <T,>({
     isDragging,
   } = useSortable({ id });
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    position: "relative",
+    zIndex: isDragging ? 1 : 0,
   };
   return (
     <div ref={setNodeRef} style={style}>

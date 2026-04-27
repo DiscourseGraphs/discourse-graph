@@ -362,7 +362,7 @@ const SectionItem = memo(
             />
           )}
           <div
-            className="flex-1 truncate"
+            className={`flex-1 truncate ${sectionWithoutSettingsAndChildren ? "cursor-default" : "cursor-pointer"}`}
             onClick={() =>
               !sectionWithoutSettingsAndChildren &&
               toggleChildrenList(section.uid)

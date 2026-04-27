@@ -372,9 +372,11 @@ const PersonalSections = ({
 
 const GlobalSection = ({
   config,
+  onGlobalChildrenReorder,
   onloadArgs,
 }: {
   config: LeftSidebarConfig["global"];
+  onGlobalChildrenReorder: (oldIndex: number, newIndex: number) => void;
   onloadArgs: OnloadArgs;
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(
@@ -382,6 +384,19 @@ const GlobalSection = ({
   );
   if (!config.children?.length) return null;
   const isCollapsable = config.settings?.collapsable.value;
+
+  const children = (
+    <SortableList
+      items={config.children}
+      getId={(c) => c.uid}
+      onReorder={onGlobalChildrenReorder}
+      renderItem={(child, handle) => (
+        <div {...handle.attributes} {...handle.listeners}>
+          <ChildRow child={child} onloadArgs={onloadArgs} />
+        </div>
+      )}
+    />
+  );
 
   return (
     <>
@@ -407,17 +422,9 @@ const GlobalSection = ({
         </div>
       </div>
       {isCollapsable ? (
-        <Collapse isOpen={isOpen}>
-          <SectionChildren
-            childrenNodes={config.children}
-            onloadArgs={onloadArgs}
-          />
-        </Collapse>
+        <Collapse isOpen={isOpen}>{children}</Collapse>
       ) : (
-        <SectionChildren
-          childrenNodes={config.children}
-          onloadArgs={onloadArgs}
-        />
+        children
       )}
     </>
   );
@@ -557,10 +564,34 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const { config, setConfig } = useConfig();
 
+  const reorderGlobalChildren = (oldIndex: number, newIndex: number) => {
+    const children = config.global.children;
+    if (!children) return;
+    const moved = children[oldIndex];
+    if (!moved) return;
+    const reordered = arrayMove(children, oldIndex, newIndex);
+    setConfig({
+      ...config,
+      global: { ...config.global, children: reordered },
+    });
+    void moveRoamBlockToIndex({
+      blockUid: moved.uid,
+      parentUid: config.global.childrenUid,
+      sourceIndex: oldIndex,
+      destIndex: newIndex,
+    }).then(() => {
+      refreshAndNotify();
+    });
+  };
+
   return (
     <>
       <FavoritesPopover onloadArgs={onloadArgs} />
-      <GlobalSection config={config.global} onloadArgs={onloadArgs} />
+      <GlobalSection
+        config={config.global}
+        onGlobalChildrenReorder={reorderGlobalChildren}
+        onloadArgs={onloadArgs}
+      />
       <PersonalSections
         config={config}
         setConfig={setConfig}
