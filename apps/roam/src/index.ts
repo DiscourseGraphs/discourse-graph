@@ -49,6 +49,8 @@ import { mountLeftSidebar } from "./components/LeftSidebarView";
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
+  const pluginLoadStart = performance.now();
+
   refreshConfigTree();
 
   const settings = bulkReadSettings();
@@ -190,6 +192,10 @@ export default runExtension(async (onloadArgs) => {
   const { blockUids } = await initSchema();
 
   const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
+
+  console.log(
+    `[DG Plugin] Total load: ${Math.round(performance.now() - pluginLoadStart)}ms`,
+  );
 
   return {
     elements: [
