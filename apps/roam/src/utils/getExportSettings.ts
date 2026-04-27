@@ -68,10 +68,12 @@ export const getUidAndStringSetting = (props: Props): StringSetting => {
   };
 };
 
-export const getExportSettingsAndUids = (): ExportConfigWithUids => {
-  const configTree = getBasicTreeByParentUid(
-    getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-  );
+export const getExportSettingsAndUids = (
+  configTreeOverride?: RoamBasicNode[],
+): ExportConfigWithUids => {
+  const configTree =
+    configTreeOverride ??
+    getBasicTreeByParentUid(getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE));
   const exportNode = getSubTree({ tree: configTree, key: "export" });
   const tree = exportNode.children;
   const exportNodeUid = exportNode.uid;
