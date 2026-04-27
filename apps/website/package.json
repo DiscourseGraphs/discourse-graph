@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "dev": "next dev",
-    "build": "next build --no-lint",
+    "build": "next build",
     "postbuild": "node ./scripts/build-docs-search-index.mjs",
     "start": "next start",
     "lint": "eslint .",
@@ -14,6 +14,7 @@
     "check-types": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
+    "@automerge/automerge": "^3.2.4",
     "@repo/database": "workspace:*",
     "@repo/ui": "workspace:*",
     "@supabase/ssr": "^0.8.0",
@@ -21,7 +22,7 @@
     "clsx": "^2.1.1",
     "gray-matter": "^4.0.3",
     "lucide-react": "^0.540.0",
-    "next": "15.5.7",
+    "next": "16.2.4",
     "nextra": "^4.6.1",
     "nextra-theme-docs": "^4.6.1",
     "openai": "^4.98.0",

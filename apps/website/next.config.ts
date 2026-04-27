@@ -11,9 +11,7 @@ const withNextra = nextra({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  serverRuntimeConfig: {
-    maxDuration: 300,
-  },
+  serverExternalPackages: ["@automerge/automerge"],
   async redirects() {
     return DOCS_REDIRECTS;
   },
