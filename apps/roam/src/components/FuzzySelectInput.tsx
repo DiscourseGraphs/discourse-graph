@@ -158,17 +158,26 @@ const FuzzySelectInput = <T extends Result = Result>({
   }, [autoFocus, mode, isLocked]);
 
   if (mode === "edit") {
+    const editText = value?.text || "";
     return (
-      <TextArea
-        value={value?.text || ""}
-        onChange={(e) => {
-          setValue({ text: e.target.value, uid: value?.uid || "" } as T);
-        }}
-        fill
-        growVertically
-        placeholder={placeholder}
-        autoFocus={autoFocus}
-      />
+      <div className="w-full">
+        <TextArea
+          value={editText}
+          onChange={(e) => {
+            setValue({ text: e.target.value, uid: value?.uid || "" } as T);
+          }}
+          fill
+          growVertically
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          maxLength={MAX_CONTENT_LENGTH}
+        />
+        {editText.length >= MAX_CONTENT_LENGTH && (
+          <p className="mt-1 text-xs text-red-500">
+            Character limit reached ({MAX_CONTENT_LENGTH})
+          </p>
+        )}
+      </div>
     );
   }
 

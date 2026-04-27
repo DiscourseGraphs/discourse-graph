@@ -168,7 +168,7 @@ div.roamjs-discourse-drawer div.bp3-drawer {
 }
 
 .roamjs-canvas-dialog textarea {
-  min-height: 96px;
+  min-height: 2rem;
 }
 
 /* 
