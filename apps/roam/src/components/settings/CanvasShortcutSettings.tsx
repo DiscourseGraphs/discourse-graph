@@ -53,6 +53,7 @@ const ShortcutRow = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Tab" || e.key === "Escape") return;
     e.preventDefault();
     if (e.key === "Backspace" || e.key === "Delete") {
       persistValue("");
