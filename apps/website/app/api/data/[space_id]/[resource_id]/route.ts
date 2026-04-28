@@ -5,7 +5,7 @@ import {
   defaultOptionsHandler,
   createApiResponse,
 } from "~/utils/supabase/apiUtils";
-import { asJsonLD } from "~/utils/conversion/jsonld";
+import { asJsonLD, wrapJsonLd } from "~/utils/conversion/jsonld";
 import { Tables } from "@repo/database/dbTypes";
 
 type Concept = Tables<"Concept">;
@@ -21,6 +21,8 @@ export const GET = async (
 ): Promise<NextResponse> => {
   const { space_id, resource_id } = await segmentData.params;
   const targetFormat = request.nextUrl.searchParams.get("format") ?? "html";
+  const withContext = request.nextUrl.searchParams.get("context");
+  const withSchema = request.nextUrl.searchParams.get("schema");
   const spaceIdN = Number.parseInt(space_id || "NaN");
   if (isNaN(spaceIdN)) {
     return createApiResponse(
@@ -117,7 +119,7 @@ export const GET = async (
     if (authorResponse.data) author = authorResponse.data;
   }
 
-  const jsonLdData = await asJsonLD({
+  let jsonLdData: Json = await asJsonLD({
     space,
     concept,
     baseUrl,
@@ -126,10 +128,31 @@ export const GET = async (
     content: targetFormat === "none" ? undefined : fullContents,
     author,
     targetFormat,
-    wrap: true,
   });
+  if ((withSchema && schema) || withContext) {
+    jsonLdData = [jsonLdData];
+  }
+  if (withSchema && schema) {
+    let schemaAuthorResponse = undefined;
+    if (schema.author_id && schema.author_id != concept.author_id) {
+      schemaAuthorResponse = await supabase
+        .from("PlatformAccount")
+        .select()
+        .eq("id", schema.author_id)
+        .maybeSingle();
+      if (schemaAuthorResponse.data) author = schemaAuthorResponse.data;
+    }
+    jsonLdData.push(
+      await asJsonLD({
+        space,
+        concept: schema,
+        baseUrl,
+        author,
+      }),
+    );
+  }
 
-  return NextResponse.json(jsonLdData, {
+  return NextResponse.json(wrapJsonLd(jsonLdData, baseUrl), {
     status: 200,
     headers: { "Content-Type": "application/ld+json" },
   });

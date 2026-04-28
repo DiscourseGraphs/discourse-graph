@@ -16,6 +16,7 @@
   "created": "dc:date",
   "creator": "dc:creator",
   "content": "sioc:content",
+  "has_container": "sioc:has_container",
   "source": "dgb:source",
   "destination": "dgb:destination",
   "textRefersToNode": "dgb:textRefersToNode",

@@ -50,8 +50,10 @@ export const asJsonLD = async ({
       }
     }
   }
-  const titleText = title?.text ?? concept.description;
-  if (titleText) extraData["title"] = titleText;
+  const titleText = title?.text ?? concept.name;
+  if (titleText) {
+    extraData[concept.is_schema ? "label" : "title"] = titleText;
+  }
   if (content) {
     const rootUrl = baseUrl.split("/").slice(0, 3).join("/");
     await initRT(rootUrl);
@@ -77,18 +79,36 @@ export const asJsonLD = async ({
     "@type": schemaUrl,
     modified: concept.last_modified + "Z",
     created: concept.created + "Z",
-    // TODO: add the space (only if wrapped?)
     ...extraData,
   };
-  return wrap
-    ? {
-        "@context": [
-          "/schema/context.jsonld",
-          {
-            local: baseUrlSlash,
-          },
-        ],
-        ...extraData,
-      }
-    : extraData;
+  return wrap ? wrapJsonLd(extraData, baseUrl) : extraData;
+};
+
+export const wrapJsonLd = (
+  json: Json[] | Record<string, Json>,
+  baseUrl: string,
+): Json => {
+  if (Array.isArray(json)) {
+    return {
+      "@context": [
+        "/schema/context.jsonld",
+        {
+          local: baseUrl + "/",
+        },
+      ],
+      "@id": baseUrl,
+      "@graph": json,
+    };
+  } else if (typeof json === "object") {
+    return {
+      "@context": [
+        "/schema/context.jsonld",
+        {
+          local: baseUrl + "/",
+        },
+      ],
+      has_container: baseUrl,
+      ...json,
+    };
+  } else throw new Error("Wrong input type");
 };
