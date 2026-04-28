@@ -82,7 +82,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         getSpaceUris(client, uniqueSpaceIds),
       ]);
 
-      // Populate plugin settings with current space names so they stay up to date
+      // Keep spaceNames in settings up to date for UI display (formatImportSource reads it)
       if (uniqueSpaceIds.length > 0) {
         if (!plugin.settings.spaceNames) plugin.settings.spaceNames = {};
 
