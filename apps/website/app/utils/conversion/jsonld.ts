@@ -26,7 +26,7 @@ export const asJsonLD = async ({
   author?: PlatformAccount;
   targetFormat?: string;
   wrap?: boolean;
-}): Promise<Json> => {
+}): Promise<Record<string, Json>> => {
   targetFormat ??= "html";
   const baseUrlSlash = baseUrl + "/";
   let schemaUrl = concept.arity ? "dgb:RelationSchema" : "dgb:NodeSchema";
@@ -87,7 +87,7 @@ export const asJsonLD = async ({
 export const wrapJsonLd = (
   json: Json[] | Record<string, Json>,
   baseUrl: string,
-): Json => {
+): Record<string, Json> => {
   if (Array.isArray(json)) {
     return {
       "@context": [

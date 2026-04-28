@@ -6,7 +6,7 @@ import {
   createApiResponse,
 } from "~/utils/supabase/apiUtils";
 import { asJsonLD, wrapJsonLd } from "~/utils/conversion/jsonld";
-import { Tables } from "@repo/database/dbTypes";
+import { Tables, Json } from "@repo/database/dbTypes";
 
 type Concept = Tables<"Concept">;
 type Content = Tables<"Content">;
@@ -119,7 +119,7 @@ export const GET = async (
     if (authorResponse.data) author = authorResponse.data;
   }
 
-  let jsonLdData: Json = await asJsonLD({
+  let jsonLdData: Json[] | Record<string, Json> = await asJsonLD({
     space,
     concept,
     baseUrl,
@@ -142,7 +142,7 @@ export const GET = async (
         .maybeSingle();
       if (schemaAuthorResponse.data) author = schemaAuthorResponse.data;
     }
-    jsonLdData.push(
+    (jsonLdData as Json[]).push(
       await asJsonLD({
         space,
         concept: schema,
