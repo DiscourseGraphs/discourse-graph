@@ -158,6 +158,7 @@ export const GET = async (
       content: undefined,
       author,
       targetFormat,
+      wrap: true,
     });
     const insertionPoint = text.indexOf(">");
     if (insertionPoint > 0) {

@@ -15,6 +15,7 @@ export const asJsonLD = async ({
   content,
   author,
   targetFormat,
+  wrap,
 }: {
   space: Space;
   concept: Concept;
@@ -24,11 +25,12 @@ export const asJsonLD = async ({
   content?: Content;
   author?: PlatformAccount;
   targetFormat?: string;
+  wrap?: boolean;
 }): Promise<Json> => {
   targetFormat ??= "html";
   const baseUrlSlash = baseUrl + "/";
   let schemaUrl = concept.arity ? "dgb:RelationSchema" : "dgb:NodeSchema";
-  const extraData: Record<string, string> = {};
+  let extraData: Record<string, string> = {};
   if (schema) {
     schemaUrl = "local:" + schema.id;
     if (
@@ -48,7 +50,8 @@ export const asJsonLD = async ({
       }
     }
   }
-  if (title) extraData["title"] = title.text;
+  const titleText = title?.text ?? concept.description;
+  if (titleText) extraData["title"] = titleText;
   if (content) {
     const rootUrl = baseUrl.split("/").slice(0, 3).join("/");
     await initRT(rootUrl);
@@ -69,44 +72,23 @@ export const asJsonLD = async ({
     extraData.creator = author.name;
     // TODO: make into an object?
   }
-  return {
-    "@context": {
-      local: baseUrlSlash,
-      rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-      rdfs: "http://www.w3.org/2000/01/rdf-schema#",
-      owl: "http://www.w3.org/2002/07/owl#",
-      dc: "http://purl.org/dc/elements/1.1/",
-      prov: "http://www.w3.org/ns/prov#",
-      sioc: "http://rdfs.org/sioc/ns#",
-      dgc: "https://discoursegraphs.com/schema/dg_core",
-      dgb: "https://discoursegraphs.com/schema/dg_base",
-      subClassOf: "rdfs:subClassOf",
-      title: "dc:title",
-      label: "rdfs:label",
-      modified: "dc:modified",
-      created: "dc:date",
-      creator: "dc:creator",
-      content: "sioc:content",
-      source: "dgb:source",
-      destination: "dgb:destination",
-      textRefersToNode: "dgb:textRefersToNode",
-      predicate: "rdf:predicate",
-      nodeSchema: "dgb:NodeSchema",
-      relationDef: "dgb:RelationDef",
-      relationInstance: "dgb:RelationInstance",
-      inverseOf: "owl:inverseOf",
-    },
-    "@id": baseUrl,
-    "@graph": [
-      {
-        "@id": baseUrlSlash + concept.id,
-        "@type": schemaUrl,
-        modified: concept.last_modified + "Z",
-        created: concept.created + "Z",
-        // title
-        // content
-        ...extraData,
-      },
-    ],
+  extraData = {
+    "@id": baseUrlSlash + concept.id,
+    "@type": schemaUrl,
+    modified: concept.last_modified + "Z",
+    created: concept.created + "Z",
+    // TODO: add the space (only if wrapped?)
+    ...extraData,
   };
+  return wrap
+    ? {
+        "@context": [
+          "/schema/context.jsonld",
+          {
+            local: baseUrlSlash,
+          },
+        ],
+        ...extraData,
+      }
+    : extraData;
 };
