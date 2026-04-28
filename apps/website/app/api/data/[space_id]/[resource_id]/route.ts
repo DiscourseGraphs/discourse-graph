@@ -126,6 +126,7 @@ export const GET = async (
     content: targetFormat === "none" ? undefined : fullContents,
     author,
     targetFormat,
+    wrap: true,
   });
 
   return NextResponse.json(jsonLdData, {
