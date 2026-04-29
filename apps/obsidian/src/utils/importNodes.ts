@@ -36,6 +36,16 @@ export const getAvailableGroupIds = async (
   return (data || []).map((g) => g.group_id);
 };
 
+type PublishedNode = {
+  source_local_id: string;
+  space_id: number;
+  text: string;
+  createdAt: number;
+  modifiedAt: number;
+  filePath: string | undefined;
+  authorId: number | undefined;
+};
+
 export const getPublishedNodesForGroups = async ({
   client,
   groupIds,
@@ -44,16 +54,7 @@ export const getPublishedNodesForGroups = async ({
   client: DGSupabaseClient;
   groupIds: string[];
   currentSpaceId: number;
-}): Promise<
-  Array<{
-    source_local_id: string;
-    space_id: number;
-    text: string;
-    createdAt: number;
-    modifiedAt: number;
-    filePath: string | undefined;
-  }>
-> => {
+}): Promise<Array<PublishedNode>> => {
   if (groupIds.length === 0) {
     return [];
   }
@@ -63,7 +64,7 @@ export const getPublishedNodesForGroups = async ({
   const { data, error } = await client
     .from("my_contents")
     .select(
-      "source_local_id, space_id, text, created, last_modified, variant, metadata",
+      "source_local_id, space_id, text, created, last_modified, variant, metadata, author_id",
     )
     .neq("space_id", currentSpaceId);
 
@@ -83,6 +84,7 @@ export const getPublishedNodesForGroups = async ({
     created: string | null;
     last_modified: string | null;
     variant: string | null;
+    author_id: number | null;
     metadata: Json;
   };
 
@@ -95,14 +97,7 @@ export const getPublishedNodesForGroups = async ({
     groups.get(k)!.push(row);
   }
 
-  const nodes: Array<{
-    source_local_id: string;
-    space_id: number;
-    text: string;
-    createdAt: number;
-    modifiedAt: number;
-    filePath: string | undefined;
-  }> = [];
+  const nodes: Array<PublishedNode> = [];
 
   for (const rows of groups.values()) {
     const withDate = rows.filter(
@@ -133,6 +128,7 @@ export const getPublishedNodesForGroups = async ({
       createdAt,
       modifiedAt,
       filePath,
+      authorId: latest.author_id ?? undefined,
     });
   }
 
@@ -231,6 +227,25 @@ export const getSpaceUris = async (
   });
 
   return spaceMap;
+};
+
+export const fetchUserNames = async (
+  plugin: DiscourseGraphPlugin,
+  client: DGSupabaseClient,
+) => {
+  const result = await client
+    .from("my_accounts")
+    .select("id, name")
+    .eq("agent_type", "person");
+  if (result.error || !result.data) {
+    console.error(result.error);
+    return;
+  }
+  const nameById = Object.fromEntries(
+    result.data.map(({ id, name }) => [id, name]) as [number, string][],
+  );
+  plugin.settings.userNames = nameById;
+  await plugin.saveSettings();
 };
 
 export const fetchNodeContent = async ({
@@ -975,6 +990,7 @@ type ParsedFrontmatter = {
   nodeTypeId?: string;
   nodeInstanceId?: string;
   publishedToGroups?: string[];
+  authorId?: number;
   [key: string]: unknown;
 };
 
@@ -1037,7 +1053,7 @@ export const mapNodeTypeIdToLocal = async ({
   // Find the schema in the source space with this nodeTypeId (my_concepts applies RLS)
   const { data: schemaData } = await client
     .from("my_concepts")
-    .select("name, literal_content")
+    .select("name, literal_content, author_id")
     .eq("space_id", sourceSpaceId)
     .eq("is_schema", true)
     .eq("source_local_id", sourceNodeTypeId)
@@ -1088,6 +1104,7 @@ export const mapNodeTypeIdToLocal = async ({
     keyImage: parsed.keyImage,
     created: now,
     modified: now,
+    authorId: schemaData.author_id ?? undefined,
     importedFromRid,
   };
   plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];
@@ -1105,6 +1122,7 @@ const processFileContent = async ({
   filePath,
   importedCreatedAt,
   importedModifiedAt,
+  authorId,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
@@ -1115,6 +1133,7 @@ const processFileContent = async ({
   filePath: string;
   importedCreatedAt?: number;
   importedModifiedAt?: number;
+  authorId?: number;
 }): Promise<
   { file: TFile; error?: never } | { file?: never; error: string }
 > => {
@@ -1173,6 +1192,7 @@ const processFileContent = async ({
         "note",
       );
       record.lastModified = importedModifiedAt;
+      if (authorId) record.authorId = authorId;
     },
     stat,
   );
@@ -1322,6 +1342,7 @@ export const importSelectedNodes = async ({
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
+          authorId: node.authorId,
         });
 
         if (result.error) {

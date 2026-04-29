@@ -10,6 +10,7 @@ import {
   getImportInfo,
   formatImportSource,
   getAndFormatImportSource,
+  getUserNameById,
 } from "~/utils/typeUtils";
 import { FolderSuggestInput } from "./GeneralSettings";
 import { createBaseForNodeType } from "~/utils/baseForNodeType";
@@ -581,6 +582,8 @@ const NodeTypeSettings = () => {
               </div>
               {isImported && importInfo.spaceUri && (
                 <span className="text-muted pl-6 text-xs">
+                  {nodeType.authorId &&
+                    `by ${getUserNameById(plugin, nodeType.authorId)} `}
                   from{" "}
                   {formatImportSource(
                     importInfo.spaceUri || "",

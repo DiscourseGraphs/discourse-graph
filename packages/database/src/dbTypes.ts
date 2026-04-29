@@ -1291,7 +1291,10 @@ export type Database = {
         }
       }
       account_in_shared_space: {
-        Args: { p_account_id: number }
+        Args: {
+          access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"]
+          p_account_id: number
+        }
         Returns: boolean
       }
       author_of_concept: {
