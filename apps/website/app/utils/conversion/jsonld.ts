@@ -77,7 +77,7 @@ export const asJsonLD = async ({
     // TODO: make into an object?
   }
   extraData = {
-    "@id": baseUrlSlash + concept.id,
+    "@id": "space:" + concept.id,
     "@type": schemaUrl,
     modified: concept.last_modified + "Z",
     created: concept.created + "Z",
