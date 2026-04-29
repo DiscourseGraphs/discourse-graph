@@ -234,7 +234,7 @@ const fetchUserNames = async (
   client: DGSupabaseClient,
 ) => {
   const result = await client
-    .from("PlatformAccount")
+    .from("my_accounts")
     .select("id, name")
     .eq("agent_type", "person");
   if (result.error || !result.data) {
