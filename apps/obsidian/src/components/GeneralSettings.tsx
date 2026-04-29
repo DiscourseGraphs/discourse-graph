@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { usePlugin } from "./PluginContext";
 import { setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
-import { updateUsername } from "~/utils/supabaseContext";
 import { SLACK_LOGO, WHITE_LOGO_SVG } from "~/icons";
 
 const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
@@ -153,9 +152,6 @@ const GeneralSettings = () => {
   const [canvasFolderPath, setCanvasFolderPath] = useState<string>(
     plugin.settings.canvasFolderPath,
   );
-  const [username, setUsername] = useState<string>(
-    plugin.settings.username || "",
-  );
   const [canvasAttachmentsFolderPath, setCanvasAttachmentsFolderPath] =
     useState<string>(plugin.settings.canvasAttachmentsFolderPath);
   const [nodeTagHotkey, setNodeTagHotkey] = useState<string>(
@@ -206,13 +202,6 @@ const GeneralSettings = () => {
     },
     [plugin],
   );
-
-  const handleSetUsername = async (newValue: string) => {
-    setUsername(newValue);
-    plugin.settings.username = newValue;
-    await plugin.saveSettings();
-    await updateUsername(plugin, newValue);
-  };
 
   return (
     <div className="general-settings">
@@ -314,28 +303,6 @@ const GeneralSettings = () => {
             }}
             placeholder="\\"
             maxLength={1}
-          />
-        </div>
-      </div>
-
-      <div
-        className={
-          "setting-item " + (plugin.settings.syncModeEnabled ? "" : "hidden")
-        }
-      >
-        <div className="setting-item-info">
-          <div className="setting-item-name">Username</div>
-          <div className="setting-item-description">
-            A username that will be associated with your vault if you share
-            data.
-          </div>
-        </div>
-        <div className="setting-item-control">
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            onBlur={(e) => void handleSetUsername(e.target.value)}
           />
         </div>
       </div>
