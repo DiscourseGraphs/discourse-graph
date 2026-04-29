@@ -289,20 +289,20 @@ const predefinedSelections: PredefinedSelection[] = [
   },
   {
     test: HAS_SCHEMA_TEST,
-    pull: ({ match, returnNode, where }) => {
+    pull: () => {
       return "?relSchema";
     },
-    mapper: (r, key) => {
+    mapper: () => {
       // not sure here?
       return "?relSchema";
     },
   },
   {
     test: EFFECTIVE_SOURCE_TEST,
-    pull: ({ match, returnNode, where }) => {
+    pull: () => {
       return "?relSource";
     },
-    mapper: (r, key) => {
+    mapper: () => {
       // not sure here?
       return "?relSource";
     },

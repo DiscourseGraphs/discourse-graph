@@ -9,7 +9,6 @@ import getDiscourseRelations, {
 import { Selection } from "./types";
 import { getSetting } from "./extensionSettings";
 import { ANY_RELATION_REGEX } from "./deriveDiscourseNodeAttribute";
-import { use } from "cytoscape";
 
 const resultCache: Record<string, Awaited<ReturnType<typeof fireQuery>>> = {};
 const CACHE_TIMEOUT = 1000 * 60 * 5;
@@ -281,7 +280,7 @@ const getDiscourseContextResults = async ({
     const results = resultsWithRelation[0].results;
     resultsWithRelation = [];
     for (const r of results) {
-      const relKey = `${r.relationUid}-${r.effectiveSource !== targetUid}`;
+      const relKey = `${r.relationUid as string}-${r.effectiveSource !== targetUid}`;
       byRel[relKey] = byRel[relKey] || [];
       byRel[relKey].push(r);
     }
