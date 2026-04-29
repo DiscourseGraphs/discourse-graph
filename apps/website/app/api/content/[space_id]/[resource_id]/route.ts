@@ -160,13 +160,7 @@ export const GET = async (
       targetFormat,
       wrap: true,
     });
-    const insertionPoint = text.indexOf(">");
-    if (insertionPoint > 0) {
-      text =
-        text.slice(0, insertionPoint + 1) +
-        `<script type="application/ld+json">${JSON.stringify(jsonLdData)}</script>` +
-        text.slice(insertionPoint + 1);
-    }
+    text = `<div id="content">\n<script type="application/ld+json">${JSON.stringify(jsonLdData)}</script>\n${text}\n</div>`;
   }
 
   return new NextResponse(text, {
