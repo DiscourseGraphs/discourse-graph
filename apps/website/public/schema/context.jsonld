@@ -13,34 +13,48 @@
     "label": "rdfs:label",
     "inverseOf": "owl:inverseOf",
     "title": "dc:title",
-    "modified": "dc:modified",
-    "created": "dc:date",
+    "format": "dc:format",
+    "description": "dc:description",
+    "modified": {
+      "@id": "dc:modified",
+      "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
+    },
+    "created": {
+      "@id": "dc:date",
+      "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
+    },
     "creator": "dc:creator",
     "content": "sioc:content",
-    "has_container": "sioc:has_container",
-    "source": "dgb:source",
-    "destination": "dgb:destination",
-    "textRefersToNode": "dgb:textRefersToNode",
-    "nodeSchema": "dgb:NodeSchema",
-    "relationDef": "dgb:RelationDef",
-    "relationInstance": "dgb:RelationInstance",
+    "has_container": { "@id": "sioc:has_container", "@type": "@id" },
+    "RelationDef": "dgb:RelationDef",
+    "RelationInstance": "dgb:RelationInstance",
     "RelationSchema": "dgb:RelationSchema",
     "NodeSchema": "dgb:NodeSchema",
+    "source": { "@id": "dgb:source", "@type": "@id" },
+    "destination": { "@id": "dgb:destination", "@type": "@id" },
+    "textRefersToNode": "dgb:textRefersToNode",
+
     "Question": "dgc:Question",
     "Claim": "dgc:Claim",
     "Evidence": "dgc:Evidence",
-    "describesActivity": "dgc:describesActivity",
     "SourceDocument": "dgc:SourceDocument",
-    "observationStatement": "dgc:observationStatement",
-    "observationOriginActivity": "dgc:observationOriginActivity",
-    "observationBase": "dgc:observationBase",
-    "sourceDocument": "dgc:sourceDocument",
     "ClaimOrEvidence": "dgc:ClaimOrEvidence",
-    "opposes": "dgc:opposes",
-    "opposedBy": "dgc:opposedBy",
-    "supports": "dgc:supports",
-    "supportedBy": "dgc:supportedBy",
-    "addresses": "dgc:addresses",
-    "addressedBy": "dgc:addressedBy"
+    "observationStatement": {
+      "@id": "dgc:observationStatement",
+      "@type": "@id"
+    },
+    "observationOriginActivity": {
+      "@id": "dgc:observationOriginActivity",
+      "@type": "@id"
+    },
+    "observationBase": { "@id": "dgc:observationBase", "@type": "@id" },
+    "sourceDocument": { "@id": "dgc:sourceDocument", "@type": "@id" },
+    "describesActivity": { "@id": "dgc:describesActivity", "@type": "@id" },
+    "opposes": { "@id": "dgc:opposes", "@type": "@id" },
+    "opposedBy": { "@id": "dgc:opposedBy", "@type": "@id" },
+    "supports": { "@id": "dgc:supports", "@type": "@id" },
+    "supportedBy": { "@id": "dgc:supportedBy", "@type": "@id" },
+    "addresses": { "@id": "dgc:addresses", "@type": "@id" },
+    "addressedBy": { "@id": "dgc:addressedBy", "@type": "@id" }
   }
 }
