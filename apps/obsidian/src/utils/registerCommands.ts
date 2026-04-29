@@ -36,8 +36,8 @@ const createModifyNodeModalSubmitHandler = (
     relationshipTargetFile,
   }: ModifyNodeSubmitParams) => {
     if (selectedExistingNode) {
-      if (editor) {
-        editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
+      if (editor && editor.somethingSelected()) {
+        editor?.replaceSelection(`[[${selectedExistingNode.basename}]]`);
       }
       await addRelationIfRequested(plugin, selectedExistingNode, {
         relationshipId,
