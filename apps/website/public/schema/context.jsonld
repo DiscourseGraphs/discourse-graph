@@ -23,6 +23,8 @@
   "nodeSchema": "dgb:NodeSchema",
   "relationDef": "dgb:RelationDef",
   "relationInstance": "dgb:RelationInstance",
+  "RelationSchema": "dgb:RelationSchema",
+  "NodeSchema": "dgb:NodeSchema",
   "Question": "dgc:Question",
   "Claim": "dgc:Claim",
   "Evidence": "dgc:Evidence",

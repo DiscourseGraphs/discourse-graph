@@ -6,7 +6,8 @@ import {
   createApiResponse,
 } from "~/utils/supabase/apiUtils";
 import { asJsonLD, wrapJsonLd } from "~/utils/conversion/jsonld";
-import { Tables, Json } from "@repo/database/dbTypes";
+import { Tables } from "@repo/database/dbTypes";
+import { PostgrestMaybeSingleResponse } from "@supabase/supabase-js";
 
 type Concept = Tables<"Concept">;
 type Content = Tables<"Content">;
@@ -78,18 +79,41 @@ export const GET = async (
     return createApiResponse(request, conceptResponse);
   }
   const contents: Content[] = contentResponse.data;
+  const fullContentsArray = contents.filter((c) => c.variant === "full");
+  const fullContents = fullContentsArray.length
+    ? fullContentsArray[0]
+    : undefined;
+  const titleArray = contents.filter((c) => c.variant === "direct");
+  const title = titleArray.length ? titleArray[0] : undefined;
+
   const requestUrlParts = request.url.split("/");
   const baseUrl = requestUrlParts
     .slice(0, requestUrlParts.length - 1)
     .join("/");
   const isSchema = concept.is_schema;
-  let schema: Concept | undefined = undefined;
-  if (!isSchema && concept.schema_id) {
+  let schemas: Record<number, Concept> = {};
+  let authors: Record<number, PlatformAccount> = {};
+  let relations: Concept[] = [];
+  let schemaIds = new Set<number>();
+  if (withContext) {
+    const relationsResult = (await supabase
+      .from("Concept")
+      .select("relations:concept_in_relations!inner(*)")
+      .eq("id", concept.id)
+      .maybeSingle()) as PostgrestMaybeSingleResponse<{ relations: Concept[] }>;
+    if (relationsResult.data?.relations?.length) {
+      relations = relationsResult.data.relations;
+      schemaIds = new Set(
+        relations.map((c) => c.schema_id).filter((id) => id !== null),
+      );
+    }
+  }
+  if (concept.schema_id) schemaIds.add(concept.schema_id);
+  if (schemaIds.size > 0) {
     const schemaResponse = await supabase
       .from("Concept")
       .select()
-      .eq("id", concept.schema_id)
-      .maybeSingle();
+      .in("id", [...schemaIds]);
     if (schemaResponse.error) {
       return createApiResponse(request, schemaResponse);
     }
@@ -99,59 +123,73 @@ export const GET = async (
         asPostgrestFailure("Resource schema not found", "401", 401),
       );
     }
-    schema = schemaResponse.data;
+    schemas = Object.fromEntries(schemaResponse.data.map((s) => [s.id, s]));
   }
-  const fullContentsArray = contents.filter((c) => c.variant === "full");
-  const fullContents = fullContentsArray.length
-    ? fullContentsArray[0]
-    : undefined;
-  const titleArray = contents.filter((c) => c.variant === "direct");
-  const title = titleArray.length ? titleArray[0] : undefined;
-
-  const authorId = concept.author_id ?? (contents ?? [{}])[0]?.author_id;
-  let author: PlatformAccount | undefined = undefined;
-  if (authorId) {
-    const authorResponse = await supabase
+  const authorIds = new Set<number>([
+    concept.author_id!,
+    ...relations.map((r) => r.author_id).filter((id) => id !== null),
+    ...Object.values(schemas)
+      .map((s) => s.author_id)
+      .filter((id) => id !== null),
+  ]);
+  if (authorIds.size > 0) {
+    const authorsResponse = await supabase
       .from("PlatformAccount")
       .select()
-      .eq("id", authorId)
-      .maybeSingle();
-    if (authorResponse.data) author = authorResponse.data;
+      .in("id", [...authorIds]);
+    if (authorsResponse.error) {
+      return createApiResponse(request, authorsResponse);
+    }
+    if (!authorsResponse.data) {
+      return createApiResponse(
+        request,
+        asPostgrestFailure("Resource schema not found", "401", 401),
+      );
+    }
+    authors = Object.fromEntries(authorsResponse.data.map((a) => [a.id, a]));
   }
 
-  let jsonLdData: Json[] | Record<string, Json> = await asJsonLD({
+  const relationsJLD = withContext
+    ? await Promise.all(
+        relations.map((c) =>
+          asJsonLD({
+            space,
+            concept: c,
+            baseUrl,
+            schema: c.schema_id ? schemas[c.schema_id] : undefined,
+            author: c.author_id ? authors[c.author_id] : undefined,
+          }),
+        ),
+      )
+    : [];
+  const schemasJLD = withSchema
+    ? await Promise.all(
+        Object.values(schemas).map((c) =>
+          asJsonLD({
+            space,
+            concept: c,
+            baseUrl,
+            author: c.author_id ? authors[c.author_id] : undefined,
+          }),
+        ),
+      )
+    : [];
+
+  const baseJLDData = await asJsonLD({
     space,
     concept,
     baseUrl,
     title,
-    schema,
+    schema: concept.schema_id ? schemas[concept.schema_id] : undefined,
     content: targetFormat === "none" ? undefined : fullContents,
-    author,
+    author: concept.author_id ? authors[concept.author_id] : undefined,
     targetFormat,
   });
-  if ((withSchema && schema) || withContext) {
-    jsonLdData = [jsonLdData];
-  }
-  if (withSchema && schema) {
-    let schemaAuthorResponse = undefined;
-    if (schema.author_id && schema.author_id != concept.author_id) {
-      schemaAuthorResponse = await supabase
-        .from("PlatformAccount")
-        .select()
-        .eq("id", schema.author_id)
-        .maybeSingle();
-      if (schemaAuthorResponse.data) author = schemaAuthorResponse.data;
-    }
-    (jsonLdData as Json[]).push(
-      await asJsonLD({
-        space,
-        concept: schema,
-        baseUrl,
-        author,
-      }),
-    );
-  }
 
+  const jsonLdData =
+    relationsJLD.length || baseJLDData.length
+      ? [baseJLDData, ...relationsJLD, ...schemasJLD]
+      : baseJLDData;
   return NextResponse.json(wrapJsonLd(jsonLdData, baseUrl), {
     status: 200,
     headers: { "Content-Type": "application/ld+json" },
