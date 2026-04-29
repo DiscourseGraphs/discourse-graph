@@ -35,18 +35,6 @@ export const asJsonLD = async ({
       ? "RelationSchema"
       : "NodeSchema";
   let extraData: Record<string, string> = {};
-  if (schema)
-    console.log(
-      schema,
-      schema.arity,
-      schema.literal_content !== null,
-      typeof schema.literal_content === "object",
-      !Array.isArray(schema.literal_content),
-      concept.reference_content !== null,
-      typeof concept.reference_content === "object",
-      !Array.isArray(concept.reference_content),
-      Array.isArray(schema.literal_content?.roles),
-    );
   if (
     schema &&
     schema.arity &&
