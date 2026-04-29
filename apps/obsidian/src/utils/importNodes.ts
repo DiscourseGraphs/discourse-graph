@@ -229,7 +229,7 @@ export const getSpaceUris = async (
   return spaceMap;
 };
 
-const fetchUserNames = async (
+export const fetchUserNames = async (
   plugin: DiscourseGraphPlugin,
   client: DGSupabaseClient,
 ) => {
@@ -1242,7 +1242,6 @@ export const importSelectedNodes = async ({
     nodesBySpace.get(node.spaceId)!.push(node);
   }
 
-  await fetchUserNames(plugin, client);
   const spaceUris = await getSpaceUris(client, [...nodesBySpace.keys()]);
 
   // Process each space

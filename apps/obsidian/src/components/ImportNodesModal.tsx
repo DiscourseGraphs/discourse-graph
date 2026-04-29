@@ -5,6 +5,7 @@ import type DiscourseGraphPlugin from "../index";
 import type { ImportableNode, GroupWithNodes } from "~/types";
 import { getUserNameById } from "~/utils/typeUtils";
 import {
+  fetchUserNames,
   getAvailableGroupIds,
   getPublishedNodesForGroups,
   getLocalNodeInstanceIds,
@@ -61,6 +62,8 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         onClose();
         return;
       }
+
+      await fetchUserNames(plugin, client);
 
       const publishedNodes = await getPublishedNodesForGroups({
         client,
