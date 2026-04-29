@@ -71,7 +71,7 @@ export const asJsonLD = async ({
         ? await convert(content.text, source, targetFormat)
         : content.text;
     extraData["description"] = {
-      "@id": pageUrl,
+      "@id": "page:content",
       format: MIMETYPES[targetFormat],
       content: contentText,
     };
