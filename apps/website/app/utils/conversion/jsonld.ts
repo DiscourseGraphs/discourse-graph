@@ -1,5 +1,5 @@
 import { Tables, Json } from "@repo/database/dbTypes";
-import { convert, initRT } from "~/utils/conversion/relationaltext";
+import { convert, initRT, MIMETYPES } from "~/utils/conversion/relationaltext";
 
 type Concept = Tables<"Concept">;
 type Content = Tables<"Content">;
@@ -28,13 +28,12 @@ export const asJsonLD = async ({
   wrap?: boolean;
 }): Promise<Record<string, Json>> => {
   targetFormat ??= "html";
-  const baseUrlSlash = baseUrl + "/";
   const schemaUrl = concept.schema_id
-    ? "space:" + concept.schema_id
+    ? "sdata:" + concept.schema_id
     : concept.arity
-      ? "RelationSchema"
+      ? "RelationInstance"
       : "NodeSchema";
-  let extraData: Record<string, string> = {};
+  let extraData: Record<string, string | Json> = {};
   if (
     schema &&
     schema.arity &&
@@ -49,15 +48,17 @@ export const asJsonLD = async ({
     for (const role of schema.literal_content.roles) {
       if (typeof role !== "string") continue;
       const val = concept.reference_content[role];
-      if (val && typeof val === "number") extraData[role] = `space:${val}`;
+      if (val && typeof val === "number") extraData[role] = `sdata:${val}`;
     }
   }
   const titleText = title?.text ?? concept.name;
   if (titleText) {
     extraData[concept.is_schema ? "label" : "title"] = titleText;
   }
+  let pageUrl: string | undefined = undefined;
   if (content) {
     const rootUrl = baseUrl.split("/").slice(0, 3).join("/");
+    pageUrl = `${rootUrl}/api/content/${baseUrl.split("/")[5]}/${concept.id}#`;
     await initRT(rootUrl);
     const source: string | undefined =
       space.platform === "Obsidian"
@@ -65,11 +66,15 @@ export const asJsonLD = async ({
         : space.platform === "Roam"
           ? "roam"
           : undefined;
-    if (source && source !== targetFormat) {
-      extraData["content"] = await convert(content.text, source, targetFormat);
-    } else {
-      extraData["content"] = content.text;
-    }
+    const contentText =
+      source && source !== targetFormat
+        ? await convert(content.text, source, targetFormat)
+        : content.text;
+    extraData["description"] = {
+      "@id": pageUrl,
+      format: MIMETYPES[targetFormat],
+      content: contentText,
+    };
   }
 
   if (author) {
@@ -77,40 +82,35 @@ export const asJsonLD = async ({
     // TODO: make into an object?
   }
   extraData = {
-    "@id": "space:" + concept.id,
+    "@id": "sdata:" + concept.id,
     "@type": schemaUrl,
     modified: concept.last_modified + "Z",
     created: concept.created + "Z",
     ...extraData,
   };
-  return wrap ? wrapJsonLd(extraData, baseUrl) : extraData;
+  return wrap ? wrapJsonLd(extraData, baseUrl, pageUrl) : extraData;
 };
 
 export const wrapJsonLd = (
   json: Json[] | Record<string, Json>,
   baseUrl: string,
+  pageUrl?: string,
 ): Record<string, Json> => {
   const rootUrl = baseUrl.split("/").slice(0, 3).join("/");
   const ctxUrl = rootUrl + "/schema/context.jsonld";
+  const localCtx: Record<string, string> = {
+    sdata: baseUrl + "/",
+  };
+  if (pageUrl) localCtx["page"] = pageUrl;
   if (Array.isArray(json)) {
     return {
-      "@context": [
-        ctxUrl,
-        {
-          space: baseUrl + "/",
-        },
-      ],
+      "@context": [ctxUrl, localCtx],
       "@id": baseUrl,
       "@graph": json,
     };
   } else if (typeof json === "object") {
     return {
-      "@context": [
-        ctxUrl,
-        {
-          space: baseUrl + "/",
-        },
-      ],
+      "@context": [ctxUrl, localCtx],
       has_container: baseUrl,
       ...json,
     };
