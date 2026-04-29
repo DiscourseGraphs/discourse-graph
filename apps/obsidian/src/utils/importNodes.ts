@@ -241,8 +241,8 @@ export const fetchUserNames = async (
     console.error(result.error);
     return;
   }
-  const nameById: Record<number, string> = Object.fromEntries(
-    result.data.map(({ id, name }) => [id, name]),
+  const nameById = Object.fromEntries(
+    result.data.map(({ id, name }) => [id, name]) as [number, string][],
   );
   plugin.settings.userNames = nameById;
   await plugin.saveSettings();
