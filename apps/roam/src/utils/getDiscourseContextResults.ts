@@ -285,20 +285,29 @@ const getDiscourseContextResults = async ({
       byRel[relKey] = byRel[relKey] || [];
       byRel[relKey].push(r);
     }
-    resultsWithRelation = Object.entries(byRel).map(([ruid, results]) => ({
-      relation: {
-        id: ruid,
-        label: ruid.endsWith("-false")
-          ? uniqueRelations.get(ruid)!.r.label
-          : uniqueRelations.get(ruid)!.r.complement,
-        isComplement: ruid.endsWith("-false"),
-        text: ruid.endsWith("-false")
-          ? uniqueRelations.get(ruid)!.r.label
-          : uniqueRelations.get(ruid)!.r.complement,
-        target: targetUid,
-      },
-      results,
-    }));
+    resultsWithRelation = Object.entries(byRel)
+      .map(([ruid, results]) => {
+        const relation = uniqueRelations.get(ruid);
+        if (!relation) {
+          console.error("Relation with obsolete relation type:" + ruid);
+          return { relation, results };
+        }
+        return {
+          relation: {
+            id: ruid,
+            label: ruid.endsWith("-false")
+              ? relation.r.label
+              : relation.r.complement,
+            isComplement: ruid.endsWith("-false"),
+            text: ruid.endsWith("-false")
+              ? relation.r.label
+              : relation.r.complement,
+            target: targetUid,
+          },
+          results,
+        };
+      })
+      .filter((o) => !!o.relation);
   }
   const groupedResults = Object.fromEntries(
     resultsWithRelation.map((r) => [
