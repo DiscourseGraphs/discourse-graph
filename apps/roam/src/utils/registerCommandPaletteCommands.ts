@@ -169,13 +169,42 @@ export const convertPageToNodeFromCommand = (
       const nodeTree = getFullTreeByParentUid(configPageUid).children;
       const templateNode = getSubTree({ tree: nodeTree, key: "template" });
       if (templateNode.children.length > 0) {
-        const existingChildren = getFullTreeByParentUid(pageUid).children || [];
-        const lastOrder = existingChildren.length;
-        await Promise.all(
-          stripUid(templateNode.children).map(({ uid, ...node }, order) =>
-            createBlock({ node, order: lastOrder + order, parentUid: pageUid }),
-          ),
-        );
+        const hasSmartBlockSyntax = (
+          node: Parameters<typeof stripUid>[0][0],
+        ): boolean => {
+          if (node.text.includes("<%")) return true;
+          if (node.children) return node.children.some(hasSmartBlockSyntax);
+          return false;
+        };
+        const useSmartBlocks = hasSmartBlockSyntax(templateNode);
+
+        if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
+          void window.roamjs.extension.smartblocks?.triggerSmartblock({
+            srcUid: templateNode.uid,
+            targetUid: pageUid,
+          });
+        } else {
+          if (useSmartBlocks) {
+            renderToast({
+              content:
+                "This template requires SmartBlocks. Enable SmartBlocks in Roam Depot to use this template.",
+              id: "smartblocks-extension-disabled",
+              intent: "warning",
+            });
+          }
+          const existingChildren =
+            getFullTreeByParentUid(pageUid).children || [];
+          const lastOrder = existingChildren.length;
+          await Promise.all(
+            stripUid(templateNode.children).map((node, order) =>
+              createBlock({
+                node,
+                order: lastOrder + order,
+                parentUid: pageUid,
+              }),
+            ),
+          );
+        }
       }
 
       return pageUid;
