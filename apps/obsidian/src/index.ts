@@ -217,6 +217,9 @@ export default class DiscourseGraphPlugin extends Plugin {
         if (!editor.getSelection()) return;
 
         const selection = editor.getSelection().trim();
+        const currentFile =
+          this.app.workspace.getActiveViewOfType(MarkdownView)?.file ||
+          undefined;
         addConvertSubmenu({
           menu,
           label: "Turn into discourse node",
@@ -227,6 +230,7 @@ export default class DiscourseGraphPlugin extends Plugin {
               plugin: this,
               initialTitle: selection,
               initialNodeType: nodeType,
+              currentFile,
               onSubmit: createModifyNodeModalSubmitHandler(this, editor),
             }).open();
           },
