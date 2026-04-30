@@ -88,16 +88,13 @@ const processContainer = (
     // Use mousedown to match the timing of Obsidian's native "edit this block" button
     embedEl.addEventListener("mousedown", (e) => {
       e.stopPropagation();
-      const isActive = embedEl.classList.contains(EMBED_ACTIVE_CLASS);
 
       // Hide any other active embed in the container first
       container
         .querySelectorAll<HTMLElement>(`.${EMBED_ACTIVE_CLASS}`)
         .forEach(hideButtonForEmbed);
 
-      if (!isActive) {
-        showButtonForEmbed(embedEl);
-      }
+      showButtonForEmbed(embedEl);
     });
   }
 };
