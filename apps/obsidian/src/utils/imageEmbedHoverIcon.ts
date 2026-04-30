@@ -12,6 +12,7 @@ import {
 } from "~/utils/editorMenuUtils";
 
 const ICON_CLASS = "dg-image-convert-icon";
+const ICON_VISIBLE_CLASS = "dg-image-convert-icon--visible";
 const EMBED_ACTIVE_CLASS = "dg-image-embed-active";
 
 const resolveImageFile = (
@@ -39,12 +40,6 @@ const createConvertIcon = (
 ): HTMLButtonElement => {
   const btn = document.createElement("button");
   btn.className = `${ICON_CLASS} absolute z-[2] right-[42px] h-[28px] w-[28px] flex border-none opacity-0 pointer-events-none`;
-  btn.style.cssText = `
-    top: var(--size-2-2);
-    padding: var(--size-2-2) var(--size-2-3);
-    color: var(--text-muted);
-    background-color: var(--background-primary);
-  `;
   btn.title = "Convert to node";
   setIcon(btn, "file-input");
 
@@ -69,16 +64,14 @@ const createConvertIcon = (
 const showButtonForEmbed = (embedEl: HTMLElement): void => {
   const btn = embedEl.querySelector<HTMLElement>(`.${ICON_CLASS}`);
   if (!btn) return;
-  btn.style.opacity = "1";
-  btn.style.pointerEvents = "auto";
+  btn.classList.add(ICON_VISIBLE_CLASS);
   embedEl.classList.add(EMBED_ACTIVE_CLASS);
 };
 
 const hideButtonForEmbed = (embedEl: HTMLElement): void => {
   const btn = embedEl.querySelector<HTMLElement>(`.${ICON_CLASS}`);
   if (!btn) return;
-  btn.style.opacity = "0";
-  btn.style.pointerEvents = "none";
+  btn.classList.remove(ICON_VISIBLE_CLASS);
   embedEl.classList.remove(EMBED_ACTIVE_CLASS);
 };
 

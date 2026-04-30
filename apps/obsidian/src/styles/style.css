@@ -3793,3 +3793,15 @@ kbd.tlui-kbd {
 	}
 }
 
+
+.dg-image-convert-icon {
+	top: var(--size-2-2);
+	padding: var(--size-2-2) var(--size-2-3);
+	color: var(--text-muted);
+	background-color: var(--background-primary);
+}
+
+.dg-image-convert-icon--visible {
+	opacity: 1;
+	pointer-events: auto;
+}
