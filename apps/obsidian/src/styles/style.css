@@ -3799,6 +3799,8 @@ kbd.tlui-kbd {
 	padding: var(--size-2-2) var(--size-2-3);
 	color: var(--text-muted);
 	background-color: var(--background-primary);
+	opacity: 0;
+	pointer-events: none;
 }
 
 .dg-image-embed-active .dg-image-convert-icon {
