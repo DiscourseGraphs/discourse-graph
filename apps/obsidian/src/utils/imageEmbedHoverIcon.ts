@@ -12,6 +12,7 @@ import {
 } from "~/utils/editorMenuUtils";
 
 const ICON_CLASS = "dg-image-convert-icon";
+const EMBED_ACTIVE_CLASS = "dg-image-embed-active";
 
 const resolveImageFile = (
   embedEl: HTMLElement,
@@ -37,7 +38,7 @@ const createConvertIcon = (
   plugin: DiscourseGraphPlugin,
 ): HTMLButtonElement => {
   const btn = document.createElement("button");
-  btn.className = `${ICON_CLASS} absolute z-[2] right-[42px] w-[26px] h-[26px] flex cursor-[var(--cursor)] border-none opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto`;
+  btn.className = `${ICON_CLASS} absolute z-[2] right-[42px] h-[28px] w-[28px] flex border-none opacity-0 pointer-events-none`;
   btn.style.cssText = `
     top: var(--size-2-2);
     padding: var(--size-2-2) var(--size-2-3);
@@ -46,6 +47,11 @@ const createConvertIcon = (
   `;
   btn.title = "Convert to node";
   setIcon(btn, "file-input");
+
+  // Prevent mousedown from bubbling to the embed's mousedown handler
+  btn.addEventListener("mousedown", (e) => {
+    e.stopPropagation();
+  });
 
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -58,6 +64,22 @@ const createConvertIcon = (
   });
 
   return btn;
+};
+
+const showButtonForEmbed = (embedEl: HTMLElement): void => {
+  const btn = embedEl.querySelector<HTMLElement>(`.${ICON_CLASS}`);
+  if (!btn) return;
+  btn.style.opacity = "1";
+  btn.style.pointerEvents = "auto";
+  embedEl.classList.add(EMBED_ACTIVE_CLASS);
+};
+
+const hideButtonForEmbed = (embedEl: HTMLElement): void => {
+  const btn = embedEl.querySelector<HTMLElement>(`.${ICON_CLASS}`);
+  if (!btn) return;
+  btn.style.opacity = "0";
+  btn.style.pointerEvents = "none";
+  embedEl.classList.remove(EMBED_ACTIVE_CLASS);
 };
 
 const processContainer = (
@@ -74,14 +96,30 @@ const processContainer = (
     const imageFile = resolveImageFile(embedEl, plugin);
     if (!imageFile) continue;
 
-    embedEl.classList.add("group", "relative");
+    embedEl.classList.add("relative");
     embedEl.appendChild(createConvertIcon(embedEl, plugin));
+
+    // Use mousedown to match the timing of Obsidian's native "edit this block" button
+    embedEl.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
+      const isActive = embedEl.classList.contains(EMBED_ACTIVE_CLASS);
+
+      // Hide any other active embed in the container first
+      container
+        .querySelectorAll<HTMLElement>(`.${EMBED_ACTIVE_CLASS}`)
+        .forEach(hideButtonForEmbed);
+
+      if (!isActive) {
+        showButtonForEmbed(embedEl);
+      }
+    });
   }
 };
 
 /**
- * CodeMirror ViewPlugin that adds a "Convert to node" hover icon
- * on embedded images in the live-preview editor.
+ * CodeMirror ViewPlugin that adds a "Convert to node" icon on embedded images
+ * in the live-preview editor. The button appears on click (matching the behavior
+ * of Obsidian's native "edit this block" button) rather than on hover.
  */
 export const createImageEmbedHoverExtension = (
   plugin: DiscourseGraphPlugin,
@@ -90,10 +128,18 @@ export const createImageEmbedHoverExtension = (
     class {
       private dom: HTMLElement;
       private observer: MutationObserver;
+      private handleOutsideClick: () => void;
 
       constructor(view: EditorView) {
         this.dom = view.dom;
         processContainer(view.dom, plugin);
+
+        this.handleOutsideClick = () => {
+          this.dom
+            .querySelectorAll<HTMLElement>(`.${EMBED_ACTIVE_CLASS}`)
+            .forEach(hideButtonForEmbed);
+        };
+        document.addEventListener("mousedown", this.handleOutsideClick);
 
         // Obsidian renders embeds asynchronously after doc changes,
         // so we need a MutationObserver to catch newly added image embeds.
@@ -125,6 +171,7 @@ export const createImageEmbedHoverExtension = (
 
       destroy(): void {
         this.observer.disconnect();
+        document.removeEventListener("mousedown", this.handleOutsideClick);
         const icons = this.dom.querySelectorAll(`.${ICON_CLASS}`);
         icons.forEach((icon) => icon.remove());
       }
