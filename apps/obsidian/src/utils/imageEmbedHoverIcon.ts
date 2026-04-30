@@ -12,7 +12,6 @@ import {
 } from "~/utils/editorMenuUtils";
 
 const ICON_CLASS = "dg-image-convert-icon";
-const ICON_VISIBLE_CLASS = "dg-image-convert-icon--visible";
 const EMBED_ACTIVE_CLASS = "dg-image-embed-active";
 
 const resolveImageFile = (
@@ -62,16 +61,10 @@ const createConvertIcon = (
 };
 
 const showButtonForEmbed = (embedEl: HTMLElement): void => {
-  const btn = embedEl.querySelector<HTMLElement>(`.${ICON_CLASS}`);
-  if (!btn) return;
-  btn.classList.add(ICON_VISIBLE_CLASS);
   embedEl.classList.add(EMBED_ACTIVE_CLASS);
 };
 
 const hideButtonForEmbed = (embedEl: HTMLElement): void => {
-  const btn = embedEl.querySelector<HTMLElement>(`.${ICON_CLASS}`);
-  if (!btn) return;
-  btn.classList.remove(ICON_VISIBLE_CLASS);
   embedEl.classList.remove(EMBED_ACTIVE_CLASS);
 };
 

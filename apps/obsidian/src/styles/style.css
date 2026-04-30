@@ -3801,7 +3801,7 @@ kbd.tlui-kbd {
 	background-color: var(--background-primary);
 }
 
-.dg-image-convert-icon--visible {
+.dg-image-embed-active .dg-image-convert-icon {
 	opacity: 1;
 	pointer-events: auto;
 }
