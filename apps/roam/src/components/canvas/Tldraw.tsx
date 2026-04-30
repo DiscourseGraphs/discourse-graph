@@ -189,7 +189,7 @@ export const isPageUid = (uid: string) =>
     ":node/title"
   ];
 
-const TldrawCanvas = ({ title }: { title: string }) => {
+export const TldrawCanvas = ({ title }: { title: string }) => {
   // In Roam, canvas identity is currently keyed by the page UID.
   // Room sync is graph/page encoded as an opaque base64url token.
   const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);

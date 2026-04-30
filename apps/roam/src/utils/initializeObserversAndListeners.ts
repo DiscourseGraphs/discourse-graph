@@ -57,6 +57,7 @@ import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
+import { renderCanvasEmbed } from "~/components/canvas/CanvasEmbed";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import findDiscourseNode from "./findDiscourseNode";
@@ -129,6 +130,11 @@ export const initObservers = async ({
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
     render: (b) => renderQueryBlock(b, onloadArgs),
+  });
+
+  const canvasEmbedObserver = createButtonObserver({
+    attribute: "dg-canvas",
+    render: (b) => renderCanvasEmbed(b, onloadArgs),
   });
 
   const nodeTagPopupButtonObserver = createHTMLObserver({
@@ -394,6 +400,7 @@ export const initObservers = async ({
     observers: [
       pageTitleObserver,
       queryBlockObserver,
+      canvasEmbedObserver,
       configPageObserver,
       graphOverviewExportObserver,
       nodeTagPopupButtonObserver,

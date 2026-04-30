@@ -1,4 +1,5 @@
 import { openQueryDrawer } from "~/components/QueryDrawer";
+import { renderCanvasEmbedDialog } from "~/components/canvas/CanvasEmbedDialog";
 import { render as exportRender } from "~/components/Export";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { createBlock, updateBlock } from "roamjs-components/writes";
@@ -314,6 +315,22 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   // Roam organizes commands alphabetically
+  window.roamAlphaAPI.ui.slashCommand.addCommand({
+    label: "DG: Embed canvas",
+    callback: (context) => {
+      const uid = context["block-uid"];
+      if (!uid) return null;
+      renderCanvasEmbedDialog({
+        onSelect: (title: string) => {
+          void updateBlock({
+            uid,
+            text: `{{dg-canvas: [[${title}]]}}`,
+          });
+        },
+      });
+      return null;
+    },
+  });
   void addCommand("DG: Create/Insert discourse node", () =>
     createDiscourseNodeFromCommand(extensionAPI),
   );
