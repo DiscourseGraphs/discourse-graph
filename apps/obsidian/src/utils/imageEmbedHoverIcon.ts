@@ -38,7 +38,7 @@ const createConvertIcon = (
   plugin: DiscourseGraphPlugin,
 ): HTMLButtonElement => {
   const btn = document.createElement("button");
-  btn.className = `${ICON_CLASS} absolute z-[2] right-[42px] h-[28px] w-[28px] flex border-none`;
+  btn.className = `${ICON_CLASS} absolute z-[2] right-[42px] h-[28px] w-[28px] flex border-none opacity-0 pointer-events-none`;
   btn.title = "Convert to node";
   setIcon(btn, "file-input");
 
