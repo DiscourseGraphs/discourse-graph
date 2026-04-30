@@ -315,11 +315,21 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   // Roam organizes commands alphabetically
-  window.roamAlphaAPI.ui.slashCommand.addCommand({
+  (
+    window.roamAlphaAPI.ui as unknown as {
+      slashCommand: {
+        addCommand: (cmd: {
+          label: string;
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          callback: (context: { "block-uid": string }) => void;
+        }) => void;
+      };
+    }
+  ).slashCommand.addCommand({
     label: "DG: Embed canvas",
     callback: (context) => {
       const uid = context["block-uid"];
-      if (!uid) return null;
+      if (!uid) return;
       renderCanvasEmbedDialog({
         onSelect: (title: string) => {
           void updateBlock({
@@ -328,7 +338,6 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
           });
         },
       });
-      return null;
     },
   });
   void addCommand("DG: Create/Insert discourse node", () =>
