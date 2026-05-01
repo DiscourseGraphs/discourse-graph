@@ -16,6 +16,17 @@ export const GET = async (
   segmentData: SegmentDataType,
 ): Promise<NextResponse> => {
   const { space_id } = await segmentData.params;
+  const afterParam = request.nextUrl.searchParams.get("after");
+  let after: Date | undefined = undefined;
+  if (afterParam)
+    try {
+      after = new Date(afterParam);
+    } catch (error) {
+      return createApiResponse(
+        request,
+        asPostgrestFailure(`${after} is not a date`, "type"),
+      );
+    }
   const spaceIdN = Number.parseInt(space_id || "NaN");
   if (isNaN(spaceIdN)) {
     return createApiResponse(
@@ -41,10 +52,13 @@ export const GET = async (
     );
   }
   const space: Space = spaceResponse.data;
-  const conceptResponse = await supabase
+  let conceptRequest = supabase
     .from("Concept")
     .select("id, last_modified")
     .eq("space_id", space.id);
+  if (after)
+    conceptRequest = conceptRequest.gt("last_modified", after.toISOString());
+  const conceptResponse = await conceptRequest;
   if (conceptResponse.error) {
     return createApiResponse(request, conceptResponse);
   }
