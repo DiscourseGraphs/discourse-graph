@@ -366,6 +366,26 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
   );
 };
 
+const trackedContainers = new Set<HTMLElement>();
+let cleanupObserver: MutationObserver | null = null;
+
+const ensureObserver = () => {
+  if (cleanupObserver) return;
+  cleanupObserver = new MutationObserver(() => {
+    for (const el of trackedContainers) {
+      if (!el.isConnected) {
+        ReactDOM.unmountComponentAtNode(el);
+        trackedContainers.delete(el);
+      }
+    }
+    if (trackedContainers.size === 0) {
+      cleanupObserver!.disconnect();
+      cleanupObserver = null;
+    }
+  });
+  cleanupObserver.observe(document.body, { childList: true, subtree: true });
+};
+
 export const render = ({
   tag,
   parent,
@@ -383,6 +403,8 @@ export const render = ({
     </ExtensionApiContextProvider>,
     parent,
   );
+  trackedContainers.add(parent);
+  ensureObserver();
 };
 
 export default DiscourseContextPopupOverlay;
