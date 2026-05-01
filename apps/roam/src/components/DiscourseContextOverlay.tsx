@@ -374,6 +374,7 @@ const ensureObserver = () => {
   cleanupObserver = new MutationObserver(() => {
     for (const el of trackedContainers) {
       if (!el.isConnected) {
+        // eslint-disable-next-line react/no-deprecated
         ReactDOM.unmountComponentAtNode(el);
         trackedContainers.delete(el);
       }
