@@ -66,7 +66,7 @@ export const GET = async (
     "@id": baseUrl,
     "@type": "Space",
     content: concepts.map(({ id, last_modified }) => ({
-      "@id": `baseUrl${id}`,
+      "@id": `sdata:${id}`,
       modified: last_modified + "Z",
     })),
   };
