@@ -28,6 +28,7 @@ import {
   collectDiscourseNodesFromVault,
 } from "./getDiscourseNodes";
 import { isAcceptedSchema } from "./typeUtils";
+import { getTemplatePluginInfo } from "./templates";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
@@ -472,15 +473,30 @@ const convertDgToSupabaseConcepts = async ({
     nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
   );
 
-  const nodesTypesToLocalConcepts = nodeTypes
-    .filter((nodeType) => nodeType.modified > lastNodeSchemaSync)
-    .map((nodeType) =>
-      discourseNodeSchemaToLocalConcept({
-        context,
-        node: nodeType,
-        accountLocalId,
+  const { isEnabled: templatesEnabled, folderPath: templatesFolderPath } =
+    getTemplatePluginInfo(plugin.app);
+
+  const nodesTypesToLocalConcepts = await Promise.all(
+    nodeTypes
+      .filter((nodeType) => nodeType.modified > lastNodeSchemaSync)
+      .map(async (nodeType) => {
+        let templateContent: string | undefined;
+        if (nodeType.template && templatesEnabled && templatesFolderPath) {
+          const templateFilePath = `${templatesFolderPath}/${nodeType.template}.md`;
+          const templateFile =
+            plugin.app.vault.getAbstractFileByPath(templateFilePath);
+          if (templateFile instanceof TFile) {
+            templateContent = await plugin.app.vault.read(templateFile);
+          }
+        }
+        return discourseNodeSchemaToLocalConcept({
+          context,
+          node: nodeType,
+          accountLocalId,
+          templateContent,
+        });
       }),
-    );
+  );
 
   const relationTypesById = Object.fromEntries(
     relationTypes.map((relationType) => [relationType.id, relationType]),

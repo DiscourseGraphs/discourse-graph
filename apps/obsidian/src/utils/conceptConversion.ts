@@ -35,10 +35,12 @@ export const discourseNodeSchemaToLocalConcept = ({
   context,
   node,
   accountLocalId,
+  templateContent,
 }: {
   context: SupabaseContext;
   node: DiscourseNode;
   accountLocalId: string;
+  templateContent?: string;
 }): LocalConceptDataInput => {
   const {
     description,
@@ -56,6 +58,7 @@ export const discourseNodeSchemaToLocalConcept = ({
     source_data: otherData,
   };
   if (template) literal_content.template = template;
+  if (templateContent) literal_content.template_content = templateContent;
   if (importedFromRid) literal_content.importedFromRid = importedFromRid;
   return {
     space_id: context.spaceId,

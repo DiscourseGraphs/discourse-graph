@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { Json } from "@repo/database/dbTypes";
 import matter from "gray-matter";
-import { App, TFile } from "obsidian";
+import { App, Notice, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
@@ -19,6 +19,7 @@ import {
   importRelationsForImportedNodes,
   type RemoteRelationInstance,
 } from "./importRelations";
+import { createTemplateFile } from "./templates";
 
 export const getAvailableGroupIds = async (
   client: DGSupabaseClient,
@@ -999,7 +1000,7 @@ const parseSchemaLiteralContent = (
 ): Pick<
   DiscourseNode,
   "name" | "format" | "color" | "tag" | "template" | "keyImage"
-> => {
+> & { templateContent?: string } => {
   const obj =
     typeof literalContent === "string"
       ? (JSON.parse(literalContent) as Record<string, unknown>)
@@ -1016,6 +1017,7 @@ const parseSchemaLiteralContent = (
     color: (src.color as string) || (obj.color as string) || undefined,
     tag: (src.tag as string) || (obj.tag as string) || undefined,
     template: (obj.template as string) || undefined,
+    templateContent: (obj.template_content as string) || undefined,
     keyImage:
       (src.keyImage as boolean) ?? (obj.keyImage as boolean) ?? undefined,
   };
@@ -1090,6 +1092,32 @@ export const mapNodeTypeIdToLocal = async ({
     modified: now,
     importedFromRid,
   };
+
+  if (parsed.templateContent && parsed.template) {
+    const result = await createTemplateFile({
+      app: plugin.app,
+      templateName: parsed.template,
+      content: parsed.templateContent,
+    });
+    if (result.created) {
+      new Notice(
+        `Template "${parsed.template}" created for imported node type "${parsed.name}".`,
+        4000,
+      );
+    } else if (
+      result.reason === "Templates plugin is not enabled" ||
+      result.reason === "Templates folder path is not configured"
+    ) {
+      // Don't store a template filename that can never resolve
+      newNodeType.template = undefined;
+      new Notice(
+        `Node type "${parsed.name}" imported without template: ${result.reason}. Configure the Templates plugin to use templates.`,
+        6000,
+      );
+    }
+    // If reason is "template already exists", keep newNodeType.template — local file takes precedence
+  }
+
   plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];
   await plugin.saveSettings();
   return newNodeType.id;
