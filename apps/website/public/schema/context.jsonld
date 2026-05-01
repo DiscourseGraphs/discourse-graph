@@ -25,6 +25,7 @@
     },
     "creator": "dc:creator",
     "content": "sioc:content",
+    "container_of": "sioc:container_of",
     "has_container": { "@id": "sioc:has_container", "@type": "@id" },
     "RelationDef": "dgb:RelationDef",
     "RelationInstance": "dgb:RelationInstance",

@@ -65,7 +65,7 @@ export const GET = async (
     "@context": [ctxUrl, localCtx],
     "@id": baseUrl,
     "@type": "Space",
-    content: concepts.map(({ id, last_modified }) => ({
+    container_of: concepts.map(({ id, last_modified }) => ({
       "@id": `sdata:${id}`,
       modified: last_modified + "Z",
     })),

@@ -90,7 +90,6 @@ export const GET = async (
   const baseUrl = requestUrlParts
     .slice(0, requestUrlParts.length - 1)
     .join("/");
-  const isSchema = concept.is_schema;
   let schemas: Record<number, Concept> = {};
   let authors: Record<number, PlatformAccount> = {};
   let relations: Concept[] = [];
