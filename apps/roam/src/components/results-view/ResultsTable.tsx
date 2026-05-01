@@ -6,8 +6,6 @@ import React, {
   useCallback,
   memo,
 } from "react";
-import ReactDOM from "react-dom";
-import nanoid from "nanoid";
 import { Button, HTMLTable, Icon, IconName } from "@blueprintjs/core";
 import { IconNames } from "@blueprintjs/icons";
 import { render as renderToast } from "roamjs-components/components/Toast";
