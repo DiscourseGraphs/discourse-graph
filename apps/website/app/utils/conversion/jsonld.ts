@@ -93,10 +93,15 @@ export const asJsonLD = async ({
     extraData.creator = author.name;
     // TODO: make into an object?
   }
+  let lastModified = concept.last_modified;
+  if (content && content.last_modified > lastModified)
+    lastModified = content.last_modified;
+  if (title && title.last_modified > lastModified)
+    lastModified = title.last_modified;
   extraData = {
     "@id": "sdata:" + concept.id,
     "@type": schemaUrl,
-    modified: concept.last_modified + "Z",
+    modified: lastModified + "Z",
     created: concept.created + "Z",
     ...extraData,
   };

@@ -53,11 +53,35 @@ export const GET = async (
   }
   const space: Space = spaceResponse.data;
   let conceptRequest = supabase
-    .from("Concept")
-    .select("id, last_modified")
+    .from("my_concepts")
+    .select("id, last_modified, content_of_concept(last_modified)")
     .eq("space_id", space.id);
-  if (after)
-    conceptRequest = conceptRequest.gt("last_modified", after.toISOString());
+  if (after) {
+    const afterConceptResponse = await supabase
+      .from("my_concepts")
+      .select("source_local_id")
+      .gt("last_modified", after.toISOString());
+    if (afterConceptResponse.error) {
+      return createApiResponse(request, afterConceptResponse);
+    }
+    const localIds = new Set<string>(
+      afterConceptResponse.data
+        .map((c) => c.source_local_id)
+        .filter((s) => s !== null),
+    );
+    const afterContentResponse = await supabase
+      .from("my_contents")
+      .select("source_local_id")
+      .gt("last_modified", after.toISOString());
+    if (afterContentResponse.error) {
+      return createApiResponse(request, afterContentResponse);
+    }
+    for (const s of afterConceptResponse.data) {
+      if (s.source_local_id !== null) localIds.add(s.source_local_id);
+    }
+    conceptRequest = conceptRequest.in("source_local_id", [...localIds]);
+  }
+
   const conceptResponse = await conceptRequest;
   if (conceptResponse.error) {
     return createApiResponse(request, conceptResponse);
@@ -75,14 +99,27 @@ export const GET = async (
   const localCtx: Record<string, string> = {
     sdata: baseUrl + "/",
   };
+  const withMaxDate: Record<number, string> = {};
+  concepts.map(({ id, last_modified, content_of_concept }) => {
+    if (id === null || last_modified === null) return;
+    if (
+      content_of_concept &&
+      content_of_concept.last_modified &&
+      content_of_concept.last_modified > last_modified
+    )
+      last_modified = content_of_concept.last_modified;
+    if (withMaxDate[id] === undefined || withMaxDate[id] < last_modified)
+      withMaxDate[id] = last_modified;
+  });
+
   const data = {
     "@context": [ctxUrl, localCtx],
     "@id": [baseUrl, space.url],
     "@type": "Space",
     label: space.name,
-    container_of: concepts.map(({ id, last_modified }) => ({
+    container_of: Object.entries(withMaxDate).map(([id, lastModified]) => ({
       "@id": `sdata:${id}`,
-      modified: last_modified + "Z",
+      modified: lastModified + "Z",
     })),
   };
   return NextResponse.json(data, {
