@@ -30,9 +30,15 @@ export const asJsonLD = async ({
   targetFormat ??= "html";
   const schemaUrl = concept.schema_id
     ? "sdata:" + concept.schema_id
-    : concept.arity
-      ? "RelationInstance"
+    : concept.arity === 2
+      ? "RelationDef"
       : "NodeSchema";
+  // TODO:
+  // :br rdfs:subClassOf dgb:RelationInstance,
+  //   [a owl:Restriction;
+  //   owl:onProperty rdf:predicate ;
+  //   owl:hasValue :br ].
+
   let extraData: Record<string, string | Json> = {};
   if (
     schema &&
