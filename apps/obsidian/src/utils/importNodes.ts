@@ -335,11 +335,12 @@ const fetchNodeContentForImport = async ({
   content: string;
   createdAt: number;
   modifiedAt: number;
+  authorId: number;
   filePath?: string;
 } | null> => {
   const { data, error } = await client
     .from("my_contents")
-    .select("text, created, last_modified, variant, metadata")
+    .select("text, created, last_modified, variant, metadata, author_id")
     .eq("source_local_id", nodeInstanceId)
     .eq("space_id", spaceId)
     .in("variant", ["direct", "full"]);
@@ -353,17 +354,20 @@ const fetchNodeContentForImport = async ({
     text: string | null;
     created: string | null;
     last_modified: string | null;
+    author_id: number | null;
     variant: string | null;
     metadata: Json;
   }>;
   const direct = rows.find((r) => r.variant === "direct");
   const full = rows.find((r) => r.variant === "full");
+  const authorId = full?.author_id ?? direct?.author_id ?? null;
 
   if (
     !direct?.text ||
     !full?.text ||
-    full.created == null ||
-    full.last_modified == null
+    full.created === null ||
+    full.last_modified === null ||
+    authorId === null
   ) {
     return null;
   }
@@ -379,6 +383,7 @@ const fetchNodeContentForImport = async ({
     createdAt: new Date(full.created + "Z").valueOf(),
     modifiedAt: new Date(full.last_modified + "Z").valueOf(),
     filePath,
+    authorId,
   };
 };
 
@@ -1298,6 +1303,7 @@ export const importSelectedNodes = async ({
           createdAt: contentCreatedAt,
           modifiedAt: contentModifiedAt,
           filePath: contentFilePath,
+          authorId,
         } = nodeContent;
         const createdAt = node.createdAt ?? contentCreatedAt;
         const modifiedAt = node.modifiedAt ?? contentModifiedAt;
@@ -1342,7 +1348,7 @@ export const importSelectedNodes = async ({
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
-          authorId: node.authorId,
+          authorId,
         });
 
         if (result.error) {
