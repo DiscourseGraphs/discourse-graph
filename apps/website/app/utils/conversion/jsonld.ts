@@ -33,11 +33,6 @@ export const asJsonLD = async ({
     : concept.arity === 2
       ? "RelationDef"
       : "NodeSchema";
-  // TODO:
-  // :br rdfs:subClassOf dgb:RelationInstance,
-  //   [a owl:Restriction;
-  //   owl:onProperty rdf:predicate ;
-  //   owl:hasValue :br ].
 
   let extraData: Record<string, string | Json> = {};
   if (
@@ -56,6 +51,17 @@ export const asJsonLD = async ({
       const val = concept.reference_content[role];
       if (val && typeof val === "number") extraData[role] = `sdata:${val}`;
     }
+  }
+  // Explicit punning
+  if (concept.is_schema && concept.arity === 2) {
+    extraData["subClassOf"] = [
+      "dgb:RelationInstance",
+      {
+        "@type": "owl:Restriction",
+        onProperty: "rdf:predicate",
+        hasValue: "sdata:" + concept.id,
+      },
+    ];
   }
   const titleText = title?.text ?? concept.name;
   if (titleText) {
