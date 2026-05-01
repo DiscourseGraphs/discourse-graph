@@ -395,7 +395,7 @@ export const render = ({
   tag: string;
   parent: HTMLElement;
   onloadArgs: OnloadArgs;
-}) => {
+}): void => {
   parent.style.margin = "0 8px";
   parent.onmousedown = (e) => e.stopPropagation();
   ReactDOM.render(
