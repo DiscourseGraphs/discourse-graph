@@ -16,7 +16,7 @@
   "dependencies": {
     "@repo/database": "workspace:*",
     "@repo/ui": "workspace:*",
-    "@supabase/ssr": "^0.8.0",
+    "@supabase/ssr": "catalog:",
     "@supabase/supabase-js": "catalog:",
     "clsx": "^2.1.1",
     "gray-matter": "^4.0.3",

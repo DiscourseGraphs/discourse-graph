@@ -13,8 +13,8 @@ import {
   KNOWN_EMBEDDING_TABLES,
 } from "~/utils/supabase/dbUtils";
 import {
-  ApiInputEmbeddingItem,
-  ApiOutputEmbeddingRecord,
+  type ContentEmbeddingVecTablesInsert,
+  type ContentEmbeddingVecTables,
   embeddingInputProcessing,
   embeddingOutputProcessing,
 } from "~/utils/supabase/validators";
@@ -23,19 +23,19 @@ const DEFAULT_MODEL = "openai_text_embedding_3_small_1536";
 
 const batchInsertEmbeddingsProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
-  embeddingItems: ApiInputEmbeddingItem[],
-): Promise<PostgrestResponse<ApiOutputEmbeddingRecord>> => {
+  embeddingItems: ContentEmbeddingVecTablesInsert[],
+): Promise<PostgrestResponse<ContentEmbeddingVecTables>> => {
   // groupBy is node21 only, we are using 20. Group by model, by hand.
   // Note: This means that later index values may be totally wrong.
   // Note2: The key is a ModelName, but I cannot use an enum as a key.
-  const byModel: { [key: string]: ApiInputEmbeddingItem[] } = {};
+  const byModel: { [key: string]: ContentEmbeddingVecTablesInsert[] } = {};
   try {
     embeddingItems.reduce((acc, item) => {
       const model = item?.model || DEFAULT_MODEL;
       if (acc[model] === undefined) {
         acc[model] = [];
       }
-      acc[model]!.push(item);
+      acc[model].push(item);
       return acc;
     }, byModel);
   } catch (error) {
@@ -45,7 +45,7 @@ const batchInsertEmbeddingsProcess = async (
     throw error;
   }
 
-  const globalResults: ApiOutputEmbeddingRecord[] = [];
+  const globalResults: ContentEmbeddingVecTables[] = [];
   const partialErrors: string[] = [];
   let created = false,
     count = 0,
@@ -55,15 +55,11 @@ const batchInsertEmbeddingsProcess = async (
     if (embeddingItemsSet === undefined) continue;
     const tableData = KNOWN_EMBEDDING_TABLES[modelName];
     if (tableData === undefined) continue;
-    const results = await processAndInsertBatch<
-      // any ContentEmbedding table for type checking purposes only
-      "ContentEmbedding_openai_text_embedding_3_small_1536",
-      ApiInputEmbeddingItem,
-      ApiOutputEmbeddingRecord
-    >({
+    const { tableName } = tableData;
+    const results = await processAndInsertBatch({
       supabase,
       items: embeddingItemsSet,
-      tableName: tableData.tableName,
+      tableName,
       inputProcessor: embeddingInputProcessing,
       outputProcessor: embeddingOutputProcessing,
     });
@@ -81,6 +77,7 @@ const batchInsertEmbeddingsProcess = async (
       return {
         data: globalResults,
         error: null,
+        success: true,
         status: has_400 ? 400 : 500,
         count,
         statusText: partialErrors.join("; "),
@@ -89,6 +86,7 @@ const batchInsertEmbeddingsProcess = async (
       return {
         data: globalResults,
         error: null,
+        success: true,
         status: created ? 201 : 200,
         count,
         statusText: created ? "created" : "success",
@@ -106,7 +104,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabase = await createClient();
 
   try {
-    const body: ApiInputEmbeddingItem[] = await request.json();
+    const body: ContentEmbeddingVecTablesInsert[] = await request.json();
     if (!Array.isArray(body)) {
       return createApiResponse(
         request,
