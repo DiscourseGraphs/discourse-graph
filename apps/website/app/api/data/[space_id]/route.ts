@@ -77,8 +77,9 @@ export const GET = async (
   };
   const data = {
     "@context": [ctxUrl, localCtx],
-    "@id": baseUrl,
+    "@id": [baseUrl, space.url],
     "@type": "Space",
+    label: space.name,
     container_of: concepts.map(({ id, last_modified }) => ({
       "@id": `sdata:${id}`,
       modified: last_modified + "Z",
