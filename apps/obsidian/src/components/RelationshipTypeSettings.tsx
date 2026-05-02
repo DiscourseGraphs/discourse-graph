@@ -16,6 +16,7 @@ import {
   getImportInfo,
   formatImportSource,
   isProvisionalSchema,
+  getUserNameById,
 } from "~/utils/typeUtils";
 
 type ColorPickerProps = {
@@ -346,6 +347,8 @@ const RelationshipTypeSettings = () => {
               )}
               {importInfo.spaceUri && (
                 <span>
+                  {relationType.authorId &&
+                    `by ${getUserNameById(plugin, relationType.authorId)} `}
                   from{" "}
                   {formatImportSource(
                     importInfo.spaceUri,

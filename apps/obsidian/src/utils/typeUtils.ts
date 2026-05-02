@@ -88,3 +88,10 @@ export const getAndFormatImportSource = (
   const importInfo = getImportInfo(importedFromRid);
   return formatImportSource(importInfo.spaceUri || "", spaceNames);
 };
+
+export const getUserNameById = (
+  plugin: DiscourseGraphPlugin,
+  id: number,
+): string => {
+  return (plugin.settings.userNames || {})[id] || `user ${id}`;
+};

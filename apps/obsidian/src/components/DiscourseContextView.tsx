@@ -13,7 +13,11 @@ import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormat
 import { RelationshipSection } from "~/components/RelationshipSection";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { PluginProvider, usePlugin } from "~/components/PluginContext";
-import { getNodeTypeById, getAndFormatImportSource } from "~/utils/typeUtils";
+import {
+  getNodeTypeById,
+  getAndFormatImportSource,
+  getUserNameById,
+} from "~/utils/typeUtils";
 import { refreshImportedFile } from "~/utils/importNodes";
 import { publishNode } from "~/utils/publishNode";
 import { createBaseForNodeType } from "~/utils/baseForNodeType";
@@ -161,6 +165,13 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
       !isImported &&
       !!frontmatter.nodeTypeId;
 
+    const formattedVaultName = isImported
+      ? getAndFormatImportSource(
+          frontmatter.importedFromRid as string,
+          plugin.settings.spaceNames,
+        )
+      : "";
+
     return (
       <>
         <div className="mb-6">
@@ -232,7 +243,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
                 View only
               </span>
               <InfoTooltip
-                content={`Imported from ${getAndFormatImportSource(frontmatter.importedFromRid as string, plugin.settings.spaceNames)}. Direct edits will be overwritten when refreshed.`}
+                content={`Imported from ${formattedVaultName}. Direct edits will be overwritten when refreshed.`}
               />
             </div>
           )}
@@ -244,6 +255,15 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
             </div>
           )}
 
+          {isImported &&
+            frontmatter.authorId &&
+            typeof frontmatter.authorId === "number" && (
+              <div className="text-modifier-text mt-2 text-xs">
+                <div>
+                  Author: {getUserNameById(plugin, frontmatter.authorId)}
+                </div>
+              </div>
+            )}
           {isImported && sourceDates && (
             <div className="text-modifier-text mt-2 text-xs">
               <div>Created in source: {sourceDates.createdAt}</div>
