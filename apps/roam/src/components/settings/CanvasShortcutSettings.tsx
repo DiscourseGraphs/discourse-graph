@@ -111,7 +111,7 @@ const CanvasShortcutSettings = () => {
         id="shortcuts"
         title="Shortcuts"
         panel={
-          <div className="inline-grid grid-cols-[auto_5rem] items-center gap-x-4 gap-y-2 p-1">
+          <div className="roamjs-canvas-shortcuts-grid inline-grid items-center gap-x-4 gap-y-2 p-1">
             <div className="col-span-2 mb-2">
               <div className="text-base">
                 Override the canvas keyboard shortcuts
