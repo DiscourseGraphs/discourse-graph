@@ -3,9 +3,22 @@
 }
 
 .roamjs-canvas-shortcuts-grid {
+  align-items: center;
+  column-gap: 16px;
   display: inline-grid;
   grid-template-columns: auto auto;
+  padding: 4px;
+  row-gap: 8px;
   width: fit-content;
+}
+
+.roamjs-canvas-shortcuts-header {
+  grid-column: 1 / -1;
+  margin-bottom: 8px;
+}
+
+.roamjs-canvas-shortcut-input {
+  width: 5rem;
 }
 
 .roamjs-item-dirty,

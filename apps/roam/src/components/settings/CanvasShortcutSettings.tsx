@@ -83,7 +83,7 @@ const ShortcutRow = ({
         onKeyDown={handleKeyDown}
         disabled={!enabled}
         placeholder={defaultShortcut || "(no shortcut)"}
-        className="w-20"
+        className="roamjs-canvas-shortcut-input w-20"
       />
     </>
   );
@@ -112,7 +112,7 @@ const CanvasShortcutSettings = () => {
         title="Shortcuts"
         panel={
           <div className="roamjs-canvas-shortcuts-grid inline-grid items-center gap-x-4 gap-y-2 p-1">
-            <div className="col-span-2 mb-2">
+            <div className="roamjs-canvas-shortcuts-header col-span-2 mb-2">
               <div className="text-base">
                 Override the canvas keyboard shortcuts
               </div>
