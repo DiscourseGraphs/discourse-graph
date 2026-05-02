@@ -2,32 +2,8 @@
   outline-width: 2px;
 }
 
-.roamjs-canvas-shortcuts {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 4px;
-}
-
-.roamjs-canvas-shortcuts-header {
-  margin-bottom: 8px;
-}
-
-.roamjs-canvas-shortcut-row {
-  align-items: center;
-  column-gap: 16px;
-  display: grid;
-  grid-template-columns: var(--roamjs-canvas-shortcut-label-width) 5rem;
-  width: fit-content;
-}
-
-.roamjs-canvas-shortcut-label .bp3-control {
-  margin-bottom: 0;
-}
-
-.roamjs-canvas-shortcut-input {
-  max-width: 5rem;
-  width: 5rem;
+.roamjs-canvas-shortcuts-grid {
+  grid-template-columns: auto auto;
 }
 
 .roamjs-item-dirty,
