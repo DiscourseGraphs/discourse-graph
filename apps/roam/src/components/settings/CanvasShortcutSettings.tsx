@@ -63,7 +63,7 @@ const ShortcutRow = ({
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <>
       <Checkbox
         checked={enabled}
         onChange={handleEnabledChange}
@@ -83,9 +83,9 @@ const ShortcutRow = ({
         onKeyDown={handleKeyDown}
         disabled={!enabled}
         placeholder={defaultShortcut || "(no shortcut)"}
-        className="ml-auto w-20"
+        className="w-20"
       />
-    </div>
+    </>
   );
 };
 
@@ -111,8 +111,8 @@ const CanvasShortcutSettings = () => {
         id="shortcuts"
         title="Shortcuts"
         panel={
-          <div className="flex flex-col gap-2 p-1">
-            <div className="mb-2">
+          <div className="inline-grid grid-cols-[auto_5rem] items-center gap-x-4 gap-y-2 p-1">
+            <div className="col-span-2 mb-2">
               <div className="text-base">
                 Override the canvas keyboard shortcuts
               </div>
