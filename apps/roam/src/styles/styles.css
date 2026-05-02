@@ -3,7 +3,9 @@
 }
 
 .roamjs-canvas-shortcuts-grid {
+  display: inline-grid;
   grid-template-columns: auto auto;
+  width: fit-content;
 }
 
 .roamjs-item-dirty,
