@@ -63,20 +63,22 @@ const ShortcutRow = ({
   };
 
   return (
-    <>
-      <Checkbox
-        checked={enabled}
-        onChange={handleEnabledChange}
-        className="mb-0"
-        labelElement={
-          <>
-            <span className="font-medium">{nodeText} node</span>{" "}
-            <Description
-              description={`Default: ${defaultShortcut || "none"}`}
-            />
-          </>
-        }
-      />
+    <div className="roamjs-canvas-shortcut-row">
+      <div className="roamjs-canvas-shortcut-label">
+        <Checkbox
+          checked={enabled}
+          onChange={handleEnabledChange}
+          className="mb-0"
+          labelElement={
+            <>
+              <span className="font-medium">{nodeText} node</span>{" "}
+              <Description
+                description={`Default: ${defaultShortcut || "none"}`}
+              />
+            </>
+          }
+        />
+      </div>
       <InputGroup
         value={enabled ? storedValue : ""}
         onChange={() => {}}
@@ -85,12 +87,16 @@ const ShortcutRow = ({
         placeholder={defaultShortcut || "(no shortcut)"}
         className="roamjs-canvas-shortcut-input w-20"
       />
-    </>
+    </div>
   );
 };
 
 const CanvasShortcutSettings = () => {
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
+  const labelColumnWidth = `calc(${Math.max(
+    ...nodes.map((node) => `${node.text} node`.length),
+    0,
+  )}ch + 52px)`;
   const [shortcuts, setShortcuts] = useState<CanvasNodeShortcuts>(() =>
     getSetting<CanvasNodeShortcuts>(CANVAS_NODE_SHORTCUTS_KEY, {}),
   );
@@ -111,8 +117,16 @@ const CanvasShortcutSettings = () => {
         id="shortcuts"
         title="Shortcuts"
         panel={
-          <div className="roamjs-canvas-shortcuts-grid inline-grid items-center gap-x-4 gap-y-2 p-1">
-            <div className="roamjs-canvas-shortcuts-header col-span-2 mb-2">
+          <div
+            className="roamjs-canvas-shortcuts"
+            style={
+              {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                "--roamjs-canvas-shortcut-label-width": labelColumnWidth,
+              } as React.CSSProperties
+            }
+          >
+            <div className="roamjs-canvas-shortcuts-header mb-2">
               <div className="text-base">
                 Override the canvas keyboard shortcuts
               </div>
