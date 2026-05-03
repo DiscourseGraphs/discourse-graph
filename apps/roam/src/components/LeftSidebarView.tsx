@@ -30,9 +30,10 @@ import {
   notify,
   subscribe,
 } from "~/utils/discourseConfigRef";
-import type {
-  LeftSidebarConfig,
-  LeftSidebarPersonalSectionConfig,
+import {
+  isQuerySection,
+  type LeftSidebarConfig,
+  type LeftSidebarPersonalSectionConfig,
 } from "~/utils/getLeftSidebarSettings";
 import { createBlock } from "roamjs-components/writes";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
@@ -48,6 +49,8 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
 import { commands, cleanCommandName } from "~/components/LeftSidebarCommands";
+import fireQuery from "~/utils/fireQuery";
+import parseQuery from "~/utils/parseQuery";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -289,6 +292,151 @@ const PersonalSectionItem = ({
   );
 };
 
+const QuerySectionItem = ({
+  section,
+  dragHandle,
+  onloadArgs,
+}: {
+  section: LeftSidebarPersonalSectionConfig;
+  dragHandle: SortableHandle;
+  onloadArgs: OnloadArgs;
+}) => {
+  const queryUid = extractRef(section.text);
+  const alias = section.settings?.alias?.value;
+  const queryLabel = useMemo(() => getTextByBlockUid(queryUid), [queryUid]);
+  const displayName = alias || queryLabel || section.text;
+  const truncateAt = section.settings?.truncateResult.value;
+  const resultLimit = section.settings?.resultLimit?.value ?? 0;
+
+  const [isOpen, setIsOpen] = useState<boolean>(
+    !!section.settings?.folded.value || false,
+  );
+  const [results, setResults] = useState<ChildNode[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const runQuery = useCallback(() => {
+    setIsLoading(true);
+    setError(null);
+    const args = parseQuery(queryUid);
+    fireQuery(args)
+      .then((queryResults) => {
+        const limited =
+          resultLimit > 0 ? queryResults.slice(0, resultLimit) : queryResults;
+        const children: ChildNode[] = limited.map((r) => {
+          const pageTitle = getPageTitleByPageUid(r.uid);
+          return {
+            uid: r.uid,
+            text: pageTitle ? r.uid : `((${r.uid}))`,
+          };
+        });
+        setResults(children);
+      })
+      .catch(() => setError("Query failed to run"))
+      .finally(() => {
+        setIsLoading(false);
+        setHasLoaded(true);
+      });
+  }, [queryUid, resultLimit]);
+
+  useEffect(() => {
+    if (isOpen && !hasLoaded) {
+      runQuery();
+    }
+  }, [isOpen, hasLoaded, runQuery]);
+
+  const handleChevronClick = () => {
+    if (!section.settings) return;
+    toggleFoldedState({
+      isOpen,
+      setIsOpen,
+      folded: section.settings.folded,
+      parentUid: section.settings.uid || "",
+    });
+  };
+
+  return (
+    <>
+      <div
+        {...dragHandle.attributes}
+        {...dragHandle.listeners}
+        className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none"
+      >
+        <div className="flex w-full items-center justify-between">
+          <div
+            className="flex flex-1 items-center"
+            onClick={handleChevronClick}
+          >
+            {displayName.toUpperCase()}
+          </div>
+          <Popover
+            interactionKind={PopoverInteractionKind.CLICK}
+            position={Position.BOTTOM_RIGHT}
+            autoFocus={false}
+            enforceFocus={false}
+            captureDismiss
+            hasBackdrop
+            isOpen={isMenuOpen}
+            onInteraction={(next) => setIsMenuOpen(next)}
+            onClose={() => setIsMenuOpen(false)}
+            popoverClassName="dg-leftsidebar-popover"
+            minimal
+            content={
+              <Menu>
+                <MenuItem
+                  icon="refresh"
+                  text="Refresh"
+                  onClick={() => {
+                    runQuery();
+                    setIsMenuOpen(false);
+                  }}
+                />
+                <MenuItem
+                  icon="document-open"
+                  text="Go to query block"
+                  onClick={() => {
+                    void window.roamAlphaAPI.ui.mainWindow.openBlock({
+                      block: { uid: queryUid },
+                    });
+                    setIsMenuOpen(false);
+                  }}
+                />
+              </Menu>
+            }
+          >
+            <span className="sidebar-title-button-add p-1">
+              <Icon icon="more" size={14} />
+            </span>
+          </Popover>
+          <span
+            className="sidebar-title-button-chevron p-1"
+            onClick={handleChevronClick}
+          >
+            <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
+          </span>
+        </div>
+      </div>
+      <Collapse isOpen={isOpen}>
+        {isLoading ? (
+          <div className="pl-8 pr-2.5 text-sm text-gray-500">Loading…</div>
+        ) : error ? (
+          <div className="pl-8 pr-2.5 text-sm text-red-500">{error}</div>
+        ) : results.length > 0 ? (
+          <SectionChildren
+            childrenNodes={results}
+            truncateAt={truncateAt}
+            onloadArgs={onloadArgs}
+          />
+        ) : hasLoaded ? (
+          <div className="pl-8 pr-2.5 text-sm text-gray-500">No results</div>
+        ) : null}
+      </Collapse>
+    </>
+  );
+};
+
 const PersonalSections = ({
   config,
   setConfig,
@@ -358,14 +506,22 @@ const PersonalSections = ({
       getId={(s) => s.uid}
       onReorder={reorderSections}
       className="personal-left-sidebar-sections"
-      renderItem={(section, handle) => (
-        <PersonalSectionItem
-          section={section}
-          dragHandle={handle}
-          onChildrenReorder={reorderChildren}
-          onloadArgs={onloadArgs}
-        />
-      )}
+      renderItem={(section, handle) =>
+        isQuerySection(section.text) ? (
+          <QuerySectionItem
+            section={section}
+            dragHandle={handle}
+            onloadArgs={onloadArgs}
+          />
+        ) : (
+          <PersonalSectionItem
+            section={section}
+            dragHandle={handle}
+            onChildrenReorder={reorderChildren}
+            onloadArgs={onloadArgs}
+          />
+        )
+      }
     />
   );
 };

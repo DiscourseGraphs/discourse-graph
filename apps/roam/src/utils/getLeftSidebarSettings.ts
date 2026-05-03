@@ -9,11 +9,18 @@ import {
 } from "./getExportSettings";
 import { getSubTree } from "roamjs-components/util";
 
+type AliasSetting = StringSetting & { valueUid?: string };
+
 type LeftSidebarPersonalSectionSettings = {
   uid: string;
   truncateResult: IntSetting;
   folded: BooleanSetting;
+  alias?: AliasSetting;
+  resultLimit?: IntSetting;
 };
+
+export const isQuerySection = (text: string) =>
+  text.startsWith("((") && text.endsWith("))");
 
 export type PersonalSectionChild = RoamBasicNode & {
   alias: StringSetting;
@@ -119,10 +126,24 @@ const getPersonalSectionSettings = (
     text: "Folded",
   });
 
+  const aliasNode = settingsTree.find((n) => n.text === "Alias");
+  const aliasSetting: AliasSetting = {
+    uid: aliasNode?.uid,
+    value: aliasNode?.children?.[0]?.text ?? "",
+    valueUid: aliasNode?.children?.[0]?.uid,
+  };
+
+  const resultLimitSetting = getUidAndIntSetting({
+    tree: settingsTree,
+    text: "Result-limit",
+  });
+
   return {
     uid: settingsNode.uid,
     truncateResult: truncateResultSetting,
     folded: foldedSetting,
+    alias: aliasSetting,
+    resultLimit: resultLimitSetting,
   };
 };
 
