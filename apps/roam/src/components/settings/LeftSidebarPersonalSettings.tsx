@@ -941,6 +941,7 @@ const LeftSidebarPersonalSectionsContent = ({
                 order={2}
                 uid={activeDialogSection.settings.resultLimit?.uid}
                 parentUid={activeDialogSection.settings.uid || ""}
+                // eslint-disable-next-line @typescript-eslint/naming-convention
                 setter={(_keys, value) => {
                   const updatedSections = sectionsRef.current.map((s) =>
                     s.uid === activeDialogSection.uid
