@@ -4,80 +4,96 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Tables } from "@repo/database/dbTypes";
 import internalError from "./internalError";
 
-const getAllNodesFromSupabase = async (
+const getAllConceptLocalIdsFromSupabase = async (
   supabaseClient: DGSupabaseClient,
   spaceId: number,
 ): Promise<string[]> => {
   try {
-    const { data: schemas, error: schemasError } = (await supabaseClient
+    const { data, error } = await supabaseClient
       .from("my_concepts")
-      .select("id")
+      .select("source_local_id")
       .eq("space_id", spaceId)
-      .eq("is_schema", true)
-      .eq("arity", 0)) as PostgrestResponse<Tables<"Concept">>;
+      .eq("is_schema", false)
+      .not("source_local_id", "is", null);
 
-    if (schemasError) {
+    if (error) {
       internalError({
-        error: schemasError,
-        userMessage: "Failed to get all discourse node schemas from Supabase:",
+        error: error,
+        userMessage: "Failed to get concepts from Supabase",
+        type: "cleanup_orphans_get_concepts",
+      });
+      return [];
+    }
+    return (
+      data?.map((c) => c.source_local_id).filter((id) => id !== null) || []
+    );
+  } catch (error) {
+    internalError({
+      error,
+      userMessage: "Error in getAllConceptLocalIdsFromSupabase:",
+    });
+    return [];
+  }
+};
+
+const getAllDocumentLocalIdsFromSupabase = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+): Promise<string[]> => {
+  try {
+    const { error, data } = await supabaseClient
+      .from("my_documents")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .not("source_local_id", "is", null);
+
+    if (error) {
+      internalError({
+        error: error,
+        userMessage: "Failed to get document ids from Supabase:",
       });
       return [];
     }
 
-    const schemaIds = schemas.map((s: { id: number }) => s.id);
-    let nodeResult: string[] = [];
+    return (
+      data?.map((c) => c.source_local_id).filter((id) => id !== null) || []
+    );
+  } catch (error) {
+    internalError({
+      error,
+      userMessage: "Error in getAllDocumentLocalIdsFromSupabase:",
+    });
+    return [];
+  }
+};
 
-    if (schemaIds.length > 0) {
-      const conceptResponse = await supabaseClient
-        .from("my_concepts")
-        .select("source_local_id")
-        .eq("space_id", spaceId)
-        .eq("is_schema", false)
-        .in("schema_id", schemaIds)
-        .not("source_local_id", "is", null);
-
-      if (conceptResponse.error) {
-        internalError({
-          error: conceptResponse.error,
-          userMessage: "Failed to get concepts from Supabase",
-          type: "cleanup_orphans_get_concepts",
-        });
-        return [];
-      }
-      nodeResult =
-        conceptResponse.data
-          ?.map(
-            (c: { source_local_id: string | null }) =>
-              c.source_local_id || null,
-          )
-          .filter((id: string | null): id is string => !!id) || [];
-    }
-
-    const blockContentResponse = await supabaseClient
+const getAllContentLocalIdsFromSupabase = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+): Promise<string[]> => {
+  try {
+    const { data, error } = await supabaseClient
       .from("my_contents")
       .select("source_local_id")
       .eq("space_id", spaceId)
-      .eq("scale", "block")
       .not("source_local_id", "is", null);
 
-    if (blockContentResponse.error) {
+    if (error) {
       internalError({
-        error: blockContentResponse.error,
+        error: error,
         userMessage: "Failed to get block content from Supabase:",
       });
       return [];
     }
 
-    const blockResult =
-      blockContentResponse.data
-        ?.map((c: { source_local_id: string | null }) => c.source_local_id)
-        .filter((id: string | null): id is string => !!id) || [];
-
-    const result = [...new Set([...nodeResult, ...blockResult])];
-
-    return result;
+    return (
+      data?.map((c) => c.source_local_id).filter((id) => id !== null) || []
+    );
   } catch (error) {
-    internalError({ error, userMessage: "Error in getAllNodesFromSupabase:" });
+    internalError({
+      error,
+      userMessage: "Error in getAllContentLocalIdsFromSupabase:",
+    });
     return [];
   }
 };
@@ -143,7 +159,7 @@ const getNonExistentRoamUids = (nodeUids: string[]): string[] => {
   }
 };
 
-const deleteNodesFromSupabase = async (
+const deleteConceptsFromSupabase = async (
   uids: string[],
   spaceId: number,
   supabaseClient: DGSupabaseClient,
@@ -151,34 +167,80 @@ const deleteNodesFromSupabase = async (
   try {
     if (uids.length === 0) return;
 
-    const { error: conceptDeleteError } = await supabaseClient
+    const { error: error } = await supabaseClient
       .from("Concept")
       .delete()
       .eq("space_id", spaceId)
       .in("source_local_id", uids)
       .eq("is_schema", false);
 
-    if (conceptDeleteError) {
+    if (error) {
       internalError({
-        error: conceptDeleteError,
+        error,
         userMessage: "Failed to delete concepts from Supabase",
       });
     }
+  } catch (error) {
+    internalError({
+      error,
+      userMessage: "Error in deleteConceptsFromSupabase",
+    });
+  }
+};
 
-    const { error: contentDeleteError } = await supabaseClient
+const deleteContentFromSupabase = async (
+  uids: string[],
+  spaceId: number,
+  supabaseClient: DGSupabaseClient,
+): Promise<void> => {
+  try {
+    if (uids.length === 0) return;
+
+    const { error } = await supabaseClient
       .from("Content")
       .delete()
       .eq("space_id", spaceId)
       .in("source_local_id", uids);
 
-    if (contentDeleteError) {
+    if (error) {
       internalError({
-        error: contentDeleteError,
-        userMessage: "Failed to delete content from Supabase:",
+        error,
+        userMessage: "Failed to delete contents from Supabase",
       });
     }
   } catch (error) {
-    internalError({ error, userMessage: "Error in deleteNodesFromSupabase" });
+    internalError({
+      error,
+      userMessage: "Error in deleteContentsFromSupabase",
+    });
+  }
+};
+
+const deleteDocumentsFromSupabase = async (
+  uids: string[],
+  spaceId: number,
+  supabaseClient: DGSupabaseClient,
+): Promise<void> => {
+  try {
+    if (uids.length === 0) return;
+
+    const { error: error } = await supabaseClient
+      .from("Document")
+      .delete()
+      .eq("space_id", spaceId)
+      .in("source_local_id", uids);
+
+    if (error) {
+      internalError({
+        error,
+        userMessage: "Failed to delete Documents from Supabase",
+      });
+    }
+  } catch (error) {
+    internalError({
+      error,
+      userMessage: "Error in deleteDocumentsFromSupabase",
+    });
   }
 };
 
@@ -320,15 +382,47 @@ export const cleanupOrphanedNodes = async (
   context: SupabaseContext,
 ): Promise<void> => {
   try {
-    const supabaseUids = await getAllNodesFromSupabase(
+    const conceptUids = await getAllConceptLocalIdsFromSupabase(
       supabaseClient,
       context.spaceId,
     );
-    if (supabaseUids.length > 0) {
-      const orphanedUids = getNonExistentRoamUids(supabaseUids);
-      if (orphanedUids.length > 0) {
-        await deleteNodesFromSupabase(
-          orphanedUids,
+    if (conceptUids.length > 0) {
+      const orphanedConceptUids = getNonExistentRoamUids(conceptUids);
+      if (orphanedConceptUids.length > 0) {
+        // console.log("Deleting concepts:", orphanedConceptUids);
+        await deleteConceptsFromSupabase(
+          orphanedConceptUids,
+          context.spaceId,
+          supabaseClient,
+        );
+      }
+    }
+
+    const contentUids = await getAllContentLocalIdsFromSupabase(
+      supabaseClient,
+      context.spaceId,
+    );
+    if (contentUids.length > 0) {
+      const orphanedContentUids = getNonExistentRoamUids(contentUids);
+      if (orphanedContentUids.length > 0) {
+        // console.log("Deleting content:", orphanedContentUids);
+        await deleteContentFromSupabase(
+          orphanedContentUids,
+          context.spaceId,
+          supabaseClient,
+        );
+      }
+    }
+    const documentUids = await getAllDocumentLocalIdsFromSupabase(
+      supabaseClient,
+      context.spaceId,
+    );
+    if (documentUids.length > 0) {
+      const orphanedDocumentUids = getNonExistentRoamUids(documentUids);
+      if (orphanedDocumentUids.length > 0) {
+        // console.log("Deleting documents:", orphanedDocumentUids);
+        await deleteDocumentsFromSupabase(
+          orphanedDocumentUids,
           context.spaceId,
           supabaseClient,
         );
@@ -342,6 +436,7 @@ export const cleanupOrphanedNodes = async (
     if (supabaseSchemaUids.length > 0) {
       const orphanedSchemaUids = getNonExistentRoamUids(supabaseSchemaUids);
       if (orphanedSchemaUids.length > 0) {
+        // console.log("Deleting schemas:", orphanedSchemaUids);
         await deleteNodeSchemasFromSupabase(
           orphanedSchemaUids,
           supabaseClient,
