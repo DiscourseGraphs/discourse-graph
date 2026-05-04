@@ -19,6 +19,7 @@ import {
   importRelationsForImportedNodes,
   type RemoteRelationInstance,
 } from "./importRelations";
+import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 
 export const getAvailableGroupIds = async (
   client: DGSupabaseClient,
@@ -774,7 +775,7 @@ const importAssetsForNode = async ({
   client,
   spaceId,
   nodeInstanceId,
-  spaceName,
+  importBasePath,
   targetMarkdownFile,
   originalNodePath,
 }: {
@@ -782,7 +783,7 @@ const importAssetsForNode = async ({
   client: DGSupabaseClient;
   spaceId: number;
   nodeInstanceId: string;
-  spaceName: string;
+  importBasePath: string;
   targetMarkdownFile: TFile;
   /** Source vault path of the note (e.g. from Content metadata filePath). Used to place assets under import/{space}/ relative to note. */
   originalNodePath?: string;
@@ -813,8 +814,6 @@ const importAssetsForNode = async ({
   if (fileReferences.length === 0) {
     return { success: true, pathMapping, errors };
   }
-
-  const importBasePath = `import/${sanitizeFileName(spaceName)}`;
 
   // Get existing asset mappings from frontmatter
   const cache = plugin.app.metadataCache.getFileCache(targetMarkdownFile);
@@ -1248,11 +1247,12 @@ export const importSelectedNodes = async ({
   }
 
   const spaceUris = await getSpaceUris(client, [...nodesBySpace.keys()]);
+  const spaceNames = await getSpaceNameFromIds(client, [
+    ...nodesBySpace.keys(),
+  ]);
 
   // Process each space
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
-    const spaceName = await getSpaceNameFromId(client, spaceId);
-    const importFolderPath = `import/${sanitizeFileName(spaceName)}`;
     const spaceUri = spaceUris.get(spaceId);
     if (!spaceUri) {
       for (const _node of nodes) {
@@ -1263,12 +1263,12 @@ export const importSelectedNodes = async ({
       continue;
     }
 
-    // Ensure the import folder exists
-    const folderExists =
-      await plugin.app.vault.adapter.exists(importFolderPath);
-    if (!folderExists) {
-      await plugin.app.vault.createFolder(importFolderPath);
-    }
+    const spaceName = spaceNames.get(spaceId) ?? `space-${spaceId}`;
+    const importFolderPath = await resolveFolderForSpaceUri({
+      adapter: plugin.app.vault.adapter,
+      spaceUri,
+      spaceName,
+    });
 
     // Process each node in this space
     for (const node of nodes) {
@@ -1371,7 +1371,7 @@ export const importSelectedNodes = async ({
           client,
           spaceId,
           nodeInstanceId: node.nodeInstanceId,
-          spaceName,
+          importBasePath: importFolderPath,
           targetMarkdownFile: processedFile,
           originalNodePath,
         });
