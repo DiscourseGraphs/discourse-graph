@@ -223,7 +223,7 @@ export const migrateImportFolderMetadata = async (
     const spaceUris = nameToSpaceUris.get(basename);
 
     if (spaceUris?.size === 1) {
-      const spaceUri = [...spaceUris][0];
+      const spaceUri = [...spaceUris][0]!;
       await writeImportFolderMetadata({
         adapter,
         folderPath,
