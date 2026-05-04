@@ -34,12 +34,10 @@ const getNodeExtraData = (
 export const discourseNodeSchemaToLocalConcept = ({
   context,
   node,
-  accountLocalId,
   templateContent,
 }: {
   context: SupabaseContext;
   node: DiscourseNode;
-  accountLocalId: string;
   templateContent?: string;
 }): LocalConceptDataInput => {
   const {

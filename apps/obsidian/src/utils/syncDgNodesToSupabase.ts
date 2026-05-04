@@ -492,7 +492,6 @@ const convertDgToSupabaseConcepts = async ({
         return discourseNodeSchemaToLocalConcept({
           context,
           node: nodeType,
-          accountLocalId,
           templateContent,
         });
       }),
