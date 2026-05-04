@@ -102,9 +102,10 @@ export const GET = async (
       .maybeSingle()) as PostgrestMaybeSingleResponse<{ relations: Concept[] }>;
     if (relationsResult.data?.relations?.length) {
       relations = relationsResult.data.relations;
-      schemaIds = new Set(
-        relations.map((c) => c.schema_id).filter((id) => id !== null),
-      );
+      if (withSchema)
+        schemaIds = new Set(
+          relations.map((c) => c.schema_id).filter((id) => id !== null),
+        );
     }
   }
   if (concept.schema_id) schemaIds.add(concept.schema_id);
@@ -186,7 +187,7 @@ export const GET = async (
   });
 
   const jsonLdData =
-    relationsJLD.length || baseJLDData.length
+    relationsJLD.length > 0 || schemasJLD.length > 0
       ? [baseJLDData, ...relationsJLD, ...schemasJLD]
       : baseJLDData;
   return NextResponse.json(wrapJsonLd(jsonLdData, baseUrl), {
