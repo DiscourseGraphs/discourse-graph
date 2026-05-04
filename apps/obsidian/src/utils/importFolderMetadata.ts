@@ -1,4 +1,4 @@
-import { DataAdapter } from "obsidian";
+import { DataAdapter, Notice } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import type { ImportFolderMetadata } from "~/types";
 
@@ -196,11 +196,22 @@ export const migrateImportFolderMetadata = async (
 
   const { folders } = await adapter.list(IMPORT_ROOT);
 
-  // Invert spaceNames: Record<spaceUri, spaceName> → Map<spaceName, spaceUri>
+  // Invert spaceNames: Record<spaceUri, spaceName> → Map<sanitizedName, Set<spaceUri>>
+  // Using a Set per name to detect collisions — two different spaceUris can share
+  // the same sanitized folder name, making the mapping ambiguous.
   const spaceNames = plugin.settings.spaceNames ?? {};
-  const nameToSpaceUri = new Map<string, string>();
+  const nameToSpaceUris = new Map<string, Set<string>>();
   for (const [spaceUri, name] of Object.entries(spaceNames)) {
-    nameToSpaceUri.set(sanitizeFileName(name), spaceUri);
+    const sanitized = sanitizeFileName(name);
+    const existing = nameToSpaceUris.get(sanitized);
+    if (existing) {
+      existing.add(spaceUri);
+      new Notice(
+        `Discourse Graphs: ambiguous import folder name "${sanitized}" maps to multiple spaces — skipping migration for this folder.`,
+      );
+    } else {
+      nameToSpaceUris.set(sanitized, new Set([spaceUri]));
+    }
   }
 
   for (const folderPath of folders) {
@@ -209,9 +220,10 @@ export const migrateImportFolderMetadata = async (
     if (metadataExists) continue;
 
     const basename = folderPath.split("/").pop() ?? "";
-    const spaceUri = nameToSpaceUri.get(basename);
+    const spaceUris = nameToSpaceUris.get(basename);
 
-    if (spaceUri) {
+    if (spaceUris?.size === 1) {
+      const spaceUri = [...spaceUris][0];
       await writeImportFolderMetadata({
         adapter,
         folderPath,
