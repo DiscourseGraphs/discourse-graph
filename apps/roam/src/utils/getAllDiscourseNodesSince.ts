@@ -64,10 +64,10 @@ export const getDiscourseNodeTypeWithSettingsBlockNodes = async (
 };
 
 export const getAllDiscourseNodesSince = async (
-  since: ISODateString,
+  since: ISODateString | undefined,
   nodeTypes: DiscourseNode[],
 ): Promise<RoamDiscourseNodeData[]> => {
-  const sinceMs = new Date(since).getTime();
+  const sinceMs = since ? new Date(since).getTime() : 0;
   if (!nodeTypes.length) {
     return [];
   }

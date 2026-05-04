@@ -14,8 +14,10 @@ import { Settings, VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import {
   addConvertSubmenu,
   isImageFile,
-  replaceImageEmbedInEditor,
+  openConvertImageToNodeModal,
 } from "~/utils/editorMenuUtils";
+import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
+import { createWikilinkDragExtension } from "~/utils/wikilinkDragHandler";
 import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
 import { VIEW_TYPE_TLDRAW_DG_PREVIEW, FRONTMATTER_KEY } from "~/constants";
@@ -32,7 +34,11 @@ import { InlineNodeTypePicker } from "~/components/InlineNodeTypePicker";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
 import generateUid from "~/utils/generateUid";
-import { migrateFrontmatterRelationsToRelationsJson } from "~/utils/relationsStore";
+import {
+  migrateFrontmatterRelationsToRelationsJson,
+  mergeAllRelationsJsonToRoot,
+} from "~/utils/relationsStore";
+import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -45,8 +51,16 @@ export default class DiscourseGraphPlugin extends Plugin {
   async onload() {
     await this.loadSettings();
 
+    await mergeAllRelationsJsonToRoot(this).catch((error) => {
+      console.error("Failed to merge relations.json files:", error);
+    });
+
     await migrateFrontmatterRelationsToRelationsJson(this).catch((error) => {
       console.error("Failed to migrate frontmatter relations:", error);
+    });
+
+    await migrateImportFolderMetadata(this).catch((error) => {
+      console.error("Failed to migrate import folder metadata:", error);
     });
 
     if (this.settings.syncModeEnabled === true) {
@@ -159,41 +173,11 @@ export default class DiscourseGraphPlugin extends Plugin {
             label: "Convert into",
             nodeTypes: this.settings.nodeTypes,
             onClick: (nodeType) => {
-              new ModifyNodeModal(this.app, {
-                nodeTypes: this.settings.nodeTypes,
+              openConvertImageToNodeModal({
                 plugin: this,
-                initialTitle: "",
+                imageFile: file,
                 initialNodeType: nodeType,
-                onSubmit: async ({
-                  nodeType: selectedType,
-                  title,
-                  selectedExistingNode,
-                }) => {
-                  const targetFile =
-                    selectedExistingNode ??
-                    (await createDiscourseNode({
-                      plugin: this,
-                      nodeType: selectedType,
-                      text: title,
-                    }));
-
-                  if (!targetFile) return;
-
-                  const imageLink = this.app.metadataCache.fileToLinktext(
-                    file,
-                    targetFile.path,
-                  );
-                  await this.app.vault.append(
-                    targetFile,
-                    `\n![[${imageLink}]]\n`,
-                  );
-                  replaceImageEmbedInEditor({
-                    app: this.app,
-                    imageFile: file,
-                    targetFile,
-                  });
-                },
-              }).open();
+              });
             },
           });
           return;
@@ -254,6 +238,32 @@ export default class DiscourseGraphPlugin extends Plugin {
       }),
     );
 
+    type EditorWithCm = { cm: EditorView };
+    const hasCodeMirrorView = (editor: unknown): editor is EditorWithCm => {
+      if (!editor || typeof editor !== "object") return false;
+      return "cm" in editor;
+    };
+
+    // Dispatch a no-op CM6 transaction to every markdown editor so their
+    // ViewPlugin re-evaluates hasVisibleCanvasLeaf and shows/hides widgets.
+    // layout-change covers splits/moves, active-leaf-change covers tab switches.
+    const refreshMarkdownEditors = (): void => {
+      this.app.workspace.iterateAllLeaves((leaf) => {
+        if (
+          leaf.view instanceof MarkdownView &&
+          hasCodeMirrorView(leaf.view.editor)
+        ) {
+          leaf.view.editor.cm.dispatch({});
+        }
+      });
+    };
+    this.registerEvent(
+      this.app.workspace.on("layout-change", refreshMarkdownEditors),
+    );
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", refreshMarkdownEditors),
+    );
+
     // Register editor keydown listener for node tag hotkey
     this.setupNodeTagHotkey();
   }
@@ -300,6 +310,12 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.registerEditorExtension(nodeTagHotkeyExtension);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    this.registerEditorExtension(createImageEmbedHoverExtension(this));
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    this.registerEditorExtension(createWikilinkDragExtension(this));
   }
 
   private createStyleElement() {
@@ -319,12 +335,13 @@ export default class DiscourseGraphPlugin extends Plugin {
       if (!this.settings.showIdsInFrontmatter) {
         keysToHide.push(
           ...[
-            "nodeTypeId",
-            "importedFromRid",
-            "nodeInstanceId",
-            "publishedToGroups",
-            "lastModified",
+            "authorId",
             "importedAssets",
+            "importedFromRid",
+            "lastModified",
+            "nodeInstanceId",
+            "nodeTypeId",
+            "publishedToGroups",
           ],
         );
         keysToHide.push(...this.settings.relationTypes.map((rt) => rt.id));

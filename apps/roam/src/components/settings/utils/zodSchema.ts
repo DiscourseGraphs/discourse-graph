@@ -155,8 +155,8 @@ export const DiscourseRelationSchema = z.object({
 
 export const FeatureFlagsSchema = z.object({
   "Enable left sidebar": z.boolean().default(false),
-  "Suggestive mode enabled": z.boolean().default(false),
   "Duplicate node alert enabled": z.boolean().default(false),
+  "Suggestive mode overlay enabled": z.boolean().default(false),
 });
 
 export const ExportSettingsSchema = z.object({
@@ -249,7 +249,6 @@ export const PersonalSettingsSchema = z.object({
     .default({ modifiers: 0, key: "" }),
   "Discourse context overlay": z.boolean().default(false),
   "Reified relation triples": z.boolean().default(false),
-  "Suggestive mode overlay": z.boolean().default(false),
   "Overlay in canvas": z.boolean().default(false),
   "Text selection popup": z.boolean().default(true),
   "Disable sidebar open": z.boolean().default(false),

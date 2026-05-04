@@ -50,14 +50,12 @@ import {
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { renderImageToolsMenu } from "./renderImageToolsMenu";
-import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
-import getPleasingColors from "@repo/utils/getPleasingColors";
-import { colord } from "colord";
+import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -106,21 +104,11 @@ export const initObservers = async ({
       const { title, uid } = getTitleAndUidFromHeader(h1);
       const props = { title, h1, onloadArgs };
 
-      const isSuggestiveModeEnabled = getUidAndBooleanSetting({
-        tree: getBasicTreeByParentUid(
-          getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-        ),
-        text: "(BETA) Suggestive Mode Enabled",
-      }).value;
-
       const node = findDiscourseNode({ uid, title });
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
         renderDiscourseContext({ h1, uid });
-        if (
-          isSuggestiveModeEnabled &&
-          getFeatureFlag("Duplicate node alert enabled")
-        ) {
+        if (getFeatureFlag("Duplicate node alert enabled")) {
           renderPossibleDuplicates(h1, title, node);
         }
         const linkedReferencesDiv = document.querySelector(
@@ -155,29 +143,10 @@ export const initObservers = async ({
           const normalizedNodeTag = node.tag ? getCleanTagText(node.tag) : "";
           if (normalizedTag === normalizedNodeTag) {
             renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
-            if (node.canvasSettings?.color) {
-              const formattedColor = formatHexColor(node.canvasSettings.color);
-              if (!formattedColor) {
-                break;
-              }
-              const contrastingColor = getPleasingColors(
-                colord(formattedColor),
-              );
-
-              Object.assign(s.style, {
-                backgroundColor: contrastingColor.background,
-                color: contrastingColor.text,
-                border: `1px solid ${contrastingColor.border}`,
-                fontWeight: "500",
-                padding: "2px 6px",
-                borderRadius: "12px",
-                margin: "0 2px",
-                fontSize: "0.9em",
-                whiteSpace: "nowrap",
-                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                display: "inline-block",
-                cursor: "pointer",
-              });
+            const color = node.canvasSettings?.color ?? "";
+            const tagStyles = color ? getNodeTagStyles(color) : {};
+            if (tagStyles) {
+              Object.assign(s.style, tagStyles);
             }
             break;
           }
@@ -207,7 +176,7 @@ export const initObservers = async ({
       });
   }) as EventListener;
 
-  if (onloadArgs.extensionAPI.settings.get("suggestive-mode-overlay")) {
+  if (getFeatureFlag("Suggestive mode overlay enabled")) {
     addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
   }
 

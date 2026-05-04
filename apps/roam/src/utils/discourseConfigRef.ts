@@ -45,7 +45,6 @@ type FormattedConfigTree = {
   suggestiveMode: SuggestiveModeConfigWithUids;
   leftSidebar: LeftSidebarConfig;
   leftSidebarEnabled: BooleanSetting;
-  suggestiveModeEnabled: BooleanSetting;
 };
 
 export const getFormattedConfigTree = (): FormattedConfigTree => {
@@ -77,10 +76,6 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
     leftSidebarEnabled: getUidAndBooleanSetting({
       tree: configTreeRef.tree,
       text: "(BETA) Left Sidebar",
-    }),
-    suggestiveModeEnabled: getUidAndBooleanSetting({
-      tree: configTreeRef.tree,
-      text: "(BETA) Suggestive Mode Enabled",
     }),
   };
 };

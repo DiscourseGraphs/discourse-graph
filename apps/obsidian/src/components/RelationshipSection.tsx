@@ -1,11 +1,22 @@
 import { TFile, Notice } from "obsidian";
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { QueryEngine } from "~/services/QueryEngine";
 import SearchBar from "./SearchBar";
 import { DiscourseNode } from "~/types";
 import DropdownSelect from "./DropdownSelect";
 import { usePlugin } from "./PluginContext";
-import { getNodeTypeById } from "~/utils/typeUtils";
+import {
+  getNodeTypeById,
+  getAndFormatImportSource,
+  isAcceptedSchema,
+  getUserNameById,
+} from "~/utils/typeUtils";
 import type { RelationInstance } from "~/types";
 import {
   getNodeInstanceIdForFile,
@@ -13,6 +24,7 @@ import {
   resolveEndpointToFile,
   addRelation,
   removeRelationBySourceDestinationType,
+  updateRelation,
 } from "~/utils/relationsStore";
 
 type RelationTypeOption = {
@@ -65,6 +77,7 @@ const AddRelationship = ({
 
     const relations = plugin.settings.discourseRelations.filter(
       (relation) =>
+        isAcceptedSchema(relation) &&
         relation.relationshipTypeId === selectedRelationType.id &&
         (selectedRelationType.isSource
           ? relation.sourceId === activeNodeTypeId
@@ -93,8 +106,9 @@ const AddRelationship = ({
 
     const relevantRelations = plugin.settings.discourseRelations.filter(
       (relation) =>
-        relation.sourceId === activeNodeTypeId ||
-        relation.destinationId === activeNodeTypeId,
+        isAcceptedSchema(relation) &&
+        (relation.sourceId === activeNodeTypeId ||
+          relation.destinationId === activeNodeTypeId),
     );
 
     relevantRelations.forEach((relation) => {
@@ -370,16 +384,59 @@ type GroupedRelation = {
 
 type CurrentRelationshipsProps = RelationshipSectionProps & {
   relationsVersion: number;
+  onRelationsChange?: () => void;
+};
+
+const buildGroupedRelations = (
+  relations: RelationInstance[],
+  activeIds: Set<string>,
+  plugin: ReturnType<typeof usePlugin>,
+): Map<string, GroupedRelation> => {
+  const map = new Map<string, GroupedRelation>();
+  for (const r of relations) {
+    const relationType = plugin.settings.relationTypes.find(
+      (rt) => rt.id === r.type,
+    );
+    if (!relationType) continue;
+
+    const isSource = activeIds.has(r.source);
+    const relationLabel = isSource
+      ? relationType.label
+      : relationType.complement;
+    const relationKey = `${r.type}-${isSource ? "source" : "target"}`;
+
+    if (!map.has(relationKey)) {
+      map.set(relationKey, {
+        relationTypeOptions: {
+          id: relationType.id,
+          label: relationLabel,
+          isSource,
+        },
+        linkedEntries: [],
+      });
+    }
+
+    const group = map.get(relationKey)!;
+    const otherId = isSource ? r.destination : r.source;
+    const linkedFile = resolveEndpointToFile(plugin, otherId);
+    if (
+      linkedFile &&
+      !group.linkedEntries.some((e) => e.relation.id === r.id)
+    ) {
+      group.linkedEntries.push({ file: linkedFile, relation: r });
+    }
+  }
+  return map;
 };
 
 const CurrentRelationships = ({
   activeFile,
   relationsVersion,
+  onRelationsChange,
 }: CurrentRelationshipsProps) => {
   const plugin = usePlugin();
-  const [groupedRelationships, setGroupedRelationships] = useState<
-    GroupedRelation[]
-  >([]);
+  const [acceptedGroups, setAcceptedGroups] = useState<GroupedRelation[]>([]);
+  const [tentativeGroups, setTentativeGroups] = useState<GroupedRelation[]>([]);
 
   const loadCurrentRelationships = useCallback(async () => {
     const fileCache = plugin.app.metadataCache.getFileCache(activeFile);
@@ -395,43 +452,15 @@ const CurrentRelationships = ({
     if (activeIds.size === 0) return;
 
     const relations = await getRelationsForFile(plugin, activeFile);
-    const tempRelationships = new Map<string, GroupedRelation>();
 
-    for (const r of relations) {
-      const relationType = plugin.settings.relationTypes.find(
-        (rt) => rt.id === r.type,
-      );
-      if (!relationType) continue;
+    const accepted = relations.filter((r) => r.tentative !== false);
+    const tentative = relations.filter((r) => r.tentative === false);
 
-      const isSource = activeIds.has(r.source);
-      const relationLabel = isSource
-        ? relationType.label
-        : relationType.complement;
-      const relationKey = `${r.type}-${isSource ? "source" : "target"}`;
+    const acceptedMap = buildGroupedRelations(accepted, activeIds, plugin);
+    const tentativeMap = buildGroupedRelations(tentative, activeIds, plugin);
 
-      if (!tempRelationships.has(relationKey)) {
-        tempRelationships.set(relationKey, {
-          relationTypeOptions: {
-            id: relationType.id,
-            label: relationLabel,
-            isSource,
-          },
-          linkedEntries: [],
-        });
-      }
-
-      const group = tempRelationships.get(relationKey)!;
-      const otherId = isSource ? r.destination : r.source;
-      const linkedFile = resolveEndpointToFile(plugin, otherId);
-      if (linkedFile) {
-        const already = group.linkedEntries.some((e) => e.relation.id === r.id);
-        if (!already) {
-          group.linkedEntries.push({ file: linkedFile, relation: r });
-        }
-      }
-    }
-
-    setGroupedRelationships(Array.from(tempRelationships.values()));
+    setAcceptedGroups(Array.from(acceptedMap.values()));
+    setTentativeGroups(Array.from(tentativeMap.values()));
   }, [activeFile, plugin]);
 
   useEffect(() => {
@@ -452,12 +481,11 @@ const CurrentRelationships = ({
           entry.relation.destination,
           relationTypeId,
         );
-
         new Notice(
           `Successfully removed ${relationType.label} with ${entry.file.basename}`,
         );
-
         await loadCurrentRelationships();
+        onRelationsChange?.();
       } catch (error) {
         console.error("Failed to delete relationship:", error);
         new Notice(
@@ -465,71 +493,149 @@ const CurrentRelationships = ({
         );
       }
     },
-    [plugin, loadCurrentRelationships],
+    [plugin, loadCurrentRelationships, onRelationsChange],
   );
 
-  if (groupedRelationships.length === 0) return null;
+  const acceptRelation = useCallback(
+    async (relationId: string) => {
+      try {
+        await updateRelation(plugin, relationId, { tentative: true });
+        await loadCurrentRelationships();
+        onRelationsChange?.();
+      } catch (error) {
+        console.error("Failed to accept relationship:", error);
+        new Notice(
+          `Failed to accept relationship: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+      }
+    },
+    [plugin, loadCurrentRelationships, onRelationsChange],
+  );
+
+  const renderEntries = (
+    group: GroupedRelation,
+    renderAction: (entry: LinkedEntry) => React.ReactNode,
+  ) => (
+    <li
+      key={`${group.relationTypeOptions.id}-${group.relationTypeOptions.isSource}`}
+      className="border-modifier-border border-b px-3 py-2"
+    >
+      <div className="mb-1 flex items-center">
+        <div className="mr-2">
+          {group.relationTypeOptions.isSource ? "→" : "←"}
+        </div>
+        <div className="font-bold">{group.relationTypeOptions.label}</div>
+      </div>
+      <ul className="m-0 ml-6 list-none p-0">
+        {group.linkedEntries.map((entry) => (
+          <li
+            key={entry.relation.id}
+            className="mt-1 flex items-center gap-2"
+            title={
+              entry.relation.importedFromRid && entry.relation.authorId
+                ? `relation by ${getUserNameById(plugin, entry.relation.authorId)} from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
+                : entry.relation.authorId
+                  ? `relation by ${getUserNameById(plugin, entry.relation.authorId)}`
+                  : entry.relation.importedFromRid
+                    ? `relation from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
+                    : ""
+            }
+          >
+            <a
+              href="#"
+              className="text-accent-text flex-1"
+              onClick={(e) => {
+                e.preventDefault();
+                void plugin.app.workspace.openLinkText(
+                  entry.file.path,
+                  activeFile.path,
+                );
+              }}
+            >
+              {entry.file.basename}
+            </a>
+            {renderAction(entry)}
+          </li>
+        ))}
+      </ul>
+    </li>
+  );
+
+  const hasAccepted = acceptedGroups.some((g) => g.linkedEntries.length > 0);
+  const tentativeCount = tentativeGroups.reduce(
+    (sum, g) => sum + g.linkedEntries.length,
+    0,
+  );
+  const hasTentative = tentativeCount > 0;
+  const [showTentative, setShowTentative] = useState(true);
+
+  if (!hasAccepted && !hasTentative) return null;
 
   return (
-    <div className="current-relationships mb-6">
-      <h4 className="mb-2 text-base font-medium">Current Relationships</h4>
-      <ul className="border-modifier-border m-0 list-none rounded border p-0">
-        {groupedRelationships.map(
-          (group) =>
-            group.linkedEntries.length > 0 && (
-              <li
-                key={`${group.relationTypeOptions.id}-${group.relationTypeOptions.isSource}`}
-                className="border-modifier-border border-b px-3 py-2"
-              >
-                <div className="mb-1 flex items-center">
-                  <div className="mr-2">
-                    {group.relationTypeOptions.isSource ? "→" : "←"}
-                  </div>
-                  <div className="font-bold">
-                    {group.relationTypeOptions.label}
-                  </div>
-                </div>
-
-                <ul className="m-0 ml-6 list-none p-0">
-                  {group.linkedEntries.map((entry) => (
-                    <li
-                      key={entry.relation.id}
-                      className="mt-1 flex items-center gap-2"
+    <>
+      {hasAccepted && (
+        <div className="current-relationships mb-6">
+          <h4 className="mb-2 text-base font-medium">Current Relationships</h4>
+          <ul className="border-modifier-border m-0 list-none rounded border p-0">
+            {acceptedGroups.map(
+              (group) =>
+                group.linkedEntries.length > 0 &&
+                renderEntries(group, (entry) => (
+                  <button
+                    className="!text-muted hover:!text-error flex h-6 w-6 cursor-pointer items-center justify-center border-0 !bg-transparent text-sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      void deleteRelationship(
+                        entry,
+                        group.relationTypeOptions.id,
+                      );
+                    }}
+                    title="Delete relationship"
+                  >
+                    ×
+                  </button>
+                )),
+            )}
+          </ul>
+        </div>
+      )}
+      {hasTentative && (
+        <div className="tentative-relationships mb-6">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-base font-medium">
+              {showTentative ? "Hide" : "Show"} ({tentativeCount}) tentative{" "}
+              {tentativeCount === 1 ? "relation" : "relations"}
+            </span>
+            <div
+              className={`checkbox-container ${showTentative ? "is-enabled" : ""}`}
+              onClick={() => setShowTentative((v) => !v)}
+            >
+              <input type="checkbox" checked={showTentative} readOnly />
+            </div>
+          </div>
+          {showTentative && (
+            <ul className="border-modifier-border m-0 list-none rounded border p-0">
+              {tentativeGroups.map(
+                (group) =>
+                  group.linkedEntries.length > 0 &&
+                  renderEntries(group, (entry) => (
+                    <button
+                      className="!text-muted hover:!text-accent flex h-6 w-6 cursor-pointer items-center justify-center border-0 !bg-transparent text-sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void acceptRelation(entry.relation.id);
+                      }}
+                      title="Accept relationship"
                     >
-                      <a
-                        href="#"
-                        className="text-accent-text flex-1"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          void plugin.app.workspace.openLinkText(
-                            entry.file.path,
-                            activeFile.path,
-                          );
-                        }}
-                      >
-                        {entry.file.basename}
-                      </a>
-                      <button
-                        className="!text-muted hover:!text-error flex h-6 w-6 cursor-pointer items-center justify-center border-0 !bg-transparent text-sm"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          void deleteRelationship(
-                            entry,
-                            group.relationTypeOptions.id,
-                          );
-                        }}
-                        title="Delete relationship"
-                      >
-                        ×
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ),
-        )}
-      </ul>
-    </div>
+                      ✓
+                    </button>
+                  )),
+              )}
+            </ul>
+          )}
+        </div>
+      )}
+    </>
   );
 };
 
@@ -546,6 +652,7 @@ export const RelationshipSection = ({
       <CurrentRelationships
         activeFile={activeFile}
         relationsVersion={relationsVersion}
+        onRelationsChange={onRelationsChange}
       />
       <AddRelationship
         activeFile={activeFile}

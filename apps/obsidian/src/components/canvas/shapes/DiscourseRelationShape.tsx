@@ -60,6 +60,13 @@ import {
 import { RelationBindings } from "./DiscourseRelationBinding";
 import { DiscourseNodeShape, DiscourseNodeUtil } from "./DiscourseNodeShape";
 import { addRelationToRelationsJson } from "~/components/canvas/utils/relationJsonUtils";
+import {
+  getDiscourseNodeAtPoint,
+  getDiscourseNodeTypeId,
+  getRelationDirection,
+  isValidRelationConnection,
+} from "~/components/canvas/utils/relationTypeUtils";
+import { getNodeTypeById, getRelationTypeById } from "~/utils/typeUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
 
 export enum ArrowHandles {
@@ -241,29 +248,10 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
       .getShapePageTransform(shape.id)
       .applyToPoint(info.handle);
 
-    const target = this.editor.getShapeAtPoint(point, {
-      hitInside: true,
-      hitFrameInside: true,
-      margin: 0,
-      filter: (targetShape) => {
-        return (
-          !targetShape.isLocked &&
-          this.editor.canBindShapes({
-            fromShape: shape,
-            toShape: targetShape,
-            binding: shape.type,
-          })
-        );
-      },
-    });
+    // Exclude the arrow shape itself to avoid self-binding on initial drag
+    const target = getDiscourseNodeAtPoint(this.editor, point, shape.id);
 
-    if (
-      !target ||
-      // TODO - this is a hack/fix
-      // the shape is targeting itself on initial drag
-      // find out why
-      target.id === shape.id
-    ) {
+    if (!target) {
       // TODO re-implement this on pointer up
       // if (
       //   currentBinding &&
@@ -354,28 +342,29 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
     ) {
       const sourceNodeId = otherBinding.toId;
       const sourceNode = this.editor.getShape(sourceNodeId);
-      const targetNodeTypeId = (target as { props?: { nodeTypeId?: string } })
-        .props?.nodeTypeId;
-      const sourceNodeTypeId = (
-        sourceNode as { props?: { nodeTypeId?: string } } | null
-      )?.props?.nodeTypeId;
+      const targetNodeTypeId = getDiscourseNodeTypeId(target);
+      const sourceNodeTypeId = getDiscourseNodeTypeId(sourceNode);
 
       if (sourceNodeTypeId && targetNodeTypeId && shape.props.relationTypeId) {
-        const isValidConnection = this.isValidNodeConnection(
+        const isValidConnection = isValidRelationConnection({
+          discourseRelations: this.options.plugin.settings.discourseRelations,
+          relationTypeId: shape.props.relationTypeId,
           sourceNodeTypeId,
           targetNodeTypeId,
-          shape.props.relationTypeId,
-        );
+        });
 
         if (!isValidConnection) {
-          const sourceNodeType = this.options.plugin.settings.nodeTypes.find(
-            (nt) => nt.id === sourceNodeTypeId,
+          const sourceNodeType = getNodeTypeById(
+            this.options.plugin,
+            sourceNodeTypeId,
           );
-          const targetNodeType = this.options.plugin.settings.nodeTypes.find(
-            (nt) => nt.id === targetNodeTypeId,
+          const targetNodeType = getNodeTypeById(
+            this.options.plugin,
+            targetNodeTypeId,
           );
-          const relationType = this.options.plugin.settings.relationTypes.find(
-            (rt) => rt.id === shape.props.relationTypeId,
+          const relationType = getRelationTypeById(
+            this.options.plugin,
+            shape.props.relationTypeId,
           );
 
           // Show error toast and delete the entire relation shape
@@ -476,7 +465,8 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
 
     // Check if other shapes are also being translated
     const selectedShapeIds = this.editor.getSelectedShapeIds();
-    const onlyRelationSelected = selectedShapeIds.length === 1 && selectedShapeIds[0] === shape.id;
+    const onlyRelationSelected =
+      selectedShapeIds.length === 1 && selectedShapeIds[0] === shape.id;
 
     // If both ends are bound AND only the relation is selected, convert translation to bend changes
     // If other shapes are also selected, do a simple translation instead
@@ -1085,38 +1075,25 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
 
     if (!startNode || !endNode) return;
 
-    const startNodeTypeId = (startNode as { props?: { nodeTypeId?: string } })
-      ?.props?.nodeTypeId;
-    const endNodeTypeId = (endNode as { props?: { nodeTypeId?: string } })
-      ?.props?.nodeTypeId;
+    const startNodeTypeId = getDiscourseNodeTypeId(startNode);
+    const endNodeTypeId = getDiscourseNodeTypeId(endNode);
 
     if (!startNodeTypeId || !endNodeTypeId) return;
 
-    const relationType = plugin.settings.relationTypes.find(
-      (rt) => rt.id === relationTypeId,
-    );
+    const relationType = getRelationTypeById(plugin, relationTypeId);
 
     if (!relationType) return;
 
-    // Check if this is a direct connection (start -> end)
-    const isDirectConnection = plugin.settings.discourseRelations.some(
-      (relation) =>
-        relation.relationshipTypeId === relationTypeId &&
-        relation.sourceId === startNodeTypeId &&
-        relation.destinationId === endNodeTypeId,
-    );
-
-    // Check if this is a reverse connection (end -> start, so we need complement)
-    const isReverseConnection = plugin.settings.discourseRelations.some(
-      (relation) =>
-        relation.relationshipTypeId === relationTypeId &&
-        relation.sourceId === endNodeTypeId &&
-        relation.destinationId === startNodeTypeId,
-    );
+    const { direct, reverse } = getRelationDirection({
+      discourseRelations: plugin.settings.discourseRelations,
+      relationTypeId,
+      sourceNodeTypeId: startNodeTypeId,
+      targetNodeTypeId: endNodeTypeId,
+    });
 
     let newText = relationType.label; // Default to main label
 
-    if (isReverseConnection && !isDirectConnection) {
+    if (reverse && !direct) {
       // This is purely a reverse connection, use complement
       newText = relationType.complement;
     }
@@ -1134,43 +1111,10 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
   }
 
   /**
-   * Validates if a connection between source and target node types is allowed
-   * for the given relation type, checking both directions of the relation.
-   */
-  isValidNodeConnection(
-    sourceNodeTypeId: string,
-    targetNodeTypeId: string,
-    relationTypeId: string,
-  ): boolean {
-    const plugin = this.options.plugin;
-
-    // Check direct connection (source -> target)
-    const directConnection = plugin.settings.discourseRelations.some(
-      (relation) =>
-        relation.relationshipTypeId === relationTypeId &&
-        relation.sourceId === sourceNodeTypeId &&
-        relation.destinationId === targetNodeTypeId,
-    );
-
-    if (directConnection) return true;
-
-    // Check reverse connection (target -> source)
-    // This handles bidirectional relations where the complement is used
-    const reverseConnection = plugin.settings.discourseRelations.some(
-      (relation) =>
-        relation.relationshipTypeId === relationTypeId &&
-        relation.sourceId === targetNodeTypeId &&
-        relation.destinationId === sourceNodeTypeId,
-    );
-
-    return reverseConnection;
-  }
-
-  /**
-   * Reifies the relation in the frontmatter of both connected files.
+   * Reifies the relation in the relations JSON of both connected files.
    * This creates the bidirectional links that make the relation persistent.
    */
-  async reifyRelationInFrontmatter(
+  async reifyRelation(
     shape: DiscourseRelationShape,
     bindings: RelationBindings,
   ): Promise<void> {
@@ -1231,8 +1175,9 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
         });
       }
 
-      const relationType = this.options.plugin.settings.relationTypes.find(
-        (rt) => rt.id === shape.props.relationTypeId,
+      const relationType = getRelationTypeById(
+        this.options.plugin,
+        shape.props.relationTypeId,
       );
 
       if (relationType && !alreadyExisted) {
@@ -1243,7 +1188,7 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
         });
       }
     } catch (error) {
-      console.error("Failed to reify relation in frontmatter:", error);
+      console.error("Failed to reify relation:", error);
       showToast({
         severity: "error",
         title: "Failed to Save Relation",

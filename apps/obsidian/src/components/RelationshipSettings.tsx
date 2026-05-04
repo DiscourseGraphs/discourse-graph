@@ -7,6 +7,9 @@ import {
   getNodeTypeById,
   getImportInfo,
   formatImportSource,
+  isAcceptedSchema,
+  isProvisionalSchema,
+  getUserNameById,
 } from "~/utils/typeUtils";
 import generateUid from "~/utils/generateUid";
 
@@ -25,7 +28,7 @@ const RelationshipSettings = () => {
 
   type EditableFieldKey = keyof Omit<
     DiscourseRelation,
-    "id" | "modified" | "created" | "importedFromRid"
+    "id" | "modified" | "created" | "importedFromRid" | "status"
   >;
 
   const saveSettings = (relations: DiscourseRelation[]): void => {
@@ -136,6 +139,33 @@ const RelationshipSettings = () => {
     modal.open();
   };
 
+  const handleAcceptRelation = async (index: number): Promise<void> => {
+    const updatedRelations = [...discourseRelations];
+    const relation = updatedRelations[index];
+    if (!relation) return;
+    updatedRelations[index] = { ...relation, status: "accepted" };
+
+    // Cascade: also accept the relation type if it is still provisional
+    const updatedRelationTypes = [...plugin.settings.relationTypes];
+    const relTypeIndex = updatedRelationTypes.findIndex(
+      (rt) => rt.id === relation.relationshipTypeId,
+    );
+    if (
+      relTypeIndex >= 0 &&
+      isProvisionalSchema(updatedRelationTypes[relTypeIndex]!)
+    ) {
+      updatedRelationTypes[relTypeIndex] = {
+        ...updatedRelationTypes[relTypeIndex]!,
+        status: "accepted",
+      };
+      plugin.settings.relationTypes = updatedRelationTypes;
+    }
+
+    setDiscourseRelations(updatedRelations);
+    plugin.settings.discourseRelations = updatedRelations;
+    await plugin.saveSettings();
+  };
+
   const handleDeleteRelation = async (index: number): Promise<void> => {
     const updatedRelations = discourseRelations.filter((_, i) => i !== index);
     setDiscourseRelations(updatedRelations);
@@ -154,6 +184,10 @@ const RelationshipSettings = () => {
   const renderRelationItem = (relation: DiscourseRelation, index: number) => {
     const importInfo = getImportInfo(relation.importedFromRid);
     const isImported = importInfo.isImported;
+    const isProvisional = isProvisionalSchema(relation);
+    const spaceName = importInfo.spaceUri
+      ? formatImportSource(importInfo.spaceUri, plugin.settings.spaceNames)
+      : "imported space";
     const error = errors[index];
 
     return (
@@ -189,7 +223,10 @@ const RelationshipSettings = () => {
               disabled={isImported}
             >
               <option value="">Relation Type</option>
-              {plugin.settings.relationTypes.map((relType) => (
+              {(isImported
+                ? plugin.settings.relationTypes
+                : plugin.settings.relationTypes.filter(isAcceptedSchema)
+              ).map((relType) => (
                 <option key={relType.id} value={relType.id}>
                   {relType.label} / {relType.complement}
                 </option>
@@ -212,7 +249,25 @@ const RelationshipSettings = () => {
               ))}
             </select>
 
-            {!isImported && (
+            {isImported ? (
+              <div className="flex gap-2">
+                {isProvisional && (
+                  <button
+                    onClick={() => void handleAcceptRelation(index)}
+                    className="p-2"
+                    title={`Accept this relation triplet from ${spaceName} to create instances of this relation`}
+                  >
+                    Accept
+                  </button>
+                )}
+                <button
+                  onClick={() => confirmDeleteRelation(index)}
+                  className="mod-warning p-2"
+                >
+                  Delete
+                </button>
+              </div>
+            ) : (
               <button
                 onClick={() => confirmDeleteRelation(index)}
                 className="mod-warning p-2"
@@ -224,8 +279,15 @@ const RelationshipSettings = () => {
           {error && <div className="text-error text-xs">{error}</div>}
           {isImported && (
             <div className="text-muted flex items-center gap-2 text-xs">
+              {isProvisional && (
+                <span className="rounded bg-yellow-100 px-1.5 py-0.5 text-xs font-medium text-yellow-800">
+                  Provisional
+                </span>
+              )}
               {importInfo.spaceUri && (
                 <span>
+                  {relation.authorId &&
+                    `by ${getUserNameById(plugin, relation.authorId)} `}
                   from{" "}
                   {formatImportSource(
                     importInfo.spaceUri,

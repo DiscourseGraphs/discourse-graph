@@ -45,6 +45,7 @@ import { getSetting } from "~/utils/extensionSettings";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import { RenderRoamBlockString } from "~/utils/roamReactComponents";
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -445,10 +446,6 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
 
     const isEditing = this.editor.getEditingShapeId() === shape.id;
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const contentRef = useRef<HTMLDivElement>(null);
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [loaded, setLoaded] = useState("");
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const [overlayMounted, setOverlayMounted] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const dialogRenderedRef = useRef(false);
@@ -479,24 +476,9 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
       return null;
     }, [shape.type, shape.props.uid]);
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useEffect(() => {
-      if (
-        shape.props.uid !== loaded &&
-        !isPageUid(shape.props.uid) &&
-        contentRef.current &&
-        isLiveBlock(shape.props.uid)
-      ) {
-        window.roamAlphaAPI.ui.components.renderBlock({
-          el: contentRef.current,
-          uid: shape.props.uid,
-        });
-        // TODO: resize shape props once this is rendered
-        setLoaded(shape.props.uid);
-      }
-    }, [setLoaded, loaded, contentRef, shape.props.uid]);
-
     const { backgroundColor, textColor } = this.getColors();
+    const showEmbeddedRoamBlock =
+      !isPageUid(shape.props.uid) && isLiveBlock(shape.props.uid);
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
@@ -737,7 +719,6 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
           ) : null}
 
           <div
-            ref={contentRef}
             className="relative"
             style={{
               ...DEFAULT_STYLE_PROPS,
@@ -760,10 +741,21 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
                 />
               </div>
             )}
-            {alias
-              ? new RegExp(alias).exec(shape.props.title)?.[1] ||
-                shape.props.title
-              : shape.props.title}
+            {showEmbeddedRoamBlock ? (
+              <div className="w-full min-w-0">
+                <RenderRoamBlockString
+                  key={shape.props.uid}
+                  string={
+                    getTextByBlockUid(shape.props.uid) || shape.props.title
+                  }
+                />
+              </div>
+            ) : alias ? (
+              new RegExp(alias).exec(shape.props.title)?.[1] ||
+              shape.props.title
+            ) : (
+              shape.props.title
+            )}
           </div>
         </div>
       </HTMLContainer>

@@ -12,7 +12,7 @@
     "next.config.ts",
     "**/*.ts",
     "**/*.tsx",
-    "scripts/*tx",
+    "scripts/**/*.mjs",
     ".next/types/**/*.ts",
     "postcss.config.mjs"
   ]

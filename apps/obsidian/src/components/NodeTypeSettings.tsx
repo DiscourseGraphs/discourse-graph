@@ -10,8 +10,10 @@ import {
   getImportInfo,
   formatImportSource,
   getAndFormatImportSource,
+  getUserNameById,
 } from "~/utils/typeUtils";
 import { FolderSuggestInput } from "./GeneralSettings";
+import { createBaseForNodeType } from "~/utils/baseForNodeType";
 
 const generateTagPlaceholder = (format: string, nodeName?: string): string => {
   if (!format) return "Enter tag (e.g., clm-candidate)";
@@ -580,6 +582,8 @@ const NodeTypeSettings = () => {
               </div>
               {isImported && importInfo.spaceUri && (
                 <span className="text-muted pl-6 text-xs">
+                  {nodeType.authorId &&
+                    `by ${getUserNameById(plugin, nodeType.authorId)} `}
                   from{" "}
                   {formatImportSource(
                     importInfo.spaceUri || "",
@@ -709,6 +713,25 @@ const NodeTypeSettings = () => {
             />
           </div>
         </div>
+        {selectedNodeIndex !== null && selectedNodeIndex < nodeTypes.length && (
+          <div className="setting-item">
+            <div className="setting-item-info">
+              <div className="setting-item-name">Base view</div>
+              <div className="setting-item-description">
+                Create a new Base view filtered to this node type
+              </div>
+            </div>
+            <div className="setting-item-control">
+              <button
+                onClick={() =>
+                  void createBaseForNodeType(plugin, editingNodeType)
+                }
+              >
+                Create Base view
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   };

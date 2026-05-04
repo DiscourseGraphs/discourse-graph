@@ -19,6 +19,7 @@ import {
   importRelationsForImportedNodes,
   type RemoteRelationInstance,
 } from "./importRelations";
+import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 
 export const getAvailableGroupIds = async (
   client: DGSupabaseClient,
@@ -36,6 +37,16 @@ export const getAvailableGroupIds = async (
   return (data || []).map((g) => g.group_id);
 };
 
+type PublishedNode = {
+  source_local_id: string;
+  space_id: number;
+  text: string;
+  createdAt: number;
+  modifiedAt: number;
+  filePath: string | undefined;
+  authorId: number | undefined;
+};
+
 export const getPublishedNodesForGroups = async ({
   client,
   groupIds,
@@ -44,16 +55,7 @@ export const getPublishedNodesForGroups = async ({
   client: DGSupabaseClient;
   groupIds: string[];
   currentSpaceId: number;
-}): Promise<
-  Array<{
-    source_local_id: string;
-    space_id: number;
-    text: string;
-    createdAt: number;
-    modifiedAt: number;
-    filePath: string | undefined;
-  }>
-> => {
+}): Promise<Array<PublishedNode>> => {
   if (groupIds.length === 0) {
     return [];
   }
@@ -63,7 +65,7 @@ export const getPublishedNodesForGroups = async ({
   const { data, error } = await client
     .from("my_contents")
     .select(
-      "source_local_id, space_id, text, created, last_modified, variant, metadata",
+      "source_local_id, space_id, text, created, last_modified, variant, metadata, author_id",
     )
     .neq("space_id", currentSpaceId);
 
@@ -83,6 +85,7 @@ export const getPublishedNodesForGroups = async ({
     created: string | null;
     last_modified: string | null;
     variant: string | null;
+    author_id: number | null;
     metadata: Json;
   };
 
@@ -95,14 +98,7 @@ export const getPublishedNodesForGroups = async ({
     groups.get(k)!.push(row);
   }
 
-  const nodes: Array<{
-    source_local_id: string;
-    space_id: number;
-    text: string;
-    createdAt: number;
-    modifiedAt: number;
-    filePath: string | undefined;
-  }> = [];
+  const nodes: Array<PublishedNode> = [];
 
   for (const rows of groups.values()) {
     const withDate = rows.filter(
@@ -133,6 +129,7 @@ export const getPublishedNodesForGroups = async ({
       createdAt,
       modifiedAt,
       filePath,
+      authorId: latest.author_id ?? undefined,
     });
   }
 
@@ -233,6 +230,25 @@ export const getSpaceUris = async (
   return spaceMap;
 };
 
+export const fetchUserNames = async (
+  plugin: DiscourseGraphPlugin,
+  client: DGSupabaseClient,
+) => {
+  const result = await client
+    .from("my_accounts")
+    .select("id, name")
+    .eq("agent_type", "person");
+  if (result.error || !result.data) {
+    console.error(result.error);
+    return;
+  }
+  const nameById = Object.fromEntries(
+    result.data.map(({ id, name }) => [id, name]) as [number, string][],
+  );
+  plugin.settings.userNames = nameById;
+  await plugin.saveSettings();
+};
+
 export const fetchNodeContent = async ({
   client,
   spaceId,
@@ -320,11 +336,12 @@ const fetchNodeContentForImport = async ({
   content: string;
   createdAt: number;
   modifiedAt: number;
+  authorId: number;
   filePath?: string;
 } | null> => {
   const { data, error } = await client
     .from("my_contents")
-    .select("text, created, last_modified, variant, metadata")
+    .select("text, created, last_modified, variant, metadata, author_id")
     .eq("source_local_id", nodeInstanceId)
     .eq("space_id", spaceId)
     .in("variant", ["direct", "full"]);
@@ -338,17 +355,20 @@ const fetchNodeContentForImport = async ({
     text: string | null;
     created: string | null;
     last_modified: string | null;
+    author_id: number | null;
     variant: string | null;
     metadata: Json;
   }>;
   const direct = rows.find((r) => r.variant === "direct");
   const full = rows.find((r) => r.variant === "full");
+  const authorId = full?.author_id ?? direct?.author_id ?? null;
 
   if (
     !direct?.text ||
     !full?.text ||
-    full.created == null ||
-    full.last_modified == null
+    full.created === null ||
+    full.last_modified === null ||
+    authorId === null
   ) {
     return null;
   }
@@ -364,6 +384,7 @@ const fetchNodeContentForImport = async ({
     createdAt: new Date(full.created + "Z").valueOf(),
     modifiedAt: new Date(full.last_modified + "Z").valueOf(),
     filePath,
+    authorId,
   };
 };
 
@@ -754,7 +775,7 @@ const importAssetsForNode = async ({
   client,
   spaceId,
   nodeInstanceId,
-  spaceName,
+  importBasePath,
   targetMarkdownFile,
   originalNodePath,
 }: {
@@ -762,7 +783,7 @@ const importAssetsForNode = async ({
   client: DGSupabaseClient;
   spaceId: number;
   nodeInstanceId: string;
-  spaceName: string;
+  importBasePath: string;
   targetMarkdownFile: TFile;
   /** Source vault path of the note (e.g. from Content metadata filePath). Used to place assets under import/{space}/ relative to note. */
   originalNodePath?: string;
@@ -793,8 +814,6 @@ const importAssetsForNode = async ({
   if (fileReferences.length === 0) {
     return { success: true, pathMapping, errors };
   }
-
-  const importBasePath = `import/${sanitizeFileName(spaceName)}`;
 
   // Get existing asset mappings from frontmatter
   const cache = plugin.app.metadataCache.getFileCache(targetMarkdownFile);
@@ -975,6 +994,7 @@ type ParsedFrontmatter = {
   nodeTypeId?: string;
   nodeInstanceId?: string;
   publishedToGroups?: string[];
+  authorId?: number;
   [key: string]: unknown;
 };
 
@@ -1037,7 +1057,7 @@ export const mapNodeTypeIdToLocal = async ({
   // Find the schema in the source space with this nodeTypeId (my_concepts applies RLS)
   const { data: schemaData } = await client
     .from("my_concepts")
-    .select("name, literal_content")
+    .select("name, literal_content, author_id")
     .eq("space_id", sourceSpaceId)
     .eq("is_schema", true)
     .eq("source_local_id", sourceNodeTypeId)
@@ -1088,6 +1108,7 @@ export const mapNodeTypeIdToLocal = async ({
     keyImage: parsed.keyImage,
     created: now,
     modified: now,
+    authorId: schemaData.author_id ?? undefined,
     importedFromRid,
   };
   plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];
@@ -1105,6 +1126,7 @@ const processFileContent = async ({
   filePath,
   importedCreatedAt,
   importedModifiedAt,
+  authorId,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
@@ -1115,6 +1137,7 @@ const processFileContent = async ({
   filePath: string;
   importedCreatedAt?: number;
   importedModifiedAt?: number;
+  authorId?: number;
 }): Promise<
   { file: TFile; error?: never } | { file?: never; error: string }
 > => {
@@ -1173,6 +1196,7 @@ const processFileContent = async ({
         "note",
       );
       record.lastModified = importedModifiedAt;
+      if (authorId) record.authorId = authorId;
     },
     stat,
   );
@@ -1223,11 +1247,12 @@ export const importSelectedNodes = async ({
   }
 
   const spaceUris = await getSpaceUris(client, [...nodesBySpace.keys()]);
+  const spaceNames = await getSpaceNameFromIds(client, [
+    ...nodesBySpace.keys(),
+  ]);
 
   // Process each space
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
-    const spaceName = await getSpaceNameFromId(client, spaceId);
-    const importFolderPath = `import/${sanitizeFileName(spaceName)}`;
     const spaceUri = spaceUris.get(spaceId);
     if (!spaceUri) {
       for (const _node of nodes) {
@@ -1238,12 +1263,12 @@ export const importSelectedNodes = async ({
       continue;
     }
 
-    // Ensure the import folder exists
-    const folderExists =
-      await plugin.app.vault.adapter.exists(importFolderPath);
-    if (!folderExists) {
-      await plugin.app.vault.createFolder(importFolderPath);
-    }
+    const spaceName = spaceNames.get(spaceId) ?? `space-${spaceId}`;
+    const importFolderPath = await resolveFolderForSpaceUri({
+      adapter: plugin.app.vault.adapter,
+      spaceUri,
+      spaceName,
+    });
 
     // Process each node in this space
     for (const node of nodes) {
@@ -1278,6 +1303,7 @@ export const importSelectedNodes = async ({
           createdAt: contentCreatedAt,
           modifiedAt: contentModifiedAt,
           filePath: contentFilePath,
+          authorId,
         } = nodeContent;
         const createdAt = node.createdAt ?? contentCreatedAt;
         const modifiedAt = node.modifiedAt ?? contentModifiedAt;
@@ -1322,6 +1348,7 @@ export const importSelectedNodes = async ({
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
+          authorId,
         });
 
         if (result.error) {
@@ -1344,7 +1371,7 @@ export const importSelectedNodes = async ({
           client,
           spaceId,
           nodeInstanceId: node.nodeInstanceId,
-          spaceName,
+          importBasePath: importFolderPath,
           targetMarkdownFile: processedFile,
           originalNodePath,
         });

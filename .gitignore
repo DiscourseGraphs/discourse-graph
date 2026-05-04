@@ -41,3 +41,4 @@ local/*
 apps/tldraw-sync-worker/tsconfig.tsbuildinfo
 apps/tldraw-sync-worker/.wrangler/*
 .claude/*
+CLAUDE.md

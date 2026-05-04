@@ -1,5 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, basename } from "node:path";
+import process from "node:process";
+import console from "node:console";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
@@ -14,7 +16,6 @@ const findRoot = () => {
   }
   return dir;
 };
-
 export const getVariant = () => {
   const useDbArgPos = (process.argv || []).indexOf("--use-db");
   let variant =
@@ -23,9 +24,8 @@ export const getVariant = () => {
       : process.env["SUPABASE_USE_DB"];
   if (variant === undefined) {
     dotenv.config();
-    const dbGlobalEnv = join(findRoot(),'.env');
-    if (existsSync(dbGlobalEnv))
-      dotenv.config({path: dbGlobalEnv});
+    const dbGlobalEnv = join(findRoot(), ".env");
+    if (existsSync(dbGlobalEnv)) dotenv.config({ path: dbGlobalEnv });
     variant = process.env["SUPABASE_USE_DB"];
   }
   const processHasVars =
@@ -39,7 +39,11 @@ export const getVariant = () => {
     throw new Error("Invalid variant: " + variant);
   }
 
-  if (process.env.HOME === "/vercel" || process.env.GITHUB_ACTIONS === "true") {
+  if (
+    process.env.HOME === "/vercel" ||
+    (process.env.GITHUB_ACTIONS === "true" &&
+      process.env.GITHUB_TEST !== "test")
+  ) {
     // deployment should have variables
     if (!processHasVars) {
       console.error("Missing SUPABASE variables in deployment");
@@ -76,9 +80,11 @@ export const envContents = () => {
   if (!path) {
     // Fallback to process.env when running in production environments
     const raw = {
+      /* eslint-disable @typescript-eslint/naming-convention */
       SUPABASE_URL: process.env.SUPABASE_URL,
       SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY,
       NEXT_API_ROOT: process.env.NEXT_API_ROOT,
+      /* eslint-enable @typescript-eslint/naming-convention */
     };
     return Object.fromEntries(Object.entries(raw).filter(([, v]) => !!v));
   }

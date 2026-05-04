@@ -87,7 +87,7 @@ export const RelationsOverlay = ({ plugin, file }: RelationsOverlayProps) => {
             maxHeight: "calc(100% - 24px)",
             pointerEvents: "all",
             overflow: "auto",
-            zIndex: 10,
+            zIndex: 25,
           }}
           onMouseDown={(e) => e.stopPropagation()}
           onMouseUp={(e) => e.stopPropagation()}

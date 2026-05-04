@@ -285,6 +285,10 @@ export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
   return flags[key];
 };
 
+export const isSyncEnabled = (): boolean =>
+  getFeatureFlag("Duplicate node alert enabled") ||
+  getFeatureFlag("Suggestive mode overlay enabled");
+
 export const setFeatureFlag = (
   key: keyof FeatureFlags,
   value: boolean,

@@ -17,7 +17,7 @@ import {
   getArrowBindings,
 } from "~/components/canvas/utils/relationUtils";
 import { getFrontmatterForFile } from "~/components/canvas/shapes/discourseNodeShapeUtils";
-import { getRelationTypeById } from "~/utils/typeUtils";
+import { getRelationTypeById, isAcceptedSchema } from "~/utils/typeUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
 import { toTldrawColor } from "~/utils/tldrawColors";
 import {
@@ -534,8 +534,13 @@ const computeRelations = async (
   const relations = await getRelationsForNodeInstanceId(plugin, nodeInstanceId);
   const result = new Map<string, GroupedRelation>();
 
-  for (const relationType of plugin.settings.relationTypes) {
-    const typeLevelRelation = plugin.settings.discourseRelations.find(
+  const acceptedRelationTypes =
+    plugin.settings.relationTypes.filter(isAcceptedSchema);
+  const acceptedDiscourseRelations =
+    plugin.settings.discourseRelations.filter(isAcceptedSchema);
+
+  for (const relationType of acceptedRelationTypes) {
+    const typeLevelRelation = acceptedDiscourseRelations.find(
       (rel) =>
         (rel.sourceId === activeNodeTypeId ||
           rel.destinationId === activeNodeTypeId) &&

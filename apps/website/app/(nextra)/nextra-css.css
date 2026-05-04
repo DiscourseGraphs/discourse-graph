@@ -1,1 +1,17 @@
 @tailwind utilities;
+
+.nextra-reset {
+  --nextra-content-width: 90rem;
+}
+
+html:not(.dark) .nextra-search-results a {
+  color: #1f1f1f !important;
+}
+
+html:not(.dark) .nextra-search-results a[data-focus] {
+  color: #1f1f1f !important;
+}
+
+html:not(.dark) .nextra-search-results mark {
+  color: #1f1f1f !important;
+}

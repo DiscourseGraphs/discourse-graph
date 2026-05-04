@@ -15,7 +15,10 @@ export type DiscourseNode = {
   created: number;
   modified: number;
   importedFromRid?: string;
+  authorId?: number;
 };
+
+export type ImportStatus = "provisional" | "accepted";
 
 export type DiscourseRelationType = {
   id: string;
@@ -25,6 +28,8 @@ export type DiscourseRelationType = {
   created: number;
   modified: number;
   importedFromRid?: string;
+  status?: ImportStatus;
+  authorId?: number;
 };
 
 export type DiscourseRelation = {
@@ -35,6 +40,8 @@ export type DiscourseRelation = {
   created: number;
   modified: number;
   importedFromRid?: string;
+  status?: ImportStatus;
+  authorId?: number;
 };
 
 export type RelationInstance = {
@@ -43,12 +50,12 @@ export type RelationInstance = {
   source: string;
   destination: string;
   created: number;
-  author: string;
   lastModified?: number;
   publishedToGroupId?: string[];
   importedFromRid?: string;
-  /** Pre-emptive: for future UI where user approves relations. On first import, set to false. */
-  provisional?: boolean;
+  /** Tracks acceptance of imported relations. false = imported, not yet accepted. true or undefined = accepted/local. */
+  tentative?: boolean;
+  authorId?: number;
 };
 
 export type Settings = {
@@ -65,6 +72,8 @@ export type Settings = {
   syncModeEnabled?: boolean;
   /** Maps spaceUri (e.g. "obsidian:abc123") to human-readable name (e.g. "My Vault") */
   spaceNames?: Record<string, string>;
+  username?: string;
+  userNames?: Record<number, string>;
 };
 
 export type BulkImportCandidate = {
@@ -92,12 +101,20 @@ export type ImportableNode = {
   createdAt?: number;
   modifiedAt?: number;
   filePath?: string;
+  authorId?: number;
 };
 
 export type GroupWithNodes = {
   groupId: string;
   groupName?: string;
   nodes: ImportableNode[];
+  authorIds: Set<number>;
+};
+
+export type ImportFolderMetadata = {
+  spaceUri: string;
+  spaceName: string;
+  userName?: string;
 };
 
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";

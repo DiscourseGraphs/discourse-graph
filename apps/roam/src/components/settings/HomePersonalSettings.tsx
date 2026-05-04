@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { Label, Dialog, Button, Intent, Classes } from "@blueprintjs/core";
@@ -7,7 +7,6 @@ import { addStyle } from "roamjs-components/dom";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
   getOverlayHandler,
-  getSuggestiveOverlayHandler,
   onPageRefObserverChange,
   previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
@@ -28,7 +27,6 @@ import { getSetting, setSetting } from "~/utils/extensionSettings";
 import { enablePostHog, disablePostHog } from "~/utils/posthog";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import streamlineStyling from "~/styles/streamlineStyling";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
 import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
@@ -47,7 +45,6 @@ const enum RelationMigrationDialog {
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
-  const settings = useMemo(() => getFormattedConfigTree(), []);
   const [activeRelationMigration, setActiveRelationMigration] =
     useState<RelationMigrationDialog>(RelationMigrationDialog.none);
   const [numExistingRelations, setNumExistingRelations] = useState<number>(0);
@@ -152,21 +149,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           });
         }}
       />
-      {settings.suggestiveModeEnabled?.value && (
-        <PersonalFlagPanel
-          title="Suggestive mode overlay"
-          description="Whether or not to overlay suggestive mode button over discourse node references."
-          settingKeys={["Suggestive mode overlay"]}
-          initialValue={getSetting<boolean>("suggestive-mode-overlay", false)}
-          onChange={(checked) => {
-            void setSetting("suggestive-mode-overlay", checked);
-            onPageRefObserverChange(getSuggestiveOverlayHandler(onloadArgs))(
-              checked,
-            );
-          }}
-        />
-      )}
-
       <PersonalFlagPanel
         title="Enable stored relations"
         description="Use stored relations instead of legacy pattern-based relations"

@@ -1,5 +1,5 @@
 import type DiscourseGraphPlugin from "~/index";
-import { DiscourseNode, DiscourseRelationType } from "~/types";
+import { DiscourseNode, DiscourseRelationType, ImportStatus } from "~/types";
 import { ridToSpaceUriAndLocalId } from "./rid";
 
 export const getNodeTypeById = (
@@ -71,10 +71,27 @@ export const formatImportSource = (
   return spaceUri;
 };
 
+export const isAcceptedSchema = (schema: {
+  status?: ImportStatus;
+  importedFromRid?: string;
+}): boolean => !schema.importedFromRid || schema.status === "accepted";
+
+export const isProvisionalSchema = (schema: {
+  status?: ImportStatus;
+  importedFromRid?: string;
+}): boolean => !!schema.importedFromRid && schema.status !== "accepted";
+
 export const getAndFormatImportSource = (
   importedFromRid: string | undefined,
   spaceNames?: Record<string, string>,
 ): string => {
   const importInfo = getImportInfo(importedFromRid);
   return formatImportSource(importInfo.spaceUri || "", spaceNames);
+};
+
+export const getUserNameById = (
+  plugin: DiscourseGraphPlugin,
+  id: number,
+): string => {
+  return (plugin.settings.userNames || {})[id] || `user ${id}`;
 };

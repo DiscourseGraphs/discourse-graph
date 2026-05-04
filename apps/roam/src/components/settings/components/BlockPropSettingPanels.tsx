@@ -501,6 +501,7 @@ export const FeatureFlagPanel = ({
   description,
   featureKey,
   initialValue,
+  value,
   disabled,
   onBeforeEnable,
   onAfterChange,
@@ -512,6 +513,7 @@ export const FeatureFlagPanel = ({
   description: string;
   featureKey: keyof FeatureFlags;
   initialValue?: boolean;
+  value?: boolean;
   disabled?: boolean;
   onBeforeEnable?: () => Promise<boolean>;
   onAfterChange?: (checked: boolean) => void;
@@ -534,6 +536,7 @@ export const FeatureFlagPanel = ({
       settingKeys={[featureKey as string]}
       setter={featureFlagSetter}
       initialValue={initialValue}
+      value={value}
       disabled={disabled}
       onBeforeChange={handleBeforeChange}
       onChange={onAfterChange}

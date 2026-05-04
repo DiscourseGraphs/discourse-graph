@@ -3,7 +3,6 @@ import { uuidv7 } from "uuidv7";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type DiscourseGraphPlugin from "~/index";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
-import { checkAndCreateFolder } from "~/utils/file";
 import { getVaultId, getLocalSpaceUri } from "./supabaseContext";
 import type { RelationInstance } from "~/types";
 import { QueryEngine, getImportedNodesRaw } from "~/services/QueryEngine";
@@ -14,13 +13,9 @@ import { getSpaceIdsBySpaceUris } from "./spaceFromRid";
 const RELATIONS_FILE_NAME = "relations.json";
 const RELATIONS_FILE_VERSION = 1;
 
-/** Vault-relative path for relations.json, under the same folder as nodes (nodesFolderPath). */
-export const getRelationsFilePath = (plugin: DiscourseGraphPlugin): string => {
-  const folderPath = plugin.settings.nodesFolderPath.trim();
-  return folderPath
-    ? normalizePath(`${folderPath}/${RELATIONS_FILE_NAME}`)
-    : normalizePath(RELATIONS_FILE_NAME);
-};
+/** Vault-relative path for relations.json — always at vault root. */
+export const getRelationsFilePath = (): string =>
+  normalizePath(RELATIONS_FILE_NAME);
 
 export type RelationsFile = {
   version: number;
@@ -37,7 +32,7 @@ const defaultRelationsFile = (): RelationsFile => ({
 export const loadRelations = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<RelationsFile> => {
-  const path = getRelationsFilePath(plugin);
+  const path = getRelationsFilePath();
   const file = plugin.app.vault.getAbstractFileByPath(path);
   if (!file || !(file instanceof TFile)) {
     return defaultRelationsFile();
@@ -67,11 +62,7 @@ export const saveRelations = async (
   plugin: DiscourseGraphPlugin,
   data: RelationsFile,
 ): Promise<void> => {
-  const folderPath = plugin.settings.nodesFolderPath.trim();
-  if (folderPath) {
-    await checkAndCreateFolder(folderPath, plugin.app.vault);
-  }
-  const path = getRelationsFilePath(plugin);
+  const path = getRelationsFilePath();
   const toWrite: RelationsFile = {
     ...data,
     lastModified: Date.now(),
@@ -85,15 +76,65 @@ export const saveRelations = async (
   }
 };
 
+/**
+ * On plugin load, finds all relations.json files in the vault and merges them
+ * into the canonical location at vault root, then deletes the non-root copies.
+ * Handles the case where a user changed nodesFolderPath, leaving old files behind.
+ */
+export const mergeAllRelationsJsonToRoot = async (
+  plugin: DiscourseGraphPlugin,
+): Promise<void> => {
+  const allFiles = plugin.app.vault.getFiles();
+  const relationsFiles = allFiles.filter((f) => f.name === RELATIONS_FILE_NAME);
+  const rootPath = normalizePath(RELATIONS_FILE_NAME);
+  const nonRootFiles = relationsFiles.filter((f) => f.path !== rootPath);
+
+  if (nonRootFiles.length === 0) return;
+
+  // Process non-root files first so root values win on duplicate IDs.
+  const sortedFiles = [
+    ...nonRootFiles,
+    ...relationsFiles.filter((f) => f.path === rootPath),
+  ];
+  const merged = defaultRelationsFile();
+  const validatedNonRootFiles: TFile[] = [];
+  for (const file of sortedFiles) {
+    try {
+      const content = await plugin.app.vault.read(file);
+      const data = JSON.parse(content) as RelationsFile;
+      if (
+        typeof data.version !== "number" ||
+        typeof data.relations !== "object" ||
+        data.relations === null
+      )
+        continue;
+      Object.assign(merged.relations, data.relations);
+      merged.lastModified = Math.max(
+        merged.lastModified,
+        data.lastModified ?? 0,
+      );
+      if (file.path !== rootPath) validatedNonRootFiles.push(file);
+    } catch {
+      // skip unreadable or unparseable files
+    }
+  }
+
+  await saveRelations(plugin, merged);
+
+  for (const file of validatedNonRootFiles) {
+    await plugin.app.vault.delete(file);
+  }
+};
+
 export type AddRelationParams = {
   type: string;
   source: string;
   destination: string;
-  author?: string;
+  authorId?: number;
   importedFromRid?: string;
   publishedToGroupId?: string[];
-  /** On first import, set to false. For future approval UI. */
-  provisional?: boolean;
+  /** On first import, set to false. true or undefined = accepted/local. */
+  tentative?: boolean;
 };
 
 /**
@@ -106,19 +147,17 @@ export const addRelationNoCheck = async (
 ): Promise<string> => {
   const now = Date.now();
   const id = uuidv7();
-  const author =
-    params.author ?? plugin.settings.accountLocalId ?? getVaultId(plugin.app);
   const instance: RelationInstance = {
     id,
     type: params.type,
     source: params.source,
     destination: params.destination,
     created: now,
-    author,
+    authorId: params.authorId,
     importedFromRid: params.importedFromRid,
     publishedToGroupId: params.publishedToGroupId,
-    ...(params.provisional !== undefined && {
-      provisional: params.provisional,
+    ...(params.tentative !== undefined && {
+      tentative: params.tentative,
     }),
   };
   const data = await loadRelations(plugin);
@@ -172,6 +211,17 @@ export const removeRelationById = async (
   delete data.relations[relationInstanceId];
   await saveRelations(plugin, data);
   return true;
+};
+
+export const updateRelation = async (
+  plugin: DiscourseGraphPlugin,
+  id: string,
+  patch: Partial<RelationInstance>,
+): Promise<void> => {
+  const data = await loadRelations(plugin);
+  if (!data.relations[id]) return;
+  data.relations[id] = { ...data.relations[id], ...patch };
+  await saveRelations(plugin, data);
 };
 
 export const getRelationsForNodeInstanceId = async (
@@ -648,14 +698,12 @@ export const migrateFrontmatterRelationsToRelationsJson = async (
 
         const id = uuidv7();
         const now = Date.now();
-        const author = plugin.settings.accountLocalId ?? getVaultId(plugin.app);
         data.relations[id] = {
           id,
           type: relationType.id,
           source: sourceNodeInstanceId,
           destination: destNodeInstanceId,
           created: now,
-          author,
         };
         added++;
         pendingCleanups.push({

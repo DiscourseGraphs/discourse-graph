@@ -4,6 +4,8 @@ import {
   WorkspaceLeaf,
   Notice,
   FrontMatterCache,
+  setIcon,
+  setTooltip,
 } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import DiscourseGraphPlugin from "~/index";
@@ -11,14 +13,34 @@ import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormat
 import { RelationshipSection } from "~/components/RelationshipSection";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { PluginProvider, usePlugin } from "~/components/PluginContext";
-import { getNodeTypeById } from "~/utils/typeUtils";
+import {
+  getNodeTypeById,
+  getAndFormatImportSource,
+  getUserNameById,
+} from "~/utils/typeUtils";
 import { refreshImportedFile } from "~/utils/importNodes";
 import { publishNode } from "~/utils/publishNode";
+import { createBaseForNodeType } from "~/utils/baseForNodeType";
 import { useState, useEffect } from "react";
 
 type DiscourseContextProps = {
   activeFile: TFile | null;
 };
+
+type InfoTooltipProps = {
+  content: string;
+};
+
+const InfoTooltip = ({ content }: InfoTooltipProps) => (
+  <button
+    ref={(el) => {
+      if (el) setTooltip(el, content);
+    }}
+    className="clickable-icon text-muted hover:text-normal flex h-4 w-4 items-center justify-center"
+  >
+    <div ref={(el) => (el && setIcon(el, "info")) || undefined} />
+  </button>
+);
 
 const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
   const plugin = usePlugin();
@@ -143,6 +165,13 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
       !isImported &&
       !!frontmatter.nodeTypeId;
 
+    const formattedVaultName = isImported
+      ? getAndFormatImportSource(
+          frontmatter.importedFromRid as string,
+          plugin.settings.spaceNames,
+        )
+      : "";
+
     return (
       <>
         <div className="mb-6">
@@ -154,6 +183,22 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
               />
             )}
             {nodeType.name || "Unnamed Node Type"}
+            <button
+              ref={(el) => {
+                if (el) {
+                  const name = nodeType.name || "Unnamed Node Type";
+                  setTooltip(el, `Create Base view for ${name} nodes`);
+                }
+              }}
+              onClick={() => {
+                void createBaseForNodeType(plugin, nodeType);
+              }}
+              className="clickable-icon ml-1"
+            >
+              <div
+                ref={(el) => (el && setIcon(el, "layout-list")) || undefined}
+              />
+            </button>
             {isImported && (
               <button
                 onClick={() => {
@@ -192,13 +237,33 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
             )}
           </div>
 
+          {isImported && (
+            <div className="mt-3 flex items-center gap-1.5">
+              <span className="cursor-default rounded bg-amber-300 px-2 py-1 text-xs font-semibold text-amber-950 dark:bg-amber-900/40 dark:text-amber-300">
+                View only
+              </span>
+              <InfoTooltip
+                content={`Imported from ${formattedVaultName}. Direct edits will be overwritten when refreshed.`}
+              />
+            </div>
+          )}
+
           {nodeType.format && (
-            <div className="mb-1">
+            <div className="mb-1 mt-2">
               <span className="font-bold">Content: </span>
               {extractContentFromTitle(nodeType.format, activeFile.basename)}
             </div>
           )}
 
+          {isImported &&
+            frontmatter.authorId &&
+            typeof frontmatter.authorId === "number" && (
+              <div className="text-modifier-text mt-2 text-xs">
+                <div>
+                  Author: {getUserNameById(plugin, frontmatter.authorId)}
+                </div>
+              </div>
+            )}
           {isImported && sourceDates && (
             <div className="text-modifier-text mt-2 text-xs">
               <div>Created in source: {sourceDates.createdAt}</div>

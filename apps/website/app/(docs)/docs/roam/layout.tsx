@@ -1,10 +1,22 @@
-import { Layout } from "~/components/DocsLayout";
-import { navigation } from "./navigation";
+import { getPageMap } from "nextra/page-map";
+import DocsThemeLayout from "../_components/DocsThemeLayout";
+import "../../../(nextra)/nextra-css.css";
+import "nextra-theme-docs/style-prefixed.css";
 
-export default function RootLayout({
-  children,
-}: {
+type RoamDocsLayoutProps = {
   children: React.ReactNode;
-}) {
-  return <Layout navigationList={navigation}>{children}</Layout>;
-}
+};
+
+const RoamDocsLayout = async ({
+  children,
+}: RoamDocsLayoutProps): Promise<React.ReactElement> => {
+  const pageMap = await getPageMap("/docs/roam");
+
+  return (
+    <DocsThemeLayout pageMap={pageMap} searchScope="roam">
+      {children}
+    </DocsThemeLayout>
+  );
+};
+
+export default RoamDocsLayout;

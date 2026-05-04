@@ -8,7 +8,6 @@ import React, {
 import {
   Button,
   TextArea,
-  InputGroup,
   Menu,
   MenuItem,
   Popover,
@@ -18,6 +17,7 @@ import fuzzy from "fuzzy";
 import { Result } from "~/utils/types";
 
 const RESULTS_LIMIT = 50;
+const MAX_CONTENT_LENGTH = 512;
 
 type FuzzySelectInputProps<T extends Result = Result> = {
   value?: T;
@@ -44,7 +44,7 @@ const FuzzySelectInput = <T extends Result = Result>({
   const [isFocused, setIsFocused] = useState(false);
 
   const menuRef = useRef<HTMLUListElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const filteredItems = useMemo(() => {
     if (!query) return options;
@@ -86,7 +86,7 @@ const FuzzySelectInput = <T extends Result = Result>({
   );
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setActiveIndex((prev) =>
@@ -158,17 +158,26 @@ const FuzzySelectInput = <T extends Result = Result>({
   }, [autoFocus, mode, isLocked]);
 
   if (mode === "edit") {
+    const editText = value?.text || "";
     return (
-      <TextArea
-        value={value?.text || ""}
-        onChange={(e) => {
-          setValue({ text: e.target.value, uid: value?.uid || "" } as T);
-        }}
-        fill
-        growVertically
-        placeholder={placeholder}
-        autoFocus={autoFocus}
-      />
+      <div className="w-full">
+        <TextArea
+          value={editText}
+          onChange={(e) => {
+            setValue({ text: e.target.value, uid: value?.uid || "" } as T);
+          }}
+          fill
+          growVertically
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          maxLength={MAX_CONTENT_LENGTH}
+        />
+        {editText.length >= MAX_CONTENT_LENGTH && (
+          <p className="mt-1 text-xs text-red-500">
+            Character limit reached ({MAX_CONTENT_LENGTH})
+          </p>
+        )}
+      </div>
     );
   }
 
@@ -227,23 +236,32 @@ const FuzzySelectInput = <T extends Result = Result>({
         </Menu>
       }
       target={
-        <InputGroup
-          fill
-          inputRef={inputRef}
-          className="w-full"
-          value={query}
-          onChange={(e) => handleInputChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          autoFocus={autoFocus}
-          placeholder={placeholder}
-          onFocus={() => {
-            setIsFocused(true);
-          }}
-          onBlur={() => {
-            setIsFocused(false);
-            setTimeout(() => setIsOpen(false), 200);
-          }}
-        />
+        <div className="w-full">
+          <TextArea
+            fill
+            inputRef={inputRef}
+            className="w-full"
+            value={query}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            autoFocus={autoFocus}
+            placeholder={placeholder}
+            growVertically
+            maxLength={MAX_CONTENT_LENGTH}
+            onFocus={() => {
+              setIsFocused(true);
+            }}
+            onBlur={() => {
+              setIsFocused(false);
+              setTimeout(() => setIsOpen(false), 200);
+            }}
+          />
+          {query.length >= MAX_CONTENT_LENGTH && (
+            <p className="mt-1 text-xs text-red-500">
+              Character limit reached ({MAX_CONTENT_LENGTH})
+            </p>
+          )}
+        </div>
       }
     />
   );

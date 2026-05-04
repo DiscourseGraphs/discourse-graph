@@ -28,6 +28,7 @@ export type RemoteRelationInstance = {
   created: string | null;
   last_modified: string | null;
   concepts_of_relation: ConceptInRelation[];
+  author_id: number | null;
 };
 
 /**
@@ -49,7 +50,7 @@ const mapRelationTypeToLocal = async ({
 }): Promise<string> => {
   const { data: schemaData } = await client
     .from("my_concepts")
-    .select("name, literal_content")
+    .select("name, literal_content, author_id")
     .eq("space_id", sourceSpaceId)
     .eq("is_schema", true)
     .eq("source_local_id", sourceRelationTypeId)
@@ -98,6 +99,8 @@ const mapRelationTypeToLocal = async ({
     created: now,
     modified: now,
     importedFromRid,
+    status: "provisional",
+    authorId: schemaData.author_id ?? undefined,
   };
   plugin.settings.relationTypes = [
     ...(plugin.settings.relationTypes ?? []),
@@ -120,6 +123,7 @@ const findOrCreateTriple = async ({
   importedCreatedAt,
   importedModifiedAt,
   importedFromRid,
+  authorId,
 }: {
   plugin: DiscourseGraphPlugin;
   sourceNodeTypeId: string;
@@ -128,6 +132,7 @@ const findOrCreateTriple = async ({
   importedCreatedAt?: number;
   importedModifiedAt?: number;
   importedFromRid?: string;
+  authorId?: number;
 }): Promise<DiscourseRelation> => {
   const existing = plugin.settings.discourseRelations?.find(
     (dr) =>
@@ -154,6 +159,8 @@ const findOrCreateTriple = async ({
     created,
     modified,
     ...(importedFromRid && { importedFromRid }),
+    status: "provisional",
+    authorId,
   };
   plugin.settings.discourseRelations = [
     ...(plugin.settings.discourseRelations ?? []),
@@ -177,7 +184,7 @@ export const fetchRelationInstancesFromSpace = async ({
   const { data: instances, error } = await client
     .from("my_concepts")
     .select(
-      "id, source_local_id, schema_id, reference_content, refs, created, last_modified, concepts_of_relation!inner(id, space_id, source_local_id)",
+      "id, source_local_id, schema_id, reference_content, refs, created, last_modified, author_id, concepts_of_relation!inner(id, space_id, source_local_id)",
     )
     .eq("space_id", spaceId)
     .eq("is_schema", false)
@@ -343,6 +350,7 @@ export const importRelationsForImportedNodes = async ({
           ).getTime()
         : undefined;
 
+    const authorId = rel.author_id ?? undefined;
     if (mappedSourceNodeTypeId && mappedDestNodeTypeId) {
       await findOrCreateTriple({
         plugin,
@@ -352,6 +360,7 @@ export const importRelationsForImportedNodes = async ({
         importedCreatedAt,
         importedModifiedAt,
         importedFromRid: relationImportedFromRid,
+        authorId,
       });
     }
 
@@ -368,7 +377,8 @@ export const importRelationsForImportedNodes = async ({
       source: sourceEndpointId,
       destination: destEndpointId,
       importedFromRid: relationImportedFromRid,
-      provisional: false,
+      tentative: false,
+      authorId,
     });
     imported++;
 
