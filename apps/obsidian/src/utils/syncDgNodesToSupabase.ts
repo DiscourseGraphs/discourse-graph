@@ -505,11 +505,7 @@ const convertDgToSupabaseConcepts = async ({
   const relationTypesToLocalConcepts = relationTypes
     .filter((relationType) => relationType.modified > lastRelationSchemaSync)
     .map((relationType) =>
-      discourseRelationTypeToLocalConcept({
-        context,
-        relationType,
-        accountLocalId,
-      }),
+      discourseRelationTypeToLocalConcept(context, relationType),
     );
 
   const discourseRelationTriplesToLocalConcepts = discourseRelations
@@ -529,7 +525,6 @@ const convertDgToSupabaseConcepts = async ({
       discourseRelationTripleSchemaToLocalConcept({
         context,
         relation,
-        accountLocalId,
         nodeTypesById,
         relationTypesById,
       }),
@@ -537,11 +532,7 @@ const convertDgToSupabaseConcepts = async ({
     .filter((n) => !!n);
 
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
-    return discourseNodeInstanceToLocalConcept({
-      context,
-      nodeData: node,
-      accountLocalId,
-    });
+    return discourseNodeInstanceToLocalConcept(context, node);
   });
 
   const relationInstancesData = await loadRelations(plugin);

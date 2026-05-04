@@ -130,7 +130,7 @@ export type AddRelationParams = {
   type: string;
   source: string;
   destination: string;
-  author?: string;
+  authorId?: number;
   importedFromRid?: string;
   publishedToGroupId?: string[];
   /** On first import, set to false. true or undefined = accepted/local. */
@@ -147,15 +147,13 @@ export const addRelationNoCheck = async (
 ): Promise<string> => {
   const now = Date.now();
   const id = uuidv7();
-  const author =
-    params.author ?? plugin.settings.accountLocalId ?? getVaultId(plugin.app);
   const instance: RelationInstance = {
     id,
     type: params.type,
     source: params.source,
     destination: params.destination,
     created: now,
-    author,
+    authorId: params.authorId,
     importedFromRid: params.importedFromRid,
     publishedToGroupId: params.publishedToGroupId,
     ...(params.tentative !== undefined && {
@@ -700,14 +698,12 @@ export const migrateFrontmatterRelationsToRelationsJson = async (
 
         const id = uuidv7();
         const now = Date.now();
-        const author = plugin.settings.accountLocalId ?? getVaultId(plugin.app);
         data.relations[id] = {
           id,
           type: relationType.id,
           source: sourceNodeInstanceId,
           destination: destNodeInstanceId,
           created: now,
-          author,
         };
         added++;
         pendingCleanups.push({

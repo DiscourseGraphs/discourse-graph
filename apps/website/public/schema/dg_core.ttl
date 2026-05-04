@@ -2,6 +2,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix : <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dct: <http://purl.org/dc/terms/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix vs: <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
 @prefix sioc: <http://rdfs.org/sioc/ns#> .
@@ -9,6 +10,16 @@
 @prefix dgb: <https://discoursegraphs.com/schema/dg_base#> .
 @prefix dg: <https://discoursegraphs.com/schema/dg_core#> .
 @prefix schema: <http://schema.org/> .
+@prefix bibo: <http://purl.org/ontology/bibo/> .
+@prefix status: <http://purl.org/ontology/bibo/status/> .
+
+<https://discoursegraphs.com/schema/dg_core#> a owl:Ontology;
+  dct:created "2025-12-22" ;
+  dct:modified "2026-03-26" ;
+  rdfs:comment "DiscourseGraph core vocabulary"@en ;
+  rdfs:label "DiscourseGraph core vocabulary"@en ;
+  bibo:status status:draft;
+  owl:versionInfo "0.1 (tentative)".
 
 dg:Question a dgb:NodeSchema;
   rdfs:label "Question"@en;
@@ -69,7 +80,9 @@ dg:sourceDocument a dgb:RelationDef;
   rdfs:domain dg:Evidence;
   rdfs:range dg:SourceDocument.
 
-dg:ClaimOrEvidence a owl:Class; owl:unionOf (dg:Evidence dg:Claim).
+dg:ClaimOrEvidence owl:equivalentClass [
+  owl:unionOf (dg:Evidence dg:Claim)
+].
 
 dg:opposes a dgb:RelationDef;
   rdfs:label "Opposes"@en;
