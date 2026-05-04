@@ -93,7 +93,7 @@ export const GET = async (
       asPostgrestFailure("Resources not found", "401", 401),
     );
   }
-  const baseUrl = request.url + "/";
+  const baseUrl = request.url.split("?")[0];
   const rootUrl = baseUrl.split("/").slice(0, 3).join("/");
   const ctxUrl = rootUrl + "/schema/context.jsonld";
   const localCtx: Record<string, string> = {
