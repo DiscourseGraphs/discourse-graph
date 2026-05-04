@@ -130,7 +130,9 @@ export const createTemplateFile = async ({
     }
   }
 
-  const templateFilePath = `${folderPath}/${templateName}.md`;
+  // Sanitize to prevent path traversal (e.g. "../../sensitive" from a malicious sync)
+  const sanitizedName = templateName.replace(/[/\\]/g, "-");
+  const templateFilePath = `${folderPath}/${sanitizedName}.md`;
 
   // Don't overwrite an existing template — the local file takes precedence
   const existingFile = app.vault.getAbstractFileByPath(templateFilePath);
