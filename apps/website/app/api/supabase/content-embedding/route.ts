@@ -80,7 +80,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body: ContentEmbeddingVecTablesInsert = await request.json();
+    const body = (await request.json()) as ContentEmbeddingVecTablesInsert;
     const result = await processAndCreateEmbedding(supabasePromise, body);
     return createApiResponse(request, result);
   } catch (e: unknown) {

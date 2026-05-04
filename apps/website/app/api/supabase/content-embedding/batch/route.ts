@@ -104,7 +104,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabase = await createClient();
 
   try {
-    const body: ContentEmbeddingVecTablesInsert[] = await request.json();
+    const body = (await request.json()) as ContentEmbeddingVecTablesInsert[];
     if (!Array.isArray(body)) {
       return createApiResponse(
         request,

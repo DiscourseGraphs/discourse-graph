@@ -111,6 +111,8 @@ export const getOrCreateEntity = async <T extends TableName>({
 }): Promise<PostgrestSingleResponse<Tables<T>>> => {
   const result: PostgrestSingleResponse<Tables<T>> = await supabase
     .from(tableName)
+    // Typescript gets confused with latest supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .upsert(insertData as any, {
       onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
       ignoreDuplicates: false,
@@ -137,8 +139,13 @@ export const getOrCreateEntity = async <T extends TableName>({
             continue;
           }
           reFetchQueryBuilder = reFetchQueryBuilder.eq(
+            // TS expects those to be known at compile time, but here they are runtime
+            /* eslint-disable @typescript-eslint/no-explicit-any */
+            /* eslint-disable @typescript-eslint/no-unsafe-argument */
             key as any,
-            insertData[key] as any, // TS gets confused here?
+            insertData[key] as any,
+            /* eslint-enable @typescript-eslint/no-explicit-any */
+            /* eslint-enable @typescript-eslint/no-unsafe-argument */
           );
         }
         const reFetchResult =
@@ -184,6 +191,8 @@ export const InsertValidatedBatch = async <T extends TableName>({
 }): Promise<PostgrestResponse<Tables<T>>> => {
   const result: PostgrestResponse<Tables<T>> = await supabase
     .from(tableName)
+    // Typescript gets confused with latest supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .upsert(items as any, {
       onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
       ignoreDuplicates: false,
