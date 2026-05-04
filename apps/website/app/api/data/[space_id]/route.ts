@@ -60,6 +60,7 @@ export const GET = async (
     const afterConceptResponse = await supabase
       .from("my_concepts")
       .select("source_local_id")
+      .eq("space_id", space.id)
       .gt("last_modified", after.toISOString());
     if (afterConceptResponse.error) {
       return createApiResponse(request, afterConceptResponse);
@@ -72,11 +73,12 @@ export const GET = async (
     const afterContentResponse = await supabase
       .from("my_contents")
       .select("source_local_id")
+      .eq("space_id", space.id)
       .gt("last_modified", after.toISOString());
     if (afterContentResponse.error) {
       return createApiResponse(request, afterContentResponse);
     }
-    for (const s of afterConceptResponse.data) {
+    for (const s of afterContentResponse.data) {
       if (s.source_local_id !== null) localIds.add(s.source_local_id);
     }
     conceptRequest = conceptRequest.in("source_local_id", [...localIds]);
