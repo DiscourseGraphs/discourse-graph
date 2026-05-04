@@ -14,6 +14,7 @@
     "subClassOf": "rdfs:subClassOf",
     "inverseOf": "owl:inverseOf",
     "onProperty": "owl:onProperty",
+    "sameAs": "owl:sameAs",
     "hasValue": "owl:hasValue",
     "title": "dc:title",
     "format": "dc:format",
