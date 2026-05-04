@@ -19,8 +19,8 @@ type LeftSidebarPersonalSectionSettings = {
   resultLimit?: IntSetting;
 };
 
-export const isQuerySection = (text: string) =>
-  text.startsWith("((") && text.endsWith("))");
+const BLOCK_REF_PATTERN = /^\(\([\w-]{9,10}\)\)$/;
+export const isQuerySection = (text: string) => BLOCK_REF_PATTERN.test(text);
 
 export type PersonalSectionChild = RoamBasicNode & {
   alias: StringSetting;

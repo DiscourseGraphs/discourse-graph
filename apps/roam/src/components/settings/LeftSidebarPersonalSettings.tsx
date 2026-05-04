@@ -350,33 +350,33 @@ const SectionItem = memo(
           const aliasUid = alias.uid;
 
           void (async () => {
-            if (alias.valueUid) {
-              await updateBlock({ uid: alias.valueUid, text: newValue });
+            let valueUid = alias.valueUid;
+            if (valueUid) {
+              await updateBlock({ uid: valueUid, text: newValue });
             } else {
-              const newUid = await createBlock({
+              valueUid = await createBlock({
                 parentUid: aliasUid,
                 order: 0,
                 node: { text: newValue },
               });
-              setSections((prev) =>
-                prev.map((s) =>
-                  s.uid === section.uid && s.settings
-                    ? {
-                        ...s,
-                        settings: {
-                          ...s.settings,
-                          alias: {
-                            ...s.settings.alias,
-                            valueUid: newUid,
-                            value: newValue,
-                          },
-                        },
-                      }
-                    : s,
-                ),
-              );
             }
-            syncAllSectionsToBlockProps(sectionsRef.current);
+            const nextSections = sectionsRef.current.map((s) =>
+              s.uid === section.uid && s.settings
+                ? {
+                    ...s,
+                    settings: {
+                      ...s.settings,
+                      alias: {
+                        ...s.settings.alias,
+                        valueUid,
+                        value: newValue,
+                      },
+                    },
+                  }
+                : s,
+            );
+            setSections(nextSections);
+            syncAllSectionsToBlockProps(nextSections);
             refreshAndNotify();
           })();
         }, 300);

@@ -49,8 +49,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
 import { commands, cleanCommandName } from "~/components/LeftSidebarCommands";
-import fireQuery from "~/utils/fireQuery";
-import parseQuery from "~/utils/parseQuery";
+import runQuery from "~/utils/runQuery";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -317,35 +316,33 @@ const QuerySectionItem = ({
   const [error, setError] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const runQuery = useCallback(() => {
+  const loadResults = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    const args = parseQuery(queryUid);
-    fireQuery(args)
-      .then((queryResults) => {
-        const limited =
-          resultLimit > 0 ? queryResults.slice(0, resultLimit) : queryResults;
-        const children: ChildNode[] = limited.map((r) => {
-          const pageTitle = getPageTitleByPageUid(r.uid);
-          return {
-            uid: r.uid,
-            text: pageTitle ? r.uid : `((${r.uid}))`,
-          };
-        });
-        setResults(children);
-      })
-      .catch(() => setError("Query failed to run"))
-      .finally(() => {
-        setIsLoading(false);
-        setHasLoaded(true);
+    try {
+      const { allProcessedResults } = await runQuery({
+        parentUid: queryUid,
+        extensionAPI: onloadArgs.extensionAPI,
       });
-  }, [queryUid, resultLimit]);
+      const children: ChildNode[] = allProcessedResults.map((r) => ({
+        uid: r.uid,
+        text: getPageTitleByPageUid(r.uid) ? r.uid : `((${r.uid}))`,
+      }));
+      setResults(children);
+    } catch (e) {
+      console.error(e);
+      setError("Query failed to run");
+    } finally {
+      setIsLoading(false);
+      setHasLoaded(true);
+    }
+  }, [queryUid, onloadArgs.extensionAPI]);
 
   useEffect(() => {
     if (isOpen && !hasLoaded) {
-      runQuery();
+      void loadResults();
     }
-  }, [isOpen, hasLoaded, runQuery]);
+  }, [isOpen, hasLoaded, loadResults]);
 
   const handleChevronClick = () => {
     if (!section.settings) return;
@@ -389,7 +386,7 @@ const QuerySectionItem = ({
                   icon="refresh"
                   text="Refresh"
                   onClick={() => {
-                    runQuery();
+                    void loadResults();
                     setIsMenuOpen(false);
                   }}
                 />
@@ -425,7 +422,9 @@ const QuerySectionItem = ({
           <div className="pl-8 pr-2.5 text-sm text-red-500">{error}</div>
         ) : results.length > 0 ? (
           <SectionChildren
-            childrenNodes={results}
+            childrenNodes={
+              resultLimit > 0 ? results.slice(0, resultLimit) : results
+            }
             truncateAt={truncateAt}
             onloadArgs={onloadArgs}
           />
