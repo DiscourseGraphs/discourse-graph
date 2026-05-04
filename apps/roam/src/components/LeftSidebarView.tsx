@@ -123,21 +123,21 @@ const toggleFoldedState = ({
 };
 
 const RoamRenderedBlock = ({ uid }: { uid: string }) => {
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest("[data-roamjs-smartblock-button]")) {
-        void window.roamAlphaAPI.ui.mainWindow.openBlock({
-          block: { uid },
-        });
-      }
-    },
-    [uid],
-  );
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    const pattern = "[:block/string]";
+    const entityId = `[:block/uid "${uid}"]`;
+    const callback = () => setVersion((v) => v + 1);
+    window.roamAlphaAPI.data.addPullWatch(pattern, entityId, callback);
+    return () => {
+      window.roamAlphaAPI.data.removePullWatch(pattern, entityId, callback);
+    };
+  }, [uid]);
 
   return (
-    <div className="dg-sidebar-rendered-block" onClick={handleClick}>
-      <RenderRoamBlock uid={uid} open={false} />
+    <div className="dg-sidebar-rendered-block">
+      <RenderRoamBlock key={version} uid={uid} open={false} />
     </div>
   );
 };
