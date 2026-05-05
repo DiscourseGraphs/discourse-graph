@@ -24,7 +24,7 @@ type ModifyNodeSubmitParams = {
   relationshipTargetFile?: TFile;
 };
 
-const createModifyNodeModalSubmitHandler = (
+export const createModifyNodeModalSubmitHandler = (
   plugin: DiscourseGraphPlugin,
   editor?: Editor,
 ): ((params: ModifyNodeSubmitParams) => Promise<void>) => {

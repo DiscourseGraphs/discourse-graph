@@ -177,9 +177,14 @@ export const ModifyNodeForm = ({
     }
   }, [activeIndex, isOpen]);
 
-  // Focus the content input on mount so users can start typing immediately
+  // Focus the content input on mount so users can start typing immediately,
+  // with cursor placed at the end of any pre-filled text
   useEffect(() => {
-    titleInputRef.current?.focus();
+    const el = titleInputRef.current;
+    if (!el) return;
+    el.focus();
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
   }, []);
 
   useEffect(() => {
