@@ -94,15 +94,15 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "create-discourse-node",
     name: "Create discourse node",
     callback: () => {
-      const currentFile =
-        plugin.app.workspace.getActiveViewOfType(MarkdownView)?.file ||
-        undefined;
-      const editor =
-        plugin.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
+      const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      const currentFile = activeView?.file || undefined;
+      const editor = activeView?.editor;
+      const selectedText = editor?.getSelection()?.trim() || undefined;
       new ModifyNodeModal(plugin.app, {
         nodeTypes: plugin.settings.nodeTypes,
         plugin,
         currentFile,
+        initialTitle: selectedText,
         onSubmit: createModifyNodeModalSubmitHandler(plugin, editor),
       }).open();
     },
