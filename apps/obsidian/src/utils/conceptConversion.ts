@@ -31,10 +31,15 @@ const getNodeExtraData = (
   /* eslint-enable @typescript-eslint/naming-convention */
 };
 
-export const discourseNodeSchemaToLocalConcept = (
-  context: SupabaseContext,
-  node: DiscourseNode,
-): LocalConceptDataInput => {
+export const discourseNodeSchemaToLocalConcept = ({
+  context,
+  node,
+  templateContent,
+}: {
+  context: SupabaseContext;
+  node: DiscourseNode;
+  templateContent?: string;
+}): LocalConceptDataInput => {
   const {
     description,
     template,
@@ -51,6 +56,7 @@ export const discourseNodeSchemaToLocalConcept = (
     source_data: otherData,
   };
   if (template) literal_content.template = template;
+  if (templateContent) literal_content.template_content = templateContent;
   if (importedFromRid) literal_content.importedFromRid = importedFromRid;
   return {
     space_id: context.spaceId,

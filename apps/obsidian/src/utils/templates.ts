@@ -93,6 +93,57 @@ export const getTemplateFiles = (app: App): string[] => {
   }
 };
 
+type CreateTemplateFileResult =
+  | { created: true }
+  | { created: false; reason: string };
+
+export const createTemplateFile = async ({
+  app,
+  templateName,
+  content,
+}: {
+  app: App;
+  templateName: string;
+  content: string;
+}): Promise<CreateTemplateFileResult> => {
+  const { isEnabled, folderPath } = getTemplatePluginInfo(app);
+
+  if (!isEnabled) {
+    return { created: false, reason: "Templates plugin is not enabled" };
+  }
+
+  if (!folderPath) {
+    return {
+      created: false,
+      reason: "Templates folder path is not configured",
+    };
+  }
+
+  // Ensure every segment of the folder path exists, creating missing ones
+  const segments = folderPath.split("/").filter(Boolean);
+  let currentPath = "";
+  for (const segment of segments) {
+    currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+    const existing = app.vault.getAbstractFileByPath(currentPath);
+    if (!existing) {
+      await app.vault.createFolder(currentPath);
+    }
+  }
+
+  // Sanitize to prevent path traversal (e.g. "../../sensitive" from a malicious sync)
+  const sanitizedName = templateName.replace(/[/\\]/g, "-");
+  const templateFilePath = `${folderPath}/${sanitizedName}.md`;
+
+  // Don't overwrite an existing template — the local file takes precedence
+  const existingFile = app.vault.getAbstractFileByPath(templateFilePath);
+  if (existingFile instanceof TFile) {
+    return { created: false, reason: "template already exists" };
+  }
+
+  await app.vault.create(templateFilePath, content);
+  return { created: true };
+};
+
 export const applyTemplate = async ({
   app,
   targetFile,
