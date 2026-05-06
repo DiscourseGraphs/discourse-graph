@@ -439,6 +439,9 @@ importers:
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@supabase/auth-js':
+        specifier: 'catalog:'
+        version: 2.95.3
       '@supabase/ssr':
         specifier: 'catalog:'
         version: 0.10.3(@supabase/supabase-js@2.105.4)

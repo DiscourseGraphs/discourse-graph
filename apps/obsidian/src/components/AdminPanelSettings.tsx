@@ -1,8 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { usePlugin } from "./PluginContext";
 import { Notice } from "obsidian";
 import { updateUsername } from "~/utils/supabaseContext";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
+import { nextRoot } from "@repo/utils/execContext";
+import { getLoggedInClient } from "~/utils/supabaseContext";
 
 export const AdminPanelSettings = () => {
   const plugin = usePlugin();
@@ -12,6 +14,26 @@ export const AdminPanelSettings = () => {
   const [username, setUsername] = useState<string>(
     plugin.settings.username || "",
   );
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  useEffect(() => {
+    if (syncModeEnabled) {
+      const fetchTokens = async () => {
+        const client = await getLoggedInClient(plugin);
+        if (client) {
+          const session = await client.auth.getSession();
+          if (session.data.session) {
+            setAccessToken(session.data.session.access_token);
+            setRefreshToken(session.data.session.refresh_token);
+          }
+        }
+      };
+      void fetchTokens();
+    } else {
+      setAccessToken(null);
+      setRefreshToken(null);
+    }
+  }, [syncModeEnabled]);
 
   const handleSyncModeToggle = useCallback(
     async (newValue: boolean) => {
@@ -78,6 +100,32 @@ export const AdminPanelSettings = () => {
             onChange={(e) => setUsername(e.target.value)}
             onBlur={(e) => void handleSetUsername(e.target.value)}
           />
+        </div>
+      </div>
+      <div
+        className={
+          "setting-item " + (accessToken && refreshToken ? "" : "hidden")
+        }
+      >
+        <div className="setting-item-info">
+          <div className="setting-item-name">Group management</div>
+          <div className="setting-item-description">
+            This will allow you to view and manage your sharing groups
+          </div>
+        </div>
+        <div className="setting-item-control">
+          {accessToken && refreshToken && (
+            <button
+              onClick={() => {
+                window.open(
+                  `${nextRoot()}/auth/token?t=${accessToken}&r=${refreshToken}&url=/`,
+                  "_blank",
+                );
+              }}
+            >
+              Manage groups
+            </button>
+          )}
         </div>
       </div>
     </div>
