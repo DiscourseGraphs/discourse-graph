@@ -71,6 +71,7 @@ const hideButtonForEmbed = (embedEl: HTMLElement): void => {
 const processContainer = (
   container: HTMLElement,
   plugin: DiscourseGraphPlugin,
+  signal: AbortSignal,
 ): void => {
   const embeds = container.querySelectorAll<HTMLElement>(
     ".internal-embed.image-embed",
@@ -85,17 +86,22 @@ const processContainer = (
     embedEl.classList.add("relative");
     embedEl.appendChild(createConvertIcon(embedEl, plugin));
 
-    // Use mousedown to match the timing of Obsidian's native "edit this block" button
-    embedEl.addEventListener("mousedown", (e) => {
-      e.stopPropagation();
+    // Use mousedown to match the timing of Obsidian's native "edit this block" button.
+    // The AbortSignal ensures this listener is cleaned up when the plugin is destroyed.
+    embedEl.addEventListener(
+      "mousedown",
+      (e) => {
+        e.stopPropagation();
 
-      // Hide any other active embed in the container first
-      container
-        .querySelectorAll<HTMLElement>(`.${EMBED_ACTIVE_CLASS}`)
-        .forEach(hideButtonForEmbed);
+        // Hide any other active embed in the container first
+        container
+          .querySelectorAll<HTMLElement>(`.${EMBED_ACTIVE_CLASS}`)
+          .forEach(hideButtonForEmbed);
 
-      showButtonForEmbed(embedEl);
-    });
+        showButtonForEmbed(embedEl);
+      },
+      { signal },
+    );
   }
 };
 
@@ -112,10 +118,12 @@ export const createImageEmbedHoverExtension = (
       private dom: HTMLElement;
       private observer: MutationObserver;
       private handleOutsideClick: () => void;
+      private abortController: AbortController;
 
       constructor(view: EditorView) {
         this.dom = view.dom;
-        processContainer(view.dom, plugin);
+        this.abortController = new AbortController();
+        processContainer(view.dom, plugin, this.abortController.signal);
 
         this.handleOutsideClick = () => {
           this.dom
@@ -137,7 +145,7 @@ export const createImageEmbedHoverExtension = (
             ),
           );
           if (hasRelevantMutation) {
-            processContainer(this.dom, plugin);
+            processContainer(this.dom, plugin, this.abortController.signal);
           }
         });
         this.observer.observe(this.dom, {
@@ -148,13 +156,19 @@ export const createImageEmbedHoverExtension = (
 
       update(update: ViewUpdate): void {
         if (update.docChanged || update.viewportChanged) {
-          processContainer(update.view.dom, plugin);
+          processContainer(
+            update.view.dom,
+            plugin,
+            this.abortController.signal,
+          );
         }
       }
 
       destroy(): void {
         this.observer.disconnect();
         document.removeEventListener("mousedown", this.handleOutsideClick);
+        // Abort removes all embed-level mousedown listeners added via processContainer
+        this.abortController.abort();
         const icons = this.dom.querySelectorAll(`.${ICON_CLASS}`);
         icons.forEach((icon) => icon.remove());
       }
