@@ -209,17 +209,16 @@ export const mergeGlobalSectionWithAccessor = (
   globalValues: LeftSidebarGlobalSettings | undefined,
 ): LeftSidebarGlobalSectionConfig => {
   const legacyChildByPageUid = new Map(config.children.map((c) => [c.text, c]));
-  const children: RoamBasicNode[] =
-    globalValues?.Children === undefined
-      ? config.children
-      : globalValues.Children.map((targetPageUid) => {
-          const legacyChild = legacyChildByPageUid.get(targetPageUid);
-          return {
-            uid: legacyChild?.uid ?? "",
-            text: targetPageUid,
-            children: legacyChild?.children ?? [],
-          };
-        });
+  const children: RoamBasicNode[] = (globalValues?.Children ?? []).map(
+    (targetPageUid) => {
+      const legacyChild = legacyChildByPageUid.get(targetPageUid);
+      return {
+        uid: legacyChild?.uid ?? "",
+        text: targetPageUid,
+        children: legacyChild?.children ?? [],
+      };
+    },
+  );
 
   return {
     uid: config.uid,
@@ -249,10 +248,8 @@ export const mergePersonalSectionsWithAccessor = (
   sections: LeftSidebarPersonalSectionConfig[],
   personalValues: PersonalSection[] | undefined,
 ): LeftSidebarPersonalSectionConfig[] => {
-  if (personalValues === undefined) return sections;
-
   const legacyByName = new Map(sections.map((s) => [s.text, s]));
-  return personalValues.map((snap) => {
+  return (personalValues ?? []).map((snap) => {
     const legacy = legacyByName.get(snap.name);
     const legacyChildByPageUid = new Map(
       (legacy?.children ?? []).map((c) => [c.text, c]),
