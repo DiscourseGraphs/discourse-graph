@@ -128,12 +128,12 @@ export const GET = async (
     schemas = Object.fromEntries(schemaResponse.data.map((s) => [s.id, s]));
   }
   const authorIds = new Set<number>([
-    concept.author_id!,
     ...relations.map((r) => r.author_id).filter((id) => id !== null),
     ...Object.values(schemas)
       .map((s) => s.author_id)
       .filter((id) => id !== null),
   ]);
+  if (concept.author_id) authorIds.add(concept.author_id);
   if (authorIds.size > 0) {
     const authorsResponse = await supabase
       .from("PlatformAccount")
