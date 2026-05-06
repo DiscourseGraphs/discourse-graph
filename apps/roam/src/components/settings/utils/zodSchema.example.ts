@@ -401,7 +401,7 @@ const defaultPersonalSettings: PersonalSettings = {
   "Streamline styling": false,
   "Auto canvas relations": false,
   "Disable product diagnostics": false,
-  "Reified relation triples": false,
+  "Reified relation triples": true,
   Query: {
     "Hide query metadata": true,
     "Default page size": 10,
