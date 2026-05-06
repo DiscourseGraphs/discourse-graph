@@ -28,7 +28,11 @@
   flex: 1;
   overflow: hidden;
   min-height: 0;
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
   color: #1f1f1f;
 }
 
@@ -45,10 +49,8 @@
 }
 
 .dg-as-search-icon {
-  width: 18px;
-  height: 18px;
-  color: rgba(31, 31, 31, 0.6);
   flex-shrink: 0;
+  color: rgba(31, 31, 31, 0.5) !important;
 }
 
 /* ── Chips + input ─────────────────────────────────────────────── */
@@ -82,8 +84,14 @@
 /* focused state handled via inline styles with per-type color */
 
 @keyframes dg-as-chip-in {
-  from { transform: scale(0.86); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.86);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .dg-as-chip-dot {
@@ -143,8 +151,12 @@
   white-space: pre;
 }
 
-.dg-as-ghost-typed { color: transparent; }
-.dg-as-ghost-completion { color: rgba(31, 31, 31, 0.35); }
+.dg-as-ghost-typed {
+  color: transparent;
+}
+.dg-as-ghost-completion {
+  color: rgba(31, 31, 31, 0.35);
+}
 
 .dg-as-ghost-tabkey {
   display: inline-flex;
@@ -230,8 +242,12 @@
   white-space: nowrap;
 }
 
-.dg-as-sort-pill:hover { background: rgba(27, 110, 194, 0.06); }
-.dg-as-sort-pill.active { background: rgba(27, 110, 194, 0.1); }
+.dg-as-sort-pill:hover {
+  background: rgba(27, 110, 194, 0.06);
+}
+.dg-as-sort-pill.active {
+  background: rgba(27, 110, 194, 0.1);
+}
 
 /* ── Split body ────────────────────────────────────────────────── */
 
@@ -271,7 +287,6 @@
   background: rgba(95, 87, 192, 0.08);
   box-shadow: inset 3px 0 0 #5f57c0;
 }
-
 
 .dg-as-type-badge {
   display: inline-flex;
@@ -452,8 +467,14 @@
 }
 
 @keyframes dg-as-pop-in {
-  from { transform: translateY(-4px); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .dg-as-pop-search {
@@ -562,7 +583,9 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background 100ms ease, border-color 100ms ease;
+  transition:
+    background 100ms ease,
+    border-color 100ms ease;
 }
 
 .dg-as-cb.on,

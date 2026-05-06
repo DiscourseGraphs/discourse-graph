@@ -6,6 +6,7 @@ import React, {
   type RefObject,
 } from "react";
 import ReactDOM from "react-dom";
+import { Icon } from "@blueprintjs/core";
 import {
   type NodeTypeConfig,
   type Sort,
@@ -297,36 +298,6 @@ export const SortDropdown = ({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const ArrowUp = () => (
-    <svg
-      width="10"
-      height="12"
-      viewBox="0 0 10 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M5 10 L5 2 M2 5 L5 2 L8 5" />
-    </svg>
-  );
-
-  const ArrowDown = () => (
-    <svg
-      width="10"
-      height="12"
-      viewBox="0 0 10 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M5 2 L5 10 M2 7 L5 10 L8 7" />
-    </svg>
-  );
-
   const dropdown = (
     <div
       ref={dropRef}
@@ -339,27 +310,14 @@ export const SortDropdown = ({
         return (
           <button
             key={opt.key}
-            className={`dg-as-dropdown-item${isSelected ? "selected" : ""}`}
+            className={`dg-as-dropdown-item ${isSelected ? "selected" : ""}`}
             onClick={() => {
               setSort({ key: opt.key, dir: sort.dir });
               onClose();
             }}
           >
             <span className="dg-as-dropdown-check">
-              {isSelected && (
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="2,6 5,9 10,3" />
-                </svg>
-              )}
+              {isSelected && <Icon icon="tick" size={12} />}
             </span>
             <span className="dg-as-dropdown-item-label">{opt.label}</span>
             {opt.directional && (
@@ -368,24 +326,24 @@ export const SortDropdown = ({
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
-                  className={`dg-as-dir-btn${isSelected && sort.dir === "asc" ? "active" : ""}`}
+                  className={`dg-as-dir-btn ${isSelected && sort.dir === "asc" ? "active" : ""}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSort({ key: opt.key, dir: "asc" });
                   }}
                   title="Ascending"
                 >
-                  <ArrowUp />
+                  <Icon icon="arrow-up" size={12} />
                 </button>
                 <button
-                  className={`dg-as-dir-btn${isSelected && sort.dir === "desc" ? "active" : ""}`}
+                  className={`dg-as-dir-btn ${isSelected && sort.dir === "desc" ? "active" : ""}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSort({ key: opt.key, dir: "desc" });
                   }}
                   title="Descending"
                 >
-                  <ArrowDown />
+                  <Icon icon="arrow-down" size={12} />
                 </button>
               </span>
             )}

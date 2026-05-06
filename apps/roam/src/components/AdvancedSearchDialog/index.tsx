@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
-import { Dialog } from "@blueprintjs/core";
+import { Dialog, Icon } from "@blueprintjs/core";
 import MiniSearch from "minisearch";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
@@ -23,86 +23,6 @@ import PreviewPane from "./PreviewPane";
 import { FilterPopover, SortDropdown, HelpPopover } from "./FilterPopover";
 
 const MIN_SEARCH_SCORE = 0.1;
-
-/* ── Icons ───────────────────────────────────────────────────── */
-
-const SearchIcon = () => (
-  <svg
-    className="dg-as-search-icon"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="11" cy="11" r="7" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-);
-
-const FilterIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-  </svg>
-);
-
-const SortIcon = () => (
-  <svg
-    width="12"
-    height="14"
-    viewBox="0 0 12 14"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.6"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M3.5 2.5 L3.5 11.5 M1.5 4.5 L3.5 2.5 L5.5 4.5" />
-    <path d="M8.5 11.5 L8.5 2.5 M6.5 9.5 L8.5 11.5 L10.5 9.5" />
-  </svg>
-);
-
-const ChevronDownIcon = () => (
-  <svg
-    width="10"
-    height="10"
-    viewBox="0 0 12 12"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.6"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M3 4.5 L6 7.5 L9 4.5" />
-  </svg>
-);
-
-const HelpIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="10" />
-    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-    <line x1="12" y1="17" x2="12.01" y2="17" />
-  </svg>
-);
 
 /* ── Detect current-graph UIDs ───────────────────────────────── */
 
@@ -337,7 +257,7 @@ const AdvancedSearchDialog = ({ isOpen, onClose }: Props) => {
       >
         {/* Search row */}
         <div className="dg-as-search-row">
-          <SearchIcon />
+          <Icon icon="search" size={18} className="dg-as-search-icon" />
           <ChipsSearchInput
             chips={chips}
             setChips={setChips}
@@ -373,7 +293,7 @@ const AdvancedSearchDialog = ({ isOpen, onClose }: Props) => {
               aria-label="Filter by type"
               aria-expanded={showFilterPop}
             >
-              <FilterIcon />
+              <Icon icon="filter" size={16} />
               {chips.length > 0 && (
                 <span className="dg-as-count-pill">{chips.length}</span>
               )}
@@ -390,9 +310,9 @@ const AdvancedSearchDialog = ({ isOpen, onClose }: Props) => {
               aria-label="Sort"
               aria-expanded={showSort}
             >
-              <SortIcon />
+              <Icon icon="double-caret-vertical" size={14} />
               <span>{currentSortLabel}</span>
-              <ChevronDownIcon />
+              <Icon icon="chevron-down" size={10} />
             </button>
 
             <button
@@ -405,7 +325,7 @@ const AdvancedSearchDialog = ({ isOpen, onClose }: Props) => {
               }}
               aria-label="Keyboard shortcuts"
             >
-              <HelpIcon />
+              <Icon icon="help" size={16} />
             </button>
           </div>
 
