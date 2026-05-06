@@ -90,6 +90,8 @@ export const GET = async (
   const baseUrl = requestUrlParts
     .slice(0, requestUrlParts.length - 1)
     .join("/");
+  const rootUrl = baseUrl.split("/").slice(0, 3).join("/");
+  const pageUrl = `${rootUrl}/api/content/${baseUrl.split("/")[5]}/${concept.id}#`;
   let schemas: Record<number, Concept> = {};
   let authors: Record<number, PlatformAccount> = {};
   let relations: Concept[] = [];
@@ -190,7 +192,7 @@ export const GET = async (
     relationsJLD.length > 0 || schemasJLD.length > 0
       ? [baseJLDData, ...relationsJLD, ...schemasJLD]
       : baseJLDData;
-  return NextResponse.json(wrapJsonLd(jsonLdData, baseUrl), {
+  return NextResponse.json(wrapJsonLd(jsonLdData, baseUrl, pageUrl), {
     status: 200,
     headers: { "Content-Type": "application/ld+json" },
   });
