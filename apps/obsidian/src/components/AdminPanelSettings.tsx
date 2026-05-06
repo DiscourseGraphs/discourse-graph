@@ -15,7 +15,6 @@ export const AdminPanelSettings = () => {
     plugin.settings.username || "",
   );
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState<string | null>(null);
   useEffect(() => {
     if (syncModeEnabled) {
       const fetchTokens = async () => {
@@ -24,14 +23,12 @@ export const AdminPanelSettings = () => {
           const session = await client.auth.getSession();
           if (session.data.session) {
             setAccessToken(session.data.session.access_token);
-            setRefreshToken(session.data.session.refresh_token);
           }
         }
       };
       void fetchTokens();
     } else {
       setAccessToken(null);
-      setRefreshToken(null);
     }
   }, [syncModeEnabled, plugin]);
 
@@ -102,11 +99,7 @@ export const AdminPanelSettings = () => {
           />
         </div>
       </div>
-      <div
-        className={
-          "setting-item " + (accessToken && refreshToken ? "" : "hidden")
-        }
-      >
+      <div className={"setting-item " + (accessToken ? "" : "hidden")}>
         <div className="setting-item-info">
           <div className="setting-item-name">Group management</div>
           <div className="setting-item-description">
@@ -114,11 +107,11 @@ export const AdminPanelSettings = () => {
           </div>
         </div>
         <div className="setting-item-control">
-          {accessToken && refreshToken && (
+          {accessToken && (
             <button
               onClick={() => {
                 window.open(
-                  `${nextRoot()}/auth/token?t=${accessToken}&r=${refreshToken}&url=/`,
+                  `${nextRoot()}/auth/token?t=${accessToken}&url=/`,
                   "_blank",
                 );
               }}

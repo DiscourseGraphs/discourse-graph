@@ -268,8 +268,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
     getFeatureFlag("Suggestive mode overlay enabled"),
   );
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState<string | null>(null);
-  //const syncAlreadyEnabled = duplicateNodeAlertValue || suggestiveOverlayValue;
   useEffect(() => {
     if (duplicateNodeAlertValue || suggestiveOverlayValue) {
       const fetchTokens = async () => {
@@ -278,14 +276,12 @@ const FeatureFlagsTab = (): React.ReactElement => {
           const session = await client.auth.getSession();
           if (session.data.session) {
             setAccessToken(session.data.session.access_token);
-            setRefreshToken(session.data.session.refresh_token);
           }
         }
       };
       void fetchTokens();
     } else {
       setAccessToken(null);
-      setRefreshToken(null);
     }
   }, [duplicateNodeAlertValue, suggestiveOverlayValue]);
 
@@ -413,13 +409,13 @@ const FeatureFlagsTab = (): React.ReactElement => {
       >
         Send Error Email
       </Button>
-      {accessToken && refreshToken && (
+      {accessToken && (
         <Button
           className="w-96"
           icon="document-open"
           onClick={() => {
             window.open(
-              `${nextRoot()}/auth/token?t=${accessToken}&r=${refreshToken}&url=/`,
+              `${nextRoot()}/auth/token?t=${accessToken}&url=/`,
               "_blank",
             );
           }}
