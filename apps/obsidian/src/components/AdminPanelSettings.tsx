@@ -33,7 +33,7 @@ export const AdminPanelSettings = () => {
       setAccessToken(null);
       setRefreshToken(null);
     }
-  }, [syncModeEnabled]);
+  }, [syncModeEnabled, plugin]);
 
   const handleSyncModeToggle = useCallback(
     async (newValue: boolean) => {
