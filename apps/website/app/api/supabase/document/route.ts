@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 import { createClient } from "~/utils/supabase/server";
-import { getOrCreateEntity, ItemValidator } from "~/utils/supabase/dbUtils";
+import { getOrCreateEntity } from "~/utils/supabase/dbUtils";
 import { asPostgrestFailure } from "@repo/database/lib/contextFunctions";
 import {
   createApiResponse,
@@ -14,9 +14,11 @@ import type { Tables, TablesInsert } from "@repo/database/dbTypes";
 type DocumentDataInput = TablesInsert<"Document">;
 type DocumentRecord = Tables<"Document">;
 
-const validateDocument: ItemValidator<DocumentDataInput> = (data) => {
+// ItemValidator<"Document">
+const validateDocument = (data: DocumentDataInput): string | null => {
   if (!data || typeof data !== "object")
     return "Invalid request body: expected a JSON object.";
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { space_id, author_id, source_local_id } = data;
 
   if (!author_id) return "Missing required author_id field.";
@@ -32,7 +34,7 @@ const createDocument = async (
 ): Promise<PostgrestSingleResponse<DocumentRecord>> => {
   const supabase = await supabasePromise;
 
-  const result = await getOrCreateEntity<"Document">({
+  const result = await getOrCreateEntity({
     supabase,
     tableName: "Document",
     insertData: data,
@@ -49,7 +51,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body: DocumentDataInput = await request.json();
+    const body = (await request.json()) as DocumentDataInput;
     const error = validateDocument(body);
     if (error !== null)
       return createApiResponse(request, asPostgrestFailure(error, "invalid"));
