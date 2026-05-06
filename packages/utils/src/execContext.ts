@@ -5,7 +5,7 @@ export const nextRoot = (): string => {
     process.env.NEXT_API_ROOT !== undefined &&
     process.env.NEXT_API_ROOT !== ""
   )
-    return process.env.NEXT_API_ROOT.split("/").slice(0, 3).join("");
+    return process.env.NEXT_API_ROOT.split("/").slice(0, 3).join("/");
   return IS_DEV ? "http://localhost:3000/" : "https://discoursegraphs.com/";
 };
 
