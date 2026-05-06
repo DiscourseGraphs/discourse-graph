@@ -28,6 +28,7 @@
       "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
     },
     "creator": "dc:creator",
+    "Container": "sioc:Container",
     "content": "sioc:content",
     "container_of": "sioc:container_of",
     "has_container": { "@id": "sioc:has_container", "@type": "@id" },

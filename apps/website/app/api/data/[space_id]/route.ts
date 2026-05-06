@@ -117,7 +117,7 @@ export const GET = async (
   const data = {
     "@context": [ctxUrl, localCtx],
     "@id": baseUrl,
-    "@type": "Space",
+    "@type": "Container",
     label: space.name,
     sameAs: space.url,
     container_of: Object.entries(withMaxDate).map(([id, lastModified]) => ({
