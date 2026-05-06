@@ -224,22 +224,23 @@ export const mergeGlobalSectionWithAccessor = (
     uid: config.uid,
     childrenUid: config.childrenUid,
     children,
-    settings: config.settings
-      ? {
-          uid: config.settings.uid,
-          collapsable: {
-            uid: config.settings.collapsable.uid,
-            value:
-              globalValues?.Settings.Collapsable ??
-              config.settings.collapsable.value,
-          },
-          folded: {
-            uid: config.settings.folded.uid,
-            value:
-              globalValues?.Settings.Folded ?? config.settings.folded.value,
-          },
-        }
-      : undefined,
+    settings: {
+      uid: config.settings?.uid ?? "",
+      collapsable: {
+        uid: config.settings?.collapsable.uid ?? "",
+        value:
+          globalValues?.Settings.Collapsable ??
+          config.settings?.collapsable.value ??
+          false,
+      },
+      folded: {
+        uid: config.settings?.folded.uid ?? "",
+        value:
+          globalValues?.Settings.Folded ??
+          config.settings?.folded.value ??
+          false,
+      },
+    },
   };
 };
 
@@ -256,19 +257,17 @@ export const mergePersonalSectionsWithAccessor = (
     return {
       uid: legacy?.uid ?? "",
       text: snap.name,
-      settings: legacy?.settings
-        ? {
-            uid: legacy.settings.uid,
-            truncateResult: {
-              uid: legacy.settings.truncateResult.uid,
-              value: snap.Settings["Truncate-result?"],
-            },
-            folded: {
-              uid: legacy.settings.folded.uid,
-              value: snap.Settings.Folded,
-            },
-          }
-        : undefined,
+      settings: {
+        uid: legacy?.settings?.uid ?? "",
+        truncateResult: {
+          uid: legacy?.settings?.truncateResult.uid ?? "",
+          value: snap.Settings["Truncate-result?"],
+        },
+        folded: {
+          uid: legacy?.settings?.folded.uid ?? "",
+          value: snap.Settings.Folded,
+        },
+      },
       children:
         snap.Children.length > 0
           ? snap.Children.map((snapChild) => {

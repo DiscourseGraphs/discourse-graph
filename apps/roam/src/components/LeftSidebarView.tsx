@@ -290,7 +290,7 @@ const PersonalSections = ({ config }: { config: LeftSidebarConfig }) => {
   return (
     <div className="personal-left-sidebar-sections">
       {sections.map((section, index) => (
-        <div key={section.uid}>
+        <div key={section.uid || `${section.text}-${index}`}>
           <PersonalSectionItem section={section} sectionIndex={index} />
         </div>
       ))}
