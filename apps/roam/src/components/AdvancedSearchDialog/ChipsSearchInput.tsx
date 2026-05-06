@@ -5,7 +5,7 @@ import React, {
   useMemo,
   type RefObject,
 } from "react";
-import { type NodeTypeConfig } from "./types";
+import { type NodeTypeConfig, hexToRgba } from "./types";
 
 type Props = {
   chips: string[];
@@ -43,6 +43,12 @@ const ChipsSearchInput = ({
 }: Props) => {
   const [focusedChip, setFocusedChip] = useState(-1);
   const chipRefs = useRef<(HTMLSpanElement | null)[]>([]);
+
+  // Build lookup map once per types change — avoids repeated find() in render
+  const typesById = useMemo(
+    () => Object.fromEntries(types.map((t) => [t.id, t])),
+    [types],
+  );
 
   // Focus chip element when focusedChip changes
   useEffect(() => {
@@ -229,35 +235,32 @@ const ChipsSearchInput = ({
   return (
     <div className="dg-as-chips-input">
       {chips.map((id, idx) => {
-        const t = types.find((x) => x.id === id);
+        const t = typesById[id];
         if (!t) return null;
+        const isFocused = focusedChip === idx;
+        const chipStyle: React.CSSProperties = {
+          background: hexToRgba(t.color, isFocused ? 0.18 : 0.08),
+          borderColor: hexToRgba(t.color, isFocused ? 1 : 0.3),
+          color: t.color,
+          boxShadow: isFocused
+            ? `0 0 0 2px ${hexToRgba(t.color, 0.2)}`
+            : undefined,
+        };
         return (
           <span
             key={id}
             ref={(el) => {
               chipRefs.current[idx] = el;
             }}
-            className={`dg-as-chip${focusedChip === idx ? "focused" : ""}`}
+            className="dg-as-chip"
+            style={chipStyle}
             tabIndex={-1}
             role="button"
             aria-label={`${t.label} filter — press Backspace or Delete to remove`}
             onKeyDown={(e) => onChipKeyDown(e, idx)}
             onClick={() => setFocusedChip(idx)}
           >
-            {t.kind === "node" ? (
-              <span
-                className="dg-as-chip-dot"
-                style={{ background: t.color }}
-              />
-            ) : (
-              <span
-                className="dg-as-chip-dot"
-                style={{
-                  border: `1.5px solid ${t.kind === "page" ? "#1F1F1F" : "#8E8E8E"}`,
-                  background: "transparent",
-                }}
-              />
-            )}
+            <span className="dg-as-chip-dot" style={{ background: t.color }} />
             <span>{t.label}</span>
             <span
               className="dg-as-chip-x"
@@ -302,7 +305,7 @@ const ChipsSearchInput = ({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onInputKeyDown}
-          placeholder={chips.length === 0 ? "Search nodes, pages, blocks…" : ""}
+          placeholder={chips.length === 0 ? "Search nodes" : ""}
           autoFocus
           spellCheck={false}
           autoComplete="off"

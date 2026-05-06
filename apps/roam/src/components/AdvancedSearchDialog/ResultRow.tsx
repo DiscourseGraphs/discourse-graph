@@ -3,6 +3,7 @@ import {
   type SearchResult,
   type NodeTypeConfig,
   splitWithHighlights,
+  stripTypePrefix,
 } from "./types";
 
 type Props = {
@@ -22,17 +23,22 @@ const ResultRow = ({
   onMouseEnter,
   onClick,
 }: Props) => {
-  const titleSegments = useMemo(
-    () => splitWithHighlights(result.title, keywords),
-    [result.title, keywords],
+  const displayTitle = useMemo(
+    () => stripTypePrefix(result.title),
+    [result.title],
   );
 
-  const badgeColor = typeConfig?.color ?? "#8E8E8E";
+  const titleSegments = useMemo(
+    () => splitWithHighlights(displayTitle, keywords),
+    [displayTitle, keywords],
+  );
+
   const abbrev = typeConfig?.abbrev ?? result.type.slice(0, 3).toUpperCase();
+  const badgeStyle = typeConfig?.badgeStyle ?? {};
 
   return (
     <div
-      className={`dg-as-result${active ? "active" : ""}`}
+      className={`dg-as-result ${active ? "active" : ""}`}
       role="option"
       aria-selected={active}
       onMouseEnter={onMouseEnter}
@@ -40,8 +46,12 @@ const ResultRow = ({
     >
       <span
         className="dg-as-type-badge"
-        style={{ background: badgeColor }}
-        title={typeConfig?.label}
+        style={{
+          color: badgeStyle?.color,
+          backgroundColor: badgeStyle?.backgroundColor,
+          border: badgeStyle?.border,
+          borderRadius: badgeStyle?.borderRadius,
+        }}
       >
         {abbrev}
       </span>

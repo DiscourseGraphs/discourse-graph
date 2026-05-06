@@ -10,6 +10,7 @@ import MiniSearch from "minisearch";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
+import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import {
   type SearchResult,
   type Sort,
@@ -176,7 +177,12 @@ const AdvancedSearchDialog = ({ isOpen, onClose }: Props) => {
       setIsLoading(true);
       try {
         const discourseNodes = getDiscourseNodes();
-        const configs = buildNodeTypeConfigs(discourseNodes);
+        const configs = buildNodeTypeConfigs(discourseNodes)
+          .filter((c) => c.kind === "node")
+          .map((c) => ({
+            ...c,
+            badgeStyle: getNodeTagStyles(c.color) ?? {},
+          }));
         const rawData = await getAllDiscourseNodesSince(
           undefined,
           discourseNodes,
@@ -184,16 +190,19 @@ const AdvancedSearchDialog = ({ isOpen, onClose }: Props) => {
         if (cancelled) return;
 
         const currentGraphUids = buildCurrentGraphUidSet();
+        const nodeTypeIds = new Set(configs.map((c) => c.id));
 
-        const results: SearchResult[] = rawData.map((r) => ({
-          uid: r.source_local_id,
-          title: r.text,
-          type: r.type,
-          refs: 0,
-          lastModified: r.last_modified,
-          authorName: r.author_name,
-          fromCurrentGraph: currentGraphUids.has(r.source_local_id),
-        }));
+        const results: SearchResult[] = rawData
+          .filter((r) => nodeTypeIds.has(r.type))
+          .map((r) => ({
+            uid: r.source_local_id,
+            title: r.text,
+            type: r.type,
+            refs: 0,
+            lastModified: r.last_modified,
+            authorName: r.author_name,
+            fromCurrentGraph: currentGraphUids.has(r.source_local_id),
+          }));
 
         const ms = new MiniSearch<MiniSearchDoc>({
           fields: ["title"],
@@ -313,6 +322,7 @@ const AdvancedSearchDialog = ({ isOpen, onClose }: Props) => {
       onClose={onClose}
       canOutsideClickClose
       canEscapeKeyClose={false} // handled manually to close popovers first
+      enforceFocus={false} // allow focus in portaled popovers (FilterPopover, SortDropdown, HelpPopover)
       className="dg-adv-search-dialog"
       portalClassName="dg-adv-search-portal"
     >
@@ -353,6 +363,7 @@ const AdvancedSearchDialog = ({ isOpen, onClose }: Props) => {
           <div className="dg-as-actions">
             <button
               ref={filterTriggerRef}
+              style={{ position: "relative" }}
               className={`dg-as-icon-btn${showFilterPop || chips.length > 0 ? "active" : ""}`}
               onClick={() => {
                 setShowFilterPop((s) => !s);

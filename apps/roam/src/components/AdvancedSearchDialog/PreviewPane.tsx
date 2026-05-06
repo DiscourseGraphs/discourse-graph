@@ -91,9 +91,9 @@ const PreviewPane = ({ result, typeConfig, keywords }: Props) => {
     <div className="dg-as-preview-panel">
       <span
         className="dg-as-type-badge dg-as-preview-badge"
-        style={{ background: typeConfig.color }}
+        style={typeConfig.badgeStyle}
       >
-        {typeConfig.abbrev}
+        {typeConfig.label}
       </span>
 
       <h2 className="dg-as-preview-title">
@@ -108,6 +108,14 @@ const PreviewPane = ({ result, typeConfig, keywords }: Props) => {
           <sup className="dg-as-ref-count"> {result.refs}</sup>
         )}
       </h2>
+      <div className="dg-as-preview-meta">
+        Last edited: {formattedDate} · {result.authorName}
+        {!result.fromCurrentGraph && (
+          <div className="dg-as-preview-cross-graph">
+            From another graph — open to view full content
+          </div>
+        )}
+      </div>
 
       <div className="dg-as-preview-body">
         {displayContent.length > 0 ? (
@@ -128,15 +136,6 @@ const PreviewPane = ({ result, typeConfig, keywords }: Props) => {
               ? "No content"
               : "Open this node to view its content"}
           </span>
-        )}
-      </div>
-
-      <div className="dg-as-preview-meta">
-        Last edited: {formattedDate} · {result.authorName}
-        {!result.fromCurrentGraph && (
-          <div className="dg-as-preview-cross-graph">
-            From another graph — open to view full content
-          </div>
         )}
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { type CSSProperties } from "react";
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
 
 export type SearchResult = {
@@ -29,6 +30,7 @@ export type NodeTypeConfig = {
   label: string;
   abbrev: string; // 3-letter display, e.g. "EVD"
   color: string;
+  badgeStyle: CSSProperties; // computed once via getNodeTagStyles in index.tsx
   trigger: string; // abbrev lowercased, e.g. "evd"
   aliases: string[]; // all recognized aliases for chip trigger
   kind: "node" | "page" | "block";
@@ -37,6 +39,22 @@ export type NodeTypeConfig = {
 export type TextSegment = {
   text: string;
   hit: boolean;
+};
+
+/** Strip [[TypeName]] - prefix from a discourse node title. */
+export const stripTypePrefix = (title: string): string => {
+  const match = title.match(/^\[\[.*?\]\]\s*-\s*(.*)/s);
+  return match ? match[1] : title;
+};
+
+/** Convert a 6-digit hex color to rgba for dynamic chip/dot tinting. */
+export const hexToRgba = (hex: string, alpha: number): string => {
+  const clean = hex.replace("#", "");
+  if (clean.length !== 6) return hex;
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
 /** Split text into highlighted/plain segments for keyword matching. */
