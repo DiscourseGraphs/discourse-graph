@@ -4,7 +4,6 @@ import { createPage, createBlock } from "roamjs-components/writes";
 import setBlockProps from "~/utils/setBlockProps";
 import getBlockProps from "~/utils/getBlockProps";
 import type { json } from "~/utils/getBlockProps";
-import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import DEFAULT_RELATIONS_BLOCK_PROPS from "~/components/settings/data/defaultRelationsBlockProps";
 import {
@@ -24,14 +23,8 @@ import {
   migrateGraphLevel,
   migratePersonalSettings,
 } from "./migrateLegacyToBlockProps";
-import {
-  DiscourseNodeSchema,
-  getTopLevelBlockPropsConfig,
-} from "~/components/settings/utils/zodSchema";
-import {
-  DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
-  DISCOURSE_NODE_PAGE_PREFIX,
-} from "./zodSchema";
+import { getTopLevelBlockPropsConfig } from "~/components/settings/utils/zodSchema";
+import { DG_BLOCK_PROP_SETTINGS_PAGE_TITLE } from "./zodSchema";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
 
 const ensurePageExists = async (pageTitle: string): Promise<string> => {
@@ -200,66 +193,6 @@ const initSettingsPageBlocks = async (): Promise<Record<string, string>> => {
   initializeSettingsBlockProps(pageUid, blockMap);
 
   return blockMap;
-};
-
-const hasNonDefaultNodes = (): boolean => {
-  return getAllDiscourseNodes().some((node) => node.backedBy !== "default");
-};
-
-const initSingleDiscourseNode = async (
-  node: (typeof INITIAL_NODE_VALUES)[number],
-): Promise<{ label: string; pageUid: string } | null> => {
-  if (!node.text) return null;
-
-  const pageUid = await ensurePageExists(
-    `${DISCOURSE_NODE_PAGE_PREFIX}${node.text}`,
-  );
-  const existingProps = getBlockProps(pageUid);
-
-  // TODO: Same temporary fix as initializeSettingsBlockProps — replace with proper migrations.
-  if (
-    !existingProps ||
-    Object.keys(existingProps).length === 0 ||
-    !DiscourseNodeSchema.safeParse(existingProps).success
-  ) {
-    const nodeData = DiscourseNodeSchema.parse({
-      text: node.text,
-      type: node.type,
-      format: node.format || "",
-      shortcut: node.shortcut || "",
-      tag: node.tag || "",
-      graphOverview: node.graphOverview ?? false,
-      canvasSettings: node.canvasSettings || {},
-    });
-
-    setBlockProps(pageUid, nodeData, false);
-  }
-
-  return { label: node.text, pageUid };
-};
-
-const initDiscourseNodePages = async (): Promise<Record<string, string>> => {
-  if (hasNonDefaultNodes()) {
-    const existingNodes = getAllDiscourseNodes();
-    const nodePageUids: Record<string, string> = {};
-    for (const node of existingNodes) {
-      nodePageUids[node.text] = node.type;
-    }
-    return nodePageUids;
-  }
-
-  const results = await Promise.all(
-    INITIAL_NODE_VALUES.map((node) => initSingleDiscourseNode(node)),
-  );
-
-  const nodePageUids: Record<string, string> = {};
-  for (const result of results) {
-    if (result) {
-      nodePageUids[result.label] = result.pageUid;
-    }
-  }
-
-  return nodePageUids;
 };
 
 /**
@@ -439,9 +372,8 @@ const logDualReadComparison = (): void => {
 export const initSchema = async (): Promise<InitSchemaResult> => {
   const blockUids = await initSettingsPageBlocks();
   await migrateGraphLevel(blockUids);
-  const nodePageUids = await initDiscourseNodePages();
   await migratePersonalSettings(blockUids);
   (window as unknown as Record<string, unknown>).dgDualReadLog =
     logDualReadComparison;
-  return { blockUids, nodePageUids };
+  return { blockUids, nodePageUids: {} };
 };

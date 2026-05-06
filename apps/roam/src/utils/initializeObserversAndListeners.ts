@@ -119,6 +119,7 @@ export const initObservers = ({
         title,
         snapshot: settings,
       });
+
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
         renderDiscourseContext({ h1, uid });
