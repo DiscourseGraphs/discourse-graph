@@ -331,6 +331,7 @@ const NodeConfig = ({
                 description={`The template that auto fills ${node.text} page when generated.`}
                 settingKeys={TEMPLATE_SETTING_KEYS}
                 uid={templateUid}
+                defaultValue={node.template}
               />
             </div>
           }
@@ -343,6 +344,10 @@ const NodeConfig = ({
               <DiscourseNodeAttributes
                 uid={attributeNode.uid}
                 nodeType={node.type}
+                defaultValue={getDiscourseNodeSetting<Record<string, string>>(
+                  node.type,
+                  [DISCOURSE_NODE_KEYS.attributes],
+                )}
               />
               <DiscourseNodeSelectPanel
                 nodeType={node.type}

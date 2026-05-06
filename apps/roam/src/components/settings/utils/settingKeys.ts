@@ -79,6 +79,7 @@ export const DISCOURSE_NODE_KEYS = {
   attributes: "attributes",
   specification: "specification",
   index: "index",
+  template: "template",
   description: "description",
   shortcut: "shortcut",
   tag: "tag",

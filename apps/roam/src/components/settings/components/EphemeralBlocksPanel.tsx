@@ -4,7 +4,7 @@ import Description from "roamjs-components/components/Description";
 import createBlock from "roamjs-components/writes/createBlock";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getFirstChildUidByBlockUid from "roamjs-components/queries/getFirstChildUidByBlockUid";
-import type { TreeNode } from "roamjs-components/types";
+import type { InputTextNode, TreeNode } from "roamjs-components/types";
 import type { RoamNodeType } from "~/components/settings/utils/zodSchema";
 import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 import type { DiscourseNodeBaseProps } from "./BlockPropSettingPanels";
@@ -13,6 +13,7 @@ const DEBOUNCE_MS = 250;
 
 type DualWriteBlocksPanelProps = DiscourseNodeBaseProps & {
   uid: string;
+  defaultValue?: InputTextNode[];
 };
 
 const serializeBlockTree = (children: TreeNode[]): RoamNodeType[] =>
@@ -33,9 +34,12 @@ const DualWriteBlocksPanel = ({
   title,
   description,
   uid,
+  defaultValue,
 }: DualWriteBlocksPanelProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef(0);
+  const defaultValueRef = useRef(defaultValue);
+  defaultValueRef.current = defaultValue;
   const pullWatchArgsRef = useRef<
     [string, string, (before: unknown, after: unknown) => void] | null
   >(null);
@@ -62,17 +66,23 @@ const DualWriteBlocksPanel = ({
       window.roamAlphaAPI.data.addPullWatch(pattern, entityId, callback);
     };
 
-    if (!getFirstChildUidByBlockUid(uid)) {
-      void createBlock({ node: { text: " " }, parentUid: uid }).then(() => {
-        el.innerHTML = "";
-        void window.roamAlphaAPI.ui.components.renderBlock({ uid, el });
-        registerPullWatch();
-      });
-    } else {
+    const dv = defaultValueRef.current;
+    const ensureChildren = getFirstChildUidByBlockUid(uid)
+      ? Promise.resolve()
+      : (dv && dv.length > 0
+          ? Promise.all(
+              dv.map((node, i) =>
+                createBlock({ node, parentUid: uid, order: i }),
+              ),
+            )
+          : createBlock({ node: { text: " " }, parentUid: uid })
+        ).then(() => {});
+
+    void ensureChildren.then(() => {
       el.innerHTML = "";
       void window.roamAlphaAPI.ui.components.renderBlock({ uid, el });
       registerPullWatch();
-    }
+    });
 
     return () => {
       window.clearTimeout(debounceRef.current);

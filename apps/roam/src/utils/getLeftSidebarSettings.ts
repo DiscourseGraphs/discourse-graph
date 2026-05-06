@@ -204,28 +204,41 @@ export const getAllLeftSidebarPersonalSectionConfigs = (
   return result;
 };
 
-// TODO(ENG-1471): Remove when migration complete — just use accessor values directly.
-// During dual-read, we need old-system UIDs for block CRUD (fold toggle, reorder, delete)
-// but read setting VALUES from accessors (which route through the feature flag and log
-// mismatches). These helpers merge accessor values onto old-system config objects.
 export const mergeGlobalSectionWithAccessor = (
   config: LeftSidebarGlobalSectionConfig,
   globalValues: LeftSidebarGlobalSettings | undefined,
 ): LeftSidebarGlobalSectionConfig => {
-  if (!config.settings) return config;
+  const legacyChildByPageUid = new Map(config.children.map((c) => [c.text, c]));
+  const children: RoamBasicNode[] = (globalValues?.Children ?? []).map(
+    (targetPageUid) => {
+      const legacyChild = legacyChildByPageUid.get(targetPageUid);
+      return {
+        uid: legacyChild?.uid ?? "",
+        text: targetPageUid,
+        children: legacyChild?.children ?? [],
+      };
+    },
+  );
+
   return {
-    ...config,
+    uid: config.uid,
+    childrenUid: config.childrenUid,
+    children,
     settings: {
-      uid: config.settings.uid,
+      uid: config.settings?.uid ?? "",
       collapsable: {
-        uid: config.settings.collapsable.uid,
+        uid: config.settings?.collapsable.uid ?? "",
         value:
           globalValues?.Settings.Collapsable ??
-          config.settings.collapsable.value,
+          config.settings?.collapsable.value ??
+          false,
       },
       folded: {
-        uid: config.settings.folded.uid,
-        value: globalValues?.Settings.Folded ?? config.settings.folded.value,
+        uid: config.settings?.folded.uid ?? "",
+        value:
+          globalValues?.Settings.Folded ??
+          config.settings?.folded.value ??
+          false,
       },
     },
   };
@@ -235,22 +248,42 @@ export const mergePersonalSectionsWithAccessor = (
   sections: LeftSidebarPersonalSectionConfig[],
   personalValues: PersonalSection[] | undefined,
 ): LeftSidebarPersonalSectionConfig[] => {
-  return sections.map((section, i) => {
-    const newSection = personalValues?.[i];
-    if (!section.settings || !newSection) return section;
+  const legacyByName = new Map(sections.map((s) => [s.text, s]));
+  return (personalValues ?? []).map((snap) => {
+    const legacy = legacyByName.get(snap.name);
+    const legacyChildByPageUid = new Map(
+      (legacy?.children ?? []).map((c) => [c.text, c]),
+    );
     return {
-      ...section,
+      uid: legacy?.uid ?? "",
+      text: snap.name,
       settings: {
-        ...section.settings,
+        uid: legacy?.settings?.uid ?? "",
         truncateResult: {
-          ...section.settings.truncateResult,
-          value: newSection.Settings["Truncate-result?"],
+          uid: legacy?.settings?.truncateResult.uid ?? "",
+          value: snap.Settings["Truncate-result?"],
         },
         folded: {
-          ...section.settings.folded,
-          value: newSection.Settings.Folded,
+          uid: legacy?.settings?.folded.uid ?? "",
+          value: snap.Settings.Folded,
         },
       },
+      children:
+        snap.Children.length > 0
+          ? snap.Children.map((snapChild) => {
+              const legacyChild = legacyChildByPageUid.get(snapChild.uid);
+              return {
+                uid: legacyChild?.uid ?? "",
+                text: snapChild.uid,
+                children: legacyChild?.children ?? [],
+                alias: {
+                  uid: legacyChild?.alias.uid,
+                  value: snapChild.Alias,
+                },
+              };
+            })
+          : [],
+      childrenUid: legacy?.childrenUid,
     };
   });
 };
