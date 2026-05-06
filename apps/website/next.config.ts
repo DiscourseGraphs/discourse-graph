@@ -5,6 +5,11 @@ import { DOCS_REDIRECTS } from "./docsRouteMap";
 
 config();
 
+// expose supabase credentials to the client
+process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY =
+  process.env.SUPABASE_PUBLISHABLE_KEY;
+process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.SUPABASE_URL;
+
 const withNextra = nextra({
   contentDirBasePath: "/docs",
 });
