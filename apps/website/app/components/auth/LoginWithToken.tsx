@@ -12,9 +12,7 @@ export const LoginWithToken = () => {
   const [url] = useState(searchParams.get("url"));
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(
-    accessToken === null || refreshToken == null
-      ? "Please provide tokens"
-      : null,
+    accessToken === null ? "Please provide access token" : null,
   );
 
   const login = useCallback(async () => {
@@ -23,7 +21,8 @@ export const LoginWithToken = () => {
       const response = await client.auth.setSession({
         /* eslint-disable @typescript-eslint/naming-convention */
         access_token: accessToken!,
-        refresh_token: refreshToken!,
+        // in most cases, do not provide the refresh token! The access token will expire after 1h
+        refresh_token: refreshToken ?? "faketoken",
         /* eslint-enable @typescript-eslint/naming-convention */
       });
       if (response.error) {
