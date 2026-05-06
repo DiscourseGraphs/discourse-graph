@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import React, {
   useState,
   useRef,
@@ -172,7 +173,9 @@ const AdvancedSearchDialog = ({ isOpen, onClose }: Props) => {
             : undefined,
       });
       const hitUids = new Set(
-        hits.filter((h) => h.score >= MIN_SEARCH_SCORE).map((h) => h.id),
+        hits
+          .filter((h) => h.score >= MIN_SEARCH_SCORE)
+          .map((h) => h.id as string),
       );
       filtered = allResults.filter((r) => hitUids.has(r.uid));
     } else if (chips.length > 0) {
@@ -195,9 +198,7 @@ const AdvancedSearchDialog = ({ isOpen, onClose }: Props) => {
   useEffect(() => {
     const panel = resultsRef.current;
     if (!panel) return;
-    const active = panel.querySelector(
-      ".dg-as-result.active",
-    ) as HTMLElement | null;
+    const active = panel.querySelector(".dg-as-result.active");
     if (!active) return;
     const pr = panel.getBoundingClientRect();
     const er = active.getBoundingClientRect();
@@ -301,7 +302,7 @@ const AdvancedSearchDialog = ({ isOpen, onClose }: Props) => {
 
             <button
               ref={sortTriggerRef}
-              className={`dg-as-sort-pill${showSort ? "active" : ""}`}
+              className={`dg-as-sort-pill ${showSort ? "active" : ""}`}
               onClick={() => {
                 setShowSort((s) => !s);
                 setShowFilterPop(false);
