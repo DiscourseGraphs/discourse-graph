@@ -1,0 +1,737 @@
+/* ── Advanced Search Dialog ────────────────────────────────────── */
+
+/* Override Blueprint Dialog defaults */
+.bp3-dialog.dg-adv-search-dialog {
+  width: min(900px, 94vw);
+  height: 72vh;
+  padding: 0;
+  border-radius: 12px;
+  box-shadow:
+    0 24px 60px -12px rgba(0, 0, 0, 0.3),
+    0 8px 20px -8px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(31, 31, 31, 0.06);
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.bp3-dialog-container.dg-adv-search-container {
+  align-items: flex-start;
+  padding-top: 12vh;
+}
+
+/* matches className="dg-as-modal" in index.tsx */
+.dg-as-modal {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #1f1f1f;
+}
+
+/* ── Search row ────────────────────────────────────────────────── */
+
+.dg-as-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(31, 31, 31, 0.12);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dg-as-search-icon {
+  flex-shrink: 0;
+  color: rgba(31, 31, 31, 0.5) !important;
+}
+
+/* ── Chips + input ─────────────────────────────────────────────── */
+
+.dg-as-chips-input {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+}
+
+.dg-as-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px 0 6px;
+  /* background, border, color set via inline styles per node type color */
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  outline: none;
+  cursor: default;
+  animation: dg-as-chip-in 140ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* focused state handled via inline styles with per-type color */
+
+@keyframes dg-as-chip-in {
+  from {
+    transform: scale(0.86);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.dg-as-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dg-as-chip-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  color: currentColor;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.dg-as-chip-x:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.dg-as-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 80px;
+  display: inline-flex;
+}
+
+.dg-as-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  color: #1f1f1f;
+  padding: 2px 0;
+  caret-color: #5f57c0;
+}
+
+.dg-as-search-input::placeholder {
+  color: rgba(31, 31, 31, 0.5);
+}
+
+.dg-as-ghost {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  font-size: 16px;
+  pointer-events: none;
+  white-space: pre;
+}
+
+.dg-as-ghost-typed {
+  color: transparent;
+}
+.dg-as-ghost-completion {
+  color: rgba(31, 31, 31, 0.35);
+}
+
+.dg-as-ghost-tabkey {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid rgba(31, 31, 31, 0.12);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: ui-monospace, "Geist Mono", monospace;
+  font-size: 11px;
+  color: rgba(31, 31, 31, 0.6);
+  background: #fff;
+  vertical-align: 1px;
+}
+
+/* ── Actions cluster ───────────────────────────────────────────── */
+
+.dg-as-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.dg-as-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: rgba(31, 31, 31, 0.6);
+  border-radius: 6px;
+  position: relative;
+  padding: 0;
+}
+
+.dg-as-icon-btn:hover {
+  background: rgba(31, 31, 31, 0.06);
+  color: #1f1f1f;
+}
+
+.dg-as-icon-btn.active {
+  background: rgba(95, 87, 192, 0.1);
+  color: #5f57c0;
+}
+
+.dg-as-count-pill {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: #5f57c0;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dg-as-sort-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px 0 10px;
+  border: 1px solid rgba(31, 131, 221, 0.5);
+  border-radius: 6px;
+  background: #fff;
+  color: #1b6ec2;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dg-as-sort-pill:hover {
+  background: rgba(27, 110, 194, 0.06);
+}
+.dg-as-sort-pill.active {
+  background: rgba(27, 110, 194, 0.1);
+}
+
+/* ── Split body ────────────────────────────────────────────────── */
+
+.dg-as-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Results panel (left) ──────────────────────────────────────── */
+
+.dg-as-results-panel {
+  width: 38%;
+  border-right: 1px solid rgba(31, 31, 31, 0.12);
+  overflow-y: auto;
+  padding: 6px 0;
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+.dg-as-result {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dg-as-result:hover {
+  background: rgba(31, 31, 31, 0.03);
+}
+
+.dg-as-result.active {
+  background: rgba(95, 87, 192, 0.08);
+  box-shadow: inset 3px 0 0 #5f57c0;
+}
+
+.dg-as-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  min-width: 30px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  /* backgroundColor and color set via inline styles using getContrastColor() */
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.dg-as-result-title {
+  font-size: 14px;
+  color: #1f1f1f;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.dg-as-ref-count {
+  font-size: 10px;
+  color: rgba(31, 31, 31, 0.5);
+  vertical-align: super;
+  flex-shrink: 0;
+}
+
+.dg-as-results-empty {
+  padding: 48px 16px;
+  text-align: center;
+  color: rgba(31, 31, 31, 0.5);
+  font-size: 14px;
+}
+
+.dg-as-results-loading {
+  padding: 32px 16px;
+  text-align: center;
+  color: rgba(31, 31, 31, 0.5);
+  font-size: 13px;
+}
+
+/* Keyword highlights */
+.dg-as-result mark,
+.dg-as-preview-title mark,
+.dg-as-preview-body mark {
+  background: rgba(255, 200, 60, 0.45);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ── Preview panel (right) ─────────────────────────────────────── */
+
+.dg-as-preview-panel {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 20px 24px;
+  background: #fff;
+}
+
+.dg-as-preview-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(31, 31, 31, 0.4);
+  font-size: 13px;
+}
+
+.dg-as-preview-badge {
+  height: 24px;
+  min-width: 44px;
+  font-size: 12px;
+  border-radius: 5px;
+}
+
+.dg-as-preview-title {
+  font-size: 21px;
+  font-weight: 700;
+  color: #1f1f1f;
+  margin: 12px 0 16px;
+  line-height: 1.3;
+}
+
+.dg-as-preview-body {
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(31, 31, 31, 0.8);
+}
+
+.dg-as-preview-body p {
+  margin: 0 0 6px;
+}
+
+.dg-as-preview-body-empty {
+  color: rgba(31, 31, 31, 0.35);
+  font-style: italic;
+  font-size: 14px;
+}
+
+.dg-as-preview-meta {
+  margin-top: 20px;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: rgba(31, 31, 31, 0.5);
+  border-top: 1px solid rgba(31, 31, 31, 0.08);
+  padding-top: 12px;
+}
+
+.dg-as-preview-cross-graph {
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(31, 31, 31, 0.4);
+  font-style: italic;
+}
+
+/* ── Footer ────────────────────────────────────────────────────── */
+
+.dg-as-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-top: 1px solid rgba(31, 31, 31, 0.12);
+  background: #fafafa;
+  font-size: 11px;
+  color: rgba(31, 31, 31, 0.6);
+  flex-shrink: 0;
+}
+
+.dg-as-footer-keys {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.dg-as-key-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dg-as-modal kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid rgba(31, 31, 31, 0.2);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  background: #fff;
+  color: rgba(31, 31, 31, 0.8);
+  line-height: 1;
+}
+
+/* ── Filter popover ────────────────────────────────────────────── */
+
+.dg-as-filter-pop {
+  width: 280px;
+  background: #fff;
+  border: 1px solid rgba(31, 31, 31, 0.1);
+  border-radius: 8px;
+  box-shadow:
+    0 12px 32px -8px rgba(0, 0, 0, 0.18),
+    0 4px 12px -4px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(31, 31, 31, 0.04);
+  overflow: hidden;
+  animation: dg-as-pop-in 120ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@keyframes dg-as-pop-in {
+  from {
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.dg-as-pop-search {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(31, 31, 31, 0.12);
+}
+
+.dg-as-pop-search-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: #1f1f1f;
+}
+
+.dg-as-pop-search-input::placeholder {
+  color: rgba(31, 31, 31, 0.5);
+}
+
+.dg-as-pop-list {
+  padding: 4px 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.dg-as-pop-section + .dg-as-pop-section {
+  border-top: 1px solid rgba(31, 31, 31, 0.12);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.dg-as-pop-row {
+  display: grid;
+  grid-template-columns: 22px 14px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #1f1f1f;
+  position: relative;
+}
+
+.dg-as-pop-row:hover {
+  background: rgba(31, 31, 31, 0.04);
+}
+
+.dg-as-pop-row .dg-as-only-btn {
+  font-size: 12px;
+  color: #5f57c0;
+  opacity: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.dg-as-pop-row:hover .dg-as-only-btn {
+  opacity: 1;
+}
+
+.dg-as-only-btn:hover {
+  background: rgba(95, 87, 192, 0.12);
+}
+
+.dg-as-pop-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dg-as-pop-ring {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(31, 31, 31, 0.5);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.dg-as-pop-select-all-label {
+  font-weight: 600;
+}
+
+.dg-as-pop-empty {
+  padding: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(31, 31, 31, 0.5);
+}
+
+/* Checkbox */
+.dg-as-cb {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid rgba(31, 31, 31, 0.3);
+  border-radius: 3px;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background 100ms ease,
+    border-color 100ms ease;
+}
+
+.dg-as-cb.on,
+.dg-as-cb.indeterminate {
+  background: #1b6ec2;
+  border-color: #1b6ec2;
+}
+
+.dg-as-cb.indeterminate::after {
+  content: "";
+  width: 8px;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+}
+
+/* ── Sort dropdown ─────────────────────────────────────────────── */
+
+.dg-as-dropdown {
+  width: 240px;
+  background: #fff;
+  border: 1px solid rgba(31, 31, 31, 0.1);
+  border-radius: 8px;
+  box-shadow:
+    0 12px 32px -8px rgba(0, 0, 0, 0.18),
+    0 4px 12px -4px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(31, 31, 31, 0.04);
+  padding: 4px 0;
+  animation: dg-as-pop-in 120ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.dg-as-dropdown-label {
+  padding: 8px 12px 4px;
+  font-size: 12px;
+  color: rgba(31, 31, 31, 0.6);
+  font-weight: 500;
+}
+
+.dg-as-dropdown-item {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 14px;
+  color: #1f1f1f;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dg-as-dropdown-item:hover {
+  background: rgba(31, 31, 31, 0.04);
+}
+
+.dg-as-dropdown-item.selected {
+  background: rgba(27, 110, 194, 0.07);
+}
+
+.dg-as-dropdown-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #1b6ec2;
+}
+
+.dg-as-dropdown-item.selected .dg-as-dropdown-item-label {
+  font-weight: 600;
+}
+
+.dg-as-dir-toggles {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.dg-as-dir-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 3px;
+  color: rgba(31, 31, 31, 0.3);
+  padding: 0;
+}
+
+.dg-as-dir-btn.active {
+  color: #1b6ec2;
+  background: rgba(27, 110, 194, 0.1);
+}
+
+.dg-as-dir-btn:hover:not(.active) {
+  color: rgba(31, 31, 31, 0.6);
+  background: rgba(31, 31, 31, 0.06);
+}
+
+/* ── Help popover ──────────────────────────────────────────────── */
+
+.dg-as-help-pop {
+  width: 320px;
+  background: #fff;
+  border: 1px solid rgba(31, 31, 31, 0.12);
+  border-radius: 10px;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  padding: 14px 14px 12px;
+  font-size: 13px;
+  animation: dg-as-pop-in 120ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.dg-as-help-pop h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(31, 31, 31, 0.6);
+  margin: 12px 0 6px;
+  font-weight: 600;
+}
+
+.dg-as-help-pop h4:first-child {
+  margin-top: 0;
+}
+
+.dg-as-help-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 0;
+  color: rgba(31, 31, 31, 0.8);
+}
+
+.dg-as-help-keys {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.dg-as-triggers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 16px;
+  color: rgba(31, 31, 31, 0.8);
+}

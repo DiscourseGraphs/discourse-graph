@@ -29,6 +29,7 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
+import { renderAdvancedSearchDialog } from "~/components/AdvancedSearchDialog";
 
 type BlockSelection = {
   selectionStart: number;
@@ -314,6 +315,9 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   // Roam organizes commands alphabetically
+  void addCommand("DG: Open Node Search Menu", () =>
+    renderAdvancedSearchDialog(),
+  );
   void addCommand("DG: Create/Insert discourse node", () =>
     createDiscourseNodeFromCommand(extensionAPI),
   );
