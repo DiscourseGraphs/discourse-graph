@@ -19,6 +19,10 @@ import {
   getOverlayHandler,
   onPageRefObserverChange,
 } from "./pageRefObserverHandlers";
+import findDiscourseNode from "~/utils/findDiscourseNode";
+import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
+import getSubTree from "roamjs-components/util/getSubTree";
+import stripUid from "roamjs-components/util/stripUid";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
 import { extractRef } from "roamjs-components/util";
@@ -117,6 +121,95 @@ export const createDiscourseNodeFromCommand = (
       });
       return;
     },
+    onClose: () => {},
+  });
+};
+
+export const convertPageToNodeFromCommand = (
+  extensionAPI: OnloadArgs["extensionAPI"],
+) => {
+  posthog.capture("Discourse Node: Convert Command Triggered");
+  const pageUid = getCurrentPageUid();
+  if (!pageUid) {
+    renderToast({
+      id: "convert-page-no-page",
+      content: "Navigate to a page to convert it to a discourse node.",
+    });
+    return;
+  }
+
+  const pageTitle = getPageTitleByPageUid(pageUid);
+  if (!pageTitle) {
+    renderToast({
+      id: "convert-page-no-title",
+      content: "Could not determine the current page title.",
+    });
+    return;
+  }
+
+  const existingNode = findDiscourseNode({ uid: pageUid, title: pageTitle });
+  if (existingNode && existingNode.backedBy !== "default") {
+    renderToast({
+      id: "convert-page-already-node",
+      content: `This page is already a ${existingNode.text} node.`,
+    });
+    return;
+  }
+
+  renderModifyNodeDialog({
+    mode: "create",
+    nodeType: "",
+    initialValue: { text: pageTitle, uid: "" },
+    extensionAPI,
+    createOverride: async ({ formattedTitle, configPageUid }) => {
+      await window.roamAlphaAPI.data.page.update({
+        page: { uid: pageUid, title: formattedTitle },
+      });
+
+      const nodeTree = getFullTreeByParentUid(configPageUid).children;
+      const templateNode = getSubTree({ tree: nodeTree, key: "template" });
+      if (templateNode.children.length > 0) {
+        const hasSmartBlockSyntax = (
+          node: Parameters<typeof stripUid>[0][0],
+        ): boolean => {
+          if (node.text.includes("<%")) return true;
+          if (node.children) return node.children.some(hasSmartBlockSyntax);
+          return false;
+        };
+        const useSmartBlocks = hasSmartBlockSyntax(templateNode);
+
+        if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
+          void window.roamjs.extension.smartblocks?.triggerSmartblock({
+            srcUid: templateNode.uid,
+            targetUid: pageUid,
+          });
+        } else {
+          if (useSmartBlocks) {
+            renderToast({
+              content:
+                "This template requires SmartBlocks. Enable SmartBlocks in Roam Depot to use this template.",
+              id: "smartblocks-extension-disabled",
+              intent: "warning",
+            });
+          }
+          const existingChildren =
+            getFullTreeByParentUid(pageUid).children || [];
+          const lastOrder = existingChildren.length;
+          await Promise.all(
+            stripUid(templateNode.children).map((node, order) =>
+              createBlock({
+                node,
+                order: lastOrder + order,
+                parentUid: pageUid,
+              }),
+            ),
+          );
+        }
+      }
+
+      return pageUid;
+    },
+    onSuccess: async () => {},
     onClose: () => {},
   });
 };
@@ -314,6 +407,9 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   // Roam organizes commands alphabetically
+  void addCommand("DG: Convert current page to discourse node", () =>
+    convertPageToNodeFromCommand(extensionAPI),
+  );
   void addCommand("DG: Create/Insert discourse node", () =>
     createDiscourseNodeFromCommand(extensionAPI),
   );

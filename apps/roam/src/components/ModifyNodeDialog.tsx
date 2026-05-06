@@ -50,6 +50,10 @@ export type ModifyNodeDialogProps = {
   includeDefaultNodes?: boolean; // Include default nodes (Page, Block) in node type selector
   imageUrl?: string; // For image conversion from canvas
   disableNodeTypeChange?: boolean; // Disable node type selector (e.g. canvas contexts)
+  createOverride?: (args: {
+    formattedTitle: string;
+    configPageUid: string;
+  }) => Promise<string | void>;
   onSuccess: (result: {
     text: string;
     uid: string;
@@ -69,6 +73,7 @@ const ModifyNodeDialog = ({
   includeDefaultNodes = false,
   imageUrl,
   disableNodeTypeChange = false,
+  createOverride,
   onSuccess,
   onClose,
 }: RoamOverlayProps<ModifyNodeDialogProps>) => {
@@ -416,13 +421,20 @@ const ModifyNodeDialog = ({
           return;
         }
 
-        // Create new discourse node
-        const newPageUid = await createDiscourseNode({
-          text: formattedTitle,
-          configPageUid: selectedNodeType?.type ?? "",
-          extensionAPI,
-          imageUrl,
-        });
+        const configPageUid = selectedNodeType?.type ?? "";
+        const overrideUid = createOverride
+          ? await createOverride({ formattedTitle, configPageUid })
+          : undefined;
+
+        const newPageUid =
+          overrideUid !== undefined
+            ? overrideUid
+            : await createDiscourseNode({
+                text: formattedTitle,
+                configPageUid,
+                extensionAPI,
+                imageUrl,
+              });
 
         if (sourceBlockUid) {
           const pageRef = `[[${formattedTitle}]]`;
