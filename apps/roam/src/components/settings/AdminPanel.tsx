@@ -34,6 +34,7 @@ import {
 } from "~/components/settings/utils/accessors";
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 import type { FeatureFlags } from "./utils/zodSchema";
+import { nextRoot } from "@repo/utils/execContext";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -266,13 +267,32 @@ const FeatureFlagsTab = (): React.ReactElement => {
   const [suggestiveOverlayValue, setSuggestiveOverlayValue] = useState(
     getFeatureFlag("Suggestive mode overlay enabled"),
   );
-
-  const syncAlreadyEnabled = duplicateNodeAlertValue || suggestiveOverlayValue;
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  //const syncAlreadyEnabled = duplicateNodeAlertValue || suggestiveOverlayValue;
+  useEffect(() => {
+    if (duplicateNodeAlertValue || suggestiveOverlayValue) {
+      const fetchTokens = async () => {
+        const client = await getLoggedInClient();
+        if (client) {
+          const session = await client.auth.getSession();
+          if (session.data.session) {
+            setAccessToken(session.data.session.access_token);
+            setRefreshToken(session.data.session.refresh_token);
+          }
+        }
+      };
+      void fetchTokens();
+    } else {
+      setAccessToken(null);
+      setRefreshToken(null);
+    }
+  }, [duplicateNodeAlertValue, suggestiveOverlayValue]);
 
   const ensureSyncEnabled = (
     featureKey: keyof FeatureFlags,
   ): Promise<boolean> => {
-    if (syncAlreadyEnabled) {
+    if (duplicateNodeAlertValue || suggestiveOverlayValue) {
       return Promise.resolve(true);
     }
     setPendingFeatureKey(featureKey);
@@ -393,6 +413,20 @@ const FeatureFlagsTab = (): React.ReactElement => {
       >
         Send Error Email
       </Button>
+      {accessToken && refreshToken && (
+        <Button
+          className="w-96"
+          icon="document-open"
+          onClick={() => {
+            window.open(
+              `${nextRoot()}/auth/token?t=${accessToken}&r=${refreshToken}&url=/`,
+              "_blank",
+            );
+          }}
+        >
+          Manage groups
+        </Button>
+      )}
     </div>
   );
 };
