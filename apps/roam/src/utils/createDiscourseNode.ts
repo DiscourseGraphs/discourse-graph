@@ -1,6 +1,5 @@
 import { render as renderToast } from "roamjs-components/components/Toast";
 import createBlock from "roamjs-components/writes/createBlock";
-import stripUid from "roamjs-components/util/stripUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import createPage from "roamjs-components/writes/createPage";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
@@ -8,12 +7,18 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import getDiscourseNodes from "./getDiscourseNodes";
 import resolveQueryBuilderRef from "./resolveQueryBuilderRef";
-import { OnloadArgs, RoamBasicNode } from "roamjs-components/types";
+import { InputTextNode, OnloadArgs } from "roamjs-components/types";
 import runQuery from "./runQuery";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import posthog from "posthog-js";
-import { getPersonalSetting } from "~/components/settings/utils/accessors";
-import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
+import {
+  getDiscourseNodeSetting,
+  getPersonalSetting,
+} from "~/components/settings/utils/accessors";
+import {
+  DISCOURSE_NODE_KEYS,
+  PERSONAL_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 type Props = {
   text: string;
@@ -22,6 +27,18 @@ type Props = {
   imageUrl?: string;
   extensionAPI?: OnloadArgs["extensionAPI"];
 };
+
+const stripTemplateUids = (nodes: InputTextNode[]): InputTextNode[] =>
+  nodes.map((node) => {
+    const nodeWithoutUid = { ...node };
+    const { children } = nodeWithoutUid;
+    delete nodeWithoutUid.uid;
+    delete nodeWithoutUid.children;
+    return {
+      ...nodeWithoutUid,
+      ...(children?.length ? { children: stripTemplateUids(children) } : {}),
+    };
+  });
 
 const createDiscourseNode = async ({
   text,
@@ -141,15 +158,14 @@ const createDiscourseNode = async ({
     return pageUid;
   }
 
-  const nodeTree = getFullTreeByParentUid(configPageUid).children;
-  const templateNode = getSubTree({
-    tree: nodeTree,
-    key: "template",
-  });
+  const templateChildren =
+    getDiscourseNodeSetting<InputTextNode[]>(configPageUid, [
+      DISCOURSE_NODE_KEYS.template,
+    ]) ?? [];
 
   const createBlocksFromTemplate = async () => {
     await Promise.all(
-      stripUid(templateNode.children).map(({ uid, ...node }, order) =>
+      stripTemplateUids(templateChildren).map((node, order) =>
         createBlock({
           node,
           order,
@@ -162,12 +178,17 @@ const createDiscourseNode = async ({
     await handleImageCreation(pageUid);
   };
 
-  const hasSmartBlockSyntax = (node: RoamBasicNode) => {
+  const hasSmartBlockSyntax = (node: InputTextNode) => {
     if (node.text.includes("<%")) return true;
     if (node.children) return node.children.some(hasSmartBlockSyntax);
     return false;
   };
-  const useSmartBlocks = hasSmartBlockSyntax(templateNode);
+  const useSmartBlocks = templateChildren.some(hasSmartBlockSyntax);
+  const legacyTemplateNode = getSubTree({
+    tree: getFullTreeByParentUid(configPageUid).children,
+    key: "template",
+  });
+  const canUseLegacySmartBlock = !!legacyTemplateNode.uid;
 
   if (useSmartBlocks && !window.roamjs?.extension?.smartblocks) {
     renderToast({
@@ -177,9 +198,13 @@ const createDiscourseNode = async ({
       intent: "warning",
     });
     await createBlocksFromTemplate();
-  } else if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
-    window.roamjs.extension.smartblocks?.triggerSmartblock({
-      srcUid: templateNode.uid,
+  } else if (
+    useSmartBlocks &&
+    canUseLegacySmartBlock &&
+    window.roamjs?.extension?.smartblocks
+  ) {
+    void window.roamjs.extension.smartblocks?.triggerSmartblock({
+      srcUid: legacyTemplateNode.uid,
       targetUid: pageUid,
     });
     await handleImageCreation(pageUid);
