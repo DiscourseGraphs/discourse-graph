@@ -4,7 +4,6 @@ import React, {
   useEffect,
   useState,
   useCallback,
-  memo,
 } from "react";
 import { Button, HTMLTable, Icon, IconName } from "@blueprintjs/core";
 import { IconNames } from "@blueprintjs/icons";
@@ -161,19 +160,16 @@ export const CellEmbed = ({
   );
 };
 
-const CellRender = memo(
-  ({ content, uid }: { content: string; uid: string }) => {
-    const isPage = !!getPageTitleByPageUid(uid);
-    const displayString = isPage ? `[[${content}]]` : content;
+const CellRender = ({ content, uid }: { content: string; uid: string }) => {
+  const isPage = !!getPageTitleByPageUid(uid);
+  const displayString = isPage ? `[[${content}]]` : content;
 
-    return (
-      <span className="roamjs-query-link-cell">
-        <RenderRoamBlockString string={displayString} />
-      </span>
-    );
-  },
-);
-CellRender.displayName = "CellRender";
+  return (
+    <span className="roamjs-query-link-cell">
+      <RenderRoamBlockString string={displayString} />
+    </span>
+  );
+};
 
 type ResultRowProps = {
   r: Result;
@@ -187,240 +183,236 @@ type ResultRowProps = {
   onRefresh: (ignoreCache?: boolean) => void;
 };
 
-const ResultRow = memo(
-  ({
-    r,
-    columns,
-    parentUid,
-    ctrlClick,
-    views,
-    onDragStart,
-    onDrag,
-    onDragEnd,
-    onRefresh,
-  }: ResultRowProps) => {
-    const storedRelationsEnabled = getStoredRelationsEnabled();
-    const cell = (key: string) => {
-      const value = toCellValue({
-        value: r[`${key}-display`] || r[key] || "",
-        uid: r[`${key}-uid`] || "",
-      });
-      const action = r[`${key}-action`];
-      if (typeof action === "string") {
-        const buttonProps =
-          value.toUpperCase().replace(/\s/g, "_") in IconNames
-            ? { icon: value as IconName, minimal: true }
-            : { text: value };
-        const actionUid = r[`${key}-uid`];
+const ResultRow = ({
+  r,
+  columns,
+  parentUid,
+  ctrlClick,
+  views,
+  onDragStart,
+  onDrag,
+  onDragEnd,
+  onRefresh,
+}: ResultRowProps) => {
+  const storedRelationsEnabled = getStoredRelationsEnabled();
+  const cell = (key: string) => {
+    const value = toCellValue({
+      value: r[`${key}-display`] || r[key] || "",
+      uid: r[`${key}-uid`] || "",
+    });
+    const action = r[`${key}-action`];
+    if (typeof action === "string") {
+      const buttonProps =
+        value.toUpperCase().replace(/\s/g, "_") in IconNames
+          ? { icon: value as IconName, minimal: true }
+          : { text: value };
+      const actionUid = r[`${key}-uid`];
 
-        if (
-          action === "discourse" &&
-          value === CONTEXT_OVERLAY_SUGGESTION &&
-          actionUid
-        ) {
-          return (
-            <DiscourseContextOverlay
-              uid={actionUid}
-              id={`discourse-overlay-${parentUid}-${actionUid}`}
-            />
-          );
-        }
+      if (
+        action === "discourse" &&
+        value === CONTEXT_OVERLAY_SUGGESTION &&
+        actionUid
+      ) {
         return (
-          <Button
-            {...buttonProps}
-            onClick={(event) => {
-              const targetCanvasPageUid =
-                event.currentTarget.closest<HTMLElement>(
-                  ".roamjs-tldraw-canvas-container[data-page-uid]",
-                )?.dataset.pageUid || undefined;
-              document.dispatchEvent(
-                new CustomEvent("roamjs:query-builder:action", {
-                  detail: {
-                    action,
-                    uid: actionUid,
-                    val: r["text"],
-                    onRefresh,
-                    queryUid: parentUid,
-                    targetCanvasPageUid,
-                  },
-                }),
-              );
-            }}
+          <DiscourseContextOverlay
+            uid={actionUid}
+            id={`discourse-overlay-${parentUid}-${actionUid}`}
           />
         );
       }
+      return (
+        <Button
+          {...buttonProps}
+          onClick={(event) => {
+            const targetCanvasPageUid =
+              event.currentTarget.closest<HTMLElement>(
+                ".roamjs-tldraw-canvas-container[data-page-uid]",
+              )?.dataset.pageUid || undefined;
+            document.dispatchEvent(
+              new CustomEvent("roamjs:query-builder:action", {
+                detail: {
+                  action,
+                  uid: actionUid,
+                  val: r["text"],
+                  onRefresh,
+                  queryUid: parentUid,
+                  targetCanvasPageUid,
+                },
+              }),
+            );
+          }}
+        />
+      );
+    }
 
-      return value
-        .toString()
-        .split("<span>")
-        .map((s, i) => (
-          <span
-            key={i}
-            className={i % 2 === 0 ? "" : "roamjs-query-hightlighted-result"}
-          >
-            {s}
-          </span>
-        ));
-    };
-    const viewsByColumn = useMemo(
-      () => Object.fromEntries(views.map((v) => [v.column, v])),
-      [views],
-    );
-    const trRef = useRef<HTMLTableRowElement>(null);
-    const onDelete = () => {
-      const data = {
-        sourceUid: r["complement"] === 1 ? r["uid"] : r["ctxTargetUid"],
-        destinationUid: r["complement"] === 1 ? r["ctxTargetUid"] : r["uid"],
-        hasSchema: r["id"],
-      } as Record<string, string>;
-      // types got checked as a condition for displaying the button
-      strictQueryForReifiedBlocks(data)
-        .then((blockUid) => {
-          if (blockUid === null) {
-            renderToast({
-              id: "delete-relation-error",
-              content: "Could not find relation",
-              intent: "warning",
-            });
-            return;
-          }
-          deleteBlock(blockUid)
-            .then(() => {
-              renderToast({
-                id: "delete-relation-success",
-                content: "Relation deleted",
-                intent: "success",
-              });
-              onRefresh(true);
-            })
-            .catch((e) => {
-              // this one should be an internalError
-              console.error(e);
-              renderToast({
-                id: "delete-relation-error",
-                content: "Could not delete relation",
-                intent: "danger",
-              });
-            });
-        })
-        .catch((e) => {
-          // this one should be an internalError
-          console.error(e);
+    return value
+      .toString()
+      .split("<span>")
+      .map((s, i) => (
+        <span
+          key={i}
+          className={i % 2 === 0 ? "" : "roamjs-query-hightlighted-result"}
+        >
+          {s}
+        </span>
+      ));
+  };
+  const viewsByColumn = useMemo(
+    () => Object.fromEntries(views.map((v) => [v.column, v])),
+    [views],
+  );
+  const trRef = useRef<HTMLTableRowElement>(null);
+  const onDelete = () => {
+    const data = {
+      sourceUid: r["complement"] === 1 ? r["uid"] : r["ctxTargetUid"],
+      destinationUid: r["complement"] === 1 ? r["ctxTargetUid"] : r["uid"],
+      hasSchema: r["id"],
+    } as Record<string, string>;
+    // types got checked as a condition for displaying the button
+    strictQueryForReifiedBlocks(data)
+      .then((blockUid) => {
+        if (blockUid === null) {
           renderToast({
             id: "delete-relation-error",
-            content: "Error searching for relation",
-            intent: "danger",
+            content: "Could not find relation",
+            intent: "warning",
           });
+          return;
+        }
+        deleteBlock(blockUid)
+          .then(() => {
+            renderToast({
+              id: "delete-relation-success",
+              content: "Relation deleted",
+              intent: "success",
+            });
+            onRefresh(true);
+          })
+          .catch((e) => {
+            // this one should be an internalError
+            console.error(e);
+            renderToast({
+              id: "delete-relation-error",
+              content: "Could not delete relation",
+              intent: "danger",
+            });
+          });
+      })
+      .catch((e) => {
+        // this one should be an internalError
+        console.error(e);
+        renderToast({
+          id: "delete-relation-error",
+          content: "Error searching for relation",
+          intent: "danger",
         });
-    };
+      });
+  };
 
-    return (
-      <>
-        <tr ref={trRef} data-uid={r.uid}>
-          {columns.map(({ key, uid: columnUid }, i) => {
-            const uid = (r[`${key}-uid`] || "").toString();
-            const val = r[key] || "";
-            const { mode: view, value: viewValue } = viewsByColumn[key] || {};
-            return (
-              <td
-                className={"relative overflow-hidden text-ellipsis"}
-                key={key}
-                {...{
-                  [`data-cell-content`]:
-                    typeof val === "string" ? val : String(val),
-                  [`data-column-title`]: key,
-                }}
-              >
-                {val === "" ? (
-                  <i>[block is blank]</i>
-                ) : view === "render" ? (
-                  <CellRender content={val.toString()} uid={uid} />
-                ) : view === "link" || view === "alias" ? (
-                  <a
-                    className={"rm-page-ref"}
-                    data-link-title={getPageTitleByPageUid(uid) || ""}
-                    href={(r[`${key}-url`] as string) || getRoamUrl(uid)}
-                    onMouseDown={(e) => {
-                      if (e.shiftKey) {
-                        void openBlockInSidebar(uid);
-                        e.preventDefault();
-                        e.stopPropagation();
-                      } else if (e.ctrlKey) {
-                        ctrlClick?.({
-                          text: toCellValue({ value: val, uid }),
-                          uid,
-                        });
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }
-                    }}
-                    onClick={(e) => {
-                      if (e.shiftKey || e.ctrlKey) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }
-                    }}
-                    onContextMenu={(e) => {
-                      if (e.ctrlKey) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }
-                    }}
-                  >
-                    {view === "alias" ? viewValue : cell(key)}
-                  </a>
-                ) : view === "embed" ? (
-                  <CellEmbed uid={uid} viewValue={viewValue} />
-                ) : (
-                  cell(key)
+  return (
+    <>
+      <tr ref={trRef} data-uid={r.uid}>
+        {columns.map(({ key, uid: columnUid }, i) => {
+          const uid = (r[`${key}-uid`] || "").toString();
+          const val = r[key] || "";
+          const { mode: view, value: viewValue } = viewsByColumn[key] || {};
+          return (
+            <td
+              className={"relative overflow-hidden text-ellipsis"}
+              key={key}
+              {...{
+                [`data-cell-content`]:
+                  typeof val === "string" ? val : String(val),
+                [`data-column-title`]: key,
+              }}
+            >
+              {val === "" ? (
+                <i>[block is blank]</i>
+              ) : view === "render" ? (
+                <CellRender content={val.toString()} uid={uid} />
+              ) : view === "link" || view === "alias" ? (
+                <a
+                  className={"rm-page-ref"}
+                  data-link-title={getPageTitleByPageUid(uid) || ""}
+                  href={(r[`${key}-url`] as string) || getRoamUrl(uid)}
+                  onMouseDown={(e) => {
+                    if (e.shiftKey) {
+                      void openBlockInSidebar(uid);
+                      e.preventDefault();
+                      e.stopPropagation();
+                    } else if (e.ctrlKey) {
+                      ctrlClick?.({
+                        text: toCellValue({ value: val, uid }),
+                        uid,
+                      });
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                  onClick={(e) => {
+                    if (e.shiftKey || e.ctrlKey) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                  onContextMenu={(e) => {
+                    if (e.ctrlKey) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                >
+                  {view === "alias" ? viewValue : cell(key)}
+                </a>
+              ) : view === "embed" ? (
+                <CellEmbed uid={uid} viewValue={viewValue} />
+              ) : (
+                cell(key)
+              )}
+              {storedRelationsEnabled &&
+                typeof r["ctxTargetUid"] === "string" &&
+                typeof r["id"] === "string" &&
+                typeof r["complement"] === "number" &&
+                i === columns.length - 1 && (
+                  <Button
+                    minimal
+                    icon="delete"
+                    className="float-right"
+                    title="Delete relation"
+                    onClick={onDelete}
+                  ></Button>
                 )}
-                {storedRelationsEnabled &&
-                  typeof r["ctxTargetUid"] === "string" &&
-                  typeof r["id"] === "string" &&
-                  typeof r["complement"] === "number" &&
-                  i === columns.length - 1 && (
-                    <Button
-                      minimal
-                      icon="delete"
-                      className="float-right"
-                      title="Delete relation"
-                      onClick={onDelete}
-                    ></Button>
-                  )}
-                {i < columns.length - 1 && (
-                  <div
-                    style={{
-                      width: 2,
-                      cursor: "ew-resize",
-                      position: "absolute",
-                      top: 0,
-                      right: 0,
-                      bottom: 0,
-                      background: `rgba(16,22,26,0.15)`,
-                    }}
-                    data-left-column-uid={columnUid}
-                    data-right-column-uid={columns[i + 1].uid}
-                    data-column={columnUid}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", "");
-                      e.dataTransfer.setDragImage(dragImage, 0, 0);
-                      onDragStart(e);
-                    }}
-                    onDrag={onDrag}
-                    onDragEnd={onDragEnd}
-                  />
-                )}
-              </td>
-            );
-          })}
-        </tr>
-      </>
-    );
-  },
-);
-
-ResultRow.displayName = "ResultRow";
+              {i < columns.length - 1 && (
+                <div
+                  style={{
+                    width: 2,
+                    cursor: "ew-resize",
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: `rgba(16,22,26,0.15)`,
+                  }}
+                  data-left-column-uid={columnUid}
+                  data-right-column-uid={columns[i + 1].uid}
+                  data-column={columnUid}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", "");
+                    e.dataTransfer.setDragImage(dragImage, 0, 0);
+                    onDragStart(e);
+                  }}
+                  onDrag={onDrag}
+                  onDragEnd={onDragEnd}
+                />
+              )}
+            </td>
+          );
+        })}
+      </tr>
+    </>
+  );
+};
 
 type ColumnWidths = {
   [key: string]: string;
@@ -782,4 +774,4 @@ const ResultsTable = ({
   );
 };
 
-export default memo(ResultsTable);
+export default ResultsTable;
