@@ -330,9 +330,7 @@ const ResultsView: ResultsViewComponent = ({
     settings.showSearchFilter,
   );
   const [showInterface, setShowInterface] = useState(settings.showInterface);
-  const [revealMenuIcons, setRevealMenuIcons] = useState(false);
   const [showInputs, setShowInputs] = useState(settings.showInputs);
-  const hideMenuIcons = hideMenu || (!revealMenuIcons && !showInterface);
   const [showAlias, setShowAlias] = useState(settings.showAlias);
   const [isEditAlias, setIsEditAlias] = useState(false);
   const [alias, setAlias] = useState(settings.alias);
@@ -452,13 +450,19 @@ const ResultsView: ResultsViewComponent = ({
     () => views.filter((view) => view.mode !== "hidden").length,
     [views],
   );
+  const menuIconClassName = [
+    "roamjs-query-menu-icons",
+    hideMenu
+      ? ""
+      : showInterface
+        ? "roamjs-query-menu-icons-visible"
+        : "roamjs-query-menu-icons-hover",
+  ].join(" ");
 
   return (
     <div
       className={`roamjs-query-results-view relative w-full mode-${layout.mode}`}
       ref={containerRef}
-      onMouseEnter={() => setRevealMenuIcons(true)}
-      onMouseLeave={() => setRevealMenuIcons(false)}
     >
       {showAlias && (
         <div
@@ -580,10 +584,7 @@ const ResultsView: ResultsViewComponent = ({
       />
       {header}
       <div className="relative">
-        <div
-          style={hideMenuIcons ? { display: "none" } : {}}
-          className="absolute right-0 z-10 p-1"
-        >
+        <div className={menuIconClassName}>
           {onRefresh && (
             <Tooltip content={"Refresh Results"}>
               <Button icon={"refresh"} minimal onClick={() => onRefresh()} />
