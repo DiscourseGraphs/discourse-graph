@@ -8,6 +8,7 @@ import {
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
+import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import { ContextContent } from "./DiscourseContext";
 import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
@@ -366,27 +367,6 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
   );
 };
 
-const trackedContainers = new Set<HTMLElement>();
-let cleanupObserver: MutationObserver | null = null;
-
-const ensureObserver = () => {
-  if (cleanupObserver) return;
-  cleanupObserver = new MutationObserver(() => {
-    for (const el of trackedContainers) {
-      if (!el.isConnected) {
-        // eslint-disable-next-line react/no-deprecated
-        ReactDOM.unmountComponentAtNode(el);
-        trackedContainers.delete(el);
-      }
-    }
-    if (trackedContainers.size === 0) {
-      cleanupObserver!.disconnect();
-      cleanupObserver = null;
-    }
-  });
-  cleanupObserver.observe(document.body, { childList: true, subtree: true });
-};
-
 export const render = ({
   tag,
   parent,
@@ -398,14 +378,7 @@ export const render = ({
 }): void => {
   parent.style.margin = "0 8px";
   parent.onmousedown = (e) => e.stopPropagation();
-  ReactDOM.render(
-    <ExtensionApiContextProvider {...onloadArgs}>
-      <Wrapper tag={tag} parent={parent} />
-    </ExtensionApiContextProvider>,
-    parent,
-  );
-  trackedContainers.add(parent);
-  ensureObserver();
+  renderWithUnmount(<Wrapper tag={tag} parent={parent} />, parent, onloadArgs);
 };
 
 export default DiscourseContextPopupOverlay;
