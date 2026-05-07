@@ -625,51 +625,59 @@ const updateMarkdownAssetLinks = ({
       return linkPath;
     }
 
-    // First, try to find if this link resolves to one of our imported assets
-    const importedAssetFile = findImportedAssetFile(linkPath);
-    if (importedAssetFile) {
-      return getRelativeLinkPath(importedAssetFile.path);
-    }
+    // Separate file path from heading/block fragment (e.g. "Note.md#section" → filePath="Note.md", fragment="#section")
+    // so that file resolution operates only on the file path portion.
+    const hashIndex = linkPath.indexOf("#");
+    const filePath = hashIndex !== -1 ? linkPath.slice(0, hashIndex) : linkPath;
+    const fragment = hashIndex !== -1 ? linkPath.slice(hashIndex) : "";
 
-    // Direct lookup from pathMapping (record built when we downloaded each asset)
-    const newPath = getNewPathForLink(linkPath);
-    if (newPath) {
-      const newFile = app.metadataCache.getFirstLinkpathDest(
-        newPath,
+    const resolveFilePath = (path: string): string => {
+      // First, try to find if this link resolves to one of our imported assets
+      const importedAssetFile = findImportedAssetFile(path);
+      if (importedAssetFile) {
+        return getRelativeLinkPath(importedAssetFile.path);
+      }
+
+      // Direct lookup from pathMapping (record built when we downloaded each asset)
+      const newPath = getNewPathForLink(path);
+      if (newPath) {
+        const newFile = app.metadataCache.getFirstLinkpathDest(
+          newPath,
+          targetFile.path,
+        );
+        if (newFile) {
+          return getRelativeLinkPath(newFile.path);
+        }
+      }
+
+      // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
+      const resolvedFile = app.metadataCache.getFirstLinkpathDest(
+        path,
         targetFile.path,
       );
-      if (newFile) {
-        return getRelativeLinkPath(newFile.path);
+      const isInImportFolder =
+        importFolder &&
+        resolvedFile &&
+        resolvedFile.path.startsWith(importFolder + "/");
+      if (isInImportFolder && resolvedFile) {
+        return getRelativeLinkPath(resolvedFile.path);
       }
-    }
 
-    // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
-    const resolvedFile = app.metadataCache.getFirstLinkpathDest(
-      linkPath,
-      targetFile.path,
-    );
-    const isInImportFolder =
-      importFolder &&
-      resolvedFile &&
-      resolvedFile.path.startsWith(importFolder + "/");
-    if (isInImportFolder && resolvedFile) {
-      return getRelativeLinkPath(resolvedFile.path);
-    }
+      // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
+      if (importFolder && originalNodePath && !resolvedFile) {
+        // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
+        const canonicalSourcePath =
+          path.includes("/") && !path.startsWith(".") && !path.startsWith("/")
+            ? normalizePathForLookup(path)
+            : (getCanonicalFromOriginalNote(path) ??
+              normalizePathForLookup(path));
+        return `${importFolder}/${canonicalSourcePath}`;
+      }
 
-    // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
-    if (importFolder && originalNodePath && !resolvedFile) {
-      // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
-      const canonicalSourcePath =
-        linkPath.includes("/") &&
-        !linkPath.startsWith(".") &&
-        !linkPath.startsWith("/")
-          ? normalizePathForLookup(linkPath)
-          : (getCanonicalFromOriginalNote(linkPath) ??
-            normalizePathForLookup(linkPath));
-      return `${importFolder}/${canonicalSourcePath}`;
-    }
+      return path;
+    };
 
-    return linkPath;
+    return resolveFilePath(filePath) + fragment;
   };
 
   // Match wiki links: [[path]] or [[path|alias]]
@@ -683,8 +691,13 @@ const updateMarkdownAssetLinks = ({
         .map((s: string) => s.trim());
       if (!linkPath) return match;
       let processedPath = processLink(linkPath);
-      if (processedPath.endsWith(".md") && !linkPath.endsWith(".md"))
-        processedPath = processedPath.substring(0, processedPath.length - 3);
+      const hashIdx = processedPath.indexOf("#");
+      const pathBeforeHash =
+        hashIdx !== -1 ? processedPath.slice(0, hashIdx) : processedPath;
+      const pathAfterHash = hashIdx !== -1 ? processedPath.slice(hashIdx) : "";
+      if (pathBeforeHash.endsWith(".md") && !linkPath.endsWith(".md")) {
+        processedPath = pathBeforeHash.slice(0, -3) + pathAfterHash;
+      }
       if (alias) {
         return `[[${processedPath}|${alias}]]`;
       }
@@ -1572,9 +1585,20 @@ export const refreshAllImportedFiles = async (
 };
 
 const encodePathForMarkdownLink = (linkPath: string): string => {
-  // Input is already decoded; encode each segment (spaces → %20) but keep / as separator
-  return linkPath
+  // Input is already decoded; encode each segment (spaces → %20) but keep / as separator.
+  // Split on the first # to preserve heading/block fragments (e.g. "Note.md#section" → "Note.md#section", not "Note.md%23section").
+  const hashIndex = linkPath.indexOf("#");
+  if (hashIndex === -1) {
+    return linkPath
+      .split("/")
+      .map((segment) => encodeURIComponent(segment))
+      .join("/");
+  }
+  const pathPart = linkPath.slice(0, hashIndex);
+  const fragment = linkPath.slice(hashIndex); // includes the leading #
+  const encodedPath = pathPart
     .split("/")
     .map((segment) => encodeURIComponent(segment))
     .join("/");
+  return encodedPath + fragment;
 };
