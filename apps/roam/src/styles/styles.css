@@ -75,6 +75,20 @@
   padding: 8px;
 }
 
+.roamjs-query-menu-icons {
+  position: absolute;
+  right: 0;
+  z-index: 10;
+  display: none;
+  padding: 4px;
+}
+
+.roamjs-query-menu-icons.roamjs-query-menu-icons-visible,
+.roamjs-query-results-view:hover
+  .roamjs-query-menu-icons.roamjs-query-menu-icons-hover {
+  display: block;
+}
+
 /* Solves dot-tags (.#sticky, .#meeting) flashing on when hovering anywhere on the
    Query Table. Roam shows them via .rm-block__self:hover and the entire table lives
    in one block, so we scope visibility to the individual cell instead. */
