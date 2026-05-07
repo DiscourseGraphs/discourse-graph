@@ -57,13 +57,13 @@ export const convertToDiscourseNode = async (
   }
 };
 
-const convertTextShapeToNode = async ({
+const convertTextShapeToNode = ({
   editor,
   shape,
   nodeType,
   plugin,
   canvasFile,
-}: ConvertToDiscourseNodeArgs): Promise<TLShapeId | undefined> => {
+}: ConvertToDiscourseNodeArgs): TLShapeId | undefined => {
   const text = renderPlaintextFromRichText(
     editor,
     (shape as TLTextShape).props.richText,
@@ -79,31 +79,54 @@ const convertTextShapeToNode = async ({
     return undefined;
   }
 
-  const createdFile = await createDiscourseNodeFile({
+  let shapeId: TLShapeId | undefined;
+
+  const modal = new ModifyNodeModal(plugin.app, {
+    nodeTypes: plugin.settings.nodeTypes,
     plugin,
-    nodeType,
-    text: text.trim(),
+    initialNodeType: nodeType,
+    initialTitle: text.trim(),
+    onSubmit: async ({
+      nodeType: selectedNodeType,
+      title,
+      selectedExistingNode,
+    }) => {
+      try {
+        const file =
+          selectedExistingNode ??
+          (await createDiscourseNodeFile({
+            plugin,
+            nodeType: selectedNodeType,
+            text: title,
+          }));
+
+        if (!file) {
+          throw new Error("Failed to create discourse node file");
+        }
+
+        shapeId = await createDiscourseNodeShape({
+          editor,
+          shape,
+          createdFile: file,
+          nodeType: selectedNodeType,
+          plugin,
+          canvasFile,
+        });
+
+        showToast({
+          severity: "success",
+          title: "Shape Converted",
+          description: `Converted text to ${selectedNodeType.name}`,
+          targetCanvasId: canvasFile.path,
+        });
+      } catch (error) {
+        console.error("Error creating node from text:", error);
+        throw error;
+      }
+    },
   });
 
-  if (!createdFile) {
-    throw new Error("Failed to create discourse node file");
-  }
-
-  const shapeId = await createDiscourseNodeShape({
-    editor,
-    shape,
-    createdFile,
-    nodeType,
-    plugin,
-    canvasFile,
-  });
-
-  showToast({
-    severity: "success",
-    title: "Shape Converted",
-    description: `Converted text to ${nodeType.name}`,
-    targetCanvasId: canvasFile.path,
-  });
+  modal.open();
 
   return shapeId;
 };
@@ -129,28 +152,35 @@ const convertImageShapeToNode = async ({
     plugin,
     initialNodeType: nodeType,
     initialTitle: "",
-    onSubmit: async ({ nodeType: selectedNodeType, title }) => {
+    onSubmit: async ({
+      nodeType: selectedNodeType,
+      title,
+      selectedExistingNode,
+    }) => {
       try {
-        const createdFile = await createDiscourseNodeFile({
-          plugin,
-          nodeType: selectedNodeType,
-          text: title,
-        });
+        const file =
+          selectedExistingNode ??
+          (await createDiscourseNodeFile({
+            plugin,
+            nodeType: selectedNodeType,
+            text: title,
+          }));
 
-        if (!createdFile) {
+        if (!file) {
           throw new Error("Failed to create discourse node file");
         }
 
         let imageSrc: string | undefined;
         if (imageFile) {
-          await embedImageInNode(createdFile, imageFile, plugin);
+          await embedImageInNode(file, imageFile, plugin);
+
           imageSrc = plugin.app.vault.getResourcePath(imageFile);
         }
 
         shapeId = await createDiscourseNodeShape({
           editor,
           shape,
-          createdFile,
+          createdFile: file,
           nodeType: selectedNodeType,
           plugin,
           canvasFile,
