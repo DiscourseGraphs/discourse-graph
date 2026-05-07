@@ -122,15 +122,19 @@ export const previewPageRefHandler = (s: HTMLSpanElement) => {
   }
 };
 
-export const enablePageRefObserver = () =>
-  (pageRefObserverRef.current = createHTMLObserver({
+export const enablePageRefObserver = () => {
+  if (pageRefObserverRef.current) return pageRefObserverRef.current;
+
+  pageRefObserverRef.current = createHTMLObserver({
     useBody: true,
     tag: "SPAN",
     className: "rm-page-ref",
     callback: (s: HTMLSpanElement) => {
       pageRefObservers.forEach((f) => f(s));
     },
-  }));
+  });
+  return pageRefObserverRef.current;
+};
 
 const disablePageRefObserver = () => {
   pageRefObserverRef.current?.disconnect();
