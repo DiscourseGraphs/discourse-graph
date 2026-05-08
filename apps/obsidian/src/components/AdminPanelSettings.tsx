@@ -67,7 +67,7 @@ export const AdminPanelSettings = () => {
       expiry_interval: "10s",
     });
     /* eslint-enable @typescript-eslint/naming-convention */
-    if (error) return;
+    if (error || typeof data !== "string") return;
     if (data) window.open(`${nextRoot()}/auth/token?t=${data}&url=/`, "_blank");
   };
 

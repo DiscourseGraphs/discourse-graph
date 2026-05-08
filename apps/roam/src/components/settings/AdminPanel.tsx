@@ -318,7 +318,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
       expiry_interval: "10s",
     });
     /* eslint-enable @typescript-eslint/naming-convention */
-    if (error) return;
+    if (error || typeof data !== "string") return;
     if (data) window.open(`${nextRoot()}/auth/token?t=${data}&url=/`, "_blank");
   };
 
@@ -430,7 +430,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
           className="w-96"
           icon="document-open"
           onClick={() => {
-            handleLoginHandoff();
+            void handleLoginHandoff();
           }}
         >
           Manage groups
