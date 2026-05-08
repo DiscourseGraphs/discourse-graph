@@ -54,7 +54,9 @@ export const LoginWithToken = () => {
         router.replace(url);
       }
     } catch (error) {
-      setError("error");
+      setError(
+        error instanceof Error ? error.message : "Unknown error occurred",
+      );
     } finally {
       setDone(true);
     }
