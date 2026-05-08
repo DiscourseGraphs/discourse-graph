@@ -679,7 +679,7 @@ export const RelationEditPanel = ({
                     ifConditions,
                   });
 
-                  back();
+                  setTimeout(back, 50);
                 })(),
               1,
             );

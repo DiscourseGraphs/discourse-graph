@@ -374,12 +374,6 @@ const logDualReadComparison = (): void => {
 export const initSchema = async (): Promise<InitSchemaResult> => {
   const blockUids = await initSettingsPageBlocks();
 
-  // initSettingsPageBlocks may have just seeded the legacy grammar/relations
-  // blocks. discourseConfigRef.tree was last populated at extension load
-  // (before seeding), so the cached tree won't reflect those new blocks.
-  // migrateGraphLevel reads via getLegacyGlobalSetting, which consults the
-  // cache — without this refresh, it falls back to schema defaults and
-  // overwrites reconcileRelationKeys' work in block props.
   if (!discourseConfigRef.tree.some((n) => n.text === "grammar")) {
     refreshConfigTree();
   }
