@@ -679,7 +679,7 @@ export const RelationEditPanel = ({
                     ifConditions,
                   });
 
-                  back();
+                  setTimeout(back, 50);
                 })(),
               1,
             );
@@ -972,21 +972,14 @@ const DiscourseRelationConfigPanel = ({
   globalSettings: SettingsSnapshot["globalSettings"];
 }) => {
   const refreshRelations = useCallback(
-    () =>
-      uid
-        ? getBasicTreeByParentUid(uid).map((n) => {
-            const { children: fieldTree, ...node } = n;
-            return {
-              ...node,
-              source: fieldTree.find((t) => toFlexRegex("source").test(t.text))
-                ?.children?.[0]?.text,
-              destination: fieldTree.find((t) =>
-                toFlexRegex("destination").test(t.text),
-              )?.children?.[0]?.text,
-            };
-          })
-        : [],
-    [uid],
+    (): Relation[] =>
+      Object.entries(getGlobalSettings().Relations).map(([id, relation]) => ({
+        uid: id,
+        text: relation.label,
+        source: relation.source,
+        destination: relation.destination,
+      })),
+    [],
   );
   const nodes = useMemo(() => {
     const nodes = Object.fromEntries(
