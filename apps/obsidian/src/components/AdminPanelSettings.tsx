@@ -14,21 +14,16 @@ export const AdminPanelSettings = () => {
   const [username, setUsername] = useState<string>(
     plugin.settings.username || "",
   );
-  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   useEffect(() => {
     if (syncModeEnabled) {
-      const fetchTokens = async () => {
+      const checkLogin = async () => {
         const client = await getLoggedInClient(plugin);
-        if (client) {
-          const session = await client.auth.getSession();
-          if (session.data.session) {
-            setAccessToken(session.data.session.access_token);
-          }
-        }
+        setIsLoggedIn(client !== null);
       };
-      void fetchTokens();
+      void checkLogin();
     } else {
-      setAccessToken(null);
+      setIsLoggedIn(false);
     }
   }, [syncModeEnabled, plugin]);
 
@@ -58,6 +53,22 @@ export const AdminPanelSettings = () => {
     plugin.settings.username = newValue;
     await plugin.saveSettings();
     await updateUsername(plugin, newValue);
+  };
+
+  const handleLoginHandoff = async () => {
+    const client = await getLoggedInClient(plugin);
+    if (!client) return;
+    const sessionData = await client.auth.getSession();
+    if (!sessionData.data.session) return;
+    /* eslint-disable @typescript-eslint/naming-convention */
+    const { access_token, refresh_token } = sessionData.data.session;
+    const { data, error } = await client.rpc("create_secret_token", {
+      v_payload: JSON.stringify({ access_token, refresh_token }),
+      expiry_interval: "10s",
+    });
+    /* eslint-enable @typescript-eslint/naming-convention */
+    if (error) return;
+    if (data) window.open(`${nextRoot()}/auth/token?t=${data}&url=/`, "_blank");
   };
 
   return (
@@ -99,7 +110,7 @@ export const AdminPanelSettings = () => {
           />
         </div>
       </div>
-      <div className={"setting-item " + (accessToken ? "" : "hidden")}>
+      <div className={"setting-item " + (isLoggedIn ? "" : "hidden")}>
         <div className="setting-item-info">
           <div className="setting-item-name">Group management</div>
           <div className="setting-item-description">
@@ -107,18 +118,13 @@ export const AdminPanelSettings = () => {
           </div>
         </div>
         <div className="setting-item-control">
-          {accessToken && (
-            <button
-              onClick={() => {
-                window.open(
-                  `${nextRoot()}/auth/token?t=${accessToken}&url=/`,
-                  "_blank",
-                );
-              }}
-            >
-              Manage groups
-            </button>
-          )}
+          <button
+            onClick={() => {
+              void handleLoginHandoff();
+            }}
+          >
+            Manage groups
+          </button>
         </div>
       </div>
     </div>

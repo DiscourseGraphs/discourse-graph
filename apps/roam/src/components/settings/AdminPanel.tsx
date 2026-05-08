@@ -306,6 +306,22 @@ const FeatureFlagsTab = (): React.ReactElement => {
     }
   };
 
+  const handleLoginHandoff = async () => {
+    const client = await getLoggedInClient();
+    if (!client) return;
+    const sessionData = await client.auth.getSession();
+    if (!sessionData.data.session) return;
+    /* eslint-disable @typescript-eslint/naming-convention */
+    const { access_token, refresh_token } = sessionData.data.session;
+    const { data, error } = await client.rpc("create_secret_token", {
+      v_payload: JSON.stringify({ access_token, refresh_token }),
+      expiry_interval: "10s",
+    });
+    /* eslint-enable @typescript-eslint/naming-convention */
+    if (error) return;
+    if (data) window.open(`${nextRoot()}/auth/token?t=${data}&url=/`, "_blank");
+  };
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <FeatureFlagPanel
@@ -414,10 +430,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
           className="w-96"
           icon="document-open"
           onClick={() => {
-            window.open(
-              `${nextRoot()}/auth/token?t=${accessToken}&url=/`,
-              "_blank",
-            );
+            handleLoginHandoff();
           }}
         >
           Manage groups

@@ -7,24 +7,41 @@ import { useState, useEffect, useCallback } from "react";
 export const LoginWithToken = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [accessToken] = useState(searchParams.get("t"));
-  const [refreshToken] = useState(searchParams.get("r"));
+  const [secretToken] = useState(searchParams.get("t"));
   const [url] = useState(searchParams.get("url"));
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(
-    accessToken === null ? "Please provide access token" : null,
+    secretToken === null ? "Please provide token" : null,
   );
 
   const login = useCallback(async () => {
     try {
       const client = createClient();
-      const response = await client.auth.setSession({
-        /* eslint-disable @typescript-eslint/naming-convention */
-        access_token: accessToken!,
-        // in most cases, do not provide the refresh token! The access token will expire after 1h
-        refresh_token: refreshToken ?? "faketoken",
-        /* eslint-enable @typescript-eslint/naming-convention */
+      const result = await client.rpc("get_secret_token", {
+        token: secretToken!,
       });
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+      if (typeof result.data !== "string") {
+        setError("Payload is not a string");
+        return;
+      }
+      const data = JSON.parse(result.data) as {
+        access_token: string;
+        refresh_token: string;
+      };
+      if (
+        !data ||
+        typeof data !== "object" ||
+        !data.access_token ||
+        !data.refresh_token
+      ) {
+        setError("Malformed token information");
+        return;
+      }
+      const response = await client.auth.setSession(data);
       if (response.error) {
         setError(response.error.message);
       } else if (url) {
@@ -35,12 +52,12 @@ export const LoginWithToken = () => {
     } finally {
       setDone(true);
     }
-  }, [accessToken, refreshToken, url, router]);
+  }, [secretToken, url, router]);
   useEffect(() => {
     if (!error && !done) {
       void login();
     }
-  }, [error, login, accessToken, refreshToken, done]);
+  }, [error, login, secretToken, done]);
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
