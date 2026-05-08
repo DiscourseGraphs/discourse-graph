@@ -48,11 +48,22 @@ type Props = {
   tree: RoamBasicNode[];
   text: string;
 };
-export const getUidAndIntSetting = (props: Props): IntSetting => {
-  const node = props.tree.find((node) => node.text === props.text);
+
+type IntProps = Props & {
+  defaultValue?: number;
+};
+
+export const getUidAndIntSetting = ({
+  tree,
+  text,
+  defaultValue = 0,
+}: IntProps): IntSetting => {
+  const node = tree.find((node) => node.text === text);
+  const parsedValue = parseInt(node?.children[0]?.text ?? "", 10);
+
   return {
     uid: node?.uid,
-    value: parseInt(node?.children[0]?.text || "0"),
+    value: Number.isNaN(parsedValue) ? defaultValue : parsedValue,
   };
 };
 export const getUidAndBooleanSetting = (props: Props): BooleanSetting => {
@@ -80,13 +91,15 @@ export const getExportSettingsAndUids = (
   const tree = exportNode.children;
   const exportNodeUid = exportNode.uid;
 
-  const getInt = (text: string) => getUidAndIntSetting({ tree, text });
+  const getInt = (text: string, defaultValue?: number) =>
+    getUidAndIntSetting({ tree, text, defaultValue });
   const getBoolean = (text: string) => getUidAndBooleanSetting({ tree, text });
   const getString = (text: string) => getUidAndStringSetting({ tree, text });
 
   // max filename length default to 64
-  const { uid: maxFilenameLengthUid, value: maxFilenameLength = 64 } = getInt(
+  const { uid: maxFilenameLengthUid, value: maxFilenameLength } = getInt(
     "max filename length",
+    64,
   );
   const frontmatterNode = getSubTree({
     tree,
