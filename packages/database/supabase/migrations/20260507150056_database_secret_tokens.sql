@@ -24,9 +24,9 @@ v_payload JSONB;
 v_one_time_use BOOLEAN;
 BEGIN
     DELETE FROM public.secret_token WHERE expiry_date < now();
-    SELECT payload, one_time_use INTO v_payload, v_one_time_use FROM public.secret_token WHERE id=token;
-    IF v_one_time_use = true THEN
-        DELETE FROM public.secret_token WHERE id=token;
+    DELETE FROM public.secret_token WHERE id=token AND one_time_use = true RETURNING payload INTO v_payload;
+    IF v_payload IS NULL THEN
+        SELECT payload INTO v_payload FROM public.secret_token WHERE id=token;
     END IF;
     RETURN v_payload;
 END;
