@@ -27,6 +27,14 @@ const nextConfig: NextConfig = {
       "next-mdx-import-source-file": "./mdx-components.tsx",
     },
   },
+  async headers() {
+    return [
+      {
+        source: "/auth/token",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      },
+    ];
+  },
 };
 
 export default withNextra(nextConfig);
