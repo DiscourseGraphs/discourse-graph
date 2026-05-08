@@ -24,6 +24,10 @@ export const LoginWithToken = () => {
         setError(result.error.message);
         return;
       }
+      if (result.data == null) {
+        setError("This token does not exist");
+        return;
+      }
       if (typeof result.data !== "string") {
         setError("Payload is not a string");
         return;
