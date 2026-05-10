@@ -2,12 +2,21 @@
 
 import { createClient } from "~/utils/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 export const LoginWithToken = () => {
+  const loginAttempted = useRef(false);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [secretToken] = useState(searchParams.get("t"));
+  const [secretToken] = useState(() => {
+    const t = searchParams.get("t");
+    if (t && typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("t");
+      window.history.replaceState({}, "", url);
+    }
+    return t;
+  });
   const [url] = useState(searchParams.get("url"));
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(
@@ -62,7 +71,8 @@ export const LoginWithToken = () => {
     }
   }, [secretToken, url, router]);
   useEffect(() => {
-    if (!error && !done) {
+    if (!error && !done && !loginAttempted.current) {
+      loginAttempted.current = true;
       void login();
     }
   }, [error, login, secretToken, done]);
