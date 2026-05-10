@@ -3,6 +3,7 @@ import type {
   PostgrestResponse,
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
+import { PostgrestError } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@repo/database/dbTypes";
 
 export const KNOWN_EMBEDDING_TABLES: {
@@ -95,7 +96,9 @@ export const getOrCreateEntity = async <
 }): Promise<PostgrestSingleResponse<Tables<TableName>>> => {
   const result: PostgrestSingleResponse<Tables<TableName>> = await supabase
     .from(tableName)
-    .upsert(insertData, {
+    // Typescript gets confused with latest supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .upsert(insertData as any, {
       onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
       ignoreDuplicates: false,
       count: "estimated",
@@ -138,14 +141,15 @@ export const getOrCreateEntity = async <
           console.log(`Found ${tableName} on re-fetch:`, reFetchedEntity);
           // Note: Using a PostgrestResult means I cannot have both data and error non-null...
           return {
-            error: {
+            error: new PostgrestError({
               ...result.error,
               message: `Upsert failed because of conflict with this entity: ${reFetchedEntity}"`,
-            },
+            }),
             statusText: result.statusText,
             data: null,
             count: null,
             status: 400,
+            success: false,
           };
         }
       }
@@ -183,7 +187,9 @@ export const InsertValidatedBatch = async <
 }): Promise<PostgrestResponse<Tables<TableName>>> => {
   const result: PostgrestResponse<Tables<TableName>> = await supabase
     .from(tableName)
-    .upsert(items, {
+    // Typescript gets confused with latest supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .upsert(items as any, {
       onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
       ignoreDuplicates: false,
       count: "estimated",
@@ -231,14 +237,14 @@ export const validateAndInsertBatch = async <
   const validationErrors: { index: number; error: string }[] = [];
   if (!Array.isArray(items) || items.length === 0) {
     return {
-      error: {
+      error: new PostgrestError({
         message: `Request body must be a non-empty array of ${tableName} items.`,
         details: "",
-        hint: "",
+        hint: "nonempty",
         code: "1",
-        name: "nonempty",
-      },
+      }),
       status: 400,
+      success: false,
       data: null,
       count: null,
       statusText: "Empty input",
@@ -269,13 +275,13 @@ export const validateAndInsertBatch = async <
 
     if (validationErrors.length > 0) {
       return {
-        error: {
+        error: new PostgrestError({
           message: `Validation failed for one or more ${tableName} items.`,
           details: `${validationErrors}`,
-          hint: "",
+          hint: "invalid",
           code: "2",
-          name: "invalid",
-        },
+        }),
+        success: false,
         status: 400,
         data: null,
         count: null,
@@ -322,6 +328,7 @@ export const validateAndInsertBatch = async <
         // Erring on the side of returning data with an error in status.
         return {
           error: null,
+          success: true,
           status: 500,
           data: validatedResults,
           count: validatedResults.length,
@@ -329,13 +336,13 @@ export const validateAndInsertBatch = async <
         };
       } else {
         return {
-          error: {
+          error: new PostgrestError({
             message: `Post-validation failed for all ${tableName} items.`,
             details: `${validationErrors}`,
-            hint: "",
+            hint: "invalid",
             code: "2",
-            name: "invalid",
-          },
+          }),
+          success: false,
           status: 500,
           data: null,
           count: null,
@@ -366,17 +373,17 @@ export const processAndInsertBatch = async <
   inputProcessor: ItemProcessor<InputType, TablesInsert<TableName>>;
   outputProcessor: ItemProcessor<Tables<TableName>, OutputType>;
 }): Promise<PostgrestResponse<OutputType>> => {
-  let processedItems: TablesInsert<TableName>[] = [];
+  const processedItems: TablesInsert<TableName>[] = [];
   const validationErrors: { index: number; error: string }[] = [];
   if (!Array.isArray(items) || items.length === 0) {
     return {
-      error: {
+      error: new PostgrestError({
         message: `Request body must be a non-empty array of ${tableName} items.`,
         details: "",
-        hint: "",
+        hint: "nonempty",
         code: "1",
-        name: "nonempty",
-      },
+      }),
+      success: false,
       status: 400,
       data: null,
       count: null,
@@ -407,13 +414,13 @@ export const processAndInsertBatch = async <
 
   if (validationErrors.length > 0) {
     return {
-      error: {
+      error: new PostgrestError({
         message: `Validation failed for one or more ${tableName} items.`,
         details: `${validationErrors}`,
-        hint: "",
+        hint: "invalid",
         code: "2",
-        name: "invalid",
-      },
+      }),
+      success: false,
       status: 400,
       data: null,
       count: null,
@@ -457,19 +464,20 @@ export const processAndInsertBatch = async <
       return {
         error: null,
         status: 500,
+        success: true,
         data: processedResults,
         count: processedResults.length,
         statusText: `Validation failed for one or more ${tableName} items, and succeeded for ${processedResults.length}/${result.data.length}.`,
       };
     } else {
       return {
-        error: {
+        error: new PostgrestError({
           message: `Post-validation failed for all ${tableName} items.`,
           details: `${validationErrors}`,
-          hint: "",
+          hint: "invalid",
           code: "2",
-          name: "invalid",
-        },
+        }),
+        success: false,
         status: 500,
         data: null,
         count: null,

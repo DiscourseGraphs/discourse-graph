@@ -125,9 +125,10 @@ export type ContentRecord = Tables<"Content">;
 
 export const contentInputValidation: ItemValidator<ContentDataInput> = (
   data: ContentDataInput,
-) => {
+): string | null => {
   if (!data || typeof data !== "object")
     return "Invalid request body: expected a JSON object.";
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { author_id, created, last_modified, scale, space_id, text } = data;
 
   if (!text || typeof text !== "string") return "Invalid or missing text.";
