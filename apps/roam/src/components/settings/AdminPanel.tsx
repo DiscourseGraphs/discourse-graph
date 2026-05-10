@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Button,
   HTMLTable,
@@ -267,28 +267,15 @@ const FeatureFlagsTab = (): React.ReactElement => {
   const [suggestiveOverlayValue, setSuggestiveOverlayValue] = useState(
     getFeatureFlag("Suggestive mode overlay enabled"),
   );
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  useEffect(() => {
-    if (duplicateNodeAlertValue || suggestiveOverlayValue) {
-      const fetchTokens = async () => {
-        const client = await getLoggedInClient();
-        if (client) {
-          const session = await client.auth.getSession();
-          if (session.data.session) {
-            setAccessToken(session.data.session.access_token);
-          }
-        }
-      };
-      void fetchTokens();
-    } else {
-      setAccessToken(null);
-    }
-  }, [duplicateNodeAlertValue, suggestiveOverlayValue]);
+  const syncAlreadyEnabled = useMemo(
+    () => duplicateNodeAlertValue || suggestiveOverlayValue,
+    [duplicateNodeAlertValue, suggestiveOverlayValue],
+  );
 
   const ensureSyncEnabled = (
     featureKey: keyof FeatureFlags,
   ): Promise<boolean> => {
-    if (duplicateNodeAlertValue || suggestiveOverlayValue) {
+    if (syncAlreadyEnabled) {
       return Promise.resolve(true);
     }
     setPendingFeatureKey(featureKey);
@@ -315,7 +302,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
     const { access_token, refresh_token } = sessionData.data.session;
     const { data, error } = await client.rpc("create_secret_token", {
       v_payload: JSON.stringify({ access_token, refresh_token }),
-      expiry_interval: "10s",
+      expiry_interval: "45s",
     });
     /* eslint-enable @typescript-eslint/naming-convention */
     if (error || typeof data !== "string") return;
@@ -425,7 +412,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
       >
         Send Error Email
       </Button>
-      {accessToken && (
+      {syncAlreadyEnabled && (
         <Button
           className="w-96"
           icon="document-open"

@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { usePlugin } from "./PluginContext";
-import { Notice } from "obsidian";
+import { Notice, setIcon } from "obsidian";
 import { updateUsername } from "~/utils/supabaseContext";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { nextRoot } from "@repo/utils/execContext";
@@ -14,18 +14,6 @@ export const AdminPanelSettings = () => {
   const [username, setUsername] = useState<string>(
     plugin.settings.username || "",
   );
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  useEffect(() => {
-    if (syncModeEnabled) {
-      const checkLogin = async () => {
-        const client = await getLoggedInClient(plugin);
-        setIsLoggedIn(client !== null);
-      };
-      void checkLogin();
-    } else {
-      setIsLoggedIn(false);
-    }
-  }, [syncModeEnabled, plugin]);
 
   const handleSyncModeToggle = useCallback(
     async (newValue: boolean) => {
@@ -57,14 +45,17 @@ export const AdminPanelSettings = () => {
 
   const handleLoginHandoff = async () => {
     const client = await getLoggedInClient(plugin);
-    if (!client) return;
+    if (!client) {
+      new Notice("Failed to connect to the database", 3000);
+      return;
+    }
     const sessionData = await client.auth.getSession();
     if (!sessionData.data.session) return;
     /* eslint-disable @typescript-eslint/naming-convention */
     const { access_token, refresh_token } = sessionData.data.session;
     const { data, error } = await client.rpc("create_secret_token", {
       v_payload: JSON.stringify({ access_token, refresh_token }),
-      expiry_interval: "10s",
+      expiry_interval: "45s",
     });
     /* eslint-enable @typescript-eslint/naming-convention */
     if (error || typeof data !== "string") return;
@@ -110,7 +101,11 @@ export const AdminPanelSettings = () => {
           />
         </div>
       </div>
-      <div className={"setting-item " + (isLoggedIn ? "" : "hidden")}>
+      <div
+        className={
+          "setting-item " + (plugin.settings.syncModeEnabled ? "" : "hidden")
+        }
+      >
         <div className="setting-item-info">
           <div className="setting-item-name">Group management</div>
           <div className="setting-item-description">
@@ -124,6 +119,10 @@ export const AdminPanelSettings = () => {
             }}
           >
             Manage groups
+            <span
+              className="icon"
+              ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
+            />
           </button>
         </div>
       </div>
