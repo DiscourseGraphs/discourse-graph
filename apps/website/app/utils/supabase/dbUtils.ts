@@ -4,13 +4,24 @@ import type {
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
 import { PostgrestError } from "@supabase/supabase-js";
-import type { Database, Tables, TablesInsert } from "@repo/database/dbTypes";
+import type { Database } from "@repo/database/dbTypes";
+
+type PublicTableName = keyof Database["public"]["Tables"];
+type PublicTableRow<TableName extends PublicTableName> =
+  Database["public"]["Tables"][TableName]["Row"];
+type PublicTableInsert<TableName extends PublicTableName> =
+  Database["public"]["Tables"][TableName] extends { Insert: unknown }
+    ? Database["public"]["Tables"][TableName]["Insert"]
+    : never;
+type PublicTableInsertKey<TableName extends PublicTableName> =
+  keyof PublicTableInsert<TableName> & string;
+type KnownEmbeddingTable = {
+  tableName: "ContentEmbedding_openai_text_embedding_3_small_1536";
+  tableSize: number;
+};
 
 export const KNOWN_EMBEDDING_TABLES: {
-  [key: string]: {
-    tableName: keyof Database["public"]["Tables"];
-    tableSize: number;
-  };
+  [key: string]: KnownEmbeddingTable | undefined;
 } = {
   openai_text_embedding_3_small_1536: {
     tableName: "ContentEmbedding_openai_text_embedding_3_small_1536",
@@ -81,60 +92,64 @@ const processSupabaseError = <T>(
  * @param uniqueOn The expected uniqueOn key.
  * @returns Promise<GetOrCreateEntityResult<T>>
  */
-export const getOrCreateEntity = async <
-  TableName extends keyof Database["public"]["Tables"],
->({
+export const getOrCreateEntity = async <TableName extends PublicTableName>({
   supabase,
   tableName,
   insertData,
   uniqueOn = undefined,
 }: {
   supabase: SupabaseClient<Database, "public">;
-  tableName: keyof Database["public"]["Tables"];
-  insertData: TablesInsert<TableName>;
-  uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
-}): Promise<PostgrestSingleResponse<Tables<TableName>>> => {
-  const result: PostgrestSingleResponse<Tables<TableName>> = await supabase
-    .from(tableName)
-    // Typescript gets confused with latest supabase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .upsert(insertData as any, {
-      onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
-      ignoreDuplicates: false,
-      count: "estimated",
-    })
-    .select()
-    .single();
+  tableName: TableName;
+  insertData: PublicTableInsert<TableName>;
+  uniqueOn?: PublicTableInsertKey<TableName>[]; // Uses pKey otherwise
+}): Promise<PostgrestSingleResponse<PublicTableRow<TableName>>> => {
+  const result: PostgrestSingleResponse<PublicTableRow<TableName>> =
+    await supabase
+      .from(tableName)
+      .upsert(insertData, {
+        onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
+        ignoreDuplicates: false,
+        count: "estimated",
+      })
+      .select()
+      .single();
   if (result.error) {
     const { error: insertError } = result;
     if (insertError.code === "23505") {
       // Handle race condition: unique constraint violation (PostgreSQL error code '23505')
       const dup_key_data = UNIQUE_KEY_RE.exec(insertError.hint);
-      if (dup_key_data !== null && dup_key_data.length > 1)
-        uniqueOn = dup_key_data[1]!
-          .split(",")
-          .map((x) => x.trim()) as (keyof TablesInsert<TableName>)[];
-      if (uniqueOn && uniqueOn.length > 0) {
-        console.warn(`Attempting to re-fetch using ${uniqueOn.join(", ")}`);
+      const reFetchKeys =
+        dup_key_data !== null && dup_key_data.length > 1
+          ? dup_key_data[1]!.split(",").map((x) => x.trim())
+          : uniqueOn?.map((x) => x);
+      if (reFetchKeys && reFetchKeys.length > 0) {
+        console.warn(`Attempting to re-fetch using ${reFetchKeys.join(", ")}`);
         let reFetchQueryBuilder = supabase.from(tableName).select();
-        for (let i = 0; i < uniqueOn.length; i++) {
-          const key = uniqueOn[i];
+        for (let i = 0; i < reFetchKeys.length; i++) {
+          const key = reFetchKeys[i];
           if (!key) {
             console.error("Empty key in uniqueOn");
             continue;
           }
-          const keyS = String(key);
-          reFetchQueryBuilder = reFetchQueryBuilder.eq(
-            keyS,
-            insertData[key] as any, // TS gets confused here?
+          const insertEntry = Object.entries(insertData).find(
+            ([insertKey]) => insertKey === key,
+          );
+          if (!insertEntry) {
+            console.error(`Missing insert data for unique key ${key}`);
+            continue;
+          }
+          reFetchQueryBuilder = reFetchQueryBuilder.filter(
+            key,
+            "eq",
+            insertEntry[1],
           );
         }
         const reFetchResult =
-          await reFetchQueryBuilder.maybeSingle<Tables<TableName>>();
+          await reFetchQueryBuilder.maybeSingle<PublicTableRow<TableName>>();
         const { data: reFetchedEntity, error: reFetchError } = reFetchResult;
 
         if (reFetchResult === null) {
-          result.error.message = `Unique constraint violation on on (${uniqueOn.join(", ")}) in ${tableName}, and re-fetch failed to find the entity because of ${reFetchError}.`;
+          result.error.message = `Unique constraint violation on on (${reFetchKeys.join(", ")}) in ${tableName}, and re-fetch failed to find the entity because of ${reFetchError}.`;
           result.status = 500;
           return result;
         } else {
@@ -172,24 +187,20 @@ export type ItemProcessor<TInput, TProcessed> = (item: TInput) => {
 
 export type ItemValidator<T> = (item: T) => string | null;
 
-export const InsertValidatedBatch = async <
-  TableName extends keyof Database["public"]["Tables"],
->({
+export const InsertValidatedBatch = async <TableName extends PublicTableName>({
   supabase,
   tableName,
   items,
   uniqueOn = undefined,
 }: {
   supabase: SupabaseClient<Database, "public">;
-  tableName: keyof Database["public"]["Tables"];
-  items: TablesInsert<TableName>[];
-  uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
-}): Promise<PostgrestResponse<Tables<TableName>>> => {
-  const result: PostgrestResponse<Tables<TableName>> = await supabase
+  tableName: TableName;
+  items: PublicTableInsert<TableName>[];
+  uniqueOn?: PublicTableInsertKey<TableName>[]; // Uses pKey otherwise
+}): Promise<PostgrestResponse<PublicTableRow<TableName>>> => {
+  const result: PostgrestResponse<PublicTableRow<TableName>> = await supabase
     .from(tableName)
-    // Typescript gets confused with latest supabase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .upsert(items as any, {
+    .upsert(items, {
       onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
       ignoreDuplicates: false,
       count: "estimated",
@@ -217,7 +228,7 @@ export const InsertValidatedBatch = async <
 };
 
 export const validateAndInsertBatch = async <
-  TableName extends keyof Database["public"]["Tables"],
+  TableName extends PublicTableName,
 >({
   supabase,
   tableName,
@@ -227,13 +238,13 @@ export const validateAndInsertBatch = async <
   outputValidator = undefined,
 }: {
   supabase: SupabaseClient<Database, "public">;
-  tableName: keyof Database["public"]["Tables"];
-  items: TablesInsert<TableName>[];
-  uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
-  inputValidator?: ItemValidator<TablesInsert<TableName>>;
-  outputValidator?: ItemValidator<Tables<TableName>>;
-}): Promise<PostgrestResponse<Tables<TableName>>> => {
-  let validatedItems: TablesInsert<TableName>[] = [];
+  tableName: TableName;
+  items: PublicTableInsert<TableName>[];
+  uniqueOn?: PublicTableInsertKey<TableName>[]; // Uses pKey otherwise
+  inputValidator?: ItemValidator<PublicTableInsert<TableName>>;
+  outputValidator?: ItemValidator<PublicTableRow<TableName>>;
+}): Promise<PostgrestResponse<PublicTableRow<TableName>>> => {
+  let validatedItems: PublicTableInsert<TableName>[] = [];
   const validationErrors: { index: number; error: string }[] = [];
   if (!Array.isArray(items) || items.length === 0) {
     return {
@@ -301,7 +312,7 @@ export const validateAndInsertBatch = async <
     return result;
   }
   if (outputValidator !== undefined) {
-    const validatedResults: Tables<TableName>[] = [];
+    const validatedResults: PublicTableRow<TableName>[] = [];
     for (let i = 0; i < result.data.length; i++) {
       const item = result.data[i];
       if (!item) {
@@ -355,7 +366,7 @@ export const validateAndInsertBatch = async <
 };
 
 export const processAndInsertBatch = async <
-  TableName extends keyof Database["public"]["Tables"],
+  TableName extends PublicTableName,
   InputType,
   OutputType,
 >({
@@ -367,13 +378,13 @@ export const processAndInsertBatch = async <
   outputProcessor,
 }: {
   supabase: SupabaseClient<Database, "public">;
-  tableName: keyof Database["public"]["Tables"];
+  tableName: TableName;
   items: InputType[];
-  uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
-  inputProcessor: ItemProcessor<InputType, TablesInsert<TableName>>;
-  outputProcessor: ItemProcessor<Tables<TableName>, OutputType>;
+  uniqueOn?: PublicTableInsertKey<TableName>[]; // Uses pKey otherwise
+  inputProcessor: ItemProcessor<InputType, PublicTableInsert<TableName>>;
+  outputProcessor: ItemProcessor<PublicTableRow<TableName>, OutputType>;
 }): Promise<PostgrestResponse<OutputType>> => {
-  const processedItems: TablesInsert<TableName>[] = [];
+  const processedItems: PublicTableInsert<TableName>[] = [];
   const validationErrors: { index: number; error: string }[] = [];
   if (!Array.isArray(items) || items.length === 0) {
     return {
