@@ -79,7 +79,15 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
           className="select-none"
           disabled={!label}
           onClick={() => {
-            const shortcut = label.slice(0, 1).toUpperCase();
+            const candidateShortcut = label.slice(0, 1).toUpperCase();
+            const existingShortcuts = new Set(
+              getDiscourseNodes()
+                .map((n) => n.shortcut.toUpperCase())
+                .filter(Boolean),
+            );
+            const shortcut = existingShortcuts.has(candidateShortcut)
+              ? ""
+              : candidateShortcut;
             const format = `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
             posthog.capture("Discourse Node: Type Created", { label: label });
             void createPage({

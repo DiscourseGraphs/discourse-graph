@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { DiscourseNode } from "~/utils/getDiscourseNodes";
+import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
@@ -86,9 +86,11 @@ const NodeConfig = ({
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
   const [tagError, setTagError] = useState("");
   const [formatError, setFormatError] = useState("");
+  const [shortcutError, setShortcutError] = useState("");
 
   const [tagValue, setTagValue] = useState(node.tag || "");
   const [formatValue, setFormatValue] = useState(node.format || "");
+  const [shortcutValue, setShortcutValue] = useState(node.shortcut || "");
   const validate = useCallback(
     ({
       tag,
@@ -148,6 +150,25 @@ const NodeConfig = ({
     validate({ tag: tagValue, format: formatValue });
   }, [tagValue, formatValue, validate]);
 
+  const validateShortcut = useCallback(
+    (value: string) => {
+      if (!value) return setShortcutError("");
+      const taken = getDiscourseNodes()
+        .filter((n) => n.type !== node.type && n.shortcut)
+        .map((n) => n.shortcut.toUpperCase());
+      setShortcutError(
+        taken.includes(value.toUpperCase())
+          ? `Shortcut "${value.toUpperCase()}" is already used by another node type.`
+          : "",
+      );
+    },
+    [node.type],
+  );
+
+  useEffect(() => {
+    validateShortcut(shortcutValue);
+  }, [shortcutValue, validateShortcut]);
+
   return (
     <>
       <Tabs
@@ -177,6 +198,8 @@ const NodeConfig = ({
                 description={`The trigger to quickly create a ${node.text} page from the node menu.`}
                 settingKeys={["shortcut"]}
                 initialValue={node.shortcut}
+                error={shortcutError}
+                onChange={setShortcutValue}
                 order={0}
                 parentUid={node.type}
                 uid={shortcutUid}
