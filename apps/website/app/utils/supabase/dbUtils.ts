@@ -113,9 +113,7 @@ export const getOrCreateEntity = async <TableName extends PublicTableName>({
 }): Promise<PostgrestSingleResponse<RawTables<TableName>>> => {
   const result: PostgrestSingleResponse<RawTables<TableName>> = await supabase
     .from(tableName)
-    // Typescript gets confused with latest supabase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .upsert(insertData as any, {
+    .upsert(insertData, {
       onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
       ignoreDuplicates: false,
       count: "estimated",
@@ -209,9 +207,7 @@ export const InsertValidatedBatch = async <TableName extends PublicTableName>({
 }): Promise<PostgrestResponse<RawTables<TableName>>> => {
   const result: PostgrestResponse<RawTables<TableName>> = await supabase
     .from(tableName)
-    // Typescript gets confused with latest supabase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .upsert(items as any, {
+    .upsert(items, {
       onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
       ignoreDuplicates: false,
       count: "estimated",
