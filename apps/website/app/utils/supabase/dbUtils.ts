@@ -3,11 +3,31 @@ import type {
   PostgrestResponse,
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
-import type { Database, Tables, TablesInsert } from "@repo/database/dbTypes";
+import { PostgrestError } from "@supabase/supabase-js";
+import type { Database } from "@repo/database/dbTypes";
+
+type PublicTableName = keyof Database["public"]["Tables"];
+type RawTables<TN extends PublicTableName> =
+  Database["public"]["Tables"][TN]["Row"];
+type RawTablesInsert<TN extends PublicTableName> =
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  Database["public"]["Tables"][TN] extends { Insert: unknown }
+    ? Database["public"]["Tables"][TN]["Insert"]
+    : never;
+type RawTablesInsertKey<TN extends PublicTableName> =
+  keyof RawTablesInsert<TN> & string;
+
+// Those next three types would be unions if we ever have more embedding tables
+export type ContentEmbeddingTableName =
+  "ContentEmbedding_openai_text_embedding_3_small_1536";
+export type ContentEmbeddingStrTablesInsert =
+  RawTablesInsert<"ContentEmbedding_openai_text_embedding_3_small_1536">;
+export type ContentEmbeddingStrTables =
+  RawTables<"ContentEmbedding_openai_text_embedding_3_small_1536">;
 
 export const KNOWN_EMBEDDING_TABLES: {
   [key: string]: {
-    tableName: keyof Database["public"]["Tables"];
+    tableName: ContentEmbeddingTableName;
     tableSize: number;
   };
 } = {
@@ -80,20 +100,18 @@ const processSupabaseError = <T>(
  * @param uniqueOn The expected uniqueOn key.
  * @returns Promise<GetOrCreateEntityResult<T>>
  */
-export const getOrCreateEntity = async <
-  TableName extends keyof Database["public"]["Tables"],
->({
+export const getOrCreateEntity = async <TableName extends PublicTableName>({
   supabase,
   tableName,
   insertData,
   uniqueOn = undefined,
 }: {
   supabase: SupabaseClient<Database, "public">;
-  tableName: keyof Database["public"]["Tables"];
-  insertData: TablesInsert<TableName>;
-  uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
-}): Promise<PostgrestSingleResponse<Tables<TableName>>> => {
-  const result: PostgrestSingleResponse<Tables<TableName>> = await supabase
+  tableName: TableName;
+  insertData: RawTablesInsert<TableName>;
+  uniqueOn?: RawTablesInsertKey<TableName>[];
+}): Promise<PostgrestSingleResponse<RawTables<TableName>>> => {
+  const result: PostgrestSingleResponse<RawTables<TableName>> = await supabase
     .from(tableName)
     .upsert(insertData, {
       onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
@@ -110,7 +128,7 @@ export const getOrCreateEntity = async <
       if (dup_key_data !== null && dup_key_data.length > 1)
         uniqueOn = dup_key_data[1]!
           .split(",")
-          .map((x) => x.trim()) as (keyof TablesInsert<TableName>)[];
+          .map((x) => x.trim()) as RawTablesInsertKey<TableName>[];
       if (uniqueOn && uniqueOn.length > 0) {
         console.warn(`Attempting to re-fetch using ${uniqueOn.join(", ")}`);
         let reFetchQueryBuilder = supabase.from(tableName).select();
@@ -120,14 +138,21 @@ export const getOrCreateEntity = async <
             console.error("Empty key in uniqueOn");
             continue;
           }
-          const keyS = String(key);
-          reFetchQueryBuilder = reFetchQueryBuilder.eq(
-            keyS,
-            insertData[key] as any, // TS gets confused here?
+          const insertEntry = Object.entries(insertData).find(
+            ([insertKey]) => insertKey === key,
+          );
+          if (!insertEntry) {
+            console.error(`Missing insert data for unique key ${key}`);
+            continue;
+          }
+          reFetchQueryBuilder = reFetchQueryBuilder.filter(
+            key,
+            "eq",
+            insertEntry[1],
           );
         }
         const reFetchResult =
-          await reFetchQueryBuilder.maybeSingle<Tables<TableName>>();
+          await reFetchQueryBuilder.maybeSingle<RawTables<TableName>>();
         const { data: reFetchedEntity, error: reFetchError } = reFetchResult;
 
         if (reFetchResult === null) {
@@ -138,14 +163,15 @@ export const getOrCreateEntity = async <
           console.log(`Found ${tableName} on re-fetch:`, reFetchedEntity);
           // Note: Using a PostgrestResult means I cannot have both data and error non-null...
           return {
-            error: {
+            error: new PostgrestError({
               ...result.error,
               message: `Upsert failed because of conflict with this entity: ${reFetchedEntity}"`,
-            },
+            }),
             statusText: result.statusText,
             data: null,
             count: null,
             status: 400,
+            success: false,
           };
         }
       }
@@ -168,20 +194,18 @@ export type ItemProcessor<TInput, TProcessed> = (item: TInput) => {
 
 export type ItemValidator<T> = (item: T) => string | null;
 
-export const InsertValidatedBatch = async <
-  TableName extends keyof Database["public"]["Tables"],
->({
+export const InsertValidatedBatch = async <TableName extends PublicTableName>({
   supabase,
   tableName,
   items,
   uniqueOn = undefined,
 }: {
   supabase: SupabaseClient<Database, "public">;
-  tableName: keyof Database["public"]["Tables"];
-  items: TablesInsert<TableName>[];
-  uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
-}): Promise<PostgrestResponse<Tables<TableName>>> => {
-  const result: PostgrestResponse<Tables<TableName>> = await supabase
+  tableName: TableName;
+  items: RawTablesInsert<TableName>[];
+  uniqueOn?: RawTablesInsertKey<TableName>[];
+}): Promise<PostgrestResponse<RawTables<TableName>>> => {
+  const result: PostgrestResponse<RawTables<TableName>> = await supabase
     .from(tableName)
     .upsert(items, {
       onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
@@ -211,7 +235,7 @@ export const InsertValidatedBatch = async <
 };
 
 export const validateAndInsertBatch = async <
-  TableName extends keyof Database["public"]["Tables"],
+  TableName extends PublicTableName,
 >({
   supabase,
   tableName,
@@ -221,24 +245,24 @@ export const validateAndInsertBatch = async <
   outputValidator = undefined,
 }: {
   supabase: SupabaseClient<Database, "public">;
-  tableName: keyof Database["public"]["Tables"];
-  items: TablesInsert<TableName>[];
-  uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
-  inputValidator?: ItemValidator<TablesInsert<TableName>>;
-  outputValidator?: ItemValidator<Tables<TableName>>;
-}): Promise<PostgrestResponse<Tables<TableName>>> => {
-  let validatedItems: TablesInsert<TableName>[] = [];
+  tableName: TableName;
+  items: RawTablesInsert<TableName>[];
+  uniqueOn?: RawTablesInsertKey<TableName>[];
+  inputValidator?: ItemValidator<RawTablesInsert<TableName>>;
+  outputValidator?: ItemValidator<RawTables<TableName>>;
+}): Promise<PostgrestResponse<RawTables<TableName>>> => {
+  let validatedItems: RawTablesInsert<TableName>[] = [];
   const validationErrors: { index: number; error: string }[] = [];
   if (!Array.isArray(items) || items.length === 0) {
     return {
-      error: {
+      error: new PostgrestError({
         message: `Request body must be a non-empty array of ${tableName} items.`,
         details: "",
-        hint: "",
+        hint: "nonempty",
         code: "1",
-        name: "nonempty",
-      },
+      }),
       status: 400,
+      success: false,
       data: null,
       count: null,
       statusText: "Empty input",
@@ -269,13 +293,13 @@ export const validateAndInsertBatch = async <
 
     if (validationErrors.length > 0) {
       return {
-        error: {
+        error: new PostgrestError({
           message: `Validation failed for one or more ${tableName} items.`,
           details: `${validationErrors}`,
-          hint: "",
+          hint: "invalid",
           code: "2",
-          name: "invalid",
-        },
+        }),
+        success: false,
         status: 400,
         data: null,
         count: null,
@@ -295,7 +319,7 @@ export const validateAndInsertBatch = async <
     return result;
   }
   if (outputValidator !== undefined) {
-    const validatedResults: Tables<TableName>[] = [];
+    const validatedResults: RawTables<TableName>[] = [];
     for (let i = 0; i < result.data.length; i++) {
       const item = result.data[i];
       if (!item) {
@@ -322,6 +346,7 @@ export const validateAndInsertBatch = async <
         // Erring on the side of returning data with an error in status.
         return {
           error: null,
+          success: true,
           status: 500,
           data: validatedResults,
           count: validatedResults.length,
@@ -329,13 +354,13 @@ export const validateAndInsertBatch = async <
         };
       } else {
         return {
-          error: {
+          error: new PostgrestError({
             message: `Post-validation failed for all ${tableName} items.`,
             details: `${validationErrors}`,
-            hint: "",
+            hint: "invalid",
             code: "2",
-            name: "invalid",
-          },
+          }),
+          success: false,
           status: 500,
           data: null,
           count: null,
@@ -348,7 +373,7 @@ export const validateAndInsertBatch = async <
 };
 
 export const processAndInsertBatch = async <
-  TableName extends keyof Database["public"]["Tables"],
+  TableName extends PublicTableName,
   InputType,
   OutputType,
 >({
@@ -360,23 +385,23 @@ export const processAndInsertBatch = async <
   outputProcessor,
 }: {
   supabase: SupabaseClient<Database, "public">;
-  tableName: keyof Database["public"]["Tables"];
+  tableName: TableName;
   items: InputType[];
-  uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
-  inputProcessor: ItemProcessor<InputType, TablesInsert<TableName>>;
-  outputProcessor: ItemProcessor<Tables<TableName>, OutputType>;
+  uniqueOn?: RawTablesInsertKey<TableName>[];
+  inputProcessor: ItemProcessor<InputType, RawTablesInsert<TableName>>;
+  outputProcessor: ItemProcessor<RawTables<TableName>, OutputType>;
 }): Promise<PostgrestResponse<OutputType>> => {
-  let processedItems: TablesInsert<TableName>[] = [];
+  const processedItems: RawTablesInsert<TableName>[] = [];
   const validationErrors: { index: number; error: string }[] = [];
   if (!Array.isArray(items) || items.length === 0) {
     return {
-      error: {
+      error: new PostgrestError({
         message: `Request body must be a non-empty array of ${tableName} items.`,
         details: "",
-        hint: "",
+        hint: "nonempty",
         code: "1",
-        name: "nonempty",
-      },
+      }),
+      success: false,
       status: 400,
       data: null,
       count: null,
@@ -407,13 +432,13 @@ export const processAndInsertBatch = async <
 
   if (validationErrors.length > 0) {
     return {
-      error: {
+      error: new PostgrestError({
         message: `Validation failed for one or more ${tableName} items.`,
         details: `${validationErrors}`,
-        hint: "",
+        hint: "invalid",
         code: "2",
-        name: "invalid",
-      },
+      }),
+      success: false,
       status: 400,
       data: null,
       count: null,
@@ -457,19 +482,20 @@ export const processAndInsertBatch = async <
       return {
         error: null,
         status: 500,
+        success: true,
         data: processedResults,
         count: processedResults.length,
         statusText: `Validation failed for one or more ${tableName} items, and succeeded for ${processedResults.length}/${result.data.length}.`,
       };
     } else {
       return {
-        error: {
+        error: new PostgrestError({
           message: `Post-validation failed for all ${tableName} items.`,
           details: `${validationErrors}`,
-          hint: "",
+          hint: "invalid",
           code: "2",
-          name: "invalid",
-        },
+        }),
+        success: false,
         status: 500,
         data: null,
         count: null,

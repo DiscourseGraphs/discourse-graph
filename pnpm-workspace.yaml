@@ -29,11 +29,12 @@ catalog:
   eslint: 8.57.1
   react: ^19.1.0
   react-dom: ^19.1.0
-  posthog-js: 1.336.4
-  "@supabase/supabase-js": 2.95.3
-  "@supabase/functions-js": 2.95.3
-  "@supabase/storage-js": 2.95.3
-  "@supabase/auth-js": 2.95.3
+  posthog-js: 1.372.10
+  "@supabase/supabase-js": 2.105.4
+  "@supabase/functions-js": 2.105.4
+  "@supabase/storage-js": 2.105.4
+  "@supabase/auth-js": 2.105.4
+  "@supabase/ssr": 0.10.3
 
 catalogs:
   obsidian:
