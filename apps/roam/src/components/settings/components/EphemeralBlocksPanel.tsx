@@ -56,9 +56,20 @@ const mirrorBufferToLegacyChildren = (
   for (let i = 0; i < minLen; i++) {
     const bufferNode = sortedBuffer[i];
     const legacyNode = sortedLegacy[i];
-    if (bufferNode.text !== legacyNode.text) {
+    if (
+      bufferNode.text !== legacyNode.text ||
+      bufferNode.heading !== legacyNode.heading ||
+      bufferNode.open !== legacyNode.open
+    ) {
       void window.roamAlphaAPI.data.block.update({
-        block: { uid: legacyNode.uid, string: bufferNode.text },
+        block: {
+          uid: legacyNode.uid,
+          string: bufferNode.text,
+          ...(bufferNode.heading !== undefined && {
+            heading: bufferNode.heading,
+          }),
+          ...(bufferNode.open !== undefined && { open: bufferNode.open }),
+        },
       });
     }
     mirrorBufferToLegacyChildren(
@@ -116,7 +127,7 @@ const DualWriteBlocksPanel = ({
       setBufferUid(null);
       void deleteBlock(newUid);
     };
-  }, [useNewStore, nodeType, uid]);
+  }, [useNewStore, nodeType]);
 
   const handleChange = useCallback(() => {
     if (!renderUid) return;
