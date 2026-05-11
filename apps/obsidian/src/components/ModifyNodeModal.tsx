@@ -1,4 +1,4 @@
-import { App, Modal, Notice, TFile } from "obsidian";
+import { App, MarkdownView, Modal, Notice, TFile } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import {
   StrictMode,
@@ -49,6 +49,7 @@ type ModifyNodeFormProps = {
     /** DiscourseRelation.id; when set, relation is created with currentFile as the other end. */
     relationshipId?: string;
     relationshipTargetFile?: TFile;
+    insertBacklink: boolean;
   }) => Promise<void>;
   onCancel: () => void;
   initialTitle?: string;
@@ -83,6 +84,9 @@ export const ModifyNodeForm = ({
   const [selectedRelationshipKey, setSelectedRelationshipKey] = useState<
     string | undefined
   >(undefined);
+  const hasEditorContext =
+    plugin.app.workspace.activeLeaf?.view instanceof MarkdownView;
+  const [insertBacklink, setInsertBacklink] = useState(!!initialTitle);
   const queryEngine = useRef(new QueryEngine(plugin.app));
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -278,6 +282,7 @@ export const ModifyNodeForm = ({
       setSelectedExistingNode(file);
       setQuery(file.basename);
       setTitle(file.basename);
+      setInsertBacklink(true);
       // Auto-detect node type from the selected file's frontmatter
       const nodeTypeId = await getNodeTypeIdForFile(plugin, file);
       if (nodeTypeId && selectedFileRef.current === file) {
@@ -291,12 +296,13 @@ export const ModifyNodeForm = ({
   const handleClearSelection = useCallback(() => {
     selectedFileRef.current = null;
     setSelectedExistingNode(null);
+    setInsertBacklink(!!initialTitle);
     setQuery("");
     setTitle("");
     setTimeout(() => {
       titleInputRef.current?.focus();
     }, 50);
-  }, []);
+  }, [initialTitle]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (selectedExistingNode) {
@@ -391,6 +397,7 @@ export const ModifyNodeForm = ({
         selectedExistingNode: selectedExistingNode || undefined,
         relationshipId: selectedRel?.uniqueKey || undefined,
         relationshipTargetFile: currentFile || undefined,
+        insertBacklink,
       });
       onCancel();
     } catch (error) {
@@ -418,6 +425,7 @@ export const ModifyNodeForm = ({
     selectedRelationshipKey,
     currentFile,
     availableRelationships,
+    insertBacklink,
   ]);
 
   return (
@@ -568,6 +576,20 @@ export const ModifyNodeForm = ({
         </div>
       )}
 
+      {!isEditMode && hasEditorContext && (
+        <div className="setting-item">
+          <div className="setting-item-name">Insert backlink</div>
+          <div className="setting-item-control">
+            <input
+              type="checkbox"
+              checked={insertBacklink}
+              onChange={(e) => setInsertBacklink(e.target.checked)}
+              disabled={isSubmitting}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="modal-button-container mt-5 flex justify-end gap-2">
         <button
           type="button"
@@ -606,6 +628,7 @@ type ModifyNodeModalProps = {
     selectedExistingNode?: TFile;
     relationshipId?: string;
     relationshipTargetFile?: TFile;
+    insertBacklink: boolean;
   }) => Promise<void>;
   initialTitle?: string;
   initialNodeType?: DiscourseNode;
@@ -622,6 +645,7 @@ class ModifyNodeModal extends Modal {
     selectedExistingNode?: TFile;
     relationshipId?: string;
     relationshipTargetFile?: TFile;
+    insertBacklink: boolean;
   }) => Promise<void>;
   private root: Root | null = null;
   private initialTitle?: string;
