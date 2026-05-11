@@ -105,12 +105,12 @@ const DualWriteBlocksPanel = ({
     [string, string, (before: unknown, after: unknown) => void] | null
   >(null);
 
-  const useNewStore = isNewSettingsStoreEnabled();
+  const isNewStore = isNewSettingsStoreEnabled();
   const [bufferUid, setBufferUid] = useState<string | null>(null);
-  const renderUid = useNewStore ? bufferUid : uid;
+  const renderUid = isNewStore ? bufferUid : uid;
 
   useEffect(() => {
-    if (!useNewStore || !nodeType) return;
+    if (!isNewStore || !nodeType) return;
     let cancelled = false;
     const newUid = window.roamAlphaAPI.util.generateUID();
     const dv = defaultValueRef.current;
@@ -127,7 +127,7 @@ const DualWriteBlocksPanel = ({
       setBufferUid(null);
       void deleteBlock(newUid);
     };
-  }, [useNewStore, nodeType]);
+  }, [isNewStore, nodeType]);
 
   const handleChange = useCallback(() => {
     if (!renderUid) return;
@@ -136,12 +136,12 @@ const DualWriteBlocksPanel = ({
       const tree = getFullTreeByParentUid(renderUid);
       const serialized = serializeBlockTree(tree.children);
       setDiscourseNodeSetting(nodeType, settingKeys, serialized);
-      if (useNewStore && renderUid !== uid) {
+      if (isNewStore && renderUid !== uid) {
         const legacyTree = getFullTreeByParentUid(uid);
         mirrorBufferToLegacyChildren(tree.children, legacyTree.children, uid);
       }
     }, DEBOUNCE_MS);
-  }, [renderUid, uid, useNewStore, nodeType, settingKeys]);
+  }, [renderUid, uid, isNewStore, nodeType, settingKeys]);
 
   useEffect(() => {
     const el = containerRef.current;
