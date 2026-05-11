@@ -33,20 +33,27 @@ const serializeBlockTree = (children: TreeNode[]): RoamNodeType[] =>
       }),
     }));
 
+const treeNodeToInputTextNode = (node: TreeNode): InputTextNode => ({
+  text: node.text,
+  ...(node.heading && { heading: node.heading as 0 | 1 | 2 | 3 }),
+  ...(node.open === false && { open: false }),
+  ...(node.children.length > 0 && {
+    children: [...node.children]
+      .sort((a, b) => a.order - b.order)
+      .map(treeNodeToInputTextNode),
+  }),
+});
+
 const mirrorBufferToLegacyChildren = (
   bufferChildren: TreeNode[],
   legacyChildren: TreeNode[],
+  legacyParentUid: string,
 ): void => {
-  if (bufferChildren.length !== legacyChildren.length) {
-    console.warn(
-      "[Template-Block-props] mirror skipped: tree length mismatch (expected only during testing or manual divergence)",
-      { buffer: bufferChildren.length, legacy: legacyChildren.length },
-    );
-    return;
-  }
   const sortedBuffer = [...bufferChildren].sort((a, b) => a.order - b.order);
   const sortedLegacy = [...legacyChildren].sort((a, b) => a.order - b.order);
-  for (let i = 0; i < sortedBuffer.length; i++) {
+  const minLen = Math.min(sortedBuffer.length, sortedLegacy.length);
+
+  for (let i = 0; i < minLen; i++) {
     const bufferNode = sortedBuffer[i];
     const legacyNode = sortedLegacy[i];
     if (bufferNode.text !== legacyNode.text) {
@@ -54,7 +61,20 @@ const mirrorBufferToLegacyChildren = (
         block: { uid: legacyNode.uid, string: bufferNode.text },
       });
     }
-    mirrorBufferToLegacyChildren(bufferNode.children, legacyNode.children);
+    mirrorBufferToLegacyChildren(
+      bufferNode.children,
+      legacyNode.children,
+      legacyNode.uid,
+    );
+  }
+
+  for (let i = minLen; i < sortedBuffer.length; i++) {
+    const node = treeNodeToInputTextNode(sortedBuffer[i]);
+    void createBlock({ node, parentUid: legacyParentUid, order: i });
+  }
+
+  for (let i = minLen; i < sortedLegacy.length; i++) {
+    void deleteBlock(sortedLegacy[i].uid);
   }
 };
 
@@ -96,7 +116,7 @@ const DualWriteBlocksPanel = ({
       setBufferUid(null);
       void deleteBlock(newUid);
     };
-  }, [useNewStore, nodeType]);
+  }, [useNewStore, nodeType, uid]);
 
   const handleChange = useCallback(() => {
     if (!renderUid) return;
@@ -107,7 +127,7 @@ const DualWriteBlocksPanel = ({
       setDiscourseNodeSetting(nodeType, settingKeys, serialized);
       if (useNewStore && renderUid !== uid) {
         const legacyTree = getFullTreeByParentUid(uid);
-        mirrorBufferToLegacyChildren(tree.children, legacyTree.children);
+        mirrorBufferToLegacyChildren(tree.children, legacyTree.children, uid);
       }
     }, DEBOUNCE_MS);
   }, [renderUid, uid, useNewStore, nodeType, settingKeys]);
