@@ -22,6 +22,7 @@ type ModifyNodeSubmitParams = {
   selectedExistingNode?: TFile;
   relationshipId?: string;
   relationshipTargetFile?: TFile;
+  insertBacklink: boolean;
 };
 
 export const createModifyNodeModalSubmitHandler = (
@@ -34,10 +35,11 @@ export const createModifyNodeModalSubmitHandler = (
     selectedExistingNode,
     relationshipId,
     relationshipTargetFile,
+    insertBacklink,
   }: ModifyNodeSubmitParams) => {
     if (selectedExistingNode) {
-      if (editor && editor.somethingSelected()) {
-        editor?.replaceSelection(`[[${selectedExistingNode.basename}]]`);
+      if (insertBacklink && editor) {
+        editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
       }
       await addRelationIfRequested(plugin, selectedExistingNode, {
         relationshipId,
@@ -48,7 +50,7 @@ export const createModifyNodeModalSubmitHandler = (
         plugin,
         nodeType,
         text: title,
-        editor,
+        editor: insertBacklink ? editor : undefined,
       });
       if (newFile) {
         await addRelationIfRequested(plugin, newFile, {
