@@ -9,6 +9,28 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 - Minor version bumps are released on a regular cadence.
 - Patch version bumps are for bugfixes and hotfixes.
 
+## [0.19.0] - 2026-05-11
+
+### Added
+
+- **Left sidebar commands** - add custom sidebar commands, starting with Create Node
+- **Canvas relations** - add relation creation through drag handles in tldraw
+- **Canvas clipboard** - add filtering, searching, and sorting controls
+
+### Changed
+
+- **Create Node flow** - improve the node creation dialog with longer titles, title-first field order, highlighted-text prefills, empty node-type selection, and safer node-type locking
+- **Node settings** - show node tags below the tag input and move node color selection into the General tab
+
+### Fixed
+
+- **Discourse Context overlay** - fix overlay cleanup and repeated hover triggering in rendered query blocks
+- **Large graph syncs** - batch concept upserts to reduce sync timeouts on large graphs
+- **Roam observers** - prevent duplicate page-reference observers from being registered
+- **Discourse Context settings** - fix settings blocks appearing in pages after using Hide Interface
+- **Canvas text** - fix canvas nodes unexpectedly defaulting to the Draw font
+- **Canvas embeds** - improve block embed click behavior
+
 ## [0.18.0] - 2026-03-29
 
 ### Added
