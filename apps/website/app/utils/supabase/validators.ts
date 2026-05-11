@@ -1,33 +1,81 @@
-import {
-  KNOWN_EMBEDDING_TABLES,
-  ItemProcessor,
-  ItemValidator,
-} from "./dbUtils";
+import type { PublicTableName, RawTablesInsert, RawTables } from "./dbUtils";
 import type { Tables, TablesInsert } from "@repo/database/dbTypes";
 
-// Use the first known ContentEmbedding table for type checking, as they have the same structure
-export type ContentEmbeddingDataInput =
-  TablesInsert<"ContentEmbedding_openai_text_embedding_3_small_1536">;
-export type ContentEmbeddingRecord =
-  Tables<"ContentEmbedding_openai_text_embedding_3_small_1536">;
-
-export type ApiInputEmbeddingItem = Omit<
-  ContentEmbeddingDataInput,
-  "vector"
-> & {
-  vector: number[];
+/* eslint-disable @typescript-eslint/naming-convention */
+export type InputTypes = {
+  ContentEmbedding_openai_text_embedding_3_small_1536: ContentEmbeddingVecTablesInsert;
+  ContentEmbedding_openai_text_embedding_3_large_1536: ContentEmbeddingVecTablesInsert;
 };
-
-export type ApiOutputEmbeddingRecord = Omit<
-  ContentEmbeddingRecord,
-  "vector"
-> & {
-  vector: number[];
+export type OutputTypes = {
+  ContentEmbedding_openai_text_embedding_3_small_1536: ContentEmbeddingVecTables;
+  ContentEmbedding_openai_text_embedding_3_large_1536: ContentEmbeddingVecTables;
 };
+/* eslint-enable @typescript-eslint/naming-convention */
 
-export const embeddingInputValidation: ItemValidator<ApiInputEmbeddingItem> = (
-  data,
+export type InputTypeOf<T extends PublicTableName> = T extends keyof InputTypes
+  ? InputTypes[T]
+  : RawTablesInsert<T>;
+export type OutputTypeOf<T extends PublicTableName> =
+  T extends keyof OutputTypes ? OutputTypes[T] : RawTables<T>;
+
+export type ItemProcessor<T extends PublicTableName> = (
+  item: InputTypeOf<T>,
 ) => {
+  valid: boolean;
+  error?: string;
+  processedItem?: RawTablesInsert<T>;
+};
+
+export type ItemOutputProcessor<T extends PublicTableName> = (
+  item: RawTables<T>,
+) => {
+  valid: boolean;
+  error?: string;
+  processedItem?: OutputTypeOf<T>;
+};
+
+export type ItemValidator<T extends PublicTableName> = (
+  item: RawTables<T> | RawTablesInsert<T>,
+) => string | null;
+
+// Those next three types would be unions if we ever have more embedding tables
+export type ContentEmbeddingTableName =
+  "ContentEmbedding_openai_text_embedding_3_small_1536";
+export type ContentEmbeddingStrTablesInsert =
+  RawTablesInsert<"ContentEmbedding_openai_text_embedding_3_small_1536">;
+export type ContentEmbeddingStrTables =
+  RawTables<"ContentEmbedding_openai_text_embedding_3_small_1536">;
+
+export const KNOWN_EMBEDDING_TABLES: {
+  [key: string]: {
+    tableName: ContentEmbeddingTableName;
+    tableSize: number;
+  };
+} = {
+  openai_text_embedding_3_small_1536: {
+    tableName: "ContentEmbedding_openai_text_embedding_3_small_1536",
+    tableSize: 1536,
+  },
+};
+
+export type ContentEmbeddingVecTablesInsert = Omit<
+  ContentEmbeddingStrTablesInsert,
+  "vector"
+> & {
+  vector: number[];
+};
+
+export type ContentEmbeddingVecTables = Omit<
+  ContentEmbeddingStrTables,
+  "vector"
+> & {
+  vector: number[];
+};
+
+// type: ItemValidator<T>
+export const embeddingInputValidation = <T extends ContentEmbeddingTableName>(
+  data: InputTypeOf<T>,
+): string | null => {
   if (!data || typeof data !== "object")
     return "Invalid request body: expected a JSON object.";
   const { target_id, model, vector } = data;
@@ -64,23 +112,31 @@ export const embeddingInputValidation: ItemValidator<ApiInputEmbeddingItem> = (
   return null;
 };
 
-export const embeddingInputProcessing: ItemProcessor<
-  ApiInputEmbeddingItem,
-  ContentEmbeddingDataInput
-> = (data) => {
+// type: ItemProcessor<T>
+export const embeddingInputProcessing = <T extends ContentEmbeddingTableName>(
+  data: InputTypeOf<T>,
+): {
+  valid: boolean;
+  error?: string;
+  processedItem?: RawTablesInsert<T>;
+} => {
   const error = embeddingInputValidation(data);
   if (error) {
     return { valid: false, error };
   }
   return {
     valid: true,
-    processedItem: { ...data, vector: JSON.stringify(data.vector) },
+    processedItem: {
+      ...data,
+      vector: JSON.stringify(data.vector),
+    } as RawTablesInsert<T>,
   };
 };
 
-export const embeddingOutputValidation: ItemValidator<
-  ApiOutputEmbeddingRecord
-> = (data) => {
+// type: ItemOutputValidator<T>
+export const embeddingOutputValidation = <T extends ContentEmbeddingTableName>(
+  data: OutputTypeOf<T>,
+): string | null => {
   const { model, vector } = data;
   if (
     !model ||
@@ -98,12 +154,19 @@ export const embeddingOutputValidation: ItemValidator<
   return null;
 };
 
-export const embeddingOutputProcessing: ItemProcessor<
-  ContentEmbeddingRecord,
-  ApiOutputEmbeddingRecord
-> = (data) => {
+// type: ItemOutputProcessor<T>
+export const embeddingOutputProcessing = <T extends ContentEmbeddingTableName>(
+  data: Tables<T>,
+): {
+  valid: boolean;
+  error?: string;
+  processedItem?: OutputTypeOf<T>;
+} => {
   try {
-    const processedData = { ...data, vector: JSON.parse(data.vector) };
+    const processedData = {
+      ...data,
+      vector: JSON.parse(data.vector) as number[],
+    } as OutputTypeOf<T>;
     const error = embeddingOutputValidation(processedData);
     if (error) {
       return { valid: false, error };
@@ -123,7 +186,8 @@ export const embeddingOutputProcessing: ItemProcessor<
 export type ContentDataInput = TablesInsert<"Content">;
 export type ContentRecord = Tables<"Content">;
 
-export const contentInputValidation: ItemValidator<ContentDataInput> = (
+// type: ItemValidator<"Content">
+export const contentInputValidation = (
   data: ContentDataInput,
 ): string | null => {
   if (!data || typeof data !== "object")

@@ -3,39 +3,26 @@ import type {
   PostgrestResponse,
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
+import type {
+  ItemValidator,
+  ItemProcessor,
+  ItemOutputProcessor,
+  InputTypeOf,
+  OutputTypeOf,
+} from "./validators";
 import { PostgrestError } from "@supabase/supabase-js";
 import type { Database } from "@repo/database/dbTypes";
 
-type PublicTableName = keyof Database["public"]["Tables"];
-type RawTables<TN extends PublicTableName> =
+export type PublicTableName = keyof Database["public"]["Tables"];
+export type RawTables<TN extends PublicTableName> =
   Database["public"]["Tables"][TN]["Row"];
-type RawTablesInsert<TN extends PublicTableName> =
+export type RawTablesInsert<TN extends PublicTableName> =
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Database["public"]["Tables"][TN] extends { Insert: unknown }
     ? Database["public"]["Tables"][TN]["Insert"]
     : never;
-type RawTablesInsertKey<TN extends PublicTableName> =
+export type RawTablesInsertKey<TN extends PublicTableName> =
   keyof RawTablesInsert<TN> & string;
-
-// Those next three types would be unions if we ever have more embedding tables
-export type ContentEmbeddingTableName =
-  "ContentEmbedding_openai_text_embedding_3_small_1536";
-export type ContentEmbeddingStrTablesInsert =
-  RawTablesInsert<"ContentEmbedding_openai_text_embedding_3_small_1536">;
-export type ContentEmbeddingStrTables =
-  RawTables<"ContentEmbedding_openai_text_embedding_3_small_1536">;
-
-export const KNOWN_EMBEDDING_TABLES: {
-  [key: string]: {
-    tableName: ContentEmbeddingTableName;
-    tableSize: number;
-  };
-} = {
-  openai_text_embedding_3_small_1536: {
-    tableName: "ContentEmbedding_openai_text_embedding_3_small_1536",
-    tableSize: 1536,
-  },
-};
 
 const UNIQUE_KEY_RE = /^Key \(([^)]+)\)=\(([\^)]+)\) already exists\.$/;
 const UNIQUE_INDEX_RE =
@@ -45,9 +32,9 @@ const FOREIGN_KEY_RE =
 const FOREIGN_CONSTRAINT_RE =
   /insert or update on table ("?\w+"?) violates foreign key constraint ("?\w+"?)/;
 
-const processSupabaseError = <T>(
+const processSupabaseError = <T extends PublicTableName>(
   response: PostgrestResponse<T>,
-  tableName: string,
+  tableName: T,
 ): PostgrestResponse<T> => {
   const { error } = response;
   if (error == null) return response; // should not happen, but makes TS happy
@@ -181,19 +168,6 @@ export const getOrCreateEntity = async <TableName extends PublicTableName>({
   return result;
 };
 
-export type BatchItemValidator<TInput, TProcessed> = (
-  item: TInput,
-  index: number,
-) => { valid: boolean; error?: string; processedItem?: TProcessed };
-
-export type ItemProcessor<TInput, TProcessed> = (item: TInput) => {
-  valid: boolean;
-  error?: string;
-  processedItem?: TProcessed;
-};
-
-export type ItemValidator<T> = (item: T) => string | null;
-
 export const InsertValidatedBatch = async <TableName extends PublicTableName>({
   supabase,
   tableName,
@@ -248,8 +222,8 @@ export const validateAndInsertBatch = async <
   tableName: TableName;
   items: RawTablesInsert<TableName>[];
   uniqueOn?: RawTablesInsertKey<TableName>[];
-  inputValidator?: ItemValidator<RawTablesInsert<TableName>>;
-  outputValidator?: ItemValidator<RawTables<TableName>>;
+  inputValidator?: ItemValidator<TableName>;
+  outputValidator?: ItemValidator<TableName>;
 }): Promise<PostgrestResponse<RawTables<TableName>>> => {
   let validatedItems: RawTablesInsert<TableName>[] = [];
   const validationErrors: { index: number; error: string }[] = [];
@@ -372,11 +346,7 @@ export const validateAndInsertBatch = async <
   return result;
 };
 
-export const processAndInsertBatch = async <
-  TableName extends PublicTableName,
-  InputType,
-  OutputType,
->({
+export const processAndInsertBatch = async <TableName extends PublicTableName>({
   supabase,
   tableName,
   items,
@@ -386,11 +356,11 @@ export const processAndInsertBatch = async <
 }: {
   supabase: SupabaseClient<Database, "public">;
   tableName: TableName;
-  items: InputType[];
+  items: InputTypeOf<TableName>[];
   uniqueOn?: RawTablesInsertKey<TableName>[];
-  inputProcessor: ItemProcessor<InputType, RawTablesInsert<TableName>>;
-  outputProcessor: ItemProcessor<RawTables<TableName>, OutputType>;
-}): Promise<PostgrestResponse<OutputType>> => {
+  inputProcessor: ItemProcessor<TableName>;
+  outputProcessor: ItemOutputProcessor<TableName>;
+}): Promise<PostgrestResponse<OutputTypeOf<TableName>>> => {
   const processedItems: RawTablesInsert<TableName>[] = [];
   const validationErrors: { index: number; error: string }[] = [];
   if (!Array.isArray(items) || items.length === 0) {
@@ -454,7 +424,7 @@ export const processAndInsertBatch = async <
   if (result.error) {
     return result;
   }
-  const processedResults: OutputType[] = [];
+  const processedResults: Array<OutputTypeOf<TableName>> = [];
   for (let i = 0; i < result.data.length; i++) {
     const item = result.data[i];
     if (!item) {

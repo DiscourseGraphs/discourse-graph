@@ -8,13 +8,11 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
+import { getOrCreateEntity } from "~/utils/supabase/dbUtils";
 import {
-  getOrCreateEntity,
   KNOWN_EMBEDDING_TABLES,
-} from "~/utils/supabase/dbUtils";
-import {
-  ApiInputEmbeddingItem,
-  ApiOutputEmbeddingRecord,
+  ContentEmbeddingVecTablesInsert,
+  ContentEmbeddingVecTables,
   embeddingInputProcessing,
   embeddingOutputProcessing,
 } from "~/utils/supabase/validators";
@@ -23,9 +21,11 @@ const DEFAULT_MODEL = "openai_text_embedding_3_small_1536";
 
 const processAndCreateEmbedding = async (
   supabasePromise: ReturnType<typeof createClient>,
-  data: ApiInputEmbeddingItem,
-): Promise<PostgrestSingleResponse<ApiOutputEmbeddingRecord>> => {
-  const { valid, error, processedItem } = embeddingInputProcessing(data);
+  data: ContentEmbeddingVecTablesInsert,
+): Promise<PostgrestSingleResponse<ContentEmbeddingVecTables>> => {
+  const processed = embeddingInputProcessing(data);
+  if (!processed) return asPostgrestFailure("Could not process input", "valid");
+  const { valid, error, processedItem } = processed;
   if (
     !valid ||
     processedItem === undefined ||
@@ -78,7 +78,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body: ApiInputEmbeddingItem = await request.json();
+    const body = (await request.json()) as ContentEmbeddingVecTablesInsert;
     const result = await processAndCreateEmbedding(supabasePromise, body);
     return createApiResponse(request, result);
   } catch (e: unknown) {
