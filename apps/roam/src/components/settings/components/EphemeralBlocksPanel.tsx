@@ -136,6 +136,7 @@ const DualWriteBlocksPanel = ({
     const el = containerRef.current;
     if (!el || !renderUid) return;
 
+    let cancelled = false;
     const pattern = "[:block/string :block/order {:block/children ...}]";
     const entityId = `[:block/uid "${renderUid}"]`;
     const callback = () => handleChange();
@@ -158,6 +159,7 @@ const DualWriteBlocksPanel = ({
         ).then(() => {});
 
     void ensureChildren.then(() => {
+      if (cancelled) return;
       el.innerHTML = "";
       void window.roamAlphaAPI.ui.components.renderBlock({
         uid: renderUid,
@@ -167,6 +169,7 @@ const DualWriteBlocksPanel = ({
     });
 
     return () => {
+      cancelled = true;
       window.clearTimeout(debounceRef.current);
       if (pullWatchArgsRef.current) {
         window.roamAlphaAPI.data.removePullWatch(...pullWatchArgsRef.current);
