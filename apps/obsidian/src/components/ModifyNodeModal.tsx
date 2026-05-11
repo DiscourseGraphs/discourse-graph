@@ -86,7 +86,6 @@ export const ModifyNodeForm = ({
   >(undefined);
   const hasEditorContext =
     !!plugin.app.workspace.getActiveViewOfType(MarkdownView);
-  console.log("hasEditorContext", hasEditorContext);
   const [insertBacklink, setInsertBacklink] = useState(!!initialTitle);
   const queryEngine = useRef(new QueryEngine(plugin.app));
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
