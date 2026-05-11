@@ -33,6 +33,31 @@ const serializeBlockTree = (children: TreeNode[]): RoamNodeType[] =>
       }),
     }));
 
+const mirrorBufferToLegacyChildren = (
+  bufferChildren: TreeNode[],
+  legacyChildren: TreeNode[],
+): void => {
+  if (bufferChildren.length !== legacyChildren.length) {
+    console.warn(
+      "[Template-Block-props] mirror skipped: tree length mismatch (expected only during testing or manual divergence)",
+      { buffer: bufferChildren.length, legacy: legacyChildren.length },
+    );
+    return;
+  }
+  const sortedBuffer = [...bufferChildren].sort((a, b) => a.order - b.order);
+  const sortedLegacy = [...legacyChildren].sort((a, b) => a.order - b.order);
+  for (let i = 0; i < sortedBuffer.length; i++) {
+    const bufferNode = sortedBuffer[i];
+    const legacyNode = sortedLegacy[i];
+    if (bufferNode.text !== legacyNode.text) {
+      void window.roamAlphaAPI.data.block.update({
+        block: { uid: legacyNode.uid, string: bufferNode.text },
+      });
+    }
+    mirrorBufferToLegacyChildren(bufferNode.children, legacyNode.children);
+  }
+};
+
 const DualWriteBlocksPanel = ({
   nodeType,
   settingKeys,
@@ -80,8 +105,12 @@ const DualWriteBlocksPanel = ({
       const tree = getFullTreeByParentUid(renderUid);
       const serialized = serializeBlockTree(tree.children);
       setDiscourseNodeSetting(nodeType, settingKeys, serialized);
+      if (useNewStore && renderUid !== uid) {
+        const legacyTree = getFullTreeByParentUid(uid);
+        mirrorBufferToLegacyChildren(tree.children, legacyTree.children);
+      }
     }, DEBOUNCE_MS);
-  }, [renderUid, nodeType, settingKeys]);
+  }, [renderUid, uid, useNewStore, nodeType, settingKeys]);
 
   useEffect(() => {
     const el = containerRef.current;
