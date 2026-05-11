@@ -3,11 +3,12 @@
 import { createClient } from "~/utils/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
-import internalError from "~/utils/internalError";
+import useInternalError from "~/utils/internalError";
 
 export const LoginWithToken = () => {
   const loginAttempted = useRef(false);
   const searchParams = useSearchParams();
+  const internalError = useInternalError();
   const router = useRouter();
   const [secretToken] = useState(() => searchParams.get("t"));
   useEffect(() => {
@@ -79,7 +80,7 @@ export const LoginWithToken = () => {
     } finally {
       setDone(true);
     }
-  }, [secretToken, url, router]);
+  }, [secretToken, url, router, internalError]);
   useEffect(() => {
     if (!error && !done && !loginAttempted.current) {
       loginAttempted.current = true;

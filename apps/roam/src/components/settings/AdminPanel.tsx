@@ -36,7 +36,6 @@ import {
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 import type { FeatureFlags } from "./utils/zodSchema";
 import { nextRoot } from "@repo/utils/execContext";
-import { useDroppableMeasuring } from "@dnd-kit/core/dist/hooks/utilities";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
