@@ -50,7 +50,10 @@ export const AdminPanelSettings = () => {
       return;
     }
     const sessionData = await client.auth.getSession();
-    if (!sessionData.data.session) return;
+    if (!sessionData.data.session) {
+      new Notice("Failed to connect to the database", 3000);
+      return;
+    }
     /* eslint-disable @typescript-eslint/naming-convention */
     const { access_token, refresh_token } = sessionData.data.session;
     const { data, error } = await client.rpc("create_secret_token", {
@@ -58,7 +61,10 @@ export const AdminPanelSettings = () => {
       expiry_interval: "45s",
     });
     /* eslint-enable @typescript-eslint/naming-convention */
-    if (error || typeof data !== "string") return;
+    if (error || typeof data !== "string") {
+      new Notice("Failed to connect to the database", 3000);
+      return;
+    }
     if (data) window.open(`${nextRoot()}/auth/token?t=${data}&url=/`, "_blank");
   };
 

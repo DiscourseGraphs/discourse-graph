@@ -12,6 +12,7 @@ import {
   Tabs,
 } from "@blueprintjs/core";
 import { Select } from "@blueprintjs/select";
+import { render as renderToast } from "roamjs-components/components/Toast";
 import {
   getSupabaseContext,
   getLoggedInClient,
@@ -35,6 +36,7 @@ import {
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 import type { FeatureFlags } from "./utils/zodSchema";
 import { nextRoot } from "@repo/utils/execContext";
+import { useDroppableMeasuring } from "@dnd-kit/core/dist/hooks/utilities";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -295,9 +297,23 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
   const handleLoginHandoff = async () => {
     const client = await getLoggedInClient();
-    if (!client) return;
+    if (!client) {
+      renderToast({
+        content: "Could not connect to database",
+        intent: Intent.DANGER,
+        id: "client-access",
+      });
+      return;
+    }
     const sessionData = await client.auth.getSession();
-    if (!sessionData.data.session) return;
+    if (!sessionData.data.session) {
+      internalError({
+        error: "Client w/o session",
+        type: "database-login",
+        userMessage: "Could not connect to database",
+      });
+      return;
+    }
     /* eslint-disable @typescript-eslint/naming-convention */
     const { access_token, refresh_token } = sessionData.data.session;
     const { data, error } = await client.rpc("create_secret_token", {
@@ -305,7 +321,14 @@ const FeatureFlagsTab = (): React.ReactElement => {
       expiry_interval: "45s",
     });
     /* eslint-enable @typescript-eslint/naming-convention */
-    if (error || typeof data !== "string") return;
+    if (error || typeof data !== "string") {
+      internalError({
+        error: "Call to create-secret-token",
+        type: "create-secret-token",
+        userMessage: "Could not connect to database",
+      });
+      return;
+    }
     if (data) window.open(`${nextRoot()}/auth/token?t=${data}&url=/`, "_blank");
   };
 
