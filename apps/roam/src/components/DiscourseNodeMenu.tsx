@@ -69,6 +69,12 @@ const NodeMenu = ({
   );
   const menuRef = useRef<HTMLUListElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    menuRef.current?.children[activeIndex]?.scrollIntoView({
+      block: "nearest",
+    });
+  }, [activeIndex]);
   const [isOpen, setIsOpen] = useState(!trigger);
 
   const onSelect = useCallback(
@@ -259,7 +265,11 @@ const NodeMenu = ({
       enforceFocus={false}
       onInteraction={trigger ? handlePopoverInteraction : undefined}
       content={
-        <Menu ulRef={menuRef} data-active-index={activeIndex}>
+        <Menu
+          ulRef={menuRef}
+          data-active-index={activeIndex}
+          className="max-h-[60vh] overflow-y-auto"
+        >
           {discourseNodes.map((item, i) => {
             const nodeColor =
               formatHexColor(item?.canvasSettings?.color) || "#000";
