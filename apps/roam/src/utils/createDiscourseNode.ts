@@ -64,6 +64,7 @@ const handleImageCreation = async ({
       const results = await runQuery({
         extensionAPI,
         parentUid,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         inputs: { NODETEXT: text, NODEUID: pageUid },
       });
       const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
@@ -93,7 +94,7 @@ export const createBlocksFromTemplate = async ({
 }) => {
   const createBlocksFromTemplate = async () => {
     await Promise.all(
-      stripUid(templateNode.children).map(({ uid, ...node }, order) =>
+      stripUid(templateNode.children).map((node, order) =>
         createBlock({
           node,
           order,
@@ -129,7 +130,7 @@ export const createBlocksFromTemplate = async ({
     });
     await createBlocksFromTemplate();
   } else if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
-    window.roamjs.extension.smartblocks?.triggerSmartblock({
+    void window.roamjs.extension.smartblocks?.triggerSmartblock({
       srcUid: templateNode.uid,
       targetUid: pageUid,
     });
@@ -166,7 +167,7 @@ const createDiscourseNode = async ({
   });
   const handleOpenInSidebar = (uid: string) => {
     if (extensionAPI?.settings.get("disable-sidebar-open")) return;
-    openBlockInSidebar(uid);
+    void openBlockInSidebar(uid);
     setTimeout(() => {
       const sidebarTitle = document.querySelector(
         ".rm-sidebar-outline .rm-title-display",
