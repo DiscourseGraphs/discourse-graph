@@ -59,9 +59,7 @@ export const discourseNodeSchemaToLocalConcept = ({
     metadata_version: (existingMetadataVersion ?? 0) + 1,
   };
   if (template) literal_content.template = template;
-  if (templateContent) {
-    literal_content.template_content = templateContent;
-  }
+  literal_content.template_content = templateContent || null;
   if (importedFromRid) literal_content.importedFromRid = importedFromRid;
   return {
     space_id: context.spaceId,
