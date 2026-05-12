@@ -78,6 +78,7 @@ const handleImageCreation = async ({
 export const createBlocksFromTemplate = async ({
   templateNode,
   pageUid,
+  order = 0,
   discourseNodes,
   configPageUid,
   imageUrl,
@@ -86,6 +87,7 @@ export const createBlocksFromTemplate = async ({
 }: {
   templateNode: RoamBasicNode;
   pageUid: string;
+  order?: number;
   discourseNodes: ReturnType<typeof getDiscourseNodes>;
   configPageUid: string;
   imageUrl?: string;
@@ -94,10 +96,10 @@ export const createBlocksFromTemplate = async ({
 }) => {
   const createBlocksFromTemplate = async () => {
     await Promise.all(
-      stripUid(templateNode.children).map((node, order) =>
+      stripUid(templateNode.children).map((node, templateOrder) =>
         createBlock({
           node,
-          order,
+          order: order + templateOrder,
           parentUid: pageUid,
         }),
       ),

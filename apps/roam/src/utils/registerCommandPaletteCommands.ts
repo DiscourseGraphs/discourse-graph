@@ -169,9 +169,11 @@ export const convertPageToNodeFromCommand = (
       const nodeTree = getFullTreeByParentUid(configPageUid).children;
       const templateNode = getSubTree({ tree: nodeTree, key: "template" });
       if (templateNode.children.length > 0) {
+        const existingChildren = getFullTreeByParentUid(pageUid).children || [];
         await createBlocksFromTemplate({
           templateNode,
           pageUid,
+          order: existingChildren.length,
           discourseNodes: getDiscourseNodes(),
           configPageUid,
           extensionAPI,
