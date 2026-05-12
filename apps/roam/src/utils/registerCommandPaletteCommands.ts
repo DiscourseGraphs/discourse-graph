@@ -20,7 +20,12 @@ import {
   onPageRefObserverChange,
 } from "./pageRefObserverHandlers";
 import findDiscourseNode from "~/utils/findDiscourseNode";
-import { insertTemplateBlocks } from "~/utils/createDiscourseNode";
+import {
+  hasSmartBlockSyntax,
+  createBlocksFromTemplate,
+} from "~/utils/createDiscourseNode";
+import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
+import getSubTree from "roamjs-components/util/getSubTree";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
 import { extractRef } from "roamjs-components/util";
@@ -163,7 +168,33 @@ export const convertPageToNodeFromCommand = (
       await window.roamAlphaAPI.data.page.update({
         page: { uid: pageUid, title: formattedTitle },
       });
-      await insertTemplateBlocks({ configPageUid, parentUid: pageUid });
+
+      const nodeTree = getFullTreeByParentUid(configPageUid).children;
+      const templateNode = getSubTree({ tree: nodeTree, key: "template" });
+      if (templateNode.children.length > 0) {
+        const useSmartBlocks = hasSmartBlockSyntax(templateNode);
+
+        if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
+          void window.roamjs.extension.smartblocks?.triggerSmartblock({
+            srcUid: templateNode.uid,
+            targetUid: pageUid,
+          });
+        } else {
+          if (useSmartBlocks) {
+            renderToast({
+              content:
+                "This template requires SmartBlocks. Enable SmartBlocks in Roam Depot to use this template.",
+              id: "smartblocks-extension-disabled",
+              intent: "warning",
+            });
+          }
+          await createBlocksFromTemplate({
+            templateNode,
+            parentUid: pageUid,
+          });
+        }
+      }
+
       return pageUid;
     },
     onSuccess: async () => {},
