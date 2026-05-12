@@ -332,6 +332,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Query block - Create", createQueryBlock);
   void addCommand("DG: Query block - Refresh", refreshCurrentQueryBuilder);
 
+  // BETA used as key, will be removed with settings migration
   const leftSidebarEnabled = getUidAndBooleanSetting({
     tree: discourseConfigRef.tree,
     text: "(BETA) Left Sidebar",
