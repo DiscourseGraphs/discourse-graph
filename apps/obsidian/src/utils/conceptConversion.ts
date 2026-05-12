@@ -12,7 +12,7 @@ import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { Json } from "@repo/database/dbTypes";
 
 /**
- * Get extra data (author, timestamps) from file
+ * Get extra data (author, timestamps) from file metadata
  */
 const getNodeExtraData = (
   file: TFile,

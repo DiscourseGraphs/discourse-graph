@@ -180,7 +180,7 @@ const getLastNodeSchemaSyncTime = async (
 ): Promise<Date> => {
   const { data } = await supabaseClient
     .from("my_concepts")
-    .select("last_modified, literal_content")
+    .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", true)
     .eq("arity", 0)
