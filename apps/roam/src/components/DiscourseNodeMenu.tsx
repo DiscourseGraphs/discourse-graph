@@ -74,9 +74,20 @@ const NodeMenu = ({
   const [isOpen, setIsOpen] = useState(!trigger);
 
   useEffect(() => {
-    menuRef.current?.children[activeIndex]?.scrollIntoView({
-      block: "nearest",
-    });
+    const container = menuRef.current;
+    if (!container) return;
+    const activeItem = container.children[activeIndex] as
+      | HTMLElement
+      | undefined;
+    if (!activeItem) return;
+    const containerRect = container.getBoundingClientRect();
+    const itemRect = activeItem.getBoundingClientRect();
+    if (
+      itemRect.bottom > containerRect.bottom ||
+      itemRect.top < containerRect.top
+    ) {
+      activeItem.scrollIntoView({ block: "nearest", behavior: "auto" });
+    }
   }, [activeIndex]);
 
   const onSelect = useCallback(
