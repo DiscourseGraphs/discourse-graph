@@ -48,7 +48,7 @@ import {
 } from "~/components/LeftSidebarCommands";
 import { isSmartBlockUid } from "~/utils/isSmartBlockUid";
 
-const isSmartBlockRef = (text: string): boolean => {
+const isSmartBlockButtonRef = (text: string): boolean => {
   if (!text.startsWith("((") || !text.endsWith("))")) return false;
   return isSmartBlockUid(extractRef(text));
 };
@@ -435,7 +435,9 @@ const SectionItem = memo(
                   renderItem={(child, handle) => {
                     const childAlias = child.alias?.value;
                     const isSettingsOpen = childSettingsUid === child.uid;
-                    const childIsSmartBlock = isSmartBlockRef(child.text);
+                    const childIsSmartBlockButtonRef = isSmartBlockButtonRef(
+                      child.text,
+                    );
                     const childDisplayTitle =
                       getPageTitleByPageUid(child.text) ||
                       getTextByBlockUid(extractRef(child.text)) ||
@@ -451,7 +453,7 @@ const SectionItem = memo(
                             className="mr-2 min-w-0 flex-1 truncate"
                             title={childDisplayTitle}
                           >
-                            {childAlias && !childIsSmartBlock ? (
+                            {childAlias && !childIsSmartBlockButtonRef ? (
                               <span>
                                 <span className="font-medium">
                                   {childAlias}
@@ -465,7 +467,7 @@ const SectionItem = memo(
                             )}
                           </div>
                           <ButtonGroup minimal className="flex-shrink-0">
-                            {!childIsSmartBlock && (
+                            {!childIsSmartBlockButtonRef && (
                               <Button
                                 icon="settings"
                                 small
