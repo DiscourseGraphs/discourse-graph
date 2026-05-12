@@ -248,9 +248,10 @@ export const initObservers = async ({
     className: "starred-pages-wrapper",
     callback: (el) => {
       void (async () => {
+        // BETA used as key, will be removed with settings migration
         const isLeftSidebarEnabled = getUidAndBooleanSetting({
           tree: configTree,
-          text: "Left Sidebar",
+          text: "(BETA) Left Sidebar",
         }).value;
         const container = el as HTMLDivElement;
         if (isLeftSidebarEnabled) {

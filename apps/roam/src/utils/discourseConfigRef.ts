@@ -73,9 +73,10 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
     }),
     suggestiveMode: getSuggestiveModeConfigAndUids(configTreeRef.tree),
     leftSidebar: getLeftSidebarSettings(configTreeRef.tree),
+    // BETA used as key, will be removed with settings migration
     leftSidebarEnabled: getUidAndBooleanSetting({
       tree: configTreeRef.tree,
-      text: "Left Sidebar",
+      text: "(BETA) Left Sidebar",
     }),
   };
 };
