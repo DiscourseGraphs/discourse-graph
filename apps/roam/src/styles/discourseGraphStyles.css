@@ -168,7 +168,23 @@ div.roamjs-discourse-drawer div.bp3-drawer {
 }
 
 .roamjs-canvas-dialog textarea {
-  min-height: 96px;
+  min-height: 2rem;
+}
+
+/* 
+  Override button focus inside roamjs-canvas-dialog.
+
+  Reason:
+  - Blueprint defines a global `:focus` outline, but does NOT provide a
+    button-specific focus rule with higher specificity.
+  - If a global `outline: none` (or similar override) is applied elsewhere,
+    buttons can lose their visible focus state.
+  - This restores a proper focus outline for accessibility, scoped locally,
+    matching Blueprint’s default focus styling intent.
+*/
+.roamjs-canvas-dialog .bp3-button:focus-visible {
+  outline: 2px auto rgba(19, 124, 189, 0.6);
+  outline-offset: 2px;
 }
 
 .bp3-tabs.bp3-vertical > .bp3-tab-panel {

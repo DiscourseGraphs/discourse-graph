@@ -24,9 +24,9 @@ type ModifyNodeSubmitParams = {
   relationshipTargetFile?: TFile;
 };
 
-const createModifyNodeModalSubmitHandler = (
+export const createModifyNodeModalSubmitHandler = (
   plugin: DiscourseGraphPlugin,
-  editor: Editor,
+  editor?: Editor,
 ): ((params: ModifyNodeSubmitParams) => Promise<void>) => {
   return async ({
     nodeType,
@@ -36,7 +36,9 @@ const createModifyNodeModalSubmitHandler = (
     relationshipTargetFile,
   }: ModifyNodeSubmitParams) => {
     if (selectedExistingNode) {
-      editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
+      if (editor && editor.somethingSelected()) {
+        editor?.replaceSelection(`[[${selectedExistingNode.basename}]]`);
+      }
       await addRelationIfRequested(plugin, selectedExistingNode, {
         relationshipId,
         relationshipTargetFile,
@@ -60,41 +62,14 @@ const createModifyNodeModalSubmitHandler = (
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
-    id: "open-node-type-menu",
-    name: "Open node type menu",
-    editorCallback: (editor: Editor) => {
-      const hasSelection = !!editor.getSelection();
-
-      if (hasSelection) {
-        new NodeTypeModal(plugin, (nodeType) => {
-          void createDiscourseNode({
-            plugin,
-            editor,
-            nodeType,
-            text: editor.getSelection().trim() || "",
-          });
-        }).open();
-      } else {
-        const currentFile =
-          plugin.app.workspace.getActiveViewOfType(MarkdownView)?.file ||
-          undefined;
-        new ModifyNodeModal(plugin.app, {
-          nodeTypes: plugin.settings.nodeTypes,
-          plugin,
-          currentFile,
-          onSubmit: createModifyNodeModalSubmitHandler(plugin, editor),
-        }).open();
-      }
-    },
-  });
-
-  plugin.addCommand({
     id: "create-discourse-node",
     name: "Create discourse node",
-    editorCallback: (editor: Editor) => {
+    callback: () => {
       const currentFile =
         plugin.app.workspace.getActiveViewOfType(MarkdownView)?.file ||
         undefined;
+      const editor =
+        plugin.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
       new ModifyNodeModal(plugin.app, {
         nodeTypes: plugin.settings.nodeTypes,
         plugin,

@@ -53,10 +53,6 @@ export const EXTRACTION_RESULT_JSON_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
-export type ExtractionResponse =
-  | { success: true; data: ExtractionResult }
-  | { success: false; error: string };
-
 export type NodeTypeDefinition = {
   label: string;
   definition: string;

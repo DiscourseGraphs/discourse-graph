@@ -12,6 +12,32 @@ import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
 import { QueryEngine } from "~/services/QueryEngine";
 import { isProvisionalSchema } from "~/utils/typeUtils";
+import { getNodeTypeIdForFile } from "~/utils/relationsStore";
+import { formatNodeName } from "~/utils/createNode";
+
+// APFS and ext4 both enforce a 255 UTF-8 byte limit per filename component.
+const MAX_FILENAME_BYTES = 255;
+const MD_EXTENSION_BYTES = 3; // ".md"
+
+const getByteLength = (str: string): number =>
+  new TextEncoder().encode(str).byteLength;
+
+// Remove characters from the end until the string fits within maxBytes.
+const trimToByteLimit = (str: string, maxBytes: number): string => {
+  if (getByteLength(str) <= maxBytes) return str;
+  let trimmed = str;
+  while (trimmed.length > 0 && getByteLength(trimmed) > maxBytes) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  return trimmed;
+};
+
+const computeMaxTitleBytes = (nodeType: DiscourseNode | null): number => {
+  const formatOverhead = nodeType
+    ? getByteLength(formatNodeName("", nodeType) ?? "")
+    : 0;
+  return Math.max(1, MAX_FILENAME_BYTES - MD_EXTENSION_BYTES - formatOverhead);
+};
 
 type ModifyNodeFormProps = {
   nodeTypes: DiscourseNode[];
@@ -58,10 +84,16 @@ export const ModifyNodeForm = ({
     string | undefined
   >(undefined);
   const queryEngine = useRef(new QueryEngine(plugin.app));
-  const titleInputRef = useRef<HTMLInputElement>(null);
+  const titleInputRef = useRef<HTMLTextAreaElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
   const debounceTimeoutRef = useRef<number | null>(null);
+  const selectedFileRef = useRef<TFile | null>(null);
+
+  const maxTitleBytes = useMemo(
+    () => computeMaxTitleBytes(selectedNodeType),
+    [selectedNodeType],
+  );
 
   // Search for nodes when query changes (only in create mode)
   useEffect(() => {
@@ -129,7 +161,7 @@ export const ModifyNodeForm = ({
       popover.style.left = `${inputRect.left}px`;
       popover.style.width = `${inputRect.width}px`;
     }
-  }, [isOpen]);
+  }, [isOpen, query]);
 
   useEffect(() => {
     if (menuRef.current && isOpen && activeIndex >= 0) {
@@ -144,6 +176,23 @@ export const ModifyNodeForm = ({
       }
     }
   }, [activeIndex, isOpen]);
+
+  // Focus the content input on mount so users can start typing immediately,
+  // with cursor placed at the end of any pre-filled text
+  useEffect(() => {
+    const el = titleInputRef.current;
+    if (!el) return;
+    el.focus();
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
+  }, []);
+
+  useEffect(() => {
+    const el = titleInputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [query]);
 
   // Determine available relationships based on current file and selected node type
   const availableRelationships = useMemo(() => {
@@ -223,13 +272,24 @@ export const ModifyNodeForm = ({
 
   const isFormValid = title.trim() && selectedNodeType;
 
-  const handleSelect = useCallback((file: TFile) => {
-    setSelectedExistingNode(file);
-    setQuery(file.basename);
-    setTitle(file.basename);
-  }, []);
+  const handleSelect = useCallback(
+    async (file: TFile) => {
+      selectedFileRef.current = file;
+      setSelectedExistingNode(file);
+      setQuery(file.basename);
+      setTitle(file.basename);
+      // Auto-detect node type from the selected file's frontmatter
+      const nodeTypeId = await getNodeTypeIdForFile(plugin, file);
+      if (nodeTypeId && selectedFileRef.current === file) {
+        const detected = nodeTypes.find((nt) => nt.id === nodeTypeId);
+        if (detected) setSelectedNodeType(detected);
+      }
+    },
+    [nodeTypes, plugin],
+  );
 
   const handleClearSelection = useCallback(() => {
+    selectedFileRef.current = null;
     setSelectedExistingNode(null);
     setQuery("");
     setTitle("");
@@ -238,7 +298,7 @@ export const ModifyNodeForm = ({
     }, 50);
   }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (selectedExistingNode) {
       // If locked, only handle Escape
       if (e.key === "Escape") {
@@ -259,7 +319,7 @@ export const ModifyNodeForm = ({
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (isOpen && searchResults[activeIndex]) {
-        handleSelect(searchResults[activeIndex]);
+        void handleSelect(searchResults[activeIndex]);
       } else if (isFormValid && !isSubmitting) {
         void handleConfirm();
       }
@@ -274,16 +334,26 @@ export const ModifyNodeForm = ({
     const newSelectedType =
       nodeTypes.find((nt) => nt.id === selectedId) || null;
     setSelectedNodeType(newSelectedType);
+
     if (selectedExistingNode) {
+      selectedFileRef.current = null;
       setSelectedExistingNode(null);
       setQuery("");
       setTitle("");
+    } else {
+      const newMaxBytes = computeMaxTitleBytes(newSelectedType);
+      if (getByteLength(query) > newMaxBytes) {
+        const trimmed = trimToByteLimit(query, newMaxBytes);
+        setQuery(trimmed);
+        setTitle(trimmed);
+      }
     }
+
     setSelectedRelationshipKey(undefined);
   };
 
-  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newQuery = e.target.value;
+  const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newQuery = trimToByteLimit(e.target.value, maxTitleBytes);
     setQuery(newQuery);
     setTitle(newQuery);
     if (selectedExistingNode) {
@@ -354,36 +424,17 @@ export const ModifyNodeForm = ({
     <div>
       <h2>{isEditMode ? "Modify discourse node" : "Create discourse node"}</h2>
       <div className="setting-item">
-        <div className="setting-item-name">Type</div>
-        <div className="setting-item-control">
-          <select
-            value={selectedNodeType?.id || ""}
-            onChange={handleNodeTypeChange}
-            disabled={isSubmitting || isEditMode}
-            className="w-full"
-          >
-            <option value="">Select node type</option>
-            {nodeTypes.map((nodeType) => (
-              <option key={nodeType.id} value={nodeType.id}>
-                {nodeType.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="setting-item">
         <div className="setting-item-name">Content</div>
         <div className="setting-item-control">
           {selectedExistingNode ? (
             // Locked state: show selected node with clear button
             <div className="relative flex w-full items-start">
-              <input
-                type="text"
+              <textarea
                 value={selectedExistingNode.basename}
                 readOnly
                 disabled={isSubmitting}
-                className="resize-vertical font-inherit border-background-modifier-border bg-background-secondary text-text-normal max-h-[6em] min-h-[2.5em] w-full cursor-default overflow-y-auto rounded-md border p-2 pr-8"
+                rows={1}
+                className="font-inherit border-background-modifier-border bg-background-secondary text-text-normal min-h-[2.5em] w-full cursor-default resize-none overflow-y-auto rounded-md border p-2 pr-8"
               />
               <button
                 onClick={handleClearSelection}
@@ -398,9 +449,8 @@ export const ModifyNodeForm = ({
           ) : (
             // Search input with popover (only in create mode)
             <div className="relative w-full">
-              <input
+              <textarea
                 ref={titleInputRef}
-                type="text"
                 placeholder={
                   isEditMode
                     ? "Enter new content"
@@ -420,9 +470,15 @@ export const ModifyNodeForm = ({
                   setTimeout(() => setIsFocused(false), 200);
                 }}
                 disabled={isSubmitting}
-                className="resize-vertical font-inherit border-background-modifier-border bg-background-primary text-text-normal max-h-[6em] min-h-[2.5em] w-full overflow-y-auto rounded-md border p-2"
+                rows={1}
+                className="font-inherit border-background-modifier-border bg-background-primary text-text-normal min-h-[2.5em] w-full resize-none overflow-hidden rounded-md border p-2"
                 autoComplete="off"
               />
+              {getByteLength(query) >= maxTitleBytes && (
+                <p className="text-error mt-1 text-xs">
+                  Character limit reached
+                </p>
+              )}
               {isOpen && !isEditMode && (
                 <div
                   ref={popoverRef}
@@ -433,25 +489,25 @@ export const ModifyNodeForm = ({
                     className="suggestion-list m-0 list-none py-1"
                   >
                     {isSearching ? (
-                      <li className="suggestion-item px-3 py-2 text-[var(--text-muted)]">
+                      <li className="suggestion-item py-2 text-[var(--text-muted)]">
                         Searching...
                       </li>
                     ) : searchResults.length === 0 ? (
-                      <li className="suggestion-item px-3 py-2 text-[var(--text-muted)]">
+                      <li className="suggestion-item py-2 text-[var(--text-muted)]">
                         No results found
                       </li>
                     ) : (
                       searchResults.map((file, index) => (
                         <li
                           key={file.path}
-                          className={`suggestion-item flex cursor-pointer items-center gap-2 px-3 py-2 ${
+                          className={`suggestion-item flex cursor-pointer items-center gap-2 py-2 ${
                             index === activeIndex
                               ? "is-selected bg-[var(--background-modifier-hover)]"
                               : "bg-transparent"
                           }`}
                           onMouseDown={(e) => {
                             e.preventDefault();
-                            handleSelect(file);
+                            void handleSelect(file);
                           }}
                           onMouseEnter={() => setActiveIndex(index)}
                         >
@@ -464,6 +520,25 @@ export const ModifyNodeForm = ({
               )}
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-name">Type</div>
+        <div className="setting-item-control">
+          <select
+            value={selectedNodeType?.id || ""}
+            onChange={handleNodeTypeChange}
+            disabled={isSubmitting || isEditMode}
+            className="w-full"
+          >
+            <option value="">Select node type</option>
+            {nodeTypes.map((nodeType) => (
+              <option key={nodeType.id} value={nodeType.id}>
+                {nodeType.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

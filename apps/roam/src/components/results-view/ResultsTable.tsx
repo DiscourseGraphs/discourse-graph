@@ -160,13 +160,7 @@ export const CellEmbed = ({
   );
 };
 
-export const CellRender = ({
-  content,
-  uid,
-}: {
-  content: string;
-  uid: string;
-}) => {
+const CellRender = ({ content, uid }: { content: string; uid: string }) => {
   const isPage = !!getPageTitleByPageUid(uid);
   const displayString = isPage ? `[[${content}]]` : content;
 

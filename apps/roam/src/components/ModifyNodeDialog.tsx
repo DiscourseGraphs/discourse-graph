@@ -22,7 +22,9 @@ import renderOverlay, {
 import fireQuery from "~/utils/fireQuery";
 import getDiscourseNodes, {
   excludeDefaultNodes,
+  type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
+import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
 import FuzzySelectInput from "./FuzzySelectInput";
 import { createBlock, updateBlock } from "roamjs-components/writes";
 import {
@@ -40,7 +42,7 @@ import posthog from "posthog-js";
 export type ModifyNodeDialogMode = "create" | "edit";
 export type ModifyNodeDialogProps = {
   mode: ModifyNodeDialogMode;
-  nodeType: string;
+  nodeType?: string;
   initialValue: { text: string; uid: string };
   initialReferencedNode?: { text: string; uid: string };
   sourceBlockUid?: string; //the block that we started modifying from
@@ -109,13 +111,15 @@ const ModifyNodeDialog = ({
       : allNodes.filter(excludeDefaultNodes);
   }, [includeDefaultNodes]);
 
-  const [selectedNodeType, setSelectedNodeType] = useState(() => {
+  const [selectedNodeType, setSelectedNodeType] = useState<
+    DiscourseNode | undefined
+  >(() => {
     const node = discourseNodes.find((n) => n.type === nodeType);
-    return node || discourseNodes[0];
+    return node;
   });
 
   const nodeFormat = useMemo(() => {
-    return selectedNodeType.format || "";
+    return selectedNodeType?.format || "";
   }, [selectedNodeType]);
 
   const referencedNode = useMemo(() => {
@@ -157,6 +161,19 @@ const ModifyNodeDialog = ({
               },
             ],
           });
+          if (contentRequestIdRef.current === req && alive) {
+            setOptions((prev) => ({ ...prev, content: results }));
+          }
+        } else {
+          const rawResults = await getAllDiscourseNodesSince(
+            undefined,
+            discourseNodes,
+          );
+          const results = rawResults.map((r) => ({
+            text: r.text,
+            uid: r.source_local_id,
+            discourseNodeType: r.type,
+          }));
           if (contentRequestIdRef.current === req && alive) {
             setOptions((prev) => ({ ...prev, content: results }));
           }
@@ -224,11 +241,24 @@ const ModifyNodeDialog = ({
       alive = false;
       refAlive = false;
     };
-  }, [selectedNodeType, referencedNode]);
+  }, [selectedNodeType, referencedNode, discourseNodes]);
 
-  const setValue = useCallback((r: Result) => {
-    setContent(r);
-  }, []);
+  const setValue = useCallback(
+    (r: Result) => {
+      setContent(r);
+      if (!selectedNodeType && r.uid) {
+        const detectedType = r.discourseNodeType;
+        if (detectedType) {
+          const nt = discourseNodes.find((n) => n.type === detectedType);
+          if (nt) {
+            setSelectedNodeType(nt);
+            setError("");
+          }
+        }
+      }
+    },
+    [selectedNodeType, discourseNodes],
+  );
 
   const setReferencedNodeValueCallback = useCallback((r: Result) => {
     setReferencedNodeValue(r);
@@ -301,9 +331,13 @@ const ModifyNodeDialog = ({
 
   const onSubmit = async () => {
     if (!content.text.trim()) return;
+    if (!selectedNodeType && !isContentLocked) {
+      setError("Please select a node type");
+      return;
+    }
     posthog.capture("Modify Node Dialog: Submit Triggered", {
       mode,
-      nodeType: selectedNodeType.type,
+      nodeType: selectedNodeType?.type,
     });
     try {
       if (mode === "create") {
@@ -323,7 +357,7 @@ const ModifyNodeDialog = ({
               await addImageToPage({
                 pageUid,
                 imageUrl,
-                configPageUid: selectedNodeType.type,
+                configPageUid: selectedNodeType?.type || "",
                 extensionAPI,
               });
             }
@@ -368,6 +402,7 @@ const ModifyNodeDialog = ({
             },
           );
         } else {
+          if (!selectedNodeType) return;
           formattedTitle = await getNewDiscourseNodeText({
             text: content.text.trim(),
             nodeType: selectedNodeType.type,
@@ -381,7 +416,7 @@ const ModifyNodeDialog = ({
         // Create new discourse node
         const newPageUid = await createDiscourseNode({
           text: formattedTitle,
-          configPageUid: selectedNodeType.type,
+          configPageUid: selectedNodeType?.type ?? "",
           extensionAPI,
           imageUrl,
         });
@@ -502,37 +537,9 @@ const ModifyNodeDialog = ({
         style={{ pointerEvents: "all" }}
       >
         <div className={`${Classes.DIALOG_BODY} flex flex-col gap-4`}>
-          {/* Node Type Selector */}
-          <div className="flex w-full">
-            <Label autoFocus={false}>
-              Node Type
-              <MenuItemSelect
-                items={discourseNodes.map((n) => n.type)}
-                transformItem={(t) =>
-                  discourseNodes.find((n) => n.type === t)?.text || t
-                }
-                activeItem={selectedNodeType.type}
-                onItemSelect={(t) => {
-                  const nt = discourseNodes.find((n) => n.type === t);
-                  if (nt) {
-                    setSelectedNodeType(nt);
-                    setReferencedNodeValue({ text: "", uid: "" });
-                  }
-                }}
-                disabled={mode === "edit" || disableNodeTypeChange}
-                popoverProps={{ openOnTargetFocus: false }}
-                className={
-                  mode === "edit" || disableNodeTypeChange
-                    ? "cursor-not-allowed opacity-50"
-                    : ""
-                }
-              />
-            </Label>
-          </div>
-
           {/* Content Input */}
-          <div className="w-full">
-            <Label>Content</Label>
+          <Label className="w-full">
+            Content
             <FuzzySelectInput
               value={content}
               setValue={setValue}
@@ -540,18 +547,52 @@ const ModifyNodeDialog = ({
               placeholder={
                 loading
                   ? "..."
-                  : `Enter a ${selectedNodeType.text.toLowerCase()} ...`
+                  : selectedNodeType
+                    ? `Enter a ${selectedNodeType.text.toLowerCase()} ...`
+                    : "Search all nodes..."
               }
               mode={mode}
               isLocked={isContentLocked}
               autoFocus={!isContentLocked}
             />
+          </Label>
+
+          {/* Node Type Selector */}
+          <div className="flex w-full">
+            <Label autoFocus={false} className="w-full">
+              Node Type
+              <MenuItemSelect
+                items={discourseNodes.map((n) => n.type)}
+                transformItem={(t) =>
+                  discourseNodes.find((n) => n.type === t)?.text || t
+                }
+                activeItem={selectedNodeType?.type ?? null}
+                onItemSelect={(t) => {
+                  const nt = discourseNodes.find((n) => n.type === t);
+                  if (nt) {
+                    setSelectedNodeType(nt);
+                    setReferencedNodeValue({ text: "", uid: "" });
+                    setError("");
+                  }
+                }}
+                disabled={
+                  mode === "edit" || disableNodeTypeChange || isContentLocked
+                }
+                popoverProps={{ openOnTargetFocus: false }}
+                ButtonProps={{
+                  className:
+                    mode === "edit" || disableNodeTypeChange || isContentLocked
+                      ? "cursor-not-allowed opacity-50"
+                      : "",
+                }}
+              />
+            </Label>
           </div>
 
           {/* Referenced Node Input */}
           {referencedNode && !isContentLocked && mode === "create" && (
-            <div className="w-full">
-              <Label>{referencedNode.name}</Label>
+            <Label className="w-full">
+              {referencedNode.name}
               <FuzzySelectInput
                 value={referencedNodeValue}
                 setValue={setReferencedNodeValueCallback}
@@ -561,7 +602,7 @@ const ModifyNodeDialog = ({
                 isLocked={isReferencedNodeLocked}
                 autoFocus={false}
               />
-            </div>
+            </Label>
           )}
         </div>
         {/* Submit Button */}

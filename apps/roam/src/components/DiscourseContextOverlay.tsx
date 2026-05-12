@@ -8,6 +8,7 @@ import {
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
+import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import { ContextContent } from "./DiscourseContext";
 import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
@@ -365,15 +366,10 @@ export const render = ({
   tag: string;
   parent: HTMLElement;
   onloadArgs: OnloadArgs;
-}) => {
+}): void => {
   parent.style.margin = "0 8px";
   parent.onmousedown = (e) => e.stopPropagation();
-  ReactDOM.render(
-    <ExtensionApiContextProvider {...onloadArgs}>
-      <Wrapper tag={tag} parent={parent} />
-    </ExtensionApiContextProvider>,
-    parent,
-  );
+  renderWithUnmount(<Wrapper tag={tag} parent={parent} />, parent, onloadArgs);
 };
 
 export default DiscourseContextPopupOverlay;

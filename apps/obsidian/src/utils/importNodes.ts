@@ -19,6 +19,7 @@ import {
   importRelationsForImportedNodes,
   type RemoteRelationInstance,
 } from "./importRelations";
+import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 
 export const getAvailableGroupIds = async (
   client: DGSupabaseClient,
@@ -36,6 +37,16 @@ export const getAvailableGroupIds = async (
   return (data || []).map((g) => g.group_id);
 };
 
+type PublishedNode = {
+  source_local_id: string;
+  space_id: number;
+  text: string;
+  createdAt: number;
+  modifiedAt: number;
+  filePath: string | undefined;
+  authorId: number | undefined;
+};
+
 export const getPublishedNodesForGroups = async ({
   client,
   groupIds,
@@ -44,16 +55,7 @@ export const getPublishedNodesForGroups = async ({
   client: DGSupabaseClient;
   groupIds: string[];
   currentSpaceId: number;
-}): Promise<
-  Array<{
-    source_local_id: string;
-    space_id: number;
-    text: string;
-    createdAt: number;
-    modifiedAt: number;
-    filePath: string | undefined;
-  }>
-> => {
+}): Promise<Array<PublishedNode>> => {
   if (groupIds.length === 0) {
     return [];
   }
@@ -63,7 +65,7 @@ export const getPublishedNodesForGroups = async ({
   const { data, error } = await client
     .from("my_contents")
     .select(
-      "source_local_id, space_id, text, created, last_modified, variant, metadata",
+      "source_local_id, space_id, text, created, last_modified, variant, metadata, author_id",
     )
     .neq("space_id", currentSpaceId);
 
@@ -83,6 +85,7 @@ export const getPublishedNodesForGroups = async ({
     created: string | null;
     last_modified: string | null;
     variant: string | null;
+    author_id: number | null;
     metadata: Json;
   };
 
@@ -95,14 +98,7 @@ export const getPublishedNodesForGroups = async ({
     groups.get(k)!.push(row);
   }
 
-  const nodes: Array<{
-    source_local_id: string;
-    space_id: number;
-    text: string;
-    createdAt: number;
-    modifiedAt: number;
-    filePath: string | undefined;
-  }> = [];
+  const nodes: Array<PublishedNode> = [];
 
   for (const rows of groups.values()) {
     const withDate = rows.filter(
@@ -133,6 +129,7 @@ export const getPublishedNodesForGroups = async ({
       createdAt,
       modifiedAt,
       filePath,
+      authorId: latest.author_id ?? undefined,
     });
   }
 
@@ -233,6 +230,25 @@ export const getSpaceUris = async (
   return spaceMap;
 };
 
+export const fetchUserNames = async (
+  plugin: DiscourseGraphPlugin,
+  client: DGSupabaseClient,
+) => {
+  const result = await client
+    .from("my_accounts")
+    .select("id, name")
+    .eq("agent_type", "person");
+  if (result.error || !result.data) {
+    console.error(result.error);
+    return;
+  }
+  const nameById = Object.fromEntries(
+    result.data.map(({ id, name }) => [id, name]) as [number, string][],
+  );
+  plugin.settings.userNames = nameById;
+  await plugin.saveSettings();
+};
+
 export const fetchNodeContent = async ({
   client,
   spaceId,
@@ -320,11 +336,12 @@ const fetchNodeContentForImport = async ({
   content: string;
   createdAt: number;
   modifiedAt: number;
+  authorId: number;
   filePath?: string;
 } | null> => {
   const { data, error } = await client
     .from("my_contents")
-    .select("text, created, last_modified, variant, metadata")
+    .select("text, created, last_modified, variant, metadata, author_id")
     .eq("source_local_id", nodeInstanceId)
     .eq("space_id", spaceId)
     .in("variant", ["direct", "full"]);
@@ -338,17 +355,20 @@ const fetchNodeContentForImport = async ({
     text: string | null;
     created: string | null;
     last_modified: string | null;
+    author_id: number | null;
     variant: string | null;
     metadata: Json;
   }>;
   const direct = rows.find((r) => r.variant === "direct");
   const full = rows.find((r) => r.variant === "full");
+  const authorId = full?.author_id ?? direct?.author_id ?? null;
 
   if (
     !direct?.text ||
     !full?.text ||
-    full.created == null ||
-    full.last_modified == null
+    full.created === null ||
+    full.last_modified === null ||
+    authorId === null
   ) {
     return null;
   }
@@ -364,6 +384,7 @@ const fetchNodeContentForImport = async ({
     createdAt: new Date(full.created + "Z").valueOf(),
     modifiedAt: new Date(full.last_modified + "Z").valueOf(),
     filePath,
+    authorId,
   };
 };
 
@@ -604,51 +625,59 @@ const updateMarkdownAssetLinks = ({
       return linkPath;
     }
 
-    // First, try to find if this link resolves to one of our imported assets
-    const importedAssetFile = findImportedAssetFile(linkPath);
-    if (importedAssetFile) {
-      return getRelativeLinkPath(importedAssetFile.path);
-    }
+    // Separate file path from heading/block fragment (e.g. "Note.md#section" → filePath="Note.md", fragment="#section")
+    // so that file resolution operates only on the file path portion.
+    const hashIndex = linkPath.indexOf("#");
+    const filePath = hashIndex !== -1 ? linkPath.slice(0, hashIndex) : linkPath;
+    const fragment = hashIndex !== -1 ? linkPath.slice(hashIndex) : "";
 
-    // Direct lookup from pathMapping (record built when we downloaded each asset)
-    const newPath = getNewPathForLink(linkPath);
-    if (newPath) {
-      const newFile = app.metadataCache.getFirstLinkpathDest(
-        newPath,
+    const resolveFilePath = (path: string): string => {
+      // First, try to find if this link resolves to one of our imported assets
+      const importedAssetFile = findImportedAssetFile(path);
+      if (importedAssetFile) {
+        return getRelativeLinkPath(importedAssetFile.path);
+      }
+
+      // Direct lookup from pathMapping (record built when we downloaded each asset)
+      const newPath = getNewPathForLink(path);
+      if (newPath) {
+        const newFile = app.metadataCache.getFirstLinkpathDest(
+          newPath,
+          targetFile.path,
+        );
+        if (newFile) {
+          return getRelativeLinkPath(newFile.path);
+        }
+      }
+
+      // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
+      const resolvedFile = app.metadataCache.getFirstLinkpathDest(
+        path,
         targetFile.path,
       );
-      if (newFile) {
-        return getRelativeLinkPath(newFile.path);
+      const isInImportFolder =
+        importFolder &&
+        resolvedFile &&
+        resolvedFile.path.startsWith(importFolder + "/");
+      if (isInImportFolder && resolvedFile) {
+        return getRelativeLinkPath(resolvedFile.path);
       }
-    }
 
-    // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
-    const resolvedFile = app.metadataCache.getFirstLinkpathDest(
-      linkPath,
-      targetFile.path,
-    );
-    const isInImportFolder =
-      importFolder &&
-      resolvedFile &&
-      resolvedFile.path.startsWith(importFolder + "/");
-    if (isInImportFolder && resolvedFile) {
-      return getRelativeLinkPath(resolvedFile.path);
-    }
+      // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
+      if (importFolder && originalNodePath && !resolvedFile) {
+        // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
+        const canonicalSourcePath =
+          path.includes("/") && !path.startsWith(".") && !path.startsWith("/")
+            ? normalizePathForLookup(path)
+            : (getCanonicalFromOriginalNote(path) ??
+              normalizePathForLookup(path));
+        return `${importFolder}/${canonicalSourcePath}`;
+      }
 
-    // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
-    if (importFolder && originalNodePath && !resolvedFile) {
-      // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
-      const canonicalSourcePath =
-        linkPath.includes("/") &&
-        !linkPath.startsWith(".") &&
-        !linkPath.startsWith("/")
-          ? normalizePathForLookup(linkPath)
-          : (getCanonicalFromOriginalNote(linkPath) ??
-            normalizePathForLookup(linkPath));
-      return `${importFolder}/${canonicalSourcePath}`;
-    }
+      return path;
+    };
 
-    return linkPath;
+    return resolveFilePath(filePath) + fragment;
   };
 
   // Match wiki links: [[path]] or [[path|alias]]
@@ -662,8 +691,13 @@ const updateMarkdownAssetLinks = ({
         .map((s: string) => s.trim());
       if (!linkPath) return match;
       let processedPath = processLink(linkPath);
-      if (processedPath.endsWith(".md") && !linkPath.endsWith(".md"))
-        processedPath = processedPath.substring(0, processedPath.length - 3);
+      const hashIdx = processedPath.indexOf("#");
+      const pathBeforeHash =
+        hashIdx !== -1 ? processedPath.slice(0, hashIdx) : processedPath;
+      const pathAfterHash = hashIdx !== -1 ? processedPath.slice(hashIdx) : "";
+      if (pathBeforeHash.endsWith(".md") && !linkPath.endsWith(".md")) {
+        processedPath = pathBeforeHash.slice(0, -3) + pathAfterHash;
+      }
       if (alias) {
         return `[[${processedPath}|${alias}]]`;
       }
@@ -754,7 +788,7 @@ const importAssetsForNode = async ({
   client,
   spaceId,
   nodeInstanceId,
-  spaceName,
+  importBasePath,
   targetMarkdownFile,
   originalNodePath,
 }: {
@@ -762,7 +796,7 @@ const importAssetsForNode = async ({
   client: DGSupabaseClient;
   spaceId: number;
   nodeInstanceId: string;
-  spaceName: string;
+  importBasePath: string;
   targetMarkdownFile: TFile;
   /** Source vault path of the note (e.g. from Content metadata filePath). Used to place assets under import/{space}/ relative to note. */
   originalNodePath?: string;
@@ -793,8 +827,6 @@ const importAssetsForNode = async ({
   if (fileReferences.length === 0) {
     return { success: true, pathMapping, errors };
   }
-
-  const importBasePath = `import/${sanitizeFileName(spaceName)}`;
 
   // Get existing asset mappings from frontmatter
   const cache = plugin.app.metadataCache.getFileCache(targetMarkdownFile);
@@ -975,6 +1007,7 @@ type ParsedFrontmatter = {
   nodeTypeId?: string;
   nodeInstanceId?: string;
   publishedToGroups?: string[];
+  authorId?: number;
   [key: string]: unknown;
 };
 
@@ -1037,7 +1070,7 @@ export const mapNodeTypeIdToLocal = async ({
   // Find the schema in the source space with this nodeTypeId (my_concepts applies RLS)
   const { data: schemaData } = await client
     .from("my_concepts")
-    .select("name, literal_content")
+    .select("name, literal_content, author_id")
     .eq("space_id", sourceSpaceId)
     .eq("is_schema", true)
     .eq("source_local_id", sourceNodeTypeId)
@@ -1088,6 +1121,7 @@ export const mapNodeTypeIdToLocal = async ({
     keyImage: parsed.keyImage,
     created: now,
     modified: now,
+    authorId: schemaData.author_id ?? undefined,
     importedFromRid,
   };
   plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];
@@ -1105,6 +1139,7 @@ const processFileContent = async ({
   filePath,
   importedCreatedAt,
   importedModifiedAt,
+  authorId,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
@@ -1115,6 +1150,7 @@ const processFileContent = async ({
   filePath: string;
   importedCreatedAt?: number;
   importedModifiedAt?: number;
+  authorId?: number;
 }): Promise<
   { file: TFile; error?: never } | { file?: never; error: string }
 > => {
@@ -1173,6 +1209,7 @@ const processFileContent = async ({
         "note",
       );
       record.lastModified = importedModifiedAt;
+      if (authorId) record.authorId = authorId;
     },
     stat,
   );
@@ -1223,11 +1260,12 @@ export const importSelectedNodes = async ({
   }
 
   const spaceUris = await getSpaceUris(client, [...nodesBySpace.keys()]);
+  const spaceNames = await getSpaceNameFromIds(client, [
+    ...nodesBySpace.keys(),
+  ]);
 
   // Process each space
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
-    const spaceName = await getSpaceNameFromId(client, spaceId);
-    const importFolderPath = `import/${sanitizeFileName(spaceName)}`;
     const spaceUri = spaceUris.get(spaceId);
     if (!spaceUri) {
       for (const _node of nodes) {
@@ -1238,12 +1276,12 @@ export const importSelectedNodes = async ({
       continue;
     }
 
-    // Ensure the import folder exists
-    const folderExists =
-      await plugin.app.vault.adapter.exists(importFolderPath);
-    if (!folderExists) {
-      await plugin.app.vault.createFolder(importFolderPath);
-    }
+    const spaceName = spaceNames.get(spaceId) ?? `space-${spaceId}`;
+    const importFolderPath = await resolveFolderForSpaceUri({
+      adapter: plugin.app.vault.adapter,
+      spaceUri,
+      spaceName,
+    });
 
     // Process each node in this space
     for (const node of nodes) {
@@ -1278,6 +1316,7 @@ export const importSelectedNodes = async ({
           createdAt: contentCreatedAt,
           modifiedAt: contentModifiedAt,
           filePath: contentFilePath,
+          authorId,
         } = nodeContent;
         const createdAt = node.createdAt ?? contentCreatedAt;
         const modifiedAt = node.modifiedAt ?? contentModifiedAt;
@@ -1322,6 +1361,7 @@ export const importSelectedNodes = async ({
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
+          authorId,
         });
 
         if (result.error) {
@@ -1344,7 +1384,7 @@ export const importSelectedNodes = async ({
           client,
           spaceId,
           nodeInstanceId: node.nodeInstanceId,
-          spaceName,
+          importBasePath: importFolderPath,
           targetMarkdownFile: processedFile,
           originalNodePath,
         });
@@ -1545,9 +1585,20 @@ export const refreshAllImportedFiles = async (
 };
 
 const encodePathForMarkdownLink = (linkPath: string): string => {
-  // Input is already decoded; encode each segment (spaces → %20) but keep / as separator
-  return linkPath
+  // Input is already decoded; encode each segment (spaces → %20) but keep / as separator.
+  // Split on the first # to preserve heading/block fragments (e.g. "Note.md#section" → "Note.md#section", not "Note.md%23section").
+  const hashIndex = linkPath.indexOf("#");
+  if (hashIndex === -1) {
+    return linkPath
+      .split("/")
+      .map((segment) => encodeURIComponent(segment))
+      .join("/");
+  }
+  const pathPart = linkPath.slice(0, hashIndex);
+  const fragment = linkPath.slice(hashIndex); // includes the leading #
+  const encodedPath = pathPart
     .split("/")
     .map((segment) => encodeURIComponent(segment))
     .join("/");
+  return encodedPath + fragment;
 };

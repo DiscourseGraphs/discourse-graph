@@ -77,6 +77,7 @@ export const getSupabaseContext = async (
   if (contextCache === null) {
     try {
       const vaultName = plugin.app.vault.getName() || "obsidian-vault";
+      const username = plugin.settings.username || vaultName;
 
       const spacePassword = await getOrCreateSpacePassword(plugin);
       const accountLocalId = await getOrCreateAccountLocalId(plugin, vaultName);
@@ -100,8 +101,8 @@ export const getSupabaseContext = async (
       const userId = await fetchOrCreatePlatformAccount({
         platform: "Obsidian",
         accountLocalId,
-        name: vaultName,
-        email: accountLocalId,
+        name: username,
+        email: undefined,
         spaceId,
         password: spacePassword,
       });
@@ -119,6 +120,23 @@ export const getSupabaseContext = async (
     }
   }
   return contextCache;
+};
+
+export const updateUsername = async (
+  plugin: DiscourseGraphPlugin,
+  username: string,
+): Promise<void> => {
+  const context = await getSupabaseContext(plugin);
+  if (!context) return;
+  const client = await getLoggedInClient(plugin);
+  if (!client) return;
+  const result = await client
+    .from("PlatformAccount")
+    .update({ name: username })
+    .eq("id", context.userId);
+  if (result.error) {
+    console.error(result.error);
+  }
 };
 
 let loggedInClient: DGSupabaseClient | null = null;

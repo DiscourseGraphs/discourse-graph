@@ -5,7 +5,7 @@ import { Badge } from "@repo/ui/components/ui/badge";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
-import { Copy } from "lucide-react";
+import { Copy, Loader2 } from "lucide-react";
 import {
   NODE_TYPE_DEFINITIONS,
   type ExtractedNode,
@@ -31,11 +31,15 @@ const formatNodeForClipboard = (node: ExtractedNode): string => {
 
 type MainContentProps = {
   nodes: ExtractedNode[];
+  isExtracting: boolean;
+  hasExtracted: boolean;
   paperTitle?: string;
 };
 
 export const MainContent = ({
   nodes,
+  isExtracting,
+  hasExtracted,
   paperTitle,
 }: MainContentProps): React.ReactElement => {
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
@@ -135,16 +139,29 @@ export const MainContent = ({
     setTimeout(() => setCopied(false), 1500);
   };
 
+  if (isExtracting && nodes.length === 0) {
+    return (
+      <section className="flex min-h-96 flex-1 items-center justify-center overflow-hidden rounded-3xl border border-slate-200/85 bg-white shadow-xl">
+        <Loader2
+          aria-label="Extracting nodes"
+          className="h-10 w-10 animate-spin text-slate-400"
+        />
+      </section>
+    );
+  }
+
   if (nodes.length === 0) {
+    const title = hasExtracted
+      ? "No extractable nodes found in this PDF"
+      : "No extracted nodes yet";
+    const subtitle = hasExtracted
+      ? "Try a different paper or adjust the selected node types."
+      : "Upload a paper and run extraction to see results here.";
     return (
       <section className="flex min-h-96 flex-1 items-center justify-center overflow-hidden rounded-3xl border border-slate-200/85 bg-white shadow-xl">
         <div className="text-center">
-          <p className="text-lg font-medium text-slate-400">
-            No extracted nodes yet
-          </p>
-          <p className="mt-1 text-sm text-slate-400">
-            Upload a paper and run extraction to see results here.
-          </p>
+          <p className="text-lg font-medium text-slate-400">{title}</p>
+          <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
         </div>
       </section>
     );

@@ -18,13 +18,13 @@ import {
 } from "~/utils/editorMenuUtils";
 import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
 import { createWikilinkDragExtension } from "~/utils/wikilinkDragHandler";
-import { registerCommands } from "~/utils/registerCommands";
+import {
+  registerCommands,
+  createModifyNodeModalSubmitHandler,
+} from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
 import { VIEW_TYPE_TLDRAW_DG_PREVIEW, FRONTMATTER_KEY } from "~/constants";
-import {
-  convertPageToDiscourseNode,
-  createDiscourseNode,
-} from "~/utils/createNode";
+import { convertPageToDiscourseNode } from "~/utils/createNode";
 import { DEFAULT_SETTINGS } from "~/constants";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { TagNodeHandler } from "~/utils/tagNodeHandler";
@@ -38,6 +38,7 @@ import {
   migrateFrontmatterRelationsToRelationsJson,
   mergeAllRelationsJsonToRoot,
 } from "~/utils/relationsStore";
+import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -56,6 +57,10 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     await migrateFrontmatterRelationsToRelationsJson(this).catch((error) => {
       console.error("Failed to migrate frontmatter relations:", error);
+    });
+
+    await migrateImportFolderMetadata(this).catch((error) => {
+      console.error("Failed to migrate import folder metadata:", error);
     });
 
     if (this.settings.syncModeEnabled === true) {
@@ -217,17 +222,22 @@ export default class DiscourseGraphPlugin extends Plugin {
         if (!editor.getSelection()) return;
 
         const selection = editor.getSelection().trim();
+        const currentFile =
+          this.app.workspace.getActiveViewOfType(MarkdownView)?.file ||
+          undefined;
         addConvertSubmenu({
           menu,
           label: "Turn into discourse node",
           nodeTypes: this.settings.nodeTypes,
-          onClick: async (nodeType) => {
-            await createDiscourseNode({
+          onClick: (nodeType) => {
+            new ModifyNodeModal(this.app, {
+              nodeTypes: this.settings.nodeTypes,
               plugin: this,
-              editor,
-              nodeType,
-              text: selection,
-            });
+              initialTitle: selection,
+              initialNodeType: nodeType,
+              currentFile,
+              onSubmit: createModifyNodeModalSubmitHandler(this, editor),
+            }).open();
           },
         });
       }),
@@ -330,12 +340,13 @@ export default class DiscourseGraphPlugin extends Plugin {
       if (!this.settings.showIdsInFrontmatter) {
         keysToHide.push(
           ...[
-            "nodeTypeId",
-            "importedFromRid",
-            "nodeInstanceId",
-            "publishedToGroups",
-            "lastModified",
+            "authorId",
             "importedAssets",
+            "importedFromRid",
+            "lastModified",
+            "nodeInstanceId",
+            "nodeTypeId",
+            "publishedToGroups",
           ],
         );
         keysToHide.push(...this.settings.relationTypes.map((rt) => rt.id));

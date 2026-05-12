@@ -15,6 +15,7 @@ import {
   getNodeTypeById,
   getAndFormatImportSource,
   isAcceptedSchema,
+  getUserNameById,
 } from "~/utils/typeUtils";
 import type { RelationInstance } from "~/types";
 import {
@@ -527,7 +528,19 @@ const CurrentRelationships = ({
       </div>
       <ul className="m-0 ml-6 list-none p-0">
         {group.linkedEntries.map((entry) => (
-          <li key={entry.relation.id} className="mt-1 flex items-center gap-2">
+          <li
+            key={entry.relation.id}
+            className="mt-1 flex items-center gap-2"
+            title={
+              entry.relation.importedFromRid && entry.relation.authorId
+                ? `relation by ${getUserNameById(plugin, entry.relation.authorId)} from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
+                : entry.relation.authorId
+                  ? `relation by ${getUserNameById(plugin, entry.relation.authorId)}`
+                  : entry.relation.importedFromRid
+                    ? `relation from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
+                    : ""
+            }
+          >
             <a
               href="#"
               className="text-accent-text flex-1"
@@ -612,11 +625,7 @@ const CurrentRelationships = ({
                         e.preventDefault();
                         void acceptRelation(entry.relation.id);
                       }}
-                      title={
-                        entry.relation.importedFromRid
-                          ? `Accept relation from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
-                          : "Accept relationship"
-                      }
+                      title="Accept relationship"
                     >
                       ✓
                     </button>

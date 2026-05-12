@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import {
   DEFAULT_MODEL_ID,
+  ExtractionResultSchema,
   NODE_TYPE_DEFINITIONS,
   type ExtractedNode,
 } from "~/types/extraction";
@@ -21,80 +22,8 @@ const readFileAsBase64 = (file: File): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
-const SAMPLE_NODES: ExtractedNode[] = [
-  {
-    nodeType: "Claim",
-    content:
-      "Basolateral secretion of Wnt5a is essential for establishing apical-basal polarity in epithelial cells.",
-    supportSnippet:
-      '"Wnt5a secreted from the basolateral surface was both necessary and sufficient for the establishment of apical-basal polarity" (p.9)',
-    sourceSection: "Discussion",
-  },
-  {
-    nodeType: "Evidence",
-    content:
-      "Wnt5a was detected exclusively in the basolateral medium of polarized MDCK cells grown on Transwell filters, with no detectable signal in the apical fraction.",
-    supportSnippet:
-      '"Western blot analysis of conditioned media showed Wnt5a protein exclusively in the basolateral fraction (Fig. 2A, lanes 3-4)"',
-    sourceSection: "Results",
-  },
-  {
-    nodeType: "Question",
-    content:
-      "What is the mechanism by which Wnt5a polarized secretion is directed to the basolateral membrane?",
-    supportSnippet:
-      '"The mechanism that directs Wnt5a specifically to the basolateral surface remains an open question" (p.11)',
-    sourceSection: "Discussion",
-  },
-  {
-    nodeType: "Claim",
-    content:
-      "Ror2 receptor activation at the basolateral surface mediates Wnt5a-dependent lumen positioning.",
-    supportSnippet:
-      '"We hypothesize that Ror2, as the primary receptor for Wnt5a at the basolateral membrane, transduces the polarity signal required for single-lumen formation"',
-    sourceSection: "Discussion",
-  },
-  {
-    nodeType: "Evidence",
-    content:
-      "shRNA-mediated knockdown of Wnt5a resulted in multi-lumen cysts in 68% of colonies compared to 12% in control conditions.",
-    supportSnippet:
-      '"Quantification of cyst morphology revealed 68 ± 4% multi-lumen cysts in Wnt5a-KD versus 12 ± 3% in controls (Fig. 4B, p < 0.001)"',
-    sourceSection: "Results",
-  },
-  {
-    nodeType: "Artifact",
-    content:
-      "MDCK 3D cyst culture model grown on Matrigel, used to visualize lumen formation by confocal live imaging of F-actin and podocalyxin markers.",
-    supportSnippet:
-      '"We used MDCK II cells seeded in 100% Matrigel and imaged cyst development over 96 hours using spinning-disk confocal microscopy (Materials and Methods)"',
-    sourceSection: "Methods",
-  },
-  {
-    nodeType: "Pattern",
-    content:
-      "Non-canonical Wnt signaling through the planar cell polarity pathway is a conserved mechanism for epithelial lumen morphogenesis.",
-    supportSnippet:
-      '"Our findings place Wnt5a upstream of the PCP pathway in the regulation of epithelial lumen morphogenesis, consistent with the broader role of non-canonical Wnt signaling in tissue polarity"',
-    sourceSection: "Discussion",
-  },
-  {
-    nodeType: "Evidence",
-    content:
-      "Co-immunoprecipitation showed that Wnt5a preferentially binds Ror2 receptor at the basolateral surface.",
-    supportSnippet:
-      '"IP-Western analysis demonstrated direct Wnt5a-Ror2 interaction in basolateral but not apical membrane fractions (Fig. 5C)"',
-    sourceSection: "Results",
-  },
-  {
-    nodeType: "Claim",
-    content:
-      "Loss of Wnt5a function disrupts lumen formation in 3D cyst cultures derived from epithelial cells.",
-    supportSnippet:
-      '"These data demonstrate that Wnt5a is required for proper lumen formation in three-dimensional culture systems"',
-    sourceSection: "Discussion",
-  },
-];
+const GENERIC_EXTRACTION_ERROR =
+  "We couldn't extract nodes from this PDF. Please try again.";
 
 const ExtractNodesPage = (): React.ReactElement => {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -105,9 +34,22 @@ const ExtractNodesPage = (): React.ReactElement => {
   const [model, setModel] = useState(DEFAULT_MODEL_ID);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
-  const [nodes] = useState<ExtractedNode[]>(SAMPLE_NODES);
+  const [nodes, setNodes] = useState<ExtractedNode[]>([]);
+  const [hasExtracted, setHasExtracted] = useState(false);
 
-  const toggleType = useCallback((candidateTag: string) => {
+  const handleFileSelect = useCallback((file: File) => {
+    setPdfFile(file);
+    setExtractionError(null);
+    setNodes([]);
+    setHasExtracted(false);
+  }, []);
+
+  const handleResearchQuestionChange = useCallback((value: string) => {
+    setResearchQuestion(value);
+    setExtractionError(null);
+  }, []);
+
+  const handleToggleType = useCallback((candidateTag: string) => {
     setSelectedTypes((prev) => {
       const next = new Set(prev);
       if (next.has(candidateTag)) {
@@ -117,6 +59,12 @@ const ExtractNodesPage = (): React.ReactElement => {
       }
       return next;
     });
+    setExtractionError(null);
+  }, []);
+
+  const handleModelChange = useCallback((nextModel: string) => {
+    setModel(nextModel);
+    setExtractionError(null);
   }, []);
 
   const canExtract = !!pdfFile && selectedTypes.size > 0 && !isExtracting;
@@ -146,14 +94,23 @@ const ExtractNodesPage = (): React.ReactElement => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
+      const json: unknown = await response.json();
       if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+        const serverMessage =
+          typeof (json as { error?: unknown })?.error === "string"
+            ? (json as { error: string }).error
+            : `Request failed with status ${response.status}`;
+        throw new Error(serverMessage);
       }
+      const parsed = ExtractionResultSchema.safeParse(json);
+      if (!parsed.success) {
+        throw new Error("Server returned unexpected response shape");
+      }
+      setNodes(parsed.data.nodes);
+      setHasExtracted(true);
     } catch (error) {
       console.error("extraction failed:", error);
-      setExtractionError(
-        "We couldn't extract nodes from this PDF. Please try again.",
-      );
+      setExtractionError(GENERIC_EXTRACTION_ERROR);
     } finally {
       setIsExtracting(false);
     }
@@ -163,19 +120,24 @@ const ExtractNodesPage = (): React.ReactElement => {
     <div className="flex h-full w-full flex-1 flex-col gap-4 p-4 lg:flex-row lg:gap-5 lg:p-5">
       <Sidebar
         pdfFile={pdfFile}
-        onFileSelect={setPdfFile}
+        onFileSelect={handleFileSelect}
         researchQuestion={researchQuestion}
-        onResearchQuestionChange={setResearchQuestion}
+        onResearchQuestionChange={handleResearchQuestionChange}
         selectedTypes={selectedTypes}
-        onToggleType={toggleType}
+        onToggleType={handleToggleType}
         model={model}
-        onModelChange={setModel}
+        onModelChange={handleModelChange}
         onExtract={() => void handleExtract()}
         canExtract={canExtract}
         isExtracting={isExtracting}
+        hasExtracted={hasExtracted}
         extractionError={extractionError}
       />
-      <MainContent nodes={nodes} />
+      <MainContent
+        nodes={nodes}
+        isExtracting={isExtracting}
+        hasExtracted={hasExtracted}
+      />
     </div>
   );
 };
