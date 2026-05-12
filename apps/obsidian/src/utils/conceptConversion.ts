@@ -12,7 +12,7 @@ import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { Json } from "@repo/database/dbTypes";
 
 /**
- * Get extra data (author, timestamps) from file metadata
+ * Get extra data (author, timestamps) from file
  */
 const getNodeExtraData = (
   file: TFile,
@@ -35,12 +35,10 @@ export const discourseNodeSchemaToLocalConcept = ({
   context,
   node,
   templateContent,
-  existingMetadataVersion,
 }: {
   context: SupabaseContext;
   node: DiscourseNode;
   templateContent?: string;
-  existingMetadataVersion?: number;
 }): LocalConceptDataInput => {
   const {
     description,
@@ -56,7 +54,6 @@ export const discourseNodeSchemaToLocalConcept = ({
   const literal_content: Record<string, Json> = {
     label: name,
     source_data: otherData,
-    metadata_version: (existingMetadataVersion ?? 0) + 1,
   };
   if (template) literal_content.template = template;
   literal_content.template_content = templateContent || null;

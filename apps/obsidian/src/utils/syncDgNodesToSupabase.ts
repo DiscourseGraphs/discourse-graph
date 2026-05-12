@@ -174,10 +174,10 @@ const getLastContentSyncTime = async (
   return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
 };
 
-const getLastNodeSchemaInfo = async (
+const getLastNodeSchemaSyncTime = async (
   supabaseClient: DGSupabaseClient,
   spaceId: number,
-): Promise<{ last_modified: Date; metadata_version: number | undefined }> => {
+): Promise<Date> => {
   const { data } = await supabaseClient
     .from("my_concepts")
     .select("last_modified, literal_content")
@@ -187,11 +187,7 @@ const getLastNodeSchemaInfo = async (
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
-  return {
-    last_modified: new Date((data?.last_modified || DEFAULT_TIME) + "Z"),
-    metadata_version: (data?.literal_content as Record<string, unknown>)
-      ?.metadata_version as number | undefined,
-  };
+  return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
 };
 
 const getLastRelationSchemaSyncTime = async (
@@ -452,11 +448,9 @@ const convertDgToSupabaseConcepts = async ({
   allNodes?: DiscourseNodeInVault[];
   fullSync?: boolean;
 }): Promise<void> => {
-  const lastNodeSchemaInfo = await getLastNodeSchemaInfo(
-    supabaseClient,
-    context.spaceId,
-  );
-  const lastNodeSchemaSync = lastNodeSchemaInfo.last_modified.getTime();
+  const lastNodeSchemaSync = (
+    await getLastNodeSchemaSyncTime(supabaseClient, context.spaceId)
+  ).getTime();
   const lastRelationSchemaSync = (
     await getLastRelationSchemaSyncTime(supabaseClient, context.spaceId)
   ).getTime();
@@ -499,7 +493,6 @@ const convertDgToSupabaseConcepts = async ({
           context,
           node: nodeType,
           templateContent,
-          existingMetadataVersion: lastNodeSchemaInfo.metadata_version,
         });
       }),
   );
