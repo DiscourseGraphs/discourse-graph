@@ -48,6 +48,8 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
 import { commands, cleanCommandName } from "~/components/LeftSidebarCommands";
+import { isSmartBlockUid } from "~/utils/isSmartBlockUid";
+import { RenderRoamBlock } from "~/utils/roamReactComponents";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -135,6 +137,26 @@ const toggleFoldedState = ({
   }
 };
 
+const RoamRenderedBlock = ({ uid }: { uid: string }) => {
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    const pattern = "[:block/string]";
+    const entityId = `[:block/uid "${uid}"]`;
+    const callback = () => setVersion((v) => v + 1);
+    window.roamAlphaAPI.data.addPullWatch(pattern, entityId, callback);
+    return () => {
+      window.roamAlphaAPI.data.removePullWatch(pattern, entityId, callback);
+    };
+  }, [uid]);
+
+  return (
+    <div className="dg-sidebar-rendered-block">
+      <RenderRoamBlock key={version} uid={uid} open={false} />
+    </div>
+  );
+};
+
 type ChildNode = { uid: string; text: string; alias?: { value: string } };
 
 const ChildRow = ({
@@ -147,6 +169,17 @@ const ChildRow = ({
   onloadArgs: OnloadArgs;
 }) => {
   const ref = parseReference(child.text);
+
+  if (ref.type === "block" && isSmartBlockUid(ref.uid)) {
+    return (
+      <div className="pl-8 pr-2.5">
+        <div className="section-child-item rounded-sm leading-normal text-gray-600">
+          <RoamRenderedBlock uid={ref.uid} />
+        </div>
+      </div>
+    );
+  }
+
   const alias = child.alias?.value;
   const display =
     ref.type === "command"
@@ -700,6 +733,22 @@ export const mountLeftSidebar = async (
   onloadArgs: OnloadArgs,
 ): Promise<void> => {
   if (!wrapper) return;
+
+  const styleId = "dg-sidebar-rendered-block-styles";
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      .dg-sidebar-rendered-block .rm-bullet { display: none; }
+      .dg-sidebar-rendered-block .rm-block-separator { display: none; }
+      .dg-sidebar-rendered-block .controls { display: none; }
+      .dg-sidebar-rendered-block .block-expand { display: none; }
+      .dg-sidebar-rendered-block .block-border-left { display: none; }
+      .dg-sidebar-rendered-block .block-ref-count-button { display: none; }
+      .dg-sidebar-rendered-block .rm-block-main { min-height: unset; padding: 0; }
+    `;
+    document.head.appendChild(style);
+  }
 
   const id = "dg-left-sidebar-root";
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;

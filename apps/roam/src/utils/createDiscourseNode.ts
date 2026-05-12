@@ -163,7 +163,7 @@ const createDiscourseNode = async ({
     await handleImageCreation(pageUid);
   };
 
-  const hasSmartBlockSyntax = (node: RoamBasicNode) => {
+  const hasSmartBlockSyntax = (node: RoamBasicNode): boolean => {
     if (node.text.includes("<%")) return true;
     if (node.children) return node.children.some(hasSmartBlockSyntax);
     return false;

@@ -46,6 +46,12 @@ import {
   commands,
   SidebarCommandPopover,
 } from "~/components/LeftSidebarCommands";
+import { isSmartBlockUid } from "~/utils/isSmartBlockUid";
+
+const isSmartBlockButtonRef = (text: string): boolean => {
+  if (!text.startsWith("((") || !text.endsWith("))")) return false;
+  return isSmartBlockUid(extractRef(text));
+};
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const sectionsToBlockProps = (
@@ -429,6 +435,9 @@ const SectionItem = memo(
                   renderItem={(child, handle) => {
                     const childAlias = child.alias?.value;
                     const isSettingsOpen = childSettingsUid === child.uid;
+                    const childIsSmartBlockButtonRef = isSmartBlockButtonRef(
+                      child.text,
+                    );
                     const childDisplayTitle =
                       getPageTitleByPageUid(child.text) ||
                       getTextByBlockUid(extractRef(child.text)) ||
@@ -444,7 +453,7 @@ const SectionItem = memo(
                             className="mr-2 min-w-0 flex-1 truncate"
                             title={childDisplayTitle}
                           >
-                            {childAlias ? (
+                            {childAlias && !childIsSmartBlockButtonRef ? (
                               <span>
                                 <span className="font-medium">
                                   {childAlias}
@@ -458,13 +467,15 @@ const SectionItem = memo(
                             )}
                           </div>
                           <ButtonGroup minimal className="flex-shrink-0">
-                            <Button
-                              icon="settings"
-                              small
-                              onClick={() => setChildSettingsUid(child.uid)}
-                              title="Child settings"
-                              className="opacity-0 transition-opacity group-hover:opacity-100"
-                            />
+                            {!childIsSmartBlockButtonRef && (
+                              <Button
+                                icon="settings"
+                                small
+                                onClick={() => setChildSettingsUid(child.uid)}
+                                title="Child settings"
+                                className="opacity-0 transition-opacity group-hover:opacity-100"
+                              />
+                            )}
                             <Button
                               icon="trash"
                               small
