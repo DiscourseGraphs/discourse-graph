@@ -56,7 +56,10 @@ export const discourseNodeSchemaToLocalConcept = ({
     source_data: otherData,
   };
   if (template) literal_content.template = template;
-  if (templateContent) literal_content.template_content = templateContent;
+  if (templateContent) {
+    literal_content.metadata_version = 1;
+    literal_content.template_content = templateContent;
+  }
   if (importedFromRid) literal_content.importedFromRid = importedFromRid;
   return {
     space_id: context.spaceId,
