@@ -7,7 +7,11 @@ import React, {
   useState,
 } from "react";
 import ReactDOM from "react-dom";
+import { arrayMove } from "@dnd-kit/sortable";
+import { SortableList, type SortableHandle } from "./SortableList";
+import { moveRoamBlockToIndex } from "~/utils/moveRoamBlock";
 import {
+  Button,
   Collapse,
   Icon,
   Popover,
@@ -61,13 +65,16 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
+import { commands, cleanCommandName } from "~/components/LeftSidebarCommands";
 
 const getCurrentLeftSidebarConfig = (): LeftSidebarConfig =>
   getLeftSidebarSettings(discourseConfigRef.tree);
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
-  if (text.startsWith("((") && text.endsWith("))")) {
+  if (commands[text]) {
+    return { type: "command" as const, uid: text, display: text };
+  } else if (text.startsWith("((") && text.endsWith("))")) {
     return { type: "block" as const, uid: extracted, display: text };
   } else {
     return { type: "page" as const, display: text };
@@ -79,7 +86,11 @@ const truncate = (s: string, max: number | undefined): string => {
   return s.length > max ? `${s.slice(0, max)}...` : s;
 };
 
-const openTarget = async (e: React.MouseEvent, targetUid: string) => {
+const openTarget = async (
+  e: React.MouseEvent,
+  targetUid: string,
+  onloadArgs: OnloadArgs,
+) => {
   e.preventDefault();
   e.stopPropagation();
   const target = parseReference(targetUid);
@@ -87,6 +98,10 @@ const openTarget = async (e: React.MouseEvent, targetUid: string) => {
     targetType: target.type,
     openInSidebar: e.shiftKey,
   });
+  if (target.type === "command") {
+    await commands[target.uid](onloadArgs);
+    return;
+  }
   if (target.type === "block") {
     if (e.shiftKey) {
       await openBlockInSidebar(target.uid);
@@ -174,50 +189,65 @@ const toggleFoldedState = async ({
   }
 };
 
-const SectionChildren = ({
-  childrenNodes,
+type ChildNode = { uid: string; text: string; alias?: { value: string } };
+
+const ChildRow = ({
+  child,
   truncateAt,
+  onloadArgs,
 }: {
-  childrenNodes: { uid: string; text: string; alias?: { value: string } }[];
+  child: ChildNode;
   truncateAt?: number;
+  onloadArgs: OnloadArgs;
 }) => {
-  if (!childrenNodes?.length) return null;
+  const ref = parseReference(child.text);
+  const alias = child.alias?.value;
+  const display =
+    ref.type === "command"
+      ? ref.display
+      : ref.type === "page"
+        ? getPageTitleByPageUid(ref.display)
+        : getTextByBlockUid(ref.uid);
+  const label = alias || truncate(display, truncateAt);
+  const onClick = (e: React.MouseEvent) => {
+    return void openTarget(e, child.text, onloadArgs);
+  };
   return (
-    <>
-      {childrenNodes.map((child) => {
-        const ref = parseReference(child.text);
-        const alias = child.alias?.value;
-        const display =
-          ref.type === "page"
-            ? getPageTitleByPageUid(ref.display)
-            : getTextByBlockUid(ref.uid);
-        const label = alias || truncate(display, truncateAt);
-        const onClick = (e: React.MouseEvent) => {
-          return void openTarget(e, child.text);
-        };
-        return (
-          <div key={child.uid} className="pl-8 pr-2.5">
-            <div
-              className={
-                "section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
-              }
-              onClick={onClick}
-            >
-              {label}
-            </div>
-          </div>
-        );
-      })}
-    </>
+    <div className="pl-8 pr-2.5">
+      {ref.type === "command" ? (
+        <span className="bp3-dark">
+          <Button onClick={onClick} minimal className="m-px">
+            {cleanCommandName(label)}
+          </Button>
+        </span>
+      ) : (
+        <div
+          className="section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
+          onClick={onClick}
+        >
+          {label}
+        </div>
+      )}
+    </div>
   );
 };
 
 const PersonalSectionItem = ({
   section,
   sectionIndex,
+  dragHandle,
+  onChildrenReorder,
+  onloadArgs,
 }: {
   section: LeftSidebarPersonalSectionConfig;
   sectionIndex: number;
+  dragHandle: SortableHandle;
+  onChildrenReorder: (args: {
+    sectionUid: string;
+    oldIndex: number;
+    newIndex: number;
+  }) => void;
+  onloadArgs: OnloadArgs;
 }) => {
   const titleRef = parseReference(section.text);
   const blockText = useMemo(
@@ -250,7 +280,11 @@ const PersonalSectionItem = ({
 
   return (
     <>
-      <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none">
+      <div
+        {...dragHandle.attributes}
+        {...dragHandle.listeners}
+        className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none"
+      >
         <div className="flex w-full items-center justify-between">
           <div
             className="flex items-center"
@@ -273,32 +307,118 @@ const PersonalSectionItem = ({
         </div>
       </div>
       <Collapse isOpen={isOpen}>
-        <SectionChildren
-          childrenNodes={section.children || []}
-          truncateAt={truncateAt}
+        <SortableList
+          items={section.children || []}
+          getId={(c) => c.uid}
+          onReorder={(oldIndex, newIndex) =>
+            onChildrenReorder({ sectionUid: section.uid, oldIndex, newIndex })
+          }
+          renderItem={(child, handle) => (
+            <div {...handle.attributes} {...handle.listeners}>
+              <ChildRow
+                child={child}
+                truncateAt={truncateAt}
+                onloadArgs={onloadArgs}
+              />
+            </div>
+          )}
         />
       </Collapse>
     </>
   );
 };
 
-const PersonalSections = ({ config }: { config: LeftSidebarConfig }) => {
+const PersonalSections = ({
+  config,
+  setConfig,
+  onloadArgs,
+}: {
+  config: LeftSidebarConfig;
+  setConfig: Dispatch<SetStateAction<LeftSidebarConfig>>;
+  onloadArgs: OnloadArgs;
+}) => {
   const sections = config.personal.sections || [];
 
   if (!sections.length) return null;
 
+  const reorderSections = (oldIndex: number, newIndex: number) => {
+    const moved = sections[oldIndex];
+    if (!moved) return;
+    const reordered = arrayMove(sections, oldIndex, newIndex);
+    setConfig({
+      ...config,
+      personal: { ...config.personal, sections: reordered },
+    });
+    void moveRoamBlockToIndex({
+      blockUid: moved.uid,
+      parentUid: config.personal.uid,
+      sourceIndex: oldIndex,
+      destIndex: newIndex,
+    }).then(() => {
+      refreshAndNotify();
+    });
+  };
+
+  const reorderChildren = ({
+    sectionUid,
+    oldIndex,
+    newIndex,
+  }: {
+    sectionUid: string;
+    oldIndex: number;
+    newIndex: number;
+  }) => {
+    const section = sections.find((s) => s.uid === sectionUid);
+    const children = section?.children;
+    if (!section || !children || !section.childrenUid) return;
+    const child = children[oldIndex];
+    if (!child) return;
+    const reorderedChildren = arrayMove(children, oldIndex, newIndex);
+    const newSections = sections.map((s) =>
+      s.uid === sectionUid ? { ...s, children: reorderedChildren } : s,
+    );
+    setConfig({
+      ...config,
+      personal: { ...config.personal, sections: newSections },
+    });
+    void moveRoamBlockToIndex({
+      blockUid: child.uid,
+      parentUid: section.childrenUid,
+      sourceIndex: oldIndex,
+      destIndex: newIndex,
+    }).then(() => {
+      refreshAndNotify();
+    });
+  };
+
   return (
-    <div className="personal-left-sidebar-sections">
-      {sections.map((section, index) => (
-        <div key={section.uid || `${section.text}-${index}`}>
-          <PersonalSectionItem section={section} sectionIndex={index} />
-        </div>
-      ))}
-    </div>
+    <SortableList
+      items={sections}
+      getId={(s) => s.uid}
+      onReorder={reorderSections}
+      className="personal-left-sidebar-sections"
+      renderItem={(section, handle) => (
+        <PersonalSectionItem
+          section={section}
+          sectionIndex={sections.findIndex((s) => s.uid === section.uid)}
+          dragHandle={handle}
+          onChildrenReorder={reorderChildren}
+          onloadArgs={onloadArgs}
+        />
+      )}
+    />
   );
 };
 
-const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
+const GlobalSection = ({
+  config,
+  onGlobalChildrenReorder,
+  onloadArgs,
+}: {
+  config: LeftSidebarConfig["global"];
+  onGlobalChildrenReorder: (oldIndex: number, newIndex: number) => void;
+  onloadArgs: OnloadArgs;
+}) => {
   const [isOpen, setIsOpen] = useState<boolean>(
     !!config.settings?.folded.value,
   );
@@ -323,6 +443,19 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
     }
   };
 
+  const children = (
+    <SortableList
+      items={config.children}
+      getId={(c) => c.uid}
+      onReorder={onGlobalChildrenReorder}
+      renderItem={(child, handle) => (
+        <div {...handle.attributes} {...handle.listeners}>
+          <ChildRow child={child} onloadArgs={onloadArgs} />
+        </div>
+      )}
+    />
+  );
+
   return (
     <>
       <div
@@ -339,11 +472,9 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
         </div>
       </div>
       {isCollapsable ? (
-        <Collapse isOpen={isOpen}>
-          <SectionChildren childrenNodes={config.children} />
-        </Collapse>
+        <Collapse isOpen={isOpen}>{children}</Collapse>
       ) : (
-        <SectionChildren childrenNodes={config.children} />
+        children
       )}
     </>
   );
@@ -528,13 +659,41 @@ const LeftSidebarView = ({
   onloadArgs: OnloadArgs;
   initialSnapshot?: SettingsSnapshot;
 }) => {
-  const { config } = useConfig(initialSnapshot);
+  const { config, setConfig } = useConfig(initialSnapshot);
+
+  const reorderGlobalChildren = (oldIndex: number, newIndex: number) => {
+    const children = config.global.children;
+    if (!children) return;
+    const moved = children[oldIndex];
+    if (!moved) return;
+    const reordered = arrayMove(children, oldIndex, newIndex);
+    setConfig({
+      ...config,
+      global: { ...config.global, children: reordered },
+    });
+    void moveRoamBlockToIndex({
+      blockUid: moved.uid,
+      parentUid: config.global.childrenUid,
+      sourceIndex: oldIndex,
+      destIndex: newIndex,
+    }).then(() => {
+      refreshAndNotify();
+    });
+  };
 
   return (
     <>
       <FavoritesPopover onloadArgs={onloadArgs} />
-      <GlobalSection config={config.global} />
-      <PersonalSections config={config} />
+      <GlobalSection
+        config={config.global}
+        onGlobalChildrenReorder={reorderGlobalChildren}
+        onloadArgs={onloadArgs}
+      />
+      <PersonalSections
+        config={config}
+        setConfig={setConfig}
+        onloadArgs={onloadArgs}
+      />
     </>
   );
 };
@@ -564,7 +723,7 @@ const migrateFavorites = async () => {
   }
 
   const results = window.roamAlphaAPI.q(`
-    [:find ?uid 
+    [:find ?uid
      :where [?e :page/sidebar]
             [?e :block/uid ?uid]]
   `);
