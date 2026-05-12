@@ -178,7 +178,7 @@ const createDiscourseNode = async ({
     await handleImageCreation(pageUid);
   };
 
-  const hasSmartBlockSyntax = (node: InputTextNode) => {
+  const hasSmartBlockSyntax = (node: InputTextNode): boolean => {
     if (node.text.includes("<%")) return true;
     if (node.children) return node.children.some(hasSmartBlockSyntax);
     return false;

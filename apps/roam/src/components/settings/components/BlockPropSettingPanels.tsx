@@ -52,6 +52,7 @@ type BaseTextPanelProps = {
   placeholder?: string;
   multiline?: boolean;
   error?: string;
+  disabled?: boolean;
   onChange?: (value: string) => void;
 } & RoamBlockSyncProps;
 
@@ -107,6 +108,7 @@ const BaseTextPanel = ({
   placeholder,
   multiline,
   error,
+  disabled,
   onChange,
   parentUid,
   uid,
@@ -155,7 +157,7 @@ const BaseTextPanel = ({
     <div className="flex flex-col">
       <Label>
         {title}
-        <Description description={description} />
+        {description && <Description description={description} />}
         {multiline ? (
           <TextArea
             value={value}
@@ -163,12 +165,14 @@ const BaseTextPanel = ({
             placeholder={placeholder || initialValue}
             className="w-full"
             style={{ minHeight: 80, resize: "vertical" }}
+            disabled={disabled}
           />
         ) : (
           <InputGroup
             value={value}
             onChange={handleChange}
             placeholder={placeholder || initialValue}
+            disabled={disabled}
           />
         )}
       </Label>
