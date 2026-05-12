@@ -19,20 +19,21 @@ const hasSmartBlockSyntax = (node: RoamBasicNode): boolean => {
   return false;
 };
 
-const insertCanvasKeyImage = async ({
+const handleImageCreation = async ({
   pageUid,
+  discourseNodes,
   configPageUid,
   imageUrl,
   extensionAPI,
   text,
 }: {
   pageUid: string;
+  discourseNodes: ReturnType<typeof getDiscourseNodes>;
   configPageUid: string;
-  imageUrl: string;
+  imageUrl?: string;
   extensionAPI?: OnloadArgs["extensionAPI"];
   text: string;
 }) => {
-  const discourseNodes = getDiscourseNodes();
   const canvasSettings = Object.fromEntries(
     discourseNodes.map((n) => [n.type, { ...n.canvasSettings }]),
   );
@@ -42,51 +43,57 @@ const insertCanvasKeyImage = async ({
     "key-image-option": keyImageOption = "",
   } = canvasSettings[configPageUid] || {};
 
-  if (!isKeyImage) return;
+  if (isKeyImage && imageUrl) {
+    const createOrUpdateImageBlock = async (imagePlaceholderUid?: string) => {
+      const imageMarkdown = `![](${imageUrl})`;
+      if (imagePlaceholderUid) {
+        await updateBlock({
+          uid: imagePlaceholderUid,
+          text: imageMarkdown,
+        });
+      } else {
+        await createBlock({
+          node: { text: imageMarkdown },
+          order: 0,
+          parentUid: pageUid,
+        });
+      }
+    };
 
-  const createOrUpdateImageBlock = async (imagePlaceholderUid?: string) => {
-    const imageMarkdown = `![](${imageUrl})`;
-    if (imagePlaceholderUid) {
-      await updateBlock({ uid: imagePlaceholderUid, text: imageMarkdown });
-    } else {
-      await createBlock({
-        node: { text: imageMarkdown },
-        order: 0,
-        parentUid: pageUid,
+    if (keyImageOption === "query-builder") {
+      if (!extensionAPI) return;
+
+      const parentUid = resolveQueryBuilderRef({
+        queryRef: qbAlias,
+        extensionAPI,
       });
+      const results = await runQuery({
+        extensionAPI,
+        parentUid,
+        inputs: { NODETEXT: text, NODEUID: pageUid },
+      });
+      const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
+      await createOrUpdateImageBlock(imagePlaceholderUid);
+    } else {
+      await createOrUpdateImageBlock();
     }
-  };
-
-  if (keyImageOption === "query-builder") {
-    if (!extensionAPI) return;
-    const parentUid = resolveQueryBuilderRef({
-      queryRef: qbAlias,
-      extensionAPI,
-    });
-    const results = await runQuery({
-      extensionAPI,
-      parentUid,
-      inputs: { NODETEXT: text, NODEUID: pageUid },
-    });
-    const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
-    await createOrUpdateImageBlock(imagePlaceholderUid);
-  } else {
-    await createOrUpdateImageBlock();
   }
 };
 
 export const insertTemplateBlocks = async ({
   configPageUid,
   parentUid,
+  discourseNodes,
+  text,
   imageUrl,
   extensionAPI,
-  text,
 }: {
   configPageUid: string;
   parentUid: string;
+  discourseNodes?: ReturnType<typeof getDiscourseNodes>;
+  text?: string;
   imageUrl?: string;
   extensionAPI?: OnloadArgs["extensionAPI"];
-  text?: string;
 }) => {
   const nodeTree = getFullTreeByParentUid(configPageUid).children;
   const templateNode = getSubTree({ tree: nodeTree, key: "template" });
@@ -122,13 +129,14 @@ export const insertTemplateBlocks = async ({
     }
   }
 
-  if (imageUrl) {
-    await insertCanvasKeyImage({
+  if (discourseNodes && text !== undefined) {
+    await handleImageCreation({
       pageUid: parentUid,
+      discourseNodes,
       configPageUid,
       imageUrl,
       extensionAPI,
-      text: text ?? "",
+      text,
     });
   }
 };
@@ -218,9 +226,10 @@ const createDiscourseNode = async ({
   await insertTemplateBlocks({
     configPageUid,
     parentUid: pageUid,
+    discourseNodes,
+    text,
     imageUrl,
     extensionAPI,
-    text,
   });
   handleOpenInSidebar(pageUid);
   return pageUid;
