@@ -13,12 +13,6 @@ import runQuery from "./runQuery";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import posthog from "posthog-js";
 
-export const hasSmartBlockSyntax = (node: RoamBasicNode): boolean => {
-  if (node.text.includes("<%")) return true;
-  if (node.children) return node.children.some(hasSmartBlockSyntax);
-  return false;
-};
-
 const handleImageCreation = async ({
   pageUid,
   discourseNodes,
@@ -82,22 +76,74 @@ const handleImageCreation = async ({
 
 export const createBlocksFromTemplate = async ({
   templateNode,
-  parentUid,
+  pageUid,
+  discourseNodes,
+  configPageUid,
+  imageUrl,
+  extensionAPI,
+  text,
 }: {
   templateNode: RoamBasicNode;
-  parentUid: string;
+  pageUid: string;
+  discourseNodes: ReturnType<typeof getDiscourseNodes>;
+  configPageUid: string;
+  imageUrl?: string;
+  extensionAPI?: OnloadArgs["extensionAPI"];
+  text: string;
 }) => {
-  const existingChildren = getFullTreeByParentUid(parentUid).children || [];
-  const lastOrder = existingChildren.length;
-  await Promise.all(
-    stripUid(templateNode.children).map((node, order) =>
-      createBlock({
-        node,
-        order: lastOrder + order,
-        parentUid,
-      }),
-    ),
-  );
+  const createBlocksFromTemplate = async () => {
+    await Promise.all(
+      stripUid(templateNode.children).map(({ uid, ...node }, order) =>
+        createBlock({
+          node,
+          order,
+          parentUid: pageUid,
+        }),
+      ),
+    );
+
+    // Add image to page if imageUrl is provided
+    await handleImageCreation({
+      pageUid,
+      discourseNodes,
+      configPageUid,
+      imageUrl,
+      extensionAPI,
+      text,
+    });
+  };
+
+  const hasSmartBlockSyntax = (node: RoamBasicNode) => {
+    if (node.text.includes("<%")) return true;
+    if (node.children) return node.children.some(hasSmartBlockSyntax);
+    return false;
+  };
+  const useSmartBlocks = hasSmartBlockSyntax(templateNode);
+
+  if (useSmartBlocks && !window.roamjs?.extension?.smartblocks) {
+    renderToast({
+      content:
+        "This template requires SmartBlocks. Enable SmartBlocks in Roam Depot to use this template.",
+      id: "smartblocks-extension-disabled",
+      intent: "warning",
+    });
+    await createBlocksFromTemplate();
+  } else if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
+    window.roamjs.extension.smartblocks?.triggerSmartblock({
+      srcUid: templateNode.uid,
+      targetUid: pageUid,
+    });
+    await handleImageCreation({
+      pageUid,
+      discourseNodes,
+      configPageUid,
+      imageUrl,
+      extensionAPI,
+      text,
+    });
+  } else {
+    await createBlocksFromTemplate();
+  }
 };
 
 type Props = {
@@ -188,25 +234,8 @@ const createDiscourseNode = async ({
     key: "template",
   });
 
-  const useSmartBlocks = hasSmartBlockSyntax(templateNode);
-
-  if (useSmartBlocks && !window.roamjs?.extension?.smartblocks) {
-    renderToast({
-      content:
-        "This template requires SmartBlocks. Enable SmartBlocks in Roam Depot to use this template.",
-      id: "smartblocks-extension-disabled",
-      intent: "warning",
-    });
-    await createBlocksFromTemplate({ templateNode, parentUid: pageUid });
-  } else if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
-    window.roamjs.extension.smartblocks?.triggerSmartblock({
-      srcUid: templateNode.uid,
-      targetUid: pageUid,
-    });
-  } else {
-    await createBlocksFromTemplate({ templateNode, parentUid: pageUid });
-  }
-  await handleImageCreation({
+  await createBlocksFromTemplate({
+    templateNode,
     pageUid,
     discourseNodes,
     configPageUid,
