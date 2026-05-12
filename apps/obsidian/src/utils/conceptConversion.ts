@@ -35,10 +35,12 @@ export const discourseNodeSchemaToLocalConcept = ({
   context,
   node,
   templateContent,
+  existingMetadataVersion,
 }: {
   context: SupabaseContext;
   node: DiscourseNode;
   templateContent?: string;
+  existingMetadataVersion?: number;
 }): LocalConceptDataInput => {
   const {
     description,
@@ -54,10 +56,10 @@ export const discourseNodeSchemaToLocalConcept = ({
   const literal_content: Record<string, Json> = {
     label: name,
     source_data: otherData,
+    metadata_version: (existingMetadataVersion ?? 0) + 1,
   };
   if (template) literal_content.template = template;
   if (templateContent) {
-    literal_content.metadata_version = 1;
     literal_content.template_content = templateContent;
   }
   if (importedFromRid) literal_content.importedFromRid = importedFromRid;

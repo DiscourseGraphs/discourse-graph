@@ -206,6 +206,48 @@ const getLastRelationSchemaSyncTime = async (
   return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
 };
 
+const getExistingNodeTypeMetadataVersions = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+  sourceLocalIds: string[],
+): Promise<Map<string, number>> => {
+  if (sourceLocalIds.length === 0) return new Map();
+
+  const { data, error } = await supabaseClient
+    .from("my_concepts")
+    .select("source_local_id, literal_content")
+    .eq("space_id", spaceId)
+    .eq("is_schema", true)
+    .eq("arity", 0)
+    .in("source_local_id", sourceLocalIds);
+
+  if (error) {
+    console.error(
+      "Failed to fetch existing node type metadata versions:",
+      error,
+    );
+    return new Map();
+  }
+
+  const versionMap = new Map<string, number>();
+  for (const concept of data ?? []) {
+    if (!concept.source_local_id) continue;
+    const literalContent = concept.literal_content as Record<
+      string,
+      Json
+    > | null;
+    const version =
+      typeof literalContent?.metadata_version === "number"
+        ? literalContent.metadata_version
+        : undefined;
+    if (version !== undefined) {
+      versionMap.set(concept.source_local_id, version);
+    }
+  }
+
+  return versionMap;
+};
+
 const getLastRelationSyncTime = async (
   supabaseClient: DGSupabaseClient,
   spaceId: number,
@@ -476,25 +518,34 @@ const convertDgToSupabaseConcepts = async ({
   const { isEnabled: templatesEnabled, folderPath: templatesFolderPath } =
     getTemplatePluginInfo(plugin.app);
 
+  const filteredNodeTypes = nodeTypes.filter(
+    (nodeType) => nodeType.modified > lastNodeSchemaSync,
+  );
+
+  const existingMetadataVersions = await getExistingNodeTypeMetadataVersions(
+    supabaseClient,
+    context.spaceId,
+    filteredNodeTypes.map((n) => n.id),
+  );
+
   const nodesTypesToLocalConcepts = await Promise.all(
-    nodeTypes
-      .filter((nodeType) => nodeType.modified > lastNodeSchemaSync)
-      .map(async (nodeType) => {
-        let templateContent: string | undefined;
-        if (nodeType.template && templatesEnabled && templatesFolderPath) {
-          const templateFilePath = `${templatesFolderPath}/${nodeType.template}.md`;
-          const templateFile =
-            plugin.app.vault.getAbstractFileByPath(templateFilePath);
-          if (templateFile instanceof TFile) {
-            templateContent = await plugin.app.vault.read(templateFile);
-          }
+    filteredNodeTypes.map(async (nodeType) => {
+      let templateContent: string | undefined;
+      if (nodeType.template && templatesEnabled && templatesFolderPath) {
+        const templateFilePath = `${templatesFolderPath}/${nodeType.template}.md`;
+        const templateFile =
+          plugin.app.vault.getAbstractFileByPath(templateFilePath);
+        if (templateFile instanceof TFile) {
+          templateContent = await plugin.app.vault.read(templateFile);
         }
-        return discourseNodeSchemaToLocalConcept({
-          context,
-          node: nodeType,
-          templateContent,
-        });
-      }),
+      }
+      return discourseNodeSchemaToLocalConcept({
+        context,
+        node: nodeType,
+        templateContent,
+        existingMetadataVersion: existingMetadataVersions.get(nodeType.id),
+      });
+    }),
   );
 
   const relationTypesById = Object.fromEntries(
