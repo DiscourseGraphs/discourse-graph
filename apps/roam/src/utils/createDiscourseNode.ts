@@ -19,47 +19,118 @@ const hasSmartBlockSyntax = (node: RoamBasicNode): boolean => {
   return false;
 };
 
+const insertCanvasKeyImage = async ({
+  pageUid,
+  configPageUid,
+  imageUrl,
+  extensionAPI,
+  text,
+}: {
+  pageUid: string;
+  configPageUid: string;
+  imageUrl: string;
+  extensionAPI?: OnloadArgs["extensionAPI"];
+  text: string;
+}) => {
+  const discourseNodes = getDiscourseNodes();
+  const canvasSettings = Object.fromEntries(
+    discourseNodes.map((n) => [n.type, { ...n.canvasSettings }]),
+  );
+  const {
+    "query-builder-alias": qbAlias = "",
+    "key-image": isKeyImage = "",
+    "key-image-option": keyImageOption = "",
+  } = canvasSettings[configPageUid] || {};
+
+  if (!isKeyImage) return;
+
+  const createOrUpdateImageBlock = async (imagePlaceholderUid?: string) => {
+    const imageMarkdown = `![](${imageUrl})`;
+    if (imagePlaceholderUid) {
+      await updateBlock({ uid: imagePlaceholderUid, text: imageMarkdown });
+    } else {
+      await createBlock({
+        node: { text: imageMarkdown },
+        order: 0,
+        parentUid: pageUid,
+      });
+    }
+  };
+
+  if (keyImageOption === "query-builder") {
+    if (!extensionAPI) return;
+    const parentUid = resolveQueryBuilderRef({
+      queryRef: qbAlias,
+      extensionAPI,
+    });
+    const results = await runQuery({
+      extensionAPI,
+      parentUid,
+      inputs: { NODETEXT: text, NODEUID: pageUid },
+    });
+    const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
+    await createOrUpdateImageBlock(imagePlaceholderUid);
+  } else {
+    await createOrUpdateImageBlock();
+  }
+};
+
 export const insertTemplateBlocks = async ({
   configPageUid,
   parentUid,
+  imageUrl,
+  extensionAPI,
+  text,
 }: {
   configPageUid: string;
   parentUid: string;
+  imageUrl?: string;
+  extensionAPI?: OnloadArgs["extensionAPI"];
+  text?: string;
 }) => {
   const nodeTree = getFullTreeByParentUid(configPageUid).children;
   const templateNode = getSubTree({ tree: nodeTree, key: "template" });
-  if (!templateNode.children.length) return;
 
-  const useSmartBlocks = hasSmartBlockSyntax(templateNode);
+  if (templateNode.children.length) {
+    const useSmartBlocks = hasSmartBlockSyntax(templateNode);
 
-  if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
-    void window.roamjs.extension.smartblocks.triggerSmartblock({
-      srcUid: templateNode.uid,
-      targetUid: parentUid,
-    });
-    return;
+    if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
+      void window.roamjs.extension.smartblocks.triggerSmartblock({
+        srcUid: templateNode.uid,
+        targetUid: parentUid,
+      });
+    } else {
+      if (useSmartBlocks) {
+        renderToast({
+          content:
+            "This template requires SmartBlocks. Enable SmartBlocks in Roam Depot to use this template.",
+          id: "smartblocks-extension-disabled",
+          intent: "warning",
+        });
+      }
+      const existingChildren = getFullTreeByParentUid(parentUid).children || [];
+      const orderOffset = existingChildren.length;
+      await Promise.all(
+        stripUid(templateNode.children).map((node, order) =>
+          createBlock({
+            node,
+            order: orderOffset + order,
+            parentUid,
+          }),
+        ),
+      );
+    }
   }
 
-  if (useSmartBlocks) {
-    renderToast({
-      content:
-        "This template requires SmartBlocks. Enable SmartBlocks in Roam Depot to use this template.",
-      id: "smartblocks-extension-disabled",
-      intent: "warning",
+  if (imageUrl) {
+    await insertCanvasKeyImage({
+      pageUid: parentUid,
+      configPageUid,
+      imageUrl,
+      extensionAPI,
+      text: text ?? "",
     });
   }
-
-  const existingChildren = getFullTreeByParentUid(parentUid).children || [];
-  const orderOffset = existingChildren.length;
-  await Promise.all(
-    stripUid(templateNode.children).map((node, order) =>
-      createBlock({
-        node,
-        order: orderOffset + order,
-        parentUid,
-      }),
-    ),
-  );
 };
 
 type Props = {
@@ -99,53 +170,6 @@ const createDiscourseNode = async ({
       }, 1);
     }, 100);
   };
-  const handleImageCreation = async (pageUid: string) => {
-    const canvasSettings = Object.fromEntries(
-      discourseNodes.map((n) => [n.type, { ...n.canvasSettings }]),
-    );
-    const {
-      "query-builder-alias": qbAlias = "",
-      "key-image": isKeyImage = "",
-      "key-image-option": keyImageOption = "",
-    } = canvasSettings[configPageUid] || {};
-
-    if (isKeyImage && imageUrl) {
-      const createOrUpdateImageBlock = async (imagePlaceholderUid?: string) => {
-        const imageMarkdown = `![](${imageUrl})`;
-        if (imagePlaceholderUid) {
-          await updateBlock({
-            uid: imagePlaceholderUid,
-            text: imageMarkdown,
-          });
-        } else {
-          await createBlock({
-            node: { text: imageMarkdown },
-            order: 0,
-            parentUid: pageUid,
-          });
-        }
-      };
-
-      if (keyImageOption === "query-builder") {
-        if (!extensionAPI) return;
-
-        const parentUid = resolveQueryBuilderRef({
-          queryRef: qbAlias,
-          extensionAPI,
-        });
-        const results = await runQuery({
-          extensionAPI,
-          parentUid,
-          inputs: { NODETEXT: text, NODEUID: pageUid },
-        });
-        const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
-        await createOrUpdateImageBlock(imagePlaceholderUid);
-      } else {
-        await createOrUpdateImageBlock();
-      }
-    }
-  };
-
   const discourseNodes = getDiscourseNodes();
   const specification = discourseNodes?.find(
     (n) => n.type === configPageUid,
@@ -191,8 +215,13 @@ const createDiscourseNode = async ({
     return pageUid;
   }
 
-  await insertTemplateBlocks({ configPageUid, parentUid: pageUid });
-  await handleImageCreation(pageUid);
+  await insertTemplateBlocks({
+    configPageUid,
+    parentUid: pageUid,
+    imageUrl,
+    extensionAPI,
+    text,
+  });
   handleOpenInSidebar(pageUid);
   return pageUid;
 };
