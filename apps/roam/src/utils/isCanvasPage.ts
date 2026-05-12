@@ -1,11 +1,17 @@
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "..";
 import { getFormattedConfigTree } from "./discourseConfigRef";
 
-export const isCanvasPage = ({ title }: { title: string }) => {
+const getCanvasPageRegex = (): RegExp => {
   const { canvasPageFormat } = getFormattedConfigTree();
   const format = canvasPageFormat.value || DEFAULT_CANVAS_PAGE_FORMAT;
-  const canvasRegex = new RegExp(`^${format}$`.replace(/\*/g, ".+"));
-  return canvasRegex.test(title);
+  const escaped = format
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\\\*/g, ".+");
+  return new RegExp(`^${escaped}$`);
+};
+
+export const isCanvasPage = ({ title }: { title: string }) => {
+  return getCanvasPageRegex().test(title);
 };
 
 export const isCurrentPageCanvas = ({
@@ -26,4 +32,21 @@ export const isSidebarCanvas = ({
   h1: HTMLHeadingElement;
 }) => {
   return isCanvasPage({ title }) && !!h1.closest(".rm-sidebar-outline");
+};
+
+export const getCanvasPageTitles = async (): Promise<string[]> => {
+  const regex = getCanvasPageRegex();
+  const escaped = regex.source.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  try {
+    const results = (await window.roamAlphaAPI.data.async.fast.q(`[
+      :find ?title
+      :where
+        [(re-pattern "${escaped}") ?regex]
+        [?node :node/title ?title]
+        [(re-find ?regex ?title)]
+    ]`)) as [string][];
+    return results.map(([title]) => title).sort((a, b) => a.localeCompare(b));
+  } catch {
+    return [];
+  }
 };

@@ -8,6 +8,7 @@ import { fireQuerySync } from "./utils/fireQuery";
 import parseQuery from "./utils/parseQuery";
 import refreshConfigTree from "./utils/refreshConfigTree";
 import { registerCommandPaletteCommands } from "./utils/registerCommandPaletteCommands";
+import { registerSlashCommands } from "./utils/registerSlashCommands";
 import { createSettingsPanel } from "~/utils/createSettingsPanel";
 import { listActiveQueries } from "./utils/listActiveQueries";
 import { registerSmartBlock } from "./utils/registerSmartBlock";
@@ -78,6 +79,7 @@ export default runExtension(async (onloadArgs) => {
 
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
+  const unregisterSlashCommands = registerSlashCommands();
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
   setQueryPages(onloadArgs);
@@ -157,6 +159,7 @@ export default runExtension(async (onloadArgs) => {
     observers: observers,
     unload: () => {
       setSyncActivity(false);
+      unregisterSlashCommands();
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
       // @ts-expect-error - tldraw throws a warning on multiple loads
       delete window[Symbol.for("__signia__")];

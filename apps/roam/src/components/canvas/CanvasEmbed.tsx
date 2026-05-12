@@ -29,18 +29,7 @@ const getCurrentPageTitle = (el: HTMLElement): string | null => {
 };
 
 const CanvasEmbedPlaceholder = ({ message }: { message: string }) => (
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      height: "100px",
-      color: "#8a9ba8",
-      fontSize: "14px",
-      border: "1px dashed #d1d5db",
-      borderRadius: "6px",
-    }}
-  >
+  <div className="flex h-24 items-center justify-center rounded-md border border-dashed border-gray-300 text-sm text-slate-400">
     {message}
   </div>
 );
@@ -49,7 +38,7 @@ export const renderCanvasEmbed = (
   button: HTMLElement,
   onloadArgs: OnloadArgs,
 ) => {
-  button.style.display = "none";
+  button.classList.add("hidden");
 
   if (!button.parentElement) return;
 
@@ -81,12 +70,8 @@ export const renderCanvasEmbed = (
   button.parentElement.onmousedown = (e: MouseEvent) => e.stopPropagation();
 
   const wrapper = document.createElement("div");
-  wrapper.className = "dg-canvas-embed";
-  wrapper.style.height = "400px";
-  wrapper.style.width = "100%";
-  wrapper.style.overflow = "hidden";
-  wrapper.style.borderRadius = "6px";
-  wrapper.style.margin = "8px 0";
+  wrapper.className =
+    "dg-canvas-embed h-[400px] w-full overflow-hidden rounded-md my-2";
   button.parentElement.appendChild(wrapper);
 
   renderWithUnmount(
