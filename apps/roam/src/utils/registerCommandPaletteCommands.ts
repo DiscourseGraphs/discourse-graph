@@ -20,9 +20,7 @@ import {
   onPageRefObserverChange,
 } from "./pageRefObserverHandlers";
 import findDiscourseNode from "~/utils/findDiscourseNode";
-import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
-import getSubTree from "roamjs-components/util/getSubTree";
-import stripUid from "roamjs-components/util/stripUid";
+import { insertTemplateBlocks } from "~/utils/createDiscourseNode";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
 import { extractRef } from "roamjs-components/util";
@@ -165,48 +163,7 @@ export const convertPageToNodeFromCommand = (
       await window.roamAlphaAPI.data.page.update({
         page: { uid: pageUid, title: formattedTitle },
       });
-
-      const nodeTree = getFullTreeByParentUid(configPageUid).children;
-      const templateNode = getSubTree({ tree: nodeTree, key: "template" });
-      if (templateNode.children.length > 0) {
-        const hasSmartBlockSyntax = (
-          node: Parameters<typeof stripUid>[0][0],
-        ): boolean => {
-          if (node.text.includes("<%")) return true;
-          if (node.children) return node.children.some(hasSmartBlockSyntax);
-          return false;
-        };
-        const useSmartBlocks = hasSmartBlockSyntax(templateNode);
-
-        if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
-          void window.roamjs.extension.smartblocks?.triggerSmartblock({
-            srcUid: templateNode.uid,
-            targetUid: pageUid,
-          });
-        } else {
-          if (useSmartBlocks) {
-            renderToast({
-              content:
-                "This template requires SmartBlocks. Enable SmartBlocks in Roam Depot to use this template.",
-              id: "smartblocks-extension-disabled",
-              intent: "warning",
-            });
-          }
-          const existingChildren =
-            getFullTreeByParentUid(pageUid).children || [];
-          const lastOrder = existingChildren.length;
-          await Promise.all(
-            stripUid(templateNode.children).map((node, order) =>
-              createBlock({
-                node,
-                order: lastOrder + order,
-                parentUid: pageUid,
-              }),
-            ),
-          );
-        }
-      }
-
+      await insertTemplateBlocks({ configPageUid, parentUid: pageUid });
       return pageUid;
     },
     onSuccess: async () => {},

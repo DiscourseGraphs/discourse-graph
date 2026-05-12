@@ -53,7 +53,7 @@ export type ModifyNodeDialogProps = {
   createOverride?: (args: {
     formattedTitle: string;
     configPageUid: string;
-  }) => Promise<string | void>;
+  }) => Promise<string>;
   onSuccess: (result: {
     text: string;
     uid: string;
@@ -422,19 +422,14 @@ const ModifyNodeDialog = ({
         }
 
         const configPageUid = selectedNodeType?.type ?? "";
-        const overrideUid = createOverride
+        const newPageUid = createOverride
           ? await createOverride({ formattedTitle, configPageUid })
-          : undefined;
-
-        const newPageUid =
-          overrideUid !== undefined
-            ? overrideUid
-            : await createDiscourseNode({
-                text: formattedTitle,
-                configPageUid,
-                extensionAPI,
-                imageUrl,
-              });
+          : await createDiscourseNode({
+              text: formattedTitle,
+              configPageUid,
+              extensionAPI,
+              imageUrl,
+            });
 
         if (sourceBlockUid) {
           const pageRef = `[[${formattedTitle}]]`;

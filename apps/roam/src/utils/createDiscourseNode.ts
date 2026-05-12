@@ -13,6 +13,55 @@ import runQuery from "./runQuery";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import posthog from "posthog-js";
 
+const hasSmartBlockSyntax = (node: RoamBasicNode): boolean => {
+  if (node.text.includes("<%")) return true;
+  if (node.children) return node.children.some(hasSmartBlockSyntax);
+  return false;
+};
+
+export const insertTemplateBlocks = async ({
+  configPageUid,
+  parentUid,
+}: {
+  configPageUid: string;
+  parentUid: string;
+}) => {
+  const nodeTree = getFullTreeByParentUid(configPageUid).children;
+  const templateNode = getSubTree({ tree: nodeTree, key: "template" });
+  if (!templateNode.children.length) return;
+
+  const useSmartBlocks = hasSmartBlockSyntax(templateNode);
+
+  if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
+    void window.roamjs.extension.smartblocks.triggerSmartblock({
+      srcUid: templateNode.uid,
+      targetUid: parentUid,
+    });
+    return;
+  }
+
+  if (useSmartBlocks) {
+    renderToast({
+      content:
+        "This template requires SmartBlocks. Enable SmartBlocks in Roam Depot to use this template.",
+      id: "smartblocks-extension-disabled",
+      intent: "warning",
+    });
+  }
+
+  const existingChildren = getFullTreeByParentUid(parentUid).children || [];
+  const orderOffset = existingChildren.length;
+  await Promise.all(
+    stripUid(templateNode.children).map((node, order) =>
+      createBlock({
+        node,
+        order: orderOffset + order,
+        parentUid,
+      }),
+    ),
+  );
+};
+
 type Props = {
   text: string;
   configPageUid: string;
@@ -142,51 +191,8 @@ const createDiscourseNode = async ({
     return pageUid;
   }
 
-  const nodeTree = getFullTreeByParentUid(configPageUid).children;
-  const templateNode = getSubTree({
-    tree: nodeTree,
-    key: "template",
-  });
-
-  const createBlocksFromTemplate = async () => {
-    await Promise.all(
-      stripUid(templateNode.children).map(({ uid, ...node }, order) =>
-        createBlock({
-          node,
-          order,
-          parentUid: pageUid,
-        }),
-      ),
-    );
-
-    // Add image to page if imageUrl is provided
-    await handleImageCreation(pageUid);
-  };
-
-  const hasSmartBlockSyntax = (node: RoamBasicNode) => {
-    if (node.text.includes("<%")) return true;
-    if (node.children) return node.children.some(hasSmartBlockSyntax);
-    return false;
-  };
-  const useSmartBlocks = hasSmartBlockSyntax(templateNode);
-
-  if (useSmartBlocks && !window.roamjs?.extension?.smartblocks) {
-    renderToast({
-      content:
-        "This template requires SmartBlocks. Enable SmartBlocks in Roam Depot to use this template.",
-      id: "smartblocks-extension-disabled",
-      intent: "warning",
-    });
-    await createBlocksFromTemplate();
-  } else if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
-    window.roamjs.extension.smartblocks?.triggerSmartblock({
-      srcUid: templateNode.uid,
-      targetUid: pageUid,
-    });
-    await handleImageCreation(pageUid);
-  } else {
-    await createBlocksFromTemplate();
-  }
+  await insertTemplateBlocks({ configPageUid, parentUid: pageUid });
+  await handleImageCreation(pageUid);
   handleOpenInSidebar(pageUid);
   return pageUid;
 };
