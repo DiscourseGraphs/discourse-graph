@@ -257,6 +257,15 @@ export const PersonalSettingsSchema = z.object({
   "Streamline styling": z.boolean().default(false),
   "Auto canvas relations": z.boolean().default(false),
   "Disable product diagnostics": z.boolean().default(false),
+  "Canvas node shortcuts": z
+    .record(
+      z.string(),
+      z.object({
+        value: z.string().default(""),
+        enabled: z.boolean().default(false),
+      }),
+    )
+    .default({}),
   Query: QuerySettingsSchema.default({}),
 });
 
@@ -314,6 +323,7 @@ export type LeftSidebarPersonalSettings = z.infer<
 export type StoredFilters = z.infer<typeof StoredFiltersSchema>;
 export type QuerySettings = z.infer<typeof QuerySettingsSchema>;
 export type PersonalSettings = z.infer<typeof PersonalSettingsSchema>;
+export type CanvasNodeShortcuts = PersonalSettings["Canvas node shortcuts"];
 export type GithubSettings = z.infer<typeof GithubSettingsSchema>;
 export type QueryCondition = z.infer<typeof ConditionSchema>;
 export type QuerySelection = z.infer<typeof SelectionSchema>;
