@@ -334,7 +334,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
 
   const leftSidebarEnabled = getUidAndBooleanSetting({
     tree: discourseConfigRef.tree,
-    text: "(BETA) Left Sidebar",
+    text: "Left Sidebar",
   });
   if (leftSidebarEnabled.value) {
     const leftSidebarNode = discourseConfigRef.tree.find(

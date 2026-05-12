@@ -75,7 +75,7 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
     leftSidebar: getLeftSidebarSettings(configTreeRef.tree),
     leftSidebarEnabled: getUidAndBooleanSetting({
       tree: configTreeRef.tree,
-      text: "(BETA) Left Sidebar",
+      text: "Left Sidebar",
     }),
   };
 };

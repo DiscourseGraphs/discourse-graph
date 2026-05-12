@@ -250,7 +250,7 @@ export const initObservers = async ({
       void (async () => {
         const isLeftSidebarEnabled = getUidAndBooleanSetting({
           tree: configTree,
-          text: "(BETA) Left Sidebar",
+          text: "Left Sidebar",
         }).value;
         const container = el as HTMLDivElement;
         if (isLeftSidebarEnabled) {
