@@ -271,7 +271,7 @@ const NodeMenu = ({
       className="relative z-50"
       position={Position.BOTTOM_LEFT}
       modifiers={{
-        flip: { enabled: false },
+        flip: { enabled: true },
         preventOverflow: { enabled: false },
       }}
       autoFocus={false}
@@ -336,7 +336,10 @@ export const render = (props: Props) => {
   props.textarea.parentElement?.insertBefore(parent, props.textarea);
   const parentTop =
     props.textarea.parentElement?.getBoundingClientRect().top ?? 0;
-  const menuMaxHeight = window.innerHeight - (parentTop + coords.top) - 24;
+  const menuMaxHeight = Math.max(
+    window.innerHeight - (parentTop + coords.top) - 24,
+    100,
+  );
   ReactDOM.render(
     <NodeMenu
       {...props}
