@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   HTMLTable,
@@ -268,10 +268,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
   const [suggestiveOverlayValue, setSuggestiveOverlayValue] = useState(
     getFeatureFlag("Suggestive mode overlay enabled"),
   );
-  const syncAlreadyEnabled = useMemo(
-    () => duplicateNodeAlertValue || suggestiveOverlayValue,
-    [duplicateNodeAlertValue, suggestiveOverlayValue],
-  );
+  const syncAlreadyEnabled = duplicateNodeAlertValue || suggestiveOverlayValue;
 
   const ensureSyncEnabled = (
     featureKey: keyof FeatureFlags,
