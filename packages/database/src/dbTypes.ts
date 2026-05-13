@@ -1314,6 +1314,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      accept_group_invitation: { Args: { token: string }; Returns: boolean }
       account_in_shared_space: {
         Args: {
           access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"]
