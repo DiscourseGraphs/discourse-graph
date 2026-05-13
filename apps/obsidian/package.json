@@ -10,12 +10,15 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "publish": "tsx scripts/publish.ts --version 0.1.0",
-    "check-types": "tsc --noEmit --skipLibCheck"
+    "check-types": "tsc --noEmit --skipLibCheck",
+    "test:e2e": "playwright test --config e2e/playwright.config.ts",
+    "test:e2e:ui": "playwright test --config e2e/playwright.config.ts --ui"
   },
   "keywords": [],
   "author": "",
   "license": "Apache-2.0",
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@octokit/core": "^6.1.2",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
