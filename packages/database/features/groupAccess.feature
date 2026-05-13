@@ -23,12 +23,12 @@ Feature: Group content access
   Scenario: Creating content
     When Document are added to the database:
       | $id | source_local_id | created    | last_modified | _author_id | _space_id |
-      | d1  | ld1             | 2025/01/01 |    2025/01/01 | user1      | s1        |
-      | d2  | ld2             | 2025/01/01 |    2025/01/01 | user1      | s1        |
+      | d1  | ld1             | 2025/01/01 | 2025/01/01    | user1      | s1        |
+      | d2  | ld2             | 2025/01/01 | 2025/01/01    | user1      | s1        |
     And Content are added to the database:
       | $id | source_local_id | _document_id | text    | created    | last_modified | scale    | _author_id | _space_id |
-      | ct1 | lct1            | d1           | Claim 1 | 2025/01/01 |    2025/01/01 | document | user1      | s1        |
-      | ct2 | lct2            | d2           | Claim 2 | 2025/01/01 |    2025/01/01 | document | user1      | s1        |
+      | ct1 | lct1            | d1           | Claim 1 | 2025/01/01 | 2025/01/01    | document | user1      | s1        |
+      | ct2 | lct2            | d2           | Claim 2 | 2025/01/01 | 2025/01/01    | document | user1      | s1        |
     Then a user logged in space s1 should see 2 PlatformAccount in the database
     And a user logged in space s1 should see 2 Content in the database
     And a user logged in space s2 should see 2 PlatformAccount in the database
