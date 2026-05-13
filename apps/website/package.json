@@ -11,7 +11,9 @@
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "check-types": "tsc --noEmit --skipLibCheck"
+    "check-types": "tsc --noEmit --skipLibCheck",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:integration:nodb": "vitest run --config vitest.integration.config.ts --tags-filter '!database'"
   },
   "dependencies": {
     "@repo/database": "workspace:*",
@@ -36,6 +38,8 @@
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
+    "dotenv": "^16.0.0",
+    "vitest": "^4.0.0",
     "@repo/tailwind-config": "workspace:*",
     "@repo/types": "workspace:*",
     "@repo/typescript-config": "workspace:*",
