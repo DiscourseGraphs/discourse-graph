@@ -31,7 +31,7 @@ type InfoTooltipProps = {
   content: string;
 };
 
-const InfoTooltip = ({ content }: InfoTooltipProps) => (
+export const InfoTooltip = ({ content }: InfoTooltipProps) => (
   <button
     ref={(el) => {
       if (el) setTooltip(el, content);
@@ -243,7 +243,14 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
                 View only
               </span>
               <InfoTooltip
-                content={`Imported from ${formattedVaultName}. Direct edits will be overwritten when refreshed.`}
+                content={
+                  `Imported from ${formattedVaultName}. ` +
+                  (frontmatter.authorId &&
+                  typeof frontmatter.authorId === "number"
+                    ? `By ${getUserNameById(plugin, frontmatter.authorId)}. `
+                    : "") +
+                  "Direct edits will be overwritten when refreshed."
+                }
               />
             </div>
           )}
@@ -255,15 +262,6 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
             </div>
           )}
 
-          {isImported &&
-            frontmatter.authorId &&
-            typeof frontmatter.authorId === "number" && (
-              <div className="text-modifier-text mt-2 text-xs">
-                <div>
-                  Author: {getUserNameById(plugin, frontmatter.authorId)}
-                </div>
-              </div>
-            )}
           {isImported && sourceDates && (
             <div className="text-modifier-text mt-2 text-xs">
               <div>Created in source: {sourceDates.createdAt}</div>
