@@ -67,6 +67,7 @@ Given("the database is blank", async () => {
   assert.equal(r.error, null);
   const r3 = await client.from("group_membership").select("group_id");
   assert.equal(r3.error, null);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const groupIds = new Set((r3.data || []).map(({ group_id }) => group_id));
   for (const id of groupIds) {
     const ur = await client.auth.admin.deleteUser(id);
@@ -77,6 +78,7 @@ Given("the database is blank", async () => {
     .select("dg_account")
     .not("dg_account", "is", null);
   assert.equal(r2.error, null);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   for (const { dg_account } of r2.data || []) {
     const r = await client.auth.admin.deleteUser(dg_account);
     assert.equal(r.error, null);
@@ -442,10 +444,12 @@ When(
     if (typeof spaceId !== "number") assert.fail("spaceId not a number");
     if (typeof groupId !== "string") assert.fail("groupId not a string");
     const client = await getLoggedinDatabase(spaceId);
+    /* eslint-disable @typescript-eslint/naming-convention */
     const { data, error } = await client.rpc("create_secret_token", {
       v_payload: { groupId, type: "groupInvitation", admin: false },
       expiry_interval: "60d",
     });
+    /* eslint-enable @typescript-eslint/naming-convention */
     assert.equal(error, null);
     assert.ok(data, "create_secret_token returned no token");
     world.lastInvitationToken = data;
