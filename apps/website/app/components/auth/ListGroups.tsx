@@ -2,6 +2,7 @@
 
 import { createClient } from "~/utils/supabase/client";
 import { getSessionUserData } from "~/utils/supabase/account";
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Tables } from "@repo/database/dbTypes";
 import useInternalError from "~/utils/internalError";
@@ -90,7 +91,7 @@ export const ListGroups = () => {
               {groupData.map((d) => (
                 <li key={d.id}>
                   {adminData[d.id || ""] ? (
-                    <a href={"group/" + d.id!}>{d.name}</a>
+                    <Link href={"group/" + d.id!}>{d.name}</Link>
                   ) : (
                     d.name
                   )}
