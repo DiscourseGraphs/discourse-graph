@@ -325,7 +325,11 @@ const FeatureFlagsTab = (): React.ReactElement => {
       });
       return;
     }
-    if (data) window.open(`${nextRoot()}/auth/token?t=${data}&url=/`, "_blank");
+    if (data)
+      window.open(
+        `${nextRoot()}auth/token?t=${data}&url=/auth/group`,
+        "_blank",
+      );
   };
 
   return (

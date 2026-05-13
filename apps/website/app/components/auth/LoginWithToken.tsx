@@ -75,7 +75,7 @@ export const LoginWithToken = () => {
         router.replace(url);
       }
     } catch (error) {
-      setError("Unkown error while logging you in.");
+      setError("Unknown error while logging you in.");
       internalError({ error, type: "token-login-exception" });
     } finally {
       setDone(true);
