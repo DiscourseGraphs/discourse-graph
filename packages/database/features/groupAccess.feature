@@ -14,6 +14,12 @@ Feature: Group content access
     And the user user1 opens the Roam plugin in space s1
     And the user user2 opens the Roam plugin in space s2
 
+  Scenario: Invitation-based group membership
+    When user of space s1 creates group invite_group
+    And user of space s1 creates an invitation for group invite_group
+    And user of space s2 accepts the group invitation
+    Then user of space s2 should be a member of group invite_group
+
   Scenario: Creating content
     When Document are added to the database:
       | $id | source_local_id | created    | last_modified | _author_id | _space_id |
