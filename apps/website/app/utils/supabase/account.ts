@@ -90,7 +90,7 @@ export const createGroupInvitation = async ({
   if (membershipReq.data?.admin !== true) return null;
   const { data, error } = await client.rpc("create_secret_token", {
     /* eslint-disable @typescript-eslint/naming-convention */
-    v_payload: JSON.stringify({ groupId, type: "groupInvitation", admin }),
+    v_payload: { groupId, type: "groupInvitation", admin },
     expiry_interval: "60d",
     /* eslint-enable @typescript-eslint/naming-convention */
   });
