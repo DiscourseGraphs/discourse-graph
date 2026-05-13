@@ -87,7 +87,7 @@ export const createGroupInvitation = async ({
     .maybeSingle();
   if (membershipReq.data?.admin !== true) return null;
   const { data, error } = await client.rpc("create_secret_token", {
-    v_payload: JSON.stringify({ groupId, type: "groupInvitation", admin }),
+    v_payload: { groupId, type: "groupInvitation", admin },
     expiry_interval: "60d",
   });
   if (error || !data) return null;
