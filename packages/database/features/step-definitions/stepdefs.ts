@@ -78,7 +78,7 @@ Given("the database is blank", async () => {
     .not("dg_account", "is", null);
   assert.equal(r2.error, null);
   for (const { dg_account } of r2.data || []) {
-    const r = await client.auth.admin.deleteUser(dg_account!);
+    const r = await client.auth.admin.deleteUser(dg_account);
     assert.equal(r.error, null);
   }
   r = await client.from("PlatformAccount").delete().neq("id", -1);
@@ -430,6 +430,76 @@ When(
       console.error((error as Record<string, any>).actual);
       throw error;
     }
+  },
+);
+
+When(
+  "user of space {word} creates an invitation for group {word}",
+  async (spaceName: string, groupName: string): Promise<void> => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    const groupId = localRefs[groupName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    if (typeof groupId !== "string") assert.fail("groupId not a string");
+    const client = await getLoggedinDatabase(spaceId);
+    const { data, error } = await client.rpc("create_secret_token", {
+      v_payload: { groupId, type: "groupInvitation", admin: false },
+      expiry_interval: "60d",
+    });
+    assert.equal(error, null);
+    assert.ok(data, "create_secret_token returned no token");
+    world.lastInvitationToken = data;
+  },
+);
+
+When(
+  "user of space {word} accepts the group invitation",
+  async (spaceName: string): Promise<void> => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const token = world.lastInvitationToken as string;
+    assert.ok(
+      token,
+      "No invitation token stored — run 'creates an invitation' first",
+    );
+    const client = await getLoggedinDatabase(spaceId);
+    const { data, error } = await client.rpc("accept_group_invitation", {
+      token,
+    });
+    assert.equal(error, null);
+    assert.strictEqual(data, true, "accept_group_invitation returned false");
+  },
+);
+
+Then(
+  "user of space {word} should be a member of group {word}",
+  async (spaceName: string, groupName: string): Promise<void> => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    const groupId = localRefs[groupName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    if (typeof groupId !== "string") assert.fail("groupId not a string");
+    const serviceClient = getServiceClient();
+    const r1 = await serviceClient
+      .from("PlatformAccount")
+      .select("dg_account")
+      .eq("account_local_id", spaceAnonUserEmail("Roam", spaceId))
+      .maybeSingle();
+    assert.equal(r1.error, null);
+    const memberId = r1.data?.dg_account;
+    assert.ok(memberId, "dg_account not found for space");
+    const r2 = await serviceClient
+      .from("group_membership")
+      .select("member_id")
+      .eq("group_id", groupId)
+      .eq("member_id", memberId)
+      .maybeSingle();
+    assert.equal(r2.error, null);
+    assert.ok(
+      r2.data,
+      `user of space ${spaceName} is not a member of group ${groupName}`,
+    );
   },
 );
 
