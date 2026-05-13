@@ -26,6 +26,7 @@ import {
   removeRelationBySourceDestinationType,
   updateRelation,
 } from "~/utils/relationsStore";
+import { InfoTooltip } from "./DiscourseContextView";
 
 type RelationTypeOption = {
   id: string;
@@ -528,19 +529,7 @@ const CurrentRelationships = ({
       </div>
       <ul className="m-0 ml-6 list-none p-0">
         {group.linkedEntries.map((entry) => (
-          <li
-            key={entry.relation.id}
-            className="mt-1 flex items-center gap-2"
-            title={
-              entry.relation.importedFromRid && entry.relation.authorId
-                ? `relation by ${getUserNameById(plugin, entry.relation.authorId)} from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
-                : entry.relation.authorId
-                  ? `relation by ${getUserNameById(plugin, entry.relation.authorId)}`
-                  : entry.relation.importedFromRid
-                    ? `relation from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
-                    : ""
-            }
-          >
+          <li key={entry.relation.id} className="mt-1 flex items-center gap-2">
             <a
               href="#"
               className="text-accent-text flex-1"
@@ -554,6 +543,19 @@ const CurrentRelationships = ({
             >
               {entry.file.basename}
             </a>
+            {(entry.relation.importedFromRid || entry.relation.authorId) && (
+              <InfoTooltip
+                content={
+                  entry.relation.importedFromRid && entry.relation.authorId
+                    ? `Relation by ${getUserNameById(plugin, entry.relation.authorId)}, imported from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
+                    : entry.relation.authorId
+                      ? `Relation by ${getUserNameById(plugin, entry.relation.authorId)}`
+                      : entry.relation.importedFromRid
+                        ? `Imported from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
+                        : ""
+                }
+              />
+            )}
             {renderAction(entry)}
           </li>
         ))}
