@@ -177,6 +177,8 @@ export default class DiscourseGraphPlugin extends Plugin {
                 plugin: this,
                 imageFile: file,
                 initialNodeType: nodeType,
+                // File explorer always intends to create a new node
+                disableExistingNodeSearch: true,
               });
             },
           });
@@ -202,6 +204,8 @@ export default class DiscourseGraphPlugin extends Plugin {
                 plugin: this,
                 initialTitle: file.basename,
                 initialNodeType: nodeType,
+                // File explorer always intends to create a new node
+                disableExistingNodeSearch: true,
                 onSubmit: async ({ nodeType, title }) => {
                   await convertPageToDiscourseNode({
                     plugin: this,

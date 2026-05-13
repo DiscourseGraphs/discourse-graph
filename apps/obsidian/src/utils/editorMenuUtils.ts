@@ -78,21 +78,27 @@ export const isImageFile = (file: TFile): boolean =>
 /**
  * Open ModifyNodeModal to convert an image file into a discourse node.
  * Shared by file-menu "Convert into" and the hover icon on embedded images.
+ *
+ * Pass `disableExistingNodeSearch: true` from the file-explorer path because
+ * the intent there is always to create a new node, not reuse an existing one.
  */
 export const openConvertImageToNodeModal = ({
   plugin,
   imageFile,
   initialNodeType,
+  disableExistingNodeSearch = false,
 }: {
   plugin: DiscourseGraphPlugin;
   imageFile: TFile;
   initialNodeType?: DiscourseNode;
+  disableExistingNodeSearch?: boolean;
 }): void => {
   new ModifyNodeModal(plugin.app, {
     nodeTypes: plugin.settings.nodeTypes,
     plugin,
     initialTitle: "",
     initialNodeType,
+    disableExistingNodeSearch,
     onSubmit: async ({
       nodeType: selectedType,
       title,
