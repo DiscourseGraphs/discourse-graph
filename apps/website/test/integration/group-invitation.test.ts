@@ -15,7 +15,7 @@ import {
 
 const SUPABASE_URL = process.env.SUPABASE_URL!;
 const ANON_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const SERVICE_KEY = process.env.SUPABASE_SECRET_KEY!;
 const PASSWORD = "abcdefgh";
 
 const freshClient = (): DGSupabaseClient =>
@@ -24,7 +24,7 @@ const freshClient = (): DGSupabaseClient =>
 const serviceClient = () =>
   createClient<Database, "public">(SUPABASE_URL, SERVICE_KEY);
 
-async function signedInClient(spaceId: number): Promise<DGSupabaseClient> {
+const signedInClient = async (spaceId: number): Promise<DGSupabaseClient> => {
   const client = freshClient();
   const { error } = await client.auth.signInWithPassword({
     email: spaceAnonUserEmail("Roam", spaceId),
@@ -32,7 +32,7 @@ async function signedInClient(spaceId: number): Promise<DGSupabaseClient> {
   });
   if (error) throw new Error(`Sign-in failed: ${error.message}`);
   return client;
-}
+};
 
 describe("group invitation flow (website functions)", () => {
   let spaceId1: number;
