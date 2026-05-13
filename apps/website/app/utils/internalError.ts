@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import type { Properties } from "posthog-js";
 import { usePostHog } from "posthog-js/react";
+import { toast } from "sonner";
 
 const NON_WORD = /\W+/g;
 export const useInternalError = () => {
@@ -11,11 +12,13 @@ export const useInternalError = () => {
     ({
       error,
       type,
+      userMessage,
       context,
       forceSendInDev = false,
     }: {
       error: unknown;
       type?: string;
+      userMessage?: string;
       context?: Properties;
       forceSendInDev?: boolean;
     }): void => {
@@ -40,6 +43,9 @@ export const useInternalError = () => {
           }
         }
         posthog.captureException(error, { ...context, type: slugType });
+      }
+      if (userMessage) {
+        toast(userMessage, { duration: 5000 });
       }
     },
     [posthog],
