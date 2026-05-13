@@ -50,7 +50,7 @@ export const createGroup = async (
   client: DGSupabaseClient,
   name: string,
 ): Promise<string | null> => {
-  // eslint-disable-next-line: @typescript-eslint/naming-convention
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const result = await client.functions.invoke<{ group_id: string }>(
     "create-group",
     { body: { name } },
