@@ -4,11 +4,9 @@ import type { Tables, TablesInsert } from "@repo/database/dbTypes";
 /* eslint-disable @typescript-eslint/naming-convention */
 export type InputTypes = {
   ContentEmbedding_openai_text_embedding_3_small_1536: ContentEmbeddingVecTablesInsert;
-  ContentEmbedding_openai_text_embedding_3_large_1536: ContentEmbeddingVecTablesInsert;
 };
 export type OutputTypes = {
   ContentEmbedding_openai_text_embedding_3_small_1536: ContentEmbeddingVecTables;
-  ContentEmbedding_openai_text_embedding_3_large_1536: ContentEmbeddingVecTables;
 };
 /* eslint-enable @typescript-eslint/naming-convention */
 
