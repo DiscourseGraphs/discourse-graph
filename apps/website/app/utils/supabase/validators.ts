@@ -52,6 +52,7 @@ export const KNOWN_EMBEDDING_TABLES: {
     tableSize: number;
   };
 } = {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   openai_text_embedding_3_small_1536: {
     tableName: "ContentEmbedding_openai_text_embedding_3_small_1536",
     tableSize: 1536,
@@ -78,6 +79,7 @@ export const embeddingInputValidation = <T extends ContentEmbeddingTableName>(
 ): string | null => {
   if (!data || typeof data !== "object")
     return "Invalid request body: expected a JSON object.";
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { target_id, model, vector } = data;
 
   if (
