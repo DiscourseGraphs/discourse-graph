@@ -14,6 +14,7 @@ import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUt
 import type { DiscourseNode } from "~/types";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { createBaseForNodeType } from "./baseForNodeType";
+import { createPaperGraphCanvasFromCurrentNote } from "./paperCanvasGeneration";
 import {
   createPaperDiscourseNodesFromMarkdown,
   extractPaperRelationsForExistingNodes,
@@ -290,11 +291,16 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Open Discourse Graphs settings",
     callback: () => {
       // plugin.app.setting is an unofficial API
-      /* eslint-disable @typescript-eslint/no-unsafe-call */
-      const setting = (plugin.app as unknown as { setting: any }).setting;
+      const setting = (
+        plugin.app as unknown as {
+          setting: {
+            open: () => void;
+            openTabById: (id: string) => void;
+          };
+        }
+      ).setting;
       setting.open();
       setting.openTabById(plugin.manifest.id);
-      /* eslint-enable @typescript-eslint/no-unsafe-call */
     },
   });
 
@@ -444,6 +450,77 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
               8000,
             );
             console.error("Could not inspect generated paper nodes:", error);
+          }
+        })();
+      }
+      return true;
+    },
+  });
+
+  plugin.addCommand({
+    id: "debug-create-paper-graph-canvas",
+    name: "Debug: create paper graph canvas for current note",
+    checkCallback: (checking: boolean) => {
+      const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      const sourceFile = activeView?.file;
+      if (!sourceFile) return false;
+
+      if (!checking) {
+        void (async () => {
+          try {
+            const canvasFile = await createPaperGraphCanvasFromCurrentNote({
+              plugin,
+              sourceFile,
+            });
+            if (!canvasFile) return;
+            console.log("Debug paper graph canvas created", {
+              sourceFile: sourceFile.path,
+              canvasFile: canvasFile.path,
+            });
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            new Notice(`Could not create paper graph canvas: ${message}`, 8000);
+            console.error("Could not create paper graph canvas:", error);
+          }
+        })();
+      }
+      return true;
+    },
+  });
+
+  plugin.addCommand({
+    id: "debug-create-organic-paper-graph-canvas",
+    name: "Debug: create organic paper graph canvas for current note",
+    checkCallback: (checking: boolean) => {
+      const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      const sourceFile = activeView?.file;
+      if (!sourceFile) return false;
+
+      if (!checking) {
+        void (async () => {
+          try {
+            const canvasFile = await createPaperGraphCanvasFromCurrentNote({
+              plugin,
+              sourceFile,
+              layoutMode: "force",
+            });
+            if (!canvasFile) return;
+            console.log("Debug organic paper graph canvas created", {
+              sourceFile: sourceFile.path,
+              canvasFile: canvasFile.path,
+            });
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            new Notice(
+              `Could not create organic paper graph canvas: ${message}`,
+              8000,
+            );
+            console.error(
+              "Could not create organic paper graph canvas:",
+              error,
+            );
           }
         })();
       }

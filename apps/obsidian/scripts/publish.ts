@@ -447,7 +447,7 @@ const createGithubRelease = async ({
   const octokit = new Octokit({ auth: token });
   const owner = OWNER;
   const repo = REPO;
-  const tagName = `v${version}`;
+  const tagName = `${version}`;
   const releaseTitle = releaseName || `Discourse Graph v${version}`;
   const isPrerelease = !isExternalRelease(version);
 
