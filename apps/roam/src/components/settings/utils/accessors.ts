@@ -716,6 +716,10 @@ export const isNewSettingsStoreEnabled = (): boolean => {
   return getFeatureFlag("Use new settings store");
 };
 
+export const LEGACY_SOURCED_FEATURE_FLAG_KEYS = Object.keys(
+  FEATURE_FLAG_LEGACY_MAP,
+) as Array<keyof FeatureFlags>;
+
 export const readAllLegacyFeatureFlags = (): Partial<FeatureFlags> => {
   const flags: Partial<FeatureFlags> = {};
   for (const [key, reader] of Object.entries(FEATURE_FLAG_LEGACY_MAP)) {
