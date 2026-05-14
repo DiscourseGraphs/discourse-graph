@@ -1,4 +1,4 @@
-import { Editor, MarkdownView, Notice, TFile } from "obsidian";
+import { App, Editor, MarkdownView, Modal, Notice, TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
@@ -14,6 +14,12 @@ import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUt
 import type { DiscourseNode } from "~/types";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { createBaseForNodeType } from "./baseForNodeType";
+import {
+  createPaperDiscourseNodesFromMarkdown,
+  extractPaperRelationsForExistingNodes,
+  findExistingPaperNodesForSourceFile,
+  type CreatedPaperNode,
+} from "./paperGraphExtraction";
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;
@@ -23,6 +29,132 @@ type ModifyNodeSubmitParams = {
   relationshipId?: string;
   relationshipTargetFile?: TFile;
 };
+
+class AnthropicApiKeyModal extends Modal {
+  private onSubmit: (apiKey: string | null) => void;
+  private apiKey = "";
+  private hasSubmitted = false;
+
+  constructor(app: App, onSubmit: (apiKey: string | null) => void) {
+    super(app);
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "Paper graph extraction" });
+    contentEl.createEl("p", {
+      text: "Enter an Anthropic API key for this local demo run.",
+    });
+
+    const input = contentEl.createEl("input");
+    input.type = "password";
+    input.placeholder = "sk-ant-...";
+    input.addClass("dg-paper-extraction-api-key-input");
+    input.addEventListener("input", () => {
+      this.apiKey = input.value.trim();
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        this.submit();
+      }
+    });
+
+    const buttonContainer = contentEl.createDiv({
+      cls: "modal-button-container",
+    });
+
+    buttonContainer
+      .createEl("button", {
+        text: "Cancel",
+        cls: "mod-normal",
+      })
+      .addEventListener("click", () => this.close());
+
+    buttonContainer
+      .createEl("button", {
+        text: "Extract",
+        cls: "mod-cta",
+      })
+      .addEventListener("click", () => this.submit());
+
+    input.focus();
+  }
+
+  onClose(): void {
+    if (!this.hasSubmitted) {
+      this.onSubmit(null);
+    }
+    this.contentEl.empty();
+  }
+
+  private submit(): void {
+    this.hasSubmitted = true;
+    this.onSubmit(this.apiKey || null);
+    this.close();
+  }
+}
+
+const requestAnthropicApiKey = (app: App): Promise<string | null> =>
+  new Promise((resolve) => {
+    new AnthropicApiKeyModal(app, resolve).open();
+  });
+
+class PaperRelationsDebugModal extends Modal {
+  private nodes: CreatedPaperNode[];
+  private onRun: () => void;
+
+  constructor(app: App, nodes: CreatedPaperNode[], onRun: () => void) {
+    super(app);
+    this.nodes = nodes;
+    this.onRun = onRun;
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "Debug paper relation extraction" });
+    contentEl.createEl("p", {
+      text: `Found ${this.nodes.length} generated node(s) for the current paper. These nodes will be sent to the relation extraction call.`,
+    });
+
+    const list = contentEl.createEl("ul");
+    this.nodes.forEach(({ extractedNode, file }) => {
+      const item = list.createEl("li");
+      item.createEl("strong", {
+        text: `${extractedNode.id} ${extractedNode.nodeTypeConfig.name}`,
+      });
+      item.createEl("div", { text: extractedNode.content });
+      item.createEl("small", { text: file.path });
+    });
+
+    const buttonContainer = contentEl.createDiv({
+      cls: "modal-button-container",
+    });
+
+    buttonContainer
+      .createEl("button", {
+        text: "Cancel",
+        cls: "mod-normal",
+      })
+      .addEventListener("click", () => this.close());
+
+    buttonContainer
+      .createEl("button", {
+        text: "Run relation extraction",
+        cls: "mod-cta",
+      })
+      .addEventListener("click", () => {
+        this.close();
+        this.onRun();
+      });
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+  }
+}
 
 export const createModifyNodeModalSubmitHandler = (
   plugin: DiscourseGraphPlugin,
@@ -205,6 +337,118 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Create new Discourse Graph canvas",
     icon: "layout-dashboard", // Using Lucide icon as per style guide
     callback: () => createCanvas(plugin),
+  });
+
+  plugin.addCommand({
+    id: "create-paper-discourse-nodes",
+    name: "Create paper discourse nodes from current note",
+    checkCallback: (checking: boolean) => {
+      const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      const sourceFile = activeView?.file;
+      if (!activeView || !sourceFile) return false;
+
+      if (!checking) {
+        const selectedText = activeView.editor.getSelection().trim();
+        void (async () => {
+          try {
+            const markdown =
+              selectedText || (await plugin.app.vault.read(sourceFile));
+            if (!markdown.trim()) {
+              new Notice("No paper content found in the current note", 3000);
+              return;
+            }
+
+            const apiKey = await requestAnthropicApiKey(plugin.app);
+            if (!apiKey) {
+              new Notice("Paper graph extraction cancelled", 3000);
+              return;
+            }
+
+            await createPaperDiscourseNodesFromMarkdown({
+              plugin,
+              markdown,
+              apiKey,
+              sourceFile,
+            });
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            new Notice(`Paper graph extraction failed: ${message}`, 8000);
+            console.error("Paper graph extraction failed:", error);
+          }
+        })();
+      }
+      return true;
+    },
+  });
+
+  plugin.addCommand({
+    id: "debug-extract-paper-relations",
+    name: "Debug: extract paper relations for current note",
+    checkCallback: (checking: boolean) => {
+      const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      const sourceFile = activeView?.file;
+      if (!sourceFile) return false;
+
+      if (!checking) {
+        void (async () => {
+          try {
+            const existingNodes = await findExistingPaperNodesForSourceFile({
+              plugin,
+              sourceFile,
+            });
+
+            if (existingNodes.length === 0) {
+              new Notice(
+                "No generated discourse nodes found for the current note",
+                5000,
+              );
+              return;
+            }
+
+            new PaperRelationsDebugModal(plugin.app, existingNodes, () => {
+              void (async () => {
+                try {
+                  const apiKey = await requestAnthropicApiKey(plugin.app);
+                  if (!apiKey) {
+                    new Notice("Paper relation extraction cancelled", 3000);
+                    return;
+                  }
+
+                  const result = await extractPaperRelationsForExistingNodes({
+                    plugin,
+                    sourceFile,
+                    apiKey,
+                  });
+
+                  new Notice(
+                    `Extracted ${result.normalizedGraph.relations.length} valid relation(s), persisted ${result.persistedRelations.length}, skipped ${result.normalizedGraph.skippedRelations.length}. See console for details.`,
+                    7000,
+                  );
+                } catch (error) {
+                  const message =
+                    error instanceof Error ? error.message : String(error);
+                  new Notice(
+                    `Paper relation extraction failed: ${message}`,
+                    8000,
+                  );
+                  console.error("Paper relation extraction failed:", error);
+                }
+              })();
+            }).open();
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            new Notice(
+              `Could not inspect generated paper nodes: ${message}`,
+              8000,
+            );
+            console.error("Could not inspect generated paper nodes:", error);
+          }
+        })();
+      }
+      return true;
+    },
   });
 
   plugin.addCommand({
