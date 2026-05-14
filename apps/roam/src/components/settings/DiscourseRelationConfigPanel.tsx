@@ -52,7 +52,6 @@ import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import {
   setGlobalSetting,
   getGlobalSettings,
-  type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { RenderRoamBlock } from "~/utils/roamReactComponents";
@@ -77,14 +76,12 @@ export const RelationEditPanel = ({
   back,
   translatorKeys,
   previewUid,
-  globalSettings,
 }: {
   editingRelationInfo: TreeNode;
   back: () => void;
   nodes: Record<string, { label: string; format: string; color: string }>;
   translatorKeys: string[];
   previewUid: string;
-  globalSettings: SettingsSnapshot["globalSettings"];
 }) => {
   const nodeFormatsByLabel = useMemo(
     () =>
@@ -125,7 +122,7 @@ export const RelationEditPanel = ({
     DEFAULT_SELECTED_RELATION,
   );
   const [tab, setTab] = useState(0);
-  const relation = globalSettings.Relations[editingRelationInfo.uid];
+  const relation = getGlobalSettings().Relations[editingRelationInfo.uid];
   const initialSourceUid = relation?.source ?? "";
   const initialSource = useMemo(
     () => edgeDisplayByUid(initialSourceUid),
@@ -963,13 +960,11 @@ type Relation = {
 const DiscourseRelationConfigPanel = ({
   uid,
   parentUid,
-  globalSettings,
 }: {
   uid: string;
   parentUid: string;
   defaultValue: unknown;
   title: string;
-  globalSettings: SettingsSnapshot["globalSettings"];
 }) => {
   const refreshRelations = useCallback(
     (): Relation[] =>
@@ -1102,7 +1097,6 @@ const DiscourseRelationConfigPanel = ({
           back={handleBack}
           translatorKeys={translatorKeys}
           previewUid={previewUid}
-          globalSettings={globalSettings}
         />
       </div>
     );
