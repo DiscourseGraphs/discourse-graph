@@ -11,7 +11,7 @@ import type {
   OutputTypeOf,
 } from "./validators";
 import { PostgrestError } from "@supabase/supabase-js";
-import type { Database } from "@repo/database/dbTypes";
+import type { Database, Tables } from "@repo/database/dbTypes";
 
 export type PublicTableName = keyof Database["public"]["Tables"];
 export type RawTables<TN extends PublicTableName> =
@@ -33,9 +33,9 @@ const FOREIGN_CONSTRAINT_RE =
   /insert or update on table ("?\w+"?) violates foreign key constraint ("?\w+"?)/;
 
 const processSupabaseError = <T extends PublicTableName>(
-  response: PostgrestResponse<T>,
+  response: PostgrestResponse<Tables<T>> | PostgrestSingleResponse<Tables<T>>,
   tableName: T,
-): PostgrestResponse<T> => {
+): typeof response => {
   const { error } = response;
   if (error == null) return response; // should not happen, but makes TS happy
   console.error(`Error inserting new ${tableName}:`, error);
