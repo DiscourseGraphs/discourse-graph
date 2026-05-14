@@ -346,6 +346,81 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   });
 
   plugin.addCommand({
+    id: "create-paper-graph-canvas",
+    name: "Create paper graph canvas from current note",
+    icon: "layout-dashboard",
+    checkCallback: (checking: boolean) => {
+      const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      const sourceFile = activeView?.file;
+      if (!activeView || !sourceFile) return false;
+
+      if (!checking) {
+        const selectedText = activeView.editor.getSelection().trim();
+        void (async () => {
+          try {
+            console.log("[paper graph pipeline] starting end-to-end pipeline", {
+              sourceFile: sourceFile.path,
+              hasSelection: selectedText.length > 0,
+            });
+
+            const markdown =
+              selectedText || (await plugin.app.vault.read(sourceFile));
+            if (!markdown.trim()) {
+              new Notice("No paper content found in the current note", 3000);
+              return;
+            }
+
+            const apiKey = await requestAnthropicApiKey(plugin.app);
+            if (!apiKey) {
+              new Notice("Paper graph canvas creation cancelled", 3000);
+              return;
+            }
+
+            console.log(
+              "[paper graph pipeline] extracting nodes and relations",
+            );
+            const extractionResult =
+              await createPaperDiscourseNodesFromMarkdown({
+                plugin,
+                markdown,
+                apiKey,
+                sourceFile,
+              });
+
+            console.log("[paper graph pipeline] extraction completed", {
+              createdNodes: extractionResult.createdNodes.length,
+              normalizedRelations:
+                extractionResult.normalizedGraph.relations.length,
+              persistedRelations: extractionResult.persistedRelations.length,
+              skippedRelations:
+                extractionResult.normalizedGraph.skippedRelations.length,
+            });
+
+            console.log("[paper graph pipeline] generating canvas");
+            const canvasFile = await createPaperGraphCanvasFromCurrentNote({
+              plugin,
+              sourceFile,
+              layoutMode: "force",
+            });
+            if (!canvasFile) return;
+
+            console.log("[paper graph pipeline] completed", {
+              sourceFile: sourceFile.path,
+              canvasFile: canvasFile.path,
+            });
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            new Notice(`Paper graph canvas creation failed: ${message}`, 8000);
+            console.error("Paper graph canvas creation failed:", error);
+          }
+        })();
+      }
+      return true;
+    },
+  });
+
+  plugin.addCommand({
     id: "create-paper-discourse-nodes",
     name: "Create paper discourse nodes from current note",
     checkCallback: (checking: boolean) => {
