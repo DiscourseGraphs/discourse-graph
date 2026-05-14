@@ -1,7 +1,7 @@
 {
-  "id": "@discourse-graph/obsidian",
+  "id": "discourse-graphs",
   "name": "Discourse Graph",
-  "version": "0.1.0",
+  "version": "1.3.0",
   "minAppVersion": "1.7.0",
   "description": "Add semantic structure to your notes with the Discourse Graph protocol.",
   "author": "Discourse Graphs",
