@@ -93,7 +93,7 @@ const setupWrapperForMenu = (wrapper: HTMLElement): void => {
 
 const createMenuContainer = (): HTMLDivElement => {
   const menuContainer = document.createElement("div");
-  menuContainer.className = "absolute bottom-8 right-8 z-[100] hidden";
+  menuContainer.className = "absolute bottom-2 right-2 z-[100] hidden";
   return menuContainer;
 };
 
