@@ -1037,12 +1037,15 @@ const DiscourseRelationConfigPanel = ({
   };
 
   const handleDelete = (rel: Relation) => {
-    deleteBlock(rel.uid);
-    setRelations(relations.filter((r) => r.uid !== rel.uid));
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/naming-convention
-    const { [rel.uid]: _, ...remaining } = getGlobalSettings().Relations;
-    setGlobalSetting([GLOBAL_KEYS.relations], remaining);
+    void deleteBlock(rel.uid).then(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/naming-convention
+      const { [rel.uid]: _, ...remaining } = getGlobalSettings().Relations;
+      setGlobalSetting([GLOBAL_KEYS.relations], remaining);
+      setTimeout(() => {
+        refreshConfigTree();
+        setRelations(refreshRelations());
+      }, 50);
+    });
   };
   const handleDuplicate = (rel: Relation) => {
     const text = rel.text;
@@ -1067,16 +1070,10 @@ const DiscourseRelationConfigPanel = ({
           label: text,
         });
       }
-
-      setRelations([
-        ...relations,
-        {
-          uid: newUid,
-          source: rel.source,
-          destination: rel.destination,
-          text,
-        },
-      ]);
+      setTimeout(() => {
+        refreshConfigTree();
+        setRelations(refreshRelations());
+      }, 50);
     });
   };
   const handleBack = () => {
