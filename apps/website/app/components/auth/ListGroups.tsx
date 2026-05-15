@@ -45,7 +45,7 @@ export const ListGroups = () => {
           .select("group_id,admin")
           .eq("member_id", id);
         if (membershipReq.error) {
-          const userMessage = "Could not access DiscourseGraphs";
+          const userMessage = "Could not access Discourse Graphs";
           setError(userMessage);
           internalError({
             error: membershipReq.error,
@@ -73,7 +73,7 @@ export const ListGroups = () => {
   }, [internalError]);
 
   return (
-    <div>
+    <>
       <div className="text-right text-sm">
         {userName ? <p>Logged in as {userName}</p> : ""}
       </div>
@@ -101,6 +101,6 @@ export const ListGroups = () => {
           </>
         )}
       </div>
-    </div>
+    </>
   );
 };
