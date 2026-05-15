@@ -13,8 +13,8 @@ import {
   KNOWN_EMBEDDING_TABLES,
 } from "~/utils/supabase/dbUtils";
 import {
-  ApiInputEmbeddingItem,
-  ApiOutputEmbeddingRecord,
+  type ApiInputEmbeddingItem,
+  type ApiOutputEmbeddingRecord,
   embeddingInputProcessing,
   embeddingOutputProcessing,
 } from "~/utils/supabase/validators";
@@ -35,7 +35,7 @@ const batchInsertEmbeddingsProcess = async (
       if (acc[model] === undefined) {
         acc[model] = [];
       }
-      acc[model]!.push(item);
+      acc[model].push(item);
       return acc;
     }, byModel);
   } catch (error) {
@@ -81,6 +81,7 @@ const batchInsertEmbeddingsProcess = async (
       return {
         data: globalResults,
         error: null,
+        success: true,
         status: has_400 ? 400 : 500,
         count,
         statusText: partialErrors.join("; "),
@@ -89,6 +90,7 @@ const batchInsertEmbeddingsProcess = async (
       return {
         data: globalResults,
         error: null,
+        success: true,
         status: created ? 201 : 200,
         count,
         statusText: created ? "created" : "success",

@@ -16,15 +16,15 @@ import type { Json } from "@repo/database/dbTypes";
  */
 const getNodeExtraData = (
   file: TFile,
-  accountLocalId: string,
-): {
   /* eslint-disable @typescript-eslint/naming-convention */
-  author_local_id: string;
+  author_id: number,
+): {
+  author_id: number;
   created: string;
   last_modified: string;
 } => {
   return {
-    author_local_id: accountLocalId,
+    author_id,
     created: new Date(file.stat.ctime).toISOString(),
     last_modified: new Date(file.stat.mtime).toISOString(),
   };
@@ -34,11 +34,11 @@ const getNodeExtraData = (
 export const discourseNodeSchemaToLocalConcept = ({
   context,
   node,
-  accountLocalId,
+  templateContent,
 }: {
   context: SupabaseContext;
   node: DiscourseNode;
-  accountLocalId: string;
+  templateContent?: string;
 }): LocalConceptDataInput => {
   const {
     description,
@@ -56,13 +56,14 @@ export const discourseNodeSchemaToLocalConcept = ({
     source_data: otherData,
   };
   if (template) literal_content.template = template;
+  literal_content.template_content = templateContent || null;
   if (importedFromRid) literal_content.importedFromRid = importedFromRid;
   return {
     space_id: context.spaceId,
     name,
     source_local_id: id,
     is_schema: true,
-    author_local_id: accountLocalId,
+    author_id: context.userId,
     created: new Date(created).toISOString(),
     last_modified: new Date(modified).toISOString(),
     description: description,
@@ -73,15 +74,10 @@ export const discourseNodeSchemaToLocalConcept = ({
 
 const STANDARD_ROLES = ["source", "destination"];
 
-export const discourseRelationTypeToLocalConcept = ({
-  context,
-  relationType,
-  accountLocalId,
-}: {
-  context: SupabaseContext;
-  relationType: DiscourseRelationType;
-  accountLocalId: string;
-}): LocalConceptDataInput => {
+export const discourseRelationTypeToLocalConcept = (
+  context: SupabaseContext,
+  relationType: DiscourseRelationType,
+): LocalConceptDataInput => {
   const {
     id,
     label,
@@ -109,7 +105,7 @@ export const discourseRelationTypeToLocalConcept = ({
     name: label,
     source_local_id: id,
     is_schema: true,
-    author_local_id: accountLocalId,
+    author_id: context.userId,
     created: new Date(created).toISOString(),
     last_modified: new Date(modified).toISOString(),
     literal_content,
@@ -120,13 +116,11 @@ export const discourseRelationTypeToLocalConcept = ({
 export const discourseRelationTripleSchemaToLocalConcept = ({
   context,
   relation,
-  accountLocalId,
   nodeTypesById,
   relationTypesById,
 }: {
   context: SupabaseContext;
   relation: DiscourseRelation;
-  accountLocalId: string;
   nodeTypesById: Record<string, DiscourseNode>;
   relationTypesById: Record<string, DiscourseRelationType>;
 }): LocalConceptDataInput | null => {
@@ -158,7 +152,7 @@ export const discourseRelationTripleSchemaToLocalConcept = ({
     name: `${sourceName} -${label}-> ${destinationName}`,
     source_local_id: id,
     is_schema: true,
-    author_local_id: accountLocalId,
+    author_id: context.userId,
     created: new Date(created).toISOString(),
     last_modified: new Date(modified).toISOString(),
     literal_content,
@@ -174,16 +168,11 @@ export const discourseRelationTripleSchemaToLocalConcept = ({
 /**
  * Convert discourse node instance (file) to LocalConceptDataInput
  */
-export const discourseNodeInstanceToLocalConcept = ({
-  context,
-  nodeData,
-  accountLocalId,
-}: {
-  context: SupabaseContext;
-  nodeData: ObsidianDiscourseNodeData;
-  accountLocalId: string;
-}): LocalConceptDataInput => {
-  const extraData = getNodeExtraData(nodeData.file, accountLocalId);
+export const discourseNodeInstanceToLocalConcept = (
+  context: SupabaseContext,
+  nodeData: ObsidianDiscourseNodeData,
+): LocalConceptDataInput => {
+  const extraData = getNodeExtraData(nodeData.file, context.userId);
   const { nodeInstanceId, nodeTypeId, importedFromRid, ...otherData } =
     nodeData.frontmatter;
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -240,7 +229,7 @@ export const relationInstanceToLocalConcept = ({
     space_id: context.spaceId,
     name: `[[${sourceNode.file.basename}]] -${relationType.label}-> [[${destinationNode.file.basename}]]`,
     source_local_id: relationInstanceData.id,
-    author_local_id: relationInstanceData.author,
+    author_id: relationInstanceData.authorId ?? context.userId,
     schema_represented_by_local_id: type,
     is_schema: false,
     created: new Date(created).toISOString(),

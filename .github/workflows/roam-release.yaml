@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -42,6 +44,14 @@ jobs:
         id: version
         run: echo "version=$(node -p "require('./apps/roam/package.json').version")" >> $GITHUB_OUTPUT
 
+      - name: Sync Linear release
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY }}
+          name: Roam ${{ steps.version.outputs.version }}
+          version: ${{ steps.version.outputs.version }}
+          include_paths: "apps/roam/**,packages/tailwind-config/**,packages/utils/**,packages/database/**,packages/ui/**"
+
       - name: Inject & upload source maps to PostHog
         uses: PostHog/upload-source-maps@v0.5.7.0
         with:
@@ -53,3 +63,11 @@ jobs:
 
       - name: Update Roam Depot Extension
         run: npx turbo run publish --filter=roam --ui stream -- --no-compile
+
+      - name: Mark Linear release sent to Roam review
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY }}
+          command: update
+          version: ${{ steps.version.outputs.version }}
+          stage: Sent to Roam for Review

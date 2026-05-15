@@ -34,12 +34,68 @@ const SYNC_INTERVAL = "130s";
 const BASE_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const SYNC_TIMEOUT = "60s"; // must be less than half the SYNC_INTERVAL.
 const BATCH_SIZE = 200;
+const CONCEPT_BATCH_SIZE = 200;
 const DEFAULT_TIME = new Date("1970-01-01");
 
 type SyncTaskInfo = {
   lastUpdateTime?: Date;
   nextUpdateTime?: Date;
   shouldProceed: boolean;
+};
+
+type LocalConceptDataInput = Partial<CompositeTypes<"concept_local_input">>;
+
+const chunk = <T>(array: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+};
+
+const summarizeFailedConceptUpsertIds = (failedIds: number[]): string => {
+  const counts = failedIds.reduce<Record<string, number>>((acc, id) => {
+    acc[id] = (acc[id] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return Object.entries(counts)
+    .map(([id, count]) => `${id}: ${count}`)
+    .join(", ");
+};
+
+const upsertConceptBatches = async ({
+  concepts,
+  supabaseClient,
+  spaceId,
+}: {
+  concepts: LocalConceptDataInput[];
+  supabaseClient: DGSupabaseClient;
+  spaceId: number;
+}): Promise<void> => {
+  const batches = chunk(concepts, CONCEPT_BATCH_SIZE);
+
+  for (let idx = 0; idx < batches.length; idx++) {
+    const batch = batches[idx];
+
+    const { data, error } = await supabaseClient.rpc("upsert_concepts", {
+      data: batch as Json,
+      v_space_id: spaceId,
+    });
+
+    if (error) {
+      throw new Error(
+        `upsert_concepts failed for batch ${idx + 1}/${batches.length}: ${JSON.stringify(error, null, 2)}`,
+      );
+    }
+
+    const failedIds = (data || []).filter((id) => id < 0);
+    if (failedIds.length > 0) {
+      throw new Error(
+        `upsert_concepts returned row failures for batch ${idx + 1}/${batches.length}: ${summarizeFailedConceptUpsertIds(failedIds)}`,
+      );
+    }
+  }
 };
 
 const notifyEndSyncFailure = ({
@@ -261,16 +317,20 @@ export const convertDgToSupabaseConcepts = async ({
     ...nodesTypesToLocalConcepts,
     ...nodeBlockToLocalConcepts,
   ];
-  const { ordered } = orderConceptsByDependency(conceptsToUpsert);
-  const { error } = await supabaseClient.rpc("upsert_concepts", {
-    data: ordered,
-    v_space_id: context.spaceId,
-  });
-  if (error) {
-    throw new Error(
-      `upsert_concepts failed: ${JSON.stringify(error, null, 2)}`,
+  const { ordered, missing } = orderConceptsByDependency(conceptsToUpsert);
+
+  if (missing.length > 0) {
+    console.warn(
+      "Some concept dependencies were not in the current sync batch:",
+      missing,
     );
   }
+
+  await upsertConceptBatches({
+    concepts: ordered,
+    supabaseClient,
+    spaceId: context.spaceId,
+  });
 };
 
 export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
@@ -308,14 +368,6 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
       "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
     );
   }
-
-  const chunk = <T>(array: T[], size: number): T[][] => {
-    const chunks: T[][] = [];
-    for (let i = 0; i < array.length; i += size) {
-      chunks.push(array.slice(i, i + size));
-    }
-    return chunks;
-  };
 
   const uploadBatches = async (batches: LocalContentDataInput[][]) => {
     for (let idx = 0; idx < batches.length; idx++) {

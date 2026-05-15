@@ -12,6 +12,7 @@ import {
   Tabs,
 } from "@blueprintjs/core";
 import { Select } from "@blueprintjs/select";
+import { render as renderToast } from "roamjs-components/components/Toast";
 import {
   getSupabaseContext,
   getLoggedInClient,
@@ -34,6 +35,7 @@ import {
 } from "~/components/settings/utils/accessors";
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 import type { FeatureFlags } from "./utils/zodSchema";
+import { nextRoot } from "@repo/utils/execContext";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -266,7 +268,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
   const [suggestiveOverlayValue, setSuggestiveOverlayValue] = useState(
     getFeatureFlag("Suggestive mode overlay enabled"),
   );
-
   const syncAlreadyEnabled = duplicateNodeAlertValue || suggestiveOverlayValue;
 
   const ensureSyncEnabled = (
@@ -288,6 +289,43 @@ const FeatureFlagsTab = (): React.ReactElement => {
     if (checked) {
       setIsInstructionAlertOpen(true);
     }
+  };
+
+  const handleLoginHandoff = async () => {
+    const client = await getLoggedInClient();
+    if (!client) {
+      renderToast({
+        content: "Could not connect to database",
+        intent: Intent.DANGER,
+        id: "client-access",
+      });
+      return;
+    }
+    const sessionData = await client.auth.getSession();
+    if (!sessionData.data.session) {
+      internalError({
+        error: "Client w/o session",
+        type: "database-login",
+        userMessage: "Could not connect to database",
+      });
+      return;
+    }
+    /* eslint-disable @typescript-eslint/naming-convention */
+    const { access_token, refresh_token } = sessionData.data.session;
+    const { data, error } = await client.rpc("create_secret_token", {
+      v_payload: JSON.stringify({ access_token, refresh_token }),
+      expiry_interval: "45s",
+    });
+    /* eslint-enable @typescript-eslint/naming-convention */
+    if (error || typeof data !== "string") {
+      internalError({
+        error: "Call to create-secret-token",
+        type: "create-secret-token",
+        userMessage: "Could not connect to database",
+      });
+      return;
+    }
+    if (data) window.open(`${nextRoot()}/auth/token?t=${data}&url=/`, "_blank");
   };
 
   return (
@@ -393,6 +431,17 @@ const FeatureFlagsTab = (): React.ReactElement => {
       >
         Send Error Email
       </Button>
+      {syncAlreadyEnabled && (
+        <Button
+          className="w-96"
+          icon="document-open"
+          onClick={() => {
+            void handleLoginHandoff();
+          }}
+        >
+          Manage groups
+        </Button>
+      )}
     </div>
   );
 };

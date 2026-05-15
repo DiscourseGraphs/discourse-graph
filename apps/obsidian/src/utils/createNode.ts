@@ -134,7 +134,7 @@ export const createDiscourseNode = async ({
     nodeType,
   });
 
-  if (newFile && editor) {
+  if (newFile && editor && editor.somethingSelected()) {
     editor.replaceSelection(`[[${formattedNodeName}]]`);
   }
 

@@ -53,8 +53,13 @@ type ModifyNodeFormProps = {
   onCancel: () => void;
   initialTitle?: string;
   initialNodeType?: DiscourseNode;
-  initialFile?: TFile; // for edit mode
-  currentFile?: TFile; // the file where the node is being created from
+  /** Present in edit mode — the file being modified. Also drives `isEditMode`. */
+  initialFile?: TFile;
+  /** Context file for the "Relationship with …" block (editor "Turn into" flow). */
+  currentFile?: TFile;
+  /** Hides the search-existing-nodes dropdown. Used when intent is always to create
+   *  (e.g. file explorer "Convert into"), not to reuse an existing node. */
+  disableExistingNodeSearch?: boolean;
   plugin: DiscourseGraphPlugin;
 };
 
@@ -66,6 +71,7 @@ export const ModifyNodeForm = ({
   initialNodeType,
   initialFile,
   currentFile,
+  disableExistingNodeSearch = false,
   plugin,
 }: ModifyNodeFormProps) => {
   const isEditMode = !!initialFile;
@@ -95,9 +101,9 @@ export const ModifyNodeForm = ({
     [selectedNodeType],
   );
 
-  // Search for nodes when query changes (only in create mode)
+  // Search for nodes when query changes (only in create mode, and only when search is enabled)
   useEffect(() => {
-    if (isEditMode) {
+    if (isEditMode || disableExistingNodeSearch) {
       setSearchResults([]);
       return;
     }
@@ -137,16 +143,23 @@ export const ModifyNodeForm = ({
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [query, selectedNodeType, isEditMode]);
+  }, [query, selectedNodeType, isEditMode, disableExistingNodeSearch]);
 
   const isOpen = useMemo(() => {
     return (
+      !disableExistingNodeSearch &&
       !selectedExistingNode &&
       isFocused &&
       searchResults.length > 0 &&
       query.trim().length >= 2
     );
-  }, [selectedExistingNode, isFocused, searchResults.length, query]);
+  }, [
+    disableExistingNodeSearch,
+    selectedExistingNode,
+    isFocused,
+    searchResults.length,
+    query,
+  ]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -177,9 +190,14 @@ export const ModifyNodeForm = ({
     }
   }, [activeIndex, isOpen]);
 
-  // Focus the content input on mount so users can start typing immediately
+  // Focus the content input on mount so users can start typing immediately,
+  // with cursor placed at the end of any pre-filled text
   useEffect(() => {
-    titleInputRef.current?.focus();
+    const el = titleInputRef.current;
+    if (!el) return;
+    el.focus();
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
   }, []);
 
   useEffect(() => {
@@ -449,15 +467,19 @@ export const ModifyNodeForm = ({
                 placeholder={
                   isEditMode
                     ? "Enter new content"
-                    : selectedNodeType
-                      ? `Search for existing ${selectedNodeType.name.toLowerCase()} or enter new content`
-                      : "Search for existing nodes or enter new content"
+                    : disableExistingNodeSearch
+                      ? selectedNodeType
+                        ? `Enter ${selectedNodeType.name.toLowerCase()} content`
+                        : "Enter content"
+                      : selectedNodeType
+                        ? `Search for existing ${selectedNodeType.name.toLowerCase()} or enter new content`
+                        : "Search for existing nodes or enter new content"
                 }
                 value={query}
                 onChange={handleQueryChange}
                 onKeyDown={handleKeyDown}
                 onFocus={() => {
-                  if (!isEditMode) {
+                  if (!isEditMode && !disableExistingNodeSearch) {
                     setIsFocused(true);
                   }
                 }}
@@ -604,8 +626,12 @@ type ModifyNodeModalProps = {
   }) => Promise<void>;
   initialTitle?: string;
   initialNodeType?: DiscourseNode;
+  /** Present in edit mode — the file being modified. */
   initialFile?: TFile;
+  /** Context file for the "Relationship with …" block (editor "Turn into" flow). */
   currentFile?: TFile;
+  /** See `ModifyNodeFormProps.disableExistingNodeSearch`. */
+  disableExistingNodeSearch?: boolean;
 };
 
 class ModifyNodeModal extends Modal {
@@ -623,6 +649,7 @@ class ModifyNodeModal extends Modal {
   private initialNodeType?: DiscourseNode;
   private initialFile?: TFile;
   private currentFile?: TFile;
+  private disableExistingNodeSearch: boolean;
   private plugin: DiscourseGraphPlugin;
 
   constructor(app: App, props: ModifyNodeModalProps) {
@@ -633,6 +660,7 @@ class ModifyNodeModal extends Modal {
     this.initialNodeType = props.initialNodeType;
     this.initialFile = props.initialFile;
     this.currentFile = props.currentFile;
+    this.disableExistingNodeSearch = props.disableExistingNodeSearch ?? false;
     this.plugin = props.plugin;
   }
 
@@ -651,6 +679,7 @@ class ModifyNodeModal extends Modal {
           initialNodeType={this.initialNodeType}
           initialFile={this.initialFile}
           currentFile={this.currentFile}
+          disableExistingNodeSearch={this.disableExistingNodeSearch}
           plugin={this.plugin}
         />
       </StrictMode>,

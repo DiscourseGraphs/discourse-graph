@@ -7,6 +7,9 @@ import React, {
   useState,
 } from "react";
 import ReactDOM from "react-dom";
+import { arrayMove } from "@dnd-kit/sortable";
+import { SortableList, type SortableHandle } from "./SortableList";
+import { moveRoamBlockToIndex } from "~/utils/moveRoamBlock";
 import {
   Button,
   Collapse,
@@ -45,6 +48,8 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
 import { commands, cleanCommandName } from "~/components/LeftSidebarCommands";
+import { isSmartBlockUid } from "~/utils/isSmartBlockUid";
+import { RenderRoamBlock } from "~/utils/roamReactComponents";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -132,61 +137,117 @@ const toggleFoldedState = ({
   }
 };
 
+const RoamRenderedBlock = ({ uid }: { uid: string }) => {
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    const pattern = "[:block/string]";
+    const entityId = `[:block/uid "${uid}"]`;
+    const callback = () => setVersion((v) => v + 1);
+    window.roamAlphaAPI.data.addPullWatch(pattern, entityId, callback);
+    return () => {
+      window.roamAlphaAPI.data.removePullWatch(pattern, entityId, callback);
+    };
+  }, [uid]);
+
+  return (
+    <div className="dg-sidebar-rendered-block">
+      <RenderRoamBlock key={version} uid={uid} open={false} />
+    </div>
+  );
+};
+
+type ChildNode = { uid: string; text: string; alias?: { value: string } };
+
+const ChildRow = ({
+  child,
+  truncateAt,
+  onloadArgs,
+}: {
+  child: ChildNode;
+  truncateAt?: number;
+  onloadArgs: OnloadArgs;
+}) => {
+  const ref = parseReference(child.text);
+
+  if (ref.type === "block" && isSmartBlockUid(ref.uid)) {
+    return (
+      <div className="pl-8 pr-2.5">
+        <div className="section-child-item rounded-sm leading-normal text-gray-600">
+          <RoamRenderedBlock uid={ref.uid} />
+        </div>
+      </div>
+    );
+  }
+
+  const alias = child.alias?.value;
+  const display =
+    ref.type === "command"
+      ? ref.display
+      : ref.type === "page"
+        ? getPageTitleByPageUid(ref.display)
+        : getTextByBlockUid(ref.uid);
+  const label = alias || truncate(display, truncateAt);
+  const onClick = (e: React.MouseEvent) => {
+    return void openTarget(e, child.text, onloadArgs);
+  };
+  return (
+    <div className="pl-8 pr-2.5">
+      {ref.type === "command" ? (
+        <span className="bp3-dark">
+          <Button onClick={onClick} minimal className="m-px">
+            {cleanCommandName(label)}
+          </Button>
+        </span>
+      ) : (
+        <div
+          className="section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
+          onClick={onClick}
+        >
+          {label}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SectionChildren = ({
   childrenNodes,
   truncateAt,
   onloadArgs,
 }: {
-  childrenNodes: { uid: string; text: string; alias?: { value: string } }[];
+  childrenNodes: ChildNode[];
   truncateAt?: number;
   onloadArgs: OnloadArgs;
 }) => {
   if (!childrenNodes?.length) return null;
   return (
     <>
-      {childrenNodes.map((child) => {
-        const ref = parseReference(child.text);
-        const alias = child.alias?.value;
-        const display =
-          ref.type === "command"
-            ? ref.display
-            : ref.type === "page"
-              ? getPageTitleByPageUid(ref.display)
-              : getTextByBlockUid(ref.uid);
-        const label = alias || truncate(display, truncateAt);
-        const onClick = (e: React.MouseEvent) => {
-          return void openTarget(e, child.text, onloadArgs);
-        };
-        return (
-          <div key={child.uid} className="pl-8 pr-2.5">
-            {ref.type === "command" ? (
-              <span className="bp3-dark">
-                <Button onClick={onClick} minimal className="m-px">
-                  {cleanCommandName(label)}
-                </Button>
-              </span>
-            ) : (
-              <div
-                className={
-                  "section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
-                }
-                onClick={onClick}
-              >
-                {label}
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {childrenNodes.map((child) => (
+        <ChildRow
+          key={child.uid}
+          child={child}
+          truncateAt={truncateAt}
+          onloadArgs={onloadArgs}
+        />
+      ))}
     </>
   );
 };
 
 const PersonalSectionItem = ({
   section,
+  dragHandle,
+  onChildrenReorder,
   onloadArgs,
 }: {
   section: LeftSidebarPersonalSectionConfig;
+  dragHandle: SortableHandle;
+  onChildrenReorder: (args: {
+    sectionUid: string;
+    oldIndex: number;
+    newIndex: number;
+  }) => void;
   onloadArgs: OnloadArgs;
 }) => {
   const titleRef = parseReference(section.text);
@@ -213,7 +274,11 @@ const PersonalSectionItem = ({
 
   return (
     <>
-      <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none">
+      <div
+        {...dragHandle.attributes}
+        {...dragHandle.listeners}
+        className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none"
+      >
         <div className="flex w-full items-center justify-between">
           <div
             className="flex items-center"
@@ -236,10 +301,21 @@ const PersonalSectionItem = ({
         </div>
       </div>
       <Collapse isOpen={isOpen}>
-        <SectionChildren
-          childrenNodes={section.children || []}
-          truncateAt={truncateAt}
-          onloadArgs={onloadArgs}
+        <SortableList
+          items={section.children || []}
+          getId={(c) => c.uid}
+          onReorder={(oldIndex, newIndex) =>
+            onChildrenReorder({ sectionUid: section.uid, oldIndex, newIndex })
+          }
+          renderItem={(child, handle) => (
+            <div {...handle.attributes} {...handle.listeners}>
+              <ChildRow
+                child={child}
+                truncateAt={truncateAt}
+                onloadArgs={onloadArgs}
+              />
+            </div>
+          )}
         />
       </Collapse>
     </>
@@ -248,31 +324,92 @@ const PersonalSectionItem = ({
 
 const PersonalSections = ({
   config,
+  setConfig,
   onloadArgs,
 }: {
   config: LeftSidebarConfig;
+  setConfig: Dispatch<SetStateAction<LeftSidebarConfig>>;
   onloadArgs: OnloadArgs;
 }) => {
   const sections = config.personal.sections || [];
 
   if (!sections.length) return null;
 
+  const reorderSections = (oldIndex: number, newIndex: number) => {
+    const moved = sections[oldIndex];
+    if (!moved) return;
+    const reordered = arrayMove(sections, oldIndex, newIndex);
+    setConfig({
+      ...config,
+      personal: { ...config.personal, sections: reordered },
+    });
+    void moveRoamBlockToIndex({
+      blockUid: moved.uid,
+      parentUid: config.personal.uid,
+      sourceIndex: oldIndex,
+      destIndex: newIndex,
+    }).then(() => {
+      refreshAndNotify();
+    });
+  };
+
+  const reorderChildren = ({
+    sectionUid,
+    oldIndex,
+    newIndex,
+  }: {
+    sectionUid: string;
+    oldIndex: number;
+    newIndex: number;
+  }) => {
+    const section = sections.find((s) => s.uid === sectionUid);
+    const children = section?.children;
+    if (!section || !children || !section.childrenUid) return;
+    const child = children[oldIndex];
+    if (!child) return;
+    const reorderedChildren = arrayMove(children, oldIndex, newIndex);
+    const newSections = sections.map((s) =>
+      s.uid === sectionUid ? { ...s, children: reorderedChildren } : s,
+    );
+    setConfig({
+      ...config,
+      personal: { ...config.personal, sections: newSections },
+    });
+    void moveRoamBlockToIndex({
+      blockUid: child.uid,
+      parentUid: section.childrenUid,
+      sourceIndex: oldIndex,
+      destIndex: newIndex,
+    }).then(() => {
+      refreshAndNotify();
+    });
+  };
+
   return (
-    <div className="personal-left-sidebar-sections">
-      {sections.map((section) => (
-        <div key={section.uid}>
-          <PersonalSectionItem section={section} onloadArgs={onloadArgs} />
-        </div>
-      ))}
-    </div>
+    <SortableList
+      items={sections}
+      getId={(s) => s.uid}
+      onReorder={reorderSections}
+      className="personal-left-sidebar-sections"
+      renderItem={(section, handle) => (
+        <PersonalSectionItem
+          section={section}
+          dragHandle={handle}
+          onChildrenReorder={reorderChildren}
+          onloadArgs={onloadArgs}
+        />
+      )}
+    />
   );
 };
 
 const GlobalSection = ({
   config,
+  onGlobalChildrenReorder,
   onloadArgs,
 }: {
   config: LeftSidebarConfig["global"];
+  onGlobalChildrenReorder: (oldIndex: number, newIndex: number) => void;
   onloadArgs: OnloadArgs;
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(
@@ -280,6 +417,19 @@ const GlobalSection = ({
   );
   if (!config.children?.length) return null;
   const isCollapsable = config.settings?.collapsable.value;
+
+  const children = (
+    <SortableList
+      items={config.children}
+      getId={(c) => c.uid}
+      onReorder={onGlobalChildrenReorder}
+      renderItem={(child, handle) => (
+        <div {...handle.attributes} {...handle.listeners}>
+          <ChildRow child={child} onloadArgs={onloadArgs} />
+        </div>
+      )}
+    />
+  );
 
   return (
     <>
@@ -305,17 +455,9 @@ const GlobalSection = ({
         </div>
       </div>
       {isCollapsable ? (
-        <Collapse isOpen={isOpen}>
-          <SectionChildren
-            childrenNodes={config.children}
-            onloadArgs={onloadArgs}
-          />
-        </Collapse>
+        <Collapse isOpen={isOpen}>{children}</Collapse>
       ) : (
-        <SectionChildren
-          childrenNodes={config.children}
-          onloadArgs={onloadArgs}
-        />
+        children
       )}
     </>
   );
@@ -453,13 +595,41 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 };
 
 const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const { config } = useConfig();
+  const { config, setConfig } = useConfig();
+
+  const reorderGlobalChildren = (oldIndex: number, newIndex: number) => {
+    const children = config.global.children;
+    if (!children) return;
+    const moved = children[oldIndex];
+    if (!moved) return;
+    const reordered = arrayMove(children, oldIndex, newIndex);
+    setConfig({
+      ...config,
+      global: { ...config.global, children: reordered },
+    });
+    void moveRoamBlockToIndex({
+      blockUid: moved.uid,
+      parentUid: config.global.childrenUid,
+      sourceIndex: oldIndex,
+      destIndex: newIndex,
+    }).then(() => {
+      refreshAndNotify();
+    });
+  };
 
   return (
     <>
       <FavoritesPopover onloadArgs={onloadArgs} />
-      <GlobalSection config={config.global} onloadArgs={onloadArgs} />
-      <PersonalSections config={config} onloadArgs={onloadArgs} />
+      <GlobalSection
+        config={config.global}
+        onGlobalChildrenReorder={reorderGlobalChildren}
+        onloadArgs={onloadArgs}
+      />
+      <PersonalSections
+        config={config}
+        setConfig={setConfig}
+        onloadArgs={onloadArgs}
+      />
     </>
   );
 };
@@ -563,6 +733,22 @@ export const mountLeftSidebar = async (
   onloadArgs: OnloadArgs,
 ): Promise<void> => {
   if (!wrapper) return;
+
+  const styleId = "dg-sidebar-rendered-block-styles";
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      .dg-sidebar-rendered-block .rm-bullet { display: none; }
+      .dg-sidebar-rendered-block .rm-block-separator { display: none; }
+      .dg-sidebar-rendered-block .controls { display: none; }
+      .dg-sidebar-rendered-block .block-expand { display: none; }
+      .dg-sidebar-rendered-block .block-border-left { display: none; }
+      .dg-sidebar-rendered-block .block-ref-count-button { display: none; }
+      .dg-sidebar-rendered-block .rm-block-main { min-height: unset; padding: 0; }
+    `;
+    document.head.appendChild(style);
+  }
 
   const id = "dg-left-sidebar-root";
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;

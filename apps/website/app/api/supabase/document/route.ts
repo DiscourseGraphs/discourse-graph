@@ -17,6 +17,7 @@ type DocumentRecord = Tables<"Document">;
 const validateDocument: ItemValidator<DocumentDataInput> = (data) => {
   if (!data || typeof data !== "object")
     return "Invalid request body: expected a JSON object.";
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { space_id, author_id, source_local_id } = data;
 
   if (!author_id) return "Missing required author_id field.";

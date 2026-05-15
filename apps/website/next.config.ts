@@ -5,6 +5,11 @@ import { DOCS_REDIRECTS } from "./docsRouteMap";
 
 config();
 
+// expose supabase credentials to the client
+process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY =
+  process.env.SUPABASE_PUBLISHABLE_KEY;
+process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.SUPABASE_URL;
+
 const withNextra = nextra({
   contentDirBasePath: "/docs",
 });
@@ -21,6 +26,14 @@ const nextConfig: NextConfig = {
     resolveAlias: {
       "next-mdx-import-source-file": "./mdx-components.tsx",
     },
+  },
+  async headers() {
+    return [
+      {
+        source: "/auth/token",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      },
+    ];
   },
 };
 

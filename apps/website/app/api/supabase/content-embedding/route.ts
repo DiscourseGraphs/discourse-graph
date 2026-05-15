@@ -41,14 +41,11 @@ const processAndCreateEmbedding = async (
   const { tableName } = tableData;
   // Using getOrCreateEntity, forcing create path by providing non-matching criteria
   // This standardizes return type and error handling (e.g., FK violations from dbUtils)
-  const result =
-    await getOrCreateEntity<"ContentEmbedding_openai_text_embedding_3_small_1536">(
-      {
-        supabase,
-        tableName,
-        insertData: processedItem,
-      },
-    );
+  const result = await getOrCreateEntity({
+    supabase,
+    tableName,
+    insertData: processedItem,
+  });
 
   if (result.error) {
     return result;

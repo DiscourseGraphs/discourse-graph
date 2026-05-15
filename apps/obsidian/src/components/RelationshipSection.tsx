@@ -15,6 +15,7 @@ import {
   getNodeTypeById,
   getAndFormatImportSource,
   isAcceptedSchema,
+  getUserNameById,
 } from "~/utils/typeUtils";
 import type { RelationInstance } from "~/types";
 import {
@@ -25,6 +26,7 @@ import {
   removeRelationBySourceDestinationType,
   updateRelation,
 } from "~/utils/relationsStore";
+import { InfoTooltip } from "./DiscourseContextView";
 
 type RelationTypeOption = {
   id: string;
@@ -541,6 +543,19 @@ const CurrentRelationships = ({
             >
               {entry.file.basename}
             </a>
+            {(entry.relation.importedFromRid || entry.relation.authorId) && (
+              <InfoTooltip
+                content={
+                  entry.relation.importedFromRid && entry.relation.authorId
+                    ? `Relation by ${getUserNameById(plugin, entry.relation.authorId)}, imported from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
+                    : entry.relation.authorId
+                      ? `Relation by ${getUserNameById(plugin, entry.relation.authorId)}`
+                      : entry.relation.importedFromRid
+                        ? `Imported from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
+                        : ""
+                }
+              />
+            )}
             {renderAction(entry)}
           </li>
         ))}
@@ -612,11 +627,7 @@ const CurrentRelationships = ({
                         e.preventDefault();
                         void acceptRelation(entry.relation.id);
                       }}
-                      title={
-                        entry.relation.importedFromRid
-                          ? `Accept relation from space ${getAndFormatImportSource(entry.relation.importedFromRid, plugin.settings.spaceNames)}`
-                          : "Accept relationship"
-                      }
+                      title="Accept relationship"
                     >
                       ✓
                     </button>

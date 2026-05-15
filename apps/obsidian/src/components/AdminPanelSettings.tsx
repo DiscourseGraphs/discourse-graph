@@ -1,12 +1,18 @@
 import { useState, useCallback } from "react";
 import { usePlugin } from "./PluginContext";
-import { Notice } from "obsidian";
+import { Notice, setIcon } from "obsidian";
+import { updateUsername } from "~/utils/supabaseContext";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
+import { nextRoot } from "@repo/utils/execContext";
+import { getLoggedInClient } from "~/utils/supabaseContext";
 
 export const AdminPanelSettings = () => {
   const plugin = usePlugin();
   const [syncModeEnabled, setSyncModeEnabled] = useState<boolean>(
     plugin.settings.syncModeEnabled ?? false,
+  );
+  const [username, setUsername] = useState<string>(
+    plugin.settings.username || "",
   );
 
   const handleSyncModeToggle = useCallback(
@@ -30,6 +36,38 @@ export const AdminPanelSettings = () => {
     [plugin],
   );
 
+  const handleSetUsername = async (newValue: string) => {
+    setUsername(newValue);
+    plugin.settings.username = newValue;
+    await plugin.saveSettings();
+    await updateUsername(plugin, newValue);
+  };
+
+  const handleLoginHandoff = async () => {
+    const client = await getLoggedInClient(plugin);
+    if (!client) {
+      new Notice("Failed to connect to the database", 3000);
+      return;
+    }
+    const sessionData = await client.auth.getSession();
+    if (!sessionData.data.session) {
+      new Notice("Failed to connect to the database", 3000);
+      return;
+    }
+    /* eslint-disable @typescript-eslint/naming-convention */
+    const { access_token, refresh_token } = sessionData.data.session;
+    const { data, error } = await client.rpc("create_secret_token", {
+      v_payload: JSON.stringify({ access_token, refresh_token }),
+      expiry_interval: "45s",
+    });
+    /* eslint-enable @typescript-eslint/naming-convention */
+    if (error || typeof data !== "string") {
+      new Notice("Failed to connect to the database", 3000);
+      return;
+    }
+    if (data) window.open(`${nextRoot()}/auth/token?t=${data}&url=/`, "_blank");
+  };
+
   return (
     <div className="general-settings">
       <div className="setting-item">
@@ -46,6 +84,52 @@ export const AdminPanelSettings = () => {
           >
             <input type="checkbox" checked={syncModeEnabled} />
           </div>
+        </div>
+      </div>
+      <div
+        className={
+          "setting-item " + (plugin.settings.syncModeEnabled ? "" : "hidden")
+        }
+      >
+        <div className="setting-item-info">
+          <div className="setting-item-name">Username</div>
+          <div className="setting-item-description">
+            A username that will be associated with your vault if you share
+            data.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            onBlur={(e) => void handleSetUsername(e.target.value)}
+          />
+        </div>
+      </div>
+      <div
+        className={
+          "setting-item " + (plugin.settings.syncModeEnabled ? "" : "hidden")
+        }
+      >
+        <div className="setting-item-info">
+          <div className="setting-item-name">Group management</div>
+          <div className="setting-item-description">
+            This will allow you to view and manage your sharing groups
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <button
+            onClick={() => {
+              void handleLoginHandoff();
+            }}
+          >
+            Manage groups
+            <span
+              className="icon"
+              ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
+            />
+          </button>
         </div>
       </div>
     </div>

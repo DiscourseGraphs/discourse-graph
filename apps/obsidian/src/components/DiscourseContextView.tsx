@@ -13,7 +13,11 @@ import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormat
 import { RelationshipSection } from "~/components/RelationshipSection";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { PluginProvider, usePlugin } from "~/components/PluginContext";
-import { getNodeTypeById, getAndFormatImportSource } from "~/utils/typeUtils";
+import {
+  getNodeTypeById,
+  getAndFormatImportSource,
+  getUserNameById,
+} from "~/utils/typeUtils";
 import { refreshImportedFile } from "~/utils/importNodes";
 import { publishNode } from "~/utils/publishNode";
 import { createBaseForNodeType } from "~/utils/baseForNodeType";
@@ -27,7 +31,7 @@ type InfoTooltipProps = {
   content: string;
 };
 
-const InfoTooltip = ({ content }: InfoTooltipProps) => (
+export const InfoTooltip = ({ content }: InfoTooltipProps) => (
   <button
     ref={(el) => {
       if (el) setTooltip(el, content);
@@ -161,6 +165,13 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
       !isImported &&
       !!frontmatter.nodeTypeId;
 
+    const formattedVaultName = isImported
+      ? getAndFormatImportSource(
+          frontmatter.importedFromRid as string,
+          plugin.settings.spaceNames,
+        )
+      : "";
+
     return (
       <>
         <div className="mb-6">
@@ -232,7 +243,14 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
                 View only
               </span>
               <InfoTooltip
-                content={`Imported from ${getAndFormatImportSource(frontmatter.importedFromRid as string, plugin.settings.spaceNames)}. Direct edits will be overwritten when refreshed.`}
+                content={
+                  `Imported from ${formattedVaultName}. ` +
+                  (frontmatter.authorId &&
+                  typeof frontmatter.authorId === "number"
+                    ? `By ${getUserNameById(plugin, frontmatter.authorId)}. `
+                    : "") +
+                  "Direct edits will be overwritten when refreshed."
+                }
               />
             </div>
           )}
