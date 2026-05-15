@@ -696,9 +696,14 @@ export const getFeatureFlags = (): FeatureFlags => {
   return bulkReadSettings().featureFlags;
 };
 
+export const LEGACY_SOURCED_FEATURE_FLAG_KEYS = [
+  "Enable left sidebar",
+] as const satisfies ReadonlyArray<keyof FeatureFlags>;
+
 /* eslint-disable @typescript-eslint/naming-convention */
-const FEATURE_FLAG_LEGACY_MAP: Partial<
-  Record<keyof FeatureFlags, () => boolean>
+const FEATURE_FLAG_LEGACY_MAP: Record<
+  (typeof LEGACY_SOURCED_FEATURE_FLAG_KEYS)[number],
+  () => boolean
 > = {
   "Enable left sidebar": () =>
     getUidAndBooleanSetting({
@@ -715,10 +720,6 @@ export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
 export const isNewSettingsStoreEnabled = (): boolean => {
   return getFeatureFlag("Use new settings store");
 };
-
-export const LEGACY_SOURCED_FEATURE_FLAG_KEYS = Object.keys(
-  FEATURE_FLAG_LEGACY_MAP,
-) as Array<keyof FeatureFlags>;
 
 export const readAllLegacyFeatureFlags = (): Partial<FeatureFlags> => {
   const flags: Partial<FeatureFlags> = {};
