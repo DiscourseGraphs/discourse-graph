@@ -6,6 +6,7 @@ import getFirstChildUidByBlockUid from "roamjs-components/queries/getFirstChildU
 import updateBlock from "roamjs-components/writes/updateBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import { DISCOURSE_NODE_KEYS } from "~/components/settings/utils/settingKeys";
 
 type Attribute = {
   uid: string;
@@ -66,23 +67,34 @@ const toRecord = (attrs: Attribute[]): Record<string, string> =>
 const NodeAttributes = ({
   uid,
   nodeType,
+  defaultValue,
 }: {
   uid: string;
   nodeType: string;
+  defaultValue?: Record<string, string>;
 }) => {
-  const [attributes, setAttributes] = useState<Attribute[]>(() =>
-    getBasicTreeByParentUid(uid).map((t) => ({
+  const [attributes, setAttributes] = useState<Attribute[]>(() => {
+    const tree = getBasicTreeByParentUid(uid);
+    if (defaultValue && Object.keys(defaultValue).length > 0) {
+      const treeByLabel = new Map(tree.map((t) => [t.text, t]));
+      return Object.entries(defaultValue).map(([label, value]) => ({
+        uid: treeByLabel.get(label)?.uid ?? "",
+        label,
+        value,
+      }));
+    }
+    return tree.map((t) => ({
       uid: t.uid,
       label: t.text,
       value: t.children[0]?.text,
-    })),
-  );
+    }));
+  });
   const attributesRef = useRef(attributes);
   attributesRef.current = attributes;
   const syncToBlockProps = () => {
     setDiscourseNodeSetting(
       nodeType,
-      ["attributes"],
+      [DISCOURSE_NODE_KEYS.attributes],
       toRecord(attributesRef.current),
     );
   };
@@ -92,7 +104,7 @@ const NodeAttributes = ({
       <div style={{ marginBottom: 32 }}>
         {attributes.map((a) => (
           <NodeAttribute
-            key={a.uid}
+            key={a.label}
             {...a}
             onChange={(v) =>
               setAttributes(
@@ -107,7 +119,7 @@ const NodeAttributes = ({
                 setAttributes(updated);
                 setDiscourseNodeSetting(
                   nodeType,
-                  ["attributes"],
+                  [DISCOURSE_NODE_KEYS.attributes],
                   toRecord(updated),
                 );
               })
@@ -145,7 +157,7 @@ const NodeAttributes = ({
                 setNewAttribute("");
                 setDiscourseNodeSetting(
                   nodeType,
-                  ["attributes"],
+                  [DISCOURSE_NODE_KEYS.attributes],
                   toRecord(updated),
                 );
               });

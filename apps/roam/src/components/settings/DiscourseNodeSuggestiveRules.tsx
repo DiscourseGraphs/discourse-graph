@@ -11,9 +11,12 @@ import {
   DiscourseNodeFlagPanel,
   DiscourseNodeTextPanel,
 } from "./components/BlockPropSettingPanels";
+import {
+  DISCOURSE_NODE_KEYS,
+  SUGGESTIVE_RULES_KEYS,
+  TEMPLATE_SETTING_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import { RenderRoamBlock } from "~/utils/roamReactComponents";
-
-const TEMPLATE_SETTING_KEYS = ["template"];
 
 const DiscourseNodeSuggestiveRules = ({
   node,
@@ -72,13 +75,17 @@ const DiscourseNodeSuggestiveRules = ({
         description={`The template that auto fills ${node.text} page when generated.`}
         settingKeys={TEMPLATE_SETTING_KEYS}
         uid={templateUid}
+        defaultValue={node.template}
       />
 
       <DiscourseNodeTextPanel
         nodeType={nodeUid}
         title="Embedding Block Ref"
         description="Copy block ref from template which you want to be embedded and ranked."
-        settingKeys={["suggestiveRules", "embeddingRef"]}
+        settingKeys={[
+          DISCOURSE_NODE_KEYS.suggestiveRules,
+          SUGGESTIVE_RULES_KEYS.embeddingRef,
+        ]}
         initialValue={node.embeddingRef || ""}
         placeholder="((block-uid))"
         onChange={setEmbeddingRef}
@@ -100,7 +107,10 @@ const DiscourseNodeSuggestiveRules = ({
         nodeType={nodeUid}
         title="First Child"
         description="If the block is the first child of the embedding block ref, it will be embedded and ranked."
-        settingKeys={["suggestiveRules", "isFirstChild"]}
+        settingKeys={[
+          DISCOURSE_NODE_KEYS.suggestiveRules,
+          SUGGESTIVE_RULES_KEYS.isFirstChild,
+        ]}
         initialValue={node.isFirstChild?.value || false}
         order={2}
         uid={node.isFirstChild?.uid || ""}

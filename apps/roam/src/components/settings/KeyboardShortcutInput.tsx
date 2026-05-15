@@ -11,13 +11,15 @@ import Description from "roamjs-components/components/Description";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { comboToString } from "~/components/DiscourseNodeMenu";
+import type { PersonalSettings } from "~/components/settings/utils/zodSchema";
 
 type KeyboardShortcutInputProps = {
   onloadArgs: OnloadArgs;
   settingKey: string;
-  blockPropKey: string;
+  blockPropKey: keyof PersonalSettings;
   label: string;
   description: string;
+  initialValue: IKeyCombo;
   placeholder?: string;
 };
 
@@ -27,18 +29,13 @@ const KeyboardShortcutInput = ({
   blockPropKey,
   label,
   description,
+  initialValue,
   placeholder = "Click to set shortcut",
 }: KeyboardShortcutInputProps) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const inputRef = useRef<HTMLInputElement>(null);
   const [isActive, setIsActive] = useState(false);
-  const [comboKey, setComboKey] = useState<IKeyCombo>(
-    () =>
-      (extensionAPI.settings.get(settingKey) as IKeyCombo) || {
-        modifiers: 0,
-        key: "",
-      },
-  );
+  const [comboKey, setComboKey] = useState<IKeyCombo>(() => initialValue);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {

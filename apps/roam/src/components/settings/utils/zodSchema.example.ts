@@ -83,19 +83,20 @@ const discourseNodeSettings: DiscourseNodeSettings = {
     returnNode: "node",
   },
   suggestiveRules,
-  backedBy: "user",
 };
 
 const featureFlags: FeatureFlags = {
   "Enable left sidebar": true,
   "Duplicate node alert enabled": true,
   "Suggestive mode overlay enabled": true,
+  "Use new settings store": false,
 };
 
 const defaultFeatureFlags: FeatureFlags = {
   "Enable left sidebar": false,
   "Duplicate node alert enabled": false,
   "Suggestive mode overlay enabled": false,
+  "Use new settings store": false,
 };
 
 const exportSettings: ExportSettings = {
@@ -404,12 +405,12 @@ const defaultPersonalSettings: PersonalSettings = {
   "Streamline styling": false,
   "Auto canvas relations": false,
   "Disable product diagnostics": false,
-  "Reified relation triples": false,
+  "Reified relation triples": true,
   "Canvas node shortcuts": {},
   Query: {
-    "Hide query metadata": false,
+    "Hide query metadata": true,
     "Default page size": 10,
-    "Query pages": [],
+    "Query pages": ["discourse-graph/queries/*"],
     "Default filters": {},
   },
 };

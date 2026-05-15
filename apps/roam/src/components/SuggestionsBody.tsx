@@ -24,8 +24,13 @@ import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import { type RelationDetails } from "~/utils/hyde";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import { getGlobalSetting } from "~/components/settings/utils/accessors";
+import {
+  GLOBAL_KEYS,
+  SUGGESTIVE_MODE_KEYS,
+} from "~/components/settings/utils/settingKeys";
+import type { PageGroup } from "~/components/settings/utils/zodSchema";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import posthog from "posthog-js";
@@ -416,12 +421,15 @@ const SuggestionsBody = ({
   };
 
   useEffect(() => {
-    const config = getFormattedConfigTree();
-    const groups = config.suggestiveMode.pageGroups.groups;
+    const groups =
+      getGlobalSetting<PageGroup[]>([
+        GLOBAL_KEYS.suggestiveMode,
+        SUGGESTIVE_MODE_KEYS.pageGroups,
+      ]) ?? [];
 
     const groupsRecord = groups.reduce(
       (acc, group) => {
-        acc[group.name] = group.pages.map((p) => p.name);
+        acc[group.name] = group.pages;
         return acc;
       },
       {} as Record<string, string[]>,

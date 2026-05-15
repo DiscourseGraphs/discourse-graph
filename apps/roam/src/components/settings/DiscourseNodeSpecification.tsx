@@ -8,7 +8,14 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import QueryEditor from "~/components/QueryEditor";
 import internalError from "~/utils/internalError";
-import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import {
+  getDiscourseNodeSetting,
+  setDiscourseNodeSetting,
+} from "~/components/settings/utils/accessors";
+import {
+  DISCOURSE_NODE_KEYS,
+  SPECIFICATION_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import { DiscourseNodeFlagPanel } from "~/components/settings/components/BlockPropSettingPanels";
 
 const NodeSpecification = ({
@@ -27,83 +34,109 @@ const NodeSpecification = ({
         ?.uid,
     [parentUid],
   );
-  const [enabled, setEnabled] = React.useState(!!enabledBlockUid);
+  const [enabled, setEnabled] = React.useState(
+    () =>
+      getDiscourseNodeSetting<boolean>(node.type, [
+        DISCOURSE_NODE_KEYS.specification,
+        SPECIFICATION_KEYS.enabled,
+      ]) ?? false,
+  );
 
   React.useEffect(() => {
     if (enabled) {
-      const scratchNode = getSubTree({ parentUid, key: "scratch" });
-      if (
-        !scratchNode.children.length ||
-        !getSubTree({ tree: scratchNode.children, key: "conditions" }).children
-          .length
-      ) {
-        const conditionsUid = getSubTree({
-          parentUid: scratchNode.uid,
+      (async () => {
+        const scratchNode = getSubTree({
+          tree: getBasicTreeByParentUid(parentUid),
+          key: "scratch",
+        });
+        const conditionsNode = getSubTree({
+          tree: scratchNode.children,
           key: "conditions",
-        }).uid;
-        const returnUid = getSubTree({
-          parentUid: scratchNode.uid,
-          key: "return",
-        }).uid;
-        createBlock({
-          parentUid: returnUid,
-          node: {
-            text: node.text,
-          },
-        })
-          .then(() =>
-            createBlock({
-              parentUid: conditionsUid,
-              node: {
-                text: "clause",
-                children: [
-                  { text: "source", children: [{ text: node.text }] },
-                  { text: "relation", children: [{ text: "has title" }] },
-                  {
-                    text: "target",
-                    children: [
-                      {
-                        text: `/${
-                          getDiscourseNodeFormatExpression(node.format).source
-                        }/`,
-                      },
-                    ],
-                  },
-                ],
-              },
-            }),
-          )
-          .then(() => {
-            setDiscourseNodeSetting(node.type, ["specification", "query"], {
-              conditions: [
-                {
-                  type: "clause" as const,
-                  source: node.text,
-                  relation: "has title",
-                  target: `/${getDiscourseNodeFormatExpression(node.format).source}/`,
-                },
-              ],
-              selections: [],
-              custom: "",
-              returnNode: node.text,
-            });
-            setMigrated(true);
+        });
+        if (!scratchNode.children.length || !conditionsNode.children.length) {
+          const scratchUid =
+            scratchNode.uid ||
+            (await createBlock({ parentUid, node: { text: "scratch" } }));
+          const conditionsUid =
+            conditionsNode.uid ||
+            (await createBlock({
+              parentUid: scratchUid,
+              node: { text: "conditions" },
+            }));
+          const returnUid =
+            getSubTree({ tree: scratchNode.children, key: "return" }).uid ||
+            (await createBlock({
+              parentUid: scratchUid,
+              node: { text: "return" },
+            }));
+          createBlock({
+            parentUid: returnUid,
+            node: {
+              text: node.text,
+            },
           })
-          .catch((error) => {
-            internalError({ error });
-          });
-      }
+            .then(() =>
+              createBlock({
+                parentUid: conditionsUid,
+                node: {
+                  text: "clause",
+                  children: [
+                    { text: "source", children: [{ text: node.text }] },
+                    { text: "relation", children: [{ text: "has title" }] },
+                    {
+                      text: "target",
+                      children: [
+                        {
+                          text: `/${
+                            getDiscourseNodeFormatExpression(node.format).source
+                          }/`,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              }),
+            )
+            .then(() => {
+              setDiscourseNodeSetting(
+                node.type,
+                [DISCOURSE_NODE_KEYS.specification, SPECIFICATION_KEYS.query],
+                {
+                  conditions: [
+                    {
+                      type: "clause" as const,
+                      source: node.text,
+                      relation: "has title",
+                      target: `/${getDiscourseNodeFormatExpression(node.format).source}/`,
+                    },
+                  ],
+                  selections: [],
+                  custom: "",
+                  returnNode: node.text,
+                },
+              );
+              setMigrated(true);
+            })
+            .catch((error) => {
+              internalError({ error });
+            });
+        }
+      })().catch((error) => internalError({ error }));
     } else {
       const tree = getBasicTreeByParentUid(parentUid);
       const scratchNode = getSubTree({ tree, key: "scratch" });
       Promise.all(scratchNode.children.map((c) => deleteBlock(c.uid)))
         .then(() => {
-          setDiscourseNodeSetting(node.type, ["specification", "query"], {
-            conditions: [],
-            selections: [],
-            custom: "",
-            returnNode: "",
-          });
+          setDiscourseNodeSetting(
+            node.type,
+            [DISCOURSE_NODE_KEYS.specification, SPECIFICATION_KEYS.query],
+            {
+              conditions: [],
+              selections: [],
+              custom: "",
+              returnNode: "",
+            },
+          );
         })
         .catch((error) => {
           internalError({ error });
@@ -124,7 +157,10 @@ const NodeSpecification = ({
         nodeType={node.type}
         title="enabled"
         description=""
-        settingKeys={["specification", "enabled"]}
+        settingKeys={[
+          DISCOURSE_NODE_KEYS.specification,
+          SPECIFICATION_KEYS.enabled,
+        ]}
         initialValue={enabled}
         parentUid={parentUid}
         uid={enabledBlockUid}

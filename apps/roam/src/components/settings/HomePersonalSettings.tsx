@@ -23,16 +23,17 @@ import {
   DISALLOW_DIAGNOSTICS,
   USE_STORED_RELATIONS,
 } from "~/data/userSettings";
-import { getSetting, setSetting } from "~/utils/extensionSettings";
+import { setSetting } from "~/utils/extensionSettings";
 import { enablePostHog, disablePostHog } from "~/utils/posthog";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import streamlineStyling from "~/styles/streamlineStyling";
 import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
+import { PERSONAL_KEYS } from "./utils/settingKeys";
 import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import posthog from "posthog-js";
 import internalError from "~/utils/internalError";
-import { setPersonalSetting } from "./utils/accessors";
+import { setPersonalSetting, type SettingsSnapshot } from "./utils/accessors";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 
 const enum RelationMigrationDialog {
@@ -42,7 +43,13 @@ const enum RelationMigrationDialog {
   "reactivate",
 }
 
-const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
+const HomePersonalSettings = ({
+  onloadArgs,
+  personalSettings,
+}: {
+  onloadArgs: OnloadArgs;
+  personalSettings: SettingsSnapshot["personalSettings"];
+}) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
   const [activeRelationMigration, setActiveRelationMigration] =
@@ -112,35 +119,34 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     <div className="flex flex-col gap-4 p-1">
       <Label>
         Personal node menu trigger
-        <Description
-          description={
-            "Override the global trigger for the discourse node menu. Must refresh after editing."
-          }
+        <Description description="Override the global trigger for the discourse node menu." />
+        <NodeMenuTriggerComponent
+          extensionAPI={extensionAPI}
+          initialValue={personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger]}
         />
-        <NodeMenuTriggerComponent extensionAPI={extensionAPI} />
       </Label>
       <Label>
         Node search menu trigger
-        <Description
-          description={
-            "Set the trigger character for the node search menu. Must refresh after editing."
-          }
+        <Description description="Set the trigger character for the node search menu." />
+        <NodeSearchMenuTriggerSetting
+          onloadArgs={onloadArgs}
+          initialValue={personalSettings[PERSONAL_KEYS.nodeSearchMenuTrigger]}
         />
-        <NodeSearchMenuTriggerSetting onloadArgs={onloadArgs} />
       </Label>
       <KeyboardShortcutInput
         onloadArgs={onloadArgs}
         settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
-        blockPropKey="Discourse tool shortcut"
+        blockPropKey={PERSONAL_KEYS.discourseToolShortcut}
         label="Discourse tool keyboard shortcut"
         description="Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
         placeholder="Click to set single key"
+        initialValue={personalSettings[PERSONAL_KEYS.discourseToolShortcut]}
       />
       <PersonalFlagPanel
         title="Overlay"
         description="Whether or not to overlay discourse context information over discourse node references."
-        settingKeys={["Discourse context overlay"]}
-        initialValue={getSetting<boolean>("discourse-context-overlay", false)}
+        settingKeys={[PERSONAL_KEYS.discourseContextOverlay]}
+        initialValue={personalSettings[PERSONAL_KEYS.discourseContextOverlay]}
         onChange={(checked) => {
           void setSetting("discourse-context-overlay", checked);
           onPageRefObserverChange(overlayHandler)(checked);
@@ -153,6 +159,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         title="Enable stored relations"
         description="Use stored relations instead of legacy pattern-based relations"
         settingKeys={["Reified relation triples"]}
+        initialValue={personalSettings["Reified relation triples"]}
         value={storedRelations}
         onBeforeChange={async (checked) => {
           if (checked) {
@@ -173,8 +180,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       <PersonalFlagPanel
         title="Text selection popup"
         description="Whether or not to show the discourse node menu when selecting text."
-        settingKeys={["Text selection popup"]}
-        initialValue={getSetting("text-selection-popup", true)}
+        settingKeys={[PERSONAL_KEYS.textSelectionPopup]}
+        initialValue={personalSettings[PERSONAL_KEYS.textSelectionPopup]}
         onChange={(checked) => {
           void setSetting("text-selection-popup", checked);
         }}
@@ -182,8 +189,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       <PersonalFlagPanel
         title="Disable sidebar open"
         description="Disable opening new nodes in the sidebar when created"
-        settingKeys={["Disable sidebar open"]}
-        initialValue={getSetting<boolean>("disable-sidebar-open", false)}
+        settingKeys={[PERSONAL_KEYS.disableSidebarOpen]}
+        initialValue={personalSettings[PERSONAL_KEYS.disableSidebarOpen]}
         onChange={(checked) => {
           void setSetting("disable-sidebar-open", checked);
         }}
@@ -191,8 +198,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       <PersonalFlagPanel
         title="Page preview"
         description="Whether or not to display page previews when hovering over page refs"
-        settingKeys={["Page preview"]}
-        initialValue={getSetting<boolean>("page-preview", false)}
+        settingKeys={[PERSONAL_KEYS.pagePreview]}
+        initialValue={personalSettings[PERSONAL_KEYS.pagePreview]}
         onChange={(checked) => {
           void setSetting("page-preview", checked);
           onPageRefObserverChange(previewPageRefHandler)(checked);
@@ -201,8 +208,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       <PersonalFlagPanel
         title="Hide feedback button"
         description="Hide the 'Send feedback' button at the bottom right of the screen."
-        settingKeys={["Hide feedback button"]}
-        initialValue={getSetting<boolean>("hide-feedback-button", false)}
+        settingKeys={[PERSONAL_KEYS.hideFeedbackButton]}
+        initialValue={personalSettings[PERSONAL_KEYS.hideFeedbackButton]}
         onChange={(checked) => {
           void setSetting("hide-feedback-button", checked);
           if (checked) {
@@ -215,8 +222,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       <PersonalFlagPanel
         title="Auto canvas relations"
         description="Automatically add discourse relations to canvas when a node is added"
-        settingKeys={["Auto canvas relations"]}
-        initialValue={getSetting<boolean>(AUTO_CANVAS_RELATIONS_KEY, false)}
+        settingKeys={[PERSONAL_KEYS.autoCanvasRelations]}
+        initialValue={personalSettings[PERSONAL_KEYS.autoCanvasRelations]}
         onChange={(checked) => {
           void setSetting(AUTO_CANVAS_RELATIONS_KEY, checked);
         }}
@@ -225,11 +232,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       <PersonalFlagPanel
         title="(BETA) Overlay in canvas"
         description="Whether or not to overlay discourse context information over canvas nodes."
-        settingKeys={["Overlay in canvas"]}
-        initialValue={getSetting<boolean>(
-          DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
-          false,
-        )}
+        settingKeys={[PERSONAL_KEYS.overlayInCanvas]}
+        initialValue={personalSettings[PERSONAL_KEYS.overlayInCanvas]}
         onChange={(checked) => {
           void setSetting(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, checked);
         }}
@@ -237,8 +241,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       <PersonalFlagPanel
         title="Streamline styling"
         description="Apply streamlined styling to your personal graph for a cleaner appearance."
-        settingKeys={["Streamline styling"]}
-        initialValue={getSetting<boolean>(STREAMLINE_STYLING_KEY, false)}
+        settingKeys={[PERSONAL_KEYS.streamlineStyling]}
+        initialValue={personalSettings[PERSONAL_KEYS.streamlineStyling]}
         onChange={(checked) => {
           void setSetting(STREAMLINE_STYLING_KEY, checked);
           const existingStyleElement =
@@ -255,8 +259,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       <PersonalFlagPanel
         title="Disable product diagnostics"
         description="Disable sending usage signals and error reports that help us improve the product."
-        settingKeys={["Disable product diagnostics"]}
-        initialValue={getSetting<boolean>(DISALLOW_DIAGNOSTICS, false)}
+        settingKeys={[PERSONAL_KEYS.disableProductDiagnostics]}
+        initialValue={personalSettings[PERSONAL_KEYS.disableProductDiagnostics]}
         onChange={(checked) => {
           void setSetting(DISALLOW_DIAGNOSTICS, checked);
           if (checked) {

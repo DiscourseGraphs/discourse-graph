@@ -5,15 +5,20 @@ import {
   Tooltip,
   Icon,
 } from "@blueprintjs/core";
-import React, { useState, useMemo } from "react";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
+import React, { useState } from "react";
 import setInputSetting from "roamjs-components/util/setInputSetting";
 import {
   DiscourseNodeFlagPanel,
   DiscourseNodeTextPanel,
 } from "./components/BlockPropSettingPanels";
-import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import {
+  getDiscourseNodeSetting,
+  setDiscourseNodeSetting,
+} from "~/components/settings/utils/accessors";
+import {
+  DISCOURSE_NODE_KEYS,
+  CANVAS_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 export const formatHexColor = (color: string) => {
   if (!color) return "";
@@ -34,16 +39,31 @@ const DiscourseNodeCanvasSettings = ({
   nodeType: string;
   uid: string;
 }) => {
-  const tree = useMemo(() => getBasicTreeByParentUid(uid), [uid]);
-  const alias = getSettingValueFromTree({ tree, key: "alias" });
-  const [queryBuilderAlias, setQueryBuilderAlias] = useState<string>(() =>
-    getSettingValueFromTree({ tree, key: "query-builder-alias" }),
+  const alias =
+    getDiscourseNodeSetting<string>(nodeType, [
+      DISCOURSE_NODE_KEYS.canvasSettings,
+      CANVAS_KEYS.alias,
+    ]) ?? "";
+  const [queryBuilderAlias, setQueryBuilderAlias] = useState<string>(
+    () =>
+      getDiscourseNodeSetting<string>(nodeType, [
+        DISCOURSE_NODE_KEYS.canvasSettings,
+        CANVAS_KEYS.queryBuilderAlias,
+      ]) ?? "",
   );
   const [isKeyImage, setIsKeyImage] = useState(
-    () => getSettingValueFromTree({ tree, key: "key-image" }) === "true",
+    () =>
+      getDiscourseNodeSetting<boolean>(nodeType, [
+        DISCOURSE_NODE_KEYS.canvasSettings,
+        CANVAS_KEYS.keyImage,
+      ]) ?? false,
   );
-  const [keyImageOption, setKeyImageOption] = useState(() =>
-    getSettingValueFromTree({ tree, key: "key-image-option" }),
+  const [keyImageOption, setKeyImageOption] = useState(
+    () =>
+      getDiscourseNodeSetting<string>(nodeType, [
+        DISCOURSE_NODE_KEYS.canvasSettings,
+        CANVAS_KEYS.keyImageOption,
+      ]) ?? "",
   );
 
   return (
@@ -52,7 +72,7 @@ const DiscourseNodeCanvasSettings = ({
         nodeType={nodeType}
         title="Display alias"
         description=""
-        settingKeys={["canvasSettings", "alias"]}
+        settingKeys={[DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.alias]}
         initialValue={alias}
         onChange={(val) => {
           void setInputSetting({
@@ -66,16 +86,16 @@ const DiscourseNodeCanvasSettings = ({
         nodeType={nodeType}
         title="Key image"
         description="Add an image to the discourse node"
-        settingKeys={["canvasSettings", "key-image"]}
+        settingKeys={[DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.keyImage]}
         initialValue={isKeyImage}
         onChange={(checked) => {
-          setIsKeyImage(checked);
           if (checked && !keyImageOption) setKeyImageOption("first-image");
           void setInputSetting({
             blockUid: uid,
             key: "key-image",
             value: checked ? "true" : "false",
           });
+          setTimeout(() => setIsKeyImage(checked), 100);
         }}
       />
       <RadioGroup
@@ -92,7 +112,7 @@ const DiscourseNodeCanvasSettings = ({
           });
           setDiscourseNodeSetting(
             nodeType,
-            ["canvasSettings", "key-image-option"],
+            [DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.keyImageOption],
             value,
           );
         }}
@@ -123,7 +143,7 @@ const DiscourseNodeCanvasSettings = ({
           });
           setDiscourseNodeSetting(
             nodeType,
-            ["canvasSettings", "query-builder-alias"],
+            [DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.queryBuilderAlias],
             val,
           );
         }}
