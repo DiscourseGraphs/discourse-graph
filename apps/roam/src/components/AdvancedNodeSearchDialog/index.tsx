@@ -38,6 +38,141 @@ import {
 
 type Props = Record<string, unknown>;
 
+const dialogStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  height: "72vh",
+  maxWidth: "980px",
+  overflow: "hidden",
+  padding: 0,
+  width: "min(980px, calc(100vw - 64px))",
+};
+
+const modalStyle: React.CSSProperties = {
+  display: "flex",
+  flex: 1,
+  flexDirection: "column",
+  margin: 0,
+  minHeight: 0,
+  overflow: "hidden",
+  padding: 0,
+  pointerEvents: "all",
+};
+
+const searchHeaderStyle: React.CSSProperties = {
+  alignItems: "center",
+  borderBottom: "1px solid rgba(31, 31, 31, 0.12)",
+  display: "flex",
+  flexShrink: 0,
+  gap: "8px",
+  padding: "12px 16px",
+};
+
+const bodyStyle: React.CSSProperties = {
+  display: "flex",
+  flex: 1,
+  minHeight: 0,
+  overflow: "hidden",
+};
+
+const resultsPanelStyle: React.CSSProperties = {
+  borderRight: "1px solid rgba(31, 31, 31, 0.12)",
+  flexShrink: 0,
+  minHeight: 0,
+  overflowY: "auto",
+  width: "38%",
+};
+
+const previewColumnStyle: React.CSSProperties = {
+  display: "flex",
+  flex: 1,
+  flexDirection: "column",
+  minHeight: 0,
+  overflow: "hidden",
+};
+
+const previewPanelStyle: React.CSSProperties = {
+  flex: 1,
+  minHeight: 0,
+  overflowY: "auto",
+  padding: "32px",
+};
+
+const emptyPanelStyle: React.CSSProperties = {
+  alignItems: "center",
+  display: "flex",
+  height: "100%",
+  justifyContent: "center",
+  padding: "24px",
+};
+
+const messagePanelStyle: React.CSSProperties = {
+  alignItems: "center",
+  color: "rgba(31, 31, 31, 0.5)",
+  display: "flex",
+  flex: 1,
+  fontSize: "14px",
+  justifyContent: "center",
+  minHeight: 0,
+  padding: "48px 16px",
+  textAlign: "center",
+  width: "100%",
+};
+
+const focusSearchInput = (input: HTMLInputElement | null): void => {
+  input?.focus();
+};
+
+const resultTitleStyle: React.CSSProperties = {
+  color: "#1f1f1f",
+  fontSize: "14px",
+  lineHeight: 1.4,
+  wordBreak: "break-word",
+};
+
+const resultExcerptStyle: React.CSSProperties = {
+  color: "rgba(31, 31, 31, 0.55)",
+  display: "block",
+  fontSize: "12px",
+  lineHeight: 1.35,
+  marginTop: "4px",
+};
+
+const previewTitleStyle: React.CSSProperties = {
+  color: "#1f1f1f",
+  fontSize: "22px",
+  lineHeight: 1.25,
+  margin: "14px 0",
+};
+
+const previewMetaStyle: React.CSSProperties = {
+  color: "rgba(31, 31, 31, 0.55)",
+  fontSize: "12px",
+  letterSpacing: "0.02em",
+};
+
+const previewBodyStyle: React.CSSProperties = {
+  borderTop: "1px solid rgba(31, 31, 31, 0.12)",
+  color: "#1f1f1f",
+  fontSize: "15px",
+  lineHeight: 1.55,
+  marginTop: "24px",
+  paddingTop: "16px",
+};
+
+const getResultRowStyle = (active: boolean): React.CSSProperties => ({
+  alignItems: "flex-start",
+  background: active ? "rgba(95, 87, 192, 0.08)" : "transparent",
+  border: 0,
+  boxShadow: active ? "inset 3px 0 0 #5f57c0" : undefined,
+  cursor: "pointer",
+  display: "flex",
+  gap: "10px",
+  padding: "12px 16px",
+  textAlign: "left",
+  width: "100%",
+});
+
 const getNodeBadgeText = (node: DiscourseNode): string =>
   (node.tag?.trim() || node.text).slice(0, 3).toUpperCase();
 
@@ -79,24 +214,21 @@ const ResultRow = ({
   <button
     type="button"
     aria-selected={active}
-    className={`flex w-full cursor-pointer gap-2.5 border-0 px-4 py-3 text-left ${
-      active ? "bg-blue-50" : "bg-transparent"
-    }`}
+    className="dg-advanced-node-search-result"
     onClick={onClick}
     onMouseEnter={onMouseEnter}
     role="option"
+    style={getResultRowStyle(active)}
   >
     <Tag minimal style={getTagStyle(nodeConfig)}>
       {nodeConfig ? getNodeBadgeText(nodeConfig) : result.nodeTypeLabel}
     </Tag>
-    <span className="min-w-0">
-      <span className="text-sm leading-snug text-gray-900">
+    <span style={{ minWidth: 0 }}>
+      <span style={resultTitleStyle}>
         {renderHighlightedText(stripTypePrefix(result.title), keywords)}
       </span>
       {result.excerpt && (
-        <span className="mt-1 block text-xs leading-snug text-gray-500">
-          {result.excerpt}
-        </span>
+        <span style={resultExcerptStyle}>{result.excerpt}</span>
       )}
     </span>
   </button>
@@ -117,37 +249,41 @@ const PreviewPane = ({
 }) => {
   if (!result) {
     return (
-      <div className="flex h-full items-center justify-center p-6">
-        <NonIdealState
-          icon="search"
-          title="Search DG nodes"
-          description="Type a keyword to preview matching discourse graph nodes."
-        />
+      <div style={previewColumnStyle}>
+        <div style={emptyPanelStyle}>
+          <NonIdealState
+            icon="search"
+            title="Search DG nodes"
+            description="Type a keyword to preview matching discourse graph nodes."
+          />
+        </div>
       </div>
     );
   }
 
   if (isLoading || !content) {
     return (
-      <div className="flex h-full items-center justify-center p-6">
-        <Spinner size={SpinnerSize.SMALL} />
+      <div style={previewColumnStyle}>
+        <div style={emptyPanelStyle}>
+          <Spinner size={SpinnerSize.SMALL} />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="overflow-y-auto p-8">
+    <div style={previewPanelStyle}>
       <Tag minimal style={getTagStyle(nodeConfig)}>
         {nodeConfig ? nodeConfig.text : result.nodeTypeLabel}
       </Tag>
-      <h2 className="my-3.5 text-2xl leading-tight text-gray-900">
+      <h2 style={previewTitleStyle}>
         {renderHighlightedText(stripTypePrefix(content.title), keywords)}
       </h2>
-      <div className="text-xs tracking-wide text-gray-500">
+      <div style={previewMetaStyle}>
         Last modified: {formatMetadataDate(result.lastModified)} · Created:{" "}
         {formatMetadataDate(result.createdAt)} · Author: {result.authorName}
       </div>
-      <div className="mt-6 border-t border-gray-200 pt-4 text-[15px] leading-relaxed text-gray-900">
+      <div style={previewBodyStyle}>
         {content.lines.length ? (
           content.lines.map((line, index) => <p key={index}>{line}</p>)
         ) : (
@@ -197,7 +333,17 @@ const AdvancedNodeSearchDialog = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    inputRef.current?.focus();
+
+    const focusInput = () => focusSearchInput(inputRef.current);
+
+    focusInput();
+    const rafId = requestAnimationFrame(focusInput);
+    const timeoutId = window.setTimeout(focusInput, 0);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.clearTimeout(timeoutId);
+    };
   }, [isOpen]);
 
   useEffect(() => {
@@ -372,27 +518,33 @@ const AdvancedNodeSearchDialog = ({
     results.length,
   ]);
 
+  const showSplitView = contentState === "results";
+
   return (
     <Dialog
       autoFocus={false}
       canEscapeKeyClose
       canOutsideClickClose
-      className="roamjs-canvas-dialog w-[min(980px,calc(100vw-64px))] max-w-[980px]"
+      className="roamjs-canvas-dialog"
+      enforceFocus={false}
       isOpen={isOpen}
       onClose={onClose}
-      title="DG node search"
+      style={dialogStyle}
     >
       <div
-        className="pointer-events-auto"
         onClick={(event) => event.stopPropagation()}
         onKeyDown={onKeyDown}
         onMouseDown={(event) => event.stopPropagation()}
         onMouseUp={(event) => event.stopPropagation()}
+        style={modalStyle}
       >
-        <div className="flex items-center gap-2 border-b border-gray-200 px-4 py-3">
+        <div style={searchHeaderStyle}>
           <InputGroup
             fill
-            inputRef={inputRef}
+            inputRef={(element) => {
+              inputRef.current = element;
+              if (isOpen) focusSearchInput(element);
+            }}
             leftIcon="search"
             onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
               setSearchTerm(event.target.value)
@@ -402,67 +554,56 @@ const AdvancedNodeSearchDialog = ({
           />
           <Button icon="cross" minimal onClick={onClose} title="Close search" />
         </div>
-        <div className="grid h-[560px] min-h-[420px] grid-cols-[minmax(280px,38%)_minmax(0,1fr)]">
-          <div
-            aria-label="Search results"
-            className="overflow-y-auto border-r border-gray-200"
-            ref={resultsPanelRef}
-            role="listbox"
-          >
-            {contentState === "error" && (
-              <div className="flex h-full items-center justify-center p-6">
-                <NonIdealState
-                  icon="error"
-                  title="Search unavailable"
-                  description="Reload the extension and try again."
-                />
+        <div style={bodyStyle}>
+          {showSplitView ? (
+            <>
+              <div
+                aria-label="Search results"
+                ref={resultsPanelRef}
+                role="listbox"
+                style={resultsPanelStyle}
+              >
+                {results.map((result, index) => (
+                  <ResultRow
+                    active={index === activeIndex}
+                    key={result.uid}
+                    keywords={keywords}
+                    nodeConfig={nodeConfigByType[result.type]}
+                    onClick={() => setActiveIndex(index)}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    result={result}
+                  />
+                ))}
               </div>
-            )}
-            {contentState === "indexing" && (
-              <div className="flex h-full items-center justify-center p-6">
+              <PreviewPane
+                content={activeContent}
+                isLoading={
+                  isEnrichingResults &&
+                  !!activeResult &&
+                  !contentCacheRef.current.has(activeResult.uid)
+                }
+                keywords={keywords}
+                nodeConfig={
+                  activeResult ? nodeConfigByType[activeResult.type] : undefined
+                }
+                result={activeResult}
+              />
+            </>
+          ) : (
+            <div style={messagePanelStyle}>
+              {contentState === "indexing" && (
                 <Spinner size={SpinnerSize.SMALL} />
-              </div>
-            )}
-            {contentState === "initial" && (
-              <div className="flex h-full items-center justify-center p-6">
-                <NonIdealState title="Search DG nodes" />
-              </div>
-            )}
-            {contentState === "empty" && (
-              <div className="flex h-full items-center justify-center p-6">
-                <NonIdealState
-                  icon="search"
-                  title="No results"
-                  description="Try another keyword."
-                />
-              </div>
-            )}
-            {contentState === "results" &&
-              results.map((result, index) => (
-                <ResultRow
-                  active={index === activeIndex}
-                  key={result.uid}
-                  keywords={keywords}
-                  nodeConfig={nodeConfigByType[result.type]}
-                  onClick={() => setActiveIndex(index)}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  result={result}
-                />
-              ))}
-          </div>
-          <PreviewPane
-            content={activeContent}
-            isLoading={
-              isEnrichingResults &&
-              !!activeResult &&
-              !contentCacheRef.current.has(activeResult.uid)
-            }
-            keywords={keywords}
-            nodeConfig={
-              activeResult ? nodeConfigByType[activeResult.type] : undefined
-            }
-            result={activeResult}
-          />
+              )}
+              {contentState === "empty" && (
+                <span>No matches. Try another keyword.</span>
+              )}
+              {contentState === "error" && (
+                <span>
+                  Search unavailable. Reload the extension and try again.
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </Dialog>
