@@ -6,6 +6,7 @@ import { createBlock } from "roamjs-components/writes";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import internalError from "~/utils/internalError";
 import {
+  LEGACY_SOURCED_FEATURE_FLAG_KEYS,
   readAllLegacyFeatureFlags,
   readAllLegacyGlobalSettings,
   readAllLegacyPersonalSettings,
@@ -199,12 +200,21 @@ export const migrateGraphLevel = async (
     failures++;
   } else {
     const legacyFlags = readAllLegacyFeatureFlags();
+    const mergedFlags: Record<string, json> = {
+      ...getBlockProps(featureFlagUid),
+    };
+    for (const key of LEGACY_SOURCED_FEATURE_FLAG_KEYS) {
+      const value = legacyFlags[key];
+      if (value !== undefined) {
+        mergedFlags[key] = value;
+      }
+    }
     if (
       !migrateSection({
         label: "Feature Flags",
         blockUid: featureFlagUid,
         schema: FeatureFlagsSchema,
-        legacyData: legacyFlags as Record<string, unknown>,
+        legacyData: mergedFlags,
       })
     ) {
       failures++;
