@@ -1,4 +1,5 @@
 import { OnloadArgs } from "roamjs-components/types";
+import { getQueryPages } from "~/components/settings/QueryPagesPanel";
 import {
   setPersonalSetting,
   type SettingsSnapshot,
@@ -12,8 +13,7 @@ export const setInitialQueryPages = (
   onloadArgs: OnloadArgs,
   snapshot: SettingsSnapshot,
 ) => {
-  const queryPageArray =
-    snapshot.personalSettings[PERSONAL_KEYS.query][QUERY_KEYS.queryPages];
+  const queryPageArray = getQueryPages(snapshot);
   if (!queryPageArray.includes("discourse-graph/queries/*")) {
     const updated = [...queryPageArray, "discourse-graph/queries/*"];
     void onloadArgs.extensionAPI.settings.set("query-pages", updated);
