@@ -250,7 +250,6 @@ export const SettingsDialog = ({
                 title="Relations"
                 parentUid={grammarNode?.uid || ""}
                 uid={relationsNode?.uid || ""}
-                globalSettings={settings.globalSettings}
               />
             }
           />
