@@ -36,7 +36,6 @@ import { initPostHog } from "./utils/posthog";
 import { initSchema } from "./components/settings/utils/init";
 import {
   bulkReadSettings,
-  isNewSettingsStoreEnabled,
   isSyncEnabled,
 } from "./components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "./components/settings/utils/settingKeys";
