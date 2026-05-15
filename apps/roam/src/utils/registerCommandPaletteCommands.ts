@@ -13,6 +13,7 @@ import fireQuery from "./fireQuery";
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
+import { renderAdvancedNodeSearchDialog } from "~/components/AdvancedNodeSearchDialog";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getUids from "roamjs-components/dom/getUids";
 import {
@@ -332,6 +333,10 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   // Roam organizes commands alphabetically
+  void addCommand("DG: Open Node Search Menu", () => {
+    posthog.capture("Node Search: Open Command Triggered");
+    renderAdvancedNodeSearchDialog();
+  });
   void addCommand("DG: Create/Insert discourse node", () =>
     createDiscourseNodeFromCommand(extensionAPI),
   );
