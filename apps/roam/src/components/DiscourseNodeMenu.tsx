@@ -35,6 +35,7 @@ type Props = {
   extensionAPI: OnloadArgs["extensionAPI"];
   trigger?: JSX.Element;
   isShift?: boolean;
+  menuMaxHeight?: number;
 };
 
 const NodeMenu = ({
@@ -44,6 +45,7 @@ const NodeMenu = ({
   extensionAPI,
   trigger,
   isShift,
+  menuMaxHeight,
 }: { onClose: () => void } & Props) => {
   const isInitialTextSelected =
     !!textarea && textarea.selectionStart !== textarea.selectionEnd;
@@ -70,6 +72,23 @@ const NodeMenu = ({
   const menuRef = useRef<HTMLUListElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isOpen, setIsOpen] = useState(!trigger);
+
+  useEffect(() => {
+    const container = menuRef.current;
+    if (!container) return;
+    const activeItem = container.children[activeIndex] as
+      | HTMLElement
+      | undefined;
+    if (!activeItem) return;
+    const containerRect = container.getBoundingClientRect();
+    const itemRect = activeItem.getBoundingClientRect();
+    if (
+      itemRect.bottom > containerRect.bottom ||
+      itemRect.top < containerRect.top
+    ) {
+      activeItem.scrollIntoView({ block: "nearest", behavior: "auto" });
+    }
+  }, [activeIndex]);
 
   const onSelect = useCallback(
     (index: number) => {
@@ -252,14 +271,18 @@ const NodeMenu = ({
       className="relative z-50"
       position={Position.BOTTOM_LEFT}
       modifiers={{
-        flip: { enabled: false },
+        flip: { enabled: true },
         preventOverflow: { enabled: false },
       }}
       autoFocus={false}
       enforceFocus={false}
       onInteraction={trigger ? handlePopoverInteraction : undefined}
       content={
-        <Menu ulRef={menuRef} data-active-index={activeIndex}>
+        <Menu
+          ulRef={menuRef}
+          data-active-index={activeIndex}
+          style={{ overflowY: "auto", maxHeight: menuMaxHeight }}
+        >
           {discourseNodes.map((item, i) => {
             const nodeColor =
               formatHexColor(item?.canvasSettings?.color) || "#000";
@@ -302,15 +325,25 @@ const NodeMenu = ({
 
 export const render = (props: Props) => {
   if (!props.textarea) return;
+  if (props.textarea.parentElement?.querySelector("[data-discourse-node-menu]"))
+    return;
   const parent = document.createElement("span");
+  parent.setAttribute("data-discourse-node-menu", "true");
   const coords = getCoordsFromTextarea(props.textarea);
   parent.style.position = "absolute";
   parent.style.left = `${coords.left}px`;
   parent.style.top = `${coords.top}px`;
   props.textarea.parentElement?.insertBefore(parent, props.textarea);
+  const parentTop =
+    props.textarea.parentElement?.getBoundingClientRect().top ?? 0;
+  const menuMaxHeight = Math.max(
+    window.innerHeight - (parentTop + coords.top) - 24,
+    100,
+  );
   ReactDOM.render(
     <NodeMenu
       {...props}
+      menuMaxHeight={menuMaxHeight}
       onClose={() => {
         ReactDOM.unmountComponentAtNode(parent);
         parent.remove();
@@ -355,6 +388,11 @@ export const TextSelectionNodeMenu = ({
     />
   );
 
+  const menuMaxHeight = Math.max(
+    window.innerHeight - textarea.getBoundingClientRect().bottom - 8,
+    100,
+  );
+
   return (
     <NodeMenu
       textarea={textarea}
@@ -362,6 +400,7 @@ export const TextSelectionNodeMenu = ({
       trigger={trigger}
       onClose={onClose}
       isShift
+      menuMaxHeight={menuMaxHeight}
     />
   );
 };
