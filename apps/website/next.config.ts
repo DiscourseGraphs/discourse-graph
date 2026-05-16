@@ -24,6 +24,9 @@ const nextConfig: NextConfig = {
       "next-mdx-import-source-file": "./mdx-components.tsx",
     },
   },
+  images: {
+    qualities: [75, 85, 100],
+  },
   async headers() {
     return [
       {
