@@ -16,9 +16,6 @@ const withNextra = nextra({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  serverRuntimeConfig: {
-    maxDuration: 300,
-  },
   async redirects() {
     return DOCS_REDIRECTS;
   },
