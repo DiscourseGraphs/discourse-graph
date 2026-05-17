@@ -2,13 +2,14 @@ import { PostHog } from "posthog-node";
 
 let posthog: PostHog | undefined;
 
-const getPostHog = (): PostHog => {
+const getPostHog = (): PostHog | undefined => {
   if (posthog === undefined) {
     if (
       !process.env.NEXT_PUBLIC_POSTHOG_KEY ||
       !process.env.NEXT_PUBLIC_POSTHOG_HOST
     ) {
-      throw new Error("PostHog environment variables are not set");
+      console.error("PostHog environment variables are not set");
+      return;
     }
     posthog = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
       host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -52,11 +53,11 @@ export const internalError = ({
       }
     }
     const posthog = getPostHog();
-    const result = posthog.captureException(error, undefined, {
-      ...context,
-      type: slugType,
-    });
-    console.error(result);
+    if (posthog)
+      posthog.captureException(error, undefined, {
+        ...context,
+        type: slugType,
+      });
     if (process.env.NODE_ENV === "development") console.error(error);
   }
 };
