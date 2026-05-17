@@ -1,22 +1,22 @@
-import { posthog, type Properties } from "posthog-js";
+import { PostHog } from "posthog-node";
 
-let initialized = false;
+let posthog: PostHog | undefined;
 
-const doInitPostHog = (): void => {
-  if (initialized) return;
-  if (
-    !process.env.NEXT_PUBLIC_POSTHOG_KEY ||
-    !process.env.NEXT_PUBLIC_POSTHOG_HOST
-  ) {
-    throw new Error("PostHog environment variables are not set");
+const getPostHog = (): PostHog => {
+  if (posthog === undefined) {
+    if (
+      !process.env.NEXT_PUBLIC_POSTHOG_KEY ||
+      !process.env.NEXT_PUBLIC_POSTHOG_HOST
+    ) {
+      throw new Error("PostHog environment variables are not set");
+    }
+    posthog = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
+      host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+      flushAt: 1,
+      flushInterval: 0,
+    });
   }
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
-    /* eslint-disable @typescript-eslint/naming-convention */
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-    capture_pageview: false,
-    /* eslint-enable @typescript-eslint/naming-convention */
-  });
-  initialized = true;
+  return posthog;
 };
 
 const NON_WORD = /\W+/g;
@@ -28,13 +28,12 @@ export const internalError = ({
 }: {
   error: unknown;
   type?: string;
-  context?: Properties;
+  context?: object;
   forceSendInDev?: boolean;
 }): void => {
   if (process.env.NODE_ENV === "development" && forceSendInDev !== true) {
     console.error(error);
   } else {
-    doInitPostHog();
     type = type || "Internal Error";
     const slugType = type.replaceAll(NON_WORD, "-").toLowerCase();
     context = {
@@ -52,7 +51,12 @@ export const internalError = ({
         error = new Error(typeof error);
       }
     }
-    posthog.captureException(error, { ...context, type: slugType });
+    const posthog = getPostHog();
+    const result = posthog.captureException(error, undefined, {
+      ...context,
+      type: slugType,
+    });
+    console.error(result);
     if (process.env.NODE_ENV === "development") console.error(error);
   }
 };
