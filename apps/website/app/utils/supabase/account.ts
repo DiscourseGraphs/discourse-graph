@@ -11,9 +11,11 @@ export const getSessionUserData = async (
   type: AgentType;
   email?: string;
 } | null> => {
-  const session = await client.auth.getSession();
-  if (!session?.data?.session?.user) return null;
-  const { id, email } = session.data.session.user;
+  const { data, error } = await client.auth.getUser();
+  if (error || !data?.user) return null;
+  const userData = data.user;
+  if (typeof userData.id !== "string") return null;
+  const { id, email }: { id: string; email?: string } = userData;
   if (email) {
     const [name, host] = email.split("@") as [string, string];
     if (host === "database.discoursegraphs.com" && name.endsWith("-anon")) {
@@ -37,7 +39,7 @@ export const getSessionUserData = async (
   const accountReq = await client
     .from("PlatformAccount")
     .select("name")
-    .eq("dg_account", session.data.session.user.id)
+    .eq("dg_account", id)
     .eq("agent_type", "person")
     .maybeSingle();
   if (accountReq.error || !accountReq.data) {
