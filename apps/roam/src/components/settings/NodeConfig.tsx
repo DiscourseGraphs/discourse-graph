@@ -151,23 +151,41 @@ const NodeConfig = ({
   }, [tagValue, formatValue, validate]);
 
   const validateShortcut = useCallback(
-    (value: string) => {
-      if (!value) return setShortcutError("");
+    (value: string): boolean => {
+      if (!value) {
+        setShortcutError("");
+        return true;
+      }
+      const normalizedValue = value.toUpperCase();
       const taken = getDiscourseNodes()
         .filter((n) => n.type !== node.type && n.shortcut)
-        .map((n) => n.shortcut.toUpperCase());
-      setShortcutError(
-        taken.includes(value.toUpperCase())
-          ? `Shortcut "${value.toUpperCase()}" is already used by another node type.`
-          : "",
-      );
+        .map((n) => ({
+          shortcut: n.shortcut.toUpperCase(),
+          label: n.text,
+        }));
+      const matchingNodes = taken.filter((n) => n.shortcut === normalizedValue);
+      if (matchingNodes.length) {
+        setShortcutError(
+          `Shortcut "${normalizedValue}" is already used by: ${matchingNodes
+            .map((n) => `"${n.label}"`)
+            .join(", ")}.`,
+        );
+        return false;
+      }
+      setShortcutError("");
+      return true;
     },
     [node.type],
   );
 
-  useEffect(() => {
-    validateShortcut(shortcutValue);
-  }, [shortcutValue, validateShortcut]);
+  const handleShortcutChange = useCallback(
+    (value: string) => {
+      if (validateShortcut(value)) {
+        setShortcutValue(value);
+      }
+    },
+    [validateShortcut],
+  );
 
   return (
     <>
@@ -199,7 +217,7 @@ const NodeConfig = ({
                 settingKeys={["shortcut"]}
                 initialValue={node.shortcut}
                 error={shortcutError}
-                onChange={setShortcutValue}
+                onChange={handleShortcutChange}
                 order={0}
                 parentUid={node.type}
                 uid={shortcutUid}
