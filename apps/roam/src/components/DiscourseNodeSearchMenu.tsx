@@ -45,7 +45,6 @@ type MinisearchResult = Result & {
   type: string;
 };
 
-const MIN_SEARCH_SCORE = DISCOURSE_NODE_MIN_SEARCH_SCORE;
 const MAX_ITEMS_PER_TYPE = 10;
 
 const waitForBlock = ({
