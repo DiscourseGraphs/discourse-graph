@@ -84,13 +84,36 @@ export const cleanupArticleWrapperObserver = (): void => {
     articleWrapperObserver = null;
   }
 };
+const applyWithoutTransition = (
+  element: HTMLElement,
+  apply: () => void,
+): void => {
+  const previousValue = element.style.getPropertyValue("transition");
+  const previousPriority = element.style.getPropertyPriority("transition");
+  element.style.setProperty("transition", "none", "important");
+
+  apply();
+
+  requestAnimationFrame(() => {
+    if (previousValue) {
+      element.style.setProperty("transition", previousValue, previousPriority);
+    } else {
+      element.style.removeProperty("transition");
+    }
+  });
+};
+
 export const setupSplitView = (
   roamBodyMain: HTMLElement,
   articleWrapper: HTMLElement,
 ): void => {
-  roamBodyMain.style.display = "flex";
-  roamBodyMain.dataset.isSplit = "true";
-  updateArticleWrapperPadding(articleWrapper);
+  applyWithoutTransition(articleWrapper, () => {
+    roamBodyMain.style.display = "flex";
+    roamBodyMain.style.gap = "1.5rem";
+    roamBodyMain.dataset.isSplit = "true";
+    updateArticleWrapperPadding(articleWrapper);
+  });
+
   cleanupArticleWrapperObserver();
   initializeArticleWrapperObserver();
 };
@@ -99,8 +122,11 @@ export const teardownSplitView = (
   roamBodyMain: HTMLElement,
   articleWrapper: HTMLElement,
 ): void => {
-  roamBodyMain.removeAttribute("data-is-split");
-  roamBodyMain.style.display = "";
-  articleWrapper.style.flex = "";
-  resetArticleWrapperPadding(articleWrapper);
+  applyWithoutTransition(articleWrapper, () => {
+    roamBodyMain.removeAttribute("data-is-split");
+    roamBodyMain.style.display = "";
+    roamBodyMain.style.gap = "";
+    articleWrapper.style.flex = "";
+    resetArticleWrapperPadding(articleWrapper);
+  });
 };
