@@ -24,7 +24,9 @@ export type NodeContent = {
   excerpt: string;
 };
 
+/* eslint-disable @typescript-eslint/naming-convention */
 type PulledNode = {
+  [key: string]: unknown;
   ":block/string"?: string;
   ":block/uid"?: string;
   ":node/title"?: string;
@@ -44,6 +46,7 @@ type PulledBlock = {
   ":block/string"?: string;
   ":block/order"?: number;
 };
+/* eslint-disable @typescript-eslint/naming-convention */
 
 type MiniSearchDocument = SearchResult & {
   id: string;
