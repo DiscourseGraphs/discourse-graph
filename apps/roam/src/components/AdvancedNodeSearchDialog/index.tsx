@@ -111,12 +111,17 @@ const PreviewPane = ({ result }: { result: SearchResult | null }) => {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 overflow-y-auto border-t border-gray-200 px-5 py-3">
-        {isPage ? (
-          <RenderRoamPage key={result.uid} uid={result.uid} />
-        ) : (
-          <RenderRoamBlock key={result.uid} uid={result.uid} zoomPath />
-        )}
+      <div
+        className="min-h-0 flex-1 overflow-y-auto border-t border-gray-200 px-5 py-3"
+        onMouseDown={(event) => event.preventDefault()}
+      >
+        <div className="roamjs-discourse-node-search-preview pointer-events-none">
+          {isPage ? (
+            <RenderRoamPage hideMentions key={result.uid} uid={result.uid} />
+          ) : (
+            <RenderRoamBlock key={result.uid} uid={result.uid} zoomPath />
+          )}
+        </div>
       </div>
     </div>
   );
