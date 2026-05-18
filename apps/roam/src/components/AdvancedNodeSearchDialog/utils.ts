@@ -13,7 +13,6 @@ import {
 
 export const DEBOUNCE_MS = 250;
 export const MAX_RESULTS = 50;
-export const MIN_SEARCH_SCORE = DISCOURSE_NODE_MIN_SEARCH_SCORE;
 export const EXCERPT_LENGTH = 200;
 
 export type SearchResult = {
@@ -202,7 +201,7 @@ export const searchIndexedNodes = ({
       fields: ["title", "nodeTypeLabel"],
       ...DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
     })
-    .filter((result) => result.score > MIN_SEARCH_SCORE)
+    .filter((result) => result.score > DISCOURSE_NODE_MIN_SEARCH_SCORE)
     .slice(0, MAX_RESULTS)
     .map((result) => resultsByUid.get(String(result.id)))
     .filter((result): result is SearchResult => !!result);

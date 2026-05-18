@@ -38,10 +38,6 @@ import {
 
 type Props = Record<string, unknown>;
 
-const focusSearchInput = (input: HTMLInputElement | null): void => {
-  input?.focus();
-};
-
 const getNodeBadgeText = (node: DiscourseNode): string =>
   (node.tag?.trim() || node.text).slice(0, 3).toUpperCase();
 
@@ -182,7 +178,6 @@ const AdvancedNodeSearchDialog = ({
     SearchResult & { id: string }
   > | null>(null);
   const allResultsRef = useRef<SearchResult[]>([]);
-  const visibleResultsRef = useRef<SearchResult[]>([]);
   const contentCacheRef = useRef<Map<string, NodeContent>>(new Map());
   const resultsPanelRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -197,7 +192,7 @@ const AdvancedNodeSearchDialog = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    const focusInput = () => focusSearchInput(inputRef.current);
+    const focusInput = () => inputRef.current?.focus();
 
     focusInput();
     const rafId = requestAnimationFrame(focusInput);
@@ -219,7 +214,6 @@ const AdvancedNodeSearchDialog = ({
       setIndexError(false);
       miniSearchRef.current = null;
       allResultsRef.current = [];
-      visibleResultsRef.current = [];
       contentCacheRef.current.clear();
       return;
     }
@@ -273,7 +267,6 @@ const AdvancedNodeSearchDialog = ({
 
     const query = debouncedSearchTerm;
     if (!query || !miniSearchRef.current) {
-      visibleResultsRef.current = [];
       setResults([]);
       setActiveIndex(0);
       setPreviewContent(null);
@@ -285,7 +278,6 @@ const AdvancedNodeSearchDialog = ({
       allResults: allResultsRef.current,
       searchTerm: query,
     });
-    visibleResultsRef.current = matchedResults;
 
     if (!matchedResults.length) {
       setResults([]);
