@@ -173,7 +173,7 @@ const NodeSearchMenu = ({
       });
 
       const filteredResults = rawSearchResults.filter(
-        (r) => r.score > MIN_SEARCH_SCORE,
+        (r) => r.score > DISCOURSE_NODE_MIN_SEARCH_SCORE,
       );
 
       const searchResults = (
