@@ -38,25 +38,6 @@ import {
 
 type Props = Record<string, unknown>;
 
-const SEARCH_DIALOG_STYLES = `
-  .roamjs-canvas-dialog.dg-advanced-node-search > .bp3-dialog-body {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    margin: 0;
-    min-height: 0;
-    overflow: hidden;
-    padding: 0;
-  }
-
-  .roamjs-canvas-dialog.dg-advanced-node-search mark {
-    background: rgba(255, 200, 60, 0.45);
-    border-radius: 2px;
-    color: inherit;
-    padding: 0 1px;
-  }
-`;
-
 const focusSearchInput = (input: HTMLInputElement | null): void => {
   input?.focus();
 };
@@ -115,19 +96,13 @@ const ResultRow = ({
   <button
     type="button"
     aria-selected={active}
-    className="w-full cursor-pointer border-0 bg-transparent p-0 text-left"
+    className="flex w-full flex-none cursor-pointer items-start gap-2 border-0 bg-transparent p-0 px-3 py-2 text-left"
     onClick={onClick}
     onMouseEnter={onMouseEnter}
     role="option"
     style={{
-      alignItems: "flex-start",
       background: active ? "rgba(95, 87, 192, 0.08)" : undefined,
       boxShadow: active ? "inset 3px 0 0 #5f57c0" : undefined,
-      display: "flex",
-      flex: "0 0 auto",
-      gap: 8,
-      padding: "8px 12px",
-      width: "100%",
     }}
   >
     <Tag minimal style={getTagStyle(nodeConfig)}>
@@ -152,16 +127,7 @@ const PreviewPane = ({
 }) => {
   if (!result) {
     return (
-      <div
-        className="overflow-hidden"
-        style={{
-          alignItems: "center",
-          display: "flex",
-          flex: 1,
-          justifyContent: "center",
-          minHeight: 0,
-        }}
-      >
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
         <NonIdealState
           icon="search"
           title="Search DG nodes"
@@ -174,10 +140,7 @@ const PreviewPane = ({
   const previewTitle = content?.title ?? result.title;
 
   return (
-    <div
-      className="overflow-y-auto px-5 py-4"
-      style={{ flex: 1, minHeight: 0 }}
-    >
+    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
       <Tag minimal style={getTagStyle(nodeConfig)}>
         {nodeConfig ? nodeConfig.text : result.nodeTypeLabel}
       </Tag>
@@ -397,45 +360,24 @@ const AdvancedNodeSearchDialog = ({
       autoFocus={false}
       canEscapeKeyClose
       canOutsideClickClose
-      className="roamjs-canvas-dialog dg-advanced-node-search"
+      className="flex-col overflow-hidden bg-white p-0"
       enforceFocus={false}
       isOpen={isOpen}
       onClose={onClose}
       style={{
-        display: "flex",
-        flexDirection: "column",
         height: "72vh",
         maxWidth: "980px",
-        overflow: "hidden",
-        padding: 0,
         width: "min(980px, calc(100vw - 64px))",
       }}
     >
-      <style>{SEARCH_DIALOG_STYLES}</style>
       <div
         onClick={(event) => event.stopPropagation()}
         onKeyDown={onKeyDown}
         onMouseDown={(event) => event.stopPropagation()}
         onMouseUp={(event) => event.stopPropagation()}
-        style={{
-          display: "flex",
-          flex: 1,
-          flexDirection: "column",
-          minHeight: 0,
-          overflow: "hidden",
-          pointerEvents: "all",
-        }}
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <div
-          className="border-b border-gray-200"
-          style={{
-            alignItems: "center",
-            display: "flex",
-            flex: "0 0 auto",
-            gap: 8,
-            padding: "8px 12px",
-          }}
-        >
+        <div className="flex flex-none items-center gap-2 border-b border-gray-200 px-3 py-2">
           <InputGroup
             fill
             inputRef={inputRef}
@@ -448,29 +390,14 @@ const AdvancedNodeSearchDialog = ({
           />
           <Button icon="cross" minimal onClick={onClose} title="Close search" />
         </div>
-        <div
-          style={{
-            display: "flex",
-            flex: 1,
-            minHeight: 0,
-            overflow: "hidden",
-            width: "100%",
-          }}
-        >
+        <div className="flex min-h-0 w-full flex-1 overflow-hidden">
           {showSplitView ? (
             <>
               <div
                 aria-label="Search results"
-                className="overflow-y-auto py-1"
+                className="w-1/3 shrink-0 overflow-y-auto border-r border-gray-200 py-1"
                 ref={resultsPanelRef}
                 role="listbox"
-                style={{
-                  borderRight: "1px solid rgba(31, 31, 31, 0.12)",
-                  flex: "0 0 33.333%",
-                  maxWidth: "33.333%",
-                  minHeight: 0,
-                  width: "33.333%",
-                }}
               >
                 {results.map((result, index) => (
                   <ResultRow
@@ -484,16 +411,7 @@ const AdvancedNodeSearchDialog = ({
                   />
                 ))}
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  flex: "1 1 0",
-                  flexDirection: "column",
-                  minHeight: 0,
-                  minWidth: 0,
-                  overflow: "hidden",
-                }}
-              >
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                 <PreviewPane
                   content={previewContent}
                   keywords={keywords}
@@ -507,16 +425,7 @@ const AdvancedNodeSearchDialog = ({
               </div>
             </>
           ) : (
-            <div
-              className="w-full px-4 py-8 text-center text-sm text-gray-500"
-              style={{
-                alignItems: "center",
-                display: "flex",
-                flex: 1,
-                justifyContent: "center",
-                minHeight: 0,
-              }}
-            >
+            <div className="flex min-h-0 w-full flex-1 items-center justify-center px-4 py-8 text-center text-sm text-gray-500">
               {contentState === "indexing" && (
                 <Spinner size={SpinnerSize.SMALL} />
               )}
