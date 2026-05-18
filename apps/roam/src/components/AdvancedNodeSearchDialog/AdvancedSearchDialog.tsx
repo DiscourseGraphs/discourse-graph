@@ -27,6 +27,7 @@ import {
   type InsertTarget,
 } from "~/utils/advancedSearchFooterUtils";
 import { DiscourseNodeSortControl } from "~/components/DiscourseNodeSortControl";
+import { DiscourseNodeTypeFilter } from "~/components/DiscourseNodeTypeFilter";
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
@@ -157,6 +158,8 @@ const AdvancedNodeSearchDialog = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [sort, setSort] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
+  const [discourseNodes, setDiscourseNodes] = useState<DiscourseNode[]>([]);
+  const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
   const miniSearchRef = useRef<MiniSearch<
     SearchResult & { id: string }
   > | null>(null);
@@ -165,14 +168,10 @@ const AdvancedNodeSearchDialog = ({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [insertTarget, setInsertTarget] = useState<InsertTarget | null>(null);
 
-  const nodeConfigByType = useMemo(() => {
-    const discourseNodes = getDiscourseNodes().filter(
-      (node) => node.backedBy === "user",
-    );
-    return Object.fromEntries(
-      discourseNodes.map((node) => [node.type, node]),
-    ) as Record<string, DiscourseNode>;
-  }, []);
+  const nodeConfigByType = useMemo(
+    () => Object.fromEntries(discourseNodes.map((node) => [node.type, node])),
+    [discourseNodes],
+  );
 
   const activeResult = results[activeIndex] ?? null;
   const keywords = debouncedSearchTerm.split(/\s+/).filter(Boolean);
@@ -200,6 +199,7 @@ const AdvancedNodeSearchDialog = ({
       setDebouncedSearchTerm("");
       setActiveIndex(0);
       setSort(DEFAULT_SORT_CONFIG);
+      setSelectedNodeTypeIds([]);
       setResults([]);
       setIndexError(false);
     }
@@ -221,21 +221,32 @@ const AdvancedNodeSearchDialog = ({
       miniSearch: miniSearchRef.current,
       allResults: allResultsRef.current,
       searchTerm: debouncedSearchTerm,
+      typeFilter: selectedNodeTypeIds.length
+        ? selectedNodeTypeIds
+        : undefined,
     });
 
     setResults(sortSearchResults({ hits: scoredHits, sort }));
-  }, [debouncedSearchTerm, indexError, isIndexLoading, isOpen, sort]);
+  }, [
+    debouncedSearchTerm,
+    indexError,
+    isIndexLoading,
+    isOpen,
+    selectedNodeTypeIds,
+    sort,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
     setIsIndexLoading(true);
     setIndexError(false);
 
-    const discourseNodes = getDiscourseNodes().filter(
+    const userDiscourseNodes = getDiscourseNodes().filter(
       (node) => node.backedBy === "user",
     );
+    setDiscourseNodes(userDiscourseNodes);
 
-    void buildSearchIndex(discourseNodes)
+    void buildSearchIndex(userDiscourseNodes)
       .then(({ miniSearch, results: indexedResults }) => {
         if (cancelled) return;
         miniSearchRef.current = miniSearch;
@@ -270,7 +281,7 @@ const AdvancedNodeSearchDialog = ({
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [debouncedSearchTerm, sort]);
+  }, [debouncedSearchTerm, selectedNodeTypeIds, sort]);
 
   useEffect(() => {
     const panel = resultsPanelRef.current;
@@ -419,7 +430,11 @@ const AdvancedNodeSearchDialog = ({
             placeholder="Search discourse nodes..."
             value={searchTerm}
           />
-
+          <DiscourseNodeTypeFilter
+            nodeTypes={discourseNodes}
+            onSelectedTypeIdsChange={setSelectedNodeTypeIds}
+            selectedTypeIds={selectedNodeTypeIds}
+          />
           <DiscourseNodeSortControl
             disabled={isIndexLoading || indexError}
             onSortChange={handleSortChange}
