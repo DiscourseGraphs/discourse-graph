@@ -9,6 +9,11 @@ export const GET = async (request: NextRequest): Promise<NextResponse> => {
   try {
     if (typeof token !== "string") throw new Error("Please provide a token");
     if (typeof url !== "string") throw new Error("Please provide a single URL");
+    if (
+      url.indexOf("://") >= 0 &&
+      !url.startsWith(request.nextUrl.origin + "/")
+    )
+      throw new Error("Absolute URLs should be within the application");
 
     const client = await createClient();
     const result = await client.rpc("get_secret_token", {
