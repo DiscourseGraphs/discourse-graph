@@ -78,17 +78,6 @@ const API_CONFIG = {
   EMBEDDINGS_URL: `${nextApiRoot()}/embeddings/openai/small`,
 } as const;
 
-const getSupabaseHostForDebug = (): string => {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  if (!supabaseUrl) return "unconfigured";
-
-  try {
-    return new URL(supabaseUrl).host;
-  } catch {
-    return "invalid";
-  }
-};
-
 const handleApiError = async (
   response: Response,
   context: string,
@@ -455,12 +444,6 @@ export const performHydeSearch = async ({
     const supabase = await getLoggedInClient();
     const spaceId = context.spaceId;
     if (!supabase) return [];
-
-    console.info("[Discourse Graphs] HyDE all-pages candidate query", {
-      supabaseHost: getSupabaseHostForDebug(),
-      spaceId,
-      usesContentOfConceptEmbed: false,
-    });
 
     candidateNodesForHyde = (
       await getNodesByType({
