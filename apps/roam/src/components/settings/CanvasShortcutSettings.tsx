@@ -5,14 +5,12 @@ import getDiscourseNodes, {
   excludeDefaultNodes,
 } from "~/utils/getDiscourseNodes";
 import { setPersonalSetting } from "~/components/settings/utils/accessors";
-import { getSetting, setSetting } from "~/utils/extensionSettings";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
+import { setSetting } from "~/utils/extensionSettings";
 import { CANVAS_NODE_SHORTCUTS_KEY } from "~/data/userSettings";
-import type { CanvasNodeShortcuts } from "./utils/zodSchema";
-
-const BLOCK_PROP_KEY = "Canvas node shortcuts";
+import type { CanvasNodeShortcuts, PersonalSettings } from "./utils/zodSchema";
 
 type ShortcutRowProps = {
-  nodeType: string;
   nodeText: string;
   defaultShortcut: string;
   initialEnabled: boolean;
@@ -22,7 +20,6 @@ type ShortcutRowProps = {
 };
 
 const ShortcutRow = ({
-  nodeType,
   nodeText,
   defaultShortcut,
   initialEnabled,
@@ -30,22 +27,17 @@ const ShortcutRow = ({
   onEnabledChange,
   onValueChange,
 }: ShortcutRowProps) => {
-  const enabledKey = [BLOCK_PROP_KEY, nodeType, "enabled"];
-  const valueKey = [BLOCK_PROP_KEY, nodeType, "value"];
-
   const [enabled, setEnabled] = useState(initialEnabled);
   const [storedValue, setStoredValue] = useState(initialValue);
 
   const persistValue = (value: string) => {
     setStoredValue(value);
-    setPersonalSetting(valueKey, value);
     onValueChange(value);
   };
 
   const handleEnabledChange = (e: React.FormEvent<HTMLInputElement>) => {
     const checked = e.currentTarget.checked;
     setEnabled(checked);
-    setPersonalSetting(enabledKey, checked);
     if (!checked) {
       persistValue("");
     }
@@ -89,10 +81,16 @@ const ShortcutRow = ({
   );
 };
 
-const CanvasShortcutSettings = () => {
+type CanvasShortcutSettingsProps = {
+  personalSettings: PersonalSettings;
+};
+
+const CanvasShortcutSettings = ({
+  personalSettings,
+}: CanvasShortcutSettingsProps) => {
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
-  const [shortcuts, setShortcuts] = useState<CanvasNodeShortcuts>(() =>
-    getSetting<CanvasNodeShortcuts>(CANVAS_NODE_SHORTCUTS_KEY, {}),
+  const [shortcuts, setShortcuts] = useState<CanvasNodeShortcuts>(
+    () => personalSettings[PERSONAL_KEYS.canvasNodeShortcuts],
   );
 
   const updateShortcut = (
@@ -102,6 +100,7 @@ const CanvasShortcutSettings = () => {
     const current = shortcuts[nodeType] ?? { value: "", enabled: false };
     const next = { ...shortcuts, [nodeType]: { ...current, ...update } };
     void setSetting(CANVAS_NODE_SHORTCUTS_KEY, next);
+    setPersonalSetting([PERSONAL_KEYS.canvasNodeShortcuts], next);
     setShortcuts(next);
   };
 
@@ -125,7 +124,6 @@ const CanvasShortcutSettings = () => {
               return (
                 <ShortcutRow
                   key={node.type}
-                  nodeType={node.type}
                   nodeText={node.text}
                   defaultShortcut={node.shortcut}
                   initialEnabled={override?.enabled ?? false}

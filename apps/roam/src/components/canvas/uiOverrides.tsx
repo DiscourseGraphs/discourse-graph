@@ -51,8 +51,6 @@ import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
-import { CANVAS_NODE_SHORTCUTS_KEY } from "~/data/userSettings";
-import { getSetting } from "~/utils/extensionSettings";
 import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
@@ -401,10 +399,10 @@ export const createUiOverrides = ({
         editor.setCurrentTool("discourse-tool");
       },
     };
-    const canvasNodeShortcuts = getSetting<CanvasNodeShortcuts>(
-      CANVAS_NODE_SHORTCUTS_KEY,
-      {},
-    );
+    const canvasNodeShortcuts =
+      getPersonalSetting<CanvasNodeShortcuts>([
+        PERSONAL_KEYS.canvasNodeShortcuts,
+      ]) ?? {};
 
     allNodes.forEach((node, index) => {
       const nodeId = node.type;
