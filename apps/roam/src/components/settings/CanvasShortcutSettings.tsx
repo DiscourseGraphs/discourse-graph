@@ -81,13 +81,11 @@ const ShortcutRow = ({
   );
 };
 
-type CanvasShortcutSettingsProps = {
-  personalSettings: PersonalSettings;
-};
-
 const CanvasShortcutSettings = ({
   personalSettings,
-}: CanvasShortcutSettingsProps) => {
+}: {
+  personalSettings: PersonalSettings;
+}) => {
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
   const [shortcuts, setShortcuts] = useState<CanvasNodeShortcuts>(
     () => personalSettings[PERSONAL_KEYS.canvasNodeShortcuts],
