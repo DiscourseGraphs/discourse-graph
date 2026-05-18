@@ -1,9 +1,14 @@
-import dotenv from "dotenv";
-import path from "path";
+import { getVariant, config } from "@repo/database/dbDotEnv";
 
-dotenv.config({
-  path: path.resolve(__dirname, "../../../packages/database/.env.local"),
-});
+const variant = getVariant();
+
+if (variant !== "none" && variant !== "local") {
+  console.error(
+    "Tests are destructive, not running against production or branch",
+  );
+  process.exit(-1);
+}
+config();
 
 process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY =
   process.env.SUPABASE_PUBLISHABLE_KEY;
