@@ -78,6 +78,17 @@ const API_CONFIG = {
   EMBEDDINGS_URL: `${nextApiRoot()}/embeddings/openai/small`,
 } as const;
 
+const getSupabaseHostForDebug = (): string => {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  if (!supabaseUrl) return "unconfigured";
+
+  try {
+    return new URL(supabaseUrl).host;
+  } catch {
+    return "invalid";
+  }
+};
+
 const handleApiError = async (
   response: Response,
   context: string,
@@ -445,22 +456,28 @@ export const performHydeSearch = async ({
     const spaceId = context.spaceId;
     if (!supabase) return [];
 
+    console.info("[Discourse Graphs] HyDE all-pages candidate query", {
+      supabaseHost: getSupabaseHostForDebug(),
+      spaceId,
+      usesContentOfConceptEmbed: false,
+    });
+
     candidateNodesForHyde = (
       await getNodesByType({
         supabase,
         spaceId,
-        fields: { content: ["source_local_id", "text"] },
+        fields: { concepts: ["source_local_id", "name"], content: [] },
         ofTypes: validTypes,
-        pagination: { limit: 10000 },
+        pagination: { limit: 1000 },
       })
     )
       .map((c) => {
         const node = findDiscourseNode({
-          uid: c.Content?.source_local_id || "",
+          uid: c.source_local_id || "",
         });
         return {
-          uid: c.Content?.source_local_id || "",
-          text: c.Content?.text || "",
+          uid: c.source_local_id || "",
+          text: c.name || "",
           type: node ? node.type : "",
         };
       })
