@@ -112,10 +112,15 @@ export const buildSearchIndex = async (
   miniSearch: MiniSearch<MiniSearchDocument>;
   results: SearchResult[];
 }> => {
-  const resultsByType = await Promise.all(
+  const resultsByType = await Promise.allSettled(
     discourseNodes.map(queryNodesForType),
   );
-  const results = resultsByType.flat();
+  const results = resultsByType
+    .filter(
+      (r): r is PromiseFulfilledResult<SearchResult[]> =>
+        r.status === "fulfilled",
+    )
+    .flatMap((r) => r.value);
 
   const miniSearch = new MiniSearch<MiniSearchDocument>({
     fields: ["title", "nodeTypeLabel"],
