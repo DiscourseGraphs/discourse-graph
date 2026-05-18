@@ -1,10 +1,19 @@
 import MiniSearch from "minisearch";
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
-import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
+import {
+  DISCOURSE_NODE_MIN_SEARCH_SCORE,
+  DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
+  DISCOURSE_NODE_SEARCH_METADATA_PULL,
+  type PulledDiscourseNode,
+  getPulledDiscourseNodeAuthorName,
+  getPulledDiscourseNodeTitle,
+  getPulledDiscourseNodeUid,
+  queryDiscourseNodesByFormat,
+} from "~/utils/discourseNodeSearch";
 
 export const DEBOUNCE_MS = 250;
 export const MAX_RESULTS = 50;
-export const MIN_SEARCH_SCORE = 0.1;
+export const MIN_SEARCH_SCORE = DISCOURSE_NODE_MIN_SEARCH_SCORE;
 export const EXCERPT_LENGTH = 200;
 
 export type SearchResult = {
@@ -23,30 +32,6 @@ export type NodeContent = {
   lines: string[];
   excerpt: string;
 };
-
-/* eslint-disable @typescript-eslint/naming-convention */
-type PulledNode = {
-  [key: string]: unknown;
-  ":block/string"?: string;
-  ":block/uid"?: string;
-  ":node/title"?: string;
-  ":create/time"?: string | number;
-  ":edit/time"?: string | number;
-  ":create/user"?: PulledUser;
-  ":edit/user"?: PulledUser;
-  ":block/children"?: PulledBlock[];
-};
-
-type PulledUser = {
-  ":user/display-name"?: string;
-  ":user/email"?: string;
-};
-
-type PulledBlock = {
-  ":block/string"?: string;
-  ":block/order"?: number;
-};
-/* eslint-disable @typescript-eslint/naming-convention */
 
 type MiniSearchDocument = SearchResult & {
   id: string;
@@ -101,14 +86,7 @@ const truncateText = (value: string, maxLength: number): string => {
   return `${normalized.slice(0, maxLength - 1).trim()}...`;
 };
 
-const getAuthorName = (pulled: PulledNode): string =>
-  pulled[":edit/user"]?.[":user/display-name"] ||
-  pulled[":create/user"]?.[":user/display-name"] ||
-  pulled[":edit/user"]?.[":user/email"] ||
-  pulled[":create/user"]?.[":user/email"] ||
-  "Unknown";
-
-const getPulledTextLines = (pulled: PulledNode | null): string[] => {
+const getPulledTextLines = (pulled: PulledDiscourseNode | null): string[] => {
   if (!pulled) return [];
 
   const ownText = pulled[":block/string"];
@@ -131,13 +109,12 @@ export const pullNodeContent = (
     const pulled = window.roamAlphaAPI.pull(
       "[:block/string :node/title {:block/children [:block/string :block/order]}]",
       [":block/uid", uid],
-    ) as PulledNode | null;
+    ) as PulledDiscourseNode | null;
 
     if (!pulled) return null;
 
     const lines = getPulledTextLines(pulled);
-    const title =
-      pulled[":node/title"] || pulled[":block/string"] || fallbackTitle;
+    const title = getPulledDiscourseNodeTitle(pulled) || fallbackTitle;
 
     return {
       title,
@@ -153,31 +130,16 @@ export const pullNodeContent = (
 const queryNodesForType = async (
   node: DiscourseNode,
 ): Promise<SearchResult[]> => {
-  if (!node.format) return [];
-
   try {
-    const regex = getDiscourseNodeFormatExpression(node.format);
-    const regexPattern = regex.source
-      .replace(/\\/g, "\\\\")
-      .replace(/"/g, '\\"');
+    const pulledNodes = await queryDiscourseNodesByFormat({
+      node,
+      pullExpression: DISCOURSE_NODE_SEARCH_METADATA_PULL,
+    });
 
-    const query = `[
-      :find
-        (pull ?node [:block/string :node/title :block/uid :create/time :edit/time {:create/user [:user/display-name :user/email]} {:edit/user [:user/display-name :user/email]}])
-      :where
-        [(re-pattern "${regexPattern}") ?title-regex]
-        [?node :node/title ?node-title]
-        [(re-find ?title-regex ?node-title)]
-    ]`;
-
-    const queryResults = (await window.roamAlphaAPI.data.async.fast.q(
-      query,
-    )) as [PulledNode][];
-
-    return queryResults
-      .map(([result]) => {
-        const uid = result[":block/uid"];
-        const title = result[":node/title"] || result[":block/string"] || "";
+    return pulledNodes
+      .map((result) => {
+        const uid = getPulledDiscourseNodeUid(result);
+        const title = getPulledDiscourseNodeTitle(result);
         if (!uid || !title) return null;
 
         return {
@@ -190,7 +152,7 @@ const queryNodesForType = async (
           lastModified: String(
             result[":edit/time"] || result[":create/time"] || "",
           ),
-          authorName: getAuthorName(result),
+          authorName: getPulledDiscourseNodeAuthorName(result),
         };
       })
       .filter((result): result is SearchResult => !!result);
@@ -238,9 +200,7 @@ export const searchIndexedNodes = ({
   return miniSearch
     .search(searchTerm, {
       fields: ["title", "nodeTypeLabel"],
-      fuzzy: 0.2,
-      prefix: true,
-      combineWith: "AND",
+      ...DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
     })
     .filter((result) => result.score > MIN_SEARCH_SCORE)
     .slice(0, MAX_RESULTS)

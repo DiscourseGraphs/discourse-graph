@@ -22,7 +22,13 @@ import posthog from "posthog-js";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import { OnloadArgs } from "roamjs-components/types";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
-import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
+import {
+  DISCOURSE_NODE_MIN_SEARCH_SCORE,
+  DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
+  getPulledDiscourseNodeTitle,
+  getPulledDiscourseNodeUid,
+  queryDiscourseNodesByFormatSync,
+} from "~/utils/discourseNodeSearch";
 import { Result } from "~/utils/types";
 import MiniSearch from "minisearch";
 import { setPersonalSetting } from "~/components/settings/utils/accessors";
@@ -39,7 +45,7 @@ type MinisearchResult = Result & {
   type: string;
 };
 
-const MIN_SEARCH_SCORE = 0.1;
+const MIN_SEARCH_SCORE = DISCOURSE_NODE_MIN_SEARCH_SCORE;
 const MAX_ITEMS_PER_TYPE = 10;
 
 const waitForBlock = ({
@@ -112,35 +118,17 @@ const NodeSearchMenu = ({
   }, []);
 
   const searchNodesForType = (node: DiscourseNode): Result[] => {
-    if (!node.format) return [];
+    const results: Result[] = [];
 
-    try {
-      const regex = getDiscourseNodeFormatExpression(node.format);
+    queryDiscourseNodesByFormatSync({ node }).forEach((result) => {
+      const uid = getPulledDiscourseNodeUid(result);
+      const text = getPulledDiscourseNodeTitle(result);
+      if (!uid || !text) return;
 
-      const regexPattern = regex.source
-        .replace(/\\/g, "\\\\")
-        .replace(/"/g, '\\"');
+      results.push({ id: uid, text, uid } as Result);
+    });
 
-      const query = `[
-      :find
-        (pull ?node [:block/string :node/title :block/uid])
-      :where
-        [(re-pattern "${regexPattern}") ?title-regex]
-        [?node :node/title ?node-title]
-        [(re-find ?title-regex ?node-title)]
-    ]`;
-      const results = window.roamAlphaAPI.q(query);
-
-      return results.map(([result]: any) => ({
-        id: result.uid,
-        text: result.title || result.string,
-        uid: result.uid,
-      }));
-    } catch (error) {
-      console.error(`Error querying for node type ${node.type}:`, error);
-      console.error(`Node format:`, node.format);
-      return [];
-    }
+    return results;
   };
 
   const searchWithMiniSearch = useCallback(
@@ -177,9 +165,7 @@ const NodeSearchMenu = ({
 
       const rawSearchResults = search.search(searchTerm, {
         fields: ["text"],
-        fuzzy: 0.2,
-        prefix: true,
-        combineWith: "AND",
+        ...DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
         filter: typeFilter
           ? (result) =>
               typeFilter.includes((result as unknown as MinisearchResult).type)
