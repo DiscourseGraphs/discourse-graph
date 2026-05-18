@@ -67,7 +67,9 @@ Given("the database is blank", async () => {
   assert.equal(r.error, null);
   const r3 = await client.from("group_membership").select("group_id");
   assert.equal(r3.error, null);
-  const groupIds = new Set((r3.data || []).map(({ group_id }) => group_id));
+  const groupIds = new Set(
+    (r3.data || []).map(({ group_id: groupId }) => groupId),
+  );
   for (const id of groupIds) {
     const ur = await client.auth.admin.deleteUser(id);
     assert.equal(ur.error, null);
@@ -77,8 +79,8 @@ Given("the database is blank", async () => {
     .select("dg_account")
     .not("dg_account", "is", null);
   assert.equal(r2.error, null);
-  for (const { dg_account } of r2.data || []) {
-    const r = await client.auth.admin.deleteUser(dg_account!);
+  for (const { dg_account: dgAccount } of r2.data || []) {
+    const r = await client.auth.admin.deleteUser(dgAccount);
     assert.equal(r.error, null);
   }
   r = await client.from("PlatformAccount").delete().neq("id", -1);
