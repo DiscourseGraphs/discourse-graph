@@ -115,7 +115,7 @@ const PreviewPane = ({ result }: { result: SearchResult | null }) => {
         className="min-h-0 flex-1 overflow-y-auto border-t border-gray-200 px-5 py-3"
         onMouseDown={(event) => event.preventDefault()}
       >
-        <div className="roamjs-discourse-node-search-preview pointer-events-none">
+        <div className="pointer-events-none">
           {isPage ? (
             <RenderRoamPage hideMentions key={result.uid} uid={result.uid} />
           ) : (
