@@ -34,6 +34,8 @@ Keep the detailed implementation plans in the related notes. This scope should s
 - **Proposed solution**: Add `Content.content_type`, keep `variant` as the semantic content slice, and write canonical DG ATJSON rows alongside existing text and Markdown rows, with the structured document stored in `Content.metadata.content` and derived plain text stored in `Content.text`.
 - **Expected outcome**: The database can store canonical ATJSON without interrupting current Obsidian behavior, and the later ATJSON-to-Obsidian, ATJSON-to-Roam, and HTML conversion work has a stable storage target.
 
+**Implementation note**: The PR-shaped implementation includes package-level Obsidian, Roam, and HTML renderers earlier than the original v0 scope so parity tests can live with the shared content model. Production destination readers still do not prefer ATJSON in this rollout.
+
 ## 2. Goal + Non-Goals
 
 ### Goal
@@ -92,10 +94,9 @@ The v0 goal is specifically to:
 
 ### Deferred to v1+
 
-- Port DG ATJSON to Obsidian Markdown rendering.
-- Port DG ATJSON to Roam rendering/materialization.
-- Add renderer parity tests and then switch destination readers to prefer ATJSON.
-- Add HTML rendering for website publishing.
+- Switch production destination readers to prefer ATJSON.
+- Harden renderer parity tests beyond the initial package-level fixtures.
+- Add website publishing integration that consumes the shared HTML renderer.
 - Decide whether native exports should also be stored as durable representations.
 - Decide long-term content API representation negotiation.
 
@@ -289,6 +290,7 @@ The v0 goal is specifically to:
 - **Acceptance criteria**:
   - ATJSON rows store derived plain text in `Content.text`.
   - Serialized ATJSON is never sent to embedding generation.
+  - `upsert_content` ignores inline embeddings on non-`text/plain` rows, including Markdown and ATJSON representations.
 
 #### N4: Type safety and maintainability
 
@@ -400,7 +402,7 @@ The v0 goal is specifically to:
 ### Risk: Serialized JSON enters search or embedding paths
 
 - **Impact**: Search quality drops, embeddings become noisy, and text tooling becomes harder to reason about.
-- **Mitigation**: Store canonical content in `metadata.content`; store only derived plain text in `text`; add regression tests.
+- **Mitigation**: Store canonical content in `metadata.content`; store only derived plain text in `text`; keep app embedding requests on `text/plain`; make `upsert_content` ignore inline embeddings on Markdown and ATJSON rows; add regression tests.
 
 ### Risk: File references lose their target row
 

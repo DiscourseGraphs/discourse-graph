@@ -165,12 +165,15 @@ Port first:
 - Roam page/block tree to DG document conversion
 - validators for spans, title/body rules, block parents, and reference attributes
 
-Defer until after write-only storage:
+Implement package-level renderers in this PR-shaped pass, but keep production destination readers on the current text and Markdown rows until read-path parity is intentionally enabled:
 
 - DG document to Obsidian Markdown rendering
 - DG document to Roam page/block rendering
+- DG document to HTML rendering
+
+Defer until after write-only storage and renderer parity hardening:
+
 - destination import reads from ATJSON
-- HTML rendering
 
 ## Write-only rollout
 
@@ -207,7 +210,7 @@ Update `apps/obsidian/src/utils/upsertNodesAsContentWithEmbeddings.ts` so conten
 
 For the ATJSON row, store the `DgDocument` in `metadata.content` and store a derived plain-text projection in `text`.
 
-Keep embeddings only on intentional searchable text rows. Do not embed serialized ATJSON. If ATJSON rows are embedded later, embed their derived `text` projection, not the JSON payload.
+Keep embeddings only on intentional searchable text rows. Do not embed serialized ATJSON. The database `upsert_content` path should ignore `embedding_inline` for non-`text/plain` rows so Markdown and ATJSON representations cannot accidentally create embeddings. If ATJSON rows are embedded later, embed their derived `text` projection, not the JSON payload.
 
 ### Roam write path
 
@@ -232,16 +235,14 @@ During this phase:
 
 ## Later conversion rollout
 
-After ATJSON write coverage is stable:
+After ATJSON write coverage is stable and package-level renderer fixtures are hardened:
 
-1. Port `atJsonToObsidian` into a DG document renderer.
-2. Add tests showing DG ATJSON renders to equivalent Obsidian Markdown for representative nodes.
-3. Add an Obsidian importer fallback order:
+1. Add an Obsidian importer fallback order:
    - prefer ATJSON only when renderer tests pass and source row exists
    - fall back to `full/text/markdown`
-4. Port `atJsonToRoam` and `decodeState` concepts into a Roam renderer/materializer.
-5. Add Roam destination import from DG ATJSON.
-6. Only after both destination paths are stable, decide whether Markdown remains a durable native export or becomes derived output.
+2. Add Roam destination import from DG ATJSON.
+3. Wire website publishing to the shared HTML renderer.
+4. Only after destination paths are stable, decide whether Markdown remains a durable native export or becomes derived output.
 
 ## Test plan
 
@@ -255,6 +256,7 @@ Database tests:
 - ATJSON rows store the canonical document in `metadata.content`.
 - ATJSON rows store derived searchable text in `text`, not serialized JSON.
 - Embedding views continue to work for text rows.
+- `upsert_content` only accepts inline embeddings for `text/plain` rows.
 
 Content-model package tests:
 
@@ -271,6 +273,7 @@ App regression tests:
 - Obsidian sync writes ATJSON rows without changing current Markdown rows.
 - Roam sync writes ATJSON rows without removing or replacing current text rows.
 - Serialized ATJSON is never stored in `Content.text` or sent for embeddings.
+- Storage-layer embedding guards reject accidental inline embeddings on Markdown and ATJSON rows.
 
 Manual validation:
 

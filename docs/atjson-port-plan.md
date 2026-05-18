@@ -44,7 +44,7 @@ The decided B1 storage shape is:
 
 - `variant` remains the semantic slice of a node, such as `direct`, `full`, or `direct_and_description`
 - `Content.content_type` becomes the representation format, such as `text/plain`, `text/markdown`, or `application/vnd.discourse-graph.atjson+json; version=1`
-- ATJSON is initially written alongside existing rows, with the structured document stored in `Content.metadata` and a derived plain-text projection stored in `Content.text`
+- ATJSON is initially written alongside existing rows, with the structured document stored in `Content.metadata.content` and a derived plain-text projection stored in `Content.text`
 - Existing readers keep using the current text and Markdown rows
 
 This split is important because the current repo uses `Content.text` for text search, discovery, and embeddings, while app-native payloads are still organized by content variants. Write-only ATJSON storage can land before destination renderers are active, but API negotiation and ATJSON-preferred import should wait for renderer parity.
@@ -471,7 +471,7 @@ Deliver:
 Notes:
 
 - Write-only storage has a concrete plan in `docs/atjson-canonical-storage-plan.md`
-- ATJSON rows store the canonical structured document in `Content.metadata`
+- ATJSON rows store the canonical structured document in `Content.metadata.content`
 - `Content.text` stores a derived plain-text projection for search, discovery, and fallback display
 - `Content.content_type` distinguishes `text/plain`, `text/markdown`, and DG ATJSON
 - Do not move app import paths to ATJSON until renderer parity tests exist

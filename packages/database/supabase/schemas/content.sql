@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS public."Content" (
     document_id bigint NOT NULL,
     source_local_id character varying,
     variant public."ContentVariant" NOT NULL DEFAULT 'direct',
+    content_type text NOT NULL DEFAULT 'text/plain',
     author_id bigint,
     creator_id bigint,
     created timestamp without time zone NOT NULL,
@@ -130,7 +131,7 @@ CREATE INDEX "Content_part_of" ON public."Content" USING btree (
 CREATE INDEX "Content_space" ON public."Content" USING btree (space_id);
 
 CREATE UNIQUE INDEX content_space_local_id_variant_idx ON public."Content" USING btree (
-    space_id, source_local_id, variant
+    space_id, source_local_id, variant, content_type
 ) NULLS DISTINCT;
 
 CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
@@ -261,7 +262,8 @@ SELECT
     scale,
     space_id,
     last_modified,
-    part_of_id
+    part_of_id,
+    content_type
 FROM public."Content"
     LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (
@@ -337,7 +339,8 @@ CREATE TYPE public.content_local_input AS (
     author_inline public.account_local_input,
     creator_inline public.account_local_input,
     embedding_inline public.inline_embedding_input,
-    variant public."ContentVariant"
+    variant public."ContentVariant",
+    content_type text
 );
 
 
@@ -408,17 +411,33 @@ BEGIN
     SELECT id FROM public."PlatformAccount"
       WHERE account_local_id = account_local_id(author_inline(data)) INTO content.author_id;
   END IF;
-  IF data.part_of_local_id IS NOT NULL THEN
-    SELECT id FROM public."Content"
-      WHERE source_local_id = data.part_of_local_id INTO content.part_of_id;
-  END IF;
   IF data.space_url IS NOT NULL THEN
     SELECT id FROM public."Space"
     WHERE url = data.space_url INTO content.space_id;
   END IF;
+  IF data.part_of_local_id IS NOT NULL THEN
+    SELECT parent_content.id INTO content.part_of_id FROM public."Content" AS parent_content
+      WHERE parent_content.source_local_id = data.part_of_local_id
+      AND (content.space_id IS NULL OR parent_content.space_id = content.space_id)
+      ORDER BY
+        CASE
+          WHEN parent_content.variant = 'direct'::public."ContentVariant" AND parent_content.content_type = 'text/plain' THEN 0
+          WHEN parent_content.content_type = 'text/plain' THEN 1
+          WHEN parent_content.content_type = 'text/markdown' THEN 2
+          ELSE 3
+        END,
+        parent_content.id
+      LIMIT 1;
+  END IF;
   -- now avoid null defaults
   IF content.metadata IS NULL then
     content.metadata := '{}';
+  END IF;
+  IF content.content_type IS NULL then
+    content.content_type := CASE
+      WHEN content.variant = 'full'::public."ContentVariant" THEN 'text/markdown'
+      ELSE 'text/plain'
+    END;
   END IF;
   RETURN content;
 END;
@@ -598,6 +617,7 @@ BEGIN
         document_id,
         source_local_id,
         variant,
+        content_type,
         author_id,
         creator_id,
         created,
@@ -611,6 +631,13 @@ BEGIN
         db_content.document_id,
         db_content.source_local_id,
         COALESCE(db_content.variant, 'direct'::public."ContentVariant"),
+        COALESCE(
+          db_content.content_type,
+          CASE
+            WHEN db_content.variant = 'full'::public."ContentVariant" THEN 'text/markdown'
+            ELSE 'text/plain'
+          END
+        ),
         db_content.author_id,
         db_content.creator_id,
         db_content.created,
@@ -621,7 +648,7 @@ BEGIN
         db_content.last_modified,
         db_content.part_of_id
     )
-    ON CONFLICT (space_id, source_local_id, variant) DO UPDATE SET
+    ON CONFLICT (space_id, source_local_id, variant, content_type) DO UPDATE SET
         document_id = COALESCE(db_content.document_id, EXCLUDED.document_id),
         author_id = COALESCE(db_content.author_id, EXCLUDED.author_id),
         creator_id = COALESCE(db_content.creator_id, EXCLUDED.creator_id),
@@ -632,7 +659,7 @@ BEGIN
         last_modified = COALESCE(db_content.last_modified, EXCLUDED.last_modified),
         part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id)
     RETURNING id INTO STRICT upsert_id;
-    IF model(embedding_inline(local_content)) IS NOT NULL THEN
+    IF model(embedding_inline(local_content)) IS NOT NULL AND db_content.content_type = 'text/plain' THEN
         PERFORM public.upsert_content_embedding(upsert_id, model(embedding_inline(local_content)),  vector(embedding_inline(local_content)));
     END IF;
     RETURN NEXT upsert_id;

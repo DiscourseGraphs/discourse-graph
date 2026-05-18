@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { Json } from "@repo/database/dbTypes";
+import {
+  OBSIDIAN_IMPORT_CONTENT_TYPES,
+  TEXT_PLAIN_CONTENT_TYPE,
+  getContentTypeForObsidianImportVariant,
+  selectObsidianImportContentRows,
+} from "./importContentTypes";
 import matter from "gray-matter";
 import { App, Notice, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
@@ -66,9 +72,10 @@ export const getPublishedNodesForGroups = async ({
   const { data, error } = await client
     .from("my_contents")
     .select(
-      "source_local_id, space_id, text, created, last_modified, variant, metadata, author_id",
+      "source_local_id, space_id, text, created, last_modified, variant, content_type, metadata, author_id",
     )
-    .neq("space_id", currentSpaceId);
+    .neq("space_id", currentSpaceId)
+    .in("content_type", OBSIDIAN_IMPORT_CONTENT_TYPES);
 
   if (error) {
     console.error("Error fetching published nodes:", error);
@@ -86,6 +93,7 @@ export const getPublishedNodesForGroups = async ({
     created: string | null;
     last_modified: string | null;
     variant: string | null;
+    content_type: string | null;
     author_id: number | null;
     metadata: Json;
   };
@@ -109,7 +117,7 @@ export const getPublishedNodesForGroups = async ({
     const latest = withDate.reduce((a, b) =>
       (a.last_modified ?? "") >= (b.last_modified ?? "") ? a : b,
     );
-    const direct = rows.find((r) => r.variant === "direct");
+    const { direct } = selectObsidianImportContentRows(rows);
     const text = direct?.text ?? latest.text ?? "";
     const createdAt = latest.created
       ? new Date(latest.created + "Z").valueOf()
@@ -267,6 +275,7 @@ export const fetchNodeContent = async ({
     .eq("source_local_id", nodeInstanceId)
     .eq("space_id", spaceId)
     .eq("variant", variant)
+    .eq("content_type", getContentTypeForObsidianImportVariant(variant))
     .maybeSingle();
 
   if (error || !data || data.text == null) {
@@ -301,6 +310,7 @@ export const fetchNodeContentWithMetadata = async ({
     .eq("source_local_id", nodeInstanceId)
     .eq("space_id", spaceId)
     .eq("variant", variant)
+    .eq("content_type", getContentTypeForObsidianImportVariant(variant))
     .maybeSingle();
 
   if (error || !data || data.text == null) {
@@ -342,10 +352,13 @@ const fetchNodeContentForImport = async ({
 } | null> => {
   const { data, error } = await client
     .from("my_contents")
-    .select("text, created, last_modified, variant, metadata, author_id")
+    .select(
+      "text, created, last_modified, variant, content_type, metadata, author_id",
+    )
     .eq("source_local_id", nodeInstanceId)
     .eq("space_id", spaceId)
-    .in("variant", ["direct", "full"]);
+    .in("variant", ["direct", "full"])
+    .in("content_type", OBSIDIAN_IMPORT_CONTENT_TYPES);
 
   if (error) {
     console.error("Error fetching node content for import:", error);
@@ -358,10 +371,10 @@ const fetchNodeContentForImport = async ({
     last_modified: string | null;
     author_id: number | null;
     variant: string | null;
+    content_type: string | null;
     metadata: Json;
   }>;
-  const direct = rows.find((r) => r.variant === "direct");
-  const full = rows.find((r) => r.variant === "full");
+  const { direct, full } = selectObsidianImportContentRows(rows);
   const authorId = full?.author_id ?? direct?.author_id ?? null;
 
   if (
@@ -412,6 +425,7 @@ export const getSourceContentDates = async ({
     .eq("source_local_id", nodeInstanceId)
     .eq("space_id", spaceId)
     .eq("variant", "direct")
+    .eq("content_type", TEXT_PLAIN_CONTENT_TYPE)
     .maybeSingle();
   if (error || !data) return null;
   return {
@@ -1542,6 +1556,7 @@ export const refreshImportedFile = async ({
     .eq("space_id", spaceId)
     .eq("source_local_id", frontmatter.nodeInstanceId)
     .eq("variant", "direct")
+    .eq("content_type", TEXT_PLAIN_CONTENT_TYPE)
     .maybeSingle();
   const metadata = metadataResp.data?.metadata;
   const filePath: string | undefined =
