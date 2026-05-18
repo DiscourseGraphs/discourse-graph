@@ -116,8 +116,6 @@ export const DiscourseNodeSortControl = ({
   const popoverRef = useRef<HTMLElement | null>(null);
 
   const sortLabel = useMemo(() => SORT_FIELD_LABELS[sort.field], [sort.field]);
-  const isSortActive = isNonDefaultSort(sort);
-  const isTriggerActive = isOpen || isSortActive;
 
   const setOpen = useCallback(
     (nextOpen: boolean): void => {
