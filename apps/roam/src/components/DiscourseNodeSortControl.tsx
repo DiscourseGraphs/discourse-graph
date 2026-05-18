@@ -11,7 +11,6 @@ import {
   type SortConfig,
   type SortDirection,
   type SortField,
-  isNonDefaultSort,
 } from "~/components/AdvancedNodeSearchDialog/utils";
 
 const SORT_FIELDS: SortField[] = [
@@ -20,9 +19,6 @@ const SORT_FIELDS: SortField[] = [
   "dateCreated",
   "author",
 ];
-
-const POPOVER_CONTENT_CLASS =
-  "[&_.bp3-popover-content]:overflow-hidden [&_.bp3-popover-content]:rounded-lg [&_.bp3-popover-content]:p-0";
 
 export type DiscourseNodeSortControlProps = {
   sort: SortConfig;
@@ -217,10 +213,7 @@ export const DiscourseNodeSortControl = ({
         }}
         onClose={closePopover}
         onInteraction={handlePopoverInteraction}
-        popoverClassName={POPOVER_CONTENT_CLASS}
-        popoverRef={(element) => {
-          popoverRef.current = element;
-        }}
+        popoverRef={popoverRef}
         position={Position.BOTTOM_RIGHT}
         target={sortButton}
         usePortal
