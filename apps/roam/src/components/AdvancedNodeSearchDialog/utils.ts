@@ -56,21 +56,6 @@ export const splitWithHighlights = (
     }));
 };
 
-export const formatMetadataDate = (value: string): string => {
-  if (!value) return "Unknown";
-  const numericValue = Number(value);
-  const date = Number.isFinite(numericValue)
-    ? new Date(numericValue)
-    : new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-};
-
 const queryNodesForType = async (
   node: DiscourseNode,
 ): Promise<SearchResult[]> => {
