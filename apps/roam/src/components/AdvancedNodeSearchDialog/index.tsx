@@ -330,33 +330,30 @@ const AdvancedNodeSearchDialog = ({
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
         <div className="flex flex-none items-center gap-2 border-b border-gray-200 px-3 py-2">
-          <div className="min-w-0 flex-1">
-            <InputGroup
-              fill
-              inputRef={inputRef}
-              leftIcon="search"
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                setSearchTerm(event.target.value)
-              }
-              placeholder="Search discourse nodes..."
-              value={searchTerm}
-            />
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            <DiscourseNodeSortControl
-              disabled={isIndexLoading || indexError}
-              onPopoverOpenChange={setIsSortPopoverOpen}
-              onSortChange={handleSortChange}
-              sort={sort}
-            />
-            <Button
-              className="shrink-0"
-              icon="cross"
-              minimal
-              onClick={onClose}
-              title="Close search"
-            />
-          </div>
+          <InputGroup
+            fill
+            inputRef={inputRef}
+            leftIcon="search"
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+              setSearchTerm(event.target.value)
+            }
+            placeholder="Search discourse nodes..."
+            value={searchTerm}
+          />
+
+          <DiscourseNodeSortControl
+            disabled={isIndexLoading || indexError}
+            onPopoverOpenChange={setIsSortPopoverOpen}
+            onSortChange={handleSortChange}
+            sort={sort}
+          />
+          <Button
+            className="shrink-0"
+            icon="cross"
+            minimal
+            onClick={onClose}
+            title="Close search"
+          />
         </div>
         <div className="flex min-h-0 w-full flex-1 overflow-hidden">
           {showSplitView ? (
