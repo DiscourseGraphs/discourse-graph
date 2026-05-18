@@ -35,6 +35,7 @@ import {
   mergeGlobalSectionWithAccessor,
   mergePersonalSectionsWithAccessor,
 } from "~/utils/getLeftSidebarSettings";
+import { sectionsToBlockProps } from "./settings/LeftSidebarPersonalSettings";
 import discourseConfigRef, { notify } from "~/utils/discourseConfigRef";
 import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
 import {
@@ -382,6 +383,10 @@ const PersonalSections = ({
       ...config,
       personal: { ...config.personal, sections: reordered },
     });
+    setPersonalSetting(
+      [PERSONAL_KEYS.leftSidebar],
+      sectionsToBlockProps(reordered),
+    );
     void moveRoamBlockToIndex({
       blockUid: moved.uid,
       parentUid: config.personal.uid,
@@ -414,6 +419,10 @@ const PersonalSections = ({
       ...config,
       personal: { ...config.personal, sections: newSections },
     });
+    setPersonalSetting(
+      [PERSONAL_KEYS.leftSidebar],
+      sectionsToBlockProps(newSections),
+    );
     void moveRoamBlockToIndex({
       blockUid: child.uid,
       parentUid: section.childrenUid,
@@ -704,6 +713,10 @@ const LeftSidebarView = ({
       ...config,
       global: { ...config.global, children: reordered },
     });
+    setGlobalSetting(
+      [GLOBAL_KEYS.leftSidebar, LEFT_SIDEBAR_KEYS.children],
+      reordered.map((c) => c.text),
+    );
     void moveRoamBlockToIndex({
       blockUid: moved.uid,
       parentUid: config.global.childrenUid,
