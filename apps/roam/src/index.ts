@@ -20,6 +20,7 @@ import styles from "./styles/styles.css";
 import discourseFloatingMenuStyles from "./styles/discourseFloatingMenuStyles.css";
 import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
+import advancedSearchStyles from "./styles/advancedSearch.css";
 import streamlineStyling from "./styles/streamlineStyling";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
@@ -102,6 +103,7 @@ export default runExtension(async (onloadArgs) => {
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
   const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
+  const advancedSearchStyle = addStyle(advancedSearchStyles);
 
   // Add streamline styling only if enabled
   const isStreamlineStylingEnabled =
@@ -204,6 +206,7 @@ export default runExtension(async (onloadArgs) => {
       settingsStyle,
       discourseGraphStyle,
       discourseFloatingMenuStyle,
+      advancedSearchStyle,
       ...(streamlineStyleElement ? [streamlineStyleElement] : []),
     ],
     observers: observers,
