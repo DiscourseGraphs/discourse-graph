@@ -4,7 +4,6 @@ import {
   DISCOURSE_NODE_MIN_SEARCH_SCORE,
   DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
   DISCOURSE_NODE_SEARCH_METADATA_PULL,
-  type PulledDiscourseNode,
   getPulledDiscourseNodeAuthorName,
   getPulledDiscourseNodeTitle,
   getPulledDiscourseNodeUid,
@@ -13,7 +12,6 @@ import {
 
 export const DEBOUNCE_MS = 250;
 export const MAX_RESULTS = 50;
-export const EXCERPT_LENGTH = 200;
 
 export type SearchResult = {
   uid: string;
@@ -24,12 +22,6 @@ export type SearchResult = {
   createdAt: string;
   lastModified: string;
   authorName: string;
-};
-
-export type NodeContent = {
-  title: string;
-  lines: string[];
-  excerpt: string;
 };
 
 type MiniSearchDocument = SearchResult & {
@@ -77,53 +69,6 @@ export const formatMetadataDate = (value: string): string => {
     month: "short",
     day: "numeric",
   });
-};
-
-const truncateText = (value: string, maxLength: number): string => {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  if (normalized.length <= maxLength) return normalized;
-  return `${normalized.slice(0, maxLength - 1).trim()}...`;
-};
-
-const getPulledTextLines = (pulled: PulledDiscourseNode | null): string[] => {
-  if (!pulled) return [];
-
-  const ownText = pulled[":block/string"];
-  const childLines = (pulled[":block/children"] ?? [])
-    .sort((a, b) => (a[":block/order"] ?? 0) - (b[":block/order"] ?? 0))
-    .map((child) => child[":block/string"] ?? "")
-    .filter(Boolean);
-
-  return [ownText, ...childLines].filter(
-    (line): line is string =>
-      typeof line === "string" && line.trim().length > 0,
-  );
-};
-
-export const pullNodeContent = (
-  uid: string,
-  fallbackTitle: string,
-): NodeContent | null => {
-  try {
-    const pulled = window.roamAlphaAPI.pull(
-      "[:block/string :node/title {:block/children [:block/string :block/order]}]",
-      [":block/uid", uid],
-    ) as PulledDiscourseNode | null;
-
-    if (!pulled) return null;
-
-    const lines = getPulledTextLines(pulled);
-    const title = getPulledDiscourseNodeTitle(pulled) || fallbackTitle;
-
-    return {
-      title,
-      lines,
-      excerpt: truncateText(lines.join(" "), EXCERPT_LENGTH),
-    };
-  } catch (error) {
-    console.error("Error pulling node content:", error);
-    return null;
-  }
 };
 
 const queryNodesForType = async (

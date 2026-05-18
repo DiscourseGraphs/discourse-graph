@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import {
   Button,
-  Classes,
   Dialog,
   InputGroup,
   NonIdealState,
@@ -17,6 +16,7 @@ import {
 } from "@blueprintjs/core";
 import MiniSearch from "minisearch";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import renderOverlay, {
   RoamOverlayProps,
 } from "roamjs-components/util/renderOverlay";
@@ -26,15 +26,13 @@ import getDiscourseNodes, {
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import {
   DEBOUNCE_MS,
-  type NodeContent,
   type SearchResult,
   buildSearchIndex,
-  formatMetadataDate,
-  pullNodeContent,
   searchIndexedNodes,
   splitWithHighlights,
   stripTypePrefix,
 } from "./utils";
+import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 
 type Props = Record<string, unknown>;
 
@@ -45,19 +43,6 @@ const getTagStyle = (node: DiscourseNode | undefined): React.CSSProperties => {
   const color = node?.canvasSettings?.color;
   if (!color) return { flexShrink: 0 };
   return { ...getNodeTagStyles(color), flexShrink: 0 };
-};
-
-const getCachedNodeContent = (
-  cache: Map<string, NodeContent>,
-  uid: string,
-  title: string,
-): NodeContent | null => {
-  const cached = cache.get(uid);
-  if (cached) return cached;
-
-  const content = pullNodeContent(uid, title);
-  if (content) cache.set(uid, content);
-  return content;
 };
 
 const renderHighlightedText = (
@@ -110,17 +95,7 @@ const ResultRow = ({
   </button>
 );
 
-const PreviewPane = ({
-  content,
-  keywords,
-  nodeConfig,
-  result,
-}: {
-  content: NodeContent | null;
-  keywords: string[];
-  nodeConfig: DiscourseNode | undefined;
-  result: SearchResult | null;
-}) => {
+const PreviewPane = ({ result }: { result: SearchResult | null }) => {
   if (!result) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
@@ -132,26 +107,15 @@ const PreviewPane = ({
       </div>
     );
   }
-
-  const previewTitle = content?.title ?? result.title;
+  const isPage = !!getPageTitleByPageUid(result.uid);
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-      <Tag minimal style={getTagStyle(nodeConfig)}>
-        {nodeConfig ? nodeConfig.text : result.nodeTypeLabel}
-      </Tag>
-      <h2 className="my-2 text-xl leading-tight text-gray-900">
-        {renderHighlightedText(stripTypePrefix(previewTitle), keywords)}
-      </h2>
-      <div className="text-xs text-gray-500">
-        Last modified: {formatMetadataDate(result.lastModified)} · Created:{" "}
-        {formatMetadataDate(result.createdAt)} · Author: {result.authorName}
-      </div>
-      <div className="mt-4 border-t border-gray-200 pt-3 text-sm leading-relaxed text-gray-900">
-        {content?.lines.length ? (
-          content.lines.map((line, index) => <p key={index}>{line}</p>)
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto border-t border-gray-200 px-5 py-3">
+        {isPage ? (
+          <RenderRoamPage key={result.uid} uid={result.uid} />
         ) : (
-          <span className={Classes.TEXT_MUTED}>No content</span>
+          <RenderRoamBlock key={result.uid} uid={result.uid} zoomPath />
         )}
       </div>
     </div>
@@ -167,9 +131,6 @@ const AdvancedNodeSearchDialog = ({
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [indexError, setIndexError] = useState(false);
-  const [previewContent, setPreviewContent] = useState<NodeContent | null>(
-    null,
-  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [nodeConfigByType, setNodeConfigByType] = useState<
     Record<string, DiscourseNode>
@@ -178,7 +139,6 @@ const AdvancedNodeSearchDialog = ({
     SearchResult & { id: string }
   > | null>(null);
   const allResultsRef = useRef<SearchResult[]>([]);
-  const contentCacheRef = useRef<Map<string, NodeContent>>(new Map());
   const resultsPanelRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -210,11 +170,9 @@ const AdvancedNodeSearchDialog = ({
       setDebouncedSearchTerm("");
       setResults([]);
       setActiveIndex(0);
-      setPreviewContent(null);
       setIndexError(false);
       miniSearchRef.current = null;
       allResultsRef.current = [];
-      contentCacheRef.current.clear();
       return;
     }
 
@@ -269,7 +227,6 @@ const AdvancedNodeSearchDialog = ({
     if (!query || !miniSearchRef.current) {
       setResults([]);
       setActiveIndex(0);
-      setPreviewContent(null);
       return;
     }
 
@@ -282,36 +239,12 @@ const AdvancedNodeSearchDialog = ({
     if (!matchedResults.length) {
       setResults([]);
       setActiveIndex(0);
-      setPreviewContent(null);
       return;
     }
 
-    const firstResult = matchedResults[0];
     setResults(matchedResults);
     setActiveIndex(0);
-    setPreviewContent(
-      getCachedNodeContent(
-        contentCacheRef.current,
-        firstResult.uid,
-        firstResult.title,
-      ),
-    );
   }, [debouncedSearchTerm, indexError, isIndexLoading, isOpen]);
-
-  useEffect(() => {
-    if (!activeResult) {
-      setPreviewContent(null);
-      return;
-    }
-
-    setPreviewContent(
-      getCachedNodeContent(
-        contentCacheRef.current,
-        activeResult.uid,
-        activeResult.title,
-      ),
-    );
-  }, [activeResult]);
 
   useEffect(() => {
     const panel = resultsPanelRef.current;
@@ -404,16 +337,7 @@ const AdvancedNodeSearchDialog = ({
                 ))}
               </div>
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                <PreviewPane
-                  content={previewContent}
-                  keywords={keywords}
-                  nodeConfig={
-                    activeResult
-                      ? nodeConfigByType[activeResult.type]
-                      : undefined
-                  }
-                  result={activeResult}
-                />
+                <PreviewPane result={activeResult} />
               </div>
             </>
           ) : (
