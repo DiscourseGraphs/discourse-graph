@@ -33,12 +33,12 @@ This is intentionally a current-state doc. It describes what the repo does now, 
 
 The built-in discourse classes do not have bespoke storage tables. They follow the same mapping as any other node schema.
 
-| Built-in term | Schema-layer meaning | Current shared data-layer representation | Current client-local representation   | Transport / package-facing representation                      |
-| ------------- | -------------------- | ---------------------------------------- | ------------------------------------- | -------------------------------------------------------------- |
-| `Question`    | Built-in node class  | Ordinary `Concept` schema row            | Default node type in app-local config | TTL class, sync concept payload, future portable `nodeTypes[]` |
-| `Claim`       | Built-in node class  | Ordinary `Concept` schema row            | Default node type in app-local config | TTL class, sync concept payload, future portable `nodeTypes[]` |
-| `Evidence`    | Built-in node class  | Ordinary `Concept` schema row            | Default node type in app-local config | TTL class, sync concept payload, future portable `nodeTypes[]` |
-| `Source`      | Built-in node class  | Ordinary `Concept` schema row            | Default node type in app-local config | TTL class, sync concept payload, future portable `nodeTypes[]` |
+| Built-in term                  | Schema-layer meaning | Current shared data-layer representation | Current client-local representation   | Transport / package-facing representation                      | Caveat                                                                                                              |
+| ------------------------------ | -------------------- | ---------------------------------------- | ------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `Question`                     | Built-in node class  | Ordinary `Concept` schema row            | Default node type in app-local config | TTL class, sync concept payload, future portable `nodeTypes[]` | None for v0 beyond the general caveat that built-ins are not seeded into a special shared vocabulary table.         |
+| `Claim`                        | Built-in node class  | Ordinary `Concept` schema row            | Default node type in app-local config | TTL class, sync concept payload, future portable `nodeTypes[]` | None for v0 beyond the general caveat that built-ins are not seeded into a special shared vocabulary table.         |
+| `Evidence`                     | Built-in node class  | Ordinary `Concept` schema row            | Default node type in app-local config | TTL class, sync concept payload, future portable `nodeTypes[]` | None for v0 beyond the general caveat that built-ins are not seeded into a special shared vocabulary table.         |
+| `Source` / `SourceDocument`    | Built-in source-like node class | Ordinary `Concept` schema row            | App defaults use `Source`             | TTL uses `dg:SourceDocument`; sync concept payload and future portable `nodeTypes[]` should preserve identity       | The current conceptual and client-local names do not perfectly match. Treat this as a vocabulary alignment gap, not a storage-table gap. |
 
 ## What is one-to-one vs not
 

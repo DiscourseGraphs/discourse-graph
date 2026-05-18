@@ -1,5 +1,13 @@
 # Data layer reverse-engineering
 
+Status: v0 documentation complete. For the schema-to-internal-data-layer task, use the compressed single-document answer below; the rest of this folder is supporting reverse-engineering detail.
+
+Start here for the current task:
+
+- [O. Schema to internal data layer](./O-schema-to-internal-data-layer.md) is the compressed single-document answer for the schema-to-internal-data-layer task.
+
+Supporting notes:
+
 - [A. Executive summary](./A-executive-summary.md)
 - [B. Repo evidence](./B-repo-evidence.md)
 - [C. Current data layer model](./C-current-data-layer-model.md)
@@ -15,3 +23,4 @@
 - [L. Portable package JSON model based on current Obsidian-to-Obsidian sync](./L-obsidian-portable-package-json-model.md)
 - [M. Subgraph terminology decision](./M-subgraph-terminology.md)
 - [N. Cross-app interchange folder structure](./N-cross-app-interchange-folder-structure.md)
+- [O. Schema to internal data layer](./O-schema-to-internal-data-layer.md)

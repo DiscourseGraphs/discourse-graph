@@ -139,7 +139,7 @@ Roam and Obsidian each have local persistence that feeds the shared model. Those
 
 ## Transport layer
 
-WIP - this section is not complete.
+This section is complete for v0. It defines the current transport boundary, not the final portable-package file format.
 
 ### Definition
 
@@ -167,6 +167,13 @@ It answers questions like:
 ### Transport rule
 
 API payloads, JSON-LD objects, RID strings, and the future portable package should be described as projections over the current internal model. They are not the canonical definition of the schema layer or the data layer.
+
+### How to read transport artifacts
+
+- API payloads may mirror SQL table shape, but that does not make the payload the authoritative internal model.
+- JSON-LD export maps current client-local graph objects into RDF-style terms. It is useful evidence for interchange semantics, not the persistence source of truth.
+- RID and ORN strings are stable transport identities that resolve back to source-space and source-local identity. They should be preserved for interchange, but they are not the database primary identity.
+- The v0 portable package should be treated as a serialization of a normalized `Subgraph`, as defined in [J. V0 portable-package handoff contract](./J-v0-portable-package-scope.md).
 
 ## What is authoritative vs not
 

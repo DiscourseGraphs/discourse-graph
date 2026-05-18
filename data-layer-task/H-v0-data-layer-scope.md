@@ -44,6 +44,42 @@ v0 does not need:
 - full cross-client parity
 - a new persistence abstraction layer
 
+## V0 completion status
+
+Status: complete for the documentation scope. This task does not require code, SQL schema, sync, or API changes.
+
+| Milestone | Status | Completed artifact |
+| --------- | ------ | ------------------ |
+| 1. Define the current data layer | Complete | [I. Current layer architecture note](./I-current-layer-architecture-note.md) |
+| 2. Publish the schema-to-data crosswalk | Complete | [I2. Schema-to-data crosswalk](./I2-schema-to-data-crosswalk.md) |
+| 3. Define the portable-package handoff contract | Complete | [J. V0 portable-package handoff contract](./J-v0-portable-package-scope.md) |
+
+### Requirement coverage
+
+| Requirement | Status | Covered by |
+| ----------- | ------ | ---------- |
+| `FR-1` | Complete | [I. Current layer architecture note](./I-current-layer-architecture-note.md) |
+| `FR-2` | Complete | [I. Current layer architecture note](./I-current-layer-architecture-note.md) |
+| `FR-3` | Complete | [I. Current layer architecture note](./I-current-layer-architecture-note.md) and [C. Current data layer model](./C-current-data-layer-model.md) |
+| `FR-4` | Complete | [I2. Schema-to-data crosswalk](./I2-schema-to-data-crosswalk.md) |
+| `FR-5` | Complete | [I2. Schema-to-data crosswalk](./I2-schema-to-data-crosswalk.md) |
+| `FR-6` | Complete | [I2. Schema-to-data crosswalk](./I2-schema-to-data-crosswalk.md) and [E. Gaps and inconsistencies](./E-gaps-and-inconsistencies.md) |
+| `FR-7` | Complete | [J. V0 portable-package handoff contract](./J-v0-portable-package-scope.md) |
+| `FR-8` | Complete | [I2. Schema-to-data crosswalk](./I2-schema-to-data-crosswalk.md) and [J. V0 portable-package handoff contract](./J-v0-portable-package-scope.md) |
+| `FR-9` | Complete | [I2. Schema-to-data crosswalk](./I2-schema-to-data-crosswalk.md) and [E. Gaps and inconsistencies](./E-gaps-and-inconsistencies.md) |
+| `FR-10` | Complete | [I. Current layer architecture note](./I-current-layer-architecture-note.md) |
+| `FR-11` | Complete | [I2. Schema-to-data crosswalk](./I2-schema-to-data-crosswalk.md), [E. Gaps and inconsistencies](./E-gaps-and-inconsistencies.md), and [K. Obsidian-to-Obsidian sync overview for portable package](./K-obsidian-to-obsidian-sync-overview.md) |
+| `FR-12` | Complete | [G. Suggested next refactors](./G-suggested-next-refactors.md) |
+
+### What remains after v0
+
+The next work is implementation or design beyond this data-layer-definition task:
+
+- build `Subgraph` extraction and `toPortablePackage(subgraph)` from the documented contract
+- choose the canonical portable content representation from the current multi-variant `Content` model
+- decide whether future persistence should add explicit relation/assertion and concept-content link structures
+- align `Source`/`SourceDocument` naming and other built-in vocabulary records across TTL, Roam defaults, Obsidian defaults, and synced `Concept` rows
+
 ## In-scope use cases
 
 - `UC-1`: An engineer can answer "what is the current data layer?" from one short doc without reading SQL, TTL, and client sync code separately.
@@ -165,17 +201,17 @@ These should be treated as the v0 backlog. Ideally each requirement becomes one 
 
 - `FR-12`: Add a short recommended follow-on list for post-v0 work, without making those follow-ons blockers for the current scope.
 
-## Open questions + risks
+## V0 answers + remaining risks
 
-### Open questions
+### V0 answers
 
-- Should the portable package be defined purely from the shared Supabase model, or should it intentionally preserve some client-local distinctions that only exist in Roam or Obsidian today?
-- Should `schema.yaml` appear in the final crosswalk as a historical design artifact, or should it be excluded from the main definition and mentioned only as context?
-- How much of the Obsidian triple-schema model should be represented in the portable package if the shared persisted model does not distinguish it cleanly?
-- Is the intended portable-package source primarily the shared data layer, or a normalized view over schema plus data layer together?
-- Do we want the v0 doc to define one canonical precedence rule when schema, SQL, and transport artifacts disagree?
+- The portable package should serialize a normalized `Subgraph`, not a raw dump of shared Supabase rows.
+- `schema.yaml` should appear only as historical design context where it conflicts with current SQL.
+- Obsidian triple-schema behavior should be documented as a client-local/admissibility distinction. It is not a separate first-class shared persistence concept in v0.
+- The portable-package source should be a normalized view over schema plus data-layer records, materialized through `Subgraph` extraction.
+- The canonical precedence rule is defined in [I. Current layer architecture note](./I-current-layer-architecture-note.md).
 
-### Risks
+### Remaining risks
 
 - The biggest risk is accidental scope creep into redesign work such as new assertion tables, provenance normalization, or sync refactors.
 - The current implementation does not provide a clean one-structure-per-concept mapping, especially for relation instances, so the documentation must be careful not to overstate structural alignment.

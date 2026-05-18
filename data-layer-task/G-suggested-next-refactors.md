@@ -1,15 +1,17 @@
 # G. Suggested next refactors
 
+Status note: items 1 and 10 are satisfied by the v0 docs in this folder. The remaining items are post-v0 implementation or model cleanup work.
+
 ## 1. Write a short authoritative architecture note
 
-Add a repo doc that explicitly defines:
+Done in [I. Current layer architecture note](./I-current-layer-architecture-note.md). The note explicitly defines:
 
 - schema layer
 - data layer
 - transport layer
 - the mapping rules between them
 
-This should point directly to:
+It points directly to:
 
 - `packages/database/supabase/schemas/*.sql`
 - `apps/website/public/schema/*.ttl`
@@ -105,11 +107,11 @@ At minimum, add or extend tests for:
 
 ## 10. Consider a formal mapping spec
 
-The next durable step after the docs in this folder would be a mapping spec with four sections:
+Done for v0 in [I2. Schema-to-data crosswalk](./I2-schema-to-data-crosswalk.md). It uses the durable four-part mapping shape:
 
 1. conceptual schema term
 2. shared data-layer representation
 3. client-local representation
 4. transport/export representation
 
-That would make future refactors measurable and would stop schema, data, and transport from collapsing into one another in docs and code reviews.
+Future refactors should keep that four-part mapping shape current so schema, data, and transport do not collapse into one another in docs and code reviews.
