@@ -319,7 +319,7 @@ const AdvancedNodeSearchDialog = ({
         activeResult.title,
       ),
     );
-  }, [activeResult?.uid, activeResult?.title]);
+  }, [activeResult]);
 
   useEffect(() => {
     const panel = resultsPanelRef.current;
