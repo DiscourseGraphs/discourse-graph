@@ -20,16 +20,20 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import renderOverlay, {
   RoamOverlayProps,
 } from "roamjs-components/util/renderOverlay";
+import { DiscourseNodeSortControl } from "~/components/DiscourseNodeSortControl";
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import {
   DEBOUNCE_MS,
+  DEFAULT_SORT_CONFIG,
   type SearchResult,
+  type SortConfig,
   buildSearchIndex,
   formatMetadataDate,
   searchIndexedNodes,
+  sortSearchResults,
   splitWithHighlights,
   stripTypePrefix,
 } from "./utils";
@@ -144,6 +148,8 @@ const AdvancedNodeSearchDialog = ({
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [indexError, setIndexError] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [sort, setSort] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
+  const [isSortPopoverOpen, setIsSortPopoverOpen] = useState(false);
   const miniSearchRef = useRef<MiniSearch<
     SearchResult & { id: string }
   > | null>(null);
@@ -160,18 +166,31 @@ const AdvancedNodeSearchDialog = ({
     ) as Record<string, DiscourseNode>;
   }, []);
 
-  const results =
-    isOpen &&
-    !isIndexLoading &&
-    !indexError &&
-    debouncedSearchTerm &&
-    miniSearchRef.current
-      ? searchIndexedNodes({
-          miniSearch: miniSearchRef.current,
-          allResults: allResultsRef.current,
-          searchTerm: debouncedSearchTerm,
-        })
-      : [];
+  const results = useMemo(() => {
+    if (
+      !isOpen ||
+      isIndexLoading ||
+      indexError ||
+      !debouncedSearchTerm ||
+      !miniSearchRef.current
+    ) {
+      return [];
+    }
+
+    const scoredHits = searchIndexedNodes({
+      miniSearch: miniSearchRef.current,
+      allResults: allResultsRef.current,
+      searchTerm: debouncedSearchTerm,
+    });
+
+    return sortSearchResults({ hits: scoredHits, sort });
+  }, [
+    debouncedSearchTerm,
+    indexError,
+    isIndexLoading,
+    isOpen,
+    sort,
+  ]);
 
   const activeResult = results[activeIndex] ?? null;
   const keywords = debouncedSearchTerm.split(/\s+/).filter(Boolean);
@@ -189,6 +208,13 @@ const AdvancedNodeSearchDialog = ({
       cancelAnimationFrame(rafId);
       window.clearTimeout(timeoutId);
     };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSort(DEFAULT_SORT_CONFIG);
+      setIsSortPopoverOpen(false);
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -235,7 +261,7 @@ const AdvancedNodeSearchDialog = ({
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchTerm, sort]);
 
   useEffect(() => {
     const panel = resultsPanelRef.current;
@@ -244,6 +270,11 @@ const AdvancedNodeSearchDialog = ({
     const activeRow = panel.querySelector('[aria-selected="true"]');
     activeRow?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, activeResult?.uid, debouncedSearchTerm]);
+
+  const handleSortChange = useCallback((nextSort: SortConfig): void => {
+    setSort(nextSort);
+    setActiveIndex(0);
+  }, []);
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -255,10 +286,14 @@ const AdvancedNodeSearchDialog = ({
         setActiveIndex((index) => Math.max(index - 1, 0));
       } else if (event.key === "Escape") {
         event.preventDefault();
+        if (isSortPopoverOpen) {
+          setIsSortPopoverOpen(false);
+          return;
+        }
         onClose();
       }
     },
-    [onClose, results.length],
+    [isSortPopoverOpen, onClose, results.length],
   );
 
   const contentState = indexError
@@ -295,17 +330,33 @@ const AdvancedNodeSearchDialog = ({
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
         <div className="flex flex-none items-center gap-2 border-b border-gray-200 px-3 py-2">
-          <InputGroup
-            fill
-            inputRef={inputRef}
-            leftIcon="search"
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              setSearchTerm(event.target.value)
-            }
-            placeholder="Search discourse nodes..."
-            value={searchTerm}
-          />
-          <Button icon="cross" minimal onClick={onClose} title="Close search" />
+          <div className="min-w-0 flex-1">
+            <InputGroup
+              fill
+              inputRef={inputRef}
+              leftIcon="search"
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                setSearchTerm(event.target.value)
+              }
+              placeholder="Search discourse nodes..."
+              value={searchTerm}
+            />
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <DiscourseNodeSortControl
+              disabled={isIndexLoading || indexError}
+              onPopoverOpenChange={setIsSortPopoverOpen}
+              onSortChange={handleSortChange}
+              sort={sort}
+            />
+            <Button
+              className="shrink-0"
+              icon="cross"
+              minimal
+              onClick={onClose}
+              title="Close search"
+            />
+          </div>
         </div>
         <div className="flex min-h-0 w-full flex-1 overflow-hidden">
           {showSplitView ? (
