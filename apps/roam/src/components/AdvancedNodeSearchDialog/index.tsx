@@ -28,6 +28,7 @@ import {
   DEBOUNCE_MS,
   type SearchResult,
   buildSearchIndex,
+  formatMetadataDate,
   searchIndexedNodes,
   splitWithHighlights,
   stripTypePrefix,
@@ -111,6 +112,11 @@ const PreviewPane = ({ result }: { result: SearchResult | null }) => {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex-none flex-row gap-2 border-b border-gray-200 px-5 py-3 text-xs text-gray-500">
+        Created: {formatMetadataDate(result.createdAt)} · Last modified:{" "}
+        {formatMetadataDate(result.lastModified)} · Author:{" "}
+        {result.authorName || "Unknown"}
+      </div>
       <div
         className="min-h-0 flex-1 overflow-y-auto border-t border-gray-200 px-5 py-3"
         onMouseDown={(event) => event.preventDefault()}

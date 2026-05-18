@@ -28,6 +28,21 @@ type MiniSearchDocument = SearchResult & {
   id: string;
 };
 
+export const formatMetadataDate = (value: string): string => {
+  if (!value) return "Unknown";
+  const numericValue = Number(value);
+  const date = Number.isFinite(numericValue)
+    ? new Date(numericValue)
+    : new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
 export const stripTypePrefix = (title: string): string => {
   const match = title.match(/^\[\[.*?\]\]\s*-\s*(.*)/s);
   return match ? match[1] : title;
