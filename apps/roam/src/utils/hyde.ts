@@ -449,18 +449,18 @@ export const performHydeSearch = async ({
       await getNodesByType({
         supabase,
         spaceId,
-        fields: { content: ["source_local_id", "text"] },
+        fields: { concepts: ["source_local_id", "name"], content: [] },
         ofTypes: validTypes,
-        pagination: { limit: 10000 },
+        pagination: { limit: 1000 },
       })
     )
       .map((c) => {
         const node = findDiscourseNode({
-          uid: c.Content?.source_local_id || "",
+          uid: c.source_local_id || "",
         });
         return {
-          uid: c.Content?.source_local_id || "",
-          text: c.Content?.text || "",
+          uid: c.source_local_id || "",
+          text: c.name || "",
           type: node ? node.type : "",
         };
       })
