@@ -26,6 +26,7 @@ export const PERSONAL_KEYS = {
   leftSidebar: "Left sidebar",
   query: "Query",
   reifiedRelationTriples: "Reified relation triples",
+  canvasNodeShortcuts: "Canvas node shortcuts",
 } as const satisfies Record<string, keyof PersonalSettings>;
 
 export const QUERY_KEYS = {

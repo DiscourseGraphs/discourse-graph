@@ -238,6 +238,7 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
     "default-filters",
   ],
   [pathKey([PERSONAL_KEYS.reifiedRelationTriples]), "use-reified-relations"],
+  [pathKey([PERSONAL_KEYS.canvasNodeShortcuts]), "canvas-node-shortcuts"],
 ]);
 
 const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
