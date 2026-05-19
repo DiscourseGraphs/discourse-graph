@@ -9,6 +9,7 @@ import { getSubTree } from "roamjs-components/util";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
+import { withPerformanceTrace } from "~/utils/performanceLogger";
 
 import type { RoamBasicNode } from "roamjs-components/types";
 import discourseConfigRef from "~/utils/discourseConfigRef";
@@ -1134,64 +1135,95 @@ const migrateNodeBlockProps = (
 };
 
 export const getAllDiscourseNodes = (): DiscourseNode[] => {
-  const results = window.roamAlphaAPI.data.fast.q(`
-    [:find ?uid ?title (pull ?page [:block/props])
-     :where
-     [?page :node/title ?title]
-     [?page :block/uid ?uid]
-     [(clojure.string/starts-with? ?title "${DISCOURSE_NODE_PAGE_PREFIX}")]]
-  `) as [string, string, Record<string, json> | null][];
+  let rawResultCount = 0;
+  let nodeCount = 0;
+  let skippedCount = 0;
+  let migratedCount = 0;
+  let parseErrorCount = 0;
 
-  const nodes: DiscourseNode[] = [];
+  return withPerformanceTrace(
+    {
+      label: "getAllDiscourseNodes",
+      thresholdMs: 8,
+      aggregateThresholdMs: 50,
+      details: () => ({
+        rawResultCount,
+        nodeCount,
+        skippedCount,
+        migratedCount,
+        parseErrorCount,
+      }),
+    },
+    () => {
+      const results = window.roamAlphaAPI.data.fast.q(`
+        [:find ?uid ?title (pull ?page [:block/props])
+         :where
+         [?page :node/title ?title]
+         [?page :block/uid ?uid]
+         [(clojure.string/starts-with? ?title "${DISCOURSE_NODE_PAGE_PREFIX}")]]
+      `) as [string, string, Record<string, json> | null][];
+      rawResultCount = results.length;
 
-  for (const [pageUid, title, rawProps] of results) {
-    if (typeof pageUid !== "string" || typeof title !== "string") continue;
-    const rawBlockProps = rawProps?.[":block/props"];
-    const blockProps = rawBlockProps
-      ? normalizeProps(rawBlockProps)
-      : undefined;
-    if (
-      !blockProps ||
-      !isRecord(blockProps) ||
-      Object.keys(blockProps).length === 0
-    )
-      continue;
+      const nodes: DiscourseNode[] = [];
 
-    const nodeText = title.replace(DISCOURSE_NODE_PAGE_PREFIX, "");
-    const result = DiscourseNodeSchema.safeParse(blockProps);
-    if (result.success) {
-      nodes.push(
-        toDiscourseNode({
-          ...result.data,
-          type: pageUid,
-          text: nodeText,
-        }),
-      );
-    } else {
-      // Try migrating legacy field shapes before dropping the node.
-      const migrated = migrateNodeBlockProps(
-        blockProps as Record<string, json>,
-      );
-      const retryResult = DiscourseNodeSchema.safeParse(migrated);
-      if (retryResult.success) {
-        setBlockProps(pageUid, retryResult.data, false);
-        nodes.push(
-          toDiscourseNode({
-            ...retryResult.data,
-            type: pageUid,
-            text: nodeText,
-          }),
-        );
-      } else {
-        internalError({
-          error: retryResult.error,
-          type: "DG Discourse Node Parse",
-          context: { pageUid, title },
-          sendEmail: false,
-        });
+      for (const [pageUid, title, rawProps] of results) {
+        if (typeof pageUid !== "string" || typeof title !== "string") {
+          skippedCount += 1;
+          continue;
+        }
+        const rawBlockProps = rawProps?.[":block/props"];
+        const blockProps = rawBlockProps
+          ? normalizeProps(rawBlockProps)
+          : undefined;
+        if (
+          !blockProps ||
+          !isRecord(blockProps) ||
+          Object.keys(blockProps).length === 0
+        ) {
+          skippedCount += 1;
+          continue;
+        }
+
+        const nodeText = title.replace(DISCOURSE_NODE_PAGE_PREFIX, "");
+        const result = DiscourseNodeSchema.safeParse(blockProps);
+        if (result.success) {
+          nodes.push(
+            toDiscourseNode({
+              ...result.data,
+              type: pageUid,
+              text: nodeText,
+            }),
+          );
+        } else {
+          // Try migrating legacy field shapes before dropping the node.
+          const migrated = migrateNodeBlockProps(
+            blockProps as Record<string, json>,
+          );
+          const retryResult = DiscourseNodeSchema.safeParse(migrated);
+          if (retryResult.success) {
+            setBlockProps(pageUid, retryResult.data, false);
+            migratedCount += 1;
+            nodes.push(
+              toDiscourseNode({
+                ...retryResult.data,
+                type: pageUid,
+                text: nodeText,
+              }),
+            );
+          } else {
+            parseErrorCount += 1;
+            internalError({
+              error: retryResult.error,
+              type: "DG Discourse Node Parse",
+              context: { pageUid, title },
+              sendEmail: false,
+            });
+          }
+        }
       }
-    }
-  }
 
-  return nodes;
+      nodeCount = nodes.length;
+      return nodes;
+    },
+  );
 };

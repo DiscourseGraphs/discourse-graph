@@ -64,6 +64,10 @@ import {
   PERSONAL_KEYS,
   GLOBAL_KEYS,
 } from "~/components/settings/utils/settingKeys";
+import {
+  withAsyncPerformanceTrace,
+  withPerformanceTrace,
+} from "./performanceLogger";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -107,52 +111,109 @@ export const initObservers = ({
     tag: "H1",
     className: "rm-title-display",
     callback: (e) => {
-      const h1 = e as HTMLHeadingElement;
-      const { title, uid } = getTitleAndUidFromHeader(h1);
+      let titleLength = 0;
+      let isDiscourseNode = false;
+      let isQuery = false;
+      let isCanvas = false;
+      let isSidebar = false;
+      let renderedCanvasReferences = false;
 
-      const settings = bulkReadSettings();
+      withPerformanceTrace(
+        {
+          label: "observer:pageTitle",
+          thresholdMs: 16,
+          aggregateThresholdMs: 50,
+          details: () => ({
+            titleLength,
+            isDiscourseNode,
+            isQuery,
+            isCanvas,
+            isSidebar,
+            renderedCanvasReferences,
+          }),
+        },
+        () => {
+          const h1 = e as HTMLHeadingElement;
+          const { title, uid } = getTitleAndUidFromHeader(h1);
+          titleLength = title.length;
 
-      const props = { title, h1, onloadArgs };
+          const settings = bulkReadSettings();
 
-      const node = findDiscourseNode({
-        uid,
-        title,
-        snapshot: settings,
-      });
+          const props = { title, h1, onloadArgs };
 
-      const isDiscourseNode = node && node.backedBy !== "default";
-      if (isDiscourseNode) {
-        renderDiscourseContext({ h1, uid });
-        if (getFeatureFlag("Duplicate node alert enabled")) {
-          renderPossibleDuplicates(h1, title, node);
-        }
-        const linkedReferencesDiv = document.querySelector(
-          ".rm-reference-main",
-        ) as HTMLDivElement;
-        if (linkedReferencesDiv) {
-          renderCanvasReferences(linkedReferencesDiv, uid, onloadArgs);
-        }
-      }
-      if (isQueryPage({ title, snapshot: settings })) {
-        renderQueryPage(props);
-      } else if (isCurrentPageCanvas({ title, h1, snapshot: settings })) {
-        renderTldrawCanvas(props);
-      } else if (isSidebarCanvas({ title, h1, snapshot: settings })) {
-        renderTldrawCanvasInSidebar(props);
-      }
+          const node = findDiscourseNode({
+            uid,
+            title,
+            snapshot: settings,
+          });
+
+          isDiscourseNode = !!node && node.backedBy !== "default";
+          if (isDiscourseNode && node) {
+            renderDiscourseContext({ h1, uid });
+            if (getFeatureFlag("Duplicate node alert enabled")) {
+              renderPossibleDuplicates(h1, title, node);
+            }
+            const linkedReferencesDiv = document.querySelector(
+              ".rm-reference-main",
+            ) as HTMLDivElement;
+            if (linkedReferencesDiv) {
+              renderCanvasReferences(linkedReferencesDiv, uid, onloadArgs);
+              renderedCanvasReferences = true;
+            }
+          }
+
+          isQuery = isQueryPage({ title, snapshot: settings });
+          if (isQuery) {
+            renderQueryPage(props);
+            return;
+          }
+
+          isCanvas = isCurrentPageCanvas({ title, h1, snapshot: settings });
+          if (isCanvas) {
+            renderTldrawCanvas(props);
+            return;
+          }
+
+          isSidebar = isSidebarCanvas({ title, h1, snapshot: settings });
+          if (isSidebar) {
+            renderTldrawCanvasInSidebar(props);
+          }
+        },
+      );
     },
   });
 
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
-    render: (b) => renderQueryBlock(b, onloadArgs),
+    render: (b) =>
+      withPerformanceTrace(
+        {
+          label: "observer:queryBlock",
+          thresholdMs: 16,
+          aggregateThresholdMs: 50,
+        },
+        () => renderQueryBlock(b, onloadArgs),
+      ),
   });
 
   let batchedTagNodes: DiscourseNode[] | null = null;
   const getNodesForTagBatch = (): DiscourseNode[] => {
     if (batchedTagNodes === null) {
-      const settings = bulkReadSettings();
-      batchedTagNodes = getDiscourseNodes(undefined, settings);
+      let nodeCount = 0;
+      batchedTagNodes = withPerformanceTrace(
+        {
+          label: "nodeTagPopupButtonObserver:getNodesForTagBatch",
+          thresholdMs: 8,
+          aggregateThresholdMs: 50,
+          details: () => ({ nodeCount }),
+        },
+        () => {
+          const settings = bulkReadSettings();
+          const nodes = getDiscourseNodes(undefined, settings);
+          nodeCount = nodes.length;
+          return nodes;
+        },
+      );
       queueMicrotask(() => {
         batchedTagNodes = null;
       });
@@ -164,23 +225,39 @@ export const initObservers = ({
     className: "rm-page-ref--tag",
     tag: "SPAN",
     callback: (s: HTMLSpanElement) => {
-      const tag = s.getAttribute("data-tag");
-      if (tag) {
-        const normalizedTag = getCleanTagText(tag);
+      let tagLength = 0;
+      let rendered = false;
+      withPerformanceTrace(
+        {
+          label: "observer:nodeTagPopupButton",
+          thresholdMs: 8,
+          aggregateThresholdMs: 50,
+          details: () => ({ tagLength, rendered }),
+        },
+        () => {
+          const tag = s.getAttribute("data-tag");
+          tagLength = tag?.length ?? 0;
+          if (tag) {
+            const normalizedTag = getCleanTagText(tag);
 
-        for (const node of getNodesForTagBatch()) {
-          const normalizedNodeTag = node.tag ? getCleanTagText(node.tag) : "";
-          if (normalizedTag === normalizedNodeTag) {
-            renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
-            const color = node.canvasSettings?.color ?? "";
-            const tagStyles = color ? getNodeTagStyles(color) : {};
-            if (tagStyles) {
-              Object.assign(s.style, tagStyles);
+            for (const node of getNodesForTagBatch()) {
+              const normalizedNodeTag = node.tag
+                ? getCleanTagText(node.tag)
+                : "";
+              if (normalizedTag === normalizedNodeTag) {
+                renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
+                rendered = true;
+                const color = node.canvasSettings?.color ?? "";
+                const tagStyles = color ? getNodeTagStyles(color) : {};
+                if (tagStyles) {
+                  Object.assign(s.style, tagStyles);
+                }
+                break;
+              }
             }
-            break;
           }
-        }
-      }
+        },
+      );
     },
   });
 
@@ -213,8 +290,17 @@ export const initObservers = ({
     tag: "DIV",
     className: "rm-graph-view-control-panel__main-options",
     callback: (el) => {
-      const div = el as HTMLDivElement;
-      renderGraphOverviewExport(div);
+      withPerformanceTrace(
+        {
+          label: "observer:graphOverviewExport",
+          thresholdMs: 16,
+          aggregateThresholdMs: 50,
+        },
+        () => {
+          const div = el as HTMLDivElement;
+          renderGraphOverviewExport(div);
+        },
+      );
     },
   });
 
@@ -222,9 +308,21 @@ export const initObservers = ({
     tag: "IMG",
     className: "rm-inline-img",
     callback: (img: HTMLElement) => {
-      if (img instanceof HTMLImageElement) {
-        renderImageToolsMenu(img, onloadArgs.extensionAPI);
-      }
+      let rendered = false;
+      withPerformanceTrace(
+        {
+          label: "observer:imageMenu",
+          thresholdMs: 8,
+          aggregateThresholdMs: 50,
+          details: () => ({ rendered }),
+        },
+        () => {
+          if (img instanceof HTMLImageElement) {
+            renderImageToolsMenu(img, onloadArgs.extensionAPI);
+            rendered = true;
+          }
+        },
+      );
     },
   });
 
@@ -241,18 +339,39 @@ export const initObservers = ({
   const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
 
   const hashChangeListener = (e: Event) => {
-    const evt = e as HashChangeEvent;
-    const settings = bulkReadSettings();
-    // Attempt to refresh config navigating away from config page
-    // doesn't work if they update via sidebar
-    if (
-      (configPageUid && evt.oldURL.endsWith(configPageUid)) ||
-      getDiscourseNodes(undefined, settings).some(({ type }) =>
-        evt.oldURL.endsWith(type),
-      )
-    ) {
-      refreshConfigTree(settings);
-    }
+    let checkedNodeCount = 0;
+    let matchedConfigPage = false;
+    let matchedNodeType = false;
+    let refreshed = false;
+    withPerformanceTrace(
+      {
+        label: "listener:hashChange",
+        thresholdMs: 8,
+        aggregateThresholdMs: 50,
+        details: () => ({
+          checkedNodeCount,
+          matchedConfigPage,
+          matchedNodeType,
+          refreshed,
+        }),
+      },
+      () => {
+        const evt = e as HashChangeEvent;
+        const settings = bulkReadSettings();
+        // Attempt to refresh config navigating away from config page
+        // doesn't work if they update via sidebar
+        matchedConfigPage =
+          !!configPageUid && evt.oldURL.endsWith(configPageUid);
+        const nodes = getDiscourseNodes(undefined, settings);
+        checkedNodeCount = nodes.length;
+        matchedNodeType = nodes.some(({ type }) => evt.oldURL.endsWith(type));
+
+        if (matchedConfigPage || matchedNodeType) {
+          refreshConfigTree(settings);
+          refreshed = true;
+        }
+      },
+    );
   };
 
   let globalTrigger = settings.globalSettings[GLOBAL_KEYS.trigger].trim();
@@ -291,20 +410,28 @@ export const initObservers = ({
     useBody: true,
     className: "starred-pages-wrapper",
     callback: (el) => {
-      void (async () => {
-        const settings = bulkReadSettings();
-        const isLeftSidebarEnabled =
-          settings.featureFlags["Enable left sidebar"];
-        const container = el as HTMLDivElement;
-        if (isLeftSidebarEnabled) {
-          container.style.padding = "0";
-          await mountLeftSidebar({
-            wrapper: container,
-            onloadArgs,
-            initialSnapshot: settings,
-          });
-        }
-      })();
+      let isLeftSidebarEnabled = false;
+      void withAsyncPerformanceTrace(
+        {
+          label: "observer:leftSidebar",
+          thresholdMs: 16,
+          aggregateThresholdMs: 50,
+          details: () => ({ isLeftSidebarEnabled }),
+        },
+        async () => {
+          const settings = bulkReadSettings();
+          isLeftSidebarEnabled = settings.featureFlags["Enable left sidebar"];
+          const container = el as HTMLDivElement;
+          if (isLeftSidebarEnabled) {
+            container.style.padding = "0";
+            await mountLeftSidebar({
+              wrapper: container,
+              onloadArgs,
+              initialSnapshot: settings,
+            });
+          }
+        },
+      );
     },
   });
 
@@ -410,37 +537,58 @@ export const initObservers = ({
   };
 
   const nodeCreationPopoverListener = debounce(() => {
-    const settings = bulkReadSettings();
-    if (!settings.personalSettings[PERSONAL_KEYS.textSelectionPopup]) return;
+    let selectedTextLength = 0;
+    let hasBlockElement = false;
+    let rendered = false;
+    withPerformanceTrace(
+      {
+        label: "listener:selectionchange",
+        thresholdMs: 8,
+        aggregateThresholdMs: 50,
+        details: () => ({
+          selectedTextLength,
+          hasBlockElement,
+          rendered,
+        }),
+      },
+      () => {
+        const settings = bulkReadSettings();
+        if (!settings.personalSettings[PERSONAL_KEYS.textSelectionPopup])
+          return;
 
-    const selection = window.getSelection();
+        const selection = window.getSelection();
 
-    if (!selection || selection.rangeCount === 0 || !selection.focusNode) {
-      removeTextSelectionPopup();
-      return;
-    }
+        if (!selection || selection.rangeCount === 0 || !selection.focusNode) {
+          removeTextSelectionPopup();
+          return;
+        }
 
-    const selectedText = selection.toString().trim();
+        const selectedText = selection.toString().trim();
+        selectedTextLength = selectedText.length;
 
-    if (!selectedText) {
-      removeTextSelectionPopup();
-      return;
-    }
+        if (!selectedText) {
+          removeTextSelectionPopup();
+          return;
+        }
 
-    const blockElement = findBlockElementFromSelection();
+        const blockElement = findBlockElementFromSelection();
+        hasBlockElement = !!blockElement;
 
-    if (blockElement) {
-      const textarea = blockElement.querySelector("textarea");
-      if (!textarea) return;
+        if (blockElement) {
+          const textarea = blockElement.querySelector("textarea");
+          if (!textarea) return;
 
-      renderTextSelectionPopup({
-        extensionAPI: onloadArgs.extensionAPI,
-        blockElement,
-        textarea,
-      });
-    } else {
-      removeTextSelectionPopup();
-    }
+          renderTextSelectionPopup({
+            extensionAPI: onloadArgs.extensionAPI,
+            blockElement,
+            textarea,
+          });
+          rendered = true;
+        } else {
+          removeTextSelectionPopup();
+        }
+      },
+    );
   }, 150);
 
   return {
