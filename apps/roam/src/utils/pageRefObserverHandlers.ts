@@ -1,10 +1,11 @@
 import { createHTMLObserver } from "roamjs-components/dom";
 import { render as previewRender } from "~/components/LivePreview";
-import isDiscourseNode from "./isDiscourseNode";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { render as discourseOverlayRender } from "~/components/DiscourseContextOverlay";
 import { OnloadArgs } from "roamjs-components/types";
 import { renderSuggestive as renderSuggestiveOverlay } from "~/components/SuggestiveModeOverlay";
+import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
+import findDiscourseNode from "./findDiscourseNode";
 
 const PAGE_REF_SELECTOR = "span.rm-page-ref";
 const DISCOURSE_OVERLAY_CLASS = "roamjs-discourse-context-overlay";
@@ -15,6 +16,58 @@ const SUGGESTIVE_OVERLAY_ATTR = "data-discourse-suggestive-overlay";
 const pageRefObservers = new Set<(s: HTMLSpanElement) => void>();
 const pageRefObserverRef: { current?: MutationObserver } = {
   current: undefined,
+};
+
+type PageRefDiscourseNodeStatus = {
+  uid: string;
+  isDiscourseNode: boolean;
+};
+
+let batchDiscourseNodes: DiscourseNode[] | null = null;
+let clearBatchCacheQueued = false;
+const pageRefDiscourseNodeCache = new Map<string, PageRefDiscourseNodeStatus>();
+
+const clearBatchCache = (): void => {
+  batchDiscourseNodes = null;
+  pageRefDiscourseNodeCache.clear();
+  clearBatchCacheQueued = false;
+};
+
+const queueBatchCacheClear = (): void => {
+  if (clearBatchCacheQueued) return;
+  clearBatchCacheQueued = true;
+  queueMicrotask(clearBatchCache);
+};
+
+const getBatchDiscourseNodes = (): DiscourseNode[] => {
+  if (batchDiscourseNodes) return batchDiscourseNodes;
+
+  batchDiscourseNodes = getDiscourseNodes();
+  queueBatchCacheClear();
+  return batchDiscourseNodes;
+};
+
+const getPageRefDiscourseNodeStatus = (
+  tag: string,
+): PageRefDiscourseNodeStatus => {
+  const cached = pageRefDiscourseNodeCache.get(tag);
+  if (cached) return cached;
+
+  const uid = getPageUidByPageTitle(tag);
+  const node = uid
+    ? findDiscourseNode({
+        uid,
+        title: tag,
+        nodes: getBatchDiscourseNodes(),
+      })
+    : false;
+  const status = {
+    uid,
+    isDiscourseNode: !!node && node.backedBy !== "default",
+  };
+  pageRefDiscourseNodeCache.set(tag, status);
+  queueBatchCacheClear();
+  return status;
 };
 
 // Public handler (stable reference)
@@ -62,7 +115,7 @@ export const overlayPageRefHandler = (
       tag &&
       !hasOverlayAttribute &&
       !hasOverlayElement &&
-      isDiscourseNode(getPageUidByPageTitle(tag))
+      getPageRefDiscourseNodeStatus(tag).isDiscourseNode
     ) {
       s.setAttribute(DISCOURSE_OVERLAY_ATTR, "true");
       const parent = document.createElement("span");
@@ -91,7 +144,7 @@ export const suggestiveOverlayPageRefHandler = (
     if (
       tag &&
       !s.getAttribute(SUGGESTIVE_OVERLAY_ATTR) &&
-      isDiscourseNode(getPageUidByPageTitle(tag))
+      getPageRefDiscourseNodeStatus(tag).isDiscourseNode
     ) {
       s.setAttribute(SUGGESTIVE_OVERLAY_ATTR, "true");
       const parent = document.createElement("span");
@@ -145,6 +198,7 @@ export const enablePageRefObserver = () => {
 const disablePageRefObserver = () => {
   pageRefObserverRef.current?.disconnect();
   pageRefObserverRef.current = undefined;
+  clearBatchCache();
 };
 
 const applyHandlersToExistingPageRefs = (
