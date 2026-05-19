@@ -79,6 +79,19 @@ const formatDuration = (durationMs: number): string => {
   return `${Math.round(durationMs * 10) / 10}ms`;
 };
 
+const formatDetailValue = (value: PerformanceDetail): string => {
+  if (typeof value === "string") return `"${value}"`;
+  return String(value);
+};
+
+const formatDetails = (details: PerformanceDetails): string => {
+  const formattedDetails = Object.entries(details)
+    .map(([key, value]) => `${key}: ${formatDetailValue(value)}`)
+    .join(", ");
+  if (!formattedDetails) return "";
+  return ` { ${formattedDetails} }`;
+};
+
 const logPerformance = ({
   label,
   durationMs,
@@ -97,7 +110,7 @@ const logPerformance = ({
       } calls; slowest ${formatDuration(aggregate.slowestDurationMs)}`
     : `[DG Performance] ${label}: ${formatDuration(durationMs)}`;
 
-  console.warn(message, compactedDetails);
+  console.log(`${message}${formatDetails(compactedDetails)}`);
 };
 
 const scheduleAggregateFlush = (): void => {
