@@ -27,7 +27,7 @@ export const ListGroups = async () => {
       internalError({
         error: groupResponse.error,
       });
-      throw new Error("Could not access DiscourseGraphs");
+      throw new Error("Could not access Discourse Graphs");
     }
     groupData = groupResponse.data;
     const membershipReq = await client
