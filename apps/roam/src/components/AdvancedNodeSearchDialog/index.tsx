@@ -26,7 +26,7 @@ import {
   insertPageLinkAtCursor,
   snapshotInsertTarget,
   type InsertTarget,
-} from "~/utils/insertPageLinkAtCursor";
+} from "~/utils/advancedSearchFooterUtils";
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";

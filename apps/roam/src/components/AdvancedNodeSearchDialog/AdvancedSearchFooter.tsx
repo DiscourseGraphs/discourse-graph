@@ -1,5 +1,5 @@
 import React from "react";
-import type { InsertTarget } from "~/utils/insertPageLinkAtCursor";
+import type { InsertTarget } from "~/utils/advancedSearchFooterUtils";
 
 export type AdvancedSearchContentState =
   | "error"
