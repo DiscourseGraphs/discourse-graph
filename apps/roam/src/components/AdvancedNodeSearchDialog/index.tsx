@@ -22,8 +22,7 @@ import renderOverlay, {
   RoamOverlayProps,
 } from "roamjs-components/util/renderOverlay";
 import {
-  getPageLinkTitle,
-  insertPageLinkAtCursor,
+  insertPageRefAtRange,
   snapshotInsertTarget,
   type InsertTarget,
 } from "~/utils/advancedSearchFooterUtils";
@@ -263,15 +262,17 @@ const AdvancedNodeSearchDialog = ({
   const onInsert = useCallback(async () => {
     if (!activeResult || !insertTarget) return;
 
-    const pageTitle = getPageLinkTitle({
-      resultUid: activeResult.uid,
-      resultTitle: activeResult.title,
-    });
-    const didInsert = await insertPageLinkAtCursor({
+    const pageTitle =
+      getPageTitleByPageUid(activeResult.uid) ??
+      stripTypePrefix(activeResult.title);
+
+    await insertPageRefAtRange({
+      blockUid: insertTarget.blockUid,
       pageTitle,
-      snapshot: insertTarget,
+      selectionEnd: insertTarget.selectionEnd,
+      selectionStart: insertTarget.selectionStart,
+      windowId: insertTarget.windowId,
     });
-    if (!didInsert) return;
 
     posthog.capture("Advanced Node Search: Insert", {
       uid: activeResult.uid,
