@@ -1,6 +1,7 @@
 import { RoamBasicNode } from "roamjs-components/types";
 import { BLOCK_REF_REGEX } from "roamjs-components/dom/constants";
 import extractRef from "roamjs-components/util/extractRef";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import {
   BooleanSetting,
   getUidAndBooleanSetting,
@@ -11,7 +12,6 @@ import {
   getUidAndStringSetting,
   getUidAndStringSettingWithValueUid,
 } from "./getExportSettings";
-import { isSmartBlockUid } from "./isSmartBlockUid";
 import { getSubTree } from "roamjs-components/util";
 import type {
   LeftSidebarGlobalSettings,
@@ -27,10 +27,14 @@ type LeftSidebarPersonalSectionSettings = {
 };
 
 const BLOCK_REF_FULL_MATCH = new RegExp(`^${BLOCK_REF_REGEX.source}$`);
+const QUERY_BLOCK_MARKER = /\{\{query block(?::[^}]*)?\}\}/;
 
 export const isQueryBlockRef = (text: string): boolean => {
   if (!BLOCK_REF_FULL_MATCH.test(text)) return false;
-  return !isSmartBlockUid(extractRef(text));
+  const blockText = getTextByBlockUid(extractRef(text));
+  if (!blockText) return false;
+  if (blockText.includes(":SmartBlock:")) return false;
+  return QUERY_BLOCK_MARKER.test(blockText);
 };
 
 export type PersonalSectionChild = RoamBasicNode & {
