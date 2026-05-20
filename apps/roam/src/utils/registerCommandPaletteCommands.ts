@@ -15,7 +15,10 @@ import { render as renderSettings } from "~/components/settings/Settings";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { renderAdvancedNodeSearchDialog } from "~/components/AdvancedNodeSearchDialog";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import getUids from "roamjs-components/dom/getUids";
+import {
+  getBlockSelection,
+  insertPageRefAtRange,
+} from "~/utils/advancedSearchFooterUtils";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
@@ -43,50 +46,6 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
 
-type BlockSelection = {
-  selectionStart: number;
-  selectionEnd: number;
-  selectedText: string;
-};
-
-const getBlockSelection = (uid: string): BlockSelection => {
-  const activeElement = document.activeElement;
-  const isFocusedTextarea =
-    activeElement instanceof HTMLTextAreaElement &&
-    activeElement.classList.contains("rm-block-input") &&
-    getUids(activeElement).blockUid === uid;
-  if (isFocusedTextarea) {
-    return {
-      selectionStart: activeElement.selectionStart,
-      selectionEnd: activeElement.selectionEnd,
-      selectedText: activeElement.value.substring(
-        activeElement.selectionStart,
-        activeElement.selectionEnd,
-      ),
-    };
-  }
-  const textareas = document.querySelectorAll("textarea.rm-block-input");
-  for (const el of textareas) {
-    const textarea = el as HTMLTextAreaElement;
-    if (getUids(textarea).blockUid === uid) {
-      return {
-        selectionStart: textarea.selectionStart,
-        selectionEnd: textarea.selectionEnd,
-        selectedText: textarea.value.substring(
-          textarea.selectionStart,
-          textarea.selectionEnd,
-        ),
-      };
-    }
-  }
-  const textLength = (getTextByBlockUid(uid) || "").length;
-  return {
-    selectionStart: textLength,
-    selectionEnd: textLength,
-    selectedText: "",
-  };
-};
-
 export const createDiscourseNodeFromCommand = (
   extensionAPI: OnloadArgs["extensionAPI"],
 ) => {
@@ -112,21 +71,12 @@ export const createDiscourseNodeFromCommand = (
         });
         return;
       }
-      const originalText = getTextByBlockUid(uid) || "";
-      const pageRef = `[[${result.text}]]`;
-      const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionEnd)}`;
-      const newCursorPosition = selectionStart + pageRef.length;
-
-      await updateBlock({ uid, text: newText });
-
-      await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-        location: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "block-uid": uid,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "window-id": windowId,
-        },
-        selection: { start: newCursorPosition },
+      await insertPageRefAtRange({
+        blockUid: uid,
+        pageTitle: result.text,
+        selectionEnd,
+        selectionStart,
+        windowId,
       });
       return;
     },

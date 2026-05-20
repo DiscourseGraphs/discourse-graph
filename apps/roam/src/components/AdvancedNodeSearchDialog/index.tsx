@@ -15,11 +15,17 @@ import {
   Tag,
 } from "@blueprintjs/core";
 import MiniSearch from "minisearch";
+import posthog from "posthog-js";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import renderOverlay, {
   RoamOverlayProps,
 } from "roamjs-components/util/renderOverlay";
+import {
+  insertPageRefAtRange,
+  snapshotInsertTarget,
+  type InsertTarget,
+} from "~/utils/advancedSearchFooterUtils";
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
@@ -34,6 +40,7 @@ import {
   stripTypePrefix,
 } from "./utils";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
+import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
 
 type Props = Record<string, unknown>;
 
@@ -150,6 +157,7 @@ const AdvancedNodeSearchDialog = ({
   const allResultsRef = useRef<SearchResult[]>([]);
   const resultsPanelRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [insertTarget, setInsertTarget] = useState<InsertTarget | null>(null);
 
   const nodeConfigByType = useMemo(() => {
     const discourseNodes = getDiscourseNodes().filter(
@@ -174,10 +182,16 @@ const AdvancedNodeSearchDialog = ({
       : [];
 
   const activeResult = results[activeIndex] ?? null;
-  const keywords = debouncedSearchTerm.split(/\s+/).filter(Boolean);
+
+  const keywords = useMemo(
+    () => debouncedSearchTerm.split(/\s+/).filter(Boolean),
+    [debouncedSearchTerm],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
+
+    setInsertTarget(snapshotInsertTarget());
 
     const focusInput = () => inputRef.current?.focus();
 
@@ -245,21 +259,27 @@ const AdvancedNodeSearchDialog = ({
     activeRow?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, activeResult?.uid, debouncedSearchTerm]);
 
-  const onKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === "ArrowDown" && results.length) {
-        event.preventDefault();
-        setActiveIndex((index) => Math.min(index + 1, results.length - 1));
-      } else if (event.key === "ArrowUp" && results.length) {
-        event.preventDefault();
-        setActiveIndex((index) => Math.max(index - 1, 0));
-      } else if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    },
-    [onClose, results.length],
-  );
+  const onInsert = useCallback(async () => {
+    if (!activeResult || !insertTarget) return;
+
+    const pageTitle =
+      getPageTitleByPageUid(activeResult.uid) ??
+      stripTypePrefix(activeResult.title);
+
+    await insertPageRefAtRange({
+      blockUid: insertTarget.blockUid,
+      pageTitle,
+      selectionEnd: insertTarget.selectionEnd,
+      selectionStart: insertTarget.selectionStart,
+      windowId: insertTarget.windowId,
+    });
+
+    posthog.capture("Advanced Node Search: Insert", {
+      uid: activeResult.uid,
+      pageTitle,
+    });
+    onClose();
+  }, [activeResult, insertTarget, onClose]);
 
   const contentState = indexError
     ? "error"
@@ -270,6 +290,38 @@ const AdvancedNodeSearchDialog = ({
         : !results.length
           ? "empty"
           : "results";
+
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "ArrowDown" && results.length) {
+        event.preventDefault();
+        setActiveIndex((index) => Math.min(index + 1, results.length - 1));
+      } else if (event.key === "ArrowUp" && results.length) {
+        event.preventDefault();
+        setActiveIndex((index) => Math.max(index - 1, 0));
+      } else if (
+        event.key === "Enter" &&
+        (event.metaKey || event.ctrlKey) &&
+        contentState === "results" &&
+        activeResult &&
+        insertTarget
+      ) {
+        event.preventDefault();
+        void onInsert();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    },
+    [
+      activeResult,
+      contentState,
+      insertTarget,
+      onClose,
+      onInsert,
+      results.length,
+    ],
+  );
 
   const showSplitView = contentState === "results";
 
@@ -348,6 +400,12 @@ const AdvancedNodeSearchDialog = ({
             </div>
           )}
         </div>
+        <AdvancedSearchFooter
+          contentState={contentState}
+          hasActiveResult={!!activeResult}
+          insertTarget={insertTarget}
+          onInsert={() => void onInsert()}
+        />
       </div>
     </Dialog>
   );
