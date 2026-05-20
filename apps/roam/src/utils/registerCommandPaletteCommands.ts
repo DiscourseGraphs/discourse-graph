@@ -15,8 +15,10 @@ import { render as renderSettings } from "~/components/settings/Settings";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { renderAdvancedNodeSearchDialog } from "~/components/AdvancedNodeSearchDialog";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import { getBlockSelection } from "~/utils/getBlockSelection";
-import { insertPageRefAtRange } from "~/utils/insertPageLinkAtCursor";
+import {
+  getBlockSelection,
+  insertPageRefAtRange,
+} from "~/utils/advancedSearchFooterUtils";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
