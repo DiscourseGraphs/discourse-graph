@@ -403,6 +403,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
 
   // Roam organizes commands alphabetically
 <<<<<<< HEAD
+<<<<<<< HEAD
   void addCommand("DG: Convert current page to discourse node", () =>
     convertPageToNodeFromCommand(extensionAPI),
   );
@@ -412,12 +413,18 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     renderAdvancedNodeSearchDialog();
   });
 >>>>>>> 02568997 (ENG-1729: Add initial Roam advanced node search dialog.)
+=======
+>>>>>>> 43b219bd (Address PR review feedback for advanced node search.)
   void addCommand("DG: Create/Insert discourse node", () =>
     createDiscourseNodeFromCommand(extensionAPI),
   );
   void addCommand("DG: Export - Current page", exportCurrentPage);
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
+  void addCommand("DG: Open - Node search", () => {
+    posthog.capture("Node Search: Open Command Triggered");
+    renderAdvancedNodeSearchDialog();
+  });
   void addCommand("DG: Open - Query drawer", openQueryDrawerWithArgs);
   void addCommand(
     "DG: Toggle - Discourse context overlay",

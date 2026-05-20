@@ -115,12 +115,27 @@ export const buildSearchIndex = async (
   const resultsByType = await Promise.allSettled(
     discourseNodes.map(queryNodesForType),
   );
-  const results = resultsByType
-    .filter(
-      (r): r is PromiseFulfilledResult<SearchResult[]> =>
-        r.status === "fulfilled",
-    )
-    .flatMap((r) => r.value);
+
+  const rejected = resultsByType.filter(
+    (result): result is PromiseRejectedResult => result.status === "rejected",
+  );
+  if (discourseNodes.length > 0 && rejected.length === discourseNodes.length) {
+    throw (
+      rejected[0]?.reason ??
+      new Error("Failed to build advanced node search index")
+    );
+  }
+
+  const results: SearchResult[] = [];
+  const seenUids = new Set<string>();
+  for (const resultByType of resultsByType) {
+    if (resultByType.status !== "fulfilled") continue;
+    for (const result of resultByType.value) {
+      if (seenUids.has(result.uid)) continue;
+      seenUids.add(result.uid);
+      results.push(result);
+    }
+  }
 
   const miniSearch = new MiniSearch<MiniSearchDocument>({
     fields: ["title", "nodeTypeLabel"],
