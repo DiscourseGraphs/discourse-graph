@@ -114,12 +114,25 @@ export const acceptGroupInvitation = async (
 export const createGroup = async (
   client: DGSupabaseClient,
   name: string,
-): Promise<string | null> => {
+): Promise<{ groupId: string | null; error: string | null }> => {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const result = await client.functions.invoke<{ group_id: string }>(
     "create-group",
     { body: { name } },
   );
-  return result.data?.group_id || null;
+  if (result.error) {
+    let message = result.error.message;
+    try {
+      const body = (await (
+        result.error as { context?: Response }
+      ).context?.json()) as { msg?: string } | undefined;
+      if (body?.msg) message = body.msg;
+    } catch {
+      // ignore parse errors
+    }
+    return { groupId: null, error: message };
+  }
+  return { groupId: result.data?.group_id ?? null, error: null };
 };
 
 export const removeFromGroup = async ({
