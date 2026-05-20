@@ -16,6 +16,7 @@ import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { renderAdvancedNodeSearchDialog } from "~/components/AdvancedNodeSearchDialog";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import { getBlockSelection } from "~/utils/getBlockSelection";
+import { insertPageRefAtRange } from "~/utils/insertPageLinkAtCursor";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
@@ -68,21 +69,12 @@ export const createDiscourseNodeFromCommand = (
         });
         return;
       }
-      const originalText = getTextByBlockUid(uid) || "";
-      const pageRef = `[[${result.text}]]`;
-      const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionEnd)}`;
-      const newCursorPosition = selectionStart + pageRef.length;
-
-      await updateBlock({ uid, text: newText });
-
-      await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-        location: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "block-uid": uid,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "window-id": windowId,
-        },
-        selection: { start: newCursorPosition },
+      await insertPageRefAtRange({
+        blockUid: uid,
+        pageTitle: result.text,
+        selectionEnd,
+        selectionStart,
+        windowId,
       });
       return;
     },

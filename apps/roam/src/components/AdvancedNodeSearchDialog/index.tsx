@@ -183,7 +183,11 @@ const AdvancedNodeSearchDialog = ({
 
   const activeResult = results[activeIndex] ?? null;
   const hasEditorCursor = !!insertTarget;
-  const keywords = debouncedSearchTerm.split(/\s+/).filter(Boolean);
+
+  const keywords = useMemo(
+    () => debouncedSearchTerm.split(/\s+/).filter(Boolean),
+    [debouncedSearchTerm],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -257,7 +261,7 @@ const AdvancedNodeSearchDialog = ({
   }, [activeIndex, activeResult?.uid, debouncedSearchTerm]);
 
   const onInsert = useCallback(async () => {
-    if (!activeResult || !hasEditorCursor) return;
+    if (!activeResult || !insertTarget) return;
 
     const pageTitle = getPageLinkTitle({
       resultUid: activeResult.uid,
@@ -274,7 +278,7 @@ const AdvancedNodeSearchDialog = ({
       pageTitle,
     });
     onClose();
-  }, [activeResult, hasEditorCursor, insertTarget, onClose]);
+  }, [activeResult, insertTarget, onClose]);
 
   const contentState = indexError
     ? "error"
@@ -299,7 +303,7 @@ const AdvancedNodeSearchDialog = ({
         (event.metaKey || event.ctrlKey) &&
         contentState === "results" &&
         activeResult &&
-        hasEditorCursor
+        insertTarget
       ) {
         event.preventDefault();
         void onInsert();
@@ -311,7 +315,7 @@ const AdvancedNodeSearchDialog = ({
     [
       activeResult,
       contentState,
-      hasEditorCursor,
+      insertTarget,
       onClose,
       onInsert,
       results.length,
@@ -397,7 +401,7 @@ const AdvancedNodeSearchDialog = ({
         </div>
         <div className="flex w-full flex-none items-center justify-between border-t border-gray-200 bg-gray-50 px-3 py-2">
           <div className="inline-flex shrink-0 items-center gap-2">
-            {hasEditorCursor && (
+            {insertTarget && (
               <button
                 className="inline-flex cursor-pointer items-center gap-2 border-0 bg-transparent p-0"
                 disabled={!activeResult || contentState !== "results"}

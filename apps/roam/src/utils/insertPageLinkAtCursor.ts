@@ -10,13 +10,57 @@ export type InsertTarget = {
   windowId: string;
 };
 
-export const resolvePageLinkTitle = ({
-  pageTitleFromUid,
-  resultTitle,
-}: {
-  pageTitleFromUid: string | null;
-  resultTitle: string;
-}): string => pageTitleFromUid ?? stripTypePrefix(resultTitle);
+const DEFAULT_WINDOW_ID = "main-window";
+
+const insertTargetFromFocusedBlock = (): InsertTarget | null => {
+  const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
+  if (!focusedBlock?.["block-uid"]) return null;
+
+  return {
+    blockUid: focusedBlock["block-uid"],
+    windowId: focusedBlock["window-id"] || DEFAULT_WINDOW_ID,
+  };
+};
+
+export const snapshotInsertTarget = (): InsertTarget | null => {
+  const fromApi = insertTargetFromFocusedBlock();
+  if (fromApi) return fromApi;
+
+  const activeElement = document.activeElement;
+  if (
+    activeElement instanceof HTMLTextAreaElement &&
+    activeElement.classList.contains("rm-block-input")
+  ) {
+    const blockUid = getUids(activeElement).blockUid;
+    if (blockUid) {
+      return { blockUid, windowId: DEFAULT_WINDOW_ID };
+    }
+  }
+
+  return null;
+};
+
+const findBlockTextarea = (blockUid: string): HTMLTextAreaElement | null => {
+  const textareas = document.querySelectorAll("textarea.rm-block-input");
+  for (const el of textareas) {
+    const textarea = el as HTMLTextAreaElement;
+    if (getUids(textarea).blockUid === blockUid) return textarea;
+  }
+  return null;
+};
+
+const getSelectionForBlock = (
+  blockUid: string,
+  textarea: HTMLTextAreaElement | null,
+): { selectionEnd: number; selectionStart: number } => {
+  if (textarea && getUids(textarea).blockUid === blockUid) {
+    return {
+      selectionStart: textarea.selectionStart,
+      selectionEnd: textarea.selectionEnd,
+    };
+  }
+  return getBlockSelection(blockUid);
+};
 
 export const getPageLinkTitle = ({
   resultUid,
@@ -24,67 +68,9 @@ export const getPageLinkTitle = ({
 }: {
   resultUid: string;
   resultTitle: string;
-}): string =>
-  resolvePageLinkTitle({
-    pageTitleFromUid: getPageTitleByPageUid(resultUid),
-    resultTitle,
-  });
+}): string => getPageTitleByPageUid(resultUid) ?? stripTypePrefix(resultTitle);
 
-export const buildBlockTextWithPageLink = ({
-  originalText,
-  pageTitle,
-  selectionEnd,
-  selectionStart,
-}: {
-  originalText: string;
-  pageTitle: string;
-  selectionEnd: number;
-  selectionStart: number;
-}): { newCursorPosition: number; newText: string; pageRef: string } => {
-  const pageRef = `[[${pageTitle}]]`;
-  const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionEnd)}`;
-  const newCursorPosition = selectionStart + pageRef.length;
-
-  return { newCursorPosition, newText, pageRef };
-};
-
-const findBlockTextarea = (blockUid: string): HTMLTextAreaElement | null => {
-  const textareas = document.querySelectorAll("textarea.rm-block-input");
-  for (const el of textareas) {
-    const textarea = el as HTMLTextAreaElement;
-    if (getUids(textarea).blockUid === blockUid) {
-      return textarea;
-    }
-  }
-  return null;
-};
-
-const resolveInsertTarget = (
-  snapshot: InsertTarget | null,
-): InsertTarget | null => {
-  if (snapshot?.blockUid) return snapshot;
-
-  const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
-  if (focusedBlock?.["block-uid"]) {
-    return {
-      blockUid: focusedBlock["block-uid"],
-      windowId: focusedBlock["window-id"] || "main-window",
-    };
-  }
-
-  const textareas = document.querySelectorAll("textarea.rm-block-input");
-  for (const el of textareas) {
-    const textarea = el as HTMLTextAreaElement;
-    const blockUid = getUids(textarea).blockUid;
-    if (blockUid) {
-      return { blockUid, windowId: "main-window" };
-    }
-  }
-
-  return null;
-};
-
-const restoreBlockFocus = ({
+export const restoreBlockFocus = ({
   blockUid,
   newCursorPosition,
   windowId,
@@ -114,8 +100,27 @@ const restoreBlockFocus = ({
   }, 50);
 };
 
-export const hasInsertTarget = (snapshot: InsertTarget | null): boolean =>
-  !!resolveInsertTarget(snapshot);
+export const insertPageRefAtRange = async ({
+  blockUid,
+  pageTitle,
+  selectionEnd,
+  selectionStart,
+  windowId,
+}: {
+  blockUid: string;
+  pageTitle: string;
+  selectionEnd: number;
+  selectionStart: number;
+  windowId: string;
+}): Promise<void> => {
+  const pageRef = `[[${pageTitle}]]`;
+  const originalText = getTextByBlockUid(blockUid) || "";
+  const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionEnd)}`;
+  const newCursorPosition = selectionStart + pageRef.length;
+
+  await updateBlock({ uid: blockUid, text: newText });
+  restoreBlockFocus({ blockUid, newCursorPosition, windowId });
+};
 
 export const insertPageLinkAtCursor = async ({
   pageTitle,
@@ -124,48 +129,26 @@ export const insertPageLinkAtCursor = async ({
   pageTitle: string;
   snapshot: InsertTarget | null;
 }): Promise<boolean> => {
-  const target = resolveInsertTarget(snapshot);
+  const target = snapshot?.blockUid ? snapshot : insertTargetFromFocusedBlock();
   if (!target) return false;
 
   const { blockUid, windowId } = target;
   const textarea = findBlockTextarea(blockUid);
+  const { selectionEnd, selectionStart } = getSelectionForBlock(
+    blockUid,
+    textarea,
+  );
+
   if (textarea && document.activeElement === textarea) {
-    document.body.click();
+    textarea.blur();
   }
 
-  const { selectionEnd, selectionStart } = getBlockSelection(blockUid);
-  const originalText = getTextByBlockUid(blockUid) || "";
-  const { newCursorPosition, newText } = buildBlockTextWithPageLink({
-    originalText,
+  await insertPageRefAtRange({
+    blockUid,
     pageTitle,
     selectionEnd,
     selectionStart,
+    windowId,
   });
-
-  await updateBlock({ uid: blockUid, text: newText });
-  restoreBlockFocus({ blockUid, newCursorPosition, windowId });
   return true;
-};
-
-export const snapshotInsertTarget = (): InsertTarget | null => {
-  const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
-  if (focusedBlock?.["block-uid"]) {
-    return {
-      blockUid: focusedBlock["block-uid"],
-      windowId: focusedBlock["window-id"] || "main-window",
-    };
-  }
-
-  const activeElement = document.activeElement;
-  if (
-    activeElement instanceof HTMLTextAreaElement &&
-    activeElement.classList.contains("rm-block-input")
-  ) {
-    const blockUid = getUids(activeElement).blockUid;
-    if (blockUid) {
-      return { blockUid, windowId: "main-window" };
-    }
-  }
-
-  return null;
 };
