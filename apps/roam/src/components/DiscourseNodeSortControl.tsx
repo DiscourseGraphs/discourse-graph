@@ -1,5 +1,12 @@
 import React, { useCallback, useRef, useState } from "react";
-import { Button, Icon, Popover, Position } from "@blueprintjs/core";
+import {
+  Button,
+  ButtonGroup,
+  Menu,
+  MenuItem,
+  Popover,
+  Position,
+} from "@blueprintjs/core";
 import {
   SORT_FIELD_LABELS,
   isNonDefaultSort,
@@ -32,40 +39,71 @@ const SortDirectionToggles = ({
   isSelected: boolean;
   onDirectionChange: (direction: SortDirection) => void;
 }): React.ReactElement => (
-  <span
-    className="inline-flex gap-0.5"
+  <ButtonGroup
+    className="shrink-0"
+    minimal
     onClick={(event) => event.stopPropagation()}
-    role="presentation"
   >
-    <button
+    <Button
+      active={isSelected && direction === "asc"}
       aria-label={`${SORT_FIELD_LABELS[field]} ascending`}
-      className={`inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 text-gray-400 hover:bg-gray-100 hover:text-gray-900 ${
-        isSelected && direction === "asc" ? "bg-blue-700/10 text-blue-700" : ""
-      }`}
+      icon="arrow-up"
+      minimal
       onClick={(event) => {
         event.stopPropagation();
         onDirectionChange("asc");
       }}
       onMouseDown={(event) => event.preventDefault()}
-      type="button"
-    >
-      <Icon icon="arrow-up" size={12} />
-    </button>
-    <button
+      small
+    />
+    <Button
+      active={isSelected && direction === "desc"}
       aria-label={`${SORT_FIELD_LABELS[field]} descending`}
-      className={`inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 text-gray-400 hover:bg-gray-100 hover:text-gray-900 ${
-        isSelected && direction === "desc" ? "bg-blue-700/10 text-blue-700" : ""
-      }`}
+      icon="arrow-down"
+      minimal
       onClick={(event) => {
         event.stopPropagation();
         onDirectionChange("desc");
       }}
       onMouseDown={(event) => event.preventDefault()}
-      type="button"
-    >
-      <Icon icon="arrow-down" size={12} />
-    </button>
-  </span>
+      small
+    />
+  </ButtonGroup>
+);
+
+const SortPopoverMenu = ({
+  onSortChange,
+  sort,
+}: {
+  onSortChange: (sort: SortConfig) => void;
+  sort: SortConfig;
+}): React.ReactElement => (
+  <Menu className="w-60">
+    <MenuItem disabled shouldDismissPopover={false} text="Sort by" />
+    {SORT_FIELDS.map((field) => {
+      const isSelected = sort.field === field;
+      return (
+        <MenuItem
+          key={field}
+          active={isSelected}
+          icon={isSelected ? "tick" : "blank"}
+          labelElement={
+            <SortDirectionToggles
+              direction={sort.direction}
+              field={field}
+              isSelected={isSelected}
+              onDirectionChange={(direction) =>
+                onSortChange({ field, direction })
+              }
+            />
+          }
+          onClick={() => onSortChange({ field, direction: sort.direction })}
+          shouldDismissPopover={false}
+          text={SORT_FIELD_LABELS[field]}
+        />
+      );
+    })}
+  </Menu>
 );
 
 export const DiscourseNodeSortControl = ({
@@ -123,46 +161,7 @@ export const DiscourseNodeSortControl = ({
       <Popover
         autoFocus={false}
         canEscapeKeyClose
-        content={
-          <div className="w-60 overflow-hidden">
-            <div className="px-3 pb-1 pt-2 text-xs font-medium text-gray-500">
-              Sort by
-            </div>
-            {SORT_FIELDS.map((field) => {
-              const isSelected = sort.field === field;
-              return (
-                <button
-                  key={field}
-                  className={`grid w-full cursor-pointer items-center gap-2 border-0 px-3 py-1.5 text-left text-sm text-gray-900 hover:bg-gray-50 ${
-                    isSelected ? "bg-blue-700/[0.07]" : "bg-transparent"
-                  }`}
-                  style={{
-                    gridTemplateColumns: "22px 1fr auto",
-                  }}
-                  onClick={() =>
-                    applySort({ field, direction: sort.direction })
-                  }
-                  type="button"
-                >
-                  <span className="inline-flex items-center justify-center text-blue-700">
-                    {isSelected && <Icon icon="tick" size={12} />}
-                  </span>
-                  <span className={isSelected ? "font-semibold" : ""}>
-                    {SORT_FIELD_LABELS[field]}
-                  </span>
-                  <SortDirectionToggles
-                    direction={sort.direction}
-                    field={field}
-                    isSelected={isSelected}
-                    onDirectionChange={(direction) =>
-                      applySort({ field, direction })
-                    }
-                  />
-                </button>
-              );
-            })}
-          </div>
-        }
+        content={<SortPopoverMenu onSortChange={applySort} sort={sort} />}
         disabled={disabled}
         enforceFocus={false}
         isOpen={isOpen}
