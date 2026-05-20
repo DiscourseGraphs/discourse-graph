@@ -75,10 +75,12 @@ const ResultRow = ({
   onMouseEnter: () => void;
   result: SearchResult;
 }) => (
-  <button
-    type="button"
+  <Button
+    alignText="left"
     aria-selected={active}
-    className="flex w-full flex-none cursor-pointer items-start gap-2 border-0 bg-transparent p-0 px-3 py-2 text-left"
+    className="flex-none !items-start gap-2 !px-3 !py-2"
+    fill
+    minimal
     onClick={onClick}
     onMouseEnter={onMouseEnter}
     role="option"
@@ -93,7 +95,7 @@ const ResultRow = ({
     <span className="min-w-0 break-words text-sm leading-snug text-gray-900">
       {renderHighlightedText(stripTypePrefix(result.title), keywords)}
     </span>
-  </button>
+  </Button>
 );
 
 const PreviewPane = ({ result }: { result: SearchResult | null }) => {
@@ -139,13 +141,9 @@ const AdvancedNodeSearchDialog = ({
 }: RoamOverlayProps<Props>) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [indexError, setIndexError] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [nodeConfigByType, setNodeConfigByType] = useState<
-    Record<string, DiscourseNode>
-  >({});
   const miniSearchRef = useRef<MiniSearch<
     SearchResult & { id: string }
   > | null>(null);
@@ -153,12 +151,30 @@ const AdvancedNodeSearchDialog = ({
   const resultsPanelRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const activeResult = results[activeIndex] ?? null;
+  const nodeConfigByType = useMemo(() => {
+    const discourseNodes = getDiscourseNodes().filter(
+      (node) => node.backedBy === "user",
+    );
+    return Object.fromEntries(
+      discourseNodes.map((node) => [node.type, node]),
+    ) as Record<string, DiscourseNode>;
+  }, []);
 
-  const keywords = useMemo(
-    () => debouncedSearchTerm.split(/\s+/).filter(Boolean),
-    [debouncedSearchTerm],
-  );
+  const results =
+    isOpen &&
+    !isIndexLoading &&
+    !indexError &&
+    debouncedSearchTerm &&
+    miniSearchRef.current
+      ? searchIndexedNodes({
+          miniSearch: miniSearchRef.current,
+          allResults: allResultsRef.current,
+          searchTerm: debouncedSearchTerm,
+        })
+      : [];
+
+  const activeResult = results[activeIndex] ?? null;
+  const keywords = debouncedSearchTerm.split(/\s+/).filter(Boolean);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -179,7 +195,6 @@ const AdvancedNodeSearchDialog = ({
     if (!isOpen) {
       setSearchTerm("");
       setDebouncedSearchTerm("");
-      setResults([]);
       setActiveIndex(0);
       setIndexError(false);
       miniSearchRef.current = null;
@@ -193,9 +208,6 @@ const AdvancedNodeSearchDialog = ({
 
     const discourseNodes = getDiscourseNodes().filter(
       (node) => node.backedBy === "user",
-    );
-    setNodeConfigByType(
-      Object.fromEntries(discourseNodes.map((node) => [node.type, node])),
     );
 
     void buildSearchIndex(discourseNodes)
@@ -232,30 +244,8 @@ const AdvancedNodeSearchDialog = ({
   }, [searchTerm]);
 
   useEffect(() => {
-    if (!isOpen || isIndexLoading || indexError) return;
-
-    const query = debouncedSearchTerm;
-    if (!query || !miniSearchRef.current) {
-      setResults([]);
-      setActiveIndex(0);
-      return;
-    }
-
-    const matchedResults = searchIndexedNodes({
-      miniSearch: miniSearchRef.current,
-      allResults: allResultsRef.current,
-      searchTerm: query,
-    });
-
-    if (!matchedResults.length) {
-      setResults([]);
-      setActiveIndex(0);
-      return;
-    }
-
-    setResults(matchedResults);
     setActiveIndex(0);
-  }, [debouncedSearchTerm, indexError, isIndexLoading, isOpen]);
+  }, [debouncedSearchTerm]);
 
   useEffect(() => {
     const panel = resultsPanelRef.current;
@@ -263,7 +253,7 @@ const AdvancedNodeSearchDialog = ({
 
     const activeRow = panel.querySelector('[aria-selected="true"]');
     activeRow?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex]);
+  }, [activeIndex, activeResult?.uid, debouncedSearchTerm]);
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -281,13 +271,15 @@ const AdvancedNodeSearchDialog = ({
     [onClose, results.length],
   );
 
-  const contentState = useMemo(() => {
-    if (indexError) return "error";
-    if (isIndexLoading) return "indexing";
-    if (!debouncedSearchTerm) return "initial";
-    if (!results.length) return "empty";
-    return "results";
-  }, [debouncedSearchTerm, indexError, isIndexLoading, results.length]);
+  const contentState = indexError
+    ? "error"
+    : isIndexLoading
+      ? "indexing"
+      : !debouncedSearchTerm
+        ? "initial"
+        : !results.length
+          ? "empty"
+          : "results";
 
   const showSplitView = contentState === "results";
 
@@ -296,14 +288,13 @@ const AdvancedNodeSearchDialog = ({
       autoFocus={false}
       canEscapeKeyClose
       canOutsideClickClose
-      className="flex-col overflow-hidden bg-white p-0"
+      className="flex max-w-4xl flex-col overflow-hidden bg-white p-0"
       enforceFocus={false}
       isOpen={isOpen}
       onClose={onClose}
       style={{
         height: "72vh",
-        maxWidth: "980px",
-        width: "min(980px, calc(100vw - 64px))",
+        width: "min(56rem, calc(100vw - 64px))",
       }}
     >
       <div
