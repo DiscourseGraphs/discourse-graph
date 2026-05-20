@@ -67,15 +67,20 @@ Given("the database is blank", async () => {
   assert.equal(r.error, null);
   const r3 = await client.from("group_membership").select("group_id");
   assert.equal(r3.error, null);
-  const groupIds = new Set((r3.data || []).map(({group_id})=>group_id));
+  const groupIds = new Set(
+    (r3.data || []).map(({ group_id: groupId }) => groupId),
+  );
   for (const id of groupIds) {
     const ur = await client.auth.admin.deleteUser(id);
     assert.equal(ur.error, null);
   }
-  const r2 = await client.from("PlatformAccount").select("dg_account").not('dg_account', 'is', null);
+  const r2 = await client
+    .from("PlatformAccount")
+    .select("dg_account")
+    .not("dg_account", "is", null);
   assert.equal(r2.error, null);
-  for (const {dg_account} of r2.data || []) {
-    const r = await client.auth.admin.deleteUser(dg_account!);
+  for (const { dg_account: dgAccount } of r2.data || []) {
+    const r = await client.auth.admin.deleteUser(dgAccount);
     assert.equal(r.error, null);
   }
   r = await client.from("PlatformAccount").delete().neq("id", -1);
@@ -404,47 +409,117 @@ Then("query results should look like this", (table: DataTable) => {
   }
 });
 
-When("user of space {word} creates group {word}", async (spaceName: string, name: string) => {
-  const localRefs = (world.localRefs || {}) as LocalRefsType;
-  const spaceId = localRefs[spaceName];
-  if (typeof spaceId !== "number") assert.fail("spaceId not a number");
-  const client = await getLoggedinDatabase(spaceId);
-  try{
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const response = await client.functions.invoke<{group_id: string}>("create-group", {body:{name}});
+Then(
+  "a user logged in space {word} should see these content representation rows:",
+  async (spaceName: string, table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const client = await getLoggedinDatabase(spaceId);
+    const response = await client
+      .from("my_contents")
+      .select("source_local_id, variant, content_type, text, metadata")
+      .eq("space_id", spaceId);
     assert.equal(response.error, null);
-    assert.ok(response.data?.group_id, "create-group response missing group_id");
-    localRefs[name] = response.data.group_id;
-    world.localRefs = localRefs;
-  } catch (error) {
-    console.error((error as Record<string, any>).actual);
-    throw error;
-  }
-})
+    const actual = (response.data || [])
+      .map(
+        ({
+          source_local_id: sourceLocalId,
+          variant,
+          content_type: contentType,
+          text,
+          metadata,
+        }) => ({
+          sourceLocalId,
+          variant,
+          contentType,
+          text,
+          hasMetadataContent:
+            typeof metadata === "object" &&
+            metadata !== null &&
+            "content" in metadata,
+        }),
+      )
+      .sort((a, b) =>
+        `${a.sourceLocalId}:${a.contentType}`.localeCompare(
+          `${b.sourceLocalId}:${b.contentType}`,
+        ),
+      );
+    const expected = table
+      .hashes()
+      .map((row) => ({
+        sourceLocalId: row.source_local_id,
+        variant: row.variant,
+        contentType: row.content_type,
+        text: row.text,
+        hasMetadataContent: row.content_type?.includes("atjson") ?? false,
+      }))
+      .sort((a, b) =>
+        `${a.sourceLocalId}:${a.contentType}`.localeCompare(
+          `${b.sourceLocalId}:${b.contentType}`,
+        ),
+      );
+    assert.deepEqual(actual, expected);
+  },
+);
 
-When("user of space {word} adds space {word} to group {word}",
-    async (space1Name: string, space2Name:string, groupName: string): Promise<void> =>{
-  const localRefs = (world.localRefs || {}) as LocalRefsType;
-  const space1Id = localRefs[space1Name];
-  const space2Id = localRefs[space2Name];
-  const groupId = localRefs[groupName];
-  if (typeof space1Id !== 'number') assert.fail("space1Id not a number");
-  if (typeof space2Id !== 'number') assert.fail("space2Id not a number");
-  if (typeof groupId !== 'string') assert.fail("groupId not a string");
-  const client2 = await getLoggedinDatabase(space2Id);
-  const r1 = await client2.from("PlatformAccount")
+When(
+  "user of space {word} creates group {word}",
+  async (spaceName: string, name: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const client = await getLoggedinDatabase(spaceId);
+    try {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      const response = await client.functions.invoke<{ group_id: string }>(
+        "create-group",
+        { body: { name } },
+      );
+      assert.equal(response.error, null);
+      assert.ok(
+        response.data?.group_id,
+        "create-group response missing group_id",
+      );
+      localRefs[name] = response.data.group_id;
+      world.localRefs = localRefs;
+    } catch (error) {
+      console.error((error as Record<string, any>).actual);
+      throw error;
+    }
+  },
+);
+
+When(
+  "user of space {word} adds space {word} to group {word}",
+  async (
+    space1Name: string,
+    space2Name: string,
+    groupName: string,
+  ): Promise<void> => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const space1Id = localRefs[space1Name];
+    const space2Id = localRefs[space2Name];
+    const groupId = localRefs[groupName];
+    if (typeof space1Id !== "number") assert.fail("space1Id not a number");
+    if (typeof space2Id !== "number") assert.fail("space2Id not a number");
+    if (typeof groupId !== "string") assert.fail("groupId not a string");
+    const client2 = await getLoggedinDatabase(space2Id);
+    const r1 = await client2
+      .from("PlatformAccount")
       .select("dg_account")
       .eq("account_local_id", spaceAnonUserEmail("Roam", space2Id))
       .maybeSingle();
-  assert.equal(r1.error, null);
-  const memberId = r1.data?.dg_account;
-  assert.ok(memberId, "memberId not found for space2");
-  const client1 = await getLoggedinDatabase(space1Id);
-  const r2 = await client1.from("group_membership").insert({
-    /* eslint-disable @typescript-eslint/naming-convention */
-    group_id: groupId,
-    member_id: memberId
-    /* eslint-enable @typescript-eslint/naming-convention */
-  });
-  assert.equal(r2.error, null);
-})
+    assert.equal(r1.error, null);
+    const memberId = r1.data?.dg_account;
+    assert.ok(memberId, "memberId not found for space2");
+    const client1 = await getLoggedinDatabase(space1Id);
+    const r2 = await client1.from("group_membership").insert({
+      /* eslint-disable @typescript-eslint/naming-convention */
+      group_id: groupId,
+      member_id: memberId,
+      /* eslint-enable @typescript-eslint/naming-convention */
+    });
+    assert.equal(r2.error, null);
+  },
+);

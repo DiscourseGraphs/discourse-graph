@@ -8,6 +8,7 @@
     "deploy": "tsx scripts/deploy.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test": "node --import tsx --test tests/atjsonContentWrite.test.ts",
     "publish": "tsx scripts/publish.ts",
     "check-types": "tsc --noEmit --skipLibCheck"
   },
@@ -42,6 +43,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@octokit/auth-app": "^7.1.4",
     "@octokit/core": "^6.1.3",
+    "@repo/content-model": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/utils": "workspace:*",
     "@supabase/functions-js": "catalog:",

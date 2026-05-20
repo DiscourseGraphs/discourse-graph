@@ -1,0 +1,33 @@
+{
+  "name": "@repo/content-model",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./constants": "./src/constants.ts",
+    "./schema": "./src/schema.ts",
+    "./validate": "./src/validate.ts",
+    "./text": "./src/text.ts",
+    "./core": "./src/core/index.ts",
+    "./adapters/obsidian": "./src/adapters/obsidian.ts",
+    "./adapters/roam": "./src/adapters/roam.ts",
+    "./render/html": "./src/render/html.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "check-types": "tsc --noEmit --skipLibCheck",
+    "lint": "eslint .",
+    "test": "pnpm run build && node --test dist/src/content-model.test.js"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^20.11.24",
+    "eslint": "catalog:",
+    "typescript": "5.5.4"
+  },
+  "dependencies": {
+    "tslib": "2.5.1"
+  }
+}

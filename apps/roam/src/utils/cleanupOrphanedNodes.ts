@@ -3,6 +3,7 @@ import type { SupabaseContext } from "./supabaseContext";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Tables } from "@repo/database/dbTypes";
 import internalError from "./internalError";
+import { TEXT_PLAIN_CONTENT_TYPE } from "@repo/content-model";
 
 const getAllNodesFromSupabase = async (
   supabaseClient: DGSupabaseClient,
@@ -58,6 +59,7 @@ const getAllNodesFromSupabase = async (
       .select("source_local_id")
       .eq("space_id", spaceId)
       .eq("scale", "block")
+      .eq("content_type", TEXT_PLAIN_CONTENT_TYPE)
       .not("source_local_id", "is", null);
 
     if (blockContentResponse.error) {

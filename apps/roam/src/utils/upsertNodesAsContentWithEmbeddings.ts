@@ -2,8 +2,20 @@
 import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import { type SupabaseContext } from "./supabaseContext";
 import { nextApiRoot } from "@repo/utils/execContext";
+import {
+  DG_ATJSON_CONTENT_TYPE,
+  TEXT_PLAIN_CONTENT_TYPE,
+  createDgAtJsonMetadata,
+  derivePlainTextFromDgDocument,
+  roamTextToDgDocument,
+  roamTreeToDgDocument,
+  type DgDocument,
+  type RoamTreeNode,
+} from "@repo/content-model";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json, CompositeTypes } from "@repo/database/dbTypes";
+import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
+import { splitEmbeddableContentNodes } from "./contentEmbeddingSplit";
 
 type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
 
@@ -16,25 +28,101 @@ type EmbeddingApiResponse = {
   }[];
 };
 
+type RoamTreeLike = {
+  uid?: string;
+  text?: string;
+  viewType?: "bullet" | "numbered" | "document";
+  children?: RoamTreeLike[];
+};
+
+const toRoamTreeNode = (
+  node: RoamTreeLike,
+  fallbackUid: string,
+): RoamTreeNode => ({
+  uid: node.uid ?? fallbackUid,
+  text: node.text ?? "",
+  viewType: node.viewType,
+  children: (node.children ?? []).map((child, index) =>
+    toRoamTreeNode(child, `${fallbackUid}-${index + 1}`),
+  ),
+});
+
+const createRoamAtJsonDocument = (node: RoamDiscourseNodeData): DgDocument => {
+  const title = node.node_title ?? node.text;
+  try {
+    const tree = getFullTreeByParentUid(node.source_local_id) as RoamTreeLike;
+    const treeChildren = node.node_title
+      ? [
+          toRoamTreeNode(
+            {
+              ...tree,
+              uid: node.source_local_id,
+              text: node.text || tree.text,
+            },
+            node.source_local_id,
+          ),
+        ]
+      : (tree.children ?? []).map((child, index) =>
+          toRoamTreeNode(child, `${node.source_local_id}-${index + 1}`),
+        );
+    return roamTreeToDgDocument({
+      title,
+      pageUid: node.source_local_id,
+      children: treeChildren,
+      metadata: {
+        sourceLocalId: node.source_local_id,
+        nodeTypeId: node.type,
+      },
+    });
+  } catch (error) {
+    console.warn(
+      `Falling back to text-only Roam ATJSON for ${node.source_local_id}:`,
+      error,
+    );
+    return roamTextToDgDocument({
+      title,
+      text: node.node_title ? node.text : "",
+      sourceLocalId: node.source_local_id,
+      metadata: {
+        nodeTypeId: node.type,
+      },
+    });
+  }
+};
+
 export const convertRoamNodeToLocalContent = ({
   nodes,
 }: {
   nodes: RoamDiscourseNodeData[];
 }): LocalContentDataInput[] => {
-  return nodes.map((node) => {
+  return nodes.flatMap((node) => {
     const variant = node.node_title ? "direct_and_description" : "direct";
     const text = node.node_title
       ? `${node.node_title} ${node.text}`
       : node.text;
-    return {
+    const baseEntry = {
       author_local_id: node.author_local_id,
       source_local_id: node.source_local_id,
       created: new Date(node.created || Date.now()).toISOString(),
       last_modified: new Date(node.last_modified || Date.now()).toISOString(),
-      text: text,
-      variant: variant,
-      scale: "document",
+      scale: "document" as const,
     };
+    const document = createRoamAtJsonDocument(node);
+    return [
+      {
+        ...baseEntry,
+        text: text,
+        variant: variant,
+        content_type: TEXT_PLAIN_CONTENT_TYPE,
+      },
+      {
+        ...baseEntry,
+        text: derivePlainTextFromDgDocument(document),
+        variant: "full",
+        content_type: DG_ATJSON_CONTENT_TYPE,
+        metadata: createDgAtJsonMetadata({ document }) as unknown as Json,
+      },
+    ];
   });
 };
 
@@ -103,7 +191,7 @@ const uploadBatches = async (
   batches: LocalContentDataInput[][],
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
-) => {
+): Promise<void> => {
   const { spaceId, userId } = context;
   for (let idx = 0; idx < batches.length; idx++) {
     const batch = batches[idx];
@@ -137,19 +225,21 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   const localContentNodes = convertRoamNodeToLocalContent({
     nodes: roamNodes,
   });
+  const { embeddableContentNodes, nonEmbeddableContentNodes } =
+    splitEmbeddableContentNodes(localContentNodes);
 
   let nodesWithEmbeddings: LocalContentDataInput[];
   try {
-    nodesWithEmbeddings = await fetchEmbeddingsForNodes(localContentNodes);
+    nodesWithEmbeddings = await fetchEmbeddingsForNodes(embeddableContentNodes);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${errorMessage}`,
+      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed - ${errorMessage}`,
     );
     return;
   }
 
-  if (nodesWithEmbeddings.length !== roamNodes.length) {
+  if (nodesWithEmbeddings.length !== embeddableContentNodes.length) {
     console.error(
       "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
     );
@@ -167,7 +257,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   };
 
   await uploadBatches(
-    chunk(nodesWithEmbeddings, batchSize),
+    chunk([...nodesWithEmbeddings, ...nonEmbeddableContentNodes], batchSize),
     supabaseClient,
     context,
   );

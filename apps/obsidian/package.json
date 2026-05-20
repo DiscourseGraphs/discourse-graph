@@ -9,6 +9,7 @@
     "build": "tsx scripts/build.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test": "node --import tsx --test tests/atjsonContentWrite.test.ts",
     "publish": "tsx scripts/publish.ts --version 0.1.0",
     "check-types": "tsc --noEmit --skipLibCheck"
   },
@@ -39,6 +40,7 @@
   },
   "dependencies": {
     "@codemirror/view": "^6.38.8",
+    "@repo/content-model": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/utils": "workspace:*",
     "@supabase/supabase-js": "catalog:",

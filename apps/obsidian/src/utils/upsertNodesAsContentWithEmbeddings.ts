@@ -1,14 +1,20 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { nextApiRoot } from "@repo/utils/execContext";
-import { DGSupabaseClient } from "@repo/database/lib/client";
-import { Json, CompositeTypes } from "@repo/database/dbTypes";
-import { SupabaseContext } from "./supabaseContext";
-import { ObsidianDiscourseNodeData, ChangeType } from "./syncDgNodesToSupabase";
-import { default as DiscourseGraphPlugin } from "~/index";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { Json, CompositeTypes } from "@repo/database/dbTypes";
+import {
+  DG_ATJSON_CONTENT_TYPE,
+  TEXT_MARKDOWN_CONTENT_TYPE,
+  TEXT_PLAIN_CONTENT_TYPE,
+  createDgAtJsonMetadata,
+  derivePlainTextFromDgDocument,
+  obsidianMarkdownToDgDocument,
+} from "@repo/content-model";
+import type { SupabaseContext } from "./supabaseContext";
+import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
+import type DiscourseGraphPlugin from "~/index";
 
 type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
-
-type ContentVariant = "direct" | "full";
 
 const EMBEDDING_BATCH_SIZE = 200;
 const EMBEDDING_MODEL = "openai_text_embedding_3_small_1536";
@@ -19,31 +25,16 @@ type EmbeddingApiResponse = {
   }[];
 };
 
-/**
- * Determine which content variants to create based on change types
- */
-const getVariantsToCreate = (changeTypes: ChangeType[]): ContentVariant[] => {
-  const variants: ContentVariant[] = [];
-
-  if (changeTypes.includes("title")) {
-    variants.push("direct");
-  }
-
-  if (changeTypes.includes("content")) {
-    variants.push("full");
-  }
-
-  return variants;
-};
-
 const createNodeContentEntries = async (
   node: ObsidianDiscourseNodeData,
   accountLocalId: string,
   plugin: DiscourseGraphPlugin,
 ): Promise<LocalContentDataInput[]> => {
-  const variantsToCreate = getVariantsToCreate(node.changeTypes);
+  const shouldWriteDirect = node.changeTypes.includes("title");
+  const shouldWriteMarkdown = node.changeTypes.includes("content");
+  const shouldWriteAtJson = shouldWriteDirect || shouldWriteMarkdown;
 
-  if (variantsToCreate.length === 0) {
+  if (!shouldWriteDirect && !shouldWriteMarkdown && !shouldWriteAtJson) {
     return [];
   }
 
@@ -59,25 +50,45 @@ const createNodeContentEntries = async (
   const entries: LocalContentDataInput[] = [];
 
   // Create direct entry (title) if needed - will get embeddings
-  if (variantsToCreate.includes("direct")) {
+  if (shouldWriteDirect) {
     entries.push({
       ...baseEntry,
       text: node.file.basename,
       variant: "direct",
+      content_type: TEXT_PLAIN_CONTENT_TYPE,
       metadata: { filePath: node.file.path },
     });
   }
 
-  // Create full entry (content) if needed - no embeddings
-  if (variantsToCreate.includes("full")) {
+  if (shouldWriteMarkdown || shouldWriteAtJson) {
     try {
       const fullContent = await plugin.app.vault.read(node.file);
-      entries.push({
-        ...baseEntry,
-        text: fullContent,
-        variant: "full",
-        metadata: node.frontmatter as Json,
+      if (shouldWriteMarkdown) {
+        entries.push({
+          ...baseEntry,
+          text: fullContent,
+          variant: "full",
+          content_type: TEXT_MARKDOWN_CONTENT_TYPE,
+          metadata: node.frontmatter as Json,
+        });
+      }
+      const document = obsidianMarkdownToDgDocument({
+        title: node.file.basename,
+        markdown: fullContent,
+        metadata: {
+          filePath: node.file.path,
+          frontmatter: node.frontmatter as Json,
+        },
       });
+      if (shouldWriteAtJson) {
+        entries.push({
+          ...baseEntry,
+          text: derivePlainTextFromDgDocument(document),
+          variant: "full",
+          content_type: DG_ATJSON_CONTENT_TYPE,
+          metadata: createDgAtJsonMetadata({ document }) as unknown as Json,
+        });
+      }
     } catch (error) {
       console.error(`Error reading file content for ${node.file.path}:`, error);
     }
@@ -202,7 +213,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async ({
     return;
   }
 
-  // Create two entries per node: one "direct" (title) and one "full" (content)
+  // Create representation rows based on the changed slice: title, Markdown body, and canonical ATJSON.
   const allContentEntries = await convertObsidianNodeToLocalContent({
     nodes: obsidianNodes,
     accountLocalId,
@@ -210,10 +221,16 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async ({
   });
 
   const directVariantEntries = allContentEntries.filter(
-    (entry) => entry.variant === "direct",
+    (entry) =>
+      entry.variant === "direct" &&
+      (entry.content_type ?? TEXT_PLAIN_CONTENT_TYPE) ===
+        TEXT_PLAIN_CONTENT_TYPE,
   );
   const fullVariantEntries = allContentEntries.filter(
-    (entry) => entry.variant === "full",
+    (entry) =>
+      entry.variant === "full" ||
+      (entry.content_type ?? TEXT_PLAIN_CONTENT_TYPE) !==
+        TEXT_PLAIN_CONTENT_TYPE,
   );
 
   let directEntriesWithEmbeddings: LocalContentDataInput[];
@@ -223,7 +240,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async ({
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${errorMessage}`,
+      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed - ${errorMessage}`,
     );
     throw new Error(errorMessage);
   }

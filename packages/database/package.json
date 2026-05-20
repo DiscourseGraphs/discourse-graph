@@ -8,6 +8,7 @@
     "./dbDotEnv": {
       "types": "./types/dbDotEnv.d.ts",
       "import": "./src/dbDotEnv.mjs",
+      "require": "./src/dbDotEnv.cjs",
       "default": "./src/dbDotEnv.mjs"
     },
     "./dbTypes": "./src/dbTypes.ts",
@@ -32,7 +33,8 @@
     "lint": "eslint . && tsx scripts/lintSchemas.ts && tsx scripts/lintFunctions.ts",
     "lint:fix": "eslint --fix . && tsx scripts/lintSchemas.ts -f && tsx scripts/lintFunctions.ts",
     "migrate": "tsx scripts/migrate.ts",
-    "test": "pnpm run build && cucumber-js",
+    "test": "pnpm run build && pnpm run test:atjson-contract && cucumber-js",
+    "test:atjson-contract": "node --import tsx --test tests/atjsonSqlContract.test.ts",
     "test:withserve": "pnpm run build && tsx scripts/serveAndTest.ts",
     "genenv": "tsx scripts/createEnv.mts",
     "gentypes": "tsx scripts/genTypes.ts",

@@ -21,6 +21,7 @@ import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json, CompositeTypes, Enums } from "@repo/database/dbTypes";
+import { splitEmbeddableContentNodes } from "./contentEmbeddingSplit";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
 type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
@@ -198,7 +199,7 @@ export const proposeSyncTask = async (
 
     if (error) {
       console.error(
-        `proposeSyncTask: propose_sync_task failed – ${error.message}`,
+        `proposeSyncTask: propose_sync_task failed - ${error.message}`,
       );
       return { shouldProceed: false };
     }
@@ -346,21 +347,23 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
     nodes: roamNodes,
   });
+  const {
+    embeddableContentNodes: embeddableContent,
+    nonEmbeddableContentNodes: nonEmbeddableContent,
+  } = splitEmbeddableContentNodes(allNodeInstancesAsLocalContent);
 
   let nodesWithEmbeddings: LocalContentDataInput[];
   try {
-    nodesWithEmbeddings = await fetchEmbeddingsForNodes(
-      allNodeInstancesAsLocalContent,
-    );
+    nodesWithEmbeddings = await fetchEmbeddingsForNodes(embeddableContent);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${message}`,
+      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed - ${message}`,
     );
     throw new Error(message);
   }
 
-  if (nodesWithEmbeddings.length !== allNodeInstancesAsLocalContent.length) {
+  if (nodesWithEmbeddings.length !== embeddableContent.length) {
     console.error(
       "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
     );
@@ -386,7 +389,9 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     }
   };
 
-  await uploadBatches(chunk(nodesWithEmbeddings, BATCH_SIZE));
+  await uploadBatches(
+    chunk([...nodesWithEmbeddings, ...nonEmbeddableContent], BATCH_SIZE),
+  );
 };
 
 const getAllUsers = async (): Promise<AccountLocalInput[]> => {
@@ -538,7 +543,7 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
       doSync = false;
       return;
     }
-    const jitter = 0.9 + Math.random() * 0.2; // 0.9x–1.1x
+    const jitter = 0.9 + Math.random() * 0.2; // 0.9x-1.1x
     timeout *= 2 ** numFailures * jitter;
   }
   if (activeTimeout != null) {

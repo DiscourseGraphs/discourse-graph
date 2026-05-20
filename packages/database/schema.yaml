@@ -28,6 +28,7 @@ enums:
       direct:
       direct_and_children:
       direct_and_description:
+      full:
   Validation:
     description: Whether a given value was given by a person, or suggested by an automated agent (and then possibly infirmed.)
     permissible_values:
@@ -229,6 +230,8 @@ classes:
       - creator
       - created
       - text
+      - variant
+      - content_type
       - metadata
       - scale
       # - position
@@ -245,6 +248,8 @@ classes:
         unique_key_slots:
           - space
           - source_local_id
+          - variant
+          - content_type
 
   # ContentDerivation:
   #   description: A derivation relation between content units
@@ -428,6 +433,14 @@ slots:
     range: PlatformAccount
   text:
     required: true
+  variant:
+    range: ContentVariant
+    required: true
+    ifabsent: ContentVariant(direct)
+  content_type:
+    range: string
+    required: true
+    ifabsent: string(text/plain)
   description:
   created:
     range: datetime
