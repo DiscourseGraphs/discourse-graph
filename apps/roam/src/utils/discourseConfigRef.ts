@@ -7,7 +7,7 @@ import {
   getUidAndBooleanSetting,
   BooleanSetting,
 } from "./getExportSettings";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import {
   getSuggestiveModeConfigAndUids,

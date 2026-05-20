@@ -1,15 +1,14 @@
-import { OnloadArgs } from "roamjs-components/types";
 import { getQueryPages } from "~/components/settings/QueryPagesPanel";
+import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
 
 export const isQueryPage = ({
   title,
-  onloadArgs,
+  snapshot,
 }: {
   title: string;
-  onloadArgs: OnloadArgs;
+  snapshot: SettingsSnapshot;
 }): boolean => {
-  const { extensionAPI } = onloadArgs;
-  const queryPages = getQueryPages(extensionAPI);
+  const queryPages = getQueryPages(snapshot);
 
   const matchesQueryPage = queryPages.some((queryPage) => {
     const escapedPattern = queryPage

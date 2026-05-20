@@ -1,18 +1,24 @@
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, useState } from "react";
 import { Label } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import createBlock from "roamjs-components/writes/createBlock";
+import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getFirstChildUidByBlockUid from "roamjs-components/queries/getFirstChildUidByBlockUid";
-import type { TreeNode } from "roamjs-components/types";
+import type { InputTextNode, TreeNode } from "roamjs-components/types";
 import type { RoamNodeType } from "~/components/settings/utils/zodSchema";
-import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import {
+  isNewSettingsStoreEnabled,
+  setDiscourseNodeSetting,
+} from "~/components/settings/utils/accessors";
 import type { DiscourseNodeBaseProps } from "./BlockPropSettingPanels";
 
 const DEBOUNCE_MS = 250;
+const TEMPLATE_BUFFER_TEXT = "Template-Block-props";
 
 type DualWriteBlocksPanelProps = DiscourseNodeBaseProps & {
   uid: string;
+  defaultValue?: InputTextNode[];
 };
 
 const serializeBlockTree = (children: TreeNode[]): RoamNodeType[] =>
@@ -27,34 +33,123 @@ const serializeBlockTree = (children: TreeNode[]): RoamNodeType[] =>
       }),
     }));
 
+const treeNodeToInputTextNode = (node: TreeNode): InputTextNode => ({
+  text: node.text,
+  ...(node.heading && { heading: node.heading as 0 | 1 | 2 | 3 }),
+  ...(node.open === false && { open: false }),
+  ...(node.children.length > 0 && {
+    children: [...node.children]
+      .sort((a, b) => a.order - b.order)
+      .map(treeNodeToInputTextNode),
+  }),
+});
+
+const mirrorBufferToLegacyChildren = (
+  bufferChildren: TreeNode[],
+  legacyChildren: TreeNode[],
+  legacyParentUid: string,
+): void => {
+  const sortedBuffer = [...bufferChildren].sort((a, b) => a.order - b.order);
+  const sortedLegacy = [...legacyChildren].sort((a, b) => a.order - b.order);
+  const minLen = Math.min(sortedBuffer.length, sortedLegacy.length);
+
+  for (let i = 0; i < minLen; i++) {
+    const bufferNode = sortedBuffer[i];
+    const legacyNode = sortedLegacy[i];
+    if (
+      bufferNode.text !== legacyNode.text ||
+      bufferNode.heading !== legacyNode.heading ||
+      bufferNode.open !== legacyNode.open
+    ) {
+      void window.roamAlphaAPI.data.block.update({
+        block: {
+          uid: legacyNode.uid,
+          string: bufferNode.text,
+          ...(bufferNode.heading !== undefined && {
+            heading: bufferNode.heading,
+          }),
+          ...(bufferNode.open !== undefined && { open: bufferNode.open }),
+        },
+      });
+    }
+    mirrorBufferToLegacyChildren(
+      bufferNode.children,
+      legacyNode.children,
+      legacyNode.uid,
+    );
+  }
+
+  for (let i = minLen; i < sortedBuffer.length; i++) {
+    const node = treeNodeToInputTextNode(sortedBuffer[i]);
+    void createBlock({ node, parentUid: legacyParentUid, order: i });
+  }
+
+  for (let i = minLen; i < sortedLegacy.length; i++) {
+    void deleteBlock(sortedLegacy[i].uid);
+  }
+};
+
 const DualWriteBlocksPanel = ({
   nodeType,
   settingKeys,
   title,
   description,
   uid,
+  defaultValue,
 }: DualWriteBlocksPanelProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef(0);
+  const defaultValueRef = useRef(defaultValue);
+  defaultValueRef.current = defaultValue;
   const pullWatchArgsRef = useRef<
     [string, string, (before: unknown, after: unknown) => void] | null
   >(null);
 
+  const isNewStore = isNewSettingsStoreEnabled();
+  const [bufferUid, setBufferUid] = useState<string | null>(null);
+  const renderUid = isNewStore ? bufferUid : uid;
+
+  useEffect(() => {
+    if (!isNewStore || !nodeType) return;
+    let cancelled = false;
+    const newUid = window.roamAlphaAPI.util.generateUID();
+    const dv = defaultValueRef.current;
+    const seed: InputTextNode[] = dv && dv.length > 0 ? dv : [{ text: " " }];
+    void createBlock({
+      node: { text: TEMPLATE_BUFFER_TEXT, uid: newUid, children: seed },
+      parentUid: nodeType,
+      order: "last",
+    }).then(() => {
+      if (!cancelled) setBufferUid(newUid);
+    });
+    return () => {
+      cancelled = true;
+      setBufferUid(null);
+      void deleteBlock(newUid);
+    };
+  }, [isNewStore, nodeType]);
+
   const handleChange = useCallback(() => {
+    if (!renderUid) return;
     window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
-      const tree = getFullTreeByParentUid(uid);
+      const tree = getFullTreeByParentUid(renderUid);
       const serialized = serializeBlockTree(tree.children);
       setDiscourseNodeSetting(nodeType, settingKeys, serialized);
+      if (isNewStore && renderUid !== uid) {
+        const legacyTree = getFullTreeByParentUid(uid);
+        mirrorBufferToLegacyChildren(tree.children, legacyTree.children, uid);
+      }
     }, DEBOUNCE_MS);
-  }, [uid, nodeType, settingKeys]);
+  }, [renderUid, uid, isNewStore, nodeType, settingKeys]);
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || !uid) return;
+    if (!el || !renderUid) return;
 
+    let cancelled = false;
     const pattern = "[:block/string :block/order {:block/children ...}]";
-    const entityId = `[:block/uid "${uid}"]`;
+    const entityId = `[:block/uid "${renderUid}"]`;
     const callback = () => handleChange();
 
     const registerPullWatch = () => {
@@ -62,26 +157,37 @@ const DualWriteBlocksPanel = ({
       window.roamAlphaAPI.data.addPullWatch(pattern, entityId, callback);
     };
 
-    if (!getFirstChildUidByBlockUid(uid)) {
-      void createBlock({ node: { text: " " }, parentUid: uid }).then(() => {
-        el.innerHTML = "";
-        void window.roamAlphaAPI.ui.components.renderBlock({ uid, el });
-        registerPullWatch();
-      });
-    } else {
+    const dv = defaultValueRef.current;
+    const ensureChildren = getFirstChildUidByBlockUid(renderUid)
+      ? Promise.resolve()
+      : (dv && dv.length > 0
+          ? Promise.all(
+              dv.map((node, i) =>
+                createBlock({ node, parentUid: renderUid, order: i }),
+              ),
+            )
+          : createBlock({ node: { text: " " }, parentUid: renderUid })
+        ).then(() => {});
+
+    void ensureChildren.then(() => {
+      if (cancelled) return;
       el.innerHTML = "";
-      void window.roamAlphaAPI.ui.components.renderBlock({ uid, el });
+      void window.roamAlphaAPI.ui.components.renderBlock({
+        uid: renderUid,
+        el,
+      });
       registerPullWatch();
-    }
+    });
 
     return () => {
+      cancelled = true;
       window.clearTimeout(debounceRef.current);
       if (pullWatchArgsRef.current) {
         window.roamAlphaAPI.data.removePullWatch(...pullWatchArgsRef.current);
         pullWatchArgsRef.current = null;
       }
     };
-  }, [uid, handleChange]);
+  }, [renderUid, handleChange]);
 
   return (
     <>

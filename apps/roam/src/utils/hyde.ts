@@ -5,9 +5,13 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import findDiscourseNode from "./findDiscourseNode";
 import { nextApiRoot } from "@repo/utils/execContext";
 import { DiscourseNode } from "./getDiscourseNodes";
-import getExtensionAPI from "roamjs-components/util/extensionApiContext";
 import { getNodesByType } from "@repo/database/lib/queries";
 import getAllReferencesOnPage from "./getAllReferencesOnPage";
+import { getGlobalSetting } from "~/components/settings/utils/accessors";
+import {
+  GLOBAL_KEYS,
+  SUGGESTIVE_MODE_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 type ApiEmbeddingResponse = {
   data: Array<{
@@ -415,15 +419,16 @@ export const performHydeSearch = async ({
     return [];
   }
 
-  const extensionAPI = getExtensionAPI();
   const shouldGrabFromReferencedPages =
-    (extensionAPI.settings.get(
-      "context-grab-from-referenced-pages",
-    ) as boolean) ?? true;
+    getGlobalSetting<boolean>([
+      GLOBAL_KEYS.suggestiveMode,
+      SUGGESTIVE_MODE_KEYS.includeCurrentPageRelations,
+    ]) ?? true;
   const shouldGrabParentChildContext =
-    (extensionAPI.settings.get(
-      "context-grab-parent-child-context",
-    ) as boolean) ?? true;
+    getGlobalSetting<boolean>([
+      GLOBAL_KEYS.suggestiveMode,
+      SUGGESTIVE_MODE_KEYS.includeParentAndChildBlocks,
+    ]) ?? true;
 
   let candidateNodesForHyde: SuggestedNode[] = [];
 
@@ -444,18 +449,18 @@ export const performHydeSearch = async ({
       await getNodesByType({
         supabase,
         spaceId,
-        fields: { content: ["source_local_id", "text"] },
+        fields: { concepts: ["source_local_id", "name"], content: [] },
         ofTypes: validTypes,
-        pagination: { limit: 10000 },
+        pagination: { limit: 1000 },
       })
     )
       .map((c) => {
         const node = findDiscourseNode({
-          uid: c.Content?.source_local_id || "",
+          uid: c.source_local_id || "",
         });
         return {
-          uid: c.Content?.source_local_id || "",
-          text: c.Content?.text || "",
+          uid: c.source_local_id || "",
+          text: c.name || "",
           type: node ? node.type : "",
         };
       })

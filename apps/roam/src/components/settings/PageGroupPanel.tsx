@@ -7,10 +7,14 @@ import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import { type PageGroup } from "~/utils/getSuggestiveModeConfigSettings";
 import { setGlobalSetting } from "~/components/settings/utils/accessors";
+import {
+  GLOBAL_KEYS,
+  SUGGESTIVE_MODE_KEYS,
+} from "~/components/settings/utils/settingKeys";
 
 const syncPageGroupsToBlockProps = (groups: PageGroup[]) => {
   setGlobalSetting(
-    ["Suggestive mode", "Page groups"],
+    [GLOBAL_KEYS.suggestiveMode, SUGGESTIVE_MODE_KEYS.pageGroups],
     groups.map((g) => ({ name: g.name, pages: g.pages.map((p) => p.name) })),
   );
 };

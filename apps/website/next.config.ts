@@ -16,9 +16,6 @@ const withNextra = nextra({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  serverRuntimeConfig: {
-    maxDuration: 300,
-  },
   async redirects() {
     return DOCS_REDIRECTS;
   },
@@ -26,6 +23,9 @@ const nextConfig: NextConfig = {
     resolveAlias: {
       "next-mdx-import-source-file": "./mdx-components.tsx",
     },
+  },
+  images: {
+    qualities: [75, 85, 100],
   },
   async headers() {
     return [

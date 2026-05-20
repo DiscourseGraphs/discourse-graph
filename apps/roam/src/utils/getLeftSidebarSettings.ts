@@ -8,6 +8,10 @@ import {
   getUidAndStringSetting,
 } from "./getExportSettings";
 import { getSubTree } from "roamjs-components/util";
+import type {
+  LeftSidebarGlobalSettings,
+  PersonalSection,
+} from "~/components/settings/utils/zodSchema";
 
 type LeftSidebarPersonalSectionSettings = {
   uid: string;
@@ -199,6 +203,91 @@ export const getAllLeftSidebarPersonalSectionConfigs = (
 
   return result;
 };
+
+export const mergeGlobalSectionWithAccessor = (
+  config: LeftSidebarGlobalSectionConfig,
+  globalValues: LeftSidebarGlobalSettings | undefined,
+): LeftSidebarGlobalSectionConfig => {
+  const legacyChildByPageUid = new Map(config.children.map((c) => [c.text, c]));
+  const children: RoamBasicNode[] = (globalValues?.Children ?? []).map(
+    (targetPageUid) => {
+      const legacyChild = legacyChildByPageUid.get(targetPageUid);
+      return {
+        uid: legacyChild?.uid ?? "",
+        text: targetPageUid,
+        children: legacyChild?.children ?? [],
+      };
+    },
+  );
+
+  return {
+    uid: config.uid,
+    childrenUid: config.childrenUid,
+    children,
+    settings: {
+      uid: config.settings?.uid ?? "",
+      collapsable: {
+        uid: config.settings?.collapsable.uid ?? "",
+        value:
+          globalValues?.Settings.Collapsable ??
+          config.settings?.collapsable.value ??
+          false,
+      },
+      folded: {
+        uid: config.settings?.folded.uid ?? "",
+        value:
+          globalValues?.Settings.Folded ??
+          config.settings?.folded.value ??
+          false,
+      },
+    },
+  };
+};
+
+export const mergePersonalSectionsWithAccessor = (
+  sections: LeftSidebarPersonalSectionConfig[],
+  personalValues: PersonalSection[] | undefined,
+): LeftSidebarPersonalSectionConfig[] => {
+  const legacyByName = new Map(sections.map((s) => [s.text, s]));
+  return (personalValues ?? []).map((snap) => {
+    const legacy = legacyByName.get(snap.name);
+    const legacyChildByPageUid = new Map(
+      (legacy?.children ?? []).map((c) => [c.text, c]),
+    );
+    return {
+      uid: legacy?.uid ?? "",
+      text: snap.name,
+      settings: {
+        uid: legacy?.settings?.uid ?? "",
+        truncateResult: {
+          uid: legacy?.settings?.truncateResult.uid ?? "",
+          value: snap.Settings["Truncate-result?"],
+        },
+        folded: {
+          uid: legacy?.settings?.folded.uid ?? "",
+          value: snap.Settings.Folded,
+        },
+      },
+      children:
+        snap.Children.length > 0
+          ? snap.Children.map((snapChild) => {
+              const legacyChild = legacyChildByPageUid.get(snapChild.uid);
+              return {
+                uid: legacyChild?.uid ?? "",
+                text: snapChild.uid,
+                children: legacyChild?.children ?? [],
+                alias: {
+                  uid: legacyChild?.alias.uid,
+                  value: snapChild.Alias,
+                },
+              };
+            })
+          : [],
+      childrenUid: legacy?.childrenUid,
+    };
+  });
+};
+
 export const getLeftSidebarSettings = (
   globalTree: RoamBasicNode[],
 ): LeftSidebarConfig => {

@@ -22,9 +22,20 @@ import {
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import { createBlocksFromTemplate } from "~/utils/createDiscourseNode";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
-import getSubTree from "roamjs-components/util/getSubTree";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
+import {
+  getDiscourseNodeSetting,
+  getPersonalSetting,
+  setPersonalSetting,
+  setGlobalSetting,
+} from "~/components/settings/utils/accessors";
+import {
+  DISCOURSE_NODE_KEYS,
+  PERSONAL_KEYS,
+  QUERY_KEYS,
+} from "~/components/settings/utils/settingKeys";
+import { InputTextNode } from "roamjs-components/types";
 import { extractRef } from "roamjs-components/util";
 import discourseConfigRef from "~/utils/discourseConfigRef";
 import {
@@ -34,10 +45,6 @@ import {
 import { getUidAndBooleanSetting } from "~/utils/getExportSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
-import {
-  setPersonalSetting,
-  setGlobalSetting,
-} from "~/components/settings/utils/accessors";
 import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
 
 type BlockSelection = {
@@ -172,12 +179,14 @@ export const convertPageToNodeFromCommand = (
         page: { uid: pageUid, title: formattedTitle },
       });
 
-      const nodeTree = getFullTreeByParentUid(configPageUid).children;
-      const templateNode = getSubTree({ tree: nodeTree, key: "template" });
-      if (templateNode.children.length > 0) {
+      const templateChildren =
+        getDiscourseNodeSetting<InputTextNode[]>(configPageUid, [
+          DISCOURSE_NODE_KEYS.template,
+        ]) ?? [];
+      if (templateChildren.length > 0) {
         const existingChildren = getFullTreeByParentUid(pageUid).children || [];
         await createBlocksFromTemplate({
-          templateNode,
+          templateChildren,
           pageUid,
           order: existingChildren.length,
           discourseNodes: getDiscourseNodes(),
@@ -331,12 +340,13 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   const toggleDiscourseContextOverlay = async () => {
-    const currentValue =
-      (extensionAPI.settings.get("discourse-context-overlay") as boolean) ??
-      false;
+    const currentValue = getPersonalSetting<boolean>([
+      PERSONAL_KEYS.discourseContextOverlay,
+    ]);
     const newValue = !currentValue;
     try {
       await extensionAPI.settings.set("discourse-context-overlay", newValue);
+      setPersonalSetting([PERSONAL_KEYS.discourseContextOverlay], newValue);
     } catch (error) {
       const e = error as Error;
       renderToast({
@@ -357,11 +367,17 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   const toggleQueryMetadata = async () => {
-    const currentValue =
-      (extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean) ?? true;
+    const currentValue = getPersonalSetting<boolean>([
+      PERSONAL_KEYS.query,
+      QUERY_KEYS.hideQueryMetadata,
+    ]);
     const newValue = !currentValue;
     try {
       await extensionAPI.settings.set(HIDE_METADATA_KEY, newValue);
+      setPersonalSetting(
+        [PERSONAL_KEYS.query, QUERY_KEYS.hideQueryMetadata],
+        newValue,
+      );
     } catch (error) {
       const e = error as Error;
       renderToast({

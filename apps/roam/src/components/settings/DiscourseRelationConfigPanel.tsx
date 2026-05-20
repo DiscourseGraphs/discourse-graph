@@ -32,7 +32,6 @@ import type {
   RoamBasicNode,
   TreeNode,
 } from "roamjs-components/types";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import setInputSetting from "roamjs-components/util/setInputSetting";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
@@ -44,7 +43,6 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import { CustomField } from "roamjs-components/components/ConfigPanels/types";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
@@ -55,6 +53,7 @@ import {
   setGlobalSetting,
   getGlobalSettings,
 } from "~/components/settings/utils/accessors";
+import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { RenderRoamBlock } from "~/utils/roamReactComponents";
 
 const DEFAULT_SELECTED_RELATION = {
@@ -123,39 +122,21 @@ export const RelationEditPanel = ({
     DEFAULT_SELECTED_RELATION,
   );
   const [tab, setTab] = useState(0);
-  const initialSourceUid = useMemo(
-    () =>
-      getSettingValueFromTree({
-        tree: editingRelationInfo.children,
-        key: "source",
-      }),
-    [],
-  );
+  const relation = getGlobalSettings().Relations[editingRelationInfo.uid];
+  const initialSourceUid = relation?.source ?? "";
   const initialSource = useMemo(
     () => edgeDisplayByUid(initialSourceUid),
     [initialSourceUid],
   );
   const [source, setSource] = useState(initialSourceUid);
-  const initialDestinationUid = useMemo(
-    () =>
-      getSettingValueFromTree({
-        tree: editingRelationInfo.children,
-        key: "destination",
-      }),
-    [],
-  );
+  const initialDestinationUid = relation?.destination ?? "";
   const initialDestination = useMemo(
     () => edgeDisplayByUid(initialDestinationUid),
     [initialDestinationUid],
   );
   const [destination, setDestination] = useState(initialDestinationUid);
   const [label, setLabel] = useState(editingRelationInfo.text);
-  const [complement, setComplement] = useState(
-    getSettingValueFromTree({
-      tree: editingRelationInfo.children,
-      key: "complement",
-    }),
-  );
+  const [complement, setComplement] = useState(relation?.complement ?? "");
 
   const edgeCallback = useCallback(
     (edge: cytoscape.EdgeSingular) => {
@@ -687,7 +668,7 @@ export const RelationEditPanel = ({
                     );
                     return { triples, nodePositions };
                   });
-                  setGlobalSetting(["Relations", rootUid], {
+                  setGlobalSetting([GLOBAL_KEYS.relations, rootUid], {
                     label,
                     source,
                     destination,
@@ -695,7 +676,7 @@ export const RelationEditPanel = ({
                     ifConditions,
                   });
 
-                  back();
+                  setTimeout(back, 50);
                 })(),
               1,
             );
@@ -976,26 +957,24 @@ type Relation = {
   source: string | undefined;
   destination: string | undefined;
 };
-const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
+const DiscourseRelationConfigPanel = ({
   uid,
   parentUid,
+}: {
+  uid: string;
+  parentUid: string;
+  defaultValue: unknown;
+  title: string;
 }) => {
   const refreshRelations = useCallback(
-    () =>
-      uid
-        ? getBasicTreeByParentUid(uid).map((n) => {
-            const { children: fieldTree, ...node } = n;
-            return {
-              ...node,
-              source: fieldTree.find((t) => toFlexRegex("source").test(t.text))
-                ?.children?.[0]?.text,
-              destination: fieldTree.find((t) =>
-                toFlexRegex("destination").test(t.text),
-              )?.children?.[0]?.text,
-            };
-          })
-        : [],
-    [uid],
+    (): Relation[] =>
+      Object.entries(getGlobalSettings().Relations).map(([id, relation]) => ({
+        uid: id,
+        text: relation.label,
+        source: relation.source,
+        destination: relation.destination,
+      })),
+    [],
   );
   const nodes = useMemo(() => {
     const nodes = Object.fromEntries(
@@ -1058,12 +1037,15 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   };
 
   const handleDelete = (rel: Relation) => {
-    deleteBlock(rel.uid);
-    setRelations(relations.filter((r) => r.uid !== rel.uid));
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/naming-convention
-    const { [rel.uid]: _, ...remaining } = getGlobalSettings().Relations;
-    setGlobalSetting(["Relations"], remaining);
+    void deleteBlock(rel.uid).then(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/naming-convention
+      const { [rel.uid]: _, ...remaining } = getGlobalSettings().Relations;
+      setGlobalSetting([GLOBAL_KEYS.relations], remaining);
+      setTimeout(() => {
+        refreshConfigTree();
+        setRelations(refreshRelations());
+      }, 50);
+    });
   };
   const handleDuplicate = (rel: Relation) => {
     const text = rel.text;
@@ -1083,21 +1065,15 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
     }).then((newUid) => {
       const originalRelation = getGlobalSettings().Relations[rel.uid];
       if (originalRelation) {
-        setGlobalSetting(["Relations", newUid], {
+        setGlobalSetting([GLOBAL_KEYS.relations, newUid], {
           ...originalRelation,
           label: text,
         });
       }
-
-      setRelations([
-        ...relations,
-        {
-          uid: newUid,
-          source: rel.source,
-          destination: rel.destination,
-          text,
-        },
-      ]);
+      setTimeout(() => {
+        refreshConfigTree();
+        setRelations(refreshRelations());
+      }, 50);
     });
   };
   const handleBack = () => {

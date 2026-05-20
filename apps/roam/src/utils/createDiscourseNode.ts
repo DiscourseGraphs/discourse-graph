@@ -1,6 +1,5 @@
 import { render as renderToast } from "roamjs-components/components/Toast";
 import createBlock from "roamjs-components/writes/createBlock";
-import stripUid from "roamjs-components/util/stripUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import createPage from "roamjs-components/writes/createPage";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
@@ -8,10 +7,38 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import getDiscourseNodes from "./getDiscourseNodes";
 import resolveQueryBuilderRef from "./resolveQueryBuilderRef";
-import { OnloadArgs, RoamBasicNode } from "roamjs-components/types";
+import { InputTextNode, OnloadArgs } from "roamjs-components/types";
 import runQuery from "./runQuery";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import posthog from "posthog-js";
+import {
+  getDiscourseNodeSetting,
+  getPersonalSetting,
+} from "~/components/settings/utils/accessors";
+import {
+  DISCOURSE_NODE_KEYS,
+  PERSONAL_KEYS,
+} from "~/components/settings/utils/settingKeys";
+
+type Props = {
+  text: string;
+  configPageUid: string;
+  newPageUid?: string;
+  imageUrl?: string;
+  extensionAPI?: OnloadArgs["extensionAPI"];
+};
+
+const stripTemplateUids = (nodes: InputTextNode[]): InputTextNode[] =>
+  nodes.map((node) => {
+    const nodeWithoutUid = { ...node };
+    const { children } = nodeWithoutUid;
+    delete nodeWithoutUid.uid;
+    delete nodeWithoutUid.children;
+    return {
+      ...nodeWithoutUid,
+      ...(children?.length ? { children: stripTemplateUids(children) } : {}),
+    };
+  });
 
 const handleImageCreation = async ({
   pageUid,
@@ -57,14 +84,10 @@ const handleImageCreation = async ({
     if (keyImageOption === "query-builder") {
       if (!extensionAPI) return;
 
-      const parentUid = resolveQueryBuilderRef({
-        queryRef: qbAlias,
-        extensionAPI,
-      });
+      const parentUid = resolveQueryBuilderRef({ queryRef: qbAlias });
       const results = await runQuery({
         extensionAPI,
         parentUid,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         inputs: { NODETEXT: text, NODEUID: pageUid },
       });
       const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
@@ -76,7 +99,7 @@ const handleImageCreation = async ({
 };
 
 export const createBlocksFromTemplate = async ({
-  templateNode,
+  templateChildren,
   pageUid,
   order = 0,
   discourseNodes,
@@ -85,7 +108,7 @@ export const createBlocksFromTemplate = async ({
   extensionAPI,
   text,
 }: {
-  templateNode: RoamBasicNode;
+  templateChildren: InputTextNode[];
   pageUid: string;
   order?: number;
   discourseNodes: ReturnType<typeof getDiscourseNodes>;
@@ -94,9 +117,9 @@ export const createBlocksFromTemplate = async ({
   extensionAPI?: OnloadArgs["extensionAPI"];
   text: string;
 }) => {
-  const createBlocksFromTemplate = async () => {
+  const createBlocks = async () => {
     await Promise.all(
-      stripUid(templateNode.children).map((node, templateOrder) =>
+      stripTemplateUids(templateChildren).map((node, templateOrder) =>
         createBlock({
           node,
           order: order + templateOrder,
@@ -105,7 +128,6 @@ export const createBlocksFromTemplate = async ({
       ),
     );
 
-    // Add image to page if imageUrl is provided
     await handleImageCreation({
       pageUid,
       discourseNodes,
@@ -116,12 +138,17 @@ export const createBlocksFromTemplate = async ({
     });
   };
 
-  const hasSmartBlockSyntax = (node: RoamBasicNode) => {
+  const hasSmartBlockSyntax = (node: InputTextNode): boolean => {
     if (node.text.includes("<%")) return true;
     if (node.children) return node.children.some(hasSmartBlockSyntax);
     return false;
   };
-  const useSmartBlocks = hasSmartBlockSyntax(templateNode);
+  const useSmartBlocks = templateChildren.some(hasSmartBlockSyntax);
+  const legacyTemplateNode = getSubTree({
+    tree: getFullTreeByParentUid(configPageUid).children,
+    key: "template",
+  });
+  const canUseLegacySmartBlock = !!legacyTemplateNode.uid;
 
   if (useSmartBlocks && !window.roamjs?.extension?.smartblocks) {
     renderToast({
@@ -130,10 +157,14 @@ export const createBlocksFromTemplate = async ({
       id: "smartblocks-extension-disabled",
       intent: "warning",
     });
-    await createBlocksFromTemplate();
-  } else if (useSmartBlocks && window.roamjs?.extension?.smartblocks) {
+    await createBlocks();
+  } else if (
+    useSmartBlocks &&
+    canUseLegacySmartBlock &&
+    window.roamjs?.extension?.smartblocks
+  ) {
     void window.roamjs.extension.smartblocks?.triggerSmartblock({
-      srcUid: templateNode.uid,
+      srcUid: legacyTemplateNode.uid,
       targetUid: pageUid,
     });
     await handleImageCreation({
@@ -145,16 +176,8 @@ export const createBlocksFromTemplate = async ({
       text,
     });
   } else {
-    await createBlocksFromTemplate();
+    await createBlocks();
   }
-};
-
-type Props = {
-  text: string;
-  configPageUid: string;
-  newPageUid?: string;
-  imageUrl?: string;
-  extensionAPI?: OnloadArgs["extensionAPI"];
 };
 
 const createDiscourseNode = async ({
@@ -168,7 +191,7 @@ const createDiscourseNode = async ({
     text: text,
   });
   const handleOpenInSidebar = (uid: string) => {
-    if (extensionAPI?.settings.get("disable-sidebar-open")) return;
+    if (getPersonalSetting<boolean>([PERSONAL_KEYS.disableSidebarOpen])) return;
     void openBlockInSidebar(uid);
     setTimeout(() => {
       const sidebarTitle = document.querySelector(
@@ -186,6 +209,7 @@ const createDiscourseNode = async ({
       }, 1);
     }, 100);
   };
+
   const discourseNodes = getDiscourseNodes();
   const specification = discourseNodes?.find(
     (n) => n.type === configPageUid,
@@ -231,14 +255,13 @@ const createDiscourseNode = async ({
     return pageUid;
   }
 
-  const nodeTree = getFullTreeByParentUid(configPageUid).children;
-  const templateNode = getSubTree({
-    tree: nodeTree,
-    key: "template",
-  });
+  const templateChildren =
+    getDiscourseNodeSetting<InputTextNode[]>(configPageUid, [
+      DISCOURSE_NODE_KEYS.template,
+    ]) ?? [];
 
   await createBlocksFromTemplate({
-    templateNode,
+    templateChildren,
     pageUid,
     discourseNodes,
     configPageUid,
