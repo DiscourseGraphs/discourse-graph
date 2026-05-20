@@ -333,16 +333,16 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   // Roam organizes commands alphabetically
-  void addCommand("DG: Open Node Search Menu", () => {
-    posthog.capture("Node Search: Open Command Triggered");
-    renderAdvancedNodeSearchDialog();
-  });
   void addCommand("DG: Create/Insert discourse node", () =>
     createDiscourseNodeFromCommand(extensionAPI),
   );
   void addCommand("DG: Export - Current page", exportCurrentPage);
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
+  void addCommand("DG: Open - Node search", () => {
+    posthog.capture("Node Search: Open Command Triggered");
+    renderAdvancedNodeSearchDialog();
+  });
   void addCommand("DG: Open - Query drawer", openQueryDrawerWithArgs);
   void addCommand(
     "DG: Toggle - Discourse context overlay",
