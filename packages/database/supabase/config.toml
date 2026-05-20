@@ -52,7 +52,7 @@ schema_paths = [
     './schemas/base.sql',
     './schemas/extensions.sql',
     './schemas/space.sql',
-    './schemas/secret_token.sql',
+    './schemas/secret_tokens.sql',
     './schemas/account.sql',
     './schemas/content.sql',
     './schemas/embedding.sql',
