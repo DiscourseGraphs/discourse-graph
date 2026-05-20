@@ -13,6 +13,7 @@ import fireQuery from "./fireQuery";
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
+import { renderAdvancedNodeSearchDialog } from "~/components/AdvancedNodeSearchDialog";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getUids from "roamjs-components/dom/getUids";
 import {
@@ -22,6 +23,7 @@ import {
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
 import {
+  getFeatureFlag,
   getPersonalSetting,
   setPersonalSetting,
   setGlobalSetting,
@@ -338,6 +340,12 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Export - Current page", exportCurrentPage);
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
+  if (getFeatureFlag("Advanced node search enabled")) {
+    void addCommand("DG: Open - Node search", () => {
+      posthog.capture("Node Search: Open Command Triggered");
+      renderAdvancedNodeSearchDialog();
+    });
+  }
   void addCommand("DG: Open - Query drawer", openQueryDrawerWithArgs);
   void addCommand(
     "DG: Toggle - Discourse context overlay",

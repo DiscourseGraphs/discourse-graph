@@ -86,6 +86,7 @@ const discourseNodeSettings: DiscourseNodeSettings = {
 };
 
 const featureFlags: FeatureFlags = {
+  "Advanced node search enabled": true,
   "Enable left sidebar": true,
   "Duplicate node alert enabled": true,
   "Suggestive mode overlay enabled": true,
@@ -93,6 +94,7 @@ const featureFlags: FeatureFlags = {
 };
 
 const defaultFeatureFlags: FeatureFlags = {
+  "Advanced node search enabled": false,
   "Enable left sidebar": false,
   "Duplicate node alert enabled": false,
   "Suggestive mode overlay enabled": false,
