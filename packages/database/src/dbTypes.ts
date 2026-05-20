@@ -722,6 +722,30 @@ export type Database = {
           },
         ]
       }
+      secret_token: {
+        Row: {
+          creator: string
+          expiry_date: string | null
+          id: string
+          one_time_use: boolean | null
+          payload: Json
+        }
+        Insert: {
+          creator?: string
+          expiry_date?: string | null
+          id?: string
+          one_time_use?: boolean | null
+          payload: Json
+        }
+        Update: {
+          creator?: string
+          expiry_date?: string | null
+          id?: string
+          one_time_use?: boolean | null
+          payload?: Json
+        }
+        Relationships: []
+      }
       Space: {
         Row: {
           id: number
@@ -1291,7 +1315,10 @@ export type Database = {
         }
       }
       account_in_shared_space: {
-        Args: { p_account_id: number }
+        Args: {
+          access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"]
+          p_account_id: number
+        }
         Returns: boolean
       }
       author_of_concept: {
@@ -1445,6 +1472,14 @@ export type Database = {
         }
         Returns: number
       }
+      create_secret_token: {
+        Args: {
+          expiry_interval?: string
+          v_one_time_use?: boolean
+          v_payload: Json
+        }
+        Returns: string
+      }
       document_in_space: { Args: { document_id: number }; Returns: boolean }
       document_of_content: {
         Args: { content: Database["public"]["Views"]["my_contents"]["Row"] }
@@ -1486,6 +1521,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_secret_token: { Args: { token: string }; Returns: Json }
       get_space_anonymous_email: {
         Args: {
           platform: Database["public"]["Enums"]["Platform"]

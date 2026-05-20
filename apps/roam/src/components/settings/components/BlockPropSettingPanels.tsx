@@ -18,7 +18,10 @@ import {
 import Description from "roamjs-components/components/Description";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
+import refreshConfigTree from "~/utils/refreshConfigTree";
 import {
+  getFeatureFlag,
+  getDiscourseNodeSetting,
   setGlobalSetting,
   setPersonalSetting,
   setFeatureFlag,
@@ -45,10 +48,11 @@ type BaseTextPanelProps = {
   description: string;
   settingKeys: string[];
   setter: TextSetter;
-  initialValue?: string;
+  initialValue: string;
   placeholder?: string;
   multiline?: boolean;
   error?: string;
+  disabled?: boolean;
   onChange?: (value: string) => void;
 } & RoamBlockSyncProps;
 
@@ -57,7 +61,7 @@ type BaseFlagPanelProps = {
   description: string;
   settingKeys: string[];
   setter: FlagSetter;
-  initialValue?: boolean;
+  initialValue: boolean;
   value?: boolean;
   disabled?: boolean;
   onBeforeChange?: (checked: boolean) => Promise<boolean>;
@@ -69,7 +73,7 @@ type BaseNumberPanelProps = {
   description: string;
   settingKeys: string[];
   setter: NumberSetter;
-  initialValue?: number;
+  initialValue: number;
   min?: number;
   max?: number;
   onChange?: (value: number) => void;
@@ -81,7 +85,7 @@ type BaseSelectPanelProps = {
   settingKeys: string[];
   setter: TextSetter;
   options: string[];
-  initialValue?: string;
+  initialValue: string;
 } & RoamBlockSyncProps;
 
 type BaseMultiTextPanelProps = {
@@ -89,7 +93,7 @@ type BaseMultiTextPanelProps = {
   description: string;
   settingKeys: string[];
   setter: MultiTextSetter;
-  initialValue?: string[];
+  initialValue: string[];
   onChange?: (values: string[]) => void;
 } & RoamBlockSyncProps;
 
@@ -104,6 +108,7 @@ const BaseTextPanel = ({
   placeholder,
   multiline,
   error,
+  disabled,
   onChange,
   parentUid,
   uid,
@@ -139,8 +144,12 @@ const BaseTextPanel = ({
     window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
       if (errorRef.current) return;
-      setter(settingKeys, newValue);
       syncToBlock?.(newValue);
+      debounceRef.current = window.setTimeout(() => {
+        if (errorRef.current) return;
+        refreshConfigTree();
+        setter(settingKeys, newValue);
+      }, 100);
     }, DEBOUNCE_MS);
   };
 
@@ -148,7 +157,7 @@ const BaseTextPanel = ({
     <div className="flex flex-col">
       <Label>
         {title}
-        <Description description={description} />
+        {description && <Description description={description} />}
         {multiline ? (
           <TextArea
             value={value}
@@ -156,12 +165,14 @@ const BaseTextPanel = ({
             placeholder={placeholder || initialValue}
             className="w-full"
             style={{ minHeight: 80, resize: "vertical" }}
+            disabled={disabled}
           />
         ) : (
           <InputGroup
             value={value}
             onChange={handleChange}
             placeholder={placeholder || initialValue}
+            disabled={disabled}
           />
         )}
       </Label>
@@ -223,9 +234,10 @@ const BaseFlagPanel = ({
     }
 
     setInternalValue(checked);
-    setter(settingKeys, checked);
     await syncFlagToBlock(checked);
-    onChange?.(checked);
+    refreshConfigTree();
+    setter(settingKeys, checked);
+    setTimeout(() => onChange?.(checked), 100);
   };
 
   return (
@@ -268,13 +280,22 @@ const BaseNumberPanel = ({
     toStr: (v: number) => `${v}`,
   });
   const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
+  const refreshTimeoutRef = useRef(0);
+
+  useEffect(() => {
+    return () => window.clearTimeout(refreshTimeoutRef.current);
+  }, []);
 
   const handleChange = (valueAsNumber: number) => {
     if (Number.isNaN(valueAsNumber)) return;
     setValue(valueAsNumber);
-    setter(settingKeys, valueAsNumber);
     syncToBlock?.(valueAsNumber);
-    onChange?.(valueAsNumber);
+    window.clearTimeout(refreshTimeoutRef.current);
+    refreshTimeoutRef.current = window.setTimeout(() => {
+      refreshConfigTree();
+      setter(settingKeys, valueAsNumber);
+      onChange?.(valueAsNumber);
+    }, 100);
   };
 
   return (
@@ -315,12 +336,21 @@ const BaseSelectPanel = ({
     toStr: (s: string) => s,
   });
   const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
+  const refreshTimeoutRef = useRef(0);
+
+  useEffect(() => {
+    return () => window.clearTimeout(refreshTimeoutRef.current);
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
-    setter(settingKeys, newValue);
     syncToBlock?.(newValue);
+    window.clearTimeout(refreshTimeoutRef.current);
+    refreshTimeoutRef.current = window.setTimeout(() => {
+      refreshConfigTree();
+      setter(settingKeys, newValue);
+    }, 100);
   };
 
   return (
@@ -396,6 +426,7 @@ const BaseMultiTextPanel = ({
           },
         });
         childUidsRef.current = [...childUidsRef.current, valueUid];
+        refreshConfigTree();
       }
     }
   };
@@ -404,7 +435,6 @@ const BaseMultiTextPanel = ({
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const newValues = values.filter((_, i) => i !== index);
     setValues(newValues);
-    setter(settingKeys, newValues);
     onChange?.(newValues);
 
     if (hasBlockSync) {
@@ -416,7 +446,9 @@ const BaseMultiTextPanel = ({
         // eslint-disable-next-line @typescript-eslint/naming-convention
         (_, i) => i !== index,
       );
+      refreshConfigTree();
     }
+    setter(settingKeys, newValues);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -535,7 +567,7 @@ export const FeatureFlagPanel = ({
       description={description}
       settingKeys={[featureKey as string]}
       setter={featureFlagSetter}
-      initialValue={initialValue}
+      initialValue={initialValue ?? getFeatureFlag(featureKey)}
       value={value}
       disabled={disabled}
       onBeforeChange={handleBeforeChange}
@@ -616,7 +648,15 @@ export const DiscourseNodeTextPanel = ({
     error?: string;
     onChange?: (value: string) => void;
   }) => (
-  <BaseTextPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
+  <BaseTextPanel
+    {...props}
+    initialValue={
+      getDiscourseNodeSetting<string>(nodeType, props.settingKeys) ??
+      props.initialValue ??
+      ""
+    }
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
 );
 
 export const DiscourseNodeFlagPanel = ({
@@ -629,7 +669,15 @@ export const DiscourseNodeFlagPanel = ({
     onBeforeChange?: (checked: boolean) => Promise<boolean>;
     onChange?: (checked: boolean) => void;
   }) => (
-  <BaseFlagPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
+  <BaseFlagPanel
+    {...props}
+    initialValue={
+      getDiscourseNodeSetting<boolean>(nodeType, props.settingKeys) ??
+      props.initialValue ??
+      false
+    }
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
 );
 
 export const DiscourseNodeSelectPanel = ({
@@ -637,7 +685,16 @@ export const DiscourseNodeSelectPanel = ({
   ...props
 }: DiscourseNodeBaseProps &
   RoamBlockSyncProps & { options: string[]; initialValue?: string }) => (
-  <BaseSelectPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
+  <BaseSelectPanel
+    {...props}
+    initialValue={
+      getDiscourseNodeSetting<string>(nodeType, props.settingKeys) ??
+      props.initialValue ??
+      props.options[0] ??
+      ""
+    }
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
 );
 
 export const DiscourseNodeNumberPanel = ({
@@ -649,5 +706,13 @@ export const DiscourseNodeNumberPanel = ({
     min?: number;
     max?: number;
   }) => (
-  <BaseNumberPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
+  <BaseNumberPanel
+    {...props}
+    initialValue={
+      getDiscourseNodeSetting<number>(nodeType, props.settingKeys) ??
+      props.initialValue ??
+      0
+    }
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
 );

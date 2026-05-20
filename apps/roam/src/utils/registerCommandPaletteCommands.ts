@@ -21,13 +21,24 @@ import {
 } from "./pageRefObserverHandlers";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
+import {
+  getPersonalSetting,
+  setPersonalSetting,
+  setGlobalSetting,
+} from "~/components/settings/utils/accessors";
+import {
+  PERSONAL_KEYS,
+  QUERY_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import { extractRef } from "roamjs-components/util";
 import discourseConfigRef from "~/utils/discourseConfigRef";
-import { getLeftSidebarPersonalSectionConfig } from "~/utils/getLeftSidebarSettings";
+import {
+  getLeftSidebarPersonalSectionConfig,
+  getLeftSidebarGlobalSectionConfig,
+} from "~/utils/getLeftSidebarSettings";
 import { getUidAndBooleanSetting } from "~/utils/getExportSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
-import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
 
 type BlockSelection = {
@@ -258,12 +269,13 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   const toggleDiscourseContextOverlay = async () => {
-    const currentValue =
-      (extensionAPI.settings.get("discourse-context-overlay") as boolean) ??
-      false;
+    const currentValue = getPersonalSetting<boolean>([
+      PERSONAL_KEYS.discourseContextOverlay,
+    ]);
     const newValue = !currentValue;
     try {
       await extensionAPI.settings.set("discourse-context-overlay", newValue);
+      setPersonalSetting([PERSONAL_KEYS.discourseContextOverlay], newValue);
     } catch (error) {
       const e = error as Error;
       renderToast({
@@ -284,11 +296,17 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   const toggleQueryMetadata = async () => {
-    const currentValue =
-      (extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean) ?? true;
+    const currentValue = getPersonalSetting<boolean>([
+      PERSONAL_KEYS.query,
+      QUERY_KEYS.hideQueryMetadata,
+    ]);
     const newValue = !currentValue;
     try {
       await extensionAPI.settings.set(HIDE_METADATA_KEY, newValue);
+      setPersonalSetting(
+        [PERSONAL_KEYS.query, QUERY_KEYS.hideQueryMetadata],
+        newValue,
+      );
     } catch (error) {
       const e = error as Error;
       renderToast({
@@ -332,6 +350,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Query block - Create", createQueryBlock);
   void addCommand("DG: Query block - Refresh", refreshCurrentQueryBuilder);
 
+  // BETA used as key, will be removed with settings migration
   const leftSidebarEnabled = getUidAndBooleanSetting({
     tree: discourseConfigRef.tree,
     text: "(BETA) Left Sidebar",
@@ -359,6 +378,22 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
             blockUid: props["block-uid"],
             sectionUid: section.uid,
             onloadArgs,
+          });
+        },
+      });
+    }
+
+    const globalSection = getLeftSidebarGlobalSectionConfig(
+      leftSidebarNode?.children || [],
+    );
+    if (globalSection.childrenUid) {
+      window.roamAlphaAPI.ui.blockContextMenu.addCommand({
+        label: "DG: Favorites - Add to Global section",
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        callback: (props: { "block-uid": string }) => {
+          void addBlockToGlobalSection({
+            blockUid: props["block-uid"],
+            globalChildrenUid: globalSection.childrenUid,
           });
         },
       });
@@ -423,6 +458,41 @@ const addBlockToPersonalSection = async ({
       content: "Failed to add block to section",
       intent: "danger",
       id: "add-block-to-section-error",
+    });
+  }
+};
+
+const addBlockToGlobalSection = async ({
+  blockUid,
+  globalChildrenUid,
+}: {
+  blockUid: string;
+  globalChildrenUid: string;
+}) => {
+  const blockRef = `((${blockUid}))`;
+
+  try {
+    await createBlock({
+      parentUid: globalChildrenUid,
+      order: "last",
+      node: { text: blockRef },
+    });
+
+    refreshConfigTree();
+    const updatedChildren = getLeftSidebarGlobalSectionConfig(
+      discourseConfigRef.tree.find((n) => n.text === "Left Sidebar")
+        ?.children || [],
+    ).children;
+    setGlobalSetting(
+      ["Left sidebar", "Children"],
+      updatedChildren.map((c) => c.text),
+    );
+    refreshAndNotify();
+  } catch {
+    renderToast({
+      content: "Failed to add block to global section",
+      intent: "danger",
+      id: "add-block-to-global-section-error",
     });
   }
 };

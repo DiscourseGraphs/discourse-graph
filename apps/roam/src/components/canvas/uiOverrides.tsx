@@ -51,11 +51,12 @@ import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
-import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
-import { getSetting } from "~/utils/extensionSettings";
+import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import posthog from "posthog-js";
 
 const SyncModeMenuSwitchItem = ({
@@ -378,10 +379,12 @@ export const createUiOverrides = ({
 }): TLUiOverrides => ({
   tools: (editor, tools) => {
     // Get the custom keyboard shortcut for the discourse tool
-    const discourseToolCombo = getSetting(DISCOURSE_TOOL_SHORTCUT_KEY, {
+    const discourseToolCombo = getPersonalSetting<IKeyCombo>([
+      PERSONAL_KEYS.discourseToolShortcut,
+    ]) || {
       key: "",
       modifiers: 0,
-    }) as IKeyCombo;
+    };
 
     // For discourse tool, just use the key directly since we don't allow modifiers
     const discourseToolShortcut = discourseToolCombo?.key?.toUpperCase() || "";
@@ -396,13 +399,19 @@ export const createUiOverrides = ({
         editor.setCurrentTool("discourse-tool");
       },
     };
+    const canvasNodeShortcuts =
+      getPersonalSetting<CanvasNodeShortcuts>([
+        PERSONAL_KEYS.canvasNodeShortcuts,
+      ]) ?? {};
+
     allNodes.forEach((node, index) => {
       const nodeId = node.type;
+      const override = canvasNodeShortcuts[nodeId];
       tools[nodeId] = {
         id: nodeId,
         icon: "color",
         label: `shape.node.${node.type}` as TLUiTranslationKey,
-        kbd: node.shortcut,
+        kbd: override?.enabled ? override.value : node.shortcut,
         onSelect: () => {
           editor.setCurrentTool(nodeId);
         },

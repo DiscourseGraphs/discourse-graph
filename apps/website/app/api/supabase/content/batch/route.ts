@@ -18,7 +18,7 @@ const batchInsertContentProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
   contentItems: ContentDataInput[],
 ): Promise<PostgrestResponse<ContentRecord>> => {
-  return validateAndInsertBatch<"Content">({
+  return validateAndInsertBatch({
     supabase,
     tableName: "Content",
     items: contentItems,

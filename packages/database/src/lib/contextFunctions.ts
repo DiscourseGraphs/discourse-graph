@@ -1,6 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Database, Enums, Tables, TablesInsert } from "@repo/database/dbTypes";
-import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+import type {
+  Database,
+  Enums,
+  Tables,
+  TablesInsert,
+} from "@repo/database/dbTypes";
+import {
+  type PostgrestSingleResponse,
+  PostgrestError,
+} from "@supabase/supabase-js";
 import type { FunctionsResponse } from "@supabase/functions-js";
 import { nextApiRoot } from "@repo/utils/execContext";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
@@ -24,13 +32,13 @@ export const asPostgrestFailure = (
 ): PostgrestSingleResponse<any> => {
   return {
     data: null,
-    error: {
+    success: false,
+    error: new PostgrestError({
       message,
       code,
       details: "",
-      hint: "",
-      name: code,
-    },
+      hint: code,
+    }),
     count: null,
     statusText: code,
     status,
@@ -73,9 +81,10 @@ export const fetchOrCreateSpaceIndirect = async (
       `Platform API failed: ${response.status} ${response.statusText} ${await response.text()}`,
     );
   }
-  const data = await response.json() as SpaceRecord;
+  const data = (await response.json()) as SpaceRecord;
   return {
     data,
+    success: true,
     error: null,
     count: 1,
     status: 200,
@@ -96,16 +105,18 @@ const createSingletonClient = (uniqueKey: string): DGSupabaseClient | null => {
     throw new FatalError("Missing required Supabase environment variables");
   }
   if (lastStorageKey !== undefined && lastStorageKey !== uniqueKey) {
-    console.error("Changed storage key")
+    console.error("Changed storage key");
     // I.e. working on a new vault. Should never happen.
     // Break singleton pattern in that edge case.
     client = undefined;
   }
   if (client === undefined) {
-      client = createClient<Database, "public">(url, key, {auth: {storageKey: `sb-${uniqueKey}-auth-token`}});
-      if (client) {
-        lastStorageKey = uniqueKey;
-      }
+    client = createClient<Database, "public">(url, key, {
+      auth: { storageKey: `sb-${uniqueKey}-auth-token` },
+    });
+    if (client) {
+      lastStorageKey = uniqueKey;
+    }
   }
   return client;
 };
@@ -117,8 +128,11 @@ export const fetchOrCreateSpaceDirect = async (
   if (error !== null) return asPostgrestFailure(error, "invalid space");
   data.url = data.url.trim().replace(/\/$/, "");
   // Distinguish local, or various supabase branches
-  const supabaseUrlFirstFragment = new URL(process.env.SUPABASE_URL || 'http://null').hostname.split('.')[0];
-  const urlSlug = supabaseUrlFirstFragment+":"+data.name.replaceAll(/\W/g,"");
+  const supabaseUrlFirstFragment = new URL(
+    process.env.SUPABASE_URL || "http://null",
+  ).hostname.split(".")[0];
+  const urlSlug =
+    supabaseUrlFirstFragment + ":" + data.name.replaceAll(/\W/g, "");
   const supabase = createSingletonClient(urlSlug);
   if (!supabase) return asPostgrestFailure("No database", "");
   const session = await supabase.auth.getSession();
@@ -129,13 +143,14 @@ export const fetchOrCreateSpaceDirect = async (
       .select()
       .eq("url", data.url)
       .maybeSingle();
-    if (result.error && result.status >= 500)
-      return result;
+    if (result.error && result.status >= 500) return result;
     if (result.data !== null)
       return result as PostgrestSingleResponse<SpaceRecord>;
     // space does not exist, or not visible from this account;
     // logout to be sure
-    console.warn(`Creating a space while already logged in as ${session.data.session.user.email}; logging out`);
+    console.warn(
+      `Creating a space while already logged in as ${session.data.session.user.email}; logging out`,
+    );
     await supabase.auth.refreshSession(); // this will clear an invalid session
   }
   // If it does not exist, create it
@@ -160,6 +175,7 @@ export const fetchOrCreateSpaceDirect = async (
   return {
     data: result2.data,
     error: null,
+    success: true,
     count: 1,
     status: 200,
     statusText: "OK",
@@ -181,9 +197,9 @@ export const createLoggedInClient = async ({
   const session = await client.auth.getSession();
   if (session.data.session) {
     if (session.data.session.user.email === email)
-      return client;  // already logged in
+      return client; // already logged in
     else {
-      console.warn("Email crosstalk")
+      console.warn("Email crosstalk");
       await client.auth.signOut();
     }
   }

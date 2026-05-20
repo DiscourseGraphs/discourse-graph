@@ -7,7 +7,7 @@ import {
   getUidAndBooleanSetting,
   BooleanSetting,
 } from "./getExportSettings";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import {
   getSuggestiveModeConfigAndUids,
@@ -73,6 +73,7 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
     }),
     suggestiveMode: getSuggestiveModeConfigAndUids(configTreeRef.tree),
     leftSidebar: getLeftSidebarSettings(configTreeRef.tree),
+    // BETA used as key, will be removed with settings migration
     leftSidebarEnabled: getUidAndBooleanSetting({
       tree: configTreeRef.tree,
       text: "(BETA) Left Sidebar",

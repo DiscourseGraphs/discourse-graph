@@ -47,6 +47,15 @@ Or click on the canvas icon at the top right corner
 
 ![Create discourse node](/docs/obsidian/create-discourse-node.gif)
 
+### Converting text and image shapes into discourse nodes
+
+You can convert a tldraw text or image shape into a discourse node directly from the canvas:
+
+1. Right-click on a text or image shape
+2. Choose a node type from the "Convert to" submenu
+3. A modal opens pre-filled with the text content (or an empty title for images) — edit the title if needed
+4. Click "Confirm" to create the discourse node; the original shape is replaced
+
 ### Adding existing nodes
 
 **Using node search**

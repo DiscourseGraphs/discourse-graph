@@ -7,6 +7,9 @@ import React, {
   useState,
 } from "react";
 import ReactDOM from "react-dom";
+import { arrayMove } from "@dnd-kit/sortable";
+import { SortableList, type SortableHandle } from "./SortableList";
+import { moveRoamBlockToIndex } from "~/utils/moveRoamBlock";
 import {
   Button,
   Collapse,
@@ -23,14 +26,32 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import extractRef from "roamjs-components/util/extractRef";
 import {
-  getFormattedConfigTree,
-  notify,
-  subscribe,
-} from "~/utils/discourseConfigRef";
-import type {
-  LeftSidebarConfig,
-  LeftSidebarPersonalSectionConfig,
+  onSettingChange,
+  settingKeys,
+} from "~/components/settings/utils/settingsEmitter";
+import {
+  type LeftSidebarConfig,
+  type LeftSidebarPersonalSectionConfig,
+  mergeGlobalSectionWithAccessor,
+  mergePersonalSectionsWithAccessor,
 } from "~/utils/getLeftSidebarSettings";
+import discourseConfigRef, { notify } from "~/utils/discourseConfigRef";
+import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
+import {
+  getGlobalSetting,
+  getPersonalSetting,
+  getPersonalSettings,
+  setGlobalSetting,
+  setPersonalSetting,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
+import {
+  PERSONAL_KEYS,
+  GLOBAL_KEYS,
+  LEFT_SIDEBAR_KEYS,
+  LEFT_SIDEBAR_SETTINGS_KEYS,
+} from "~/components/settings/utils/settingKeys";
+import type { LeftSidebarGlobalSettings } from "~/components/settings/utils/zodSchema";
 import { createBlock } from "roamjs-components/writes";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -40,11 +61,16 @@ import { SettingsDialog } from "./settings/Settings";
 import { OnloadArgs } from "roamjs-components/types";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
 import { commands, cleanCommandName } from "~/components/LeftSidebarCommands";
+import { isSmartBlockUid } from "~/utils/isSmartBlockUid";
+import { RenderRoamBlock } from "~/utils/roamReactComponents";
+
+const getCurrentLeftSidebarConfig = (): LeftSidebarConfig =>
+  getLeftSidebarSettings(discourseConfigRef.tree);
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -102,91 +128,158 @@ const openTarget = async (
   }
 };
 
-const toggleFoldedState = ({
+const toggleFoldedState = async ({
   isOpen,
   setIsOpen,
   folded,
   parentUid,
+  isGlobal,
+  sectionIndex,
 }: {
   isOpen: boolean;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
   folded: { uid?: string; value: boolean };
   parentUid: string;
+  isGlobal?: boolean;
+  sectionIndex?: number;
 }) => {
+  const newFolded = !isOpen;
+  setIsOpen(newFolded);
+
   if (isOpen) {
-    setIsOpen(false);
-    if (folded.uid) {
-      void deleteBlock(folded.uid);
-      folded.uid = undefined;
-      folded.value = false;
-    }
+    const children = getBasicTreeByParentUid(parentUid);
+    await Promise.all(
+      children
+        .filter((c) => c.text === "Folded")
+        .map((c) => deleteBlock(c.uid)),
+    );
+    folded.uid = undefined;
+    folded.value = false;
   } else {
-    setIsOpen(true);
     const newUid = window.roamAlphaAPI.util.generateUID();
-    void createBlock({
+    await createBlock({
       parentUid,
       node: { text: "Folded", uid: newUid },
     });
     folded.uid = newUid;
     folded.value = true;
   }
+
+  refreshConfigTree();
+
+  if (isGlobal) {
+    setGlobalSetting(
+      [
+        GLOBAL_KEYS.leftSidebar,
+        LEFT_SIDEBAR_KEYS.settings,
+        LEFT_SIDEBAR_SETTINGS_KEYS.folded,
+      ],
+      newFolded,
+    );
+  } else if (sectionIndex !== undefined) {
+    const sections = [...getPersonalSettings()[PERSONAL_KEYS.leftSidebar]];
+    if (sections[sectionIndex]) {
+      sections[sectionIndex] = {
+        ...sections[sectionIndex],
+        Settings: {
+          ...sections[sectionIndex].Settings,
+          Folded: newFolded,
+        },
+      };
+      setPersonalSetting([PERSONAL_KEYS.leftSidebar], sections);
+    }
+  }
 };
 
-const SectionChildren = ({
-  childrenNodes,
+const RoamRenderedBlock = ({ uid }: { uid: string }) => {
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    const pattern = "[:block/string]";
+    const entityId = `[:block/uid "${uid}"]`;
+    const callback = () => setVersion((v) => v + 1);
+    window.roamAlphaAPI.data.addPullWatch(pattern, entityId, callback);
+    return () => {
+      window.roamAlphaAPI.data.removePullWatch(pattern, entityId, callback);
+    };
+  }, [uid]);
+
+  return (
+    <div className="dg-sidebar-rendered-block">
+      <RenderRoamBlock key={version} uid={uid} open={false} />
+    </div>
+  );
+};
+
+type ChildNode = { uid: string; text: string; alias?: { value: string } };
+
+const ChildRow = ({
+  child,
   truncateAt,
   onloadArgs,
 }: {
-  childrenNodes: { uid: string; text: string; alias?: { value: string } }[];
+  child: ChildNode;
   truncateAt?: number;
   onloadArgs: OnloadArgs;
 }) => {
-  if (!childrenNodes?.length) return null;
+  const ref = parseReference(child.text);
+
+  if (ref.type === "block" && isSmartBlockUid(ref.uid)) {
+    return (
+      <div className="pl-8 pr-2.5">
+        <div className="section-child-item rounded-sm leading-normal text-gray-600">
+          <RoamRenderedBlock uid={ref.uid} />
+        </div>
+      </div>
+    );
+  }
+
+  const alias = child.alias?.value;
+  const display =
+    ref.type === "command"
+      ? ref.display
+      : ref.type === "page"
+        ? getPageTitleByPageUid(ref.display)
+        : getTextByBlockUid(ref.uid);
+  const label = alias || truncate(display, truncateAt);
+  const onClick = (e: React.MouseEvent) => {
+    return void openTarget(e, child.text, onloadArgs);
+  };
   return (
-    <>
-      {childrenNodes.map((child) => {
-        const ref = parseReference(child.text);
-        const alias = child.alias?.value;
-        const display =
-          ref.type === "command"
-            ? ref.display
-            : ref.type === "page"
-              ? getPageTitleByPageUid(ref.display)
-              : getTextByBlockUid(ref.uid);
-        const label = alias || truncate(display, truncateAt);
-        const onClick = (e: React.MouseEvent) => {
-          return void openTarget(e, child.text, onloadArgs);
-        };
-        return (
-          <div key={child.uid} className="pl-8 pr-2.5">
-            {ref.type === "command" ? (
-              <span className="bp3-dark">
-                <Button onClick={onClick} minimal className="m-px">
-                  {cleanCommandName(label)}
-                </Button>
-              </span>
-            ) : (
-              <div
-                className={
-                  "section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
-                }
-                onClick={onClick}
-              >
-                {label}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </>
+    <div className="pl-8 pr-2.5">
+      {ref.type === "command" ? (
+        <span className="bp3-dark">
+          <Button onClick={onClick} minimal className="m-px">
+            {cleanCommandName(label)}
+          </Button>
+        </span>
+      ) : (
+        <div
+          className="section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
+          onClick={onClick}
+        >
+          {label}
+        </div>
+      )}
+    </div>
   );
 };
 
 const PersonalSectionItem = ({
   section,
+  sectionIndex,
+  dragHandle,
+  onChildrenReorder,
   onloadArgs,
 }: {
   section: LeftSidebarPersonalSectionConfig;
+  sectionIndex: number;
+  dragHandle: SortableHandle;
+  onChildrenReorder: (args: {
+    sectionUid: string;
+    oldIndex: number;
+    newIndex: number;
+  }) => void;
   onloadArgs: OnloadArgs;
 }) => {
   const titleRef = parseReference(section.text);
@@ -199,27 +292,38 @@ const PersonalSectionItem = ({
   const [isOpen, setIsOpen] = useState<boolean>(
     !!section.settings?.folded.value || false,
   );
+  const isTogglingRef = useRef(false);
 
-  const handleChevronClick = () => {
+  const handleChevronClick = async () => {
     if (!section.settings) return;
-
-    toggleFoldedState({
-      isOpen,
-      setIsOpen,
-      folded: section.settings.folded,
-      parentUid: section.settings.uid || "",
-    });
+    if (isTogglingRef.current) return;
+    isTogglingRef.current = true;
+    try {
+      await toggleFoldedState({
+        isOpen,
+        setIsOpen,
+        folded: section.settings.folded,
+        parentUid: section.settings.uid || "",
+        sectionIndex,
+      });
+    } finally {
+      isTogglingRef.current = false;
+    }
   };
 
   return (
     <>
-      <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none">
+      <div
+        {...dragHandle.attributes}
+        {...dragHandle.listeners}
+        className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none"
+      >
         <div className="flex w-full items-center justify-between">
           <div
             className="flex items-center"
             onClick={() => {
               if ((section.children?.length || 0) > 0) {
-                handleChevronClick();
+                void handleChevronClick();
               }
             }}
           >
@@ -228,7 +332,7 @@ const PersonalSectionItem = ({
           {(section.children?.length || 0) > 0 && (
             <span
               className="sidebar-title-button-chevron p-1"
-              onClick={handleChevronClick}
+              onClick={() => void handleChevronClick()}
             >
               <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
             </span>
@@ -236,10 +340,21 @@ const PersonalSectionItem = ({
         </div>
       </div>
       <Collapse isOpen={isOpen}>
-        <SectionChildren
-          childrenNodes={section.children || []}
-          truncateAt={truncateAt}
-          onloadArgs={onloadArgs}
+        <SortableList
+          items={section.children || []}
+          getId={(c) => c.uid}
+          onReorder={(oldIndex, newIndex) =>
+            onChildrenReorder({ sectionUid: section.uid, oldIndex, newIndex })
+          }
+          renderItem={(child, handle) => (
+            <div {...handle.attributes} {...handle.listeners}>
+              <ChildRow
+                child={child}
+                truncateAt={truncateAt}
+                onloadArgs={onloadArgs}
+              />
+            </div>
+          )}
         />
       </Collapse>
     </>
@@ -248,52 +363,137 @@ const PersonalSectionItem = ({
 
 const PersonalSections = ({
   config,
+  setConfig,
   onloadArgs,
 }: {
   config: LeftSidebarConfig;
+  setConfig: Dispatch<SetStateAction<LeftSidebarConfig>>;
   onloadArgs: OnloadArgs;
 }) => {
   const sections = config.personal.sections || [];
 
   if (!sections.length) return null;
 
+  const reorderSections = (oldIndex: number, newIndex: number) => {
+    const moved = sections[oldIndex];
+    if (!moved) return;
+    const reordered = arrayMove(sections, oldIndex, newIndex);
+    setConfig({
+      ...config,
+      personal: { ...config.personal, sections: reordered },
+    });
+    void moveRoamBlockToIndex({
+      blockUid: moved.uid,
+      parentUid: config.personal.uid,
+      sourceIndex: oldIndex,
+      destIndex: newIndex,
+    }).then(() => {
+      refreshAndNotify();
+    });
+  };
+
+  const reorderChildren = ({
+    sectionUid,
+    oldIndex,
+    newIndex,
+  }: {
+    sectionUid: string;
+    oldIndex: number;
+    newIndex: number;
+  }) => {
+    const section = sections.find((s) => s.uid === sectionUid);
+    const children = section?.children;
+    if (!section || !children || !section.childrenUid) return;
+    const child = children[oldIndex];
+    if (!child) return;
+    const reorderedChildren = arrayMove(children, oldIndex, newIndex);
+    const newSections = sections.map((s) =>
+      s.uid === sectionUid ? { ...s, children: reorderedChildren } : s,
+    );
+    setConfig({
+      ...config,
+      personal: { ...config.personal, sections: newSections },
+    });
+    void moveRoamBlockToIndex({
+      blockUid: child.uid,
+      parentUid: section.childrenUid,
+      sourceIndex: oldIndex,
+      destIndex: newIndex,
+    }).then(() => {
+      refreshAndNotify();
+    });
+  };
+
   return (
-    <div className="personal-left-sidebar-sections">
-      {sections.map((section) => (
-        <div key={section.uid}>
-          <PersonalSectionItem section={section} onloadArgs={onloadArgs} />
-        </div>
-      ))}
-    </div>
+    <SortableList
+      items={sections}
+      getId={(s) => s.uid}
+      onReorder={reorderSections}
+      className="personal-left-sidebar-sections"
+      renderItem={(section, handle) => (
+        <PersonalSectionItem
+          section={section}
+          sectionIndex={sections.findIndex((s) => s.uid === section.uid)}
+          dragHandle={handle}
+          onChildrenReorder={reorderChildren}
+          onloadArgs={onloadArgs}
+        />
+      )}
+    />
   );
 };
 
 const GlobalSection = ({
   config,
+  onGlobalChildrenReorder,
   onloadArgs,
 }: {
   config: LeftSidebarConfig["global"];
+  onGlobalChildrenReorder: (oldIndex: number, newIndex: number) => void;
   onloadArgs: OnloadArgs;
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(
     !!config.settings?.folded.value,
   );
+  const isTogglingRef = useRef(false);
   if (!config.children?.length) return null;
   const isCollapsable = config.settings?.collapsable.value;
+
+  const handleToggle = async () => {
+    if (!isCollapsable || !config.settings) return;
+    if (isTogglingRef.current) return;
+    isTogglingRef.current = true;
+    try {
+      await toggleFoldedState({
+        isOpen,
+        setIsOpen,
+        folded: config.settings.folded,
+        parentUid: config.settings.uid,
+        isGlobal: true,
+      });
+    } finally {
+      isTogglingRef.current = false;
+    }
+  };
+
+  const children = (
+    <SortableList
+      items={config.children}
+      getId={(c) => c.uid}
+      onReorder={onGlobalChildrenReorder}
+      renderItem={(child, handle) => (
+        <div {...handle.attributes} {...handle.listeners}>
+          <ChildRow child={child} onloadArgs={onloadArgs} />
+        </div>
+      )}
+    />
+  );
 
   return (
     <>
       <div
         className="sidebar-title-button flex w-full items-center border-none bg-transparent py-1 pl-6 pr-2.5 font-semibold outline-none"
-        onClick={() => {
-          if (!isCollapsable || !config.settings) return;
-          toggleFoldedState({
-            isOpen,
-            setIsOpen,
-            folded: config.settings.folded,
-            parentUid: config.settings.uid,
-          });
-        }}
+        onClick={() => void handleToggle()}
       >
         <div className="flex w-full items-center justify-between">
           <span>GLOBAL</span>
@@ -305,38 +505,71 @@ const GlobalSection = ({
         </div>
       </div>
       {isCollapsable ? (
-        <Collapse isOpen={isOpen}>
-          <SectionChildren
-            childrenNodes={config.children}
-            onloadArgs={onloadArgs}
-          />
-        </Collapse>
+        <Collapse isOpen={isOpen}>{children}</Collapse>
       ) : (
-        <SectionChildren
-          childrenNodes={config.children}
-          onloadArgs={onloadArgs}
-        />
+        children
       )}
     </>
   );
 };
 
-export const useConfig = () => {
-  const [config, setConfig] = useState(
-    () => getFormattedConfigTree().leftSidebar,
-  );
+// TODO(ENG-1471): Remove old-system merge when migration complete — just use accessor values directly.
+// See mergeGlobalSectionWithAccessor/mergePersonalSectionsWithAccessor for why the merge exists.
+const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
+  // Read VALUES from accessor (handles flag routing + mismatch detection)
+  const globalValues = snapshot
+    ? snapshot.globalSettings[GLOBAL_KEYS.leftSidebar]
+    : getGlobalSetting<LeftSidebarGlobalSettings>([GLOBAL_KEYS.leftSidebar]);
+  const personalValues = snapshot
+    ? snapshot.personalSettings[PERSONAL_KEYS.leftSidebar]
+    : getPersonalSetting<
+        ReturnType<typeof getPersonalSettings>[typeof PERSONAL_KEYS.leftSidebar]
+      >([PERSONAL_KEYS.leftSidebar]);
+
+  // Read UIDs from old system (needed for fold CRUD during dual-write)
+  const oldConfig = getCurrentLeftSidebarConfig();
+
+  return {
+    uid: oldConfig.uid,
+    favoritesMigrated: oldConfig.favoritesMigrated,
+    sidebarMigrated: oldConfig.sidebarMigrated,
+    global: mergeGlobalSectionWithAccessor(oldConfig.global, globalValues),
+    personal: {
+      uid: oldConfig.personal.uid,
+      sections: mergePersonalSectionsWithAccessor(
+        oldConfig.personal.sections,
+        personalValues,
+      ),
+    },
+    allPersonalSections: oldConfig.allPersonalSections,
+  };
+};
+
+export const useConfig = (initialSnapshot?: SettingsSnapshot) => {
+  const [config, setConfig] = useState(() => buildConfig(initialSnapshot));
   useEffect(() => {
     const handleUpdate = () => {
-      setConfig(getFormattedConfigTree().leftSidebar);
+      setConfig(buildConfig());
     };
-    const unsubscribe = subscribe(handleUpdate);
+    const unsubGlobal = onSettingChange(
+      settingKeys.globalLeftSidebar,
+      handleUpdate,
+    );
+    const unsubPersonal = onSettingChange(
+      settingKeys.personalLeftSidebar,
+      handleUpdate,
+    );
     return () => {
-      unsubscribe();
+      unsubGlobal();
+      unsubPersonal();
     };
   }, []);
   return { config, setConfig };
 };
 
+// TODO(ENG-1471): refreshAndNotify still needed by settings panels
+// (LeftSidebarGlobalSettings, LeftSidebarPersonalSettings) for old-system CRUD.
+// Remove when settings panels also read via accessors + emitter.
 export const refreshAndNotify = () => {
   refreshConfigTree();
   notify();
@@ -452,20 +685,54 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   );
 };
 
-const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const { config } = useConfig();
+const LeftSidebarView = ({
+  onloadArgs,
+  initialSnapshot,
+}: {
+  onloadArgs: OnloadArgs;
+  initialSnapshot?: SettingsSnapshot;
+}) => {
+  const { config, setConfig } = useConfig(initialSnapshot);
+
+  const reorderGlobalChildren = (oldIndex: number, newIndex: number) => {
+    const children = config.global.children;
+    if (!children) return;
+    const moved = children[oldIndex];
+    if (!moved) return;
+    const reordered = arrayMove(children, oldIndex, newIndex);
+    setConfig({
+      ...config,
+      global: { ...config.global, children: reordered },
+    });
+    void moveRoamBlockToIndex({
+      blockUid: moved.uid,
+      parentUid: config.global.childrenUid,
+      sourceIndex: oldIndex,
+      destIndex: newIndex,
+    }).then(() => {
+      refreshAndNotify();
+    });
+  };
 
   return (
     <>
       <FavoritesPopover onloadArgs={onloadArgs} />
-      <GlobalSection config={config.global} onloadArgs={onloadArgs} />
-      <PersonalSections config={config} onloadArgs={onloadArgs} />
+      <GlobalSection
+        config={config.global}
+        onGlobalChildrenReorder={reorderGlobalChildren}
+        onloadArgs={onloadArgs}
+      />
+      <PersonalSections
+        config={config}
+        setConfig={setConfig}
+        onloadArgs={onloadArgs}
+      />
     </>
   );
 };
 
 const migrateFavorites = async () => {
-  const config = getFormattedConfigTree().leftSidebar;
+  const config = getCurrentLeftSidebarConfig();
 
   if (config.favoritesMigrated.value) return;
 
@@ -558,11 +825,32 @@ const migrateFavorites = async () => {
   refreshConfigTree();
 };
 
-export const mountLeftSidebar = async (
-  wrapper: HTMLElement,
-  onloadArgs: OnloadArgs,
-): Promise<void> => {
+export const mountLeftSidebar = async ({
+  wrapper,
+  onloadArgs,
+  initialSnapshot,
+}: {
+  wrapper: HTMLElement;
+  onloadArgs: OnloadArgs;
+  initialSnapshot?: SettingsSnapshot;
+}): Promise<void> => {
   if (!wrapper) return;
+
+  const styleId = "dg-sidebar-rendered-block-styles";
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      .dg-sidebar-rendered-block .rm-bullet { display: none; }
+      .dg-sidebar-rendered-block .rm-block-separator { display: none; }
+      .dg-sidebar-rendered-block .controls { display: none; }
+      .dg-sidebar-rendered-block .block-expand { display: none; }
+      .dg-sidebar-rendered-block .block-border-left { display: none; }
+      .dg-sidebar-rendered-block .block-ref-count-button { display: none; }
+      .dg-sidebar-rendered-block .rm-block-main { min-height: unset; padding: 0; }
+    `;
+    document.head.appendChild(style);
+  }
 
   const id = "dg-left-sidebar-root";
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
@@ -578,7 +866,14 @@ export const mountLeftSidebar = async (
   } else {
     root.className = "starred-pages";
   }
-  ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
+  // eslint-disable-next-line react/no-deprecated
+  ReactDOM.render(
+    <LeftSidebarView
+      onloadArgs={onloadArgs}
+      initialSnapshot={initialSnapshot}
+    />,
+    root,
+  );
 };
 
 export default LeftSidebarView;

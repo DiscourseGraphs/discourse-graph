@@ -8,15 +8,14 @@ import {
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
+import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import { ContextContent } from "./DiscourseContext";
 import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
-import { USE_STORED_RELATIONS } from "~/data/userSettings";
-import { getSetting } from "~/utils/extensionSettings";
 import deriveDiscourseNodeAttribute from "~/utils/deriveDiscourseNodeAttribute";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getSubTree from "roamjs-components/util/getSubTree";
+import { getDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import { DISCOURSE_NODE_KEYS } from "~/components/settings/utils/settingKeys";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import nanoid from "nanoid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
@@ -190,11 +189,10 @@ const useDiscourseContext = (uid: string, tag: string) => {
                   ).length,
               )
               .reduce((acc, cur) => acc + cur, 0);
-            const attribute = getSettingValueFromTree({
-              tree: getBasicTreeByParentUid(discourseNode.type),
-              key: "Overlay",
-              defaultValue: "Overlay",
-            });
+            const attribute =
+              getDiscourseNodeSetting<string>(discourseNode.type, [
+                DISCOURSE_NODE_KEYS.overlay,
+              ]) || "Overlay";
             return deriveDiscourseNodeAttribute({
               uid: uid,
               attribute,
@@ -203,17 +201,11 @@ const useDiscourseContext = (uid: string, tag: string) => {
               setRefs(refs);
               setScore(score);
 
-              const nodeType = discourseNode.type;
-              const attributeNode = getSubTree({
-                tree: getBasicTreeByParentUid(nodeType || ""),
-                key: "Attributes",
-              });
-              const scoreFormula = attributeNode?.children
-                ? getSettingValueFromTree({
-                    tree: attributeNode.children,
-                    key: attribute,
-                  })
-                : "";
+              const scoreFormula =
+                getDiscourseNodeSetting<string>(discourseNode.type, [
+                  DISCOURSE_NODE_KEYS.attributes,
+                  attribute,
+                ]) ?? "";
               if (scoreFormula === "" && score !== numResults) {
                 internalError({
                   error: "DiscourseContext: Score does not match Num relations",
@@ -222,7 +214,7 @@ const useDiscourseContext = (uid: string, tag: string) => {
                     score,
                     numResults,
                     ignoreCache,
-                    reified: getSetting<boolean>(USE_STORED_RELATIONS),
+                    reified: getStoredRelationsEnabled(),
                   },
                 });
               }
@@ -374,15 +366,10 @@ export const render = ({
   tag: string;
   parent: HTMLElement;
   onloadArgs: OnloadArgs;
-}) => {
+}): void => {
   parent.style.margin = "0 8px";
   parent.onmousedown = (e) => e.stopPropagation();
-  ReactDOM.render(
-    <ExtensionApiContextProvider {...onloadArgs}>
-      <Wrapper tag={tag} parent={parent} />
-    </ExtensionApiContextProvider>,
-    parent,
-  );
+  renderWithUnmount(<Wrapper tag={tag} parent={parent} />, parent, onloadArgs);
 };
 
 export default DiscourseContextPopupOverlay;

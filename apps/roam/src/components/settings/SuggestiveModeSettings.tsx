@@ -1,26 +1,40 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import React, { useEffect, useState } from "react";
 import { Button, Intent, Tabs, Tab, TabId } from "@blueprintjs/core";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import discourseConfigRef from "~/utils/discourseConfigRef";
 import PageGroupsPanel from "./PageGroupPanel";
 import createBlock from "roamjs-components/writes/createBlock";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { GlobalFlagPanel } from "./components/BlockPropSettingPanels";
+import { type SettingsSnapshot } from "~/components/settings/utils/accessors";
+import {
+  GLOBAL_KEYS,
+  SUGGESTIVE_MODE_KEYS,
+} from "~/components/settings/utils/settingKeys";
 import posthog from "posthog-js";
+import { getSuggestiveModeConfigAndUids } from "~/utils/getSuggestiveModeConfigSettings";
 
-const SuggestiveModeSettings = () => {
-  const settings = getFormattedConfigTree();
+const SuggestiveModeSettings = ({
+  globalSettings,
+}: {
+  globalSettings: SettingsSnapshot["globalSettings"];
+}) => {
+  const suggestiveMode = getSuggestiveModeConfigAndUids(
+    discourseConfigRef.tree,
+  );
 
   const [suggestiveModeUid, setSuggestiveModeUid] = useState(
-    settings.suggestiveMode.parentUid,
+    suggestiveMode.parentUid,
   );
-  const pageGroupsUid = settings.suggestiveMode.pageGroups.uid;
+  const pageGroupsUid = suggestiveMode.pageGroups.uid;
+
+  const suggestiveModeSettings = globalSettings[GLOBAL_KEYS.suggestiveMode];
 
   const [includePageRelations, setIncludePageRelations] = useState(
-    settings.suggestiveMode.includePageRelations.value,
+    suggestiveModeSettings[SUGGESTIVE_MODE_KEYS.includeCurrentPageRelations],
   );
 
   useEffect(() => {
@@ -35,7 +49,7 @@ const SuggestiveModeSettings = () => {
   }, [suggestiveModeUid]);
 
   const effectiveSuggestiveModeUid =
-    suggestiveModeUid || settings.suggestiveMode.parentUid;
+    suggestiveModeUid || suggestiveMode.parentUid;
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("page-groups");
 
@@ -59,7 +73,7 @@ const SuggestiveModeSettings = () => {
               <PageGroupsPanel
                 key={pageGroupsUid}
                 uid={pageGroupsUid}
-                initialGroups={settings.suggestiveMode.pageGroups.groups}
+                initialGroups={suggestiveMode.pageGroups.groups}
               />
             </div>
           }
@@ -69,21 +83,24 @@ const SuggestiveModeSettings = () => {
           title="Sync config"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              {/* TODO: Titles kept as Title Case to match legacy readers in getSuggestiveModeConfigSettings.ts.
-                  Update titles to Sentence case once read side is migrated to block props. */}
+              {/* TODO(ENG-1469): Titles kept as Title Case because getSuggestiveModeConfigSettings.ts
+                  still reads from the block tree expecting these strings. Update to Sentence case
+                  once the aggregator is refactored to read from block props. */}
               <div className="sync-config-settings">
                 <GlobalFlagPanel
                   title="Include Current Page Relations"
                   description="Include relations from pages referenced on the current page"
                   settingKeys={[
-                    "Suggestive mode",
-                    "Include current page relations",
+                    GLOBAL_KEYS.suggestiveMode,
+                    SUGGESTIVE_MODE_KEYS.includeCurrentPageRelations,
                   ]}
                   initialValue={
-                    settings.suggestiveMode.includePageRelations.value
+                    suggestiveModeSettings[
+                      SUGGESTIVE_MODE_KEYS.includeCurrentPageRelations
+                    ]
                   }
                   order={0}
-                  uid={settings.suggestiveMode.includePageRelations.uid}
+                  uid={suggestiveMode.includePageRelations.uid}
                   parentUid={effectiveSuggestiveModeUid}
                   onChange={setIncludePageRelations}
                 />
@@ -96,15 +113,17 @@ const SuggestiveModeSettings = () => {
                       : "Include relations from parent and child blocks"
                   }
                   settingKeys={[
-                    "Suggestive mode",
-                    "Include parent and child blocks",
+                    GLOBAL_KEYS.suggestiveMode,
+                    SUGGESTIVE_MODE_KEYS.includeParentAndChildBlocks,
                   ]}
                   initialValue={
-                    settings.suggestiveMode.includeParentAndChildren.value
+                    suggestiveModeSettings[
+                      SUGGESTIVE_MODE_KEYS.includeParentAndChildBlocks
+                    ]
                   }
                   value={includePageRelations ? true : undefined}
                   order={1}
-                  uid={settings.suggestiveMode.includeParentAndChildren.uid}
+                  uid={suggestiveMode.includeParentAndChildren.uid}
                   parentUid={effectiveSuggestiveModeUid}
                   disabled={includePageRelations}
                 />

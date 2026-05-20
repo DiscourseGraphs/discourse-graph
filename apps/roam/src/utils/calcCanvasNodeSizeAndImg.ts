@@ -107,10 +107,7 @@ const calcCanvasNodeSizeAndImg = async ({
 
   let imageUrl;
   if (keyImageOption === "query-builder") {
-    const parentUid = resolveQueryBuilderRef({
-      queryRef: qbAlias,
-      extensionAPI,
-    });
+    const parentUid = resolveQueryBuilderRef({ queryRef: qbAlias });
     const results = await runQuery({
       extensionAPI,
       parentUid,
@@ -126,10 +123,15 @@ const calcCanvasNodeSizeAndImg = async ({
 
   try {
     const { width, height } = await loadImage(imageUrl);
-    if (!width || !height || !Number.isFinite(width) || !Number.isFinite(height)) {
+    if (
+      !width ||
+      !height ||
+      !Number.isFinite(width) ||
+      !Number.isFinite(height)
+    ) {
       return { w, h, imageUrl: "" };
     }
-    
+
     const aspectRatio = width / height;
     const nodeImageHeight = w / aspectRatio;
     const newHeight = h + nodeImageHeight;

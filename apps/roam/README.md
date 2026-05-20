@@ -14,6 +14,7 @@ For more information about Discourse Graphs, check out our website at [https://d
 
 - [Discourse Graphs](https://discoursegraphs.com/docs/roam) documentation
 - [Query Builder](https://github.com/DiscourseGraphs/discourse-graph/blob/main/apps/roam/docs/query-builder.md) documentation
+- [Release process](./RELEASE.md)
 
 ## Nomenclature
 

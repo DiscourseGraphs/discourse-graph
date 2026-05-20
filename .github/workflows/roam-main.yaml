@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -53,3 +55,9 @@ jobs:
 
       - name: Deploy
         run: npx turbo run deploy --filter=roam --ui stream -- --no-compile
+
+      - name: Sync Linear release
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY }}
+          include_paths: "apps/roam/**,packages/tailwind-config/**,packages/utils/**,packages/database/**,packages/ui/**"

@@ -21,6 +21,7 @@ import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import setBlockProps from "~/utils/setBlockProps";
 import { DiscourseNodeSchema } from "./utils/zodSchema";
 import { getGlobalSettings, setGlobalSetting } from "./utils/accessors";
+import { GLOBAL_KEYS } from "./utils/settingKeys";
 
 type DiscourseNodeConfigPanelProps = React.ComponentProps<
   CustomField["options"]["component"]
@@ -79,7 +80,15 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
           className="select-none"
           disabled={!label}
           onClick={() => {
-            const shortcut = label.slice(0, 1).toUpperCase();
+            const candidateShortcut = label.slice(0, 1).toUpperCase();
+            const existingShortcuts = new Set(
+              getDiscourseNodes()
+                .map((n) => n.shortcut.toUpperCase())
+                .filter(Boolean),
+            );
+            const shortcut = existingShortcuts.has(candidateShortcut)
+              ? ""
+              : candidateShortcut;
             const format = `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
             posthog.capture("Discourse Node: Type Created", { label: label });
             void createPage({
@@ -106,7 +115,6 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                   type: valueUid,
                   shortcut,
                   format,
-                  backedBy: "user",
                 }),
               );
               setNodes([
@@ -239,7 +247,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
               }
               const relations = { ...getGlobalSettings().Relations };
               for (const rel of affectedRelations) delete relations[rel.id];
-              setGlobalSetting(["Relations"], relations);
+              setGlobalSetting([GLOBAL_KEYS.relations], relations);
               deleteNodeType(nodeTypeIdToDelete);
             } catch (error) {
               console.error(

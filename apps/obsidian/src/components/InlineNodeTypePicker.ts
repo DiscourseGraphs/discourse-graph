@@ -1,7 +1,8 @@
-import { Editor } from "obsidian";
+import { Editor, MarkdownView } from "obsidian";
 import { DiscourseNode } from "~/types";
-import { createDiscourseNode } from "~/utils/createNode";
 import type DiscourseGraphPlugin from "~/index";
+import { createModifyNodeModalSubmitHandler } from "~/utils/registerCommands";
+import ModifyNodeModal from "./ModifyNodeModal";
 
 /**
  * A popover that shows all node types inline near the cursor/selection.
@@ -98,7 +99,7 @@ export class InlineNodeTypePicker {
       itemEl.addEventListener("mousedown", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        void this.selectItem(item);
+        this.selectItem(item);
       });
 
       itemEl.addEventListener("mouseenter", () => {
@@ -138,14 +139,22 @@ export class InlineNodeTypePicker {
     }
   }
 
-  private async selectItem(item: DiscourseNode) {
+  private selectItem(item: DiscourseNode) {
     this.close();
-    await createDiscourseNode({
+    const currentFile =
+      this.options.plugin.app.workspace.getActiveViewOfType(MarkdownView)
+        ?.file || undefined;
+    new ModifyNodeModal(this.options.plugin.app, {
+      nodeTypes: this.options.plugin.settings.nodeTypes,
       plugin: this.options.plugin,
-      nodeType: item,
-      text: this.options.selectedText,
-      editor: this.options.editor,
-    });
+      initialTitle: this.options.selectedText,
+      initialNodeType: item,
+      currentFile,
+      onSubmit: createModifyNodeModalSubmitHandler(
+        this.options.plugin,
+        this.options.editor,
+      ),
+    }).open();
   }
 
   private setupEventHandlers() {
@@ -173,7 +182,7 @@ export class InlineNodeTypePicker {
         e.stopPropagation();
         const selectedItem = this.items[this.selectedIndex];
         if (selectedItem) {
-          void this.selectItem(selectedItem);
+          this.selectItem(selectedItem);
         }
       } else if (e.key === "Escape") {
         e.preventDefault();

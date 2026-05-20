@@ -21,6 +21,7 @@ import { fireQuerySync, getWhereClauses } from "./fireQuery";
 import { toVar } from "./compileDatalog";
 import { getExistingRelationPageUid } from "./createReifiedBlock";
 import { getStoredRelationsEnabled } from "./storedRelations";
+import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
 
 const hasTag = (node: DiscourseNode): node is DiscourseNode & { tag: string } =>
   !!node.tag;
@@ -87,9 +88,9 @@ const collectVariables = (clauses: DatalogClause[]): Set<string> =>
 
 const ANY_DISCOURSE_NODE = "Any discourse node";
 
-const registerDiscourseDatalogTranslators = () => {
-  const discourseRelations = getDiscourseRelations();
-  const discourseNodes = getDiscourseNodes(discourseRelations);
+const registerDiscourseDatalogTranslators = (snapshot?: SettingsSnapshot) => {
+  const discourseRelations = getDiscourseRelations(snapshot);
+  const discourseNodes = getDiscourseNodes(discourseRelations, snapshot);
 
   const isACallback: Parameters<
     typeof registerDatalogTranslator

@@ -1,3 +1,4 @@
+import ReactDOM from "react-dom";
 import { addStyle } from "roamjs-components/dom";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { runExtension } from "roamjs-components/util";
@@ -14,7 +15,7 @@ import { listActiveQueries } from "./utils/listActiveQueries";
 import { registerSmartBlock } from "./utils/registerSmartBlock";
 import { initObservers } from "./utils/initializeObserversAndListeners";
 import { addGraphViewNodeStyling } from "./utils/graphViewNodeStyling";
-import { setQueryPages } from "./utils/setQueryPages";
+import { setInitialQueryPages } from "./utils/setQueryPages";
 import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
 import styles from "./styles/styles.css";
 import discourseFloatingMenuStyles from "./styles/discourseFloatingMenuStyles.css";
@@ -32,22 +33,30 @@ import {
   setSyncActivity,
 } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
-import { getSetting } from "./utils/extensionSettings";
 import { initPostHog } from "./utils/posthog";
-import {
-  STREAMLINE_STYLING_KEY,
-  DISALLOW_DIAGNOSTICS,
-} from "./data/userSettings";
 import { initSchema } from "./components/settings/utils/init";
-import { isSyncEnabled } from "./components/settings/utils/accessors";
+import {
+  bulkReadSettings,
+  isSyncEnabled,
+} from "./components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "./components/settings/utils/settingKeys";
+import { setupPullWatchOnSettingsPage } from "./components/settings/utils/pullWatchers";
+import {
+  onSettingChange,
+  settingKeys,
+} from "./components/settings/utils/settingsEmitter";
+import { mountLeftSidebar } from "./components/LeftSidebarView";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
-  const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
-  const isOffline = window.roamAlphaAPI.graph.type === "offline";
-  const disallowDiagnostics = getSetting(DISALLOW_DIAGNOSTICS, false);
-  if (!isEncrypted && !isOffline && !disallowDiagnostics) {
+  const pluginLoadStart = performance.now();
+
+  refreshConfigTree();
+
+  const settings = bulkReadSettings();
+
+  if (!settings.personalSettings[PERSONAL_KEYS.disableProductDiagnostics]) {
     initPostHog();
   }
 
@@ -74,15 +83,21 @@ export default runExtension(async (onloadArgs) => {
 
   initPluginTimer();
 
-  await initializeDiscourseNodes();
-  refreshConfigTree();
+  const createdNodes = await initializeDiscourseNodes(settings);
+
+  if (createdNodes) {
+    refreshConfigTree(settings);
+  }
 
   addGraphViewNodeStyling();
+
   registerCommandPaletteCommands(onloadArgs);
   const unregisterSlashCommands = registerSlashCommands();
   createSettingsPanel(onloadArgs);
+
   registerSmartBlock(onloadArgs);
-  setQueryPages(onloadArgs);
+
+  setInitialQueryPages(onloadArgs, settings);
 
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
@@ -90,14 +105,19 @@ export default runExtension(async (onloadArgs) => {
   const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
 
   // Add streamline styling only if enabled
-  const isStreamlineStylingEnabled = getSetting(STREAMLINE_STYLING_KEY, false);
+  const isStreamlineStylingEnabled =
+    settings.personalSettings[PERSONAL_KEYS.streamlineStyling];
   let streamlineStyleElement: HTMLStyleElement | null = null;
   if (isStreamlineStylingEnabled) {
     streamlineStyleElement = addStyle(streamlineStyling);
     streamlineStyleElement.id = "streamline-styling";
   }
 
-  const { observers, listeners } = await initObservers({ onloadArgs });
+  const { observers, listeners, cleanups } = initObservers({
+    onloadArgs,
+    settings,
+  });
+
   const {
     pageActionListener,
     hashChangeListener,
@@ -116,6 +136,7 @@ export default runExtension(async (onloadArgs) => {
   }
 
   const { extensionAPI } = onloadArgs;
+
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>
       runQuery({ parentUid, extensionAPI }).then(
@@ -125,13 +146,13 @@ export default runExtension(async (onloadArgs) => {
       const queryArgs = parseQuery(parentUid);
       return fireQuerySync(queryArgs);
     },
-    listActiveQueries: () => listActiveQueries(extensionAPI),
+    listActiveQueries: () => listActiveQueries(),
     isDiscourseNode: isDiscourseNode,
     // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
   };
 
-  installDiscourseFloatingMenu(onloadArgs);
+  installDiscourseFloatingMenu(onloadArgs, settings);
 
   const leftSidebarScript = document.querySelector<HTMLScriptElement>(
     'script#roam-left-sidebar[src="https://sid597.github.io/roam-left-sidebar/js/main.js"]',
@@ -147,7 +168,37 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
-  await initSchema();
+  const unsubLeftSidebarFlag = onSettingChange(
+    settingKeys.leftSidebarFlag,
+    (newValue) => {
+      const enabled = Boolean(newValue);
+      const wrapper = document.querySelector<HTMLDivElement>(
+        ".starred-pages-wrapper",
+      );
+      if (!wrapper) return;
+      if (enabled) {
+        wrapper.style.padding = "0";
+        void mountLeftSidebar({ wrapper, onloadArgs });
+      } else {
+        const root = wrapper.querySelector("#dg-left-sidebar-root");
+        if (root) {
+          // eslint-disable-next-line react/no-deprecated
+          ReactDOM.unmountComponentAtNode(root);
+          root.remove();
+        }
+        wrapper.style.padding = "";
+      }
+    },
+  );
+
+  const { blockUids } = await initSchema();
+
+  const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
+
+  console.log(
+    `[DG Plugin] Total load: ${Math.round(performance.now() - pluginLoadStart)}ms`,
+  );
+
   return {
     elements: [
       style,
@@ -158,6 +209,9 @@ export default runExtension(async (onloadArgs) => {
     ],
     observers: observers,
     unload: () => {
+      unsubLeftSidebarFlag();
+      cleanupPullWatchers();
+      cleanups.forEach((fn) => fn());
       setSyncActivity(false);
       unregisterSlashCommands();
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");

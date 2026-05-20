@@ -15,11 +15,16 @@ import {
   Dialog,
   InputGroup,
 } from "@blueprintjs/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
-import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import {
+  setPersonalSetting,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import {
   PersonalNumberPanel,
   PersonalTextPanel,
@@ -27,15 +32,18 @@ import {
 import {
   LeftSidebarPersonalSectionConfig,
   getLeftSidebarPersonalSectionConfig,
+  mergePersonalSectionsWithAccessor,
   PersonalSectionChild,
 } from "~/utils/getLeftSidebarSettings";
 import { extractRef, getSubTree } from "roamjs-components/util";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
+import { SortableList, type SortableHandle } from "~/components/SortableList";
+import { moveRoamBlockToIndex } from "~/utils/moveRoamBlock";
 import { memo, Dispatch, SetStateAction } from "react";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import posthog from "posthog-js";
@@ -43,6 +51,12 @@ import {
   commands,
   SidebarCommandPopover,
 } from "~/components/LeftSidebarCommands";
+import { isSmartBlockUid } from "~/utils/isSmartBlockUid";
+
+const isSmartBlockButtonRef = (text: string): boolean => {
+  if (!text.startsWith("((") || !text.endsWith("))")) return false;
+  return isSmartBlockUid(extractRef(text));
+};
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const sectionsToBlockProps = (
@@ -64,7 +78,10 @@ export const sectionsToBlockProps = (
 const syncAllSectionsToBlockProps = (
   sections: LeftSidebarPersonalSectionConfig[],
 ) => {
-  setPersonalSetting(["Left sidebar"], sectionsToBlockProps(sections));
+  setPersonalSetting(
+    [PERSONAL_KEYS.leftSidebar],
+    sectionsToBlockProps(sections),
+  );
 };
 
 const SectionItem = memo(
@@ -74,10 +91,7 @@ const SectionItem = memo(
     pageNames,
     setSections,
     sectionsRef,
-    index,
-    isFirst,
-    isLast,
-    onMoveSection,
+    dragHandle,
     initiallyExpanded,
   }: {
     section: LeftSidebarPersonalSectionConfig;
@@ -85,10 +99,7 @@ const SectionItem = memo(
     sectionsRef: React.MutableRefObject<LeftSidebarPersonalSectionConfig[]>;
     setSettingsDialogSectionUid: (uid: string | null) => void;
     pageNames: string[];
-    index: number;
-    isFirst: boolean;
-    isLast: boolean;
-    onMoveSection: (index: number, direction: "up" | "down") => void;
+    dragHandle: SortableHandle;
     initiallyExpanded?: boolean;
   }) => {
     const ref = extractRef(section.text);
@@ -124,14 +135,9 @@ const SectionItem = memo(
             order: 0,
             node: { text: "Settings" },
           });
-          const foldedUid = await createBlock({
-            parentUid: settingsUid,
-            order: 0,
-            node: { text: "Folded" },
-          });
           const truncateSettingUid = await createBlock({
             parentUid: settingsUid,
-            order: 1,
+            order: 0,
             node: { text: "Truncate-result?", children: [{ text: "75" }] },
           });
 
@@ -148,7 +154,7 @@ const SectionItem = memo(
                   ...s,
                   settings: {
                     uid: settingsUid,
-                    folded: { uid: foldedUid, value: false },
+                    folded: { uid: undefined, value: false },
                     truncateResult: { uid: truncateSettingUid, value: 75 },
                   },
                   childrenUid,
@@ -166,7 +172,7 @@ const SectionItem = memo(
                     ...s,
                     settings: {
                       uid: settingsUid,
-                      folded: { uid: foldedUid, value: false },
+                      folded: { uid: undefined, value: false },
                       truncateResult: { uid: truncateSettingUid, value: 75 },
                     },
                     children: [],
@@ -288,47 +294,36 @@ const SectionItem = memo(
       [setSections, sectionsRef],
     );
 
-    const moveChild = useCallback(
-      (
-        section: LeftSidebarPersonalSectionConfig,
-        index: number,
-        direction: "up" | "down",
-      ) => {
-        if (!section.children) return;
-        if (direction === "up" && index === 0) return;
-        if (direction === "down" && index === section.children.length - 1)
-          return;
+    const reorderChildren = useCallback(
+      ({
+        section,
+        oldIndex,
+        newIndex,
+      }: {
+        section: LeftSidebarPersonalSectionConfig;
+        oldIndex: number;
+        newIndex: number;
+      }) => {
+        const children = section.children;
+        if (!children || !section.childrenUid) return;
+        const moved = children[oldIndex];
+        if (!moved) return;
 
-        const newChildren = [...section.children];
-        const [removed] = newChildren.splice(index, 1);
-        const newIndex = direction === "up" ? index - 1 : index + 1;
-        newChildren.splice(newIndex, 0, removed);
-
-        const updatedSections = sectionsRef.current.map((s) => {
-          if (s.uid === section.uid) {
-            return {
-              ...s,
-              children: newChildren,
-            };
-          }
-          return s;
-        });
+        const newChildren = arrayMove(children, oldIndex, newIndex);
+        const updatedSections = sectionsRef.current.map((s) =>
+          s.uid === section.uid ? { ...s, children: newChildren } : s,
+        );
         setSections(updatedSections);
         syncAllSectionsToBlockProps(updatedSections);
 
-        if (section.childrenUid) {
-          const order = direction === "down" ? newIndex + 1 : newIndex;
-
-          void window.roamAlphaAPI
-            /* eslint-disable @typescript-eslint/naming-convention */
-            .moveBlock({
-              location: { "parent-uid": section.childrenUid, order },
-              block: { uid: removed.uid },
-            })
-            .then(() => {
-              refreshAndNotify();
-            });
-        }
+        void moveRoamBlockToIndex({
+          blockUid: moved.uid,
+          parentUid: section.childrenUid,
+          sourceIndex: oldIndex,
+          destIndex: newIndex,
+        }).then(() => {
+          refreshAndNotify();
+        });
       },
       [setSections, sectionsRef],
     );
@@ -362,7 +357,11 @@ const SectionItem = memo(
           border: "1px solid rgba(51, 51, 51, 0.2)",
         }}
       >
-        <div className="group flex items-center">
+        <div
+          {...dragHandle.attributes}
+          {...dragHandle.listeners}
+          className="group flex cursor-grab items-center active:cursor-grabbing"
+        >
           {!sectionWithoutSettingsAndChildren && (
             <Button
               icon={isExpanded ? "chevron-down" : "chevron-right"}
@@ -372,10 +371,7 @@ const SectionItem = memo(
             />
           )}
           <div
-            className="flex-1 truncate"
-            style={{
-              cursor: sectionWithoutSettingsAndChildren ? "default" : "pointer",
-            }}
+            className={`flex-1 truncate ${sectionWithoutSettingsAndChildren ? "cursor-default" : "cursor-pointer"}`}
             onClick={() =>
               !sectionWithoutSettingsAndChildren &&
               toggleChildrenList(section.uid)
@@ -384,22 +380,6 @@ const SectionItem = memo(
             <span className="font-medium">{originalName}</span>
           </div>
           <ButtonGroup minimal>
-            <Button
-              icon="arrow-up"
-              small
-              disabled={isFirst}
-              onClick={() => onMoveSection(index, "up")}
-              title="Move section up"
-              className="opacity-0 transition-opacity group-hover:opacity-100"
-            />
-            <Button
-              icon="arrow-down"
-              small
-              disabled={isLast}
-              onClick={() => onMoveSection(index, "down")}
-              title="Move section down"
-              className="opacity-0 transition-opacity group-hover:opacity-100"
-            />
             <Button
               icon={sectionWithoutSettingsAndChildren ? "plus" : "settings"}
               title={
@@ -448,22 +428,35 @@ const SectionItem = memo(
               </div>
 
               {(section.children || []).length > 0 && (
-                <div className="space-y-1">
-                  {(section.children || []).map((child, index) => {
+                <SortableList
+                  items={section.children || []}
+                  getId={(c) => c.uid}
+                  onReorder={(oldIndex, newIndex) =>
+                    reorderChildren({ section, oldIndex, newIndex })
+                  }
+                  className="space-y-1"
+                  renderItem={(child, handle) => {
                     const childAlias = child.alias?.value;
                     const isSettingsOpen = childSettingsUid === child.uid;
+                    const childIsSmartBlockButtonRef = isSmartBlockButtonRef(
+                      child.text,
+                    );
                     const childDisplayTitle =
                       getPageTitleByPageUid(child.text) ||
                       getTextByBlockUid(extractRef(child.text)) ||
                       child.text;
                     return (
-                      <div key={child.uid}>
-                        <div className="group flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100">
+                      <>
+                        <div
+                          {...handle.attributes}
+                          {...handle.listeners}
+                          className="group flex cursor-grab items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100 active:cursor-grabbing"
+                        >
                           <div
                             className="mr-2 min-w-0 flex-1 truncate"
                             title={childDisplayTitle}
                           >
-                            {childAlias ? (
+                            {childAlias && !childIsSmartBlockButtonRef ? (
                               <span>
                                 <span className="font-medium">
                                   {childAlias}
@@ -477,31 +470,15 @@ const SectionItem = memo(
                             )}
                           </div>
                           <ButtonGroup minimal className="flex-shrink-0">
-                            <Button
-                              icon="settings"
-                              small
-                              onClick={() => setChildSettingsUid(child.uid)}
-                              title="Child settings"
-                              className="opacity-0 transition-opacity group-hover:opacity-100"
-                            />
-                            <Button
-                              icon="arrow-up"
-                              small
-                              disabled={index === 0}
-                              onClick={() => moveChild(section, index, "up")}
-                              title="Move child up"
-                              className="opacity-0 transition-opacity group-hover:opacity-100"
-                            />
-                            <Button
-                              icon="arrow-down"
-                              small
-                              disabled={
-                                index === (section.children || []).length - 1
-                              }
-                              onClick={() => moveChild(section, index, "down")}
-                              title="Move child down"
-                              className="opacity-0 transition-opacity group-hover:opacity-100"
-                            />
+                            {!childIsSmartBlockButtonRef && (
+                              <Button
+                                icon="settings"
+                                small
+                                onClick={() => setChildSettingsUid(child.uid)}
+                                title="Child settings"
+                                className="opacity-0 transition-opacity group-hover:opacity-100"
+                              />
+                            )}
                             <Button
                               icon="trash"
                               small
@@ -524,7 +501,7 @@ const SectionItem = memo(
                             <PersonalTextPanel
                               title="Alias"
                               description="Display name for this item"
-                              settingKeys={["Left sidebar"]}
+                              settingKeys={[]}
                               initialValue={child.alias?.value ?? ""}
                               order={0}
                               uid={child.alias?.uid}
@@ -555,10 +532,10 @@ const SectionItem = memo(
                             />
                           </div>
                         </Dialog>
-                      </div>
+                      </>
                     );
-                  })}
-                </div>
+                  }}
+                />
               )}
 
               {(!section.children || section.children.length === 0) && (
@@ -578,9 +555,11 @@ SectionItem.displayName = "SectionItem";
 
 const LeftSidebarPersonalSectionsContent = ({
   leftSidebar,
+  personalSettings,
   expandedSectionUid,
 }: {
   leftSidebar: RoamBasicNode;
+  personalSettings: SettingsSnapshot["personalSettings"];
   expandedSectionUid?: string;
 }) => {
   const [sections, setSections] = useState<LeftSidebarPersonalSectionConfig[]>(
@@ -618,15 +597,19 @@ const LeftSidebarPersonalSectionsContent = ({
         setSections([]);
       } else {
         setPersonalSectionUid(personalSection.uid);
+
+        const personalValues = personalSettings[PERSONAL_KEYS.leftSidebar];
         const loadedSections = getLeftSidebarPersonalSectionConfig(
           leftSidebar.children,
         ).sections;
-        setSections(loadedSections);
+        setSections(
+          mergePersonalSectionsWithAccessor(loadedSections, personalValues),
+        );
       }
     };
 
     void initialize();
-  }, [leftSidebar]);
+  }, [leftSidebar, personalSettings]);
 
   const addSection = useCallback(
     async (sectionName: string) => {
@@ -671,32 +654,23 @@ const LeftSidebarPersonalSectionsContent = ({
     setNewSectionInput(value);
   }, []);
 
-  const moveSection = useCallback(
-    (index: number, direction: "up" | "down") => {
-      if (direction === "up" && index === 0) return;
-      if (direction === "down" && index === sections.length - 1) return;
+  const reorderSections = useCallback(
+    (oldIndex: number, newIndex: number) => {
+      const moved = sections[oldIndex];
+      if (!moved || !personalSectionUid) return;
 
-      const newSections = [...sections];
-      const [removed] = newSections.splice(index, 1);
-      const newIndex = direction === "up" ? index - 1 : index + 1;
-      newSections.splice(newIndex, 0, removed);
-
+      const newSections = arrayMove(sections, oldIndex, newIndex);
       setSections(newSections);
       syncAllSectionsToBlockProps(newSections);
 
-      if (personalSectionUid) {
-        const order = direction === "down" ? newIndex + 1 : newIndex;
-
-        void window.roamAlphaAPI
-          /* eslint-disable @typescript-eslint/naming-convention */
-          .moveBlock({
-            location: { "parent-uid": personalSectionUid, order },
-            block: { uid: removed.uid },
-          })
-          .then(() => {
-            refreshAndNotify();
-          });
-      }
+      void moveRoamBlockToIndex({
+        blockUid: moved.uid,
+        parentUid: personalSectionUid,
+        sourceIndex: oldIndex,
+        destIndex: newIndex,
+      }).then(() => {
+        refreshAndNotify();
+      });
     },
     [sections, personalSectionUid],
   );
@@ -746,24 +720,23 @@ const LeftSidebarPersonalSectionsContent = ({
         </div>
       </div>
 
-      <div className="mt-2 space-y-2">
-        {sections.map((section, index) => (
-          <div key={section.uid}>
-            <SectionItem
-              section={section}
-              setSettingsDialogSectionUid={setSettingsDialogSectionUid}
-              pageNames={pageAndCommandNames}
-              setSections={setSections}
-              sectionsRef={sectionsRef}
-              index={index}
-              isFirst={index === 0}
-              isLast={index === sections.length - 1}
-              onMoveSection={moveSection}
-              initiallyExpanded={section.uid === expandedSectionUid}
-            />
-          </div>
-        ))}
-      </div>
+      <SortableList
+        items={sections}
+        getId={(s) => s.uid}
+        onReorder={reorderSections}
+        className="mt-2 space-y-2"
+        renderItem={(section, handle) => (
+          <SectionItem
+            section={section}
+            setSettingsDialogSectionUid={setSettingsDialogSectionUid}
+            pageNames={pageAndCommandNames}
+            setSections={setSections}
+            sectionsRef={sectionsRef}
+            dragHandle={handle}
+            initiallyExpanded={section.uid === expandedSectionUid}
+          />
+        )}
+      />
 
       {activeDialogSection && activeDialogSection.settings && (
         <Dialog
@@ -810,7 +783,7 @@ const LeftSidebarPersonalSectionsContent = ({
               <PersonalNumberPanel
                 title="Truncate-result?"
                 description="Maximum characters to display"
-                settingKeys={["Left sidebar"]}
+                settingKeys={[]}
                 initialValue={
                   activeDialogSection.settings.truncateResult?.value ?? 75
                 }
@@ -847,8 +820,10 @@ const LeftSidebarPersonalSectionsContent = ({
 };
 
 export const LeftSidebarPersonalSections = ({
+  personalSettings,
   expandedSectionUid,
 }: {
+  personalSettings: SettingsSnapshot["personalSettings"];
   expandedSectionUid?: string;
 }) => {
   const [leftSidebar, setLeftSidebar] = useState<RoamBasicNode | null>(null);
@@ -881,6 +856,7 @@ export const LeftSidebarPersonalSections = ({
   return (
     <LeftSidebarPersonalSectionsContent
       leftSidebar={leftSidebar}
+      personalSettings={personalSettings}
       expandedSectionUid={expandedSectionUid}
     />
   );

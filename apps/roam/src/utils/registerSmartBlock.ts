@@ -34,7 +34,7 @@ export const registerSmartBlock = (onloadArgs: OnloadArgs) => {
             }
           : { text: formatArg || "{text}", children: [], uid: "" };
         const queryRef = variables[arg] || arg;
-        const parentUid = resolveQueryBuilderRef({ queryRef, extensionAPI });
+        const parentUid = resolveQueryBuilderRef({ queryRef });
         return runQuery({
           parentUid,
           extensionAPI,

@@ -1,14 +1,73 @@
 import { createHTMLObserver } from "roamjs-components/dom";
 import { render as previewRender } from "~/components/LivePreview";
-import isDiscourseNode from "./isDiscourseNode";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { render as discourseOverlayRender } from "~/components/DiscourseContextOverlay";
 import { OnloadArgs } from "roamjs-components/types";
 import { renderSuggestive as renderSuggestiveOverlay } from "~/components/SuggestiveModeOverlay";
+import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
+import findDiscourseNode from "./findDiscourseNode";
+
+const PAGE_REF_SELECTOR = "span.rm-page-ref";
+const DISCOURSE_OVERLAY_CLASS = "roamjs-discourse-context-overlay";
+const DISCOURSE_OVERLAY_ATTR = "data-roamjs-discourse-overlay";
+const SUGGESTIVE_OVERLAY_CLASS = "suggestive-mode-overlay";
+const SUGGESTIVE_OVERLAY_ATTR = "data-discourse-suggestive-overlay";
 
 const pageRefObservers = new Set<(s: HTMLSpanElement) => void>();
 const pageRefObserverRef: { current?: MutationObserver } = {
   current: undefined,
+};
+
+type PageRefDiscourseNodeStatus = {
+  uid: string;
+  isDiscourseNode: boolean;
+};
+
+let batchDiscourseNodes: DiscourseNode[] | null = null;
+let clearBatchCacheQueued = false;
+const pageRefDiscourseNodeCache = new Map<string, PageRefDiscourseNodeStatus>();
+
+const clearBatchCache = (): void => {
+  batchDiscourseNodes = null;
+  pageRefDiscourseNodeCache.clear();
+  clearBatchCacheQueued = false;
+};
+
+const queueBatchCacheClear = (): void => {
+  if (clearBatchCacheQueued) return;
+  clearBatchCacheQueued = true;
+  queueMicrotask(clearBatchCache);
+};
+
+const getBatchDiscourseNodes = (): DiscourseNode[] => {
+  if (batchDiscourseNodes) return batchDiscourseNodes;
+
+  batchDiscourseNodes = getDiscourseNodes();
+  queueBatchCacheClear();
+  return batchDiscourseNodes;
+};
+
+const getPageRefDiscourseNodeStatus = (
+  tag: string,
+): PageRefDiscourseNodeStatus => {
+  const cached = pageRefDiscourseNodeCache.get(tag);
+  if (cached) return cached;
+
+  const uid = getPageUidByPageTitle(tag);
+  const node = uid
+    ? findDiscourseNode({
+        uid,
+        title: tag,
+        nodes: getBatchDiscourseNodes(),
+      })
+    : false;
+  const status = {
+    uid,
+    isDiscourseNode: !!node && node.backedBy !== "default",
+  };
+  pageRefDiscourseNodeCache.set(tag, status);
+  queueBatchCacheClear();
+  return status;
 };
 
 // Public handler (stable reference)
@@ -38,27 +97,27 @@ export const overlayPageRefHandler = (
     const tag =
       s.getAttribute("data-tag") ||
       s.parentElement.getAttribute("data-link-title");
-    const hasOverlayAttribute = s.getAttribute("data-roamjs-discourse-overlay");
+    const hasOverlayAttribute = s.getAttribute(DISCOURSE_OVERLAY_ATTR);
     const hasOverlayElement =
       (s.hasAttribute("data-tag") &&
         Array.from(s.children).some(
           (child) =>
             child instanceof HTMLSpanElement &&
-            child.querySelector(".roamjs-discourse-context-overlay"),
+            child.querySelector(`.${DISCOURSE_OVERLAY_CLASS}`),
         )) ||
       (s.parentElement &&
         Array.from(s.parentElement.children).some(
           (child) =>
             child instanceof HTMLSpanElement &&
-            child.querySelector(".roamjs-discourse-context-overlay"),
+            child.querySelector(`.${DISCOURSE_OVERLAY_CLASS}`),
         ));
     if (
       tag &&
       !hasOverlayAttribute &&
       !hasOverlayElement &&
-      isDiscourseNode(getPageUidByPageTitle(tag))
+      getPageRefDiscourseNodeStatus(tag).isDiscourseNode
     ) {
-      s.setAttribute("data-roamjs-discourse-overlay", "true");
+      s.setAttribute(DISCOURSE_OVERLAY_ATTR, "true");
       const parent = document.createElement("span");
       discourseOverlayRender({
         parent,
@@ -84,10 +143,10 @@ export const suggestiveOverlayPageRefHandler = (
       s.parentElement.getAttribute("data-link-title");
     if (
       tag &&
-      !s.getAttribute("data-discourse-suggestive-overlay") &&
-      isDiscourseNode(getPageUidByPageTitle(tag))
+      !s.getAttribute(SUGGESTIVE_OVERLAY_ATTR) &&
+      getPageRefDiscourseNodeStatus(tag).isDiscourseNode
     ) {
-      s.setAttribute("data-discourse-suggestive-overlay", "true");
+      s.setAttribute(SUGGESTIVE_OVERLAY_ATTR, "true");
       const parent = document.createElement("span");
       renderSuggestiveOverlay({
         parent,
@@ -122,65 +181,73 @@ export const previewPageRefHandler = (s: HTMLSpanElement) => {
   }
 };
 
-export const enablePageRefObserver = () =>
-  (pageRefObserverRef.current = createHTMLObserver({
+export const enablePageRefObserver = () => {
+  if (pageRefObserverRef.current) return pageRefObserverRef.current;
+
+  pageRefObserverRef.current = createHTMLObserver({
     useBody: true,
     tag: "SPAN",
     className: "rm-page-ref",
     callback: (s: HTMLSpanElement) => {
       pageRefObservers.forEach((f) => f(s));
     },
-  }));
+  });
+  return pageRefObserverRef.current;
+};
 
 const disablePageRefObserver = () => {
   pageRefObserverRef.current?.disconnect();
   pageRefObserverRef.current = undefined;
+  clearBatchCache();
 };
 
 const applyHandlersToExistingPageRefs = (
   handler: (s: HTMLSpanElement) => void,
 ) => {
   const existingPageRefs =
-    document.querySelectorAll<HTMLSpanElement>("span.rm-page-ref");
+    document.querySelectorAll<HTMLSpanElement>(PAGE_REF_SELECTOR);
   existingPageRefs.forEach((pageRef) => {
     handler(pageRef);
   });
 };
 
-const removeOverlaysFromExistingPageRefs = () => {
-  // Find all page refs that have the overlay attribute OR have overlay elements
-  // This ensures we catch all cases, even if attribute is missing
+const removeOverlayElements = (overlayClass: string, attributeName: string) => {
   const allPageRefs =
-    document.querySelectorAll<HTMLSpanElement>("span.rm-page-ref");
+    document.querySelectorAll<HTMLSpanElement>(PAGE_REF_SELECTOR);
   allPageRefs.forEach((pageRef) => {
-    // Check if overlay is a direct child of pageRef
     const directChildContainer = Array.from(pageRef.children).find(
       (child) =>
         child instanceof HTMLSpanElement &&
-        child.querySelector(".roamjs-discourse-context-overlay"),
+        child.querySelector(`.${overlayClass}`),
     ) as HTMLSpanElement | undefined;
     if (directChildContainer) {
       directChildContainer.remove();
-      pageRef.removeAttribute("data-roamjs-discourse-overlay");
+      pageRef.removeAttribute(attributeName);
       return;
     }
 
-    // Check if overlay is a direct child of pageRef's parent element
     if (pageRef.parentElement) {
       const parentDirectChildContainer = Array.from(
         pageRef.parentElement.children,
       ).find(
         (child) =>
           child instanceof HTMLSpanElement &&
-          child.querySelector(".roamjs-discourse-context-overlay"),
+          child.querySelector(`.${overlayClass}`),
       ) as HTMLSpanElement | undefined;
       if (parentDirectChildContainer) {
         parentDirectChildContainer.remove();
-        pageRef.removeAttribute("data-roamjs-discourse-overlay");
+        pageRef.removeAttribute(attributeName);
       }
     }
   });
 };
+
+// Queries all page refs (not just attributed ones) to catch cases where attribute is missing
+const removeOverlaysFromExistingPageRefs = () =>
+  removeOverlayElements(DISCOURSE_OVERLAY_CLASS, DISCOURSE_OVERLAY_ATTR);
+
+const removeSuggestiveOverlaysFromExistingPageRefs = () =>
+  removeOverlayElements(SUGGESTIVE_OVERLAY_CLASS, SUGGESTIVE_OVERLAY_ATTR);
 
 export const onPageRefObserverChange =
   (handler: (s: HTMLSpanElement) => void) => (b: boolean) => {
@@ -194,6 +261,9 @@ export const onPageRefObserverChange =
       // Remove overlays from existing page refs when disabling
       if (handler === cachedHandler) {
         removeOverlaysFromExistingPageRefs();
+      }
+      if (handler === cachedSuggestiveHandler) {
+        removeSuggestiveOverlaysFromExistingPageRefs();
       }
       if (!pageRefObservers.size) disablePageRefObserver();
     }

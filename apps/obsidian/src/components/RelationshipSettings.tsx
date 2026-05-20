@@ -9,6 +9,7 @@ import {
   formatImportSource,
   isAcceptedSchema,
   isProvisionalSchema,
+  getUserNameById,
 } from "~/utils/typeUtils";
 import generateUid from "~/utils/generateUid";
 
@@ -285,6 +286,8 @@ const RelationshipSettings = () => {
               )}
               {importInfo.spaceUri && (
                 <span>
+                  {relation.authorId &&
+                    `by ${getUserNameById(plugin, relation.authorId)} `}
                   from{" "}
                   {formatImportSource(
                     importInfo.spaceUri,

@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 
 import { createClient } from "~/utils/supabase/server";
-import { getOrCreateEntity, ItemValidator } from "~/utils/supabase/dbUtils";
+import { getOrCreateEntity } from "~/utils/supabase/dbUtils";
 import { asPostgrestFailure } from "@repo/database/lib/contextFunctions";
 import {
   createApiResponse,
@@ -10,15 +10,16 @@ import {
 } from "~/utils/supabase/apiUtils";
 import { type TablesInsert, Constants } from "@repo/database/dbTypes";
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const { AgentType, Platform } = Constants.public.Enums;
 
 type PlatformAccountDataInput = TablesInsert<"PlatformAccount">;
 
-const accountValidator: ItemValidator<PlatformAccountDataInput> = (
-  account: any,
-) => {
+// ItemValidator<"PlatformAccount">
+const accountValidator = (account: PlatformAccountDataInput): string | null => {
   if (!account || typeof account !== "object")
     return "Invalid request body: expected a JSON object.";
+  /* eslint-disable @typescript-eslint/naming-convention */
   const {
     name,
     platform,
@@ -29,6 +30,7 @@ const accountValidator: ItemValidator<PlatformAccountDataInput> = (
     metadata,
     dg_account,
   } = account;
+  /* eslint-enable @typescript-eslint/naming-convention */
 
   if (!name || typeof name !== "string" || name.trim() === "")
     return "Missing or invalid name";
@@ -81,16 +83,16 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body = await request.json();
+    const body = (await request.json()) as PlatformAccountDataInput;
     const error = accountValidator(body);
     if (error !== null)
       return createApiResponse(request, asPostgrestFailure(error, "invalid"));
 
     const supabase = await supabasePromise;
-    const result = await getOrCreateEntity<"PlatformAccount">({
+    const result = await getOrCreateEntity({
       supabase,
       tableName: "PlatformAccount",
-      insertData: body as PlatformAccountDataInput,
+      insertData: body,
       uniqueOn: ["account_local_id", "platform"],
     });
 

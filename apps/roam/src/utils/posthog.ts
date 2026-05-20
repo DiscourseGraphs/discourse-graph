@@ -1,13 +1,13 @@
 import { getVersionWithDate } from "./getVersion";
 import posthog from "posthog-js";
 import type { CaptureResult } from "posthog-js";
-import { getSetting } from "./extensionSettings";
-import { DISALLOW_DIAGNOSTICS } from "~/data/userSettings";
 
 let initialized = false;
 
-const doInitPostHog = (): void => {
+export const initPostHog = (): void => {
   if (initialized) return;
+  if (window.roamAlphaAPI.graph.isEncrypted) return;
+  if (window.roamAlphaAPI.graph.type === "offline") return;
   const propertyDenylist = new Set([
     "$ip",
     "$device_id",
@@ -56,17 +56,10 @@ const doInitPostHog = (): void => {
 };
 
 export const enablePostHog = (): void => {
-  doInitPostHog();
+  initPostHog();
   posthog.opt_in_capturing();
 };
 
 export const disablePostHog = (): void => {
   if (initialized) posthog.opt_out_capturing();
-};
-
-export const initPostHog = (): void => {
-  const disabled = getSetting(DISALLOW_DIAGNOSTICS, false);
-  if (!disabled) {
-    doInitPostHog();
-  }
 };
