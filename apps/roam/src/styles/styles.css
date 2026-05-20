@@ -177,3 +177,51 @@
 #dg-left-sidebar-root .bp3-dark .bp3-button:not([class*="bp3-intent-"]):hover {
   color: #f5f8fa;
 }
+
+.dg-canvas-embed-source-hidden {
+  display: none;
+}
+
+.dg-canvas-embed {
+  height: 400px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 6px;
+  margin: 8px 0;
+}
+
+.dg-canvas-embed > .roamjs-tldraw-canvas-container {
+  height: 100%;
+  width: 100%;
+}
+
+.dg-canvas-embed-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: #8a9ba8;
+  font-size: 14px;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+}
+
+.dg-canvas-embed-dialog.bp3-dialog {
+  width: 400px;
+  padding-bottom: 0;
+}
+
+.dg-canvas-embed-dialog-body {
+  padding: 16px;
+}
+
+.dg-canvas-embed-dialog-message {
+  color: #5c7080;
+  font-size: 14px;
+}
+
+.dg-canvas-embed-dialog .roamjs-autocomplete-input-target,
+.dg-canvas-embed-dialog .roamjs-autocomplete-input-target .bp3-input-group {
+  display: block;
+  width: 100%;
+}
