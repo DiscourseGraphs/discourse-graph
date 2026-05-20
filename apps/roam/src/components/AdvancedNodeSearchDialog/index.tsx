@@ -41,6 +41,7 @@ import {
   stripTypePrefix,
 } from "./utils";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
+import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
 
 type Props = Record<string, unknown>;
 
@@ -399,34 +400,12 @@ const AdvancedNodeSearchDialog = ({
             </div>
           )}
         </div>
-        <div className="flex w-full flex-none items-center justify-between border-t border-gray-200 bg-gray-50 px-3 py-2">
-          <div className="inline-flex shrink-0 items-center gap-2">
-            {insertTarget && (
-              <button
-                className="inline-flex cursor-pointer items-center gap-2 border-0 bg-transparent p-0"
-                disabled={!activeResult || contentState !== "results"}
-                onClick={() => void onInsert()}
-                type="button"
-              >
-                <span className="inline-flex items-center gap-1 text-xs lowercase text-gray-500">
-                  <kbd className="rounded border border-gray-300 bg-white px-1.5 py-0.5 font-mono text-xs text-gray-600">
-                    ⌘
-                  </kbd>
-                  <kbd className="rounded border border-gray-300 bg-white px-1.5 py-0.5 font-mono text-xs text-gray-600">
-                    ↵
-                  </kbd>
-                  insert
-                </span>
-              </button>
-            )}
-          </div>
-          <span className="inline-flex shrink-0 items-center gap-1 text-xs lowercase text-gray-500">
-            <kbd className="rounded border border-gray-300 bg-white px-1.5 py-0.5 font-mono text-xs text-gray-600">
-              esc
-            </kbd>
-            close
-          </span>
-        </div>
+        <AdvancedSearchFooter
+          contentState={contentState}
+          hasActiveResult={!!activeResult}
+          insertTarget={insertTarget}
+          onInsert={() => void onInsert()}
+        />
       </div>
     </Dialog>
   );
