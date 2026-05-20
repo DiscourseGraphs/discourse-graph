@@ -192,16 +192,6 @@ const AdvancedNodeSearchDialog = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) {
-      setSearchTerm("");
-      setDebouncedSearchTerm("");
-      setActiveIndex(0);
-      setIndexError(false);
-      miniSearchRef.current = null;
-      allResultsRef.current = [];
-      return;
-    }
-
     let cancelled = false;
     setIsIndexLoading(true);
     setIndexError(false);
