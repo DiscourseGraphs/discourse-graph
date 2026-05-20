@@ -47,8 +47,8 @@ export const ListGroups = async () => {
         admin || false,
       ]),
     );
-  } catch (error) {
-    error = error instanceof Error ? error.message : "An unknown error occured";
+  } catch (e) {
+    error = e instanceof Error ? e.message : "An unknown error occured";
   }
 
   return (
