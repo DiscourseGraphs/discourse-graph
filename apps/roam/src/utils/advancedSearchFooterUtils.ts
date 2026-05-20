@@ -13,9 +13,9 @@ export type BlockSelection = {
 export type InsertTarget = {
   blockUid: string;
   windowId: string;
+  selectionStart: number;
+  selectionEnd: number;
 };
-
-const DEFAULT_WINDOW_ID = "main-window";
 
 export const getBlockSelection = (uid: string): BlockSelection => {
   const activeElement = document.activeElement;
@@ -58,11 +58,25 @@ export const getBlockSelection = (uid: string): BlockSelection => {
 const insertTargetFromFocusedBlock = (): InsertTarget | null => {
   const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
   if (!focusedBlock?.["block-uid"]) return null;
+  if (!focusedBlock["window-id"]) return null;
+  const selection = getBlockSelection(focusedBlock["block-uid"]);
 
   return {
     blockUid: focusedBlock["block-uid"],
-    windowId: focusedBlock["window-id"] || DEFAULT_WINDOW_ID,
+    windowId: focusedBlock["window-id"],
+    selectionStart: selection.selectionStart,
+    selectionEnd: selection.selectionEnd,
   };
+};
+
+const getWindowIdFromUids = (uids: Record<string, unknown>): string | null => {
+  const windowId = uids["window-id"];
+  if (typeof windowId === "string" && windowId) return windowId;
+
+  const camelWindowId = uids.windowId;
+  if (typeof camelWindowId === "string" && camelWindowId) return camelWindowId;
+
+  return null;
 };
 
 export const snapshotInsertTarget = (): InsertTarget | null => {
@@ -74,9 +88,21 @@ export const snapshotInsertTarget = (): InsertTarget | null => {
     activeElement instanceof HTMLTextAreaElement &&
     activeElement.classList.contains("rm-block-input")
   ) {
-    const blockUid = getUids(activeElement).blockUid;
-    if (blockUid) {
-      return { blockUid, windowId: DEFAULT_WINDOW_ID };
+    const uids = getUids(activeElement) as Record<string, unknown>;
+    const blockUid = uids.blockUid;
+    const windowId = getWindowIdFromUids(uids);
+    if (
+      typeof blockUid === "string" &&
+      blockUid &&
+      typeof windowId === "string" &&
+      windowId
+    ) {
+      return {
+        blockUid,
+        windowId,
+        selectionStart: activeElement.selectionStart,
+        selectionEnd: activeElement.selectionEnd,
+      };
     }
   }
 
@@ -90,19 +116,6 @@ const findBlockTextarea = (blockUid: string): HTMLTextAreaElement | null => {
     if (getUids(textarea).blockUid === blockUid) return textarea;
   }
   return null;
-};
-
-const getSelectionForBlock = (
-  blockUid: string,
-  textarea: HTMLTextAreaElement | null,
-): { selectionEnd: number; selectionStart: number } => {
-  if (textarea && getUids(textarea).blockUid === blockUid) {
-    return {
-      selectionStart: textarea.selectionStart,
-      selectionEnd: textarea.selectionEnd,
-    };
-  }
-  return getBlockSelection(blockUid);
 };
 
 export const getPageLinkTitle = ({
@@ -172,15 +185,11 @@ export const insertPageLinkAtCursor = async ({
   pageTitle: string;
   snapshot: InsertTarget | null;
 }): Promise<boolean> => {
-  const target = snapshot?.blockUid ? snapshot : insertTargetFromFocusedBlock();
+  const target = snapshot ?? insertTargetFromFocusedBlock();
   if (!target) return false;
 
-  const { blockUid, windowId } = target;
+  const { blockUid, selectionEnd, selectionStart, windowId } = target;
   const textarea = findBlockTextarea(blockUid);
-  const { selectionEnd, selectionStart } = getSelectionForBlock(
-    blockUid,
-    textarea,
-  );
 
   if (textarea && document.activeElement === textarea) {
     textarea.blur();
