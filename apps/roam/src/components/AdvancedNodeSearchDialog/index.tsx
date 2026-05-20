@@ -15,11 +15,18 @@ import {
   Tag,
 } from "@blueprintjs/core";
 import MiniSearch from "minisearch";
+import posthog from "posthog-js";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import renderOverlay, {
   RoamOverlayProps,
 } from "roamjs-components/util/renderOverlay";
+import {
+  getPageLinkTitle,
+  insertPageLinkAtCursor,
+  snapshotInsertTarget,
+  type InsertTarget,
+} from "~/utils/insertPageLinkAtCursor";
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
@@ -150,6 +157,7 @@ const AdvancedNodeSearchDialog = ({
   const allResultsRef = useRef<SearchResult[]>([]);
   const resultsPanelRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [insertTarget, setInsertTarget] = useState<InsertTarget | null>(null);
 
   const nodeConfigByType = useMemo(() => {
     const discourseNodes = getDiscourseNodes().filter(
@@ -174,10 +182,13 @@ const AdvancedNodeSearchDialog = ({
       : [];
 
   const activeResult = results[activeIndex] ?? null;
+  const hasEditorCursor = !!insertTarget;
   const keywords = debouncedSearchTerm.split(/\s+/).filter(Boolean);
 
   useEffect(() => {
     if (!isOpen) return;
+
+    setInsertTarget(snapshotInsertTarget());
 
     const focusInput = () => inputRef.current?.focus();
 
@@ -245,21 +256,25 @@ const AdvancedNodeSearchDialog = ({
     activeRow?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, activeResult?.uid, debouncedSearchTerm]);
 
-  const onKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === "ArrowDown" && results.length) {
-        event.preventDefault();
-        setActiveIndex((index) => Math.min(index + 1, results.length - 1));
-      } else if (event.key === "ArrowUp" && results.length) {
-        event.preventDefault();
-        setActiveIndex((index) => Math.max(index - 1, 0));
-      } else if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    },
-    [onClose, results.length],
-  );
+  const onInsert = useCallback(async () => {
+    if (!activeResult || !hasEditorCursor) return;
+
+    const pageTitle = getPageLinkTitle({
+      resultUid: activeResult.uid,
+      resultTitle: activeResult.title,
+    });
+    const didInsert = await insertPageLinkAtCursor({
+      pageTitle,
+      snapshot: insertTarget,
+    });
+    if (!didInsert) return;
+
+    posthog.capture("Advanced Node Search: Insert", {
+      uid: activeResult.uid,
+      pageTitle,
+    });
+    onClose();
+  }, [activeResult, hasEditorCursor, insertTarget, onClose]);
 
   const contentState = indexError
     ? "error"
@@ -270,6 +285,38 @@ const AdvancedNodeSearchDialog = ({
         : !results.length
           ? "empty"
           : "results";
+
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "ArrowDown" && results.length) {
+        event.preventDefault();
+        setActiveIndex((index) => Math.min(index + 1, results.length - 1));
+      } else if (event.key === "ArrowUp" && results.length) {
+        event.preventDefault();
+        setActiveIndex((index) => Math.max(index - 1, 0));
+      } else if (
+        event.key === "Enter" &&
+        (event.metaKey || event.ctrlKey) &&
+        contentState === "results" &&
+        activeResult &&
+        hasEditorCursor
+      ) {
+        event.preventDefault();
+        void onInsert();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    },
+    [
+      activeResult,
+      contentState,
+      hasEditorCursor,
+      onClose,
+      onInsert,
+      results.length,
+    ],
+  );
 
   const showSplitView = contentState === "results";
 
@@ -347,6 +394,34 @@ const AdvancedNodeSearchDialog = ({
               )}
             </div>
           )}
+        </div>
+        <div className="flex w-full flex-none items-center justify-between border-t border-gray-200 bg-gray-50 px-3 py-2">
+          <div className="inline-flex shrink-0 items-center gap-2">
+            {hasEditorCursor && (
+              <button
+                className="inline-flex cursor-pointer items-center gap-2 border-0 bg-transparent p-0"
+                disabled={!activeResult || contentState !== "results"}
+                onClick={() => void onInsert()}
+                type="button"
+              >
+                <span className="inline-flex items-center gap-1 text-xs lowercase text-gray-500">
+                  <kbd className="rounded border border-gray-300 bg-white px-1.5 py-0.5 font-mono text-xs text-gray-600">
+                    ⌘
+                  </kbd>
+                  <kbd className="rounded border border-gray-300 bg-white px-1.5 py-0.5 font-mono text-xs text-gray-600">
+                    ↵
+                  </kbd>
+                  insert
+                </span>
+              </button>
+            )}
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1 text-xs lowercase text-gray-500">
+            <kbd className="rounded border border-gray-300 bg-white px-1.5 py-0.5 font-mono text-xs text-gray-600">
+              esc
+            </kbd>
+            close
+          </span>
         </div>
       </div>
     </Dialog>
