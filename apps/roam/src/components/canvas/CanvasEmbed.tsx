@@ -65,10 +65,9 @@ export const renderCanvasEmbed = (
     return;
   }
 
-  button.parentElement.onmousedown = (e: MouseEvent) => e.stopPropagation();
-
   const wrapper = document.createElement("div");
   wrapper.className = "dg-canvas-embed";
+  wrapper.onmousedown = (e: MouseEvent) => e.stopPropagation();
   button.parentElement.appendChild(wrapper);
 
   renderWithUnmount(
