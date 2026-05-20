@@ -183,7 +183,6 @@ const AdvancedNodeSearchDialog = ({
       : [];
 
   const activeResult = results[activeIndex] ?? null;
-  const hasEditorCursor = !!insertTarget;
 
   const keywords = useMemo(
     () => debouncedSearchTerm.split(/\s+/).filter(Boolean),
