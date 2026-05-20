@@ -203,6 +203,47 @@ const DEFAULT_LEGACY_QUERY = {
   returnNode: "node",
 };
 
+const ALL_DISCOURSE_NODES_CACHE_TTL_MS = 2000;
+
+type AllDiscourseNodesCacheEntry = {
+  nodes: DiscourseNode[];
+  cachedAtMs: number;
+  rawResultCount: number;
+  skippedCount: number;
+  migratedCount: number;
+  parseErrorCount: number;
+};
+
+let allDiscourseNodesCache: AllDiscourseNodesCacheEntry | null = null;
+
+const getAllDiscourseNodesCacheNow = (): number => {
+  if (
+    typeof performance !== "undefined" &&
+    typeof performance.now === "function"
+  ) {
+    return performance.now();
+  }
+
+  return Date.now();
+};
+
+export const clearAllDiscourseNodesCache = (): void => {
+  allDiscourseNodesCache = null;
+};
+
+const getCachedAllDiscourseNodes = (): AllDiscourseNodesCacheEntry | null => {
+  if (!allDiscourseNodesCache) return null;
+
+  const ageMs =
+    getAllDiscourseNodesCacheNow() - allDiscourseNodesCache.cachedAtMs;
+  if (ageMs > ALL_DISCOURSE_NODES_CACHE_TTL_MS) {
+    clearAllDiscourseNodesCache();
+    return null;
+  }
+
+  return allDiscourseNodesCache;
+};
+
 const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
   [
     pathKey([PERSONAL_KEYS.discourseContextOverlay]),
@@ -653,6 +694,7 @@ const setBlockPropAtPath = (
   }, updatedProps);
 
   setBlockProps(blockUid, updatedProps, false);
+  clearAllDiscourseNodesCache();
 };
 
 const setBlockPropBasedSettings = ({
@@ -1140,6 +1182,7 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
   let skippedCount = 0;
   let migratedCount = 0;
   let parseErrorCount = 0;
+  let cacheHit = false;
 
   return withPerformanceTrace(
     {
@@ -1152,9 +1195,21 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
         skippedCount,
         migratedCount,
         parseErrorCount,
+        cacheHit,
       }),
     },
     () => {
+      const cached = getCachedAllDiscourseNodes();
+      if (cached) {
+        cacheHit = true;
+        rawResultCount = cached.rawResultCount;
+        nodeCount = cached.nodes.length;
+        skippedCount = cached.skippedCount;
+        migratedCount = cached.migratedCount;
+        parseErrorCount = cached.parseErrorCount;
+        return cached.nodes;
+      }
+
       const results = window.roamAlphaAPI.data.fast.q(`
         [:find ?uid ?title (pull ?page [:block/props])
          :where
@@ -1223,6 +1278,14 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
       }
 
       nodeCount = nodes.length;
+      allDiscourseNodesCache = {
+        nodes,
+        cachedAtMs: getAllDiscourseNodesCacheNow(),
+        rawResultCount,
+        skippedCount,
+        migratedCount,
+        parseErrorCount,
+      };
       return nodes;
     },
   );
