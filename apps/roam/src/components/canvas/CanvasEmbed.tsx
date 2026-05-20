@@ -2,7 +2,6 @@ import React from "react";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
-import { getPageTitleValueByHtmlElement } from "roamjs-components/dom";
 import getBlockUidFromTarget from "roamjs-components/dom/getBlockUidFromTarget";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -20,14 +19,6 @@ const extractCanvasTitle = (button: HTMLElement): string | null => {
   return match[1].trim();
 };
 
-const getCurrentPageTitle = (el: HTMLElement): string | null => {
-  try {
-    return getPageTitleValueByHtmlElement(el);
-  } catch {
-    return null;
-  }
-};
-
 const CanvasEmbedPlaceholder = ({ message }: { message: string }) => (
   <div className="dg-canvas-embed-placeholder">{message}</div>
 );
@@ -42,17 +33,6 @@ export const renderCanvasEmbed = (
 
   const title = extractCanvasTitle(button);
   if (!title) return;
-
-  const currentPageTitle = getCurrentPageTitle(button);
-  if (currentPageTitle === title) {
-    const wrapper = document.createElement("div");
-    button.parentElement.appendChild(wrapper);
-    renderWithUnmount(
-      <CanvasEmbedPlaceholder message="Cannot embed a canvas within itself" />,
-      wrapper,
-    );
-    return;
-  }
 
   const pageUid = getPageUidByPageTitle(title);
   if (!pageUid) {
