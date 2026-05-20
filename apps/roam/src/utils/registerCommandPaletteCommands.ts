@@ -26,7 +26,11 @@ import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParen
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
 import {
+<<<<<<< HEAD
   getDiscourseNodeSetting,
+=======
+  getFeatureFlag,
+>>>>>>> b65b23a4 (Gate advanced node search behind an admin feature flag.)
   getPersonalSetting,
   setPersonalSetting,
   setGlobalSetting,
@@ -421,10 +425,12 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Export - Current page", exportCurrentPage);
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
-  void addCommand("DG: Open - Node search", () => {
-    posthog.capture("Node Search: Open Command Triggered");
-    renderAdvancedNodeSearchDialog();
-  });
+  if (getFeatureFlag("Advanced node search enabled")) {
+    void addCommand("DG: Open - Node search", () => {
+      posthog.capture("Node Search: Open Command Triggered");
+      renderAdvancedNodeSearchDialog();
+    });
+  }
   void addCommand("DG: Open - Query drawer", openQueryDrawerWithArgs);
   void addCommand(
     "DG: Toggle - Discourse context overlay",
