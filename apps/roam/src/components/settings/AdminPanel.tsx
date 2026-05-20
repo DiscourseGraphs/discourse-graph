@@ -269,6 +269,9 @@ const FeatureFlagsTab = (): React.ReactElement => {
   const [suggestiveOverlayValue, setSuggestiveOverlayValue] = useState(
     getFeatureFlag("Suggestive mode overlay enabled"),
   );
+  const [advancedNodeSearchValue, setAdvancedNodeSearchValue] = useState(
+    getFeatureFlag("Advanced node search enabled"),
+  );
   const syncAlreadyEnabled = duplicateNodeAlertValue || suggestiveOverlayValue;
 
   const ensureSyncEnabled = (
@@ -353,6 +356,14 @@ const FeatureFlagsTab = (): React.ReactElement => {
         onAfterChange={(checked) =>
           handleFeatureToggled(checked, setSuggestiveOverlayValue)
         }
+      />
+
+      <FeatureFlagPanel
+        title="Advanced node search"
+        description="Show the DG: Open - Node search command palette entry and advanced search dialog. Reload the graph after toggling."
+        featureKey="Advanced node search enabled"
+        value={advancedNodeSearchValue}
+        onAfterChange={(checked) => setAdvancedNodeSearchValue(checked)}
       />
 
       <Alert
