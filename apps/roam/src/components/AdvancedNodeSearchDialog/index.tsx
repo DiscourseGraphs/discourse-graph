@@ -149,7 +149,6 @@ const AdvancedNodeSearchDialog = ({
   const [indexError, setIndexError] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [sort, setSort] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
-  const [isSortPopoverOpen, setIsSortPopoverOpen] = useState(false);
   const miniSearchRef = useRef<MiniSearch<
     SearchResult & { id: string }
   > | null>(null);
@@ -184,13 +183,7 @@ const AdvancedNodeSearchDialog = ({
     });
 
     return sortSearchResults({ hits: scoredHits, sort });
-  }, [
-    debouncedSearchTerm,
-    indexError,
-    isIndexLoading,
-    isOpen,
-    sort,
-  ]);
+  }, [debouncedSearchTerm, indexError, isIndexLoading, isOpen, sort]);
 
   const activeResult = results[activeIndex] ?? null;
   const keywords = debouncedSearchTerm.split(/\s+/).filter(Boolean);
@@ -213,7 +206,6 @@ const AdvancedNodeSearchDialog = ({
   useEffect(() => {
     if (!isOpen) {
       setSort(DEFAULT_SORT_CONFIG);
-      setIsSortPopoverOpen(false);
     }
   }, [isOpen]);
 
@@ -273,7 +265,6 @@ const AdvancedNodeSearchDialog = ({
 
   const handleSortChange = useCallback((nextSort: SortConfig): void => {
     setSort(nextSort);
-    setActiveIndex(0);
   }, []);
 
   const onKeyDown = useCallback(
@@ -286,14 +277,10 @@ const AdvancedNodeSearchDialog = ({
         setActiveIndex((index) => Math.max(index - 1, 0));
       } else if (event.key === "Escape") {
         event.preventDefault();
-        if (isSortPopoverOpen) {
-          setIsSortPopoverOpen(false);
-          return;
-        }
         onClose();
       }
     },
-    [isSortPopoverOpen, onClose, results.length],
+    [onClose, results.length],
   );
 
   const contentState = indexError
@@ -343,7 +330,6 @@ const AdvancedNodeSearchDialog = ({
 
           <DiscourseNodeSortControl
             disabled={isIndexLoading || indexError}
-            onPopoverOpenChange={setIsSortPopoverOpen}
             onSortChange={handleSortChange}
             sort={sort}
           />

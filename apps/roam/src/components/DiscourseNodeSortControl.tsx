@@ -1,13 +1,8 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { Button, Icon, Popover, Position } from "@blueprintjs/core";
 import {
   SORT_FIELD_LABELS,
+  isNonDefaultSort,
   type SortConfig,
   type SortDirection,
   type SortField,
@@ -23,35 +18,7 @@ const SORT_FIELDS: SortField[] = [
 export type DiscourseNodeSortControlProps = {
   sort: SortConfig;
   onSortChange: (sort: SortConfig) => void;
-  onPopoverOpenChange?: (isOpen: boolean) => void;
   disabled?: boolean;
-};
-
-const useCloseOnClickOutside = ({
-  isOpen,
-  onClose,
-  popoverRef,
-  targetRef,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  popoverRef: React.RefObject<HTMLElement | null>;
-  targetRef: React.RefObject<HTMLElement>;
-}): void => {
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleMouseDown = (event: MouseEvent): void => {
-      const clickTarget = event.target as Node;
-      if (popoverRef.current?.contains(clickTarget)) return;
-      if (targetRef.current?.contains(clickTarget)) return;
-      onClose();
-    };
-
-    document.addEventListener("mousedown", handleMouseDown, true);
-    return () =>
-      document.removeEventListener("mousedown", handleMouseDown, true);
-  }, [isOpen, onClose, popoverRef, targetRef]);
 };
 
 const SortDirectionToggles = ({
@@ -103,7 +70,6 @@ const SortDirectionToggles = ({
 
 export const DiscourseNodeSortControl = ({
   disabled = false,
-  onPopoverOpenChange,
   onSortChange,
   sort,
 }: DiscourseNodeSortControlProps): React.ReactElement => {
@@ -111,26 +77,8 @@ export const DiscourseNodeSortControl = ({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLElement | null>(null);
 
-  const sortLabel = useMemo(() => SORT_FIELD_LABELS[sort.field], [sort.field]);
-
-  const setOpen = useCallback(
-    (nextOpen: boolean): void => {
-      setIsOpen(nextOpen);
-      onPopoverOpenChange?.(nextOpen);
-    },
-    [onPopoverOpenChange],
-  );
-
-  const closePopover = useCallback((): void => {
-    setOpen(false);
-  }, [setOpen]);
-
-  useCloseOnClickOutside({
-    isOpen,
-    onClose: closePopover,
-    popoverRef,
-    targetRef: triggerRef,
-  });
+  const sortLabel = SORT_FIELD_LABELS[sort.field];
+  const isTriggerActive = isOpen || isNonDefaultSort(sort);
 
   const handlePopoverInteraction = useCallback(
     (nextOpen: boolean, event?: React.SyntheticEvent<HTMLElement>): void => {
@@ -138,9 +86,17 @@ export const DiscourseNodeSortControl = ({
       if (nextOpen) {
         event?.stopPropagation();
       }
-      setOpen(nextOpen);
+      setIsOpen(nextOpen);
     },
-    [disabled, setOpen],
+    [disabled],
+  );
+
+  const applySort = useCallback(
+    (nextSort: SortConfig): void => {
+      onSortChange(nextSort);
+      setIsOpen(false);
+    },
+    [onSortChange],
   );
 
   const sortButton = (
@@ -148,11 +104,15 @@ export const DiscourseNodeSortControl = ({
       aria-expanded={isOpen}
       aria-haspopup="listbox"
       aria-label={`Sort by ${sortLabel}`}
+      className={`${
+        isTriggerActive
+          ? "!bg-[rgba(95,87,192,0.1)] !text-[#5f57c0]"
+          : "!text-gray-600 hover:!bg-gray-100 hover:!text-gray-900"
+      }`}
       disabled={disabled}
       elementRef={triggerRef}
       icon="sort"
       minimal
-      onClick={() => setOpen(!isOpen)}
       onMouseDown={(event) => event.preventDefault()}
       title={`Sort: ${sortLabel}`}
     />
@@ -180,7 +140,7 @@ export const DiscourseNodeSortControl = ({
                     gridTemplateColumns: "22px 1fr auto",
                   }}
                   onClick={() =>
-                    onSortChange({ field, direction: sort.direction })
+                    applySort({ field, direction: sort.direction })
                   }
                   type="button"
                 >
@@ -195,7 +155,7 @@ export const DiscourseNodeSortControl = ({
                     field={field}
                     isSelected={isSelected}
                     onDirectionChange={(direction) =>
-                      onSortChange({ field, direction })
+                      applySort({ field, direction })
                     }
                   />
                 </button>
@@ -211,7 +171,7 @@ export const DiscourseNodeSortControl = ({
           flip: { enabled: true },
           preventOverflow: { enabled: true, boundariesElement: "viewport" },
         }}
-        onClose={closePopover}
+        onClose={() => setIsOpen(false)}
         onInteraction={handlePopoverInteraction}
         popoverRef={popoverRef}
         position={Position.BOTTOM_RIGHT}
