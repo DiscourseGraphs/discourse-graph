@@ -103,7 +103,11 @@ describe("list group members flow", { tags: ["database"] }, () => {
 
   it("lists group members", async () => {
     // Step 1: user1 creates a group
-    const groupId = await createGroup(client1, "vitest-invite-group");
+    const { groupId, error: createError } = await createGroup(
+      client1,
+      "vitest-invite-group",
+    );
+    assert(createError === null, createError!);
     assert(groupId !== null, "createGroup should return a group ID");
     createdGroupId = groupId;
 
