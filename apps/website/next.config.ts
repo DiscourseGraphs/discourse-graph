@@ -16,6 +16,7 @@ const withNextra = nextra({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ["@automerge/automerge"],
   async redirects() {
     return DOCS_REDIRECTS;
   },
@@ -34,6 +35,13 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
       },
     ];
+  },
+  webpack: (config) => {
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+    };
+    return config;
   },
 };
 
