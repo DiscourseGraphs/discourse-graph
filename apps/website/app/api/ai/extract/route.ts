@@ -42,7 +42,7 @@ const buildExtractionMessages = ({
               type: "document",
               source: {
                 type: "base64",
-                media_type: "application/pdf", // eslint-disable-line @typescript-eslint/naming-convention
+                media_type: "application/pdf",
                 data: pdfBase64,
               },
             },
@@ -59,7 +59,7 @@ const buildExtractionMessages = ({
               type: "file",
               file: {
                 filename: "paper.pdf",
-                file_data: `data:application/pdf;base64,${pdfBase64}`, // eslint-disable-line @typescript-eslint/naming-convention
+                file_data: `data:application/pdf;base64,${pdfBase64}`,
               },
             },
             { type: "text", text: userPrompt },

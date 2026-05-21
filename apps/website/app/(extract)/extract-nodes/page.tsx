@@ -90,7 +90,6 @@ const ExtractNodesPage = (): React.ReactElement => {
       };
       const response = await fetch("/api/ai/extract", {
         method: "POST",
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
