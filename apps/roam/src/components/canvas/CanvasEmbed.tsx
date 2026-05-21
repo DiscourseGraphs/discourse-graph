@@ -20,14 +20,16 @@ const extractCanvasTitle = (button: HTMLElement): string | null => {
 };
 
 const CanvasEmbedPlaceholder = ({ message }: { message: string }) => (
-  <div className="dg-canvas-embed-placeholder">{message}</div>
+  <div className="dg-canvas-embed-placeholder flex items-center justify-center rounded-md border border-dashed border-gray-300 text-sm text-[#8a9ba8]">
+    {message}
+  </div>
 );
 
 export const renderCanvasEmbed = (
   button: HTMLElement,
   onloadArgs: OnloadArgs,
 ) => {
-  button.classList.add("dg-canvas-embed-source-hidden");
+  button.hidden = true;
 
   if (!button.parentElement) return;
 
@@ -46,7 +48,7 @@ export const renderCanvasEmbed = (
   }
 
   const wrapper = document.createElement("div");
-  wrapper.className = "dg-canvas-embed";
+  wrapper.className = "dg-canvas-embed my-2 w-full overflow-hidden rounded-md";
   wrapper.onmousedown = (e: MouseEvent) => e.stopPropagation();
   button.parentElement.appendChild(wrapper);
 

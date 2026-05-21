@@ -34,15 +34,11 @@ const CanvasEmbedDialog = ({
   const renderContent = () => {
     if (canvasPages === null)
       return (
-        <div className="dg-canvas-embed-dialog-message">
-          Loading canvas pages...
-        </div>
+        <div className="text-sm text-[#5c7080]">Loading canvas pages...</div>
       );
     if (canvasPages.length === 0)
       return (
-        <div className="dg-canvas-embed-dialog-message">
-          No canvas pages found
-        </div>
+        <div className="text-sm text-[#5c7080]">No canvas pages found</div>
       );
     return (
       <AutocompleteInput
@@ -60,9 +56,9 @@ const CanvasEmbedDialog = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Embed Canvas"
-      className="dg-canvas-embed-dialog"
+      className="dg-canvas-embed-dialog pb-0"
     >
-      <div className="dg-canvas-embed-dialog-body">{renderContent()}</div>
+      <div className="p-4">{renderContent()}</div>
     </Dialog>
   );
 };

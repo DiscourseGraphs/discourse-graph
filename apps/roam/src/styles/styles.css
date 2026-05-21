@@ -192,16 +192,8 @@
   color: #f5f8fa;
 }
 
-.dg-canvas-embed-source-hidden {
-  display: none;
-}
-
 .dg-canvas-embed {
   height: 400px;
-  width: 100%;
-  overflow: hidden;
-  border-radius: 6px;
-  margin: 8px 0;
 }
 
 .dg-canvas-embed > .roamjs-tldraw-canvas-container {
@@ -210,28 +202,11 @@
 }
 
 .dg-canvas-embed-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   height: 100px;
-  color: #8a9ba8;
-  font-size: 14px;
-  border: 1px dashed #d1d5db;
-  border-radius: 6px;
 }
 
 .dg-canvas-embed-dialog.bp3-dialog {
   width: 400px;
-  padding-bottom: 0;
-}
-
-.dg-canvas-embed-dialog-body {
-  padding: 16px;
-}
-
-.dg-canvas-embed-dialog-message {
-  color: #5c7080;
-  font-size: 14px;
 }
 
 .dg-canvas-embed-dialog .roamjs-autocomplete-input-target,
