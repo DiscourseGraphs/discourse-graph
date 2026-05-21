@@ -7,6 +7,8 @@ import getDiscourseRelations, {
   DiscourseRelation,
 } from "./getDiscourseRelations";
 import { Selection } from "./types";
+import { getSetting } from "./extensionSettings";
+import { ANY_RELATION_REGEX } from "./deriveDiscourseNodeAttribute";
 
 const resultCache: Record<string, Awaited<ReturnType<typeof fireQuery>>> = {};
 const CACHE_TIMEOUT = 1000 * 60 * 5;
@@ -55,6 +57,18 @@ const buildSelections = ({
       uid: window.roamAlphaAPI.util.generateUID(),
       label: "anchor",
       text: `node:${conditionUid}-Anchor`,
+    });
+  }
+  if (ANY_RELATION_REGEX.test(r.label)) {
+    selections.push({
+      uid: window.roamAlphaAPI.util.generateUID(),
+      label: "relationUid",
+      text: "hasSchema",
+    });
+    selections.push({
+      uid: window.roamAlphaAPI.util.generateUID(),
+      label: "effectiveSource",
+      text: "effectiveSource",
     });
   }
 
@@ -186,6 +200,10 @@ const getDiscourseContextResults = async ({
 
   const discourseNode = findDiscourseNode({ uid: targetUid });
   if (!discourseNode) return [];
+  const useReifiedRelations = getSetting<boolean>(
+    "use-reified-relations",
+    false,
+  );
   const nodeType = discourseNode?.type;
   const nodeTextByType = Object.fromEntries(
     nodes.map(({ type, text }) => [type, text]),
@@ -217,9 +235,24 @@ const getDiscourseContextResults = async ({
   });
 
   const relationsWithComplement = Array.from(uniqueRelations.values());
+  const queryRelations = useReifiedRelations
+    ? [
+        {
+          r: {
+            id: "null",
+            complement: "Has Any Relation To",
+            label: "Has Any Relation To",
+            triples: [],
+            source: "*",
+            destination: "*",
+          },
+          complement: false,
+        },
+      ]
+    : relationsWithComplement;
 
   const context = { nodes, relations };
-  const queryConfigs = relationsWithComplement.map((relation) =>
+  const queryConfigs = queryRelations.map((relation) =>
     buildQueryConfig({
       args,
       targetUid,
@@ -232,12 +265,49 @@ const getDiscourseContextResults = async ({
     }),
   );
 
-  const resultsWithRelation = await executeQueries(
+  let resultsWithRelation = await executeQueries(
     queryConfigs,
     targetUid,
     nodeTextByType,
     onResult,
   );
+  if (
+    useReifiedRelations &&
+    resultsWithRelation.length > 0 &&
+    resultsWithRelation[0].results.length > 0
+  ) {
+    const byRel: Record<string, Result[]> = {};
+    const results = resultsWithRelation[0].results;
+    resultsWithRelation = [];
+    for (const r of results) {
+      const relKey = `${r.relationUid as string}-${r.effectiveSource !== targetUid}`;
+      byRel[relKey] = byRel[relKey] || [];
+      byRel[relKey].push(r);
+    }
+    resultsWithRelation = Object.entries(byRel)
+      .map(([ruid, results]) => {
+        const relation = uniqueRelations.get(ruid);
+        if (!relation) {
+          console.error("Relation with obsolete relation type:" + ruid);
+          return { relation, results };
+        }
+        return {
+          relation: {
+            id: ruid,
+            label: ruid.endsWith("-false")
+              ? relation.r.label
+              : relation.r.complement,
+            isComplement: ruid.endsWith("-false"),
+            text: ruid.endsWith("-false")
+              ? relation.r.label
+              : relation.r.complement,
+            target: targetUid,
+          },
+          results,
+        };
+      })
+      .filter((o) => !!o.relation);
+  }
   const groupedResults = Object.fromEntries(
     resultsWithRelation.map((r) => [
       r.relation.text,
