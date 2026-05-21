@@ -1326,7 +1326,9 @@ export type Database = {
           id: number | null
           name: string | null
           platform: Database["public"]["Enums"]["Platform"] | null
-          shared: boolean | null
+          sharing_permissions:
+            | Database["public"]["Enums"]["SpaceAccessPermissions"]
+            | null
           space_id: number | null
         }
         Relationships: [
@@ -1984,7 +1986,9 @@ export type Database = {
         id: number | null
         name: string | null
         platform: Database["public"]["Enums"]["Platform"] | null
-        shared: boolean | null
+        sharing_permissions:
+          | Database["public"]["Enums"]["SpaceAccessPermissions"]
+          | null
         admin: boolean | null
       }
       inline_embedding_input: {

@@ -465,7 +465,7 @@ SELECT
     pa.dg_account,
     sa.space_id,
     sp.name,
-    mysa.space_id IS NOT null AS shared
+    mysa.permissions as shared
 FROM public."PlatformAccount" AS pa
     JOIN public.group_membership AS gm ON (member_id = dg_account)
     JOIN public.group_membership AS gm2 ON (gm2.member_id = auth.uid() AND gm2.group_id = gm.group_id)

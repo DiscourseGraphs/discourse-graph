@@ -26,7 +26,7 @@ SELECT
     pa.dg_account,
     sa.space_id,
     sp.name,
-    mysa.space_id IS NOT NULL AS shared
+    mysa.permissions as sharing_permissions
 FROM public."PlatformAccount" AS pa
     JOIN public.group_membership AS gm ON (member_id = dg_account)
     JOIN public.group_membership AS gm2 ON (gm2.member_id = auth.uid() AND gm2.group_id = gm.group_id)
@@ -39,7 +39,7 @@ CREATE TYPE public.group_space_info AS (
     id BIGINT,
     name VARCHAR,
     platform public."Platform",
-    shared boolean,
+    sharing_permissions public."SpaceAccessPermissions",
     admin boolean
 );
 
@@ -47,7 +47,7 @@ CREATE OR REPLACE FUNCTION public.spaces_in_group(p_group_id UUID) RETURNS SETOF
 STABLE
 SET search_path = ''
 LANGUAGE sql AS $$
-    SELECT pa.space_id as id, pa.name, pa.platform, pa.shared, gm.admin
+    SELECT pa.space_id as id, pa.name, pa.platform, pa.sharing_permissions, gm.admin
     FROM public.my_pseudo_accounts AS pa
     JOIN public.group_membership AS gm ON (gm.member_id = pa.dg_account)
     WHERE gm.group_id = p_group_id;
