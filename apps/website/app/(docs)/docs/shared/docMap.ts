@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 // Shared paths
 export const SHARED_DOCS = "app/(docs)/docs/sharedPages";
 

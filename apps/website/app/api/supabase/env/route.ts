@@ -11,7 +11,6 @@ export const GET = (request: NextRequest): NextResponse => {
     if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY)
       return new NextResponse("Missing variables", { status: 500 });
     return NextResponse.json(
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_PUBLISHABLE_KEY },
       { status: 200 },
     );

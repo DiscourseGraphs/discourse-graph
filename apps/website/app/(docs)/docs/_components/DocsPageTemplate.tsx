@@ -15,7 +15,6 @@ const DocsPageTemplate = ({
   ...wrapperProps
 }: DocsPageTemplateProps): React.ReactElement => {
   const { h1, wrapper } = useMDXComponents();
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const Wrapper = wrapper as React.ComponentType<DocsPageTemplateProps>;
   const H1 = h1 as React.ComponentType<
     React.HTMLAttributes<HTMLHeadingElement> & {

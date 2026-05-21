@@ -11,17 +11,14 @@ import {
 import { type TablesInsert, Constants } from "@repo/database/dbTypes";
 
 type AgentIdentifierDataInput = TablesInsert<"AgentIdentifier">;
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const { AgentIdentifierType } = Constants.public.Enums;
 
 // ItemValidator<"AgentIdentifier">
 const agentIdentifierValidator = (
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   agent_identifier: AgentIdentifierDataInput,
 ): string | null => {
   if (!agent_identifier || typeof agent_identifier !== "object")
     return "Invalid request body: expected a JSON object.";
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { identifier_type, account_id, value, trusted } = agent_identifier;
 
   if (!AgentIdentifierType.includes(identifier_type))

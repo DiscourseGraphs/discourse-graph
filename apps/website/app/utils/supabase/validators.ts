@@ -1,14 +1,12 @@
 import type { PublicTableName, RawTablesInsert, RawTables } from "./dbUtils";
 import type { Tables, TablesInsert } from "@repo/database/dbTypes";
 
-/* eslint-disable @typescript-eslint/naming-convention */
 export type InputTypes = {
   ContentEmbedding_openai_text_embedding_3_small_1536: ContentEmbeddingVecTablesInsert;
 };
 export type OutputTypes = {
   ContentEmbedding_openai_text_embedding_3_small_1536: ContentEmbeddingVecTables;
 };
-/* eslint-enable @typescript-eslint/naming-convention */
 
 export type InputTypeOf<T extends PublicTableName> = T extends keyof InputTypes
   ? InputTypes[T]
@@ -50,7 +48,6 @@ export const KNOWN_EMBEDDING_TABLES: {
     tableSize: number;
   };
 } = {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   openai_text_embedding_3_small_1536: {
     tableName: "ContentEmbedding_openai_text_embedding_3_small_1536",
     tableSize: 1536,
@@ -77,7 +74,6 @@ export const embeddingInputValidation = <T extends ContentEmbeddingTableName>(
 ): string | null => {
   if (!data || typeof data !== "object")
     return "Invalid request body: expected a JSON object.";
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { target_id, model, vector } = data;
 
   if (
@@ -192,7 +188,6 @@ export const contentInputValidation = (
 ): string | null => {
   if (!data || typeof data !== "object")
     return "Invalid request body: expected a JSON object.";
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { author_id, created, last_modified, scale, space_id, text } = data;
 
   if (!text || typeof text !== "string") return "Invalid or missing text.";
