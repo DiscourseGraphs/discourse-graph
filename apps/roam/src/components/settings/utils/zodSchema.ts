@@ -1,8 +1,6 @@
 import { z } from "zod";
 import DEFAULT_RELATIONS_BLOCK_PROPS from "~/components/settings/data/defaultRelationsBlockProps";
 
-/* eslint-disable @typescript-eslint/naming-convention */
-
 export const CanvasSettingsSchema = z.object({
   color: z.string().default(""),
   alias: z.string().default(""),

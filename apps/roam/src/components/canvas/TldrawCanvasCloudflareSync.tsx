@@ -42,7 +42,6 @@ const parseRoamUploadResponse = (value: string): string => {
 
 const createRoamAssetStore = (): TLAssetStore => {
   return {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     upload: async (_asset, file) => {
       const response = await window.roamAlphaAPI.file.upload({ file });
       return parseRoamUploadResponse(response);

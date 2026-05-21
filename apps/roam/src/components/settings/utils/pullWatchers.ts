@@ -91,7 +91,6 @@ export const featureFlagHandlers: Partial<
     (newValue: boolean, oldValue: boolean, allFlags: FeatureFlags) => void
   >
 > = {
-  /* eslint-disable @typescript-eslint/naming-convention */
   "Enable left sidebar": (newValue, oldValue) => {
     emitSettingChange(settingKeys.leftSidebarFlag, newValue, oldValue);
   },
@@ -107,7 +106,6 @@ type GlobalSettingsHandlers = {
 };
 
 export const globalSettingsHandlers: GlobalSettingsHandlers = {
-  /* eslint-disable @typescript-eslint/naming-convention */
   "Left sidebar": (newValue, oldValue) => {
     emitSettingChange(settingKeys.globalLeftSidebar, newValue, oldValue);
   },
@@ -126,7 +124,6 @@ type PersonalSettingsHandlers = {
 };
 
 export const personalSettingsHandlers: PersonalSettingsHandlers = {
-  /* eslint-disable @typescript-eslint/naming-convention */
   "Left sidebar": (newValue, oldValue) => {
     emitSettingChange(settingKeys.personalLeftSidebar, newValue, oldValue);
   },
@@ -136,7 +133,6 @@ export const personalSettingsHandlers: PersonalSettingsHandlers = {
   "Node search menu trigger": (newValue, oldValue) => {
     emitSettingChange(settingKeys.nodeSearchMenuTrigger, newValue, oldValue);
   },
-  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 export const discourseNodeHandlers: Array<

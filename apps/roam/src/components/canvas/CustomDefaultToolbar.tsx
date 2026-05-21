@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 /* eslint-disable @typescript-eslint/consistent-type-definitions */
-/* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable preferArrows/prefer-arrow-functions */
 
 // from /packages/tldraw/src/lib/ui/components/Toolbar/DefaultToolbar.tsx

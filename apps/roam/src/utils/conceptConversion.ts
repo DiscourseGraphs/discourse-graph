@@ -11,7 +11,6 @@ import type { Json } from "@repo/database/dbTypes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 
 const getNodeExtraData = (
-  /* eslint-disable @typescript-eslint/naming-convention */
   node_uid: string,
 ): {
   author_uid: string;
@@ -42,7 +41,6 @@ const getNodeExtraData = (
   if (result.length !== 1 || result[0].length !== 4)
     throw new Error("Invalid result from Roam query");
 
-  /* eslint-disable @typescript-eslint/naming-convention */
   const [author_uid, page_uid, created_t, last_modified_t] = result[0] as [
     string,
     string,
@@ -81,7 +79,6 @@ export const discourseNodeSchemaToLocalConcept = (
 ): LocalConceptDataInput => {
   const titleParts = node.text.split("/");
   const result: LocalConceptDataInput = {
-    /* eslint-disable @typescript-eslint/naming-convention */
     space_id: context.spaceId,
     name: node.text,
     source_local_id: node.type,
@@ -110,7 +107,6 @@ export const discourseNodeBlockToLocalConcept = (
   },
 ): LocalConceptDataInput => {
   return {
-    /* eslint-disable @typescript-eslint/naming-convention */
     space_id: context.spaceId,
     name: text,
     source_local_id: nodeUid,
@@ -129,7 +125,6 @@ export const discourseRelationSchemaToLocalConcept = (
 ): LocalConceptDataInput => {
   const { id, label, complement, source, destination, ...otherData } = relation;
   return {
-    /* eslint-disable @typescript-eslint/naming-convention */
     space_id: context.spaceId,
     source_local_id: id,
     name: getPageTitleByPageUid(id),
@@ -190,7 +185,6 @@ export const discourseRelationDataToLocalConcept = (
   // TODO: Also get the nodes from the representation, using QueryBuilder. That will likely give me the relation object
   const nodeData = Object.values(casting).map((v) => getNodeExtraData(v));
   // roundabout way to do a max from stringified dates
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const last_modified = new Date(
     Math.max(...nodeData.map((nd) => new Date(nd.last_modified).getTime())),
   ).toISOString();
@@ -199,7 +193,6 @@ export const discourseRelationDataToLocalConcept = (
   const created = new Date(
     Math.max(...nodeData.map((nd) => new Date(nd.created).getTime())),
   ).toISOString();
-  /* eslint-disable @typescript-eslint/naming-convention */
   const author_local_id: string = nodeData[0].author_uid; // take any one; again until I get the relation object
   return {
     space_id: context.spaceId,

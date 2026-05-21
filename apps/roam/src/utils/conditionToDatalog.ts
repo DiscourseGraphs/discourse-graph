@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import parseNlpDate from "roamjs-components/date/parseNlpDate";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";

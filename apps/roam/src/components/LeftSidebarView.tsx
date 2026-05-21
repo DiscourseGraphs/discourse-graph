@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import React, {
   useCallback,
   useEffect,
@@ -119,7 +118,6 @@ const openTarget = async (
   if (e.shiftKey) {
     await window.roamAlphaAPI.ui.rightSidebar.addWindow({
       // @ts-expect-error - todo test
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       window: { type: "outline", "block-uid": targetUid },
     });
   } else {

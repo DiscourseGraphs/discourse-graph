@@ -125,9 +125,7 @@ export const createDiscourseNodeFromCommand = (
 
       await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
         location: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           "block-uid": uid,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           "window-id": windowId,
         },
         selection: { start: newCursorPosition },
@@ -446,7 +444,6 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
 
       window.roamAlphaAPI.ui.blockContextMenu.addCommand({
         label: `DG: Favorites - Add to "${sectionName}" section`,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         callback: (props: { "block-uid": string }) => {
           void addBlockToPersonalSection({
             blockUid: props["block-uid"],
@@ -463,7 +460,6 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     if (globalSection.childrenUid) {
       window.roamAlphaAPI.ui.blockContextMenu.addCommand({
         label: "DG: Favorites - Add to Global section",
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         callback: (props: { "block-uid": string }) => {
           void addBlockToGlobalSection({
             blockUid: props["block-uid"],

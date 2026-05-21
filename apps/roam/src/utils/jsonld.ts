@@ -63,8 +63,8 @@ export const getJsonLdSchema = async ({
       numTreatedPages += 1;
       await updateExportProgress(numTreatedPages);
       return {
-        "@id": `pages:${node.type}`, // eslint-disable-line @typescript-eslint/naming-convention
-        "@type": "nodeSchema", // eslint-disable-line @typescript-eslint/naming-convention
+        "@id": `pages:${node.type}`,
+        "@type": "nodeSchema",
         label: node.text,
         content: r.content,
         modified: modified?.toJSON(),
@@ -74,15 +74,15 @@ export const getJsonLdSchema = async ({
     }),
   );
   const relSchemaData = allRelations.map((r: DiscourseRelation) => ({
-    "@id": `pages:${r.id}`, // eslint-disable-line @typescript-eslint/naming-convention
-    "@type": "relationDef", // eslint-disable-line @typescript-eslint/naming-convention
+    "@id": `pages:${r.id}`,
+    "@type": "relationDef",
     domain: `pages:${r.source}`,
     range: `pages:${r.destination}`,
     label: r.label,
   }));
   const inverseRelSchemaData = allRelations.map((r: DiscourseRelation) => ({
-    "@id": `pages:${r.id}-inverse`, // eslint-disable-line @typescript-eslint/naming-convention
-    "@type": "relationDef", // eslint-disable-line @typescript-eslint/naming-convention
+    "@id": `pages:${r.id}-inverse`,
+    "@type": "relationDef",
     domain: `pages:${r.destination}`,
     range: `pages:${r.source}`,
     label: r.complement,
@@ -154,8 +154,8 @@ export const getJsonLdData = async ({
       });
     }
     const r = {
-      "@id": `pages:${uid}`, // eslint-disable-line @typescript-eslint/naming-convention
-      "@type": nodeType ?? "nodeSchema", // eslint-disable-line @typescript-eslint/naming-convention
+      "@id": `pages:${uid}`,
+      "@type": nodeType ?? "nodeSchema",
       title: text,
       content: content as string,
       modified: modified?.toJSON(),
@@ -172,13 +172,12 @@ export const getJsonLdData = async ({
   );
   const relData = relations.map(({ relUid, source, target }) => ({
     // no id yet, just a blank node
-    "@type": "relationInstance", // eslint-disable-line @typescript-eslint/naming-convention
+    "@type": "relationInstance",
     predicate: `pages:${relUid}`,
     source: `pages:${source}`,
     destination: `pages:${target}`,
   }));
   return {
-    /* eslint-disable @typescript-eslint/naming-convention */
     "@context": jsonLdContext(roamUrl),
     "@id": roamUrl,
     "prov:generatedAtTime": new Date().toISOString(),

@@ -88,7 +88,6 @@ const handleImageCreation = async ({
       const results = await runQuery({
         extensionAPI,
         parentUid,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         inputs: { NODETEXT: text, NODEUID: pageUid },
       });
       const imagePlaceholderUid = results.allProcessedResults[0]?.uid;

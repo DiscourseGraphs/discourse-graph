@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import React, { useEffect, useState } from "react";
 import { Button, Intent, Tabs, Tab, TabId } from "@blueprintjs/core";
 import discourseConfigRef from "~/utils/discourseConfigRef";

@@ -15,7 +15,6 @@ const queryTitlesByUids = async (
       :in $ [?uid ...]
       :where [?e :block/uid ?uid]]`,
     uids,
-    /* eslint-disable-next-line @typescript-eslint/naming-convention */
   )) as [string, { ":node/title"?: string; ":block/string"?: string }][];
 
   const map = new Map<string, string>();

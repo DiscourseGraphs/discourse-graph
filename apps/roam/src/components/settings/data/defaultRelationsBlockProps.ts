@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */ // This is for nodePosition keys
 import type { DiscourseRelationSettings } from "~/components/settings/utils/zodSchema";
 
 // TODO: Delete the original default relations in data/defaultRelations.ts when fully migrated.

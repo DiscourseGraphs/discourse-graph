@@ -19,9 +19,7 @@ const ImageToolsMenu = ({
 
   const handleEditBlock = useCallback((): void => {
     posthog.capture("Image Tools Menu: Edit Block Clicked");
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       location: { "block-uid": blockUid, "window-id": "main-window" },
     });
   }, [blockUid]);
@@ -98,7 +96,6 @@ const createMenuContainer = (): HTMLDivElement => {
 };
 
 type WrapperWithCleanup = HTMLElement & {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   __imageMenuCleanup?: () => void;
 };
 

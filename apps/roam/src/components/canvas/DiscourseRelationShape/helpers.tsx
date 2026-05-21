@@ -10,7 +10,6 @@
 /* eslint-disable max-params */
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable preferArrows/prefer-arrow-functions */
-/* eslint-disable @typescript-eslint/naming-convention */
 
 import React, { useRef, useEffect, useState } from "react";
 import {
