@@ -17,6 +17,7 @@
     "test:integration:nodb": "vitest run --config vitest.integration.config.ts --tags-filter '!database'"
   },
   "dependencies": {
+    "@automerge/automerge": "^3.2.4",
     "@ldo/cli": "1.0.0-alpha.51",
     "@ldo/ldo": "1.0.0-alpha.51",
     "@ldo/rdf-utils": "1.0.0-alpha.51",
@@ -41,6 +42,7 @@
     "posthog-node": "^5.34.2",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "relational-text": "0.1.1",
     "resend": "^4.0.1",
     "showdown": "^2.1.0",
     "sonner": "^2.0.7",
