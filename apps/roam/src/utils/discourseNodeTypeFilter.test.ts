@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-floating-promises -- node:test describe/it are fire-and-forget */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
