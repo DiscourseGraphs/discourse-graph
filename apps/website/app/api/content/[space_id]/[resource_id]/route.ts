@@ -8,7 +8,12 @@ import {
 import { asJsonLD, conceptName } from "~/utils/conversion/jsonld";
 import { Tables, Enums } from "@repo/database/dbTypes";
 import type { ColumnRow } from "@repo/database/inputTypes";
-import { convert, MIMETYPES, type DocType } from "~/utils/conversion/convert";
+import {
+  convert,
+  MIMETYPES,
+  initRT,
+  type DocType,
+} from "~/utils/conversion/convert";
 
 type Concept = ColumnRow<"Concept">;
 type Content = Tables<"Content">;
@@ -114,7 +119,8 @@ export const GET = async (
     );
   }
 
-  // await initRT(rootUrl);
+  const rootUrl = baseUrl.split("/").slice(0, 3).join("/");
+  await initRT(rootUrl);
   const source: DocType | undefined =
     platform === "Obsidian"
       ? "obsidian"
@@ -123,7 +129,7 @@ export const GET = async (
         : undefined;
   let text =
     source && source !== targetFormat
-      ? convert(fullContents.text, source, targetFormat)
+      ? await convert(fullContents.text, source, targetFormat)
       : fullContents.text;
   const isSchema = concept.is_schema;
   let schema: Concept | undefined = undefined;
@@ -163,7 +169,7 @@ export const GET = async (
       }
     }
 
-    const jsonLdData = asJsonLD({
+    const jsonLdData = await asJsonLD({
       platform,
       concept,
       baseUrl,
