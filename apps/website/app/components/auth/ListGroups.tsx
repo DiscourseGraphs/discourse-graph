@@ -70,7 +70,7 @@ export const ListGroups = async () => {
               {groupData.map((d) => (
                 <li key={d.id}>
                   {adminData[d.id || ""] ? (
-                    <Link href={"group/" + d.id!}>{d.name}</Link>
+                    <Link href={"/auth/group/" + d.id!}>{d.name}</Link>
                   ) : (
                     d.name
                   )}
