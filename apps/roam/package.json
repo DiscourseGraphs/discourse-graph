@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "publish": "tsx scripts/publish.ts",
-    "check-types": "tsc --noEmit --skipLibCheck"
+    "check-types": "tsc --noEmit --skipLibCheck",
+    "test": "tsx --test src/utils/discourseNodeTypeFilter.test.ts"
   },
   "license": "Apache-2.0",
   "devDependencies": {

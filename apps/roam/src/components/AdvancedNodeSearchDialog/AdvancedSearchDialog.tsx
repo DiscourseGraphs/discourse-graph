@@ -160,6 +160,7 @@ const AdvancedNodeSearchDialog = ({
   const [sort, setSort] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
   const [discourseNodes, setDiscourseNodes] = useState<DiscourseNode[]>([]);
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
+  const [isTypeFilterPopoverOpen, setIsTypeFilterPopoverOpen] = useState(false);
   const miniSearchRef = useRef<MiniSearch<
     SearchResult & { id: string }
   > | null>(null);
@@ -380,6 +381,7 @@ const AdvancedNodeSearchDialog = ({
         event.preventDefault();
         void onInsert();
       } else if (event.key === "Escape") {
+        if (isTypeFilterPopoverOpen) return;
         event.preventDefault();
         onClose();
       }
@@ -388,6 +390,7 @@ const AdvancedNodeSearchDialog = ({
       activeResult,
       contentState,
       insertTarget,
+      isTypeFilterPopoverOpen,
       onClose,
       onInsert,
       onOpen,
@@ -401,7 +404,7 @@ const AdvancedNodeSearchDialog = ({
   return (
     <Dialog
       autoFocus={false}
-      canEscapeKeyClose
+      canEscapeKeyClose={!isTypeFilterPopoverOpen}
       canOutsideClickClose
       className="flex max-w-4xl flex-col overflow-hidden bg-white p-0"
       enforceFocus={false}
@@ -431,7 +434,9 @@ const AdvancedNodeSearchDialog = ({
             value={searchTerm}
           />
           <DiscourseNodeTypeFilter
+            disabled={isIndexLoading || indexError}
             nodeTypes={discourseNodes}
+            onPopoverOpenChange={setIsTypeFilterPopoverOpen}
             onSelectedTypeIdsChange={setSelectedNodeTypeIds}
             selectedTypeIds={selectedNodeTypeIds}
           />
