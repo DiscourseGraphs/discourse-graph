@@ -1,0 +1,105 @@
+{
+  "$type": "org.relationaltext.lens",
+  "id": "com.roamresearch.to.relationaltext.v1",
+  "description": "Transform Roam Research facets to RelationalText facets",
+  "source": "com.roamresearch.facet",
+  "target": "org.relationaltext.facet",
+  "rules": [
+    {
+      "match": {
+        "name": "bold"
+      },
+      "replace": {
+        "name": "bold"
+      }
+    },
+    {
+      "match": {
+        "name": "italic"
+      },
+      "replace": {
+        "name": "italic"
+      }
+    },
+    {
+      "match": {
+        "name": "highlight"
+      },
+      "replace": {
+        "name": "highlight"
+      }
+    },
+    {
+      "match": {
+        "name": "code"
+      },
+      "replace": {
+        "name": "code"
+      }
+    },
+    {
+      "match": {
+        "name": "link"
+      },
+      "replace": {
+        "name": "link",
+        "renameAttrs": {
+          "uri": "url"
+        }
+      }
+    },
+    {
+      "match": {
+        "name": "image"
+      },
+      "replace": {
+        "name": "image",
+        "renameAttrs": {
+          "src": "src",
+          "alt": "alt"
+        }
+      }
+    },
+    {
+      "match": {
+        "name": "page-ref"
+      },
+      "replace": {
+        "name": "link",
+        "renameAttrs": {
+          "title": "url"
+        }
+      }
+    },
+    {
+      "match": {
+        "name": "tag"
+      },
+      "replace": {
+        "name": "hashtag",
+        "renameAttrs": {
+          "tag": "tag"
+        }
+      }
+    },
+    {
+      "match": {
+        "name": "block"
+      },
+      "replace": {
+        "name": "paragraph"
+      }
+    },
+    {
+      "match": {
+        "name": "page"
+      },
+      "replace": {
+        "name": "heading",
+        "addAttrs": {
+          "level": 1
+        }
+      }
+    }
+  ]
+}
