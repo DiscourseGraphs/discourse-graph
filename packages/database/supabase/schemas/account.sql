@@ -460,20 +460,25 @@ WHERE id IN (
 
 CREATE OR REPLACE VIEW public.my_pseudo_accounts AS
 SELECT
-    id,
-    platform,
-    dg_account,
-    space_id
-FROM public."PlatformAccount"
+    pa.id,
+    pa.platform,
+    pa.dg_account,
+    sa.space_id,
+    sp.name,
+    mysa.space_id IS NOT null AS shared
+FROM public."PlatformAccount" AS pa
     JOIN public.group_membership AS gm ON (member_id = dg_account)
     JOIN public.group_membership AS gm2 ON (gm2.member_id = auth.uid() AND gm2.group_id = gm.group_id)
     JOIN public."SpaceAccess" AS sa ON (sa.account_uid = dg_account)
-WHERE agent_type = 'anonymous' AND permissions = 'editor';
+    JOIN public."Space" AS sp ON (sp.id = sa.space_id)
+    LEFT OUTER JOIN public."SpaceAccess" AS mysa ON (mysa.account_uid = gm.group_id AND mysa.space_id = sp.id)
+WHERE pa.agent_type = 'anonymous' AND sa.permissions = 'editor';
 
 CREATE TYPE public.group_space_info AS (
     id BIGINT,
     name VARCHAR,
     platform public."Platform",
+    shared boolean,
     admin boolean
 );
 
@@ -481,11 +486,10 @@ CREATE OR REPLACE FUNCTION public.spaces_in_group(p_group_id UUID) RETURNS SETOF
 STABLE
 SET search_path = ''
 LANGUAGE sql AS $$
-    SELECT sp.id, sp.name, sp.platform, gm.admin FROM public."Space" AS sp
-    JOIN public.my_pseudo_accounts AS pa ON (sp.id = pa.space_id)
+    SELECT pa.space_id as id, pa.name, pa.platform, pa.shared, gm.admin
+    FROM public.my_pseudo_accounts AS pa
     JOIN public.group_membership AS gm ON (gm.member_id = pa.dg_account)
-    JOIN public.group_membership AS gm2 ON (gm2.group_id = gm.group_id)
-    AND gm.group_id = p_group_id AND gm2.member_id = auth.uid();
+    WHERE gm.group_id = p_group_id;
 $$;
 
 DROP POLICY IF EXISTS platform_account_policy ON public."PlatformAccount";
