@@ -1,5 +1,10 @@
 import type { Tables, Enums, Json } from "@repo/database/dbTypes";
-import { convert, MIMETYPES, type DocType } from "~/utils/conversion/convert";
+import {
+  convert,
+  MIMETYPES,
+  initRT,
+  type DocType,
+} from "~/utils/conversion/convert";
 
 type Concept = Tables<"Concept">;
 type Content = Tables<"Content">;
@@ -101,7 +106,7 @@ export const conceptName = (
   return entities[0]!;
 };
 
-export const asJsonLD = ({
+export const asJsonLD = async ({
   platform,
   concept,
   baseUrl,
@@ -121,7 +126,7 @@ export const asJsonLD = ({
   author?: PlatformAccount;
   targetFormat?: DocType;
   wrap?: boolean;
-}): Record<string, Json> => {
+}): Promise<Record<string, Json>> => {
   targetFormat ??= "html";
   if (MIMETYPES[targetFormat] === undefined) {
     targetFormat = "html";
@@ -192,10 +197,17 @@ export const asJsonLD = ({
   if (content) {
     const rootUrl = baseUrl.split("/").slice(0, 3).join("/");
     pageUrl = `${rootUrl}/api/content/${baseUrl.split("/")[5]}/${concept.id}#`;
+    await initRT(rootUrl);
     const source: DocType | undefined =
-      platform === "Obsidian" ? "obsidian" : "markdown";
-    // punt roam-json
-    const contentText = source && convert(content.text, source, targetFormat);
+      platform === "Obsidian"
+        ? "obsidian"
+        : platform === "Roam"
+          ? content.text[0] === "{"
+            ? "roam"
+            : "markdown"
+          : undefined;
+    const contentText =
+      source && (await convert(content.text, source, targetFormat));
     extraData["description"] = {
       "@id": "page:content",
       format: MIMETYPES[targetFormat],

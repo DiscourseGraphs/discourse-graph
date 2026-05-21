@@ -418,14 +418,14 @@ const parsePersonDef = (
   };
 };
 
-const parseContent = (
+const parseContent = async (
   content: ContentProfile,
   data: NodeInstanceProfile,
-): LocalContentDataInput | null => {
+): Promise<LocalContentDataInput | null> => {
   const id = content["@id"] ?? data["@id"]; // they can share identity
   if (!id) return null;
   const sourceFormat = DOCTYPES[content.format || ""] ?? "html";
-  const text = convert(content.content, sourceFormat, "obsidian");
+  const text = await convert(content.content, sourceFormat, "obsidian");
   const partOf = content.isContainedBy;
   const partOfInfo = partOf ? { part_of_local_id: partOf["@id"] } : {};
   return {
@@ -438,11 +438,11 @@ const parseContent = (
   };
 };
 
-const parseNodeInstance = (
+const parseNodeInstance = async (
   data: NodeInstanceProfile,
   content: ContentProfile,
   knownIris: Record<string, string>,
-): LocalConceptDataInput | null => {
+): Promise<LocalConceptDataInput | null> => {
   if (data["@id"] == null) return null;
   const schemaInfo = data.type.map((x) =>
     interpretId(
@@ -454,7 +454,7 @@ const parseNodeInstance = (
   );
   if (!schemaInfo.length) return null;
   // TODO If there's many types, how to choose?
-  const parsedContent = parseContent(content, data);
+  const parsedContent = await parseContent(content, data);
   return {
     name: data.title,
     contents_inline: parsedContent ? [parsedContent] : [],
@@ -598,7 +598,7 @@ const parseLdoNode = async (
       dataset,
       data["@id"],
       NodeInstanceProfileShapeType,
-      parseNodeInstance(nodeInstance, content, knownIris),
+      await parseNodeInstance(nodeInstance, content, knownIris),
     );
   }
   if (schemaType === relationDefType || schemaType === abstractRelationDefType)
