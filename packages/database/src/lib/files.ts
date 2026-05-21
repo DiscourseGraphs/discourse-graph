@@ -32,6 +32,7 @@ export const addFile = async ({
   if (lookForDup.error) throw lookForDup.error;
   const exists = lookForDup.data;
   if (!exists) {
+    // we should use upsert here for sync issues, but we get obscure rls errors.
     const uploadResult = await client.storage
       .from(ASSETS_BUCKET_NAME)
       .upload(hashvalue, content, { contentType: mimetype });
@@ -42,6 +43,7 @@ export const addFile = async ({
     )
       throw uploadResult.error;
   }
+  // not doing an upsert because it does not update on conflict
   const frefResult = await client.from("FileReference").insert({
     space_id: spaceId,
     source_local_id: sourceLocalId,
@@ -53,6 +55,7 @@ export const addFile = async ({
 
   if (frefResult.error) {
     if (frefResult.error.code === "23505") {
+      // 23505 is duplicate key, which means the file is already there, not an error
       const updateResult = await client
         .from("FileReference")
         .update({

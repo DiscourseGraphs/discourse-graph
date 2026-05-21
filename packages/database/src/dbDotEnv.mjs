@@ -78,6 +78,7 @@ export const envFilePath = () => {
 export const envContents = () => {
   const path = envFilePath();
   if (!path) {
+    // Fallback to process.env when running in production environments
     const raw = {
       SUPABASE_URL: process.env.SUPABASE_URL,
       SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY,
