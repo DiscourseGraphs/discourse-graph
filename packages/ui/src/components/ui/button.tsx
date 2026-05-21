@@ -40,7 +40,6 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const Comp = asChild ? Slot : "button";
     return (
       <Comp
