@@ -81,6 +81,15 @@ export const GroupMemberList = async ({
                       admin
                     </span>
                   )}
+                  {space.sharing_permissions ? (
+                    <span className="ml-2 rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-700">
+                      {space.sharing_permissions}
+                    </span>
+                  ) : (
+                    <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
+                      not published
+                    </span>
+                  )}
                 </span>
                 {isAdmin && memberId && (
                   <form action={removeSpace}>
