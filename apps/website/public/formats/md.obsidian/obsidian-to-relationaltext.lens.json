@@ -1,0 +1,200 @@
+{
+  "$type": "org.relationaltext.lens",
+  "id": "md.obsidian.to.relationaltext.v1",
+  "description": "Transform Obsidian markdown facets to RelationalText facets",
+  "source": "md.obsidian.facet",
+  "target": "org.relationaltext.facet",
+  "passthrough": "keep",
+  "rules": [
+    {
+      "match": {
+        "name": "strong"
+      },
+      "replace": {
+        "name": "bold"
+      }
+    },
+    {
+      "match": {
+        "name": "emphasis"
+      },
+      "replace": {
+        "name": "italic"
+      }
+    },
+    {
+      "match": {
+        "name": "strikethrough"
+      },
+      "replace": {
+        "name": "strikethrough"
+      }
+    },
+    {
+      "match": {
+        "name": "highlight"
+      },
+      "replace": {
+        "name": "highlight"
+      }
+    },
+    {
+      "match": {
+        "name": "code-span"
+      },
+      "replace": {
+        "name": "code"
+      }
+    },
+    {
+      "match": {
+        "name": "html-inline"
+      },
+      "replace": {
+        "name": "html-inline"
+      }
+    },
+    {
+      "match": {
+        "name": "link"
+      },
+      "replace": {
+        "name": "link",
+        "renameAttrs": {
+          "uri": "url"
+        }
+      }
+    },
+    {
+      "match": {
+        "name": "image"
+      },
+      "replace": {
+        "name": "image"
+      }
+    },
+    {
+      "match": {
+        "name": "wikilink"
+      },
+      "replace": {
+        "name": "link",
+        "renameAttrs": {
+          "page": "url"
+        }
+      }
+    },
+    {
+      "match": {
+        "name": "line-break"
+      },
+      "replace": {
+        "name": "line-break"
+      }
+    },
+    {
+      "match": {
+        "name": "paragraph"
+      },
+      "replace": {
+        "name": "paragraph"
+      }
+    },
+    {
+      "match": {
+        "name": "heading"
+      },
+      "replace": {
+        "name": "heading"
+      }
+    },
+    {
+      "match": {
+        "name": "code-block"
+      },
+      "replace": {
+        "name": "code-block"
+      }
+    },
+    {
+      "match": {
+        "name": "blockquote-marker"
+      },
+      "replace": {
+        "name": "blockquote-marker"
+      }
+    },
+    {
+      "match": {
+        "name": "bullet-list-marker"
+      },
+      "replace": {
+        "name": "bullet-list-marker"
+      }
+    },
+    {
+      "match": {
+        "name": "ordered-list-marker"
+      },
+      "replace": {
+        "name": "ordered-list-marker"
+      }
+    },
+    {
+      "match": {
+        "name": "list-item-marker"
+      },
+      "replace": {
+        "name": "list-item-marker"
+      }
+    },
+    {
+      "match": {
+        "name": "list-item-text"
+      },
+      "replace": {
+        "name": "list-item-text"
+      }
+    },
+    {
+      "match": {
+        "name": "horizontal-rule"
+      },
+      "replace": {
+        "name": "horizontal-rule"
+      }
+    },
+    {
+      "match": {
+        "name": "html-block"
+      },
+      "replace": {
+        "name": "html-block"
+      }
+    },
+    {
+      "match": {
+        "name": "callout"
+      },
+      "replace": {
+        "name": "blockquote-marker"
+      }
+    },
+    {
+      "match": {
+        "name": "unordered-list-item"
+      },
+      "replace": {
+        "name": "unordered-list-item"
+      }
+    },
+    {
+      "match": {
+        "name": "ordered-list-item"
+      },
+      "replace": {
+        "name": "ordered-list-item"
+      }
+    }
+  ]
+}
