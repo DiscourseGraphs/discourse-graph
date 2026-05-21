@@ -148,6 +148,7 @@ const AdvancedNodeSearchDialog = ({
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [indexError, setIndexError] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [sort, setSort] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
   const miniSearchRef = useRef<MiniSearch<
     SearchResult & { id: string }
@@ -164,26 +165,6 @@ const AdvancedNodeSearchDialog = ({
       discourseNodes.map((node) => [node.type, node]),
     ) as Record<string, DiscourseNode>;
   }, []);
-
-  const results = useMemo(() => {
-    if (
-      !isOpen ||
-      isIndexLoading ||
-      indexError ||
-      !debouncedSearchTerm ||
-      !miniSearchRef.current
-    ) {
-      return [];
-    }
-
-    const scoredHits = searchIndexedNodes({
-      miniSearch: miniSearchRef.current,
-      allResults: allResultsRef.current,
-      searchTerm: debouncedSearchTerm,
-    });
-
-    return sortSearchResults({ hits: scoredHits, sort });
-  }, [debouncedSearchTerm, indexError, isIndexLoading, isOpen, sort]);
 
   const activeResult = results[activeIndex] ?? null;
   const keywords = debouncedSearchTerm.split(/\s+/).filter(Boolean);
@@ -206,8 +187,30 @@ const AdvancedNodeSearchDialog = ({
   useEffect(() => {
     if (!isOpen) {
       setSort(DEFAULT_SORT_CONFIG);
+      setResults([]);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (
+      !isOpen ||
+      isIndexLoading ||
+      indexError ||
+      !debouncedSearchTerm ||
+      !miniSearchRef.current
+    ) {
+      setResults([]);
+      return;
+    }
+
+    const scoredHits = searchIndexedNodes({
+      miniSearch: miniSearchRef.current,
+      allResults: allResultsRef.current,
+      searchTerm: debouncedSearchTerm,
+    });
+
+    setResults(sortSearchResults({ hits: scoredHits, sort }));
+  }, [debouncedSearchTerm, indexError, isIndexLoading, isOpen, sort]);
 
   useEffect(() => {
     let cancelled = false;
