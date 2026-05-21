@@ -1,4 +1,5 @@
 import getUids from "roamjs-components/dom/getUids";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 
@@ -149,4 +150,59 @@ export const insertPageRefAtRange = async ({
 
   await updateBlock({ uid: blockUid, text: newText });
   restoreBlockFocus({ blockUid, newCursorPosition, windowId });
+};
+
+export const insertPageLinkAtCursor = async ({
+  pageTitle,
+  snapshot,
+}: {
+  pageTitle: string;
+  snapshot: InsertTarget | null;
+}): Promise<boolean> => {
+  const target = snapshot?.blockUid ? snapshot : insertTargetFromFocusedBlock();
+  if (!target) return false;
+
+  const { blockUid, windowId } = target;
+  const textarea = findBlockTextarea(blockUid);
+  const { selectionEnd, selectionStart } = getBlockSelection(blockUid);
+
+  if (textarea && document.activeElement === textarea) {
+    textarea.blur();
+  }
+
+  await insertPageRefAtRange({
+    blockUid,
+    pageTitle,
+    selectionEnd,
+    selectionStart,
+    windowId,
+  });
+  return true;
+};
+
+export const openActiveSearchResultInMainPanel = async ({
+  uid,
+}: {
+  uid: string;
+}): Promise<void> => {
+  if (getPageTitleByPageUid(uid)) {
+    await window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
+    return;
+  }
+  await window.roamAlphaAPI.ui.mainWindow.openBlock({ block: { uid } });
+};
+
+export const openActiveSearchResultInSidebar = async ({
+  uid,
+}: {
+  uid: string;
+}): Promise<void> => {
+  await window.roamAlphaAPI.ui.rightSidebar.addWindow({
+    window: {
+      type: "outline",
+      // @ts-expect-error - block-uid is valid for outline sidebar windows
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "block-uid": uid,
+    },
+  });
 };
