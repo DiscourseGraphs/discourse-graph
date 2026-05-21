@@ -1,0 +1,313 @@
+{
+  "$type": "org.relationaltext.lens",
+  "id": "org.relationaltext.to.html.v1",
+  "description": "Transform RelationalText canonical facets to HTML facets",
+  "source": "org.relationaltext.facet",
+  "target": "org.w3c.html.facet",
+  "invertible": false,
+  "rules": [
+    {
+      "match": {
+        "name": "bold"
+      },
+      "replace": {
+        "name": "strong"
+      }
+    },
+    {
+      "match": {
+        "name": "italic"
+      },
+      "replace": {
+        "name": "em"
+      }
+    },
+    {
+      "match": {
+        "name": "code"
+      },
+      "replace": {
+        "name": "code"
+      }
+    },
+    {
+      "match": {
+        "name": "strikethrough"
+      },
+      "replace": {
+        "name": "s"
+      }
+    },
+    {
+      "match": {
+        "name": "underline"
+      },
+      "replace": {
+        "name": "u"
+      }
+    },
+    {
+      "match": {
+        "name": "superscript"
+      },
+      "replace": {
+        "name": "sup"
+      }
+    },
+    {
+      "match": {
+        "name": "subscript"
+      },
+      "replace": {
+        "name": "sub"
+      }
+    },
+    {
+      "match": {
+        "name": "keyboard"
+      },
+      "replace": {
+        "name": "kbd"
+      }
+    },
+    {
+      "match": {
+        "name": "highlight"
+      },
+      "replace": {
+        "name": "mark"
+      }
+    },
+    {
+      "match": {
+        "name": "insertion"
+      },
+      "replace": {
+        "name": "ins",
+        "renameAttrs": {
+          "author": "cite",
+          "date": "datetime"
+        }
+      }
+    },
+    {
+      "match": {
+        "name": "deletion"
+      },
+      "replace": {
+        "name": "del",
+        "renameAttrs": {
+          "author": "cite",
+          "date": "datetime"
+        }
+      }
+    },
+    {
+      "match": {
+        "name": "line-break"
+      },
+      "replace": {
+        "name": "br"
+      }
+    },
+    {
+      "match": {
+        "name": "link"
+      },
+      "replace": {
+        "name": "a",
+        "renameAttrs": {
+          "url": "href"
+        }
+      }
+    },
+    {
+      "match": {
+        "name": "mention"
+      },
+      "replace": {
+        "name": "a",
+        "renameAttrs": {
+          "url": "href"
+        }
+      }
+    },
+    {
+      "match": {
+        "name": "hashtag"
+      },
+      "replace": {
+        "name": "a",
+        "renameAttrs": {
+          "url": "href"
+        }
+      }
+    },
+    {
+      "match": {
+        "name": "image"
+      },
+      "replace": {
+        "name": "img"
+      }
+    },
+    {
+      "match": {
+        "name": "paragraph"
+      },
+      "replace": {
+        "name": "p"
+      }
+    },
+    {
+      "match": {
+        "name": "heading"
+      },
+      "replace": {
+        "name": {
+          "template": "h{level}"
+        },
+        "dropAttrs": [
+          "level"
+        ]
+      }
+    },
+    {
+      "match": {
+        "name": "code-block"
+      },
+      "replace": {
+        "name": "pre"
+      }
+    },
+    {
+      "match": {
+        "name": "horizontal-rule"
+      },
+      "replace": {
+        "name": "hr"
+      }
+    },
+    {
+      "match": {
+        "name": "blockquote"
+      },
+      "replace": {
+        "name": "blockquote"
+      }
+    },
+    {
+      "match": {
+        "name": "table"
+      },
+      "replace": {
+        "name": "table"
+      }
+    },
+    {
+      "match": {
+        "name": "definition-term"
+      },
+      "replace": {
+        "name": "dt"
+      }
+    },
+    {
+      "match": {
+        "name": "definition-detail"
+      },
+      "replace": {
+        "name": "dd"
+      }
+    },
+    {
+      "match": {
+        "name": "page-break"
+      },
+      "replace": {
+        "name": "hr"
+      }
+    },
+    {
+      "match": {
+        "name": "details"
+      },
+      "replace": {
+        "name": "details"
+      }
+    },
+    {
+      "match": {
+        "name": "embed"
+      },
+      "replace": null
+    },
+    {
+      "match": {
+        "name": "html-block"
+      },
+      "replace": {
+        "name": "raw",
+        "renameAttrs": {
+          "content": "raw"
+        }
+      }
+    },
+    {
+      "match": {
+        "name": "bullet-list-marker"
+      },
+      "replace": {
+        "name": "ul"
+      }
+    },
+    {
+      "match": {
+        "name": "ordered-list-marker"
+      },
+      "replace": {
+        "name": "ol"
+      }
+    },
+    {
+      "match": {
+        "name": "list-item-marker"
+      },
+      "replace": {
+        "name": "li"
+      }
+    },
+    {
+      "match": {
+        "name": "list-item-text"
+      },
+      "replace": {
+        "name": "text"
+      }
+    },
+    {
+      "match": {
+        "name": "unordered-list-item"
+      },
+      "replace": {
+        "name": "li"
+      }
+    },
+    {
+      "match": {
+        "name": "ordered-list-item"
+      },
+      "replace": {
+        "name": "li"
+      }
+    },
+    {
+      "match": {
+        "name": "blockquote-marker"
+      },
+      "replace": {
+        "name": "blockquote"
+      }
+    }
+  ]
+}

@@ -16,6 +16,7 @@
     "test:integration:nodb": "vitest run --config vitest.integration.config.ts --tags-filter '!database'"
   },
   "dependencies": {
+    "@automerge/automerge": "^3.2.4",
     "@repo/database": "workspace:*",
     "@repo/ui": "workspace:*",
     "@supabase/ssr": "catalog:",
@@ -32,6 +33,7 @@
     "posthog-node": "^5.34.2",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "relational-text": "0.1.1",
     "resend": "^4.0.1",
     "sonner": "^2.0.7",
     "zod": "^3.24.1"
