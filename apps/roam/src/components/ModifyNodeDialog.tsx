@@ -322,7 +322,6 @@ const ModifyNodeDialog = ({
           extensionAPI,
           parentUid,
           // due to query format
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           inputs: { NODETEXT: content.text, NODEUID: pageUid },
         });
         const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
@@ -398,7 +397,6 @@ const ModifyNodeDialog = ({
           formattedTitle = nodeFormat.replace(
             /{([\w\d-]*)}/g,
             // unused variable will take _ as name
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             (_, val: string) => {
               if (/content/i.test(val)) return content.text.trim();
               if (new RegExp(referencedNode.name, "i").test(val))
@@ -460,7 +458,6 @@ const ModifyNodeDialog = ({
                       await window.roamAlphaAPI.ui.rightSidebar.addWindow({
                         window: {
                           // @ts-expect-error TODO: fix this
-                          // eslint-disable-next-line @typescript-eslint/naming-convention
                           "block-uid": newPageUid,
                           type: "outline",
                         },
@@ -492,7 +489,6 @@ const ModifyNodeDialog = ({
         if (referencedNode && referencedNodeValue.text) {
           updatedContent = nodeFormat
             // unused variable will take _ as name
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .replace(/{([\w\d-]*)}/g, (_, val: string) => {
               if (/content/i.test(val)) return content.text.trim();
               if (new RegExp(referencedNode.name, "i").test(val))
@@ -643,7 +639,6 @@ const ModifyNodeDialog = ({
 
 export const renderModifyNodeDialog = (props: ModifyNodeDialogProps) =>
   renderOverlay({
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     Overlay: ModifyNodeDialog,
     props,
   });

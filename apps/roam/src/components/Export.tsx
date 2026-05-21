@@ -250,7 +250,6 @@ const ExportDialog: ExportDialogComponent = ({
     setSelectedPageUid(getPageUidByPageTitle(title));
   };
 
-  /* eslint-disable @typescript-eslint/naming-convention */
   const addToSelectedCanvas = async (pageUid: string) => {
     if (typeof results !== "object") return false;
 
@@ -283,7 +282,6 @@ const ExportDialog: ExportDialogComponent = ({
               if (event.shiftKey) {
                 void window.roamAlphaAPI.ui.rightSidebar.addWindow({
                   // @ts-expect-error - todo test
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
                   window: { "block-uid": pageUid, type: "outline" },
                 });
               } else {
@@ -420,7 +418,6 @@ const ExportDialog: ExportDialogComponent = ({
       tldraw.schema = tlStore.schema.serialize();
       tempTlStoreSnapshot = tlStore.getStoreSnapshot();
     }
-    /* eslint-disable @typescript-eslint/naming-convention */
 
     const tlStoreSnapshot = isTLStore
       ? (tldraw as TLStoreSnapshot) // isTlStore type checked above
@@ -677,7 +674,6 @@ const ExportDialog: ExportDialogComponent = ({
                 if (event.shiftKey) {
                   void window.roamAlphaAPI.ui.rightSidebar.addWindow({
                     // @ts-expect-error - todo test
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     window: { "block-uid": uid, type: "outline" },
                   });
                 } else {

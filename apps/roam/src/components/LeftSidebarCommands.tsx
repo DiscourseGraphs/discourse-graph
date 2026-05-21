@@ -17,7 +17,6 @@ export const commands: Record<
   (onloadArgs: OnloadArgs) => Promise<void>
 > = {
   /* eslint-disable @typescript-eslint/require-await */
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   "{create node}": async (onloadArgs: OnloadArgs) => {
     createDiscourseNodeFromCommand(onloadArgs.extensionAPI);
     // typescript-eslint/naming-convention

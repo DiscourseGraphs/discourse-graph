@@ -4,7 +4,6 @@ import extractRef from "roamjs-components/util/extractRef";
 
 type ISODateString = string;
 
-/* eslint-disable @typescript-eslint/naming-convention */
 export type RoamDiscourseNodeData = {
   author_local_id: string;
   author_name: string;

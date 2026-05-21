@@ -92,7 +92,6 @@ export const VectorDuplicateMatches = ({
       window: {
         type: "outline",
         // @ts-expect-error - type definition mismatch
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         "block-uid": node.uid,
       },
     });

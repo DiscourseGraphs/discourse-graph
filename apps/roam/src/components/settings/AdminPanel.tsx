@@ -311,7 +311,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
       });
       return;
     }
-    /* eslint-disable @typescript-eslint/naming-convention */
     const { access_token, refresh_token } = sessionData.data.session;
     const { data, error } = await client.rpc("create_secret_token", {
       v_payload: JSON.stringify({ access_token, refresh_token }),

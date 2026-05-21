@@ -1038,7 +1038,6 @@ const DiscourseRelationConfigPanel = ({
 
   const handleDelete = (rel: Relation) => {
     void deleteBlock(rel.uid).then(() => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/naming-convention
       const { [rel.uid]: _, ...remaining } = getGlobalSettings().Relations;
       setGlobalSetting([GLOBAL_KEYS.relations], remaining);
       setTimeout(() => {

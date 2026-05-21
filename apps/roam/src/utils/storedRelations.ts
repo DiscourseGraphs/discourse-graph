@@ -16,11 +16,10 @@ const setResolvedDefault = (value: boolean): void => {
 // page create date as the install cutoff because it reflects when DG was first
 // initialized in the graph.
 const getInstallDefault = (): boolean => {
-  const page = window.roamAlphaAPI.pull(
-    "[:create/time]",
-    [":node/title", DISCOURSE_CONFIG_PAGE_TITLE],
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-  ) as { ":create/time"?: number } | null;
+  const page = window.roamAlphaAPI.pull("[:create/time]", [
+    ":node/title",
+    DISCOURSE_CONFIG_PAGE_TITLE,
+  ]) as { ":create/time"?: number } | null;
   if (!page) return true; // handle case where config page doesn't exist yet, assume new install
 
   const createdAt = page[":create/time"];

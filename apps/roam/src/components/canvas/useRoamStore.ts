@@ -256,7 +256,6 @@ export const useRoamStore = ({
       });
     };
 
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     let _store: TLStore;
 
     try {

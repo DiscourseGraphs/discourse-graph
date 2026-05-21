@@ -20,7 +20,6 @@ export const initPostHog = (): void => {
     "$referrer",
     "$referring_domain",
   ]);
-  /* eslint-disable @typescript-eslint/naming-convention  */
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
     autocapture: false,
     disable_session_recording: true,

@@ -58,7 +58,6 @@ const isSmartBlockButtonRef = (text: string): boolean => {
   return isSmartBlockUid(extractRef(text));
 };
 
-/* eslint-disable @typescript-eslint/naming-convention */
 export const sectionsToBlockProps = (
   sections: LeftSidebarPersonalSectionConfig[],
 ) =>

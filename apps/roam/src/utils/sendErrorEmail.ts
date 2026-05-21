@@ -35,7 +35,6 @@ const sendErrorEmail = async ({
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),

@@ -38,7 +38,6 @@ type getExportTypesProps = {
   isExportDiscourseGraph: boolean;
 };
 
-/* eslint-disable @typescript-eslint/naming-convention */
 type RoamImportUser = {
   ":user/uid": string;
 };

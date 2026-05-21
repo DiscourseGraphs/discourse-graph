@@ -208,10 +208,8 @@ const BaseFlagPanel = ({
       if (checked) {
         if (blockUidRef.current) return;
         const newUid = window.roamAlphaAPI.util.generateUID();
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         await window.roamAlphaAPI.data.block.create({
           block: { string: title, uid: newUid },
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           location: { order, "parent-uid": parentUid },
         });
         blockUidRef.current = newUid;
@@ -398,7 +396,6 @@ const BaseMultiTextPanel = ({
     const newUid = window.roamAlphaAPI.util.generateUID();
     await window.roamAlphaAPI.createBlock({
       block: { string: title, uid: newUid },
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       location: { order, "parent-uid": parentUid },
     });
     blockUidRef.current = newUid;
@@ -421,7 +418,6 @@ const BaseMultiTextPanel = ({
           block: { string: trimmed, uid: valueUid },
           location: {
             order: childUidsRef.current.length,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             "parent-uid": parent,
           },
         });
@@ -432,7 +428,6 @@ const BaseMultiTextPanel = ({
   };
 
   const handleRemove = (index: number) => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const newValues = values.filter((_, i) => i !== index);
     setValues(newValues);
     onChange?.(newValues);
@@ -442,10 +437,7 @@ const BaseMultiTextPanel = ({
       if (removedUid) {
         void window.roamAlphaAPI.deleteBlock({ block: { uid: removedUid } });
       }
-      childUidsRef.current = childUidsRef.current.filter(
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        (_, i) => i !== index,
-      );
+      childUidsRef.current = childUidsRef.current.filter((_, i) => i !== index);
       refreshConfigTree();
     }
     setter(settingKeys, newValues);

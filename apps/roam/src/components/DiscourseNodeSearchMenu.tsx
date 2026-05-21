@@ -297,9 +297,7 @@ const NodeSearchMenu = ({
   const { ["block-uid"]: blockUid, ["window-id"]: windowId } = useMemo(
     () =>
       window.roamAlphaAPI.ui.getFocusedBlock() || {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         "block-uid": "",
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         "window-id": "",
       },
     [],
@@ -352,9 +350,7 @@ const NodeSearchMenu = ({
               if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
                 void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
                   location: {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     "block-uid": blockUid,
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     "window-id": windowId,
                   },
                   selection: { start: newCursorPosition },

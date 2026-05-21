@@ -244,7 +244,6 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
 const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
   const settings = getLeftSidebarSettings(discourseConfigRef.tree);
 
-  /* eslint-disable @typescript-eslint/naming-convention */
   return settings.personal.sections.map((section) => ({
     name: section.text,
     Children: (section.children || []).map((child) => ({
@@ -519,7 +518,6 @@ const getLegacyDiscourseNodeSetting = (
       c.children[0]?.text || "",
     ]),
   );
-  /* eslint-disable @typescript-eslint/naming-convention */
   const canvasSettings = {
     color: rawCanvas["color"] || "",
     alias: rawCanvas["alias"] || "",
@@ -701,7 +699,6 @@ export const LEGACY_SOURCED_FEATURE_FLAG_KEYS = [
   "Enable left sidebar",
 ] as const satisfies ReadonlyArray<keyof FeatureFlags>;
 
-/* eslint-disable @typescript-eslint/naming-convention */
 const FEATURE_FLAG_LEGACY_MAP: Record<
   (typeof LEGACY_SOURCED_FEATURE_FLAG_KEYS)[number],
   () => boolean
