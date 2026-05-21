@@ -14,6 +14,8 @@ const ANON_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
 const SERVICE_KEY = process.env.SUPABASE_SECRET_KEY!;
 const PASSWORD = "abcdefgh";
 
+type GroupSpaceInfo = Database["public"]["CompositeTypes"]["group_space_info"];
+
 const freshClient = (): DGSupabaseClient =>
   createClient<Database, "public">(SUPABASE_URL, ANON_KEY);
 
@@ -117,45 +119,28 @@ describe("list group members flow", { tags: ["database"] }, () => {
       });
     assert(!errorAddMember);
 
-    // Step 3: Mutual publish setup
-    const { error: errorPublishSpace1 } = await client1
-      .from("SpaceAccess")
-      .insert({
-        space_id: spaceId1, // eslint-disable-line @typescript-eslint/naming-convention
-        account_uid: groupId, // eslint-disable-line @typescript-eslint/naming-convention
-        permissions: "partial",
-      });
-    assert(!errorPublishSpace1);
-
-    const { error: errorPublishSpace2 } = await client2
-      .from("SpaceAccess")
-      .insert({
-        space_id: spaceId2, // eslint-disable-line @typescript-eslint/naming-convention
-        account_uid: groupId, // eslint-disable-line @typescript-eslint/naming-convention
-        permissions: "partial",
-      });
-    assert(!errorPublishSpace2);
-
     const expectedSpaceIds = [spaceId1, spaceId2];
-    // Step 4: user1 lists group members
+    // Step 3: user1 lists group members
     const { data: data1, error: error1 } = await client1.rpc(
       "spaces_in_group",
       {
         p_group_id: createdGroupId, // eslint-disable-line @typescript-eslint/naming-convention
       },
     );
+
     assert(error1 === null, error1 ? error1.message : "");
     assert(data1 !== null, "group spaces should not be empty");
     assert(data1.length === 2, "There should be two spaces");
-    const spacesSeenBy1 = new Set(
-      data1.map((gm) => gm.id).filter((id) => id !== null),
-    );
+    const spacesSeenBy1 = Object.fromEntries(
+      data1.filter((gm) => gm.id !== null).map((gm) => [gm.id, gm]),
+    ) as Record<number, GroupSpaceInfo>;
     assert(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expectedSpaceIds.every((id) => spacesSeenBy1.has(id)),
+      expectedSpaceIds.every((id) => spacesSeenBy1[id] !== undefined),
       "Wrong membership information",
     );
-    // Step 5: user2 lists group members
+    assert(Object.values(spacesSeenBy1).every((gm) => !gm.shared));
+    // Step 4: user2 lists group members
     const { data: data2, error: error2 } = await client2.rpc(
       "spaces_in_group",
       {
@@ -172,6 +157,34 @@ describe("list group members flow", { tags: ["database"] }, () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expectedSpaceIds.every((id) => spacesSeenBy2.has(id)),
       "Wrong membership information",
+    );
+
+    // Step 5: User 2 publishes a space
+    const { error: errorPublishSpace2 } = await client2
+      .from("SpaceAccess")
+      .insert({
+        space_id: spaceId2, // eslint-disable-line @typescript-eslint/naming-convention
+        account_uid: groupId, // eslint-disable-line @typescript-eslint/naming-convention
+        permissions: "partial",
+      });
+    assert(!errorPublishSpace2);
+    // Step 6: that space is now seen as published by 1.
+    const { data: data1b, error: error1b } = await client1.rpc(
+      "spaces_in_group",
+      {
+        p_group_id: createdGroupId, // eslint-disable-line @typescript-eslint/naming-convention
+      },
+    );
+
+    assert(error1b === null, error1b ? error1b.message : "");
+    assert(data1b !== null, "group spaces should not be empty");
+    assert(data1b.length === 2, "There should be two spaces");
+    const spacesSeenBy1b = Object.fromEntries(
+      data1b.filter((gm) => gm.id !== null).map((gm) => [gm.id, gm]),
+    ) as Record<number, GroupSpaceInfo>;
+    assert(
+      spacesSeenBy1b[spaceId2]?.shared,
+      "Second space should now be seen as shared",
     );
   });
 });

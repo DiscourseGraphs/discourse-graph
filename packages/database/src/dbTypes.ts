@@ -1324,7 +1324,9 @@ export type Database = {
         Row: {
           dg_account: string | null
           id: number | null
+          name: string | null
           platform: Database["public"]["Enums"]["Platform"] | null
+          shared: boolean | null
           space_id: number | null
         }
         Relationships: [
@@ -1983,6 +1985,7 @@ export type Database = {
         id: number | null
         name: string | null
         platform: Database["public"]["Enums"]["Platform"] | null
+        shared: boolean | null
         admin: boolean | null
       }
       inline_embedding_input: {
