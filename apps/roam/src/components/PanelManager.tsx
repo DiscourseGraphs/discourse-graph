@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
 import ReactDOM from "react-dom";
 import { Navbar, Alignment, Button } from "@blueprintjs/core";
 import { OnloadArgs } from "roamjs-components/types/native";
@@ -94,7 +100,7 @@ export const PanelContainer = (): React.ReactElement => {
 
   const [isMinimized, setIsMinimized] = useState(getGlobalIsMinimized());
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const { roamBodyMain, articleWrapper } = getRoamElements();
 
     if (roamBodyMain && articleWrapper && containerRef.current) {
