@@ -121,3 +121,30 @@ export const createGroup = async (
   );
   return result.data?.group_id || null;
 };
+
+export const removeFromGroup = async ({
+  client,
+  groupId,
+  memberId,
+}: {
+  client: DGSupabaseClient;
+  groupId: string;
+  memberId?: string;
+}): Promise<string | null> => {
+  if (memberId === undefined) {
+    const userData = await getSessionBaseUserData(client);
+    memberId = userData?.id ?? undefined;
+    if (memberId === undefined) return "Not logged in";
+  }
+  const response = await client
+    .from("group_membership")
+    .delete()
+    .eq("member_id", memberId)
+    .eq("group_id", groupId)
+    .select();
+  if (response.error) return response.error.message;
+  if (response.data === null || response.data.length === 0)
+    return "No such record";
+
+  return null; // success
+};
