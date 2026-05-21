@@ -70,7 +70,6 @@ export const initNodeSchemaCache = () => {
   });
 };
 
-/* eslint-disable @typescript-eslint/naming-convention */
 export type PDocument = Partial<Tables<"Document">>;
 export type PContent = Partial<Tables<"Content">> & {
   Document?: PDocument | null;
@@ -97,7 +96,6 @@ type DefaultQueryShape = {
   name: string;
   Content: { source_local_id: string };
 };
-/* eslint-enable @typescript-eslint/naming-convention */
 
 /**
  * Defines what type of concepts to query and any specific constraints.
@@ -137,8 +135,7 @@ export type NodeFilters = {
   author?: string;
 };
 
-type NodeFiltersDb = Omit<NodeFilters, "ofTypes"> & { ofTypes?: number[]};
-
+type NodeFiltersDb = Omit<NodeFilters, "ofTypes"> & { ofTypes?: number[] };
 
 /**
  * Filters for querying concepts based on their relationships.
@@ -171,7 +168,10 @@ export type RelationFilters = {
   author?: string;
 };
 
-export type RelationFiltersDb = Omit<RelationFilters, "ofTypes"|"toNodeTypes">&{ofTypes?: number[], toNodeTypes?: number[]};
+export type RelationFiltersDb = Omit<
+  RelationFilters,
+  "ofTypes" | "toNodeTypes"
+> & { ofTypes?: number[]; toNodeTypes?: number[] };
 
 /**
  * Controls which fields are returned in the response.
@@ -254,7 +254,10 @@ export type GetConceptsParams = {
   pagination?: PaginationOptions;
 };
 
-type GetConceptsParamsDb = Omit<GetConceptsParams, "scope"|"relations">&{scope?: NodeFiltersDb, relations?: RelationFiltersDb};
+type GetConceptsParamsDb = Omit<GetConceptsParams, "scope" | "relations"> & {
+  scope?: NodeFiltersDb;
+  relations?: RelationFiltersDb;
+};
 
 // Utility function to compose a generic query to fetch concepts, content and document.
 // Arguments are as in getConcepts, except we use numeric db ids of concepts for schemas instead
@@ -262,15 +265,15 @@ type GetConceptsParamsDb = Omit<GetConceptsParams, "scope"|"relations">&{scope?:
 const composeConceptQuery = ({
   supabase,
   spaceId,
-  scope= {
+  scope = {
     type: "nodes",
   },
-  relations= {},
-  fields= {
+  relations = {},
+  fields = {
     concepts: ["id", "name", "space_id"],
     content: ["source_local_id"],
   },
-  pagination= {
+  pagination = {
     offset: 0,
     limit: 100,
   },
@@ -290,7 +293,9 @@ const composeConceptQuery = ({
   if (ctArgs.length > 0) {
     const documentFields = fields.documents || [];
     if (documentFields.length > 0) {
-      ctArgs.push(`Document:my_documents!document_id${innerContent ? "!inner" : ""} (\n ${documentFields.join(",\n")} )`);
+      ctArgs.push(
+        `Document:my_documents!document_id${innerContent ? "!inner" : ""} (\n ${documentFields.join(",\n")} )`,
+      );
     }
     q += `,\nContent:content_of_concept${innerContent ? "!inner" : ""} (\n${ctArgs.join(",\n")})`;
   }
@@ -327,7 +332,7 @@ const composeConceptQuery = ({
   let query = supabase.from("my_concepts").select(q);
   if (scope.type === "nodes") {
     query = query.eq("arity", 0);
-  } else if (scope.type === 'relations') {
+  } else if (scope.type === "relations") {
     query = query.gt("arity", 0);
   }
   // else fetch both
@@ -344,28 +349,24 @@ const composeConceptQuery = ({
     if (schemaDbIds.length > 0) {
       if (schemaDbIds.length === 1)
         query = query.eq("schema_id", schemaDbIds[0]!);
-      else
-        query = query.in("schema_id", schemaDbIds);
+      else query = query.in("schema_id", schemaDbIds);
     }
     // else we'll get all nodes
   }
   if (baseNodeLocalIds.length > 0) {
     if (baseNodeLocalIds.length === 1)
       query = query.eq("Content.source_local_id", baseNodeLocalIds[0]!);
-    else
-      query = query.in("Content.source_local_id", baseNodeLocalIds);
+    else query = query.in("Content.source_local_id", baseNodeLocalIds);
   }
   if (inRelsOfType !== undefined && inRelsOfType.length > 0) {
     if (inRelsOfType.length === 1)
       query = query.eq("relations.schema_id", inRelsOfType[0]!);
-    else
-      query = query.in("relations.schema_id", inRelsOfType);
+    else query = query.in("relations.schema_id", inRelsOfType);
   }
   if (inRelsToNodesOfType !== undefined && inRelsToNodesOfType.length > 0) {
     if (inRelsToNodesOfType.length === 1)
       query = query.eq("relations.subnodes.schema_id", inRelsToNodesOfType[0]!);
-    else
-      query = query.in("relations.subnodes.schema_id", inRelsToNodesOfType);
+    else query = query.in("relations.subnodes.schema_id", inRelsToNodesOfType);
   }
   if (inRelsToNodesOfAuthor !== undefined) {
     query = query.eq(
@@ -410,7 +411,11 @@ export const getSchemaConcepts = async (
     .filter((x) => typeof x === "object")
     .filter((x) => x.spaceId === spaceId || x.spaceId === 0);
   if (forceCacheReload || result.length === 1) {
-    const q = composeConceptQuery({ supabase, spaceId, scope: {type:"all", schemas: true} });
+    const q = composeConceptQuery({
+      supabase,
+      spaceId,
+      scope: { type: "all", schemas: true },
+    });
     const res = (await q) as PostgrestResponse<DefaultQueryShape>;
     if (res.error) {
       console.error("getSchemaConcepts failed", res.error);
@@ -467,7 +472,11 @@ const getLocalToDbIdMapping = async (
       console.warn("Cannot populate cache without spaceId");
       return dbIds;
     }
-    let q = composeConceptQuery({ supabase, spaceId, scope: {type:"all", schemas: true} });
+    let q = composeConceptQuery({
+      supabase,
+      spaceId,
+      scope: { type: "all", schemas: true },
+    });
     if (Object.keys(NODE_SCHEMA_CACHE).length > 1) {
       // Non-empty cache, query selectively
       q = q
@@ -768,7 +777,7 @@ export const getNodesOfTypeWithRelations = async ({
   return getConcepts({
     supabase,
     spaceId,
-    scope: { type:"nodes", ofTypes, }, // we still start from the node
+    scope: { type: "nodes", ofTypes }, // we still start from the node
     relations: {
       ofTypes: relationTypes,
       author: nodeAuthoredBy,
@@ -832,7 +841,6 @@ export const getDiscourseContext = async ({
   });
 };
 
-
 // instrumentation for benchmarking
 export const LAST_QUERY_DATA = { duration: 0 };
 
@@ -879,25 +887,23 @@ export const LAST_QUERY_DATA = { duration: 0 };
  * });
  * ```
  */
-export const getConcepts = async (
-  {
-    supabase,
-    spaceId,
-    scope= {
-      type: "nodes",
-    },
-    relations= {},
-    fields= {
-      concepts: CONCEPT_FIELDS,
-      content: CONTENT_FIELDS,
-      documents: DOCUMENT_FIELDS
-    },
-    pagination= {
-      offset: 0,
-      limit: 100,
-    },
-  }: GetConceptsParams
-): Promise<PConceptFull[]> => {
+export const getConcepts = async ({
+  supabase,
+  spaceId,
+  scope = {
+    type: "nodes",
+  },
+  relations = {},
+  fields = {
+    concepts: CONCEPT_FIELDS,
+    content: CONTENT_FIELDS,
+    documents: DOCUMENT_FIELDS,
+  },
+  pagination = {
+    offset: 0,
+    limit: 100,
+  },
+}: GetConceptsParams): Promise<PConceptFull[]> => {
   // translate schema local content Ids to concept database Ids.
   const localSchemaIds = new Set<string>();
   (scope.ofTypes || []).map((k) => localSchemaIds.add(k));
@@ -926,15 +932,15 @@ export const getConcepts = async (
     spaceId,
     scope: {
       ...scope,
-      ofTypes: localToDbArray(scope.ofTypes)
+      ofTypes: localToDbArray(scope.ofTypes),
     },
     relations: {
       ...relations,
       ofTypes: localToDbArray(relations.ofTypes),
-      toNodeTypes: localToDbArray(relations.toNodeTypes)
+      toNodeTypes: localToDbArray(relations.toNodeTypes),
     },
     fields,
-    pagination
+    pagination,
   });
   const before = Date.now();
   const { error, data } = (await q) as PostgrestResponse<PConceptFull>;
