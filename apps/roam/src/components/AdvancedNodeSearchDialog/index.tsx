@@ -33,6 +33,7 @@ import {
   splitWithHighlights,
   stripTypePrefix,
 } from "./utils";
+import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 
 type Props = Record<string, unknown>;
@@ -144,21 +145,20 @@ const AdvancedNodeSearchDialog = ({
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [indexError, setIndexError] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [discourseNodes, setDiscourseNodes] = useState<DiscourseNode[]>([]);
+  const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
+  const [isTypeFilterPopoverOpen, setIsTypeFilterPopoverOpen] = useState(false);
   const miniSearchRef = useRef<MiniSearch<
     SearchResult & { id: string }
   > | null>(null);
-  const allResultsRef = useRef<SearchResult[]>([]);
+  const resultsByUidRef = useRef<Map<string, SearchResult>>(new Map());
   const resultsPanelRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const nodeConfigByType = useMemo(() => {
-    const discourseNodes = getDiscourseNodes().filter(
-      (node) => node.backedBy === "user",
-    );
-    return Object.fromEntries(
-      discourseNodes.map((node) => [node.type, node]),
-    ) as Record<string, DiscourseNode>;
-  }, []);
+  const nodeConfigByType = useMemo(
+    () => Object.fromEntries(discourseNodes.map((node) => [node.type, node])),
+    [discourseNodes],
+  );
 
   const results =
     isOpen &&
@@ -168,8 +168,11 @@ const AdvancedNodeSearchDialog = ({
     miniSearchRef.current
       ? searchIndexedNodes({
           miniSearch: miniSearchRef.current,
-          allResults: allResultsRef.current,
+          resultsByUid: resultsByUidRef.current,
           searchTerm: debouncedSearchTerm,
+          typeFilter: selectedNodeTypeIds.length
+            ? selectedNodeTypeIds
+            : undefined,
         })
       : [];
 
@@ -196,15 +199,18 @@ const AdvancedNodeSearchDialog = ({
     setIsIndexLoading(true);
     setIndexError(false);
 
-    const discourseNodes = getDiscourseNodes().filter(
+    const userDiscourseNodes = getDiscourseNodes().filter(
       (node) => node.backedBy === "user",
     );
+    setDiscourseNodes(userDiscourseNodes);
 
-    void buildSearchIndex(discourseNodes)
+    void buildSearchIndex(userDiscourseNodes)
       .then(({ miniSearch, results: indexedResults }) => {
         if (cancelled) return;
         miniSearchRef.current = miniSearch;
-        allResultsRef.current = indexedResults;
+        resultsByUidRef.current = new Map(
+          indexedResults.map((result) => [result.uid, result]),
+        );
       })
       .catch((error) => {
         console.error("Error building advanced node search index:", error);
@@ -235,7 +241,7 @@ const AdvancedNodeSearchDialog = ({
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchTerm, selectedNodeTypeIds]);
 
   useEffect(() => {
     const panel = resultsPanelRef.current;
@@ -254,11 +260,12 @@ const AdvancedNodeSearchDialog = ({
         event.preventDefault();
         setActiveIndex((index) => Math.max(index - 1, 0));
       } else if (event.key === "Escape") {
+        if (isTypeFilterPopoverOpen) return;
         event.preventDefault();
         onClose();
       }
     },
-    [onClose, results.length],
+    [isTypeFilterPopoverOpen, onClose, results.length],
   );
 
   const contentState = indexError
@@ -276,7 +283,7 @@ const AdvancedNodeSearchDialog = ({
   return (
     <Dialog
       autoFocus={false}
-      canEscapeKeyClose
+      canEscapeKeyClose={!isTypeFilterPopoverOpen}
       canOutsideClickClose
       className="flex max-w-4xl flex-col overflow-hidden bg-white p-0"
       enforceFocus={false}
@@ -304,6 +311,12 @@ const AdvancedNodeSearchDialog = ({
             }
             placeholder="Search discourse nodes..."
             value={searchTerm}
+          />
+          <DiscourseNodeTypeFilter
+            nodeTypes={discourseNodes}
+            onPopoverOpenChange={setIsTypeFilterPopoverOpen}
+            onSelectedTypeIdsChange={setSelectedNodeTypeIds}
+            selectedTypeIds={selectedNodeTypeIds}
           />
           <Button icon="cross" minimal onClick={onClose} title="Close search" />
         </div>
