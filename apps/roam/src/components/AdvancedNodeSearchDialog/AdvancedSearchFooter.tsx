@@ -1,4 +1,5 @@
 import React from "react";
+import { Icon, type IconName } from "@blueprintjs/core";
 import type { InsertTarget } from "~/utils/advancedSearchFooterUtils";
 
 export type AdvancedSearchContentState =
@@ -18,21 +19,21 @@ export type AdvancedSearchFooterProps = {
 };
 
 const footerKbdClassName =
-  "rounded border border-gray-300 bg-white px-1.5 py-0.5 font-mono text-xs text-gray-600";
+  "inline-flex items-center justify-center rounded border border-gray-300 bg-white px-1 py-0.5 text-gray-600";
 
 const footerLabelClassName =
   "inline-flex shrink-0 items-center gap-1 text-xs lowercase text-gray-500";
 
 type FooterShortcutHintProps = {
   disabled?: boolean;
-  keys: string[];
+  keyIcons: IconName[];
   label: string;
   onClick?: () => void;
 };
 
 export const FooterShortcutHint = ({
   disabled = false,
-  keys,
+  keyIcons,
   label,
   onClick,
 }: FooterShortcutHintProps) => (
@@ -43,9 +44,9 @@ export const FooterShortcutHint = ({
     type="button"
   >
     <span className={footerLabelClassName}>
-      {keys.map((key) => (
-        <kbd className={footerKbdClassName} key={key}>
-          {key}
+      {keyIcons.map((icon) => (
+        <kbd className={footerKbdClassName} key={icon}>
+          <Icon icon={icon} iconSize={12} />
         </kbd>
       ))}
       {label}
@@ -62,7 +63,7 @@ export const OpenFooterAction = ({
 }) => (
   <FooterShortcutHint
     disabled={disabled}
-    keys={["↵"]}
+    keyIcons={["key-enter"]}
     label="open"
     onClick={() => void onOpen()}
   />
@@ -77,7 +78,7 @@ export const OpenInSidebarFooterAction = ({
 }) => (
   <FooterShortcutHint
     disabled={disabled}
-    keys={["⇧", "↵"]}
+    keyIcons={["key-shift", "key-enter"]}
     label="sidebar"
     onClick={() => void onOpenInSidebar()}
   />
@@ -92,7 +93,7 @@ export const InsertFooterAction = ({
 }) => (
   <FooterShortcutHint
     disabled={disabled}
-    keys={["⌘", "↵"]}
+    keyIcons={["key-command", "key-enter"]}
     label="insert"
     onClick={() => void onInsert()}
   />
@@ -100,7 +101,9 @@ export const InsertFooterAction = ({
 
 const CloseFooterHint = () => (
   <span className={footerLabelClassName}>
-    <kbd className={footerKbdClassName}>esc</kbd>
+    <kbd className={footerKbdClassName}>
+      <Icon icon="key-escape" iconSize={12} />
+    </kbd>
     close
   </span>
 );
