@@ -169,9 +169,8 @@ const AdvancedNodeSearchDialog = ({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [insertTarget, setInsertTarget] = useState<InsertTarget | null>(null);
 
-  const nodeConfigByType = useMemo(
-    () => Object.fromEntries(discourseNodes.map((node) => [node.type, node])),
-    [discourseNodes],
+  const nodeConfigByType = Object.fromEntries(
+    discourseNodes.map((node) => [node.type, node]),
   );
 
   const activeResult = results[activeIndex] ?? null;
@@ -242,12 +241,12 @@ const AdvancedNodeSearchDialog = ({
     setIsIndexLoading(true);
     setIndexError(false);
 
-    const userDiscourseNodes = getDiscourseNodes().filter(
+    const discourseNodes = getDiscourseNodes().filter(
       (node) => node.backedBy === "user",
     );
-    setDiscourseNodes(userDiscourseNodes);
+    setDiscourseNodes(discourseNodes);
 
-    void buildSearchIndex(userDiscourseNodes)
+    void buildSearchIndex(discourseNodes)
       .then(({ miniSearch, results: indexedResults }) => {
         if (cancelled) return;
         miniSearchRef.current = miniSearch;

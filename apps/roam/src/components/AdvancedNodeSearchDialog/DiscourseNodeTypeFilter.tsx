@@ -27,34 +27,6 @@ export type DiscourseNodeTypeFilterProps = {
   onPopoverOpenChange?: (isOpen: boolean) => void;
 };
 
-const useCloseOnClickOutside = ({
-  isOpen,
-  onClose,
-  popoverRef,
-  targetRef,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  popoverRef: RefObject<HTMLElement | null>;
-  targetRef: RefObject<HTMLElement>;
-}): void => {
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleMouseDown = (event: MouseEvent): void => {
-      const clickTarget = event.target;
-      if (!(clickTarget instanceof Element)) return;
-      if (popoverRef.current?.contains(clickTarget)) return;
-      if (targetRef.current?.contains(clickTarget)) return;
-      onClose();
-    };
-
-    document.addEventListener("mousedown", handleMouseDown, true);
-    return () =>
-      document.removeEventListener("mousedown", handleMouseDown, true);
-  }, [isOpen, onClose, popoverRef, targetRef]);
-};
-
 const getNodeIndicatorColor = (node: DiscourseNode): string =>
   formatHexColor(node.canvasSettings?.color) || "#000";
 
@@ -285,13 +257,6 @@ export const DiscourseNodeTypeFilter = ({
     setPopoverOpen(false);
   }, [setPopoverOpen]);
 
-  useCloseOnClickOutside({
-    isOpen,
-    onClose: closePopover,
-    popoverRef,
-    targetRef: triggerRef,
-  });
-
   const handlePopoverInteraction = useCallback(
     (nextOpen: boolean, event?: React.SyntheticEvent<HTMLElement>): void => {
       if (!isFilterReady) return;
@@ -369,36 +334,34 @@ export const DiscourseNodeTypeFilter = ({
   }
 
   return (
-    <span className="inline-flex shrink-0 [&_.bp3-popover-wrapper]:shrink-0">
-      <Popover
-        autoFocus={false}
-        canEscapeKeyClose
-        content={
-          <FilterPopoverPanel
-            isOpen={isOpen}
-            nodeTypes={nodeTypes}
-            onSelectedIdsChange={handlePopoverSelectedIdsChange}
-            selectedIds={popoverSelectedIds}
-          />
-        }
-        enforceFocus={false}
-        isOpen={isOpen}
-        minimal
-        modifiers={{
-          flip: { enabled: true },
-          preventOverflow: {
-            enabled: true,
-            boundariesElement: "viewport",
-          },
-        }}
-        onClose={closePopover}
-        onInteraction={handlePopoverInteraction}
-        popoverClassName="p-0 overflow-hidden"
-        popoverRef={popoverRef}
-        position={Position.BOTTOM_RIGHT}
-        target={filterButton}
-        usePortal
-      />
-    </span>
+    <Popover
+      autoFocus={false}
+      canEscapeKeyClose
+      content={
+        <FilterPopoverPanel
+          isOpen={isOpen}
+          nodeTypes={nodeTypes}
+          onSelectedIdsChange={handlePopoverSelectedIdsChange}
+          selectedIds={popoverSelectedIds}
+        />
+      }
+      enforceFocus={false}
+      isOpen={isOpen}
+      minimal
+      modifiers={{
+        flip: { enabled: true },
+        preventOverflow: {
+          enabled: true,
+          boundariesElement: "viewport",
+        },
+      }}
+      onClose={closePopover}
+      onInteraction={handlePopoverInteraction}
+      popoverClassName="p-0 overflow-hidden"
+      popoverRef={popoverRef}
+      position={Position.BOTTOM_RIGHT}
+      target={filterButton}
+      usePortal
+    />
   );
 };
