@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { Notice, TFile } from "obsidian";
 import { addFile } from "@repo/database/lib/files";
 import mime from "mime-types";

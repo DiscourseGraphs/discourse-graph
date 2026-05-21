@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import type DiscourseGraphPlugin from "~/index";
 import type { ImportableNode } from "~/types";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";

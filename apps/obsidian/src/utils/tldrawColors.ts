@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 /**
  * Tldraw color names that can be used for relation types.
  * These match the defaultColorNames from tldraw's TLColorStyle.
