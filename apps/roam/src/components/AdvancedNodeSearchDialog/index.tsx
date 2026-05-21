@@ -23,8 +23,6 @@ import renderOverlay, {
 } from "roamjs-components/util/renderOverlay";
 import {
   insertPageRefAtRange,
-  openActiveSearchResultInMainPanel,
-  openActiveSearchResultInSidebar,
   snapshotInsertTarget,
   type InsertTarget,
 } from "~/utils/advancedSearchFooterUtils";
@@ -274,14 +272,26 @@ const AdvancedNodeSearchDialog = ({
   const onOpen = useCallback(async () => {
     if (!activeResult || contentState !== "results") return;
 
-    await openActiveSearchResultInMainPanel({ uid: activeResult.uid });
+    const { uid } = activeResult;
+    if (getPageTitleByPageUid(uid)) {
+      await window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
+    } else {
+      await window.roamAlphaAPI.ui.mainWindow.openBlock({ block: { uid } });
+    }
     onClose();
   }, [activeResult, contentState, onClose]);
 
   const onOpenInSidebar = useCallback(async () => {
     if (!activeResult || contentState !== "results") return;
 
-    await openActiveSearchResultInSidebar({ uid: activeResult.uid });
+    await window.roamAlphaAPI.ui.rightSidebar.addWindow({
+      window: {
+        type: "outline",
+        // @ts-expect-error - block-uid is valid for outline sidebar windows
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "block-uid": activeResult.uid,
+      },
+    });
     onClose();
   }, [activeResult, contentState, onClose]);
 
