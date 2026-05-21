@@ -44,7 +44,6 @@
     "react-dom": "catalog:",
     "relational-text": "0.1.1",
     "resend": "^4.0.1",
-    "showdown": "^2.1.0",
     "sonner": "^2.0.7",
     "zod": "^3.24.1"
   },
