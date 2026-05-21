@@ -1,0 +1,48 @@
+import { updateBlock } from "roamjs-components/writes";
+import { renderCanvasEmbedDialog } from "~/components/canvas/CanvasEmbedDialog";
+
+type SlashCommandContext = {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  "block-uid": string;
+};
+
+type SlashCommandApi = {
+  addCommand: (cmd: {
+    label: string;
+    callback: (context: SlashCommandContext) => void;
+  }) => void;
+  removeCommand: (cmd: { label: string }) => void;
+};
+
+const getSlashCommandApi = (): SlashCommandApi =>
+  (window.roamAlphaAPI.ui as unknown as { slashCommand: SlashCommandApi })
+    .slashCommand;
+
+const SLASH_COMMANDS: {
+  label: string;
+  callback: (context: SlashCommandContext) => void;
+}[] = [
+  {
+    label: "DG: Embed canvas",
+    callback: (context) => {
+      const uid = context["block-uid"];
+      if (!uid) return;
+      renderCanvasEmbedDialog({
+        onSelect: (title: string) => {
+          void updateBlock({
+            uid,
+            text: `{{dg-canvas: [[${title}]]}}`,
+          });
+        },
+      });
+    },
+  },
+];
+
+export const registerSlashCommands = (): (() => void) => {
+  const api = getSlashCommandApi();
+  for (const cmd of SLASH_COMMANDS) api.addCommand(cmd);
+  return () => {
+    for (const { label } of SLASH_COMMANDS) api.removeCommand({ label });
+  };
+};
