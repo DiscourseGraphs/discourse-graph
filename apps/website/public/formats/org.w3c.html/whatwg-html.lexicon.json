@@ -1,0 +1,420 @@
+{
+  "$type": "org.relationaltext.format-lexicon",
+  "id": "org.w3c.html.facet",
+  "specUrl": "https://html.spec.whatwg.org/",
+  "features": [
+    {
+      "typeId": "org.w3c.html.facet#strong",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#b",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#em",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#i",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#strike",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#s",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#code",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#u",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#sup",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#sub",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#kbd",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#mark",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#abbr",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#q",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#small",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#ins",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#del",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#cite",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#dfn",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#time",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#var",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#samp",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#span",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#bdi",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#bdo",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#ruby",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#rt",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#rp",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#data",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "org.w3c.html.facet#wbr",
+      "featureClass": "entity",
+      "void": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#ul",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#ol",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#dl",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#blockquote",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#pre",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#div",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#section",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#article",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#nav",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#aside",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#header",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#footer",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#main",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#figure",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#details",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#table",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#thead",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#tbody",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#tfoot",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#tr",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#caption",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#colgroup",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#col",
+      "featureClass": "block",
+      "void": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#form",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#fieldset",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#legend",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#dialog",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#menu",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#search",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#hgroup",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#p",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#h1",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#h2",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#h3",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#h4",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#h5",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#h6",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#li",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#hr",
+      "featureClass": "block",
+      "void": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#dt",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#dd",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#address",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#summary",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#figcaption",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#a",
+      "featureClass": "entity"
+    },
+    {
+      "typeId": "org.w3c.html.facet#br",
+      "featureClass": "entity",
+      "void": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#img",
+      "featureClass": "entity",
+      "void": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#iframe",
+      "featureClass": "block",
+      "void": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#th",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#td",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "org.w3c.html.facet#comment",
+      "featureClass": "comment"
+    },
+    {
+      "typeId": "org.w3c.html.facet#raw",
+      "featureClass": "block",
+      "void": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#raw-inline",
+      "featureClass": "entity",
+      "void": true
+    },
+    {
+      "typeId": "org.w3c.html.facet#text",
+      "featureClass": "block"
+    }
+  ],
+  "wasmLens": {
+    "$type": "org.relationaltext.lens",
+    "id": "org.w3c.html.facet.wasm.v1",
+    "source": "raw:org.w3c.html.facet",
+    "target": "org.w3c.html.facet",
+    "wasmModule": {
+      "data": "",
+      "importFn": "import_html",
+      "exportFn": "export_html"
+    }
+  }
+}
