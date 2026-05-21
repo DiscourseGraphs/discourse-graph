@@ -1,0 +1,117 @@
+{
+  "$type": "org.relationaltext.format-lexicon",
+  "id": "md.obsidian.facet",
+  "specUrl": "https://help.obsidian.md/Editing+and+formatting/Basic+formatting+syntax",
+  "implicitBlockType": "paragraph",
+  "features": [
+    {
+      "typeId": "md.obsidian.facet#strong",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "md.obsidian.facet#emphasis",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "md.obsidian.facet#strikethrough",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "md.obsidian.facet#highlight",
+      "featureClass": "inline",
+      "expandStart": true,
+      "expandEnd": true
+    },
+    {
+      "typeId": "md.obsidian.facet#code-span",
+      "featureClass": "inline",
+      "expandStart": false,
+      "expandEnd": false
+    },
+    {
+      "typeId": "md.obsidian.facet#html-inline",
+      "featureClass": "entity"
+    },
+    {
+      "typeId": "md.obsidian.facet#link",
+      "featureClass": "entity"
+    },
+    {
+      "typeId": "md.obsidian.facet#image",
+      "featureClass": "entity"
+    },
+    {
+      "typeId": "md.obsidian.facet#wikilink",
+      "featureClass": "entity"
+    },
+    {
+      "typeId": "md.obsidian.facet#tag",
+      "featureClass": "entity"
+    },
+    {
+      "typeId": "md.obsidian.facet#line-break",
+      "featureClass": "entity"
+    },
+    {
+      "typeId": "md.obsidian.facet#paragraph",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "md.obsidian.facet#heading",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "md.obsidian.facet#code-block",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "md.obsidian.facet#blockquote-marker",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "md.obsidian.facet#bullet-list-marker",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "md.obsidian.facet#ordered-list-marker",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "md.obsidian.facet#list-item-marker",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "md.obsidian.facet#list-item-text",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "md.obsidian.facet#horizontal-rule",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "md.obsidian.facet#html-block",
+      "featureClass": "block"
+    },
+    {
+      "typeId": "md.obsidian.facet#callout",
+      "featureClass": "block"
+    }
+  ],
+  "wasmLens": {
+    "$type": "org.relationaltext.lens",
+    "id": "md.obsidian.facet.wasm.v1",
+    "source": "raw:md.obsidian.facet",
+    "target": "md.obsidian.facet",
+    "wasmModule": {
+      "data": "",
+      "importFn": "import_obsidian",
+      "exportFn": "export_obsidian"
+    }
+  }
+}
