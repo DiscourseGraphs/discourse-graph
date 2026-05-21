@@ -108,8 +108,7 @@ export const setupSplitView = (
   articleWrapper: HTMLElement,
 ): void => {
   applyWithoutTransition(articleWrapper, () => {
-    roamBodyMain.style.display = "flex";
-    roamBodyMain.style.gap = "1.5rem";
+    roamBodyMain.classList.add("flex", "gap-6");
     roamBodyMain.dataset.isSplit = "true";
     updateArticleWrapperPadding(articleWrapper);
   });
@@ -124,8 +123,7 @@ export const teardownSplitView = (
 ): void => {
   applyWithoutTransition(articleWrapper, () => {
     roamBodyMain.removeAttribute("data-is-split");
-    roamBodyMain.style.display = "";
-    roamBodyMain.style.gap = "";
+    roamBodyMain.classList.remove("flex", "gap-6");
     articleWrapper.style.flex = "";
     resetArticleWrapperPadding(articleWrapper);
   });
