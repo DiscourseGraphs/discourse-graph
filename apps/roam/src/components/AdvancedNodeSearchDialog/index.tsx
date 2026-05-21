@@ -147,6 +147,7 @@ const AdvancedNodeSearchDialog = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const [discourseNodes, setDiscourseNodes] = useState<DiscourseNode[]>([]);
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
+  const [isTypeFilterPopoverOpen, setIsTypeFilterPopoverOpen] = useState(false);
   const miniSearchRef = useRef<MiniSearch<
     SearchResult & { id: string }
   > | null>(null);
@@ -259,11 +260,12 @@ const AdvancedNodeSearchDialog = ({
         event.preventDefault();
         setActiveIndex((index) => Math.max(index - 1, 0));
       } else if (event.key === "Escape") {
+        if (isTypeFilterPopoverOpen) return;
         event.preventDefault();
         onClose();
       }
     },
-    [onClose, results.length],
+    [isTypeFilterPopoverOpen, onClose, results.length],
   );
 
   const contentState = indexError
@@ -281,7 +283,7 @@ const AdvancedNodeSearchDialog = ({
   return (
     <Dialog
       autoFocus={false}
-      canEscapeKeyClose
+      canEscapeKeyClose={!isTypeFilterPopoverOpen}
       canOutsideClickClose
       className="flex max-w-4xl flex-col overflow-hidden bg-white p-0"
       enforceFocus={false}
@@ -312,6 +314,7 @@ const AdvancedNodeSearchDialog = ({
           />
           <DiscourseNodeTypeFilter
             nodeTypes={discourseNodes}
+            onPopoverOpenChange={setIsTypeFilterPopoverOpen}
             onSelectedTypeIdsChange={setSelectedNodeTypeIds}
             selectedTypeIds={selectedNodeTypeIds}
           />
