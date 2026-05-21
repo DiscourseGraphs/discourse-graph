@@ -24,6 +24,10 @@ import {
 } from "~/utils/getExportSettings";
 import { getSuggestiveModeConfigAndUids } from "~/utils/getSuggestiveModeConfigSettings";
 import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
+import {
+  getDiscourseNodeTypeCacheVersion,
+  invalidateDiscourseNodeTypeCaches,
+} from "~/utils/discourseNodeTypeCache";
 
 import {
   DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
@@ -767,6 +771,10 @@ export const setFeatureFlag = (
     keys: [STATIC_TOP_LEVEL_ENTRIES.featureFlags.key, key],
     value: validatedValue,
   });
+
+  if (key === "Use new settings store") {
+    invalidateDiscourseNodeTypeCaches();
+  }
 };
 
 export const getGlobalSettings = (): GlobalSettings => {
@@ -1023,6 +1031,7 @@ export const setDiscourseNodeSetting = (
   }
 
   setBlockPropAtPath(pageUid, keys, value);
+  invalidateDiscourseNodeTypeCaches();
 };
 
 const addConditionUids = (conditions: SchemaCondition[]): Condition[] =>
@@ -1131,7 +1140,17 @@ const migrateNodeBlockProps = (
   return migrated;
 };
 
+let allDiscourseNodesCache: {
+  version: number;
+  nodes: DiscourseNode[];
+} | null = null;
+
 export const getAllDiscourseNodes = (): DiscourseNode[] => {
+  const cacheVersion = getDiscourseNodeTypeCacheVersion();
+  if (allDiscourseNodesCache?.version === cacheVersion) {
+    return allDiscourseNodesCache.nodes;
+  }
+
   const results = window.roamAlphaAPI.data.fast.q(`
     [:find ?uid ?title (pull ?page [:block/props])
      :where
@@ -1191,5 +1210,6 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
     }
   }
 
+  allDiscourseNodesCache = { version: cacheVersion, nodes };
   return nodes;
 };
