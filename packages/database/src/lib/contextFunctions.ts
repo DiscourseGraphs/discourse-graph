@@ -159,9 +159,12 @@ export const fetchOrCreateSpaceDirect = async (
     });
 
   if (result2.data === null) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     let error: string = (result2.error?.message as string | undefined) || "";
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (result2.error?.context?.body)
       try {
+        // eslint-disable-next-line
         error += await new Response(result2.error.context.body).text();
       } catch (err) {
         // could not parse, not important

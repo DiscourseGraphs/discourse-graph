@@ -35,6 +35,7 @@ export const addFile = async ({
     const uploadResult = await client.storage
       .from(ASSETS_BUCKET_NAME)
       .upload(hashvalue, content, { contentType: mimetype });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (
       uploadResult.error &&
       String((uploadResult.error as Record<string, any>).statusCode) !== "409"
