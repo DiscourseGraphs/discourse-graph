@@ -275,11 +275,6 @@ const AdvancedNodeSearchDialog = ({
     if (!activeResult || contentState !== "results") return;
 
     await openActiveSearchResultInMainPanel({ uid: activeResult.uid });
-    posthog.capture("Advanced Node Search: Open", {
-      uid: activeResult.uid,
-      target: "main",
-      isPage: !!getPageTitleByPageUid(activeResult.uid),
-    });
     onClose();
   }, [activeResult, contentState, onClose]);
 
@@ -287,11 +282,6 @@ const AdvancedNodeSearchDialog = ({
     if (!activeResult || contentState !== "results") return;
 
     await openActiveSearchResultInSidebar({ uid: activeResult.uid });
-    posthog.capture("Advanced Node Search: Open", {
-      uid: activeResult.uid,
-      target: "sidebar",
-      isPage: !!getPageTitleByPageUid(activeResult.uid),
-    });
     onClose();
   }, [activeResult, contentState, onClose]);
 

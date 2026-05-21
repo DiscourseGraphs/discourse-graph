@@ -152,34 +152,6 @@ export const insertPageRefAtRange = async ({
   restoreBlockFocus({ blockUid, newCursorPosition, windowId });
 };
 
-export const insertPageLinkAtCursor = async ({
-  pageTitle,
-  snapshot,
-}: {
-  pageTitle: string;
-  snapshot: InsertTarget | null;
-}): Promise<boolean> => {
-  const target = snapshot?.blockUid ? snapshot : insertTargetFromFocusedBlock();
-  if (!target) return false;
-
-  const { blockUid, windowId } = target;
-  const textarea = findBlockTextarea(blockUid);
-  const { selectionEnd, selectionStart } = getBlockSelection(blockUid);
-
-  if (textarea && document.activeElement === textarea) {
-    textarea.blur();
-  }
-
-  await insertPageRefAtRange({
-    blockUid,
-    pageTitle,
-    selectionEnd,
-    selectionStart,
-    windowId,
-  });
-  return true;
-};
-
 export const openActiveSearchResultInMainPanel = async ({
   uid,
 }: {
