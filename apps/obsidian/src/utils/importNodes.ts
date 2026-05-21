@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import type { Json } from "@repo/database/dbTypes";
 import matter from "gray-matter";
 import { App, Notice, TFile } from "obsidian";

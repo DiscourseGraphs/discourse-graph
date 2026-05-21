@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/naming-convention */
 import { App, Editor, Notice, MarkdownView, TFile } from "obsidian";
 import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";

@@ -341,7 +341,6 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
 
   resolve = async (
     asset: TLAsset,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     _ctx: TLAssetContext,
   ): Promise<string | null> => {
     try {

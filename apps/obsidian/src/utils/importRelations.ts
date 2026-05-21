@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import type { Json } from "@repo/database/dbTypes";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { uuidv7 } from "uuidv7";

@@ -13,7 +13,6 @@ https://github.com/tldraw/tldraw/tree/main/packages/tldraw/src/lib/shapes/arrow
 /* eslint-disable max-params */
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable preferArrows/prefer-arrow-functions */
-/* eslint-disable @typescript-eslint/naming-convention */
 
 import React, { useRef, useEffect, useState } from "react";
 import {
