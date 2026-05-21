@@ -183,10 +183,7 @@ const AdvancedNodeSearchDialog = ({
 
   const activeResult = results[activeIndex] ?? null;
 
-  const keywords = useMemo(
-    () => debouncedSearchTerm.split(/\s+/).filter(Boolean),
-    [debouncedSearchTerm],
-  );
+  const keywords = debouncedSearchTerm.split(/\s+/).filter(Boolean);
 
   useEffect(() => {
     if (!isOpen) return;

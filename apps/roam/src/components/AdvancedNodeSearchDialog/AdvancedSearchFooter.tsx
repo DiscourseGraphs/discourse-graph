@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "@blueprintjs/core";
 import type { InsertTarget } from "~/utils/advancedSearchFooterUtils";
 
 export type AdvancedSearchContentState =
@@ -34,11 +35,12 @@ export const FooterShortcutHint = ({
   label,
   onClick,
 }: FooterShortcutHintProps) => (
-  <button
-    className="inline-flex cursor-pointer items-center gap-2 border-0 bg-transparent p-0 disabled:cursor-not-allowed disabled:opacity-50"
+  <Button
+    className="inline-flex !min-h-0 items-center gap-2 p-0"
     disabled={disabled}
+    minimal
     onClick={onClick}
-    type="button"
+    small
   >
     <span className={footerLabelClassName}>
       {keys.map((key) => (
@@ -48,7 +50,7 @@ export const FooterShortcutHint = ({
       ))}
       {label}
     </span>
-  </button>
+  </Button>
 );
 
 export const InsertFooterAction = ({

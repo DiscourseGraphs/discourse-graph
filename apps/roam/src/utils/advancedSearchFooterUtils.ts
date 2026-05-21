@@ -15,6 +15,8 @@ export type InsertTarget = {
   selectionEnd: number;
 };
 
+const DEFAULT_WINDOW_ID = "main-window";
+
 export const getBlockSelection = (uid: string): BlockSelection => {
   const activeElement = document.activeElement;
   const isFocusedTextarea =
@@ -56,12 +58,13 @@ export const getBlockSelection = (uid: string): BlockSelection => {
 const insertTargetFromFocusedBlock = (): InsertTarget | null => {
   const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
   if (!focusedBlock?.["block-uid"]) return null;
-  if (!focusedBlock["window-id"]) return null;
-  const selection = getBlockSelection(focusedBlock["block-uid"]);
+
+  const blockUid = focusedBlock["block-uid"];
+  const selection = getBlockSelection(blockUid);
 
   return {
-    blockUid: focusedBlock["block-uid"],
-    windowId: focusedBlock["window-id"],
+    blockUid,
+    windowId: focusedBlock["window-id"] || DEFAULT_WINDOW_ID,
     selectionStart: selection.selectionStart,
     selectionEnd: selection.selectionEnd,
   };
@@ -77,11 +80,11 @@ export const snapshotInsertTarget = (): InsertTarget | null => {
     activeElement.classList.contains("rm-block-input")
   ) {
     const { blockUid, windowId } = getUids(activeElement);
-    if (!blockUid || !windowId) return null;
+    if (!blockUid) return null;
 
     return {
       blockUid,
-      windowId,
+      windowId: windowId || DEFAULT_WINDOW_ID,
       selectionStart: activeElement.selectionStart,
       selectionEnd: activeElement.selectionEnd,
     };
