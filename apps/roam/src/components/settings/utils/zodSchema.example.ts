@@ -285,6 +285,8 @@ const personalSection: PersonalSection = {
   Settings: {
     "Truncate-result?": 100,
     Folded: false,
+    Alias: "",
+    "Result-limit": 0,
   },
 };
 
@@ -298,6 +300,8 @@ const leftSidebarPersonalSettings: LeftSidebarPersonalSettings = [
     Settings: {
       "Truncate-result?": 75,
       Folded: false,
+      Alias: "",
+      "Result-limit": 0,
     },
   },
   {
@@ -310,6 +314,8 @@ const leftSidebarPersonalSettings: LeftSidebarPersonalSettings = [
     Settings: {
       "Truncate-result?": 50,
       Folded: true,
+      Alias: "",
+      "Result-limit": 0,
     },
   },
 ];
@@ -346,6 +352,8 @@ const personalSettings: PersonalSettings = {
       Settings: {
         "Truncate-result?": 75,
         Folded: false,
+        Alias: "",
+        "Result-limit": 0,
       },
     },
     {
@@ -357,6 +365,8 @@ const personalSettings: PersonalSettings = {
       Settings: {
         "Truncate-result?": 50,
         Folded: true,
+        Alias: "",
+        "Result-limit": 0,
       },
     },
   ],
