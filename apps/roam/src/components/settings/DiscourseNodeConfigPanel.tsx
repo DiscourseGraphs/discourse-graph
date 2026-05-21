@@ -20,7 +20,11 @@ import { deleteBlock } from "roamjs-components/writes";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import setBlockProps from "~/utils/setBlockProps";
 import { DiscourseNodeSchema } from "./utils/zodSchema";
-import { getGlobalSettings, setGlobalSetting } from "./utils/accessors";
+import {
+  clearAllDiscourseNodesCache,
+  getGlobalSettings,
+  setGlobalSetting,
+} from "./utils/accessors";
 import { GLOBAL_KEYS } from "./utils/settingKeys";
 
 type DiscourseNodeConfigPanelProps = React.ComponentProps<
@@ -60,6 +64,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
     await window.roamAlphaAPI.deletePage({
       page: { uid },
     });
+    clearAllDiscourseNodesCache();
     setNodes((prevNodes) => prevNodes.filter((nn) => nn.type !== uid));
     refreshConfigTree();
     setDeleteConfirmation(null);
@@ -117,6 +122,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                   format,
                 }),
               );
+              clearAllDiscourseNodesCache();
               setNodes([
                 ...nodes,
                 {

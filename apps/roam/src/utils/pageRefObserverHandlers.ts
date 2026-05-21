@@ -6,6 +6,7 @@ import { OnloadArgs } from "roamjs-components/types";
 import { renderSuggestive as renderSuggestiveOverlay } from "~/components/SuggestiveModeOverlay";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import findDiscourseNode from "./findDiscourseNode";
+import { withPerformanceTrace } from "./performanceLogger";
 
 const PAGE_REF_SELECTOR = "span.rm-page-ref";
 const DISCOURSE_OVERLAY_CLASS = "roamjs-discourse-context-overlay";
@@ -42,7 +43,20 @@ const queueBatchCacheClear = (): void => {
 const getBatchDiscourseNodes = (): DiscourseNode[] => {
   if (batchDiscourseNodes) return batchDiscourseNodes;
 
-  batchDiscourseNodes = getDiscourseNodes();
+  let nodeCount = 0;
+  batchDiscourseNodes = withPerformanceTrace(
+    {
+      label: "pageRefObserver:getBatchDiscourseNodes",
+      thresholdMs: 8,
+      aggregateThresholdMs: 50,
+      details: () => ({ nodeCount }),
+    },
+    () => {
+      const nodes = getDiscourseNodes();
+      nodeCount = nodes.length;
+      return nodes;
+    },
+  );
   queueBatchCacheClear();
   return batchDiscourseNodes;
 };
@@ -53,18 +67,35 @@ const getPageRefDiscourseNodeStatus = (
   const cached = pageRefDiscourseNodeCache.get(tag);
   if (cached) return cached;
 
-  const uid = getPageUidByPageTitle(tag);
-  const node = uid
-    ? findDiscourseNode({
+  let uid = "";
+  let isDiscourseNode = false;
+  const status = withPerformanceTrace(
+    {
+      label: "pageRefObserver:getPageRefDiscourseNodeStatus",
+      thresholdMs: 4,
+      aggregateThresholdMs: 50,
+      details: () => ({
+        tagLength: tag.length,
+        hasUid: !!uid,
+        isDiscourseNode,
+      }),
+    },
+    () => {
+      uid = getPageUidByPageTitle(tag);
+      const node = uid
+        ? findDiscourseNode({
+            uid,
+            title: tag,
+            nodes: getBatchDiscourseNodes(),
+          })
+        : false;
+      isDiscourseNode = !!node && node.backedBy !== "default";
+      return {
         uid,
-        title: tag,
-        nodes: getBatchDiscourseNodes(),
-      })
-    : false;
-  const status = {
-    uid,
-    isDiscourseNode: !!node && node.backedBy !== "default",
-  };
+        isDiscourseNode,
+      };
+    },
+  );
   pageRefDiscourseNodeCache.set(tag, status);
   queueBatchCacheClear();
   return status;
@@ -87,98 +118,142 @@ export const overlayPageRefHandler = (
   s: HTMLSpanElement,
   onloadArgs: OnloadArgs,
 ) => {
-  if (s.parentElement && !s.parentElement.closest(".rm-page-ref")) {
-    if (
-      s.closest(".rm-title-display, .rm-title-display-container") ||
-      s.parentElement?.closest(".rm-title-display, .rm-title-display-container")
-    ) {
-      return;
-    }
-    const tag =
-      s.getAttribute("data-tag") ||
-      s.parentElement.getAttribute("data-link-title");
-    const hasOverlayAttribute = s.getAttribute(DISCOURSE_OVERLAY_ATTR);
-    const hasOverlayElement =
-      (s.hasAttribute("data-tag") &&
-        Array.from(s.children).some(
-          (child) =>
-            child instanceof HTMLSpanElement &&
-            child.querySelector(`.${DISCOURSE_OVERLAY_CLASS}`),
-        )) ||
-      (s.parentElement &&
-        Array.from(s.parentElement.children).some(
-          (child) =>
-            child instanceof HTMLSpanElement &&
-            child.querySelector(`.${DISCOURSE_OVERLAY_CLASS}`),
-        ));
-    if (
-      tag &&
-      !hasOverlayAttribute &&
-      !hasOverlayElement &&
-      getPageRefDiscourseNodeStatus(tag).isDiscourseNode
-    ) {
-      s.setAttribute(DISCOURSE_OVERLAY_ATTR, "true");
-      const parent = document.createElement("span");
-      discourseOverlayRender({
-        parent,
-        tag: tag.replace(/\\"/g, '"'),
-        onloadArgs,
-      });
-      if (s.hasAttribute("data-tag")) {
-        s.appendChild(parent);
-      } else {
-        s.parentElement.appendChild(parent);
+  let tagLength = 0;
+  let rendered = false;
+  withPerformanceTrace(
+    {
+      label: "pageRefObserver:overlayPageRefHandler",
+      thresholdMs: 8,
+      aggregateThresholdMs: 50,
+      details: () => ({ tagLength, rendered }),
+    },
+    () => {
+      if (s.parentElement && !s.parentElement.closest(".rm-page-ref")) {
+        if (
+          s.closest(".rm-title-display, .rm-title-display-container") ||
+          s.parentElement?.closest(
+            ".rm-title-display, .rm-title-display-container",
+          )
+        ) {
+          return;
+        }
+        const tag =
+          s.getAttribute("data-tag") ||
+          s.parentElement.getAttribute("data-link-title");
+        tagLength = tag?.length ?? 0;
+        const hasOverlayAttribute = s.getAttribute(DISCOURSE_OVERLAY_ATTR);
+        const hasOverlayElement =
+          (s.hasAttribute("data-tag") &&
+            Array.from(s.children).some(
+              (child) =>
+                child instanceof HTMLSpanElement &&
+                child.querySelector(`.${DISCOURSE_OVERLAY_CLASS}`),
+            )) ||
+          (s.parentElement &&
+            Array.from(s.parentElement.children).some(
+              (child) =>
+                child instanceof HTMLSpanElement &&
+                child.querySelector(`.${DISCOURSE_OVERLAY_CLASS}`),
+            ));
+        if (
+          tag &&
+          !hasOverlayAttribute &&
+          !hasOverlayElement &&
+          getPageRefDiscourseNodeStatus(tag).isDiscourseNode
+        ) {
+          s.setAttribute(DISCOURSE_OVERLAY_ATTR, "true");
+          const parent = document.createElement("span");
+          discourseOverlayRender({
+            parent,
+            tag: tag.replace(/\\"/g, '"'),
+            onloadArgs,
+          });
+          rendered = true;
+          if (s.hasAttribute("data-tag")) {
+            s.appendChild(parent);
+          } else {
+            s.parentElement.appendChild(parent);
+          }
+        }
       }
-    }
-  }
+    },
+  );
 };
 
 export const suggestiveOverlayPageRefHandler = (
   s: HTMLSpanElement,
   onloadArgs: OnloadArgs,
 ) => {
-  if (s.parentElement && !s.parentElement.closest(".rm-page-ref")) {
-    const tag =
-      s.getAttribute("data-tag") ||
-      s.parentElement.getAttribute("data-link-title");
-    if (
-      tag &&
-      !s.getAttribute(SUGGESTIVE_OVERLAY_ATTR) &&
-      getPageRefDiscourseNodeStatus(tag).isDiscourseNode
-    ) {
-      s.setAttribute(SUGGESTIVE_OVERLAY_ATTR, "true");
-      const parent = document.createElement("span");
-      renderSuggestiveOverlay({
-        parent,
-        tag: tag.replace(/\\"/g, '"'),
-        onloadArgs,
-      });
-      if (s.hasAttribute("data-tag")) {
-        s.appendChild(parent);
-      } else {
-        s.parentElement.appendChild(parent);
+  let tagLength = 0;
+  let rendered = false;
+  withPerformanceTrace(
+    {
+      label: "pageRefObserver:suggestiveOverlayPageRefHandler",
+      thresholdMs: 8,
+      aggregateThresholdMs: 50,
+      details: () => ({ tagLength, rendered }),
+    },
+    () => {
+      if (s.parentElement && !s.parentElement.closest(".rm-page-ref")) {
+        const tag =
+          s.getAttribute("data-tag") ||
+          s.parentElement.getAttribute("data-link-title");
+        tagLength = tag?.length ?? 0;
+        if (
+          tag &&
+          !s.getAttribute(SUGGESTIVE_OVERLAY_ATTR) &&
+          getPageRefDiscourseNodeStatus(tag).isDiscourseNode
+        ) {
+          s.setAttribute(SUGGESTIVE_OVERLAY_ATTR, "true");
+          const parent = document.createElement("span");
+          renderSuggestiveOverlay({
+            parent,
+            tag: tag.replace(/\\"/g, '"'),
+            onloadArgs,
+          });
+          rendered = true;
+          if (s.hasAttribute("data-tag")) {
+            s.appendChild(parent);
+          } else {
+            s.parentElement.appendChild(parent);
+          }
+        }
       }
-    }
-  }
+    },
+  );
 };
 
 export const previewPageRefHandler = (s: HTMLSpanElement) => {
-  const tag =
-    s.getAttribute("data-tag") ||
-    s.parentElement?.getAttribute("data-link-title");
-  if (tag && !s.getAttribute("data-roamjs-discourse-augment-tag")) {
-    s.setAttribute("data-roamjs-discourse-augment-tag", "true");
-    const parent = document.createElement("span");
-    previewRender({
-      parent,
-      tag,
-      registerMouseEvents: ({ open, close }) => {
-        s.addEventListener("mouseenter", (e) => open(e.ctrlKey));
-        s.addEventListener("mouseleave", close);
-      },
-    });
-    s.appendChild(parent);
-  }
+  let tagLength = 0;
+  let rendered = false;
+  withPerformanceTrace(
+    {
+      label: "pageRefObserver:previewPageRefHandler",
+      thresholdMs: 8,
+      aggregateThresholdMs: 50,
+      details: () => ({ tagLength, rendered }),
+    },
+    () => {
+      const tag =
+        s.getAttribute("data-tag") ||
+        s.parentElement?.getAttribute("data-link-title");
+      tagLength = tag?.length ?? 0;
+      if (tag && !s.getAttribute("data-roamjs-discourse-augment-tag")) {
+        s.setAttribute("data-roamjs-discourse-augment-tag", "true");
+        const parent = document.createElement("span");
+        previewRender({
+          parent,
+          tag,
+          registerMouseEvents: ({ open, close }) => {
+            s.addEventListener("mouseenter", (e) => open(e.ctrlKey));
+            s.addEventListener("mouseleave", close);
+          },
+        });
+        rendered = true;
+        s.appendChild(parent);
+      }
+    },
+  );
 };
 
 export const enablePageRefObserver = () => {
@@ -189,7 +264,23 @@ export const enablePageRefObserver = () => {
     tag: "SPAN",
     className: "rm-page-ref",
     callback: (s: HTMLSpanElement) => {
-      pageRefObservers.forEach((f) => f(s));
+      const tag =
+        s.getAttribute("data-tag") ||
+        s.parentElement?.getAttribute("data-link-title");
+      withPerformanceTrace(
+        {
+          label: "observer:pageRef",
+          thresholdMs: 8,
+          aggregateThresholdMs: 50,
+          details: () => ({
+            handlerCount: pageRefObservers.size,
+            tagLength: tag?.length ?? 0,
+          }),
+        },
+        () => {
+          pageRefObservers.forEach((f) => f(s));
+        },
+      );
     },
   });
   return pageRefObserverRef.current;
@@ -204,11 +295,23 @@ const disablePageRefObserver = () => {
 const applyHandlersToExistingPageRefs = (
   handler: (s: HTMLSpanElement) => void,
 ) => {
-  const existingPageRefs =
-    document.querySelectorAll<HTMLSpanElement>(PAGE_REF_SELECTOR);
-  existingPageRefs.forEach((pageRef) => {
-    handler(pageRef);
-  });
+  let pageRefCount = 0;
+  withPerformanceTrace(
+    {
+      label: "pageRefObserver:applyHandlersToExistingPageRefs",
+      thresholdMs: 16,
+      aggregateThresholdMs: 50,
+      details: () => ({ pageRefCount }),
+    },
+    () => {
+      const existingPageRefs =
+        document.querySelectorAll<HTMLSpanElement>(PAGE_REF_SELECTOR);
+      pageRefCount = existingPageRefs.length;
+      existingPageRefs.forEach((pageRef) => {
+        handler(pageRef);
+      });
+    },
+  );
 };
 
 const removeOverlayElements = (overlayClass: string, attributeName: string) => {
