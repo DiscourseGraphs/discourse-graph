@@ -139,7 +139,11 @@ describe("list group members flow", { tags: ["database"] }, () => {
       expectedSpaceIds.every((id) => spacesSeenBy1[id] !== undefined),
       "Wrong membership information",
     );
-    assert(Object.values(spacesSeenBy1).every((gm) => !gm.shared));
+    assert(
+      Object.values(spacesSeenBy1).every(
+        (gm) => gm.sharing_permissions === null,
+      ),
+    );
     // Step 4: user2 lists group members
     const { data: data2, error: error2 } = await client2.rpc(
       "spaces_in_group",
@@ -183,7 +187,7 @@ describe("list group members flow", { tags: ["database"] }, () => {
       data1b.filter((gm) => gm.id !== null).map((gm) => [gm.id, gm]),
     ) as Record<number, GroupSpaceInfo>;
     assert(
-      spacesSeenBy1b[spaceId2]?.shared,
+      spacesSeenBy1b[spaceId2]?.sharing_permissions,
       "Second space should now be seen as shared",
     );
   });
