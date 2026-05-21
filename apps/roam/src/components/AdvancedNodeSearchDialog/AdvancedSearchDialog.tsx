@@ -27,7 +27,6 @@ import {
   type InsertTarget,
 } from "~/utils/advancedSearchFooterUtils";
 import { DiscourseNodeSortControl } from "~/components/DiscourseNodeSortControl";
-import { DiscourseNodeTypeFilter } from "~/components/DiscourseNodeTypeFilter";
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
@@ -44,6 +43,7 @@ import {
   splitWithHighlights,
   stripTypePrefix,
 } from "./utils";
+import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
 
