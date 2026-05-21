@@ -239,6 +239,16 @@ const AdvancedNodeSearchDialog = ({
     };
   }, [isOpen]);
 
+  const contentState = indexError
+    ? "error"
+    : isIndexLoading
+      ? "indexing"
+      : !debouncedSearchTerm
+        ? "initial"
+        : !results.length
+          ? "empty"
+          : "results";
+
   useEffect(() => {
     const timeout = setTimeout(
       () => setDebouncedSearchTerm(searchTerm.trim()),
@@ -258,6 +268,32 @@ const AdvancedNodeSearchDialog = ({
     const activeRow = panel.querySelector('[aria-selected="true"]');
     activeRow?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, activeResult?.uid, debouncedSearchTerm]);
+
+  const onOpen = useCallback(async () => {
+    if (!activeResult || contentState !== "results") return;
+
+    const uid = activeResult.uid;
+    if (getPageTitleByPageUid(uid)) {
+      await window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
+    } else {
+      await window.roamAlphaAPI.ui.mainWindow.openBlock({ block: { uid } });
+    }
+    onClose();
+  }, [activeResult, contentState, onClose]);
+
+  const onOpenInSidebar = useCallback(async () => {
+    if (!activeResult || contentState !== "results") return;
+
+    await window.roamAlphaAPI.ui.rightSidebar.addWindow({
+      window: {
+        type: "outline",
+        // @ts-expect-error - block-uid is valid for outline sidebar windows
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "block-uid": activeResult.uid,
+      },
+    });
+    onClose();
+  }, [activeResult, contentState, onClose]);
 
   const onInsert = useCallback(async () => {
     if (!activeResult || !insertTarget) return;
@@ -281,16 +317,6 @@ const AdvancedNodeSearchDialog = ({
     onClose();
   }, [activeResult, insertTarget, onClose]);
 
-  const contentState = indexError
-    ? "error"
-    : isIndexLoading
-      ? "indexing"
-      : !debouncedSearchTerm
-        ? "initial"
-        : !results.length
-          ? "empty"
-          : "results";
-
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === "ArrowDown" && results.length) {
@@ -299,6 +325,16 @@ const AdvancedNodeSearchDialog = ({
       } else if (event.key === "ArrowUp" && results.length) {
         event.preventDefault();
         setActiveIndex((index) => Math.max(index - 1, 0));
+      } else if (
+        event.key === "Enter" &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        contentState === "results" &&
+        activeResult
+      ) {
+        event.preventDefault();
+        if (event.shiftKey) void onOpenInSidebar();
+        else void onOpen();
       } else if (
         event.key === "Enter" &&
         (event.metaKey || event.ctrlKey) &&
@@ -319,6 +355,8 @@ const AdvancedNodeSearchDialog = ({
       insertTarget,
       onClose,
       onInsert,
+      onOpen,
+      onOpenInSidebar,
       results.length,
     ],
   );
@@ -405,6 +443,8 @@ const AdvancedNodeSearchDialog = ({
           hasActiveResult={!!activeResult}
           insertTarget={insertTarget}
           onInsert={() => void onInsert()}
+          onOpen={() => void onOpen()}
+          onOpenInSidebar={() => void onOpenInSidebar()}
         />
       </div>
     </Dialog>
