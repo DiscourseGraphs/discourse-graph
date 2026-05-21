@@ -33,7 +33,7 @@ import {
   splitWithHighlights,
   stripTypePrefix,
 } from "./utils";
-import { DiscourseNodeTypeFilter } from "~/components/DiscourseNodeTypeFilter";
+import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 
 type Props = Record<string, unknown>;

@@ -206,7 +206,7 @@ const FilterPopoverPanel = ({
           <>
             {!hasTypeSearchQuery && (
               <div
-                className="grid cursor-pointer items-center gap-2 border-b border-gray-900/10 px-3 py-1.5 text-sm text-gray-900 hover:bg-gray-900/[0.04]"
+                className="grid cursor-pointer items-center gap-2 border-b border-gray-900/10 px-3 text-sm text-gray-900 hover:bg-gray-900/[0.04]"
                 style={{ gridTemplateColumns: "22px 14px 1fr auto" }}
                 onClick={handleSelectAll}
                 onKeyDown={(event) => {
@@ -224,7 +224,7 @@ const FilterPopoverPanel = ({
                 <span />
               </div>
             )}
-            <div className="mt-2 pt-2">
+            <div className="pt-1">
               {filteredNodes.map((node) => (
                 <NodeTypeFilterRow
                   isChecked={selectedIdSet.has(node.type)}
