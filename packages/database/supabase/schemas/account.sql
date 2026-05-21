@@ -465,7 +465,7 @@ SELECT
     pa.dg_account,
     sa.space_id,
     sp.name,
-    mysa.permissions as sharing_permissions
+    mysa.permissions AS sharing_permissions
 FROM public."PlatformAccount" AS pa
     JOIN public.group_membership AS gm ON (member_id = dg_account)
     JOIN public.group_membership AS gm2 ON (gm2.member_id = auth.uid() AND gm2.group_id = gm.group_id)
@@ -499,18 +499,21 @@ DECLARE
     v_creator UUID;
     token_info JSONB;
     v_group_id UUID;
+    auth_uid UUID;
     token_type varchar;
     as_admin BOOLEAN;
     is_admin BOOLEAN;
 BEGIN
     BEGIN
+        SELECT auth.uid() INTO STRICT auth_uid;
+        IF auth_uid IS NULL THEN RETURN false; END IF;
         SELECT creator INTO v_creator STRICT FROM public.secret_token WHERE id=token;
         SELECT public.get_secret_token(token) INTO token_info STRICT;
         SELECT (token_info->>'groupId')::UUID, token_info->>'type', (token_info->'admin')::boolean INTO v_group_id, token_type, as_admin STRICT;
         IF token_type != 'groupInvitation' THEN RETURN false; END IF;
         SELECT admin INTO is_admin FROM public.group_membership WHERE member_id = v_creator AND group_id = v_group_id;
         IF is_admin IS NOT true THEN RETURN false; END IF;
-        INSERT INTO public.group_membership (group_id, member_id, admin) VALUES (v_group_id, auth.uid(), as_admin);
+        INSERT INTO public.group_membership (group_id, member_id, admin) VALUES (v_group_id, auth_uid, as_admin);
         RETURN true;
     EXCEPTION WHEN OTHERS THEN RETURN false;
     END;

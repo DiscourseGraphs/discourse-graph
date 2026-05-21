@@ -61,13 +61,10 @@ export const getSessionUserData = async (
     }
     return { ...data, name: accountReq.data.name };
   }
+  const { name } = data;
+  if (name === undefined) return null;
   if (data.name === undefined) return null;
-  return data as {
-    id: string;
-    name: string; // typescript fails to infer that name is defined from above
-    type: AgentType;
-    email?: string;
-  };
+  return { ...data, name };
 };
 
 export const createGroupInvitation = async ({
@@ -77,7 +74,7 @@ export const createGroupInvitation = async ({
 }: {
   client: DGSupabaseClient;
   groupId: string;
-  admin: boolean;
+  admin?: boolean;
 }): Promise<string | null> => {
   const userData = await getSessionBaseUserData(client);
   if (!userData) return null;
@@ -109,7 +106,8 @@ export const acceptGroupInvitation = async (
   const { data, error } = await client.rpc("accept_group_invitation", {
     token,
   });
-  if (error || !data) return "This token does not exist";
+  if (error) return error.message || "Unknown error";
+  if (!data) return "Unable to accept invitation";
   return null;
 };
 
