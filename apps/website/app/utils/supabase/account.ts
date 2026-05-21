@@ -140,7 +140,11 @@ export const removeFromGroup = async ({
     .from("group_membership")
     .delete()
     .eq("member_id", memberId)
-    .eq("group_id", groupId);
+    .eq("group_id", groupId)
+    .select();
   if (response.error) return response.error.message;
+  if (response.data === null || response.data.length === 0)
+    return "No such record";
+
   return null; // success
 };

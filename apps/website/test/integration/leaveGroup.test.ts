@@ -30,7 +30,7 @@ const signedInClient = async (spaceId: number): Promise<DGSupabaseClient> => {
   return client;
 };
 
-describe("list group members flow", { tags: ["database"] }, () => {
+describe("leave group flow", { tags: ["database"] }, () => {
   let spaceId1: number;
   let spaceId2: number;
   let spaceAccountUuid1: string;
