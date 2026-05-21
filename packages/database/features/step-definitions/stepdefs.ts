@@ -129,7 +129,7 @@ const substituteLocalReferencesRow = (
     }
     if (k.charAt(0) === "_") {
       k = k.substring(1);
-      v = substituteLocalReferences(v, localRefs);
+      v = substituteLocalReferences(v, localRefs); // eslint-disable-line @typescript-eslint/no-unsafe-assignment
     }
     return [k, v];
   };
