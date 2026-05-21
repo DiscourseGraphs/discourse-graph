@@ -272,7 +272,7 @@ const AdvancedNodeSearchDialog = ({
   const onOpen = useCallback(async () => {
     if (!activeResult || contentState !== "results") return;
 
-    const { uid } = activeResult;
+    const uid = activeResult.uid;
     if (getPageTitleByPageUid(uid)) {
       await window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
     } else {

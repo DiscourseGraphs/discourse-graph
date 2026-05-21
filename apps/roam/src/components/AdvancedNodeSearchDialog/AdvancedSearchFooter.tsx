@@ -120,14 +120,14 @@ export const AdvancedSearchFooter = ({
   return (
     <div className="flex w-full flex-none items-center justify-between border-t border-gray-200 bg-gray-50 px-3 py-2">
       <div className="inline-flex shrink-0 items-center gap-3">
+        {insertTarget && (
+          <InsertFooterAction disabled={!canInsert} onInsert={onInsert} />
+        )}
         <OpenFooterAction disabled={!canOpen} onOpen={onOpen} />
         <OpenInSidebarFooterAction
           disabled={!canOpen}
           onOpenInSidebar={onOpenInSidebar}
         />
-        {insertTarget && (
-          <InsertFooterAction disabled={!canInsert} onInsert={onInsert} />
-        )}
       </div>
       <CloseFooterHint />
     </div>
