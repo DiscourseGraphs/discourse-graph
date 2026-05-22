@@ -54,7 +54,10 @@ export default runExtension(async (onloadArgs) => {
 
   refreshConfigTree();
 
-  const settings = bulkReadSettings();
+  const settings = bulkReadSettings({
+    source: "runExtension:onload:initialSettings",
+    content: "extension load",
+  });
 
   if (!settings.personalSettings[PERSONAL_KEYS.disableProductDiagnostics]) {
     initPostHog();

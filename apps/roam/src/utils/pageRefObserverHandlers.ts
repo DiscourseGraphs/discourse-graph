@@ -40,7 +40,10 @@ const queueBatchCacheClear = (): void => {
   queueMicrotask(clearBatchCache);
 };
 
-const getBatchDiscourseNodes = (): DiscourseNode[] => {
+const compactTraceContent = (content: string): string =>
+  content.replace(/\s+/g, " ").trim().slice(0, 120);
+
+const getBatchDiscourseNodes = (content: string): DiscourseNode[] => {
   if (batchDiscourseNodes) return batchDiscourseNodes;
 
   let nodeCount = 0;
@@ -52,7 +55,10 @@ const getBatchDiscourseNodes = (): DiscourseNode[] => {
       details: () => ({ nodeCount }),
     },
     () => {
-      const nodes = getDiscourseNodes();
+      const nodes = getDiscourseNodes(undefined, undefined, {
+        source: "observer:pageRef:getBatchDiscourseNodes",
+        content: compactTraceContent(content),
+      });
       nodeCount = nodes.length;
       return nodes;
     },
@@ -86,7 +92,7 @@ const getPageRefDiscourseNodeStatus = (
         ? findDiscourseNode({
             uid,
             title: tag,
-            nodes: getBatchDiscourseNodes(),
+            nodes: getBatchDiscourseNodes(tag),
           })
         : false;
       isDiscourseNode = !!node && node.backedBy !== "default";

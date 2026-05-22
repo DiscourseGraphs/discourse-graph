@@ -30,6 +30,7 @@ import posthog from "posthog-js";
 import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import type { PersonalSettings } from "~/components/settings/utils/zodSchema";
+import type { PerformanceTraceContext } from "~/utils/performanceLogger";
 
 type Props = {
   textarea?: HTMLTextAreaElement;
@@ -38,6 +39,22 @@ type Props = {
   trigger?: JSX.Element;
   isShift?: boolean;
   menuMaxHeight?: number;
+  trace?: PerformanceTraceContext;
+};
+
+const compactTraceContent = (content?: string): string | undefined => {
+  const compacted = content?.replace(/\s+/g, " ").trim();
+  return compacted ? compacted.slice(0, 120) : undefined;
+};
+
+const getNodeMenuTraceContent = ({
+  trace,
+  textarea,
+  blockUid,
+}: Pick<Props, "trace" | "textarea" | "blockUid">): string | undefined => {
+  if (trace?.content) return compactTraceContent(trace.content);
+  if (blockUid) return `blockUid:${blockUid}`;
+  return compactTraceContent(textarea?.value);
 };
 
 const NodeMenu = ({
@@ -48,6 +65,7 @@ const NodeMenu = ({
   trigger,
   isShift,
   menuMaxHeight,
+  trace,
 }: { onClose: () => void } & Props) => {
   const isInitialTextSelected =
     !!textarea && textarea.selectionStart !== textarea.selectionEnd;
@@ -56,8 +74,13 @@ const NodeMenu = ({
     isInitialTextSelected || (isShift ?? false),
   );
   const userDiscourseNodes = useMemo(
-    () => getDiscourseNodes().filter((n) => n.backedBy === "user"),
-    [],
+    () =>
+      getDiscourseNodes(undefined, undefined, {
+        source:
+          trace?.source ?? "component:DiscourseNodeMenu:userDiscourseNodes",
+        content: getNodeMenuTraceContent({ trace, textarea, blockUid }),
+      }).filter((n) => n.backedBy === "user"),
+    [blockUid, textarea, trace?.content, trace?.source],
   );
   const discourseNodes = userDiscourseNodes.filter(
     (n) => showNodeTypes || n.tag,

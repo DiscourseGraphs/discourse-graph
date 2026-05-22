@@ -9,11 +9,13 @@ import posthog from "posthog-js";
 type ImageToolsMenuProps = {
   blockUid: string;
   extensionAPI: OnloadArgs["extensionAPI"];
+  traceContent?: string;
 };
 
 const ImageToolsMenu = ({
   blockUid,
   extensionAPI,
+  traceContent,
 }: ImageToolsMenuProps): JSX.Element => {
   const [menuKey, setMenuKey] = useState(0);
 
@@ -45,6 +47,10 @@ const ImageToolsMenu = ({
         extensionAPI={extensionAPI}
         trigger={trigger}
         isShift={false}
+        trace={{
+          source: "observer:imageMenu:ImageToolsMenu:NodeMenu",
+          content: traceContent,
+        }}
       />
 
       <Button
@@ -95,6 +101,19 @@ const createMenuContainer = (): HTMLDivElement => {
   return menuContainer;
 };
 
+const getImageTraceContent = (
+  imageElement: HTMLImageElement,
+  blockUid: string,
+): string => {
+  const rawSrc =
+    imageElement.currentSrc ||
+    imageElement.src ||
+    imageElement.getAttribute("src") ||
+    "";
+  const src = rawSrc.replace(/\s+/g, " ").trim().slice(0, 120);
+  return src ? `blockUid:${blockUid} src:${src}` : `blockUid:${blockUid}`;
+};
+
 type WrapperWithCleanup = HTMLElement & {
   __imageMenuCleanup?: () => void;
 };
@@ -142,7 +161,11 @@ export const renderImageToolsMenu = (
 
   // eslint-disable-next-line react/no-deprecated
   ReactDOM.render(
-    <ImageToolsMenu blockUid={blockUid} extensionAPI={extensionAPI} />,
+    <ImageToolsMenu
+      blockUid={blockUid}
+      extensionAPI={extensionAPI}
+      traceContent={getImageTraceContent(imageElement, blockUid)}
+    />,
     menuContainer,
   );
 };

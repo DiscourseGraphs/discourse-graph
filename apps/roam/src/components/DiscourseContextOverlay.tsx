@@ -37,8 +37,12 @@ const getOverlayInfo = async (
   ignoreCache?: boolean,
 ): Promise<DiscourseData> => {
   try {
-    const relations = getDiscourseRelations();
-    const nodes = getDiscourseNodes(relations);
+    const trace = {
+      source: "DiscourseContextOverlay:getOverlayInfo",
+      content: tag,
+    };
+    const relations = getDiscourseRelations(undefined, trace);
+    const nodes = getDiscourseNodes(relations, undefined, trace);
 
     const [results, refs] = await Promise.all([
       getDiscourseContextResults({

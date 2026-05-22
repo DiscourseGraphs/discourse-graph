@@ -9,7 +9,12 @@ import { getSubTree } from "roamjs-components/util";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
-import { withPerformanceTrace } from "~/utils/performanceLogger";
+import {
+  measurePerformanceStep,
+  resolvePerformanceTraceContext,
+  withPerformanceTrace,
+  type PerformanceTraceArg,
+} from "~/utils/performanceLogger";
 
 import type { RoamBasicNode } from "roamjs-components/types";
 import discourseConfigRef from "~/utils/discourseConfigRef";
@@ -727,12 +732,66 @@ const FEATURE_FLAG_LEGACY_MAP: Record<
 };
 /* eslint-enable @typescript-eslint/naming-convention */
 
-export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
-  return bulkReadSettings().featureFlags[key];
+export const getFeatureFlag = (
+  key: keyof FeatureFlags,
+  trace?: PerformanceTraceArg,
+): boolean => {
+  const { traceId, source, content } = resolvePerformanceTraceContext({
+    trace,
+    ignoredPatterns: ["getFeatureFlag"],
+  });
+  let value = false;
+
+  return withPerformanceTrace(
+    {
+      label: "getFeatureFlag",
+      thresholdMs: 0,
+      aggregateThresholdMs: 50,
+      details: () => ({
+        traceId,
+        source,
+        content,
+        key,
+        value,
+      }),
+    },
+    () => {
+      value = bulkReadSettings({ traceId, source, content }).featureFlags[key];
+      return value;
+    },
+  );
 };
 
-export const isNewSettingsStoreEnabled = (): boolean => {
-  return getFeatureFlag("Use new settings store");
+export const isNewSettingsStoreEnabled = (
+  trace?: PerformanceTraceArg,
+): boolean => {
+  const { traceId, source, content } = resolvePerformanceTraceContext({
+    trace,
+    ignoredPatterns: ["isNewSettingsStoreEnabled"],
+  });
+  let value = false;
+
+  return withPerformanceTrace(
+    {
+      label: "isNewSettingsStoreEnabled",
+      thresholdMs: 0,
+      aggregateThresholdMs: 50,
+      details: () => ({
+        traceId,
+        source,
+        content,
+        value,
+      }),
+    },
+    () => {
+      value = getFeatureFlag("Use new settings store", {
+        traceId,
+        source,
+        content,
+      });
+      return value;
+    },
+  );
 };
 
 export const readAllLegacyFeatureFlags = (): Partial<FeatureFlags> => {
@@ -789,8 +848,37 @@ export const setFeatureFlag = (
   }
 };
 
-export const getGlobalSettings = (): GlobalSettings => {
-  return bulkReadSettings().globalSettings;
+export const getGlobalSettings = (
+  trace?: PerformanceTraceArg,
+): GlobalSettings => {
+  const { traceId, source, content } = resolvePerformanceTraceContext({
+    trace,
+    ignoredPatterns: ["getGlobalSettings"],
+  });
+  let relationDefinitionCount = 0;
+
+  return withPerformanceTrace(
+    {
+      label: "getGlobalSettings",
+      thresholdMs: 0,
+      aggregateThresholdMs: 50,
+      details: () => ({
+        traceId,
+        source,
+        content,
+        relationDefinitionCount,
+      }),
+    },
+    () => {
+      const globalSettings = bulkReadSettings({
+        traceId,
+        source,
+        content,
+      }).globalSettings;
+      relationDefinitionCount = Object.keys(globalSettings.Relations).length;
+      return globalSettings;
+    },
+  );
 };
 
 export const getGlobalSetting = <T = unknown>(
@@ -830,20 +918,60 @@ export const setGlobalSetting = (keys: string[], value: json): void => {
 
 export const getAllRelations = (
   settings?: SettingsSnapshot,
+  trace?: PerformanceTraceArg,
 ): DiscourseRelation[] => {
-  const globalSettings = settings
-    ? settings.globalSettings
-    : getGlobalSettings();
+  const { traceId, source, content } = resolvePerformanceTraceContext({
+    trace,
+    ignoredPatterns: ["getAllRelations"],
+  });
+  let relationDefinitionCount = 0;
+  let relationCount = 0;
+  let resolveGlobalSettingsMs = 0;
+  let flattenRelationsMs = 0;
 
-  return Object.entries(globalSettings.Relations).flatMap(([id, relation]) =>
-    relation.ifConditions.map((ifCondition) => ({
-      id,
-      label: relation.label,
-      source: relation.source,
-      destination: relation.destination,
-      complement: relation.complement,
-      triples: ifCondition.triples,
-    })),
+  return withPerformanceTrace(
+    {
+      label: "getAllRelations",
+      thresholdMs: 0,
+      aggregateThresholdMs: 50,
+      details: () => ({
+        traceId,
+        source,
+        content,
+        hasSnapshot: !!settings,
+        relationDefinitionCount,
+        relationCount,
+        resolveGlobalSettingsMs,
+        flattenRelationsMs,
+      }),
+    },
+    () => {
+      const [globalSettings, measuredResolveGlobalSettingsMs] =
+        measurePerformanceStep(() =>
+          settings
+            ? settings.globalSettings
+            : getGlobalSettings({ traceId, source, content }),
+        );
+      resolveGlobalSettingsMs = measuredResolveGlobalSettingsMs;
+      relationDefinitionCount = Object.keys(globalSettings.Relations).length;
+
+      const [relations, measuredFlattenRelationsMs] = measurePerformanceStep(
+        () =>
+          Object.entries(globalSettings.Relations).flatMap(([id, relation]) =>
+            relation.ifConditions.map((ifCondition) => ({
+              id,
+              label: relation.label,
+              source: relation.source,
+              destination: relation.destination,
+              complement: relation.complement,
+              triples: ifCondition.triples,
+            })),
+          ),
+      );
+      flattenRelationsMs = measuredFlattenRelationsMs;
+      relationCount = relations.length;
+      return relations;
+    },
   );
 };
 
@@ -866,53 +994,146 @@ export type SettingsSnapshot = {
   personalSettings: PersonalSettings;
 };
 
-export const bulkReadSettings = (): SettingsSnapshot => {
-  const pageResult = window.roamAlphaAPI.pull(
-    "[{:block/children [:block/string :block/props]}]",
-    [":node/title", DG_BLOCK_PROP_SETTINGS_PAGE_TITLE],
-  ) as Record<string, json> | null;
+export const bulkReadSettings = (
+  trace?: PerformanceTraceArg,
+): SettingsSnapshot => {
+  const { traceId, source, content } = resolvePerformanceTraceContext({
+    trace,
+    ignoredPatterns: ["bulkReadSettings"],
+  });
+  let childCount = 0;
+  let hasFeatureFlagsProps = false;
+  let hasGlobalProps = false;
+  let hasPersonalProps = false;
+  let newStoreEnabled = false;
+  let pullSettingsPageMs = 0;
+  let normalizeTopLevelPropsMs = 0;
+  let parseFeatureFlagsMs = 0;
+  let parseGlobalSettingsMs = 0;
+  let parsePersonalSettingsMs = 0;
+  let legacyFallbackMs = 0;
 
-  const children = (pageResult?.[":block/children"] ?? []) as Record<
-    string,
-    json
-  >[];
-  const personalKey = getPersonalSettingsKey();
-  let featureFlagsProps: json = {};
-  let globalProps: json = {};
-  let personalProps: json = {};
+  return withPerformanceTrace(
+    {
+      label: "bulkReadSettings",
+      thresholdMs: 0,
+      aggregateThresholdMs: 50,
+      details: () => ({
+        traceId,
+        source,
+        content,
+        childCount,
+        hasFeatureFlagsProps,
+        hasGlobalProps,
+        hasPersonalProps,
+        newStoreEnabled,
+        pullSettingsPageMs,
+        normalizeTopLevelPropsMs,
+        parseFeatureFlagsMs,
+        parseGlobalSettingsMs,
+        parsePersonalSettingsMs,
+        legacyFallbackMs,
+      }),
+    },
+    () => {
+      const [pageResult, measuredPullSettingsPageMs] = measurePerformanceStep(
+        () =>
+          window.roamAlphaAPI.pull(
+            "[{:block/children [:block/string :block/props]}]",
+            [":node/title", DG_BLOCK_PROP_SETTINGS_PAGE_TITLE],
+          ) as Record<string, json> | null,
+      );
+      pullSettingsPageMs = measuredPullSettingsPageMs;
 
-  for (const child of children) {
-    const text = child[":block/string"];
-    if (typeof text !== "string") continue;
-    const rawBlockProps = child[":block/props"];
-    const blockProps =
-      rawBlockProps && typeof rawBlockProps === "object"
-        ? normalizeProps(rawBlockProps)
-        : {};
-    if (text === STATIC_TOP_LEVEL_ENTRIES.featureFlags.key) {
-      featureFlagsProps = blockProps;
-    } else if (text === STATIC_TOP_LEVEL_ENTRIES.global.key) {
-      globalProps = blockProps;
-    } else if (text === personalKey) {
-      personalProps = blockProps;
-    }
-  }
+      const children = (pageResult?.[":block/children"] ?? []) as Record<
+        string,
+        json
+      >[];
+      childCount = children.length;
+      const personalKey = getPersonalSettingsKey();
 
-  const featureFlags = FeatureFlagsSchema.parse(featureFlagsProps || {});
+      const [topLevelProps, measuredNormalizeTopLevelPropsMs] =
+        measurePerformanceStep(() => {
+          let featureFlagsProps: json = {};
+          let globalProps: json = {};
+          let personalProps: json = {};
 
-  if (!featureFlags["Use new settings store"]) {
-    return {
-      featureFlags,
-      globalSettings: readAllLegacyGlobalSettings() as GlobalSettings,
-      personalSettings: readAllLegacyPersonalSettings() as PersonalSettings,
-    };
-  }
+          for (const child of children) {
+            const text = child[":block/string"];
+            if (typeof text !== "string") continue;
+            const rawBlockProps = child[":block/props"];
+            const blockProps =
+              rawBlockProps && typeof rawBlockProps === "object"
+                ? normalizeProps(rawBlockProps)
+                : {};
+            if (text === STATIC_TOP_LEVEL_ENTRIES.featureFlags.key) {
+              featureFlagsProps = blockProps;
+            } else if (text === STATIC_TOP_LEVEL_ENTRIES.global.key) {
+              globalProps = blockProps;
+            } else if (text === personalKey) {
+              personalProps = blockProps;
+            }
+          }
 
-  return {
-    featureFlags,
-    globalSettings: GlobalSettingsSchema.parse(globalProps || {}),
-    personalSettings: PersonalSettingsSchema.parse(personalProps || {}),
-  };
+          return {
+            featureFlagsProps,
+            globalProps,
+            personalProps,
+          };
+        });
+      normalizeTopLevelPropsMs = measuredNormalizeTopLevelPropsMs;
+      hasFeatureFlagsProps =
+        Object.keys(
+          (topLevelProps.featureFlagsProps || {}) as Record<string, json>,
+        ).length > 0;
+      hasGlobalProps =
+        Object.keys((topLevelProps.globalProps || {}) as Record<string, json>)
+          .length > 0;
+      hasPersonalProps =
+        Object.keys((topLevelProps.personalProps || {}) as Record<string, json>)
+          .length > 0;
+
+      const [featureFlags, measuredParseFeatureFlagsMs] =
+        measurePerformanceStep(() =>
+          FeatureFlagsSchema.parse(topLevelProps.featureFlagsProps || {}),
+        );
+      parseFeatureFlagsMs = measuredParseFeatureFlagsMs;
+      newStoreEnabled = featureFlags["Use new settings store"];
+
+      if (!newStoreEnabled) {
+        const [legacySettings, measuredLegacyFallbackMs] =
+          measurePerformanceStep(() => ({
+            globalSettings: readAllLegacyGlobalSettings() as GlobalSettings,
+            personalSettings:
+              readAllLegacyPersonalSettings() as PersonalSettings,
+          }));
+        legacyFallbackMs = measuredLegacyFallbackMs;
+
+        return {
+          featureFlags,
+          ...legacySettings,
+        };
+      }
+
+      const [globalSettings, measuredParseGlobalSettingsMs] =
+        measurePerformanceStep(() =>
+          GlobalSettingsSchema.parse(topLevelProps.globalProps || {}),
+        );
+      parseGlobalSettingsMs = measuredParseGlobalSettingsMs;
+
+      const [personalSettings, measuredParsePersonalSettingsMs] =
+        measurePerformanceStep(() =>
+          PersonalSettingsSchema.parse(topLevelProps.personalProps || {}),
+        );
+      parsePersonalSettingsMs = measuredParsePersonalSettingsMs;
+
+      return {
+        featureFlags,
+        globalSettings,
+        personalSettings,
+      };
+    },
+  );
 };
 
 export const setPersonalSetting = (keys: string[], value: json): void => {
@@ -1152,7 +1373,13 @@ const migrateNodeBlockProps = (
   return migrated;
 };
 
-export const getAllDiscourseNodes = (): DiscourseNode[] => {
+export const getAllDiscourseNodes = (
+  trace?: PerformanceTraceArg,
+): DiscourseNode[] => {
+  const { traceId, source, content } = resolvePerformanceTraceContext({
+    trace,
+    ignoredPatterns: ["getAllDiscourseNodes"],
+  });
   let rawResultCount = 0;
   let nodeCount = 0;
   let skippedCount = 0;
@@ -1163,9 +1390,12 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
   return withPerformanceTrace(
     {
       label: "getAllDiscourseNodes",
-      thresholdMs: 8,
+      thresholdMs: 0,
       aggregateThresholdMs: 50,
       details: () => ({
+        traceId,
+        source,
+        content,
         rawResultCount,
         nodeCount,
         skippedCount,

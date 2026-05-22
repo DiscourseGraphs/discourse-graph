@@ -67,8 +67,12 @@ const getExportTypes = ({
   exportId,
   isExportDiscourseGraph,
 }: getExportTypesProps): ExportTypes => {
-  const allRelations = getDiscourseRelations();
-  const allNodes = getDiscourseNodes(allRelations);
+  const trace = {
+    source: "getExportTypes",
+    content: `exportId:${exportId}`,
+  };
+  const allRelations = getDiscourseRelations(undefined, trace);
+  const allNodes = getDiscourseNodes(allRelations, undefined, trace);
   const nodeLabelByType = Object.fromEntries(
     allNodes.map((a) => [a.type, a.text]),
   );

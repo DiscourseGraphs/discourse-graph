@@ -10,7 +10,12 @@ import getDiscourseRelations from "./getDiscourseRelations";
 import { roamNodeToCondition } from "./parseQuery";
 import { Condition } from "./types";
 import { InputTextNode, RoamBasicNode } from "roamjs-components/types";
-import { withPerformanceTrace } from "./performanceLogger";
+import {
+  measurePerformanceStep,
+  resolvePerformanceTraceContext,
+  withPerformanceTrace,
+  type PerformanceTraceArg,
+} from "./performanceLogger";
 
 export const excludeDefaultNodes = (node: DiscourseNode) => {
   return node.backedBy !== "default";
@@ -108,30 +113,21 @@ const getUidAndBooleanSetting = ({
   };
 };
 
-const getPerformanceNow = (): number => {
-  if (
-    typeof performance !== "undefined" &&
-    typeof performance.now === "function"
-  ) {
-    return performance.now();
-  }
-
-  return Date.now();
-};
-
-const roundDurationMs = (durationMs: number): number =>
-  Math.round(durationMs * 10) / 10;
-
-const measureStep = <T>(fn: () => T): [T, number] => {
-  const start = getPerformanceNow();
-  const result = fn();
-  return [result, roundDurationMs(getPerformanceNow() - start)];
-};
+let getDiscourseNodesCallCount = 0;
 
 const getDiscourseNodes = (
   relations?: ReturnType<typeof getDiscourseRelations>,
   snapshot?: SettingsSnapshot,
+  trace?: PerformanceTraceArg,
 ): DiscourseNode[] => {
+  const context = resolvePerformanceTraceContext({
+    trace,
+    ignoredPatterns: ["getDiscourseNodes"],
+  });
+  const traceId =
+    context.traceId ?? `getDiscourseNodes#${++getDiscourseNodesCallCount}`;
+  const source = context.source;
+  const content = context.content;
   let relationCount = 0;
   let configuredNodeCount = 0;
   let relationNodeCount = 0;
@@ -148,11 +144,14 @@ const getDiscourseNodes = (
   return withPerformanceTrace(
     {
       label: "getDiscourseNodes",
-      thresholdMs: 8,
+      thresholdMs: 0,
       aggregateThresholdMs: 50,
       details: () => ({
         hasRelationsArg: !!relations,
         hasSnapshot: !!snapshot,
+        traceId,
+        source,
+        content,
         newStoreEnabled,
         relationCount,
         configuredNodeCount,
@@ -168,24 +167,27 @@ const getDiscourseNodes = (
       }),
     },
     () => {
-      const [resolvedRelations, measuredResolveRelationsMs] = measureStep(
-        () => relations ?? getDiscourseRelations(snapshot),
-      );
+      const [resolvedRelations, measuredResolveRelationsMs] =
+        measurePerformanceStep(
+          () =>
+            relations ??
+            getDiscourseRelations(snapshot, { traceId, source, content }),
+        );
       resolveRelationsMs = measuredResolveRelationsMs;
       relationCount = resolvedRelations.length;
-      const [resolvedNewStoreEnabled, measuredResolveStoreFlagMs] = measureStep(
-        () =>
+      const [resolvedNewStoreEnabled, measuredResolveStoreFlagMs] =
+        measurePerformanceStep(() =>
           snapshot
             ? snapshot.featureFlags["Use new settings store"]
-            : isNewSettingsStoreEnabled(),
-      );
+            : isNewSettingsStoreEnabled({ traceId, source, content }),
+        );
       newStoreEnabled = resolvedNewStoreEnabled;
       resolveStoreFlagMs = measuredResolveStoreFlagMs;
 
-      const [configuredBaseNodes, measuredConfiguredBaseNodesMs] = measureStep(
-        () => {
+      const [configuredBaseNodes, measuredConfiguredBaseNodesMs] =
+        measurePerformanceStep(() => {
           if (newStoreEnabled) {
-            return getAllDiscourseNodes();
+            return getAllDiscourseNodes({ traceId, source, content });
           }
 
           return Object.entries(discourseConfigRef.nodes).map(
@@ -236,54 +238,59 @@ const getDiscourseNodes = (
               };
             },
           );
-        },
-      );
+        });
       configuredBaseNodesMs = measuredConfiguredBaseNodesMs;
       configuredNodeCount = configuredBaseNodes.length;
 
-      const [relationNodes, measuredRelationNodesMs] = measureStep(() => {
-        return resolvedRelations
-          .filter((r) =>
-            r.triples.some((t) => t.some((n) => /anchor/i.test(n))),
-          )
-          .map(
-            (r): DiscourseNode => ({
-              format: "",
-              text: r.label,
-              type: r.id,
-              shortcut: r.label.slice(0, 1),
-              tag: "",
-              specification: r.triples.map(([source, relation, target]) => ({
-                type: "clause",
-                source: /anchor/i.test(source) ? r.label : source,
-                relation,
-                target:
-                  target === "source"
-                    ? r.source
-                    : target === "destination"
-                      ? r.destination
-                      : /anchor/i.test(target)
-                        ? r.label
-                        : target,
-                uid: window.roamAlphaAPI.util.generateUID(),
-              })),
-              backedBy: "relation",
-              canvasSettings: {},
-            }),
-          );
-      });
+      const [relationNodes, measuredRelationNodesMs] = measurePerformanceStep(
+        () => {
+          return resolvedRelations
+            .filter((r) =>
+              r.triples.some((t) => t.some((n) => /anchor/i.test(n))),
+            )
+            .map(
+              (r): DiscourseNode => ({
+                format: "",
+                text: r.label,
+                type: r.id,
+                shortcut: r.label.slice(0, 1),
+                tag: "",
+                specification: r.triples.map(([source, relation, target]) => ({
+                  type: "clause",
+                  source: /anchor/i.test(source) ? r.label : source,
+                  relation,
+                  target:
+                    target === "source"
+                      ? r.source
+                      : target === "destination"
+                        ? r.destination
+                        : /anchor/i.test(target)
+                          ? r.label
+                          : target,
+                  uid: window.roamAlphaAPI.util.generateUID(),
+                })),
+                backedBy: "relation",
+                canvasSettings: {},
+              }),
+            );
+        },
+      );
       relationNodesMs = measuredRelationNodesMs;
       relationNodeCount = relationNodes.length;
 
       const configuredNodes = configuredBaseNodes.concat(relationNodes);
-      const [defaultNodes, measuredDefaultNodesMs] = measureStep(() => {
-        const configuredNodeTexts = new Set(configuredNodes.map((n) => n.text));
-        return DEFAULT_NODES.filter((n) => !configuredNodeTexts.has(n.text));
-      });
+      const [defaultNodes, measuredDefaultNodesMs] = measurePerformanceStep(
+        () => {
+          const configuredNodeTexts = new Set(
+            configuredNodes.map((n) => n.text),
+          );
+          return DEFAULT_NODES.filter((n) => !configuredNodeTexts.has(n.text));
+        },
+      );
       defaultNodesMs = measuredDefaultNodesMs;
       defaultNodeCount = defaultNodes.length;
 
-      const [nodes, measuredConcatNodesMs] = measureStep(() =>
+      const [nodes, measuredConcatNodesMs] = measurePerformanceStep(() =>
         configuredNodes.concat(defaultNodes),
       );
       concatNodesMs = measuredConcatNodesMs;

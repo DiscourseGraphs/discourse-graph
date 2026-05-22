@@ -78,6 +78,11 @@ const debounce = (fn: () => void, delay = 250) => {
   };
 };
 
+const compactTraceContent = (content?: string | null): string | undefined => {
+  const compacted = content?.replace(/\s+/g, " ").trim();
+  return compacted ? compacted.slice(0, 120) : undefined;
+};
+
 const getTitleAndUidFromHeader = (h1: HTMLHeadingElement) => {
   const titleDisplayContainer = h1.closest(".rm-title-display-container");
   const dataUid = titleDisplayContainer?.getAttribute("data-page-uid") || "";
@@ -118,6 +123,7 @@ export const initObservers = ({
       let isCanvas = false;
       let isSidebar = false;
       let renderedCanvasReferences = false;
+      let content: string | undefined;
 
       withPerformanceTrace(
         {
@@ -131,14 +137,19 @@ export const initObservers = ({
             isCanvas,
             isSidebar,
             renderedCanvasReferences,
+            content,
           }),
         },
         () => {
           const h1 = e as HTMLHeadingElement;
           const { title, uid } = getTitleAndUidFromHeader(h1);
           titleLength = title.length;
+          content = compactTraceContent(title);
 
-          const settings = bulkReadSettings();
+          const settings = bulkReadSettings({
+            source: "observer:pageTitle",
+            content,
+          });
 
           const props = { title, h1, onloadArgs };
 
@@ -146,12 +157,21 @@ export const initObservers = ({
             uid,
             title,
             snapshot: settings,
+            trace: {
+              source: "observer:pageTitle:findDiscourseNode",
+              content,
+            },
           });
 
           isDiscourseNode = !!node && node.backedBy !== "default";
           if (isDiscourseNode && node) {
             renderDiscourseContext({ h1, uid });
-            if (getFeatureFlag("Duplicate node alert enabled")) {
+            if (
+              getFeatureFlag("Duplicate node alert enabled", {
+                source: "observer:pageTitle:duplicateAlert",
+                content,
+              })
+            ) {
               renderPossibleDuplicates(h1, title, node);
             }
             const linkedReferencesDiv = document.querySelector(
@@ -186,15 +206,18 @@ export const initObservers = ({
 
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
-    render: (b) =>
-      withPerformanceTrace(
+    render: (b) => {
+      const content = compactTraceContent(b.textContent);
+      return withPerformanceTrace(
         {
           label: "observer:queryBlock",
           thresholdMs: 16,
           aggregateThresholdMs: 50,
+          details: () => ({ content }),
         },
         () => renderQueryBlock(b, onloadArgs),
-      ),
+      );
+    },
   });
 
   const canvasEmbedObserver = createButtonObserver({
@@ -203,7 +226,7 @@ export const initObservers = ({
   });
 
   let batchedTagNodes: DiscourseNode[] | null = null;
-  const getNodesForTagBatch = (): DiscourseNode[] => {
+  const getNodesForTagBatch = (content: string): DiscourseNode[] => {
     if (batchedTagNodes === null) {
       let nodeCount = 0;
       batchedTagNodes = withPerformanceTrace(
@@ -214,8 +237,12 @@ export const initObservers = ({
           details: () => ({ nodeCount }),
         },
         () => {
-          const settings = bulkReadSettings();
-          const nodes = getDiscourseNodes(undefined, settings);
+          const trace = {
+            source: "observer:nodeTagPopupButton:getNodesForTagBatch",
+            content: compactTraceContent(content),
+          };
+          const settings = bulkReadSettings(trace);
+          const nodes = getDiscourseNodes(undefined, settings, trace);
           nodeCount = nodes.length;
           return nodes;
         },
@@ -233,20 +260,22 @@ export const initObservers = ({
     callback: (s: HTMLSpanElement) => {
       let tagLength = 0;
       let rendered = false;
+      let content: string | undefined;
       withPerformanceTrace(
         {
           label: "observer:nodeTagPopupButton",
           thresholdMs: 8,
           aggregateThresholdMs: 50,
-          details: () => ({ tagLength, rendered }),
+          details: () => ({ tagLength, rendered, content }),
         },
         () => {
           const tag = s.getAttribute("data-tag");
           tagLength = tag?.length ?? 0;
           if (tag) {
             const normalizedTag = getCleanTagText(tag);
+            content = compactTraceContent(normalizedTag);
 
-            for (const node of getNodesForTagBatch()) {
+            for (const node of getNodesForTagBatch(normalizedTag)) {
               const normalizedNodeTag = node.tag
                 ? getCleanTagText(node.tag)
                 : "";
@@ -315,15 +344,19 @@ export const initObservers = ({
     className: "rm-inline-img",
     callback: (img: HTMLElement) => {
       let rendered = false;
+      let content: string | undefined;
       withPerformanceTrace(
         {
           label: "observer:imageMenu",
           thresholdMs: 8,
           aggregateThresholdMs: 50,
-          details: () => ({ rendered }),
+          details: () => ({ rendered, content }),
         },
         () => {
           if (img instanceof HTMLImageElement) {
+            content = compactTraceContent(
+              img.currentSrc || img.src || img.getAttribute("src"),
+            );
             renderImageToolsMenu(img, onloadArgs.extensionAPI);
             rendered = true;
           }
@@ -349,6 +382,7 @@ export const initObservers = ({
     let matchedConfigPage = false;
     let matchedNodeType = false;
     let refreshed = false;
+    let content: string | undefined;
     withPerformanceTrace(
       {
         label: "listener:hashChange",
@@ -359,16 +393,22 @@ export const initObservers = ({
           matchedConfigPage,
           matchedNodeType,
           refreshed,
+          content,
         }),
       },
       () => {
         const evt = e as HashChangeEvent;
-        const settings = bulkReadSettings();
+        content = compactTraceContent(evt.oldURL);
+        const trace = {
+          source: "listener:hashChange",
+          content,
+        };
+        const settings = bulkReadSettings(trace);
         // Attempt to refresh config navigating away from config page
         // doesn't work if they update via sidebar
         matchedConfigPage =
           !!configPageUid && evt.oldURL.endsWith(configPageUid);
-        const nodes = getDiscourseNodes(undefined, settings);
+        const nodes = getDiscourseNodes(undefined, settings, trace);
         checkedNodeCount = nodes.length;
         matchedNodeType = nodes.some(({ type }) => evt.oldURL.endsWith(type));
 
@@ -417,15 +457,19 @@ export const initObservers = ({
     className: "starred-pages-wrapper",
     callback: (el) => {
       let isLeftSidebarEnabled = false;
+      const content = "starred-pages-wrapper";
       void withAsyncPerformanceTrace(
         {
           label: "observer:leftSidebar",
           thresholdMs: 16,
           aggregateThresholdMs: 50,
-          details: () => ({ isLeftSidebarEnabled }),
+          details: () => ({ isLeftSidebarEnabled, content }),
         },
         async () => {
-          const settings = bulkReadSettings();
+          const settings = bulkReadSettings({
+            source: "observer:leftSidebar",
+            content,
+          });
           isLeftSidebarEnabled = settings.featureFlags["Enable left sidebar"];
           const container = el as HTMLDivElement;
           if (isLeftSidebarEnabled) {
@@ -452,6 +496,10 @@ export const initObservers = ({
         textarea,
         extensionAPI: onloadArgs.extensionAPI,
         isShift: evt.shiftKey,
+        trace: {
+          source: "listener:nodeMenuTrigger",
+          content: compactTraceContent(textarea.value),
+        },
       });
       evt.preventDefault();
       evt.stopPropagation();
@@ -546,6 +594,7 @@ export const initObservers = ({
     let selectedTextLength = 0;
     let hasBlockElement = false;
     let rendered = false;
+    let content: string | undefined;
     withPerformanceTrace(
       {
         label: "listener:selectionchange",
@@ -555,10 +604,13 @@ export const initObservers = ({
           selectedTextLength,
           hasBlockElement,
           rendered,
+          content,
         }),
       },
       () => {
-        const settings = bulkReadSettings();
+        const settings = bulkReadSettings({
+          source: "listener:selectionchange",
+        });
         if (!settings.personalSettings[PERSONAL_KEYS.textSelectionPopup])
           return;
 
@@ -571,6 +623,7 @@ export const initObservers = ({
 
         const selectedText = selection.toString().trim();
         selectedTextLength = selectedText.length;
+        content = compactTraceContent(selectedText);
 
         if (!selectedText) {
           removeTextSelectionPopup();

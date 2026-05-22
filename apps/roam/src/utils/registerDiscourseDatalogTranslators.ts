@@ -89,8 +89,12 @@ const collectVariables = (clauses: DatalogClause[]): Set<string> =>
 const ANY_DISCOURSE_NODE = "Any discourse node";
 
 const registerDiscourseDatalogTranslators = (snapshot?: SettingsSnapshot) => {
-  const discourseRelations = getDiscourseRelations(snapshot);
-  const discourseNodes = getDiscourseNodes(discourseRelations, snapshot);
+  const trace = {
+    source: "registerDiscourseDatalogTranslators",
+    content: "extension load",
+  };
+  const discourseRelations = getDiscourseRelations(snapshot, trace);
+  const discourseNodes = getDiscourseNodes(discourseRelations, snapshot, trace);
 
   const isACallback: Parameters<
     typeof registerDatalogTranslator

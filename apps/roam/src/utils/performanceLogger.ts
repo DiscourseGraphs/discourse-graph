@@ -9,6 +9,14 @@ type PerformanceTraceOptions = {
   details?: PerformanceDetails | (() => PerformanceDetails);
 };
 
+export type PerformanceTraceContext = {
+  traceId?: string;
+  source?: string;
+  content?: string;
+};
+
+export type PerformanceTraceArg = string | PerformanceTraceContext | undefined;
+
 type AggregateSample = {
   count: number;
   totalDurationMs: number;
@@ -24,11 +32,16 @@ type PerformanceDebugWindow = Window &
 
 const SLOW_OPERATION_THRESHOLD_MS = 16;
 const DEBUG_STORAGE_KEY = "dg:performance-debug";
+const INTERNAL_CALLER_PATTERNS = [
+  "getPerformanceCaller",
+  "resolvePerformanceTraceContext",
+  "normalizePerformanceTraceArg",
+];
 
 const aggregateSamples = new Map<string, AggregateSample>();
 let aggregateFlushQueued = false;
 
-const getPerformanceNow = (): number => {
+export const getPerformanceNow = (): number => {
   if (
     typeof performance !== "undefined" &&
     typeof performance.now === "function"
@@ -37,6 +50,54 @@ const getPerformanceNow = (): number => {
   }
 
   return Date.now();
+};
+
+export const roundPerformanceDurationMs = (durationMs: number): number =>
+  Math.round(durationMs * 10) / 10;
+
+export const measurePerformanceStep = <T>(fn: () => T): [T, number] => {
+  const start = getPerformanceNow();
+  const result = fn();
+  return [result, roundPerformanceDurationMs(getPerformanceNow() - start)];
+};
+
+export const normalizePerformanceTraceArg = (
+  trace?: PerformanceTraceArg,
+): PerformanceTraceContext => {
+  if (typeof trace === "string") return { traceId: trace };
+  return trace ?? {};
+};
+
+export const getPerformanceCaller = (
+  ignoredPatterns: string[] = [],
+): string | undefined => {
+  const stack = new Error().stack;
+  if (!stack) return undefined;
+  const ignored = INTERNAL_CALLER_PATTERNS.concat(ignoredPatterns);
+
+  return stack
+    .split("\n")
+    .slice(2)
+    .map((line) => line.trim().replace(/^at\s+/, ""))
+    .find(
+      (line) =>
+        line.length > 0 && !ignored.some((pattern) => line.includes(pattern)),
+    );
+};
+
+export const resolvePerformanceTraceContext = ({
+  trace,
+  ignoredPatterns,
+}: {
+  trace?: PerformanceTraceArg;
+  ignoredPatterns: string[];
+}): PerformanceTraceContext => {
+  const context = normalizePerformanceTraceArg(trace);
+  return {
+    traceId: context.traceId,
+    source: context.source ?? getPerformanceCaller(ignoredPatterns),
+    content: context.content,
+  };
 };
 
 const getPerformanceDebugWindow = (): PerformanceDebugWindow | undefined => {
@@ -76,7 +137,7 @@ const compactDetails = (details: PerformanceDetails): PerformanceDetails => {
 };
 
 const formatDuration = (durationMs: number): string => {
-  return `${Math.round(durationMs * 10) / 10}ms`;
+  return `${roundPerformanceDurationMs(durationMs)}ms`;
 };
 
 const formatDetailValue = (value: PerformanceDetail): string => {

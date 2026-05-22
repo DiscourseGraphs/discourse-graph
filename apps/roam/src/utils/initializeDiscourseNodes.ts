@@ -7,9 +7,10 @@ import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
 const initializeDiscourseNodes = async (
   snapshot: SettingsSnapshot,
 ): Promise<boolean> => {
-  const nodes = getDiscourseNodes(undefined, snapshot).filter(
-    excludeDefaultNodes,
-  );
+  const nodes = getDiscourseNodes(undefined, snapshot, {
+    source: "initializeDiscourseNodes",
+    content: "extension load",
+  }).filter(excludeDefaultNodes);
   if (nodes.length === 0) {
     await Promise.all(
       INITIAL_NODE_VALUES.map(
