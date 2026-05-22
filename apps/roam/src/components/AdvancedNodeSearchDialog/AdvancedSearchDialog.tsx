@@ -20,16 +20,20 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import renderOverlay, {
   RoamOverlayProps,
 } from "roamjs-components/util/renderOverlay";
+import { DiscourseNodeSortControl } from "~/components/DiscourseNodeSortControl";
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import {
   DEBOUNCE_MS,
+  DEFAULT_SORT_CONFIG,
   type SearchResult,
+  type SortConfig,
   buildSearchIndex,
   formatMetadataDate,
   searchIndexedNodes,
+  sortSearchResults,
   splitWithHighlights,
   stripTypePrefix,
 } from "./utils";
@@ -144,6 +148,8 @@ const AdvancedNodeSearchDialog = ({
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [indexError, setIndexError] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [sort, setSort] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
   const miniSearchRef = useRef<MiniSearch<
     SearchResult & { id: string }
   > | null>(null);
@@ -159,19 +165,6 @@ const AdvancedNodeSearchDialog = ({
       discourseNodes.map((node) => [node.type, node]),
     ) as Record<string, DiscourseNode>;
   }, []);
-
-  const results =
-    isOpen &&
-    !isIndexLoading &&
-    !indexError &&
-    debouncedSearchTerm &&
-    miniSearchRef.current
-      ? searchIndexedNodes({
-          miniSearch: miniSearchRef.current,
-          allResults: allResultsRef.current,
-          searchTerm: debouncedSearchTerm,
-        })
-      : [];
 
   const activeResult = results[activeIndex] ?? null;
   const keywords = debouncedSearchTerm.split(/\s+/).filter(Boolean);
@@ -190,6 +183,38 @@ const AdvancedNodeSearchDialog = ({
       window.clearTimeout(timeoutId);
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm("");
+      setDebouncedSearchTerm("");
+      setActiveIndex(0);
+      setSort(DEFAULT_SORT_CONFIG);
+      setResults([]);
+      setIndexError(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (
+      !isOpen ||
+      isIndexLoading ||
+      indexError ||
+      !debouncedSearchTerm ||
+      !miniSearchRef.current
+    ) {
+      setResults([]);
+      return;
+    }
+
+    const scoredHits = searchIndexedNodes({
+      miniSearch: miniSearchRef.current,
+      allResults: allResultsRef.current,
+      searchTerm: debouncedSearchTerm,
+    });
+
+    setResults(sortSearchResults({ hits: scoredHits, sort }));
+  }, [debouncedSearchTerm, indexError, isIndexLoading, isOpen, sort]);
 
   useEffect(() => {
     let cancelled = false;
@@ -235,7 +260,7 @@ const AdvancedNodeSearchDialog = ({
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchTerm, sort]);
 
   useEffect(() => {
     const panel = resultsPanelRef.current;
@@ -244,6 +269,10 @@ const AdvancedNodeSearchDialog = ({
     const activeRow = panel.querySelector('[aria-selected="true"]');
     activeRow?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, activeResult?.uid, debouncedSearchTerm]);
+
+  const handleSortChange = useCallback((nextSort: SortConfig): void => {
+    setSort(nextSort);
+  }, []);
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -305,7 +334,19 @@ const AdvancedNodeSearchDialog = ({
             placeholder="Search discourse nodes..."
             value={searchTerm}
           />
-          <Button icon="cross" minimal onClick={onClose} title="Close search" />
+
+          <DiscourseNodeSortControl
+            disabled={isIndexLoading || indexError}
+            onSortChange={handleSortChange}
+            sort={sort}
+          />
+          <Button
+            className="shrink-0"
+            icon="cross"
+            minimal
+            onClick={onClose}
+            title="Close search"
+          />
         </div>
         <div className="flex min-h-0 w-full flex-1 overflow-hidden">
           {showSplitView ? (
