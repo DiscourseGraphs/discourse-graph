@@ -190,6 +190,17 @@ export const initObservers = ({
     },
   });
 
+  let batchedImageMenuSettings: SettingsSnapshot | null = null;
+  const getImageMenuSettingsForBatch = (): SettingsSnapshot => {
+    if (batchedImageMenuSettings === null) {
+      batchedImageMenuSettings = bulkReadSettings();
+      queueMicrotask(() => {
+        batchedImageMenuSettings = null;
+      });
+    }
+    return batchedImageMenuSettings;
+  };
+
   const pageActionListener = ((
     e: CustomEvent<{
       action: string;
@@ -229,7 +240,11 @@ export const initObservers = ({
     className: "rm-inline-img",
     callback: (img: HTMLElement) => {
       if (img instanceof HTMLImageElement) {
-        renderImageToolsMenu(img, onloadArgs.extensionAPI);
+        renderImageToolsMenu(
+          img,
+          onloadArgs.extensionAPI,
+          getImageMenuSettingsForBatch,
+        );
       }
     },
   });
@@ -443,6 +458,7 @@ export const initObservers = ({
         extensionAPI: onloadArgs.extensionAPI,
         blockElement,
         textarea,
+        settingsSnapshot: settings,
       });
     } else {
       removeTextSelectionPopup();

@@ -5,15 +5,18 @@ import getUids from "roamjs-components/dom/getUids";
 import NodeMenu from "~/components/DiscourseNodeMenu";
 import { OnloadArgs } from "roamjs-components/types";
 import posthog from "posthog-js";
+import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
 
 type ImageToolsMenuProps = {
   blockUid: string;
   extensionAPI: OnloadArgs["extensionAPI"];
+  getSettingsSnapshot: () => SettingsSnapshot;
 };
 
 const ImageToolsMenu = ({
   blockUid,
   extensionAPI,
+  getSettingsSnapshot,
 }: ImageToolsMenuProps): JSX.Element => {
   const [menuKey, setMenuKey] = useState(0);
 
@@ -45,6 +48,7 @@ const ImageToolsMenu = ({
         extensionAPI={extensionAPI}
         trigger={trigger}
         isShift={false}
+        getSettingsSnapshot={getSettingsSnapshot}
       />
 
       <Button
@@ -125,6 +129,7 @@ const attachHoverListeners = (
 export const renderImageToolsMenu = (
   imageElement: HTMLImageElement,
   extensionAPI: OnloadArgs["extensionAPI"],
+  getSettingsSnapshot: () => SettingsSnapshot,
 ): void => {
   const wrapper = getImageWrapper(imageElement);
   if (!wrapper) return;
@@ -142,7 +147,11 @@ export const renderImageToolsMenu = (
 
   // eslint-disable-next-line react/no-deprecated
   ReactDOM.render(
-    <ImageToolsMenu blockUid={blockUid} extensionAPI={extensionAPI} />,
+    <ImageToolsMenu
+      blockUid={blockUid}
+      extensionAPI={extensionAPI}
+      getSettingsSnapshot={getSettingsSnapshot}
+    />,
     menuContainer,
   );
 };

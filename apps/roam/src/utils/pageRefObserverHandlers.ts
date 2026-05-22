@@ -6,6 +6,10 @@ import { OnloadArgs } from "roamjs-components/types";
 import { renderSuggestive as renderSuggestiveOverlay } from "~/components/SuggestiveModeOverlay";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import findDiscourseNode from "./findDiscourseNode";
+import {
+  bulkReadSettings,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
 
 const PAGE_REF_SELECTOR = "span.rm-page-ref";
 const DISCOURSE_OVERLAY_CLASS = "roamjs-discourse-context-overlay";
@@ -24,11 +28,13 @@ type PageRefDiscourseNodeStatus = {
 };
 
 let batchDiscourseNodes: DiscourseNode[] | null = null;
+let batchSettingsSnapshot: SettingsSnapshot | null = null;
 let clearBatchCacheQueued = false;
 const pageRefDiscourseNodeCache = new Map<string, PageRefDiscourseNodeStatus>();
 
 const clearBatchCache = (): void => {
   batchDiscourseNodes = null;
+  batchSettingsSnapshot = null;
   pageRefDiscourseNodeCache.clear();
   clearBatchCacheQueued = false;
 };
@@ -39,10 +45,21 @@ const queueBatchCacheClear = (): void => {
   queueMicrotask(clearBatchCache);
 };
 
+const getBatchSettingsSnapshot = (): SettingsSnapshot => {
+  if (batchSettingsSnapshot) return batchSettingsSnapshot;
+
+  batchSettingsSnapshot = bulkReadSettings();
+  queueBatchCacheClear();
+  return batchSettingsSnapshot;
+};
+
 const getBatchDiscourseNodes = (): DiscourseNode[] => {
   if (batchDiscourseNodes) return batchDiscourseNodes;
 
-  batchDiscourseNodes = getDiscourseNodes();
+  batchDiscourseNodes = getDiscourseNodes(
+    undefined,
+    getBatchSettingsSnapshot(),
+  );
   queueBatchCacheClear();
   return batchDiscourseNodes;
 };
