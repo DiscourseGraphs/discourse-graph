@@ -46,7 +46,7 @@ import { getUidAndBooleanSetting } from "~/utils/getExportSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
-import { renderAdvancedNodeSearchSidebar } from "~/components/AdvancedNodeSearchDialog/AdvancedSearchDialog";
+import { renderAdvancedNodeSearchDialog } from "~/components/AdvancedNodeSearchDialog/AdvancedSearchDialog";
 import {
   getBlockSelection,
   insertPageRefAtRange,
@@ -367,7 +367,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   if (getFeatureFlag("Advanced node search enabled")) {
     void addCommand("DG: Open Node Search", () => {
       posthog.capture("Node Search: Open Command Triggered");
-      renderAdvancedNodeSearchSidebar();
+      renderAdvancedNodeSearchDialog();
     });
   }
   void addCommand("DG: Open - Query drawer", openQueryDrawerWithArgs);
