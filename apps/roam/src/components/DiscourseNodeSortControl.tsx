@@ -48,7 +48,7 @@ const SortDirectionFooter = ({
         icon="sort-asc"
         onClick={() => onDirectionChange("asc")}
         small
-        text="Ascending"
+        text="Asc"
       />
       <Button
         active={direction === "desc"}
@@ -56,7 +56,7 @@ const SortDirectionFooter = ({
         icon="sort-desc"
         onClick={() => onDirectionChange("desc")}
         small
-        text="Descending"
+        text="Desc"
       />
     </ButtonGroup>
   </div>
