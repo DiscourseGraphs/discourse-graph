@@ -1,5 +1,13 @@
 import React, { useCallback, useRef, useState } from "react";
-import { Button, Menu, MenuItem, Popover, Position } from "@blueprintjs/core";
+import {
+  Button,
+  ButtonGroup,
+  Menu,
+  MenuDivider,
+  MenuItem,
+  Popover,
+  Position,
+} from "@blueprintjs/core";
 import {
   SORT_FIELD_LABELS,
   isNonDefaultSort,
@@ -21,25 +29,65 @@ export type DiscourseNodeSortControlProps = {
   disabled?: boolean;
 };
 
+const SortDirectionFooter = ({
+  direction,
+  onDirectionChange,
+}: {
+  direction: SortDirection;
+  onDirectionChange: (direction: SortDirection) => void;
+}): React.ReactElement => (
+  <div
+    className="px-2 py-2"
+    onClick={(event) => event.stopPropagation()}
+    onMouseDown={(event) => event.preventDefault()}
+  >
+    <ButtonGroup fill>
+      <Button
+        active={direction === "asc"}
+        aria-label="Ascending"
+        icon="sort-asc"
+        onClick={() => onDirectionChange("asc")}
+        small
+        text="Ascending"
+      />
+      <Button
+        active={direction === "desc"}
+        aria-label="Descending"
+        icon="sort-desc"
+        onClick={() => onDirectionChange("desc")}
+        small
+        text="Descending"
+      />
+    </ButtonGroup>
+  </div>
+);
+
 const SortPopoverMenu = ({
-  onFieldChange,
+  onSortChange,
   sort,
 }: {
-  onFieldChange: (field: SortField) => void;
+  onSortChange: (sort: SortConfig) => void;
   sort: SortConfig;
 }): React.ReactElement => (
-  <Menu className="w-52">
+  <Menu className="w-56">
     <MenuItem disabled shouldDismissPopover={false} text="Sort by" />
     {SORT_FIELDS.map((field) => (
       <MenuItem
         key={field}
         active={sort.field === field}
         icon={sort.field === field ? "tick" : "blank"}
-        onClick={() => onFieldChange(field)}
+        onClick={() => onSortChange({ field, direction: sort.direction })}
         shouldDismissPopover={false}
         text={SORT_FIELD_LABELS[field]}
       />
     ))}
+    <MenuDivider />
+    <SortDirectionFooter
+      direction={sort.direction}
+      onDirectionChange={(direction) =>
+        onSortChange({ field: sort.field, direction })
+      }
+    />
   </Menu>
 );
 
@@ -54,7 +102,6 @@ export const DiscourseNodeSortControl = ({
 
   const sortLabel = SORT_FIELD_LABELS[sort.field];
   const isTriggerActive = isOpen || isNonDefaultSort(sort);
-  const directionIcon = sort.direction === "asc" ? "arrow-up" : "arrow-down";
 
   const handlePopoverInteraction = useCallback(
     (nextOpen: boolean, event?: React.SyntheticEvent<HTMLElement>): void => {
@@ -66,20 +113,6 @@ export const DiscourseNodeSortControl = ({
     },
     [disabled],
   );
-
-  const applyField = useCallback(
-    (field: SortField): void => {
-      onSortChange({ field, direction: sort.direction });
-      setIsOpen(false);
-    },
-    [onSortChange, sort.direction],
-  );
-
-  const toggleDirection = useCallback((): void => {
-    const nextDirection: SortDirection =
-      sort.direction === "asc" ? "desc" : "asc";
-    onSortChange({ field: sort.field, direction: nextDirection });
-  }, [onSortChange, sort.direction, sort.field]);
 
   const sortButton = (
     <Button
@@ -101,11 +134,11 @@ export const DiscourseNodeSortControl = ({
   );
 
   return (
-    <span className="inline-flex shrink-0 items-center gap-0.5 [&_.bp3-popover-wrapper]:shrink-0">
+    <span className="inline-flex shrink-0 [&_.bp3-popover-wrapper]:shrink-0">
       <Popover
         autoFocus={false}
         canEscapeKeyClose
-        content={<SortPopoverMenu onFieldChange={applyField} sort={sort} />}
+        content={<SortPopoverMenu onSortChange={onSortChange} sort={sort} />}
         disabled={disabled}
         enforceFocus={false}
         isOpen={isOpen}
@@ -120,17 +153,6 @@ export const DiscourseNodeSortControl = ({
         position={Position.BOTTOM_RIGHT}
         target={sortButton}
         usePortal
-      />
-      <Button
-        aria-label={`${sortLabel} ${sort.direction === "asc" ? "ascending" : "descending"}`}
-        className="!text-gray-600 hover:!bg-gray-100 hover:!text-gray-900"
-        disabled={disabled}
-        icon={directionIcon}
-        minimal
-        onClick={toggleDirection}
-        onMouseDown={(event) => event.preventDefault()}
-        small
-        title={`${sort.direction === "asc" ? "Ascending" : "Descending"}`}
       />
     </span>
   );
