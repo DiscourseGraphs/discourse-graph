@@ -14,7 +14,6 @@ import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import { getBlockSelection } from "~/utils/getBlockSelection";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
@@ -48,6 +47,7 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
 import { renderAdvancedNodeSearchDialog } from "~/components/AdvancedNodeSearchDialog/AdvancedSearchDialog";
+import { getBlockSelection } from "./advancedSearchFooterUtils";
 
 export const createDiscourseNodeFromCommand = (
   extensionAPI: OnloadArgs["extensionAPI"],
