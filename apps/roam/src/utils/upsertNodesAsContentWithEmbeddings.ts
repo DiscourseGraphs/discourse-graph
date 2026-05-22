@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import { type SupabaseContext } from "./supabaseContext";
 import { nextApiRoot } from "@repo/utils/execContext";

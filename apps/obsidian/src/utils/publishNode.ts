@@ -54,11 +54,9 @@ const publishSchema = async ({
   // Publish schema to group via ResourceAccess
   const publishResponse = await client.from("ResourceAccess").upsert(
     {
-      /* eslint-disable @typescript-eslint/naming-convention */
       account_uid: groupId,
       source_local_id: nodeTypeId,
       space_id: spaceId,
-      /* eslint-enable @typescript-eslint/naming-convention */
     },
     { ignoreDuplicates: true },
   );
@@ -151,11 +149,9 @@ export const publishNewRelation = async (
   for (const group of targetGroups) {
     for (const id of resourceIds) {
       entries.push({
-        /* eslint-disable @typescript-eslint/naming-convention */
         account_uid: group,
         source_local_id: id,
         space_id: context.spaceId,
-        /* eslint-enable @typescript-eslint/naming-convention */
       });
     }
   }
@@ -226,11 +222,9 @@ export const publishNodeRelations = async ({
   if (resourceIds.size === 0) return;
   const publishResponse = await client.from("ResourceAccess").upsert(
     [...resourceIds.values()].map((sourceLocalId: string) => ({
-      /* eslint-disable @typescript-eslint/naming-convention */
       account_uid: myGroup,
       source_local_id: sourceLocalId,
       space_id: spaceId,
-      /* eslint-enable @typescript-eslint/naming-convention */
     })),
     { ignoreDuplicates: true },
   );
@@ -364,13 +358,11 @@ export const ensurePublishedRelationsAccuracy = async ({
     );
     if (missingPublishableIds.size > 0) {
       missingPublishRecords.push(
-        /* eslint-disable @typescript-eslint/naming-convention */
         ...[...missingPublishableIds].map((source_local_id) => ({
           source_local_id,
           space_id: context.spaceId,
           account_uid: group,
         })),
-        /* eslint-enable @typescript-eslint/naming-convention */
       );
     }
     const extraPublishableIds = difference(
@@ -479,10 +471,8 @@ export const publishNodeToGroup = async ({
   if (!skipPublishAccess) {
     const publishSpaceResponse = await client.from("SpaceAccess").upsert(
       {
-        /* eslint-disable @typescript-eslint/naming-convention */
         account_uid: myGroup,
         space_id: spaceId,
-        /* eslint-enable @typescript-eslint/naming-convention */
         permissions: "partial",
       },
       { ignoreDuplicates: true },
@@ -495,11 +485,9 @@ export const publishNodeToGroup = async ({
 
     const publishResponse = await client.from("ResourceAccess").upsert(
       {
-        /* eslint-disable @typescript-eslint/naming-convention */
         account_uid: myGroup,
         source_local_id: nodeId,
         space_id: spaceId,
-        /* eslint-enable @typescript-eslint/naming-convention */
       },
       { ignoreDuplicates: true },
     );

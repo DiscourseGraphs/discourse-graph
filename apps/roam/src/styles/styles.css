@@ -191,3 +191,26 @@
 #dg-left-sidebar-root .bp3-dark .bp3-button:not([class*="bp3-intent-"]):hover {
   color: #f5f8fa;
 }
+
+.dg-canvas-embed {
+  height: 400px;
+}
+
+.dg-canvas-embed > .roamjs-tldraw-canvas-container {
+  height: 100%;
+  width: 100%;
+}
+
+.dg-canvas-embed-placeholder {
+  height: 100px;
+}
+
+.dg-canvas-embed-dialog.bp3-dialog {
+  width: 400px;
+}
+
+.dg-canvas-embed-dialog .roamjs-autocomplete-input-target,
+.dg-canvas-embed-dialog .roamjs-autocomplete-input-target .bp3-input-group {
+  display: block;
+  width: 100%;
+}

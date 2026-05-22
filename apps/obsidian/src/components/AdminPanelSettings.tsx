@@ -54,13 +54,11 @@ export const AdminPanelSettings = () => {
       new Notice("Failed to connect to the database", 3000);
       return;
     }
-    /* eslint-disable @typescript-eslint/naming-convention */
     const { access_token, refresh_token } = sessionData.data.session;
     const { data, error } = await client.rpc("create_secret_token", {
       v_payload: JSON.stringify({ access_token, refresh_token }),
       expiry_interval: "45s",
     });
-    /* eslint-enable @typescript-eslint/naming-convention */
     if (error || typeof data !== "string") {
       new Notice("Failed to connect to the database", 3000);
       return;

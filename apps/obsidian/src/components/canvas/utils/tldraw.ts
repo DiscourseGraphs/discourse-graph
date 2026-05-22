@@ -30,11 +30,9 @@ import { DiscourseRelationBindingUtil } from "~/components/canvas/shapes/Discour
 import { discourseNodeMigrations } from "~/components/canvas/shapes/discourseNodeMigrations";
 
 export type TldrawPluginMetaData = {
-  /* eslint-disable @typescript-eslint/naming-convention */
   "plugin-version": string;
   "tldraw-version": string;
   uuid: string;
-  /* eslint-disable @typescript-eslint/naming-convention */
 };
 
 export type TldrawRawData = {

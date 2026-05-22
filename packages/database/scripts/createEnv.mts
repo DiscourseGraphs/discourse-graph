@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import { Vercel } from "@vercel/sdk";
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "..");
 const baseParams: Record<string, string> = {};

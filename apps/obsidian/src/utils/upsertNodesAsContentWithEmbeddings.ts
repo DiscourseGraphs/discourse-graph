@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { nextApiRoot } from "@repo/utils/execContext";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import { Json, CompositeTypes } from "@repo/database/dbTypes";

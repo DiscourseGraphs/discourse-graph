@@ -40,6 +40,146 @@ const stripTemplateUids = (nodes: InputTextNode[]): InputTextNode[] =>
     };
   });
 
+const handleImageCreation = async ({
+  pageUid,
+  discourseNodes,
+  configPageUid,
+  imageUrl,
+  extensionAPI,
+  text,
+}: {
+  pageUid: string;
+  discourseNodes: ReturnType<typeof getDiscourseNodes>;
+  configPageUid: string;
+  imageUrl?: string;
+  extensionAPI?: OnloadArgs["extensionAPI"];
+  text: string;
+}) => {
+  const canvasSettings = Object.fromEntries(
+    discourseNodes.map((n) => [n.type, { ...n.canvasSettings }]),
+  );
+  const {
+    "query-builder-alias": qbAlias = "",
+    "key-image": isKeyImage = "",
+    "key-image-option": keyImageOption = "",
+  } = canvasSettings[configPageUid] || {};
+
+  if (isKeyImage && imageUrl) {
+    const createOrUpdateImageBlock = async (imagePlaceholderUid?: string) => {
+      const imageMarkdown = `![](${imageUrl})`;
+      if (imagePlaceholderUid) {
+        await updateBlock({
+          uid: imagePlaceholderUid,
+          text: imageMarkdown,
+        });
+      } else {
+        await createBlock({
+          node: { text: imageMarkdown },
+          order: 0,
+          parentUid: pageUid,
+        });
+      }
+    };
+
+    if (keyImageOption === "query-builder") {
+      if (!extensionAPI) return;
+
+      const parentUid = resolveQueryBuilderRef({ queryRef: qbAlias });
+      const results = await runQuery({
+        extensionAPI,
+        parentUid,
+        inputs: { NODETEXT: text, NODEUID: pageUid },
+      });
+      const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
+      await createOrUpdateImageBlock(imagePlaceholderUid);
+    } else {
+      await createOrUpdateImageBlock();
+    }
+  }
+};
+
+export const createBlocksFromTemplate = async ({
+  templateChildren,
+  pageUid,
+  order = 0,
+  discourseNodes,
+  configPageUid,
+  imageUrl,
+  extensionAPI,
+  text,
+}: {
+  templateChildren: InputTextNode[];
+  pageUid: string;
+  order?: number;
+  discourseNodes: ReturnType<typeof getDiscourseNodes>;
+  configPageUid: string;
+  imageUrl?: string;
+  extensionAPI?: OnloadArgs["extensionAPI"];
+  text: string;
+}) => {
+  const createBlocks = async () => {
+    await Promise.all(
+      stripTemplateUids(templateChildren).map((node, templateOrder) =>
+        createBlock({
+          node,
+          order: order + templateOrder,
+          parentUid: pageUid,
+        }),
+      ),
+    );
+
+    await handleImageCreation({
+      pageUid,
+      discourseNodes,
+      configPageUid,
+      imageUrl,
+      extensionAPI,
+      text,
+    });
+  };
+
+  const hasSmartBlockSyntax = (node: InputTextNode): boolean => {
+    if (node.text.includes("<%")) return true;
+    if (node.children) return node.children.some(hasSmartBlockSyntax);
+    return false;
+  };
+  const useSmartBlocks = templateChildren.some(hasSmartBlockSyntax);
+  const legacyTemplateNode = getSubTree({
+    tree: getFullTreeByParentUid(configPageUid).children,
+    key: "template",
+  });
+  const canUseLegacySmartBlock = !!legacyTemplateNode.uid;
+
+  if (useSmartBlocks && !window.roamjs?.extension?.smartblocks) {
+    renderToast({
+      content:
+        "This template requires SmartBlocks. Enable SmartBlocks in Roam Depot to use this template.",
+      id: "smartblocks-extension-disabled",
+      intent: "warning",
+    });
+    await createBlocks();
+  } else if (
+    useSmartBlocks &&
+    canUseLegacySmartBlock &&
+    window.roamjs?.extension?.smartblocks
+  ) {
+    void window.roamjs.extension.smartblocks?.triggerSmartblock({
+      srcUid: legacyTemplateNode.uid,
+      targetUid: pageUid,
+    });
+    await handleImageCreation({
+      pageUid,
+      discourseNodes,
+      configPageUid,
+      imageUrl,
+      extensionAPI,
+      text,
+    });
+  } else {
+    await createBlocks();
+  }
+};
+
 const createDiscourseNode = async ({
   text,
   configPageUid,
@@ -68,49 +208,6 @@ const createDiscourseNode = async ({
         }
       }, 1);
     }, 100);
-  };
-  const handleImageCreation = async (pageUid: string) => {
-    const canvasSettings = Object.fromEntries(
-      discourseNodes.map((n) => [n.type, { ...n.canvasSettings }]),
-    );
-    const {
-      "query-builder-alias": qbAlias = "",
-      "key-image": isKeyImage = "",
-      "key-image-option": keyImageOption = "",
-    } = canvasSettings[configPageUid] || {};
-
-    if (isKeyImage && imageUrl) {
-      const createOrUpdateImageBlock = async (imagePlaceholderUid?: string) => {
-        const imageMarkdown = `![](${imageUrl})`;
-        if (imagePlaceholderUid) {
-          await updateBlock({
-            uid: imagePlaceholderUid,
-            text: imageMarkdown,
-          });
-        } else {
-          await createBlock({
-            node: { text: imageMarkdown },
-            order: 0,
-            parentUid: pageUid,
-          });
-        }
-      };
-
-      if (keyImageOption === "query-builder") {
-        if (!extensionAPI) return;
-
-        const parentUid = resolveQueryBuilderRef({ queryRef: qbAlias });
-        const results = await runQuery({
-          extensionAPI,
-          parentUid,
-          inputs: { NODETEXT: text, NODEUID: pageUid },
-        });
-        const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
-        await createOrUpdateImageBlock(imagePlaceholderUid);
-      } else {
-        await createOrUpdateImageBlock();
-      }
-    }
   };
 
   const discourseNodes = getDiscourseNodes();
@@ -163,54 +260,15 @@ const createDiscourseNode = async ({
       DISCOURSE_NODE_KEYS.template,
     ]) ?? [];
 
-  const createBlocksFromTemplate = async () => {
-    await Promise.all(
-      stripTemplateUids(templateChildren).map((node, order) =>
-        createBlock({
-          node,
-          order,
-          parentUid: pageUid,
-        }),
-      ),
-    );
-
-    // Add image to page if imageUrl is provided
-    await handleImageCreation(pageUid);
-  };
-
-  const hasSmartBlockSyntax = (node: InputTextNode): boolean => {
-    if (node.text.includes("<%")) return true;
-    if (node.children) return node.children.some(hasSmartBlockSyntax);
-    return false;
-  };
-  const useSmartBlocks = templateChildren.some(hasSmartBlockSyntax);
-  const legacyTemplateNode = getSubTree({
-    tree: getFullTreeByParentUid(configPageUid).children,
-    key: "template",
+  await createBlocksFromTemplate({
+    templateChildren,
+    pageUid,
+    discourseNodes,
+    configPageUid,
+    imageUrl,
+    extensionAPI,
+    text,
   });
-  const canUseLegacySmartBlock = !!legacyTemplateNode.uid;
-
-  if (useSmartBlocks && !window.roamjs?.extension?.smartblocks) {
-    renderToast({
-      content:
-        "This template requires SmartBlocks. Enable SmartBlocks in Roam Depot to use this template.",
-      id: "smartblocks-extension-disabled",
-      intent: "warning",
-    });
-    await createBlocksFromTemplate();
-  } else if (
-    useSmartBlocks &&
-    canUseLegacySmartBlock &&
-    window.roamjs?.extension?.smartblocks
-  ) {
-    void window.roamjs.extension.smartblocks?.triggerSmartblock({
-      srcUid: legacyTemplateNode.uid,
-      targetUid: pageUid,
-    });
-    await handleImageCreation(pageUid);
-  } else {
-    await createBlocksFromTemplate();
-  }
   handleOpenInSidebar(pageUid);
   return pageUid;
 };

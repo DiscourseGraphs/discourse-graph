@@ -3,25 +3,24 @@ import { NextResponse, type NextRequest } from "next/server";
 import { envContents } from "@repo/database/dbDotEnv";
 
 // This would allow to create Next pages gated by a login middleware,
-// as described here: https://nextjs.org/docs/app/api-reference/file-conventions/middleware
-// Not usable yet, waiting for ENG-373
-// Inspired by https://supabase.com/ui/docs/nextjs/password-based-auth
+// as described here: https://supabase.com/docs/guides/auth/server-side/creating-a-client
 
 export const updateSession = async (request: NextRequest) => {
+  let supabaseResponse = NextResponse.next({
+    request,
+  });
   const dbEnv = envContents();
   const supabaseUrl = dbEnv.SUPABASE_URL;
   const supabaseKey = dbEnv.SUPABASE_PUBLISHABLE_KEY;
+  if (supabaseUrl === undefined || supabaseKey === undefined)
+    throw new Error("Configuration error: supabase variables not configured.");
 
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Missing required Supabase environment variables");
-  }
-
-  let supabaseResponse = NextResponse.next({ request });
-
+  // With Fluid compute, don't put this client in a global environment
+  // variable. Always create a new one on each request.
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
-      setAll: (cookiesToSet) => {
+      setAll: (cookiesToSet, headers) => {
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value),
         );
@@ -31,23 +30,28 @@ export const updateSession = async (request: NextRequest) => {
         cookiesToSet.forEach(({ name, value, options }) =>
           supabaseResponse.cookies.set(name, value, options),
         );
+        Object.entries(headers).forEach(([key, value]) =>
+          supabaseResponse.headers.set(key, value),
+        );
       },
     },
   });
 
   // Do not run code between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
+  // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  // IMPORTANT: DO NOT REMOVE auth.getUser()
+  // IMPORTANT: If you remove getClaims() and you use server-side rendering
+  // with the Supabase client, your users may be randomly logged out.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { data } = await supabase.auth.getClaims();
+
+  /* Wait on this until we have login
+  const user = data?.claims;
 
   if (
     !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
     !request.nextUrl.pathname.startsWith("/auth")
   ) {
     // no user, potentially respond by redirecting the user to the login page
@@ -55,9 +59,10 @@ export const updateSession = async (request: NextRequest) => {
     url.pathname = "/auth/login";
     return NextResponse.redirect(url);
   }
+  */
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is.
-  // If you're creating a new response object with NextResponse.next() make sure to:
+  // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
+  // creating a new response object with NextResponse.next() make sure to:
   // 1. Pass the request in it, like so:
   //    const myNewResponse = NextResponse.next({ request })
   // 2. Copy over the cookies, like so:

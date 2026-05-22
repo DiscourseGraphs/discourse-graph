@@ -20,12 +20,9 @@ import { deleteBlock } from "roamjs-components/writes";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import setBlockProps from "~/utils/setBlockProps";
 import { DiscourseNodeSchema } from "./utils/zodSchema";
-import {
-  clearAllDiscourseNodesCache,
-  getGlobalSettings,
-  setGlobalSetting,
-} from "./utils/accessors";
+import { getGlobalSettings, setGlobalSetting } from "./utils/accessors";
 import { GLOBAL_KEYS } from "./utils/settingKeys";
+import { invalidateDiscourseNodeTypeCaches } from "~/utils/discourseNodeTypeCache";
 
 type DiscourseNodeConfigPanelProps = React.ComponentProps<
   CustomField["options"]["component"]
@@ -64,7 +61,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
     await window.roamAlphaAPI.deletePage({
       page: { uid },
     });
-    clearAllDiscourseNodesCache();
+    invalidateDiscourseNodeTypeCaches();
     setNodes((prevNodes) => prevNodes.filter((nn) => nn.type !== uid));
     refreshConfigTree();
     setDeleteConfirmation(null);
@@ -85,7 +82,15 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
           className="select-none"
           disabled={!label}
           onClick={() => {
-            const shortcut = label.slice(0, 1).toUpperCase();
+            const candidateShortcut = label.slice(0, 1).toUpperCase();
+            const existingShortcuts = new Set(
+              getDiscourseNodes()
+                .map((n) => n.shortcut.toUpperCase())
+                .filter(Boolean),
+            );
+            const shortcut = existingShortcuts.has(candidateShortcut)
+              ? ""
+              : candidateShortcut;
             const format = `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
             posthog.capture("Discourse Node: Type Created", { label: label });
             void createPage({
@@ -114,7 +119,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                   format,
                 }),
               );
-              clearAllDiscourseNodesCache();
+              invalidateDiscourseNodeTypeCaches();
               setNodes([
                 ...nodes,
                 {

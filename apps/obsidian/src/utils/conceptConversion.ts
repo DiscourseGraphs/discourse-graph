@@ -16,7 +16,6 @@ import type { Json } from "@repo/database/dbTypes";
  */
 const getNodeExtraData = (
   file: TFile,
-  /* eslint-disable @typescript-eslint/naming-convention */
   author_id: number,
 ): {
   author_id: number;
@@ -28,7 +27,6 @@ const getNodeExtraData = (
     created: new Date(file.stat.ctime).toISOString(),
     last_modified: new Date(file.stat.mtime).toISOString(),
   };
-  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 export const discourseNodeSchemaToLocalConcept = ({
@@ -50,7 +48,6 @@ export const discourseNodeSchemaToLocalConcept = ({
     importedFromRid,
     ...otherData
   } = node;
-  /* eslint-disable @typescript-eslint/naming-convention */
   const literal_content: Record<string, Json> = {
     label: name,
     source_data: otherData,
@@ -68,7 +65,6 @@ export const discourseNodeSchemaToLocalConcept = ({
     last_modified: new Date(modified).toISOString(),
     description: description,
     literal_content,
-    /* eslint-enable @typescript-eslint/naming-convention */
   };
 };
 
@@ -89,18 +85,15 @@ export const discourseRelationTypeToLocalConcept = (
     status, //destructuring status to not upload it to the database
     ...otherData
   } = relationType;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const literal_content: Record<string, Json> = {
     roles: STANDARD_ROLES,
     label,
     complement,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     source_data: otherData,
   };
   if (importedFromRid) literal_content.importedFromRid = importedFromRid;
 
   return {
-    /* eslint-disable @typescript-eslint/naming-convention */
     space_id: context.spaceId,
     name: label,
     source_local_id: id,
@@ -109,7 +102,6 @@ export const discourseRelationTypeToLocalConcept = (
     created: new Date(created).toISOString(),
     last_modified: new Date(modified).toISOString(),
     literal_content,
-    /* eslint-enable @typescript-eslint/naming-convention */
   };
 };
 
@@ -138,7 +130,6 @@ export const discourseRelationTripleSchemaToLocalConcept = ({
   const relationType = relationTypesById[relationshipTypeId];
   if (!relationType) return null;
   const { label, complement } = relationType;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const literal_content: Record<string, Json> = {
     roles: STANDARD_ROLES,
     label,
@@ -147,7 +138,6 @@ export const discourseRelationTripleSchemaToLocalConcept = ({
   if (importedFromRid) literal_content.importedFromRid = importedFromRid;
 
   return {
-    /* eslint-disable @typescript-eslint/naming-convention */
     space_id: context.spaceId,
     name: `${sourceName} -${label}-> ${destinationName}`,
     source_local_id: id,
@@ -161,7 +151,6 @@ export const discourseRelationTripleSchemaToLocalConcept = ({
       source: sourceId,
       destination: destinationId,
     },
-    /* eslint-enable @typescript-eslint/naming-convention */
   };
 };
 
@@ -175,23 +164,19 @@ export const discourseNodeInstanceToLocalConcept = (
   const extraData = getNodeExtraData(nodeData.file, context.userId);
   const { nodeInstanceId, nodeTypeId, importedFromRid, ...otherData } =
     nodeData.frontmatter;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const literal_content: Record<string, Json> = {
     label: nodeData.file.basename,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     source_data: otherData as unknown as Json,
   };
   if (importedFromRid && typeof importedFromRid === "string")
     literal_content.importedFromRid = importedFromRid;
   return {
-    /* eslint-disable @typescript-eslint/naming-convention */
     space_id: context.spaceId,
     name: nodeData.file.path,
     source_local_id: nodeInstanceId as string,
     schema_represented_by_local_id: nodeTypeId as string,
     is_schema: false,
     literal_content,
-    /* eslint-enable @typescript-eslint/naming-convention */
     ...extraData,
   };
 };
@@ -222,7 +207,6 @@ export const relationInstanceToLocalConcept = ({
     return null;
   }
 
-  /* eslint-disable @typescript-eslint/naming-convention */
   const literal_content: Record<string, Json> = {};
   if (importedFromRid) literal_content.importedFromRid = importedFromRid;
   return {
@@ -243,7 +227,6 @@ export const relationInstanceToLocalConcept = ({
         (destinationNode.frontmatter.importedFromRid as string | undefined) ??
         destination,
     },
-    /* eslint-enable @typescript-eslint/naming-convention */
   };
 };
 

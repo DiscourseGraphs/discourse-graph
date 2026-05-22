@@ -428,7 +428,6 @@ export const TldrawPreviewComponent = ({
               },
             }}
             components={{
-              /* eslint-disable @typescript-eslint/naming-convention */
               ContextMenu: (props) => (
                 <CustomContextMenu canvasFile={file} props={props} />
               ),

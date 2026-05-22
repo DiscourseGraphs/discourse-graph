@@ -28,7 +28,6 @@ export class QueryEngine {
         query: (query: string) => DatacorePage[];
       }
     | undefined;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   private readonly MIN_QUERY_LENGTH = 2;
 
   constructor(app: App) {

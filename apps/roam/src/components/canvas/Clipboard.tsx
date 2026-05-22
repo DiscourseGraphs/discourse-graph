@@ -84,7 +84,6 @@ type ClipboardContextValue = {
   setShowNodesOnCanvas: (show: boolean) => void;
 };
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const ClipboardContext = createContext<ClipboardContextValue | null>(null);
 
 const CLIPBOARD_PROP_KEY = "pages";
@@ -109,9 +108,7 @@ const getOrCreateClipboardBlock = async (
     childBlocksData?.[":block/children"] &&
     Array.isArray(childBlocksData[":block/children"])
       ? (childBlocksData[":block/children"] as Array<{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           ":block/uid": string;
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           ":block/string": string;
         }>)
       : [];

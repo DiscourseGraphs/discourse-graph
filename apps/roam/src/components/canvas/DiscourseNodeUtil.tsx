@@ -76,7 +76,6 @@ export const DEFAULT_STYLE_PROPS = {
 };
 export const COLOR_ARRAY = Array.from(DefaultColorStyle.values).reverse();
 // from @tldraw/editor/editor.css
-/* eslint-disable @typescript-eslint/naming-convention */
 export const COLOR_PALETTE: Record<string, string> = {
   black: "#1d1d1d",
   blue: "#4263eb",
@@ -92,7 +91,6 @@ export const COLOR_PALETTE: Record<string, string> = {
   white: "#ffffff",
   yellow: "#ffc078",
 };
-/* eslint-disable @typescript-eslint/naming-convention */
 
 const getRelationIds = () =>
   new Set(

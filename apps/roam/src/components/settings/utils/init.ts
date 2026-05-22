@@ -261,7 +261,6 @@ const reconcileRelationKeys = (
   }
 
   if (changed) {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     setBlockProps(globalBlockUid, { Relations: reconciledRelations }, false);
   }
 };
@@ -329,7 +328,6 @@ const logDualReadComparison = (): void => {
   // are aligned.
   const SKIP_NODE_KEYS = new Set(["template", "specification", "index"]);
 
-  /* eslint-disable @typescript-eslint/naming-convention */
   for (const g of groups) {
     const keys = new Set([...Object.keys(g.legacy), ...Object.keys(g.block)]);
     const mismatchedKeys: string[] = [];

@@ -12,7 +12,6 @@ export const ROAM_DOC_SECTIONS = {
   ],
   fundamentals: ["what-is-a-discourse-graph", "grammar", "relations-patterns"],
 
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   "use-cases": [
     "literature-reviewing",
     "enhanced-zettelkasten",
@@ -30,7 +29,6 @@ export const OBSIDIAN_DOC_SECTIONS = {
     "relationship-types",
     "general-settings",
   ],
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   "core-features": [
     "creating-discourse-nodes",
     "creating-discourse-relationships",
@@ -38,9 +36,7 @@ export const OBSIDIAN_DOC_SECTIONS = {
     "canvas",
     "node-tags",
   ],
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   "advanced-features": ["command-palette", "sync-and-import"],
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   "use-cases": [
     "literature-reviewing",
     "research-roadmapping",

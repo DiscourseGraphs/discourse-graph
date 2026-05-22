@@ -194,7 +194,11 @@ export const SettingsDialog = ({
             id="canvas-shortcuts-personal-settings"
             title="Canvas"
             className="overflow-y-auto"
-            panel={<CanvasShortcutSettings />}
+            panel={
+              <CanvasShortcutSettings
+                personalSettings={settings.personalSettings}
+              />
+            }
           />
           <Tab
             id="left-sidebar-personal-settings"

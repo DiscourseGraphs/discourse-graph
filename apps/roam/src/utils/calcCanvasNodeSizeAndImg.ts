@@ -24,14 +24,12 @@ const EMBED_REGEX =
 
 const getBlockReferences = (
   uid: string,
-  // eslint-disable-next-line @typescript-eslint/naming-convention
 ): { ":block/uid"?: string; ":block/string"?: string }[] => {
   const result =
     (window.roamAlphaAPI?.pull?.(
       "[:block/uid {:block/refs [:block/uid :block/string]}]",
       [":block/uid", uid],
     ) as {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       [":block/refs"]?: { ":block/uid"?: string; ":block/string"?: string }[];
     } | null) || {};
   return result[":block/refs"] || [];
@@ -111,7 +109,6 @@ const calcCanvasNodeSizeAndImg = async ({
     const results = await runQuery({
       extensionAPI,
       parentUid,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       inputs: { NODETEXT: nodeText, NODEUID: uid },
     });
     const resultUid = results.allProcessedResults[0]?.uid || "";

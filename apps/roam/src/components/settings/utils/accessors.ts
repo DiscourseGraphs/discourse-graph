@@ -25,6 +25,10 @@ import {
 } from "~/utils/getExportSettings";
 import { getSuggestiveModeConfigAndUids } from "~/utils/getSuggestiveModeConfigSettings";
 import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
+import {
+  getDiscourseNodeTypeCacheVersion,
+  invalidateDiscourseNodeTypeCaches,
+} from "~/utils/discourseNodeTypeCache";
 
 import {
   DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
@@ -203,11 +207,9 @@ const DEFAULT_LEGACY_QUERY = {
   returnNode: "node",
 };
 
-const ALL_DISCOURSE_NODES_CACHE_TTL_MS = 2000;
-
 type AllDiscourseNodesCacheEntry = {
+  version: number;
   nodes: DiscourseNode[];
-  cachedAtMs: number;
   rawResultCount: number;
   skippedCount: number;
   migratedCount: number;
@@ -215,34 +217,6 @@ type AllDiscourseNodesCacheEntry = {
 };
 
 let allDiscourseNodesCache: AllDiscourseNodesCacheEntry | null = null;
-
-const getAllDiscourseNodesCacheNow = (): number => {
-  if (
-    typeof performance !== "undefined" &&
-    typeof performance.now === "function"
-  ) {
-    return performance.now();
-  }
-
-  return Date.now();
-};
-
-export const clearAllDiscourseNodesCache = (): void => {
-  allDiscourseNodesCache = null;
-};
-
-const getCachedAllDiscourseNodes = (): AllDiscourseNodesCacheEntry | null => {
-  if (!allDiscourseNodesCache) return null;
-
-  const ageMs =
-    getAllDiscourseNodesCacheNow() - allDiscourseNodesCache.cachedAtMs;
-  if (ageMs > ALL_DISCOURSE_NODES_CACHE_TTL_MS) {
-    clearAllDiscourseNodesCache();
-    return null;
-  }
-
-  return allDiscourseNodesCache;
-};
 
 const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
   [
@@ -280,12 +254,12 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
     "default-filters",
   ],
   [pathKey([PERSONAL_KEYS.reifiedRelationTriples]), "use-reified-relations"],
+  [pathKey([PERSONAL_KEYS.canvasNodeShortcuts]), "canvas-node-shortcuts"],
 ]);
 
 const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
   const settings = getLeftSidebarSettings(discourseConfigRef.tree);
 
-  /* eslint-disable @typescript-eslint/naming-convention */
   return settings.personal.sections.map((section) => ({
     name: section.text,
     Children: (section.children || []).map((child) => ({
@@ -560,7 +534,6 @@ const getLegacyDiscourseNodeSetting = (
       c.children[0]?.text || "",
     ]),
   );
-  /* eslint-disable @typescript-eslint/naming-convention */
   const canvasSettings = {
     color: rawCanvas["color"] || "",
     alias: rawCanvas["alias"] || "",
@@ -694,7 +667,6 @@ const setBlockPropAtPath = (
   }, updatedProps);
 
   setBlockProps(blockUid, updatedProps, false);
-  clearAllDiscourseNodesCache();
 };
 
 const setBlockPropBasedSettings = ({
@@ -743,7 +715,6 @@ export const LEGACY_SOURCED_FEATURE_FLAG_KEYS = [
   "Enable left sidebar",
 ] as const satisfies ReadonlyArray<keyof FeatureFlags>;
 
-/* eslint-disable @typescript-eslint/naming-convention */
 const FEATURE_FLAG_LEGACY_MAP: Record<
   (typeof LEGACY_SOURCED_FEATURE_FLAG_KEYS)[number],
   () => boolean
@@ -812,6 +783,10 @@ export const setFeatureFlag = (
     keys: [STATIC_TOP_LEVEL_ENTRIES.featureFlags.key, key],
     value: validatedValue,
   });
+
+  if (key === "Use new settings store") {
+    invalidateDiscourseNodeTypeCaches();
+  }
 };
 
 export const getGlobalSettings = (): GlobalSettings => {
@@ -1068,6 +1043,7 @@ export const setDiscourseNodeSetting = (
   }
 
   setBlockPropAtPath(pageUid, keys, value);
+  invalidateDiscourseNodeTypeCaches();
 };
 
 const addConditionUids = (conditions: SchemaCondition[]): Condition[] =>
@@ -1199,15 +1175,15 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
       }),
     },
     () => {
-      const cached = getCachedAllDiscourseNodes();
-      if (cached) {
+      const cacheVersion = getDiscourseNodeTypeCacheVersion();
+      if (allDiscourseNodesCache?.version === cacheVersion) {
         cacheHit = true;
-        rawResultCount = cached.rawResultCount;
-        nodeCount = cached.nodes.length;
-        skippedCount = cached.skippedCount;
-        migratedCount = cached.migratedCount;
-        parseErrorCount = cached.parseErrorCount;
-        return cached.nodes;
+        rawResultCount = allDiscourseNodesCache.rawResultCount;
+        nodeCount = allDiscourseNodesCache.nodes.length;
+        skippedCount = allDiscourseNodesCache.skippedCount;
+        migratedCount = allDiscourseNodesCache.migratedCount;
+        parseErrorCount = allDiscourseNodesCache.parseErrorCount;
+        return allDiscourseNodesCache.nodes;
       }
 
       const results = window.roamAlphaAPI.data.fast.q(`
@@ -1279,8 +1255,8 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
 
       nodeCount = nodes.length;
       allDiscourseNodesCache = {
+        version: cacheVersion,
         nodes,
-        cachedAtMs: getAllDiscourseNodesCacheNow(),
         rawResultCount,
         skippedCount,
         migratedCount,

@@ -10,7 +10,6 @@ import {
 } from "~/utils/supabase/apiUtils";
 import { type TablesInsert, Constants } from "@repo/database/dbTypes";
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const { AgentType, Platform } = Constants.public.Enums;
 
 type PlatformAccountDataInput = TablesInsert<"PlatformAccount">;
@@ -19,7 +18,6 @@ type PlatformAccountDataInput = TablesInsert<"PlatformAccount">;
 const accountValidator = (account: PlatformAccountDataInput): string | null => {
   if (!account || typeof account !== "object")
     return "Invalid request body: expected a JSON object.";
-  /* eslint-disable @typescript-eslint/naming-convention */
   const {
     name,
     platform,
@@ -30,7 +28,6 @@ const accountValidator = (account: PlatformAccountDataInput): string | null => {
     metadata,
     dg_account,
   } = account;
-  /* eslint-enable @typescript-eslint/naming-convention */
 
   if (!name || typeof name !== "string" || name.trim() === "")
     return "Missing or invalid name";

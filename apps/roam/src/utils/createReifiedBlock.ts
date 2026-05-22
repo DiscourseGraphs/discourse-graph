@@ -63,7 +63,6 @@ const createReifiedBlock = async ({
       text: newUid,
       uid: newUid,
       props: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         [DISCOURSE_GRAPH_PROP_NAME]: data,
       },
     },

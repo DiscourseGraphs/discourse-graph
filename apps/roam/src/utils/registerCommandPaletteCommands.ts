@@ -19,17 +19,23 @@ import {
   getOverlayHandler,
   onPageRefObserverChange,
 } from "./pageRefObserverHandlers";
+import findDiscourseNode from "~/utils/findDiscourseNode";
+import { createBlocksFromTemplate } from "~/utils/createDiscourseNode";
+import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
 import {
+  getDiscourseNodeSetting,
   getPersonalSetting,
   setPersonalSetting,
   setGlobalSetting,
 } from "~/components/settings/utils/accessors";
 import {
+  DISCOURSE_NODE_KEYS,
   PERSONAL_KEYS,
   QUERY_KEYS,
 } from "~/components/settings/utils/settingKeys";
+import { InputTextNode } from "roamjs-components/types";
 import { extractRef } from "roamjs-components/util";
 import discourseConfigRef from "~/utils/discourseConfigRef";
 import {
@@ -119,15 +125,78 @@ export const createDiscourseNodeFromCommand = (
 
       await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
         location: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           "block-uid": uid,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           "window-id": windowId,
         },
         selection: { start: newCursorPosition },
       });
       return;
     },
+    onClose: () => {},
+  });
+};
+
+export const convertPageToNodeFromCommand = (
+  extensionAPI: OnloadArgs["extensionAPI"],
+) => {
+  posthog.capture("Discourse Node: Convert Command Triggered");
+  const pageUid = getCurrentPageUid();
+  if (!pageUid) {
+    renderToast({
+      id: "convert-page-no-page",
+      content: "Navigate to a page to convert it to a discourse node.",
+    });
+    return;
+  }
+
+  const pageTitle = getPageTitleByPageUid(pageUid);
+  if (!pageTitle) {
+    renderToast({
+      id: "convert-page-no-title",
+      content: "Could not determine the current page title.",
+    });
+    return;
+  }
+
+  const existingNode = findDiscourseNode({ uid: pageUid, title: pageTitle });
+  if (existingNode && existingNode.backedBy !== "default") {
+    renderToast({
+      id: "convert-page-already-node",
+      content: `This page is already a ${existingNode.text} node.`,
+    });
+    return;
+  }
+
+  renderModifyNodeDialog({
+    mode: "create",
+    nodeType: "",
+    initialValue: { text: pageTitle, uid: "" },
+    extensionAPI,
+    createOverride: async ({ formattedTitle, configPageUid }) => {
+      await window.roamAlphaAPI.data.page.update({
+        page: { uid: pageUid, title: formattedTitle },
+      });
+
+      const templateChildren =
+        getDiscourseNodeSetting<InputTextNode[]>(configPageUid, [
+          DISCOURSE_NODE_KEYS.template,
+        ]) ?? [];
+      if (templateChildren.length > 0) {
+        const existingChildren = getFullTreeByParentUid(pageUid).children || [];
+        await createBlocksFromTemplate({
+          templateChildren,
+          pageUid,
+          order: existingChildren.length,
+          discourseNodes: getDiscourseNodes(),
+          configPageUid,
+          extensionAPI,
+          text: formattedTitle,
+        });
+      }
+
+      return pageUid;
+    },
+    onSuccess: async () => {},
     onClose: () => {},
   });
 };
@@ -332,6 +401,9 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   // Roam organizes commands alphabetically
+  void addCommand("DG: Convert current page to discourse node", () =>
+    convertPageToNodeFromCommand(extensionAPI),
+  );
   void addCommand("DG: Create/Insert discourse node", () =>
     createDiscourseNodeFromCommand(extensionAPI),
   );
@@ -372,7 +444,6 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
 
       window.roamAlphaAPI.ui.blockContextMenu.addCommand({
         label: `DG: Favorites - Add to "${sectionName}" section`,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         callback: (props: { "block-uid": string }) => {
           void addBlockToPersonalSection({
             blockUid: props["block-uid"],
@@ -389,7 +460,6 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     if (globalSection.childrenUid) {
       window.roamAlphaAPI.ui.blockContextMenu.addCommand({
         label: "DG: Favorites - Add to Global section",
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         callback: (props: { "block-uid": string }) => {
           void addBlockToGlobalSection({
             blockUid: props["block-uid"],

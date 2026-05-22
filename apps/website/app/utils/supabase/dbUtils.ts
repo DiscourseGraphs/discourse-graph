@@ -17,7 +17,6 @@ export type PublicTableName = keyof Database["public"]["Tables"];
 export type RawTables<TN extends PublicTableName> =
   Database["public"]["Tables"][TN]["Row"];
 export type RawTablesInsert<TN extends PublicTableName> =
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   Database["public"]["Tables"][TN] extends { Insert: unknown }
     ? Database["public"]["Tables"][TN]["Insert"]
     : never;

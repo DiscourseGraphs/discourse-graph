@@ -373,7 +373,6 @@ export const renderCreateRelationDialog = (
     });
   } else {
     renderOverlay({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       Overlay: CreateRelationDialog,
       props: props as ExtendedCreateRelationDialogProps,
     });

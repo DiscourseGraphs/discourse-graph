@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { DiscourseNode } from "~/utils/getDiscourseNodes";
+import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
@@ -92,9 +92,11 @@ const NodeConfig = ({
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
   const [tagError, setTagError] = useState("");
   const [formatError, setFormatError] = useState("");
+  const [shortcutError, setShortcutError] = useState("");
 
   const [tagValue, setTagValue] = useState(node.tag || "");
   const [formatValue, setFormatValue] = useState(node.format || "");
+  const [shortcutValue, setShortcutValue] = useState(node.shortcut || "");
   const validate = useCallback(
     ({
       tag,
@@ -155,6 +157,43 @@ const NodeConfig = ({
     validate({ tag: tagValue, format: formatValue });
   }, [tagValue, formatValue, validate]);
 
+  const validateShortcut = useCallback(
+    (value: string): boolean => {
+      if (!value) {
+        setShortcutError("");
+        return true;
+      }
+      const normalizedValue = value.toUpperCase();
+      const taken = getDiscourseNodes()
+        .filter((n) => n.type !== node.type && n.shortcut)
+        .map((n) => ({
+          shortcut: n.shortcut.toUpperCase(),
+          label: n.text,
+        }));
+      const matchingNodes = taken.filter((n) => n.shortcut === normalizedValue);
+      if (matchingNodes.length) {
+        setShortcutError(
+          `Shortcut "${normalizedValue}" is already used by: ${matchingNodes
+            .map((n) => `"${n.label}"`)
+            .join(", ")}.`,
+        );
+        return false;
+      }
+      setShortcutError("");
+      return true;
+    },
+    [node.type],
+  );
+
+  const handleShortcutChange = useCallback(
+    (value: string) => {
+      if (validateShortcut(value)) {
+        setShortcutValue(value);
+      }
+    },
+    [validateShortcut],
+  );
+
   return (
     <>
       <Tabs
@@ -184,6 +223,8 @@ const NodeConfig = ({
                 description={`The trigger to quickly create a ${node.text} page from the node menu.`}
                 settingKeys={[DISCOURSE_NODE_KEYS.shortcut]}
                 initialValue={node.shortcut}
+                error={shortcutError}
+                onChange={handleShortcutChange}
                 order={0}
                 parentUid={node.type}
                 uid={shortcutUid}
