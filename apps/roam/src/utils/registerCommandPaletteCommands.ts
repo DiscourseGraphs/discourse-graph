@@ -26,6 +26,7 @@ import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
 import {
   getDiscourseNodeSetting,
+  getFeatureFlag,
   getPersonalSetting,
   setPersonalSetting,
   setGlobalSetting,
@@ -46,6 +47,7 @@ import { getUidAndBooleanSetting } from "~/utils/getExportSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
+import { renderAdvancedNodeSearchDialog } from "~/components/AdvancedNodeSearchDialog/AdvancedSearchDialog";
 
 type BlockSelection = {
   selectionStart: number;
@@ -410,6 +412,12 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Export - Current page", exportCurrentPage);
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
+  if (getFeatureFlag("Advanced node search enabled")) {
+    void addCommand("DG: Open Node Search", () => {
+      posthog.capture("Node Search: Open Command Triggered");
+      renderAdvancedNodeSearchDialog();
+    });
+  }
   void addCommand("DG: Open - Query drawer", openQueryDrawerWithArgs);
   void addCommand(
     "DG: Toggle - Discourse context overlay",

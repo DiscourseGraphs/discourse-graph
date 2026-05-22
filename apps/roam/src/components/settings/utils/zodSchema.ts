@@ -157,6 +157,7 @@ export const DiscourseRelationSchema = z.object({
 });
 
 export const FeatureFlagsSchema = z.object({
+  "Advanced node search enabled": z.boolean().default(false),
   "Enable left sidebar": z.boolean().default(false),
   "Duplicate node alert enabled": z.boolean().default(false),
   "Suggestive mode overlay enabled": z.boolean().default(false),
