@@ -287,7 +287,7 @@ const personalSection: PersonalSection = {
     "Truncate-result?": 100,
     Folded: false,
     Alias: "",
-    "Result-limit": 0,
+    "Result-limit": 10,
   },
 };
 
@@ -302,7 +302,7 @@ const leftSidebarPersonalSettings: LeftSidebarPersonalSettings = [
       "Truncate-result?": 75,
       Folded: false,
       Alias: "",
-      "Result-limit": 0,
+      "Result-limit": 10,
     },
   },
   {
@@ -316,7 +316,7 @@ const leftSidebarPersonalSettings: LeftSidebarPersonalSettings = [
       "Truncate-result?": 50,
       Folded: true,
       Alias: "",
-      "Result-limit": 0,
+      "Result-limit": 10,
     },
   },
 ];
@@ -354,7 +354,7 @@ const personalSettings: PersonalSettings = {
         "Truncate-result?": 75,
         Folded: false,
         Alias: "",
-        "Result-limit": 0,
+        "Result-limit": 10,
       },
     },
     {
@@ -367,7 +367,7 @@ const personalSettings: PersonalSettings = {
         "Truncate-result?": 50,
         Folded: true,
         Alias: "",
-        "Result-limit": 0,
+        "Result-limit": 10,
       },
     },
   ],

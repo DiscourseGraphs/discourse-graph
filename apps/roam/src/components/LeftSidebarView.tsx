@@ -380,7 +380,10 @@ const QuerySectionItem = ({
   const queryLabel = useMemo(() => getTextByBlockUid(queryUid), [queryUid]);
   const displayName = alias || queryLabel || section.text;
   const truncateAt = section.settings?.truncateResult.value;
-  const resultLimit = section.settings?.resultLimit?.value ?? 0;
+  const resultLimit = Math.max(
+    0,
+    Math.trunc(section.settings?.resultLimit?.value ?? 10),
+  );
 
   const [isOpen, setIsOpen] = useState<boolean>(
     !!section.settings?.folded.value,
@@ -605,7 +608,7 @@ const PersonalSections = ({
       className="personal-left-sidebar-sections"
       renderItem={(section, handle) => {
         const sectionIndex = sections.findIndex((s) => s.uid === section.uid);
-        if (isQueryBlockRef(section.text)) {
+        if (isQueryBlockRef(section.text) && section.settings?.uid) {
           return (
             <QuerySectionItem
               section={section}

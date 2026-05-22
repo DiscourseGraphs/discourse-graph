@@ -149,6 +149,7 @@ const getPersonalSectionSettings = (
   const resultLimitSetting = getUidAndIntSetting({
     tree: settingsTree,
     text: "Result-limit",
+    defaultValue: 10,
   });
 
   return {

@@ -222,7 +222,7 @@ export const PersonalSectionSchema = z.object({
       "Truncate-result?": z.number().default(75),
       Folded: z.boolean().default(false),
       Alias: z.string().default(""),
-      "Result-limit": z.number().default(0),
+      "Result-limit": z.number().int().min(0).default(10),
     })
     .default({}),
 });

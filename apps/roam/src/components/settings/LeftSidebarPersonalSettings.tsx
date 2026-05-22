@@ -73,7 +73,7 @@ export const sectionsToBlockProps = (
       "Truncate-result?": s.settings?.truncateResult?.value ?? 75,
       Folded: s.settings?.folded?.value ?? false,
       Alias: s.settings?.alias?.value ?? "",
-      "Result-limit": s.settings?.resultLimit?.value ?? 0,
+      "Result-limit": s.settings?.resultLimit?.value ?? 10,
     },
   }));
 /* eslint-enable @typescript-eslint/naming-convention */
@@ -123,6 +123,14 @@ const SectionItem = memo(
     const [childSettingsUid, setChildSettingsUid] = useState<string | null>(
       null,
     );
+
+    useEffect(() => {
+      return () => {
+        clearTimeout(aliasUpdateTimeoutRef.current);
+        aliasUpdateTimeoutRef.current = undefined;
+      };
+    }, []);
+
     const toggleChildrenList = useCallback((sectionUid: string) => {
       setExpandedChildLists((prev) => {
         const next = new Set(prev);
@@ -354,12 +362,28 @@ const SectionItem = memo(
           const currentSection = sectionsRef.current.find(
             (s) => s.uid === section.uid,
           );
-          const alias = currentSection?.settings?.alias;
-          if (!alias?.uid) return;
-          const aliasUid = alias.uid;
+          if (!currentSection?.uid) return;
 
           void (async () => {
-            let valueUid = alias.valueUid;
+            let settingsUid = currentSection.settings?.uid;
+            if (!settingsUid) {
+              settingsUid = await createBlock({
+                parentUid: currentSection.uid,
+                order: 0,
+                node: { text: "Settings" },
+              });
+            }
+
+            let aliasUid = currentSection.settings?.alias?.uid;
+            if (!aliasUid) {
+              aliasUid = await createBlock({
+                parentUid: settingsUid,
+                order: 0,
+                node: { text: "Alias" },
+              });
+            }
+
+            let valueUid = currentSection.settings?.alias?.valueUid;
             if (valueUid) {
               await updateBlock({ uid: valueUid, text: newValue });
             } else {
@@ -370,20 +394,34 @@ const SectionItem = memo(
               });
             }
             const nextSections = sectionsRef.current.map((s) =>
-              s.uid === section.uid && s.settings
+              s.uid === section.uid
                 ? {
                     ...s,
                     settings: {
-                      ...s.settings,
+                      uid: settingsUid,
+                      folded: s.settings?.folded ?? {
+                        uid: undefined,
+                        value: false,
+                      },
+                      truncateResult: s.settings?.truncateResult ?? {
+                        uid: undefined,
+                        value: 75,
+                      },
                       alias: {
-                        ...s.settings.alias,
+                        ...(s.settings?.alias ?? {}),
+                        uid: aliasUid,
                         valueUid,
                         value: newValue,
+                      },
+                      resultLimit: s.settings?.resultLimit ?? {
+                        uid: undefined,
+                        value: 10,
                       },
                     },
                   }
                 : s,
             );
+            sectionsRef.current = nextSections;
             setSections(nextSections);
             syncAllSectionsToBlockProps(nextSections);
             refreshAndNotify();
@@ -951,8 +989,9 @@ const LeftSidebarPersonalSectionsContent = ({
                 description="Maximum number of children to display"
                 settingKeys={[]}
                 initialValue={
-                  activeDialogSection.settings.resultLimit?.value ?? 0
+                  activeDialogSection.settings.resultLimit?.value ?? 10
                 }
+                min={0}
                 order={2}
                 uid={activeDialogSection.settings.resultLimit?.uid}
                 parentUid={activeDialogSection.settings.uid || ""}
