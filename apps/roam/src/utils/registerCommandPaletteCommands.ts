@@ -26,11 +26,8 @@ import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParen
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
 import {
-<<<<<<< HEAD
   getDiscourseNodeSetting,
-=======
   getFeatureFlag,
->>>>>>> b65b23a4 (Gate advanced node search behind an admin feature flag.)
   getPersonalSetting,
   setPersonalSetting,
   setGlobalSetting,
@@ -406,19 +403,13 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   // Roam organizes commands alphabetically
-<<<<<<< HEAD
-<<<<<<< HEAD
   void addCommand("DG: Convert current page to discourse node", () =>
     convertPageToNodeFromCommand(extensionAPI),
   );
-=======
   void addCommand("DG: Open Node Search Menu", () => {
     posthog.capture("Node Search: Open Command Triggered");
     renderAdvancedNodeSearchDialog();
   });
->>>>>>> 02568997 (ENG-1729: Add initial Roam advanced node search dialog.)
-=======
->>>>>>> 43b219bd (Address PR review feedback for advanced node search.)
   void addCommand("DG: Create/Insert discourse node", () =>
     createDiscourseNodeFromCommand(extensionAPI),
   );
