@@ -13,7 +13,6 @@ import fireQuery from "./fireQuery";
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
-import { renderAdvancedNodeSearchDialog } from "~/components/AdvancedNodeSearchDialog";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getUids from "roamjs-components/dom/getUids";
 import {
@@ -48,6 +47,7 @@ import { getUidAndBooleanSetting } from "~/utils/getExportSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
+import { renderAdvancedNodeSearchDialog } from "~/components/AdvancedNodeSearchDialog/AdvancedSearchDialog";
 
 type BlockSelection = {
   selectionStart: number;
