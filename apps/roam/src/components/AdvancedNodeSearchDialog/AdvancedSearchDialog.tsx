@@ -9,7 +9,6 @@ import {
   Button,
   Dialog,
   InputGroup,
-  NonIdealState,
   Spinner,
   SpinnerSize,
   Tag,
@@ -21,6 +20,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import renderOverlay, {
   RoamOverlayProps,
 } from "roamjs-components/util/renderOverlay";
+import { createBlock } from "roamjs-components/writes";
 import {
   insertPageRefAtRange,
   snapshotInsertTarget,
@@ -37,14 +37,12 @@ import {
   type SearchResult,
   type SortConfig,
   buildSearchIndex,
-  formatMetadataDate,
   searchIndexedNodes,
   sortSearchResults,
   splitWithHighlights,
   stripTypePrefix,
 } from "./utils";
 import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
-import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
 
 type Props = Record<string, unknown>;
@@ -109,43 +107,6 @@ const ResultRow = ({
     </span>
   </Button>
 );
-
-const PreviewPane = ({ result }: { result: SearchResult | null }) => {
-  if (!result) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-        <NonIdealState
-          icon="search"
-          title="Search DG nodes"
-          description="Type a keyword to preview matching discourse graph nodes."
-        />
-      </div>
-    );
-  }
-  const isPage = !!getPageTitleByPageUid(result.uid);
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="flex-none flex-row gap-2 border-b border-gray-200 px-5 py-3 text-xs text-gray-500">
-        Created: {formatMetadataDate(result.createdAt)} · Last modified:{" "}
-        {formatMetadataDate(result.lastModified)} · Author:{" "}
-        {result.authorName || "Unknown"}
-      </div>
-      <div
-        className="min-h-0 flex-1 overflow-y-auto border-t border-gray-200 px-5 py-3"
-        onMouseDown={(event) => event.preventDefault()}
-      >
-        <div className="pointer-events-none">
-          {isPage ? (
-            <RenderRoamPage hideMentions key={result.uid} uid={result.uid} />
-          ) : (
-            <RenderRoamBlock key={result.uid} uid={result.uid} zoomPath />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const AdvancedNodeSearchDialog = ({
   isOpen,
@@ -319,6 +280,51 @@ const AdvancedNodeSearchDialog = ({
         : !results.length
           ? "empty"
           : "results";
+
+  const onOpenSearchSidebar = useCallback(async () => {
+    if (contentState !== "results" || !results.length) return;
+
+    try {
+      const parentUid =
+        (await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid()) ||
+        window.roamAlphaAPI.util.dateToPageUid(new Date());
+
+      const sidebarBlockTitle = `Advanced search results: "${debouncedSearchTerm || "(empty query)"}"`;
+      const sidebarChildren = results.map((result) => ({
+        text: `[[${result.title}]]`,
+      }));
+
+      const sidebarBlockUid = await createBlock({
+        parentUid,
+        order: Number.MAX_VALUE,
+        node: { text: sidebarBlockTitle, children: sidebarChildren },
+      });
+
+      await window.roamAlphaAPI.ui.rightSidebar.addWindow({
+        window: {
+          type: "outline",
+          // @ts-expect-error - block-uid is valid for outline sidebar windows
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "block-uid": sidebarBlockUid,
+        },
+      });
+
+      posthog.capture("Advanced Node Search: Open search sidebar", {
+        resultCount: results.length,
+        searchTerm: debouncedSearchTerm,
+        sortDirection: sort.direction,
+        sortField: sort.field,
+      });
+      onClose();
+    } catch (error) {
+      console.error("Failed to open search sidebar results block:", error);
+      renderToast({
+        id: "advanced-node-search-sidebar-open-error",
+        content: "Could not render search results in the right sidebar.",
+        intent: "danger",
+      });
+    }
+  }, [contentState, debouncedSearchTerm, onClose, results, sort]);
   const handleSortChange = useCallback((nextSort: SortConfig): void => {
     setSort(nextSort);
   }, []);
@@ -359,6 +365,14 @@ const AdvancedNodeSearchDialog = ({
         setActiveIndex((index) => Math.max(index - 1, 0));
       } else if (
         event.key === "Enter" &&
+        event.altKey &&
+        contentState === "results" &&
+        results.length
+      ) {
+        event.preventDefault();
+        void onOpenSearchSidebar();
+      } else if (
+        event.key === "Enter" &&
         !event.metaKey &&
         !event.ctrlKey &&
         contentState === "results" &&
@@ -386,14 +400,13 @@ const AdvancedNodeSearchDialog = ({
       contentState,
       insertTarget,
       onClose,
+      onOpenSearchSidebar,
       onInsert,
       onOpen,
       onOpenInSidebar,
       results.length,
     ],
   );
-
-  const showSplitView = contentState === "results";
 
   return (
     <Dialog
@@ -446,30 +459,25 @@ const AdvancedNodeSearchDialog = ({
           />
         </div>
         <div className="flex min-h-0 w-full flex-1 overflow-hidden">
-          {showSplitView ? (
-            <>
-              <div
-                aria-label="Search results"
-                className="w-1/3 shrink-0 overflow-y-auto border-r border-gray-200 py-1"
-                ref={resultsPanelRef}
-                role="listbox"
-              >
-                {results.map((result, index) => (
-                  <ResultRow
-                    active={index === activeIndex}
-                    key={result.uid}
-                    keywords={keywords}
-                    nodeConfig={nodeConfigByType[result.type]}
-                    onClick={() => setActiveIndex(index)}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    result={result}
-                  />
-                ))}
-              </div>
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                <PreviewPane result={activeResult} />
-              </div>
-            </>
+          {contentState === "results" ? (
+            <div
+              aria-label="Search results"
+              className="w-full overflow-y-auto py-1"
+              ref={resultsPanelRef}
+              role="listbox"
+            >
+              {results.map((result, index) => (
+                <ResultRow
+                  active={index === activeIndex}
+                  key={result.uid}
+                  keywords={keywords}
+                  nodeConfig={nodeConfigByType[result.type]}
+                  onClick={() => setActiveIndex(index)}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  result={result}
+                />
+              ))}
+            </div>
           ) : (
             <div className="flex min-h-0 w-full flex-1 items-center justify-center px-4 py-8 text-center text-sm text-gray-500">
               {contentState === "indexing" && (
@@ -489,19 +497,24 @@ const AdvancedNodeSearchDialog = ({
         <AdvancedSearchFooter
           contentState={contentState}
           hasActiveResult={!!activeResult}
+          hasResults={results.length > 0}
           insertTarget={insertTarget}
           onInsert={() => void onInsert()}
           onOpen={() => void onOpen()}
           onOpenInSidebar={() => void onOpenInSidebar()}
+          onOpenSearchSidebar={() => void onOpenSearchSidebar()}
         />
       </div>
     </Dialog>
   );
 };
 
-export const renderAdvancedNodeSearchDialog = () =>
+export const renderAdvancedNodeSearchSidebar = () =>
   renderOverlay({
     // eslint-disable-next-line @typescript-eslint/naming-convention
     Overlay: AdvancedNodeSearchDialog,
     props: {},
   });
+
+export const renderAdvancedNodeSearchDialog = () =>
+  renderAdvancedNodeSearchSidebar();

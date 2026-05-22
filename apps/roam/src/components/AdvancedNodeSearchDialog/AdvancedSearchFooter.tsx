@@ -12,10 +12,12 @@ export type AdvancedSearchContentState =
 export type AdvancedSearchFooterProps = {
   contentState: AdvancedSearchContentState;
   hasActiveResult: boolean;
+  hasResults: boolean;
   insertTarget: InsertTarget | null;
   onInsert: () => void;
   onOpen: () => void;
   onOpenInSidebar: () => void;
+  onOpenSearchSidebar: () => void;
 };
 
 const footerKbdClassName =
@@ -99,6 +101,21 @@ const InsertFooterAction = ({
   />
 );
 
+export const OpenSearchSidebarFooterAction = ({
+  disabled,
+  onOpenSearchSidebar,
+}: {
+  disabled: boolean;
+  onOpenSearchSidebar: () => void;
+}) => (
+  <FooterShortcutHint
+    disabled={disabled}
+    keyIcons={["key-option", "key-enter"]}
+    label="open search sidebar"
+    onClick={() => void onOpenSearchSidebar()}
+  />
+);
+
 const CloseFooterHint = () => (
   <span className={footerLabelClassName}>
     <kbd className={footerKbdClassName}>
@@ -111,18 +128,25 @@ const CloseFooterHint = () => (
 export const AdvancedSearchFooter = ({
   contentState,
   hasActiveResult,
+  hasResults,
   insertTarget,
   onInsert,
   onOpen,
   onOpenInSidebar,
+  onOpenSearchSidebar,
 }: AdvancedSearchFooterProps) => {
-  const hasResults = contentState === "results";
-  const canOpen = hasActiveResult && hasResults;
-  const canInsert = !!insertTarget && hasActiveResult && hasResults;
+  const hasResultsState = contentState === "results";
+  const canOpen = hasActiveResult && hasResultsState;
+  const canInsert = !!insertTarget && hasActiveResult && hasResultsState;
+  const canOpenSearchSidebar = hasResults && hasResultsState;
 
   return (
     <div className="flex w-full flex-none items-center justify-between border-t border-gray-200 bg-gray-50 px-3 py-2">
       <div className="inline-flex shrink-0 items-center gap-3">
+        <OpenSearchSidebarFooterAction
+          disabled={!canOpenSearchSidebar}
+          onOpenSearchSidebar={onOpenSearchSidebar}
+        />
         {insertTarget && (
           <InsertFooterAction disabled={!canInsert} onInsert={onInsert} />
         )}
