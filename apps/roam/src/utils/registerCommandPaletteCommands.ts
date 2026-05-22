@@ -47,7 +47,10 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { sectionsToBlockProps } from "~/components/settings/LeftSidebarPersonalSettings";
 import { renderAdvancedNodeSearchDialog } from "~/components/AdvancedNodeSearchDialog/AdvancedSearchDialog";
-import { getBlockSelection } from "./advancedSearchFooterUtils";
+import {
+  getBlockSelection,
+  insertPageRefAtRange,
+} from "./advancedSearchFooterUtils";
 
 export const createDiscourseNodeFromCommand = (
   extensionAPI: OnloadArgs["extensionAPI"],
@@ -74,19 +77,12 @@ export const createDiscourseNodeFromCommand = (
         });
         return;
       }
-      const originalText = getTextByBlockUid(uid) || "";
-      const pageRef = `[[${result.text}]]`;
-      const newText = `${originalText.substring(0, selectionStart)}${pageRef}${originalText.substring(selectionEnd)}`;
-      const newCursorPosition = selectionStart + pageRef.length;
-
-      await updateBlock({ uid, text: newText });
-
-      await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-        location: {
-          "block-uid": uid,
-          "window-id": windowId,
-        },
-        selection: { start: newCursorPosition },
+      await insertPageRefAtRange({
+        blockUid: uid,
+        pageTitle: result.text,
+        selectionEnd,
+        selectionStart,
+        windowId,
       });
       return;
     },
