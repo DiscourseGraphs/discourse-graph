@@ -1,12 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
-import {
-  Button,
-  ButtonGroup,
-  Menu,
-  MenuItem,
-  Popover,
-  Position,
-} from "@blueprintjs/core";
+import { Button, Menu, MenuItem, Popover, Position } from "@blueprintjs/core";
 import {
   SORT_FIELD_LABELS,
   isNonDefaultSort,
@@ -28,81 +21,25 @@ export type DiscourseNodeSortControlProps = {
   disabled?: boolean;
 };
 
-const SortDirectionToggles = ({
-  direction,
-  field,
-  isSelected,
-  onDirectionChange,
-}: {
-  direction: SortDirection;
-  field: SortField;
-  isSelected: boolean;
-  onDirectionChange: (direction: SortDirection) => void;
-}): React.ReactElement => (
-  <ButtonGroup
-    className="shrink-0"
-    minimal
-    onClick={(event) => event.stopPropagation()}
-  >
-    <Button
-      active={isSelected && direction === "asc"}
-      aria-label={`${SORT_FIELD_LABELS[field]} ascending`}
-      icon="arrow-up"
-      minimal
-      onClick={(event) => {
-        event.stopPropagation();
-        onDirectionChange("asc");
-      }}
-      onMouseDown={(event) => event.preventDefault()}
-      small
-    />
-    <Button
-      active={isSelected && direction === "desc"}
-      aria-label={`${SORT_FIELD_LABELS[field]} descending`}
-      icon="arrow-down"
-      minimal
-      onClick={(event) => {
-        event.stopPropagation();
-        onDirectionChange("desc");
-      }}
-      onMouseDown={(event) => event.preventDefault()}
-      small
-    />
-  </ButtonGroup>
-);
-
 const SortPopoverMenu = ({
-  onSortChange,
+  onFieldChange,
   sort,
 }: {
-  onSortChange: (sort: SortConfig) => void;
+  onFieldChange: (field: SortField) => void;
   sort: SortConfig;
 }): React.ReactElement => (
-  <Menu className="w-60">
+  <Menu className="w-52">
     <MenuItem disabled shouldDismissPopover={false} text="Sort by" />
-    {SORT_FIELDS.map((field) => {
-      const isSelected = sort.field === field;
-      return (
-        <MenuItem
-          key={field}
-          active={isSelected}
-          icon={isSelected ? "tick" : "blank"}
-          labelElement={
-            <SortDirectionToggles
-              direction={sort.direction}
-              field={field}
-              isSelected={isSelected}
-              onDirectionChange={(direction) =>
-                onSortChange({ field, direction })
-              }
-            />
-          }
-          onClick={() => onSortChange({ field, direction: sort.direction })}
-          shouldDismissPopover={false}
-          text={SORT_FIELD_LABELS[field]}
-        />
-      );
-    })}
+    {SORT_FIELDS.map((field) => (
+      <MenuItem
+        key={field}
+        active={sort.field === field}
+        icon={sort.field === field ? "tick" : "blank"}
+        onClick={() => onFieldChange(field)}
+        shouldDismissPopover={false}
+        text={SORT_FIELD_LABELS[field]}
+      />
+    ))}
   </Menu>
 );
 
@@ -117,6 +54,7 @@ export const DiscourseNodeSortControl = ({
 
   const sortLabel = SORT_FIELD_LABELS[sort.field];
   const isTriggerActive = isOpen || isNonDefaultSort(sort);
+  const directionIcon = sort.direction === "asc" ? "arrow-up" : "arrow-down";
 
   const handlePopoverInteraction = useCallback(
     (nextOpen: boolean, event?: React.SyntheticEvent<HTMLElement>): void => {
@@ -129,13 +67,19 @@ export const DiscourseNodeSortControl = ({
     [disabled],
   );
 
-  const applySort = useCallback(
-    (nextSort: SortConfig): void => {
-      onSortChange(nextSort);
+  const applyField = useCallback(
+    (field: SortField): void => {
+      onSortChange({ field, direction: sort.direction });
       setIsOpen(false);
     },
-    [onSortChange],
+    [onSortChange, sort.direction],
   );
+
+  const toggleDirection = useCallback((): void => {
+    const nextDirection: SortDirection =
+      sort.direction === "asc" ? "desc" : "asc";
+    onSortChange({ field: sort.field, direction: nextDirection });
+  }, [onSortChange, sort.direction, sort.field]);
 
   const sortButton = (
     <Button
@@ -157,11 +101,11 @@ export const DiscourseNodeSortControl = ({
   );
 
   return (
-    <span className="inline-flex shrink-0 [&_.bp3-popover-wrapper]:shrink-0">
+    <span className="inline-flex shrink-0 items-center gap-0.5 [&_.bp3-popover-wrapper]:shrink-0">
       <Popover
         autoFocus={false}
         canEscapeKeyClose
-        content={<SortPopoverMenu onSortChange={applySort} sort={sort} />}
+        content={<SortPopoverMenu onFieldChange={applyField} sort={sort} />}
         disabled={disabled}
         enforceFocus={false}
         isOpen={isOpen}
@@ -176,6 +120,17 @@ export const DiscourseNodeSortControl = ({
         position={Position.BOTTOM_RIGHT}
         target={sortButton}
         usePortal
+      />
+      <Button
+        aria-label={`${sortLabel} ${sort.direction === "asc" ? "ascending" : "descending"}`}
+        className="!text-gray-600 hover:!bg-gray-100 hover:!text-gray-900"
+        disabled={disabled}
+        icon={directionIcon}
+        minimal
+        onClick={toggleDirection}
+        onMouseDown={(event) => event.preventDefault()}
+        small
+        title={`${sort.direction === "asc" ? "Ascending" : "Descending"}`}
       />
     </span>
   );

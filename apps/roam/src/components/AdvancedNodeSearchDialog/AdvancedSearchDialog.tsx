@@ -186,8 +186,12 @@ const AdvancedNodeSearchDialog = ({
 
   useEffect(() => {
     if (!isOpen) {
+      setSearchTerm("");
+      setDebouncedSearchTerm("");
+      setActiveIndex(0);
       setSort(DEFAULT_SORT_CONFIG);
       setResults([]);
+      setIndexError(false);
     }
   }, [isOpen]);
 
