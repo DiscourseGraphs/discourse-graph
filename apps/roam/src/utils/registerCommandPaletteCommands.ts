@@ -406,10 +406,6 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Convert current page to discourse node", () =>
     convertPageToNodeFromCommand(extensionAPI),
   );
-  void addCommand("DG: Open Node Search Menu", () => {
-    posthog.capture("Node Search: Open Command Triggered");
-    renderAdvancedNodeSearchDialog();
-  });
   void addCommand("DG: Create/Insert discourse node", () =>
     createDiscourseNodeFromCommand(extensionAPI),
   );
@@ -417,7 +413,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
   if (getFeatureFlag("Advanced node search enabled")) {
-    void addCommand("DG: Open - Node search", () => {
+    void addCommand("DG: Open Node Search", () => {
       posthog.capture("Node Search: Open Command Triggered");
       renderAdvancedNodeSearchDialog();
     });
