@@ -28,6 +28,7 @@ import {
 } from "./getDiscourseNodes";
 import { isAcceptedSchema } from "./typeUtils";
 import { getTemplatePluginInfo } from "./templates";
+import { difference } from "./setOperations";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
@@ -226,6 +227,7 @@ type BuildChangedNodesOptions = {
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
   changeTypesByPath?: Map<string, ChangeType[]>;
+  fullSync?: boolean;
 };
 
 const mergeChangeTypes = (
@@ -322,6 +324,7 @@ const buildChangedNodesFromNodes = async ({
   supabaseClient,
   context,
   changeTypesByPath,
+  fullSync = false,
 }: BuildChangedNodesOptions): Promise<ObsidianDiscourseNodeData[]> => {
   if (nodes.length === 0) {
     return [];
@@ -339,6 +342,25 @@ const buildChangedNodesFromNodes = async ({
     context.spaceId,
   );
   const changedNodes: ObsidianDiscourseNodeData[] = [];
+  let missing: Set<string> | undefined;
+  if (fullSync) {
+    const existingConceptIds = await supabaseClient
+      .from("my_concepts")
+      .select("source_local_id")
+      .eq("space_id", context.spaceId)
+      .eq("arity", 0)
+      .eq("is_schema", false);
+    if (existingConceptIds.data) {
+      // fail silently otherwise, there will be other opportunities
+      const nodeIds = new Set(nodes.map((n) => n.nodeInstanceId));
+      const dbConceptIds = new Set(
+        existingConceptIds.data
+          .map((d) => d.source_local_id)
+          .filter((id) => id !== null),
+      );
+      missing = difference(nodeIds, dbConceptIds);
+    }
+  }
 
   for (const node of nodes) {
     if (node.frontmatter.importedFromRid) continue;
@@ -355,7 +377,7 @@ const buildChangedNodesFromNodes = async ({
         : detectedChangeTypes;
     const finalChangeTypes = mergedChangeTypes;
 
-    if (finalChangeTypes.length === 0) {
+    if (finalChangeTypes.length === 0 && !missing?.has(node.nodeInstanceId)) {
       continue;
     }
 
@@ -397,6 +419,7 @@ export const syncAllNodesAndRelations = async (
           nodes: allNodes,
           supabaseClient,
           context,
+          fullSync: true,
         });
 
     const accountLocalId = plugin.settings.accountLocalId;
