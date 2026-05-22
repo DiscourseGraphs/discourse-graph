@@ -5,7 +5,6 @@ import React, {
   useRef,
   useState,
   type CSSProperties,
-  type RefObject,
 } from "react";
 import { Button, Icon, InputGroup, Popover, Position } from "@blueprintjs/core";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
