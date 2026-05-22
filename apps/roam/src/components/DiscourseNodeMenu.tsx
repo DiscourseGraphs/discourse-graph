@@ -27,7 +27,10 @@ import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
-import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import {
+  setPersonalSetting,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import type { PersonalSettings } from "~/components/settings/utils/zodSchema";
 import type { PerformanceTraceContext } from "~/utils/performanceLogger";
@@ -40,6 +43,8 @@ type Props = {
   isShift?: boolean;
   menuMaxHeight?: number;
   trace?: PerformanceTraceContext;
+  settingsSnapshot?: SettingsSnapshot;
+  getSettingsSnapshot?: (trace?: PerformanceTraceContext) => SettingsSnapshot;
 };
 
 const compactTraceContent = (content?: string): string | undefined => {
@@ -66,6 +71,8 @@ const NodeMenu = ({
   isShift,
   menuMaxHeight,
   trace,
+  settingsSnapshot,
+  getSettingsSnapshot,
 }: { onClose: () => void } & Props) => {
   const isInitialTextSelected =
     !!textarea && textarea.selectionStart !== textarea.selectionEnd;
@@ -73,15 +80,24 @@ const NodeMenu = ({
   const [showNodeTypes, setShowNodeTypes] = useState(
     isInitialTextSelected || (isShift ?? false),
   );
-  const userDiscourseNodes = useMemo(
-    () =>
-      getDiscourseNodes(undefined, undefined, {
-        source:
-          trace?.source ?? "component:DiscourseNodeMenu:userDiscourseNodes",
-        content: getNodeMenuTraceContent({ trace, textarea, blockUid }),
-      }).filter((n) => n.backedBy === "user"),
-    [blockUid, textarea, trace?.content, trace?.source],
-  );
+  const userDiscourseNodes = useMemo(() => {
+    const traceContext = {
+      source: trace?.source ?? "component:DiscourseNodeMenu:userDiscourseNodes",
+      content: getNodeMenuTraceContent({ trace, textarea, blockUid }),
+    };
+    return getDiscourseNodes(
+      undefined,
+      settingsSnapshot ?? getSettingsSnapshot?.(traceContext),
+      traceContext,
+    ).filter((n) => n.backedBy === "user");
+  }, [
+    blockUid,
+    getSettingsSnapshot,
+    settingsSnapshot,
+    textarea,
+    trace?.content,
+    trace?.source,
+  ]);
   const discourseNodes = userDiscourseNodes.filter(
     (n) => showNodeTypes || n.tag,
   );
@@ -382,10 +398,12 @@ export const TextSelectionNodeMenu = ({
   textarea,
   extensionAPI,
   onClose,
+  settingsSnapshot,
 }: {
   textarea: HTMLTextAreaElement;
   extensionAPI: OnloadArgs["extensionAPI"];
   onClose: () => void;
+  settingsSnapshot?: SettingsSnapshot;
 }) => {
   const trigger = (
     <Button
@@ -426,6 +444,7 @@ export const TextSelectionNodeMenu = ({
       onClose={onClose}
       isShift
       menuMaxHeight={menuMaxHeight}
+      settingsSnapshot={settingsSnapshot}
     />
   );
 };

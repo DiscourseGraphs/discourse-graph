@@ -454,7 +454,71 @@ WHERE id IN (
         JOIN public."SpaceAccess" USING (space_id)
         JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
     WHERE permissions >= 'partial'
+    UNION
+    SELECT id FROM public."PlatformAccount" WHERE dg_account = auth.uid()
 );
+
+CREATE OR REPLACE VIEW public.my_pseudo_accounts AS
+SELECT
+    pa.id,
+    pa.platform,
+    pa.dg_account,
+    sa.space_id,
+    sp.name,
+    mysa.permissions AS sharing_permissions
+FROM public."PlatformAccount" AS pa
+    JOIN public.group_membership AS gm ON (member_id = dg_account)
+    JOIN public.group_membership AS gm2 ON (gm2.member_id = auth.uid() AND gm2.group_id = gm.group_id)
+    JOIN public."SpaceAccess" AS sa ON (sa.account_uid = dg_account)
+    JOIN public."Space" AS sp ON (sp.id = sa.space_id)
+    LEFT OUTER JOIN public."SpaceAccess" AS mysa ON (mysa.account_uid = gm.group_id AND mysa.space_id = sp.id)
+WHERE pa.agent_type = 'anonymous' AND sa.permissions = 'editor';
+
+CREATE TYPE public.group_space_info AS (
+    id BIGINT,
+    name VARCHAR,
+    platform public."Platform",
+    sharing_permissions public."SpaceAccessPermissions",
+    admin boolean
+);
+
+CREATE OR REPLACE FUNCTION public.spaces_in_group(p_group_id UUID) RETURNS SETOF public.group_space_info
+STABLE
+SET search_path = ''
+LANGUAGE sql AS $$
+    SELECT pa.space_id as id, pa.name, pa.platform, pa.sharing_permissions, gm.admin
+    FROM public.my_pseudo_accounts AS pa
+    JOIN public.group_membership AS gm ON (gm.member_id = pa.dg_account)
+    WHERE gm.group_id = p_group_id;
+$$;
+
+CREATE OR REPLACE FUNCTION public.accept_group_invitation(token varchar) RETURNS boolean
+SET search_path = '' SECURITY DEFINER
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_creator UUID;
+    token_info JSONB;
+    v_group_id UUID;
+    auth_uid UUID;
+    token_type varchar;
+    as_admin BOOLEAN;
+    is_admin BOOLEAN;
+BEGIN
+    BEGIN
+        SELECT auth.uid() INTO STRICT auth_uid;
+        IF auth_uid IS NULL THEN RETURN false; END IF;
+        SELECT creator INTO v_creator STRICT FROM public.secret_token WHERE id=token;
+        SELECT public.get_secret_token(token) INTO token_info STRICT;
+        SELECT (token_info->>'groupId')::UUID, token_info->>'type', (token_info->'admin')::boolean INTO v_group_id, token_type, as_admin STRICT;
+        IF token_type != 'groupInvitation' THEN RETURN false; END IF;
+        SELECT admin INTO is_admin FROM public.group_membership WHERE member_id = v_creator AND group_id = v_group_id;
+        IF is_admin IS NOT true THEN RETURN false; END IF;
+        INSERT INTO public.group_membership (group_id, member_id, admin) VALUES (v_group_id, auth_uid, as_admin);
+        RETURN true;
+    EXCEPTION WHEN OTHERS THEN RETURN false;
+    END;
+END;
+$$;
 
 DROP POLICY IF EXISTS platform_account_policy ON public."PlatformAccount";
 

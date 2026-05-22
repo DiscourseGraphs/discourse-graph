@@ -44,6 +44,13 @@ export type Database = {
             foreignKeyName: "access_token_platform_account_id_fkey"
             columns: ["platform_account_id"]
             isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_token_platform_account_id_fkey"
+            columns: ["platform_account_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
@@ -74,6 +81,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "AgentIdentifier_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -143,6 +157,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -221,6 +242,13 @@ export type Database = {
             foreignKeyName: "concept_contributors_contributor_id_fkey"
             columns: ["contributor_id"]
             isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concept_contributors_contributor_id_fkey"
+            columns: ["contributor_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
@@ -284,6 +312,13 @@ export type Database = {
             foreignKeyName: "Content_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
@@ -292,6 +327,13 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -398,6 +440,13 @@ export type Database = {
             foreignKeyName: "content_contributors_contributor_id_fkey"
             columns: ["contributor_id"]
             isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_contributors_contributor_id_fkey"
+            columns: ["contributor_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
@@ -486,6 +535,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Document_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -627,6 +683,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "LocalAccess_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -927,6 +990,13 @@ export type Database = {
             foreignKeyName: "Concept_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
@@ -988,6 +1058,13 @@ export type Database = {
             foreignKeyName: "Content_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
@@ -996,6 +1073,13 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -1086,6 +1170,13 @@ export type Database = {
             foreignKeyName: "Content_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
@@ -1094,6 +1185,13 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -1178,6 +1276,13 @@ export type Database = {
             foreignKeyName: "Document_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "my_pseudo_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Document_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
@@ -1214,6 +1319,41 @@ export type Database = {
           name: string | null
         }
         Relationships: []
+      }
+      my_pseudo_accounts: {
+        Row: {
+          dg_account: string | null
+          id: number | null
+          name: string | null
+          platform: Database["public"]["Enums"]["Platform"] | null
+          sharing_permissions:
+            | Database["public"]["Enums"]["SpaceAccessPermissions"]
+            | null
+          space_id: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "PlatformAccount_dg_account_fkey"
+            columns: ["dg_account"]
+            isOneToOne: false
+            referencedRelation: "my_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SpaceAccess_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "my_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SpaceAccess_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "Space"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       my_spaces: {
         Row: {
@@ -1314,6 +1454,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      accept_group_invitation: { Args: { token: string }; Returns: boolean }
       account_in_shared_space: {
         Args: {
           access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"]
@@ -1662,6 +1803,16 @@ export type Database = {
               isSetofReturn: true
             }
           }
+      spaces_in_group: {
+        Args: { p_group_id: string }
+        Returns: Database["public"]["CompositeTypes"]["group_space_info"][]
+        SetofOptions: {
+          from: "*"
+          to: "group_space_info"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       unowned_account_in_shared_space: {
         Args: { p_account_id: number }
         Returns: boolean
@@ -1831,6 +1982,15 @@ export type Database = {
         author_inline:
           | Database["public"]["CompositeTypes"]["account_local_input"]
           | null
+      }
+      group_space_info: {
+        id: number | null
+        name: string | null
+        platform: Database["public"]["Enums"]["Platform"] | null
+        sharing_permissions:
+          | Database["public"]["Enums"]["SpaceAccessPermissions"]
+          | null
+        admin: boolean | null
       }
       inline_embedding_input: {
         model: string | null
@@ -2018,4 +2178,3 @@ export const Constants = {
     },
   },
 } as const
-

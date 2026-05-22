@@ -7,6 +7,10 @@ import { renderSuggestive as renderSuggestiveOverlay } from "~/components/Sugges
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import findDiscourseNode from "./findDiscourseNode";
 import { withPerformanceTrace } from "./performanceLogger";
+import {
+  bulkReadSettings,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
 
 const PAGE_REF_SELECTOR = "span.rm-page-ref";
 const DISCOURSE_OVERLAY_CLASS = "roamjs-discourse-context-overlay";
@@ -25,11 +29,13 @@ type PageRefDiscourseNodeStatus = {
 };
 
 let batchDiscourseNodes: DiscourseNode[] | null = null;
+let batchSettingsSnapshot: SettingsSnapshot | null = null;
 let clearBatchCacheQueued = false;
 const pageRefDiscourseNodeCache = new Map<string, PageRefDiscourseNodeStatus>();
 
 const clearBatchCache = (): void => {
   batchDiscourseNodes = null;
+  batchSettingsSnapshot = null;
   pageRefDiscourseNodeCache.clear();
   clearBatchCacheQueued = false;
 };
@@ -43,6 +49,19 @@ const queueBatchCacheClear = (): void => {
 const compactTraceContent = (content: string): string =>
   content.replace(/\s+/g, " ").trim().slice(0, 120);
 
+const getPageRefTrace = (content: string) => ({
+  source: "observer:pageRef:getBatchDiscourseNodes",
+  content: compactTraceContent(content),
+});
+
+const getBatchSettingsSnapshot = (content: string): SettingsSnapshot => {
+  if (batchSettingsSnapshot) return batchSettingsSnapshot;
+
+  batchSettingsSnapshot = bulkReadSettings(getPageRefTrace(content));
+  queueBatchCacheClear();
+  return batchSettingsSnapshot;
+};
+
 const getBatchDiscourseNodes = (content: string): DiscourseNode[] => {
   if (batchDiscourseNodes) return batchDiscourseNodes;
 
@@ -55,10 +74,12 @@ const getBatchDiscourseNodes = (content: string): DiscourseNode[] => {
       details: () => ({ nodeCount }),
     },
     () => {
-      const nodes = getDiscourseNodes(undefined, undefined, {
-        source: "observer:pageRef:getBatchDiscourseNodes",
-        content: compactTraceContent(content),
-      });
+      const trace = getPageRefTrace(content);
+      const nodes = getDiscourseNodes(
+        undefined,
+        getBatchSettingsSnapshot(content),
+        trace,
+      );
       nodeCount = nodes.length;
       return nodes;
     },

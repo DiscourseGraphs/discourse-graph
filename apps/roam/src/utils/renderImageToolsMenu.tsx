@@ -5,17 +5,21 @@ import getUids from "roamjs-components/dom/getUids";
 import NodeMenu from "~/components/DiscourseNodeMenu";
 import { OnloadArgs } from "roamjs-components/types";
 import posthog from "posthog-js";
+import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
+import type { PerformanceTraceContext } from "./performanceLogger";
 
 type ImageToolsMenuProps = {
   blockUid: string;
   extensionAPI: OnloadArgs["extensionAPI"];
   traceContent?: string;
+  getSettingsSnapshot: (trace?: PerformanceTraceContext) => SettingsSnapshot;
 };
 
 const ImageToolsMenu = ({
   blockUid,
   extensionAPI,
   traceContent,
+  getSettingsSnapshot,
 }: ImageToolsMenuProps): JSX.Element => {
   const [menuKey, setMenuKey] = useState(0);
 
@@ -51,6 +55,7 @@ const ImageToolsMenu = ({
           source: "observer:imageMenu:ImageToolsMenu:NodeMenu",
           content: traceContent,
         }}
+        getSettingsSnapshot={getSettingsSnapshot}
       />
 
       <Button
@@ -144,6 +149,7 @@ const attachHoverListeners = (
 export const renderImageToolsMenu = (
   imageElement: HTMLImageElement,
   extensionAPI: OnloadArgs["extensionAPI"],
+  getSettingsSnapshot: (trace?: PerformanceTraceContext) => SettingsSnapshot,
 ): void => {
   const wrapper = getImageWrapper(imageElement);
   if (!wrapper) return;
@@ -165,6 +171,7 @@ export const renderImageToolsMenu = (
       blockUid={blockUid}
       extensionAPI={extensionAPI}
       traceContent={getImageTraceContent(imageElement, blockUid)}
+      getSettingsSnapshot={getSettingsSnapshot}
     />,
     menuContainer,
   );

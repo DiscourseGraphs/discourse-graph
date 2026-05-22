@@ -4,6 +4,7 @@ import { TextSelectionNodeMenu } from "~/components/DiscourseNodeMenu";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import { OnloadArgs } from "roamjs-components/types";
 import posthog from "posthog-js";
+import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
 
 let currentPopupContainer: HTMLDivElement | null = null;
 
@@ -44,10 +45,12 @@ export const renderTextSelectionPopup = ({
   extensionAPI,
   blockElement,
   textarea,
+  settingsSnapshot,
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
   blockElement: Element;
   textarea: HTMLTextAreaElement;
+  settingsSnapshot: SettingsSnapshot;
 }) => {
   posthog.capture("Text Selection Popup: Opened");
   removeTextSelectionPopup();
@@ -66,6 +69,7 @@ export const renderTextSelectionPopup = ({
       textarea={textarea}
       extensionAPI={extensionAPI}
       onClose={removeTextSelectionPopup}
+      settingsSnapshot={settingsSnapshot}
     />,
     currentPopupContainer,
   );

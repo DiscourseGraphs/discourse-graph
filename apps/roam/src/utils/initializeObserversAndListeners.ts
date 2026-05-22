@@ -68,6 +68,7 @@ import {
 import {
   withAsyncPerformanceTrace,
   withPerformanceTrace,
+  type PerformanceTraceContext,
 } from "./performanceLogger";
 
 const debounce = (fn: () => void, delay = 250) => {
@@ -296,6 +297,21 @@ export const initObservers = ({
     },
   });
 
+  let batchedImageMenuSettings: SettingsSnapshot | null = null;
+  const getImageMenuSettingsForBatch = (
+    trace?: PerformanceTraceContext,
+  ): SettingsSnapshot => {
+    if (batchedImageMenuSettings === null) {
+      batchedImageMenuSettings = bulkReadSettings(
+        trace ?? { source: "observer:imageMenu:getSettingsForBatch" },
+      );
+      queueMicrotask(() => {
+        batchedImageMenuSettings = null;
+      });
+    }
+    return batchedImageMenuSettings;
+  };
+
   const pageActionListener = ((
     e: CustomEvent<{
       action: string;
@@ -357,7 +373,11 @@ export const initObservers = ({
             content = compactTraceContent(
               img.currentSrc || img.src || img.getAttribute("src"),
             );
-            renderImageToolsMenu(img, onloadArgs.extensionAPI);
+            renderImageToolsMenu(
+              img,
+              onloadArgs.extensionAPI,
+              getImageMenuSettingsForBatch,
+            );
             rendered = true;
           }
         },
@@ -641,6 +661,7 @@ export const initObservers = ({
             extensionAPI: onloadArgs.extensionAPI,
             blockElement,
             textarea,
+            settingsSnapshot: settings,
           });
           rendered = true;
         } else {
