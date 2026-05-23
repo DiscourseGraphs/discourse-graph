@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Button,
   Dialog,
-  InputGroup,
+  Icon,
   NonIdealState,
   Spinner,
   SpinnerSize,
@@ -28,6 +28,7 @@ import { mountAdvancedSearchInSidebar } from "./mountAdvancedSearchInSidebar";
 import {
   DEBOUNCE_MS,
   DEFAULT_SORT_CONFIG,
+  MAX_RESULTS,
   type SearchResult,
   type SortConfig,
   buildSearchIndex,
@@ -40,6 +41,7 @@ import {
 import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
+import { NodeTypeChipsSearchInput } from "./NodeTypeChipsSearchInput";
 import {
   type SearchIndex,
   useAdvancedNodeSearchResults,
@@ -161,6 +163,7 @@ const AdvancedNodeSearchDialog = ({
   const [sort, setSort] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
   const [discourseNodes, setDiscourseNodes] = useState<DiscourseNode[]>([]);
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
+  const [isTypeFilterPopoverOpen, setIsTypeFilterPopoverOpen] = useState(false);
   const resultsPanelRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [insertTarget, setInsertTarget] = useState<InsertTarget | null>(null);
@@ -291,7 +294,7 @@ const AdvancedNodeSearchDialog = ({
     ? "error"
     : isIndexLoading
       ? "indexing"
-      : !debouncedSearchTerm
+      : !debouncedSearchTerm && selectedNodeTypeIds.length === 0
         ? "initial"
         : !results.length
           ? "empty"
@@ -364,6 +367,7 @@ const AdvancedNodeSearchDialog = ({
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.defaultPrevented) return;
       if (event.key === "ArrowDown" && results.length) {
         event.preventDefault();
         setActiveIndex((index) => Math.min(index + 1, results.length - 1));
@@ -398,6 +402,7 @@ const AdvancedNodeSearchDialog = ({
         event.preventDefault();
         void onInsert();
       } else if (event.key === "Escape") {
+        if (isTypeFilterPopoverOpen) return;
         event.preventDefault();
         onClose();
       }
@@ -405,6 +410,7 @@ const AdvancedNodeSearchDialog = ({
     [
       activeResult,
       contentState,
+      isTypeFilterPopoverOpen,
       insertTarget,
       onClose,
       onOpenSearchSidebar,
@@ -439,18 +445,35 @@ const AdvancedNodeSearchDialog = ({
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
         <div className="flex flex-none items-center gap-2 border-b border-gray-200 px-3 py-2">
-          <InputGroup
-            fill
-            inputRef={inputRef}
-            leftIcon="search"
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              setSearchTerm(event.target.value)
-            }
-            placeholder="Search discourse nodes..."
-            value={searchTerm}
-          />
+          <div className="flex min-w-0 flex-1 items-center rounded border border-gray-300 bg-white px-2 py-1">
+            <Icon icon="search" size={16} className="mr-2 text-gray-500" />
+            <NodeTypeChipsSearchInput
+              inputRef={inputRef}
+              nodeTypes={discourseNodes}
+              onArrowDown={() =>
+                setActiveIndex((index) =>
+                  Math.min(index + 1, results.length - 1),
+                )
+              }
+              onArrowUp={() =>
+                setActiveIndex((index) => Math.max(index - 1, 0))
+              }
+              onCmdEnter={() => void onInsert()}
+              onEnter={() => void onOpen()}
+              onEscape={() => {
+                if (isTypeFilterPopoverOpen) return;
+                onClose();
+              }}
+              onSearchTermChange={setSearchTerm}
+              onSelectedTypeIdsChange={setSelectedNodeTypeIds}
+              onShiftEnter={() => void onOpenInSidebar()}
+              searchTerm={searchTerm}
+              selectedTypeIds={selectedNodeTypeIds}
+            />
+          </div>
           <DiscourseNodeTypeFilter
             nodeTypes={discourseNodes}
+            onPopoverOpenChange={setIsTypeFilterPopoverOpen}
             onSelectedTypeIdsChange={setSelectedNodeTypeIds}
             selectedTypeIds={selectedNodeTypeIds}
           />
@@ -498,7 +521,7 @@ const AdvancedNodeSearchDialog = ({
                 <Spinner size={SpinnerSize.SMALL} />
               )}
               {contentState === "empty" && (
-                <span>No matches. Try another keyword.</span>
+                <span>No matches. Try another keyword or filter.</span>
               )}
               {contentState === "error" && (
                 <span>
