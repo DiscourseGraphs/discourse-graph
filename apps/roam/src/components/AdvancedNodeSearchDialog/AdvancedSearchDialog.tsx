@@ -21,6 +21,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import renderOverlay, {
   RoamOverlayProps,
 } from "roamjs-components/util/renderOverlay";
+import createPage from "roamjs-components/writes/createPage";
 import { createBlock } from "roamjs-components/writes";
 import {
   insertPageRefAtRange,
@@ -324,27 +325,28 @@ const AdvancedNodeSearchDialog = ({
     if (contentState !== "results" || !results.length) return;
 
     try {
-      const parentUid =
-        (await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid()) ||
-        window.roamAlphaAPI.util.dateToPageUid(new Date());
-
       const sidebarBlockTitle = `Advanced search results: "${debouncedSearchTerm || "(empty query)"}"`;
       const sidebarChildren = results.map((result) => ({
         text: `[[${result.title}]]`,
       }));
 
-      const sidebarBlockUid = await createBlock({
-        parentUid,
-        order: Number.MAX_VALUE,
-        node: { text: sidebarBlockTitle, children: sidebarChildren },
-      });
+      const sidebarPageUid = await createPage({ title: sidebarBlockTitle });
+      await Promise.all(
+        sidebarChildren.map((node, order) =>
+          createBlock({
+            parentUid: sidebarPageUid,
+            order,
+            node,
+          }),
+        ),
+      );
 
       await window.roamAlphaAPI.ui.rightSidebar.addWindow({
         window: {
           type: "outline",
           // @ts-expect-error - block-uid is valid for outline sidebar windows
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          "block-uid": sidebarBlockUid,
+          "block-uid": sidebarPageUid,
         },
       });
 
