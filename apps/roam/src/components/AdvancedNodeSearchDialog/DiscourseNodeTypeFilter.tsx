@@ -4,9 +4,14 @@ import React, {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
-import { Button, Icon, InputGroup, Popover, Position } from "@blueprintjs/core";
+import {
+  Button,
+  Checkbox,
+  InputGroup,
+  Popover,
+  Position,
+} from "@blueprintjs/core";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
 import {
@@ -16,7 +21,6 @@ import {
   getSelectAllCheckState,
   hasActiveTypeFilter,
   toPopoverSelectedIds,
-  type SelectAllCheckState,
 } from "~/utils/discourseNodeTypeFilter";
 
 export type DiscourseNodeTypeFilterProps = {
@@ -29,21 +33,6 @@ export type DiscourseNodeTypeFilterProps = {
 const getNodeIndicatorColor = (node: DiscourseNode): string =>
   formatHexColor(node.canvasSettings?.color) || "#000";
 
-const FilterCheckbox = ({
-  state,
-}: {
-  state: SelectAllCheckState;
-}): React.ReactElement => (
-  <span
-    className={`inline-flex h-4 w-4 items-center justify-center rounded border border-solid border-gray-300 bg-white ${state === "off" ? "" : "border-blue-600 bg-blue-600"}`}
-  >
-    {state === "on" && <Icon icon="small-tick" size={10} color="#fff" />}
-    {state === "indeterminate" && (
-      <span className="h-0.5 w-2 rounded bg-white" />
-    )}
-  </span>
-);
-
 const NodeTypeFilterRow = ({
   isChecked,
   node,
@@ -55,27 +44,23 @@ const NodeTypeFilterRow = ({
   onSelectOnly: () => void;
   onToggle: () => void;
 }): React.ReactElement => (
-  <div
-    className="group grid cursor-pointer items-center gap-2 px-3 py-1.5 text-sm text-gray-900 hover:bg-gray-900/[0.04]"
-    style={{ gridTemplateColumns: "22px 14px 1fr auto" }}
-    onClick={onToggle}
-    onKeyDown={(event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        onToggle();
+  <div className="group flex items-center gap-2 px-3 py-1.5 hover:bg-gray-900/[0.04]">
+    <Checkbox
+      checked={isChecked}
+      className="mb-0 flex-1 text-sm font-normal text-gray-900"
+      labelElement={
+        <span className="inline-flex items-center gap-2 font-normal">
+          <span
+            className="h-3 w-3 rounded-full"
+            style={{ backgroundColor: getNodeIndicatorColor(node) }}
+          />
+          <span className="font-normal">{node.text}</span>
+        </span>
       }
-    }}
-    role="button"
-    tabIndex={0}
-  >
-    <FilterCheckbox state={isChecked ? "on" : "off"} />
-    <span
-      className="h-3 w-3 rounded-full"
-      style={{ backgroundColor: getNodeIndicatorColor(node) }}
+      onChange={onToggle}
     />
-    <span>{node.text}</span>
     <Button
-      className="!px-2 !py-1 opacity-0 transition-opacity group-hover:opacity-100"
+      className="!px-2 !py-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
       minimal
       onClick={(event) => {
         event.stopPropagation();
@@ -176,23 +161,16 @@ const FilterPopoverPanel = ({
         ) : (
           <>
             {!hasTypeSearchQuery && (
-              <div
-                className="grid cursor-pointer items-center gap-2 border-b border-gray-900/10 px-3 text-sm text-gray-900 hover:bg-gray-900/[0.04]"
-                style={{ gridTemplateColumns: "22px 14px 1fr auto" }}
-                onClick={handleSelectAll}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    handleSelectAll();
+              <div className="border-b border-gray-900/10 px-3 py-1.5 hover:bg-gray-900/[0.04]">
+                <Checkbox
+                  checked={selectAllState !== "off"}
+                  className="mb-0 text-sm text-gray-900"
+                  indeterminate={selectAllState === "indeterminate"}
+                  labelElement={
+                    <span className="font-semibold">Select all</span>
                   }
-                }}
-                role="button"
-                tabIndex={0}
-              >
-                <FilterCheckbox state={selectAllState} />
-                <span />
-                <span className="font-semibold">Select all</span>
-                <span />
+                  onChange={handleSelectAll}
+                />
               </div>
             )}
             <div className="pt-1">
@@ -252,10 +230,6 @@ export const DiscourseNodeTypeFilter = ({
     [onPopoverOpenChange],
   );
 
-  const closePopover = useCallback((): void => {
-    setPopoverOpen(false);
-  }, [setPopoverOpen]);
-
   const handlePopoverInteraction = useCallback(
     (nextOpen: boolean, event?: React.SyntheticEvent<HTMLElement>): void => {
       if (!isFilterReady) return;
@@ -281,56 +255,35 @@ export const DiscourseNodeTypeFilter = ({
 
   const isTriggerActive = isOpen || isFilterActive;
 
-  const triggerStyle: CSSProperties = {
-    position: "relative",
-    minWidth: 30,
-    minHeight: 30,
-    padding: 0,
-    color: isTriggerActive ? "#5f57c0" : "rgba(31, 31, 31, 0.6)",
-    background: isTriggerActive ? "rgba(95, 87, 192, 0.1)" : "transparent",
-  };
-
-  const countPillStyle: CSSProperties = {
-    position: "absolute",
-    top: 2,
-    right: 2,
-    minWidth: 14,
-    height: 14,
-    padding: "0 3px",
-    borderRadius: 7,
-    background: "#5f57c0",
-    color: "#fff",
-    fontSize: 9,
-    fontWeight: 600,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    lineHeight: 1,
-  };
-
   const filterButton = (
     <Button
       aria-expanded={isOpen}
       aria-label="Filter by type"
+      className="p-0"
       disabled={!isFilterReady}
       elementRef={triggerRef}
       icon="filter"
       minimal
       onMouseDown={(event) => event.preventDefault()}
-      style={triggerStyle}
+      style={{
+        position: "relative",
+        color: isTriggerActive ? "#5f57c0" : "rgba(31, 31, 31, 0.6)",
+        background: isTriggerActive ? "rgba(95, 87, 192, 0.1)" : "transparent",
+      }}
       title={
         isFilterReady ? "Filter by type" : "Loading discourse node types..."
       }
     >
       {activeFilterCount > 0 && (
-        <span style={countPillStyle}>{activeFilterCount}</span>
+        <span
+          style={{ position: "absolute", right: 2, top: 2 }}
+          className="inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-lg bg-blue-600 px-1 text-xs font-semibold leading-none text-white"
+        >
+          {activeFilterCount}
+        </span>
       )}
     </Button>
   );
-
-  if (!isFilterReady) {
-    return <span className="inline-flex shrink-0">{filterButton}</span>;
-  }
 
   return (
     <Popover
@@ -354,7 +307,7 @@ export const DiscourseNodeTypeFilter = ({
           boundariesElement: "viewport",
         },
       }}
-      onClose={closePopover}
+      onClose={() => setPopoverOpen(false)}
       onInteraction={handlePopoverInteraction}
       popoverClassName="p-0 overflow-hidden"
       popoverRef={popoverRef}
