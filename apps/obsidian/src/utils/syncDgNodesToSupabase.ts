@@ -28,7 +28,7 @@ import {
 } from "./getDiscourseNodes";
 import { isAcceptedSchema } from "./typeUtils";
 import { getTemplatePluginInfo } from "./templates";
-import { difference } from "./setOperations";
+import { difference } from "@repo/utils/setOperations";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";

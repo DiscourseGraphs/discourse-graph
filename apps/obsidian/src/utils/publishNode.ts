@@ -17,7 +17,7 @@ import {
   syncPublishedNodeAssets,
 } from "./syncDgNodesToSupabase";
 import { isProvisionalSchema } from "./typeUtils";
-import { intersection, difference } from "./setOperations";
+import { intersection, difference } from "@repo/utils/setOperations";
 
 import type { DiscourseNodeInVault } from "./getDiscourseNodes";
 import type { SupabaseContext } from "./supabaseContext";
