@@ -544,8 +544,8 @@ const TemplateImportPanel = ({
             )}
             {!isLoading && !error && candidates.length === 0 && (
               <div className="text-muted p-3 text-sm">
-                No new shared templates available for node type "{nodeTypeName}
-                ". Already imported templates are hidden here.
+                No new shared templates available for node type {nodeTypeName}.
+                Already imported templates are hidden here.
               </div>
             )}
             {!isLoading &&
