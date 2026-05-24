@@ -88,4 +88,4 @@ jobs:
           access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
           command: update
           version: ${{ steps.resolve-release-inputs.outputs.version }}
-          stage: Sent to Obsidian for Review
+          stage: Released
