@@ -6,9 +6,6 @@ on:
         description: "Obsidian release version to complete in Linear, for example 0.1.0."
         required: true
         type: string
-  push:
-    branches:
-      - eng-1767-setup-linear-release-for-obsidian
 
 jobs:
   complete-release:
