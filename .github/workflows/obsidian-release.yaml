@@ -10,9 +10,6 @@ on:
         description: "Optional custom GitHub release name."
         required: false
         type: string
-  push:
-    branches:
-      - eng-1767-setup-linear-release-for-obsidian
 
 env:
   OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
@@ -80,7 +77,7 @@ jobs:
             pnpm --dir apps/obsidian run publish --version "${{ steps.resolve-release-inputs.outputs.version }}"
           fi
 
-      - name: Mark Linear release sent to Obsidian review
+      - name: Mark Linear release Released
         id: update-linear-release
         if: ${{ steps.sync-linear-release.outputs.release != '' && steps.sync-linear-release.outputs.release != 'null' }}
         uses: linear/linear-release-action@v0
@@ -88,4 +85,4 @@ jobs:
           access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
           command: update
           version: ${{ steps.resolve-release-inputs.outputs.version }}
-          stage: In Progress
+          stage: Released
