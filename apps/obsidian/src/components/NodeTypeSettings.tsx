@@ -1,11 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { validateNodeFormat, validateNodeName } from "~/utils/validateNodeType";
 import { usePlugin } from "./PluginContext";
-import { Notice, setIcon } from "obsidian";
+import { App, Component, MarkdownRenderer, Notice, setIcon } from "obsidian";
 import generateUid from "~/utils/generateUid";
 import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
-import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
+import {
+  createTemplateFileWithUniqueName,
+  getImportedTemplateFileName,
+  getTemplateFiles,
+  getTemplatePluginInfo,
+} from "~/utils/templates";
 import {
   getImportInfo,
   formatImportSource,
@@ -14,6 +19,10 @@ import {
 } from "~/utils/typeUtils";
 import { FolderSuggestInput } from "./GeneralSettings";
 import { createBaseForNodeType } from "~/utils/baseForNodeType";
+import {
+  fetchTemplateImportCandidates,
+  type TemplateImportCandidate,
+} from "~/utils/templateImport";
 
 const generateTagPlaceholder = (format: string, nodeName?: string): string => {
   if (!format) return "Enter tag (e.g., clm-candidate)";
@@ -221,6 +230,8 @@ const TemplateField = ({
   templateConfig,
   templateFiles,
   disabled,
+  onImportClick,
+  importDisabledReason,
 }: {
   value: string;
   error?: string;
@@ -228,27 +239,117 @@ const TemplateField = ({
   templateConfig: { isEnabled: boolean; folderPath: string };
   templateFiles: string[];
   disabled?: boolean;
-}) => (
-  <select
-    value={value || ""}
-    onChange={(e) => onChange(e.target.value)}
-    className={`w-full ${error ? "input-error" : ""}`}
-    disabled={
-      disabled || !templateConfig.isEnabled || !templateConfig.folderPath
-    }
-  >
-    <option value="">
-      {!templateConfig.isEnabled || !templateConfig.folderPath
-        ? "Template folder not configured"
-        : "No template"}
-    </option>
-    {templateFiles.map((templateFile) => (
-      <option key={templateFile} value={templateFile}>
-        {templateFile}
-      </option>
-    ))}
-  </select>
-);
+  onImportClick: () => void;
+  importDisabledReason?: string;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const isTemplateConfigured =
+    templateConfig.isEnabled && !!templateConfig.folderPath;
+  const isDisabled = disabled || !isTemplateConfigured;
+  const displayValue = !isTemplateConfigured
+    ? "Template folder not configured"
+    : value
+      ? value
+      : "No template";
+
+  const handleSelect = (nextValue: string): void => {
+    onChange(nextValue);
+    setIsOpen(false);
+  };
+
+  const menuItemStyle = {
+    background: "transparent",
+    border: "none",
+    borderRadius: 0,
+    boxShadow: "none",
+    color: "var(--text-normal)",
+    fontSize: "var(--font-ui-small)",
+    height: "28px",
+    justifyContent: "flex-start",
+    padding: "4px 10px",
+    textAlign: "left" as const,
+    width: "100%",
+  };
+
+  return (
+    <div className="relative w-full min-w-48">
+      <button
+        type="button"
+        className={`dropdown w-full text-left ${error ? "input-error" : ""}`}
+        disabled={isDisabled}
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        <span className="truncate">{displayValue}</span>
+      </button>
+      {isOpen && (
+        <div
+          className="absolute right-0 z-50 mt-1 w-full min-w-56 overflow-hidden"
+          style={{
+            background: "var(--background-primary)",
+            border: "1px solid var(--background-modifier-border)",
+            borderRadius: "var(--radius-s)",
+            boxShadow: "var(--shadow-s)",
+            padding: "4px",
+          }}
+        >
+          <button
+            type="button"
+            className="flex"
+            style={{
+              ...menuItemStyle,
+              fontStyle: "italic",
+              justifyContent: "space-between",
+            }}
+            onClick={() => handleSelect("")}
+          >
+            <span className="truncate">No template</span>
+          </button>
+          {templateFiles.map((templateFile) => (
+            <button
+              type="button"
+              key={templateFile}
+              className="flex"
+              style={{
+                ...menuItemStyle,
+                justifyContent: "space-between",
+              }}
+              onClick={() => handleSelect(templateFile)}
+            >
+              <span className="truncate">{templateFile}</span>
+            </button>
+          ))}
+          <div
+            style={{
+              borderTop: "1px solid var(--background-modifier-border)",
+              marginTop: "4px",
+              paddingTop: "4px",
+            }}
+          >
+            <button
+              type="button"
+              className="flex disabled:opacity-60"
+              style={{
+                ...menuItemStyle,
+                color: "var(--text-accent)",
+                fontWeight: "var(--font-medium)",
+                justifyContent: "space-between",
+              }}
+              disabled={!!importDisabledReason}
+              title={importDisabledReason}
+              onClick={() => {
+                setIsOpen(false);
+                onImportClick();
+              }}
+            >
+              <span className="truncate">Import template from groups...</span>
+              <span aria-hidden="true">&gt;</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const FieldWrapper = ({
   fieldConfig,
@@ -275,6 +376,279 @@ const FieldWrapper = ({
   </div>
 );
 
+const formatRelativeTime = (timestamp?: number): string => {
+  if (!timestamp) return "unknown";
+
+  const diffMs = Date.now() - timestamp;
+  const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "1 day ago";
+  if (diffDays < 7) return `${diffDays} days ago`;
+
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks === 1) return "1 week ago";
+  if (diffWeeks < 5) return `${diffWeeks} weeks ago`;
+
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths <= 1) return "1 month ago";
+  return `${diffMonths} months ago`;
+};
+
+const MarkdownTemplatePreview = ({
+  app,
+  templateContent,
+  sourcePath,
+  className,
+}: {
+  app: App;
+  templateContent: string;
+  sourcePath: string;
+  className?: string;
+}) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.innerHTML = "";
+    const component = new Component();
+    void MarkdownRenderer.render(
+      app,
+      templateContent.trim() || "This template is empty.",
+      container,
+      sourcePath,
+      component,
+    );
+
+    return () => {
+      component.unload();
+      container.innerHTML = "";
+    };
+  }, [app, sourcePath, templateContent]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`markdown-rendered text-sm leading-6 ${className ?? ""}`}
+    />
+  );
+};
+
+const TemplateImportPanel = ({
+  app,
+  nodeTypeName,
+  candidates,
+  selectedCandidateId,
+  isLoading,
+  isImporting,
+  error,
+  templateFolderPath,
+  onSelectCandidate,
+  onClose,
+  onImport,
+}: {
+  app: App;
+  nodeTypeName: string;
+  candidates: TemplateImportCandidate[];
+  selectedCandidateId: number | null;
+  isLoading: boolean;
+  isImporting: boolean;
+  error?: string;
+  templateFolderPath: string;
+  onSelectCandidate: (candidateId: number) => void;
+  onClose: () => void;
+  onImport: () => void;
+}) => {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const selectedCandidate =
+    candidates.find((candidate) => candidate.id === selectedCandidateId) ??
+    candidates[0];
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  const handleBackdropPointerDown = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ): void => {
+    if (
+      panelRef.current &&
+      event.target instanceof Node &&
+      !panelRef.current.contains(event.target)
+    ) {
+      onClose();
+    }
+  };
+
+  return (
+    <div
+      className="absolute inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
+      onPointerDown={handleBackdropPointerDown}
+    >
+      <div
+        ref={panelRef}
+        className="border-modifier-border flex h-[min(760px,92vh)] w-[min(980px,96vw)] flex-col overflow-hidden rounded-xl border bg-primary shadow-2xl"
+      >
+        <div className="border-modifier-border flex items-start justify-between border-b p-4">
+          <div className="flex items-start gap-3">
+            <button
+              type="button"
+              className="icon-button mt-0.5"
+              aria-label="Back to node type settings"
+              onClick={onClose}
+            >
+              <div
+                className="icon"
+                ref={(el) => (el && setIcon(el, "arrow-left")) || undefined}
+              />
+            </button>
+            <div>
+              <h3 className="dg-h3 mb-1">Import template from groups</h3>
+              <p className="text-muted text-sm">
+                {nodeTypeName} templates shared by members of your Discourse
+                Graphs groups.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Close import template panel"
+            onClick={onClose}
+          >
+            <div
+              className="icon"
+              ref={(el) => (el && setIcon(el, "x")) || undefined}
+            />
+          </button>
+        </div>
+
+        <div className="flex min-h-0 flex-1">
+          <div className="min-h-0 w-[min(360px,42%)] shrink-0 overflow-y-auto p-3">
+            {isLoading && (
+              <div className="text-muted p-3 text-sm">
+                Loading shared templates...
+              </div>
+            )}
+            {!isLoading && error && (
+              <div className="text-error p-3 text-sm">{error}</div>
+            )}
+            {!isLoading && !error && candidates.length === 0 && (
+              <div className="text-muted p-3 text-sm">
+                No new shared templates available for node type "{nodeTypeName}
+                ". Already imported templates are hidden here.
+              </div>
+            )}
+            {!isLoading &&
+              !error &&
+              candidates.map((candidate) => {
+                const isSelected = candidate.id === selectedCandidate?.id;
+                return (
+                  <div
+                    key={candidate.id}
+                    className={`mb-2 flex w-full cursor-pointer flex-col gap-1.5 rounded-lg border p-3 text-left text-sm ${
+                      isSelected
+                        ? "border-accent bg-accent/10"
+                        : "border-modifier-border hover:bg-secondary"
+                    }`}
+                    onClick={() => onSelectCandidate(candidate.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onSelectCandidate(candidate.id);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <span className="line-clamp-2 text-base font-semibold">
+                      {candidate.templateName}.md
+                    </span>
+                    {candidate.authorName && (
+                      <span className="text-muted truncate text-xs">
+                        {candidate.authorName}
+                      </span>
+                    )}
+                    <span className="text-muted flex min-w-0 items-center gap-1.5 text-xs">
+                      <span
+                        className="icon h-3.5 w-3.5 shrink-0"
+                        ref={(el) => (el && setIcon(el, "folder")) || undefined}
+                      />
+                      <span className="max-w-40 truncate rounded bg-secondary px-1.5 py-0.5">
+                        {candidate.spaceName}
+                      </span>
+                      <span aria-hidden="true">-</span>
+                      <span>{formatRelativeTime(candidate.lastModified)}</span>
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+
+          <div className="h-full w-px bg-[var(--background-modifier-border)]" />
+
+          <div className="flex min-h-0 flex-1 flex-col p-5">
+            {selectedCandidate ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <h4 className="mb-4 shrink-0 text-base font-semibold">
+                  {selectedCandidate.templateName}.md
+                </h4>
+                <MarkdownTemplatePreview
+                  app={app}
+                  templateContent={selectedCandidate.templateContent}
+                  sourcePath={`${templateFolderPath}/${selectedCandidate.templateName}.md`}
+                  className="min-h-0 flex-1 overflow-y-auto"
+                />
+              </div>
+            ) : (
+              <div className="text-muted p-4 text-sm">
+                Select a shared template to preview its content.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="border-modifier-border flex items-center justify-between gap-3 border-t p-4">
+          <div className="text-muted flex items-center gap-1.5 text-sm">
+            <span
+              className="icon h-3.5 w-3.5 shrink-0"
+              ref={(el) => (el && setIcon(el, "info")) || undefined}
+            />
+            <span>
+              Imports a copy to{" "}
+              <span className="font-medium">{templateFolderPath}</span> and
+              auto-renames on conflict.
+            </span>
+          </div>
+          <button
+            type="button"
+            className="!bg-accent !text-on-accent flex items-center gap-1.5 rounded px-4 py-2"
+            disabled={!selectedCandidate || isImporting}
+            onClick={onImport}
+          >
+            {!isImporting && (
+              <span
+                className="icon h-4 w-4"
+                ref={(el) => (el && setIcon(el, "download")) || undefined}
+              />
+            )}
+            <span>{isImporting ? "Importing..." : "Import & use"}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const NodeTypeSettings = () => {
   const plugin = usePlugin();
   const [nodeTypes, setNodeTypes] = useState<DiscourseNode[]>([]);
@@ -292,16 +666,30 @@ const NodeTypeSettings = () => {
   const [selectedNodeIndex, setSelectedNodeIndex] = useState<number | null>(
     null,
   );
+  const [isTemplateImportOpen, setIsTemplateImportOpen] = useState(false);
+  const [templateImportCandidates, setTemplateImportCandidates] = useState<
+    TemplateImportCandidate[]
+  >([]);
+  const [selectedTemplateCandidateId, setSelectedTemplateCandidateId] =
+    useState<number | null>(null);
+  const [isLoadingTemplateImports, setIsLoadingTemplateImports] =
+    useState(false);
+  const [isImportingTemplate, setIsImportingTemplate] = useState(false);
+  const [templateImportError, setTemplateImportError] = useState<string>();
   // Ref to always have the latest editing state for onBlur handlers
   const editingRef = useRef<DiscourseNode | null>(null);
 
-  useEffect(() => {
+  const refreshTemplateFiles = useCallback((): void => {
     const config = getTemplatePluginInfo(plugin.app);
     setTemplateConfig(config);
 
     const files = getTemplateFiles(plugin.app);
     setTemplateFiles(files);
   }, [plugin.app]);
+
+  useEffect(() => {
+    refreshTemplateFiles();
+  }, [refreshTemplateFiles]);
 
   useEffect(() => {
     setNodeTypes(plugin.settings.nodeTypes ?? []);
@@ -493,6 +881,112 @@ const NodeTypeSettings = () => {
     if (editingRef.current) saveSettings(editingRef.current);
   };
 
+  const openTemplateImportPanel = async (): Promise<void> => {
+    if (!editingNodeType) return;
+
+    if (!templateConfig.isEnabled || !templateConfig.folderPath) {
+      new Notice("Configure and enable the Obsidian Templates plugin first.");
+      return;
+    }
+
+    if (!editingNodeType.name.trim()) {
+      new Notice("Name this node type before importing shared templates.");
+      return;
+    }
+
+    if (!plugin.settings.syncModeEnabled) {
+      new Notice("Enable sync mode before importing shared templates.");
+      return;
+    }
+
+    setIsTemplateImportOpen(true);
+    setIsLoadingTemplateImports(true);
+    setTemplateImportError(undefined);
+    setTemplateImportCandidates([]);
+    setSelectedTemplateCandidateId(null);
+
+    try {
+      const candidates = await fetchTemplateImportCandidates({
+        plugin,
+        nodeTypeName: editingNodeType.name,
+      });
+      const existingTemplateNames = new Set(
+        getTemplateFiles(plugin.app).map((templateFileName) =>
+          templateFileName.toLowerCase(),
+        ),
+      );
+      const filteredCandidates = candidates.filter((candidate) => {
+        const importedTemplateName = getImportedTemplateFileName({
+          templateName: candidate.templateName,
+          sourceName: candidate.spaceName,
+        });
+        return !existingTemplateNames.has(importedTemplateName.toLowerCase());
+      });
+
+      setTemplateImportCandidates(filteredCandidates);
+      setSelectedTemplateCandidateId(filteredCandidates[0]?.id ?? null);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      setTemplateImportError(errorMessage);
+      new Notice(`Failed to load shared templates: ${errorMessage}`, 5000);
+    } finally {
+      setIsLoadingTemplateImports(false);
+    }
+  };
+
+  const closeTemplateImportPanel = (): void => {
+    if (isImportingTemplate) return;
+
+    setIsTemplateImportOpen(false);
+    setTemplateImportCandidates([]);
+    setSelectedTemplateCandidateId(null);
+    setTemplateImportError(undefined);
+  };
+
+  const importSelectedTemplate = async (): Promise<void> => {
+    if (!editingRef.current) return;
+
+    const selectedCandidate = templateImportCandidates.find(
+      (candidate) => candidate.id === selectedTemplateCandidateId,
+    );
+    if (!selectedCandidate) return;
+
+    setIsImportingTemplate(true);
+    try {
+      const result = await createTemplateFileWithUniqueName({
+        app: plugin.app,
+        templateName: selectedCandidate.templateName,
+        sourceName: selectedCandidate.spaceName,
+        content: selectedCandidate.templateContent,
+      });
+
+      if (!result.created) {
+        new Notice(`Template import failed: ${result.reason}`, 5000);
+        return;
+      }
+
+      const updatedNodeType = {
+        ...editingRef.current,
+        template: result.templateName,
+        modified: new Date().getTime(),
+      };
+      setEditingNodeType(updatedNodeType);
+      editingRef.current = updatedNodeType;
+      saveSettings(updatedNodeType);
+      refreshTemplateFiles();
+      setIsTemplateImportOpen(false);
+      new Notice(`Imported and selected "${result.templateName}.md"`, 3000);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("Error importing shared template:", error);
+      new Notice(`Template import failed: ${errorMessage}`, 5000);
+    } finally {
+      setIsImportingTemplate(false);
+    }
+  };
+
   const renderField = (fieldConfig: BaseFieldConfig) => {
     if (!editingNodeType) return null;
 
@@ -522,6 +1016,16 @@ const NodeTypeSettings = () => {
             templateConfig={templateConfig}
             templateFiles={templateFiles}
             disabled={isEditingImported}
+            onImportClick={() => {
+              void openTemplateImportPanel();
+            }}
+            importDisabledReason={
+              !editingNodeType.name.trim()
+                ? "Name this node type before importing shared templates."
+                : !plugin.settings.syncModeEnabled
+                  ? "Enable sync mode before importing shared templates."
+                  : undefined
+            }
           />
         ) : fieldConfig.type === "color" ? (
           <ColorField
@@ -739,6 +1243,23 @@ const NodeTypeSettings = () => {
   return (
     <div className="discourse-graph">
       {selectedNodeIndex === null ? renderNodeList() : renderEditForm()}
+      {isTemplateImportOpen && editingNodeType && (
+        <TemplateImportPanel
+          app={plugin.app}
+          nodeTypeName={editingNodeType.name}
+          candidates={templateImportCandidates}
+          selectedCandidateId={selectedTemplateCandidateId}
+          isLoading={isLoadingTemplateImports}
+          isImporting={isImportingTemplate}
+          error={templateImportError}
+          templateFolderPath={templateConfig.folderPath}
+          onSelectCandidate={setSelectedTemplateCandidateId}
+          onClose={closeTemplateImportPanel}
+          onImport={() => {
+            void importSelectedTemplate();
+          }}
+        />
+      )}
     </div>
   );
 };

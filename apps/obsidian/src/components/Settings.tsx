@@ -29,7 +29,7 @@ const Settings = () => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="relative flex flex-col gap-4">
       <DatacoreCallout />
       <div className="border-modifier-border flex w-full overflow-x-auto border-b p-2">
         <button
