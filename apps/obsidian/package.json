@@ -9,7 +9,7 @@
     "build": "tsx scripts/build.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "publish": "tsx scripts/publish.ts --version 0.1.0",
+    "publish": "tsx scripts/publish.ts",
     "check-types": "tsc --noEmit --skipLibCheck"
   },
   "keywords": [],
