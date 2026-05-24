@@ -24,9 +24,6 @@ env:
 jobs:
   publish-extension:
     runs-on: ubuntu-latest
-    outputs:
-      release_version: ${{ steps.resolve-release-inputs.outputs.version }}
-      release_name: ${{ steps.resolve-release-inputs.outputs.release_name }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
@@ -66,21 +63,6 @@ jobs:
           fi
           echo "release_name=$release_name" >> "$GITHUB_OUTPUT"
 
-      - name: Debug resolved release inputs
-        env:
-          RESOLVED_VERSION: ${{ steps.resolve-release-inputs.outputs.version }}
-          RESOLVED_RELEASE_NAME: ${{ steps.resolve-release-inputs.outputs.release_name }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-          GITHUB_SHA: ${{ github.sha }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-        run: |
-          node -e '
-          // #region agent log
-          fetch("http://127.0.0.1:7679/ingest/69a70121-d858-4c76-8bf8-e715f33aee20",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"9132dd"},body:JSON.stringify({sessionId:"9132dd",runId:process.env.GITHUB_RUN_ID,hypothesisId:"H1",location:".github/workflows/obsidian-release.yaml:resolve-inputs",message:"Resolved release inputs",data:{eventName:process.env.GITHUB_EVENT_NAME,refName:process.env.GITHUB_REF_NAME,sha:process.env.GITHUB_SHA,resolvedVersion:process.env.RESOLVED_VERSION,resolvedReleaseName:process.env.RESOLVED_RELEASE_NAME},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
-          '
-
       - name: Sync Linear release
         id: sync-linear-release
         uses: linear/linear-release-action@v0
@@ -89,22 +71,6 @@ jobs:
           name: Obsidian ${{ steps.resolve-release-inputs.outputs.version }}
           version: ${{ steps.resolve-release-inputs.outputs.version }}
           include_paths: "apps/obsidian/**,packages/tailwind-config/**,packages/utils/**,packages/database/**,packages/ui/**"
-          log_level: verbose
-
-      - name: Debug Linear sync result
-        if: always()
-        env:
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          RESOLVED_VERSION: ${{ steps.resolve-release-inputs.outputs.version }}
-          SYNC_OUTCOME: ${{ steps.sync-linear-release.outcome }}
-          SYNC_RELEASE: ${{ steps.sync-linear-release.outputs.release }}
-          SYNC_RELEASE_URL: ${{ steps.sync-linear-release.outputs.release-url }}
-        run: |
-          node -e '
-          // #region agent log
-          fetch("http://127.0.0.1:7679/ingest/69a70121-d858-4c76-8bf8-e715f33aee20",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"9132dd"},body:JSON.stringify({sessionId:"9132dd",runId:process.env.GITHUB_RUN_ID,hypothesisId:"H2",location:".github/workflows/obsidian-release.yaml:sync-result",message:"Linear sync step result",data:{resolvedVersion:process.env.RESOLVED_VERSION,syncOutcome:process.env.SYNC_OUTCOME,syncRelease:process.env.SYNC_RELEASE,syncReleaseUrl:process.env.SYNC_RELEASE_URL},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
-          '
 
       - name: Publish Obsidian extension
         run: |
@@ -123,33 +89,3 @@ jobs:
           command: update
           version: ${{ steps.resolve-release-inputs.outputs.version }}
           stage: In Progress
-          log_level: verbose
-
-      - name: Debug update skip reason
-        if: ${{ steps.sync-linear-release.outputs.release == '' || steps.sync-linear-release.outputs.release == 'null' }}
-        env:
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          RESOLVED_VERSION: ${{ steps.resolve-release-inputs.outputs.version }}
-          SYNC_RELEASE: ${{ steps.sync-linear-release.outputs.release }}
-          SYNC_RELEASE_URL: ${{ steps.sync-linear-release.outputs.release-url }}
-        run: |
-          node -e '
-          // #region agent log
-          fetch("http://127.0.0.1:7679/ingest/69a70121-d858-4c76-8bf8-e715f33aee20",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"9132dd"},body:JSON.stringify({sessionId:"9132dd",runId:process.env.GITHUB_RUN_ID,hypothesisId:"H5",location:".github/workflows/obsidian-release.yaml:update-skip",message:"Skipping update because sync did not create a release",data:{resolvedVersion:process.env.RESOLVED_VERSION,syncRelease:process.env.SYNC_RELEASE,syncReleaseUrl:process.env.SYNC_RELEASE_URL},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
-          '
-
-      - name: Debug Linear update result
-        if: always()
-        env:
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          RESOLVED_VERSION: ${{ steps.resolve-release-inputs.outputs.version }}
-          UPDATE_OUTCOME: ${{ steps.update-linear-release.outcome }}
-          UPDATE_RELEASE: ${{ steps.update-linear-release.outputs.release }}
-          UPDATE_RELEASE_URL: ${{ steps.update-linear-release.outputs.release-url }}
-        run: |
-          node -e '
-          // #region agent log
-          fetch("http://127.0.0.1:7679/ingest/69a70121-d858-4c76-8bf8-e715f33aee20",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"9132dd"},body:JSON.stringify({sessionId:"9132dd",runId:process.env.GITHUB_RUN_ID,hypothesisId:"H3",location:".github/workflows/obsidian-release.yaml:update-result",message:"Linear update step result",data:{resolvedVersion:process.env.RESOLVED_VERSION,updateOutcome:process.env.UPDATE_OUTCOME,updateRelease:process.env.UPDATE_RELEASE,updateReleaseUrl:process.env.UPDATE_RELEASE_URL},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
-          '

@@ -16,19 +16,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Debug complete release inputs
-        env:
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-          INPUT_VERSION: ${{ inputs.version }}
-        run: |
-          node -e '
-          // #region agent log
-          fetch("http://127.0.0.1:7679/ingest/69a70121-d858-4c76-8bf8-e715f33aee20",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"9132dd"},body:JSON.stringify({sessionId:"9132dd",runId:process.env.GITHUB_RUN_ID,hypothesisId:"H4",location:".github/workflows/obsidian-release-complete.yaml:inputs",message:"Complete workflow input values",data:{eventName:process.env.GITHUB_EVENT_NAME,refName:process.env.GITHUB_REF_NAME,inputVersion:process.env.INPUT_VERSION},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
-          '
-
       - name: Complete Linear release
         id: complete-linear-release
         if: ${{ inputs.version != '' }}
@@ -37,17 +24,3 @@ jobs:
           access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
           command: complete
           version: ${{ inputs.version }}
-          log_level: verbose
-
-      - name: Debug complete skip reason
-        if: ${{ inputs.version == '' }}
-        env:
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-        run: |
-          node -e '
-          // #region agent log
-          fetch("http://127.0.0.1:7679/ingest/69a70121-d858-4c76-8bf8-e715f33aee20",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"9132dd"},body:JSON.stringify({sessionId:"9132dd",runId:process.env.GITHUB_RUN_ID,hypothesisId:"H4",location:".github/workflows/obsidian-release-complete.yaml:skip-empty-version",message:"Skipping complete because version input is empty",data:{eventName:process.env.GITHUB_EVENT_NAME,refName:process.env.GITHUB_REF_NAME},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
-          '
