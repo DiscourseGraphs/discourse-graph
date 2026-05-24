@@ -545,7 +545,6 @@ const AdvancedNodeSearchDialog = ({
         <AdvancedSearchFooter
           contentState={contentState}
           hasActiveResult={!!activeResult}
-          hasResults={results.length > 0}
           insertTarget={insertTarget}
           onInsert={() => void onInsert()}
           onOpen={() => void onOpen()}
