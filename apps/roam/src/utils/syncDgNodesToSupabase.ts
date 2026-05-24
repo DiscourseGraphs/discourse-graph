@@ -35,7 +35,6 @@ const BASE_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const SYNC_TIMEOUT = "60s"; // must be less than half the SYNC_INTERVAL.
 const BATCH_SIZE = 200;
 const CONCEPT_BATCH_SIZE = 200;
-const DEFAULT_TIME = new Date("1970-01-01");
 
 type SyncTaskInfo = {
   lastUpdateTime?: Date;
@@ -287,7 +286,7 @@ export const convertDgToSupabaseConcepts = async ({
   context,
 }: {
   nodesSince: RoamDiscourseNodeData[];
-  since: string;
+  since: number | undefined;
   allNodeTypes: DiscourseNode[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
@@ -457,7 +456,7 @@ const getAllMissingOrNewDiscourseNodes = async ({
 }: {
   supabaseClient: DGSupabaseClient;
   spaceId: number;
-  since: string | undefined;
+  since: number | undefined;
   nodeTypes: DiscourseNode[];
 }): Promise<RoamDiscourseNodeData[]> => {
   const allNodes = await getAllDiscourseNodesSince(undefined, nodeTypes);
@@ -529,8 +528,9 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
     }
     claimed = true;
     const allUsers = await getAllUsers();
-    const sinceTime = (lastUpdateTime || DEFAULT_TIME).valueOf() - 1000; // add a one-second buffer
-    const time = new Date(sinceTime).toISOString();
+    const sinceTime = lastUpdateTime
+      ? lastUpdateTime.valueOf() - 1000 // add a one-second buffer
+      : undefined;
     const allDgNodeTypes = getDiscourseNodes().filter(
       (n) => n.backedBy === "user",
     );
@@ -539,10 +539,10 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
       ? await getAllMissingOrNewDiscourseNodes({
           supabaseClient,
           spaceId: context.spaceId,
-          since: time,
+          since: sinceTime,
           nodeTypes: allDgNodeTypes,
         })
-      : await getAllDiscourseNodesSince(time, allDgNodeTypes);
+      : await getAllDiscourseNodesSince(sinceTime, allDgNodeTypes);
     await upsertUsers(allUsers, supabaseClient, context);
     await upsertNodesToSupabaseAsContentWithEmbeddings(
       allNodeInstances,
@@ -551,7 +551,7 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
     );
     await convertDgToSupabaseConcepts({
       nodesSince: allNodeInstances,
-      since: time,
+      since: sinceTime,
       allNodeTypes: allDgNodeTypes,
       supabaseClient,
       context,
