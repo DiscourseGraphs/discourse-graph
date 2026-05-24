@@ -116,6 +116,7 @@ jobs:
 
       - name: Mark Linear release sent to Obsidian review
         id: update-linear-release
+        if: ${{ steps.sync-linear-release.outputs.release != '' && steps.sync-linear-release.outputs.release != 'null' }}
         uses: linear/linear-release-action@v0
         with:
           access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
@@ -123,6 +124,20 @@ jobs:
           version: ${{ steps.resolve-release-inputs.outputs.version }}
           stage: In Progress
           log_level: verbose
+
+      - name: Debug update skip reason
+        if: ${{ steps.sync-linear-release.outputs.release == '' || steps.sync-linear-release.outputs.release == 'null' }}
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          RESOLVED_VERSION: ${{ steps.resolve-release-inputs.outputs.version }}
+          SYNC_RELEASE: ${{ steps.sync-linear-release.outputs.release }}
+          SYNC_RELEASE_URL: ${{ steps.sync-linear-release.outputs.release-url }}
+        run: |
+          node -e '
+          // #region agent log
+          fetch("http://127.0.0.1:7679/ingest/69a70121-d858-4c76-8bf8-e715f33aee20",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"9132dd"},body:JSON.stringify({sessionId:"9132dd",runId:process.env.GITHUB_RUN_ID,hypothesisId:"H5",location:".github/workflows/obsidian-release.yaml:update-skip",message:"Skipping update because sync did not create a release",data:{resolvedVersion:process.env.RESOLVED_VERSION,syncRelease:process.env.SYNC_RELEASE,syncReleaseUrl:process.env.SYNC_RELEASE_URL},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
+          '
 
       - name: Debug Linear update result
         if: always()
