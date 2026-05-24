@@ -1,0 +1,70 @@
+name: Publish Obsidian Plugin
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Obsidian release version, for example 0.1.0 or 0.1.0-beta.1."
+        required: true
+        type: string
+      release_name:
+        description: "Optional custom GitHub release name."
+        required: false
+        type: string
+
+env:
+  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+  SUPABASE_USE_DB: production
+
+jobs:
+  publish-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set Supabase environment variables
+        run: export SUPABASE_USE_DB=production
+
+      - name: Sync Linear release
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
+          name: Obsidian ${{ inputs.version }}
+          version: ${{ inputs.version }}
+          include_paths: "apps/obsidian/**,packages/tailwind-config/**,packages/utils/**,packages/database/**,packages/ui/**"
+
+      - name: Publish Obsidian extension
+        run: |
+          if [ -n "${{ inputs.release_name }}" ]; then
+            pnpm --dir apps/obsidian run publish --version "${{ inputs.version }}" --release-name "${{ inputs.release_name }}"
+          else
+            pnpm --dir apps/obsidian run publish --version "${{ inputs.version }}"
+          fi
+
+      - name: Mark Linear release sent to Obsidian review
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
+          command: update
+          version: ${{ inputs.version }}
+          stage: Sent to Obsidian for Review
