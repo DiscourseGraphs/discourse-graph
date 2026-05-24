@@ -21,7 +21,7 @@ type NodeTypeChipsSearchInputProps = {
 const isPlainCharacterKey = (event: React.KeyboardEvent): boolean =>
   event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey;
 
-const getUniquePrefixMatch = ({
+const getBestPrefixMatch = ({
   nodeTypes,
   query,
   selectedTypeIds,
@@ -40,7 +40,12 @@ const getUniquePrefixMatch = ({
       node.text.toLowerCase().startsWith(normalizedQuery),
   );
 
-  return matches.length === 1 ? matches[0] : null;
+  if (!matches.length) return null;
+
+  const exactMatch = matches.find(
+    (node) => node.text.toLowerCase() === normalizedQuery,
+  );
+  return exactMatch ?? matches[0];
 };
 
 export const NodeTypeChipsSearchInput = ({
@@ -76,9 +81,9 @@ export const NodeTypeChipsSearchInput = ({
     [nodeTypeById, selectedTypeIds],
   );
 
-  const uniquePrefixMatch = useMemo(
+  const bestPrefixMatch = useMemo(
     () =>
-      getUniquePrefixMatch({
+      getBestPrefixMatch({
         nodeTypes,
         query: searchTerm,
         selectedTypeIds,
@@ -87,12 +92,12 @@ export const NodeTypeChipsSearchInput = ({
   );
 
   const completionSuffix = useMemo(() => {
-    if (!uniquePrefixMatch) return "";
+    if (!bestPrefixMatch) return "";
     const normalizedQuery = searchTerm.trim();
-    const nodeText = uniquePrefixMatch.text;
+    const nodeText = bestPrefixMatch.text;
     if (nodeText.toLowerCase() === normalizedQuery.toLowerCase()) return "";
     return nodeText.slice(normalizedQuery.length);
-  }, [searchTerm, uniquePrefixMatch]);
+  }, [bestPrefixMatch, searchTerm]);
 
   useEffect(() => {
     if (focusedChipIndex < 0) return;
@@ -110,11 +115,6 @@ export const NodeTypeChipsSearchInput = ({
     if (selectedTypeIds.includes(nodeType.type)) return;
     onSelectedTypeIdsChange([...selectedTypeIds, nodeType.type]);
     onSearchTermChange("");
-  };
-
-  const removeChipAtIndex = (chipIndex: number): void => {
-    const nextIds = selectedTypeIds.filter((_, index) => index !== chipIndex);
-    onSelectedTypeIdsChange(nextIds);
   };
 
   const handleChipKeyDown = (
@@ -180,9 +180,9 @@ export const NodeTypeChipsSearchInput = ({
     event: React.KeyboardEvent<HTMLInputElement>,
   ): void => {
     if (event.key === "Tab") {
-      if (uniquePrefixMatch) {
+      if (bestPrefixMatch) {
         event.preventDefault();
-        commitNodeType(uniquePrefixMatch);
+        commitNodeType(bestPrefixMatch);
       }
       return;
     }
@@ -240,7 +240,7 @@ export const NodeTypeChipsSearchInput = ({
   };
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-1 py-0.5">
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 py-0.5">
       {selectedNodeTypes.map((nodeType, index) => {
         const isFocused = focusedChipIndex === index;
         return (
@@ -262,9 +262,13 @@ export const NodeTypeChipsSearchInput = ({
           >
             <span
               className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs"
-              style={getNodeTagStyles(nodeType.canvasSettings?.color)}
+              style={getNodeTagStyles(
+                nodeType.canvasSettings?.color ?? "#000000",
+              )}
             >
-              <span className="truncate leading-4">{nodeType.text}</span>
+              <span className="max-w-[10rem] truncate leading-4">
+                {nodeType.text}
+              </span>
               <Button
                 className="!h-4 !min-h-0 !w-4 !min-w-0 !p-0"
                 aria-label={`Remove ${nodeType.text} filter`}
@@ -272,7 +276,11 @@ export const NodeTypeChipsSearchInput = ({
                 minimal
                 onClick={(event) => {
                   event.stopPropagation();
-                  removeChipAtIndex(index);
+                  onSelectedTypeIdsChange(
+                    selectedTypeIds.filter(
+                      (_, chipIndex) => chipIndex !== index,
+                    ),
+                  );
                   focusInput();
                 }}
                 onMouseDown={(event) => event.preventDefault()}
@@ -282,7 +290,7 @@ export const NodeTypeChipsSearchInput = ({
           </span>
         );
       })}
-      <span className="relative min-w-0 flex-1">
+      <span className="relative min-w-[12ch] flex-1">
         {completionSuffix && (
           <span className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-nowrap text-sm">
             <span className="invisible">{searchTerm}</span>

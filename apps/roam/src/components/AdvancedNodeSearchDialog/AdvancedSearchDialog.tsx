@@ -444,7 +444,7 @@ const AdvancedNodeSearchDialog = ({
         onMouseUp={(event) => event.stopPropagation()}
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <div className="flex flex-none items-center gap-2 border-b border-gray-200 px-3 py-2">
+        <div className="flex flex-none items-start gap-2 border-b border-gray-200 px-3 py-2">
           <div className="flex min-w-0 flex-1 items-center rounded border border-gray-300 bg-white px-2 py-1">
             <Icon icon="search" size={16} className="mr-2 text-gray-500" />
             <NodeTypeChipsSearchInput
@@ -471,19 +471,23 @@ const AdvancedNodeSearchDialog = ({
               selectedTypeIds={selectedNodeTypeIds}
             />
           </div>
-          <DiscourseNodeTypeFilter
-            nodeTypes={discourseNodes}
-            onPopoverOpenChange={setIsTypeFilterPopoverOpen}
-            onSelectedTypeIdsChange={setSelectedNodeTypeIds}
-            selectedTypeIds={selectedNodeTypeIds}
-          />
-          <DiscourseNodeSortControl
-            disabled={isIndexLoading || indexError}
-            onSortChange={handleSortChange}
-            sort={sort}
-          />
+          <div className="self-start">
+            <DiscourseNodeTypeFilter
+              nodeTypes={discourseNodes}
+              onPopoverOpenChange={setIsTypeFilterPopoverOpen}
+              onSelectedTypeIdsChange={setSelectedNodeTypeIds}
+              selectedTypeIds={selectedNodeTypeIds}
+            />
+          </div>
+          <div className="self-start">
+            <DiscourseNodeSortControl
+              disabled={isIndexLoading || indexError}
+              onSortChange={handleSortChange}
+              sort={sort}
+            />
+          </div>
           <Button
-            className="shrink-0"
+            className="shrink-0 self-start"
             icon="cross"
             minimal
             onClick={onClose}
