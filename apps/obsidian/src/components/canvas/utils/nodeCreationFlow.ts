@@ -32,7 +32,6 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
       selectedExistingNode,
       relationshipId,
       relationshipTargetFile,
-      insertBacklink,
     }) => {
       try {
         // If user selected an existing node, use it instead of creating a new one
@@ -55,13 +54,11 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
           });
         }
 
-        const src = insertBacklink
-          ? await addWikilinkBlockrefForFile({
-              app: plugin.app,
-              canvasFile,
-              linkedFile: fileToUse,
-            })
-          : undefined;
+        const src = await addWikilinkBlockrefForFile({
+          app: plugin.app,
+          canvasFile,
+          linkedFile: fileToUse,
+        });
 
         let preloadedImageSrc: string | undefined = undefined;
         if (selectedNodeType.keyImage) {
