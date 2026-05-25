@@ -123,6 +123,13 @@ export const SettingsDialog = ({
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, []);
+  const leftSidebarTabHidden =
+    !leftSidebarEnabled &&
+    (activeTabId === "left-sidebar-personal-settings" ||
+      activeTabId === "left-sidebar-global-settings");
+  const visibleTabId = leftSidebarTabHidden
+    ? "discourse-graph-home-personal"
+    : activeTabId;
   return (
     <Dialog
       isOpen={isOpen}
@@ -170,7 +177,7 @@ export const SettingsDialog = ({
               tabId: String(id),
             });
           }}
-          selectedTabId={activeTabId}
+          selectedTabId={visibleTabId}
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
