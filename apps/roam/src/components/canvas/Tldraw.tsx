@@ -643,8 +643,19 @@ const TldrawCanvasShared = ({
   useEffect(() => {
     const handleDragStart = (e: DragEvent) => {
       const target = e.target as HTMLElement;
-      const uid = getBlockUidFromBullet(target);
 
+      const pageRef = target.closest<HTMLElement>(".rm-page-ref");
+      if (pageRef) {
+        const pageTitle = (
+          pageRef.getAttribute("data-tag") ||
+          pageRef.parentElement?.getAttribute("data-link-title")
+        )?.replace(/\\"/g, '"');
+        if (pageTitle)
+          e.dataTransfer?.setData("application/x-roam-page", pageTitle);
+        return;
+      }
+
+      const uid = getBlockUidFromBullet(target);
       if (uid) e.dataTransfer?.setData("application/x-roam-uid", uid);
     };
 
@@ -658,6 +669,22 @@ const TldrawCanvasShared = ({
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+
+    const pageTitle = e.dataTransfer.getData("application/x-roam-page");
+    if (pageTitle && appRef.current && extensionAPI) {
+      posthog.capture("Canvas: Roam Page Dropped");
+      const dropPoint = appRef.current.screenToPage({
+        x: e.clientX,
+        y: e.clientY,
+      });
+      void appRef.current.putExternalContent({
+        type: "text",
+        text: `[[${pageTitle}]]`,
+        point: dropPoint,
+      });
+      return;
+    }
+
     const uid = e.dataTransfer.getData("application/x-roam-uid");
 
     if (!uid || !appRef.current || !extensionAPI) return;

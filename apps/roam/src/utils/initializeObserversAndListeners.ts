@@ -21,6 +21,7 @@ import {
   addPageRefObserver,
   getPageRefObserversSize,
   previewPageRefHandler,
+  makePageRefDraggable,
   getOverlayHandler,
   onPageRefObserverChange,
   getSuggestiveOverlayHandler,
@@ -241,6 +242,8 @@ export const initObservers = ({
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(true);
   }
+
+  onPageRefObserverChange(makePageRefDraggable)(true);
 
   if (getPageRefObserversSize()) enablePageRefObserver();
 
