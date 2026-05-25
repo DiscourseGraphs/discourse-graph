@@ -15,7 +15,7 @@ import {
   Tag,
   TextArea,
 } from "@blueprintjs/core";
-import Description from "roamjs-components/components/Description";
+import Description from "~/components/settings/SettingsDescription";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";

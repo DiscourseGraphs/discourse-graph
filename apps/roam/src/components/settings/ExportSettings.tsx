@@ -29,7 +29,7 @@ const DiscourseGraphExport = ({
         <GlobalFlagPanel
           title="remove special characters"
           description={withDocsLink(
-            "Whether or not to remove the special characters in a file name",
+            "Whether or not to remove the special characters in a file name.",
             ROAM_DOCS.sharing,
           )}
           settingKeys={[
@@ -45,7 +45,7 @@ const DiscourseGraphExport = ({
         <GlobalFlagPanel
           title="resolve block references"
           description={withDocsLink(
-            "Replaces block references in the markdown content with the block's content",
+            "Replaces block references in the markdown content with the block's content.",
             ROAM_DOCS.sharing,
           )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.resolveBlockReferences]}
@@ -57,7 +57,7 @@ const DiscourseGraphExport = ({
         <GlobalFlagPanel
           title="resolve block embeds"
           description={withDocsLink(
-            "Replaces block embeds in the markdown content with the block's content tree",
+            "Replaces block embeds in the markdown content with the block's content tree.",
             ROAM_DOCS.sharing,
           )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.resolveBlockEmbeds]}
@@ -70,7 +70,7 @@ const DiscourseGraphExport = ({
         <GlobalFlagPanel
           title="append referenced node"
           description={withDocsLink(
-            "If a referenced node is defined in a node's format, it will be appended to the discourse context",
+            "If a referenced node is defined in a node's format, it will be appended to the discourse context.",
             ROAM_DOCS.sharing,
           )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.appendReferencedNode]}
@@ -98,7 +98,7 @@ const DiscourseGraphExport = ({
       <GlobalNumberPanel
         title="max filename length"
         description={withDocsLink(
-          "Set the maximum name length for markdown file exports",
+          "Set the maximum name length for markdown file exports.",
           ROAM_DOCS.sharing,
         )}
         settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.maxFilenameLength]}
@@ -110,7 +110,7 @@ const DiscourseGraphExport = ({
       <GlobalMultiTextPanel
         title="frontmatter"
         description={withDocsLink(
-          "Specify all the lines that should go to the Frontmatter of the markdown file",
+          "Specify all the lines that should go to the Frontmatter of the markdown file.",
           ROAM_DOCS.sharing,
         )}
         settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.frontmatter]}

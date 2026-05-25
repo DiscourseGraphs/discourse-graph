@@ -1,7 +1,7 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label } from "@blueprintjs/core";
-import Description from "roamjs-components/components/Description";
+import Description from "~/components/settings/SettingsDescription";
 import { DEFAULT_PAGE_SIZE_KEY, HIDE_METADATA_KEY } from "~/data/userSettings";
 import DefaultFilters from "./DefaultFilters";
 import {

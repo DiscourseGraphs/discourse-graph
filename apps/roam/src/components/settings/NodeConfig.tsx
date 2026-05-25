@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import { getSubTree } from "roamjs-components/util";
-import Description from "roamjs-components/components/Description";
+import Description from "~/components/settings/SettingsDescription";
 import {
   Label,
   Tabs,
