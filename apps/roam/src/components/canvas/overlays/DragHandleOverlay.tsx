@@ -1,20 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { TLShapeId, createShapeId, useEditor, useValue } from "tldraw";
+import { TLShapeId, useEditor, useValue } from "tldraw";
 import { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
 import {
-  BaseDiscourseRelationUtil,
-  DiscourseRelationShape,
-  getRelationColor,
-} from "~/components/canvas/DiscourseRelationShape/DiscourseRelationUtil";
-import { createOrUpdateArrowBinding } from "~/components/canvas/DiscourseRelationShape/helpers";
-import {
-  checkConnectionType,
-  getAllRelations,
   hasValidRelationTypes,
   isDiscourseNodeShape,
 } from "~/components/canvas/canvasUtils";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import { RelationTypeDropdown } from "./RelationTypeDropdown";
+import { createRelationBetweenNodes } from "./relationCreation";
 
 const HANDLE_RADIUS = 5;
 const HANDLE_HIT_AREA = 12;
@@ -256,103 +249,13 @@ export const DragHandleOverlay = () => {
     (relationId: string) => {
       if (!pending) return;
 
-      const selectedRelation = getAllRelations().find(
-        (r) => r.id === relationId,
-      );
-      if (!selectedRelation) {
-        setPending(null);
-        sourceNodeRef.current = null;
-        return;
-      }
-
-      const color = getRelationColor(selectedRelation.label);
-
-      // Determine direction: if we dragged from the relation's destination type,
-      // the arrow is in reverse and should display the complement label.
-      const sourceNode = editor.getShape(pending.sourceId);
-      const targetNode = editor.getShape(pending.targetId);
-      const { isReverse } = checkConnectionType(
-        selectedRelation,
-        sourceNode?.type ?? "",
-        targetNode?.type ?? "",
-      );
-      const label =
-        isReverse && selectedRelation.complement
-          ? selectedRelation.complement
-          : selectedRelation.label;
-
-      // Get source bounds for arrow positioning
-      const sourceBounds = editor.getShapePageBounds(pending.sourceId);
-      if (!sourceBounds) {
-        setPending(null);
-        sourceNodeRef.current = null;
-        return;
-      }
-
-      // Create the real relation shape with the correct type
-      const arrowId = createShapeId();
-      editor.createShape<DiscourseRelationShape>({
-        id: arrowId,
-        type: relationId,
-        x: sourceBounds.midX,
-        y: sourceBounds.midY,
-        props: {
-          color,
-          text: label,
-          dash: "draw",
-          size: "m",
-          fill: "none",
-          bend: 0,
-          start: { x: 0, y: 0 },
-          end: { x: 0, y: 0 },
-          arrowheadStart: "none",
-          arrowheadEnd: "arrow",
-          labelPosition: 0.5,
-          font: "draw",
-          scale: 1,
-        },
+      createRelationBetweenNodes({
+        editor,
+        relationId,
+        sourceId: pending.sourceId,
+        targetId: pending.targetId,
       });
 
-      const newArrow = editor.getShape<DiscourseRelationShape>(arrowId);
-      if (!newArrow) {
-        setPending(null);
-        sourceNodeRef.current = null;
-        return;
-      }
-
-      // Bind start and end
-      createOrUpdateArrowBinding(editor, newArrow, pending.sourceId, {
-        terminal: "start",
-        normalizedAnchor: { x: 0.5, y: 0.5 },
-        isPrecise: false,
-        isExact: false,
-      });
-      createOrUpdateArrowBinding(editor, newArrow, pending.targetId, {
-        terminal: "end",
-        normalizedAnchor: { x: 0.5, y: 0.5 },
-        isPrecise: false,
-        isExact: false,
-      });
-
-      // Persist via handleCreateRelationsInRoam
-      const util = editor.getShapeUtil(newArrow);
-      if (
-        util instanceof BaseDiscourseRelationUtil &&
-        "handleCreateRelationsInRoam" in util
-      ) {
-        type UtilWithRoamPersistence = BaseDiscourseRelationUtil & {
-          handleCreateRelationsInRoam: (args: {
-            arrow: DiscourseRelationShape;
-            targetId: TLShapeId;
-          }) => Promise<void>;
-        };
-        void (util as UtilWithRoamPersistence).handleCreateRelationsInRoam({
-          arrow: editor.getShape<DiscourseRelationShape>(arrowId) ?? newArrow,
-          targetId: pending.targetId,
-        });
-      }
-
-      editor.select(arrowId);
       setPending(null);
       sourceNodeRef.current = null;
     },

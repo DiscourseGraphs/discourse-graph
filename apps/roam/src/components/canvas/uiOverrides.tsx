@@ -1,7 +1,9 @@
 import React, { ReactElement } from "react";
 import {
+  TLArrowBinding,
   TLImageShape,
   TLShape,
+  TLShapeId,
   TLTextShape,
   TLUiDialogProps,
   TLUiOverrides,
@@ -49,6 +51,11 @@ import { COLOR_ARRAY } from "./DiscourseNodeUtil";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
+import {
+  createRelationBetweenNodes,
+  getValidRelationTypesBetween,
+} from "./overlays/relationCreation";
+import { isDiscourseNodeShape } from "./canvasUtils";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
@@ -224,6 +231,27 @@ export const getOnSelectForShape = ({
   return () => {};
 };
 
+const getArrowBoundNodeIds = (
+  editor: Editor,
+  arrow: TLShape,
+): { startId: TLShapeId; endId: TLShapeId } | null => {
+  const bindings = editor.getBindingsFromShape<TLArrowBinding>(arrow, "arrow");
+  const startId = bindings.find((b) => b.props.terminal === "start")?.toId;
+  const endId = bindings.find((b) => b.props.terminal === "end")?.toId;
+  if (!startId || !endId) return null;
+
+  const startShape = editor.getShape(startId);
+  const endShape = editor.getShape(endId);
+  if (!startShape || !endShape) return null;
+  if (
+    !isDiscourseNodeShape(editor, startShape) ||
+    !isDiscourseNodeShape(editor, endShape)
+  )
+    return null;
+
+  return { startId, endId };
+};
+
 export const CustomContextMenu = ({
   extensionAPI,
   allNodes,
@@ -239,6 +267,22 @@ export const CustomContextMenu = ({
   );
   const isTextSelected = selectedShape?.type === "text";
   const isImageSelected = selectedShape?.type === "image";
+  const arrowRelationOptions = useValue(
+    "arrowRelationOptions",
+    () => {
+      if (!selectedShape || selectedShape.type !== "arrow") return null;
+      const boundNodes = getArrowBoundNodeIds(editor, selectedShape);
+      if (!boundNodes) return null;
+      const relationTypes = getValidRelationTypesBetween(
+        editor,
+        boundNodes.startId,
+        boundNodes.endId,
+      );
+      if (relationTypes.length === 0) return null;
+      return { arrowId: selectedShape.id, ...boundNodes, relationTypes };
+    },
+    [editor, selectedShape],
+  );
 
   return (
     <DefaultContextMenu>
@@ -265,6 +309,30 @@ export const CustomContextMenu = ({
                   />
                 );
               })}
+          </TldrawUiMenuSubmenu>
+        </TldrawUiMenuGroup>
+      )}
+      {arrowRelationOptions && (
+        <TldrawUiMenuGroup id="relation-group">
+          <TldrawUiMenuSubmenu id="relation-submenu" label="Relation">
+            {arrowRelationOptions.relationTypes.map((rt) => (
+              <TldrawUiMenuItem
+                key={rt.id}
+                id={`relation-${rt.id}`}
+                label={rt.label}
+                onSelect={() => {
+                  const newArrowId = createRelationBetweenNodes({
+                    editor,
+                    relationId: rt.id,
+                    sourceId: arrowRelationOptions.startId,
+                    targetId: arrowRelationOptions.endId,
+                  });
+                  if (newArrowId) {
+                    editor.deleteShapes([arrowRelationOptions.arrowId]);
+                  }
+                }}
+              />
+            ))}
           </TldrawUiMenuSubmenu>
         </TldrawUiMenuGroup>
       )}
