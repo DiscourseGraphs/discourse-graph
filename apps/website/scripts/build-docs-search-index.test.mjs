@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import path from "node:path";
 import {
   markdownToSearchText,
@@ -76,5 +77,27 @@ void test("searchFiltersFromContentFile scopes docs records by platform", () => 
       path.join(process.cwd(), "content", "index.mdx"),
     ),
     undefined,
+  );
+});
+
+void test("build configuration includes generated Pagefind assets", () => {
+  const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+  assert.match(
+    packageJson.scripts.build,
+    /build-docs-search-index\.mjs/u,
+    "website build must generate the Pagefind index when run by Turbo",
+  );
+  assert.doesNotMatch(
+    packageJson.scripts.postbuild ?? "",
+    /build-docs-search-index\.mjs/u,
+    "Turbo does not run package postbuild hooks for this task",
+  );
+
+  const turboJson = JSON.parse(
+    fs.readFileSync(path.join("..", "..", "turbo.json"), "utf8"),
+  );
+  assert.ok(
+    turboJson.tasks.build.outputs.includes("public/_pagefind/**"),
+    "Turbo must cache and restore the generated Pagefind assets",
   );
 });

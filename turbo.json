@@ -48,7 +48,13 @@
       "env": ["ROAM_BUILD_SCRIPT"],
       "dependsOn": ["@repo/database#genenv"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "src/dbTypes.ts"]
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**",
+        "public/_pagefind/**",
+        "src/dbTypes.ts"
+      ]
     },
     "build-schema": {
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
