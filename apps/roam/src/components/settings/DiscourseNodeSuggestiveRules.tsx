@@ -17,6 +17,7 @@ import {
   TEMPLATE_SETTING_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import { RenderRoamBlock } from "~/utils/roamReactComponents";
+import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const DiscourseNodeSuggestiveRules = ({
   node,
@@ -72,7 +73,10 @@ const DiscourseNodeSuggestiveRules = ({
       <DualWriteBlocksPanel
         nodeType={node.type}
         title="Template"
-        description={`The template that auto fills ${node.text} page when generated.`}
+        description={withDocsLink(
+          `The template that auto fills ${node.text} page when generated.`,
+          ROAM_DOCS.creatingNodes,
+        )}
         settingKeys={TEMPLATE_SETTING_KEYS}
         uid={templateUid}
         defaultValue={node.template}

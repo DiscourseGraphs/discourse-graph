@@ -15,6 +15,7 @@ import {
 } from "~/components/settings/utils/settingKeys";
 import { type SettingsSnapshot } from "./utils/accessors";
 import posthog from "posthog-js";
+import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const QuerySettings = ({
   extensionAPI,
@@ -28,7 +29,10 @@ const QuerySettings = ({
     <div className="flex flex-col gap-4 p-1">
       <PersonalFlagPanel
         title="Hide query metadata"
-        description="Hide the Roam blocks that are used to power each query"
+        description={withDocsLink(
+          "Hide the Roam blocks that are used to power each query",
+          ROAM_DOCS.querying,
+        )}
         settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.hideQueryMetadata]}
         initialValue={querySettings[QUERY_KEYS.hideQueryMetadata]}
         onChange={(checked) => {
@@ -40,7 +44,10 @@ const QuerySettings = ({
       />
       <PersonalNumberPanel
         title="Default page size"
-        description="The default page size used for query results"
+        description={withDocsLink(
+          "The default page size used for query results",
+          ROAM_DOCS.querying,
+        )}
         settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.defaultPageSize]}
         initialValue={querySettings[QUERY_KEYS.defaultPageSize]}
         onChange={(value) => {
@@ -52,7 +59,10 @@ const QuerySettings = ({
       />
       <PersonalMultiTextPanel
         title="Query pages"
-        description="The title formats of pages that you would like to serve as pages that generate queries"
+        description={withDocsLink(
+          "The title formats of pages that you would like to serve as pages that generate queries",
+          ROAM_DOCS.querying,
+        )}
         settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.queryPages]}
         initialValue={querySettings[QUERY_KEYS.queryPages]}
         onChange={(values) => {
@@ -62,9 +72,10 @@ const QuerySettings = ({
       <Label>
         Default filters
         <Description
-          description={
-            "Any filters that should be applied to your results by default"
-          }
+          description={withDocsLink(
+            "Any filters that should be applied to your results by default",
+            ROAM_DOCS.querying,
+          )}
         />
         <DefaultFilters
           extensionAPI={extensionAPI}

@@ -18,7 +18,7 @@ type KeyboardShortcutInputProps = {
   settingKey: string;
   blockPropKey: keyof PersonalSettings;
   label: string;
-  description: string;
+  description: React.ReactNode;
   initialValue: IKeyCombo;
   placeholder?: string;
 };
