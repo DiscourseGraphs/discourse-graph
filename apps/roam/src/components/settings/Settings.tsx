@@ -90,6 +90,7 @@ export const SettingsDialog = ({
   );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const settings = useMemo(() => bulkReadSettings(), [activeTabId]);
+  const leftSidebarEnabled = settings.featureFlags["Enable left sidebar"];
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
@@ -202,6 +203,7 @@ export const SettingsDialog = ({
           />
           <Tab
             id="left-sidebar-personal-settings"
+            hidden={!leftSidebarEnabled}
             title="Left sidebar"
             className="overflow-y-auto"
             panel={
@@ -235,6 +237,7 @@ export const SettingsDialog = ({
           />
           <Tab
             id="left-sidebar-global-settings"
+            hidden={!leftSidebarEnabled}
             title="Left sidebar"
             className="overflow-y-auto"
             panel={
