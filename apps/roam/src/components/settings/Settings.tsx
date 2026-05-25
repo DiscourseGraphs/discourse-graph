@@ -31,6 +31,7 @@ import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
 import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
 import posthog from "posthog-js";
 import { bulkReadSettings } from "./utils/accessors";
+import { onSettingChange, settingKeys } from "./utils/settingsEmitter";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -90,7 +91,14 @@ export const SettingsDialog = ({
   );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const settings = useMemo(() => bulkReadSettings(), [activeTabId]);
-  const leftSidebarEnabled = settings.featureFlags["Enable left sidebar"];
+  const [leftSidebarEnabled, setLeftSidebarEnabled] = useState(
+    settings.featureFlags["Enable left sidebar"],
+  );
+  useEffect(() => {
+    return onSettingChange(settingKeys.leftSidebarFlag, (newValue) => {
+      setLeftSidebarEnabled(Boolean(newValue));
+    });
+  }, []);
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
