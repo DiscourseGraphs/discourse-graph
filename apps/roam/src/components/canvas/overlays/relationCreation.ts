@@ -57,7 +57,7 @@ export const getValidRelationTypesBetween = (
   return validTypes;
 };
 
-export const createRelationBetweenNodes = ({
+export const createRelationBetweenNodes = async ({
   editor,
   relationId,
   sourceId,
@@ -67,7 +67,7 @@ export const createRelationBetweenNodes = ({
   relationId: string;
   sourceId: TLShapeId;
   targetId: TLShapeId;
-}): TLShapeId | null => {
+}): Promise<TLShapeId | null> => {
   const selectedRelation = getAllRelations().find((r) => r.id === relationId);
   if (!selectedRelation) return null;
 
@@ -125,6 +125,8 @@ export const createRelationBetweenNodes = ({
     isExact: false,
   });
 
+  editor.select(arrowId);
+
   const util = editor.getShapeUtil(newArrow);
   if (
     util instanceof BaseDiscourseRelationUtil &&
@@ -136,12 +138,13 @@ export const createRelationBetweenNodes = ({
         targetId: TLShapeId;
       }) => Promise<void>;
     };
-    void (util as UtilWithRoamPersistence).handleCreateRelationsInRoam({
+    await (util as UtilWithRoamPersistence).handleCreateRelationsInRoam({
       arrow: editor.getShape<DiscourseRelationShape>(arrowId) ?? newArrow,
       targetId,
     });
   }
 
-  editor.select(arrowId);
-  return arrowId;
+  // handleCreateRelationsInRoam deletes the new arrow if it rejects the
+  // conversion, so a surviving shape means the relation was persisted.
+  return editor.getShape(arrowId) ? arrowId : null;
 };

@@ -320,8 +320,8 @@ export const CustomContextMenu = ({
                 key={rt.id}
                 id={`relation-${rt.id}`}
                 label={rt.label}
-                onSelect={() => {
-                  const newArrowId = createRelationBetweenNodes({
+                onSelect={async () => {
+                  const newArrowId = await createRelationBetweenNodes({
                     editor,
                     relationId: rt.id,
                     sourceId: arrowRelationOptions.startId,

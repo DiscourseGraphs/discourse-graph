@@ -249,7 +249,7 @@ export const DragHandleOverlay = () => {
     (relationId: string) => {
       if (!pending) return;
 
-      createRelationBetweenNodes({
+      void createRelationBetweenNodes({
         editor,
         relationId,
         sourceId: pending.sourceId,
