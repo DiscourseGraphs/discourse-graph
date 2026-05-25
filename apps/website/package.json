@@ -6,8 +6,8 @@
   "license": "Apache-2.0",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "postbuild": "node ./scripts/build-docs-search-index.mjs",
+    "build": "next build && node ./scripts/build-docs-search-index.mjs",
+    "build:search": "node ./scripts/build-docs-search-index.mjs",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
