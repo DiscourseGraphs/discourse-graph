@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Checkbox, InputGroup, Tabs, Tab } from "@blueprintjs/core";
-import Description from "roamjs-components/components/Description";
+import Description from "~/components/settings/SettingsDescription";
 import getDiscourseNodes, {
   excludeDefaultNodes,
 } from "~/utils/getDiscourseNodes";

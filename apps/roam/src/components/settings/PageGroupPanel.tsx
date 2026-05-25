@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { Label, Button, Intent, Tag, InputGroup } from "@blueprintjs/core";
-import Description from "roamjs-components/components/Description";
+import Description from "~/components/settings/SettingsDescription";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
