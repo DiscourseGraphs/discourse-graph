@@ -4,7 +4,7 @@ import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
 import { ImportNodesModal } from "~/components/ImportNodesModal";
-import { createDiscourseNode } from "./createNode";
+import { convertPageToDiscourseNode, createDiscourseNode } from "./createNode";
 import { refreshAllImportedFiles } from "./importNodes";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
@@ -76,6 +76,49 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         initialTitle: selectedText,
         onSubmit: createModifyNodeModalSubmitHandler(plugin, editor),
       }).open();
+    },
+  });
+
+  plugin.addCommand({
+    id: "convert-current-page-to-discourse-node",
+    name: "Convert current page to discourse node",
+    checkCallback: (checking: boolean) => {
+      const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      const file = activeView?.file;
+      if (!file) return false;
+
+      if (!checking) {
+        const fileCache = plugin.app.metadataCache.getFileCache(file);
+        const fileNodeType = fileCache?.frontmatter?.nodeTypeId;
+        const isAlreadyDiscourseNode =
+          !!fileNodeType &&
+          plugin.settings.nodeTypes.some(
+            (nodeType) => nodeType.id === fileNodeType,
+          );
+
+        if (isAlreadyDiscourseNode) {
+          new Notice("Current page is already a discourse node", 3000);
+          return true;
+        }
+
+        new ModifyNodeModal(plugin.app, {
+          nodeTypes: plugin.settings.nodeTypes,
+          plugin,
+          initialTitle: file.basename,
+          // Command palette flow should mirror file-menu conversion.
+          disableExistingNodeSearch: true,
+          onSubmit: async ({ nodeType, title }) => {
+            await convertPageToDiscourseNode({
+              plugin,
+              file,
+              nodeType,
+              title,
+            });
+          },
+        }).open();
+      }
+
+      return true;
     },
   });
 

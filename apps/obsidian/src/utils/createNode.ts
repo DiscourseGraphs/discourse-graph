@@ -1,4 +1,10 @@
-import { Editor, Notice, TFile } from "obsidian";
+import {
+  Editor,
+  FrontMatterInfo,
+  MetadataCache,
+  Notice,
+  TFile,
+} from "obsidian";
 import { DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "./getDiscourseNodeFormatExpression";
 import { checkInvalidChars } from "./validateNodeType";
@@ -165,18 +171,10 @@ export const convertPageToDiscourseNode = async ({
       return;
     }
 
-    await plugin.app.fileManager.processFrontMatter(file, (fm) => {
-      fm.nodeTypeId = nodeType.id;
-    });
-
     let newPath = "";
     const folderPath =
       nodeType.folderPath?.trim() || plugin.settings.nodesFolderPath.trim();
     if (folderPath) {
-      const folderExists = plugin.app.vault.getAbstractFileByPath(folderPath);
-      if (!folderExists) {
-        await plugin.app.vault.createFolder(folderPath);
-      }
       newPath = `${folderPath}/${formattedNodeName}.md`;
     } else {
       const dirPath = file.parent?.path ?? "";
@@ -184,7 +182,47 @@ export const convertPageToDiscourseNode = async ({
         ? `${dirPath}/${formattedNodeName}.md`
         : `${formattedNodeName}.md`;
     }
-    await plugin.app.fileManager.renameFile(file, newPath);
+
+    const destinationFile = plugin.app.vault.getAbstractFileByPath(newPath);
+    if (
+      destinationFile instanceof TFile &&
+      destinationFile.path !== file.path
+    ) {
+      const notice = new DocumentFragment();
+      const spanEl = notice.createEl("span", {
+        text: "Destination file already exists at ",
+      });
+
+      const linkEl = spanEl.createEl("a", {
+        text: destinationFile.path,
+        cls: "clickable-link",
+      });
+      linkEl.style.textDecoration = "underline";
+      linkEl.style.cursor = "pointer";
+      linkEl.addEventListener("click", () => {
+        void plugin.app.workspace.openLinkText(destinationFile.path, "", false);
+      });
+
+      new Notice(notice, 5000);
+      return;
+    }
+
+    if (file.path !== newPath) {
+      if (folderPath) {
+        const folderExists = plugin.app.vault.getAbstractFileByPath(folderPath);
+        if (!folderExists) {
+          await plugin.app.vault.createFolder(folderPath);
+        }
+      }
+      await plugin.app.fileManager.renameFile(file, newPath);
+    }
+
+    await plugin.app.fileManager.processFrontMatter(
+      file,
+      (fm: Record<string, unknown>) => {
+        fm.nodeTypeId = nodeType.id;
+      },
+    );
 
     new Notice("Converted page to discourse node", 10000);
   } catch (error) {
