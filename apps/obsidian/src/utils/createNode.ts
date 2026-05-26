@@ -81,14 +81,13 @@ export const createDiscourseNodeFile = async ({
     }
 
     const notice = new DocumentFragment();
-    const linkEl = notice
-      .createEl("span", {
-        text: "Created discourse node: ",
-      })
-      .createEl("a", {
-        text: formattedNodeName,
-        cls: "dg-clickable-link",
-      });
+    const wrapper = document.createElement("span");
+    wrapper.textContent = "Created discourse node: ";
+    const linkEl = document.createElement("a");
+    linkEl.textContent = formattedNodeName;
+    linkEl.classList.add("dg-clickable-link");
+    wrapper.appendChild(linkEl);
+    notice.appendChild(wrapper);
     linkEl.addEventListener("click", () => {
       void app.workspace.openLinkText(formattedNodeName, "", false);
     });
@@ -181,14 +180,13 @@ export const convertPageToDiscourseNode = async ({
       destinationFile.path !== file.path
     ) {
       const notice = new DocumentFragment();
-      const linkEl = notice
-        .createEl("span", {
-          text: "Destination file already exists at ",
-        })
-        .createEl("a", {
-          text: destinationFile.path,
-          cls: "dg-clickable-link",
-        });
+      const wrapper = document.createElement("span");
+      wrapper.textContent = "Destination file already exists at ";
+      const linkEl = document.createElement("a");
+      linkEl.textContent = destinationFile.path;
+      linkEl.classList.add("dg-clickable-link");
+      wrapper.appendChild(linkEl);
+      notice.appendChild(wrapper);
       linkEl.addEventListener("click", () => {
         void plugin.app.workspace.openLinkText(destinationFile.path, "", false);
       });
