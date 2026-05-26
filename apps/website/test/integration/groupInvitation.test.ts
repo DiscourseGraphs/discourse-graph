@@ -93,7 +93,11 @@ describe(
 
     it("executes the full invitation flow", async () => {
       // Step 1: user1 creates a group
-      const groupId = await createGroup(client1, "vitest-invite-group");
+      const { groupId, error: createError } = await createGroup(
+        client1,
+        "vitest-invite-group",
+      );
+      expect(createError, "createGroup should not error").toBeNull();
       expect(groupId, "createGroup should return a group ID").toBeTruthy();
       createdGroupId = groupId;
 
