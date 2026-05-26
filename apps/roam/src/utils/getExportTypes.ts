@@ -21,6 +21,10 @@ import {
   pullBlockToTreeNode,
   collectUids,
 } from "./exportUtils";
+import {
+  bulkReadSettings,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
 
 export const updateExportProgress = (detail: {
   progress: number;
@@ -36,6 +40,7 @@ type getExportTypesProps = {
   results?: ExportDialogProps["results"];
   exportId: string;
   isExportDiscourseGraph: boolean;
+  settingsSnapshot?: SettingsSnapshot;
 };
 
 type RoamImportUser = {
@@ -66,9 +71,11 @@ const getExportTypes = ({
   results,
   exportId,
   isExportDiscourseGraph,
+  settingsSnapshot,
 }: getExportTypesProps): ExportTypes => {
-  const allRelations = getDiscourseRelations();
-  const allNodes = getDiscourseNodes(allRelations);
+  const settings = settingsSnapshot ?? bulkReadSettings();
+  const allRelations = getDiscourseRelations(settings);
+  const allNodes = getDiscourseNodes(allRelations, settings);
   const nodeLabelByType = Object.fromEntries(
     allNodes.map((a) => [a.type, a.text]),
   );
