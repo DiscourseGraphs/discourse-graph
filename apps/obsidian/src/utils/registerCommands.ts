@@ -89,11 +89,17 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
 
       if (!checking) {
         const fileCache = plugin.app.metadataCache.getFileCache(file);
-        const fileNodeType = fileCache?.frontmatter?.nodeTypeId;
+        const frontmatter = fileCache?.frontmatter as
+          | Record<string, unknown>
+          | undefined;
+        const fileNodeTypeId =
+          typeof frontmatter?.nodeTypeId === "string"
+            ? frontmatter.nodeTypeId
+            : undefined;
         const isAlreadyDiscourseNode =
-          !!fileNodeType &&
+          !!fileNodeTypeId &&
           plugin.settings.nodeTypes.some(
-            (nodeType) => nodeType.id === fileNodeType,
+            (nodeType) => nodeType.id === fileNodeTypeId,
           );
 
         if (isAlreadyDiscourseNode) {
