@@ -129,7 +129,6 @@ describe("list group members flow", { tags: ["database"] }, () => {
     assert(error1 === null, error1 ? error1.message : "");
     assert(data1 !== null, "group spaces should not be empty");
     assert(data1.length === 2, "There should be two spaces");
-    console.log(data1);
     const spacesSeenBy1 = Object.fromEntries(
       data1.filter((gm) => gm.space_id !== null).map((gm) => [gm.space_id, gm]),
     ) as Record<number, PseudoAccountInfo>;

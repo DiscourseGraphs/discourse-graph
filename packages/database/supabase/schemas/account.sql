@@ -473,25 +473,9 @@ FROM public."PlatformAccount" AS pa
     JOIN public.group_membership AS gm2 ON (gm2.member_id = auth.uid() AND gm2.group_id = gm.group_id)
     JOIN public."SpaceAccess" AS sa ON (sa.account_uid = pa.dg_account)
     JOIN public."Space" AS sp ON (sp.id = sa.space_id)
-    LEFT OUTER JOIN public."SpaceAccess" AS grpsa ON (grpsa.account_uid = gm.group_id AND grpsa.space_id = sp.id);
+    LEFT OUTER JOIN public."SpaceAccess" AS grpsa ON (grpsa.account_uid = gm.group_id AND grpsa.space_id = sp.id)
+WHERE pa.agent_type = 'anonymous' AND sa.permissions = 'editor';
 
-
-CREATE TYPE public.group_space_info AS (
-    id BIGINT,
-    name VARCHAR,
-    platform public."Platform",
-    sharing_permissions public."SpaceAccessPermissions",
-    admin boolean
-);
-
-CREATE OR REPLACE FUNCTION public.spaces_in_group(p_group_id UUID) RETURNS SETOF public.group_space_info
-STABLE
-SET search_path = ''
-LANGUAGE sql AS $$
-    SELECT space_id as id, name, platform, sharing_permissions, admin
-    FROM public.my_pseudo_accounts
-    WHERE group_id = p_group_id;
-$$;
 
 CREATE OR REPLACE FUNCTION public.accept_group_invitation(token varchar) RETURNS boolean
 SET search_path = '' SECURITY DEFINER
