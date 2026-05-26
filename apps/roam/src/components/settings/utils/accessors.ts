@@ -44,7 +44,12 @@ import {
   type DiscourseNodeSettings,
   type Condition as SchemaCondition,
 } from "./zodSchema";
-import { PERSONAL_KEYS, QUERY_KEYS, GLOBAL_KEYS } from "./settingKeys";
+import {
+  FEATURE_FLAG_KEYS,
+  PERSONAL_KEYS,
+  QUERY_KEYS,
+  GLOBAL_KEYS,
+} from "./settingKeys";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -720,7 +725,7 @@ export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
 };
 
 export const isNewSettingsStoreEnabled = (): boolean => {
-  return getFeatureFlag("Use new settings store");
+  return getFeatureFlag(FEATURE_FLAG_KEYS.useNewSettingsStore);
 };
 
 export const readAllLegacyFeatureFlags = (): Partial<FeatureFlags> => {
@@ -728,7 +733,7 @@ export const readAllLegacyFeatureFlags = (): Partial<FeatureFlags> => {
   for (const [key, reader] of Object.entries(FEATURE_FLAG_LEGACY_MAP)) {
     flags[key as keyof FeatureFlags] = reader();
   }
-  flags["Use new settings store"] = false;
+  flags[FEATURE_FLAG_KEYS.useNewSettingsStore] = false;
   return flags;
 };
 
@@ -772,7 +777,7 @@ export const setFeatureFlag = (
     value: validatedValue,
   });
 
-  if (key === "Use new settings store") {
+  if (key === FEATURE_FLAG_KEYS.useNewSettingsStore) {
     invalidateDiscourseNodeTypeCaches();
   }
 };
@@ -888,7 +893,7 @@ export const bulkReadSettings = (): SettingsSnapshot => {
 
   const featureFlags = FeatureFlagsSchema.parse(featureFlagsProps || {});
 
-  if (!featureFlags["Use new settings store"]) {
+  if (!featureFlags[FEATURE_FLAG_KEYS.useNewSettingsStore]) {
     return {
       featureFlags,
       globalSettings: readAllLegacyGlobalSettings() as GlobalSettings,
@@ -975,7 +980,7 @@ export const getDiscourseNodeSetting = <T = unknown>(
   nodeType: string,
   keys: string[],
 ): T | undefined => {
-  if (!bulkReadSettings().featureFlags["Use new settings store"]) {
+  if (!bulkReadSettings().featureFlags[FEATURE_FLAG_KEYS.useNewSettingsStore]) {
     return getLegacyDiscourseNodeSetting(nodeType, keys) as T | undefined;
   }
 
