@@ -1,7 +1,7 @@
 import assert from "assert";
 import { describe, it, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@repo/database/dbTypes";
+import type { Database, Tables } from "@repo/database/dbTypes";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
   fetchOrCreateSpaceDirect,
@@ -14,7 +14,7 @@ const ANON_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
 const SERVICE_KEY = process.env.SUPABASE_SECRET_KEY!;
 const PASSWORD = "abcdefgh";
 
-type GroupSpaceInfo = Database["public"]["CompositeTypes"]["group_space_info"];
+type PseudoAccountInfo = Tables<"my_pseudo_accounts">;
 
 const freshClient = (): DGSupabaseClient =>
   createClient<Database, "public">(SUPABASE_URL, ANON_KEY);
@@ -121,19 +121,17 @@ describe("list group members flow", { tags: ["database"] }, () => {
 
     const expectedSpaceIds = [spaceId1, spaceId2];
     // Step 3: user1 lists group members
-    const { data: data1, error: error1 } = await client1.rpc(
-      "spaces_in_group",
-      {
-        p_group_id: createdGroupId, // eslint-disable-line @typescript-eslint/naming-convention
-      },
-    );
+    const { data: data1, error: error1 } = await client1
+      .from("my_pseudo_accounts")
+      .select()
+      .eq("group_id", createdGroupId);
 
     assert(error1 === null, error1 ? error1.message : "");
     assert(data1 !== null, "group spaces should not be empty");
     assert(data1.length === 2, "There should be two spaces");
     const spacesSeenBy1 = Object.fromEntries(
-      data1.filter((gm) => gm.id !== null).map((gm) => [gm.id, gm]),
-    ) as Record<number, GroupSpaceInfo>;
+      data1.filter((gm) => gm.space_id !== null).map((gm) => [gm.space_id, gm]),
+    ) as Record<number, PseudoAccountInfo>;
     assert(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expectedSpaceIds.every((id) => spacesSeenBy1[id] !== undefined),
@@ -145,17 +143,15 @@ describe("list group members flow", { tags: ["database"] }, () => {
       ),
     );
     // Step 4: user2 lists group members
-    const { data: data2, error: error2 } = await client2.rpc(
-      "spaces_in_group",
-      {
-        p_group_id: createdGroupId, // eslint-disable-line @typescript-eslint/naming-convention
-      },
-    );
+    const { data: data2, error: error2 } = await client2
+      .from("my_pseudo_accounts")
+      .select()
+      .eq("group_id", createdGroupId);
     assert(error2 === null, error2 ? error2.message : "");
     assert(data2 !== null, "group spaces should not be empty");
     assert(data2.length === 2, "There should be two spaces");
     const spacesSeenBy2 = new Set(
-      data2.map((gm) => gm.id).filter((id) => id !== null),
+      data2.map((gm) => gm.space_id).filter((id) => id !== null),
     );
     assert(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -173,19 +169,19 @@ describe("list group members flow", { tags: ["database"] }, () => {
       });
     assert(!errorPublishSpace2);
     // Step 6: that space is now seen as published by 1.
-    const { data: data1b, error: error1b } = await client1.rpc(
-      "spaces_in_group",
-      {
-        p_group_id: createdGroupId, // eslint-disable-line @typescript-eslint/naming-convention
-      },
-    );
+    const { data: data1b, error: error1b } = await client1
+      .from("my_pseudo_accounts")
+      .select()
+      .eq("group_id", createdGroupId);
 
     assert(error1b === null, error1b ? error1b.message : "");
     assert(data1b !== null, "group spaces should not be empty");
     assert(data1b.length === 2, "There should be two spaces");
     const spacesSeenBy1b = Object.fromEntries(
-      data1b.filter((gm) => gm.id !== null).map((gm) => [gm.id, gm]),
-    ) as Record<number, GroupSpaceInfo>;
+      data1b
+        .filter((gm) => gm.space_id !== null)
+        .map((gm) => [gm.space_id, gm]),
+    ) as Record<number, PseudoAccountInfo>;
     assert(
       spacesSeenBy1b[spaceId2]?.sharing_permissions,
       "Second space should now be seen as shared",
