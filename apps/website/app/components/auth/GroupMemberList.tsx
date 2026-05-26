@@ -39,6 +39,9 @@ export const GroupMemberList = async ({
     );
   }
   const pseudoAccountInfo = pseudoAccountReq.data ?? [];
+  const numAdmins = pseudoAccountInfo
+    .map((pa) => (pa.admin ? 1 : 0) as number)
+    .reduce((acc, cur) => acc + cur, 0);
 
   const removeSpace = async (formData: FormData) => {
     "use server";
@@ -66,7 +69,7 @@ export const GroupMemberList = async ({
             const memberId = pseudoAccount.dg_account;
             return (
               <li
-                key={pseudoAccount.space_id}
+                key={`${pseudoAccount.id}-${pseudoAccount.space_id}`}
                 className="flex items-center justify-between px-4 py-2"
               >
                 <span>
@@ -86,9 +89,12 @@ export const GroupMemberList = async ({
                   )}
                 </span>
                 {memberId &&
-                  // allow admins to remove others, non-admins to remove self.
-                  // admins should not remove self (unless there's another admin? tbd)
-                  isAdmin !== (pseudoAccount.dg_account === myUserId) && (
+                  // allow admins to remove others
+                  // admins should not remove self, unless there's another admin
+                  ((isAdmin &&
+                    (numAdmins > 1 || pseudoAccount.dg_account !== myUserId)) ||
+                    // non-admins can remove self.
+                    pseudoAccount.dg_account === myUserId) && (
                     <form action={removeSpace}>
                       <input type="hidden" name="memberId" value={memberId} />
                       <Button type="submit" variant="destructive" size="sm">
