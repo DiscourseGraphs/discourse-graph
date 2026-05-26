@@ -24,6 +24,10 @@ import {
 } from "~/utils/getExportSettings";
 import { getSuggestiveModeConfigAndUids } from "~/utils/getSuggestiveModeConfigSettings";
 import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
+import {
+  getDiscourseNodeTypeCacheVersion,
+  invalidateDiscourseNodeTypeCaches,
+} from "~/utils/discourseNodeTypeCache";
 
 import {
   DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
@@ -40,7 +44,12 @@ import {
   type DiscourseNodeSettings,
   type Condition as SchemaCondition,
 } from "./zodSchema";
-import { PERSONAL_KEYS, QUERY_KEYS, GLOBAL_KEYS } from "./settingKeys";
+import {
+  FEATURE_FLAG_KEYS,
+  PERSONAL_KEYS,
+  QUERY_KEYS,
+  GLOBAL_KEYS,
+} from "./settingKeys";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -716,7 +725,7 @@ export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
 };
 
 export const isNewSettingsStoreEnabled = (): boolean => {
-  return getFeatureFlag("Use new settings store");
+  return getFeatureFlag(FEATURE_FLAG_KEYS.useNewSettingsStore);
 };
 
 export const readAllLegacyFeatureFlags = (): Partial<FeatureFlags> => {
@@ -724,7 +733,7 @@ export const readAllLegacyFeatureFlags = (): Partial<FeatureFlags> => {
   for (const [key, reader] of Object.entries(FEATURE_FLAG_LEGACY_MAP)) {
     flags[key as keyof FeatureFlags] = reader();
   }
-  flags["Use new settings store"] = false;
+  flags[FEATURE_FLAG_KEYS.useNewSettingsStore] = false;
   return flags;
 };
 
@@ -767,6 +776,10 @@ export const setFeatureFlag = (
     keys: [STATIC_TOP_LEVEL_ENTRIES.featureFlags.key, key],
     value: validatedValue,
   });
+
+  if (key === FEATURE_FLAG_KEYS.useNewSettingsStore) {
+    invalidateDiscourseNodeTypeCaches();
+  }
 };
 
 export const getGlobalSettings = (): GlobalSettings => {
@@ -880,7 +893,7 @@ export const bulkReadSettings = (): SettingsSnapshot => {
 
   const featureFlags = FeatureFlagsSchema.parse(featureFlagsProps || {});
 
-  if (!featureFlags["Use new settings store"]) {
+  if (!featureFlags[FEATURE_FLAG_KEYS.useNewSettingsStore]) {
     return {
       featureFlags,
       globalSettings: readAllLegacyGlobalSettings() as GlobalSettings,
@@ -967,7 +980,7 @@ export const getDiscourseNodeSetting = <T = unknown>(
   nodeType: string,
   keys: string[],
 ): T | undefined => {
-  if (!bulkReadSettings().featureFlags["Use new settings store"]) {
+  if (!bulkReadSettings().featureFlags[FEATURE_FLAG_KEYS.useNewSettingsStore]) {
     return getLegacyDiscourseNodeSetting(nodeType, keys) as T | undefined;
   }
 
@@ -1023,6 +1036,7 @@ export const setDiscourseNodeSetting = (
   }
 
   setBlockPropAtPath(pageUid, keys, value);
+  invalidateDiscourseNodeTypeCaches();
 };
 
 const addConditionUids = (conditions: SchemaCondition[]): Condition[] =>
@@ -1131,7 +1145,17 @@ const migrateNodeBlockProps = (
   return migrated;
 };
 
+let allDiscourseNodesCache: {
+  version: number;
+  nodes: DiscourseNode[];
+} | null = null;
+
 export const getAllDiscourseNodes = (): DiscourseNode[] => {
+  const cacheVersion = getDiscourseNodeTypeCacheVersion();
+  if (allDiscourseNodesCache?.version === cacheVersion) {
+    return allDiscourseNodesCache.nodes;
+  }
+
   const results = window.roamAlphaAPI.data.fast.q(`
     [:find ?uid ?title (pull ?page [:block/props])
      :where
@@ -1191,5 +1215,6 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
     }
   }
 
+  allDiscourseNodesCache = { version: cacheVersion, nodes };
   return nodes;
 };

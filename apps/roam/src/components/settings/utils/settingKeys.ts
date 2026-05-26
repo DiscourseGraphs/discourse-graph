@@ -1,4 +1,5 @@
 import type {
+  FeatureFlags,
   PersonalSettings,
   QuerySettings,
   GlobalSettings,
@@ -9,6 +10,13 @@ import type {
   CanvasSettings,
   SuggestiveRules,
 } from "./zodSchema";
+
+export const FEATURE_FLAG_KEYS = {
+  enableLeftSidebar: "Enable left sidebar",
+  duplicateNodeAlertEnabled: "Duplicate node alert enabled",
+  suggestiveModeOverlayEnabled: "Suggestive mode overlay enabled",
+  useNewSettingsStore: "Use new settings store",
+} as const satisfies Record<string, keyof FeatureFlags>;
 
 export const PERSONAL_KEYS = {
   discourseContextOverlay: "Discourse context overlay",
