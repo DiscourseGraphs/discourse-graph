@@ -41,12 +41,7 @@ export const CreateGroup = ({
         <p className="text-sm text-green-600">Group created successfully.</p>
       )}
       {error && <p className="text-destructive text-sm">{error}</p>}
-      <form
-        action={(formData) => {
-          void createGroupAction(formData);
-        }}
-        className="flex gap-2"
-      >
+      <form action={createGroupAction} className="flex gap-2">
         <Input name="name" placeholder="Group name" className="max-w-sm" />
         <Button type="submit">Create Group</Button>
       </form>

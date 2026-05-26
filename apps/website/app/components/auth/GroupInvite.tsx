@@ -37,11 +37,7 @@ export const GroupInvite = ({
         </div>
       )}
       <div className="flex gap-2">
-        <form
-          action={(formData) => {
-            void createToken(formData);
-          }}
-        >
+        <form action={createToken}>
           <input type="hidden" name="admin" value="false" />
           <Button type="submit" variant="outline">
             Create member token

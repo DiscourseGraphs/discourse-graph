@@ -89,11 +89,7 @@ export const GroupMemberList = async ({
                   // allow admins to remove others, non-admins to remove self.
                   // admins should not remove self (unless there's another admin? tbd)
                   isAdmin !== (pseudoAccount.dg_account === myUserId) && (
-                    <form
-                      action={(formData) => {
-                        void removeSpace(formData);
-                      }}
-                    >
+                    <form action={removeSpace}>
                       <input type="hidden" name="memberId" value={memberId} />
                       <Button type="submit" variant="destructive" size="sm">
                         Remove

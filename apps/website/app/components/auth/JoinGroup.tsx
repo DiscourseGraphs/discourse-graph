@@ -34,12 +34,7 @@ export const JoinGroup = ({
         <p className="text-sm text-green-600">Successfully joined the group.</p>
       )}
       {error && <p className="text-destructive text-sm">{error}</p>}
-      <form
-        action={(formData) => {
-          void joinGroup(formData);
-        }}
-        className="flex gap-2"
-      >
+      <form action={joinGroup} className="flex gap-2">
         <Input
           name="token"
           placeholder="Paste your invitation token"
