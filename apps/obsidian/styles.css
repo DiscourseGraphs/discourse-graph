@@ -35,6 +35,11 @@
   background: var(--interactive-accent-hover);
 }
 
+.dg-clickable-link {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* Neutralize host button styling inside our editor */
 .tldraw__editor button {
   background: transparent !important;

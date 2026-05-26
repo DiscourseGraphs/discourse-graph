@@ -1,10 +1,4 @@
-import {
-  Editor,
-  FrontMatterInfo,
-  MetadataCache,
-  Notice,
-  TFile,
-} from "obsidian";
+import { Editor, Notice, TFile } from "obsidian";
 import { DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "./getDiscourseNodeFormatExpression";
 import { checkInvalidChars } from "./validateNodeType";
@@ -87,18 +81,16 @@ export const createDiscourseNodeFile = async ({
     }
 
     const notice = new DocumentFragment();
-    const spanEl = notice.createEl("span", {
-      text: "Created discourse node: ",
-    });
-
-    const linkEl = spanEl.createEl("a", {
-      text: formattedNodeName,
-      cls: "clickable-link",
-    });
-    linkEl.style.textDecoration = "underline";
-    linkEl.style.cursor = "pointer";
+    const linkEl = notice
+      .createEl("span", {
+        text: "Created discourse node: ",
+      })
+      .createEl("a", {
+        text: formattedNodeName,
+        cls: "dg-clickable-link",
+      });
     linkEl.addEventListener("click", () => {
-      app.workspace.openLinkText(formattedNodeName, "", false);
+      void app.workspace.openLinkText(formattedNodeName, "", false);
     });
 
     new Notice(notice, 10000);
@@ -189,16 +181,14 @@ export const convertPageToDiscourseNode = async ({
       destinationFile.path !== file.path
     ) {
       const notice = new DocumentFragment();
-      const spanEl = notice.createEl("span", {
-        text: "Destination file already exists at ",
-      });
-
-      const linkEl = spanEl.createEl("a", {
-        text: destinationFile.path,
-        cls: "clickable-link",
-      });
-      linkEl.style.textDecoration = "underline";
-      linkEl.style.cursor = "pointer";
+      const linkEl = notice
+        .createEl("span", {
+          text: "Destination file already exists at ",
+        })
+        .createEl("a", {
+          text: destinationFile.path,
+          cls: "dg-clickable-link",
+        });
       linkEl.addEventListener("click", () => {
         void plugin.app.workspace.openLinkText(destinationFile.path, "", false);
       });
