@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "~/utils/supabase/server";
 import { createGroupInvitation } from "~/utils/supabase/account";
 import { Button } from "@repo/ui/components/ui/button";
+import { CopyButton } from "../CopyButton";
 
 export const GroupInvite = ({
   groupId,
@@ -32,6 +33,7 @@ export const GroupInvite = ({
       {tokenError && <p className="text-destructive text-sm">{tokenError}</p>}
       {token && (
         <div className="bg-muted rounded-md border p-3 text-sm">
+          <CopyButton content={token} className="float-right" />
           <p className="mb-1 font-medium">Invitation token (valid 60 days):</p>
           <code className="break-all">{token}</code>
         </div>
