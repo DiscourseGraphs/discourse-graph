@@ -69,11 +69,7 @@ export const ListGroups = async () => {
             <ul className="list-inside list-disc space-y-2">
               {groupData.map((d) => (
                 <li key={d.id}>
-                  {adminData[d.id || ""] ? (
-                    <Link href={"/auth/group/" + d.id!}>{d.name}</Link>
-                  ) : (
-                    d.name
-                  )}
+                  <Link href={"/auth/group/" + d.id!}>{d.name}</Link>
                 </li>
               ))}
             </ul>
