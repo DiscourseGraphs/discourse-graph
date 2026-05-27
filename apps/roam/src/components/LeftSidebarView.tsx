@@ -132,15 +132,13 @@ const toggleFoldedState = async ({
   setIsOpen,
   folded,
   parentUid,
-  isGlobal,
   sectionIndex,
 }: {
   isOpen: boolean;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
   folded: { uid?: string; value: boolean };
   parentUid: string;
-  isGlobal?: boolean;
-  sectionIndex?: number;
+  sectionIndex: number;
 }) => {
   const newFolded = !isOpen;
   setIsOpen(newFolded);
@@ -166,27 +164,16 @@ const toggleFoldedState = async ({
 
   refreshConfigTree();
 
-  if (isGlobal) {
-    setGlobalSetting(
-      [
-        GLOBAL_KEYS.leftSidebar,
-        LEFT_SIDEBAR_KEYS.settings,
-        LEFT_SIDEBAR_SETTINGS_KEYS.folded,
-      ],
-      newFolded,
-    );
-  } else if (sectionIndex !== undefined) {
-    const sections = [...getPersonalSettings()[PERSONAL_KEYS.leftSidebar]];
-    if (sections[sectionIndex]) {
-      sections[sectionIndex] = {
-        ...sections[sectionIndex],
-        Settings: {
-          ...sections[sectionIndex].Settings,
-          Folded: newFolded,
-        },
-      };
-      setPersonalSetting([PERSONAL_KEYS.leftSidebar], sections);
-    }
+  const sections = [...getPersonalSettings()[PERSONAL_KEYS.leftSidebar]];
+  if (sections[sectionIndex]) {
+    sections[sectionIndex] = {
+      ...sections[sectionIndex],
+      Settings: {
+        ...sections[sectionIndex].Settings,
+        Folded: newFolded,
+      },
+    };
+    setPersonalSetting([PERSONAL_KEYS.leftSidebar], sections);
   }
 };
 
@@ -459,9 +446,7 @@ const GlobalSection = ({
   onGlobalChildrenReorder: (oldIndex: number, newIndex: number) => void;
   onloadArgs: OnloadArgs;
 }) => {
-  const [isOpen, setIsOpen] = useState<boolean>(
-    !!config.settings?.folded.value,
-  );
+  const [isOpen, setIsOpen] = useState<boolean>(!config.settings?.folded.value);
   const isTogglingRef = useRef(false);
   if (!config.children?.length) return null;
   const isCollapsable = config.settings?.collapsable.value;
@@ -471,13 +456,36 @@ const GlobalSection = ({
     if (isTogglingRef.current) return;
     isTogglingRef.current = true;
     try {
-      await toggleFoldedState({
-        isOpen,
-        setIsOpen,
-        folded: config.settings.folded,
-        parentUid: config.settings.uid,
-        isGlobal: true,
-      });
+      const settings = config.settings;
+      const nextIsOpen = !isOpen;
+      setIsOpen(nextIsOpen);
+      if (nextIsOpen) {
+        const children = getBasicTreeByParentUid(settings.uid);
+        await Promise.all(
+          children
+            .filter((c) => c.text === "Folded")
+            .map((c) => deleteBlock(c.uid)),
+        );
+        settings.folded.uid = undefined;
+        settings.folded.value = false;
+      } else {
+        const newUid = window.roamAlphaAPI.util.generateUID();
+        await createBlock({
+          parentUid: settings.uid,
+          node: { text: "Folded", uid: newUid },
+        });
+        settings.folded.uid = newUid;
+        settings.folded.value = true;
+      }
+      refreshConfigTree();
+      setGlobalSetting(
+        [
+          GLOBAL_KEYS.leftSidebar,
+          LEFT_SIDEBAR_KEYS.settings,
+          LEFT_SIDEBAR_SETTINGS_KEYS.folded,
+        ],
+        !nextIsOpen,
+      );
     } finally {
       isTogglingRef.current = false;
     }

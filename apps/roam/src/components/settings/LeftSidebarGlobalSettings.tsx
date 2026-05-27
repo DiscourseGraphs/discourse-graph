@@ -296,20 +296,6 @@ const LeftSidebarGlobalSectionsContent = ({
         }}
       >
         <GlobalFlagPanel
-          title="Folded"
-          description="If children are present, start with global section collapsed in left sidebar"
-          settingKeys={[
-            GLOBAL_KEYS.leftSidebar,
-            LEFT_SIDEBAR_KEYS.settings,
-            LEFT_SIDEBAR_SETTINGS_KEYS.folded,
-          ]}
-          initialValue={globalSection.settings?.folded?.value || false}
-          order={0}
-          uid={globalSection.settings?.folded?.uid || ""}
-          parentUid={globalSection.settings?.uid || ""}
-          disabled={!globalSection.children?.length}
-        />
-        <GlobalFlagPanel
           title="Collapsable"
           description="Make global section collapsable"
           settingKeys={[
@@ -318,7 +304,7 @@ const LeftSidebarGlobalSectionsContent = ({
             LEFT_SIDEBAR_SETTINGS_KEYS.collapsable,
           ]}
           initialValue={globalSection.settings?.collapsable?.value || false}
-          order={1}
+          order={0}
           uid={globalSection.settings?.collapsable?.uid || ""}
           parentUid={globalSection.settings?.uid || ""}
         />
