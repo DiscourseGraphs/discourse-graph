@@ -17,7 +17,7 @@ export const ListGroups = async () => {
     if (!userData) {
       throw new Error("Not logged in.\nPlease log in from application.");
     }
-    const { name, type, id } = userData;
+    const { name, type } = userData;
     if (type === "anonymous") userName = "Space " + name;
     else if (type === "group") userName = "group " + name;
     else if (type === "person") userName = name;
@@ -29,16 +29,6 @@ export const ListGroups = async () => {
       throw new Error("Could not access Discourse Graphs");
     }
     groupData = groupResponse.data;
-    const membershipReq = await client
-      .from("group_membership")
-      .select("group_id,admin")
-      .eq("member_id", id);
-    if (membershipReq.error) {
-      internalError({
-        error: membershipReq.error,
-      });
-      throw new Error("Could not access Discourse Graphs");
-    }
   } catch (e) {
     error = e instanceof Error ? e.message : "An unknown error occured";
   }
