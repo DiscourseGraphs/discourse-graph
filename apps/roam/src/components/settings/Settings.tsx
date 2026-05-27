@@ -33,6 +33,12 @@ import posthog from "posthog-js";
 import { bulkReadSettings } from "./utils/accessors";
 import { onSettingChange, settingKeys } from "./utils/settingsEmitter";
 
+const settingsTabIds = {
+  homePersonal: "discourse-graph-home-personal",
+  leftSidebarPersonal: "left-sidebar-personal-settings",
+  leftSidebarGlobal: "left-sidebar-global-settings",
+} as const;
+
 type SectionHeaderProps = {
   children: React.ReactNode;
   className?: string;
@@ -87,7 +93,7 @@ export const SettingsDialog = ({
   const nodesNode = grammarNode?.children.find((node) => node.text === "nodes");
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
   const [activeTabId, setActiveTabId] = useState<TabId>(
-    selectedTabId ?? "discourse-graph-home-personal",
+    selectedTabId ?? settingsTabIds.homePersonal,
   );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const settings = useMemo(() => bulkReadSettings(), [activeTabId]);
@@ -105,7 +111,7 @@ export const SettingsDialog = ({
 
   useEffect(() => {
     posthog.capture("Settings: Dialog Opened", {
-      initialTabId: String(selectedTabId ?? "discourse-graph-home-personal"),
+      initialTabId: String(selectedTabId ?? settingsTabIds.homePersonal),
     });
   }, [selectedTabId]);
 
@@ -125,10 +131,10 @@ export const SettingsDialog = ({
   }, []);
   const leftSidebarTabHidden =
     !leftSidebarEnabled &&
-    (activeTabId === "left-sidebar-personal-settings" ||
-      activeTabId === "left-sidebar-global-settings");
+    (activeTabId === settingsTabIds.leftSidebarPersonal ||
+      activeTabId === settingsTabIds.leftSidebarGlobal);
   const visibleTabId = leftSidebarTabHidden
-    ? "discourse-graph-home-personal"
+    ? settingsTabIds.homePersonal
     : activeTabId;
   return (
     <Dialog
@@ -185,7 +191,7 @@ export const SettingsDialog = ({
             Personal Settings
           </SectionHeader>
           <Tab
-            id="discourse-graph-home-personal"
+            id={settingsTabIds.homePersonal}
             title="Home"
             className="overflow-y-auto"
             panel={
@@ -217,7 +223,7 @@ export const SettingsDialog = ({
             }
           />
           <Tab
-            id="left-sidebar-personal-settings"
+            id={settingsTabIds.leftSidebarPersonal}
             hidden={!leftSidebarEnabled}
             title="Left sidebar"
             className="overflow-y-auto"
@@ -251,7 +257,7 @@ export const SettingsDialog = ({
             }
           />
           <Tab
-            id="left-sidebar-global-settings"
+            id={settingsTabIds.leftSidebarGlobal}
             hidden={!leftSidebarEnabled}
             title="Left sidebar"
             className="overflow-y-auto"
