@@ -8,7 +8,6 @@ type GroupData = Tables<"my_groups">;
 
 export const ListGroups = async () => {
   let groupData: GroupData[] | null = null;
-  let adminData: Record<string, boolean> = {};
   let userName: string | undefined;
   let error: string | undefined;
 
@@ -40,13 +39,6 @@ export const ListGroups = async () => {
       });
       throw new Error("Could not access Discourse Graphs");
     }
-    adminData = Object.fromEntries(
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      membershipReq.data.map(({ group_id, admin }) => [
-        group_id,
-        admin || false,
-      ]),
-    );
   } catch (e) {
     error = e instanceof Error ? e.message : "An unknown error occured";
   }
