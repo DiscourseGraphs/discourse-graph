@@ -643,11 +643,38 @@ const TldrawCanvasShared = ({
 
   // Handle Roam block drag and drop
   useEffect(() => {
+    const temporaryDraggableAttribute =
+      "data-roamjs-canvas-page-ref-draggable";
+    let activePageRef: HTMLElement | null = null;
+    const isPageRefDragSource = (pageRef: HTMLElement): boolean =>
+      !!pageRef.closest(
+        ".roamjs-query-results-view, .roamjs-discourse-result-panel, .roamjs-discourse-context-overlay-container, .rm-query, .rm-query-content",
+      );
+    const clearActivePageRef = () => {
+      if (activePageRef?.hasAttribute(temporaryDraggableAttribute)) {
+        activePageRef.draggable = false;
+        activePageRef.removeAttribute(temporaryDraggableAttribute);
+      }
+      activePageRef = null;
+    };
+    const handlePointerDown = (e: PointerEvent) => {
+      if (e.defaultPrevented || e.button !== 0) return;
+      const target = e.target as HTMLElement;
+      const pageRef = target.closest<HTMLElement>(".rm-page-ref");
+      if (!pageRef || pageRef.draggable || !isPageRefDragSource(pageRef))
+        return;
+
+      activePageRef = pageRef;
+      pageRef.draggable = true;
+      pageRef.setAttribute(temporaryDraggableAttribute, "true");
+    };
     const handleDragStart = (e: DragEvent) => {
       const target = e.target as HTMLElement;
 
       const pageRef = target.closest<HTMLElement>(".rm-page-ref");
       if (pageRef) {
+        if (!isPageRefDragSource(pageRef)) return;
+
         const pageTitle = (
           pageRef.getAttribute("data-tag") ||
           pageRef.getAttribute("data-link-title") ||
@@ -662,8 +689,19 @@ const TldrawCanvasShared = ({
       if (uid) e.dataTransfer?.setData("application/x-roam-uid", uid);
     };
 
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("pointerup", clearActivePageRef);
+    document.addEventListener("pointercancel", clearActivePageRef);
     document.addEventListener("dragstart", handleDragStart);
-    return () => document.removeEventListener("dragstart", handleDragStart);
+    document.addEventListener("dragend", clearActivePageRef);
+    return () => {
+      clearActivePageRef();
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("pointerup", clearActivePageRef);
+      document.removeEventListener("pointercancel", clearActivePageRef);
+      document.removeEventListener("dragstart", handleDragStart);
+      document.removeEventListener("dragend", clearActivePageRef);
+    };
   }, []);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {

@@ -181,10 +181,6 @@ export const previewPageRefHandler = (s: HTMLSpanElement) => {
   }
 };
 
-export const makePageRefDraggable = (s: HTMLSpanElement) => {
-  s.draggable = true;
-};
-
 export const enablePageRefObserver = () => {
   if (pageRefObserverRef.current) return pageRefObserverRef.current;
 
