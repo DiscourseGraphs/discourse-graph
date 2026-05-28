@@ -26,6 +26,7 @@ import internalError from "~/utils/internalError";
 type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
 type AccountLocalInput = CompositeTypes<"account_local_input">;
 import { FatalError } from "@repo/database/lib/contextFunctions";
+import { getAllPages } from "@repo/database/lib/pagination";
 
 const SYNC_FUNCTION = "embedding";
 // Minimal interval between syncs of all clients for this task.
@@ -462,20 +463,28 @@ const getAllMissingOrNewDiscourseNodes = async ({
   const allNodes = await getAllDiscourseNodesSince(undefined, nodeTypes);
   if (since === undefined) return allNodes;
   const newNodes = await getAllDiscourseNodesSince(since, nodeTypes);
-  const existingContentIdsReq = await supabaseClient
-    .from("my_contents")
-    .select("source_local_id")
-    .eq("space_id", spaceId);
-  if (existingContentIdsReq.error) throw existingContentIdsReq.error;
-  const existingConceptIdsReq = await supabaseClient
-    .from("my_concepts")
-    .select("source_local_id")
-    .eq("space_id", spaceId);
-  if (existingConceptIdsReq.error) throw existingConceptIdsReq.error;
+  const existingContentIdsReq = await getAllPages(
+    supabaseClient
+      .from("my_contents")
+      .select("source_local_id")
+      .eq("space_id", spaceId),
+    1000,
+  );
+  if (!Array.isArray(existingContentIdsReq)) throw existingContentIdsReq;
+  const existingConceptIdsReq = await getAllPages(
+    supabaseClient
+      .from("my_concepts")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .eq("arity", 0)
+      .eq("is_schema", false),
+    1000,
+  );
+  if (!Array.isArray(existingConceptIdsReq)) throw existingConceptIdsReq;
   const existingIds = new Set([
     ...intersection(
-      new Set((existingConceptIdsReq.data || []).map((d) => d.source_local_id)),
-      new Set((existingContentIdsReq.data || []).map((d) => d.source_local_id)),
+      new Set(existingConceptIdsReq.map((d) => d.source_local_id)),
+      new Set(existingContentIdsReq.map((d) => d.source_local_id)),
     ),
     ...newNodes.map((n) => n.source_local_id),
   ]);
