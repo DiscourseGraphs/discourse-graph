@@ -50,8 +50,8 @@ type SyncTaskInfo = {
 };
 
 type EndSyncTaskRpcResult = {
-  ok?: boolean;
-  stale?: boolean;
+  ok: boolean;
+  stale: boolean;
   reason?: string;
   requestedStatus?: string;
   callerWorker?: string;
@@ -103,7 +103,12 @@ const getSyncWorkerId = (): string => {
 const isEndSyncTaskRpcResult = (
   data: Json | undefined,
 ): data is EndSyncTaskRpcResult => {
-  return typeof data === "object" && data !== null && !Array.isArray(data);
+  if (typeof data !== "object" || data === null || Array.isArray(data)) {
+    return false;
+  }
+
+  const result = data as { ok?: unknown; stale?: unknown };
+  return typeof result.ok === "boolean" && typeof result.stale === "boolean";
 };
 
 const measureSyncPhase = async <T>({
@@ -260,7 +265,7 @@ export const endSyncTask = async ({
   worker,
   status,
   showToast = false,
-  startTime,
+  taskStartedAt,
   context,
   supabaseClient,
   telemetryContext,
@@ -268,7 +273,7 @@ export const endSyncTask = async ({
   worker: string;
   status: Enums<"task_status">;
   showToast: boolean;
-  startTime: Date;
+  taskStartedAt: Date;
   context?: SupabaseContext;
   supabaseClient?: DGSupabaseClient;
   telemetryContext?: Properties;
@@ -290,7 +295,7 @@ export const endSyncTask = async ({
       s_function: SYNC_FUNCTION,
       s_worker: worker,
       s_status: status,
-      s_started_at: startTime.toISOString(),
+      s_started_at: taskStartedAt.toISOString(),
     });
     if (error) {
       console.error("endSyncTask: Error calling end_sync_task:", error);
@@ -314,7 +319,26 @@ export const endSyncTask = async ({
       };
     }
 
-    const rpcResult = isEndSyncTaskRpcResult(data) ? data : undefined;
+    if (!isEndSyncTaskRpcResult(data)) {
+      const reason = "Supabase end_sync_task returned unexpected payload";
+      notifyEndSyncFailure({
+        status,
+        showToast,
+        reason,
+        context: {
+          ...telemetryContext,
+          endSyncPayload: data,
+        },
+      });
+
+      return {
+        ok: false,
+        stale: false,
+        error: new Error(reason),
+      };
+    }
+
+    const rpcResult = data;
     if (rpcResult?.stale === true) {
       posthog.capture("Sync end task stale", {
         ...telemetryContext,
@@ -708,6 +732,7 @@ export const createOrUpdateDiscourseEmbedding = async (
   let success = true;
   let claimed = false;
   const isInitialSync = initialSync; // record state at start
+  let claimedAt: Date | null = null;
   let context: SupabaseContext | null = null;
   let supabaseClient: DGSupabaseClient | null = null;
   let userUid = "";
@@ -799,6 +824,8 @@ export const createOrUpdateDiscourseEmbedding = async (
       return;
     }
     claimed = true;
+    const activeClaimedAt = new Date();
+    claimedAt = activeClaimedAt;
     const allUsers = await measureSyncPhase({
       phase: "getAllUsers",
       phases,
@@ -868,7 +895,7 @@ export const createOrUpdateDiscourseEmbedding = async (
           worker,
           status: "complete",
           showToast,
-          startTime,
+          taskStartedAt: activeClaimedAt,
           context: activeContext,
           supabaseClient: activeSupabaseClient,
           telemetryContext: buildTelemetry({
@@ -889,7 +916,6 @@ export const createOrUpdateDiscourseEmbedding = async (
         }),
       );
     } else if (completeEndResult.stale) {
-      success = false;
       posthog.capture(
         "Sync stale",
         buildTelemetry({
@@ -919,7 +945,8 @@ export const createOrUpdateDiscourseEmbedding = async (
     const reason =
       error instanceof Error ? error.message : "Unknown sync error";
     let failedEndResult: EndSyncTaskResult | undefined;
-    if (claimed) {
+    const failedClaimedAt = claimedAt;
+    if (failedClaimedAt !== null) {
       failedEndResult = await measureSyncPhase({
         phase: "endSyncTaskFailed",
         phases,
@@ -928,7 +955,7 @@ export const createOrUpdateDiscourseEmbedding = async (
             worker,
             status: "failed",
             showToast,
-            startTime,
+            taskStartedAt: failedClaimedAt,
             context: context || undefined,
             supabaseClient: supabaseClient || undefined,
             telemetryContext: buildTelemetry({ status: "failed", reason }),

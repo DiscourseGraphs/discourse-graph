@@ -26,7 +26,8 @@ DECLARE t_task_times_out_at TIMESTAMP WITH TIME ZONE;
 BEGIN
     SELECT id, worker, status, failure_count, last_task_start, last_task_end, last_success_start, task_times_out_at
         INTO STRICT t_id, t_worker, t_status, t_failure_count, t_last_task_start, t_last_task_end, t_last_success_start, t_task_times_out_at
-        FROM public.sync_info WHERE sync_target = s_target AND sync_function = s_function;
+        FROM public.sync_info WHERE sync_target = s_target AND sync_function = s_function
+        FOR UPDATE;
     ASSERT s_status > 'active';
     IF COALESCE(s_started_at, t_last_task_start) < t_last_task_start THEN
         -- we probably took too long. Let the other task have priority.
