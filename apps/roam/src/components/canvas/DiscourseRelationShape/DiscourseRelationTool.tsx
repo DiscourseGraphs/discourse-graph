@@ -81,6 +81,7 @@ export const createAllReferencedNodeTools = (
             this.shapeType = `${action}`;
           } else {
             this.cancelAndWarn(`Starting node must be one of ${sourceName}`);
+            return;
           }
           if (!target) {
             this.createArrowShape();
@@ -375,6 +376,7 @@ export const createAllRelationShapeTools = (
             this.cancelAndWarn(
               `Starting node must be one of ${uniqueTypes.join(", ")}`,
             );
+            return;
           }
           if (!target) {
             this.createArrowShape();
