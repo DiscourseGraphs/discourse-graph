@@ -3,6 +3,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { getNodeTagColorStyles } from "~/utils/getDiscourseNodeColors";
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
 
+/**
+ * Blueprint `Tag` for filter chips; custom `<input>` for inline ghost Tab completion.
+ * `TagInput` does not support ghost suggest + Tab commit, and its Enter handler
+ * conflicts with opening search results (see AdvancedSearchDialog key handling).
+ */
 type NodeTypeChipsSearchInputProps = {
   nodeTypes: DiscourseNode[];
   searchTerm: string;
@@ -10,12 +15,7 @@ type NodeTypeChipsSearchInputProps = {
   inputRef: React.RefObject<HTMLInputElement>;
   onSearchTermChange: (value: string) => void;
   onSelectedTypeIdsChange: (ids: string[]) => void;
-  onArrowDown: () => void;
-  onArrowUp: () => void;
-  onEnter: () => void;
-  onShiftEnter: () => void;
-  onCmdEnter: () => void;
-  onEscape: () => void;
+  onSearchKeyDown: (event: React.KeyboardEvent) => void;
 };
 
 const CHIP_LABEL_MAX_WIDTH = "10rem";
@@ -72,12 +72,7 @@ export const NodeTypeChipsSearchInput = ({
   inputRef,
   onSearchTermChange,
   onSelectedTypeIdsChange,
-  onArrowDown,
-  onArrowUp,
-  onEnter,
-  onShiftEnter,
-  onCmdEnter,
-  onEscape,
+  onSearchKeyDown,
 }: NodeTypeChipsSearchInputProps): React.ReactElement => {
   const [focusedChipIndex, setFocusedChipIndex] = useState(-1);
   const chipRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -153,19 +148,13 @@ export const NodeTypeChipsSearchInput = ({
       setFocusedChipIndex(chipIndex);
       return;
     }
-    if (event.key === "ArrowDown") {
+    if (
+      event.key === "ArrowDown" ||
+      event.key === "ArrowUp" ||
+      event.key === "Escape"
+    ) {
       event.preventDefault();
-      onArrowDown();
-      return;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      onArrowUp();
-      return;
-    }
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onEscape();
+      onSearchKeyDown(event);
       return;
     }
     if (isPlainCharacterKey(event)) {
@@ -215,34 +204,19 @@ export const NodeTypeChipsSearchInput = ({
       }
     }
 
-    if (event.key === "ArrowDown") {
+    if (
+      event.key === "ArrowDown" ||
+      event.key === "ArrowUp" ||
+      event.key === "Enter" ||
+      event.key === "Escape"
+    ) {
       event.preventDefault();
-      onArrowDown();
-      return;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      onArrowUp();
-      return;
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      if (event.metaKey || event.ctrlKey) onCmdEnter();
-      else if (event.shiftKey) onShiftEnter();
-      else onEnter();
-      return;
-    }
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onEscape();
+      onSearchKeyDown(event);
     }
   };
 
   return (
-    <div
-      className="flex w-full min-w-0 flex-1 flex-wrap items-center gap-1 py-0.5"
-      style={{ flex: "1 1 0", minWidth: 0, width: "100%" }}
-    >
+    <div className="flex w-full min-w-0 flex-1 flex-wrap items-center gap-1 py-0.5">
       {selectedNodeTypes.map((nodeType, index) => {
         const isFocused = focusedChipIndex === index;
         return (
@@ -255,13 +229,6 @@ export const NodeTypeChipsSearchInput = ({
             tabIndex={-1}
             onClick={() => setFocusedChipIndex(index)}
             onKeyDown={(event) => handleChipKeyDown(event, index)}
-            style={{
-              borderRadius: 3,
-              boxShadow: isFocused
-                ? "0 0 0 2px rgba(95, 87, 192, 0.2)"
-                : undefined,
-              display: "inline-flex",
-            }}
           >
             <Tag
               active={isFocused}

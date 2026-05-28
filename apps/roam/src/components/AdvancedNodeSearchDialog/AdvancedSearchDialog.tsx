@@ -365,18 +365,21 @@ const AdvancedNodeSearchDialog = ({
     onClose();
   }, [activeResult, contentState, onClose]);
 
-  const onKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.defaultPrevented) return;
+  const handleSearchKeyDown = useCallback(
+    (event: React.KeyboardEvent): void => {
       if (event.key === "ArrowDown" && results.length) {
         event.preventDefault();
         setActiveIndex((index) =>
           Math.min(Math.max(index, 0) + 1, results.length - 1),
         );
-      } else if (event.key === "ArrowUp" && results.length) {
+        return;
+      }
+      if (event.key === "ArrowUp" && results.length) {
         event.preventDefault();
         setActiveIndex((index) => Math.max(index - 1, 0));
-      } else if (
+        return;
+      }
+      if (
         event.key === "Enter" &&
         event.altKey &&
         contentState === "results" &&
@@ -394,7 +397,9 @@ const AdvancedNodeSearchDialog = ({
         event.preventDefault();
         if (event.shiftKey) void onOpenInSidebar();
         else void onOpen();
-      } else if (
+        return;
+      }
+      if (
         event.key === "Enter" &&
         (event.metaKey || event.ctrlKey) &&
         contentState === "results" &&
@@ -403,7 +408,9 @@ const AdvancedNodeSearchDialog = ({
       ) {
         event.preventDefault();
         void onInsert();
-      } else if (event.key === "Escape") {
+        return;
+      }
+      if (event.key === "Escape") {
         if (isTypeFilterPopoverOpen) return;
         event.preventDefault();
         onClose();
@@ -421,6 +428,14 @@ const AdvancedNodeSearchDialog = ({
       onOpenInSidebar,
       results.length,
     ],
+  );
+
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.defaultPrevented) return;
+      handleSearchKeyDown(event);
+    },
+    [handleSearchKeyDown],
   );
 
   const showSplitView = contentState === "results";
@@ -447,10 +462,7 @@ const AdvancedNodeSearchDialog = ({
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
         <div className="flex w-full flex-none items-start gap-2 border-b border-gray-200 px-3 py-2">
-          <div
-            className="flex min-h-9 w-full min-w-0 flex-1 items-center rounded border border-gray-300 bg-white px-2 py-1"
-            style={{ flex: "1 1 0", minWidth: 0 }}
-          >
+          <div className="flex min-h-9 min-w-0 flex-1 items-center rounded border border-gray-300 bg-white px-2 py-1">
             <Icon
               className="mr-2 shrink-0 self-center text-gray-500"
               icon="search"
@@ -459,48 +471,34 @@ const AdvancedNodeSearchDialog = ({
             <NodeTypeChipsSearchInput
               inputRef={inputRef}
               nodeTypes={discourseNodes}
-              onArrowDown={() => {
-                if (!results.length) return;
-                setActiveIndex((index) =>
-                  Math.min(Math.max(index, 0) + 1, results.length - 1),
-                );
-              }}
-              onArrowUp={() => {
-                if (!results.length) return;
-                setActiveIndex((index) => Math.max(index - 1, 0));
-              }}
-              onCmdEnter={() => void onInsert()}
-              onEnter={() => void onOpen()}
-              onEscape={() => {
-                if (isTypeFilterPopoverOpen) return;
-                onClose();
-              }}
+              onSearchKeyDown={handleSearchKeyDown}
               onSearchTermChange={setSearchTerm}
               onSelectedTypeIdsChange={setSelectedNodeTypeIds}
-              onShiftEnter={() => void onOpenInSidebar()}
               searchTerm={searchTerm}
               selectedTypeIds={selectedNodeTypeIds}
             />
           </div>
-          <DiscourseNodeTypeFilter
-            layoutAnchorKey={selectedNodeTypeIds.length}
-            nodeTypes={discourseNodes}
-            onPopoverOpenChange={setIsTypeFilterPopoverOpen}
-            onSelectedTypeIdsChange={setSelectedNodeTypeIds}
-            selectedTypeIds={selectedNodeTypeIds}
-          />
-          <DiscourseNodeSortControl
-            disabled={isIndexLoading || indexError}
-            onSortChange={handleSortChange}
-            sort={sort}
-          />
-          <Button
-            className="shrink-0"
-            icon="cross"
-            minimal
-            onClick={onClose}
-            title="Close search"
-          />
+          <div className="flex h-9 shrink-0 items-center gap-1">
+            <DiscourseNodeTypeFilter
+              layoutAnchorKey={selectedNodeTypeIds.length}
+              nodeTypes={discourseNodes}
+              onPopoverOpenChange={setIsTypeFilterPopoverOpen}
+              onSelectedTypeIdsChange={setSelectedNodeTypeIds}
+              selectedTypeIds={selectedNodeTypeIds}
+            />
+            <DiscourseNodeSortControl
+              disabled={isIndexLoading || indexError}
+              onSortChange={handleSortChange}
+              sort={sort}
+            />
+            <Button
+              className="shrink-0"
+              icon="cross"
+              minimal
+              onClick={onClose}
+              title="Close search"
+            />
+          </div>
         </div>
         <div className="flex min-h-0 w-full flex-1 overflow-hidden">
           {showSplitView ? (
