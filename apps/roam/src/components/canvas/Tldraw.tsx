@@ -174,6 +174,8 @@ export const MAX_WIDTH = "400px";
 
 const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
 
+const PAGE_REF_REGEX = /^\[\[(.+?)\]\]$/;
+
 /** Valid file size for asset props; undefined when unknown (e.g. Roam/file API not a real File) to avoid persisting null. */
 const getValidFileSize = (file: { size?: number }): number | undefined =>
   typeof file.size === "number" && Number.isFinite(file.size) && file.size > 0
@@ -648,6 +650,7 @@ const TldrawCanvasShared = ({
       if (pageRef) {
         const pageTitle = (
           pageRef.getAttribute("data-tag") ||
+          pageRef.getAttribute("data-link-title") ||
           pageRef.parentElement?.getAttribute("data-link-title")
         )?.replace(/\\"/g, '"');
         if (pageTitle)
@@ -1294,30 +1297,36 @@ const InsideEditorAndUiContext = ({
         try {
           const text = content.text ?? "";
 
-          // Check for page reference: [[pageName]]
-          const pageMatch = text.match(/^\[\[(.+?)\]\]$/);
-          if (pageMatch?.[1]) {
-            const pageName = pageMatch[1];
-            const pageUid = getPageUidByPageTitle(pageName);
-            if (!pageUid) return await callDefaultTextHandler(content);
-
+          const tryCreatePageNodeShape = async (
+            title: string,
+          ): Promise<boolean> => {
+            const pageUid = getPageUidByPageTitle(title);
+            if (!pageUid) return false;
             const nodeType = findDiscourseNode({
               uid: pageUid,
-              title: pageName,
+              title,
               nodes: allNodes,
             });
-            if (!nodeType) return await callDefaultTextHandler(content);
-
+            if (!nodeType) return false;
             await createDiscourseNodeShape({
               uid: pageUid,
-              nodeText: pageName,
+              nodeText: title,
               nodeType: nodeType.type,
               content,
             });
-            posthog.capture("Canvas: Node Added from External Content", {
-              source: "page-reference",
-            });
-            return;
+            return true;
+          };
+
+          // Check for page reference: [[pageName]]
+          const pageMatch = text.match(PAGE_REF_REGEX);
+          if (pageMatch?.[1]) {
+            if (await tryCreatePageNodeShape(pageMatch[1])) {
+              posthog.capture("Canvas: Node Added from External Content", {
+                source: "page-reference",
+              });
+              return;
+            }
+            return await callDefaultTextHandler(content);
           }
 
           // Check for block reference: ((uid))
@@ -1329,6 +1338,14 @@ const InsideEditorAndUiContext = ({
           const isLive = isLiveBlock(uid);
           if (!blockText || !isLive)
             return await callDefaultTextHandler(content);
+
+          const refMatch = blockText.match(PAGE_REF_REGEX);
+          if (refMatch?.[1] && (await tryCreatePageNodeShape(refMatch[1]))) {
+            posthog.capture("Canvas: Node Added from External Content", {
+              source: "block-page-reference",
+            });
+            return;
+          }
 
           await createDiscourseNodeShape({
             uid,
