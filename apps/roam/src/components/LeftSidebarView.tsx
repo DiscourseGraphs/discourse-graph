@@ -390,7 +390,7 @@ const QuerySectionItem = ({
   );
   const [results, setResults] = useState<ChildNode[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [hasCompletedInitialLoad, setHasCompletedInitialLoad] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isTogglingRef = useRef(false);
@@ -416,15 +416,15 @@ const QuerySectionItem = ({
       setError("Query failed to run");
     } finally {
       setIsLoading(false);
-      setHasLoaded(true);
+      setHasCompletedInitialLoad(true);
     }
   }, [queryUid, onloadArgs.extensionAPI]);
 
   useEffect(() => {
-    if (isOpen && !hasLoaded) {
+    if (isOpen && !hasCompletedInitialLoad) {
       void loadResults();
     }
-  }, [isOpen, hasLoaded, loadResults]);
+  }, [isOpen, hasCompletedInitialLoad, loadResults]);
 
   const handleChevronClick = async () => {
     if (!section.settings) return;
@@ -460,7 +460,7 @@ const QuerySectionItem = ({
         onloadArgs={onloadArgs}
       />
     ));
-  } else if (hasLoaded) {
+  } else if (hasCompletedInitialLoad) {
     body = <div className="pl-8 pr-2.5 text-sm text-gray-500">No results</div>;
   }
 
