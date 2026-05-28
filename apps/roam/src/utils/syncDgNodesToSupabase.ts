@@ -30,6 +30,7 @@ import type {
   LocalContentDataInput,
   LocalAccountDataInput,
 } from "@repo/database/inputTypes";
+import type { Properties } from "posthog-js";
 
 const SYNC_FUNCTION = "embedding";
 // Minimal interval between syncs of all clients for this task.
@@ -40,10 +41,139 @@ const SYNC_TIMEOUT = "60s"; // must be less than half the SYNC_INTERVAL.
 const BATCH_SIZE = 200;
 const CONCEPT_BATCH_SIZE = 200;
 
+type SyncPhaseDurations = Record<string, number>;
+
 type SyncTaskInfo = {
   lastUpdateTime?: Date;
   nextUpdateTime?: Date;
   shouldProceed: boolean;
+};
+
+type EndSyncTaskRpcResult = {
+  ok?: boolean;
+  stale?: boolean;
+  reason?: string;
+  requestedStatus?: string;
+  callerWorker?: string;
+  currentWorker?: string;
+  currentStatus?: string;
+  callerStartedAt?: string;
+  currentStartedAt?: string;
+  lastTaskEnd?: string;
+  lastSuccessStart?: string;
+  taskTimesOutAt?: string;
+  failureCount?: number;
+};
+
+type EndSyncTaskResult =
+  | {
+      ok: true;
+      stale: false;
+      rpcResult?: EndSyncTaskRpcResult;
+    }
+  | {
+      ok: false;
+      stale: true;
+      rpcResult?: EndSyncTaskRpcResult;
+    }
+  | {
+      ok: false;
+      stale: false;
+      error: Error;
+      rpcResult?: EndSyncTaskRpcResult;
+    };
+
+let syncWorkerId: string | null = null;
+
+const createRuntimeId = (): string => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
+    return crypto.randomUUID();
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
+const getSyncWorkerId = (): string => {
+  if (syncWorkerId === null) {
+    syncWorkerId = `roam-${createRuntimeId()}`;
+  }
+
+  return syncWorkerId;
+};
+
+const isEndSyncTaskRpcResult = (
+  data: Json | undefined,
+): data is EndSyncTaskRpcResult => {
+  return typeof data === "object" && data !== null && !Array.isArray(data);
+};
+
+const measureSyncPhase = async <T>({
+  phase,
+  phases,
+  operation,
+}: {
+  phase: string;
+  phases: SyncPhaseDurations;
+  operation: () => Promise<T>;
+}): Promise<T> => {
+  const phaseStart = performance.now();
+  try {
+    return await operation();
+  } finally {
+    phases[phase] = Math.round(performance.now() - phaseStart);
+  }
+};
+
+const syncTelemetryContext = ({
+  attemptId,
+  worker,
+  userUid,
+  context,
+  startTime,
+  claimed,
+  phases,
+  status,
+  reason,
+  nextUpdateTime,
+  lastUpdateTime,
+  endSyncResult,
+}: {
+  attemptId: string;
+  worker: string;
+  userUid: string;
+  context: SupabaseContext | null;
+  startTime: Date;
+  claimed: boolean;
+  phases: SyncPhaseDurations;
+  status: string;
+  reason?: string;
+  nextUpdateTime?: Date;
+  lastUpdateTime?: Date;
+  endSyncResult?: EndSyncTaskRpcResult;
+}): Properties => {
+  const duration = (Date.now() - startTime.valueOf()) / 1000.0;
+  const phaseProperties = Object.fromEntries(
+    Object.entries(phases).map(([phase, durationMs]) => [
+      `phase_${phase}_ms`,
+      durationMs,
+    ]),
+  );
+
+  return {
+    syncAttemptId: attemptId,
+    syncWorkerId: worker,
+    syncFunction: SYNC_FUNCTION,
+    syncUserUid: userUid,
+    claimed,
+    status,
+    duration,
+    reason,
+    spaceId: context?.spaceId,
+    startedAt: startTime.toISOString(),
+    nextUpdateTime: nextUpdateTime?.toISOString(),
+    lastUpdateTime: lastUpdateTime?.toISOString(),
+    endSyncResult,
+    ...phaseProperties,
+  };
 };
 
 const chunk = <T>(array: T[], size: number): T[][] => {
@@ -103,10 +233,12 @@ const notifyEndSyncFailure = ({
   status,
   showToast,
   reason,
+  context,
 }: {
   status: Enums<"task_status">;
   showToast: boolean;
   reason: string;
+  context?: Properties;
 }): void => {
   if (showToast) {
     renderToast({
@@ -120,7 +252,7 @@ const notifyEndSyncFailure = ({
   internalError({
     error: new Error(reason),
     type: "Sync Failed",
-    context: { status },
+    context: { status, ...(context || {}) },
   });
 };
 
@@ -129,22 +261,32 @@ export const endSyncTask = async ({
   status,
   showToast = false,
   startTime,
+  context,
+  supabaseClient,
+  telemetryContext,
 }: {
   worker: string;
   status: Enums<"task_status">;
   showToast: boolean;
   startTime: Date;
-}): Promise<void> => {
+  context?: SupabaseContext;
+  supabaseClient?: DGSupabaseClient;
+  telemetryContext?: Properties;
+}): Promise<EndSyncTaskResult> => {
   try {
-    const supabaseClient = await getLoggedInClient();
-    if (!supabaseClient) return;
-    const context = await getSupabaseContext();
-    if (!context) {
-      console.error("endSyncTask: Unable to obtain Supabase context.");
-      return;
+    const resolvedClient = supabaseClient || (await getLoggedInClient());
+    if (!resolvedClient) {
+      const error = new Error("Missing Supabase client while ending sync task");
+      return { ok: false, stale: false, error };
     }
-    const { error } = await supabaseClient.rpc("end_sync_task", {
-      s_target: context.spaceId,
+    const resolvedContext = context || (await getSupabaseContext());
+    if (!resolvedContext) {
+      console.error("endSyncTask: Unable to obtain Supabase context.");
+      const error = new Error("Unable to obtain Supabase context");
+      return { ok: false, stale: false, error };
+    }
+    const { data, error } = await resolvedClient.rpc("end_sync_task", {
+      s_target: resolvedContext.spaceId,
       s_function: SYNC_FUNCTION,
       s_worker: worker,
       s_status: status,
@@ -152,14 +294,62 @@ export const endSyncTask = async ({
     });
     if (error) {
       console.error("endSyncTask: Error calling end_sync_task:", error);
+      const reason = `Supabase end_sync_task RPC failed: ${error.message ?? "Unknown error"}`;
       notifyEndSyncFailure({
         status,
         showToast,
-        reason: `Supabase end_sync_task RPC failed: ${error.message ?? "Unknown error"}`,
+        reason,
+        context: {
+          ...telemetryContext,
+          endSyncErrorCode: error.code,
+          endSyncErrorDetails: error.details,
+          endSyncErrorHint: error.hint,
+        },
       });
 
-      return;
-    } else if (showToast) {
+      return {
+        ok: false,
+        stale: false,
+        error: new Error(reason),
+      };
+    }
+
+    const rpcResult = isEndSyncTaskRpcResult(data) ? data : undefined;
+    if (rpcResult?.stale === true) {
+      posthog.capture("Sync end task stale", {
+        ...telemetryContext,
+        endSyncResult: rpcResult,
+      });
+
+      return {
+        ok: false,
+        stale: true,
+        rpcResult,
+      };
+    }
+
+    if (rpcResult?.ok === false) {
+      const reason =
+        rpcResult.reason || "Supabase end_sync_task returned failure";
+      notifyEndSyncFailure({
+        status,
+        showToast,
+        reason,
+        context: {
+          ...telemetryContext,
+          endSyncResult: rpcResult,
+        },
+      });
+
+      return {
+        ok: false,
+        stale: false,
+        error: new Error(reason),
+        rpcResult,
+      };
+    }
+
+    if (showToast) {
       if (status === "failed") {
         renderToast({
           id: "discourse-embedding-failed",
@@ -169,16 +359,26 @@ export const endSyncTask = async ({
         });
       }
     }
+
+    return { ok: true, stale: false, rpcResult };
   } catch (error) {
     console.error("endSyncTask: Error calling end_sync_task:", error);
+    const reason =
+      error instanceof Error
+        ? `Unexpected error ending sync task: ${error.message}`
+        : "Unexpected non-error thrown while ending sync task";
     notifyEndSyncFailure({
       status,
       showToast,
-      reason:
-        error instanceof Error
-          ? `Unexpected error ending sync task: ${error.message}`
-          : "Unexpected non-error thrown while ending sync task",
+      reason,
+      context: telemetryContext,
     });
+
+    return {
+      ok: false,
+      stale: false,
+      error: error instanceof Error ? error : new Error(reason),
+    };
   }
 };
 
@@ -199,7 +399,7 @@ export const proposeSyncTask = async (
 
     if (error) {
       console.error(
-        `proposeSyncTask: propose_sync_task failed – ${error.message}`,
+        `proposeSyncTask: propose_sync_task failed - ${error.message}`,
       );
       return { shouldProceed: false };
     }
@@ -497,37 +697,97 @@ const getAllMissingOrNewDiscourseNodes = async ({
   ];
 };
 
-export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
+export const createOrUpdateDiscourseEmbedding = async (
+  showToast = false,
+): Promise<void> => {
   if (!doSync) return;
   console.debug("starting createOrUpdateDiscourseEmbedding");
   const startTime = new Date();
+  const attemptId = createRuntimeId();
+  const phases: SyncPhaseDurations = {};
   let success = true;
   let claimed = false;
   const isInitialSync = initialSync; // record state at start
-  const worker = window.roamAlphaAPI.user.uid();
+  let context: SupabaseContext | null = null;
+  let supabaseClient: DGSupabaseClient | null = null;
+  let userUid = "";
+  const worker = getSyncWorkerId();
+
+  const buildTelemetry = ({
+    status,
+    reason,
+    nextUpdateTime,
+    lastUpdateTime,
+    endSyncResult,
+  }: {
+    status: string;
+    reason?: string;
+    nextUpdateTime?: Date;
+    lastUpdateTime?: Date;
+    endSyncResult?: EndSyncTaskRpcResult;
+  }): Properties =>
+    syncTelemetryContext({
+      attemptId,
+      worker,
+      userUid,
+      context,
+      startTime,
+      claimed,
+      phases,
+      status,
+      reason,
+      nextUpdateTime,
+      lastUpdateTime,
+      endSyncResult,
+    });
 
   try {
-    if (!worker) {
+    const resolvedUserUid = window.roamAlphaAPI.user.uid();
+    if (!resolvedUserUid) {
       throw new FatalError("Unable to obtain user UID.");
     }
+    userUid = resolvedUserUid;
 
-    const supabaseClient = await getLoggedInClient();
+    supabaseClient = await measureSyncPhase({
+      phase: "getLoggedInClient",
+      phases,
+      operation: getLoggedInClient,
+    });
     if (!supabaseClient) {
       // TODO: Distinguish connection vs credentials error
       throw new Error("Could not log in to client.");
     }
-    const context = await getSupabaseContext();
+    context = await measureSyncPhase({
+      phase: "getSupabaseContext",
+      phases,
+      operation: getSupabaseContext,
+    });
     if (!context) {
       // not worth retrying: setup error
       throw new FatalError("Error connecting to client.");
     }
+    const activeSupabaseClient = supabaseClient;
+    const activeContext = context;
     const { shouldProceed, lastUpdateTime, nextUpdateTime } =
-      await proposeSyncTask(worker, supabaseClient, context);
+      await measureSyncPhase({
+        phase: "proposeSyncTask",
+        phases,
+        operation: () =>
+          proposeSyncTask(worker, activeSupabaseClient, activeContext),
+      });
     if (!shouldProceed) {
       if (nextUpdateTime === undefined) {
         throw new Error("Can't obtain sync task");
       }
       console.debug("postponed to ", nextUpdateTime);
+      posthog.capture(
+        "Sync postponed",
+        buildTelemetry({
+          status: "postponed",
+          nextUpdateTime,
+          lastUpdateTime,
+        }),
+      );
       if (doSync) {
         activeTimeout = setTimeout(
           createOrUpdateDiscourseEmbedding, // eslint-disable-line @typescript-eslint/no-misused-promises
@@ -539,7 +799,11 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
       return;
     }
     claimed = true;
-    const allUsers = await getAllUsers();
+    const allUsers = await measureSyncPhase({
+      phase: "getAllUsers",
+      phases,
+      operation: getAllUsers,
+    });
     const sinceTime = lastUpdateTime
       ? lastUpdateTime.valueOf() - 1000 // add a one-second buffer
       : undefined;
@@ -547,39 +811,138 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
       (n) => n.backedBy === "user",
     );
 
-    const allNodeInstances = isInitialSync
-      ? await getAllMissingOrNewDiscourseNodes({
-          supabaseClient,
-          spaceId: context.spaceId,
-          since: sinceTime,
-          nodeTypes: allDgNodeTypes,
-        })
-      : await getAllDiscourseNodesSince(sinceTime, allDgNodeTypes);
-    await upsertUsers(allUsers, supabaseClient, context);
-    await upsertNodesToSupabaseAsContentWithEmbeddings(
-      allNodeInstances,
-      supabaseClient,
-      context,
-    );
-    await convertDgToSupabaseConcepts({
-      nodesSince: allNodeInstances,
-      since: sinceTime,
-      allNodeTypes: allDgNodeTypes,
-      supabaseClient,
-      context,
+    const allNodeInstances = await measureSyncPhase({
+      phase: isInitialSync
+        ? "getAllMissingOrNewDiscourseNodes"
+        : "getAllDiscourseNodesSince",
+      phases,
+      operation: () =>
+        isInitialSync
+          ? getAllMissingOrNewDiscourseNodes({
+              supabaseClient: activeSupabaseClient,
+              spaceId: activeContext.spaceId,
+              since: sinceTime,
+              nodeTypes: allDgNodeTypes,
+            })
+          : getAllDiscourseNodesSince(sinceTime, allDgNodeTypes),
     });
-    await cleanupOrphanedNodes(supabaseClient, context);
-    await endSyncTask({ worker, status: "complete", showToast, startTime });
-    initialSync = false;
-    const duration = (new Date().valueOf() - startTime.valueOf()) / 1000.0;
-    posthog.capture("Sync complete", { duration });
+    await measureSyncPhase({
+      phase: "upsertUsers",
+      phases,
+      operation: () =>
+        upsertUsers(allUsers, activeSupabaseClient, activeContext),
+    });
+    await measureSyncPhase({
+      phase: "upsertNodes",
+      phases,
+      operation: () =>
+        upsertNodesToSupabaseAsContentWithEmbeddings(
+          allNodeInstances,
+          activeSupabaseClient,
+          activeContext,
+        ),
+    });
+    await measureSyncPhase({
+      phase: "convertConcepts",
+      phases,
+      operation: () =>
+        convertDgToSupabaseConcepts({
+          nodesSince: allNodeInstances,
+          since: sinceTime,
+          allNodeTypes: allDgNodeTypes,
+          supabaseClient: activeSupabaseClient,
+          context: activeContext,
+        }),
+    });
+    await measureSyncPhase({
+      phase: "cleanupOrphanedNodes",
+      phases,
+      operation: () =>
+        cleanupOrphanedNodes(activeSupabaseClient, activeContext),
+    });
+    const completeEndResult = await measureSyncPhase({
+      phase: "endSyncTask",
+      phases,
+      operation: () =>
+        endSyncTask({
+          worker,
+          status: "complete",
+          showToast,
+          startTime,
+          context: activeContext,
+          supabaseClient: activeSupabaseClient,
+          telemetryContext: buildTelemetry({
+            status: "complete",
+            lastUpdateTime,
+          }),
+        }),
+    });
+
+    if (completeEndResult.ok) {
+      initialSync = false;
+      posthog.capture(
+        "Sync complete",
+        buildTelemetry({
+          status: "complete",
+          lastUpdateTime,
+          endSyncResult: completeEndResult.rpcResult,
+        }),
+      );
+    } else if (completeEndResult.stale) {
+      success = false;
+      posthog.capture(
+        "Sync stale",
+        buildTelemetry({
+          status: "stale",
+          reason:
+            completeEndResult.rpcResult?.reason ||
+            "end_sync_task completed by newer sync task",
+          lastUpdateTime,
+          endSyncResult: completeEndResult.rpcResult,
+        }),
+      );
+    } else {
+      success = false;
+      posthog.capture(
+        "Sync error",
+        buildTelemetry({
+          status: "end_task_failed",
+          reason: completeEndResult.error.message,
+          lastUpdateTime,
+          endSyncResult: completeEndResult.rpcResult,
+        }),
+      );
+    }
   } catch (error) {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
     success = false;
-    if (worker && claimed)
-      await endSyncTask({ worker, status: "failed", showToast, startTime });
-    const duration = (new Date().valueOf() - startTime.valueOf()) / 1000.0;
-    posthog.capture("Sync error", { duration });
+    const reason =
+      error instanceof Error ? error.message : "Unknown sync error";
+    let failedEndResult: EndSyncTaskResult | undefined;
+    if (claimed) {
+      failedEndResult = await measureSyncPhase({
+        phase: "endSyncTaskFailed",
+        phases,
+        operation: () =>
+          endSyncTask({
+            worker,
+            status: "failed",
+            showToast,
+            startTime,
+            context: context || undefined,
+            supabaseClient: supabaseClient || undefined,
+            telemetryContext: buildTelemetry({ status: "failed", reason }),
+          }),
+      });
+    }
+    posthog.capture(
+      "Sync error",
+      buildTelemetry({
+        status: error instanceof FatalError ? "fatal" : "failed",
+        reason,
+        endSyncResult: failedEndResult?.rpcResult,
+      }),
+    );
     if (error instanceof FatalError) {
       doSync = false;
       return;
@@ -594,7 +957,7 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
       doSync = false;
       return;
     }
-    const jitter = 0.9 + Math.random() * 0.2; // 0.9x–1.1x
+    const jitter = 0.9 + Math.random() * 0.2; // 0.9x-1.1x
     timeout *= 2 ** numFailures * jitter;
   }
   if (activeTimeout != null) {

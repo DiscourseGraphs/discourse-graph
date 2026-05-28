@@ -1,5 +1,4 @@
 import { NextResponse, NextRequest } from "next/server";
-import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { type Database, Constants } from "@repo/database/dbTypes";
 import { asPostgrestFailure } from "@repo/database/lib/contextFunctions";
 import { createClient } from "~/utils/supabase/server";
@@ -22,7 +21,14 @@ export const POST = async (
         asPostgrestFailure(`${target} is not a number`, "type"),
       );
     }
-    const infoS: string = await request.json();
+    const infoRaw: unknown = await request.json();
+    if (typeof infoRaw !== "string") {
+      return createApiResponse(
+        request,
+        asPostgrestFailure("Request body is not a task status", "type"),
+      );
+    }
+    const infoS = infoRaw;
     if (
       !(Constants.public.Enums.task_status as readonly string[]).includes(infoS)
     ) {
@@ -33,15 +39,14 @@ export const POST = async (
     }
     const info = infoS as Database["public"]["Enums"]["task_status"];
     const supabase = await createClient();
-    const response = (await supabase.rpc("end_sync_task", {
+    const response = await supabase.rpc("end_sync_task", {
       s_target: targetN,
       s_function: fn,
       s_worker: worker,
       s_status: info,
-    })) as PostgrestSingleResponse<boolean>;
-    // Transform 204 No Content to 200 OK with success indicator for API consistency
+    });
     if (response.status === 204) {
-      response.data = true;
+      response.data = { ok: true, stale: false };
       response.status = 200;
     }
 

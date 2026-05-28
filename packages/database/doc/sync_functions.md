@@ -15,4 +15,5 @@ When a worker calls `propose_sync_task`, it will receive either:
 2. a timestamp in the past, which is also the last time the task was executed successfully. Your worker can ask the platform for all changes posterior to that time. (This will only be reliable if you make always make your queries after calling this function!)
 3. Null, meaning the task was not executed successfully before, and your worker is tasked with starting from scratch.
 
-When a worker finishes the task, it should clean up with `end_sync_task`, giving the same identifying arguments and a status ('complete' or 'failed'.)
+When a worker finishes the task, it should clean up with `end_sync_task`, giving the same identifying arguments and a status (`complete` or `failed`).
+The function returns a JSON object with `ok` and `stale` fields plus task metadata. A stale response means another attempt claimed a newer task while this attempt was still running, so the caller should not report it as a successful completion.
