@@ -250,64 +250,74 @@ export const DiscourseNodeTypeFilter = ({
   const isTriggerActive = isOpen || isFilterActive;
 
   const filterButton = (
-    <Button
-      aria-expanded={isOpen}
-      aria-label="Filter by type"
-      className="p-0"
-      disabled={!isFilterReady}
-      elementRef={triggerRef}
-      icon="filter-keep"
-      minimal
-      onMouseDown={(event) => event.preventDefault()}
-      style={{
-        position: "relative",
-        color: isTriggerActive ? "#5f57c0" : "rgba(31, 31, 31, 0.6)",
-        background: isTriggerActive ? "rgba(95, 87, 192, 0.1)" : "transparent",
-      }}
-      title={
-        isFilterReady ? "Filter by type" : "Loading discourse node types..."
-      }
-    >
-      {activeFilterCount > 0 && (
-        <span
-          style={{ position: "absolute", right: 2, top: 2 }}
-          className="inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-lg bg-blue-600 px-1 text-xs font-semibold leading-none text-white"
-        >
-          {activeFilterCount}
-        </span>
-      )}
-    </Button>
+    <span className="relative inline-flex shrink-0 items-center">
+      <Button
+        aria-expanded={isOpen}
+        aria-label={
+          activeFilterCount > 0
+            ? `Filter by type, ${activeFilterCount} selected`
+            : "Filter by type"
+        }
+        className={
+          isTriggerActive
+            ? "!bg-[rgba(95,87,192,0.1)] !text-[#5f57c0]"
+            : "!text-gray-600 hover:!bg-gray-100 hover:!text-gray-900"
+        }
+        disabled={!isFilterReady}
+        elementRef={triggerRef}
+        icon="filter"
+        minimal
+        onMouseDown={(event) => event.preventDefault()}
+        title={
+          isFilterReady ? "Filter by type" : "Loading discourse node types..."
+        }
+      />
+      <span
+        aria-hidden={activeFilterCount === 0}
+        className="pointer-events-none absolute inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-lg bg-blue-600 px-1 text-xs font-semibold leading-none text-white"
+        style={{
+          right: 0,
+          top: 0,
+          transform: "translate(25%, -25%)",
+          visibility: activeFilterCount > 0 ? "visible" : "hidden",
+        }}
+      >
+        {activeFilterCount > 0 ? activeFilterCount : 0}
+      </span>
+    </span>
   );
 
   return (
-    <Popover
-      autoFocus={false}
-      canEscapeKeyClose
-      content={
-        <FilterPopoverPanel
-          isOpen={isOpen}
-          nodeTypes={nodeTypes}
-          onSelectedIdsChange={handlePopoverSelectedIdsChange}
-          selectedIds={popoverSelectedIds}
-        />
-      }
-      enforceFocus={false}
-      isOpen={isOpen}
-      minimal
-      modifiers={{
-        flip: { enabled: true },
-        preventOverflow: {
-          enabled: true,
-          boundariesElement: "viewport",
-        },
-      }}
-      onClose={() => setPopoverOpen(false)}
-      onInteraction={handlePopoverInteraction}
-      popoverClassName="p-0 overflow-hidden"
-      popoverRef={popoverRef}
-      position={Position.BOTTOM_RIGHT}
-      target={filterButton}
-      usePortal
-    />
+    <span className="inline-flex shrink-0 items-center [&_.bp3-popover-wrapper]:shrink-0">
+      <Popover
+        autoFocus={false}
+        canEscapeKeyClose
+        content={
+          <FilterPopoverPanel
+            isOpen={isOpen}
+            nodeTypes={nodeTypes}
+            onSelectedIdsChange={handlePopoverSelectedIdsChange}
+            selectedIds={popoverSelectedIds}
+          />
+        }
+        enforceFocus={false}
+        isOpen={isOpen}
+        minimal
+        modifiers={{
+          flip: { enabled: true },
+          preventOverflow: {
+            enabled: true,
+            boundariesElement: "viewport",
+          },
+        }}
+        onClose={() => setPopoverOpen(false)}
+        onInteraction={handlePopoverInteraction}
+        popoverClassName="p-0 overflow-hidden"
+        popoverRef={popoverRef}
+        position={Position.BOTTOM_RIGHT}
+        target={filterButton}
+        usePortal
+      />
+    </span>
   );
 };
