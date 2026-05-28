@@ -19,8 +19,9 @@ export const getAllPages = async <Name extends TableName, Result>(
 ): Promise<Result[] | PostgrestError> => {
   let offset = 0;
   const rows: Result[] = [];
+  // eslint-disable-next-line no-constant-condition
   while (true) {
-    const result = await query.range(offset, offset + limit);
+    const result = await query.range(offset, offset + limit - 1);
     const { data, error } = result;
     if (error) return error;
     rows.push(...data);
