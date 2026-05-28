@@ -1,6 +1,6 @@
 import { Classes, Tag } from "@blueprintjs/core";
 import React, { useEffect, useRef, useState } from "react";
-import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
+import { getNodeTagColorStyles } from "~/utils/getDiscourseNodeColors";
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
 
 type NodeTypeChipsSearchInputProps = {
@@ -239,7 +239,10 @@ export const NodeTypeChipsSearchInput = ({
   };
 
   return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 py-0.5">
+    <div
+      className="flex w-full min-w-0 flex-1 flex-wrap items-center gap-1 py-0.5"
+      style={{ flex: "1 1 0", minWidth: 0, width: "100%" }}
+    >
       {selectedNodeTypes.map((nodeType, index) => {
         const isFocused = focusedChipIndex === index;
         return (
@@ -271,9 +274,14 @@ export const NodeTypeChipsSearchInput = ({
                 );
                 focusInput();
               }}
-              style={getNodeTagStyles(
-                nodeType.canvasSettings?.color ?? "#000000",
-              )}
+              style={{
+                ...getNodeTagColorStyles(
+                  nodeType.canvasSettings?.color ?? "#000000",
+                ),
+                alignItems: "center",
+                display: "inline-flex",
+                flexDirection: "row",
+              }}
             >
               <span
                 className="truncate"
@@ -285,7 +293,10 @@ export const NodeTypeChipsSearchInput = ({
           </span>
         );
       })}
-      <span className="relative flex-1" style={{ minWidth: INPUT_MIN_WIDTH }}>
+      <span
+        className="relative min-w-0 flex-1"
+        style={{ minWidth: INPUT_MIN_WIDTH }}
+      >
         {completionSuffix && (
           <span className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-nowrap text-sm">
             <span className="invisible">{searchTerm}</span>

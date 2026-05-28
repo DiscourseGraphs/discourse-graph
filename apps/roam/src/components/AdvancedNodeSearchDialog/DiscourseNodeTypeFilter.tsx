@@ -28,6 +28,8 @@ export type DiscourseNodeTypeFilterProps = {
   selectedTypeIds: string[];
   onSelectedTypeIdsChange: (ids: string[]) => void;
   onPopoverOpenChange?: (isOpen: boolean) => void;
+  /** Bumps when surrounding layout changes (e.g. chip wrap) so the popover repositions. */
+  layoutAnchorKey?: number;
 };
 
 const NodeTypeFilterRow = ({
@@ -183,6 +185,7 @@ const FilterPopoverPanel = ({
 };
 
 export const DiscourseNodeTypeFilter = ({
+  layoutAnchorKey = 0,
   nodeTypes,
   onPopoverOpenChange,
   onSelectedTypeIdsChange,
@@ -245,6 +248,11 @@ export const DiscourseNodeTypeFilter = ({
   );
 
   const isTriggerActive = isOpen || isFilterActive;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    window.dispatchEvent(new Event("resize"));
+  }, [isOpen, layoutAnchorKey]);
 
   const filterButton = (
     <span className="relative inline-flex shrink-0 items-center">
@@ -311,7 +319,7 @@ export const DiscourseNodeTypeFilter = ({
         onInteraction={handlePopoverInteraction}
         popoverClassName="p-0 overflow-hidden"
         popoverRef={popoverRef}
-        position={Position.BOTTOM_RIGHT}
+        position={Position.BOTTOM}
         target={filterButton}
         usePortal
       />

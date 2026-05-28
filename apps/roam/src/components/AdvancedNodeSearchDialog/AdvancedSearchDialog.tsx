@@ -430,7 +430,7 @@ const AdvancedNodeSearchDialog = ({
       autoFocus={false}
       canEscapeKeyClose
       canOutsideClickClose
-      className="flex max-w-4xl flex-col overflow-hidden bg-white p-0"
+      className="flex w-full max-w-4xl flex-col overflow-hidden bg-white p-0"
       enforceFocus={false}
       isOpen={isOpen}
       onClose={onClose}
@@ -446,9 +446,16 @@ const AdvancedNodeSearchDialog = ({
         onMouseUp={(event) => event.stopPropagation()}
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <div className="flex flex-none items-center gap-2 border-b border-gray-200 px-3 py-2">
-          <div className="flex min-w-0 flex-1 items-center rounded border border-gray-300 bg-white px-2 py-1">
-            <Icon icon="search" size={16} className="mr-2 text-gray-500" />
+        <div className="flex w-full flex-none items-start gap-2 border-b border-gray-200 px-3 py-2">
+          <div
+            className="flex min-h-9 w-full min-w-0 flex-1 items-center rounded border border-gray-300 bg-white px-2 py-1"
+            style={{ flex: "1 1 0", minWidth: 0 }}
+          >
+            <Icon
+              className="mr-2 shrink-0 self-center text-gray-500"
+              icon="search"
+              size={16}
+            />
             <NodeTypeChipsSearchInput
               inputRef={inputRef}
               nodeTypes={discourseNodes}
@@ -475,24 +482,27 @@ const AdvancedNodeSearchDialog = ({
               selectedTypeIds={selectedNodeTypeIds}
             />
           </div>
-          <DiscourseNodeTypeFilter
-            nodeTypes={discourseNodes}
-            onPopoverOpenChange={setIsTypeFilterPopoverOpen}
-            onSelectedTypeIdsChange={setSelectedNodeTypeIds}
-            selectedTypeIds={selectedNodeTypeIds}
-          />
-          <DiscourseNodeSortControl
-            disabled={isIndexLoading || indexError}
-            onSortChange={handleSortChange}
-            sort={sort}
-          />
-          <Button
-            className="shrink-0"
-            icon="cross"
-            minimal
-            onClick={onClose}
-            title="Close search"
-          />
+          <div className="flex h-9 shrink-0 items-center gap-1">
+            <DiscourseNodeTypeFilter
+              layoutAnchorKey={selectedNodeTypeIds.length}
+              nodeTypes={discourseNodes}
+              onPopoverOpenChange={setIsTypeFilterPopoverOpen}
+              onSelectedTypeIdsChange={setSelectedNodeTypeIds}
+              selectedTypeIds={selectedNodeTypeIds}
+            />
+            <DiscourseNodeSortControl
+              disabled={isIndexLoading || indexError}
+              onSortChange={handleSortChange}
+              sort={sort}
+            />
+            <Button
+              className="shrink-0"
+              icon="cross"
+              minimal
+              onClick={onClose}
+              title="Close search"
+            />
+          </div>
         </div>
         <div className="flex min-h-0 w-full flex-1 overflow-hidden">
           {showSplitView ? (
