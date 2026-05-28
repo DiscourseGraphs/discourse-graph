@@ -9,7 +9,7 @@ import {
   splitWithHighlights,
   stripTypePrefix,
 } from "./utils";
-import { openSearchResultFromLinkEvent } from "./openSearchResult";
+import { openSearchResultFromLinkEvent } from "~/utils/openDgSearchInSidebar";
 
 const getNodeBadgeText = (node: DiscourseNode): string =>
   (node.tag?.trim() || node.text).slice(0, 3).toUpperCase();

@@ -46,7 +46,7 @@ import {
 import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
-import { openDgSearchInSidebar } from "./openDgSearchInSidebar";
+import { openDgSearchInSidebar } from "../../utils/openDgSearchInSidebar";
 
 type Props = Record<string, unknown>;
 

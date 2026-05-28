@@ -10,7 +10,7 @@ import {
   searchIndexedNodes,
   sortSearchResults,
 } from "./utils";
-import type { AdvancedNodeSearchSession } from "./advancedSearchSession";
+import type { AdvancedNodeSearchSession } from "~/utils/openDgSearchInSidebar";
 import { AdvancedSearchSidebarResultsList } from "./AdvancedSearchResultsList";
 
 type AdvancedSearchSidebarPanelProps = {
