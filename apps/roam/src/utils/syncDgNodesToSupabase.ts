@@ -928,7 +928,6 @@ export const createOrUpdateDiscourseEmbedding = async (
         }),
       );
     } else {
-      success = false;
       posthog.capture(
         "Sync error",
         buildTelemetry({
