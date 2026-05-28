@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "~/utils/supabase/server";
 import { createGroupInvitation } from "~/utils/supabase/account";
 import { Button } from "@repo/ui/components/ui/button";
-import { CopyButton } from "../CopyButton";
+import { CopyButton } from "~/components/CopyButton";
 
 export const GroupInvite = ({
   groupId,

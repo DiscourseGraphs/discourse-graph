@@ -12,8 +12,8 @@ export const CopyButton = ({
 }) => {
   const copyToken = () => {
     if (content) {
-      toast("Copied to clipboard");
       void navigator.clipboard.writeText(content);
+      toast("Copied to clipboard");
     }
   };
   return (
