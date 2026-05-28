@@ -671,17 +671,16 @@ const TldrawCanvasShared = ({
       const target = e.target as HTMLElement;
 
       const pageRef = target.closest<HTMLElement>(".rm-page-ref");
-      if (pageRef) {
-        if (!isPageRefDragSource(pageRef)) return;
-
+      if (pageRef && isPageRefDragSource(pageRef)) {
         const pageTitle = (
           pageRef.getAttribute("data-tag") ||
           pageRef.getAttribute("data-link-title") ||
           pageRef.parentElement?.getAttribute("data-link-title")
         )?.replace(/\\"/g, '"');
-        if (pageTitle)
+        if (pageTitle) {
           e.dataTransfer?.setData("application/x-roam-page", pageTitle);
-        return;
+          return;
+        }
       }
 
       const uid = getBlockUidFromBullet(target);
