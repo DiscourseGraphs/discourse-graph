@@ -29,7 +29,7 @@ BEGIN
         FROM public.sync_info WHERE sync_target = s_target AND sync_function = s_function
         FOR UPDATE;
     ASSERT s_status > 'active';
-    IF COALESCE(s_started_at, t_last_task_start) < t_last_task_start THEN
+    IF t_worker != s_worker AND COALESCE(s_started_at, t_last_task_start) < t_last_task_start THEN
         -- we probably took too long. Let the other task have priority.
         RETURN jsonb_build_object(
             'ok', false,
