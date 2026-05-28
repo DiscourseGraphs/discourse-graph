@@ -482,27 +482,25 @@ const AdvancedNodeSearchDialog = ({
               selectedTypeIds={selectedNodeTypeIds}
             />
           </div>
-          <div className="flex h-9 shrink-0 items-center gap-1">
-            <DiscourseNodeTypeFilter
-              layoutAnchorKey={selectedNodeTypeIds.length}
-              nodeTypes={discourseNodes}
-              onPopoverOpenChange={setIsTypeFilterPopoverOpen}
-              onSelectedTypeIdsChange={setSelectedNodeTypeIds}
-              selectedTypeIds={selectedNodeTypeIds}
-            />
-            <DiscourseNodeSortControl
-              disabled={isIndexLoading || indexError}
-              onSortChange={handleSortChange}
-              sort={sort}
-            />
-            <Button
-              className="shrink-0"
-              icon="cross"
-              minimal
-              onClick={onClose}
-              title="Close search"
-            />
-          </div>
+          <DiscourseNodeTypeFilter
+            layoutAnchorKey={selectedNodeTypeIds.length}
+            nodeTypes={discourseNodes}
+            onPopoverOpenChange={setIsTypeFilterPopoverOpen}
+            onSelectedTypeIdsChange={setSelectedNodeTypeIds}
+            selectedTypeIds={selectedNodeTypeIds}
+          />
+          <DiscourseNodeSortControl
+            disabled={isIndexLoading || indexError}
+            onSortChange={handleSortChange}
+            sort={sort}
+          />
+          <Button
+            className="shrink-0"
+            icon="cross"
+            minimal
+            onClick={onClose}
+            title="Close search"
+          />
         </div>
         <div className="flex min-h-0 w-full flex-1 overflow-hidden">
           {showSplitView ? (
