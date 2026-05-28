@@ -1,41 +1,18 @@
 import React from "react";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import { AdvancedSearchSidebarPanel } from "../components/AdvancedNodeSearchDialog/AdvancedSearchSidebarPanel";
-import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import {
-  SearchResult,
-  SortConfig,
+  type SearchResult,
+  type SortConfig,
 } from "~/components/AdvancedNodeSearchDialog/utils";
 
 const SIDEBAR_ROOT_ID = "dg-node-search-sidebar-root";
 
-export type AdvancedNodeSearchSession = {
+export type DockedSearchState = {
   query: string;
-  sort: SortConfig;
   results: SearchResult[];
-};
-
-export const openSearchResultInMain = async (uid: string): Promise<void> => {
-  if (getPageTitleByPageUid(uid)) {
-    await window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
-    return;
-  }
-  await window.roamAlphaAPI.ui.mainWindow.openBlock({ block: { uid } });
-};
-
-export const openSearchResultFromLinkEvent = async ({
-  uid,
-  shiftKey,
-}: {
-  uid: string;
-  shiftKey: boolean;
-}): Promise<void> => {
-  if (shiftKey) {
-    await openBlockInSidebar(uid);
-    return;
-  }
-  await openSearchResultInMain(uid);
+  selectedNodeTypeIds: string[];
+  sort: SortConfig;
 };
 
 let unmountSidebarSearch: (() => void) | null = null;
@@ -61,10 +38,10 @@ const setSidebarWindowTitle = (windowEl: HTMLElement): void => {
 };
 
 const mountPanelInSidebarWindow = ({
-  session,
+  dockedState,
   windowEl,
 }: {
-  session: AdvancedNodeSearchSession;
+  dockedState: DockedSearchState;
   windowEl: HTMLElement;
 }): void => {
   unmountSidebarSearch?.();
@@ -80,18 +57,18 @@ const mountPanelInSidebarWindow = ({
   const root = document.createElement("div");
   root.id = SIDEBAR_ROOT_ID;
   root.className =
-    "rm-sidebar-search dg-node-search-sidebar-root box-border w-full";
+    "rm-sidebar-search dg-node-search-sidebar-root box-border w-full min-w-0";
   root.onmousedown = (event) => event.stopPropagation();
   outlineWrapper.appendChild(root);
 
   unmountSidebarSearch = renderWithUnmount(
-    <AdvancedSearchSidebarPanel initialSession={session} />,
+    <AdvancedSearchSidebarPanel {...dockedState} />,
     root,
   );
 };
 
 export const openDgSearchInSidebar = async (
-  session: AdvancedNodeSearchSession,
+  dockedState: DockedSearchState,
 ): Promise<void> => {
   const anchorPageUid = window.roamAlphaAPI.util.dateToPageUid(new Date());
 
@@ -106,7 +83,7 @@ export const openDgSearchInSidebar = async (
 
   const sidebarWindow = await waitForLatestSidebarWindow();
   setSidebarWindowTitle(sidebarWindow);
-  mountPanelInSidebarWindow({ session, windowEl: sidebarWindow });
+  mountPanelInSidebarWindow({ dockedState, windowEl: sidebarWindow });
 };
 
 export const unmountDgSearchSidebar = (): void => {

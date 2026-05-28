@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Button,
   Dialog,
@@ -12,7 +6,6 @@ import {
   NonIdealState,
   Spinner,
   SpinnerSize,
-  Tag,
 } from "@blueprintjs/core";
 import MiniSearch from "minisearch";
 import posthog from "posthog-js";
@@ -30,7 +23,8 @@ import { DiscourseNodeSortControl } from "~/components/DiscourseNodeSortControl"
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
-import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
+import { openSearchResultInMain } from "~/utils/advancedSearchNavigation";
+import { openDgSearchInSidebar } from "~/utils/openDgSearchInSidebar";
 import {
   DEBOUNCE_MS,
   DEFAULT_SORT_CONFIG,
@@ -38,78 +32,17 @@ import {
   type SortConfig,
   buildSearchIndex,
   formatMetadataDate,
+  getSearchKeywords,
   searchIndexedNodes,
   sortSearchResults,
-  splitWithHighlights,
   stripTypePrefix,
 } from "./utils";
 import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
-import { openDgSearchInSidebar } from "../../utils/openDgSearchInSidebar";
+import { AdvancedSearchDialogResultsList } from "./AdvancedSearchSidebarPanel";
 
 type Props = Record<string, unknown>;
-
-const getNodeBadgeText = (node: DiscourseNode): string =>
-  (node.tag?.trim() || node.text).slice(0, 3).toUpperCase();
-
-const getTagStyle = (node: DiscourseNode | undefined): React.CSSProperties => {
-  const color = node?.canvasSettings?.color;
-  if (!color) return { flexShrink: 0 };
-  return { ...getNodeTagStyles(color), flexShrink: 0 };
-};
-
-const renderHighlightedText = (
-  text: string,
-  keywords: string[],
-): React.ReactNode =>
-  splitWithHighlights(text, keywords).map((segment, index) =>
-    segment.isMatch ? (
-      <mark key={`${segment.text}-${index}`}>{segment.text}</mark>
-    ) : (
-      <React.Fragment key={`${segment.text}-${index}`}>
-        {segment.text}
-      </React.Fragment>
-    ),
-  );
-
-const ResultRow = ({
-  active,
-  keywords,
-  nodeConfig,
-  onClick,
-  onMouseEnter,
-  result,
-}: {
-  active: boolean;
-  keywords: string[];
-  nodeConfig: DiscourseNode | undefined;
-  onClick: () => void;
-  onMouseEnter: () => void;
-  result: SearchResult;
-}) => (
-  <Button
-    alignText="left"
-    aria-selected={active}
-    className="flex-none !items-start gap-2 !px-3 !py-2"
-    fill
-    minimal
-    onClick={onClick}
-    onMouseEnter={onMouseEnter}
-    role="option"
-    style={{
-      background: active ? "rgba(95, 87, 192, 0.08)" : undefined,
-      boxShadow: active ? "inset 3px 0 0 #5f57c0" : undefined,
-    }}
-  >
-    <Tag className="shrink-0" minimal style={getTagStyle(nodeConfig)}>
-      {nodeConfig ? getNodeBadgeText(nodeConfig) : result.nodeTypeLabel}
-    </Tag>
-    <span className="min-w-0 break-words text-sm leading-snug text-gray-900">
-      {renderHighlightedText(stripTypePrefix(result.title), keywords)}
-    </span>
-  </Button>
-);
 
 const PreviewPane = ({ result }: { result: SearchResult | null }) => {
   if (!result) {
@@ -174,7 +107,7 @@ const AdvancedNodeSearchDialog = ({
   );
 
   const activeResult = results[activeIndex] ?? null;
-  const keywords = debouncedSearchTerm.split(/\s+/).filter(Boolean);
+  const keywords = getSearchKeywords(debouncedSearchTerm);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -327,13 +260,15 @@ const AdvancedNodeSearchDialog = ({
     try {
       await openDgSearchInSidebar({
         query: debouncedSearchTerm,
-        sort,
         results,
+        selectedNodeTypeIds,
+        sort,
       });
 
       posthog.capture("Advanced Node Search: Dock search sidebar", {
         resultCount: results.length,
         searchTerm: debouncedSearchTerm,
+        selectedNodeTypeCount: selectedNodeTypeIds.length,
         sortDirection: sort.direction,
         sortField: sort.field,
       });
@@ -346,7 +281,14 @@ const AdvancedNodeSearchDialog = ({
         intent: "danger",
       });
     }
-  }, [contentState, debouncedSearchTerm, onClose, results, sort]);
+  }, [
+    contentState,
+    debouncedSearchTerm,
+    onClose,
+    results,
+    selectedNodeTypeIds,
+    sort,
+  ]);
   const handleSortChange = useCallback((nextSort: SortConfig): void => {
     setSort(nextSort);
   }, []);
@@ -354,12 +296,7 @@ const AdvancedNodeSearchDialog = ({
   const onOpen = useCallback(async () => {
     if (!activeResult || contentState !== "results") return;
 
-    const uid = activeResult.uid;
-    if (getPageTitleByPageUid(uid)) {
-      await window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
-    } else {
-      await window.roamAlphaAPI.ui.mainWindow.openBlock({ block: { uid } });
-    }
+    await openSearchResultInMain(activeResult.uid);
     onClose();
   }, [activeResult, contentState, onClose]);
 
@@ -491,17 +428,13 @@ const AdvancedNodeSearchDialog = ({
                 ref={resultsPanelRef}
                 role="listbox"
               >
-                {results.map((result, index) => (
-                  <ResultRow
-                    active={index === activeIndex}
-                    key={result.uid}
-                    keywords={keywords}
-                    nodeConfig={nodeConfigByType[result.type]}
-                    onClick={() => setActiveIndex(index)}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    result={result}
-                  />
-                ))}
+                <AdvancedSearchDialogResultsList
+                  activeIndex={activeIndex}
+                  keywords={keywords}
+                  nodeConfigByType={nodeConfigByType}
+                  onSelect={setActiveIndex}
+                  results={results}
+                />
               </div>
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                 <PreviewPane result={activeResult} />
