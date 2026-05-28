@@ -21,8 +21,6 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import renderOverlay, {
   RoamOverlayProps,
 } from "roamjs-components/util/renderOverlay";
-import createPage from "roamjs-components/writes/createPage";
-import { createBlock } from "roamjs-components/writes";
 import {
   insertPageRefAtRange,
   snapshotInsertTarget,
@@ -46,7 +44,9 @@ import {
   stripTypePrefix,
 } from "./utils";
 import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
+import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
+import { openDgSearchInSidebar } from "./openDgSearchInSidebar";
 
 type Props = Record<string, unknown>;
 
@@ -102,7 +102,7 @@ const ResultRow = ({
       boxShadow: active ? "inset 3px 0 0 #5f57c0" : undefined,
     }}
   >
-    <Tag minimal style={getTagStyle(nodeConfig)}>
+    <Tag className="shrink-0" minimal style={getTagStyle(nodeConfig)}>
       {nodeConfig ? getNodeBadgeText(nodeConfig) : result.nodeTypeLabel}
     </Tag>
     <span className="min-w-0 break-words text-sm leading-snug text-gray-900">
@@ -325,32 +325,13 @@ const AdvancedNodeSearchDialog = ({
     if (contentState !== "results" || !results.length) return;
 
     try {
-      const sidebarBlockTitle = `Advanced search results: "${debouncedSearchTerm || "(empty query)"}"`;
-      const sidebarChildren = results.map((result) => ({
-        text: `[[${result.title}]]`,
-      }));
-
-      const sidebarPageUid = await createPage({ title: sidebarBlockTitle });
-      await Promise.all(
-        sidebarChildren.map((node, order) =>
-          createBlock({
-            parentUid: sidebarPageUid,
-            order,
-            node,
-          }),
-        ),
-      );
-
-      await window.roamAlphaAPI.ui.rightSidebar.addWindow({
-        window: {
-          type: "outline",
-          // @ts-expect-error - block-uid is valid for outline sidebar windows
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "block-uid": sidebarPageUid,
-        },
+      await openDgSearchInSidebar({
+        query: debouncedSearchTerm,
+        sort,
+        results,
       });
 
-      posthog.capture("Advanced Node Search: Open search sidebar", {
+      posthog.capture("Advanced Node Search: Dock search sidebar", {
         resultCount: results.length,
         searchTerm: debouncedSearchTerm,
         sortDirection: sort.direction,
@@ -358,10 +339,10 @@ const AdvancedNodeSearchDialog = ({
       });
       onClose();
     } catch (error) {
-      console.error("Failed to open search sidebar results block:", error);
+      console.error("Failed to dock search results in the sidebar:", error);
       renderToast({
         id: "advanced-node-search-sidebar-open-error",
-        content: "Could not render search results in the right sidebar.",
+        content: "Could not dock search results in the right sidebar.",
         intent: "danger",
       });
     }

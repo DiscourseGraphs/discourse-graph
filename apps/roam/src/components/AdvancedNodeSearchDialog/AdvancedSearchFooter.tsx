@@ -110,7 +110,7 @@ export const OpenSearchSidebarFooterAction = ({
   <FooterShortcutHint
     disabled={disabled}
     keyIcons={["key-option", "key-enter"]}
-    label="open search sidebar"
+    label="dock results"
     onClick={() => void onOpenSearchSidebar()}
   />
 );
