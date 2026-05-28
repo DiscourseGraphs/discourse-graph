@@ -508,10 +508,8 @@ const QuerySectionItem = ({
                 <MenuItem
                   icon="document-open"
                   text="Go to query block"
-                  onClick={() => {
-                    void window.roamAlphaAPI.ui.mainWindow.openBlock({
-                      block: { uid: queryUid },
-                    });
+                  onClick={(e) => {
+                    void openTarget(e, `((${queryUid}))`, onloadArgs);
                     setIsMenuOpen(false);
                   }}
                 />

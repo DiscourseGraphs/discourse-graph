@@ -445,10 +445,7 @@ const SectionItem = memo(
 
     if (isQuery) {
       return (
-        <div
-          className="personal-section rounded-md p-3 hover:bg-gray-50"
-          style={{ border: "1px solid rgba(51, 51, 51, 0.2)" }}
-        >
+        <div className="personal-section rounded-md border border-gray-300 p-3 hover:bg-gray-50">
           <div
             {...dragHandle.attributes}
             {...dragHandle.listeners}

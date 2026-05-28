@@ -8,15 +8,15 @@ import {
   IntSetting,
   getUidAndIntSetting,
   StringSetting,
-  StringSettingWithValueUid,
   getUidAndStringSetting,
-  getUidAndStringSettingWithValueUid,
 } from "./getExportSettings";
 import { getSubTree } from "roamjs-components/util";
 import type {
   LeftSidebarGlobalSettings,
   PersonalSection,
 } from "~/components/settings/utils/zodSchema";
+
+type StringSettingWithValueUid = StringSetting & { valueUid?: string };
 
 type LeftSidebarPersonalSectionSettings = {
   uid: string;
@@ -28,6 +28,22 @@ type LeftSidebarPersonalSectionSettings = {
 
 const BLOCK_REF_FULL_MATCH = new RegExp(`^${BLOCK_REF_REGEX.source}$`);
 const QUERY_BLOCK_MARKER = /\{\{query block(?::[^}]*)?\}\}/;
+
+const getUidAndStringSettingWithValueUid = ({
+  tree,
+  text,
+}: {
+  tree: RoamBasicNode[];
+  text: string;
+}): StringSettingWithValueUid => {
+  const node = tree.find((node) => node.text === text);
+  const valueChild = node?.children?.[0];
+  return {
+    uid: node?.uid,
+    value: valueChild?.text ?? "",
+    valueUid: valueChild?.uid,
+  };
+};
 
 export const isQueryBlockRef = (text: string): boolean => {
   if (!BLOCK_REF_FULL_MATCH.test(text)) return false;

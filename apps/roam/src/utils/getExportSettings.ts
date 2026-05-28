@@ -81,20 +81,6 @@ export const getUidAndStringSetting = (props: Props): StringSetting => {
   };
 };
 
-export type StringSettingWithValueUid = StringSetting & { valueUid?: string };
-
-export const getUidAndStringSettingWithValueUid = (
-  props: Props,
-): StringSettingWithValueUid => {
-  const node = props.tree.find((node) => node.text === props.text);
-  const valueChild = node?.children?.[0];
-  return {
-    uid: node?.uid,
-    value: valueChild?.text ?? "",
-    valueUid: valueChild?.uid,
-  };
-};
-
 export const getExportSettingsAndUids = (
   configTreeOverride?: RoamBasicNode[],
 ): ExportConfigWithUids => {
