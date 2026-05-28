@@ -1384,6 +1384,26 @@ const InsideEditorAndUiContext = ({
             return;
           }
 
+          // The block itself may be a discourse node (its own text matches a
+          // node format/spec), as opposed to linking out to one above.
+          const blockNodeType = findDiscourseNode({
+            uid,
+            title: blockText,
+            nodes: allNodes,
+          });
+          if (blockNodeType) {
+            await createDiscourseNodeShape({
+              uid,
+              nodeText: blockText,
+              nodeType: blockNodeType.type,
+              content,
+            });
+            posthog.capture("Canvas: Node Added from External Content", {
+              source: "block-discourse-node",
+            });
+            return;
+          }
+
           await createDiscourseNodeShape({
             uid,
             nodeText: blockText,
