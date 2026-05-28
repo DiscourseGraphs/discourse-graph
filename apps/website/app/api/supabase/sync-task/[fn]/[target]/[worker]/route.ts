@@ -13,7 +13,7 @@ type ParsedEndSyncTaskBody =
   | {
       ok: true;
       status: TaskStatus;
-      startedAt: string;
+      startedAt?: string;
     }
   | {
       ok: false;
@@ -37,11 +37,28 @@ const normalizeStartedAt = (value: unknown): string | null => {
 };
 
 const parseEndSyncTaskBody = (body: unknown): ParsedEndSyncTaskBody => {
+  if (typeof body === "string") {
+    if (
+      (Constants.public.Enums.task_status as readonly string[]).includes(body)
+    ) {
+      return {
+        ok: true,
+        status: body as TaskStatus,
+      };
+    }
+
+    return {
+      ok: false,
+      error: `${body} is not a task status`,
+    };
+  }
+
   if (!isRecord(body)) {
     return {
       ok: false,
       error:
-        "Request body must be { status: string, s_started_at: string | number }",
+        "Request body must be a task status string or " +
+        "{ status: string, s_started_at: string | number }",
     };
   }
 
@@ -94,13 +111,17 @@ export const POST = async (
       );
     }
     const supabase = await createClient();
-    const response = await supabase.rpc("end_sync_task", {
+    const rpcArgs: Database["public"]["Functions"]["end_sync_task"]["Args"] = {
       s_target: targetN,
       s_function: fn,
       s_worker: worker,
       s_status: parsedBody.status,
-      s_started_at: parsedBody.startedAt,
-    });
+    };
+    if (parsedBody.startedAt !== undefined) {
+      rpcArgs.s_started_at = parsedBody.startedAt;
+    }
+
+    const response = await supabase.rpc("end_sync_task", rpcArgs);
     if (response.status === 204) {
       response.data = { ok: true, stale: false };
       response.status = 200;
