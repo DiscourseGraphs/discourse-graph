@@ -29,6 +29,7 @@ import {
 import { isAcceptedSchema } from "./typeUtils";
 import { getTemplatePluginInfo } from "./templates";
 import { difference } from "@repo/utils/setOperations";
+import { getAllPages } from "@repo/database/lib/pagination";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
@@ -344,17 +345,20 @@ const buildChangedNodesFromNodes = async ({
   const changedNodes: ObsidianDiscourseNodeData[] = [];
   let missing: Set<string> | undefined;
   if (fullSync) {
-    const existingConceptIds = await supabaseClient
-      .from("my_concepts")
-      .select("source_local_id")
-      .eq("space_id", context.spaceId)
-      .eq("arity", 0)
-      .eq("is_schema", false);
-    if (existingConceptIds.data) {
+    const existingConceptIds = await getAllPages(
+      supabaseClient
+        .from("my_concepts")
+        .select("source_local_id")
+        .eq("space_id", context.spaceId)
+        .eq("arity", 0)
+        .eq("is_schema", false),
+      1000,
+    );
+    if (Array.isArray(existingConceptIds)) {
       // fail silently otherwise, there will be other opportunities
       const nodeIds = new Set(nodes.map((n) => n.nodeInstanceId));
       const dbConceptIds = new Set(
-        existingConceptIds.data
+        existingConceptIds
           .map((d) => d.source_local_id)
           .filter((id) => id !== null),
       );
