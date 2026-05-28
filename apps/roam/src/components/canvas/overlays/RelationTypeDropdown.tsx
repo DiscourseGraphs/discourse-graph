@@ -50,8 +50,11 @@ export const RelationTypeDropdown = ({
       if (
         !relation.label?.trim?.() ||
         !relation.complement?.trim?.() ||
+        relation.complement === "?" ||
         !relation.source?.trim?.() ||
-        !relation.destination?.trim?.()
+        relation.source === "?" ||
+        !relation.destination?.trim?.() ||
+        relation.destination === "?"
       ) {
         continue;
       }
