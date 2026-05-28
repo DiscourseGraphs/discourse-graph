@@ -32,6 +32,7 @@ BEGIN
     IF t_worker != s_worker AND COALESCE(s_started_at, t_last_task_start) < t_last_task_start THEN
         -- we probably took too long. Let the other task have priority.
         RETURN jsonb_build_object(
+            'version', 1,
             'ok', false,
             'stale', true,
             'reason', 'completed_by_newer_task',
@@ -50,6 +51,7 @@ BEGIN
     IF t_worker != s_worker THEN
         RAISE EXCEPTION 'Wrong worker'
             USING DETAIL = jsonb_build_object(
+                'version', 1,
                 'requestedStatus', s_status,
                 'callerWorker', s_worker,
                 'currentWorker', t_worker,
@@ -83,6 +85,7 @@ BEGIN
         WHERE id=t_id;
 
     RETURN jsonb_build_object(
+        'version', 1,
         'ok', true,
         'stale', false,
         'requestedStatus', s_status,

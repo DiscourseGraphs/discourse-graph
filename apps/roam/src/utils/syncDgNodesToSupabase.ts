@@ -40,6 +40,7 @@ const BASE_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const SYNC_TIMEOUT = "60s"; // must be less than half the SYNC_INTERVAL.
 const BATCH_SIZE = 200;
 const CONCEPT_BATCH_SIZE = 200;
+const END_SYNC_TASK_RESULT_VERSION = 1;
 
 type SyncPhaseDurations = Record<string, number>;
 
@@ -50,6 +51,7 @@ type SyncTaskInfo = {
 };
 
 type EndSyncTaskRpcResult = {
+  version?: number;
   ok: boolean;
   stale: boolean;
   reason?: string;
@@ -100,15 +102,39 @@ const getSyncWorkerId = (): string => {
   return syncWorkerId;
 };
 
+const getJsonObject = (
+  data: Json | undefined,
+): Record<string, unknown> | null => {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) {
+    return null;
+  }
+
+  return data as Record<string, unknown>;
+};
+
+const getEndSyncTaskResultVersion = (data: Json | undefined): number => {
+  const result = getJsonObject(data);
+  if (result === null || typeof result.version !== "number") {
+    return 0;
+  }
+
+  return result.version;
+};
+
 const isEndSyncTaskRpcResult = (
   data: Json | undefined,
 ): data is EndSyncTaskRpcResult => {
-  if (typeof data !== "object" || data === null || Array.isArray(data)) {
-    return false;
-  }
+  const result = getJsonObject(data);
+  if (result === null) return false;
 
-  const result = data as { ok?: unknown; stale?: unknown };
-  return typeof result.ok === "boolean" && typeof result.stale === "boolean";
+  const versionIsSupported =
+    result.version === undefined || typeof result.version === "number";
+
+  return (
+    versionIsSupported &&
+    typeof result.ok === "boolean" &&
+    typeof result.stale === "boolean"
+  );
 };
 
 const measureSyncPhase = async <T>({
@@ -320,6 +346,27 @@ export const endSyncTask = async ({
     }
 
     if (!isEndSyncTaskRpcResult(data)) {
+      const resultVersion = getEndSyncTaskResultVersion(data);
+      if (resultVersion > END_SYNC_TASK_RESULT_VERSION) {
+        const rpcResult: EndSyncTaskRpcResult = {
+          version: resultVersion,
+          ok: true,
+          stale: false,
+          reason: "unsupported_future_result_version",
+        };
+        posthog.capture("Sync end task future result", {
+          ...telemetryContext,
+          endSyncPayload: data,
+          endSyncResult: rpcResult,
+        });
+
+        return {
+          ok: true,
+          stale: false,
+          rpcResult,
+        };
+      }
+
       const reason = "Supabase end_sync_task returned unexpected payload";
       notifyEndSyncFailure({
         status,

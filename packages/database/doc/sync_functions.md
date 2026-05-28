@@ -16,4 +16,4 @@ When a worker calls `propose_sync_task`, it will receive either:
 3. Null, meaning the task was not executed successfully before, and your worker is tasked with starting from scratch.
 
 When a worker finishes the task, it should clean up with `end_sync_task`, giving the same identifying arguments, a status (`complete` or `failed`), and the time at which the task was claimed.
-The function returns a JSON object with `ok` and `stale` fields plus task metadata. A stale response means another attempt claimed a newer task while this attempt was still running, so the caller should not report it as a successful completion.
+The function returns a versioned JSON object with `ok` and `stale` fields plus task metadata. A stale response means another attempt claimed a newer task while this attempt was still running, so the caller should not report it as a successful completion.
