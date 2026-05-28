@@ -466,10 +466,6 @@ export const initObservers = ({
       discourseNodeSearchTriggerListener,
       nodeCreationPopoverListener,
     },
-    cleanups: [
-      unsubGlobalTrigger,
-      unsubPersonalTrigger,
-      unsubSearchTrigger,
-    ],
+    cleanups: [unsubGlobalTrigger, unsubPersonalTrigger, unsubSearchTrigger],
   };
 };

@@ -643,8 +643,7 @@ const TldrawCanvasShared = ({
 
   // Handle Roam block drag and drop
   useEffect(() => {
-    const temporaryDraggableAttribute =
-      "data-roamjs-canvas-page-ref-draggable";
+    const temporaryDraggableAttribute = "data-roamjs-canvas-page-ref-draggable";
     let activePageRef: HTMLElement | null = null;
     const isPageRefDragSource = (pageRef: HTMLElement): boolean =>
       !!pageRef.closest(
