@@ -370,7 +370,9 @@ const AdvancedNodeSearchDialog = ({
       if (event.defaultPrevented) return;
       if (event.key === "ArrowDown" && results.length) {
         event.preventDefault();
-        setActiveIndex((index) => Math.min(index + 1, results.length - 1));
+        setActiveIndex((index) =>
+          Math.min(Math.max(index, 0) + 1, results.length - 1),
+        );
       } else if (event.key === "ArrowUp" && results.length) {
         event.preventDefault();
         setActiveIndex((index) => Math.max(index - 1, 0));
@@ -444,20 +446,22 @@ const AdvancedNodeSearchDialog = ({
         onMouseUp={(event) => event.stopPropagation()}
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <div className="flex flex-none items-start gap-2 border-b border-gray-200 px-3 py-2">
+        <div className="flex flex-none items-center gap-2 border-b border-gray-200 px-3 py-2">
           <div className="flex min-w-0 flex-1 items-center rounded border border-gray-300 bg-white px-2 py-1">
             <Icon icon="search" size={16} className="mr-2 text-gray-500" />
             <NodeTypeChipsSearchInput
               inputRef={inputRef}
               nodeTypes={discourseNodes}
-              onArrowDown={() =>
+              onArrowDown={() => {
+                if (!results.length) return;
                 setActiveIndex((index) =>
-                  Math.min(index + 1, results.length - 1),
-                )
-              }
-              onArrowUp={() =>
-                setActiveIndex((index) => Math.max(index - 1, 0))
-              }
+                  Math.min(Math.max(index, 0) + 1, results.length - 1),
+                );
+              }}
+              onArrowUp={() => {
+                if (!results.length) return;
+                setActiveIndex((index) => Math.max(index - 1, 0));
+              }}
               onCmdEnter={() => void onInsert()}
               onEnter={() => void onOpen()}
               onEscape={() => {
@@ -471,23 +475,19 @@ const AdvancedNodeSearchDialog = ({
               selectedTypeIds={selectedNodeTypeIds}
             />
           </div>
-          <div className="self-start">
-            <DiscourseNodeTypeFilter
-              nodeTypes={discourseNodes}
-              onPopoverOpenChange={setIsTypeFilterPopoverOpen}
-              onSelectedTypeIdsChange={setSelectedNodeTypeIds}
-              selectedTypeIds={selectedNodeTypeIds}
-            />
-          </div>
-          <div className="self-start">
-            <DiscourseNodeSortControl
-              disabled={isIndexLoading || indexError}
-              onSortChange={handleSortChange}
-              sort={sort}
-            />
-          </div>
+          <DiscourseNodeTypeFilter
+            nodeTypes={discourseNodes}
+            onPopoverOpenChange={setIsTypeFilterPopoverOpen}
+            onSelectedTypeIdsChange={setSelectedNodeTypeIds}
+            selectedTypeIds={selectedNodeTypeIds}
+          />
+          <DiscourseNodeSortControl
+            disabled={isIndexLoading || indexError}
+            onSortChange={handleSortChange}
+            sort={sort}
+          />
           <Button
-            className="shrink-0 self-start"
+            className="shrink-0"
             icon="cross"
             minimal
             onClick={onClose}

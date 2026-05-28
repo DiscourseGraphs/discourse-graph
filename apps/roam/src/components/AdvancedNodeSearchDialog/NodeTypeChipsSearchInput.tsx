@@ -1,5 +1,5 @@
-import { Button, Classes, Icon } from "@blueprintjs/core";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Classes, Tag } from "@blueprintjs/core";
+import React, { useEffect, useRef, useState } from "react";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
 
@@ -17,6 +17,9 @@ type NodeTypeChipsSearchInputProps = {
   onCmdEnter: () => void;
   onEscape: () => void;
 };
+
+const CHIP_LABEL_MAX_WIDTH = "10rem";
+const INPUT_MIN_WIDTH = "12ch";
 
 const isPlainCharacterKey = (event: React.KeyboardEvent): boolean =>
   event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey;
@@ -48,6 +51,20 @@ const getBestPrefixMatch = ({
   return exactMatch ?? matches[0];
 };
 
+const getCompletionSuffix = ({
+  bestPrefixMatch,
+  searchTerm,
+}: {
+  bestPrefixMatch: DiscourseNode | null;
+  searchTerm: string;
+}): string => {
+  if (!bestPrefixMatch) return "";
+  const normalizedQuery = searchTerm.trim();
+  const nodeText = bestPrefixMatch.text;
+  if (nodeText.toLowerCase() === normalizedQuery.toLowerCase()) return "";
+  return nodeText.slice(normalizedQuery.length);
+};
+
 export const NodeTypeChipsSearchInput = ({
   nodeTypes,
   searchTerm,
@@ -65,39 +82,21 @@ export const NodeTypeChipsSearchInput = ({
   const [focusedChipIndex, setFocusedChipIndex] = useState(-1);
   const chipRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
-  const nodeTypeById = useMemo(
-    () =>
-      Object.fromEntries(
-        nodeTypes.map((nodeType) => [nodeType.type, nodeType]),
-      ),
-    [nodeTypes],
-  );
+  const nodeTypeById = Object.fromEntries(
+    nodeTypes.map((nodeType) => [nodeType.type, nodeType]),
+  ) as Record<string, DiscourseNode | undefined>;
 
-  const selectedNodeTypes = useMemo(
-    () =>
-      selectedTypeIds
-        .map((typeId) => nodeTypeById[typeId])
-        .filter((nodeType): nodeType is DiscourseNode => !!nodeType),
-    [nodeTypeById, selectedTypeIds],
-  );
+  const selectedNodeTypes = selectedTypeIds
+    .map((typeId) => nodeTypeById[typeId])
+    .filter((nodeType): nodeType is DiscourseNode => !!nodeType);
 
-  const bestPrefixMatch = useMemo(
-    () =>
-      getBestPrefixMatch({
-        nodeTypes,
-        query: searchTerm,
-        selectedTypeIds,
-      }),
-    [nodeTypes, searchTerm, selectedTypeIds],
-  );
+  const bestPrefixMatch = getBestPrefixMatch({
+    nodeTypes,
+    query: searchTerm,
+    selectedTypeIds,
+  });
 
-  const completionSuffix = useMemo(() => {
-    if (!bestPrefixMatch) return "";
-    const normalizedQuery = searchTerm.trim();
-    const nodeText = bestPrefixMatch.text;
-    if (nodeText.toLowerCase() === normalizedQuery.toLowerCase()) return "";
-    return nodeText.slice(normalizedQuery.length);
-  }, [bestPrefixMatch, searchTerm]);
+  const completionSuffix = getCompletionSuffix({ bestPrefixMatch, searchTerm });
 
   useEffect(() => {
     if (focusedChipIndex < 0) return;
@@ -254,48 +253,44 @@ export const NodeTypeChipsSearchInput = ({
             onClick={() => setFocusedChipIndex(index)}
             onKeyDown={(event) => handleChipKeyDown(event, index)}
             style={{
+              borderRadius: 3,
               boxShadow: isFocused
                 ? "0 0 0 2px rgba(95, 87, 192, 0.2)"
                 : undefined,
-              borderRadius: 3,
+              display: "inline-flex",
             }}
           >
-            <span
-              className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs"
+            <Tag
+              active={isFocused}
+              htmlTitle={nodeType.text}
+              minimal
+              onRemove={(event) => {
+                event.stopPropagation();
+                onSelectedTypeIdsChange(
+                  selectedTypeIds.filter((_, chipIndex) => chipIndex !== index),
+                );
+                focusInput();
+              }}
               style={getNodeTagStyles(
                 nodeType.canvasSettings?.color ?? "#000000",
               )}
             >
-              <span className="max-w-[10rem] truncate leading-4">
+              <span
+                className="truncate"
+                style={{ maxWidth: CHIP_LABEL_MAX_WIDTH }}
+              >
                 {nodeType.text}
               </span>
-              <Button
-                className="!h-4 !min-h-0 !w-4 !min-w-0 !p-0"
-                aria-label={`Remove ${nodeType.text} filter`}
-                icon={<Icon icon="cross" size={10} />}
-                minimal
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onSelectedTypeIdsChange(
-                    selectedTypeIds.filter(
-                      (_, chipIndex) => chipIndex !== index,
-                    ),
-                  );
-                  focusInput();
-                }}
-                onMouseDown={(event) => event.preventDefault()}
-                small
-              />
-            </span>
+            </Tag>
           </span>
         );
       })}
-      <span className="relative min-w-[12ch] flex-1">
+      <span className="relative flex-1" style={{ minWidth: INPUT_MIN_WIDTH }}>
         {completionSuffix && (
           <span className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-nowrap text-sm">
             <span className="invisible">{searchTerm}</span>
             <span className="text-gray-400">{completionSuffix}</span>
-            <span className="ml-2 rounded bg-gray-100 px-1 text-[10px] uppercase tracking-wide text-gray-500">
+            <span className="ml-2 rounded bg-gray-100 px-1 text-xs uppercase tracking-wide text-gray-500">
               Tab
             </span>
           </span>
