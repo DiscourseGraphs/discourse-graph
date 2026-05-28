@@ -251,19 +251,25 @@ export const searchIndexedNodes = ({
   miniSearch,
   allResults,
   searchTerm,
+  typeFilter,
 }: {
   miniSearch: MiniSearch<MiniSearchDocument>;
   allResults: SearchResult[];
   searchTerm: string;
+  typeFilter?: string[];
 }): ScoredSearchHit[] => {
   const resultsByUid = new Map(
     allResults.map((result) => [result.uid, result]),
   );
+  const allowedTypes = typeFilter?.length ? new Set(typeFilter) : null;
 
   return miniSearch
     .search(searchTerm, {
       fields: ["title", "nodeTypeLabel"],
       ...DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
+      filter: allowedTypes
+        ? (result) => allowedTypes.has(String(result.type))
+        : undefined,
     })
     .filter((result) => result.score > DISCOURSE_NODE_MIN_SEARCH_SCORE)
     .slice(0, MAX_RESULTS)
