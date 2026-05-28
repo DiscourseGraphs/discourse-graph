@@ -516,7 +516,15 @@ export const RelationEditPanel = ({
       const relationEl = document.getElementById("relation-label");
       relationEl?.focus();
     }
-  }, []);
+  }, [label]);
+
+  const isRelationComplete =
+    label.trim().length > 0 &&
+    complement.trim().length > 0 &&
+    source.trim().length > 0 &&
+    source !== "?" &&
+    destination.trim().length > 0 &&
+    destination !== "?";
 
   return (
     <>
@@ -535,7 +543,7 @@ export const RelationEditPanel = ({
           icon={"floppy-disk"}
           text={"Save"}
           intent={Intent.PRIMARY}
-          disabled={loading || !hasChanges}
+          disabled={loading || !hasChanges || !isRelationComplete}
           className="select-none"
           onClick={() => {
             setLoading(true);

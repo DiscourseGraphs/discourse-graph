@@ -56,6 +56,24 @@ export const createAllReferencedNodeTools = (
         override onEnter = () => {
           this.didTimeout = false;
 
+          const selectedRelations = discourseContext.relations[action] || [];
+          const hasIncompleteSelectedRelation = selectedRelations.some(
+            (relation) =>
+              !relation.label?.trim?.() ||
+              !relation.complement?.trim?.() ||
+              relation.complement === "?" ||
+              !relation.source?.trim?.() ||
+              relation.source === "?" ||
+              !relation.destination?.trim?.() ||
+              relation.destination === "?",
+          );
+          if (hasIncompleteSelectedRelation) {
+            this.cancelAndWarn(
+              "Relation type is incomplete. Set label, complement, source, and destination in settings.",
+            );
+            return;
+          }
+
           const target = this.editor.getShapeAtPoint(
             this.editor.inputs.currentPagePoint,
             // {
@@ -340,6 +358,24 @@ export const createAllRelationShapeTools = (
 
         override onEnter = () => {
           this.didTimeout = false;
+
+          const selectedRelations = discourseContext.relations[name] || [];
+          const hasIncompleteSelectedRelation = selectedRelations.some(
+            (relation) =>
+              !relation.label?.trim?.() ||
+              !relation.complement?.trim?.() ||
+              relation.complement === "?" ||
+              !relation.source?.trim?.() ||
+              relation.source === "?" ||
+              !relation.destination?.trim?.() ||
+              relation.destination === "?",
+          );
+          if (hasIncompleteSelectedRelation) {
+            this.cancelAndWarn(
+              "Relation type is incomplete. Set label, complement, source, and destination in settings.",
+            );
+            return;
+          }
 
           const target = this.editor.getShapeAtPoint(
             this.editor.inputs.currentPagePoint,

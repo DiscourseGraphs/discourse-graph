@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { TLShapeId, createShapeId, useEditor, useValue } from "tldraw";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
 import {
   BaseDiscourseRelationUtil,
@@ -7,6 +8,7 @@ import {
   getRelationColor,
 } from "~/components/canvas/DiscourseRelationShape/DiscourseRelationUtil";
 import { createOrUpdateArrowBinding } from "~/components/canvas/DiscourseRelationShape/helpers";
+import { getGlobalSettings } from "~/components/settings/utils/accessors";
 import {
   checkConnectionType,
   getAllRelations,
@@ -19,6 +21,7 @@ import { RelationTypeDropdown } from "./RelationTypeDropdown";
 const HANDLE_RADIUS = 5;
 const HANDLE_HIT_AREA = 12;
 const HANDLE_PADDING = 8;
+const DISCOURSE_CONFIG_PAGE_TITLE = "roam/js/discourse-graph";
 
 type HandlePosition = {
   x: number;
@@ -69,6 +72,35 @@ const getEdgeMidpoints = (bounds: {
 
 export const DragHandleOverlay = () => {
   const editor = useEditor();
+
+  const openDiscourseGraphSettings = useCallback(() => {
+    const uid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
+    if (!uid) return;
+    void window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
+  }, []);
+
+  const hasIncompleteRelationTypes = useCallback((): boolean => {
+    try {
+      const relations = getGlobalSettings()?.Relations;
+      if (!relations || typeof relations !== "object") return false;
+      return Object.values(relations).some((relation) => {
+        if (!relation || typeof relation !== "object") return true;
+        const r = relation as Record<string, unknown>;
+        return (
+          typeof r.label !== "string" ||
+          r.label.trim().length === 0 ||
+          typeof r.complement !== "string" ||
+          r.complement.trim().length === 0 ||
+          typeof r.source !== "string" ||
+          r.source.trim().length === 0 ||
+          typeof r.destination !== "string" ||
+          r.destination.trim().length === 0
+        );
+      });
+    } catch {
+      return false;
+    }
+  }, []);
 
   // Drag state: track the drag line in viewport coords (no tldraw shapes)
   const [isDragging, setIsDragging] = useState(false);
@@ -210,12 +242,61 @@ export const DragHandleOverlay = () => {
           return;
         }
 
+        // Validate that relation types are fully configured
+        if (hasIncompleteRelationTypes()) {
+          dispatchToastEvent({
+            id: "tldraw-incomplete-relations-configured",
+            title: "Relation types are incomplete",
+            description:
+              "Each relation type must have label, complement, source, and destination set before it can be used on the canvas.",
+            severity: "warning",
+            actions: [
+              {
+                type: "primary",
+                label: "Open settings",
+                onClick: openDiscourseGraphSettings,
+              },
+            ],
+          });
+          sourceNodeRef.current = null;
+          return;
+        }
+
+        // Validate that relation types exist at all
+        if (getAllRelations().length === 0) {
+          dispatchToastEvent({
+            id: "tldraw-no-relations-configured",
+            title: "No relation types are configured yet",
+            description:
+              "Open Discourse Graph settings to configure Relations before creating canvas relations.",
+            severity: "warning",
+            actions: [
+              {
+                type: "primary",
+                label: "Open settings",
+                onClick: openDiscourseGraphSettings,
+              },
+            ],
+          });
+          sourceNodeRef.current = null;
+          return;
+        }
+
         // Validate that relation types exist between these node types
         if (!hasValidRelationTypes(selectedNode.type, target.type)) {
           dispatchToastEvent({
             id: "tldraw-no-valid-relation",
             title: "No relation types are defined between these node types",
+            description:
+              "Open Discourse Graph settings to configure Relations and Nodes.",
             severity: "warning",
+            actions: [
+              {
+                type: "primary",
+                label: "Open settings",
+                onClick: openDiscourseGraphSettings,
+              },
+            ],
           });
           sourceNodeRef.current = null;
           return;

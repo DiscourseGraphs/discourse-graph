@@ -47,6 +47,14 @@ export const RelationTypeDropdown = ({
     const seenLabels = new Set<string>();
 
     for (const relation of allRelations) {
+      if (
+        !relation.label?.trim?.() ||
+        !relation.complement?.trim?.() ||
+        !relation.source?.trim?.() ||
+        !relation.destination?.trim?.()
+      ) {
+        continue;
+      }
       const { isDirect: isForward, isReverse } = checkConnectionType(
         relation,
         startNodeType,

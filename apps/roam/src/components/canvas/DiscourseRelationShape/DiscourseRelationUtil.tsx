@@ -181,7 +181,7 @@ export const createAllReferencedNodeUtils = (
         if (!possibleTargets.includes(target.type)) {
           return deleteAndWarn(
             `Target node must be of type ${possibleTargets
-              .map((t) => discourseContext.nodes[t].text)
+              .map((t) => discourseContext.nodes[t]?.text ?? t)
               .join(", ")}`,
           );
         }
