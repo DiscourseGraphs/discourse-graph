@@ -1322,7 +1322,9 @@ export type Database = {
       }
       my_pseudo_accounts: {
         Row: {
+          admin: boolean | null
           dg_account: string | null
+          group_id: string | null
           id: number | null
           name: string | null
           platform: Database["public"]["Enums"]["Platform"] | null
@@ -1332,6 +1334,13 @@ export type Database = {
           space_id: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "group_membership_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "my_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "PlatformAccount_dg_account_fkey"
             columns: ["dg_account"]
@@ -1803,16 +1812,6 @@ export type Database = {
               isSetofReturn: true
             }
           }
-      spaces_in_group: {
-        Args: { p_group_id: string }
-        Returns: Database["public"]["CompositeTypes"]["group_space_info"][]
-        SetofOptions: {
-          from: "*"
-          to: "group_space_info"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
       unowned_account_in_shared_space: {
         Args: { p_account_id: number }
         Returns: boolean
@@ -1982,15 +1981,6 @@ export type Database = {
         author_inline:
           | Database["public"]["CompositeTypes"]["account_local_input"]
           | null
-      }
-      group_space_info: {
-        id: number | null
-        name: string | null
-        platform: Database["public"]["Enums"]["Platform"] | null
-        sharing_permissions:
-          | Database["public"]["Enums"]["SpaceAccessPermissions"]
-          | null
-        admin: boolean | null
       }
       inline_embedding_input: {
         model: string | null
@@ -2178,3 +2168,4 @@ export const Constants = {
     },
   },
 } as const
+

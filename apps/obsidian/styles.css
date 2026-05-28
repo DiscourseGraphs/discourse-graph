@@ -6,16 +6,16 @@
 }
 
 .dg-h1 {
-  @apply text-3xl font-bold mb-4;
+  @apply mb-4 text-3xl font-bold;
 }
 .dg-h2 {
-  @apply text-2xl font-bold mb-3;
+  @apply mb-3 text-2xl font-bold;
 }
 .dg-h3 {
-  @apply text-xl font-semibold mb-2;
+  @apply mb-2 text-xl font-semibold;
 }
 .dg-h4 {
-  @apply text-lg font-bold mb-2;
+  @apply mb-2 text-lg font-bold;
 }
 
 .dg-create-node-button {
@@ -33,6 +33,11 @@
 
 .dg-create-node-button:hover {
   background: var(--interactive-accent-hover);
+}
+
+.dg-clickable-link {
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 /* Neutralize host button styling inside our editor */

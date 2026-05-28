@@ -301,7 +301,7 @@ const GeneralSettings = () => {
                 handleNodeTagHotkeyChange("");
               }
             }}
-            placeholder="\\"
+            placeholder="\"
             maxLength={1}
           />
         </div>

@@ -97,26 +97,23 @@ type CreateTemplateFileResult =
   | { created: true }
   | { created: false; reason: string };
 
-export const createTemplateFile = async ({
-  app,
-  templateName,
-  content,
-}: {
+type CreateTemplateFileInput = {
   app: App;
   templateName: string;
   content: string;
-}): Promise<CreateTemplateFileResult> => {
+};
+
+const getTemplateFolderPath = async (
+  app: App,
+): Promise<{ folderPath: string } | { reason: string }> => {
   const { isEnabled, folderPath } = getTemplatePluginInfo(app);
 
   if (!isEnabled) {
-    return { created: false, reason: "Templates plugin is not enabled" };
+    return { reason: "Templates plugin is not enabled" };
   }
 
   if (!folderPath) {
-    return {
-      created: false,
-      reason: "Templates folder path is not configured",
-    };
+    return { reason: "Templates folder path is not configured" };
   }
 
   // Ensure every segment of the folder path exists, creating missing ones
@@ -130,9 +127,40 @@ export const createTemplateFile = async ({
     }
   }
 
+  return { folderPath };
+};
+
+const sanitizeTemplateName = (templateName: string): string => {
+  const withoutExtension = templateName.replace(/\.md$/i, "");
+  const sanitizedName = withoutExtension.replace(/[/\\]/g, "-").trim();
+  return sanitizedName || "Imported template";
+};
+
+export const getImportedTemplateFileName = ({
+  templateName,
+  sourceName,
+}: {
+  templateName: string;
+  sourceName: string;
+}): string => {
+  const baseName = sanitizeTemplateName(templateName);
+  const sanitizedSourceName = sanitizeTemplateName(sourceName);
+  return `${baseName} (from ${sanitizedSourceName})`;
+};
+
+export const createTemplateFile = async ({
+  app,
+  templateName,
+  content,
+}: CreateTemplateFileInput): Promise<CreateTemplateFileResult> => {
+  const folderResult = await getTemplateFolderPath(app);
+  if ("reason" in folderResult) {
+    return { created: false, reason: folderResult.reason };
+  }
+
   // Sanitize to prevent path traversal (e.g. "../../sensitive" from a malicious sync)
-  const sanitizedName = templateName.replace(/[/\\]/g, "-");
-  const templateFilePath = `${folderPath}/${sanitizedName}.md`;
+  const sanitizedName = sanitizeTemplateName(templateName);
+  const templateFilePath = `${folderResult.folderPath}/${sanitizedName}.md`;
 
   // Don't overwrite an existing template — the local file takes precedence
   const existingFile = app.vault.getAbstractFileByPath(templateFilePath);
@@ -142,6 +170,39 @@ export const createTemplateFile = async ({
 
   await app.vault.create(templateFilePath, content);
   return { created: true };
+};
+
+export const createTemplateFileWithUniqueName = async ({
+  app,
+  templateName,
+  sourceName,
+  content,
+}: CreateTemplateFileInput & {
+  sourceName: string;
+}): Promise<
+  | { created: true; templateName: string; path: string }
+  | { created: false; reason: string }
+> => {
+  const folderResult = await getTemplateFolderPath(app);
+  if ("reason" in folderResult) {
+    return { created: false, reason: folderResult.reason };
+  }
+
+  const importedTemplateName = getImportedTemplateFileName({
+    templateName,
+    sourceName,
+  });
+  const path = `${folderResult.folderPath}/${importedTemplateName}.md`;
+  const existingFile = app.vault.getAbstractFileByPath(path);
+  if (existingFile instanceof TFile) {
+    return {
+      created: false,
+      reason: "template already imported from this space",
+    };
+  }
+
+  await app.vault.create(path, content);
+  return { created: true, templateName: importedTemplateName, path };
 };
 
 export const applyTemplate = async ({

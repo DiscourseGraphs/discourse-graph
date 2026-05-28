@@ -1,8 +1,10 @@
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import matchDiscourseNode from "./matchDiscourseNode";
 import type { SettingsSnapshot } from "~/components/settings/utils/accessors";
+import { getDiscourseNodeTypeCacheVersion } from "./discourseNodeTypeCache";
 
-const discourseNodeTypeCache: Record<string, DiscourseNode | false> = {};
+let discourseNodeTypeCache: Record<string, DiscourseNode | false> = {};
+let discourseNodeTypeCacheVersion = -1;
 
 const findDiscourseNode = ({
   uid,
@@ -15,6 +17,12 @@ const findDiscourseNode = ({
   nodes?: DiscourseNode[];
   snapshot?: SettingsSnapshot;
 }): DiscourseNode | false => {
+  const currentCacheVersion = getDiscourseNodeTypeCacheVersion();
+  if (discourseNodeTypeCacheVersion !== currentCacheVersion) {
+    discourseNodeTypeCache = {};
+    discourseNodeTypeCacheVersion = currentCacheVersion;
+  }
+
   if (typeof discourseNodeTypeCache[uid] !== "undefined") {
     return discourseNodeTypeCache[uid];
   }

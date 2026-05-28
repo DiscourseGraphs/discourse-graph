@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import { getSubTree } from "roamjs-components/util";
-import Description from "roamjs-components/components/Description";
+import Description from "~/components/settings/SettingsDescription";
 import {
   Label,
   Tabs,
@@ -39,6 +39,7 @@ import {
   DiscourseNodeFlagPanel,
   DiscourseNodeSelectPanel,
 } from "./components/BlockPropSettingPanels";
+import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -209,7 +210,10 @@ const NodeConfig = ({
               <DiscourseNodeTextPanel
                 nodeType={node.type}
                 title="Description"
-                description={`Describing what the ${node.text} node represents in your graph.`}
+                description={withDocsLink(
+                  `Describing what the ${node.text} node represents in your graph.`,
+                  ROAM_DOCS.grammarNodes,
+                )}
                 settingKeys={[DISCOURSE_NODE_KEYS.description]}
                 initialValue={node.description}
                 multiline
@@ -220,7 +224,10 @@ const NodeConfig = ({
               <DiscourseNodeTextPanel
                 nodeType={node.type}
                 title="Shortcut"
-                description={`The trigger to quickly create a ${node.text} page from the node menu.`}
+                description={withDocsLink(
+                  `The trigger to quickly create a ${node.text} page from the node menu.`,
+                  ROAM_DOCS.creatingNodes,
+                )}
                 settingKeys={[DISCOURSE_NODE_KEYS.shortcut]}
                 initialValue={node.shortcut}
                 error={shortcutError}
@@ -233,7 +240,10 @@ const NodeConfig = ({
                 <DiscourseNodeTextPanel
                   nodeType={node.type}
                   title="Tag"
-                  description={`Designate a hashtag for marking potential ${node.text}.`}
+                  description={withDocsLink(
+                    `Designate a hashtag for marking potential ${node.text}.`,
+                    ROAM_DOCS.taggingCandidateNodes,
+                  )}
                   settingKeys={[DISCOURSE_NODE_KEYS.tag]}
                   initialValue={node.tag}
                   placeholder={generateTagPlaceholder(node)}
@@ -330,7 +340,10 @@ const NodeConfig = ({
               <DiscourseNodeTextPanel
                 nodeType={node.type}
                 title="Format"
-                description={`DEPRECATED - Use specification instead. The format ${node.text} pages should have.`}
+                description={withDocsLink(
+                  `DEPRECATED - Use specification instead. The format ${node.text} pages should have.`,
+                  ROAM_DOCS.grammarNodes,
+                )}
                 settingKeys={[DISCOURSE_NODE_KEYS.format]}
                 initialValue={node.format}
                 error={formatError}
@@ -342,9 +355,10 @@ const NodeConfig = ({
               <Label>
                 Specification
                 <Description
-                  description={
-                    "The conditions specified to identify a ${nodeText} node."
-                  }
+                  description={withDocsLink(
+                    `The conditions specified to identify a ${node.text} node.`,
+                    ROAM_DOCS.grammarNodes,
+                  )}
                 />
                 <DiscourseNodeSpecification
                   node={node}
@@ -369,7 +383,10 @@ const NodeConfig = ({
               <DualWriteBlocksPanel
                 nodeType={node.type}
                 title="Template"
-                description={`The template that auto fills ${node.text} page when generated.`}
+                description={withDocsLink(
+                  `The template that auto fills ${node.text} page when generated.`,
+                  ROAM_DOCS.creatingNodes,
+                )}
                 settingKeys={TEMPLATE_SETTING_KEYS}
                 uid={templateUid}
                 defaultValue={node.template}
@@ -393,7 +410,10 @@ const NodeConfig = ({
               <DiscourseNodeSelectPanel
                 nodeType={node.type}
                 title="Overlay"
-                description="Select which attribute is used for the discourse overlay"
+                description={withDocsLink(
+                  "Select which attribute is used for the discourse overlay",
+                  ROAM_DOCS.discourseAttributes,
+                )}
                 settingKeys={[DISCOURSE_NODE_KEYS.overlay]}
                 options={attributeNode.children.map((c) => c.text)}
                 initialValue={

@@ -342,8 +342,8 @@ importers:
         specifier: 3.5.2
         version: 3.5.2(react@18.2.0)
       roamjs-components:
-        specifier: 0.87.0
-        version: 0.87.0(f3dd466ad63c875d7b4d2c35ecf33e51)
+        specifier: 0.88.1
+        version: 0.88.1(f3dd466ad63c875d7b4d2c35ecf33e51)
       tldraw:
         specifier: 2.4.6
         version: 2.4.6(patch_hash=56e196052862c9a58a11b43e5e121384cd1d6548416afa0f16e9fbfbf0e4080d)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -5822,7 +5822,7 @@ packages:
   basic-ftp@5.0.5:
     resolution: {integrity: sha512-4Bcg1P8xhUuqcii/S0Z9wiHIrQVPMermM1any+MX5GeGD7faD3/msQUDGLol9wOcz4/jbg/WJnGqoJF6LiBdtg==}
     engines: {node: '>=10.0.0'}
-    deprecated: Security vulnerability fixed in 5.2.1, please upgrade
+    deprecated: Security vulnerability fixed in 5.2.0, please upgrade
 
   before-after-hook@3.0.2:
     resolution: {integrity: sha512-Nik3Sc0ncrMK4UUdXQmAnRtzmNQTAAXmXIopizwZ1W1t8QmfJj+zL4OA2I7XPTPW5z5TDqv4hRo/JzouDJnX3A==}
@@ -10148,8 +10148,8 @@ packages:
     deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
 
-  roamjs-components@0.87.0:
-    resolution: {integrity: sha512-WRy/1xN2CacPzcaAl79pTM1ZqTDWQ7HyGM2Q/fb8m59QCXbLk3+jianOnMNATk4j8xahlJh3WyZzYQOsGwOuzg==}
+  roamjs-components@0.88.1:
+    resolution: {integrity: sha512-AnL+30xUDRKPfmoUQyS5FTAEUwNAGzqyTYTNzDzDZbD9bYSJCguS43eOwUYXI66gAHYgul4xiZuUtNWxKwmLpg==}
     engines: {node: '>=16.0.0', npm: '>=7.0.0'}
     hasBin: true
     peerDependencies:
@@ -23497,7 +23497,7 @@ snapshots:
     dependencies:
       glob: 7.2.3
 
-  roamjs-components@0.87.0(f3dd466ad63c875d7b4d2c35ecf33e51):
+  roamjs-components@0.88.1(f3dd466ad63c875d7b4d2c35ecf33e51):
     dependencies:
       '@blueprintjs/core': 3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@blueprintjs/datetime': 3.23.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)

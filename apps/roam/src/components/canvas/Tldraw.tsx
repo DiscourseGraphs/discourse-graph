@@ -37,7 +37,6 @@ import {
   TLAssetId,
   getHashForString,
   TLShapeId,
-  TLShape,
   TLStore,
   TLStoreWithStatus,
   useToasts,

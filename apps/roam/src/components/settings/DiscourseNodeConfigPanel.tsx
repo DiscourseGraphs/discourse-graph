@@ -22,6 +22,7 @@ import setBlockProps from "~/utils/setBlockProps";
 import { DiscourseNodeSchema } from "./utils/zodSchema";
 import { getGlobalSettings, setGlobalSetting } from "./utils/accessors";
 import { GLOBAL_KEYS } from "./utils/settingKeys";
+import { invalidateDiscourseNodeTypeCaches } from "~/utils/discourseNodeTypeCache";
 
 type DiscourseNodeConfigPanelProps = React.ComponentProps<
   CustomField["options"]["component"]
@@ -60,6 +61,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
     await window.roamAlphaAPI.deletePage({
       page: { uid },
     });
+    invalidateDiscourseNodeTypeCaches();
     setNodes((prevNodes) => prevNodes.filter((nn) => nn.type !== uid));
     refreshConfigTree();
     setDeleteConfirmation(null);
@@ -117,6 +119,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                   format,
                 }),
               );
+              invalidateDiscourseNodeTypeCaches();
               setNodes([
                 ...nodes,
                 {

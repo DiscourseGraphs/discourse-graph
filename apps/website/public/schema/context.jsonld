@@ -1,0 +1,65 @@
+{
+  "@context": {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "sioc": "http://rdfs.org/sioc/ns#",
+    "dgc": "https://discoursegraphs.com/schema/dg_core#",
+    "dgb": "https://discoursegraphs.com/schema/dg_base#",
+    "predicate": "rdf:predicate",
+    "subClassOf": "rdfs:subClassOf",
+    "label": "rdfs:label",
+    "inverseOf": "owl:inverseOf",
+    "onProperty": "owl:onProperty",
+    "sameAs": "owl:sameAs",
+    "hasValue": "owl:hasValue",
+    "title": "dc:title",
+    "format": "dc:format",
+    "description": "dc:description",
+    "modified": {
+      "@id": "dc:modified",
+      "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
+    },
+    "created": {
+      "@id": "dc:date",
+      "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
+    },
+    "creator": "dc:creator",
+    "Container": "sioc:Container",
+    "content": "sioc:content",
+    "container_of": "sioc:container_of",
+    "has_container": { "@id": "sioc:has_container", "@type": "@id" },
+    "RelationDef": "dgb:RelationDef",
+    "RelationInstance": "dgb:RelationInstance",
+    "RelationSchema": "dgb:RelationSchema",
+    "NodeSchema": "dgb:NodeSchema",
+    "source": { "@id": "dgb:source", "@type": "@id" },
+    "destination": { "@id": "dgb:destination", "@type": "@id" },
+    "textRefersToNode": "dgb:textRefersToNode",
+
+    "Question": "dgc:Question",
+    "Claim": "dgc:Claim",
+    "Evidence": "dgc:Evidence",
+    "SourceDocument": "dgc:SourceDocument",
+    "ClaimOrEvidence": "dgc:ClaimOrEvidence",
+    "observationStatement": {
+      "@id": "dgc:observationStatement",
+      "@type": "@id"
+    },
+    "observationOriginActivity": {
+      "@id": "dgc:observationOriginActivity",
+      "@type": "@id"
+    },
+    "observationBase": { "@id": "dgc:observationBase", "@type": "@id" },
+    "sourceDocument": { "@id": "dgc:sourceDocument", "@type": "@id" },
+    "describesActivity": { "@id": "dgc:describesActivity", "@type": "@id" },
+    "opposes": { "@id": "dgc:opposes", "@type": "@id" },
+    "opposedBy": { "@id": "dgc:opposedBy", "@type": "@id" },
+    "supports": { "@id": "dgc:supports", "@type": "@id" },
+    "supportedBy": { "@id": "dgc:supportedBy", "@type": "@id" },
+    "addresses": { "@id": "dgc:addresses", "@type": "@id" },
+    "addressedBy": { "@id": "dgc:addressedBy", "@type": "@id" }
+  }
+}

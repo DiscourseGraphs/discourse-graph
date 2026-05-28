@@ -32,7 +32,7 @@ const SLASH_COMMANDS: {
           void updateBlock({
             uid,
             text: `{{dg-canvas: [[${title}]]}}`,
-          });
+          }).then(() => document.body.click());
         },
       });
     },

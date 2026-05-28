@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { Label, Dialog, Button, Intent, Classes } from "@blueprintjs/core";
-import Description from "roamjs-components/components/Description";
+import Description from "~/components/settings/SettingsDescription";
 import { addStyle } from "roamjs-components/dom";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
@@ -35,6 +35,7 @@ import posthog from "posthog-js";
 import internalError from "~/utils/internalError";
 import { setPersonalSetting, type SettingsSnapshot } from "./utils/accessors";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
+import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const enum RelationMigrationDialog {
   "none",
@@ -119,7 +120,12 @@ const HomePersonalSettings = ({
     <div className="flex flex-col gap-4 p-1">
       <Label>
         Personal node menu trigger
-        <Description description="Override the global trigger for the discourse node menu." />
+        <Description
+          description={withDocsLink(
+            "Override the global trigger for the discourse node menu.",
+            ROAM_DOCS.creatingNodes,
+          )}
+        />
         <NodeMenuTriggerComponent
           extensionAPI={extensionAPI}
           initialValue={personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger]}
@@ -138,13 +144,19 @@ const HomePersonalSettings = ({
         settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
         blockPropKey={PERSONAL_KEYS.discourseToolShortcut}
         label="Discourse tool keyboard shortcut"
-        description="Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
+        description={withDocsLink(
+          "Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut.",
+          ROAM_DOCS.creatingNodes,
+        )}
         placeholder="Click to set single key"
         initialValue={personalSettings[PERSONAL_KEYS.discourseToolShortcut]}
       />
       <PersonalFlagPanel
         title="Overlay"
-        description="Whether or not to overlay discourse context information over discourse node references."
+        description={withDocsLink(
+          "Whether or not to overlay discourse context information over discourse node references.",
+          ROAM_DOCS.discourseContextOverlay,
+        )}
         settingKeys={[PERSONAL_KEYS.discourseContextOverlay]}
         initialValue={personalSettings[PERSONAL_KEYS.discourseContextOverlay]}
         onChange={(checked) => {
@@ -157,7 +169,10 @@ const HomePersonalSettings = ({
       />
       <PersonalFlagPanel
         title="Enable stored relations"
-        description="Use stored relations instead of legacy pattern-based relations"
+        description={withDocsLink(
+          "Use stored relations instead of legacy pattern-based relations",
+          ROAM_DOCS.migrationToStoredRelations,
+        )}
         settingKeys={["Reified relation triples"]}
         initialValue={personalSettings["Reified relation triples"]}
         value={storedRelations}
@@ -179,7 +194,10 @@ const HomePersonalSettings = ({
 
       <PersonalFlagPanel
         title="Text selection popup"
-        description="Whether or not to show the discourse node menu when selecting text."
+        description={withDocsLink(
+          "Whether or not to show the discourse node menu when selecting text.",
+          ROAM_DOCS.creatingNodes,
+        )}
         settingKeys={[PERSONAL_KEYS.textSelectionPopup]}
         initialValue={personalSettings[PERSONAL_KEYS.textSelectionPopup]}
         onChange={(checked) => {
@@ -221,7 +239,10 @@ const HomePersonalSettings = ({
       />
       <PersonalFlagPanel
         title="Auto canvas relations"
-        description="Automatically add discourse relations to canvas when a node is added"
+        description={withDocsLink(
+          "Automatically add discourse relations to canvas when a node is added",
+          ROAM_DOCS.storedRelations,
+        )}
         settingKeys={[PERSONAL_KEYS.autoCanvasRelations]}
         initialValue={personalSettings[PERSONAL_KEYS.autoCanvasRelations]}
         onChange={(checked) => {
@@ -231,7 +252,10 @@ const HomePersonalSettings = ({
 
       <PersonalFlagPanel
         title="(BETA) Overlay in canvas"
-        description="Whether or not to overlay discourse context information over canvas nodes."
+        description={withDocsLink(
+          "Whether or not to overlay discourse context information over canvas nodes.",
+          ROAM_DOCS.discourseContextOverlay,
+        )}
         settingKeys={[PERSONAL_KEYS.overlayInCanvas]}
         initialValue={personalSettings[PERSONAL_KEYS.overlayInCanvas]}
         onChange={(checked) => {

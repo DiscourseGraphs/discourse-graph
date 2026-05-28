@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Dialog } from "@blueprintjs/core";
+import { Dialog, MenuItem } from "@blueprintjs/core";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import renderOverlay, {
   RoamOverlayProps,
@@ -47,6 +47,15 @@ const CanvasEmbedDialog = ({
         placeholder="Search canvas pages..."
         autoFocus
         autoSelectFirstOption={false}
+        renderItem={({ item }) => (
+          <MenuItem
+            onMouseDown={(event) => {
+              event.preventDefault();
+              handleSetValue(item);
+            }}
+            text={item}
+          />
+        )}
       />
     );
   };
@@ -56,7 +65,8 @@ const CanvasEmbedDialog = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Embed Canvas"
-      className="dg-canvas-embed-dialog pb-0"
+      className="roamjs-canvas-dialog pb-0"
+      style={{ width: "400px" }}
     >
       <div className="p-4">{renderContent()}</div>
     </Dialog>

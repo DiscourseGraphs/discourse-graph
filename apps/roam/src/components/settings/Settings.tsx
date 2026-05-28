@@ -31,6 +31,13 @@ import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
 import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
 import posthog from "posthog-js";
 import { bulkReadSettings } from "./utils/accessors";
+import { onSettingChange, settingKeys } from "./utils/settingsEmitter";
+
+const settingsTabIds = {
+  homePersonal: "discourse-graph-home-personal",
+  leftSidebarPersonal: "left-sidebar-personal-settings",
+  leftSidebarGlobal: "left-sidebar-global-settings",
+} as const;
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -86,17 +93,25 @@ export const SettingsDialog = ({
   const nodesNode = grammarNode?.children.find((node) => node.text === "nodes");
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
   const [activeTabId, setActiveTabId] = useState<TabId>(
-    selectedTabId ?? "discourse-graph-home-personal",
+    selectedTabId ?? settingsTabIds.homePersonal,
   );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const settings = useMemo(() => bulkReadSettings(), [activeTabId]);
+  const [leftSidebarEnabled, setLeftSidebarEnabled] = useState(
+    settings.featureFlags["Enable left sidebar"],
+  );
+  useEffect(() => {
+    return onSettingChange(settingKeys.leftSidebarFlag, (newValue) => {
+      setLeftSidebarEnabled(Boolean(newValue));
+    });
+  }, []);
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
 
   useEffect(() => {
     posthog.capture("Settings: Dialog Opened", {
-      initialTabId: String(selectedTabId ?? "discourse-graph-home-personal"),
+      initialTabId: String(selectedTabId ?? settingsTabIds.homePersonal),
     });
   }, [selectedTabId]);
 
@@ -114,6 +129,13 @@ export const SettingsDialog = ({
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, []);
+  const leftSidebarTabHidden =
+    !leftSidebarEnabled &&
+    (activeTabId === settingsTabIds.leftSidebarPersonal ||
+      activeTabId === settingsTabIds.leftSidebarGlobal);
+  const visibleTabId = leftSidebarTabHidden
+    ? settingsTabIds.homePersonal
+    : activeTabId;
   return (
     <Dialog
       isOpen={isOpen}
@@ -161,7 +183,7 @@ export const SettingsDialog = ({
               tabId: String(id),
             });
           }}
-          selectedTabId={activeTabId}
+          selectedTabId={visibleTabId}
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
@@ -169,7 +191,7 @@ export const SettingsDialog = ({
             Personal Settings
           </SectionHeader>
           <Tab
-            id="discourse-graph-home-personal"
+            id={settingsTabIds.homePersonal}
             title="Home"
             className="overflow-y-auto"
             panel={
@@ -201,7 +223,8 @@ export const SettingsDialog = ({
             }
           />
           <Tab
-            id="left-sidebar-personal-settings"
+            id={settingsTabIds.leftSidebarPersonal}
+            hidden={!leftSidebarEnabled}
             title="Left sidebar"
             className="overflow-y-auto"
             panel={
@@ -234,7 +257,8 @@ export const SettingsDialog = ({
             }
           />
           <Tab
-            id="left-sidebar-global-settings"
+            id={settingsTabIds.leftSidebarGlobal}
+            hidden={!leftSidebarEnabled}
             title="Left sidebar"
             className="overflow-y-auto"
             panel={
