@@ -44,7 +44,7 @@ const NodeTypeFilterRow = ({
   onSelectOnly: () => void;
   onToggle: () => void;
 }): React.ReactElement => (
-  <div className="group flex items-center gap-2 px-3 py-1.5 hover:bg-gray-900/[0.04]">
+  <div className="group flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50">
     <Checkbox
       checked={isChecked}
       className="mb-0 flex-1 text-sm font-normal text-gray-900"
@@ -60,8 +60,9 @@ const NodeTypeFilterRow = ({
       onChange={onToggle}
     />
     <Button
-      className="!px-2 !py-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
+      className="opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
       minimal
+      style={{ padding: "4px 8px" }}
       onClick={(event) => {
         event.stopPropagation();
         onSelectOnly();
@@ -119,13 +120,6 @@ const FilterPopoverPanel = ({
     [onSelectedIdsChange, selectedIdSet, selectedIds],
   );
 
-  const handleOnly = useCallback(
-    (id: string): void => {
-      onSelectedIdsChange([id]);
-    },
-    [onSelectedIdsChange],
-  );
-
   useEffect(() => {
     if (!isOpen) {
       setQuery("");
@@ -161,7 +155,7 @@ const FilterPopoverPanel = ({
         ) : (
           <>
             {!hasTypeSearchQuery && (
-              <div className="border-b border-gray-900/10 px-3 py-1.5 hover:bg-gray-900/[0.04]">
+              <div className="border-b border-gray-200 px-3 py-1.5 hover:bg-gray-50">
                 <Checkbox
                   checked={selectAllState !== "off"}
                   className="mb-0 text-sm text-gray-900"
@@ -179,7 +173,7 @@ const FilterPopoverPanel = ({
                   isChecked={selectedIdSet.has(node.type)}
                   key={node.type}
                   node={node}
-                  onSelectOnly={() => handleOnly(node.type)}
+                  onSelectOnly={() => onSelectedIdsChange([node.type])}
                   onToggle={() => toggleType(node.type)}
                 />
               ))}
@@ -262,7 +256,7 @@ export const DiscourseNodeTypeFilter = ({
       className="p-0"
       disabled={!isFilterReady}
       elementRef={triggerRef}
-      icon="filter"
+      icon="filter-keep"
       minimal
       onMouseDown={(event) => event.preventDefault()}
       style={{

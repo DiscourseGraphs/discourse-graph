@@ -1,6 +1,6 @@
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
 
-/** Advanced search: empty `selectedTypeIds` means all types; partial list is an active filter. */
+/* Advanced search: when `selectedTypeIds` has no values, show all node types; otherwise, filter to the selected types. */
 export const NODE_TYPE_FILTER_SEARCH_THRESHOLD = 7;
 
 export type SelectAllCheckState = "off" | "indeterminate" | "on";
