@@ -7,7 +7,7 @@ import {
 } from "~/components/canvas/canvasUtils";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import { RelationTypeDropdown } from "./RelationTypeDropdown";
-import { createRelationBetweenNodes } from "./relationCreation";
+import { createDefaultRelationBetweenNodes } from "./relationCreation";
 
 const HANDLE_RADIUS = 5;
 const HANDLE_HIT_AREA = 12;
@@ -249,7 +249,7 @@ export const DragHandleOverlay = () => {
     (relationId: string) => {
       if (!pending) return;
 
-      void createRelationBetweenNodes({
+      void createDefaultRelationBetweenNodes({
         editor,
         relationId,
         sourceId: pending.sourceId,

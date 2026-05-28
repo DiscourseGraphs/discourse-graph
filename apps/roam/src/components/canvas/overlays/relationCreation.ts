@@ -57,7 +57,7 @@ export const getValidRelationTypesBetween = (
   return validTypes;
 };
 
-export const createRelationBetweenNodes = async ({
+export const createDefaultRelationBetweenNodes = async ({
   editor,
   relationId,
   sourceId,

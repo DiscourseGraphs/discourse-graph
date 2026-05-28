@@ -1,6 +1,7 @@
 import React, { ReactElement } from "react";
 import {
   TLArrowBinding,
+  TLArrowShape,
   TLImageShape,
   TLShape,
   TLShapeId,
@@ -50,12 +51,18 @@ import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSetting
 import { COLOR_ARRAY } from "./DiscourseNodeUtil";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
-import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import {
-  createRelationBetweenNodes,
-  getValidRelationTypesBetween,
-} from "./overlays/relationCreation";
-import { isDiscourseNodeShape } from "./canvasUtils";
+  BaseDiscourseRelationUtil,
+  DiscourseRelationShape,
+  getRelationColor,
+} from "./DiscourseRelationShape/DiscourseRelationUtil";
+import { getValidRelationTypesBetween } from "./overlays/relationCreation";
+import {
+  checkConnectionType,
+  getAllRelations,
+  isDiscourseNodeShape,
+} from "./canvasUtils";
+import { createOrUpdateArrowBinding } from "./DiscourseRelationShape/helpers";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
@@ -231,17 +238,24 @@ export const getOnSelectForShape = ({
   return () => {};
 };
 
-const getArrowBoundNodeIds = (
+type ArrowBoundNodeInfo = {
+  startId: TLShapeId;
+  endId: TLShapeId;
+  startBinding: TLArrowBinding;
+  endBinding: TLArrowBinding;
+};
+
+const getArrowBoundNodeInfo = (
   editor: Editor,
   arrow: TLShape,
-): { startId: TLShapeId; endId: TLShapeId } | null => {
+): ArrowBoundNodeInfo | null => {
   const bindings = editor.getBindingsFromShape<TLArrowBinding>(arrow, "arrow");
-  const startId = bindings.find((b) => b.props.terminal === "start")?.toId;
-  const endId = bindings.find((b) => b.props.terminal === "end")?.toId;
-  if (!startId || !endId) return null;
+  const startBinding = bindings.find((b) => b.props.terminal === "start");
+  const endBinding = bindings.find((b) => b.props.terminal === "end");
+  if (!startBinding || !endBinding) return null;
 
-  const startShape = editor.getShape(startId);
-  const endShape = editor.getShape(endId);
+  const startShape = editor.getShape(startBinding.toId);
+  const endShape = editor.getShape(endBinding.toId);
   if (!startShape || !endShape) return null;
   if (
     !isDiscourseNodeShape(editor, startShape) ||
@@ -249,7 +263,119 @@ const getArrowBoundNodeIds = (
   )
     return null;
 
-  return { startId, endId };
+  return {
+    startId: startBinding.toId,
+    endId: endBinding.toId,
+    startBinding,
+    endBinding,
+  };
+};
+
+const copyArrowBindingProps = (
+  binding: TLArrowBinding,
+): TLArrowBinding["props"] => ({
+  ...binding.props,
+  normalizedAnchor: { ...binding.props.normalizedAnchor },
+});
+
+const convertArrowToRelation = async ({
+  editor,
+  arrow,
+  relationId,
+}: {
+  editor: Editor;
+  arrow: TLArrowShape;
+  relationId: string;
+}): Promise<TLShapeId | null> => {
+  const boundNodes = getArrowBoundNodeInfo(editor, arrow);
+  if (!boundNodes) return null;
+
+  const selectedRelation = getAllRelations().find((r) => r.id === relationId);
+  if (!selectedRelation) return null;
+
+  const sourceNode = editor.getShape(boundNodes.startId);
+  const targetNode = editor.getShape(boundNodes.endId);
+  if (!sourceNode || !targetNode) return null;
+
+  const { isReverse } = checkConnectionType(
+    selectedRelation,
+    sourceNode.type,
+    targetNode.type,
+  );
+  const label =
+    isReverse && selectedRelation.complement
+      ? selectedRelation.complement
+      : selectedRelation.label;
+  const relationColor = getRelationColor(selectedRelation.label);
+  const arrowProps = structuredClone(arrow.props);
+  const relationArrowId = createShapeId();
+
+  editor.createShape<DiscourseRelationShape>({
+    id: relationArrowId,
+    type: relationId,
+    parentId: arrow.parentId,
+    x: arrow.x,
+    y: arrow.y,
+    rotation: arrow.rotation,
+    opacity: arrow.opacity,
+    isLocked: arrow.isLocked,
+    meta: { ...arrow.meta },
+    props: {
+      ...arrowProps,
+      color: relationColor,
+      labelColor: relationColor,
+      text: label,
+    },
+  });
+
+  const relationArrow =
+    editor.getShape<DiscourseRelationShape>(relationArrowId);
+  if (!relationArrow) return null;
+
+  createOrUpdateArrowBinding(
+    editor,
+    relationArrow,
+    boundNodes.startId,
+    copyArrowBindingProps(boundNodes.startBinding),
+  );
+  createOrUpdateArrowBinding(
+    editor,
+    relationArrow,
+    boundNodes.endId,
+    copyArrowBindingProps(boundNodes.endBinding),
+  );
+
+  const util = editor.getShapeUtil(relationArrow);
+  if (
+    util instanceof BaseDiscourseRelationUtil &&
+    "handleCreateRelationsInRoam" in util
+  ) {
+    type UtilWithRoamPersistence = BaseDiscourseRelationUtil & {
+      handleCreateRelationsInRoam: (args: {
+        arrow: DiscourseRelationShape;
+        targetId: TLShapeId;
+      }) => Promise<void>;
+    };
+    await (util as UtilWithRoamPersistence).handleCreateRelationsInRoam({
+      arrow: relationArrow,
+      targetId: boundNodes.endId,
+    });
+  }
+
+  const persistedArrow =
+    editor.getShape<DiscourseRelationShape>(relationArrowId);
+  if (!persistedArrow) {
+    editor.select(arrow.id);
+    return null;
+  }
+
+  editor.deleteShapes([arrow.id]);
+  editor.updateShapes([
+    { id: persistedArrow.id, type: persistedArrow.type, index: arrow.index },
+  ]);
+  editor.select(relationArrowId);
+
+  return relationArrowId;
 };
 
 export const CustomContextMenu = ({
@@ -271,7 +397,7 @@ export const CustomContextMenu = ({
     "arrowRelationOptions",
     () => {
       if (!selectedShape || selectedShape.type !== "arrow") return null;
-      const boundNodes = getArrowBoundNodeIds(editor, selectedShape);
+      const boundNodes = getArrowBoundNodeInfo(editor, selectedShape);
       if (!boundNodes) return null;
       const relationTypes = getValidRelationTypesBetween(
         editor,
@@ -321,15 +447,16 @@ export const CustomContextMenu = ({
                 id={`relation-${rt.id}`}
                 label={rt.label}
                 onSelect={async () => {
-                  const newArrowId = await createRelationBetweenNodes({
+                  const arrow = editor.getShape<TLArrowShape>(
+                    arrowRelationOptions.arrowId,
+                  );
+                  if (!arrow || arrow.type !== "arrow") return;
+
+                  await convertArrowToRelation({
                     editor,
+                    arrow,
                     relationId: rt.id,
-                    sourceId: arrowRelationOptions.startId,
-                    targetId: arrowRelationOptions.endId,
                   });
-                  if (newArrowId) {
-                    editor.deleteShapes([arrowRelationOptions.arrowId]);
-                  }
                 }}
               />
             ))}
