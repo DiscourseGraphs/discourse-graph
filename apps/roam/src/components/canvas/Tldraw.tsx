@@ -1376,21 +1376,33 @@ const InsideEditorAndUiContext = ({
           if (!blockText || !isLive)
             return await callDefaultTextHandler(content);
 
-          const refMatch = blockText.match(PAGE_REF_REGEX);
-          if (refMatch?.[1] && (await tryCreatePageNodeShape(refMatch[1]))) {
-            posthog.capture("Canvas: Node Added from External Content", {
-              source: "block-page-reference",
+          // Resolve the discourse node the block references via Roam's ref
+          // index (robust to emoji icons / nested refs that defeat regex).
+          const referencedPages = window.roamAlphaAPI.data.fast.q(
+            `[:find ?ru ?rt :where [?b :block/uid "${uid}"] [?b :block/refs ?r] [?r :block/uid ?ru] [?r :node/title ?rt]]`,
+          ) as [string, string][];
+          for (const [refUid, refTitle] of referencedPages) {
+            const refNodeType = findDiscourseNode({
+              uid: refUid,
+              title: refTitle,
+              nodes: allNodes,
             });
-            return;
+            if (refNodeType) {
+              await createDiscourseNodeShape({
+                uid: refUid,
+                nodeText: refTitle,
+                nodeType: refNodeType.type,
+                content,
+              });
+              posthog.capture("Canvas: Node Added from External Content", {
+                source: "block-page-reference",
+              });
+              return;
+            }
           }
 
-          // The block itself may be a discourse node (its own text matches a
-          // node format/spec), as opposed to linking out to one above.
-          const blockNodeType = findDiscourseNode({
-            uid,
-            title: blockText,
-            nodes: allNodes,
-          });
+          // The block itself may be a block-type discourse node.
+          const blockNodeType = findDiscourseNode({ uid, nodes: allNodes });
           if (blockNodeType) {
             await createDiscourseNodeShape({
               uid,
