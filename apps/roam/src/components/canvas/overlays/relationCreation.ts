@@ -73,10 +73,11 @@ export const createRelationBetweenNodes = async ({
 
   const sourceNode = editor.getShape(sourceId);
   const targetNode = editor.getShape(targetId);
+  if (!sourceNode || !targetNode) return null;
   const { isReverse } = checkConnectionType(
     selectedRelation,
-    sourceNode?.type ?? "",
-    targetNode?.type ?? "",
+    sourceNode.type,
+    targetNode.type,
   );
   const label =
     isReverse && selectedRelation.complement
@@ -139,7 +140,7 @@ export const createRelationBetweenNodes = async ({
       }) => Promise<void>;
     };
     await (util as UtilWithRoamPersistence).handleCreateRelationsInRoam({
-      arrow: editor.getShape<DiscourseRelationShape>(arrowId) ?? newArrow,
+      arrow: newArrow,
       targetId,
     });
   }
