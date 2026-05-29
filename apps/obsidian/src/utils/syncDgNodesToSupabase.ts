@@ -351,7 +351,8 @@ const buildChangedNodesFromNodes = async ({
         .select("source_local_id")
         .eq("space_id", context.spaceId)
         .eq("arity", 0)
-        .eq("is_schema", false),
+        .eq("is_schema", false)
+        .order("id"),
       1000,
     );
     if (Array.isArray(existingConceptIds)) {
