@@ -15,8 +15,60 @@ import {
   getAllRelations,
   isDiscourseNodeShape,
 } from "~/components/canvas/canvasUtils";
+import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 
 type RelationTypeOption = { id: string; label: string; color: string };
+
+type DirectionalRelation = Pick<
+  DiscourseRelation,
+  "label" | "complement" | "source" | "destination"
+>;
+
+export const getDirectionalRelationLabel = ({
+  relation,
+  sourceNodeType,
+  targetNodeType,
+}: {
+  relation: DirectionalRelation;
+  sourceNodeType: string;
+  targetNodeType: string;
+}): string => {
+  const { isReverse } = checkConnectionType(
+    relation,
+    sourceNodeType,
+    targetNodeType,
+  );
+  return isReverse && relation.complement
+    ? relation.complement
+    : relation.label;
+};
+
+export const persistRelationArrow = async ({
+  editor,
+  arrow,
+  targetId,
+}: {
+  editor: Editor;
+  arrow: DiscourseRelationShape;
+  targetId: TLShapeId;
+}): Promise<void> => {
+  const util = editor.getShapeUtil(arrow);
+  if (
+    util instanceof BaseDiscourseRelationUtil &&
+    "handleCreateRelationsInRoam" in util
+  ) {
+    type UtilWithRoamPersistence = BaseDiscourseRelationUtil & {
+      handleCreateRelationsInRoam: (args: {
+        arrow: DiscourseRelationShape;
+        targetId: TLShapeId;
+      }) => Promise<void>;
+    };
+    await (util as UtilWithRoamPersistence).handleCreateRelationsInRoam({
+      arrow,
+      targetId,
+    });
+  }
+};
 
 export const getValidRelationTypesBetween = (
   editor: Editor,
@@ -44,8 +96,11 @@ export const getValidRelationTypesBetween = (
     );
     if (!isDirect && !isReverse) continue;
 
-    const label =
-      isReverse && relation.complement ? relation.complement : relation.label;
+    const label = getDirectionalRelationLabel({
+      relation,
+      sourceNodeType: startNode.type,
+      targetNodeType: endNode.type,
+    });
     if (seenLabels.has(label)) continue;
     seenLabels.add(label);
 
@@ -74,15 +129,11 @@ export const createDefaultRelationBetweenNodes = async ({
   const sourceNode = editor.getShape(sourceId);
   const targetNode = editor.getShape(targetId);
   if (!sourceNode || !targetNode) return null;
-  const { isReverse } = checkConnectionType(
-    selectedRelation,
-    sourceNode.type,
-    targetNode.type,
-  );
-  const label =
-    isReverse && selectedRelation.complement
-      ? selectedRelation.complement
-      : selectedRelation.label;
+  const label = getDirectionalRelationLabel({
+    relation: selectedRelation,
+    sourceNodeType: sourceNode.type,
+    targetNodeType: targetNode.type,
+  });
 
   const sourceBounds = editor.getShapePageBounds(sourceId);
   if (!sourceBounds) return null;
@@ -128,22 +179,7 @@ export const createDefaultRelationBetweenNodes = async ({
 
   editor.select(arrowId);
 
-  const util = editor.getShapeUtil(newArrow);
-  if (
-    util instanceof BaseDiscourseRelationUtil &&
-    "handleCreateRelationsInRoam" in util
-  ) {
-    type UtilWithRoamPersistence = BaseDiscourseRelationUtil & {
-      handleCreateRelationsInRoam: (args: {
-        arrow: DiscourseRelationShape;
-        targetId: TLShapeId;
-      }) => Promise<void>;
-    };
-    await (util as UtilWithRoamPersistence).handleCreateRelationsInRoam({
-      arrow: newArrow,
-      targetId,
-    });
-  }
+  await persistRelationArrow({ editor, arrow: newArrow, targetId });
 
   // handleCreateRelationsInRoam deletes the new arrow if it rejects the
   // conversion, so a surviving shape means the relation was persisted.

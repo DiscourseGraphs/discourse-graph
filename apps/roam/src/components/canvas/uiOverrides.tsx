@@ -52,16 +52,15 @@ import { COLOR_ARRAY } from "./DiscourseNodeUtil";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import {
-  BaseDiscourseRelationUtil,
   DiscourseRelationShape,
   getRelationColor,
 } from "./DiscourseRelationShape/DiscourseRelationUtil";
-import { getValidRelationTypesBetween } from "./overlays/relationCreation";
 import {
-  checkConnectionType,
-  getAllRelations,
-  isDiscourseNodeShape,
-} from "./canvasUtils";
+  getDirectionalRelationLabel,
+  getValidRelationTypesBetween,
+  persistRelationArrow,
+} from "./overlays/relationCreation";
+import { getAllRelations, isDiscourseNodeShape } from "./canvasUtils";
 import { createOrUpdateArrowBinding } from "./DiscourseRelationShape/helpers";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
@@ -297,17 +296,12 @@ const convertArrowToRelation = async ({
   const targetNode = editor.getShape(boundNodes.endId);
   if (!sourceNode || !targetNode) return null;
 
-  const { isReverse } = checkConnectionType(
-    selectedRelation,
-    sourceNode.type,
-    targetNode.type,
-  );
-  const label =
-    isReverse && selectedRelation.complement
-      ? selectedRelation.complement
-      : selectedRelation.label;
+  const label = getDirectionalRelationLabel({
+    relation: selectedRelation,
+    sourceNodeType: sourceNode.type,
+    targetNodeType: targetNode.type,
+  });
   const relationColor = getRelationColor(selectedRelation.label);
-  const arrowProps = structuredClone(arrow.props);
   const relationArrowId = createShapeId();
 
   editor.createShape<DiscourseRelationShape>({
@@ -321,7 +315,17 @@ const convertArrowToRelation = async ({
     isLocked: arrow.isLocked,
     meta: { ...arrow.meta },
     props: {
-      ...arrowProps,
+      bend: arrow.props.bend,
+      start: structuredClone(arrow.props.start),
+      end: structuredClone(arrow.props.end),
+      labelPosition: arrow.props.labelPosition,
+      dash: "draw",
+      size: "m",
+      fill: "none",
+      arrowheadStart: "none",
+      arrowheadEnd: "arrow",
+      font: "draw",
+      scale: 1,
       color: relationColor,
       labelColor: relationColor,
       text: label,
@@ -345,22 +349,11 @@ const convertArrowToRelation = async ({
     copyArrowBindingProps(boundNodes.endBinding),
   );
 
-  const util = editor.getShapeUtil(relationArrow);
-  if (
-    util instanceof BaseDiscourseRelationUtil &&
-    "handleCreateRelationsInRoam" in util
-  ) {
-    type UtilWithRoamPersistence = BaseDiscourseRelationUtil & {
-      handleCreateRelationsInRoam: (args: {
-        arrow: DiscourseRelationShape;
-        targetId: TLShapeId;
-      }) => Promise<void>;
-    };
-    await (util as UtilWithRoamPersistence).handleCreateRelationsInRoam({
-      arrow: relationArrow,
-      targetId: boundNodes.endId,
-    });
-  }
+  await persistRelationArrow({
+    editor,
+    arrow: relationArrow,
+    targetId: boundNodes.endId,
+  });
 
   const persistedArrow =
     editor.getShape<DiscourseRelationShape>(relationArrowId);
