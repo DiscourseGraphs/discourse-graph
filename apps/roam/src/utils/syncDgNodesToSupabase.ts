@@ -467,7 +467,8 @@ const getAllMissingOrNewDiscourseNodes = async ({
     supabaseClient
       .from("my_contents")
       .select("source_local_id")
-      .eq("space_id", spaceId),
+      .eq("space_id", spaceId)
+      .order("id"),
     1000,
   );
   if (!Array.isArray(existingContentIdsReq)) throw existingContentIdsReq;
@@ -477,7 +478,8 @@ const getAllMissingOrNewDiscourseNodes = async ({
       .select("source_local_id")
       .eq("space_id", spaceId)
       .eq("arity", 0)
-      .eq("is_schema", false),
+      .eq("is_schema", false)
+      .order("id"),
     1000,
   );
   if (!Array.isArray(existingConceptIdsReq)) throw existingConceptIdsReq;
