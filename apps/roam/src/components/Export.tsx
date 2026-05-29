@@ -193,6 +193,10 @@ const ExportDialog: ExportDialogComponent = ({
   const currentPageTitle = getPageTitleByPageUid(currentPageUid);
   const [selectedPageTitle, setSelectedPageTitle] = useState(currentPageTitle);
   const [selectedPageUid, setSelectedPageUid] = useState(currentPageUid);
+  const allPageNames = useMemo(
+    () => (isOpen ? getAllPageNames() : []),
+    [isOpen],
+  );
   const isCanvasPage = checkForCanvasPage(selectedPageTitle);
   const [activeSendToDestination, setActiveSendToDestination] =
     useState<(typeof SEND_TO_DESTINATIONS)[number]>("page");
@@ -1011,7 +1015,8 @@ const ExportDialog: ExportDialogComponent = ({
               value={selectedPageTitle}
               setValue={(title) => handleSetSelectedPage(title)}
               onBlur={(title) => handleSetSelectedPage(title)}
-              options={getAllPageNames()}
+              options={allPageNames}
+              maxItemsDisplayed={50}
             />
           </div>
         )}
