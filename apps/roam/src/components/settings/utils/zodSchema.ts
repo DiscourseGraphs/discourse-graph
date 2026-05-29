@@ -187,12 +187,6 @@ export const SuggestiveModeGlobalSettingsSchema = z.object({
 
 export const LeftSidebarGlobalSettingsSchema = z.object({
   Children: z.array(z.string()).default([]),
-  Settings: z
-    .object({
-      Collapsable: z.boolean().default(false),
-      Folded: z.boolean().default(false),
-    })
-    .default({}),
 });
 
 export const GlobalSettingsSchema = z.object({
@@ -242,6 +236,7 @@ export const QuerySettingsSchema = z.object({
 
 export const PersonalSettingsSchema = z.object({
   "Left sidebar": LeftSidebarPersonalSettingsSchema,
+  "Global section folded": z.boolean().default(false),
   "Personal node menu trigger": z
     .union([
       z.object({ modifiers: z.number(), key: z.string() }),

@@ -31,15 +31,8 @@ export type LeftSidebarPersonalSectionConfig = {
   childrenUid?: string;
 };
 
-type LeftSidebarGlobalSectionSettings = {
-  uid: string;
-  collapsable: BooleanSetting;
-  folded: BooleanSetting;
-};
-
 export type LeftSidebarGlobalSectionConfig = {
   uid: string;
-  settings?: LeftSidebarGlobalSectionSettings;
   children: RoamBasicNode[];
   childrenUid: string;
 };
@@ -49,6 +42,7 @@ export type LeftSidebarConfig = {
   favoritesMigrated: BooleanSetting;
   sidebarMigrated: BooleanSetting;
   global: LeftSidebarGlobalSectionConfig;
+  globalSectionFolded: BooleanSetting;
   allPersonalSections: AllUsersPersonalSections;
   personal: {
     uid: string;
@@ -56,24 +50,10 @@ export type LeftSidebarConfig = {
   };
 };
 
-const getGlobalSectionSettings = (
-  settingsNode: RoamBasicNode,
-): LeftSidebarGlobalSectionSettings => {
-  const settingsTree = settingsNode?.children || [];
-  const collapsableSetting = getUidAndBooleanSetting({
-    tree: settingsTree,
-    text: "Collapsable",
-  });
-  const foldedSetting = getUidAndBooleanSetting({
-    tree: settingsTree,
-    text: "Folded",
-  });
-  return {
-    uid: settingsNode.uid,
-    collapsable: collapsableSetting,
-    folded: foldedSetting,
-  };
-};
+// Per-user fold state for the (shared) global section lives in a marker block
+// under the Left Sidebar node, named per user so each person folds their own view.
+export const getGlobalSectionFoldedMarkerText = (userUid: string): string =>
+  `${userUid}/Global-Section-Folded`;
 
 export const getLeftSidebarGlobalSectionConfig = (
   leftSidebarChildren: RoamBasicNode[],
@@ -89,17 +69,8 @@ export const getLeftSidebarGlobalSectionConfig = (
     key: "Children",
   });
 
-  const settingsNode = getSubTree({
-    tree: globalChildren,
-    key: "Settings",
-  });
-  const settings = settingsNode
-    ? getGlobalSectionSettings(settingsNode)
-    : undefined;
-
   return {
     uid: globalSectionNode?.uid || "",
-    settings,
     children: childrenNode?.children || [],
     childrenUid: childrenNode?.uid || "",
   };
@@ -224,23 +195,6 @@ export const mergeGlobalSectionWithAccessor = (
     uid: config.uid,
     childrenUid: config.childrenUid,
     children,
-    settings: {
-      uid: config.settings?.uid ?? "",
-      collapsable: {
-        uid: config.settings?.collapsable.uid ?? "",
-        value:
-          globalValues?.Settings.Collapsable ??
-          config.settings?.collapsable.value ??
-          false,
-      },
-      folded: {
-        uid: config.settings?.folded.uid ?? "",
-        value:
-          globalValues?.Settings.Folded ??
-          config.settings?.folded.value ??
-          false,
-      },
-    },
   };
 };
 
@@ -309,11 +263,18 @@ export const getLeftSidebarSettings = (
     tree: leftSidebarChildren,
     text: "Sidebar Migrated",
   });
+  const globalSectionFolded = getUidAndBooleanSetting({
+    tree: leftSidebarChildren,
+    text: getGlobalSectionFoldedMarkerText(
+      window.roamAlphaAPI.user.uid() || "",
+    ),
+  });
   return {
     uid: leftSidebarUid,
     favoritesMigrated,
     sidebarMigrated,
     global,
+    globalSectionFolded,
     personal,
     allPersonalSections,
   };
