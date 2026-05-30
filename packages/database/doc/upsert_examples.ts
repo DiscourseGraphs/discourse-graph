@@ -1,4 +1,5 @@
-# A few examples of using upsert_authors / upsert_document / upsert_content / upsert_concept etc.
+/*
+A few examples of using upsert_authors / upsert_document / upsert_content / upsert_concept etc.
 
 In general, for external references such as `author_id`, you can either:
 
@@ -9,8 +10,8 @@ In general, for external references such as `author_id`, you can either:
 Note that embeddings are always inline.
 
 Here are complete examples:
+*/
 
-```typescript
 import type {
   LocalAccountDataInput,
   LocalDocumentDataInput,
@@ -20,7 +21,7 @@ import type {
 import type { Json } from "@repo/database/dbTypes";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 
-const demoCode = async (client: DGSupabaseClient) => {
+export const demoCode = async (client: DGSupabaseClient) => {
   const accounts: LocalAccountDataInput[] = [
     {
       account_local_id: "sR22zZ470dNPkIf9PpjQXXdTBjG2",
@@ -136,7 +137,7 @@ const demoCode = async (client: DGSupabaseClient) => {
   }
 
   // Variant: if all content is known to also be a document, you can upsert both as if it were a single object
-  const page_contents: LocalContentDataInput[] = [
+  const pageContents: LocalContentDataInput[] = [
     {
       author_local_id: "sR22zZ470dNPkIf9PpjQXXdTBjG2",
       source_local_id: "a_page_uid2",
@@ -149,7 +150,7 @@ const demoCode = async (client: DGSupabaseClient) => {
   {
     const { data, error } = await client.rpc("upsert_content", {
       v_space_id: 12,
-      data: page_contents as Json,
+      data: pageContents as Json,
       v_creator_id: 63,
       content_as_document: true,
     });
@@ -233,4 +234,3 @@ const demoCode = async (client: DGSupabaseClient) => {
     console.log(data);
   }
 };
-```
