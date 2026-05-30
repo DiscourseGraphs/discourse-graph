@@ -405,6 +405,13 @@ BEGIN
     local_concept.space_id := v_space_id;
     BEGIN
         db_concept := public._local_concept_to_db_concept(local_concept);
+        IF NOT account_local_id(author_inline(local_concept)) IS NULL THEN
+          SELECT public.create_account_in_space(
+            v_space_id,
+            account_local_id(author_inline(local_concept)),
+            name(author_inline(local_concept))
+          ) INTO STRICT db_concept.author_id;
+        END IF;
         -- cannot use db_concept.* because of refs.
         INSERT INTO public."Concept" (
         epistemic_status, name, description, author_id, created, last_modified, space_id, schema_id, literal_content, is_schema, source_local_id, reference_content
