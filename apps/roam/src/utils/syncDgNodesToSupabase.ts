@@ -20,13 +20,16 @@ import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { intersection } from "@repo/utils/setOperations";
-import type { Json, CompositeTypes, Enums } from "@repo/database/dbTypes";
+import type { Json, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
-type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
-type AccountLocalInput = CompositeTypes<"account_local_input">;
 import { FatalError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
+import type {
+  LocalConceptDataInput,
+  LocalContentDataInput,
+  LocalAccountDataInput,
+} from "@repo/database/inputTypes";
 
 const SYNC_FUNCTION = "embedding";
 // Minimal interval between syncs of all clients for this task.
@@ -42,8 +45,6 @@ type SyncTaskInfo = {
   nextUpdateTime?: Date;
   shouldProceed: boolean;
 };
-
-type LocalConceptDataInput = Partial<CompositeTypes<"concept_local_input">>;
 
 const chunk = <T>(array: T[], size: number): T[][] => {
   const chunks: T[][] = [];
@@ -389,7 +390,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   await uploadBatches(chunk(nodesWithEmbeddings, BATCH_SIZE));
 };
 
-const getAllUsers = async (): Promise<AccountLocalInput[]> => {
+const getAllUsers = async (): Promise<LocalAccountDataInput[]> => {
   const query = `[:find ?author_local_id ?author_name
   :keys author_local_id name
   :where
@@ -413,7 +414,7 @@ const getAllUsers = async (): Promise<AccountLocalInput[]> => {
 };
 
 const upsertUsers = async (
-  users: AccountLocalInput[],
+  users: LocalAccountDataInput[],
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
 ) => {
