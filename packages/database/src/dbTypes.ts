@@ -1941,6 +1941,7 @@ export type Database = {
         local_reference_content: Json | null
         source_local_id: string | null
         creator_local_id: string | null
+        document_local_id: string | null
         contents_inline:
           | Database["public"]["CompositeTypes"]["content_local_input"][]
           | null
@@ -1953,7 +1954,6 @@ export type Database = {
         creator_inline:
           | Database["public"]["CompositeTypes"]["account_local_input"]
           | null
-        document_local_id: string | null
       }
       content_local_input: {
         document_id: number | null
