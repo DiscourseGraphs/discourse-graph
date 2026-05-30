@@ -3,14 +3,14 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
-    "outDir": "dist",
+    "outDir": "dist"
   },
   "include": [
     "./src/**/*",
     "./scripts/**/*",
     "./features/step-definitions/**/*",
     "./features/support/**/*",
-    "./doc/*",
+    "./doc/*"
   ],
-  "exclude": ["supabase"],
+  "exclude": ["supabase"]
 }
