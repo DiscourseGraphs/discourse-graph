@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "~/utils/supabase/proxy";
 
 const NEGOTIATED_PATHS = new Set(["/schema/dg_base", "/schema/dg_core"]);
-const ACCEPTABLE = /\b(text\/turtle|text\/\*|\*\/\*)\b/;
+const ACCEPTABLE = /(\btext\/turtle\b|\btext\/\*|\*\/\*)/;
 
 export const proxy = async (request: NextRequest): Promise<NextResponse> => {
   const { pathname } = request.nextUrl;

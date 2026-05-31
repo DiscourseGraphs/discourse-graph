@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
           {
             type: "header",
             key: "accept",
-            value: "(.*)\\b(text/turtle|text/\\*|\\*/\\*)\\b(.*)",
+            value: "(.*)(\\btext/turtle\\b|\\btext/\\*|\\*/\\*)(.*)",
           } as RouteHas,
         ],
         destination: `${prefix}.ttl`,
