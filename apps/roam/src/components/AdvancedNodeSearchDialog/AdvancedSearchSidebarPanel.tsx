@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { NonIdealState, Spinner, SpinnerSize } from "@blueprintjs/core";
+import {
+  Button,
+  Icon,
+  InputGroup,
+  NonIdealState,
+  Spinner,
+  SpinnerSize,
+  Tag,
+} from "@blueprintjs/core";
 import MiniSearch from "minisearch";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import type { DockedSearchState } from "~/utils/openDgSearchInSidebar";
@@ -11,11 +19,9 @@ import {
   searchIndexedNodes,
   sortSearchResults,
 } from "./utils";
-import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { hasActiveTypeFilter } from "~/utils/discourseNodeTypeFilter";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { SORT_FIELD_LABELS, isNonDefaultSort, type SortConfig } from "./utils";
-
-import { Button, Icon, Tag } from "@blueprintjs/core";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
@@ -162,7 +168,14 @@ type AdvancedSearchDockedFiltersProps = {
 const getNodeIndicatorColor = (node: DiscourseNode): string =>
   formatHexColor(node.canvasSettings?.color) || "#6b7280";
 
-export const AdvancedSearchDockedFilters = ({
+type SidebarIndexCache = {
+  miniSearch: MiniSearch<SearchResult & { id: string }>;
+  results: SearchResult[];
+};
+
+let cachedSidebarIndex: SidebarIndexCache | null = null;
+
+const AdvancedSearchDockedFilters = ({
   discourseNodes,
   selectedNodeTypeIds,
   sort,
@@ -218,7 +231,13 @@ export const AdvancedSearchDockedFilters = ({
   );
 };
 
-export const AdvancedSearchSidebarPanel = (dockedState: DockedSearchState) => {
+type AdvancedSearchSidebarPanelProps = {
+  dockedState: DockedSearchState;
+};
+
+export const AdvancedSearchSidebarPanel = ({
+  dockedState,
+}: AdvancedSearchSidebarPanelProps) => {
   const {
     query,
     results: dockedResults,
@@ -257,21 +276,40 @@ export const AdvancedSearchSidebarPanel = (dockedState: DockedSearchState) => {
     setIsIndexLoading(true);
     setIndexError(false);
 
+    const applyIndex = ({
+      miniSearch,
+      results: indexedResults,
+    }: SidebarIndexCache): void => {
+      if (cancelled) return;
+      miniSearchRef.current = miniSearch;
+      allResultsRef.current = indexedResults;
+      setIsIndexLoading(false);
+    };
+
+    if (cachedSidebarIndex) {
+      applyIndex(cachedSidebarIndex);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     void buildSearchIndex(discourseNodes)
       .then(({ miniSearch, results: indexedResults }) => {
-        if (cancelled) return;
-        miniSearchRef.current = miniSearch;
-        allResultsRef.current = indexedResults;
+        cachedSidebarIndex = {
+          miniSearch,
+          results: indexedResults,
+        };
+        applyIndex(cachedSidebarIndex);
       })
       .catch((error) => {
         console.error(
           "Error building advanced node search sidebar index:",
           error,
         );
-        if (!cancelled) setIndexError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setIsIndexLoading(false);
+        if (!cancelled) {
+          setIndexError(true);
+          setIsIndexLoading(false);
+        }
       });
 
     return () => {
@@ -313,11 +351,12 @@ export const AdvancedSearchSidebarPanel = (dockedState: DockedSearchState) => {
   return (
     <div className="dg-node-search-sidebar box-border w-full min-w-0">
       <div className="dg-node-search-sidebar__input-row -ml-2 mr-2 box-border flex w-full min-w-0 items-center">
-        <input
-          className="bp3-input dg-node-search-sidebar__input box-border block w-full min-w-0 max-w-full"
+        <InputGroup
+          className="dg-node-search-sidebar__input box-border block w-full min-w-0 max-w-full"
+          fill
+          leftIcon="search"
           onChange={(event) => setSearchTerm(event.target.value)}
           placeholder="Search discourse nodes..."
-          type="text"
           value={searchTerm}
         />
       </div>

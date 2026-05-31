@@ -470,12 +470,9 @@ const AdvancedNodeSearchDialog = ({
   );
 };
 
-export const renderAdvancedNodeSearchSidebar = () =>
+export const renderAdvancedNodeSearchDialog = () =>
   renderOverlay({
     // eslint-disable-next-line @typescript-eslint/naming-convention
     Overlay: AdvancedNodeSearchDialog,
     props: {},
   });
-
-export const renderAdvancedNodeSearchDialog = () =>
-  renderAdvancedNodeSearchSidebar();

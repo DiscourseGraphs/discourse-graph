@@ -100,7 +100,7 @@ const InsertFooterAction = ({
   />
 );
 
-export const OpenSearchSidebarFooterAction = ({
+const OpenSearchSidebarFooterAction = ({
   disabled,
   onOpenSearchSidebar,
 }: {

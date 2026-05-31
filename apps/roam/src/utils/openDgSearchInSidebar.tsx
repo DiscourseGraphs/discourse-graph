@@ -7,6 +7,10 @@ import {
 } from "~/components/AdvancedNodeSearchDialog/utils";
 
 const SIDEBAR_ROOT_ID = "dg-node-search-sidebar-root";
+const OUTLINE_WRAPPER_SELECTOR =
+  "#roam-right-sidebar-content .rm-sidebar-outline-wrapper";
+const SIDEBAR_OPEN_WIDTH_PX = 40;
+const MAX_WRAPPER_WAIT_FRAMES = 30;
 
 export type DockedSearchState = {
   query: string;
@@ -17,12 +21,33 @@ export type DockedSearchState = {
 
 let unmountSidebarSearch: (() => void) | null = null;
 
-const waitForLatestSidebarWindow = async (): Promise<HTMLElement> => {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    const windows =
-      document.querySelectorAll<HTMLElement>(".rm-sidebar-window");
-    const latest = windows[windows.length - 1];
-    if (latest) return latest;
+const isRightSidebarOpen = (): boolean => {
+  const sidebar = document.getElementById("right-sidebar");
+  return (
+    !!sidebar && sidebar.getBoundingClientRect().width > SIDEBAR_OPEN_WIDTH_PX
+  );
+};
+
+const getOutlineWrapperCount = (): number =>
+  document.querySelectorAll(OUTLINE_WRAPPER_SELECTOR).length;
+
+const getLatestOutlineWrapper = (): HTMLElement | null => {
+  const wrappers = document.querySelectorAll<HTMLElement>(
+    OUTLINE_WRAPPER_SELECTOR,
+  );
+  return wrappers[wrappers.length - 1] ?? null;
+};
+
+const waitForOutlineWrapper = async (
+  minCount: number,
+): Promise<HTMLElement> => {
+  for (let attempt = 0; attempt < MAX_WRAPPER_WAIT_FRAMES; attempt += 1) {
+    const wrappers = document.querySelectorAll<HTMLElement>(
+      OUTLINE_WRAPPER_SELECTOR,
+    );
+    if (wrappers.length >= minCount && wrappers.length > 0) {
+      return wrappers[wrappers.length - 1];
+    }
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => resolve());
     });
@@ -30,27 +55,55 @@ const waitForLatestSidebarWindow = async (): Promise<HTMLElement> => {
   throw new Error("Sidebar window did not appear");
 };
 
-const setSidebarWindowTitle = (windowEl: HTMLElement): void => {
-  const titleEl = windowEl.querySelector<HTMLElement>(
+const openRightSidebar = async ({
+  anchorPageUid,
+  wrapperCountBefore,
+}: {
+  anchorPageUid: string;
+  wrapperCountBefore: number;
+}): Promise<HTMLElement | null> => {
+  const rightSidebar = window.roamAlphaAPI.ui.rightSidebar as {
+    open?: () => Promise<void>;
+  };
+  if (rightSidebar.open) {
+    await rightSidebar.open();
+    return null;
+  }
+
+  await addOutlineSidebarWindow(anchorPageUid);
+  return waitForOutlineWrapper(Math.max(wrapperCountBefore + 1, 1));
+};
+
+const addOutlineSidebarWindow = async (blockUid: string): Promise<void> => {
+  await window.roamAlphaAPI.ui.rightSidebar.addWindow({
+    window: {
+      type: "outline",
+      // @ts-expect-error - block-uid is valid for outline sidebar windows
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "block-uid": blockUid,
+    },
+  });
+};
+
+const setSidebarWindowTitle = (outlineWrapper: HTMLElement): void => {
+  const pane = outlineWrapper.closest<HTMLElement>(
+    "#roam-right-sidebar-content .sidebar-content > *",
+  );
+  const titleEl = pane?.querySelector<HTMLElement>(
     ".window-headers span[style*='font-weight']",
   );
   if (titleEl) titleEl.textContent = "DG node search";
 };
 
-const mountPanelInSidebarWindow = ({
+const mountPanelInOutlineWrapper = ({
   dockedState,
-  windowEl,
+  outlineWrapper,
 }: {
   dockedState: DockedSearchState;
-  windowEl: HTMLElement;
+  outlineWrapper: HTMLElement;
 }): void => {
   unmountSidebarSearch?.();
   unmountSidebarSearch = null;
-
-  const outlineWrapper = windowEl.querySelector(".rm-sidebar-outline-wrapper");
-  if (!outlineWrapper) {
-    throw new Error("Sidebar outline wrapper not found");
-  }
 
   outlineWrapper.innerHTML = "";
 
@@ -62,7 +115,7 @@ const mountPanelInSidebarWindow = ({
   outlineWrapper.appendChild(root);
 
   unmountSidebarSearch = renderWithUnmount(
-    <AdvancedSearchSidebarPanel {...dockedState} />,
+    <AdvancedSearchSidebarPanel dockedState={dockedState} />,
     root,
   );
 };
@@ -70,24 +123,38 @@ const mountPanelInSidebarWindow = ({
 export const openDgSearchInSidebar = async (
   dockedState: DockedSearchState,
 ): Promise<void> => {
-  const anchorPageUid = window.roamAlphaAPI.util.dateToPageUid(new Date());
+  const anchorPageUid =
+    (await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid()) ||
+    window.roamAlphaAPI.util.dateToPageUid(new Date());
+  const wrapperCountBefore = getOutlineWrapperCount();
 
-  await window.roamAlphaAPI.ui.rightSidebar.addWindow({
-    window: {
-      type: "outline",
-      // @ts-expect-error - block-uid is valid for outline sidebar windows
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "block-uid": anchorPageUid,
-    },
-  });
+  if (!isRightSidebarOpen()) {
+    const openedWrapper = await openRightSidebar({
+      anchorPageUid,
+      wrapperCountBefore,
+    });
+    if (openedWrapper) {
+      setSidebarWindowTitle(openedWrapper);
+      mountPanelInOutlineWrapper({
+        dockedState,
+        outlineWrapper: openedWrapper,
+      });
+      return;
+    }
+  }
 
-  const sidebarWindow = await waitForLatestSidebarWindow();
-  setSidebarWindowTitle(sidebarWindow);
-  mountPanelInSidebarWindow({ dockedState, windowEl: sidebarWindow });
-};
+  const existingWrapper = getLatestOutlineWrapper();
+  if (existingWrapper) {
+    setSidebarWindowTitle(existingWrapper);
+    mountPanelInOutlineWrapper({
+      dockedState,
+      outlineWrapper: existingWrapper,
+    });
+    return;
+  }
 
-export const unmountDgSearchSidebar = (): void => {
-  unmountSidebarSearch?.();
-  unmountSidebarSearch = null;
-  document.getElementById(SIDEBAR_ROOT_ID)?.remove();
+  await addOutlineSidebarWindow(anchorPageUid);
+  const outlineWrapper = await waitForOutlineWrapper(wrapperCountBefore + 1);
+  setSidebarWindowTitle(outlineWrapper);
+  mountPanelInOutlineWrapper({ dockedState, outlineWrapper });
 };
