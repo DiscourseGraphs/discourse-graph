@@ -23,7 +23,7 @@ import { DiscourseNodeSortControl } from "~/components/DiscourseNodeSortControl"
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
-import { openSearchResultInMain } from "~/utils/advancedSearchNavigation";
+import { openSearchResultInMain } from "~/utils/advancedSearchFooterUtils";
 import { openDgSearchInSidebar } from "~/utils/openDgSearchInSidebar";
 import {
   DEBOUNCE_MS,

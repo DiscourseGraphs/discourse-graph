@@ -25,8 +25,8 @@ import { SORT_FIELD_LABELS, isNonDefaultSort, type SortConfig } from "./utils";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
-import { openSearchResultFromLinkEvent } from "~/utils/advancedSearchNavigation";
 import { splitWithHighlights, stripTypePrefix } from "./utils";
+import { openSearchResultFromLinkEvent } from "~/utils/advancedSearchFooterUtils";
 
 const renderHighlightedText = (
   text: string,
