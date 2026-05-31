@@ -1,4 +1,4 @@
-import { App, MarkdownView, Modal, Notice, TFile } from "obsidian";
+import { App, Modal, Notice, TFile } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import {
   StrictMode,
@@ -57,6 +57,8 @@ type ModifyNodeFormProps = {
   initialFile?: TFile; // for edit mode
   currentFile?: TFile; // the file where the node is being created from
   plugin: DiscourseGraphPlugin;
+  /** When true, show the insert-backlink checkbox (editor flows that honor insertBacklink). */
+  showInsertBacklinkOption?: boolean;
 };
 
 export const ModifyNodeForm = ({
@@ -68,6 +70,7 @@ export const ModifyNodeForm = ({
   initialFile,
   currentFile,
   plugin,
+  showInsertBacklinkOption = false,
 }: ModifyNodeFormProps) => {
   const isEditMode = !!initialFile;
   const [title, setTitle] = useState(initialFile?.basename || initialTitle);
@@ -84,8 +87,6 @@ export const ModifyNodeForm = ({
   const [selectedRelationshipKey, setSelectedRelationshipKey] = useState<
     string | undefined
   >(undefined);
-  const hasEditorContext =
-    !!plugin.app.workspace.getActiveViewOfType(MarkdownView);
   const [insertBacklink, setInsertBacklink] = useState(!!initialTitle);
   const queryEngine = useRef(new QueryEngine(plugin.app));
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
@@ -576,7 +577,7 @@ export const ModifyNodeForm = ({
         </div>
       )}
 
-      {!isEditMode && hasEditorContext && (
+      {!isEditMode && showInsertBacklinkOption && (
         <div className="setting-item">
           <div className="setting-item-name">Insert backlink</div>
           <div className="setting-item-control">
@@ -634,6 +635,7 @@ type ModifyNodeModalProps = {
   initialNodeType?: DiscourseNode;
   initialFile?: TFile;
   currentFile?: TFile;
+  showInsertBacklinkOption?: boolean;
 };
 
 class ModifyNodeModal extends Modal {
@@ -653,6 +655,7 @@ class ModifyNodeModal extends Modal {
   private initialFile?: TFile;
   private currentFile?: TFile;
   private plugin: DiscourseGraphPlugin;
+  private showInsertBacklinkOption?: boolean;
 
   constructor(app: App, props: ModifyNodeModalProps) {
     super(app);
@@ -663,6 +666,7 @@ class ModifyNodeModal extends Modal {
     this.initialFile = props.initialFile;
     this.currentFile = props.currentFile;
     this.plugin = props.plugin;
+    this.showInsertBacklinkOption = props.showInsertBacklinkOption;
   }
 
   onOpen() {
@@ -681,6 +685,7 @@ class ModifyNodeModal extends Modal {
           initialFile={this.initialFile}
           currentFile={this.currentFile}
           plugin={this.plugin}
+          showInsertBacklinkOption={this.showInsertBacklinkOption}
         />
       </StrictMode>,
     );

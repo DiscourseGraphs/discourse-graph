@@ -86,6 +86,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
           nodeTypes: plugin.settings.nodeTypes,
           plugin,
           currentFile,
+          showInsertBacklinkOption: true,
           onSubmit: createModifyNodeModalSubmitHandler(plugin, editor),
         }).open();
       }
@@ -105,6 +106,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         plugin,
         currentFile,
         initialTitle: selectedText,
+        showInsertBacklinkOption: !!editor,
         onSubmit: createModifyNodeModalSubmitHandler(plugin, editor),
       }).open();
     },

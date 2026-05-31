@@ -236,6 +236,7 @@ export default class DiscourseGraphPlugin extends Plugin {
               initialTitle: selection,
               initialNodeType: nodeType,
               currentFile,
+              showInsertBacklinkOption: true,
               onSubmit: createModifyNodeModalSubmitHandler(this, editor),
             }).open();
           },
