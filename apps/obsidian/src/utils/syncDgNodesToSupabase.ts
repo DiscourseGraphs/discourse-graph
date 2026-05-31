@@ -475,9 +475,37 @@ const convertDgToSupabaseConcepts = async ({
   const { isEnabled: templatesEnabled, folderPath: templatesFolderPath } =
     getTemplatePluginInfo(plugin.app);
 
+  let missingTemplateLocalIds = new Set<string | null>();
+  if (fullSync && templatesEnabled && templatesFolderPath) {
+    const absentTemplates = await supabaseClient
+      .from("my_concepts")
+      .select("source_local_id,literal_content")
+      .eq("is_schema", true)
+      .eq("arity", 0)
+      .eq("space_id", context.spaceId)
+      .is("literal_content->>template_content", null);
+    // could not filter on only absent keys, this includes nulls
+
+    if (absentTemplates.data && absentTemplates.data.length > 0) {
+      missingTemplateLocalIds = new Set(
+        absentTemplates.data
+          .filter(
+            (x) =>
+              (x.literal_content as Record<string, Json>).template_content !==
+              null,
+          )
+          .map((x) => x["source_local_id"]),
+      );
+    }
+  }
+
   const nodesTypesToLocalConcepts = await Promise.all(
     nodeTypes
-      .filter((nodeType) => nodeType.modified > lastNodeSchemaSync)
+      .filter(
+        (nodeType) =>
+          nodeType.modified > lastNodeSchemaSync ||
+          missingTemplateLocalIds.has(nodeType.id),
+      )
       .map(async (nodeType) => {
         let templateContent: string | undefined;
         if (nodeType.template && templatesEnabled && templatesFolderPath) {
