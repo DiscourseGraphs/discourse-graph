@@ -343,7 +343,7 @@ const buildChangedNodesFromNodes = async ({
     context.spaceId,
   );
   const changedNodes: ObsidianDiscourseNodeData[] = [];
-  let missing: Set<string> | undefined;
+  let missingConcepts: Set<string> | undefined;
   if (fullSync) {
     const existingConceptIds = await getAllPages(
       supabaseClient
@@ -356,6 +356,11 @@ const buildChangedNodesFromNodes = async ({
       1000,
     );
     if (Array.isArray(existingConceptIds)) {
+      // Here, compensating for concepts that never got upserted
+      // Probably due to non-atomicity of upsert of concept and content
+      // TODO try to see if there are other cases
+      // In particular, using timing when concepts get reordered by dependency
+      // may be error-prone
       // fail silently otherwise, there will be other opportunities
       const nodeIds = new Set(nodes.map((n) => n.nodeInstanceId));
       const dbConceptIds = new Set(
@@ -363,7 +368,7 @@ const buildChangedNodesFromNodes = async ({
           .map((d) => d.source_local_id)
           .filter((id) => id !== null),
       );
-      missing = difference(nodeIds, dbConceptIds);
+      missingConcepts = difference(nodeIds, dbConceptIds);
     }
   }
 
@@ -382,7 +387,10 @@ const buildChangedNodesFromNodes = async ({
         : detectedChangeTypes;
     const finalChangeTypes = mergedChangeTypes;
 
-    if (finalChangeTypes.length === 0 && !missing?.has(node.nodeInstanceId)) {
+    if (
+      finalChangeTypes.length === 0 &&
+      !missingConcepts?.has(node.nodeInstanceId)
+    ) {
       continue;
     }
 
