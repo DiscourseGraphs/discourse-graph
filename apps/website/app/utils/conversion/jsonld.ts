@@ -8,9 +8,9 @@ type PlatformAccount = Tables<"PlatformAccount">;
 
 // This is a temporary hack
 const KnownSchemaEntities: Record<string, string[]> = {
-  Claim: ["dgc"],
-  Evidence: ["dgc"],
-  Question: ["dgc"],
+  Claim: ["dgc", "mira"],
+  Evidence: ["dgc", "mira"],
+  Question: ["dgc", "mira"],
   SourceDocument: ["dgc"],
   describesActivity: ["dgc"],
   observationStatement: ["dgc"],
@@ -23,6 +23,13 @@ const KnownSchemaEntities: Record<string, string[]> = {
   supportedBy: ["dgc"],
   addresses: ["dgc"],
   addressedBy: ["dgc"],
+  Request: ["mira"],
+  Protocol: ["mira"],
+  follows: ["mira"],
+  grounds: ["mira"],
+  is_grounded_in: ["mira"],
+  request_for: ["mira"],
+  request_target: ["mira"],
 };
 
 export const asJsonLD = ({
