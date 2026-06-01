@@ -205,7 +205,12 @@ const CreateRelationDialog = ({
     }
   };
 
-  const setResult = (value: Result): void => {
+  const setResult = (value: Result | string): void => {
+    if (typeof value === "string") {
+      if (selectedTarget.uid.length || selectedTarget.text !== value)
+        setSelectedTarget({ text: value, uid: "" });
+      return;
+    }
     const relation = value.uid.length ? identifyRelationMatch(value) : null;
     if (relation === null) {
       setSelectedTarget({ text: value.text, uid: "" });
