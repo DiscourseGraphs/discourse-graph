@@ -109,7 +109,6 @@ export const GET = async (
     );
   }
 
-  const rootUrl = baseUrl.split("/").slice(0, 3).join("/");
   // await initRT(rootUrl);
   const source: DocType | undefined =
     space.platform === "Obsidian"
@@ -119,7 +118,7 @@ export const GET = async (
         : undefined;
   let text =
     source && source !== targetFormat
-      ? await convert(fullContents.text, source, targetFormat)
+      ? convert(fullContents.text, source, targetFormat)
       : fullContents.text;
   if (includeData) {
     const isSchema = concept.is_schema;
@@ -153,7 +152,7 @@ export const GET = async (
       if (authorResponse.data) author = authorResponse.data;
     }
 
-    const jsonLdData = await asJsonLD({
+    const jsonLdData = asJsonLD({
       space,
       concept,
       baseUrl,
