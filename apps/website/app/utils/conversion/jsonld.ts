@@ -48,6 +48,46 @@ export const KnownSchemaEntities: Record<string, string[]> = {
   ...KnownRelationEntities,
 };
 
+const prefixes: Record<string, string> = {
+  rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+  rdfs: "http://www.w3.org/2000/01/rdf-schema#",
+  owl: "http://www.w3.org/2002/07/owl#",
+  dc: "http://purl.org/dc/elements/1.1/",
+  dct: "http://purl.org/dc/terms/",
+  prov: "http://www.w3.org/ns/prov#",
+  sioc: "http://rdfs.org/sioc/ns#",
+  dgb: "https://discoursegraphs.com/schema/dg_base#",
+  dgc: "https://discoursegraphs.com/schema/dg_core#",
+  mira: "http://purl.org/mira-science/mira#",
+};
+
+export const curieToIri = (curie: string): string => {
+  const [prefix, name]: string[] = curie.split(":", 2);
+  const iri = prefixes[prefix || ""];
+  if (iri === undefined) {
+    console.error("Unknown prefix", prefix);
+    return curie;
+  }
+  return iri + name;
+};
+
+export const iriToCurie = (iri: string): string => {
+  // not efficient, but not so many prefixes, and easier than determining the cut point
+  for (const [prefix, base] of Object.entries(prefixes)) {
+    if (iri.startsWith(base)) {
+      return prefix + ":" + iri.substring(base.length);
+    }
+  }
+  return iri;
+};
+
+export const KnownClassCuries = Object.values(KnownClassEntities).flat();
+export const KnownClassIris = new Set(KnownClassCuries.map(curieToIri));
+export const KnownRelationCuries = Object.values(KnownRelationEntities).flat();
+export const KnownRelationIris = new Set(KnownRelationCuries.map(curieToIri));
+export const KnownSchemaCuries = Object.values(KnownSchemaEntities).flat();
+export const KnownSchemaIris = new Set(KnownSchemaCuries.map(curieToIri));
+
 export const conceptName = (
   concept: Concept,
   schema: Concept | undefined,
