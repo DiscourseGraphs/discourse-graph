@@ -95,6 +95,10 @@ Turn tldraw text or image shapes into discourse nodes without leaving the canvas
 
 ![Create relations](/docs/obsidian/create-relations.gif)
 
+- Alternatively, you can select the dots that show up when you click a node, then start dragging to the destination node to create a new relation
+
+![drag-relation](/docs/obsidian/create-relation-from-drag.gif)
+
 _Note_: The relation type selected must be compatible between the source and target nodes. Otherwise, you will receive a relation tool error. To update the setting on what relation types are possible between two kinds of discourse nodes, you can change the setting [Relation types setting](/docs/obsidian/configuration/relationship-types#configuring-valid-relationships)
 
 ![Relation error](/docs/obsidian/relation-error.png)
