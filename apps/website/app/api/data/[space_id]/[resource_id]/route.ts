@@ -158,32 +158,28 @@ export const GET = async (
   }
 
   const relationsJLD = withContext
-    ? await Promise.all(
-        relations.map((c) =>
-          asJsonLD({
-            space,
-            concept: c,
-            baseUrl,
-            schema: c.schema_id ? schemas[c.schema_id] : undefined,
-            author: c.author_id ? authors[c.author_id] : undefined,
-          }),
-        ),
+    ? relations.map((c) =>
+        asJsonLD({
+          space,
+          concept: c,
+          baseUrl,
+          schema: c.schema_id ? schemas[c.schema_id] : undefined,
+          author: c.author_id ? authors[c.author_id] : undefined,
+        }),
       )
     : [];
   const schemasJLD = withSchema
-    ? await Promise.all(
-        Object.values(schemas).map((c) =>
-          asJsonLD({
-            space,
-            concept: c,
-            baseUrl,
-            author: c.author_id ? authors[c.author_id] : undefined,
-          }),
-        ),
+    ? Object.values(schemas).map((c) =>
+        asJsonLD({
+          space,
+          concept: c,
+          baseUrl,
+          author: c.author_id ? authors[c.author_id] : undefined,
+        }),
       )
     : [];
 
-  const baseJLDData = await asJsonLD({
+  const baseJLDData = asJsonLD({
     space,
     concept,
     baseUrl,

@@ -6,7 +6,26 @@ type Content = Tables<"Content">;
 type Space = Tables<"Space">;
 type PlatformAccount = Tables<"PlatformAccount">;
 
-export const asJsonLD = async ({
+// This is a temporary hack
+const KnownSchemaEntities: Record<string, string[]> = {
+  Claim: ["dgc"],
+  Evidence: ["dgc"],
+  Question: ["dgc"],
+  SourceDocument: ["dgc"],
+  describesActivity: ["dgc"],
+  observationStatement: ["dgc"],
+  observationOriginActivity: ["dgc"],
+  observationBase: ["dgc"],
+  sourceDocument: ["dgc"],
+  opposes: ["dgc"],
+  opposedBy: ["dgc"],
+  supports: ["dgc"],
+  supportedBy: ["dgc"],
+  addresses: ["dgc"],
+  addressedBy: ["dgc"],
+};
+
+export const asJsonLD = ({
   space,
   concept,
   baseUrl,
@@ -26,12 +45,12 @@ export const asJsonLD = async ({
   author?: PlatformAccount;
   targetFormat?: DocType;
   wrap?: boolean;
-}): Promise<Record<string, Json>> => {
+}): Record<string, Json> => {
   targetFormat ??= "html";
   if (MIMETYPES[targetFormat] === undefined) {
     targetFormat = "html";
   }
-  const schemaUrl = concept.schema_id
+  let schemaUrl: string | string[] = concept.schema_id
     ? "sdata:" + concept.schema_id
     : concept.arity === 2
       ? "RelationDef"
@@ -55,17 +74,33 @@ export const asJsonLD = async ({
       if (val && typeof val === "number") extraData[role] = `sdata:${val}`;
     }
   }
-  // Explicit punning
-  if (concept.is_schema && concept.arity === 2) {
-    extraData["subClassOf"] = [
-      "dgb:RelationInstance",
-      {
+  if (schema !== undefined) {
+    const knownSchemas = KnownSchemaEntities[schema?.name ?? ""];
+    if (knownSchemas !== undefined) {
+      schemaUrl = [
+        schemaUrl,
+        ...knownSchemas.map((s) => `${s}:${schema.name}`),
+      ];
+    }
+  } else if (concept.is_schema) {
+    const subClasses: Array<Json> = [];
+    const knownSchemas = KnownSchemaEntities[concept.name];
+    // in that case we can skip the base class
+    if (knownSchemas !== undefined) {
+      subClasses.push(...knownSchemas.map((s) => `${s}:${concept.name}`));
+    }
+    if (concept.arity === 2) {
+      // Explicit punning
+      subClasses.push("dgb:RelationInstance", {
         "@type": "owl:Restriction",
         onProperty: "rdf:predicate",
         hasValue: "sdata:" + concept.id,
-      },
-    ];
+      });
+    }
+    if (subClasses.length > 1) extraData["subClassOf"] = subClasses;
+    else if (subClasses.length === 1) extraData["subClassOf"] = subClasses[0]!;
   }
+
   const titleText = title?.text ?? concept.name;
   if (titleText) {
     extraData[concept.is_schema ? "label" : "title"] = titleText;
