@@ -8,6 +8,7 @@
     "sioc": "http://rdfs.org/sioc/ns#",
     "dgc": "https://discoursegraphs.com/schema/dg_core#",
     "dgb": "https://discoursegraphs.com/schema/dg_base#",
+    "mira": "http://purl.org/mira-science/mira#",
     "predicate": { "@id": "rdf:predicate", "@type": "@id" },
     "subClassOf": { "@id": "rdfs:subClassOf", "@type": "@id" },
     "domain": { "@id": "rdfs:domain", "@type": "@id" },
@@ -67,6 +68,14 @@
     "supports": { "@id": "dgc:supports", "@type": "@id" },
     "supportedBy": { "@id": "dgc:supportedBy", "@type": "@id" },
     "addresses": { "@id": "dgc:addresses", "@type": "@id" },
-    "addressedBy": { "@id": "dgc:addressedBy", "@type": "@id" }
+    "addressedBy": { "@id": "dgc:addressedBy", "@type": "@id" },
+
+    "Request": "mira:Request",
+    "Protocol": "mira:Protocol",
+    "follows": { "@id": "mira:follows", "@type": "@id" },
+    "grounds": { "@id": "mira:grounds", "@type": "@id" },
+    "is_grounded_in": { "@id": "mira:is_grounded_in", "@type": "@id" },
+    "request_for": { "@id": "mira:request_for", "@type": "@id" },
+    "request_target": { "@id": "mira:request_target", "@type": "@id" }
   }
 }
