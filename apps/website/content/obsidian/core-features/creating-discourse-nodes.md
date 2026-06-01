@@ -97,4 +97,4 @@ The new node will be saved in the designated folder that you created in the [Gen
 After creating nodes:
 
 - [Create relationships between nodes](/docs/obsidian/core-features/creating-discourse-relationships)
-- [Query and explore your graph](/docs/obsidian/core-features/querying-discourse-graph)
+- [Explore your graph on the canvas](/docs/obsidian/core-features/canvas)
