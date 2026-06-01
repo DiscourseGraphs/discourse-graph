@@ -19,12 +19,14 @@ import {
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import { intersection } from "@repo/utils/setOperations";
 import type { Json, CompositeTypes, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
 type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
 type AccountLocalInput = CompositeTypes<"account_local_input">;
 import { FatalError } from "@repo/database/lib/contextFunctions";
+import { getAllPages } from "@repo/database/lib/pagination";
 
 const SYNC_FUNCTION = "embedding";
 // Minimal interval between syncs of all clients for this task.
@@ -34,7 +36,6 @@ const BASE_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const SYNC_TIMEOUT = "60s"; // must be less than half the SYNC_INTERVAL.
 const BATCH_SIZE = 200;
 const CONCEPT_BATCH_SIZE = 200;
-const DEFAULT_TIME = new Date("1970-01-01");
 
 type SyncTaskInfo = {
   lastUpdateTime?: Date;
@@ -286,7 +287,7 @@ export const convertDgToSupabaseConcepts = async ({
   context,
 }: {
   nodesSince: RoamDiscourseNodeData[];
-  since: string;
+  since: number | undefined;
   allNodeTypes: DiscourseNode[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
@@ -427,6 +428,7 @@ const upsertUsers = async (
 };
 
 let doSync = true;
+let initialSync = true;
 let numFailures = 0;
 const MAX_FAILURES = 5;
 type TimeoutValue = ReturnType<typeof setTimeout>;
@@ -447,12 +449,60 @@ export const setSyncActivity = (active: boolean) => {
   }
 };
 
+const getAllMissingOrNewDiscourseNodes = async ({
+  supabaseClient,
+  spaceId,
+  since,
+  nodeTypes,
+}: {
+  supabaseClient: DGSupabaseClient;
+  spaceId: number;
+  since: number | undefined;
+  nodeTypes: DiscourseNode[];
+}): Promise<RoamDiscourseNodeData[]> => {
+  const allNodes = await getAllDiscourseNodesSince(undefined, nodeTypes);
+  if (since === undefined) return allNodes;
+  const newNodes = await getAllDiscourseNodesSince(since, nodeTypes);
+  const existingContentIdsReq = await getAllPages(
+    supabaseClient
+      .from("my_contents")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .order("id"),
+    1000,
+  );
+  if (!Array.isArray(existingContentIdsReq)) throw existingContentIdsReq;
+  const existingConceptIdsReq = await getAllPages(
+    supabaseClient
+      .from("my_concepts")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .eq("arity", 0)
+      .eq("is_schema", false)
+      .order("id"),
+    1000,
+  );
+  if (!Array.isArray(existingConceptIdsReq)) throw existingConceptIdsReq;
+  const existingIds = new Set([
+    ...intersection(
+      new Set(existingConceptIdsReq.map((d) => d.source_local_id)),
+      new Set(existingContentIdsReq.map((d) => d.source_local_id)),
+    ),
+    ...newNodes.map((n) => n.source_local_id),
+  ]);
+  return [
+    ...newNodes,
+    ...allNodes.filter((n) => !existingIds.has(n.source_local_id)),
+  ];
+};
+
 export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
   if (!doSync) return;
   console.debug("starting createOrUpdateDiscourseEmbedding");
   const startTime = new Date();
   let success = true;
   let claimed = false;
+  const isInitialSync = initialSync; // record state at start
   const worker = window.roamAlphaAPI.user.uid();
 
   try {
@@ -489,16 +539,21 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
     }
     claimed = true;
     const allUsers = await getAllUsers();
-    const sinceTime = (lastUpdateTime || DEFAULT_TIME).valueOf() - 1000; // add a one-second buffer
-    const time = new Date(sinceTime).toISOString();
+    const sinceTime = lastUpdateTime
+      ? lastUpdateTime.valueOf() - 1000 // add a one-second buffer
+      : undefined;
     const allDgNodeTypes = getDiscourseNodes().filter(
       (n) => n.backedBy === "user",
     );
 
-    const allNodeInstances = await getAllDiscourseNodesSince(
-      time,
-      allDgNodeTypes,
-    );
+    const allNodeInstances = isInitialSync
+      ? await getAllMissingOrNewDiscourseNodes({
+          supabaseClient,
+          spaceId: context.spaceId,
+          since: sinceTime,
+          nodeTypes: allDgNodeTypes,
+        })
+      : await getAllDiscourseNodesSince(sinceTime, allDgNodeTypes);
     await upsertUsers(allUsers, supabaseClient, context);
     await upsertNodesToSupabaseAsContentWithEmbeddings(
       allNodeInstances,
@@ -507,13 +562,14 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
     );
     await convertDgToSupabaseConcepts({
       nodesSince: allNodeInstances,
-      since: time,
+      since: sinceTime,
       allNodeTypes: allDgNodeTypes,
       supabaseClient,
       context,
     });
     await cleanupOrphanedNodes(supabaseClient, context);
     await endSyncTask({ worker, status: "complete", showToast, startTime });
+    initialSync = false;
     const duration = (new Date().valueOf() - startTime.valueOf()) / 1000.0;
     posthog.capture("Sync complete", { duration });
   } catch (error) {
