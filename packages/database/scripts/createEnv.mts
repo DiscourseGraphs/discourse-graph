@@ -87,7 +87,9 @@ const makeBranchEnv = async (vercel: Vercel, vercelToken: string) => {
     console.warn("No deployment for branch " + branch);
     return;
   }
-  const url = result.deployments[0]!.url;
+  const deployment = result.deployments[0];
+  if (!deployment) throw new Error("Could not get deployment");
+  const url = deployment.meta?.branchAlias ?? deployment.url;
   try {
     execSync(
       `vercel -t ${vercelToken} env pull --environment preview --git-branch ${branch} .env.branch`,
