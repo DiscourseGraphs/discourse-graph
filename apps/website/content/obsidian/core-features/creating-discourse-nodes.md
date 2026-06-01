@@ -73,7 +73,7 @@ If a page is not already a discourse node, you can convert it.
 
 Note: In this flow, the modal is **create-only** (it does not offer “search existing nodes”) because the intent is to convert the current file into a new discourse node.
 
-![file-exporer-convert](/docs/obsidian/file-explorer-convert.png)
+![file-explorer-convert](/docs/obsidian/file-explorer-convert.png)
 
 You can perform the same function from the file menu
 ![file-menu](/docs/obsidian/file-menu-convert-2.png)
