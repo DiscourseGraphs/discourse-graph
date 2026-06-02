@@ -1828,7 +1828,12 @@ export type Database = {
         Returns: number[]
       }
       upsert_concepts: {
-        Args: { data: Json; v_space_id: number }
+        Args: {
+          content_as_document?: boolean
+          data: Json
+          v_creator_id?: number
+          v_space_id: number
+        }
         Returns: number[]
       }
       upsert_content: {
@@ -1935,6 +1940,20 @@ export type Database = {
         space_url: string | null
         local_reference_content: Json | null
         source_local_id: string | null
+        creator_local_id: string | null
+        document_local_id: string | null
+        contents_inline:
+          | Database["public"]["CompositeTypes"]["content_local_input"][]
+          | null
+        document_inline:
+          | Database["public"]["CompositeTypes"]["document_local_input"]
+          | null
+        author_inline:
+          | Database["public"]["CompositeTypes"]["account_local_input"]
+          | null
+        creator_inline:
+          | Database["public"]["CompositeTypes"]["account_local_input"]
+          | null
       }
       content_local_input: {
         document_id: number | null
