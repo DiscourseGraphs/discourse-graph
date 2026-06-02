@@ -202,10 +202,12 @@ const CreateRelationDialog = ({
 
   const changeRelationType = (relName: string): void => {
     setSelectedRelationName(relName);
-    setPageOptions(getFilteredPageNames(relName));
+    const newPageOptions = getFilteredPageNames(relName);
+    setPageOptions(newPageOptions);
     if (
       selectedTargetUid !== "" &&
-      identifyRelationMatch(selectedTargetText) === null
+      (selectedTargetText.length === 0 ||
+        newPageOptions[selectedTargetText] === undefined)
     ) {
       setSelectedTargetText("");
       setSelectedTargetUid("");
