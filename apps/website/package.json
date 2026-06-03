@@ -8,6 +8,7 @@
     "dev": "next dev",
     "build": "next build && node ./scripts/build-docs-search-index.mjs",
     "build:search": "node ./scripts/build-docs-search-index.mjs",
+    "build:ldo": "ldo build --input ./app/utils/conversion/shapes --output ./app/utils/conversion/ldo",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -16,6 +17,8 @@
     "test:integration:nodb": "vitest run --config vitest.integration.config.ts --tags-filter '!database'"
   },
   "dependencies": {
+    "@ldo/ldo": "1.0.0-alpha.51",
+    "@ldo/rdf-utils": "1.0.0-alpha.51",
     "@repo/database": "workspace:*",
     "@repo/ui": "workspace:*",
     "@supabase/auth-js": "catalog:",
@@ -23,6 +26,7 @@
     "@supabase/supabase-js": "catalog:",
     "clsx": "^2.1.1",
     "gray-matter": "^4.0.3",
+    "jsonld": "^9.0.0",
     "lucide-react": "^0.540.0",
     "next": "^16.2.0",
     "nextra": "^4.6.1",
@@ -38,14 +42,18 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@ldo/cli": "1.0.0-alpha.51",
+    "@rdfjs/types": "^2.0.1",
     "@repo/eslint-config": "workspace:*",
     "@repo/tailwind-config": "workspace:*",
     "@repo/types": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@tailwindcss/typography": "^0.5.15",
+    "@types/jsonld": "^1.5.15",
     "@types/node": "^20",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/shexj": "^2.1.7",
     "@types/showdown": "^2.0.6",
     "autoprefixer": "^10.4.20",
     "dotenv": "^16.0.0",
