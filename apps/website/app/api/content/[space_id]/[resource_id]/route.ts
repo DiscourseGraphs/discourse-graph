@@ -72,6 +72,7 @@ export const GET = async (
     .from("Concept")
     .select()
     .eq("id", resourceIdN)
+    .eq("space_id", spaceIdN)
     .maybeSingle();
   if (conceptResponse.error) {
     return createApiResponse(request, conceptResponse);
