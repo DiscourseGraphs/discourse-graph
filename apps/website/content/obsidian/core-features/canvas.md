@@ -37,22 +37,19 @@ Or click on the canvas icon at the top right corner
 
 You can add discourse nodes to a canvas in several ways. Most flows open the **Create discourse node** modal, where you can create a new node or search for and select an existing one.
 
-### Create a new node
+### Add a discourse node to canvas
 
 1. Click the **Discourse Graph** icon in the bottom toolbar
 2. In the panel on the right, click a node type to select it (or drag a node type onto the canvas)
 3. Click on the canvas where you want the node
 4. In the **Create discourse node** modal, enter a title, confirm the node type, and click **Confirm**
-
-The new node appears on the canvas as a discourse node card linked to the note that was created.
+   The new node appears on the canvas as a discourse node card linked to the note that was created.
 
 ![Create discourse node](/docs/obsidian/create-discourse-node.gif)
 
+- You can also search for existing node from this modal and insert it to the canvas
+
 ### Add an existing node
-
-**From the create-node modal**
-
-When the modal opens (for example after clicking the canvas with a node type selected), type in the **Content** field to search for existing discourse nodes. Select a result to place that node on the canvas instead of creating a new file.
 
 **By dragging onto the canvas**
 
@@ -62,6 +59,8 @@ _From the file explorer_
 
 1. In the Obsidian file explorer, drag a discourse node note onto the canvas
 2. The node is added at the drop location
+
+![drag-node](/docs/obsidian/file-explorer-drag.gif)
 
 _From the editor_
 
@@ -73,7 +72,7 @@ When a Discourse Graph canvas is open, internal links in **Live Preview** show a
 
 The handle appears for `[[wikilinks]]` and `[markdown links](path.md)` that point to notes in your vault. It does not appear on image embeds (`![[...]]`).
 
-![drag-node](/docs/obsidian/drag-node-shape.png)
+![drag-node](/docs/obsidian/editor-drag-node.gif)
 
 ### Convert text or image shapes into a node
 
@@ -97,7 +96,7 @@ Turn tldraw text or image shapes into discourse nodes without leaving the canvas
 
 - Alternatively, you can select the dots that show up when you click a node, then start dragging to the destination node to create a new relation
 
-![drag-relation](/docs/obsidian/create-relation-from-drag.gif)
+![drag-relation](/docs/obsidian/drag-relation.gif)
 
 _Note_: The relation type selected must be compatible between the source and target nodes. Otherwise, you will receive a relation tool error. To update the setting on what relation types are possible between two kinds of discourse nodes, you can change the setting [Relation types setting](/docs/obsidian/configuration/relationship-types#configuring-valid-relationships)
 

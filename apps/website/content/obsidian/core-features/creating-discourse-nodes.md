@@ -82,9 +82,13 @@ You can perform the same function from the file menu
 
 If you use [node tags](/docs/obsidian/core-features/node-tags), you can hover a tag and click **Create [Node type]** to open the modal.
 
+![On hover](/docs/obsidian/on-hover-node-tag.png)
+
 ## Create nodes from a canvas
 
 On a Discourse Graph canvas, creating a node opens the same modal, and then adds the node as a new canvas shape.
+
+More detailed instruction [here](/docs/obsidian/core-features/canvas#create-a-new-node)
 
 ## Node templates
 
