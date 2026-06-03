@@ -1,0 +1,88 @@
+# This shape is provided by default as an example
+# You can create your own shape to fit your needs using ShEx (https://shex.io)
+# Also check out https://shaperepo.com for examples of more shapes.
+
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX dgb: <https://discoursegraphs.com/schema/dg_base#>
+PREFIX dgshapes: <https://discoursegraphs.com/schema/dg_base#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX linkml: <https://w3id.org/linkml/>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX sioc: <http://rdfs.org/sioc/ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+dgshapes:ContainerProfile {
+    a [sioc:Container];
+    sioc:container_of @dgshapes:ItemProfile *;
+}
+
+dgshapes:ItemProfile {
+    a [sioc:Item];
+    sioc:has_container @dgshapes:ContainerProfile ?;
+    dc:date xsd:dateTime ? ;
+    dc:modified xsd:dateTime ? ;
+    dc:creator xsd:string ? ;
+}
+
+dgshapes:NodeSchemaProfile {
+    a [dgb:NodeSchema];
+    sioc:has_container @dgshapes:ContainerProfile ?;
+    dc:creator xsd:string ? ;
+    dc:date xsd:dateTime ? ;
+    dc:modified xsd:dateTime ? ;
+    rdfs:label xsd:string ;
+    rdfs:subClassOf @dgshapes:NodeSchemaProfile *;
+}
+
+# Note that NodeInstance is not part of the schema, but is useful as a fiction in the code
+dgshapes:NodeInstanceProfile {
+    a [dgshapes:NodeInstance];
+    sioc:has_container @dgshapes:ContainerProfile ?;
+    dc:creator xsd:string ? ;
+    dc:date xsd:dateTime ? ;
+    dc:modified xsd:dateTime ? ;
+    dc:title xsd:dateTime? ;
+    dc:description @dgshapes:ContentProfile ? ;
+}
+
+dgshapes:RelationDefProfile {
+    a [dgb:RelationDef];
+    rdfs:subClassOf [sioc:Item owl:ObjectProperty dgb:RelationInstance];
+    sioc:has_container @dgshapes:ContainerProfile ?;
+    dc:creator xsd:string ? ;
+    dc:date xsd:dateTime ? ;
+    dc:modified xsd:dateTime ? ;
+    rdfs:label xsd:string ;
+}
+
+# Note that RelationTripleDef is not yet part of the schema, but should be
+dgshapes:RelationTripleDefProfile {
+    a [dgshapes:RelationTripleDef];
+    rdfs:subClassOf [owl:ObjectProperty dgb:RelationInstance];
+    sioc:has_container @dgshapes:ContainerProfile ?;
+    dc:creator xsd:string ? ;
+    dc:date xsd:dateTime ? ;
+    dc:modified xsd:dateTime ? ;
+    rdfs:domain @dgshapes:NodeSchemaProfile ;
+    rdfs:range @dgshapes:NodeSchemaProfile ;
+}
+
+
+dgshapes:RelationInstanceProfile {
+    a [dgb:RelationInstance];
+    sioc:has_container @dgshapes:ContainerProfile ?;
+    dc:creator xsd:string ? ;
+    dc:date xsd:dateTime ? ;
+    dc:modified xsd:dateTime ? ;
+    dgb:source @dgshapes:NodeInstanceProfile ;
+    dgb:destination @dgshapes:NodeInstanceProfile ;
+}
+
+# Note that Content is not part of the schema, but is useful as a fiction in the code
+dgshapes:ContentProfile {
+    a [dgshapes:Content];
+    dc:format xsd:string ?;
+    sioc:content xsd:string;
+}
