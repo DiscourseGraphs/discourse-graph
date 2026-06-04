@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { usePlugin } from "./PluginContext";
 import { setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
-import { DiscourseGraphLogoIcon, SlackLogoIcon } from "./icons";
+import { DiscourseGraphLogoIcon, SlackLogoIcon } from "./Icons";
 
 const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
 const COMMUNITY_URL =
