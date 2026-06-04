@@ -1,13 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type {
-  ContainerProfile,
   NodeSchemaProfile,
   NodeInstanceProfile,
   RelationInstanceProfile,
-  RelationTripleDefProfile,
   RelationDefProfile,
+  AbstractRelationDefProfile,
 } from "../../app/utils/conversion/ldo/dgBase.typings";
-import { parseJsonLd } from "../../app/utils/conversion/fromJsonLd";
+import { parseJsonLdAsLdo } from "../../app/utils/conversion/fromJsonLd";
 
 // example data
 
@@ -24,8 +23,8 @@ const exNodeSchema = {
   "@type": "NodeSchema",
   modified: "2026-01-24T15:38:14.553Z",
   created: "2026-01-24T15:38:14.553Z",
-  subClassOf: ["dgc:Question", "mira:Question"],
-  label: "Question",
+  subClassOf: ["dgc:Claim", "mira:Claim"],
+  label: "Claim",
   creator: "someone",
 };
 
@@ -39,10 +38,10 @@ const exNodeInstance = {
   ],
   has_container: "http://localhost:3000/api/data/131102",
   "@id": "sdata:254918",
-  "@type": ["sdata:131157", "dgc:Question", "mira:Question"],
+  "@type": ["sdata:131157", "dgc:Claim", "mira:Claim"],
   modified: "2026-05-26T00:39:03.077Z",
   created: "2025-12-04T15:47:51.694Z",
-  title: "QUE - How to do interop",
+  title: "CLM - Some base claim",
   description: {
     "@id": "page:content",
     format: "text/html",
@@ -52,7 +51,7 @@ const exNodeInstance = {
   creator: "someone",
 };
 
-const exRelnDef = {
+const exAbstractRelnDef = {
   "@context": [
     "http://localhost:3000/schema/context.jsonld",
     {
@@ -62,7 +61,7 @@ const exRelnDef = {
   ],
   has_container: "http://localhost:3000/api/data/131102",
   "@id": "sdata:131164",
-  "@type": "RelationDef",
+  "@type": "AbstractRelationDef",
   modified: "2026-01-24T15:38:14.553Z",
   created: "2026-01-24T15:38:14.553Z",
   subClassOf: [
@@ -73,11 +72,11 @@ const exRelnDef = {
       hasValue: "sdata:131164",
     },
   ],
-  label: "informs",
+  label: "supports",
   creator: "someone",
 };
 
-const exRelnTripleType = {
+const exRelnType = {
   "@context": [
     "http://localhost:3000/schema/context.jsonld",
     {
@@ -90,6 +89,8 @@ const exRelnTripleType = {
   "@type": "RelationDef",
   modified: "2026-01-24T15:38:14.553Z",
   created: "2026-01-24T15:38:14.553Z",
+  domain: "sdata:131157",
+  range: "sdata:131157",
   subClassOf: [
     "dgb:RelationInstance",
     {
@@ -98,7 +99,7 @@ const exRelnTripleType = {
       hasValue: "sdata:131169",
     },
   ],
-  label: "Claim -informs-> Question",
+  label: "supports",
   creator: "someone",
 };
 
@@ -116,9 +117,9 @@ const exRelnInstance = {
   modified: "2026-06-03T10:13:09.101Z",
   created: "2026-06-03T10:13:09.101Z",
   source: "sdata:261134",
-  destination: "sdata:261140",
+  destination: "sdata:254918",
   title:
-    "[[CLM - New claim for sharing]] -informs-> [[QUE - This is a test question]]",
+    "[[CLM - Some supporting claim]] -supports-> [[CLM - Some base claim]]",
   creator: "someone",
 };
 
@@ -133,7 +134,7 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     const data = exNodeSchema;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLd(data, url);
+    const parsedData = await parseJsonLdAsLdo(data, url);
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as NodeSchemaProfile;
@@ -155,7 +156,7 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     const data = exNodeInstance;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLd(data, url);
+    const parsedData = await parseJsonLdAsLdo(data, url);
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as NodeInstanceProfile;
@@ -174,16 +175,16 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     // console.log(turtleData);
   });
 
-  it("Reads a relation definition", async () => {
-    const data = exRelnDef;
+  it("Reads an abstract relation definition", async () => {
+    const data = exRelnType;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLd(data, url);
+    const parsedData = await parseJsonLdAsLdo(data, url);
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
-    )[0] as RelationDefProfile;
+    )[0] as AbstractRelationDefProfile;
     const types = parsedItem.type.toArray().map((x) => x["@id"]);
-    expect(types.includes("RelationDef"));
+    expect(types.includes("AbstractRelationDef"));
 
     expect(parsedItem);
     expect(parsedItem["@id"]);
@@ -196,16 +197,16 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     // console.log(turtleData);
   });
 
-  it("Reads a relation triple definition", async () => {
-    const data = exRelnTripleType;
+  it("Reads a relation  definition", async () => {
+    const data = exRelnType;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLd(data, url);
+    const parsedData = await parseJsonLdAsLdo(data, url);
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
-    )[0] as RelationTripleDefProfile;
+    )[0] as RelationDefProfile;
     const types = parsedItem.type.toArray().map((x) => x["@id"]);
-    expect(types.includes("RelationTripleDef"));
+    expect(types.includes("RelationDef"));
     expect(parsedItem);
     expect(parsedItem["@id"]);
     expect(parsedItem.domain);
@@ -222,7 +223,7 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     const data = exRelnInstance;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLd(data, url);
+    const parsedData = await parseJsonLdAsLdo(data, url);
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as RelationInstanceProfile;
