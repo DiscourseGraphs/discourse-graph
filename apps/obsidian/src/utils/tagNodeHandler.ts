@@ -82,6 +82,12 @@ export class TagNodeHandler {
    * Refresh discourse tag colors when node types change
    */
   public refreshColors(): void {
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    activeView?.contentEl
+      .querySelectorAll("[data-dg-discourse-tag-node]")
+      .forEach((el) => {
+        delete (el as HTMLElement).dataset.dgDiscourseTagNode;
+      });
     this.processTagsInView();
   }
 
@@ -215,9 +221,16 @@ export class TagNodeHandler {
     );
     const colors = getNodeTagColors(nodeType, nodeIndex);
 
-    tagElement.style.backgroundColor = colors.backgroundColor;
-    tagElement.style.color = colors.textColor;
-    tagElement.style.cursor = "pointer";
+    // Use data-* + CSS variables only — do not add classes here. The tag observer
+    // watches class mutations; classList.add fights CodeMirror and can freeze the app.
+    if (tagElement.dataset.dgDiscourseTagNode !== nodeType.id) {
+      tagElement.dataset.dgDiscourseTag = "true";
+      tagElement.dataset.dgDiscourseTagNode = nodeType.id;
+      tagElement.setCssProps({
+        "--dg-discourse-tag-bg": colors.backgroundColor,
+        "--dg-discourse-tag-fg": colors.textColor,
+      });
+    }
 
     if (!alreadyProcessed) {
       const editor = this.getActiveEditor();
@@ -679,11 +692,13 @@ export class TagNodeHandler {
       }
       tag.removeAttribute("data-discourse-tag-processed");
 
-      // Reset styles for the tag element
       const htmlTag = tag as HTMLElement;
-      htmlTag.style.backgroundColor = "";
-      htmlTag.style.color = "";
-      htmlTag.style.cursor = "";
+      delete htmlTag.dataset.dgDiscourseTag;
+      delete htmlTag.dataset.dgDiscourseTagNode;
+      htmlTag.setCssProps({
+        "--dg-discourse-tag-bg": "",
+        "--dg-discourse-tag-fg": "",
+      });
     });
   }
 
