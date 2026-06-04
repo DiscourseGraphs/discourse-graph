@@ -33,6 +33,7 @@
     "container_of": "sioc:container_of",
     "has_container": { "@id": "sioc:has_container", "@type": "@id" },
     "RelationDef": "dgb:RelationDef",
+    "AbstractRelationDef": "dgb:AbstractRelationDef",
     "RelationInstance": "dgb:RelationInstance",
     "RelationSchema": "dgb:RelationSchema",
     "NodeSchema": "dgb:NodeSchema",
