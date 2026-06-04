@@ -55,8 +55,10 @@ export const dgBaseSchema: Schema = {
             {
               type: "TripleConstraint",
               predicate: "http://rdfs.org/sioc/ns#has_container",
-              valueExpr:
-                "https://discoursegraphs.com/schema/dg_base#ContainerProfile",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
               min: 0,
               max: 1,
             },
@@ -115,8 +117,10 @@ export const dgBaseSchema: Schema = {
             {
               type: "TripleConstraint",
               predicate: "http://rdfs.org/sioc/ns#has_container",
-              valueExpr:
-                "https://discoursegraphs.com/schema/dg_base#ContainerProfile",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
               min: 0,
               max: 1,
             },
@@ -161,8 +165,10 @@ export const dgBaseSchema: Schema = {
             {
               type: "TripleConstraint",
               predicate: "http://www.w3.org/2000/01/rdf-schema#subClassOf",
-              valueExpr:
-                "https://discoursegraphs.com/schema/dg_base#NodeSchemaProfile",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
               min: 0,
               max: -1,
             },
@@ -191,8 +197,10 @@ export const dgBaseSchema: Schema = {
             {
               type: "TripleConstraint",
               predicate: "http://rdfs.org/sioc/ns#has_container",
-              valueExpr:
-                "https://discoursegraphs.com/schema/dg_base#ContainerProfile",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
               min: 0,
               max: 1,
             },
@@ -249,7 +257,7 @@ export const dgBaseSchema: Schema = {
       },
     },
     {
-      id: "https://discoursegraphs.com/schema/dg_base#RelationDefProfile",
+      id: "https://discoursegraphs.com/schema/dg_base#AbstractRelationDefProfile",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -262,7 +270,7 @@ export const dgBaseSchema: Schema = {
               valueExpr: {
                 type: "NodeConstraint",
                 values: [
-                  "https://discoursegraphs.com/schema/dg_base#RelationDef",
+                  "https://discoursegraphs.com/schema/dg_base#AbstractRelationDef",
                 ],
               },
             },
@@ -271,18 +279,18 @@ export const dgBaseSchema: Schema = {
               predicate: "http://www.w3.org/2000/01/rdf-schema#subClassOf",
               valueExpr: {
                 type: "NodeConstraint",
-                values: [
-                  "http://rdfs.org/sioc/ns#Item",
-                  "http://www.w3.org/2002/07/owl#ObjectProperty",
-                  "https://discoursegraphs.com/schema/dg_base#RelationInstance",
-                ],
+                nodeKind: "iri",
               },
+              min: 0,
+              max: -1,
             },
             {
               type: "TripleConstraint",
               predicate: "http://rdfs.org/sioc/ns#has_container",
-              valueExpr:
-                "https://discoursegraphs.com/schema/dg_base#ContainerProfile",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
               min: 0,
               max: 1,
             },
@@ -329,7 +337,7 @@ export const dgBaseSchema: Schema = {
       },
     },
     {
-      id: "https://discoursegraphs.com/schema/dg_base#RelationTripleDefProfile",
+      id: "https://discoursegraphs.com/schema/dg_base#RelationDefProfile",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -342,7 +350,7 @@ export const dgBaseSchema: Schema = {
               valueExpr: {
                 type: "NodeConstraint",
                 values: [
-                  "https://discoursegraphs.com/schema/dg_base#RelationTripleDef",
+                  "https://discoursegraphs.com/schema/dg_base#RelationDef",
                 ],
               },
             },
@@ -351,17 +359,18 @@ export const dgBaseSchema: Schema = {
               predicate: "http://www.w3.org/2000/01/rdf-schema#subClassOf",
               valueExpr: {
                 type: "NodeConstraint",
-                values: [
-                  "http://www.w3.org/2002/07/owl#ObjectProperty",
-                  "https://discoursegraphs.com/schema/dg_base#RelationInstance",
-                ],
+                nodeKind: "iri",
               },
+              min: 0,
+              max: -1,
             },
             {
               type: "TripleConstraint",
               predicate: "http://rdfs.org/sioc/ns#has_container",
-              valueExpr:
-                "https://discoursegraphs.com/schema/dg_base#ContainerProfile",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
               min: 0,
               max: 1,
             },
@@ -397,15 +406,27 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
+              predicate: "http://www.w3.org/2000/01/rdf-schema#label",
+              valueExpr: {
+                type: "NodeConstraint",
+                datatype: "http://www.w3.org/2001/XMLSchema#string",
+              },
+            },
+            {
+              type: "TripleConstraint",
               predicate: "http://www.w3.org/2000/01/rdf-schema#domain",
-              valueExpr:
-                "https://discoursegraphs.com/schema/dg_base#NodeSchemaProfile",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
             },
             {
               type: "TripleConstraint",
               predicate: "http://www.w3.org/2000/01/rdf-schema#range",
-              valueExpr:
-                "https://discoursegraphs.com/schema/dg_base#NodeSchemaProfile",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
             },
           ],
         },
@@ -432,8 +453,10 @@ export const dgBaseSchema: Schema = {
             {
               type: "TripleConstraint",
               predicate: "http://rdfs.org/sioc/ns#has_container",
-              valueExpr:
-                "https://discoursegraphs.com/schema/dg_base#ContainerProfile",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
               min: 0,
               max: 1,
             },
