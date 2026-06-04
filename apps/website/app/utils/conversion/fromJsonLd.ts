@@ -51,10 +51,12 @@ const sourcePredicate = "https://discoursegraphs.com/schema/dg_base#source";
 const contentPredicate = "http://rdfs.org/sioc/ns#content";
 const descriptionPredicate = "http://purl.org/dc/elements/1.1/description";
 const containerType = "http://rdfs.org/sioc/ns#Container";
+const restrictionType = "http://www.w3.org/2002/07/owl#Restriction";
 
 export const parseJsonLdAsLdo = async (
   data: JsonLdDocument,
   baseIRI: string,
+  knownClasses: Record<string, string>,
 ): Promise<ParseResult[]> => {
   const asQuads = (await toRDF(data, {
     format: "application/n-quads",
@@ -72,6 +74,10 @@ export const parseJsonLdAsLdo = async (
   }
   for (const subject of subjects) {
     const types = new Set(typeMap[subject]);
+    if (types.has(restrictionType)) continue;
+    // const isInstance = typeMap[subject]
+    //   .map((t) => knownClasses.has(t))
+    //   .reduce((a: boolean, b: boolean) => a || b, false);
     if (types.has(containerType)) {
       result.push(
         ldoDataset.usingType(ContainerProfileShapeType).fromSubject(subject),
@@ -154,7 +160,7 @@ const interpretId = <DBN extends string, LVN extends string>(
   id: string,
   dbVarName: DBN,
   localVarName: LVN,
-  knownClasses?: Record<string, string | string[]>,
+  knownClasses?: Record<string, string>,
 ): Record<DBN, number> | Record<LVN, string> => {
   if (knownClasses && knownClasses[id] !== undefined)
     return { [localVarName]: knownClasses[id] } as Record<LVN, string>;
@@ -189,7 +195,7 @@ const maybeAddKnownClass = (
   ids: string[],
   name: string,
   source_local_id: string,
-  knownClasses: Record<string, string | string[]>,
+  knownClasses: Record<string, string>,
 ): void => {
   for (const id of ids) {
     if (expectedSchemaIris.has(id)) {
@@ -217,7 +223,7 @@ const maybeAddKnownClass = (
 
 const parseNodeSchema = (
   data: NodeSchemaProfile,
-  knownClasses: Record<string, string | string[]>,
+  knownClasses: Record<string, string>,
 ): LocalConceptDataInput | null => {
   if (data["@id"] == null) return null;
   const ids = [data["@id"], ...(data.subClassOf || []).map((x) => x["@id"])];
@@ -248,7 +254,7 @@ const parseContent = (
 const parseNodeInstance = (
   data: NodeInstanceProfile,
   content: ContentProfile,
-  knownClasses: Record<string, string | string[]>,
+  knownClasses: Record<string, string>,
 ): LocalConceptDataInput | null => {
   if (data["@id"] == null) return null;
   const schemaInfo = data.type.map((x) =>
@@ -266,7 +272,7 @@ const parseNodeInstance = (
 };
 const parseAbstractRelationDef = (
   data: AbstractRelationDefProfile,
-  knownClasses: Record<string, string | string[]>,
+  knownClasses: Record<string, string>,
 ): LocalConceptDataInput | null => {
   if (data["@id"] == null) return null;
   const ids = [data["@id"], ...(data.subClassOf || []).map((x) => x["@id"])];
@@ -281,7 +287,7 @@ const parseAbstractRelationDef = (
 };
 const parseRelationDef = (
   data: RelationDefProfile,
-  knownClasses: Record<string, string | string[]>,
+  knownClasses: Record<string, string>,
 ): LocalConceptDataInput | null => {
   if (data["@id"] == null) return null;
   if (data.label) {
@@ -307,7 +313,7 @@ const parseRelationDef = (
 
 const parseRelationInstance = (
   data: RelationInstanceProfile,
-  knownClasses: Record<string, string | string[]>,
+  knownClasses: Record<string, string>,
 ): LocalConceptDataInput | null => {
   if (data["@id"] == null) return null;
   const schemaInfo = data.type.map((x) =>
@@ -325,7 +331,7 @@ const parseRelationInstance = (
 const parseLdoNode = (
   data: NodeParseResult,
   contentById: Record<string, ContentProfile>,
-  knownClasses: Record<string, string | string[]>,
+  knownClasses: Record<string, string>,
 ): LocalConceptDataInput | null => {
   if (!data["@id"]) {
     console.error("No @id: ", data);
@@ -344,16 +350,20 @@ const parseLdoNode = (
     if (!content) return null;
     return parseNodeInstance(nodeInstance, content, knownClasses);
   }
-  if (types.has("RelationDef"))
+  if (
+    types.has("RelationDef") &&
+    (data as RelationDefProfile).domain &&
+    (data as RelationDefProfile).range
+  )
     return parseRelationDef(data as RelationDefProfile, knownClasses);
-  if (types.has("AbstractRelationDef"))
+  else if (types.has("AbstractRelationDef") || types.has("RelationDef"))
     return parseAbstractRelationDef(
       data as AbstractRelationDefProfile,
       knownClasses,
     );
   if (types.has("NodeSchema"))
     return parseNodeSchema(data as NodeSchemaProfile, knownClasses);
-  console.error("We should not get here");
+  console.error("We should not get here", types, data);
   return null;
 };
 
@@ -368,9 +378,9 @@ const nodeOrder = [
 export const parseJsonLdAsDataInputWithSchemas = async (
   data: JsonLdDocument,
   baseIRI: string,
-  knownClasses: Record<string, string | string[]>,
+  knownClasses: Record<string, string>,
 ): Promise<LocalConceptDataInput[]> => {
-  const ldoData = await parseJsonLdAsLdo(data, baseIRI);
+  const ldoData = await parseJsonLdAsLdo(data, baseIRI, knownClasses);
   const contents = ldoData.filter((d) =>
     d.type
       .toArray()
@@ -430,7 +440,7 @@ export const parseJsonLdAsInput = async (
         ]),
       )
       .flat(),
-  );
+  ) as Record<string, string>;
   return await parseJsonLdAsDataInputWithSchemas(
     jsonLdData,
     baseIri,
