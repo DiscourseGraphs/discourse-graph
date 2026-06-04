@@ -6,8 +6,8 @@ import type {
   ItemProfile,
   NodeSchemaProfile,
   NodeInstanceProfile,
+  AbstractRelationDefProfile,
   RelationDefProfile,
-  RelationTripleDefProfile,
   RelationInstanceProfile,
   ContentProfile,
 } from "./dgBase.typings";
@@ -55,6 +55,17 @@ export const NodeInstanceProfileShapeType: ShapeType<NodeInstanceProfile> = {
 };
 
 /**
+ * AbstractRelationDefProfile ShapeType
+ */
+export const AbstractRelationDefProfileShapeType: ShapeType<AbstractRelationDefProfile> =
+  {
+    schema: dgBaseSchema,
+    shape:
+      "https://discoursegraphs.com/schema/dg_base#AbstractRelationDefProfile",
+    context: dgBaseContext,
+  };
+
+/**
  * RelationDefProfile ShapeType
  */
 export const RelationDefProfileShapeType: ShapeType<RelationDefProfile> = {
@@ -62,17 +73,6 @@ export const RelationDefProfileShapeType: ShapeType<RelationDefProfile> = {
   shape: "https://discoursegraphs.com/schema/dg_base#RelationDefProfile",
   context: dgBaseContext,
 };
-
-/**
- * RelationTripleDefProfile ShapeType
- */
-export const RelationTripleDefProfileShapeType: ShapeType<RelationTripleDefProfile> =
-  {
-    schema: dgBaseSchema,
-    shape:
-      "https://discoursegraphs.com/schema/dg_base#RelationTripleDefProfile",
-    context: dgBaseContext,
-  };
 
 /**
  * RelationInstanceProfile ShapeType
