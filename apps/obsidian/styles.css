@@ -42,14 +42,21 @@
 
 /* Hide internal discourse graph frontmatter keys (toggle via body.dg-hide-frontmatter-ids) */
 body.dg-hide-frontmatter-ids .metadata-property[data-property-key="authorId" i],
-body.dg-hide-frontmatter-ids .metadata-property[data-property-key="importedAssets" i],
-body.dg-hide-frontmatter-ids .metadata-property[data-property-key="importedFromRid" i],
-body.dg-hide-frontmatter-ids .metadata-property[data-property-key="lastModified" i],
-body.dg-hide-frontmatter-ids .metadata-property[data-property-key="nodeInstanceId" i],
-body.dg-hide-frontmatter-ids .metadata-property[data-property-key="nodeTypeId" i],
-body.dg-hide-frontmatter-ids .metadata-property[data-property-key="publishedToGroups" i],
-body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="relation_" i],
-body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel3_" i] {
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key="importedAssets" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key="importedFromRid" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key="lastModified" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key="nodeInstanceId" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key="nodeTypeId" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key="publishedToGroups" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key^="relation_" i],
+body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   display: none !important;
 }
 
