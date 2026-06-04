@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { App, Editor, Notice, MarkdownView, TFile } from "obsidian";
 import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
@@ -164,7 +163,7 @@ export class TagNodeHandler {
         return;
       }
 
-      const tag = nodeType.tag as string;
+      const tag = nodeType.tag;
       const tagSelector = `.cm-tag-${tag}`;
 
       if (element.matches(tagSelector)) {

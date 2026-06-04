@@ -37,7 +37,7 @@ export type TldrawPluginMetaData = {
 
 export type TldrawRawData = {
   tldrawFileFormatVersion: number;
-  /* eslint-disable @typescript-eslint/no-explicit-any */
+  /* eslint-disable @typescript-eslint/no-explicit-any -- legacy tldraw-in-obsidian snapshot schema */
   // we follow the tldraw schema of tldraw-in-obsidian plugin
   schema: any;
   records: any;
@@ -83,11 +83,11 @@ export const processInitialData = (
   if (recordsData) {
     // Create a snapshot with the old schema (if available) or use current schema
     // The schema from data.raw is typed as any because it's legacy data format
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- legacy schema may not match current SerializedSchema
     const oldSchema = data.raw.schema ?? store.schema.serialize();
     const snapshot: TLStoreSnapshot = {
       store: recordsData,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- legacy schema assigned to snapshot
       schema: oldSchema,
     };
 

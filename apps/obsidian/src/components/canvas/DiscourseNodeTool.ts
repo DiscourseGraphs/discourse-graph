@@ -1,4 +1,4 @@
-import { StateNode, TLPointerEventInfo, Editor } from "tldraw";
+import { StateNode, Editor, TLPointerEventInfo } from "tldraw";
 import type { TFile } from "obsidian";
 import DiscourseGraphPlugin from "~/index";
 import { getNodeTypeById } from "~/utils/typeUtils";
@@ -33,7 +33,7 @@ export class DiscourseNodeTool extends StateNode {
     toolContextMap.delete(this.editor);
   };
 
-  // eslint-disable-next-line
+  // eslint-disable-next-line -- comply with tldraw interface
   override onPointerDown = (_info?: TLPointerEventInfo) => {
     const { currentPagePoint } = this.editor.inputs;
 

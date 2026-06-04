@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Plugin,
   Editor,
@@ -45,7 +44,8 @@ export default class DiscourseGraphPlugin extends Plugin {
   private styleElement: HTMLStyleElement | null = null;
   private tagNodeHandler: TagNodeHandler | null = null;
   private fileChangeListener: FileChangeListener | null = null;
-  private currentViewActions: { leaf: WorkspaceLeaf; action: any }[] = [];
+  private currentViewActions: { leaf: WorkspaceLeaf; action: HTMLElement }[] =
+    [];
   private pendingCanvasSwitches = new Set<string>();
 
   async onload() {
@@ -186,7 +186,9 @@ export default class DiscourseGraphPlugin extends Plugin {
         }
 
         const fileCache = this.app.metadataCache.getFileCache(file);
-        const fileNodeType = fileCache?.frontmatter?.nodeTypeId;
+        const fileNodeType = fileCache?.frontmatter?.nodeTypeId as
+          | string
+          | undefined;
 
         if (
           !fileNodeType ||
@@ -317,13 +319,10 @@ export default class DiscourseGraphPlugin extends Plugin {
       },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.registerEditorExtension(nodeTagHotkeyExtension);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.registerEditorExtension(createImageEmbedHoverExtension(this));
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.registerEditorExtension(createWikilinkDragExtension(this));
   }
 
@@ -392,17 +391,17 @@ export default class DiscourseGraphPlugin extends Plugin {
 
         workspace.on("layout-change", layoutChangeHandler);
 
-        leaf.setViewState({
+        void leaf.setViewState({
           type: VIEW_TYPE_DISCOURSE_CONTEXT,
           active: true,
         });
-        workspace.revealLeaf(leaf);
+        void workspace.revealLeaf(leaf);
       }
     }
   }
 
   async loadSettings() {
-    const loadedData = await this.loadData();
+    const loadedData = (await this.loadData()) as Record<string, unknown>;
     this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
     const changed = this.migrateSettings();
 
@@ -413,8 +412,10 @@ export default class DiscourseGraphPlugin extends Plugin {
     }
   }
 
-  private hasNewFields(loadedData: any): boolean {
-    return Object.keys(DEFAULT_SETTINGS).some((key) => !(key in loadedData));
+  private hasNewFields(loadedData: unknown): boolean {
+    return Object.keys(DEFAULT_SETTINGS).some(
+      (key) => !(key in (loadedData as Record<string, unknown>)),
+    );
   }
 
   async saveSettings() {
@@ -452,21 +453,17 @@ export default class DiscourseGraphPlugin extends Plugin {
   private cleanupViewActions() {
     this.currentViewActions.forEach(({ leaf, action }) => {
       try {
-        if (leaf?.view) {
-          if (action?.remove) {
-            action.remove();
-          } else if (action?.detach) {
-            action.detach();
-          }
+        if (leaf.view) {
+          action.remove();
         }
       } catch (e) {
         console.error("Failed to cleanup view action:", e);
       }
-    });
+    }, this);
     this.currentViewActions = [];
   }
 
-  async onunload() {
+  onunload() {
     this.cleanupViewActions();
     if (this.styleElement) {
       this.styleElement.remove();
@@ -481,6 +478,5 @@ export default class DiscourseGraphPlugin extends Plugin {
       this.fileChangeListener.cleanup();
       this.fileChangeListener = null;
     }
-    this.app.workspace.detachLeavesOfType(VIEW_TYPE_DISCOURSE_CONTEXT);
   }
 }
