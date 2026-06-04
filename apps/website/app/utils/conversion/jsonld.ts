@@ -7,30 +7,55 @@ type Space = Tables<"Space">;
 type PlatformAccount = Tables<"PlatformAccount">;
 
 // This is a temporary hack
-const KnownSchemaEntities: Record<string, string[]> = {
-  Claim: ["dgc", "mira"],
-  Evidence: ["dgc", "mira"],
-  Question: ["dgc", "mira"],
-  SourceDocument: ["dgc"],
-  describesActivity: ["dgc"],
-  observationStatement: ["dgc"],
-  observationOriginActivity: ["dgc"],
-  observationBase: ["dgc"],
-  sourceDocument: ["dgc"],
-  opposes: ["dgc"],
-  opposedBy: ["dgc"],
-  supports: ["dgc"],
-  supportedBy: ["dgc"],
-  addresses: ["dgc"],
-  addressedBy: ["dgc"],
-  Request: ["mira"],
-  Protocol: ["mira"],
-  follows: ["mira"],
-  grounds: ["mira"],
-  is_grounded_in: ["mira"],
-  request_for: ["mira"],
-  request_target: ["mira"],
+export const KnownSchemaEntities: Record<string, string[]> = {
+  Claim: ["dgc:Claim", "mira:Claim"],
+  Evidence: ["dgc:Evidence", "mira:Evidence"],
+  Question: ["dgc:Question", "mira:Question"],
+  SourceDocument: ["dgc:SourceDocument"],
+  describesActivity: ["dgc:describesActivity"],
+  observationStatement: ["dgc:observationStatement"],
+  observationOriginActivity: ["dgc:observationOriginActivity"],
+  observationBase: ["dgc:observationBase"],
+  sourceDocument: ["dgc:sourceDocument"],
+  opposes: ["dgc:opposes"],
+  opposedBy: ["dgc:opposedBy"],
+  supports: ["dgc:supports"],
+  supportedBy: ["dgc:supportedBy"],
+  addresses: ["dgc:addresses"],
+  addressedBy: ["dgc:addressedBy"],
+  Request: ["mira:Request"],
+  Protocol: ["mira:Protocol"],
+  follows: ["mira:follows"],
+  grounds: ["mira:grounds"],
+  is_grounded_in: ["mira:is_grounded_in"],
+  request_for: ["mira:request_for"],
+  request_target: ["mira:request_target"],
 };
+
+const prefixes: Record<string, string> = {
+  rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+  rdfs: "http://www.w3.org/2000/01/rdf-schema#",
+  owl: "http://www.w3.org/2002/07/owl#",
+  dc: "http://purl.org/dc/elements/1.1/",
+  prov: "http://www.w3.org/ns/prov#",
+  sioc: "http://rdfs.org/sioc/ns#",
+  dgb: "https://discoursegraphs.com/schema/dg_base#",
+  dgc: "https://discoursegraphs.com/schema/dg_core#",
+  mira: "http://purl.org/mira-science/mira#",
+};
+
+export const curieToIri = (curie: string): string => {
+  const [prefix, name]: string[] = curie.split(":", 1);
+  const iri = prefixes[prefix || ""];
+  if (iri === undefined) {
+    console.error("Unknown prefix", prefix);
+    return curie;
+  }
+  return iri + name;
+};
+
+export const KnownSchemaCuries = Object.values(KnownSchemaEntities).flat();
+export const KnownSchemaIris = KnownSchemaCuries.map(curieToIri);
 
 export const asJsonLD = ({
   space,
@@ -60,7 +85,9 @@ export const asJsonLD = ({
   let schemaUrl: string | string[] = concept.schema_id
     ? "sdata:" + concept.schema_id
     : concept.arity === 2
-      ? "RelationDef"
+      ? (concept.reference_content as Record<string, Json>).source !== undefined
+        ? "RelationDef"
+        : "AbstractRelationDef"
       : "NodeSchema";
 
   let extraData: Record<string, string | Json> = {};
@@ -84,25 +111,30 @@ export const asJsonLD = ({
   if (schema !== undefined) {
     const knownSchemas = KnownSchemaEntities[schema?.name ?? ""];
     if (knownSchemas !== undefined) {
-      schemaUrl = [
-        schemaUrl,
-        ...knownSchemas.map((s) => `${s}:${schema.name}`),
-      ];
+      schemaUrl = [schemaUrl, ...knownSchemas];
     }
   } else if (concept.is_schema) {
     const subClasses: Array<Json> = [];
     const knownSchemas = KnownSchemaEntities[concept.name];
     // in that case we can skip the base class
     if (knownSchemas !== undefined) {
-      subClasses.push(...knownSchemas.map((s) => `${s}:${concept.name}`));
+      subClasses.push(...knownSchemas);
     }
     if (concept.arity === 2) {
-      // Explicit punning
-      subClasses.push("dgb:RelationInstance", {
-        "@type": "owl:Restriction",
-        onProperty: "rdf:predicate",
-        hasValue: "sdata:" + concept.id,
-      });
+      // triple vs abstract def
+      const abstractRelType = (
+        concept.reference_content as Record<string, Json>
+      ).relation_type;
+      if (typeof abstractRelType === "number") {
+        subClasses.push("sdata:" + abstractRelType);
+      } else {
+        // Explicit punning
+        subClasses.push("dgb:RelationInstance", {
+          "@type": "owl:Restriction",
+          onProperty: "rdf:predicate",
+          hasValue: "sdata:" + concept.id,
+        });
+      }
     }
     if (subClasses.length > 1) extraData["subClassOf"] = subClasses;
     else if (subClasses.length === 1) extraData["subClassOf"] = subClasses[0]!;
