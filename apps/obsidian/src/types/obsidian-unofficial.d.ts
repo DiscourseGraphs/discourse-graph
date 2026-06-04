@@ -13,5 +13,5 @@ declare module "obsidian" {
   interface MenuItem {
     setSubmenu(): Menu;
   }
-  /* eslint-enable @typescript-eslint/consistent-type-definitions */
+  /* eslint-enable @typescript-eslint/consistent-type-definitions -- end unofficial Obsidian API augmentations */
 }

@@ -207,11 +207,16 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Open Discourse Graphs settings",
     callback: () => {
       // plugin.app.setting is an unofficial API
-      /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any -- unofficial Obsidian settings API is untyped */
-      const setting = (plugin.app as unknown as { setting: any }).setting;
+      const setting = (
+        plugin.app as unknown as {
+          setting: {
+            open: () => void;
+            openTabById: (id: string) => void;
+          };
+        }
+      ).setting;
       setting.open();
       setting.openTabById(plugin.manifest.id);
-      /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
     },
   });
 

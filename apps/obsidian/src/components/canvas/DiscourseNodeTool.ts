@@ -33,7 +33,6 @@ export class DiscourseNodeTool extends StateNode {
     toolContextMap.delete(this.editor);
   };
 
-  // eslint-disable-next-line -- comply with tldraw interface
   override onPointerDown = (_info?: TLPointerEventInfo) => {
     const { currentPagePoint } = this.editor.inputs;
 

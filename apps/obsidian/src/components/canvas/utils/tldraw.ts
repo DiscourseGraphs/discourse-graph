@@ -8,6 +8,7 @@ import {
   TLStore,
   loadSnapshot,
   TLStoreSnapshot,
+  SerializedSchema,
 } from "tldraw";
 import {
   FRONTMATTER_KEY,
@@ -37,11 +38,9 @@ export type TldrawPluginMetaData = {
 
 export type TldrawRawData = {
   tldrawFileFormatVersion: number;
-  /* eslint-disable @typescript-eslint/no-explicit-any -- legacy tldraw-in-obsidian snapshot schema */
   // we follow the tldraw schema of tldraw-in-obsidian plugin
-  schema: any;
-  records: any;
-  /* eslint-enable @typescript-eslint/no-explicit-any */
+  schema: unknown;
+  records: unknown;
 };
 
 export type TLData = {
@@ -88,7 +87,7 @@ export const processInitialData = (
     const snapshot: TLStoreSnapshot = {
       store: recordsData,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- legacy schema assigned to snapshot
-      schema: oldSchema,
+      schema: oldSchema as unknown as SerializedSchema,
     };
 
     loadSnapshot(store, snapshot, { forceOverwriteSessionState: true });
