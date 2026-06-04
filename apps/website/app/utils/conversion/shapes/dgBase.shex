@@ -20,7 +20,7 @@ dgshapes:ContainerProfile {
 
 dgshapes:ItemProfile {
     a [sioc:Item];
-    sioc:has_container @dgshapes:ContainerProfile ?;
+    sioc:has_container IRI ?;
     dc:date xsd:dateTime ? ;
     dc:modified xsd:dateTime ? ;
     dc:creator xsd:string ? ;
@@ -28,18 +28,18 @@ dgshapes:ItemProfile {
 
 dgshapes:NodeSchemaProfile {
     a [dgb:NodeSchema];
-    sioc:has_container @dgshapes:ContainerProfile ?;
+    sioc:has_container IRI ?;
     dc:creator xsd:string ? ;
     dc:date xsd:dateTime ? ;
     dc:modified xsd:dateTime ? ;
     rdfs:label xsd:string ;
-    rdfs:subClassOf @dgshapes:NodeSchemaProfile *;
+    rdfs:subClassOf IRI *;
 }
 
 # Note that NodeInstance is not part of the schema, but is useful as a fiction in the code
 dgshapes:NodeInstanceProfile {
     a [dgshapes:NodeInstance];
-    sioc:has_container @dgshapes:ContainerProfile ?;
+    sioc:has_container IRI ?;
     dc:creator xsd:string ? ;
     dc:date xsd:dateTime ? ;
     dc:modified xsd:dateTime ? ;
@@ -47,32 +47,32 @@ dgshapes:NodeInstanceProfile {
     dc:description @dgshapes:ContentProfile ? ;
 }
 
-dgshapes:RelationDefProfile {
-    a [dgb:RelationDef];
-    rdfs:subClassOf [sioc:Item owl:ObjectProperty dgb:RelationInstance];
-    sioc:has_container @dgshapes:ContainerProfile ?;
+dgshapes:AbstractRelationDefProfile {
+    a [dgb:AbstractRelationDef];
+    rdfs:subClassOf IRI*;
+    sioc:has_container IRI ?;
     dc:creator xsd:string ? ;
     dc:date xsd:dateTime ? ;
     dc:modified xsd:dateTime ? ;
     rdfs:label xsd:string ;
 }
 
-# Note that RelationTripleDef is not yet part of the schema, but should be
-dgshapes:RelationTripleDefProfile {
-    a [dgshapes:RelationTripleDef];
-    rdfs:subClassOf [owl:ObjectProperty dgb:RelationInstance];
-    sioc:has_container @dgshapes:ContainerProfile ?;
+dgshapes:RelationDefProfile {
+    a [dgshapes:RelationDef];
+    rdfs:subClassOf IRI*;
+    sioc:has_container IRI ?;
     dc:creator xsd:string ? ;
     dc:date xsd:dateTime ? ;
     dc:modified xsd:dateTime ? ;
-    rdfs:domain @dgshapes:NodeSchemaProfile ;
-    rdfs:range @dgshapes:NodeSchemaProfile ;
+    rdfs:label xsd:string ;
+    rdfs:domain IRI ;
+    rdfs:range IRI ;
 }
 
 
 dgshapes:RelationInstanceProfile {
     a [dgb:RelationInstance];
-    sioc:has_container @dgshapes:ContainerProfile ?;
+    sioc:has_container IRI ?;
     dc:creator xsd:string ? ;
     dc:date xsd:dateTime ? ;
     dc:modified xsd:dateTime ? ;

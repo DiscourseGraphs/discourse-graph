@@ -9,6 +9,10 @@ export const MIMETYPES: Record<DocType, string> = {
   html: "text/html",
 };
 
+export const DOCTYPES: Record<string, DocType> = Object.fromEntries(
+  Object.entries(MIMETYPES).map(([a, b]) => [b, a as DocType]),
+);
+
 const markdownTypes: Set<DocType> = new Set(["obsidian", "markdown"]);
 
 let converter: showdown.Converter | undefined;
