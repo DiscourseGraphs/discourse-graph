@@ -41,7 +41,6 @@ import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
-  private styleElement: HTMLStyleElement | null = null;
   private tagNodeHandler: TagNodeHandler | null = null;
   private fileChangeListener: FileChangeListener | null = null;
   private currentViewActions: { leaf: WorkspaceLeaf; action: HTMLElement }[] =
@@ -326,47 +325,11 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.registerEditorExtension(createWikilinkDragExtension(this));
   }
 
-  private createStyleElement() {
-    if (!this.styleElement) {
-      this.styleElement = document.createElement("style");
-      this.styleElement.id = "discourse-graph-frontmatter-styles";
-      document.head.appendChild(this.styleElement);
-    }
-  }
-
-  updateFrontmatterStyles() {
-    try {
-      this.createStyleElement();
-
-      const keysToHide: string[] = [];
-
-      if (!this.settings.showIdsInFrontmatter) {
-        keysToHide.push(
-          ...[
-            "authorId",
-            "importedAssets",
-            "importedFromRid",
-            "lastModified",
-            "nodeInstanceId",
-            "nodeTypeId",
-            "publishedToGroups",
-          ],
-        );
-        keysToHide.push(...this.settings.relationTypes.map((rt) => rt.id));
-      }
-
-      if (keysToHide.length > 0) {
-        const selectors = keysToHide
-          .map((key) => `.metadata-property[data-property-key="${key}" i]`)
-          .join(", ");
-
-        this.styleElement!.textContent = `${selectors} { display: none !important; }`;
-      } else {
-        this.styleElement!.textContent = "";
-      }
-    } catch (error) {
-      console.error("Error updating frontmatter styles:", error);
-    }
+  updateFrontmatterStyles(): void {
+    document.body.classList.toggle(
+      "dg-hide-frontmatter-ids",
+      !this.settings.showIdsInFrontmatter,
+    );
   }
 
   toggleDiscourseContextView() {
@@ -465,9 +428,7 @@ export default class DiscourseGraphPlugin extends Plugin {
 
   onunload() {
     this.cleanupViewActions();
-    if (this.styleElement) {
-      this.styleElement.remove();
-    }
+    document.body.classList.remove("dg-hide-frontmatter-ids");
 
     if (this.tagNodeHandler) {
       this.tagNodeHandler.cleanup();
