@@ -6,6 +6,8 @@ import {
   createApiResponse,
 } from "~/utils/supabase/apiUtils";
 import { Tables } from "@repo/database/dbTypes";
+import { populate } from "~/utils/conversion/fromJsonLd";
+import { JsonLdDocument } from "jsonld";
 
 type Space = Tables<"Space">;
 
@@ -133,3 +135,29 @@ export const GET = async (
 };
 
 export const OPTIONS = defaultOptionsHandler;
+
+export const POST = async (
+  request: NextRequest,
+  segmentData: SegmentDataType,
+): Promise<NextResponse> => {
+  const { space_id } = await segmentData.params;
+  const spaceIdN = Number.parseInt(space_id || "NaN");
+  if (isNaN(spaceIdN)) {
+    return createApiResponse(
+      request,
+      asPostgrestFailure(`space_id is not a number`, "type"),
+    );
+  }
+  const supabase = await createClient();
+  const input: JsonLdDocument = await request.json();
+  try {
+    const output = await populate(supabase, input, spaceIdN);
+    return NextResponse.json(output, {
+      status: 200,
+    });
+  } catch (error) {
+    return NextResponse.json((error as Error).message || "Error", {
+      status: 500,
+    });
+  }
+};
