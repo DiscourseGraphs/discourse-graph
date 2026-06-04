@@ -160,7 +160,7 @@ export class TagNodeHandler {
    * Process an element and its children for discourse node tags
    */
   private processElement(element: HTMLElement): void {
-    if (!document.contains(element)) {
+    if (!activeDocument.contains(element)) {
       return;
     }
 
@@ -183,7 +183,7 @@ export class TagNodeHandler {
           if (
             tagEl.dataset.discourseTagProcessed === "true" ||
             tagEl.closest(".discourse-tag-popover") === tagEl ||
-            !document.contains(tagEl)
+            !activeDocument.contains(tagEl)
           ) {
             return;
           }
@@ -452,7 +452,7 @@ export class TagNodeHandler {
     };
 
     const getClosestRect = (): DOMRect => {
-      const range = document.createRange();
+      const range = activeDocument.createRange();
       range.selectNodeContents(tagElement);
       const clientRects = range.getClientRects();
 
@@ -507,7 +507,7 @@ export class TagNodeHandler {
 
       const rect = getClosestRect();
 
-      this.currentTooltip = document.createElement("div");
+      this.currentTooltip = createDiv();
       this.currentTooltip.className = "discourse-tag-popover";
       this.currentTooltip.style.cssText = `
         position: fixed;
@@ -522,7 +522,7 @@ export class TagNodeHandler {
         pointer-events: auto;
       `;
 
-      const createButton = document.createElement("button");
+      const createButton = createEl("button");
       createButton.textContent = `Create ${nodeType.name}`;
       createButton.className = "mod-cta dg-create-node-button";
 
@@ -537,7 +537,7 @@ export class TagNodeHandler {
 
       this.currentTooltip.appendChild(createButton);
 
-      document.body.appendChild(this.currentTooltip);
+      activeDocument.body.appendChild(this.currentTooltip);
 
       this.currentTooltip.addEventListener("mouseenter", () => {
         if (hoverTimeout) {
@@ -671,7 +671,7 @@ export class TagNodeHandler {
       this.currentTooltip.remove();
       this.currentTooltip = null;
     }
-    const tooltips = document.querySelectorAll(".discourse-tag-popover");
+    const tooltips = activeDocument.querySelectorAll(".discourse-tag-popover");
     tooltips.forEach((tooltip) => tooltip.remove());
   }
 
@@ -679,7 +679,7 @@ export class TagNodeHandler {
    * Cleanup processed tags
    */
   private cleanupProcessedTags(): void {
-    const processedTags = document.querySelectorAll(
+    const processedTags = activeDocument.querySelectorAll(
       '[data-discourse-tag-processed="true"]',
     );
     processedTags.forEach((tag) => {

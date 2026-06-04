@@ -326,7 +326,7 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   updateFrontmatterStyles(): void {
-    document.body.classList.toggle(
+    activeDocument.body.classList.toggle(
       "dg-hide-frontmatter-ids",
       !this.settings.showIdsInFrontmatter,
     );
@@ -428,7 +428,7 @@ export default class DiscourseGraphPlugin extends Plugin {
 
   onunload() {
     this.cleanupViewActions();
-    document.body.classList.remove("dg-hide-frontmatter-ids");
+    activeDocument.body.classList.remove("dg-hide-frontmatter-ids");
 
     if (this.tagNodeHandler) {
       this.tagNodeHandler.cleanup();

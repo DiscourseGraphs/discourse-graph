@@ -4,6 +4,7 @@ import { getDiscourseNodeFormatExpression } from "./getDiscourseNodeFormatExpres
 import { checkInvalidChars } from "./validateNodeType";
 import { applyTemplate } from "./templates";
 import type DiscourseGraphPlugin from "~/index";
+import { FrontmatterRecord } from "~/components/canvas/shapes/discourseNodeShapeUtils";
 
 export const formatNodeName = (
   text: string,
@@ -62,9 +63,12 @@ export const createDiscourseNodeFile = async ({
     }
 
     const newFile = await app.vault.create(fullPath, "");
-    await app.fileManager.processFrontMatter(newFile, (fm) => {
-      fm.nodeTypeId = nodeType.id;
-    });
+    await app.fileManager.processFrontMatter(
+      newFile,
+      (fm: FrontmatterRecord) => {
+        fm.nodeTypeId = nodeType.id;
+      },
+    );
 
     if (nodeType.template && nodeType.template.trim() !== "") {
       const templateApplied = await applyTemplate({
@@ -81,9 +85,8 @@ export const createDiscourseNodeFile = async ({
     }
 
     const notice = new DocumentFragment();
-    const wrapper = document.createElement("span");
-    wrapper.textContent = "Created discourse node: ";
-    const linkEl = document.createElement("a");
+    const wrapper = createSpan({ text: "Created discourse node: " });
+    const linkEl = createEl("a");
     linkEl.textContent = formattedNodeName;
     linkEl.classList.add("dg-clickable-link");
     wrapper.appendChild(linkEl);
@@ -180,9 +183,10 @@ export const convertPageToDiscourseNode = async ({
       destinationFile.path !== file.path
     ) {
       const notice = new DocumentFragment();
-      const wrapper = document.createElement("span");
-      wrapper.textContent = "Destination file already exists at ";
-      const linkEl = document.createElement("a");
+      const wrapper = createSpan({
+        text: "Destination file already exists at ",
+      });
+      const linkEl = createEl("a");
       linkEl.textContent = destinationFile.path;
       linkEl.classList.add("dg-clickable-link");
       wrapper.appendChild(linkEl);

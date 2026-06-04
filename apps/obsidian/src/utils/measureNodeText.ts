@@ -31,10 +31,10 @@ export const measureNodeText = ({
 }): { w: number; h: number } => {
   const fontSize = FONT_SIZES[size];
   const fontFamilyValue = FONT_FAMILIES[fontFamily];
-  const container = document.createElement("div");
+  const container = createDiv();
   container.className = "dg-node-text-measure-container";
 
-  const titleEl = document.createElement("h1");
+  const titleEl = createEl("h1");
   titleEl.className = "dg-node-text-measure-title";
   titleEl.setCssProps({
     "--dg-measure-font-size": `${fontSize}px`,
@@ -45,9 +45,9 @@ export const measureNodeText = ({
   container.appendChild(titleEl);
 
   // Append to body, measure, and remove
-  document.body.appendChild(container);
+  activeDocument.body.appendChild(container);
   const rect = container.getBoundingClientRect();
-  document.body.removeChild(container);
+  container.remove();
 
   return {
     w: rect.width,

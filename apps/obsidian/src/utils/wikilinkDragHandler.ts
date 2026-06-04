@@ -83,9 +83,9 @@ class WikilinkDragHandleWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const handle = document.createElement("span");
+    const handle = createSpan();
     handle.className =
-      "inline-block cursor-grab opacity- hover:opacity-100 text-[10px] text-[var(--text-muted)] align-middle ml-0.5 transition-opacity duration-150 ease-in-out select-none";
+      "inline-block cursor-grab opacity-30 hover:opacity-100 text-[10px] text-[var(--text-muted)] align-middle ml-0.5 transition-opacity duration-150 ease-in-out select-none";
     handle.draggable = true;
     handle.setAttribute("aria-label", "Drag to canvas");
     handle.textContent = "⠿";
