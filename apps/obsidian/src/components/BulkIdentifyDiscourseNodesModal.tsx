@@ -6,6 +6,7 @@ import { BulkImportCandidate, BulkImportPattern } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
 import { TFile } from "obsidian";
 import { getNodeTypeById } from "~/utils/typeUtils";
+import { FrontmatterRecord } from "./canvas/shapes/discourseNodeShapeUtils";
 
 type BulkImportModalProps = {
   plugin: DiscourseGraphPlugin;
@@ -63,7 +64,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
     );
   };
 
-  const handleScanVault = useCallback(async () => {
+  const handleScanVault = useCallback(() => {
     const enabledPatterns = patterns.filter(
       (p) => p.enabled && p.alternativePattern.trim(),
     );
@@ -77,7 +78,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
     try {
       const validNodeTypes = plugin.settings.nodeTypes;
       const foundCandidates =
-        await queryEngineRef.current.scanForBulkImportCandidates(
+        queryEngineRef.current.scanForBulkImportCandidates(
           enabledPatterns,
           validNodeTypes,
         );
@@ -127,7 +128,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
       try {
         await plugin.app.fileManager.processFrontMatter(
           candidate.file,
-          (fm) => {
+          (fm: FrontmatterRecord) => {
             fm.nodeTypeId = candidate.matchedNodeType.id;
           },
         );
@@ -376,7 +377,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
         <div className="mt-6 flex justify-between">
           <button onClick={() => setStep("patterns")}>Back</button>
           <button
-            onClick={handleBulkIdentify}
+            onClick={() => void handleBulkIdentify()}
             className="!bg-accent !text-on-accent rounded px-4 py-2"
             disabled={candidates.filter((c) => c.selected).length === 0}
           >

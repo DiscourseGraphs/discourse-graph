@@ -160,7 +160,7 @@ const BooleanField = ({
   <input
     type="checkbox"
     checked={!!value}
-    onChange={(e) => onChange((e.target as HTMLInputElement).checked)}
+    onChange={(e) => onChange(e.target.checked)}
     disabled={disabled}
   />
 );
@@ -727,6 +727,7 @@ const NodeTypeSettings = () => {
     }
 
     setErrors((prev) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- we don't need the field value
       const { [field]: _, ...rest } = prev;
       return rest;
     });
@@ -885,7 +886,7 @@ const NodeTypeSettings = () => {
     if (!editingNodeType) return;
 
     if (!templateConfig.isEnabled || !templateConfig.folderPath) {
-      new Notice("Configure and enable the Obsidian Templates plugin first.");
+      new Notice("Configure and enable the Obsidian templates plugin first.");
       return;
     }
 

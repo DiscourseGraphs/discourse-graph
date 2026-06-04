@@ -315,6 +315,7 @@ export class DiscourseContextView extends ItemView {
     return "telescope";
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- required by obsidian
   async onOpen(): Promise<void> {
     const container = this.containerEl.children[1];
     if (container) {
@@ -346,6 +347,7 @@ export class DiscourseContextView extends ItemView {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- required by obsidian
   async onClose(): Promise<void> {
     if (this.root) {
       this.root.unmount();
