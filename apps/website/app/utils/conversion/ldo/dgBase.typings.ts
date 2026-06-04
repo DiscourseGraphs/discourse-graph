@@ -27,7 +27,9 @@ export interface ItemProfile {
   type: LdSet<{
     "@id": "Item";
   }>;
-  hasContainer?: ContainerProfile;
+  hasContainer?: {
+    "@id": string;
+  };
   date?: string;
   modified?: string;
   creator?: string;
@@ -42,12 +44,16 @@ export interface NodeSchemaProfile {
   type: LdSet<{
     "@id": "NodeSchema";
   }>;
-  hasContainer?: ContainerProfile;
+  hasContainer?: {
+    "@id": string;
+  };
   creator?: string;
   date?: string;
   modified?: string;
   label: string;
-  subClassOf?: LdSet<NodeSchemaProfile>;
+  subClassOf?: LdSet<{
+    "@id": string;
+  }>;
 }
 
 /**
@@ -59,12 +65,35 @@ export interface NodeInstanceProfile {
   type: LdSet<{
     "@id": "NodeInstance";
   }>;
-  hasContainer?: ContainerProfile;
+  hasContainer?: {
+    "@id": string;
+  };
   creator?: string;
   date?: string;
   modified?: string;
   title?: string;
   description?: ContentProfile;
+}
+
+/**
+ * AbstractRelationDefProfile Type
+ */
+export interface AbstractRelationDefProfile {
+  "@id"?: string;
+  "@context"?: LdoJsonldContext;
+  type: LdSet<{
+    "@id": "AbstractRelationDef";
+  }>;
+  subClassOf?: LdSet<{
+    "@id": string;
+  }>;
+  hasContainer?: {
+    "@id": string;
+  };
+  creator?: string;
+  date?: string;
+  modified?: string;
+  label: string;
 }
 
 /**
@@ -76,45 +105,22 @@ export interface RelationDefProfile {
   type: LdSet<{
     "@id": "RelationDef";
   }>;
-  subClassOf:
-    | {
-        "@id": "Item";
-      }
-    | {
-        "@id": "ObjectProperty";
-      }
-    | {
-        "@id": "RelationInstance";
-      };
-  hasContainer?: ContainerProfile;
+  subClassOf?: LdSet<{
+    "@id": string;
+  }>;
+  hasContainer?: {
+    "@id": string;
+  };
   creator?: string;
   date?: string;
   modified?: string;
   label: string;
-}
-
-/**
- * RelationTripleDefProfile Type
- */
-export interface RelationTripleDefProfile {
-  "@id"?: string;
-  "@context"?: LdoJsonldContext;
-  type: LdSet<{
-    "@id": "RelationTripleDef";
-  }>;
-  subClassOf:
-    | {
-        "@id": "ObjectProperty";
-      }
-    | {
-        "@id": "RelationInstance";
-      };
-  hasContainer?: ContainerProfile;
-  creator?: string;
-  date?: string;
-  modified?: string;
-  domain: NodeSchemaProfile;
-  range: NodeSchemaProfile;
+  domain: {
+    "@id": string;
+  };
+  range: {
+    "@id": string;
+  };
 }
 
 /**
@@ -126,7 +132,9 @@ export interface RelationInstanceProfile {
   type: LdSet<{
     "@id": "RelationInstance";
   }>;
-  hasContainer?: ContainerProfile;
+  hasContainer?: {
+    "@id": string;
+  };
   creator?: string;
   date?: string;
   modified?: string;
