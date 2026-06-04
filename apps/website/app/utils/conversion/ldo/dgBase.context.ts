@@ -179,8 +179,8 @@ export const dgBaseContext: LdoJsonldContext = {
     "@id": "http://rdfs.org/sioc/ns#content",
     "@type": "http://www.w3.org/2001/XMLSchema#string",
   },
-  RelationDef: {
-    "@id": "https://discoursegraphs.com/schema/dg_base#RelationDef",
+  AbstractRelationDef: {
+    "@id": "https://discoursegraphs.com/schema/dg_base#AbstractRelationDef",
     "@context": {
       type: {
         "@id": "@type",
@@ -188,6 +188,7 @@ export const dgBaseContext: LdoJsonldContext = {
       },
       subClassOf: {
         "@id": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+        "@type": "@id",
         "@isCollection": true,
       },
       hasContainer: {
@@ -212,7 +213,56 @@ export const dgBaseContext: LdoJsonldContext = {
       },
     },
   },
-  ObjectProperty: "http://www.w3.org/2002/07/owl#ObjectProperty",
+  RelationDef: {
+    "@id": "https://discoursegraphs.com/schema/dg_base#RelationDef",
+    "@context": {
+      type: {
+        "@id": "@type",
+        "@isCollection": true,
+      },
+      subClassOf: {
+        "@id": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+        "@type": "@id",
+        "@isCollection": true,
+      },
+      hasContainer: {
+        "@id": "http://rdfs.org/sioc/ns#has_container",
+        "@type": "@id",
+      },
+      creator: {
+        "@id": "http://purl.org/dc/elements/1.1/creator",
+        "@type": "http://www.w3.org/2001/XMLSchema#string",
+      },
+      date: {
+        "@id": "http://purl.org/dc/elements/1.1/date",
+        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+      },
+      modified: {
+        "@id": "http://purl.org/dc/elements/1.1/modified",
+        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+      },
+      label: {
+        "@id": "http://www.w3.org/2000/01/rdf-schema#label",
+        "@type": "http://www.w3.org/2001/XMLSchema#string",
+      },
+      domain: {
+        "@id": "http://www.w3.org/2000/01/rdf-schema#domain",
+        "@type": "@id",
+      },
+      range: {
+        "@id": "http://www.w3.org/2000/01/rdf-schema#range",
+        "@type": "@id",
+      },
+    },
+  },
+  domain: {
+    "@id": "http://www.w3.org/2000/01/rdf-schema#domain",
+    "@type": "@id",
+  },
+  range: {
+    "@id": "http://www.w3.org/2000/01/rdf-schema#range",
+    "@type": "@id",
+  },
   RelationInstance: {
     "@id": "https://discoursegraphs.com/schema/dg_base#RelationInstance",
     "@context": {
@@ -245,51 +295,6 @@ export const dgBaseContext: LdoJsonldContext = {
         "@type": "@id",
       },
     },
-  },
-  RelationTripleDef: {
-    "@id": "https://discoursegraphs.com/schema/dg_base#RelationTripleDef",
-    "@context": {
-      type: {
-        "@id": "@type",
-        "@isCollection": true,
-      },
-      subClassOf: {
-        "@id": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
-        "@isCollection": true,
-      },
-      hasContainer: {
-        "@id": "http://rdfs.org/sioc/ns#has_container",
-        "@type": "@id",
-      },
-      creator: {
-        "@id": "http://purl.org/dc/elements/1.1/creator",
-        "@type": "http://www.w3.org/2001/XMLSchema#string",
-      },
-      date: {
-        "@id": "http://purl.org/dc/elements/1.1/date",
-        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-      },
-      modified: {
-        "@id": "http://purl.org/dc/elements/1.1/modified",
-        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-      },
-      domain: {
-        "@id": "http://www.w3.org/2000/01/rdf-schema#domain",
-        "@type": "@id",
-      },
-      range: {
-        "@id": "http://www.w3.org/2000/01/rdf-schema#range",
-        "@type": "@id",
-      },
-    },
-  },
-  domain: {
-    "@id": "http://www.w3.org/2000/01/rdf-schema#domain",
-    "@type": "@id",
-  },
-  range: {
-    "@id": "http://www.w3.org/2000/01/rdf-schema#range",
-    "@type": "@id",
   },
   source: {
     "@id": "https://discoursegraphs.com/schema/dg_base#source",
