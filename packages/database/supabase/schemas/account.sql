@@ -1,3 +1,24 @@
+-- Everyone pseudo-user
+
+CREATE OR REPLACE FUNCTION public.everyone_uid() RETURNS UUID
+IMMUTABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT '00000000-0000-0000-0000-000000000000'::uuid;
+$$;
+
+COMMENT ON FUNCTION public.everyone_uid IS 'The uid of the everyone pseudo-user. A grant to it applies to every caller, logged in or not.';
+
+-- Revoked explicitly: the declarative sync may create this function before the default privileges apply.
+REVOKE EXECUTE ON FUNCTION public.everyone_uid FROM public;
+-- The ResourceAccess select policy calls it as the caller.
+GRANT EXECUTE ON FUNCTION public.everyone_uid TO anon;
+
+INSERT INTO auth.users (instance_id, id, aud, role, created_at, updated_at, is_super_admin, is_anonymous)
+VALUES (public.everyone_uid(), public.everyone_uid(), 'anon', 'anon', now(), now(), false, true)
+ON CONFLICT (id) DO NOTHING;
+
 CREATE TYPE public."AgentType" AS ENUM (
     'person',
     'organization',
@@ -109,6 +130,11 @@ ADD CONSTRAINT "SpaceAccess_pkey" PRIMARY KEY (account_uid, space_id);
 
 ALTER TABLE public."SpaceAccess" OWNER TO "postgres";
 
+-- Every caller, anon included, gets the everyone pseudo-user's permissions, so it must never edit.
+ALTER TABLE public."SpaceAccess" ADD CONSTRAINT "SpaceAccess_everyone_read_only" CHECK (
+    account_uid <> public.everyone_uid() OR permissions <= 'reader'
+);
+
 COMMENT ON TABLE public."SpaceAccess" IS 'An access control entry for a space';
 
 COMMENT ON COLUMN public."SpaceAccess".space_id IS 'The space in which the content is located';
@@ -195,13 +221,29 @@ SET search_path = ''
 LANGUAGE sql
 AS $$
     SELECT auth.uid() WHERE auth.uid() IS NOT NULL UNION
+    SELECT public.everyone_uid() UNION
     SELECT group_id FROM public.group_membership
     WHERE member_id = auth.uid();
 $$;
 
-COMMENT ON FUNCTION public.my_user_accounts IS 'security utility: The uids which give me access, either as myself or as a group member.';
+COMMENT ON FUNCTION public.my_user_accounts IS 'security utility: The uids which give me access: myself, my groups, and the everyone pseudo-user.';
 -- Public access: base of the my_* views and of most helpers.
 GRANT EXECUTE ON FUNCTION public.my_user_accounts TO anon;
+
+CREATE OR REPLACE FUNCTION public.my_identity_accounts() RETURNS SETOF UUID
+STABLE SECURITY DEFINER
+ROWS 10
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT auth.uid() WHERE auth.uid() IS NOT NULL UNION
+    SELECT group_id FROM public.group_membership
+    WHERE member_id = auth.uid();
+$$;
+
+COMMENT ON FUNCTION public.my_identity_accounts IS 'security utility: The uids I act as, myself or a group I belong to. Excludes the everyone pseudo-user, so a public grant never counts as sharing a space.';
+-- Public access: the my_accounts view and the account helpers.
+GRANT EXECUTE ON FUNCTION public.my_identity_accounts TO anon;
 
 CREATE OR REPLACE FUNCTION public.my_permissions_in_space(
     space_id_ BIGINT
@@ -269,7 +311,7 @@ SET search_path = ''
 LANGUAGE sql AS $$
     SELECT DISTINCT la.account_id, pa.dg_account IS NULL
     FROM public."SpaceAccess" AS sa
-    JOIN public.my_user_accounts() AS my (uid) ON (sa.account_uid = my.uid)
+    JOIN public.my_identity_accounts() AS my (uid) ON (sa.account_uid = my.uid)
     JOIN public."LocalAccess" AS la USING (space_id)
     JOIN public."PlatformAccount" AS pa ON (pa.id = la.account_id)
     WHERE sa.permissions >= access_level;
@@ -393,10 +435,19 @@ GRANT SELECT ON public.my_spaces TO anon;
 ALTER TABLE public."PlatformAccount" ENABLE ROW LEVEL SECURITY;
 
 -- Leaves out dg_account, which would show which accounts belong to one person, and metadata, which nothing uses yet.
+-- The real name only shows to callers who share a space with the account through their own grants.
+-- An account visible only through a public grant shows as 'anonymous #<id>'.
 CREATE OR REPLACE VIEW public.my_accounts AS
 SELECT
     id,
-    name,
+    CASE WHEN id IN (
+        SELECT "LocalAccess".account_id FROM public."LocalAccess"
+            JOIN public."SpaceAccess" USING (space_id)
+            JOIN public.my_identity_accounts() ON (account_uid = my_identity_accounts)
+        WHERE permissions >= 'partial'
+        UNION
+        SELECT pa.id FROM public."PlatformAccount" AS pa WHERE pa.dg_account = auth.uid()
+    ) THEN name ELSE ('anonymous #' || id)::varchar END AS name,
     platform,
     account_local_id,
     write_permission,
@@ -423,13 +474,15 @@ GRANT SELECT ON public.my_accounts TO anon;
 CREATE OR REPLACE VIEW public.accounts_in_my_partial_spaces WITH (security_barrier) AS
 SELECT DISTINCT la.account_id
 FROM public."SpaceAccess" AS sa
-    JOIN public.my_user_accounts() AS my (uid) ON (sa.account_uid = my.uid)
+    JOIN public.my_identity_accounts() AS my (uid) ON (sa.account_uid = my.uid)
     JOIN public."LocalAccess" AS la USING (space_id)
 WHERE sa.permissions >= 'partial';
 
 COMMENT ON VIEW public.accounts_in_my_partial_spaces IS 'security utility: the accounts in spaces where I have at least partial access. Used by the PlatformAccount select policy.';
 
--- anon: public access will read authors through the PlatformAccount select policy, which fails without this grant.
+-- Uses my_identity_accounts: a public grant must not expose the real name and dg_account of a space's accounts.
+-- Public authors reach callers through my_accounts instead, under an anonymous name.
+-- anon: returns no rows to anon, which has no grants of its own.
 REVOKE ALL ON public.accounts_in_my_partial_spaces FROM public, anon, authenticated, service_role;
 GRANT SELECT ON public.accounts_in_my_partial_spaces TO anon, authenticated, service_role;
 
@@ -518,7 +571,7 @@ ALTER TABLE public."LocalAccess" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS local_access_policy ON public."LocalAccess";
 
--- The AgentIdentifier select policy and the PlatformAccount write policies read LocalAccess as the caller, so narrowing this policy narrows them too, with no error.
+-- The PlatformAccount write policies read LocalAccess as the caller, so narrowing this policy narrows them too, with no error.
 DROP POLICY IF EXISTS local_access_select_policy ON public."LocalAccess";
 CREATE POLICY local_access_select_policy ON public."LocalAccess" FOR SELECT USING (space_id = any((SELECT public.my_space_ids('reader'))::bigint[]));
 
@@ -539,7 +592,8 @@ ALTER TABLE public."AgentIdentifier" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS agent_identifier_policy ON public."AgentIdentifier";
 
 DROP POLICY IF EXISTS agent_identifier_select_policy ON public."AgentIdentifier";
-CREATE POLICY agent_identifier_select_policy ON public."AgentIdentifier" FOR SELECT USING (EXISTS (SELECT 1 FROM public."LocalAccess" AS la WHERE la.account_id = "AgentIdentifier".account_id AND la.space_id = any((SELECT public.my_space_ids('reader'))::bigint[])));
+-- Identifiers hold emails, so they show only through the caller's own grants: a public grant does not count.
+CREATE POLICY agent_identifier_select_policy ON public."AgentIdentifier" FOR SELECT USING (account_id IN (SELECT account_id FROM public.account_ids_in_shared_spaces('reader')));
 
 DROP POLICY IF EXISTS agent_identifier_delete_policy ON public."AgentIdentifier";
 CREATE POLICY agent_identifier_delete_policy ON public."AgentIdentifier" FOR DELETE USING (account_id IN (SELECT account_id FROM public.account_ids_in_shared_spaces('editor') WHERE unowned) OR account_id IN (SELECT public.my_platform_account_ids()));

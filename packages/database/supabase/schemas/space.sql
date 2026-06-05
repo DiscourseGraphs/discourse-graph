@@ -24,7 +24,7 @@ COMMENT ON TABLE public."Space" IS
 
 ALTER TABLE public."Space" OWNER TO "postgres";
 
--- Made ahead of public access. Space's policy shows anon no rows today.
+-- Public access: visitors see the spaces granted to the everyone pseudo-user.
 -- create-space runs a test query on Space with the caller's key, and refuses the call if it fails.
 GRANT SELECT ON TABLE public."Space" TO anon;
 
