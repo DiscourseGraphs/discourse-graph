@@ -1,7 +1,3 @@
-# This shape is provided by default as an example
-# You can create your own shape to fit your needs using ShEx (https://shex.io)
-# Also check out https://shaperepo.com for examples of more shapes.
-
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX dgb: <https://discoursegraphs.com/schema/dg_base#>
 PREFIX dgshapes: <https://discoursegraphs.com/schema/dg_base#>
@@ -49,7 +45,7 @@ dgshapes:NodeInstanceProfile {
 
 dgshapes:AbstractRelationDefProfile {
     a [dgb:AbstractRelationDef];
-    rdfs:subClassOf IRI*;
+    rdfs:subClassOf IRI *;
     sioc:has_container IRI ?;
     dc:creator xsd:string ? ;
     dc:date xsd:dateTime ? ;
@@ -59,7 +55,7 @@ dgshapes:AbstractRelationDefProfile {
 
 dgshapes:RelationDefProfile {
     a [dgshapes:RelationDef];
-    rdfs:subClassOf IRI*;
+    rdfs:subClassOf IRI *;
     sioc:has_container IRI ?;
     dc:creator xsd:string ? ;
     dc:date xsd:dateTime ? ;
