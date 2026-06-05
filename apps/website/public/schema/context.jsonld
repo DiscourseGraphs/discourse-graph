@@ -3,7 +3,7 @@
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "owl": "http://www.w3.org/2002/07/owl#",
-    "dc": "http://purl.org/dc/elements/1.1/",
+    "dct": "http://purl.org/dc/terms/",
     "prov": "http://www.w3.org/ns/prov#",
     "sioc": "http://rdfs.org/sioc/ns#",
     "dgc": "https://discoursegraphs.com/schema/dg_core#",
@@ -18,18 +18,18 @@
     "onProperty": "owl:onProperty",
     "sameAs": { "@id": "owl:sameAs", "@type": "@id" },
     "hasValue": "owl:hasValue",
-    "title": "dc:title",
-    "format": "dc:format",
-    "description": "dc:description",
+    "title": "dct:title",
+    "format": "dct:format",
+    "description": "dct:description",
     "modified": {
-      "@id": "dc:modified",
+      "@id": "dct:modified",
       "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
     },
     "created": {
-      "@id": "dc:date",
+      "@id": "dct:date",
       "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
     },
-    "creator": "dc:creator",
+    "creator": "dct:creator",
     "Container": "sioc:Container",
     "content": "sioc:content",
     "container_of": "sioc:container_of",
