@@ -44,7 +44,7 @@
     "textRefersToNode": "dgb:textRefersToNode",
 
     "SourceDocument": "dgc:SourceDocument",
-    "ClaimOrEvidence": "dgc:ClaimOrEvidence",
+    "Argument": "dgc:Argument",
     "observationStatement": {
       "@id": "dgc:observationStatement",
       "@type": "@id"
