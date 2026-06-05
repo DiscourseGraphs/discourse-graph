@@ -38,7 +38,7 @@ dg:Evidence a dgb:NodeSchema;
 
 dg:describesActivity a dgb:RelationDef;
   rdfs:label "Describes activity"@en;
-  rdfs:subPropertyOf dc:subject;
+  rdfs:subPropertyOf dct:subject;
   rdfs:domain schema:CreativeWork;
   rdfs:range prov:Activity.
 
