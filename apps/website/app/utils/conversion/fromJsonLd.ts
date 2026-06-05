@@ -1,5 +1,6 @@
 import { namedNode } from "@ldo/rdf-utils";
-import { parseRdf } from "@ldo/ldo";
+import type { NamedNode } from "@rdfjs/types";
+import { parseRdf, type LdoDataset } from "@ldo/ldo";
 import { toRDF, type JsonLdDocument } from "jsonld";
 import {
   ContainerProfileShapeType,
@@ -72,19 +73,24 @@ export type SchemaTypes =
   | "https://discoursegraphs.com/schema/dg_base#RelationDef"
   | "https://discoursegraphs.com/schema/dg_base#AbstractRelationDef";
 
-export const parseJsonLdAsLdo = async (
+export const parseJsonLdAsLdoDataset = async (
   data: JsonLdDocument,
   baseIRI: string,
-  knownIris: Record<string, string>,
-  knownSchemaTypes: Record<string, SchemaTypes>,
-): Promise<ParseResult[]> => {
+): Promise<LdoDataset> => {
   const asQuads = (await toRDF(data, {
     format: "application/n-quads",
   })) as string;
   // console.log(asQuads);
-  const ldoDataset = await parseRdf(asQuads, {
+  return await parseRdf(asQuads, {
     baseIRI,
   });
+};
+
+export const extractLdoData = async (
+  ldoDataset: LdoDataset,
+  knownIris: Record<string, string>,
+  knownSchemaTypes: Record<string, SchemaTypes>,
+): Promise<ParseResult[]> => {
   const subjects = new Set(ldoDataset.toArray().map((q) => q.subject.value));
   const result: ParseResult[] = [];
   const typeMap: Record<string, string[]> = {};
@@ -470,20 +476,15 @@ export const parseJsonLdAsDataInputWithSchemas = async (
   knownIris: Record<string, string>,
   knownSchemaTypes: Record<string, SchemaTypes>,
 ): Promise<LocalConceptDataInput[]> => {
-  const ldoData = await parseJsonLdAsLdo(
-    data,
-    baseIRI,
-    knownIris,
-    knownSchemaTypes,
-  );
+  const dataset = await parseJsonLdAsLdoDataset(data, baseIRI);
+  const ldoData = await extractLdoData(dataset, knownIris, knownSchemaTypes);
   if (ldoData.length === 0) return [];
-  const dataset = ldoData[0]!.type.context.dataset;
   const contentIds: string[] = dataset
     .match(null, namedNode(descriptionPredicate))
     .toArray()
-    .map((q) => q.object.id);
+    .map((q) => (q.object as NamedNode).value);
   const contents = ldoData.filter((d) =>
-    contentIds.includes(d["@id"]),
+    contentIds.includes(d["@id"] || ""),
   ) as ContentProfile[];
   // assume single content for now
   const contentById = Object.fromEntries(
