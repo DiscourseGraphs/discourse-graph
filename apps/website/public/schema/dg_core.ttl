@@ -21,15 +21,20 @@
   bibo:status status:draft;
   owl:versionInfo "0.1 (tentative)".
 
+dg:Argument a owl:Class;
+  rdfs:comment "A marker class for nodes that can serve as arguments".
+
 dg:Question a dgb:NodeSchema;
   rdfs:label "Question"@en;
   rdfs:comment "Scientific unknowns that we want to make known, and are addressable by the systematic application of research methods"@en.
 
 dg:Claim a dgb:NodeSchema;
+  rdfs:subClassOf dg:Argument;
   rdfs:label "Claim"@en;
   rdfs:comment "Atomic, generalized assertions about the world that (propose to) answer research questions"@en.
 
 dg:Evidence a dgb:NodeSchema;
+  rdfs:subClassOf dg:Argument;
   rdfs:label "Evidence"@en;
   rdfs:comment "A specific empirical observation from a particular application of a research method"@en;
   owl:subClassOf [rdf:type owl:Restriction ; owl:onProperty dg:observationStatement ; owl:cardinality 1],
@@ -80,30 +85,26 @@ dg:sourceDocument a dgb:RelationDef;
   rdfs:domain dg:Evidence;
   rdfs:range dg:SourceDocument.
 
-dg:ClaimOrEvidence owl:equivalentClass [
-  owl:unionOf (dg:Evidence dg:Claim)
-].
-
 dg:opposes a dgb:RelationDef;
   rdfs:label "Opposes"@en;
   rdfs:range dg:Claim;
-  rdfs:domain dg:ClaimOrEvidence.
+  rdfs:domain dg:Argument.
 
 dg:opposedBy a dgb:RelationDef;
   rdfs:label "Opposed by"@en;
   owl:inverseOf dg:opposes;
-  rdfs:range dg:ClaimOrEvidence;
+  rdfs:range dg:Argument;
   rdfs:domain dg:Claim.
 
 dg:supports a dgb:RelationDef;
   rdfs:label "Supports"@en;
   rdfs:range dg:Claim;
-  rdfs:domain dg:ClaimOrEvidence.
+  rdfs:domain dg:Argument.
 
 dg:supportedBy a dgb:RelationDef;
   rdfs:label "Supported by"@en;
   owl:inverseOf dg:supports;
-  rdfs:range dg:ClaimOrEvidence;
+  rdfs:range dg:Argument;
   rdfs:domain dg:Claim.
 
 dg:addresses a dgb:RelationDef;
