@@ -191,12 +191,15 @@ CREATE INDEX resource_access_content_local_id_idx ON public."ResourceAccess" (so
 GRANT ALL ON TABLE public."ResourceAccess" TO authenticated;
 GRANT ALL ON TABLE public."ResourceAccess" TO service_role;
 REVOKE ALL ON TABLE public."ResourceAccess" FROM anon;
+GRANT SELECT ON TABLE public."ResourceAccess" TO anon;
 
 REVOKE ALL ON TABLE public."Document" FROM anon;
+GRANT SELECT ON TABLE public."Document" TO anon;
 GRANT ALL ON TABLE public."Document" TO authenticated;
 GRANT ALL ON TABLE public."Document" TO service_role;
 
 REVOKE ALL ON TABLE public."Content" FROM anon;
+GRANT SELECT ON TABLE public."Content" TO anon;
 GRANT ALL ON TABLE public."Content" TO authenticated;
 GRANT ALL ON TABLE public."Content" TO service_role;
 
