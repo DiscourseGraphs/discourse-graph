@@ -63,6 +63,6 @@
     "supports": { "@id": "dgc:supports", "@type": "@id" },
     "supportedBy": { "@id": "dgc:supportedBy", "@type": "@id" },
     "addresses": { "@id": "dgc:addresses", "@type": "@id" },
-    "addressedBy": { "@id": "dgc:addressedBy", "@type": "@id" },
+    "addressedBy": { "@id": "dgc:addressedBy", "@type": "@id" }
   }
 }
