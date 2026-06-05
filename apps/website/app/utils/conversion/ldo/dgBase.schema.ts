@@ -64,7 +64,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/date",
+              predicate: "http://purl.org/dc/terms/date",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -74,7 +74,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/modified",
+              predicate: "http://purl.org/dc/terms/modified",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -84,7 +84,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/creator",
+              predicate: "http://purl.org/dc/terms/creator",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#string",
@@ -126,7 +126,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/creator",
+              predicate: "http://purl.org/dc/terms/creator",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#string",
@@ -136,7 +136,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/date",
+              predicate: "http://purl.org/dc/terms/date",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -146,7 +146,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/modified",
+              predicate: "http://purl.org/dc/terms/modified",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -206,7 +206,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/creator",
+              predicate: "http://purl.org/dc/terms/creator",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#string",
@@ -216,7 +216,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/date",
+              predicate: "http://purl.org/dc/terms/date",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -226,7 +226,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/modified",
+              predicate: "http://purl.org/dc/terms/modified",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -236,7 +236,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/title",
+              predicate: "http://purl.org/dc/terms/title",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -246,7 +246,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/description",
+              predicate: "http://purl.org/dc/terms/description",
               valueExpr:
                 "https://discoursegraphs.com/schema/dg_base#ContentProfile",
               min: 0,
@@ -296,7 +296,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/creator",
+              predicate: "http://purl.org/dc/terms/creator",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#string",
@@ -306,7 +306,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/date",
+              predicate: "http://purl.org/dc/terms/date",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -316,7 +316,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/modified",
+              predicate: "http://purl.org/dc/terms/modified",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -376,7 +376,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/creator",
+              predicate: "http://purl.org/dc/terms/creator",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#string",
@@ -386,7 +386,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/date",
+              predicate: "http://purl.org/dc/terms/date",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -396,7 +396,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/modified",
+              predicate: "http://purl.org/dc/terms/modified",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -462,7 +462,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/creator",
+              predicate: "http://purl.org/dc/terms/creator",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#string",
@@ -472,7 +472,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/date",
+              predicate: "http://purl.org/dc/terms/date",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -482,7 +482,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/modified",
+              predicate: "http://purl.org/dc/terms/modified",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
@@ -525,7 +525,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://purl.org/dc/elements/1.1/format",
+              predicate: "http://purl.org/dc/terms/format",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#string",
