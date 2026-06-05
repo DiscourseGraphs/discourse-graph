@@ -1,4 +1,5 @@
 import showdown from "showdown";
+import { JSDOM } from "jsdom";
 
 export type DocType = "obsidian" | "roam" | "html" | "markdown";
 
@@ -35,7 +36,7 @@ export const convert = (
     return converter.makeHtml(text);
   }
   if (markdownTypes.has(dest) && source === "html") {
-    return converter.makeMarkdown(text);
+    return converter.makeMarkdown(text, new JSDOM().window.document);
   }
   throw new Error("Types not handled");
 };
