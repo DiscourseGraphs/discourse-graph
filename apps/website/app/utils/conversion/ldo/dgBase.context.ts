@@ -41,15 +41,15 @@ export const dgBaseContext: LdoJsonldContext = {
         "@type": "@id",
       },
       date: {
-        "@id": "http://purl.org/dc/elements/1.1/date",
+        "@id": "http://purl.org/dc/terms/date",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       modified: {
-        "@id": "http://purl.org/dc/elements/1.1/modified",
+        "@id": "http://purl.org/dc/terms/modified",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       creator: {
-        "@id": "http://purl.org/dc/elements/1.1/creator",
+        "@id": "http://purl.org/dc/terms/creator",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
     },
@@ -59,15 +59,15 @@ export const dgBaseContext: LdoJsonldContext = {
     "@type": "@id",
   },
   date: {
-    "@id": "http://purl.org/dc/elements/1.1/date",
+    "@id": "http://purl.org/dc/terms/date",
     "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
   },
   modified: {
-    "@id": "http://purl.org/dc/elements/1.1/modified",
+    "@id": "http://purl.org/dc/terms/modified",
     "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
   },
   creator: {
-    "@id": "http://purl.org/dc/elements/1.1/creator",
+    "@id": "http://purl.org/dc/terms/creator",
     "@type": "http://www.w3.org/2001/XMLSchema#string",
   },
   NodeSchema: {
@@ -82,15 +82,15 @@ export const dgBaseContext: LdoJsonldContext = {
         "@type": "@id",
       },
       creator: {
-        "@id": "http://purl.org/dc/elements/1.1/creator",
+        "@id": "http://purl.org/dc/terms/creator",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
       date: {
-        "@id": "http://purl.org/dc/elements/1.1/date",
+        "@id": "http://purl.org/dc/terms/date",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       modified: {
-        "@id": "http://purl.org/dc/elements/1.1/modified",
+        "@id": "http://purl.org/dc/terms/modified",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       label: {
@@ -125,33 +125,33 @@ export const dgBaseContext: LdoJsonldContext = {
         "@type": "@id",
       },
       creator: {
-        "@id": "http://purl.org/dc/elements/1.1/creator",
+        "@id": "http://purl.org/dc/terms/creator",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
       date: {
-        "@id": "http://purl.org/dc/elements/1.1/date",
+        "@id": "http://purl.org/dc/terms/date",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       modified: {
-        "@id": "http://purl.org/dc/elements/1.1/modified",
+        "@id": "http://purl.org/dc/terms/modified",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       title: {
-        "@id": "http://purl.org/dc/elements/1.1/title",
+        "@id": "http://purl.org/dc/terms/title",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       description: {
-        "@id": "http://purl.org/dc/elements/1.1/description",
+        "@id": "http://purl.org/dc/terms/description",
         "@type": "@id",
       },
     },
   },
   title: {
-    "@id": "http://purl.org/dc/elements/1.1/title",
+    "@id": "http://purl.org/dc/terms/title",
     "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
   },
   description: {
-    "@id": "http://purl.org/dc/elements/1.1/description",
+    "@id": "http://purl.org/dc/terms/description",
     "@type": "@id",
   },
   Content: {
@@ -162,7 +162,7 @@ export const dgBaseContext: LdoJsonldContext = {
         "@isCollection": true,
       },
       format: {
-        "@id": "http://purl.org/dc/elements/1.1/format",
+        "@id": "http://purl.org/dc/terms/format",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
       content: {
@@ -172,7 +172,7 @@ export const dgBaseContext: LdoJsonldContext = {
     },
   },
   format: {
-    "@id": "http://purl.org/dc/elements/1.1/format",
+    "@id": "http://purl.org/dc/terms/format",
     "@type": "http://www.w3.org/2001/XMLSchema#string",
   },
   content: {
@@ -196,15 +196,15 @@ export const dgBaseContext: LdoJsonldContext = {
         "@type": "@id",
       },
       creator: {
-        "@id": "http://purl.org/dc/elements/1.1/creator",
+        "@id": "http://purl.org/dc/terms/creator",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
       date: {
-        "@id": "http://purl.org/dc/elements/1.1/date",
+        "@id": "http://purl.org/dc/terms/date",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       modified: {
-        "@id": "http://purl.org/dc/elements/1.1/modified",
+        "@id": "http://purl.org/dc/terms/modified",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       label: {
@@ -230,15 +230,15 @@ export const dgBaseContext: LdoJsonldContext = {
         "@type": "@id",
       },
       creator: {
-        "@id": "http://purl.org/dc/elements/1.1/creator",
+        "@id": "http://purl.org/dc/terms/creator",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
       date: {
-        "@id": "http://purl.org/dc/elements/1.1/date",
+        "@id": "http://purl.org/dc/terms/date",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       modified: {
-        "@id": "http://purl.org/dc/elements/1.1/modified",
+        "@id": "http://purl.org/dc/terms/modified",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       label: {
@@ -275,15 +275,15 @@ export const dgBaseContext: LdoJsonldContext = {
         "@type": "@id",
       },
       creator: {
-        "@id": "http://purl.org/dc/elements/1.1/creator",
+        "@id": "http://purl.org/dc/terms/creator",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
       date: {
-        "@id": "http://purl.org/dc/elements/1.1/date",
+        "@id": "http://purl.org/dc/terms/date",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       modified: {
-        "@id": "http://purl.org/dc/elements/1.1/modified",
+        "@id": "http://purl.org/dc/terms/modified",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       source: {
