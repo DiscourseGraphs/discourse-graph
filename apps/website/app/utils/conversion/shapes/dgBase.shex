@@ -17,7 +17,7 @@ dgshapes:ContainerProfile {
 dgshapes:ItemProfile {
     a [sioc:Item];
     sioc:has_container IRI ?;
-    dct:date xsd:dateTime ? ;
+    dct:created xsd:dateTime ? ;
     dct:modified xsd:dateTime ? ;
     dct:creator xsd:string ? ;
 }
@@ -26,7 +26,7 @@ dgshapes:NodeSchemaProfile {
     a [dgb:NodeSchema];
     sioc:has_container IRI ?;
     dct:creator xsd:string ? ;
-    dct:date xsd:dateTime ? ;
+    dct:created xsd:dateTime ? ;
     dct:modified xsd:dateTime ? ;
     rdfs:label xsd:string ;
     rdfs:subClassOf IRI *;
@@ -37,7 +37,7 @@ dgshapes:NodeInstanceProfile {
     a [dgshapes:NodeInstance];
     sioc:has_container IRI ?;
     dct:creator xsd:string ? ;
-    dct:date xsd:dateTime ? ;
+    dct:created xsd:dateTime ? ;
     dct:modified xsd:dateTime ? ;
     dct:title xsd:dateTime? ;
     dct:description @dgshapes:ContentProfile ? ;
@@ -48,7 +48,7 @@ dgshapes:AbstractRelationDefProfile {
     rdfs:subClassOf IRI *;
     sioc:has_container IRI ?;
     dct:creator xsd:string ? ;
-    dct:date xsd:dateTime ? ;
+    dct:created xsd:dateTime ? ;
     dct:modified xsd:dateTime ? ;
     rdfs:label xsd:string ;
 }
@@ -58,7 +58,7 @@ dgshapes:RelationDefProfile {
     rdfs:subClassOf IRI *;
     sioc:has_container IRI ?;
     dct:creator xsd:string ? ;
-    dct:date xsd:dateTime ? ;
+    dct:created xsd:dateTime ? ;
     dct:modified xsd:dateTime ? ;
     rdfs:label xsd:string ;
     rdfs:domain IRI ;
@@ -70,7 +70,7 @@ dgshapes:RelationInstanceProfile {
     a [dgb:RelationInstance];
     sioc:has_container IRI ?;
     dct:creator xsd:string ? ;
-    dct:date xsd:dateTime ? ;
+    dct:created xsd:dateTime ? ;
     dct:modified xsd:dateTime ? ;
     dgb:source @dgshapes:NodeInstanceProfile ;
     dgb:destination @dgshapes:NodeInstanceProfile ;

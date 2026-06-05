@@ -30,7 +30,7 @@ export interface ItemProfile {
   hasContainer?: {
     "@id": string;
   };
-  date?: string;
+  created?: string;
   modified?: string;
   creator?: string;
 }
@@ -48,7 +48,7 @@ export interface NodeSchemaProfile {
     "@id": string;
   };
   creator?: string;
-  date?: string;
+  created?: string;
   modified?: string;
   label: string;
   subClassOf?: LdSet<{
@@ -69,7 +69,7 @@ export interface NodeInstanceProfile {
     "@id": string;
   };
   creator?: string;
-  date?: string;
+  created?: string;
   modified?: string;
   title?: string;
   description?: ContentProfile;
@@ -91,7 +91,7 @@ export interface AbstractRelationDefProfile {
     "@id": string;
   };
   creator?: string;
-  date?: string;
+  created?: string;
   modified?: string;
   label: string;
 }
@@ -112,7 +112,7 @@ export interface RelationDefProfile {
     "@id": string;
   };
   creator?: string;
-  date?: string;
+  created?: string;
   modified?: string;
   label: string;
   domain: {
@@ -136,7 +136,7 @@ export interface RelationInstanceProfile {
     "@id": string;
   };
   creator?: string;
-  date?: string;
+  created?: string;
   modified?: string;
   source: NodeInstanceProfile;
   destination: NodeInstanceProfile;
