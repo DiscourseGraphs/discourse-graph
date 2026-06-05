@@ -59,6 +59,9 @@ CREATE UNIQUE INDEX document_url_idx ON public."Document" USING btree (url);
 
 ALTER TABLE public."Document" OWNER TO "postgres";
 
+-- Public access: the select policy decides which rows anon sees.
+GRANT SELECT ON TABLE public."Document" TO anon;
+
 COMMENT ON COLUMN public."Document".space_id IS 'The space in which the content is located';
 
 COMMENT ON COLUMN public."Document".source_local_id IS 'The unique identifier of the content in the remote source';
@@ -145,6 +148,9 @@ CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
 
 ALTER TABLE public."Content" OWNER TO "postgres";
 
+-- Public access: the select policy decides which rows anon sees.
+GRANT SELECT ON TABLE public."Content" TO anon;
+
 COMMENT ON TABLE public."Content" IS 'A unit of content';
 
 COMMENT ON COLUMN public."Content".source_local_id IS 'The unique identifier of the content in the remote source';
@@ -171,6 +177,10 @@ ALTER TABLE ONLY public."ResourceAccess"
 ADD CONSTRAINT "ResourceAccess_pkey" PRIMARY KEY (account_uid, source_local_id, space_id);
 
 ALTER TABLE public."ResourceAccess" OWNER TO "postgres";
+
+-- Public access: my_accessible_resources() and my_resource_grants read it as the caller, for the my_* views and the select policies.
+-- Its select policy decides which rows anon sees.
+GRANT SELECT ON TABLE public."ResourceAccess" TO anon;
 
 COMMENT ON TABLE public."ResourceAccess" IS 'An access control entry for a content';
 
@@ -736,14 +746,17 @@ ALTER TABLE public."ResourceAccess" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS resource_access_policy ON public."ResourceAccess";
 DROP POLICY IF EXISTS resource_access_select_policy ON public."ResourceAccess";
+-- A space published at reader level shows all its grants, to visitors too; such a space needs no other grant.
 CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (
-    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    account_uid = public.everyone_uid()
+    OR space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
     OR account_uid IN (SELECT public.my_user_accounts())
 );
 DROP POLICY IF EXISTS resource_access_delete_policy ON public."ResourceAccess";
+-- my_identity_accounts: a grant to the everyone pseudo-user is not the caller's own, so only an editor can delete it.
 CREATE POLICY resource_access_delete_policy ON public."ResourceAccess" FOR DELETE USING (
     space_id = any((SELECT public.my_space_ids('editor'))::bigint [])
-    OR account_uid IN (SELECT public.my_user_accounts())
+    OR account_uid IN (SELECT public.my_identity_accounts())
 );
 DROP POLICY IF EXISTS resource_access_insert_policy ON public."ResourceAccess";
 CREATE POLICY resource_access_insert_policy ON public."ResourceAccess" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));

@@ -24,6 +24,9 @@ CREATE INDEX file_reference_filepath_idx ON public."FileReference" USING btree (
 CREATE INDEX file_reference_filehash_idx ON public."FileReference" USING btree (filehash);
 ALTER TABLE public."FileReference" OWNER TO "postgres";
 
+-- Public access: the select policy decides which rows anon sees.
+GRANT SELECT ON TABLE public."FileReference" TO anon;
+
 COMMENT ON COLUMN public."FileReference".source_path
 IS 'Where the publishing platform kept the asset: a path in a vault, or a name in a flat asset namespace. Distinct from filepath, which holds what the content refers to. Null when the publisher did not record one. A destination names an imported asset from this, so it never has to inspect filepath for provenance.';
 
@@ -157,7 +160,7 @@ ON storage.objects FOR INSERT TO authenticated WITH CHECK (
 
 DROP POLICY IF EXISTS "storage_select_assets_access" ON storage.objects;
 CREATE POLICY "storage_select_assets_access"
-ON storage.objects FOR SELECT TO authenticated USING (
+ON storage.objects FOR SELECT TO anon, authenticated USING (
     bucket_id = 'assets' AND file_access(name)
 );
 
