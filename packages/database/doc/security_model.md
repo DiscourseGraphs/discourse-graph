@@ -10,7 +10,7 @@ Supabase sends every API request as one of three Postgres roles:
 - `authenticated`: a logged-in request. The plugins log in as their space's "anonymous" account (`agent_type = 'anonymous'`), so they use `authenticated`, not `anon`.
 - `service_role`: the server key. It bypasses row-level security. Edge functions such as `create-space` use it; clients never get it.
 
-`anon` reads almost nothing today.
+`anon` reads only what is public: resources granted to the everyone pseudo-user (see [Public access](#public-access)).
 
 ## How access is enforced
 
@@ -20,17 +20,34 @@ The policies call helper functions such as `my_space_ids(access_level)` and `acc
 
 The `SET` clause stops Postgres from inlining a helper, so a helper that takes a row column runs its own query for every row. Policies avoid this by calling helpers that take no row column, wrapped in `(SELECT ...)`, for example `space_id = any((SELECT my_space_ids('reader'))::bigint [])`. Postgres evaluates that form, an InitPlan, once per query (ENG-2443, ENG-2446). The policies on the contributor tables' writes, `group_membership` and `sync_info` still call a helper per row.
 
-`my_user_accounts()` is the base of most helpers. It returns the current user's id and the ids of the groups they belong to. A space or resource is accessible when a `SpaceAccess` or `ResourceAccess` row grants it to one of those ids. It is declared `ROWS 10`, because Postgres can't inline it and its default estimate of 1000 rows makes the planner scan `SpaceAccess`. The hint changes only the plan, not who sees what.
+`my_user_accounts()` is the base of most helpers. It returns the current user's id, the ids of the groups they belong to, and the everyone pseudo-user. A space or resource is accessible when a `SpaceAccess` or `ResourceAccess` row grants it to one of those ids. It is declared `ROWS 10`, because Postgres can't inline it and its default estimate of 1000 rows makes the planner scan `SpaceAccess`. The hint changes only the plan, not who sees what.
+
+### Public access
+
+The everyone pseudo-user has the uid `everyone_uid()`, the nil UUID. A grant to it applies to every caller, logged in or not (ENG-1837). It is a row in `auth.users` with no email, so nobody can log in as it, and only group admins add group members, so it never becomes a group.
+
+- A single node is public with `SpaceAccess(everyone, 'partial')` plus a `ResourceAccess` row for the node.
+- A whole space is public with `SpaceAccess(everyone, 'reader')`.
+- The check constraint `SpaceAccess_everyone_read_only` keeps it at `reader` or below, because every caller gets its permissions.
+
+Two helpers list the caller's uids, and a policy must pick the right one:
+
+- `my_user_accounts()` includes the everyone pseudo-user. Use it to decide what the caller can read.
+- `my_identity_accounts()` leaves it out. Use it wherever a public grant must not count as the caller's own. Today that covers the `ResourceAccess` delete policy, sharing a space (`account_ids_in_shared_spaces`, `accounts_in_my_partial_spaces`), the real names in `my_accounts`, and `AgentIdentifier` reads, which hold emails.
+
+An account that the caller reaches only through a public grant shows in `my_accounts` as `anonymous #<id>`.
+
+Known gap: the `SpaceAccess` and `LocalAccess` select policies still use `my_space_ids('reader')`, so in a space published at `reader` level every logged-in user can list who has access. Issue candidate: [Readers of a space can list who else has access to it](https://roamresearch.com/#/app/discourse-graphs/page/jzinnZmMa). Such a space also shows its `ResourceAccess` rows to everyone, on purpose: it needs no other grants.
 
 ### Policies that read `LocalAccess`
 
-The `AgentIdentifier` select policy and the `PlatformAccount` write policies read `LocalAccess` directly, through its primary key, so checking one account stays cheap. They read it as the caller, so its own select policy filters what they see: narrowing `local_access_select_policy` narrows them too, with no error.
+The `PlatformAccount` write policies read `LocalAccess` directly, through its primary key, so checking one account stays cheap. They read it as the caller, so its own select policy filters what they see: narrowing `local_access_select_policy` narrows them too, with no error.
 
 That filter starts at `reader`, but `PlatformAccount` rows are visible from `partial`. So the `PlatformAccount` select policy reads the definer view `accounts_in_my_partial_spaces` instead. Unlike a function, Postgres can inline a view, so one account is checked per row through the primary key, and a full read builds its set once. Three things about this view must stay:
 
 - `DISTINCT`, and no `space_id` column. One row per membership would reveal memberships that `LocalAccess` hides below `reader`.
 - `security_barrier`. Without it, a caller's filter that isn't `LEAKPROOF` can run below the access join and see accounts from other spaces.
-- Its grants: `SELECT` only. `anon` holds it for public access (see [Grants made for public access](#grants-made-for-public-access)). It returns no rows to `anon` today.
+- Its grants: `SELECT` only. `anon` holds it too (see [Grants made for public access](#grants-made-for-public-access)). It returns no rows to `anon`, because it counts only the caller's own grants.
 
 ### Account and group writes
 
@@ -96,22 +113,23 @@ One helper doesn't follow rule 5 yet. `file_exists` says whether any space holds
 
 ### Functions `anon` can execute
 
-| Function           | Why                                                                                                                                                                                      |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_secret_token` | The website's `/auth/token` route, which hands a plugin's session to a browser that isn't logged in yet. The token is 12 random bytes, single use, with a 45-second expiry for this flow |
-| `my_user_accounts` | Public access: base of the views and helpers                                                                                                                                             |
-| `my_space_ids`     | `Space` select policy; `anon` can read `Space`. Public access: the `my_*` views and the other select policies                                                                            |
-| `file_access`      | Public access: the storage read policy on the `assets` bucket                                                                                                                            |
+| Function               | Why                                                                                                                                                                                      |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_secret_token`     | The website's `/auth/token` route, which hands a plugin's session to a browser that isn't logged in yet. The token is 12 random bytes, single use, with a 45-second expiry for this flow |
+| `my_user_accounts`     | Public access: base of the views and helpers                                                                                                                                             |
+| `my_identity_accounts` | Public access: the `my_accounts` view and the account helpers                                                                                                                            |
+| `my_space_ids`         | `Space` select policy; `anon` can read `Space`. Public access: the `my_*` views and the other select policies                                                                            |
+| `file_access`          | Public access: the storage read policy on the `assets` bucket                                                                                                                            |
 
 All other `SECURITY DEFINER` functions, and the functions that write, are executable by `authenticated` only. Trigger functions, and `is_last_local_reference` (which only triggers call), are executable by neither role.
 
 `in_space` is not executable by `anon`. Only write paths reach it as the caller, and `anon`'s reads use `my_space_ids`.
 
-`anon` holds only `SELECT` on the contributor tables, and its reads fail with a permission error on `ResourceAccess` until public access adds the grants below.
+`anon` holds only `SELECT` on the contributor tables.
 
 ### Grants made for public access
 
-`anon` will read public nodes, their files and their authors (ENG-1837). The "Public access" entries above, and `anon`'s `SELECT` on `Space`, the contributor tables and the views, are grants made ahead of that work. `anon` can't execute the functions that write, except `get_secret_token`. Keep them: rule 1 means that removing one fails those queries with a permission error. ENG-1837 also has to grant `anon` `SELECT` on `Concept`, `Content`, `Document`, `FileReference` and `ResourceAccess`, and open `storage_select_assets_access` to `anon`, which today applies only to `authenticated`.
+`anon` reads public nodes, their files and their authors (ENG-1837). For this it holds the "Public access" entries above, `SELECT` on `Space`, `Concept`, `Content`, `Document`, `FileReference`, `ResourceAccess`, the contributor tables and the views, and the storage read policy `storage_select_assets_access`. The tables' select policies decide which rows it sees, with the same filter as the views. `anon` can't execute the functions that write, except `get_secret_token`. Keep them: rule 1 means that removing one fails those queries with a permission error. `features/publicAccess.feature` checks what a visitor sees.
 
 ## Supabase advisor findings that remain
 
@@ -124,7 +142,7 @@ It flags any view that bypasses RLS, any view that reads `auth.users`, any polic
 - `my_groups` reads `auth.users` (`auth_users_exposed` and `security_definer_view`). Groups are rows in `auth.users`, with the synthetic email `{group name}@groups.discoursegraphs.com` set by the `create-group` edge function. The view returns only the id and name of the groups the current user belongs to; `anon` gets no rows. It must run as its owner, because clients can't read `auth.users`. This stays.
 - The other eight `my_*` views (`security_definer_view`). This is the speed workaround described above.
 - `accounts_in_my_partial_spaces` (`security_definer_view`). It runs as its owner on purpose, to read `LocalAccess` below `reader` (see above). It stays.
-- `anon_security_definer_function_executable` for the four functions in the table above.
+- `anon_security_definer_function_executable` for the `SECURITY DEFINER` functions in the table above.
 - `authenticated_security_definer_function_executable` for the policy helpers and for the functions that clients call directly: `create_account_in_space`, `upsert_accounts_in_space`, `file_exists`, `create_secret_token`, `get_secret_token`, `accept_group_invitation`. Also for `upsert_account_in_space`: no client calls it, but `upsert_content` and `upsert_documents` run as the caller, so the caller needs `EXECUTE`.
 
 ### Performance advisor
@@ -164,3 +182,4 @@ Any other finding from either advisor is new, and should be fixed or added here 
 - ENG-2447: account columns granted individually, and `LocalAccess` writes checked against the row's space.
 - ENG-2448: the unused `access_token` table removed.
 - ENG-2466: default privileges set in `base.sql` instead of taken from the Supabase image, and every existing object's grants made explicit. Client roles lost `TRUNCATE`, `REFERENCES`, `TRIGGER` and `MAINTAIN`, write privileges on the views, and `UPDATE` on sequences. `anon` lost its writes on `Space` and `EXECUTE` on the functions that write. `authenticated` lost `INSERT` on `Space`, since only create-space creates spaces, and `space_insert_policy` was removed.
+- ENG-1837: the everyone pseudo-user, `my_identity_accounts`, and the `anon` grants for public access.
