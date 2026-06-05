@@ -134,7 +134,7 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     const data = exNodeSchema;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLdAsLdo(data, url);
+    const parsedData = await parseJsonLdAsLdo(data, url, {}, {});
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as NodeSchemaProfile;
@@ -156,7 +156,7 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     const data = exNodeInstance;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLdAsLdo(data, url);
+    const parsedData = await parseJsonLdAsLdo(data, url, {}, {});
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as NodeInstanceProfile;
@@ -176,10 +176,10 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
   });
 
   it("Reads an abstract relation definition", async () => {
-    const data = exRelnType;
+    const data = exAbstractRelnDef;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLdAsLdo(data, url);
+    const parsedData = await parseJsonLdAsLdo(data, url, {}, {});
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as AbstractRelationDefProfile;
@@ -201,7 +201,7 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     const data = exRelnType;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLdAsLdo(data, url);
+    const parsedData = await parseJsonLdAsLdo(data, url, {}, {});
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as RelationDefProfile;
@@ -223,7 +223,7 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     const data = exRelnInstance;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLdAsLdo(data, url);
+    const parsedData = await parseJsonLdAsLdo(data, url, {}, {});
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as RelationInstanceProfile;
