@@ -7,11 +7,15 @@ type Space = Tables<"Space">;
 type PlatformAccount = Tables<"PlatformAccount">;
 
 // This is a temporary hack
-export const KnownSchemaEntities: Record<string, string[]> = {
+export const KnownClassEntities: Record<string, string[]> = {
   Claim: ["dgc:Claim", "mira:Claim"],
   Evidence: ["dgc:Evidence", "mira:Evidence"],
   Question: ["dgc:Question", "mira:Question"],
   SourceDocument: ["dgc:SourceDocument"],
+  Request: ["mira:Request"],
+  Protocol: ["mira:Protocol"],
+};
+export const KnownRelationEntities: Record<string, string[]> = {
   describesActivity: ["dgc:describesActivity"],
   observationStatement: ["dgc:observationStatement"],
   observationOriginActivity: ["dgc:observationOriginActivity"],
@@ -23,13 +27,16 @@ export const KnownSchemaEntities: Record<string, string[]> = {
   supportedBy: ["dgc:supportedBy"],
   addresses: ["dgc:addresses"],
   addressedBy: ["dgc:addressedBy"],
-  Request: ["mira:Request"],
-  Protocol: ["mira:Protocol"],
   follows: ["mira:follows"],
   grounds: ["mira:grounds"],
   is_grounded_in: ["mira:is_grounded_in"],
   request_for: ["mira:request_for"],
   request_target: ["mira:request_target"],
+};
+
+export const KnownSchemaEntities: Record<string, string[]> = {
+  ...KnownClassEntities,
+  ...KnownRelationEntities,
 };
 
 const prefixes: Record<string, string> = {
@@ -45,7 +52,7 @@ const prefixes: Record<string, string> = {
 };
 
 export const curieToIri = (curie: string): string => {
-  const [prefix, name]: string[] = curie.split(":", 1);
+  const [prefix, name]: string[] = curie.split(":", 2);
   const iri = prefixes[prefix || ""];
   if (iri === undefined) {
     console.error("Unknown prefix", prefix);
@@ -54,8 +61,12 @@ export const curieToIri = (curie: string): string => {
   return iri + name;
 };
 
+export const KnownClassCuries = Object.values(KnownClassEntities).flat();
+export const KnownClassIris = new Set(KnownClassCuries.map(curieToIri));
+export const KnownRelationCuries = Object.values(KnownRelationEntities).flat();
+export const KnownRelationIris = new Set(KnownRelationCuries.map(curieToIri));
 export const KnownSchemaCuries = Object.values(KnownSchemaEntities).flat();
-export const KnownSchemaIris = KnownSchemaCuries.map(curieToIri);
+export const KnownSchemaIris = new Set(KnownSchemaCuries.map(curieToIri));
 
 export const asJsonLD = ({
   space,

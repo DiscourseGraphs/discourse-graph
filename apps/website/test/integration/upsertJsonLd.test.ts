@@ -55,7 +55,6 @@ const jsonLdData: JsonLdDocument = {
       created: "2025-12-04T15:47:51.694Z",
       title: "CLM - Some base claim",
       description: {
-        "@id": "page:content",
         format: "text/html",
         content:
           '<hr />\n<p>nodeTypeId: node<em>OHkZtsR6jkJIVaNmMY</em>GB\nnodeInstanceId: c1f02ff4-f116-452f-a490-3e0309667145</p>\n<h2 id="publishedtogroups">publishedToGroups:</h2>\n<p>That file was empty</p>',
@@ -85,14 +84,7 @@ const jsonLdData: JsonLdDocument = {
       created: "2026-01-24T15:38:14.553Z",
       domain: "sdata:131157",
       range: "sdata:131157",
-      subClassOf: [
-        "dgb:RelationInstance",
-        {
-          "@type": "owl:Restriction",
-          onProperty: "rdf:predicate",
-          hasValue: "sdata:131169",
-        },
-      ],
+      subClassOf: ["sdata:131164"],
       label: "supports",
       creator: "someone",
     },
@@ -141,9 +133,9 @@ describe("Upsert of JSON-LD data", { tags: ["database"] }, () => {
     spaceAccountUuid = accountReq.data.dg_account;
   });
   afterAll(async () => {
-    if (spaceAccountUuid)
-      await serviceClient().auth.admin.deleteUser(spaceAccountUuid);
-    if (spaceId) await serviceClient().from("Space").delete().eq("id", spaceId);
+    // if (spaceAccountUuid)
+    //   await serviceClient().auth.admin.deleteUser(spaceAccountUuid);
+    // if (spaceId) await serviceClient().from("Space").delete().eq("id", spaceId);
   });
 
   it("Upserts the data", async () => {
@@ -151,6 +143,8 @@ describe("Upsert of JSON-LD data", { tags: ["database"] }, () => {
     const converted = await parseJsonLdAsInput(client, jsonLdData, spaceId);
     console.log(converted);
     const response = await populate(client, jsonLdData, spaceId);
+    console.log(response);
     assert(response.length === (jsonLdData["@graph"] as Array<Json>).length);
+    assert(Math.min(...response) > 0);
   });
 });
