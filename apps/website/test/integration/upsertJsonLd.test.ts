@@ -37,7 +37,7 @@ const signedInClient = async (spaceId: number): Promise<DGSupabaseClient> => {
 // example data
 
 const jsonLdData: JsonLdDocument = {
-  "@context": ["http://localhost:3000/schema/context.jsonld"],
+  "@context": ["http://localhost:3000/schema/mira.jsonld"],
   "@graph": [
     {
       "@id": "sdata:131157",

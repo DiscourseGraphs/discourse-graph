@@ -239,7 +239,7 @@ const parseBaseData = (data: NodeParseResult) => {
     ? interpretId(data.hasContainer["@id"], "space_id", "space_local_id")
     : {};
   return {
-    created: data.date,
+    created: data.created,
     last_modified: data.modified,
     author_local_id: data.creator,
     ...spaceInfo,
