@@ -234,7 +234,7 @@ const parseBaseData = (data: NodeParseResult) => {
     : {};
   return {
     created: data.date,
-    modified: data.modified,
+    last_modified: data.modified,
     author_local_id: data.creator,
     ...spaceInfo,
   };
@@ -296,6 +296,7 @@ const parseContent = (
   const text = convert(content.content, sourceFormat, "obsidian");
   return {
     text,
+    variant: "full",
     scale: "document",
     ...baseInterpretId(id),
     ...parseBaseData(data),
@@ -309,7 +310,12 @@ const parseNodeInstance = (
 ): LocalConceptDataInput | null => {
   if (data["@id"] == null) return null;
   const schemaInfo = data.type.map((x) =>
-    interpretId(x["@id"], "schema_id", "schema_local_id", knownIris),
+    interpretId(
+      x["@id"],
+      "schema_id",
+      "schema_represented_by_local_id",
+      knownIris,
+    ),
   );
   if (!schemaInfo.length) return null;
   // TODO If there's many types, how to choose?
@@ -377,7 +383,12 @@ const parseRelationInstance = (
 ): LocalConceptDataInput | null => {
   if (data["@id"] == null) return null;
   const schemaInfos = data.type.map((x) =>
-    interpretId(x["@id"], "schema_id", "schema_local_id", knownIris),
+    interpretId(
+      x["@id"],
+      "schema_id",
+      "schema_represented_by_local_id",
+      knownIris,
+    ),
   );
   const schemaInfo = schemaInfos[0];
   if (!schemaInfo) return null;
@@ -387,7 +398,7 @@ const parseRelationInstance = (
   // TODO: find the names of source and dest instances, rel label
   return {
     ...schemaInfo,
-    name: `${source} -${"schema_local_id" in schemaInfo ? schemaInfo.schema_local_id : schemaInfo.schema_id}-> ${destination}`,
+    name: `${source} -${"schema_represented_by_local_id" in schemaInfo ? schemaInfo.schema_represented_by_local_id : schemaInfo.schema_id}-> ${destination}`,
     local_reference_content: { source, destination },
     ...interpretId(data["@id"], "id", "source_local_id"),
     ...parseBaseData(data),
@@ -421,7 +432,7 @@ const parseLdoNode = (
   if (types.has("NodeSchema"))
     return parseNodeSchema(data as NodeSchemaProfile, knownIris);
 
-  // naw instance heuristics
+  // now instance heuristics
   let schemaType: string | undefined;
   typesA.map((t) => {
     if (knownSchemaTypes[t]) schemaType = knownSchemaTypes[t];
@@ -431,9 +442,10 @@ const parseLdoNode = (
   if (schemaType === nodeSchemaType) {
     const nodeInstance = data as NodeInstanceProfile;
     if (!nodeInstance.description) return null;
-    const content = nodeInstance.description.content
-      ? nodeInstance.description
-      : contentById[nodeInstance.description["@id"]!];
+    const content =
+      nodeInstance.description.content !== undefined
+        ? nodeInstance.description
+        : contentById[nodeInstance.description["@id"]!];
     if (!content) return null;
     return parseNodeInstance(nodeInstance, content, knownIris);
   }
@@ -464,11 +476,14 @@ export const parseJsonLdAsDataInputWithSchemas = async (
     knownIris,
     knownSchemaTypes,
   );
+  if (ldoData.length === 0) return [];
+  const dataset = ldoData[0]!.type.context.dataset;
+  const contentIds: string[] = dataset
+    .match(null, namedNode(descriptionPredicate))
+    .toArray()
+    .map((q) => q.object.id);
   const contents = ldoData.filter((d) =>
-    d.type
-      .toArray()
-      .map((x) => x["@id"])
-      .includes("Content"),
+    contentIds.includes(d["@id"]),
   ) as ContentProfile[];
   // assume single content for now
   const contentById = Object.fromEntries(

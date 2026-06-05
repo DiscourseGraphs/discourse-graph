@@ -62,6 +62,18 @@ const jsonLdData: JsonLdDocument = {
       creator: "someone",
     },
     {
+      "@id": "sdata:261134",
+      "@type": ["sdata:131157", "dgc:Claim", "mira:Claim"],
+      modified: "2026-05-26T00:39:03.077Z",
+      created: "2025-12-04T15:47:51.694Z",
+      title: "CLM - Some supporting claim",
+      creator: "someone",
+      description: {
+        format: "text/html",
+        content: "",
+      },
+    },
+    {
       "@id": "sdata:131164",
       "@type": "AbstractRelationDef",
       modified: "2026-01-24T15:38:14.553Z",
@@ -106,6 +118,7 @@ describe("Upsert of JSON-LD data", { tags: ["database"] }, () => {
   let spaceId: number;
   let spaceAccountUuid: string;
   let client: DGSupabaseClient;
+  let authorAccountId: number;
 
   beforeAll(async () => {
     const spaceReq = await fetchOrCreateSpaceDirect({
@@ -131,11 +144,31 @@ describe("Upsert of JSON-LD data", { tags: ["database"] }, () => {
     assert(accountReq.data);
     assert(accountReq.data.dg_account);
     spaceAccountUuid = accountReq.data.dg_account;
+    const authorAccountReq = await client.rpc("upsert_accounts_in_space", {
+      accounts: [
+        {
+          name: "someone",
+          account_local_id: "someone",
+          platform: "Roam",
+          agent_type: "person",
+        },
+      ],
+      space_id_: spaceId,
+    });
+    console.error(authorAccountReq.error);
+    assert(!authorAccountReq.error);
+    assert(authorAccountReq.data);
+    authorAccountId = authorAccountReq.data[0]!;
   });
   afterAll(async () => {
-    // if (spaceAccountUuid)
-    //   await serviceClient().auth.admin.deleteUser(spaceAccountUuid);
-    // if (spaceId) await serviceClient().from("Space").delete().eq("id", spaceId);
+    if (spaceAccountUuid)
+      await serviceClient().auth.admin.deleteUser(spaceAccountUuid);
+    if (spaceId) await serviceClient().from("Space").delete().eq("id", spaceId);
+    if (authorAccountId)
+      await serviceClient()
+        .from("PlatformAccount")
+        .delete()
+        .eq("id", authorAccountId);
   });
 
   it("Upserts the data", async () => {
