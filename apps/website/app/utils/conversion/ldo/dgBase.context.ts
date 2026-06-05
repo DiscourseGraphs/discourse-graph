@@ -40,8 +40,8 @@ export const dgBaseContext: LdoJsonldContext = {
         "@id": "http://rdfs.org/sioc/ns#has_container",
         "@type": "@id",
       },
-      date: {
-        "@id": "http://purl.org/dc/terms/date",
+      created: {
+        "@id": "http://purl.org/dc/terms/created",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       modified: {
@@ -58,8 +58,8 @@ export const dgBaseContext: LdoJsonldContext = {
     "@id": "http://rdfs.org/sioc/ns#has_container",
     "@type": "@id",
   },
-  date: {
-    "@id": "http://purl.org/dc/terms/date",
+  created: {
+    "@id": "http://purl.org/dc/terms/created",
     "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
   },
   modified: {
@@ -85,8 +85,8 @@ export const dgBaseContext: LdoJsonldContext = {
         "@id": "http://purl.org/dc/terms/creator",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
-      date: {
-        "@id": "http://purl.org/dc/terms/date",
+      created: {
+        "@id": "http://purl.org/dc/terms/created",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       modified: {
@@ -128,8 +128,8 @@ export const dgBaseContext: LdoJsonldContext = {
         "@id": "http://purl.org/dc/terms/creator",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
-      date: {
-        "@id": "http://purl.org/dc/terms/date",
+      created: {
+        "@id": "http://purl.org/dc/terms/created",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       modified: {
@@ -199,8 +199,8 @@ export const dgBaseContext: LdoJsonldContext = {
         "@id": "http://purl.org/dc/terms/creator",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
-      date: {
-        "@id": "http://purl.org/dc/terms/date",
+      created: {
+        "@id": "http://purl.org/dc/terms/created",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       modified: {
@@ -233,8 +233,8 @@ export const dgBaseContext: LdoJsonldContext = {
         "@id": "http://purl.org/dc/terms/creator",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
-      date: {
-        "@id": "http://purl.org/dc/terms/date",
+      created: {
+        "@id": "http://purl.org/dc/terms/created",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       modified: {
@@ -278,8 +278,8 @@ export const dgBaseContext: LdoJsonldContext = {
         "@id": "http://purl.org/dc/terms/creator",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
-      date: {
-        "@id": "http://purl.org/dc/terms/date",
+      created: {
+        "@id": "http://purl.org/dc/terms/created",
         "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
       },
       modified: {
