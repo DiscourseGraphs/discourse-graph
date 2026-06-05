@@ -6,7 +6,10 @@ import type {
   RelationDefProfile,
   AbstractRelationDefProfile,
 } from "../../app/utils/conversion/ldo/dgBase.typings";
-import { parseJsonLdAsLdo } from "../../app/utils/conversion/fromJsonLd";
+import {
+  parseJsonLdAsLdoDataset,
+  extractLdoData,
+} from "../../app/utils/conversion/fromJsonLd";
 
 // example data
 
@@ -134,7 +137,8 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     const data = exNodeSchema;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLdAsLdo(data, url, {}, {});
+    const dataset = await parseJsonLdAsLdoDataset(data, url);
+    const parsedData = await extractLdoData(dataset, {}, {});
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as NodeSchemaProfile;
@@ -156,7 +160,8 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     const data = exNodeInstance;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLdAsLdo(data, url, {}, {});
+    const dataset = await parseJsonLdAsLdoDataset(data, url);
+    const parsedData = await extractLdoData(dataset, {}, {});
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as NodeInstanceProfile;
@@ -179,7 +184,8 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     const data = exAbstractRelnDef;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLdAsLdo(data, url, {}, {});
+    const dataset = await parseJsonLdAsLdoDataset(data, url);
+    const parsedData = await extractLdoData(dataset, {}, {});
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as AbstractRelationDefProfile;
@@ -201,7 +207,8 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     const data = exRelnType;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLdAsLdo(data, url, {}, {});
+    const dataset = await parseJsonLdAsLdoDataset(data, url);
+    const parsedData = await extractLdoData(dataset, {}, {});
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as RelationDefProfile;
@@ -223,7 +230,8 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     const data = exRelnInstance;
     const id = data["@id"];
     const url = `${spaceUrl}/${id.split(":")[1]}`;
-    const parsedData = await parseJsonLdAsLdo(data, url, {}, {});
+    const dataset = await parseJsonLdAsLdoDataset(data, url);
+    const parsedData = await extractLdoData(dataset, {}, {});
     const parsedItem = parsedData.filter(
       (item) => item["@id"] === url,
     )[0] as RelationInstanceProfile;
