@@ -25,7 +25,7 @@
       "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
     },
     "created": {
-      "@id": "dct:date",
+      "@id": "dct:created",
       "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
     },
     "creator": "dct:creator",
