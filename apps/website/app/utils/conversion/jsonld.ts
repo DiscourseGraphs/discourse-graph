@@ -72,7 +72,6 @@ export const conceptName = (
   concept: Concept,
   schema: Concept | undefined,
 ): string => {
-  console.log(concept, schema);
   if (concept.is_schema) {
     if (concept.arity !== 2)
       return "https://discoursegraphs.com/schema/dg_base#NodeSchema";
