@@ -148,7 +148,7 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     expect(parsedItem);
     expect(parsedItem["@id"]);
     expect(parsedItem.subClassOf);
-    expect(parsedItem.date);
+    expect(parsedItem.created);
     expect(parsedItem.modified);
     expect(parsedItem.creator);
     expect(parsedItem.hasContainer);
@@ -172,7 +172,7 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     expect(parsedItem["@id"]);
     expect(parsedItem.title);
     expect(parsedItem.description);
-    expect(parsedItem.date);
+    expect(parsedItem.created);
     expect(parsedItem.modified);
     expect(parsedItem.creator);
     expect(parsedItem.hasContainer);
@@ -195,7 +195,7 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     expect(parsedItem);
     expect(parsedItem["@id"]);
     expect(parsedItem.label);
-    expect(parsedItem.date);
+    expect(parsedItem.created);
     expect(parsedItem.modified);
     expect(parsedItem.creator);
     expect(parsedItem.hasContainer);
@@ -218,7 +218,7 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     expect(parsedItem["@id"]);
     expect(parsedItem.domain);
     expect(parsedItem.range);
-    expect(parsedItem.date);
+    expect(parsedItem.created);
     expect(parsedItem.modified);
     expect(parsedItem.creator);
     expect(parsedItem.hasContainer);
@@ -241,7 +241,7 @@ describe("LTO parsing of JSON-LD data", { tags: ["database"] }, () => {
     expect(parsedItem["@id"]);
     expect(parsedItem.source);
     expect(parsedItem.destination);
-    expect(parsedItem.date);
+    expect(parsedItem.created);
     expect(parsedItem.modified);
     expect(parsedItem.creator);
     expect(parsedItem.hasContainer);
