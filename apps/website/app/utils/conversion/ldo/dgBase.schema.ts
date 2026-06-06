@@ -97,8 +97,6 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
               },
-              min: 0,
-              max: 1,
             },
             {
               type: "TripleConstraint",
@@ -115,10 +113,8 @@ export const dgBaseSchema: Schema = {
               predicate: "http://purl.org/dc/terms/creator",
               valueExpr: {
                 type: "NodeConstraint",
-                datatype: "http://www.w3.org/2001/XMLSchema#string",
+                nodeKind: "iri",
               },
-              min: 0,
-              max: 1,
             },
           ],
         },
@@ -157,10 +153,8 @@ export const dgBaseSchema: Schema = {
               predicate: "http://purl.org/dc/terms/creator",
               valueExpr: {
                 type: "NodeConstraint",
-                datatype: "http://www.w3.org/2001/XMLSchema#string",
+                nodeKind: "iri",
               },
-              min: 0,
-              max: 1,
             },
             {
               type: "TripleConstraint",
@@ -169,8 +163,6 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
               },
-              min: 0,
-              max: 1,
             },
             {
               type: "TripleConstraint",
@@ -237,10 +229,8 @@ export const dgBaseSchema: Schema = {
               predicate: "http://purl.org/dc/terms/creator",
               valueExpr: {
                 type: "NodeConstraint",
-                datatype: "http://www.w3.org/2001/XMLSchema#string",
+                nodeKind: "iri",
               },
-              min: 0,
-              max: 1,
             },
             {
               type: "TripleConstraint",
@@ -249,8 +239,6 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
               },
-              min: 0,
-              max: 1,
             },
             {
               type: "TripleConstraint",
@@ -327,10 +315,8 @@ export const dgBaseSchema: Schema = {
               predicate: "http://purl.org/dc/terms/creator",
               valueExpr: {
                 type: "NodeConstraint",
-                datatype: "http://www.w3.org/2001/XMLSchema#string",
+                nodeKind: "iri",
               },
-              min: 0,
-              max: 1,
             },
             {
               type: "TripleConstraint",
@@ -339,8 +325,6 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
               },
-              min: 0,
-              max: 1,
             },
             {
               type: "TripleConstraint",
@@ -407,10 +391,8 @@ export const dgBaseSchema: Schema = {
               predicate: "http://purl.org/dc/terms/creator",
               valueExpr: {
                 type: "NodeConstraint",
-                datatype: "http://www.w3.org/2001/XMLSchema#string",
+                nodeKind: "iri",
               },
-              min: 0,
-              max: 1,
             },
             {
               type: "TripleConstraint",
@@ -419,8 +401,6 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
               },
-              min: 0,
-              max: 1,
             },
             {
               type: "TripleConstraint",
@@ -493,10 +473,8 @@ export const dgBaseSchema: Schema = {
               predicate: "http://purl.org/dc/terms/creator",
               valueExpr: {
                 type: "NodeConstraint",
-                datatype: "http://www.w3.org/2001/XMLSchema#string",
+                nodeKind: "iri",
               },
-              min: 0,
-              max: 1,
             },
             {
               type: "TripleConstraint",
@@ -505,8 +483,6 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#dateTime",
               },
-              min: 0,
-              max: 1,
             },
             {
               type: "TripleConstraint",

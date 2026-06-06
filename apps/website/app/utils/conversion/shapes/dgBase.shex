@@ -23,16 +23,16 @@ dgshapes:PersonAccountProfile {
 dgshapes:ItemProfile {
     a [sioc:Item];
     sioc:has_container IRI ?;
-    dct:created xsd:dateTime ? ;
+    dct:created xsd:dateTime ;
     dct:modified xsd:dateTime ? ;
-    dct:creator xsd:string ? ;
+    dct:creator IRI ;
 }
 
 dgshapes:NodeSchemaProfile {
     a [dgb:NodeSchema];
     sioc:has_container IRI ?;
-    dct:creator xsd:string ? ;
-    dct:created xsd:dateTime ? ;
+    dct:creator IRI ;
+    dct:created xsd:dateTime ;
     dct:modified xsd:dateTime ? ;
     rdfs:label xsd:string ;
     rdfs:subClassOf IRI *;
@@ -42,8 +42,8 @@ dgshapes:NodeSchemaProfile {
 dgshapes:NodeInstanceProfile {
     a [dgshapes:NodeInstance];
     sioc:has_container IRI ?;
-    dct:creator xsd:string ? ;
-    dct:created xsd:dateTime ? ;
+    dct:creator IRI ;
+    dct:created xsd:dateTime ;
     dct:modified xsd:dateTime ? ;
     dct:title xsd:dateTime? ;
     dct:description @dgshapes:ContentProfile ? ;
@@ -53,8 +53,8 @@ dgshapes:AbstractRelationDefProfile {
     a [dgb:AbstractRelationDef];
     rdfs:subClassOf IRI *;
     sioc:has_container IRI ?;
-    dct:creator xsd:string ? ;
-    dct:created xsd:dateTime ? ;
+    dct:creator IRI ;
+    dct:created xsd:dateTime ;
     dct:modified xsd:dateTime ? ;
     rdfs:label xsd:string ;
 }
@@ -63,8 +63,8 @@ dgshapes:RelationDefProfile {
     a [dgshapes:RelationDef];
     rdfs:subClassOf IRI *;
     sioc:has_container IRI ?;
-    dct:creator xsd:string ? ;
-    dct:created xsd:dateTime ? ;
+    dct:creator IRI ;
+    dct:created xsd:dateTime ;
     dct:modified xsd:dateTime ? ;
     rdfs:label xsd:string ;
     rdfs:domain IRI ;
@@ -75,8 +75,8 @@ dgshapes:RelationDefProfile {
 dgshapes:RelationInstanceProfile {
     a [dgb:RelationInstance];
     sioc:has_container IRI ?;
-    dct:creator xsd:string ? ;
-    dct:created xsd:dateTime ? ;
+    dct:creator IRI ;
+    dct:created xsd:dateTime ;
     dct:modified xsd:dateTime ? ;
     dgb:source @dgshapes:NodeInstanceProfile ;
     dgb:destination @dgshapes:NodeInstanceProfile ;
