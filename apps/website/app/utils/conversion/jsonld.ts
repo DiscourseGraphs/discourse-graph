@@ -1,10 +1,10 @@
-import { Tables, Json } from "@repo/database/dbTypes";
+import type { Tables, Enums, Json } from "@repo/database/dbTypes";
 import { convert, MIMETYPES, type DocType } from "~/utils/conversion/convert";
 
 type Concept = Tables<"Concept">;
 type Content = Tables<"Content">;
-type Space = Tables<"Space">;
 type PlatformAccount = Tables<"PlatformAccount">;
+type Platform = Enums<"Platform">;
 
 // This is a temporary hack
 export const KnownClassEntities: Record<string, string[]> = {
@@ -69,7 +69,7 @@ export const KnownSchemaCuries = Object.values(KnownSchemaEntities).flat();
 export const KnownSchemaIris = new Set(KnownSchemaCuries.map(curieToIri));
 
 export const asJsonLD = ({
-  space,
+  platform,
   concept,
   baseUrl,
   title,
@@ -79,7 +79,7 @@ export const asJsonLD = ({
   targetFormat,
   wrap,
 }: {
-  space: Space;
+  platform: Platform;
   concept: Concept;
   baseUrl: string;
   title?: Content;
@@ -160,7 +160,7 @@ export const asJsonLD = ({
     const rootUrl = baseUrl.split("/").slice(0, 3).join("/");
     pageUrl = `${rootUrl}/api/content/${baseUrl.split("/")[5]}/${concept.id}#`;
     const source: DocType | undefined =
-      space.platform === "Obsidian" ? "obsidian" : "markdown";
+      platform === "Obsidian" ? "obsidian" : "markdown";
     // punt roam-json
     const contentText = source && convert(content.text, source, targetFormat);
     extraData["description"] = {
