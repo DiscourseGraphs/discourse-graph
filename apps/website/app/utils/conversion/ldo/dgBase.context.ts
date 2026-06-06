@@ -50,7 +50,7 @@ export const dgBaseContext: LdoJsonldContext = {
       },
       creator: {
         "@id": "http://purl.org/dc/terms/creator",
-        "@type": "http://www.w3.org/2001/XMLSchema#string",
+        "@type": "@id",
       },
     },
   },
@@ -68,7 +68,7 @@ export const dgBaseContext: LdoJsonldContext = {
   },
   creator: {
     "@id": "http://purl.org/dc/terms/creator",
-    "@type": "http://www.w3.org/2001/XMLSchema#string",
+    "@type": "@id",
   },
   UserAccount: {
     "@id": "http://rdfs.org/sioc/ns#UserAccount",
@@ -100,7 +100,7 @@ export const dgBaseContext: LdoJsonldContext = {
       },
       creator: {
         "@id": "http://purl.org/dc/terms/creator",
-        "@type": "http://www.w3.org/2001/XMLSchema#string",
+        "@type": "@id",
       },
       created: {
         "@id": "http://purl.org/dc/terms/created",
@@ -143,7 +143,7 @@ export const dgBaseContext: LdoJsonldContext = {
       },
       creator: {
         "@id": "http://purl.org/dc/terms/creator",
-        "@type": "http://www.w3.org/2001/XMLSchema#string",
+        "@type": "@id",
       },
       created: {
         "@id": "http://purl.org/dc/terms/created",
@@ -214,7 +214,7 @@ export const dgBaseContext: LdoJsonldContext = {
       },
       creator: {
         "@id": "http://purl.org/dc/terms/creator",
-        "@type": "http://www.w3.org/2001/XMLSchema#string",
+        "@type": "@id",
       },
       created: {
         "@id": "http://purl.org/dc/terms/created",
@@ -248,7 +248,7 @@ export const dgBaseContext: LdoJsonldContext = {
       },
       creator: {
         "@id": "http://purl.org/dc/terms/creator",
-        "@type": "http://www.w3.org/2001/XMLSchema#string",
+        "@type": "@id",
       },
       created: {
         "@id": "http://purl.org/dc/terms/created",
@@ -293,7 +293,7 @@ export const dgBaseContext: LdoJsonldContext = {
       },
       creator: {
         "@id": "http://purl.org/dc/terms/creator",
-        "@type": "http://www.w3.org/2001/XMLSchema#string",
+        "@type": "@id",
       },
       created: {
         "@id": "http://purl.org/dc/terms/created",
