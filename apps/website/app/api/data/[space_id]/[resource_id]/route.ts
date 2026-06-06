@@ -6,14 +6,14 @@ import {
   createApiResponse,
 } from "~/utils/supabase/apiUtils";
 import { asJsonLD, wrapJsonLd } from "~/utils/conversion/jsonld";
-import { Tables } from "@repo/database/dbTypes";
+import type { Tables, Enums } from "@repo/database/dbTypes";
 import { PostgrestMaybeSingleResponse } from "@supabase/supabase-js";
 import { MIMETYPES, type DocType } from "~/utils/conversion/convert";
 
 type Concept = Tables<"Concept">;
 type Content = Tables<"Content">;
-type Space = Tables<"Space">;
 type PlatformAccount = Tables<"PlatformAccount">;
+type Platform = Enums<"Platform">;
 
 export type SegmentDataType = { params: Promise<Record<string, string>> };
 
@@ -53,15 +53,18 @@ export const GET = async (
   if (spaceResponse.error) {
     return createApiResponse(request, spaceResponse);
   }
-  if (!spaceResponse.data) {
+  let platform: Platform = "Obsidian";
+  if (spaceResponse.data) {
+    platform = spaceResponse.data.platform;
+  } else {
     // consideration: We may not see it because we don't have access,
-    // so it would be worth re-fetching as superuser to see if I should redirect to login.
-    return createApiResponse(
-      request,
-      asPostgrestFailure("Space not found", "401", 401),
-    );
+    // We should find a way to check its platform otherwise.
+    // Let's just keep the Obsidian guess for MIRA demo.
+    // return createApiResponse(
+    //   request,
+    //   asPostgrestFailure("Space not found", "401", 401),
+    // );
   }
-  const space: Space = spaceResponse.data;
   const conceptResponse = await supabase
     .from("Concept")
     .select()
@@ -161,7 +164,7 @@ export const GET = async (
   const relationsJLD = withContext
     ? relations.map((c) =>
         asJsonLD({
-          space,
+          platform,
           concept: c,
           baseUrl,
           schema: c.schema_id ? schemas[c.schema_id] : undefined,
@@ -172,7 +175,7 @@ export const GET = async (
   const schemasJLD = withSchema
     ? Object.values(schemas).map((c) =>
         asJsonLD({
-          space,
+          platform,
           concept: c,
           baseUrl,
           author: c.author_id ? authors[c.author_id] : undefined,
@@ -181,7 +184,7 @@ export const GET = async (
     : [];
 
   const baseJLDData = asJsonLD({
-    space,
+    platform,
     concept,
     baseUrl,
     title,
