@@ -37,6 +37,34 @@ export const dgBaseSchema: Schema = {
       },
     },
     {
+      id: "https://discoursegraphs.com/schema/dg_base#PersonAccountProfile",
+      type: "ShapeDecl",
+      shapeExpr: {
+        type: "Shape",
+        expression: {
+          type: "EachOf",
+          expressions: [
+            {
+              type: "TripleConstraint",
+              predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: ["http://rdfs.org/sioc/ns#UserAccount"],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate: "http://rdfs.org/sioc/ns#name",
+              valueExpr: {
+                type: "NodeConstraint",
+                datatype: "http://www.w3.org/2001/XMLSchema#string",
+              },
+            },
+          ],
+        },
+      },
+    },
+    {
       id: "https://discoursegraphs.com/schema/dg_base#ItemProfile",
       type: "ShapeDecl",
       shapeExpr: {

@@ -70,6 +70,23 @@ export const dgBaseContext: LdoJsonldContext = {
     "@id": "http://purl.org/dc/terms/creator",
     "@type": "http://www.w3.org/2001/XMLSchema#string",
   },
+  UserAccount: {
+    "@id": "http://rdfs.org/sioc/ns#UserAccount",
+    "@context": {
+      type: {
+        "@id": "@type",
+        "@isCollection": true,
+      },
+      name: {
+        "@id": "http://rdfs.org/sioc/ns#name",
+        "@type": "http://www.w3.org/2001/XMLSchema#string",
+      },
+    },
+  },
+  name: {
+    "@id": "http://rdfs.org/sioc/ns#name",
+    "@type": "http://www.w3.org/2001/XMLSchema#string",
+  },
   NodeSchema: {
     "@id": "https://discoursegraphs.com/schema/dg_base#NodeSchema",
     "@context": {
