@@ -172,8 +172,8 @@ export const GET = async (
   }
   const divideFM = fullContents.text.split("---\n");
   const firstTextFragment =
-    divideFM.length > 2 && divideFM[0].trim().length == 0
-      ? divideFM[2]
+    divideFM.length > 2 && divideFM[0]!.trim().length == 0
+      ? divideFM[2]!
       : fullContents.text;
 
   const wrap = `<html><head>
