@@ -171,8 +171,12 @@ export const asJsonLD = ({
   }
 
   if (author) {
-    extraData.creator = author.name;
-    // TODO: make into an object?
+    extraData.creator = {
+      // TODO: ensure it's a URL
+      "@id": author.account_local_id,
+      "@type": "UserAccount",
+      name: author.name,
+    };
   }
   let lastModified = concept.last_modified;
   if (content && content.last_modified > lastModified)
