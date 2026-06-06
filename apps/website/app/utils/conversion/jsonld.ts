@@ -68,6 +68,29 @@ export const KnownRelationIris = new Set(KnownRelationCuries.map(curieToIri));
 export const KnownSchemaCuries = Object.values(KnownSchemaEntities).flat();
 export const KnownSchemaIris = new Set(KnownSchemaCuries.map(curieToIri));
 
+export const conceptName = (
+  concept: Concept,
+  schema: Concept | undefined,
+): string => {
+  console.log(concept, schema);
+  if (concept.is_schema) {
+    if (concept.arity !== 2)
+      return "https://discoursegraphs.com/schema/dg_base#NodeSchema";
+    const ref = (concept.reference_content || {}) as Record<
+      string,
+      number | number[]
+    >;
+    if (ref["source"])
+      return "https://discoursegraphs.com/schema/dg_base#RelationDefSchema";
+    return "https://discoursegraphs.com/schema/dg_base#AbstractRelationDefSchema";
+  }
+  const name = schema?.name;
+  if (!name) return "document"; // really an error here
+  const entities = KnownSchemaEntities[name];
+  if (!entities) return name;
+  return entities[0]!;
+};
+
 export const asJsonLD = ({
   platform,
   concept,
