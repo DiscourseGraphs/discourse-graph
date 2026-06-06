@@ -3,6 +3,7 @@ import { dgBaseSchema } from "./dgBase.schema";
 import { dgBaseContext } from "./dgBase.context";
 import type {
   ContainerProfile,
+  PersonAccountProfile,
   ItemProfile,
   NodeSchemaProfile,
   NodeInstanceProfile,
@@ -24,6 +25,15 @@ import type {
 export const ContainerProfileShapeType: ShapeType<ContainerProfile> = {
   schema: dgBaseSchema,
   shape: "https://discoursegraphs.com/schema/dg_base#ContainerProfile",
+  context: dgBaseContext,
+};
+
+/**
+ * PersonAccountProfile ShapeType
+ */
+export const PersonAccountProfileShapeType: ShapeType<PersonAccountProfile> = {
+  schema: dgBaseSchema,
+  shape: "https://discoursegraphs.com/schema/dg_base#PersonAccountProfile",
   context: dgBaseContext,
 };
 

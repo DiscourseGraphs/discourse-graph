@@ -19,6 +19,18 @@ export interface ContainerProfile {
 }
 
 /**
+ * PersonAccountProfile Type
+ */
+export interface PersonAccountProfile {
+  "@id"?: string;
+  "@context"?: LdoJsonldContext;
+  type: LdSet<{
+    "@id": "UserAccount";
+  }>;
+  name: string;
+}
+
+/**
  * ItemProfile Type
  */
 export interface ItemProfile {
