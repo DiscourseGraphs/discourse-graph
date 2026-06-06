@@ -5,7 +5,7 @@ import {
   defaultOptionsHandler,
   createApiResponse,
 } from "~/utils/supabase/apiUtils";
-import { asJsonLD } from "~/utils/conversion/jsonld";
+import { asJsonLD, conceptName } from "~/utils/conversion/jsonld";
 import { Tables, Enums } from "@repo/database/dbTypes";
 import { convert, MIMETYPES, type DocType } from "~/utils/conversion/convert";
 
@@ -124,27 +124,28 @@ export const GET = async (
     source && source !== targetFormat
       ? convert(fullContents.text, source, targetFormat)
       : fullContents.text;
-  if (includeData) {
-    const isSchema = concept.is_schema;
-    let schema: Concept | undefined = undefined;
-    if (!isSchema && concept.schema_id) {
-      const schemaResponse = await supabase
-        .from("Concept")
-        .select()
-        .eq("id", concept.schema_id)
-        .maybeSingle();
-      if (schemaResponse.error) {
-        return createApiResponse(request, schemaResponse);
-      }
-      if (!schemaResponse.data) {
-        return createApiResponse(
-          request,
-          asPostgrestFailure("Resource schema not found", "401", 401),
-        );
-      }
-      schema = schemaResponse.data;
+  const isSchema = concept.is_schema;
+  let schema: Concept | undefined = undefined;
+  if (!isSchema && concept.schema_id) {
+    const schemaResponse = await supabase
+      .from("Concept")
+      .select()
+      .eq("id", concept.schema_id)
+      .maybeSingle();
+    if (schemaResponse.error) {
+      return createApiResponse(request, schemaResponse);
     }
+    if (!schemaResponse.data) {
+      return createApiResponse(
+        request,
+        asPostgrestFailure("Resource schema not found", "401", 401),
+      );
+    }
+    schema = schemaResponse.data;
+  }
+  const schemaName = conceptName(concept, schema);
 
+  if (includeData) {
     const authorId = concept.author_id ?? (contents ?? [{}])[0]?.author_id;
     let author: PlatformAccount | undefined = undefined;
     if (authorId) {
@@ -169,8 +170,27 @@ export const GET = async (
     });
     text = `<div id="content">\n<script type="application/ld+json">${JSON.stringify(jsonLdData)}</script>\n${text}\n</div>`;
   }
+  const divideFM = fullContents.text.split("---\n");
+  const firstTextFragment =
+    divideFM.length > 2 && divideFM[0].trim().length == 0
+      ? divideFM[2]
+      : fullContents.text;
 
-  return new NextResponse(text, {
+  const wrap = `<html><head>
+    ${title ? '<meta property="og:title" content="' + title.text + '" />' : ""}
+  <meta property="og:type" content="${schemaName}" />
+  <meta property="og:url" content="${request.url}" />
+  <meta property="og:description" content="${firstTextFragment.substring(0, 80)}" />
+  </head>
+  <body>
+  <main>
+  ${text}
+  </main>
+  </body>
+  </html>
+`;
+
+  return new NextResponse(wrap, {
     headers: { "Content-Type": targetMimetype },
   });
 };
