@@ -10,8 +10,10 @@ import {
   RelationInstanceProfileShapeType,
   RelationDefProfileShapeType,
   AbstractRelationDefProfileShapeType,
+  PersonAccountProfileShapeType,
 } from "./ldo/dgBase.shapeTypes";
 import type {
+  LocalAccountDataInput,
   LocalConceptDataInput,
   LocalContentDataInput,
 } from "@repo/database/inputTypes";
@@ -24,6 +26,7 @@ import type {
   RelationInstanceProfile,
   RelationDefProfile,
   AbstractRelationDefProfile,
+  PersonAccountProfile,
 } from "./ldo/dgBase.typings";
 import {
   KnownSchemaIris,
@@ -34,11 +37,13 @@ import {
   KnownRelationIris,
 } from "./jsonld";
 import { DGSupabaseClient } from "@repo/database/lib/client";
-import { Json } from "@repo/database/dbTypes";
+import { Json, Enums, TablesInsert } from "@repo/database/dbTypes";
 import { intersection } from "@repo/utils/setOperations";
 
 const apiRoot = process.env.NEXT_API_ROOT;
 const nodeOrSpaceIdRegex = RegExp(`^${apiRoot}/data/\d+(/\d+)?$`);
+type PlatformType = Enums<"Platform">;
+type AccountType = TablesInsert<"PlatformAccount">;
 
 type NodeParseResult =
   | NodeSchemaProfile
@@ -47,7 +52,11 @@ type NodeParseResult =
   | RelationDefProfile
   | AbstractRelationDefProfile;
 
-type ParseResult = NodeParseResult | ContainerProfile | ContentProfile;
+type ParseResult =
+  | NodeParseResult
+  | ContainerProfile
+  | ContentProfile
+  | PersonAccountProfile;
 
 const typePredicate = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 const nodeSchemaType = "https://discoursegraphs.com/schema/dg_base#NodeSchema";
@@ -62,6 +71,7 @@ const contentPredicate = "http://rdfs.org/sioc/ns#content";
 const descriptionPredicate = "http://purl.org/dc/terms/description";
 const containerType = "http://rdfs.org/sioc/ns#Container";
 const restrictionType = "http://www.w3.org/2002/07/owl#Restriction";
+const accountType = "http://rdfs.org/sioc/ns#UserAccount";
 export const schemaTypeSet = new Set([
   nodeSchemaType,
   relationDefType,
@@ -104,6 +114,7 @@ export const extractLdoData = async (
     if (!typesA) continue;
     const types = new Set(typesA);
     if (types.has(restrictionType)) continue;
+    console.log(subject, types);
     if (intersection(types, schemaTypeSet).size) {
       typesA.map((t) => {
         if (schemaTypeSet.has(t)) {
@@ -113,6 +124,14 @@ export const extractLdoData = async (
           knownIris[t] = subject;
         }
       });
+    }
+    if (types.has(accountType)) {
+      result.push(
+        ldoDataset
+          .usingType(PersonAccountProfileShapeType)
+          .fromSubject(subject),
+      );
+      continue;
     }
     if (types.has(containerType)) {
       result.push(
@@ -289,6 +308,20 @@ const parseNodeSchema = (
     is_schema: true,
     ...baseInterpretId(data["@id"]),
     ...parseBaseData(data),
+  };
+};
+
+const parsePersonDef = (
+  person: PersonAccountProfile,
+  platform: PlatformType,
+): AccountType | null => {
+  const account_local_id = person["@id"];
+  if (!account_local_id) return null;
+  return {
+    account_local_id,
+    name: person.name,
+    platform,
+    agent_type: "person",
   };
 };
 
@@ -470,15 +503,37 @@ const nodeOrder = [
   "RelationInstance",
 ];
 
-export const parseJsonLdAsDataInputWithSchemas = async (
-  data: JsonLdDocument,
-  baseIRI: string,
-  knownIris: Record<string, string>,
-  knownSchemaTypes: Record<string, SchemaTypes>,
-): Promise<LocalConceptDataInput[]> => {
+export const parseJsonLdAsDataInputWithSchemas = async ({
+  data,
+  baseIRI,
+  knownIris,
+  knownSchemaTypes,
+  platform,
+}: {
+  data: JsonLdDocument;
+  baseIRI: string;
+  knownIris: Record<string, string>;
+  knownSchemaTypes: Record<string, SchemaTypes>;
+  platform: PlatformType;
+}): Promise<{
+  concepts: LocalConceptDataInput[];
+  accounts: LocalAccountDataInput[];
+}> => {
   const dataset = await parseJsonLdAsLdoDataset(data, baseIRI);
   const ldoData = await extractLdoData(dataset, knownIris, knownSchemaTypes);
-  if (ldoData.length === 0) return [];
+  if (ldoData.length === 0) return { concepts: [], accounts: [] };
+  const accountIds: string[] = dataset
+    .match(null, namedNode(typePredicate), namedNode(accountType))
+    .toArray()
+    .map((q) => q.subject.value);
+  const accountsLdo = ldoData.filter((d) =>
+    accountIds.includes(d["@id"] || ""),
+  ) as PersonAccountProfile[];
+
+  const accounts = accountsLdo
+    .map((p) => parsePersonDef(p, platform))
+    .filter((p) => p !== null);
+
   const contentIds: string[] = dataset
     .match(null, namedNode(descriptionPredicate))
     .toArray()
@@ -490,11 +545,12 @@ export const parseJsonLdAsDataInputWithSchemas = async (
   const contentById = Object.fromEntries(
     contents.map((c) => [c["@id"], c]),
   ) as Record<string, ContentProfile>;
-  const nodesWithoutContents = ldoData.filter(
-    (d) => contentById[d["@id"] || ""] === undefined,
+  const processed = new Set([...contentIds, ...accountIds]);
+  const nodes = ldoData.filter(
+    (d) => !processed.has(d["@id"] || ""),
   ) as NodeParseResult[];
   // Reorder, put schemas first, relations last.
-  nodesWithoutContents.sort((n1, n2) => {
+  nodes.sort((n1, n2) => {
     const t1os = n1.type
       .map((x) => nodeOrder.indexOf(x["@id"]))
       .filter((o) => o >= 0);
@@ -512,17 +568,34 @@ export const parseJsonLdAsDataInputWithSchemas = async (
     if (n2["@id"] > n1["@id"]) return -1;
     return 0;
   });
-  return nodesWithoutContents
-    .map((d) => parseLdoNode(d, contentById, knownIris, knownSchemaTypes))
-    .filter((x) => !!x);
+  return {
+    accounts,
+    concepts: nodes
+      .map((d) => parseLdoNode(d, contentById, knownIris, knownSchemaTypes))
+      .filter((x) => !!x),
+  };
 };
 
 export const parseJsonLdAsInput = async (
   supabase: DGSupabaseClient,
   jsonLdData: JsonLdDocument,
   spaceId: number,
-): Promise<LocalConceptDataInput[]> => {
-  const baseIri = `${apiRoot}/data/${spaceId}`;
+): Promise<{
+  concepts: LocalConceptDataInput[];
+  accounts: LocalAccountDataInput[];
+}> => {
+  const baseIRI = `${apiRoot}/data/${spaceId}`;
+  let platform: PlatformType | undefined;
+  {
+    const { error, data } = await supabase
+      .from("Space")
+      .select("platform")
+      .eq("id", spaceId)
+      .single();
+    if (error) throw error;
+    platform = data?.platform;
+    if (!platform) throw new Error("Cannot determine platform");
+  }
   const { error, data } = await supabase
     .from("Concept")
     .select("name,source_local_id,arity,reference_content")
@@ -555,12 +628,13 @@ export const parseJsonLdAsInput = async (
         }
       }),
   ) as Record<string, SchemaTypes>;
-  return await parseJsonLdAsDataInputWithSchemas(
-    jsonLdData,
-    baseIri,
+  return await parseJsonLdAsDataInputWithSchemas({
+    data: jsonLdData,
+    baseIRI,
     knownIris,
     knownSchemaTypes,
-  );
+    platform,
+  });
 };
 
 export const populate = async (
@@ -568,15 +642,33 @@ export const populate = async (
   jsonLdData: JsonLdDocument,
   spaceId: number,
 ): Promise<number[]> => {
-  const upsertData = await parseJsonLdAsInput(supabase, jsonLdData, spaceId);
-  if (upsertData.length === 0) return [];
+  const result: number[] = [];
+  const { concepts, accounts } = await parseJsonLdAsInput(
+    supabase,
+    jsonLdData,
+    spaceId,
+  );
+  if (accounts.length) {
+    const { data: upsertResult, error: upsertError } = await supabase.rpc(
+      "upsert_accounts_in_space",
+      {
+        accounts,
+        space_id_: spaceId,
+      },
+    );
+    if (upsertError) throw upsertError;
+    result.push(...upsertResult);
+  }
+
+  if (concepts.length === 0) return [];
   const { data: upsertResult, error: upsertError } = await supabase.rpc(
     "upsert_concepts",
     {
-      data: upsertData as Json,
+      data: concepts as Json,
       v_space_id: spaceId,
     },
   );
   if (upsertError) throw upsertError;
-  return upsertResult;
+  result.push(...upsertResult);
+  return result;
 };
