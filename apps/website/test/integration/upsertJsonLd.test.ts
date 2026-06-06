@@ -40,13 +40,18 @@ const jsonLdData: JsonLdDocument = {
   "@context": ["http://localhost:3000/schema/mira.jsonld"],
   "@graph": [
     {
+      "@id": "some:account",
+      name: "Some One",
+      "@type": "UserAccount",
+    },
+    {
       "@id": "sdata:131157",
       "@type": "NodeSchema",
       modified: "2026-01-24T15:38:14.553Z",
       created: "2026-01-24T15:38:14.553Z",
       subClassOf: ["dgc:Claim", "mira:Claim"],
       label: "Claim",
-      creator: "someone",
+      creator: "some:account",
     },
     {
       "@id": "sdata:254918",
@@ -59,7 +64,7 @@ const jsonLdData: JsonLdDocument = {
         content:
           '<hr />\n<p>nodeTypeId: node<em>OHkZtsR6jkJIVaNmMY</em>GB\nnodeInstanceId: c1f02ff4-f116-452f-a490-3e0309667145</p>\n<h2 id="publishedtogroups">publishedToGroups:</h2>\n<p>That file was empty</p>',
       },
-      creator: "someone",
+      creator: "some:account",
     },
     {
       "@id": "sdata:261134",
@@ -67,7 +72,7 @@ const jsonLdData: JsonLdDocument = {
       modified: "2026-05-26T00:39:03.077Z",
       created: "2025-12-04T15:47:51.694Z",
       title: "CLM - Some supporting claim",
-      creator: "someone",
+      creator: "some:account",
       description: {
         format: "text/html",
         content: "",
@@ -87,7 +92,7 @@ const jsonLdData: JsonLdDocument = {
         },
       ],
       label: "supports",
-      creator: "someone",
+      creator: "some:account",
     },
     {
       "@id": "sdata:131169",
@@ -98,7 +103,7 @@ const jsonLdData: JsonLdDocument = {
       range: "sdata:131157",
       subClassOf: ["sdata:131164"],
       label: "supports",
-      creator: "someone",
+      creator: "some:account",
     },
     {
       "@id": "sdata:261147",
@@ -109,7 +114,7 @@ const jsonLdData: JsonLdDocument = {
       destination: "sdata:254918",
       title:
         "[[CLM - Some supporting claim]] -supports-> [[CLM - Some base claim]]",
-      creator: "someone",
+      creator: "some:account",
     },
   ],
 };
@@ -118,7 +123,6 @@ describe("Upsert of JSON-LD data", { tags: ["database"] }, () => {
   let spaceId: number;
   let spaceAccountUuid: string;
   let client: DGSupabaseClient;
-  let authorAccountId: number;
 
   beforeAll(async () => {
     const spaceReq = await fetchOrCreateSpaceDirect({
@@ -144,31 +148,15 @@ describe("Upsert of JSON-LD data", { tags: ["database"] }, () => {
     assert(accountReq.data);
     assert(accountReq.data.dg_account);
     spaceAccountUuid = accountReq.data.dg_account;
-    const authorAccountReq = await client.rpc("upsert_accounts_in_space", {
-      accounts: [
-        {
-          name: "someone",
-          account_local_id: "someone",
-          platform: "Roam",
-          agent_type: "person",
-        },
-      ],
-      space_id_: spaceId,
-    });
-    console.error(authorAccountReq.error);
-    assert(!authorAccountReq.error);
-    assert(authorAccountReq.data);
-    authorAccountId = authorAccountReq.data[0]!;
   });
   afterAll(async () => {
     if (spaceAccountUuid)
       await serviceClient().auth.admin.deleteUser(spaceAccountUuid);
     if (spaceId) await serviceClient().from("Space").delete().eq("id", spaceId);
-    if (authorAccountId)
-      await serviceClient()
-        .from("PlatformAccount")
-        .delete()
-        .eq("id", authorAccountId);
+    await serviceClient()
+      .from("PlatformAccount")
+      .delete()
+      .eq("account_local_id", "someone");
   });
 
   it("Upserts the data", async () => {
