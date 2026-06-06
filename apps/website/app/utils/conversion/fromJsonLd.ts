@@ -260,7 +260,7 @@ const parseBaseData = (data: NodeParseResult) => {
   return {
     created: data.created,
     last_modified: data.modified,
-    author_local_id: data.creator,
+    author_local_id: data.creator["@id"],
     ...spaceInfo,
   };
 };
