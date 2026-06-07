@@ -44,6 +44,7 @@ const prefixes: Record<string, string> = {
   rdfs: "http://www.w3.org/2000/01/rdf-schema#",
   owl: "http://www.w3.org/2002/07/owl#",
   dc: "http://purl.org/dc/elements/1.1/",
+  dct: "http://purl.org/dc/terms/",
   prov: "http://www.w3.org/ns/prov#",
   sioc: "http://rdfs.org/sioc/ns#",
   dgb: "https://discoursegraphs.com/schema/dg_base#",
@@ -59,6 +60,16 @@ export const curieToIri = (curie: string): string => {
     return curie;
   }
   return iri + name;
+};
+
+export const iriToCurie = (iri: string): string => {
+  // not efficient, but not so many prefixes, and easier than determining the cut point
+  for (const [prefix, base] of Object.entries(prefixes)) {
+    if (iri.startsWith(base)) {
+      return prefix + ":" + iri.substring(base.length);
+    }
+  }
+  return iri;
 };
 
 export const KnownClassCuries = Object.values(KnownClassEntities).flat();
