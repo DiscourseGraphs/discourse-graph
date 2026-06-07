@@ -1,6 +1,9 @@
 import { namedNode } from "@ldo/rdf-utils";
-import type { NamedNode } from "@rdfjs/types";
-import { parseRdf, type LdoDataset } from "@ldo/ldo";
+import type { NamedNode, Quad_Object, Literal } from "@rdfjs/types";
+import { parseRdf } from "@ldo/ldo";
+import type { LdoDataset, ShapeType, LdoBase } from "@ldo/ldo";
+import ShexJTraverser from "@ldo/traverser-shexj";
+import { type ShapeDecl } from "@ldo/traverser-shexj";
 import { toRDF, type JsonLdDocument } from "jsonld";
 import {
   ContainerProfileShapeType,
@@ -33,6 +36,7 @@ import {
   KnownSchemaEntities,
   KnownRelationEntities,
   curieToIri,
+  iriToCurie,
   KnownClassIris,
   KnownRelationIris,
 } from "./jsonld";
@@ -114,7 +118,6 @@ export const extractLdoData = async (
     if (!typesA) continue;
     const types = new Set(typesA);
     if (types.has(restrictionType)) continue;
-    console.log(subject, types);
     if (intersection(types, schemaTypeSet).size) {
       typesA.map((t) => {
         if (schemaTypeSet.has(t)) {
@@ -248,6 +251,94 @@ const interpretId = <DBN extends string, LVN extends string>(
     >;
   }
   return { [localVarName]: id } as Record<LVN, string>;
+};
+
+const KnownShapeIris: Record<string, Set<string>> = {};
+
+type PredicateExtractionVisitorContext = {
+  predicates: Set<string>;
+};
+
+const predicateExtractionVisitor =
+  ShexJTraverser.createVisitor<PredicateExtractionVisitorContext>({
+    TripleConstraint: {
+      visitor: async (tripleConstraint, instanceNode, context) => {
+        context.predicates.add(tripleConstraint.predicate);
+      },
+    },
+  });
+
+const getKnownIris = async (
+  shapeDecl: ShapeDecl | undefined,
+): Promise<Set<string>> => {
+  if (shapeDecl === undefined) return new Set();
+  if (KnownShapeIris[shapeDecl.id] === undefined) {
+    const context: PredicateExtractionVisitorContext = {
+      predicates: new Set(),
+    };
+    await predicateExtractionVisitor.visit(shapeDecl, "ShapeDecl", context);
+    KnownShapeIris[shapeDecl.id] = context.predicates;
+  }
+  return KnownShapeIris[shapeDecl.id] ?? new Set();
+};
+
+const identifyExtraData = async <T extends LdoBase>(
+  dataset: LdoDataset,
+  id: string,
+  shape: ShapeType<T>,
+): Promise<{
+  literals: Record<string, string | string[]>;
+  references: Record<string, string | string[]>;
+}> => {
+  const shapeDecl = (shape.schema.shapes ?? []).filter(
+    (s) => s.id === shape.shape,
+  )[0];
+  const knownIris = await getKnownIris(shapeDecl);
+  const extra: [string, Quad_Object][] = dataset
+    .match(namedNode(id))
+    .toArray()
+    .filter((q) => !knownIris.has(q.predicate.value))
+    .map((q) => [q.predicate.value, q.object]);
+  const literals: Record<string, string | string[]> = {};
+  const references: Record<string, string | string[]> = {};
+  for (let [s, o] of extra) {
+    s = iriToCurie(s);
+    const results =
+      o.termType === "Literal"
+        ? literals
+        : o.termType === "NamedNode"
+          ? references
+          : null;
+    if (results === null) continue;
+    const value = o.termType === "NamedNode" ? iriToCurie(o.value) : o.value;
+    if (results[s] === undefined) results[s] = value;
+    else if (Array.isArray(results[s])) (results[s] as string[]).push(value);
+    else results[s] = [results[s] as string, value];
+  }
+  return { literals, references };
+};
+
+const addExtraData = async <T extends LdoBase>(
+  dataset: LdoDataset,
+  id: string,
+  shape: ShapeType<T>,
+  concept: LocalConceptDataInput | null,
+): Promise<LocalConceptDataInput | null> => {
+  if (concept === null) return null;
+  const { literals, references } = await identifyExtraData(dataset, id, shape);
+  if (Object.keys(literals).length > 0)
+    concept.literal_content = {
+      extra: literals,
+      ...((concept.literal_content as Record<string, Json>) || {}),
+    };
+  // TODO check which iris are internal refs
+  // if (Object.keys(references).length > 0)
+  //   concept.reference_content = {
+  //     extra: references,
+  //     ...((concept.reference_content as Record<string, number | number[]>) ||
+  //       {}),
+  //   };
+  return concept;
 };
 
 const baseInterpretId = (id: string) =>
@@ -444,12 +535,13 @@ const parseRelationInstance = (
   };
 };
 
-const parseLdoNode = (
+const parseLdoNode = async (
   data: NodeParseResult,
   contentById: Record<string, ContentProfile>,
   knownIris: Record<string, string>,
   knownSchemaTypes: Record<string, string>,
-): LocalConceptDataInput | null => {
+  dataset: LdoDataset,
+): Promise<LocalConceptDataInput | null> => {
   if (!data["@id"]) {
     console.error("No @id: ", data);
     return null;
@@ -462,14 +554,26 @@ const parseLdoNode = (
     (data as RelationDefProfile).domain &&
     (data as RelationDefProfile).range
   )
-    return parseRelationDef(data as RelationDefProfile, knownIris);
+    return await addExtraData(
+      dataset,
+      data["@id"],
+      RelationDefProfileShapeType,
+      parseRelationDef(data as RelationDefProfile, knownIris),
+    );
   else if (types.has("AbstractRelationDef") || types.has("RelationDef"))
-    return parseAbstractRelationDef(
-      data as AbstractRelationDefProfile,
-      knownIris,
+    return await addExtraData(
+      dataset,
+      data["@id"],
+      AbstractRelationDefProfileShapeType,
+      parseAbstractRelationDef(data as AbstractRelationDefProfile, knownIris),
     );
   if (types.has("NodeSchema"))
-    return parseNodeSchema(data as NodeSchemaProfile, knownIris);
+    return await addExtraData(
+      dataset,
+      data["@id"],
+      NodeSchemaProfileShapeType,
+      parseNodeSchema(data as NodeSchemaProfile, knownIris),
+    );
 
   // now instance heuristics
   let schemaType: string | undefined;
@@ -486,10 +590,20 @@ const parseLdoNode = (
         ? nodeInstance.description
         : contentById[nodeInstance.description["@id"]!];
     if (!content) return null;
-    return parseNodeInstance(nodeInstance, content, knownIris);
+    return await addExtraData(
+      dataset,
+      data["@id"],
+      NodeInstanceProfileShapeType,
+      parseNodeInstance(nodeInstance, content, knownIris),
+    );
   }
   if (schemaType === relationDefType || schemaType === abstractRelationDefType)
-    return parseRelationInstance(data as RelationInstanceProfile, knownIris);
+    return await addExtraData(
+      dataset,
+      data["@id"],
+      RelationInstanceProfileShapeType,
+      parseRelationInstance(data as RelationInstanceProfile, knownIris),
+    );
 
   console.error("We should not get here", [...types], data);
   return null;
@@ -568,11 +682,17 @@ export const parseJsonLdAsDataInputWithSchemas = async ({
     if (n2["@id"] > n1["@id"]) return -1;
     return 0;
   });
+  const concepts = (
+    await Promise.all(
+      nodes.map((d) =>
+        parseLdoNode(d, contentById, knownIris, knownSchemaTypes, dataset),
+      ),
+    )
+  ).filter((x) => !!x);
+
   return {
     accounts,
-    concepts: nodes
-      .map((d) => parseLdoNode(d, contentById, knownIris, knownSchemaTypes))
-      .filter((x) => !!x),
+    concepts,
   };
 };
 
