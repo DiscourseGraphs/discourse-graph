@@ -211,6 +211,17 @@ export const asJsonLD = ({
       name: author.name,
     };
   }
+  if (
+    concept.literal_content !== null &&
+    (concept.literal_content as Record<string, Json>).extra !== undefined
+  )
+    extraData = {
+      ...extraData,
+      ...((concept.literal_content as Record<string, Json>).extra as Record<
+        string,
+        string | string[]
+      >),
+    };
   let lastModified = concept.last_modified;
   if (content && content.last_modified > lastModified)
     lastModified = content.last_modified;
