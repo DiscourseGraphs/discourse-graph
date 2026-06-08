@@ -16,11 +16,10 @@ export const captureStep = async ({
   page: Page;
   testName: string;
   stepName: string;
-}): Promise<string> => {
+}): Promise<void> => {
   const dir = path.join(TEST_RESULTS_DIR, testName);
   fs.mkdirSync(dir, { recursive: true });
 
   const filePath = path.join(dir, `${stepName}.png`);
   await page.screenshot({ path: filePath });
-  return filePath;
 };

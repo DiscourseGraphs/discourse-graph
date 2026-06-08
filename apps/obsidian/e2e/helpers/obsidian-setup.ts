@@ -4,8 +4,13 @@ import os from "os";
 import path from "path";
 import { spawn, execSync, type ChildProcess } from "child_process";
 import { chromium, type Browser, type Page } from "@playwright/test";
+import { PLUGIN_BUILD_FILES, PLUGIN_ID } from "../constants";
 
-const OBSIDIAN_PATH = "/Applications/Obsidian.app/Contents/MacOS/Obsidian";
+const DEFAULT_OBSIDIAN_APP_PATH =
+  "/Applications/Obsidian.app/Contents/MacOS/Obsidian";
+
+export const DEFAULT_TEST_VAULT = path.join(__dirname, "..", "test-vault");
+
 const OBSIDIAN_CONFIG_PATH = path.join(
   os.homedir(),
   "Library",
@@ -13,8 +18,35 @@ const OBSIDIAN_CONFIG_PATH = path.join(
   "obsidian",
   "obsidian.json",
 );
-const PLUGIN_ID = "@discourse-graph/obsidian";
 export const DEBUG_PORT = 9222;
+const CDP_HOST = "127.0.0.1";
+
+const normalizeVaultPath = (vaultPath: string): string =>
+  path.resolve(vaultPath);
+
+/**
+ * Resolve the Obsidian app executable path from OBSIDIAN_APP_PATH or the macOS default.
+ */
+export const resolveObsidianAppPath = (): string => {
+  // eslint-disable-next-line turboPlugin/no-undeclared-env-vars -- local dev-only, not a turbo cache key
+  const appPath = process.env.OBSIDIAN_APP_PATH ?? DEFAULT_OBSIDIAN_APP_PATH;
+  if (!fs.existsSync(appPath)) {
+    throw new Error(
+      `Obsidian executable not found at ${appPath}. ` +
+        `Set OBSIDIAN_APP_PATH in apps/obsidian/.env or install Obsidian.`,
+    );
+  }
+  return appPath;
+};
+
+/**
+ * Resolve the .app bundle path from OBSIDIAN_APP_PATH (macOS launch via `open`).
+ */
+const resolveObsidianAppBundle = (): string => {
+  const appPath = resolveObsidianAppPath();
+  const match = appPath.match(/^(.*\.app)/);
+  return match?.[1] ?? "/Applications/Obsidian.app";
+};
 
 /**
  * Kill the Obsidian process holding the CDP debug port.
@@ -40,15 +72,22 @@ export const killObsidianOnDebugPort = async (
 };
 
 /**
- * Returns the vault path to use for tests.
+ * Returns the absolute vault path to use for tests.
  * Reads from OBSIDIAN_TEST_VAULT env var, or falls back to the provided default.
  */
+const stripEnvQuotes = (value: string): string =>
+  value.replace(/^["']|["']$/g, "");
+
 export const resolveVaultPath = (defaultPath: string): string =>
-  // eslint-disable-next-line turboPlugin/no-undeclared-env-vars -- local dev-only, not a turbo cache key
-  process.env.OBSIDIAN_TEST_VAULT ?? defaultPath;
+  normalizeVaultPath(
+    stripEnvQuotes(
+      // eslint-disable-next-line turboPlugin/no-undeclared-env-vars -- local dev-only, not a turbo cache key
+      process.env.OBSIDIAN_TEST_VAULT ?? defaultPath,
+    ),
+  );
 
 /**
- * Whether we're using a custom vault (skip create/clean).
+ * Whether we're using a custom vault (skip cleanup).
  */
 export const isCustomVault = (): boolean =>
   // eslint-disable-next-line turboPlugin/no-undeclared-env-vars -- local dev-only, not a turbo cache key
@@ -62,7 +101,8 @@ export const isCustomVault = (): boolean =>
  * For fresh temp vaults, call cleanTestVault first.
  */
 export const ensureVaultWithPlugin = (vaultPath: string): void => {
-  const obsidianDir = path.join(vaultPath, ".obsidian");
+  const resolvedVaultPath = normalizeVaultPath(vaultPath);
+  const obsidianDir = path.join(resolvedVaultPath, ".obsidian");
   const pluginDir = path.join(obsidianDir, "plugins", PLUGIN_ID);
   fs.mkdirSync(pluginDir, { recursive: true });
 
@@ -93,11 +133,14 @@ export const ensureVaultWithPlugin = (vaultPath: string): void => {
     );
   }
 
-  for (const file of ["main.js", "manifest.json", "styles.css"]) {
+  for (const file of PLUGIN_BUILD_FILES) {
     const src = path.join(distDir, file);
-    if (fs.existsSync(src)) {
-      fs.copyFileSync(src, path.join(pluginDir, file));
+    if (!fs.existsSync(src)) {
+      throw new Error(
+        `Missing build artifact ${file} at ${src}. Run "pnpm build" first.`,
+      );
     }
+    fs.copyFileSync(src, path.join(pluginDir, file));
   }
 };
 
@@ -111,8 +154,9 @@ export const createTestVault = (vaultPath: string): void => {
 };
 
 export const cleanTestVault = (vaultPath: string): void => {
-  if (fs.existsSync(vaultPath)) {
-    fs.rmSync(vaultPath, { recursive: true, force: true });
+  const resolvedVaultPath = normalizeVaultPath(vaultPath);
+  if (fs.existsSync(resolvedVaultPath)) {
+    fs.rmSync(resolvedVaultPath, { recursive: true, force: true });
   }
 };
 
@@ -126,6 +170,7 @@ export const cleanTestVault = (vaultPath: string): void => {
 const setActiveVault = (vaultPath: string): string | undefined => {
   if (!fs.existsSync(OBSIDIAN_CONFIG_PATH)) return undefined;
 
+  const resolvedVaultPath = normalizeVaultPath(vaultPath);
   const original = fs.readFileSync(OBSIDIAN_CONFIG_PATH, "utf-8");
   const config = JSON.parse(original) as {
     vaults: Record<string, { path: string; ts: number; open?: boolean }>;
@@ -134,19 +179,24 @@ const setActiveVault = (vaultPath: string): string | undefined => {
   let targetId: string | undefined;
   for (const [id, vault] of Object.entries(config.vaults)) {
     delete vault.open;
-    if (vault.path === vaultPath) {
+    if (normalizeVaultPath(vault.path) === resolvedVaultPath) {
       targetId = id;
+      vault.path = resolvedVaultPath;
     }
   }
 
   if (!targetId) {
     targetId = crypto.randomBytes(8).toString("hex");
-    config.vaults[targetId] = { path: vaultPath, ts: Date.now() };
+    config.vaults[targetId] = {
+      path: resolvedVaultPath,
+      ts: Date.now(),
+    };
   }
 
   const targetVault = config.vaults[targetId]!;
   targetVault.open = true;
   targetVault.ts = Date.now();
+  targetVault.path = resolvedVaultPath;
 
   fs.writeFileSync(OBSIDIAN_CONFIG_PATH, JSON.stringify(config));
   return original;
@@ -157,6 +207,37 @@ const setActiveVault = (vaultPath: string): string | undefined => {
  */
 export const restoreObsidianConfig = (original: string): void => {
   fs.writeFileSync(OBSIDIAN_CONFIG_PATH, original);
+};
+
+/**
+ * Verify Obsidian opened the expected vault directory.
+ */
+export const verifyActiveVault = async ({
+  page,
+  expectedPath,
+}: {
+  page: Page;
+  expectedPath: string;
+}): Promise<void> => {
+  const resolvedExpectedPath = normalizeVaultPath(expectedPath);
+  /* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access */
+  const actualPath = await page.evaluate(() => {
+    // @ts-expect-error - Obsidian's global `app` is available at runtime
+    return app?.vault?.adapter?.basePath as string | undefined;
+  });
+  /* eslint-enable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access */
+
+  const normalizedActualPath =
+    actualPath === undefined ? undefined : normalizeVaultPath(actualPath);
+
+  if (normalizedActualPath !== resolvedExpectedPath) {
+    throw new Error(
+      `Obsidian opened the wrong vault.\n` +
+        `  Expected: ${resolvedExpectedPath}\n` +
+        `  Actual:   ${normalizedActualPath ?? "(unknown)"}\n` +
+        `Close any running Obsidian instance and ensure obsidian.json points at the test vault.`,
+    );
+  }
 };
 
 /**
@@ -193,29 +274,32 @@ const findWorkspacePage = async (
 };
 
 /**
- * Launch Obsidian as a subprocess with remote debugging enabled,
- * then connect via Chrome DevTools Protocol.
+ * Launch Obsidian with remote debugging enabled, then connect via CDP.
  *
- * We can't use Playwright's electron.launch() because Obsidian's
- * executable is a launcher that loads an asar package and forks
- * a new process, which breaks Playwright's Electron API connection.
+ * On macOS we use `open -na` so the forked Electron child inherits the debug
+ * port reliably. Direct spawn of the MacOS/Obsidian binary is the launcher
+ * stub and often fails readiness checks even when stderr prints "DevTools
+ * listening".
+ *
+ * Obsidian CLI cannot replace this step — it launches a normal GUI instance
+ * without `--remote-debugging-port`. Use CLI after launch for vault commands.
  */
-export const launchObsidian = async (
-  vaultPath: string,
-): Promise<{
-  browser: Browser;
-  page: Page;
-  obsidianProcess: ChildProcess;
-  originalObsidianConfig?: string;
-}> => {
-  await killObsidianOnDebugPort();
+const launchObsidianWithDebugPort = (): ChildProcess | null => {
+  if (process.platform === "darwin") {
+    const appBundle = resolveObsidianAppBundle();
+    console.log(
+      `[e2e] open -na ${appBundle} --args --remote-debugging-port=${DEBUG_PORT}`,
+    );
+    execSync(
+      `open -na ${JSON.stringify(appBundle)} --args --remote-debugging-port=${DEBUG_PORT}`,
+      { stdio: "inherit" },
+    );
+    return null;
+  }
 
-  // Set the target vault as active in Obsidian's config before launching
-  const originalObsidianConfig = setActiveVault(vaultPath);
-
-  // Launch Obsidian with remote debugging port
+  const obsidianAppPath = resolveObsidianAppPath();
   const obsidianProcess = spawn(
-    OBSIDIAN_PATH,
+    obsidianAppPath,
     [`--remote-debugging-port=${DEBUG_PORT}`],
     {
       stdio: "pipe",
@@ -231,17 +315,38 @@ export const launchObsidian = async (
   });
 
   obsidianProcess.unref();
+  return obsidianProcess;
+};
+
+export const launchObsidian = async (
+  vaultPath: string,
+): Promise<{
+  browser: Browser;
+  page: Page;
+  obsidianProcess: ChildProcess | null;
+  originalObsidianConfig?: string;
+}> => {
+  const resolvedVaultPath = normalizeVaultPath(vaultPath);
+
+  await killObsidianOnDebugPort();
+
+  // Set the target vault as active in Obsidian's config before launching
+  const originalObsidianConfig = setActiveVault(resolvedVaultPath);
+
+  const obsidianProcess = launchObsidianWithDebugPort();
 
   // Wait for the debug port to be ready
-  await waitForDebugPort(DEBUG_PORT, 30_000);
+  await waitForDebugPort(DEBUG_PORT, 60_000);
 
   // Connect to Obsidian via CDP with retry logic
   const browser = await connectWithRetry({
-    url: `http://localhost:${DEBUG_PORT}`,
+    url: `http://${CDP_HOST}:${DEBUG_PORT}`,
   });
 
   // Find the workspace page (not the dev console or other windows)
   const page = await findWorkspacePage(browser);
+
+  await verifyActiveVault({ page, expectedPath: resolvedVaultPath });
 
   return { browser, page, obsidianProcess, originalObsidianConfig };
 };
@@ -277,14 +382,19 @@ const waitForDebugPort = async (
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
-      const response = await fetch(`http://localhost:${port}/json/version`);
-      if (response.ok) return;
+      const response = await fetch(`http://${CDP_HOST}:${port}/json/list`);
+      if (response.ok) {
+        const targets = (await response.json()) as unknown[];
+        if (Array.isArray(targets) && targets.length > 0) return;
+      }
     } catch {
       // Port not ready yet, retry
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   throw new Error(
-    `Obsidian debug port ${port} did not become ready within ${timeoutMs}ms`,
+    `Obsidian debug port ${port} did not become ready within ${timeoutMs}ms. ` +
+      `Ensure Obsidian CLI is enabled (Settings → General → Command line interface), ` +
+      `reinstall the latest .app from obsidian.md/download, and quit other Obsidian instances.`,
   );
 };

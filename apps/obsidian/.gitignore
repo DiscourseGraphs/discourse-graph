@@ -1,3 +1,4 @@
 e2e/test-vault*/
 e2e/test-results/
 e2e/html-report/
+e2e/.env

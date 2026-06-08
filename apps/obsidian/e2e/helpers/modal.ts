@@ -1,52 +1,38 @@
 import type { Page } from "@playwright/test";
+import { E2E_TIMEOUT } from "../constants";
 
-/**
- * Wait for the ModifyNodeModal to appear.
- */
+const modalRoot = ".modal-container";
+
 export const waitForModal = async (page: Page): Promise<void> => {
-  await page.waitForSelector(".modal-container", { timeout: 5_000 });
+  await page.waitForSelector(modalRoot, { timeout: E2E_TIMEOUT });
+  await page.waitForSelector(`${modalRoot} textarea`, { timeout: E2E_TIMEOUT });
 };
 
-/**
- * Select a node type from the dropdown in the modal.
- */
 export const selectNodeType = async (
   page: Page,
   label: string,
 ): Promise<void> => {
-  const nodeTypeSelect = page.locator(".modal-container select").first();
+  const nodeTypeSelect = page.locator(`${modalRoot} select`).first();
+  await nodeTypeSelect.waitFor({ state: "visible", timeout: E2E_TIMEOUT });
   await nodeTypeSelect.selectOption({ label });
-  await page.waitForTimeout(300);
 };
 
-/**
- * Fill the content/title input field in the modal.
- */
 export const fillNodeContent = async (
   page: Page,
   content: string,
 ): Promise<void> => {
-  const contentInput = page
-    .locator(".modal-container input[type='text']")
-    .first();
+  const contentInput = page.locator(`${modalRoot} textarea`).first();
+  await contentInput.waitFor({ state: "visible", timeout: E2E_TIMEOUT });
   await contentInput.click();
   await contentInput.fill(content);
-  await page.waitForTimeout(300);
 };
 
-/**
- * Click the Confirm button (mod-cta) in the modal.
- */
 export const confirmModal = async (page: Page): Promise<void> => {
-  // Use force: true to bypass any suggestion/autocomplete overlay that may cover the button
-  await page.locator(".modal-container button.mod-cta").click({ force: true });
-  await page.waitForTimeout(2_000);
-};
-
-/**
- * Click the Cancel button in the modal.
- */
-export const cancelModal = async (page: Page): Promise<void> => {
-  await page.locator(".modal-container button:not(.mod-cta)").click();
-  await page.waitForTimeout(500);
+  const confirmButton = page.locator(`${modalRoot} button.mod-cta`);
+  await confirmButton.waitFor({ state: "visible", timeout: E2E_TIMEOUT });
+  await confirmButton.click({ force: true });
+  await page.waitForSelector(modalRoot, {
+    state: "hidden",
+    timeout: E2E_TIMEOUT,
+  });
 };

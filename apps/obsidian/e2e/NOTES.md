@@ -73,9 +73,9 @@ Commands are registered with IDs like `@discourse-graph/obsidian:create-discours
 
 The `ModifyNodeModal` renders React inside Obsidian's `.modal-container`:
 
-- Node type: `<select>` element (`.modal-container select`)
-- Content: `<input type="text">` (`.modal-container input[type='text']`)
-- Confirm: `<button class="mod-cta">`
+- Content: `<textarea>` (`.modal-container textarea`) — not an `<input>`
+- Node type: `<select>` (`.modal-container select`)
+- Confirm: `<button class="mod-cta">` inside `.modal-button-container`
 
 ### Vault configuration
 
@@ -87,26 +87,96 @@ Minimum config for plugin to load:
 
 ---
 
+## Current architecture
+
+### Vault launch flow
+
+Obsidian has no `--vault` CLI flag. Tests select a vault by editing `~/Library/Application Support/obsidian/obsidian.json` before launch:
+
+1. `resolveVaultPath()` returns an absolute path (`e2e/test-vault` by default, or `OBSIDIAN_TEST_VAULT`)
+2. `ensureVaultWithPlugin()` creates `.obsidian/` config and copies `dist/` plugin files into the vault
+3. `setActiveVault()` clears all `open` flags and sets `open: true` on the matching vault entry (paths compared via `path.resolve`)
+4. Obsidian spawns with `--remote-debugging-port=9222`
+5. Playwright connects via CDP and `verifyActiveVault()` asserts `app.vault.adapter.basePath` matches the expected path
+
+### Obsidian CLI vs CDP launch
+
+The official **Obsidian CLI** (`obsidian help`, `obsidian eval`, etc.) is a control channel to a **running** app. It cannot start an instance with `--remote-debugging-port` — that flag must be passed at launch.
+
+E2E tests therefore:
+
+1. Launch via macOS `open -na Obsidian.app --args --remote-debugging-port=9222`
+2. Connect Playwright with `chromium.connectOverCDP`
+3. Optionally use CLI afterward for vault ops (`obsidian vault=... eval "..."`)
+
+Enable CLI in **Settings → General → Command line interface** anyway — newer Obsidian builds gate command-line launches on this setting. Reinstall the latest `.app` from [obsidian.md/download](https://obsidian.md/download) if you see "installer out of date".
+
+### Environment variables
+
+Copy `e2e/.env.example` to `apps/obsidian/.env` (loaded by `playwright.config.ts`):
+
+| Variable              | Purpose                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------- |
+| `OBSIDIAN_APP_PATH`   | Path to Obsidian executable (default: `/Applications/Obsidian.app/Contents/MacOS/Obsidian`) |
+| `OBSIDIAN_TEST_VAULT` | Optional override vault path (skips vault cleanup on teardown)                              |
+
+### Single Obsidian instance
+
+A worker-scoped Playwright fixture in `e2e/fixtures/obsidian.ts` launches Obsidian once per test run (`workers: 1`). All specs share the same `obsidianPage` fixture. Teardown kills the process via debug port, restores `obsidian.json`, and cleans the test vault.
+
+### Test organization
+
+```
+e2e/
+├── fixtures/obsidian.ts   # Worker fixture: launch + teardown
+├── scenarios/             # Test logic (assertions, interactions)
+│   ├── plugin-load.ts
+│   └── node-creation.ts
+└── tests/
+    └── smoke.spec.ts      # Thin orchestrator — calls each scenario
+```
+
+`pnpm test:e2e` runs `smoke.spec.ts` only. Scenarios hold the real test logic; the spec file just wires them in order. Tests use **cumulative vault state** — later steps may see notes created by earlier ones.
+
+### Run commands
+
+```bash
+cd apps/obsidian
+pnpm build
+pnpm test:e2e        # full smoke suite
+pnpm test:e2e:ui     # Playwright UI (humans)
+```
+
+---
+
 ## Proposal: Full Agentic Testing Flow
 
 ### Goal
 
 AI coding agents (Cursor, Claude Code) can run `pnpm test:e2e` after making changes to automatically verify features work end-to-end. The test suite should be comprehensive enough to catch regressions, fast enough to run frequently, and deterministic enough to trust the results.
 
-### Phase 1: Stabilize the PoC (current state + hardening)
+### Phase 1: Stabilize the PoC
 
-**Isolation improvements:**
+**Done:**
 
-- Use a unique temp directory per test run (`os.tmpdir()`) instead of a fixed `test-vault/` path to avoid stale state
+- Single shared vault (`e2e/test-vault`) with path normalization and post-launch verification
+- Configurable `OBSIDIAN_APP_PATH` via `.env`
+- Worker-scoped fixture for one Obsidian instance per run
+- Port-based process teardown (`killObsidianOnDebugPort`)
+- CDP connection retry logic
+- Shared scenario helpers with thin spec files + smoke orchestrator
+
+**Remaining:**
+
+- Use a unique temp directory per test run (`os.tmpdir()`) instead of a fixed `test-vault/` path
 - Use a random debug port to allow parallel runs
-- Replace `pkill -f Obsidian` with tracking the specific child PID — parse it from `lsof -i :<port>` after launch
-- Add a global setup/teardown in Playwright config to manage the single Obsidian instance across all tests
+- Add a `test.beforeEach` that resets vault state (delete all non-config files) instead of cumulative state
 
-**Reliability improvements:**
+**Done (post-architecture):**
 
-- Replace `waitForTimeout()` calls with proper waitFor conditions (e.g., `waitForSelector`, `waitForFunction`)
-- Add retry logic for CDP connection (currently fails hard on timeout)
-- Add a `test.beforeEach` that resets vault state (delete all non-config files) instead of full vault recreation
+- macOS `open -na` launch for reliable CDP port
+- Modal selectors updated for `ModifyNodeModal` textarea UI
+- Single `smoke.spec.ts` orchestrates all scenarios; `pnpm test:e2e` runs smoke only
 
 ### Phase 2: Expand test coverage
 
@@ -143,16 +213,7 @@ AI coding agents (Cursor, Claude Code) can run `pnpm test:e2e` after making chan
 
 3. **Screenshot-on-failure for visual debugging** — Already configured. Consider adding `page.screenshot()` at key checkpoints even on success, so agents can visually verify state.
 
-4. **Test file organization** — One test file per feature area:
-
-   ```
-   e2e/tests/
-   ├── plugin-load.spec.ts        # Plugin loads, settings exist
-   ├── node-creation.spec.ts      # Create each node type
-   ├── command-palette.spec.ts    # Command palette interactions
-   ├── discourse-context.spec.ts  # Context view, relations
-   └── settings.spec.ts           # Settings panel
-   ```
+4. **Test file organization** — Add new scenarios under `e2e/scenarios/`, then call them from `smoke.spec.ts`.
 
 5. **CI integration** — Run in GitHub Actions with a macOS runner. Obsidian would need to be pre-installed on the runner (or downloaded in a setup step). This is the biggest open question — Obsidian doesn't have a headless mode, so CI would need `xvfb` or a virtual display.
 

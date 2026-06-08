@@ -12,6 +12,7 @@ export default defineConfig({
   },
   retries: 0,
   workers: 1,
+  fullyParallel: false,
   reporter: [
     ["list"],
     ["html", { outputFolder: "html-report" }],

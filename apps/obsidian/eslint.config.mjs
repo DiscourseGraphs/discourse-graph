@@ -16,4 +16,12 @@ export default [
       },
     },
   },
+  {
+    files: ["e2e/**/*.ts"],
+    rules: {
+      // Playwright fixtures use `use` and worker fixtures omit deps — not React hooks
+      "react-hooks/rules-of-hooks": "off",
+      "no-empty-pattern": "off",
+    },
+  },
 ];
