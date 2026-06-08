@@ -1,6 +1,5 @@
 import { test, expect, type Browser, type Page } from "@playwright/test";
 import path from "path";
-import type { ChildProcess } from "child_process";
 import {
   ensureVaultWithPlugin,
   cleanTestVault,
@@ -8,6 +7,7 @@ import {
   restoreObsidianConfig,
   resolveVaultPath,
   isCustomVault,
+  killObsidianOnDebugPort,
 } from "../helpers/obsidian-setup";
 import {
   ensureActiveEditor,
@@ -32,7 +32,6 @@ const VAULT_PATH = resolveVaultPath(
 
 let browser: Browser;
 let page: Page;
-let obsidianProcess: ChildProcess;
 let originalObsidianConfig: string | undefined;
 
 test.beforeAll(async () => {
@@ -40,16 +39,18 @@ test.beforeAll(async () => {
   const launched = await launchObsidian(VAULT_PATH);
   browser = launched.browser;
   page = launched.page;
-  obsidianProcess = launched.obsidianProcess;
   originalObsidianConfig = launched.originalObsidianConfig;
 
   // Wait for plugin to initialize (polls instead of blind sleep)
-  await waitForPluginLoaded(page, "@discourse-graph/obsidian");
+  await waitForPluginLoaded({
+    page,
+    pluginId: "@discourse-graph/obsidian",
+  });
 });
 
 test.afterAll(async () => {
   if (browser) await browser.close();
-  if (obsidianProcess) obsidianProcess.kill();
+  await killObsidianOnDebugPort();
   if (originalObsidianConfig) restoreObsidianConfig(originalObsidianConfig);
   if (!isCustomVault()) cleanTestVault(VAULT_PATH);
 });
@@ -63,14 +64,26 @@ test("Create a Question node via command palette", async () => {
   );
 
   await waitForModal(page);
-  await captureStep(page, "node-creation", "01-modal-open");
+  await captureStep({
+    page,
+    testName: "node-creation",
+    stepName: "01-modal-open",
+  });
 
   await selectNodeType(page, "Question");
   await fillNodeContent(page, `What is discourse graph testing ${Date.now()}`);
-  await captureStep(page, "node-creation", "02-modal-filled");
+  await captureStep({
+    page,
+    testName: "node-creation",
+    stepName: "02-modal-filled",
+  });
 
   await confirmModal(page);
-  await captureStep(page, "node-creation", "03-node-created");
+  await captureStep({
+    page,
+    testName: "node-creation",
+    stepName: "03-node-created",
+  });
 
   // Verify file was created with correct prefix
   const files = await findFilesByPrefix(page, "QUE -");

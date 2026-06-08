@@ -14,7 +14,30 @@ const OBSIDIAN_CONFIG_PATH = path.join(
   "obsidian.json",
 );
 const PLUGIN_ID = "@discourse-graph/obsidian";
-const DEBUG_PORT = 9222;
+export const DEBUG_PORT = 9222;
+
+/**
+ * Kill the Obsidian process holding the CDP debug port.
+ * Obsidian's executable is a launcher that forks Electron; killing the
+ * launcher alone leaves the child process running.
+ */
+export const killObsidianOnDebugPort = async (
+  port = DEBUG_PORT,
+): Promise<void> => {
+  try {
+    const pids = execSync(`lsof -ti tcp:${port}`, {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+    if (pids) {
+      execSync(`kill -9 ${pids.split("\n").join(" ")}`, { stdio: "ignore" });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  } catch {
+    // No process on the port — that's fine
+  }
+};
 
 /**
  * Returns the vault path to use for tests.
@@ -185,20 +208,7 @@ export const launchObsidian = async (
   obsidianProcess: ChildProcess;
   originalObsidianConfig?: string;
 }> => {
-  // Kill only the process currently holding the debug port
-  try {
-    const pids = execSync(`lsof -ti tcp:${DEBUG_PORT}`, {
-      stdio: ["ignore", "pipe", "ignore"],
-    })
-      .toString()
-      .trim();
-    if (pids) {
-      execSync(`kill -9 ${pids.split("\n").join(" ")}`, { stdio: "ignore" });
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-  } catch {
-    // No process on the port — that's fine
-  }
+  await killObsidianOnDebugPort();
 
   // Set the target vault as active in Obsidian's config before launching
   const originalObsidianConfig = setActiveVault(vaultPath);
@@ -226,7 +236,9 @@ export const launchObsidian = async (
   await waitForDebugPort(DEBUG_PORT, 30_000);
 
   // Connect to Obsidian via CDP with retry logic
-  const browser = await connectWithRetry(`http://localhost:${DEBUG_PORT}`);
+  const browser = await connectWithRetry({
+    url: `http://localhost:${DEBUG_PORT}`,
+  });
 
   // Find the workspace page (not the dev console or other windows)
   const page = await findWorkspacePage(browser);
@@ -234,11 +246,15 @@ export const launchObsidian = async (
   return { browser, page, obsidianProcess, originalObsidianConfig };
 };
 
-const connectWithRetry = async (
-  url: string,
+const connectWithRetry = async ({
+  url,
   maxRetries = 5,
   delayMs = 1_000,
-): Promise<Browser> => {
+}: {
+  url: string;
+  maxRetries?: number;
+  delayMs?: number;
+}): Promise<Browser> => {
   let lastError: unknown;
   for (let i = 0; i < maxRetries; i++) {
     try {

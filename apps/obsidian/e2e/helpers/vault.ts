@@ -59,11 +59,15 @@ export const isPluginLoaded = async (
  * Wait until a plugin is present in Obsidian's plugin registry.
  * Replaces waitForTimeout() calls that blindly wait for plugin initialization.
  */
-export const waitForPluginLoaded = async (
-  page: Page,
-  pluginId: string,
+export const waitForPluginLoaded = async ({
+  page,
+  pluginId,
   timeout = 30_000,
-): Promise<void> => {
+}: {
+  page: Page;
+  pluginId: string;
+  timeout?: number;
+}): Promise<void> => {
   /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
   await page.waitForFunction(
     (id) => {

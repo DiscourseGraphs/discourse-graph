@@ -8,11 +8,15 @@ const TEST_RESULTS_DIR = path.join(__dirname, "..", "test-results");
  * Capture a step-based screenshot organized by test name.
  * Saves to: test-results/<testName>/<stepName>.png
  */
-export const captureStep = async (
-  page: Page,
-  testName: string,
-  stepName: string,
-): Promise<string> => {
+export const captureStep = async ({
+  page,
+  testName,
+  stepName,
+}: {
+  page: Page;
+  testName: string;
+  stepName: string;
+}): Promise<string> => {
   const dir = path.join(TEST_RESULTS_DIR, testName);
   fs.mkdirSync(dir, { recursive: true });
 
