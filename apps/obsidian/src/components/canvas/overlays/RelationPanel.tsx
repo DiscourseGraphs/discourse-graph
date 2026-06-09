@@ -360,7 +360,7 @@ export const RelationsPanel = ({
       if (!sourceId || !destId) {
         showToast({
           severity: "error",
-          title: "Could Not Resolve Nodes",
+          title: "Could not resolve nodes",
           description:
             "Could not resolve node instance IDs for the selected files.",
           targetCanvasId: canvasFile.path,
