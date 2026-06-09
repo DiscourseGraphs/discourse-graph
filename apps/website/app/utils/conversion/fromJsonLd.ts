@@ -426,10 +426,13 @@ const parseContent = (
   if (!id) return null;
   const sourceFormat = DOCTYPES[content.format || ""] ?? "html";
   const text = convert(content.content, sourceFormat, "obsidian");
+  const partOf = content.isContainedBy;
+  const partOfInfo = partOf ? { part_of_local_id: partOf["@id"] } : {};
   return {
     text,
     variant: "full",
-    scale: "document",
+    scale: partOf ? "block" : "document",
+    ...partOfInfo,
     ...baseInterpretId(id),
     ...parseBaseData(data),
   };
@@ -587,10 +590,11 @@ const parseLdoNode = async (
   if (schemaType === nodeSchemaType) {
     const nodeInstance = data as NodeInstanceProfile;
     if (!nodeInstance.description) return null;
+    const contentId = nodeInstance.description["@id"];
     const content =
-      nodeInstance.description.content !== undefined
+      "content" in nodeInstance.description
         ? nodeInstance.description
-        : contentById[nodeInstance.description["@id"]!];
+        : contentById[nodeInstance.description["@id"]];
     if (!content) return null;
     return await addExtraData(
       dataset,
