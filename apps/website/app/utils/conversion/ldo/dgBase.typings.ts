@@ -44,9 +44,9 @@ export interface ItemProfile {
   };
   created: string;
   modified?: string;
-  creator: {
+  creator: LdSet<{
     "@id": string;
-  };
+  }>;
 }
 
 /**
@@ -61,9 +61,9 @@ export interface NodeSchemaProfile {
   hasContainer?: {
     "@id": string;
   };
-  creator: {
+  creator: LdSet<{
     "@id": string;
-  };
+  }>;
   created: string;
   modified?: string;
   label: string;
@@ -84,9 +84,9 @@ export interface NodeInstanceProfile {
   hasContainer?: {
     "@id": string;
   };
-  creator: {
+  creator: LdSet<{
     "@id": string;
-  };
+  }>;
   created: string;
   modified?: string;
   title?: string;
@@ -108,9 +108,9 @@ export interface AbstractRelationDefProfile {
   hasContainer?: {
     "@id": string;
   };
-  creator: {
+  creator: LdSet<{
     "@id": string;
-  };
+  }>;
   created: string;
   modified?: string;
   label: string;
@@ -131,9 +131,9 @@ export interface RelationDefProfile {
   hasContainer?: {
     "@id": string;
   };
-  creator: {
+  creator: LdSet<{
     "@id": string;
-  };
+  }>;
   created: string;
   modified?: string;
   label: string;
@@ -157,9 +157,9 @@ export interface RelationInstanceProfile {
   hasContainer?: {
     "@id": string;
   };
-  creator: {
+  creator: LdSet<{
     "@id": string;
-  };
+  }>;
   created: string;
   modified?: string;
   source: NodeInstanceProfile;
