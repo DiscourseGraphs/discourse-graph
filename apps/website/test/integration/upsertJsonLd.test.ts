@@ -1,4 +1,5 @@
 import assert from "assert";
+import { inspect } from "node:util";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import {
   fetchOrCreateSpaceDirect,
@@ -49,13 +50,13 @@ const jsonLdData: JsonLdDocument = {
       "@type": "NodeSchema",
       modified: "2026-01-24T15:38:14.553Z",
       created: "2026-01-24T15:38:14.553Z",
-      subClassOf: ["dgc:Claim", "mira:Claim"],
+      subClassOf: ["mira:Claim"],
       label: "Claim",
-      creator: ["some:account"],
+      creator: "some:account",
     },
     {
       "@id": "sdata:254918",
-      "@type": ["sdata:131157", "dgc:Claim", "mira:Claim"],
+      "@type": ["sdata:131157", "mira:Claim"],
       modified: "2026-05-26T00:39:03.077Z",
       created: "2025-12-04T15:47:51.694Z",
       title: "CLM - Some base claim",
@@ -64,19 +65,28 @@ const jsonLdData: JsonLdDocument = {
         content:
           '<hr />\n<p>nodeTypeId: node<em>OHkZtsR6jkJIVaNmMY</em>GB\nnodeInstanceId: c1f02ff4-f116-452f-a490-3e0309667145</p>\n<h2 id="publishedtogroups">publishedToGroups:</h2>\n<p>That file was empty</p>',
       },
-      creator: ["some:account"],
+      creator: "some:account",
+    },
+    {
+      "@id": "https://example.com/some_document.html",
+      format: "text/html",
+      "@type": "Item",
+    },
+    {
+      "@id": "https://example.com/some_document.html#someClaim",
+      "@type": "Item",
+      format: "text/plain",
+      isContainedBy: "https://example.com/some_document.html",
+      content: "Some claim contained in a broader document",
     },
     {
       "@id": "sdata:261134",
-      "@type": ["sdata:131157", "dgc:Claim", "mira:Claim"],
+      "@type": ["sdata:131157", "mira:Claim"],
       modified: "2026-05-26T00:39:03.077Z",
       created: "2025-12-04T15:47:51.694Z",
       title: "CLM - Some supporting claim",
-      creator: ["some:account"],
-      description: {
-        format: "text/html",
-        content: "",
-      },
+      creator: "some:account",
+      description: "https://example.com/some_document.html#someClaim",
     },
     {
       "@id": "sdata:131164",
@@ -85,6 +95,7 @@ const jsonLdData: JsonLdDocument = {
       created: "2026-01-24T15:38:14.553Z",
       subClassOf: [
         "dgb:RelationInstance",
+        "mira:supports",
         {
           "@type": "owl:Restriction",
           onProperty: "rdf:predicate",
@@ -92,7 +103,7 @@ const jsonLdData: JsonLdDocument = {
         },
       ],
       label: "supports",
-      creator: ["some:account"],
+      creator: "some:account",
     },
     {
       "@id": "sdata:131169",
@@ -103,18 +114,18 @@ const jsonLdData: JsonLdDocument = {
       range: "sdata:131157",
       subClassOf: ["sdata:131164"],
       label: "supports",
-      creator: ["some:account"],
+      creator: "some:account",
     },
     {
       "@id": "sdata:261147",
-      "@type": "sdata:131164",
+      "@type": ["sdata:131164", "mira:supports"],
       modified: "2026-06-03T10:13:09.101Z",
       created: "2026-06-03T10:13:09.101Z",
-      source: "sdata:261134",
-      destination: "sdata:254918",
+      source: "sdata:254918",
+      destination: "sdata:261134",
       title:
         "[[CLM - Some supporting claim]] -supports-> [[CLM - Some base claim]]",
-      creator: ["some:account"],
+      creator: "some:account",
     },
   ],
 };
@@ -162,10 +173,14 @@ describe("Upsert of JSON-LD data", { tags: ["database"] }, () => {
   it("Upserts the data", async () => {
     const client = await signedInClient(spaceId);
     const converted = await parseJsonLdAsInput(client, jsonLdData, spaceId);
-    console.log(converted);
+    console.log(inspect(converted, { depth: null }));
     const response = await populate(client, jsonLdData, spaceId);
     console.log(response);
-    assert(response.length === (jsonLdData["@graph"] as Array<Json>).length);
+    const originalArray = jsonLdData["@graph"] as Array<Record<string, Json>>;
+    assert(
+      response.length ===
+        originalArray.filter((c) => c["@type"] !== "Item").length,
+    );
     assert(Math.min(...response) > 0);
   });
 });
