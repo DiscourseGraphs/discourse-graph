@@ -49,8 +49,10 @@ import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
 
 type Props = Record<string, unknown>;
 
-const getNodeBadgeText = (node: DiscourseNode): string =>
-  (node.tag?.trim() || node.text).slice(0, 3).toUpperCase();
+const getNodeBadgeText = (node: DiscourseNode): string => {
+  const text = (node.tag?.trim() || node.text).replace(/^#/, "");
+  return text.slice(0, 3).toUpperCase();
+};
 
 const getTagStyle = (node: DiscourseNode | undefined): React.CSSProperties => {
   const color = node?.canvasSettings?.color;
@@ -102,7 +104,9 @@ const ResultRow = ({
     }}
   >
     <Tag minimal style={getTagStyle(nodeConfig)}>
-      {nodeConfig ? getNodeBadgeText(nodeConfig) : result.nodeTypeLabel}
+      {nodeConfig
+        ? getNodeBadgeText(nodeConfig)
+        : result.nodeTypeLabel.replace(/^#/, "").slice(0, 3).toUpperCase()}
     </Tag>
     <span className="min-w-0 break-words text-sm leading-snug text-gray-900">
       {renderHighlightedText(stripTypePrefix(result.title), keywords)}
