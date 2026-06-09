@@ -31,7 +31,7 @@ export const Logo = ({
       viewBox="0 0 230 29"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      aria-label="Discourse Graphs"
+      aria-label="Discourse Graph Logo"
       className={`h-7 w-auto shrink-0 ${textClassName}`}
     >
       <path
