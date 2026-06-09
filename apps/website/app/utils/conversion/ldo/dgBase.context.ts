@@ -51,6 +51,7 @@ export const dgBaseContext: LdoJsonldContext = {
       creator: {
         "@id": "http://purl.org/dc/terms/creator",
         "@type": "@id",
+        "@isCollection": true,
       },
     },
   },
@@ -69,6 +70,7 @@ export const dgBaseContext: LdoJsonldContext = {
   creator: {
     "@id": "http://purl.org/dc/terms/creator",
     "@type": "@id",
+    "@isCollection": true,
   },
   UserAccount: {
     "@id": "http://rdfs.org/sioc/ns#UserAccount",
@@ -101,6 +103,7 @@ export const dgBaseContext: LdoJsonldContext = {
       creator: {
         "@id": "http://purl.org/dc/terms/creator",
         "@type": "@id",
+        "@isCollection": true,
       },
       created: {
         "@id": "http://purl.org/dc/terms/created",
@@ -144,6 +147,7 @@ export const dgBaseContext: LdoJsonldContext = {
       creator: {
         "@id": "http://purl.org/dc/terms/creator",
         "@type": "@id",
+        "@isCollection": true,
       },
       created: {
         "@id": "http://purl.org/dc/terms/created",
@@ -215,6 +219,7 @@ export const dgBaseContext: LdoJsonldContext = {
       creator: {
         "@id": "http://purl.org/dc/terms/creator",
         "@type": "@id",
+        "@isCollection": true,
       },
       created: {
         "@id": "http://purl.org/dc/terms/created",
@@ -249,6 +254,7 @@ export const dgBaseContext: LdoJsonldContext = {
       creator: {
         "@id": "http://purl.org/dc/terms/creator",
         "@type": "@id",
+        "@isCollection": true,
       },
       created: {
         "@id": "http://purl.org/dc/terms/created",
@@ -294,6 +300,7 @@ export const dgBaseContext: LdoJsonldContext = {
       creator: {
         "@id": "http://purl.org/dc/terms/creator",
         "@type": "@id",
+        "@isCollection": true,
       },
       created: {
         "@id": "http://purl.org/dc/terms/created",
