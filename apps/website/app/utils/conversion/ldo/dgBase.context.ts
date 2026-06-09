@@ -190,6 +190,10 @@ export const dgBaseContext: LdoJsonldContext = {
         "@id": "http://rdfs.org/sioc/ns#content",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
+      isContainedBy: {
+        "@id": "http://www.essepuntato.it/2008/12/pattern#isContainedBy",
+        "@type": "@id",
+      },
     },
   },
   format: {
@@ -199,6 +203,10 @@ export const dgBaseContext: LdoJsonldContext = {
   content: {
     "@id": "http://rdfs.org/sioc/ns#content",
     "@type": "http://www.w3.org/2001/XMLSchema#string",
+  },
+  isContainedBy: {
+    "@id": "http://www.essepuntato.it/2008/12/pattern#isContainedBy",
+    "@type": "@id",
   },
   AbstractRelationDef: {
     "@id": "https://discoursegraphs.com/schema/dg_base#AbstractRelationDef",
