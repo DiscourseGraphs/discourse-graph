@@ -807,7 +807,7 @@ const Home = async () => {
 
       <footer className="mt-12 border-t border-neutral-light/10 bg-neutral-dark px-6 py-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <p className="text-secondary">
+          <p className="text-orange-500">
             © 2024-{new Date().getFullYear()} Homeworld Collective
           </p>
           <div className="flex items-center space-x-4">
