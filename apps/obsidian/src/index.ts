@@ -39,6 +39,7 @@ import {
   mergeAllRelationsJsonToRoot,
 } from "~/utils/relationsStore";
 import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
+import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -62,6 +63,8 @@ export default class DiscourseGraphPlugin extends Plugin {
     await migrateImportFolderMetadata(this).catch((error) => {
       console.error("Failed to migrate import folder metadata:", error);
     });
+
+    registerTemplateSettingsSync(this);
 
     if (this.settings.syncModeEnabled === true) {
       void initializeSupabaseSync(this).catch((error) => {
