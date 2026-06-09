@@ -191,3 +191,10 @@
 #dg-left-sidebar-root .bp3-dark .bp3-button:not([class*="bp3-intent-"]):hover {
   color: #f5f8fa;
 }
+
+/* Advanced search: persist Blueprint menu-item hover styling for keyboard focus */
+.advanced-node-search-results .bp3-menu-item.advanced-search-result-focused {
+  background-color: rgba(167, 182, 194, 0.3);
+  cursor: pointer;
+  text-decoration: none;
+}

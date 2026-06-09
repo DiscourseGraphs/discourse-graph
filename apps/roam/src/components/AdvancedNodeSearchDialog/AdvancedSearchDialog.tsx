@@ -9,6 +9,8 @@ import {
   Button,
   Dialog,
   InputGroup,
+  Menu,
+  MenuItem,
   NonIdealState,
   Spinner,
   SpinnerSize,
@@ -87,27 +89,23 @@ const ResultRow = ({
   onMouseEnter: () => void;
   result: SearchResult;
 }) => (
-  <Button
-    alignText="left"
-    aria-selected={active}
-    className="flex-none !items-start gap-2 !px-3 !py-2"
-    fill
-    minimal
+  <MenuItem
+    className={`flex items-start${active ? "advanced-search-result-focused" : ""}`}
+    data-active={active}
+    icon={
+      <Tag minimal style={getTagStyle(nodeConfig)}>
+        {nodeConfig ? getNodeBadgeText(nodeConfig) : result.nodeTypeLabel}
+      </Tag>
+    }
+    multiline
     onClick={onClick}
     onMouseEnter={onMouseEnter}
-    role="option"
-    style={{
-      background: active ? "rgba(95, 87, 192, 0.08)" : undefined,
-      boxShadow: active ? "inset 3px 0 0 #5f57c0" : undefined,
-    }}
-  >
-    <Tag minimal style={getTagStyle(nodeConfig)}>
-      {nodeConfig ? getNodeBadgeText(nodeConfig) : result.nodeTypeLabel}
-    </Tag>
-    <span className="min-w-0 break-words text-sm leading-snug text-gray-900">
-      {renderHighlightedText(stripTypePrefix(result.title), keywords)}
-    </span>
-  </Button>
+    text={
+      <span className="min-w-0 break-words text-sm leading-snug text-gray-900">
+        {renderHighlightedText(stripTypePrefix(result.title), keywords)}
+      </span>
+    }
+  />
 );
 
 const PreviewPane = ({ result }: { result: SearchResult | null }) => {
@@ -284,8 +282,20 @@ const AdvancedNodeSearchDialog = ({
     const panel = resultsPanelRef.current;
     if (!panel) return;
 
-    const activeRow = panel.querySelector('[aria-selected="true"]');
-    activeRow?.scrollIntoView({ block: "nearest" });
+    const activeRow = panel.querySelector(
+      '[data-active="true"]',
+    ) as HTMLElement | null;
+    if (!activeRow) return;
+
+    const containerRect = panel.getBoundingClientRect();
+    const itemRect = activeRow.getBoundingClientRect();
+
+    if (
+      itemRect.bottom > containerRect.bottom ||
+      itemRect.top < containerRect.top
+    ) {
+      activeRow.scrollIntoView({ block: "nearest", behavior: "auto" });
+    }
   }, [activeIndex, activeResult?.uid, debouncedSearchTerm]);
 
   const onInsert = useCallback(async () => {
@@ -450,21 +460,22 @@ const AdvancedNodeSearchDialog = ({
             <>
               <div
                 aria-label="Search results"
-                className="w-1/3 shrink-0 overflow-y-auto border-r border-gray-200 py-1"
+                className="advanced-node-search-results w-1/3 shrink-0 overflow-y-auto border-r border-gray-200"
                 ref={resultsPanelRef}
-                role="listbox"
               >
-                {results.map((result, index) => (
-                  <ResultRow
-                    active={index === activeIndex}
-                    key={result.uid}
-                    keywords={keywords}
-                    nodeConfig={nodeConfigByType[result.type]}
-                    onClick={() => setActiveIndex(index)}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    result={result}
-                  />
-                ))}
+                <Menu>
+                  {results.map((result, index) => (
+                    <ResultRow
+                      active={index === activeIndex}
+                      key={result.uid}
+                      keywords={keywords}
+                      nodeConfig={nodeConfigByType[result.type]}
+                      onClick={() => setActiveIndex(index)}
+                      onMouseEnter={() => setActiveIndex(index)}
+                      result={result}
+                    />
+                  ))}
+                </Menu>
               </div>
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                 <PreviewPane result={activeResult} />
