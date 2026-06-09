@@ -17,7 +17,7 @@ dgshapes:ContainerProfile {
 
 dgshapes:PersonAccountProfile {
     a [sioc:UserAccount];
-    sioc:name xsd:string;
+    foaf:accountName xsd:string;
 }
 
 dgshapes:ItemProfile {
