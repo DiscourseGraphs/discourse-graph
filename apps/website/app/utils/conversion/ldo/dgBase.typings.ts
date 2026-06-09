@@ -90,7 +90,11 @@ export interface NodeInstanceProfile {
   created: string;
   modified?: string;
   title?: string;
-  description?: ContentProfile;
+  description?:
+    | ContentProfile
+    | {
+        "@id": string;
+      };
 }
 
 /**
@@ -177,4 +181,7 @@ export interface ContentProfile {
   }>;
   format?: string;
   content: string;
+  isContainedBy?: {
+    "@id": string;
+  };
 }
