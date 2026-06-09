@@ -9,6 +9,7 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX sioc: <http://rdfs.org/sioc/ns#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX po: <http://www.essepuntato.it/2008/12/pattern#>
 
 dgshapes:ContainerProfile {
     a [sioc:Container];
@@ -46,7 +47,7 @@ dgshapes:NodeInstanceProfile {
     dct:created xsd:dateTime ;
     dct:modified xsd:dateTime ? ;
     dct:title xsd:dateTime? ;
-    dct:description @dgshapes:ContentProfile ? ;
+    dct:description (@dgshapes:ContentProfile OR IRI)? ;
 }
 
 dgshapes:AbstractRelationDefProfile {
@@ -87,4 +88,5 @@ dgshapes:ContentProfile {
     a [dgshapes:Content];
     dct:format xsd:string ?;
     sioc:content xsd:string;
+    po:isContainedBy IRI?;
 }
