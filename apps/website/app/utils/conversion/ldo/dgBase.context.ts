@@ -77,14 +77,14 @@ export const dgBaseContext: LdoJsonldContext = {
         "@id": "@type",
         "@isCollection": true,
       },
-      name: {
-        "@id": "http://rdfs.org/sioc/ns#name",
+      accountName: {
+        "@id": "http://xmlns.com/foaf/0.1/accountName",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
     },
   },
-  name: {
-    "@id": "http://rdfs.org/sioc/ns#name",
+  accountName: {
+    "@id": "http://xmlns.com/foaf/0.1/accountName",
     "@type": "http://www.w3.org/2001/XMLSchema#string",
   },
   NodeSchema: {
