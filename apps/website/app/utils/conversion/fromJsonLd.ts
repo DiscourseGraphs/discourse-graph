@@ -410,7 +410,7 @@ const parsePersonDef = (
   if (!account_local_id) return null;
   return {
     account_local_id,
-    name: person.name,
+    name: person.accountName,
     platform,
     agent_type: "person",
   };

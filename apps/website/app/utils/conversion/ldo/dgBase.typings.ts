@@ -27,7 +27,7 @@ export interface PersonAccountProfile {
   type: LdSet<{
     "@id": "UserAccount";
   }>;
-  name: string;
+  accountName: string;
 }
 
 /**
