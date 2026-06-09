@@ -41,7 +41,7 @@ const jsonLdData: JsonLdDocument = {
   "@graph": [
     {
       "@id": "some:account",
-      name: "Some One",
+      accountName: "Some One",
       "@type": "UserAccount",
     },
     {
@@ -51,7 +51,7 @@ const jsonLdData: JsonLdDocument = {
       created: "2026-01-24T15:38:14.553Z",
       subClassOf: ["dgc:Claim", "mira:Claim"],
       label: "Claim",
-      creator: "some:account",
+      creator: ["some:account"],
     },
     {
       "@id": "sdata:254918",
@@ -64,7 +64,7 @@ const jsonLdData: JsonLdDocument = {
         content:
           '<hr />\n<p>nodeTypeId: node<em>OHkZtsR6jkJIVaNmMY</em>GB\nnodeInstanceId: c1f02ff4-f116-452f-a490-3e0309667145</p>\n<h2 id="publishedtogroups">publishedToGroups:</h2>\n<p>That file was empty</p>',
       },
-      creator: "some:account",
+      creator: ["some:account"],
     },
     {
       "@id": "sdata:261134",
@@ -72,7 +72,7 @@ const jsonLdData: JsonLdDocument = {
       modified: "2026-05-26T00:39:03.077Z",
       created: "2025-12-04T15:47:51.694Z",
       title: "CLM - Some supporting claim",
-      creator: "some:account",
+      creator: ["some:account"],
       description: {
         format: "text/html",
         content: "",
@@ -92,7 +92,7 @@ const jsonLdData: JsonLdDocument = {
         },
       ],
       label: "supports",
-      creator: "some:account",
+      creator: ["some:account"],
     },
     {
       "@id": "sdata:131169",
@@ -103,7 +103,7 @@ const jsonLdData: JsonLdDocument = {
       range: "sdata:131157",
       subClassOf: ["sdata:131164"],
       label: "supports",
-      creator: "some:account",
+      creator: ["some:account"],
     },
     {
       "@id": "sdata:261147",
@@ -114,7 +114,7 @@ const jsonLdData: JsonLdDocument = {
       destination: "sdata:254918",
       title:
         "[[CLM - Some supporting claim]] -supports-> [[CLM - Some base claim]]",
-      creator: "some:account",
+      creator: ["some:account"],
     },
   ],
 };
