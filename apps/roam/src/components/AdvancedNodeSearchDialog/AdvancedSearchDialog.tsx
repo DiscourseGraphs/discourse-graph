@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Button,
   Dialog,
@@ -282,9 +276,7 @@ const AdvancedNodeSearchDialog = ({
     const panel = resultsPanelRef.current;
     if (!panel) return;
 
-    const activeRow = panel.querySelector(
-      '[data-active="true"]',
-    ) as HTMLElement | null;
+    const activeRow = panel.querySelector('[data-active="true"]');
     if (!activeRow) return;
 
     const containerRect = panel.getBoundingClientRect();
