@@ -46,11 +46,15 @@ import {
 import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
+import { getCleanTagText } from "~/components/settings/NodeConfig";
 
 type Props = Record<string, unknown>;
 
-const getNodeBadgeText = (node: DiscourseNode): string =>
-  (node.tag?.trim() || node.text).slice(0, 3).toUpperCase();
+const getNodeBadgeText = (node: DiscourseNode): string => {
+  const tagText = node.tag?.trim() || node.text;
+  const cleanedTag = getCleanTagText(tagText);
+  return cleanedTag.slice(0, 3);
+};
 
 const getTagStyle = (node: DiscourseNode | undefined): React.CSSProperties => {
   const color = node?.canvasSettings?.color;
