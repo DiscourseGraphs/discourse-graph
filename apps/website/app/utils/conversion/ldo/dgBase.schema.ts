@@ -54,7 +54,7 @@ export const dgBaseSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://rdfs.org/sioc/ns#name",
+              predicate: "http://xmlns.com/foaf/0.1/accountName",
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#string",
