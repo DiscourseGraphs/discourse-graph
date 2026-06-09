@@ -348,10 +348,12 @@ const parseBaseData = (data: NodeParseResult) => {
   const spaceInfo = data.hasContainer
     ? interpretId(data.hasContainer["@id"], "space_id", "space_local_id")
     : {};
+  const creators = [...data.creator];
   return {
     created: data.created,
     last_modified: data.modified,
-    author_local_id: data.creator["@id"],
+    // losing other creators for now...
+    author_local_id: creators[0]!["@id"],
     ...spaceInfo,
   };
 };
