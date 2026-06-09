@@ -1,5 +1,5 @@
 import { namedNode } from "@ldo/rdf-utils";
-import type { NamedNode, Quad_Object, Literal } from "@rdfjs/types";
+import type { NamedNode, Quad_Object } from "@rdfjs/types";
 import { parseRdf } from "@ldo/ldo";
 import type { LdoDataset, ShapeType, LdoBase } from "@ldo/ldo";
 import ShexJTraverser from "@ldo/traverser-shexj";
@@ -589,12 +589,10 @@ const parseLdoNode = async (
   });
   if (schemaType === nodeSchemaType) {
     const nodeInstance = data as NodeInstanceProfile;
-    if (!nodeInstance.description) return null;
-    const contentId = nodeInstance.description["@id"];
-    const content =
-      "content" in nodeInstance.description
-        ? nodeInstance.description
-        : contentById[nodeInstance.description["@id"]];
+    if (nodeInstance.description === undefined) return null;
+    const content = (nodeInstance.description as ContentProfile).content
+      ? (nodeInstance.description as ContentProfile)
+      : contentById[nodeInstance.description["@id"]!];
     if (!content) return null;
     return await addExtraData(
       dataset,
