@@ -1161,6 +1161,7 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
         severity: "success",
         title: "Relation Created",
         description: `Added ${relationType.label} relation between ${persistResult.sourceFile.basename} and ${persistResult.targetFile.basename}`,
+        targetCanvasId: this.options.canvasFile.path,
       });
     }
   }

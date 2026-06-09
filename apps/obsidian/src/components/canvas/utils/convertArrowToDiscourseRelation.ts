@@ -15,6 +15,7 @@ import {
 } from "~/components/canvas/shapes/DiscourseRelationBinding";
 import { createOrUpdateArrowBinding } from "~/components/canvas/utils/relationUtils";
 import { persistRelationBetweenNodeShapes } from "~/components/canvas/utils/relationJsonUtils";
+import { removeRelationById } from "~/utils/relationsStore";
 import {
   getDiscourseNodeTypeId,
   getRelationLabelForDirection,
@@ -252,6 +253,28 @@ export const convertArrowToDiscourseRelation = async ({
     editor.deleteShape(arrowId);
     editor.setSelectedShapes([newShapeId]);
   });
+
+  const convertedShape = editor.getShape<DiscourseRelationShape>(newShapeId);
+  const arrowStillExists = editor.getShape(arrowId);
+
+  if (!convertedShape || arrowStillExists) {
+    if (convertedShape) {
+      editor.deleteShape(newShapeId);
+    }
+
+    if (!persistResult.alreadyExisted) {
+      await removeRelationById(plugin, persistResult.relationInstanceId);
+    }
+
+    showToast({
+      severity: "error",
+      title: "Relation",
+      description:
+        "Could not convert the arrow on canvas. The relation was not saved.",
+      targetCanvasId: canvasFile.path,
+    });
+    return;
+  }
 
   BaseRelationBindingUtil.markRelationReified(newShapeId);
   editor.markHistoryStoppingPoint("convert arrow to discourse relation");
