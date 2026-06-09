@@ -75,6 +75,31 @@ export const getRelationDirection = ({
   return { direct, reverse };
 };
 
+export const getRelationLabelForDirection = ({
+  discourseRelations,
+  relationType,
+  sourceNodeTypeId,
+  targetNodeTypeId,
+}: {
+  discourseRelations: DiscourseRelation[];
+  relationType: DiscourseRelationType;
+  sourceNodeTypeId: string;
+  targetNodeTypeId: string;
+}): string => {
+  const { direct, reverse } = getRelationDirection({
+    discourseRelations,
+    relationTypeId: relationType.id,
+    sourceNodeTypeId,
+    targetNodeTypeId,
+  });
+
+  if (reverse && !direct) {
+    return relationType.complement;
+  }
+
+  return relationType.label;
+};
+
 /**
  * Returns the list of valid relation types for a given pair of node types,
  * checking both directions of the discourse relations.

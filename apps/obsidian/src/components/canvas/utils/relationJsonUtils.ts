@@ -1,5 +1,11 @@
 import { Notice, type TFile } from "obsidian";
+import type { Editor } from "tldraw";
 import type DiscourseGraphPlugin from "~/index";
+import {
+  DiscourseNodeShape,
+  DiscourseNodeUtil,
+} from "~/components/canvas/shapes/DiscourseNodeShape";
+import { showToast } from "~/components/canvas/utils/toastUtils";
 import {
   addRelation,
   getNodeInstanceIdForFile,
@@ -23,15 +29,17 @@ export const addRelationToRelationsJson = async ({
   targetFile: TFile;
   relationTypeId: string;
 }): Promise<{ alreadyExisted: boolean; relationInstanceId?: string }> => {
-  const sourceId = await getNodeInstanceIdForFile(plugin, sourceFile);
-  const destId = await getNodeInstanceIdForFile(plugin, targetFile);
+  const [sourceId, destId] = await Promise.all([
+    getNodeInstanceIdForFile(plugin, sourceFile),
+    getNodeInstanceIdForFile(plugin, targetFile),
+  ]);
 
   if (!sourceId || !destId) {
     const missing: string[] = [];
     if (!sourceId) missing.push(`source (${sourceFile.basename})`);
     if (!destId) missing.push(`target (${targetFile.basename})`);
     new Notice(
-      "Could not create relation: one or both files are not discourse nodes or metadata is not ready.",
+      `Could not create relation: ${missing.join(" and ")} could not be resolved as discourse nodes.`,
       3000,
     );
     return { alreadyExisted: false };
@@ -43,6 +51,89 @@ export const addRelationToRelationsJson = async ({
     destination: destId,
   });
   return { alreadyExisted, relationInstanceId: id };
+};
+
+type PersistRelationBetweenNodesResult =
+  | {
+      ok: true;
+      relationInstanceId: string;
+      sourceFile: TFile;
+      targetFile: TFile;
+      alreadyExisted: boolean;
+    }
+  | { ok: false };
+
+export const persistRelationBetweenNodeShapes = async ({
+  plugin,
+  canvasFile,
+  editor,
+  startNode,
+  endNode,
+  relationTypeId,
+}: {
+  plugin: DiscourseGraphPlugin;
+  canvasFile: TFile;
+  editor: Editor;
+  startNode: DiscourseNodeShape;
+  endNode: DiscourseNodeShape;
+  relationTypeId: string;
+}): Promise<PersistRelationBetweenNodesResult> => {
+  const nodeCtx = { app: plugin.app, canvasFile };
+  const startNodeUtil = editor.getShapeUtil(startNode);
+  const endNodeUtil = editor.getShapeUtil(endNode);
+
+  if (
+    !(startNodeUtil instanceof DiscourseNodeUtil) ||
+    !(endNodeUtil instanceof DiscourseNodeUtil)
+  ) {
+    return { ok: false };
+  }
+
+  const [sourceFile, targetFile] = await Promise.all([
+    startNodeUtil.getFile(startNode, nodeCtx),
+    endNodeUtil.getFile(endNode, nodeCtx),
+  ]);
+
+  if (!sourceFile || !targetFile) {
+    showToast({
+      severity: "warning",
+      title: "Failed to Save Relation",
+      description: "Could not resolve files for the connected nodes",
+      targetCanvasId: canvasFile.path,
+    });
+    return { ok: false };
+  }
+
+  try {
+    const { alreadyExisted, relationInstanceId } =
+      await addRelationToRelationsJson({
+        plugin,
+        sourceFile,
+        targetFile,
+        relationTypeId,
+      });
+
+    if (!relationInstanceId) {
+      return { ok: false };
+    }
+
+    return {
+      ok: true,
+      relationInstanceId,
+      sourceFile,
+      targetFile,
+      alreadyExisted,
+    };
+  } catch (error) {
+    console.error("Failed to persist relation:", error);
+    showToast({
+      severity: "error",
+      title: "Failed to Save Relation",
+      description: "Could not save relation to files",
+      targetCanvasId: canvasFile.path,
+    });
+    return { ok: false };
+  }
 };
 
 type RelationParams = {

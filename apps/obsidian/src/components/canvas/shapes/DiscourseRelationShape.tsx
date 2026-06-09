@@ -58,12 +58,12 @@ import {
   updateArrowTerminal,
 } from "~/components/canvas/utils/relationUtils";
 import { RelationBindings } from "./DiscourseRelationBinding";
-import { DiscourseNodeShape, DiscourseNodeUtil } from "./DiscourseNodeShape";
-import { addRelationToRelationsJson } from "~/components/canvas/utils/relationJsonUtils";
+import { DiscourseNodeShape } from "./DiscourseNodeShape";
+import { persistRelationBetweenNodeShapes } from "~/components/canvas/utils/relationJsonUtils";
 import {
   getDiscourseNodeAtPoint,
   getDiscourseNodeTypeId,
-  getRelationDirection,
+  getRelationLabelForDirection,
   isValidRelationConnection,
 } from "~/components/canvas/utils/relationTypeUtils";
 import { getNodeTypeById, getRelationTypeById } from "~/utils/typeUtils";
@@ -1084,19 +1084,12 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
 
     if (!relationType) return;
 
-    const { direct, reverse } = getRelationDirection({
+    const newText = getRelationLabelForDirection({
       discourseRelations: plugin.settings.discourseRelations,
-      relationTypeId,
+      relationType,
       sourceNodeTypeId: startNodeTypeId,
       targetNodeTypeId: endNodeTypeId,
     });
-
-    let newText = relationType.label; // Default to main label
-
-    if (reverse && !direct) {
-      // This is purely a reverse connection, use complement
-      newText = relationType.complement;
-    }
 
     // Update the shape text if it's different
     if (shape.props.text !== newText) {
@@ -1122,77 +1115,52 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
       return;
     }
 
-    try {
-      const startNode = this.editor.getShape(bindings.start.toId);
-      const endNode = this.editor.getShape(bindings.end.toId);
+    const startNode = this.editor.getShape(bindings.start.toId);
+    const endNode = this.editor.getShape(bindings.end.toId);
 
-      if (
-        !startNode ||
-        !endNode ||
-        startNode.type !== "discourse-node" ||
-        endNode.type !== "discourse-node"
-      ) {
-        return;
-      }
+    if (
+      !startNode ||
+      !endNode ||
+      startNode.type !== "discourse-node" ||
+      endNode.type !== "discourse-node"
+    ) {
+      return;
+    }
 
-      const startNodeUtil = this.editor.getShapeUtil(startNode);
-      const endNodeUtil = this.editor.getShapeUtil(endNode);
+    const persistResult = await persistRelationBetweenNodeShapes({
+      plugin: this.options.plugin,
+      canvasFile: this.options.canvasFile,
+      editor: this.editor,
+      startNode: startNode as DiscourseNodeShape,
+      endNode: endNode as DiscourseNodeShape,
+      relationTypeId: shape.props.relationTypeId,
+    });
 
-      // Get the files associated with both nodes
-      const sourceFile = await (startNodeUtil as DiscourseNodeUtil).getFile(
-        startNode as DiscourseNodeShape,
-        {
-          app: this.options.app,
-          canvasFile: this.options.canvasFile,
+    if (!persistResult.ok) {
+      return;
+    }
+
+    if (persistResult.relationInstanceId) {
+      this.editor.updateShape({
+        id: shape.id,
+        type: shape.type,
+        meta: {
+          ...shape.meta,
+          relationInstanceId: persistResult.relationInstanceId,
         },
-      );
-      const targetFile = await (endNodeUtil as DiscourseNodeUtil).getFile(
-        endNode as DiscourseNodeShape,
-        {
-          app: this.options.app,
-          canvasFile: this.options.canvasFile,
-        },
-      );
+      });
+    }
 
-      if (!sourceFile || !targetFile) {
-        console.warn("Could not resolve files for relation nodes");
-        return;
-      }
+    const relationType = getRelationTypeById(
+      this.options.plugin,
+      shape.props.relationTypeId,
+    );
 
-      const { alreadyExisted, relationInstanceId } =
-        await addRelationToRelationsJson({
-          plugin: this.options.plugin,
-          sourceFile,
-          targetFile,
-          relationTypeId: shape.props.relationTypeId,
-        });
-
-      if (relationInstanceId) {
-        this.editor.updateShape({
-          id: shape.id,
-          type: shape.type,
-          meta: { ...shape.meta, relationInstanceId },
-        });
-      }
-
-      const relationType = getRelationTypeById(
-        this.options.plugin,
-        shape.props.relationTypeId,
-      );
-
-      if (relationType && !alreadyExisted) {
-        showToast({
-          severity: "success",
-          title: "Relation Created",
-          description: `Added ${relationType.label} relation between ${sourceFile.basename} and ${targetFile.basename}`,
-        });
-      }
-    } catch (error) {
-      console.error("Failed to reify relation:", error);
+    if (relationType && !persistResult.alreadyExisted) {
       showToast({
-        severity: "error",
-        title: "Failed to Save Relation",
-        description: "Could not save relation to files",
+        severity: "success",
+        title: "Relation Created",
+        description: `Added ${relationType.label} relation between ${persistResult.sourceFile.basename} and ${persistResult.targetFile.basename}`,
       });
     }
   }
