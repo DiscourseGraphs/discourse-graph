@@ -116,11 +116,14 @@ export const DiscourseNodeSortControl = ({
 
   const sortButton = (
     <Button
-      active={isTriggerActive}
       aria-expanded={isOpen}
       aria-haspopup="listbox"
       aria-label={`Sort by ${sortLabel}`}
-      className="!text-gray-600 hover:!bg-gray-100 hover:!text-gray-900"
+      className={`${
+        isTriggerActive
+          ? "!bg-[rgba(167, 182, 194, 0.3)] !text-[#5f57c0]"
+          : "!text-gray-600 hover:!bg-gray-100 hover:!text-gray-900"
+      }`}
       disabled={disabled}
       elementRef={triggerRef}
       icon="sort"

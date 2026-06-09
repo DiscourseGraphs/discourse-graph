@@ -252,14 +252,17 @@ export const DiscourseNodeTypeFilter = ({
   const filterButton = (
     <span className="relative inline-flex shrink-0 items-center">
       <Button
-        active={isTriggerActive}
         aria-expanded={isOpen}
         aria-label={
           activeFilterCount > 0
             ? `Filter by type, ${activeFilterCount} selected`
             : "Filter by type"
         }
-        className="!text-gray-600 hover:!bg-gray-100 hover:!text-gray-900"
+        className={
+          isTriggerActive
+            ? "!bg-[rgba(167, 182, 194, 0.3)] !text-[#5f57c0]"
+            : "!text-gray-600 hover:!bg-gray-100 hover:!text-gray-900"
+        }
         disabled={!isFilterReady}
         elementRef={triggerRef}
         icon="filter"
