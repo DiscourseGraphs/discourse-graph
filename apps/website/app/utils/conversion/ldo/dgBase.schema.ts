@@ -269,8 +269,16 @@ export const dgBaseSchema: Schema = {
             {
               type: "TripleConstraint",
               predicate: "http://purl.org/dc/terms/description",
-              valueExpr:
-                "https://discoursegraphs.com/schema/dg_base#ContentProfile",
+              valueExpr: {
+                type: "ShapeOr",
+                shapeExprs: [
+                  "https://discoursegraphs.com/schema/dg_base#ContentProfile",
+                  {
+                    type: "NodeConstraint",
+                    nodeKind: "iri",
+                  },
+                ],
+              },
               min: 0,
               max: 1,
             },
@@ -556,6 +564,17 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#string",
               },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "http://www.essepuntato.it/2008/12/pattern#isContainedBy",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
+              min: 0,
+              max: 1,
             },
           ],
         },
