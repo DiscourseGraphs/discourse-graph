@@ -115,6 +115,8 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 nodeKind: "iri",
               },
+              min: 1,
+              max: -1,
             },
           ],
         },
@@ -155,6 +157,8 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 nodeKind: "iri",
               },
+              min: 1,
+              max: -1,
             },
             {
               type: "TripleConstraint",
@@ -231,6 +235,8 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 nodeKind: "iri",
               },
+              min: 1,
+              max: -1,
             },
             {
               type: "TripleConstraint",
@@ -317,6 +323,8 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 nodeKind: "iri",
               },
+              min: 1,
+              max: -1,
             },
             {
               type: "TripleConstraint",
@@ -393,6 +401,8 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 nodeKind: "iri",
               },
+              min: 1,
+              max: -1,
             },
             {
               type: "TripleConstraint",
@@ -475,6 +485,8 @@ export const dgBaseSchema: Schema = {
                 type: "NodeConstraint",
                 nodeKind: "iri",
               },
+              min: 1,
+              max: -1,
             },
             {
               type: "TripleConstraint",
