@@ -27,7 +27,10 @@ published: true
 https://github.com/blacksmithgu/datacore
 ```
 
-![Add datacore](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FEY3vNGt1Rf.png?alt=media&token=32c60ff1-5272-4cde-8b5f-8f049fb2cf50) 5. Check the box for "Enable after installing the plugin" 6. Click "Add plugin"
+![Add datacore](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FEY3vNGt1Rf.png?alt=media&token=32c60ff1-5272-4cde-8b5f-8f049fb2cf50)
+
+5. Check the box for "Enable after installing the plugin"
+6. Click "Add plugin"
 
 ## Install Discourse Graphs
 
@@ -41,4 +44,7 @@ https://github.com/blacksmithgu/datacore
 https://github.com/DiscourseGraphs/discourse-graph-obsidian
 ```
 
-![Add discourse graph](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FSBCK-2lkcu.png?alt=media&token=0375c828-da4d-43b4-8f2c-e691692cb019) 5. Check the box for "Enable after installing the plugin" 6. Click "Add Plugin"
+![Add discourse graph](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FSBCK-2lkcu.png?alt=media&token=0375c828-da4d-43b4-8f2c-e691692cb019)
+
+5. Check the box for "Enable after installing the plugin"
+6. Click "Add Plugin"
