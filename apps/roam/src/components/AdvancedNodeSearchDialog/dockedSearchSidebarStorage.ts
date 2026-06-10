@@ -29,7 +29,12 @@ export const isRightSidebarOpen = (): boolean => {
 };
 
 export const getRoamSidebarWindows = async (): Promise<RoamSidebarWindow[]> => {
-  return window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
+  try {
+    const windows = window.roamAlphaAPI.ui.rightSidebar.getWindows();
+    return windows ?? [];
+  } catch {
+    return [];
+  }
 };
 
 const normalizeRegistryEntry = (
@@ -78,6 +83,18 @@ const writeRegistry = (registry: PersistedDockedSearchRegistry): void => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(registry));
 };
 
+const removeOtherEntriesWithWindowId = (
+  registry: PersistedDockedSearchRegistry,
+  windowId: string,
+  keepDgSearchId: string,
+): void => {
+  for (const [existingId, entry] of Object.entries(registry)) {
+    if (entry.windowId === windowId && existingId !== keepDgSearchId) {
+      delete registry[existingId];
+    }
+  }
+};
+
 export const registerDgSearchWindow = ({
   dgSearchId,
   windowId,
@@ -88,12 +105,7 @@ export const registerDgSearchWindow = ({
   state: DockedSearchState;
 }): void => {
   const registry = readRegistry();
-
-  for (const [existingId, entry] of Object.entries(registry)) {
-    if (entry.windowId === windowId && existingId !== dgSearchId) {
-      delete registry[existingId];
-    }
-  }
+  removeOtherEntriesWithWindowId(registry, windowId, dgSearchId);
 
   registry[dgSearchId] = {
     ...state,
@@ -112,7 +124,8 @@ export const loadDgSearchWindowById = (
 export const loadDgSearchWindowByWindowId = (
   windowId: string,
 ): PersistedDockedSearchState | null =>
-  listDgSearchWindows().find((state) => state.windowId === windowId) ?? null;
+  Object.values(readRegistry()).find((state) => state.windowId === windowId) ??
+  null;
 
 export const remapDgSearchWindowId = ({
   dgSearchId,
@@ -125,11 +138,7 @@ export const remapDgSearchWindowId = ({
   const entry = registry[dgSearchId];
   if (!entry) return;
 
-  for (const [existingId, existingEntry] of Object.entries(registry)) {
-    if (existingId !== dgSearchId && existingEntry.windowId === windowId) {
-      delete registry[existingId];
-    }
-  }
+  removeOtherEntriesWithWindowId(registry, windowId, dgSearchId);
 
   registry[dgSearchId] = {
     ...entry,
@@ -166,16 +175,18 @@ export const removeDgSearchWindow = ({
 };
 
 export const listDgSearchWindows = (): PersistedDockedSearchState[] =>
-  Object.values(readRegistry()).filter((state) => state.isDgSearch);
+  Object.values(readRegistry());
 
 export const syncDgSearchWindowIdsFromRoam = (
   roamWindows: RoamSidebarWindow[],
 ): void => {
+  const registry = readRegistry();
   const searchQueryWindows = roamWindows.filter(
     (window) => window.type === "search-query",
   );
-  const dgEntries = listDgSearchWindows();
+  const dgEntries = Object.values(registry);
   const claimedRoamWindowIds = new Set<string>();
+  let changed = false;
 
   for (const entry of dgEntries) {
     const matchedById = searchQueryWindows.find(
@@ -202,12 +213,23 @@ export const syncDgSearchWindowIdsFromRoam = (
     );
     if (queryMatches.length !== 1) continue;
 
-    const [matchedWindow] = queryMatches;
-    remapDgSearchWindowId({
-      dgSearchId: entry.dgSearchId,
+    const matchedWindow = queryMatches[0];
+    removeOtherEntriesWithWindowId(
+      registry,
+      matchedWindow["window-id"],
+      entry.dgSearchId,
+    );
+    registry[entry.dgSearchId] = {
+      ...entry,
       windowId: matchedWindow["window-id"],
-    });
+      updatedAt: Date.now(),
+    };
     claimedRoamWindowIds.add(matchedWindow["window-id"]);
+    changed = true;
+  }
+
+  if (changed) {
+    writeRegistry(registry);
   }
 };
 
@@ -217,7 +239,9 @@ export const pruneStaleDockedSearchSidebarStates = async (
   if (!isRightSidebarOpen()) return;
 
   const resolvedRoamWindows = roamWindows ?? (await getRoamSidebarWindows());
-  syncDgSearchWindowIdsFromRoam(resolvedRoamWindows);
+  if (!roamWindows) {
+    syncDgSearchWindowIdsFromRoam(resolvedRoamWindows);
+  }
 
   const roamWindowIds = new Set(
     resolvedRoamWindows.map((window) => window["window-id"]),
