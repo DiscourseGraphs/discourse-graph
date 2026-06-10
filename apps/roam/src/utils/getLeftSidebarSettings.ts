@@ -27,7 +27,7 @@ type LeftSidebarPersonalSectionSettings = {
 };
 
 const BLOCK_REF_FULL_MATCH = new RegExp(`^${BLOCK_REF_REGEX.source}$`);
-const QUERY_BLOCK_MARKER = /\{\{query block(?::[^}]*)?\}\}/;
+export const QUERY_BLOCK_MARKER = /\{\{query block(?::[^}]*)?\}\}/;
 
 const getUidAndStringSettingWithValueUid = ({
   tree,
