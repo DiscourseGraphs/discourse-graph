@@ -19,9 +19,9 @@ import { hasActiveTypeFilter } from "~/utils/discourseNodeTypeFilter";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { SORT_FIELD_LABELS, isNonDefaultSort, type SortConfig } from "./utils";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
+import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { splitWithHighlights, stripTypePrefix } from "./utils";
-import { openSearchResultFromLinkEvent } from "~/utils/advancedSearchFooterUtils";
 import {
   type SearchIndex,
   useAdvancedNodeSearchResults,
@@ -74,10 +74,7 @@ export const AdvancedSearchSidebarResultsList = ({
                 if (event.shiftKey) {
                   event.preventDefault();
                   event.stopPropagation();
-                  void openSearchResultFromLinkEvent({
-                    shiftKey: true,
-                    uid: result.uid,
-                  });
+                  void openBlockInSidebar(result.uid);
                 }
               }}
               onClick={(event) => {

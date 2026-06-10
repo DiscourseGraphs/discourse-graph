@@ -24,7 +24,6 @@ import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
-import { openSearchResultInMain } from "~/utils/advancedSearchFooterUtils";
 import { mountAdvancedSearchInSidebar } from "./mountAdvancedSearchInSidebar";
 import {
   DEBOUNCE_MS,
@@ -336,7 +335,12 @@ const AdvancedNodeSearchDialog = ({
   const onOpen = useCallback(async () => {
     if (!activeResult || contentState !== "results") return;
 
-    await openSearchResultInMain(activeResult.uid);
+    const uid = activeResult.uid;
+    if (getPageTitleByPageUid(uid)) {
+      await window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
+    } else {
+      await window.roamAlphaAPI.ui.mainWindow.openBlock({ block: { uid } });
+    }
     onClose();
   }, [activeResult, contentState, onClose]);
 
