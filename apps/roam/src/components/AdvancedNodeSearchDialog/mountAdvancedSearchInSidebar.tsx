@@ -11,15 +11,15 @@ import {
   registerDgSearchWindow,
   removeDgSearchWindow,
   syncDgSearchWindowIdsFromRoam,
-  type PersistedDockedSearchState,
 } from "./dockedSearchSidebarStorage";
 import type { DockedSearchState } from "./utils";
 import { DEBOUNCE_MS } from "./utils";
 
-export const DG_SEARCH_ROOT_CLASS = "dg-node-search-sidebar-root";
+const DG_SEARCH_ROOT_CLASS = "dg-node-search-sidebar-root";
 const SEARCH_QUERY_WINDOW_SELECTOR =
   '#roam-right-sidebar-content .rm-sidebar-window[data-sidebar-window-id^="sidebar-search-query"]';
 const MAX_WINDOW_WAIT_FRAMES = 30;
+const INITIAL_SYNC_DELAY_MS = 500;
 
 const activeUnmounts = new Map<string, () => void>();
 const windowGuardObservers = new Map<string, MutationObserver>();
@@ -28,58 +28,28 @@ let syncTimeout: number | undefined;
 let syncInProgress = false;
 let needsResync = false;
 
-const createDgSearchId = (): string => window.roamAlphaAPI.util.generateUID();
-
-const getSidebarWindowId = (sidebarWindow: HTMLElement): string | null =>
-  sidebarWindow.getAttribute("data-sidebar-window-id");
-
-const getSearchQuerySidebarWindows = (): HTMLElement[] => [
-  ...document.querySelectorAll<HTMLElement>(SEARCH_QUERY_WINDOW_SELECTOR),
-];
-
-const hasDgSearchRoot = (sidebarWindow: HTMLElement): boolean =>
-  !!sidebarWindow.querySelector(`.${DG_SEARCH_ROOT_CLASS}`);
-
-const getSearchMountContainer = (
-  sidebarWindow: HTMLElement,
-): HTMLElement | null => sidebarWindow.querySelector(".rm-sidebar-search");
-
-const findSidebarWindowElement = (windowId: string): HTMLElement | null =>
-  document.querySelector<HTMLElement>(`[data-sidebar-window-id="${windowId}"]`);
+const getSearchContainer = (sidebarWindow: HTMLElement): HTMLElement | null =>
+  sidebarWindow.querySelector<HTMLElement>(".rm-sidebar-search");
 
 const waitForNewSearchQueryWindow = async (
   previousWindowIds: Set<string>,
 ): Promise<HTMLElement> => {
   for (let attempt = 0; attempt < MAX_WINDOW_WAIT_FRAMES; attempt += 1) {
-    const newWindow = getSearchQuerySidebarWindows().find((sidebarWindow) => {
-      const windowId = getSidebarWindowId(sidebarWindow);
-      return !!windowId && !previousWindowIds.has(windowId);
-    });
-    if (newWindow) return newWindow;
+    const windows = document.querySelectorAll<HTMLElement>(
+      SEARCH_QUERY_WINDOW_SELECTOR,
+    );
+    for (const sidebarWindow of windows) {
+      const windowId = sidebarWindow.dataset.sidebarWindowId;
+      if (windowId && !previousWindowIds.has(windowId)) {
+        return sidebarWindow;
+      }
+    }
 
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => resolve());
     });
   }
   throw new Error("DG search sidebar window did not appear");
-};
-
-const addSearchQuerySidebarWindow = async (query: string): Promise<void> => {
-  await window.roamAlphaAPI.ui.rightSidebar.addWindow({
-    window: {
-      type: "search-query",
-      // @ts-expect-error - search-query-str replaces block-uid for search-query windows
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "search-query-str": query,
-    },
-  });
-};
-
-const setSidebarWindowTitle = (sidebarWindow: HTMLElement): void => {
-  const titleEl = sidebarWindow.querySelector<HTMLElement>(
-    ".window-headers span[style*='font-weight']",
-  );
-  if (titleEl) titleEl.textContent = "DG node search";
 };
 
 const disconnectWindowGuardObserver = (dgSearchId: string): void => {
@@ -96,18 +66,21 @@ const attachWindowGuardObserver = ({
 }): void => {
   disconnectWindowGuardObserver(dgSearchId);
 
-  const searchContainer = getSearchMountContainer(sidebarWindow);
+  const searchContainer = getSearchContainer(sidebarWindow);
   if (!searchContainer) return;
 
   const observer = new MutationObserver(() => {
-    if (mountingDgSearchIds.has(dgSearchId) || hasDgSearchRoot(sidebarWindow)) {
+    if (
+      mountingDgSearchIds.has(dgSearchId) ||
+      sidebarWindow.querySelector(`.${DG_SEARCH_ROOT_CLASS}`)
+    ) {
       return;
     }
 
     const savedState = loadDgSearchWindowById(dgSearchId);
     if (!savedState) return;
 
-    const windowId = getSidebarWindowId(sidebarWindow);
+    const windowId = sidebarWindow.dataset.sidebarWindowId;
     if (!windowId) return;
 
     mountPanelInSearchWindow({
@@ -141,7 +114,7 @@ const mountPanelInSearchWindow = ({
     activeUnmounts.get(dgSearchId)?.();
     activeUnmounts.delete(dgSearchId);
 
-    const searchContainer = getSearchMountContainer(sidebarWindow);
+    const searchContainer = getSearchContainer(sidebarWindow);
     if (!searchContainer) {
       throw new Error("DG search sidebar window is missing .rm-sidebar-search");
     }
@@ -154,8 +127,6 @@ const mountPanelInSearchWindow = ({
     root.dataset.dgWindowId = windowId;
     root.onmousedown = (event) => event.stopPropagation();
     searchContainer.appendChild(root);
-
-    sidebarWindow.dataset.dgNodeSearch = "true";
 
     const stateWithIds: DockedSearchState = {
       ...dockedState,
@@ -170,11 +141,7 @@ const mountPanelInSearchWindow = ({
         dgSearchId={dgSearchId}
         dockedState={stateWithIds}
         onPersistState={(nextState) => {
-          registerDgSearchWindow({
-            dgSearchId,
-            windowId,
-            state: { ...nextState, dgSearchId, windowId },
-          });
+          registerDgSearchWindow({ dgSearchId, windowId, state: nextState });
         }}
         windowId={windowId}
       />,
@@ -182,31 +149,36 @@ const mountPanelInSearchWindow = ({
     );
 
     activeUnmounts.set(dgSearchId, unmount);
-    setSidebarWindowTitle(sidebarWindow);
+
+    const titleEl = sidebarWindow.querySelector<HTMLElement>(
+      ".window-headers span[style*='font-weight']",
+    );
+    if (titleEl) titleEl.textContent = "DG node search";
+
     attachWindowGuardObserver({ dgSearchId, sidebarWindow });
   } finally {
     mountingDgSearchIds.delete(dgSearchId);
   }
 };
 
-const restoreSavedDgSearchWindow = (
-  savedState: PersistedDockedSearchState,
-): boolean => {
-  const sidebarWindow = findSidebarWindowElement(savedState.windowId);
-  if (!sidebarWindow || hasDgSearchRoot(sidebarWindow)) return false;
-
-  mountPanelInSearchWindow({
-    dgSearchId: savedState.dgSearchId,
-    dockedState: savedState,
-    sidebarWindow,
-    windowId: savedState.windowId,
-  });
-  return true;
-};
-
-export const restorePersistedDockedSearchSidebarWindows = (): void => {
+const restorePersistedDockedSearchSidebarWindows = (): void => {
   for (const savedState of listDgSearchWindows()) {
-    restoreSavedDgSearchWindow(savedState);
+    const sidebarWindow = document.querySelector<HTMLElement>(
+      `[data-sidebar-window-id="${savedState.windowId}"]`,
+    );
+    if (
+      !sidebarWindow ||
+      sidebarWindow.querySelector(`.${DG_SEARCH_ROOT_CLASS}`)
+    ) {
+      continue;
+    }
+
+    mountPanelInSearchWindow({
+      dgSearchId: savedState.dgSearchId,
+      dockedState: savedState,
+      sidebarWindow,
+      windowId: savedState.windowId,
+    });
   }
 };
 
@@ -221,7 +193,7 @@ const syncSidebarWindows = async (): Promise<void> => {
     const roamWindows = await getRoamSidebarWindows();
     syncDgSearchWindowIdsFromRoam(roamWindows);
     restorePersistedDockedSearchSidebarWindows();
-    await pruneStaleDockedSearchSidebarStates(roamWindows);
+    pruneStaleDockedSearchSidebarStates(roamWindows);
   } finally {
     syncInProgress = false;
     if (needsResync) {
@@ -240,21 +212,29 @@ const scheduleSyncSidebarWindows = (): void => {
 
 const scheduleInitialSync = (): void => {
   scheduleSyncSidebarWindows();
-  window.setTimeout(scheduleSyncSidebarWindows, 500);
+  window.setTimeout(scheduleSyncSidebarWindows, INITIAL_SYNC_DELAY_MS);
 };
 
 export const mountAdvancedSearchInSidebar = async (
   dockedState: DockedSearchState,
 ): Promise<void> => {
-  const dgSearchId = createDgSearchId();
+  const dgSearchId = window.roamAlphaAPI.util.generateUID();
   const roamWindowsBefore = await getRoamSidebarWindows();
   const previousWindowIds = new Set(
     roamWindowsBefore.map((window) => window["window-id"]),
   );
 
-  await addSearchQuerySidebarWindow(dockedState.query);
+  await window.roamAlphaAPI.ui.rightSidebar.addWindow({
+    window: {
+      type: "search-query",
+      // @ts-expect-error - search-query-str replaces block-uid for search-query windows
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "search-query-str": dockedState.query,
+    },
+  });
+
   const sidebarWindow = await waitForNewSearchQueryWindow(previousWindowIds);
-  const windowId = getSidebarWindowId(sidebarWindow);
+  const windowId = sidebarWindow.dataset.sidebarWindowId;
 
   if (!windowId) {
     throw new Error(
@@ -300,17 +280,17 @@ export const initDockedSearchSidebarPersistence = (): (() => void) => {
 
       const sidebarWindow =
         closeButton.closest<HTMLElement>(".rm-sidebar-window");
-      if (!sidebarWindow?.dataset.dgNodeSearch) return;
+      if (!sidebarWindow) return;
 
+      const windowId = sidebarWindow.dataset.sidebarWindowId;
       const dgSearchId =
         sidebarWindow.querySelector<HTMLElement>(`.${DG_SEARCH_ROOT_CLASS}`)
           ?.dataset.dgSearchId ??
-        loadDgSearchWindowByWindowId(getSidebarWindowId(sidebarWindow) ?? "")
-          ?.dgSearchId;
+        loadDgSearchWindowByWindowId(windowId ?? "")?.dgSearchId;
+      if (!dgSearchId) return;
 
-      const windowId = getSidebarWindowId(sidebarWindow) ?? undefined;
       removeDgSearchWindow({ dgSearchId, windowId });
-      if (dgSearchId) disconnectWindowGuardObserver(dgSearchId);
+      disconnectWindowGuardObserver(dgSearchId);
     };
 
     sidebarContent.addEventListener("click", sidebarCloseClickHandler, true);

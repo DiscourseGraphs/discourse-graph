@@ -2,13 +2,11 @@ import type { DockedSearchState } from "./utils";
 
 const STORAGE_KEY = "dg-advanced-search-sidebar-windows";
 const SIDEBAR_OPEN_WIDTH_PX = 40;
+const SEARCH_QUERY_WINDOW_ID_PREFIX = "sidebar-search-query";
 
 export type RoamSidebarWindow = {
   type: string;
   "window-id": string;
-  order?: number;
-  "pinned?"?: boolean;
-  "collapsed?"?: boolean;
   "search-query-str"?: string;
 };
 
@@ -20,6 +18,9 @@ export type PersistedDockedSearchState = DockedSearchState & {
 };
 
 type PersistedDockedSearchRegistry = Record<string, PersistedDockedSearchState>;
+type StoredRegistryEntry = PersistedDockedSearchState & {
+  isDgSearch?: boolean;
+};
 
 export const isRightSidebarOpen = (): boolean => {
   const sidebar = document.getElementById("right-sidebar");
@@ -30,7 +31,7 @@ export const isRightSidebarOpen = (): boolean => {
 
 export const getRoamSidebarWindows = async (): Promise<RoamSidebarWindow[]> => {
   try {
-    const windows = window.roamAlphaAPI.ui.rightSidebar.getWindows();
+    const windows = await window.roamAlphaAPI.ui.rightSidebar.getWindows();
     return windows ?? [];
   } catch {
     return [];
@@ -39,17 +40,14 @@ export const getRoamSidebarWindows = async (): Promise<RoamSidebarWindow[]> => {
 
 const normalizeRegistryEntry = (
   key: string,
-  value: PersistedDockedSearchState & { isDgSearch?: boolean },
+  value: StoredRegistryEntry,
 ): PersistedDockedSearchState | null => {
   if (!value.query) return null;
 
-  const dgSearchId = value.dgSearchId ?? key;
-  const windowId = value.windowId ?? key;
-
   return {
     ...value,
-    dgSearchId,
-    windowId,
+    dgSearchId: value.dgSearchId ?? key,
+    windowId: value.windowId ?? key,
     isDgSearch: true,
     updatedAt: value.updatedAt ?? Date.now(),
   };
@@ -60,18 +58,13 @@ const readRegistry = (): PersistedDockedSearchRegistry => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return {};
 
-    const parsed = JSON.parse(raw) as Record<
-      string,
-      PersistedDockedSearchState & { isDgSearch?: boolean }
-    >;
+    const parsed = JSON.parse(raw) as Record<string, StoredRegistryEntry>;
     if (!parsed || typeof parsed !== "object") return {};
 
     const registry: PersistedDockedSearchRegistry = {};
     for (const [key, value] of Object.entries(parsed)) {
-      const normalized = normalizeRegistryEntry(key, value);
-      if (normalized) {
-        registry[normalized.dgSearchId] = normalized;
-      }
+      const entry = normalizeRegistryEntry(key, value);
+      if (entry) registry[entry.dgSearchId] = entry;
     }
     return registry;
   } catch {
@@ -88,12 +81,50 @@ const removeOtherEntriesWithWindowId = (
   windowId: string,
   keepDgSearchId: string,
 ): void => {
-  for (const [existingId, entry] of Object.entries(registry)) {
-    if (entry.windowId === windowId && existingId !== keepDgSearchId) {
-      delete registry[existingId];
+  for (const [id, entry] of Object.entries(registry)) {
+    if (entry.windowId === windowId && id !== keepDgSearchId) {
+      delete registry[id];
     }
   }
 };
+
+const upsertRegistryEntry = (
+  registry: PersistedDockedSearchRegistry,
+  {
+    dgSearchId,
+    windowId,
+    state,
+  }: {
+    dgSearchId: string;
+    windowId: string;
+    state: DockedSearchState;
+  },
+): void => {
+  removeOtherEntriesWithWindowId(registry, windowId, dgSearchId);
+  registry[dgSearchId] = {
+    ...state,
+    dgSearchId,
+    windowId,
+    isDgSearch: true,
+    updatedAt: Date.now(),
+  };
+};
+
+const getSearchQueryWindows = (
+  roamWindows: RoamSidebarWindow[],
+): RoamSidebarWindow[] =>
+  roamWindows.filter((window) => window.type === "search-query");
+
+const getDomSearchQueryWindowIds = (): Set<string> =>
+  new Set(
+    [
+      ...document.querySelectorAll<HTMLElement>(
+        `[data-sidebar-window-id^="${SEARCH_QUERY_WINDOW_ID_PREFIX}"]`,
+      ),
+    ]
+      .map((element) => element.dataset.sidebarWindowId)
+      .filter((windowId): windowId is string => Boolean(windowId)),
+  );
 
 export const registerDgSearchWindow = ({
   dgSearchId,
@@ -105,15 +136,7 @@ export const registerDgSearchWindow = ({
   state: DockedSearchState;
 }): void => {
   const registry = readRegistry();
-  removeOtherEntriesWithWindowId(registry, windowId, dgSearchId);
-
-  registry[dgSearchId] = {
-    ...state,
-    dgSearchId,
-    windowId,
-    isDgSearch: true,
-    updatedAt: Date.now(),
-  };
+  upsertRegistryEntry(registry, { dgSearchId, windowId, state });
   writeRegistry(registry);
 };
 
@@ -124,29 +147,8 @@ export const loadDgSearchWindowById = (
 export const loadDgSearchWindowByWindowId = (
   windowId: string,
 ): PersistedDockedSearchState | null =>
-  Object.values(readRegistry()).find((state) => state.windowId === windowId) ??
+  Object.values(readRegistry()).find((entry) => entry.windowId === windowId) ??
   null;
-
-export const remapDgSearchWindowId = ({
-  dgSearchId,
-  windowId,
-}: {
-  dgSearchId: string;
-  windowId: string;
-}): void => {
-  const registry = readRegistry();
-  const entry = registry[dgSearchId];
-  if (!entry) return;
-
-  removeOtherEntriesWithWindowId(registry, windowId, dgSearchId);
-
-  registry[dgSearchId] = {
-    ...entry,
-    windowId,
-    updatedAt: Date.now(),
-  };
-  writeRegistry(registry);
-};
 
 export const removeDgSearchWindow = ({
   dgSearchId,
@@ -156,22 +158,18 @@ export const removeDgSearchWindow = ({
   windowId?: string;
 }): void => {
   const registry = readRegistry();
-  let changed = false;
+  const idToRemove =
+    (dgSearchId && registry[dgSearchId] ? dgSearchId : undefined) ??
+    (windowId
+      ? Object.entries(registry).find(
+          ([, entry]) => entry.windowId === windowId,
+        )?.[0]
+      : undefined);
 
-  if (dgSearchId && registry[dgSearchId]) {
-    delete registry[dgSearchId];
-    changed = true;
-  } else if (windowId) {
-    const match = Object.entries(registry).find(
-      ([, entry]) => entry.windowId === windowId,
-    );
-    if (match) {
-      delete registry[match[0]];
-      changed = true;
-    }
-  }
+  if (!idToRemove) return;
 
-  if (changed) writeRegistry(registry);
+  delete registry[idToRemove];
+  writeRegistry(registry);
 };
 
 export const listDgSearchWindows = (): PersistedDockedSearchState[] =>
@@ -181,84 +179,55 @@ export const syncDgSearchWindowIdsFromRoam = (
   roamWindows: RoamSidebarWindow[],
 ): void => {
   const registry = readRegistry();
-  const searchQueryWindows = roamWindows.filter(
-    (window) => window.type === "search-query",
-  );
-  const dgEntries = Object.values(registry);
-  const claimedRoamWindowIds = new Set<string>();
+  const unmatchedRoamWindows = [...getSearchQueryWindows(roamWindows)];
   let changed = false;
 
-  for (const entry of dgEntries) {
-    const matchedById = searchQueryWindows.find(
+  for (const entry of Object.values(registry)) {
+    const exactMatchIndex = unmatchedRoamWindows.findIndex(
       (window) => window["window-id"] === entry.windowId,
     );
-    if (matchedById) {
-      claimedRoamWindowIds.add(matchedById["window-id"]);
+    if (exactMatchIndex >= 0) {
+      unmatchedRoamWindows.splice(exactMatchIndex, 1);
+      continue;
     }
-  }
 
-  const unmatchedEntries = dgEntries.filter(
-    (entry) =>
-      !searchQueryWindows.some(
-        (window) => window["window-id"] === entry.windowId,
-      ),
-  );
-  const unmatchedRoamWindows = searchQueryWindows.filter(
-    (window) => !claimedRoamWindowIds.has(window["window-id"]),
-  );
-
-  for (const entry of unmatchedEntries) {
     const queryMatches = unmatchedRoamWindows.filter(
       (window) => window["search-query-str"] === entry.query,
     );
     if (queryMatches.length !== 1) continue;
 
-    const matchedWindow = queryMatches[0];
-    removeOtherEntriesWithWindowId(
-      registry,
-      matchedWindow["window-id"],
-      entry.dgSearchId,
-    );
+    const [matchedWindow] = queryMatches;
+    const roamWindowId = matchedWindow["window-id"];
+    removeOtherEntriesWithWindowId(registry, roamWindowId, entry.dgSearchId);
     registry[entry.dgSearchId] = {
       ...entry,
-      windowId: matchedWindow["window-id"],
+      windowId: roamWindowId,
       updatedAt: Date.now(),
     };
-    claimedRoamWindowIds.add(matchedWindow["window-id"]);
+    unmatchedRoamWindows.splice(unmatchedRoamWindows.indexOf(matchedWindow), 1);
     changed = true;
   }
 
-  if (changed) {
-    writeRegistry(registry);
-  }
+  if (changed) writeRegistry(registry);
 };
 
-export const pruneStaleDockedSearchSidebarStates = async (
-  roamWindows?: RoamSidebarWindow[],
-): Promise<void> => {
+export const pruneStaleDockedSearchSidebarStates = (
+  roamWindows: RoamSidebarWindow[],
+): void => {
   if (!isRightSidebarOpen()) return;
 
-  const resolvedRoamWindows = roamWindows ?? (await getRoamSidebarWindows());
-  if (!roamWindows) {
-    syncDgSearchWindowIdsFromRoam(resolvedRoamWindows);
-  }
-
-  const roamWindowIds = new Set(
-    resolvedRoamWindows.map((window) => window["window-id"]),
+  const liveRoamWindowIds = new Set(
+    roamWindows.map((window) => window["window-id"]),
   );
+  const domWindowIds = getDomSearchQueryWindowIds();
   const registry = readRegistry();
   let changed = false;
 
   for (const dgSearchId of Object.keys(registry)) {
-    const entry = registry[dgSearchId];
-    if (!entry?.isDgSearch) continue;
-
-    if (roamWindowIds.has(entry.windowId)) continue;
-
-    const sidebarWindow = document.querySelector(
-      `[data-sidebar-window-id="${entry.windowId}"]`,
-    );
-    if (sidebarWindow) continue;
+    const { windowId } = registry[dgSearchId];
+    if (liveRoamWindowIds.has(windowId) || domWindowIds.has(windowId)) {
+      continue;
+    }
 
     delete registry[dgSearchId];
     changed = true;
