@@ -29,13 +29,11 @@ import {
   settingKeys,
 } from "~/components/settings/utils/settingsEmitter";
 import {
-  isQueryBlockRef,
   type LeftSidebarConfig,
   type LeftSidebarPersonalSectionConfig,
   mergeGlobalSectionWithAccessor,
   mergePersonalSectionsWithAccessor,
 } from "~/utils/getLeftSidebarSettings";
-import runQuery from "~/utils/runQuery";
 import { sectionsToBlockProps } from "./settings/LeftSidebarPersonalSettings";
 import discourseConfigRef, { notify } from "~/utils/discourseConfigRef";
 import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
@@ -349,169 +347,6 @@ const PersonalSectionItem = ({
   );
 };
 
-const QuerySectionItem = ({
-  section,
-  sectionIndex,
-  dragHandle,
-  onloadArgs,
-}: {
-  section: LeftSidebarPersonalSectionConfig;
-  sectionIndex: number;
-  dragHandle: SortableHandle;
-  onloadArgs: OnloadArgs;
-}) => {
-  const queryUid = extractRef(section.text);
-  const alias = section.settings?.alias?.value;
-  const queryLabel = useMemo(() => getTextByBlockUid(queryUid), [queryUid]);
-  const displayName = alias || queryLabel || section.text;
-  const truncateAt = section.settings?.truncateResult.value;
-  const resultLimit = Math.max(
-    0,
-    Math.trunc(section.settings?.resultLimit?.value ?? 10),
-  );
-
-  const [isOpen, setIsOpen] = useState<boolean>(
-    !!section.settings?.folded.value,
-  );
-  const [results, setResults] = useState<ChildNode[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasCompletedInitialLoad, setHasCompletedInitialLoad] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const isTogglingRef = useRef(false);
-
-  const loadResults = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const { allProcessedResults } = await runQuery({
-        parentUid: queryUid,
-        extensionAPI: onloadArgs.extensionAPI,
-      });
-      const children: ChildNode[] = allProcessedResults.map((r) => {
-        const isPage = !!getPageTitleByPageUid(r.uid);
-        return {
-          uid: r.uid,
-          text: isPage ? r.uid : `((${r.uid}))`,
-        };
-      });
-      setResults(children);
-    } catch (e) {
-      console.error(e);
-      setError("Query failed to run");
-    } finally {
-      setIsLoading(false);
-      setHasCompletedInitialLoad(true);
-    }
-  }, [queryUid, onloadArgs.extensionAPI]);
-
-  useEffect(() => {
-    if (isOpen && !hasCompletedInitialLoad) {
-      void loadResults();
-    }
-  }, [isOpen, hasCompletedInitialLoad, loadResults]);
-
-  const handleChevronClick = async () => {
-    if (!section.settings) return;
-    if (isTogglingRef.current) return;
-    isTogglingRef.current = true;
-    try {
-      await toggleFoldedState({
-        isOpen,
-        setIsOpen,
-        folded: section.settings.folded,
-        parentUid: section.settings.uid || "",
-        sectionIndex,
-      });
-    } finally {
-      isTogglingRef.current = false;
-    }
-  };
-
-  const limitedResults =
-    resultLimit > 0 ? results.slice(0, resultLimit) : results;
-
-  let body: React.ReactNode = null;
-  if (isLoading) {
-    body = <div className="pl-8 pr-2.5 text-sm text-gray-500">Loading…</div>;
-  } else if (error) {
-    body = <div className="pl-8 pr-2.5 text-sm text-red-500">{error}</div>;
-  } else if (limitedResults.length > 0) {
-    body = limitedResults.map((child) => (
-      <ChildRow
-        key={child.uid}
-        child={child}
-        truncateAt={truncateAt}
-        onloadArgs={onloadArgs}
-      />
-    ));
-  } else if (hasCompletedInitialLoad) {
-    body = <div className="pl-8 pr-2.5 text-sm text-gray-500">No results</div>;
-  }
-
-  return (
-    <>
-      <div
-        {...dragHandle.attributes}
-        {...dragHandle.listeners}
-        className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none"
-      >
-        <div className="flex w-full items-center justify-between">
-          <div
-            className="flex flex-1 items-center"
-            onClick={() => void handleChevronClick()}
-          >
-            {displayName.toUpperCase()}
-          </div>
-          <span
-            className="sidebar-title-button-chevron p-1"
-            onClick={() => void handleChevronClick()}
-          >
-            <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
-          </span>
-          <Popover
-            interactionKind={PopoverInteractionKind.CLICK}
-            position={Position.BOTTOM_RIGHT}
-            autoFocus={false}
-            enforceFocus={false}
-            captureDismiss
-            isOpen={isMenuOpen}
-            onInteraction={(next) => setIsMenuOpen(next)}
-            onClose={() => setIsMenuOpen(false)}
-            popoverClassName="dg-leftsidebar-popover"
-            minimal
-            content={
-              <Menu>
-                <MenuItem
-                  icon="refresh"
-                  text="Refresh"
-                  onClick={() => {
-                    void loadResults();
-                    setIsMenuOpen(false);
-                  }}
-                />
-                <MenuItem
-                  icon="document-open"
-                  text="Go to query block"
-                  onClick={(e) => {
-                    void openTarget(e, `((${queryUid}))`, onloadArgs);
-                    setIsMenuOpen(false);
-                  }}
-                />
-              </Menu>
-            }
-          >
-            <span className="sidebar-title-button-add p-1">
-              <Icon icon="more" size={14} />
-            </span>
-          </Popover>
-        </div>
-      </div>
-      <Collapse isOpen={isOpen}>{body}</Collapse>
-    </>
-  );
-};
-
 const PersonalSections = ({
   config,
   setConfig,
@@ -589,28 +424,15 @@ const PersonalSections = ({
       getId={(s) => s.uid}
       onReorder={reorderSections}
       className="personal-left-sidebar-sections"
-      renderItem={(section, handle) => {
-        const sectionIndex = sections.findIndex((s) => s.uid === section.uid);
-        if (isQueryBlockRef(section.text) && section.settings?.uid) {
-          return (
-            <QuerySectionItem
-              section={section}
-              sectionIndex={sectionIndex}
-              dragHandle={handle}
-              onloadArgs={onloadArgs}
-            />
-          );
-        }
-        return (
-          <PersonalSectionItem
-            section={section}
-            sectionIndex={sectionIndex}
-            dragHandle={handle}
-            onChildrenReorder={reorderChildren}
-            onloadArgs={onloadArgs}
-          />
-        );
-      }}
+      renderItem={(section, handle) => (
+        <PersonalSectionItem
+          section={section}
+          sectionIndex={sections.findIndex((s) => s.uid === section.uid)}
+          dragHandle={handle}
+          onChildrenReorder={reorderChildren}
+          onloadArgs={onloadArgs}
+        />
+      )}
     />
   );
 };

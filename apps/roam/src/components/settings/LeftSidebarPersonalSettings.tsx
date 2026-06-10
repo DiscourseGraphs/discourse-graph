@@ -30,7 +30,6 @@ import {
   PersonalTextPanel,
 } from "~/components/settings/components/BlockPropSettingPanels";
 import {
-  isQueryBlockRef,
   LeftSidebarPersonalSectionConfig,
   getLeftSidebarPersonalSectionConfig,
   mergePersonalSectionsWithAccessor,
@@ -71,8 +70,6 @@ export const sectionsToBlockProps = (
     Settings: {
       "Truncate-result?": s.settings?.truncateResult?.value ?? 75,
       Folded: s.settings?.folded?.value ?? false,
-      Alias: s.settings?.alias?.value ?? "",
-      "Result-limit": s.settings?.resultLimit?.value ?? 10,
     },
   }));
 /* eslint-enable @typescript-eslint/naming-convention */
@@ -114,22 +111,9 @@ const SectionItem = memo(
       new Set(initiallyExpanded ? [section.uid] : []),
     );
     const isExpanded = expandedChildLists.has(section.uid);
-    const isQuery = isQueryBlockRef(section.text);
-    const [aliasValue, setAliasValue] = useState(
-      section.settings?.alias?.value ?? "",
-    );
-    const aliasUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
     const [childSettingsUid, setChildSettingsUid] = useState<string | null>(
       null,
     );
-
-    useEffect(() => {
-      return () => {
-        clearTimeout(aliasUpdateTimeoutRef.current);
-        aliasUpdateTimeoutRef.current = undefined;
-      };
-    }, []);
-
     const toggleChildrenList = useCallback((sectionUid: string) => {
       setExpandedChildLists((prev) => {
         const next = new Set(prev);
@@ -352,84 +336,6 @@ const SectionItem = memo(
       setChildInputKey((prev) => prev + 1);
     }, []);
 
-    const handleAliasChange = useCallback(
-      (newValue: string) => {
-        setAliasValue(newValue);
-
-        clearTimeout(aliasUpdateTimeoutRef.current);
-        aliasUpdateTimeoutRef.current = setTimeout(() => {
-          const currentSection = sectionsRef.current.find(
-            (s) => s.uid === section.uid,
-          );
-          if (!currentSection?.uid) return;
-
-          void (async () => {
-            let settingsUid = currentSection.settings?.uid;
-            if (!settingsUid) {
-              settingsUid = await createBlock({
-                parentUid: currentSection.uid,
-                order: 0,
-                node: { text: "Settings" },
-              });
-            }
-
-            let aliasUid = currentSection.settings?.alias?.uid;
-            if (!aliasUid) {
-              aliasUid = await createBlock({
-                parentUid: settingsUid,
-                order: 0,
-                node: { text: "Alias" },
-              });
-            }
-
-            let valueUid = currentSection.settings?.alias?.valueUid;
-            if (valueUid) {
-              await updateBlock({ uid: valueUid, text: newValue });
-            } else {
-              valueUid = await createBlock({
-                parentUid: aliasUid,
-                order: 0,
-                node: { text: newValue },
-              });
-            }
-            const nextSections = sectionsRef.current.map((s) =>
-              s.uid === section.uid
-                ? {
-                    ...s,
-                    settings: {
-                      uid: settingsUid,
-                      folded: s.settings?.folded ?? {
-                        uid: undefined,
-                        value: false,
-                      },
-                      truncateResult: s.settings?.truncateResult ?? {
-                        uid: undefined,
-                        value: 75,
-                      },
-                      alias: {
-                        ...(s.settings?.alias ?? {}),
-                        uid: aliasUid,
-                        valueUid,
-                        value: newValue,
-                      },
-                      resultLimit: s.settings?.resultLimit ?? {
-                        uid: undefined,
-                        value: 10,
-                      },
-                    },
-                  }
-                : s,
-            );
-            sectionsRef.current = nextSections;
-            setSections(nextSections);
-            syncAllSectionsToBlockProps(nextSections);
-            refreshAndNotify();
-          })();
-        }, 300);
-      },
-      [section.uid, sectionsRef, setSections],
-    );
-
     const handleAddChild = useCallback(async () => {
       if (childInput && section.childrenUid) {
         await addChildToSection(section, section.childrenUid, childInput);
@@ -441,42 +347,6 @@ const SectionItem = memo(
     const sectionWithoutSettingsAndChildren =
       (!section.settings && section.children?.length === 0) ||
       !section.children;
-
-    if (isQuery) {
-      return (
-        <div className="personal-section rounded-md border border-gray-300 p-3 hover:bg-gray-50">
-          <div
-            {...dragHandle.attributes}
-            {...dragHandle.listeners}
-            className="group flex cursor-grab items-center gap-2 active:cursor-grabbing"
-          >
-            <InputGroup
-              value={aliasValue}
-              onChange={(e) => handleAliasChange(e.target.value)}
-              placeholder="Alias…"
-              small
-            />
-            <span className="flex-shrink-0 text-xs text-gray-400">
-              {section.text}
-            </span>
-            <div className="flex-1" />
-            <ButtonGroup minimal>
-              <Button
-                icon="settings"
-                onClick={() => setSettingsDialogSectionUid(section.uid)}
-                title="Edit section settings"
-              />
-              <Button
-                icon="trash"
-                intent="danger"
-                onClick={() => void removeSection(section)}
-                title="Remove section"
-              />
-            </ButtonGroup>
-          </div>
-        </div>
-      );
-    }
 
     return (
       <div
@@ -752,53 +622,13 @@ const LeftSidebarPersonalSectionsContent = ({
           node: { text: sectionName },
         });
 
-        let newSection: LeftSidebarPersonalSectionConfig;
-
-        if (isQueryBlockRef(sectionName)) {
-          const settingsUid = await createBlock({
-            parentUid: newBlock,
-            order: 0,
-            node: { text: "Settings" },
-          });
-          const aliasUid = await createBlock({
-            parentUid: settingsUid,
-            order: 0,
-            node: { text: "Alias" },
-          });
-          const truncateUid = await createBlock({
-            parentUid: settingsUid,
-            order: 1,
-            node: { text: "Truncate-result?", children: [{ text: "75" }] },
-          });
-          const resultLimitUid = await createBlock({
-            parentUid: settingsUid,
-            order: 2,
-            node: { text: "Result-limit", children: [{ text: "10" }] },
-          });
-
-          newSection = {
-            text: sectionName,
-            uid: newBlock,
-            settings: {
-              uid: settingsUid,
-              alias: { uid: aliasUid, value: "" },
-              folded: { uid: undefined, value: false },
-              truncateResult: { uid: truncateUid, value: 75 },
-              resultLimit: { uid: resultLimitUid, value: 10 },
-            },
-            children: undefined,
-            childrenUid: undefined,
-          };
-        } else {
-          newSection = {
-            text: sectionName,
-            uid: newBlock,
-            settings: undefined,
-            children: undefined,
-            childrenUid: undefined,
-          } as LeftSidebarPersonalSectionConfig;
-        }
-
+        const newSection = {
+          text: sectionName,
+          uid: newBlock,
+          settings: undefined,
+          children: undefined,
+          childrenUid: undefined,
+        } as LeftSidebarPersonalSectionConfig;
         const updatedSections = [...sectionsRef.current, newSection];
         setSections(updatedSections);
         syncAllSectionsToBlockProps(updatedSections);
@@ -969,39 +799,6 @@ const LeftSidebarPersonalSectionsContent = ({
                                 ...s.settings,
                                 truncateResult: {
                                   ...s.settings.truncateResult,
-                                  value,
-                                },
-                              }
-                            : s.settings,
-                        }
-                      : s,
-                  );
-                  setSections(updatedSections);
-                  syncAllSectionsToBlockProps(updatedSections);
-                }}
-              />
-              <PersonalNumberPanel
-                title="Result-limit"
-                description="Maximum number of children to display"
-                settingKeys={[]}
-                initialValue={
-                  activeDialogSection.settings.resultLimit?.value ?? 10
-                }
-                min={0}
-                order={2}
-                uid={activeDialogSection.settings.resultLimit?.uid}
-                parentUid={activeDialogSection.settings.uid || ""}
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                setter={(_, value) => {
-                  const updatedSections = sectionsRef.current.map((s) =>
-                    s.uid === activeDialogSection.uid
-                      ? {
-                          ...s,
-                          settings: s.settings
-                            ? {
-                                ...s.settings,
-                                resultLimit: {
-                                  ...s.settings.resultLimit,
                                   value,
                                 },
                               }

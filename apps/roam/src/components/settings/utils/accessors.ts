@@ -262,8 +262,6 @@ const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
     Settings: {
       "Truncate-result?": section.settings?.truncateResult.value ?? 75,
       Folded: section.settings?.folded.value ?? false,
-      Alias: section.settings?.alias?.value ?? "",
-      "Result-limit": section.settings?.resultLimit?.value ?? 0,
     },
   }));
   /* eslint-enable @typescript-eslint/naming-convention */
