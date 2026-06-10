@@ -287,7 +287,7 @@ export class QueryEngine {
                 matchedNodeType,
                 alternativePattern: pattern.alternativePattern,
                 extractedContent,
-                selected: true,
+                selected: false,
               });
             }
             break; // Stop checking other patterns for this file
@@ -590,7 +590,7 @@ export class QueryEngine {
             matchedNodeType,
             alternativePattern: pattern.alternativePattern,
             extractedContent,
-            selected: true,
+            selected: false,
           });
           break;
         }
