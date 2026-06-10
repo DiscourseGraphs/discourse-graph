@@ -41,9 +41,7 @@ const ExtraContextRow = ({ uid }: { uid: string }) => {
   );
 };
 
-const dragImage = document.createElement("img");
-dragImage.src =
-  "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+const COLUMN_RESIZING_CLASS = "roamjs-query-column-resizing";
 
 const ResultHeader = React.forwardRef<
   Record<string, HTMLTableCellElement>,
@@ -174,9 +172,9 @@ const CellRender = ({ content, uid }: { content: string; uid: string }) => {
 type ResultRowProps = {
   r: Result;
   columns: Column[];
-  onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
-  onDrag: (e: React.DragEvent<HTMLDivElement>) => void;
-  onDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
+  onResizeStart: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onResize: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onResizeEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   parentUid: string;
   ctrlClick?: (e: Result) => void;
   views: { column: string; mode: string; value: string }[];
@@ -189,9 +187,9 @@ const ResultRow = ({
   parentUid,
   ctrlClick,
   views,
-  onDragStart,
-  onDrag,
-  onDragEnd,
+  onResizeStart,
+  onResize,
+  onResizeEnd,
   onRefresh,
 }: ResultRowProps) => {
   const storedRelationsEnabled = getStoredRelationsEnabled();
@@ -392,18 +390,15 @@ const ResultRow = ({
                     right: 0,
                     bottom: 0,
                     background: `rgba(16,22,26,0.15)`,
+                    touchAction: "none",
                   }}
                   data-left-column-uid={columnUid}
                   data-right-column-uid={columns[i + 1].uid}
                   data-column={columnUid}
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData("text/plain", "");
-                    e.dataTransfer.setDragImage(dragImage, 0, 0);
-                    onDragStart(e);
-                  }}
-                  onDrag={onDrag}
-                  onDragEnd={onDragEnd}
+                  onPointerDown={onResizeStart}
+                  onPointerMove={onResize}
+                  onPointerUp={onResizeEnd}
+                  onPointerCancel={onResizeEnd}
                 />
               )}
             </td>
@@ -420,8 +415,9 @@ type ColumnWidths = {
 
 type DragInfo = {
   startX: number;
-  leftColumnUid: string | null;
-  rightColumnUid: string | null;
+  moved: boolean;
+  leftHeader: HTMLElement | null;
+  rightHeader: HTMLElement | null;
   leftStartWidth: number;
   rightStartWidth: number;
 };
@@ -459,8 +455,9 @@ const ResultsTable = ({
   const tableRef = useRef<HTMLTableElement | null>(null);
   const dragInfo = useRef<DragInfo>({
     startX: 0,
-    leftColumnUid: null,
-    rightColumnUid: null,
+    moved: false,
+    leftHeader: null,
+    rightHeader: null,
     leftStartWidth: 0,
     rightStartWidth: 0,
   });
@@ -477,28 +474,8 @@ const ResultsTable = ({
     return filtered.length ? filtered : columns;
   }, [columns, viewsByColumn]);
 
-  const rafIdRef = useRef<number | null>(null);
-  const throttledSetColumnWidths = useCallback((update: ColumnWidths) => {
-    if (rafIdRef.current !== null) {
-      cancelAnimationFrame(rafIdRef.current);
-    }
-    rafIdRef.current = requestAnimationFrame(() =>
-      setColumnWidths(
-        (prev) =>
-          ({
-            ...prev,
-            ...update,
-          }) as ColumnWidths,
-      ),
-    );
-  }, []);
-
   useEffect(() => {
-    return () => {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
-    };
+    return () => document.body.classList.remove(COLUMN_RESIZING_CLASS);
   }, []);
 
   const [columnWidths, setColumnWidths] = useState(() => {
@@ -515,42 +492,45 @@ const ResultsTable = ({
     return allWidths;
   });
 
-  const onDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const onResizeStart = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
     const { leftColumnUid, rightColumnUid } = e.currentTarget.dataset;
     if (!leftColumnUid || !rightColumnUid || !tableRef.current) return;
 
-    const leftHeader = tableRef.current?.querySelector(
+    const leftHeader = tableRef.current.querySelector<HTMLElement>(
       `thead td[data-column="${leftColumnUid}"]`,
     );
-    const rightHeader = tableRef.current?.querySelector(
+    const rightHeader = tableRef.current.querySelector<HTMLElement>(
       `thead td[data-column="${rightColumnUid}"]`,
     );
 
     if (!leftHeader || !rightHeader) return;
 
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    document.body.classList.add(COLUMN_RESIZING_CLASS);
+
     dragInfo.current = {
       startX: e.clientX,
-      leftColumnUid,
-      rightColumnUid,
-      leftStartWidth: (leftHeader as HTMLElement).offsetWidth,
-      rightStartWidth: (rightHeader as HTMLElement).offsetWidth,
+      moved: false,
+      leftHeader,
+      rightHeader,
+      leftStartWidth: leftHeader.offsetWidth,
+      rightStartWidth: rightHeader.offsetWidth,
     };
   }, []);
 
-  const onDrag = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    if (e.clientX === 0) return;
+  const onResize = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
 
-    const {
-      startX,
-      leftColumnUid,
-      rightColumnUid,
-      leftStartWidth,
-      rightStartWidth,
-    } = dragInfo.current;
+    const { startX, leftHeader, rightHeader, leftStartWidth, rightStartWidth } =
+      dragInfo.current;
 
-    if (!leftColumnUid || !rightColumnUid) return;
+    if (!leftHeader || !rightHeader) return;
 
     const delta = e.clientX - startX;
+    if (delta !== 0) dragInfo.current.moved = true;
     const minWidth = 40;
 
     let newLeftWidth = leftStartWidth + delta;
@@ -581,53 +561,63 @@ const ResultsTable = ({
       }
     }
 
-    throttledSetColumnWidths({
-      [leftColumnUid]: `${newLeftWidth}px`,
-      [rightColumnUid]: `${newRightWidth}px`,
-    });
+    leftHeader.style.width = `${newLeftWidth}px`;
+    rightHeader.style.width = `${newRightWidth}px`;
   }, []);
 
-  const onDragEnd = useCallback(() => {
-    if (rafIdRef.current !== null) {
-      cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
+  const onResizeEnd = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+      e.currentTarget.releasePointerCapture(e.pointerId);
+      document.body.classList.remove(COLUMN_RESIZING_CLASS);
+      const { moved } = dragInfo.current;
+      dragInfo.current = {
+        startX: 0,
+        moved: false,
+        leftHeader: null,
+        rightHeader: null,
+        leftStartWidth: 0,
+        rightStartWidth: 0,
+      };
+      if (!moved) return;
 
-    const totalWidth = tableRef.current?.offsetWidth;
-    if (!totalWidth || totalWidth === 0) {
-      return;
-    }
-    const minWidth = 40;
-    const minPercent = (minWidth / totalWidth) * 100;
-
-    const finalWidths: ColumnWidths = { ...columnWidths };
-    const uids = visibleColumns.map((c) => c.uid);
-    uids.forEach((uid) => {
-      const header = tableRef.current?.querySelector(
-        `thead td[data-column="${uid}"]`,
-      );
-      if (header) {
-        const headerWidth = (header as HTMLElement).offsetWidth;
-        if (headerWidth > 0) {
-          const percent = (headerWidth / totalWidth) * 100;
-          finalWidths[uid] = `${Math.max(minPercent, percent)}%`;
-        } else {
-          finalWidths[uid] = columnWidths[uid] || "5%";
-        }
+      const totalWidth = tableRef.current?.offsetWidth;
+      if (!totalWidth || totalWidth === 0) {
+        return;
       }
-    });
-    setColumnWidths(finalWidths);
+      const minWidth = 40;
+      const minPercent = (minWidth / totalWidth) * 100;
 
-    if (preventSavingSettings) return;
-    const layoutUid = getSubTree({ parentUid, key: "layout" }).uid;
-    if (layoutUid) {
-      setInputSettings({
-        blockUid: layoutUid,
-        key: "widths",
-        values: Object.entries(finalWidths).map(([k, v]) => `${k} - ${v}`),
+      const finalWidths: ColumnWidths = { ...columnWidths };
+      const uids = visibleColumns.map((c) => c.uid);
+      uids.forEach((uid) => {
+        const header = tableRef.current?.querySelector(
+          `thead td[data-column="${uid}"]`,
+        );
+        if (header) {
+          const headerWidth = (header as HTMLElement).offsetWidth;
+          if (headerWidth > 0) {
+            const percent = (headerWidth / totalWidth) * 100;
+            finalWidths[uid] = `${Math.max(minPercent, percent)}%`;
+          } else {
+            finalWidths[uid] = columnWidths[uid] || "5%";
+          }
+        }
       });
-    }
-  }, [parentUid, columnWidths, visibleColumns, preventSavingSettings]);
+      setColumnWidths(finalWidths);
+
+      if (preventSavingSettings) return;
+      const layoutUid = getSubTree({ parentUid, key: "layout" }).uid;
+      if (layoutUid) {
+        setInputSettings({
+          blockUid: layoutUid,
+          key: "widths",
+          values: Object.entries(finalWidths).map(([k, v]) => `${k} - ${v}`),
+        });
+      }
+    },
+    [parentUid, columnWidths, visibleColumns, preventSavingSettings],
+  );
 
   const resultHeaderSetFilters = React.useCallback(
     (fs: FilterData) => {
@@ -752,9 +742,9 @@ const ResultsTable = ({
               views={views}
               onRefresh={onRefresh}
               columns={visibleColumns}
-              onDragStart={onDragStart}
-              onDrag={onDrag}
-              onDragEnd={onDragEnd}
+              onResizeStart={onResizeStart}
+              onResize={onResize}
+              onResizeEnd={onResizeEnd}
             />
             {extraRowUid === r.uid && (
               <tr className={`roamjs-${extraRowType}-row roamjs-extra-row`}>
