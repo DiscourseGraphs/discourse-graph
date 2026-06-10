@@ -29,16 +29,7 @@ export const isRightSidebarOpen = (): boolean => {
 };
 
 export const getRoamSidebarWindows = async (): Promise<RoamSidebarWindow[]> => {
-  const rightSidebar = window.roamAlphaAPI.ui.rightSidebar as {
-    getWindows?: () => Promise<RoamSidebarWindow[]>;
-  };
-  if (!rightSidebar.getWindows) return [];
-
-  try {
-    return (await rightSidebar.getWindows()) ?? [];
-  } catch {
-    return [];
-  }
+  return window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
 };
 
 const normalizeRegistryEntry = (
