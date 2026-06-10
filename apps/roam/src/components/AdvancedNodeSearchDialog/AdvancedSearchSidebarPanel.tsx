@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Button,
   Icon,
   InputGroup,
   NonIdealState,
@@ -21,7 +20,6 @@ import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSetting
 import { SORT_FIELD_LABELS, isNonDefaultSort, type SortConfig } from "./utils";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
-import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import { splitWithHighlights, stripTypePrefix } from "./utils";
 import { openSearchResultFromLinkEvent } from "~/utils/advancedSearchFooterUtils";
 import {
@@ -42,66 +40,6 @@ const renderHighlightedText = (
       </React.Fragment>
     ),
   );
-
-const getNodeBadgeText = (node: DiscourseNode): string =>
-  (node.tag?.trim() || node.text).slice(0, 3).toUpperCase();
-
-const getTagStyle = (node: DiscourseNode | undefined): React.CSSProperties => {
-  const color = node?.canvasSettings?.color;
-  if (!color) return { flexShrink: 0 };
-  return { ...getNodeTagStyles(color), flexShrink: 0 };
-};
-
-type AdvancedSearchDialogResultsListProps = {
-  activeIndex: number;
-  keywords: string[];
-  nodeConfigByType: Record<string, DiscourseNode>;
-  onSelect: (index: number) => void;
-  results: SearchResult[];
-};
-
-export const AdvancedSearchDialogResultsList = ({
-  activeIndex,
-  keywords,
-  nodeConfigByType,
-  onSelect,
-  results,
-}: AdvancedSearchDialogResultsListProps) => (
-  <>
-    {results.map((result, index) => (
-      <Button
-        alignText="left"
-        aria-selected={index === activeIndex}
-        className="flex-none !items-start gap-2 !px-3 !py-2"
-        fill
-        key={result.uid}
-        minimal
-        onClick={() => onSelect(index)}
-        onMouseEnter={() => onSelect(index)}
-        role="option"
-        style={{
-          background:
-            index === activeIndex ? "rgba(95, 87, 192, 0.08)" : undefined,
-          boxShadow:
-            index === activeIndex ? "inset 3px 0 0 #5f57c0" : undefined,
-        }}
-      >
-        <Tag
-          className="shrink-0"
-          minimal
-          style={getTagStyle(nodeConfigByType[result.type])}
-        >
-          {nodeConfigByType[result.type]
-            ? getNodeBadgeText(nodeConfigByType[result.type])
-            : result.nodeTypeLabel}
-        </Tag>
-        <span className="min-w-0 break-words text-sm leading-snug text-gray-900">
-          {renderHighlightedText(stripTypePrefix(result.title), keywords)}
-        </span>
-      </Button>
-    ))}
-  </>
-);
 
 type AdvancedSearchSidebarResultsListProps = {
   keywords: string[];
