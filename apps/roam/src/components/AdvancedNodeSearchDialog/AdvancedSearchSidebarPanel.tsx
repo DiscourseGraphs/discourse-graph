@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Icon,
@@ -8,16 +8,13 @@ import {
   SpinnerSize,
   Tag,
 } from "@blueprintjs/core";
-import MiniSearch from "minisearch";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import type { DockedSearchState } from "~/utils/openDgSearchInSidebar";
 import {
   DEBOUNCE_MS,
+  type DockedSearchState,
   type SearchResult,
   buildSearchIndex,
   getSearchKeywords,
-  searchIndexedNodes,
-  sortSearchResults,
 } from "./utils";
 import { hasActiveTypeFilter } from "~/utils/discourseNodeTypeFilter";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
@@ -27,6 +24,10 @@ import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import { splitWithHighlights, stripTypePrefix } from "./utils";
 import { openSearchResultFromLinkEvent } from "~/utils/advancedSearchFooterUtils";
+import {
+  type SearchIndex,
+  useAdvancedNodeSearchResults,
+} from "./useAdvancedNodeSearchResults";
 
 const renderHighlightedText = (
   text: string,
@@ -168,13 +169,6 @@ type AdvancedSearchDockedFiltersProps = {
 const getNodeIndicatorColor = (node: DiscourseNode): string =>
   formatHexColor(node.canvasSettings?.color) || "#6b7280";
 
-type SidebarIndexCache = {
-  miniSearch: MiniSearch<SearchResult & { id: string }>;
-  results: SearchResult[];
-};
-
-let cachedSidebarIndex: SidebarIndexCache | null = null;
-
 const AdvancedSearchDockedFilters = ({
   discourseNodes,
   selectedNodeTypeIds,
@@ -193,15 +187,13 @@ const AdvancedSearchDockedFilters = ({
   if (!isTypeFilterActive && !showSort) return null;
 
   return (
-    <div className="dg-node-search-sidebar__filters mb-1 ml-[9px] mr-2 flex flex-col gap-1.5">
+    <div className="dg-node-search-sidebar__filters mb-1 ml-2 mr-2 flex flex-col gap-1.5">
       {isTypeFilterActive && (
         <div className="mt-1 flex flex-wrap items-center gap-1">
-          <span className="shrink-0 text-[0.8em] text-gray-500">
-            Filtered to
-          </span>
+          <span className="shrink-0 text-xs text-gray-500">Filter:</span>
           {selectedNodes.map((node) => (
             <Tag
-              className="!text-[0.8em]"
+              className="!text-xs"
               key={node.type}
               minimal
               round
@@ -222,7 +214,7 @@ const AdvancedSearchDockedFilters = ({
         </div>
       )}
       {showSort && (
-        <p className="text-[0.8em] text-gray-500">
+        <p className="text-xs text-gray-500">
           Sorted by {SORT_FIELD_LABELS[sort.field]} (
           {sort.direction === "asc" ? "ascending" : "descending"})
         </p>
@@ -232,11 +224,17 @@ const AdvancedSearchDockedFilters = ({
 };
 
 type AdvancedSearchSidebarPanelProps = {
+  dgSearchId: string;
   dockedState: DockedSearchState;
+  onPersistState: (state: DockedSearchState) => void;
+  windowId: string;
 };
 
 export const AdvancedSearchSidebarPanel = ({
+  dgSearchId,
   dockedState,
+  onPersistState,
+  windowId,
 }: AdvancedSearchSidebarPanelProps) => {
   const {
     query,
@@ -247,21 +245,15 @@ export const AdvancedSearchSidebarPanel = ({
 
   const [searchTerm, setSearchTerm] = useState(query);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(query);
-  const [results, setResults] = useState<SearchResult[]>(dockedResults);
+  const [searchIndex, setSearchIndex] = useState<SearchIndex | null>(null);
   const [isIndexLoading, setIsIndexLoading] = useState(true);
   const [indexError, setIndexError] = useState(false);
-
-  const miniSearchRef = useRef<MiniSearch<
-    SearchResult & { id: string }
-  > | null>(null);
-  const allResultsRef = useRef<SearchResult[]>([]);
 
   const discourseNodes = useMemo(
     () => getDiscourseNodes().filter((node) => node.backedBy === "user"),
     [],
   );
   const keywords = getSearchKeywords(debouncedSearchTerm);
-  const isDockedQuery = debouncedSearchTerm.trim() === query.trim();
 
   useEffect(() => {
     const timeout = setTimeout(
@@ -275,31 +267,13 @@ export const AdvancedSearchSidebarPanel = ({
     let cancelled = false;
     setIsIndexLoading(true);
     setIndexError(false);
-
-    const applyIndex = ({
-      miniSearch,
-      results: indexedResults,
-    }: SidebarIndexCache): void => {
-      if (cancelled) return;
-      miniSearchRef.current = miniSearch;
-      allResultsRef.current = indexedResults;
-      setIsIndexLoading(false);
-    };
-
-    if (cachedSidebarIndex) {
-      applyIndex(cachedSidebarIndex);
-      return () => {
-        cancelled = true;
-      };
-    }
+    setSearchIndex(null);
 
     void buildSearchIndex(discourseNodes)
       .then(({ miniSearch, results: indexedResults }) => {
-        cachedSidebarIndex = {
-          miniSearch,
-          results: indexedResults,
-        };
-        applyIndex(cachedSidebarIndex);
+        if (cancelled) return;
+        setSearchIndex({ miniSearch, allResults: indexedResults });
+        setIsIndexLoading(false);
       })
       .catch((error) => {
         console.error(
@@ -317,32 +291,36 @@ export const AdvancedSearchSidebarPanel = ({
     };
   }, [discourseNodes]);
 
-  useEffect(() => {
-    if (!debouncedSearchTerm) {
-      setResults([]);
-      return;
-    }
-
-    if (isIndexLoading || indexError || !miniSearchRef.current) {
-      if (!isDockedQuery) setResults([]);
-      return;
-    }
-
-    const scoredHits = searchIndexedNodes({
-      miniSearch: miniSearchRef.current,
-      allResults: allResultsRef.current,
-      searchTerm: debouncedSearchTerm,
-      typeFilter: selectedNodeTypeIds.length ? selectedNodeTypeIds : undefined,
-    });
-
-    setResults(sortSearchResults({ hits: scoredHits, sort }));
-  }, [
+  const results = useAdvancedNodeSearchResults({
     debouncedSearchTerm,
-    indexError,
-    isDockedQuery,
-    isIndexLoading,
     selectedNodeTypeIds,
     sort,
+    isIndexLoading,
+    indexError,
+    searchIndex,
+    dockedQuery: query,
+    dockedResults,
+  });
+
+  useEffect(() => {
+    if (!debouncedSearchTerm) return;
+
+    onPersistState({
+      query: debouncedSearchTerm,
+      results,
+      selectedNodeTypeIds,
+      sort,
+      windowId,
+      dgSearchId,
+    });
+  }, [
+    debouncedSearchTerm,
+    dgSearchId,
+    onPersistState,
+    results,
+    selectedNodeTypeIds,
+    sort,
+    windowId,
   ]);
 
   const resultLabel =
@@ -376,7 +354,7 @@ export const AdvancedSearchSidebarPanel = ({
           />
         ) : (
           <>
-            <span className="ml-[9px] text-[0.9em]">
+            <span className="ml-2 text-xs">
               {isIndexLoading && !results.length
                 ? "Loading…"
                 : debouncedSearchTerm

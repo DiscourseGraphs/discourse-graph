@@ -7,7 +7,6 @@ import {
   Spinner,
   SpinnerSize,
 } from "@blueprintjs/core";
-import MiniSearch from "minisearch";
 import posthog from "posthog-js";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -24,7 +23,7 @@ import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
 import { openSearchResultInMain } from "~/utils/advancedSearchFooterUtils";
-import { openDgSearchInSidebar } from "~/utils/openDgSearchInSidebar";
+import { mountAdvancedSearchInSidebar } from "./mountAdvancedSearchInSidebar";
 import {
   DEBOUNCE_MS,
   DEFAULT_SORT_CONFIG,
@@ -33,14 +32,16 @@ import {
   buildSearchIndex,
   formatMetadataDate,
   getSearchKeywords,
-  searchIndexedNodes,
-  sortSearchResults,
   stripTypePrefix,
 } from "./utils";
 import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
 import { AdvancedSearchDialogResultsList } from "./AdvancedSearchSidebarPanel";
+import {
+  type SearchIndex,
+  useAdvancedNodeSearchResults,
+} from "./useAdvancedNodeSearchResults";
 
 type Props = Record<string, unknown>;
 
@@ -90,14 +91,10 @@ const AdvancedNodeSearchDialog = ({
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [indexError, setIndexError] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searchIndex, setSearchIndex] = useState<SearchIndex | null>(null);
   const [sort, setSort] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
   const [discourseNodes, setDiscourseNodes] = useState<DiscourseNode[]>([]);
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
-  const miniSearchRef = useRef<MiniSearch<
-    SearchResult & { id: string }
-  > | null>(null);
-  const allResultsRef = useRef<SearchResult[]>([]);
   const resultsPanelRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [insertTarget, setInsertTarget] = useState<InsertTarget | null>(null);
@@ -105,6 +102,15 @@ const AdvancedNodeSearchDialog = ({
   const nodeConfigByType = Object.fromEntries(
     discourseNodes.map((node) => [node.type, node]),
   );
+
+  const results = useAdvancedNodeSearchResults({
+    debouncedSearchTerm,
+    selectedNodeTypeIds,
+    sort,
+    isIndexLoading,
+    indexError,
+    searchIndex,
+  });
 
   const activeResult = results[activeIndex] ?? null;
   const keywords = getSearchKeywords(debouncedSearchTerm);
@@ -133,44 +139,16 @@ const AdvancedNodeSearchDialog = ({
       setActiveIndex(0);
       setSort(DEFAULT_SORT_CONFIG);
       setSelectedNodeTypeIds([]);
-      setResults([]);
+      setSearchIndex(null);
       setIndexError(false);
     }
   }, [isOpen]);
 
   useEffect(() => {
-    if (
-      !isOpen ||
-      isIndexLoading ||
-      indexError ||
-      !debouncedSearchTerm ||
-      !miniSearchRef.current
-    ) {
-      setResults([]);
-      return;
-    }
-
-    const scoredHits = searchIndexedNodes({
-      miniSearch: miniSearchRef.current,
-      allResults: allResultsRef.current,
-      searchTerm: debouncedSearchTerm,
-      typeFilter: selectedNodeTypeIds.length ? selectedNodeTypeIds : undefined,
-    });
-
-    setResults(sortSearchResults({ hits: scoredHits, sort }));
-  }, [
-    debouncedSearchTerm,
-    indexError,
-    isIndexLoading,
-    isOpen,
-    selectedNodeTypeIds,
-    sort,
-  ]);
-
-  useEffect(() => {
     let cancelled = false;
     setIsIndexLoading(true);
     setIndexError(false);
+    setSearchIndex(null);
 
     const discourseNodes = getDiscourseNodes().filter(
       (node) => node.backedBy === "user",
@@ -180,8 +158,7 @@ const AdvancedNodeSearchDialog = ({
     void buildSearchIndex(discourseNodes)
       .then(({ miniSearch, results: indexedResults }) => {
         if (cancelled) return;
-        miniSearchRef.current = miniSearch;
-        allResultsRef.current = indexedResults;
+        setSearchIndex({ miniSearch, allResults: indexedResults });
       })
       .catch((error) => {
         console.error("Error building advanced node search index:", error);
@@ -258,7 +235,7 @@ const AdvancedNodeSearchDialog = ({
     if (contentState !== "results" || !results.length) return;
 
     try {
-      await openDgSearchInSidebar({
+      await mountAdvancedSearchInSidebar({
         query: debouncedSearchTerm,
         results,
         selectedNodeTypeIds,

@@ -47,6 +47,15 @@ export type SearchResult = {
   authorName: string;
 };
 
+export type DockedSearchState = {
+  query: string;
+  results: SearchResult[];
+  selectedNodeTypeIds: string[];
+  sort: SortConfig;
+  windowId?: string;
+  dgSearchId?: string;
+};
+
 export type ScoredSearchHit = {
   result: SearchResult;
   score: number;
