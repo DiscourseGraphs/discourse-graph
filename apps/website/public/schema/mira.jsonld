@@ -15,7 +15,7 @@
     "domain": { "@id": "rdfs:domain", "@type": "@id" },
     "range": { "@id": "rdfs:range", "@type": "@id" },
     "label": "rdfs:label",
-    "inverseOf": { "@type": "@id", "owl:inverseOf"},
+    "inverseOf": { "@type": "@id", "@id": "owl:inverseOf"},
     "onProperty": "owl:onProperty",
     "sameAs": { "@id": "owl:sameAs", "@type": "@id" },
     "hasValue": "owl:hasValue",
