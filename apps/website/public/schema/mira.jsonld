@@ -15,7 +15,7 @@
     "domain": { "@id": "rdfs:domain", "@type": "@id" },
     "range": { "@id": "rdfs:range", "@type": "@id" },
     "label": "rdfs:label",
-    "inverseOf": "owl:inverseOf",
+    "inverseOf": { "@type": "@id", "owl:inverseOf"},
     "onProperty": "owl:onProperty",
     "sameAs": { "@id": "owl:sameAs", "@type": "@id" },
     "hasValue": "owl:hasValue",
@@ -74,6 +74,8 @@
     "Evidence": "mira:Evidence",
     "Request": "mira:Request",
     "Protocol": "mira:Protocol",
+    "Study": "mira:Protocol",
+
     "Item": "sioc:Item",
     "follows": { "@id": "mira:follows", "@type": "@id" },
     "grounds": { "@id": "mira:grounds", "@type": "@id" },
