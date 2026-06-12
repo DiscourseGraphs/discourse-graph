@@ -40,6 +40,59 @@
   cursor: pointer;
 }
 
+/* Hide internal discourse graph frontmatter keys (toggle via body.dg-hide-frontmatter-ids) */
+body.dg-hide-frontmatter-ids .metadata-property[data-property-key="authorId" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key="importedAssets" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key="importedFromRid" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key="lastModified" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key="nodeInstanceId" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key="nodeTypeId" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key="publishedToGroups" i],
+body.dg-hide-frontmatter-ids
+  .metadata-property[data-property-key^="relation_" i],
+body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
+  display: none !important;
+}
+
+/* Discourse tag styling in editor (colors via --dg-discourse-tag-* on the element) */
+[data-dg-discourse-tag] {
+  cursor: pointer;
+  background-color: var(--dg-discourse-tag-bg);
+  color: var(--dg-discourse-tag-fg);
+}
+
+/* Off-screen measure container matching DiscourseNodeShape layout */
+.dg-node-text-measure-container {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: fit-content;
+  min-width: 160px;
+  max-width: 400px;
+  padding: 0.5rem;
+  border: 2px solid transparent;
+  border-radius: 0.375rem;
+}
+
+.dg-node-text-measure-title {
+  margin: 0.25rem;
+  line-height: 1.5;
+  font-weight: 600;
+  font-size: var(--dg-measure-font-size);
+  font-family: var(--dg-measure-font-family);
+}
+
 /* Neutralize host button styling inside our editor */
 .tldraw__editor button {
   background: transparent !important;

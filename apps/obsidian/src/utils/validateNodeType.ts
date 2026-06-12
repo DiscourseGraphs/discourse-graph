@@ -53,7 +53,7 @@ export const validateNodeFormat = ({
 };
 
 export const checkInvalidChars = (format: string): ValidationResult => {
-  const INVALID_FILENAME_CHARS_REGEX = /[#^\[\]|]/;
+  const INVALID_FILENAME_CHARS_REGEX = /[#^[\]|]/;
   const invalidCharMatch = format.match(INVALID_FILENAME_CHARS_REGEX);
   if (invalidCharMatch) {
     return {
