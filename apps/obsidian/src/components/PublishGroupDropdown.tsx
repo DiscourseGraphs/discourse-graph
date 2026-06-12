@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Notice, type TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import {
@@ -29,9 +29,10 @@ export const PublishGroupDropdown = ({
   const [, setMetadataVersion] = useState(0);
 
   const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
-  const publishedToGroups = frontmatter
-    ? getPublishedToGroups(frontmatter)
-    : [];
+  const publishedToGroups = useMemo(
+    () => (frontmatter ? getPublishedToGroups(frontmatter) : []),
+    [frontmatter],
+  );
   const groupsWithPublishedState = withPublishedState(
     groups,
     publishedToGroups,
