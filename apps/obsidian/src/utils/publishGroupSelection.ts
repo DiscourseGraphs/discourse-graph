@@ -1,7 +1,11 @@
 import { Notice, type FrontMatterCache, type TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { PublishGroupSuggestModal } from "~/components/PublishGroupSuggestModal";
-import { getMyGroups, type MyGroup } from "~/utils/importNodes";
+import {
+  getAvailableGroupIds,
+  getMyGroups,
+  type MyGroup,
+} from "~/utils/importNodes";
 import { getLoggedInClient } from "~/utils/supabaseContext";
 import {
   getPublishedToGroups,
@@ -88,7 +92,7 @@ export const publishNodeToAllGroups = async ({
     throw new Error("Cannot connect to database");
   }
 
-  const memberGroupIds = (await getMyGroups(client)).map((group) => group.id);
+  const memberGroupIds = await getAvailableGroupIds(client);
   const existingPublish = getPublishedToGroups(frontmatter);
   const toPublish = memberGroupIds.filter(
     (groupId) => !existingPublish.includes(groupId),
