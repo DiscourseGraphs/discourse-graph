@@ -295,7 +295,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
 
     return (
       <div>
-        <h3 className="mb-4">Select Nodes to Import</h3>
+        <h3 className="mb-4">Select nodes to import</h3>
         <p className="text-muted mb-4 text-sm">
           {totalNodes > 0
             ? `${totalNodes} importable node(s) found. Select which nodes to import into your vault.`
@@ -411,7 +411,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
 
     return (
       <div>
-        <h3 className="mb-2">Import Preview</h3>
+        <h3 className="mb-2">Import preview</h3>
         <p className="text-muted mb-4 text-sm">
           Review what will be imported and created.
         </p>

@@ -298,7 +298,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
 
     return (
       <div>
-        <h3 className="mb-4">Review Candidates</h3>
+        <h3 className="mb-4">Review candidates</h3>
         <p className="text-muted mb-4 text-sm">
           {candidates.length} potential matches found. Review and select which
           files to identify as discourse nodes.
