@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention -- Supabase query results use snake_case column names */
 import type { Json } from "@repo/database/dbTypes";
 import type DiscourseGraphPlugin from "~/index";
 import {
@@ -172,3 +172,4 @@ export const fetchTemplateImportCandidates = async ({
     })
     .sort((a, b) => (b.lastModified ?? 0) - (a.lastModified ?? 0));
 };
+/* eslint-enable @typescript-eslint/naming-convention -- re-enable after Supabase row mapping */
