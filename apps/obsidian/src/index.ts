@@ -46,6 +46,9 @@ export default class DiscourseGraphPlugin extends Plugin {
   private currentViewActions: { leaf: WorkspaceLeaf; action: HTMLElement }[] =
     [];
   private pendingCanvasSwitches = new Set<string>();
+  private frontmatterRelationStyleEl: HTMLStyleElement | null = null;
+
+  private static readonly RELATION_KEY_PREFIX = /^(?:relation|rel)_/i;
 
   async onload() {
     await this.loadSettings();
@@ -326,10 +329,43 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   updateFrontmatterStyles(): void {
-    activeDocument.body.classList.toggle(
-      "dg-hide-frontmatter-ids",
-      !this.settings.showIdsInFrontmatter,
-    );
+    const hideIds = !this.settings.showIdsInFrontmatter;
+    activeDocument.body.classList.toggle("dg-hide-frontmatter-ids", hideIds);
+    this.updateImportedRelationFrontmatterStyles(hideIds);
+  }
+
+  private updateImportedRelationFrontmatterStyles(hideIds: boolean): void {
+    let styleEl = this.frontmatterRelationStyleEl;
+    if (!styleEl) {
+      styleEl = activeDocument.createEl("style", {
+        attr: { id: "discourse-graph-relation-frontmatter-styles" },
+      });
+      activeDocument.head.appendChild(styleEl);
+      this.frontmatterRelationStyleEl = styleEl;
+    }
+
+    if (!hideIds) {
+      styleEl.textContent = "";
+      return;
+    }
+
+    const idsToHide = this.settings.relationTypes
+      .map((relationType) => relationType.id)
+      .filter((id) => !DiscourseGraphPlugin.RELATION_KEY_PREFIX.test(id));
+
+    if (idsToHide.length === 0) {
+      styleEl.textContent = "";
+      return;
+    }
+
+    const selectors = idsToHide
+      .map(
+        (key) =>
+          `body.dg-hide-frontmatter-ids .metadata-property[data-property-key="${CSS.escape(key)}" i]`,
+      )
+      .join(", ");
+
+    styleEl.textContent = `${selectors} { display: none !important; }`;
   }
 
   toggleDiscourseContextView() {
@@ -429,6 +465,8 @@ export default class DiscourseGraphPlugin extends Plugin {
   onunload() {
     this.cleanupViewActions();
     activeDocument.body.classList.remove("dg-hide-frontmatter-ids");
+    this.frontmatterRelationStyleEl?.remove();
+    this.frontmatterRelationStyleEl = null;
 
     if (this.tagNodeHandler) {
       this.tagNodeHandler.cleanup();

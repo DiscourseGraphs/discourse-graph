@@ -206,17 +206,8 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "open-discourse-graph-settings",
     name: "Open Discourse Graphs settings",
     callback: () => {
-      // plugin.app.setting is an unofficial API
-      const setting = (
-        plugin.app as unknown as {
-          setting: {
-            open: () => void;
-            openTabById: (id: string) => void;
-          };
-        }
-      ).setting;
-      setting.open();
-      setting.openTabById(plugin.manifest.id);
+      plugin.app.setting.open();
+      plugin.app.setting.openTabById(plugin.manifest.id);
     },
   });
 

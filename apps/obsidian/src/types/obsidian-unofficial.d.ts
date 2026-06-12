@@ -13,5 +13,12 @@ declare module "obsidian" {
   interface MenuItem {
     setSubmenu(): Menu;
   }
+
+  interface App {
+    setting: {
+      open: () => void;
+      openTabById: (id: string) => void;
+    };
+  }
   /* eslint-enable @typescript-eslint/consistent-type-definitions -- end unofficial Obsidian API augmentations */
 }
