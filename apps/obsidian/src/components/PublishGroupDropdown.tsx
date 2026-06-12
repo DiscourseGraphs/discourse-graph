@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Notice, type TFile } from "obsidian";
+import { type TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import {
   getPublishedToGroups,
+  getPublishToAllTitle,
+  getUnpublishedGroups,
   loadMyGroups,
   notifyPublishError,
-  publishNodeToAllGroups,
-  publishNodeToSelectedGroup,
+  publishToAllGroupsWithNotice,
+  publishToSelectedGroupWithNotice,
   withPublishedState,
 } from "~/utils/publishGroupSelection";
 import type { MyGroup } from "~/utils/importNodes";
@@ -37,9 +39,7 @@ export const PublishGroupDropdown = ({
     groups,
     publishedToGroups,
   );
-  const unpublishedGroups = groupsWithPublishedState.filter(
-    (group) => !group.isPublished,
-  );
+  const unpublishedGroups = getUnpublishedGroups(groupsWithPublishedState);
 
   useEffect(() => {
     const ref = plugin.app.metadataCache.on("changed", (changedFile) => {
@@ -123,19 +123,7 @@ export const PublishGroupDropdown = ({
       if (publishedToGroups.includes(groupId)) return;
 
       void runPublishAction(async () => {
-        const currentFrontmatter =
-          plugin.app.metadataCache.getFileCache(file)?.frontmatter;
-        if (!currentFrontmatter) {
-          throw new Error("File metadata not available");
-        }
-
-        await publishNodeToSelectedGroup({
-          plugin,
-          file,
-          frontmatter: currentFrontmatter,
-          groupId,
-        });
-        new Notice("Published successfully", 3000);
+        await publishToSelectedGroupWithNotice({ plugin, file, groupId });
         setIsOpen(false);
       });
     },
@@ -146,15 +134,7 @@ export const PublishGroupDropdown = ({
     if (isLoading || unpublishedGroups.length === 0) return;
 
     void runPublishAction(async () => {
-      const publishedCount = await publishNodeToAllGroups({ plugin, file });
-      if (publishedCount === 0) {
-        new Notice("Already published to all groups", 3000);
-        return;
-      }
-      new Notice(
-        `Published to ${publishedCount} group${publishedCount === 1 ? "" : "s"}`,
-        3000,
-      );
+      await publishToAllGroupsWithNotice({ plugin, file });
       setIsOpen(false);
     });
   }, [plugin, file, isLoading, unpublishedGroups.length, runPublishAction]);
@@ -175,7 +155,7 @@ export const PublishGroupDropdown = ({
         disabled={isLoading && isOpen}
         className={`rounded border px-2 py-1 text-xs ${
           publishedCount > 0
-            ? "border-green-600 bg-green-200 text-green-800 dark:bg-green-900/60 dark:text-green-300"
+            ? "border-green-600 bg-green-200 text-green-800 dark:bg-green-900/60 dark:text-green-100"
             : "border border-gray-400 bg-gray-100 font-medium hover:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
         }`}
         title="Publish to a group"
@@ -200,11 +180,7 @@ export const PublishGroupDropdown = ({
                 ? "cursor-default text-gray-400 dark:text-gray-500"
                 : "cursor-pointer text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800"
             }`}
-            title={
-              unpublishedGroups.length === 0
-                ? "Already published to all groups"
-                : `Publish to ${unpublishedGroups.length} group${unpublishedGroups.length === 1 ? "" : "s"}`
-            }
+            title={getPublishToAllTitle(unpublishedGroups.length)}
           >
             Publish to all groups
           </div>

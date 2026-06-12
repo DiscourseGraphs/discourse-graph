@@ -18,6 +18,12 @@ export type PublishGroupOption = MyGroup & {
   isPublished: boolean;
 };
 
+export const PUBLISH_TO_ALL_ITEM_ID = "__publish_to_all_groups__";
+
+export type PublishGroupSuggestItem = PublishGroupOption & {
+  isPublishToAll?: boolean;
+};
+
 export { getPublishedToGroups };
 
 const getErrorMessage = (error: unknown): string =>
@@ -27,6 +33,35 @@ export const notifyPublishError = (error: unknown): void => {
   new Notice(`Publish failed: ${getErrorMessage(error)}`, 5000);
   console.error("Publish failed:", error);
 };
+
+export const getUnpublishedGroups = (
+  groups: PublishGroupOption[],
+): PublishGroupOption[] => groups.filter((group) => !group.isPublished);
+
+export const getPublishToAllTitle = (unpublishedCount: number): string =>
+  unpublishedCount === 0
+    ? "Already published to all groups"
+    : `Publish to ${unpublishedCount} group${unpublishedCount === 1 ? "" : "s"}`;
+
+export const buildPublishGroupPickerItems = (
+  groups: PublishGroupOption[],
+): PublishGroupSuggestItem[] => {
+  const unpublishedGroups = getUnpublishedGroups(groups);
+  return [
+    {
+      id: PUBLISH_TO_ALL_ITEM_ID,
+      name: "Publish to all groups",
+      isPublished: unpublishedGroups.length === 0,
+      isPublishToAll: true,
+    },
+    ...groups,
+  ];
+};
+
+export const isPublishToAllItem = (
+  item: PublishGroupSuggestItem,
+): item is PublishGroupSuggestItem & { isPublishToAll: true } =>
+  item.isPublishToAll === true;
 
 export const loadMyGroups = async (
   plugin: DiscourseGraphPlugin,
@@ -129,6 +164,47 @@ export const publishNodeToAllGroups = async ({
   return toPublish.length;
 };
 
+export const publishToSelectedGroupWithNotice = async ({
+  plugin,
+  file,
+  groupId,
+}: {
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
+  groupId: string;
+}): Promise<void> => {
+  const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+  if (!frontmatter) {
+    throw new Error("File metadata not available");
+  }
+
+  await publishNodeToSelectedGroup({
+    plugin,
+    file,
+    frontmatter,
+    groupId,
+  });
+  new Notice("Published successfully", 3000);
+};
+
+export const publishToAllGroupsWithNotice = async ({
+  plugin,
+  file,
+}: {
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
+}): Promise<void> => {
+  const publishedCount = await publishNodeToAllGroups({ plugin, file });
+  if (publishedCount === 0) {
+    new Notice("Already published to all groups", 3000);
+    return;
+  }
+  new Notice(
+    `Published to ${publishedCount} group${publishedCount === 1 ? "" : "s"}`,
+    3000,
+  );
+};
+
 export const openPublishGroupPicker = async ({
   plugin,
   file,
@@ -154,21 +230,21 @@ export const openPublishGroupPicker = async ({
 
   new PublishGroupSuggestModal({
     app: plugin.app,
-    groups,
-    onSelect: async (group: PublishGroupOption) => {
+    items: buildPublishGroupPickerItems(groups),
+    onChoose: async (item: PublishGroupSuggestItem) => {
       try {
-        const frontmatter =
-          plugin.app.metadataCache.getFileCache(file)?.frontmatter;
-        if (!frontmatter) {
-          throw new Error("File metadata not available");
+        if (isPublishToAllItem(item)) {
+          await publishToAllGroupsWithNotice({ plugin, file });
+          return;
         }
-        await publishNodeToSelectedGroup({
+        if (item.isPublished) {
+          return;
+        }
+        await publishToSelectedGroupWithNotice({
           plugin,
           file,
-          frontmatter,
-          groupId: group.id,
+          groupId: item.id,
         });
-        new Notice("Published successfully", 3000);
       } catch (error) {
         notifyPublishError(error);
       }
