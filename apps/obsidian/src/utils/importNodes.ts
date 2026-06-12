@@ -37,6 +37,29 @@ export const getAvailableGroupIds = async (
   return (data || []).map((g) => g.group_id);
 };
 
+export type MyGroup = {
+  id: string;
+  name: string;
+};
+
+export const getMyGroups = async (
+  client: DGSupabaseClient,
+): Promise<MyGroup[]> => {
+  const { data, error } = await client.from("my_groups").select("id, name");
+
+  if (error) {
+    console.error("Error fetching groups:", error);
+    throw new Error(`Failed to fetch groups: ${error.message}`);
+  }
+
+  return (data || [])
+    .filter(
+      (g): g is { id: string; name: string } =>
+        typeof g.id === "string" && typeof g.name === "string",
+    )
+    .map((g) => ({ id: g.id, name: g.name }));
+};
+
 type PublishedNode = {
   source_local_id: string;
   space_id: number;

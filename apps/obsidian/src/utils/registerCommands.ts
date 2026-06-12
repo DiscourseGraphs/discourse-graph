@@ -9,7 +9,7 @@ import { refreshAllImportedFiles } from "./importNodes";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
 import { syncAllNodesAndRelations } from "./syncDgNodesToSupabase";
-import { publishNode } from "./publishNode";
+import { openPublishGroupPicker } from "./publishGroupSelection";
 import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 import type { DiscourseNode } from "~/types";
 import { TldrawView } from "~/components/canvas/TldrawView";
@@ -311,23 +311,15 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       if (!frontmatter.nodeTypeId) {
         return false;
       }
+      if (frontmatter.importedFromRid) {
+        return false;
+      }
       if (!checking) {
         if (!frontmatter.nodeInstanceId) {
           new Notice("Please sync the node first");
           return true;
         }
-        // TODO (in follow-up PRs):
-        // Maybe sync the node now if unsynced
-        // Ensure that the node schema is synced to the database, and shared
-        // sync the assets to the database
-        publishNode({ plugin, file, frontmatter })
-          .then(() => {
-            new Notice("Published");
-          })
-          .catch((error: Error) => {
-            new Notice(error.message);
-            console.error(error);
-          });
+        void openPublishGroupPicker({ plugin, file, frontmatter });
       }
       return true;
     },

@@ -229,10 +229,12 @@ export const publishNode = async ({
   plugin,
   file,
   frontmatter,
+  groupId,
 }: {
   plugin: DiscourseGraphPlugin;
   file: TFile;
   frontmatter: FrontMatterCache;
+  groupId?: string;
 }): Promise<void> => {
   const client = await getLoggedInClient(plugin);
   if (!client) throw new Error("Cannot get client");
@@ -243,8 +245,11 @@ export const publishNode = async ({
   // Hopefully temporary workaround for sync bug
   await syncAllNodesAndRelations(plugin);
   const commonGroups = existingPublish.filter((g) => myGroups.has(g));
-  // temporary single-group assumption
-  const myGroup = (commonGroups.length > 0 ? commonGroups : [...myGroups])[0]!;
+  const myGroup =
+    groupId ?? (commonGroups.length > 0 ? commonGroups : [...myGroups])[0]!;
+  if (!myGroups.has(myGroup)) {
+    throw new Error("You are not a member of that group");
+  }
   return await publishNodeToGroup({ plugin, file, frontmatter, myGroup });
 };
 
@@ -391,11 +396,13 @@ export const publishNodeToGroup = async ({
   file,
   frontmatter,
   myGroup,
+  skipFrontmatterUpdate = false,
 }: {
   plugin: DiscourseGraphPlugin;
   file: TFile;
   frontmatter: FrontMatterCache;
   myGroup: string;
+  skipFrontmatterUpdate?: boolean;
 }): Promise<void> => {
   const nodeId = frontmatter.nodeInstanceId as string | undefined;
   if (!nodeId) throw new Error("Please sync the node first");
@@ -488,11 +495,18 @@ export const publishNodeToGroup = async ({
     file,
     attachments,
   });
-  if (!existingPublish.includes(myGroup))
+  if (!skipFrontmatterUpdate && !existingPublish.includes(myGroup)) {
     await plugin.app.fileManager.processFrontMatter(
       file,
       (fm: Record<string, unknown>) => {
-        fm.publishedToGroups = [...existingPublish, myGroup];
+        const publishedToGroups = fm.publishedToGroups as unknown;
+        const current = Array.isArray(publishedToGroups)
+          ? publishedToGroups.filter((g): g is string => typeof g === "string")
+          : [];
+        if (!current.includes(myGroup)) {
+          fm.publishedToGroups = [...current, myGroup];
+        }
       },
     );
+  }
 };
