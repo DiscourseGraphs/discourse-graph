@@ -319,7 +319,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
           new Notice("Please sync the node first");
           return true;
         }
-        void openPublishGroupPicker({ plugin, file, frontmatter });
+        void openPublishGroupPicker({ plugin, file });
       }
       return true;
     },

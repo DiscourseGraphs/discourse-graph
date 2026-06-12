@@ -3,7 +3,8 @@ import { Notice, type TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import {
   getPublishedToGroups,
-  loadPublishGroupOptions,
+  loadMyGroups,
+  notifyPublishError,
   publishNodeToAllGroups,
   publishNodeToSelectedGroup,
   withPublishedState,
@@ -22,9 +23,10 @@ export const PublishGroupDropdown = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [groups, setGroups] = useState<MyGroup[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [, setMetadataVersion] = useState(0);
 
   const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
   const publishedToGroups = frontmatter
@@ -34,23 +36,38 @@ export const PublishGroupDropdown = ({
     groups,
     publishedToGroups,
   );
+  const unpublishedGroups = groupsWithPublishedState.filter(
+    (group) => !group.isPublished,
+  );
 
   useEffect(() => {
+    const ref = plugin.app.metadataCache.on("changed", (changedFile) => {
+      if (changedFile.path === file.path) {
+        setMetadataVersion((version) => version + 1);
+      }
+    });
+
+    return () => {
+      plugin.app.metadataCache.offref(ref);
+    };
+  }, [plugin.app.metadataCache, file.path]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
     let cancelled = false;
 
     const loadGroups = async () => {
       setIsLoading(true);
       setLoadError(null);
       try {
-        const myGroups = await loadPublishGroupOptions(plugin);
+        const myGroups = await loadMyGroups(plugin);
         if (!cancelled) {
           setGroups(myGroups);
         }
       } catch (error) {
         if (!cancelled) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          setLoadError(message);
+          setLoadError(error instanceof Error ? error.message : String(error));
           setGroups([]);
         }
       } finally {
@@ -65,7 +82,7 @@ export const PublishGroupDropdown = ({
     return () => {
       cancelled = true;
     };
-  }, [plugin, file.path]);
+  }, [plugin, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -83,17 +100,34 @@ export const PublishGroupDropdown = ({
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [isOpen]);
 
-  const handlePublishToGroup = useCallback(
-    async (groupId: string) => {
-      const currentFrontmatter =
-        plugin.app.metadataCache.getFileCache(file)?.frontmatter;
-      if (!currentFrontmatter) return;
-
-      const currentPublished = getPublishedToGroups(currentFrontmatter);
-      if (isPublishing || currentPublished.includes(groupId)) return;
+  const runPublishAction = useCallback(
+    async (action: () => Promise<void>, onSuccess?: () => void) => {
+      if (isPublishing) return;
 
       setIsPublishing(true);
       try {
+        await action();
+        onSuccess?.();
+      } catch (error) {
+        notifyPublishError(error);
+      } finally {
+        setIsPublishing(false);
+      }
+    },
+    [isPublishing],
+  );
+
+  const handlePublishToGroup = useCallback(
+    (groupId: string) => {
+      if (publishedToGroups.includes(groupId)) return;
+
+      void runPublishAction(async () => {
+        const currentFrontmatter =
+          plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+        if (!currentFrontmatter) {
+          throw new Error("File metadata not available");
+        }
+
         await publishNodeToSelectedGroup({
           plugin,
           file,
@@ -102,49 +136,27 @@ export const PublishGroupDropdown = ({
         });
         new Notice("Published successfully", 3000);
         setIsOpen(false);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        new Notice(`Publish failed: ${errorMessage}`, 5000);
-        console.error("Publish failed:", error);
-      } finally {
-        setIsPublishing(false);
-      }
-    },
-    [plugin, file, isPublishing],
-  );
-
-  const unpublishedGroups = groupsWithPublishedState.filter(
-    (group) => !group.isPublished,
-  );
-
-  const handlePublishToAllGroups = useCallback(async () => {
-    if (isLoading || isPublishing || unpublishedGroups.length === 0) return;
-
-    setIsPublishing(true);
-    try {
-      const publishedCount = await publishNodeToAllGroups({
-        plugin,
-        file,
       });
+    },
+    [plugin, file, publishedToGroups, runPublishAction],
+  );
+
+  const handlePublishToAllGroups = useCallback(() => {
+    if (isLoading || unpublishedGroups.length === 0) return;
+
+    void runPublishAction(async () => {
+      const publishedCount = await publishNodeToAllGroups({ plugin, file });
       if (publishedCount === 0) {
         new Notice("Already published to all groups", 3000);
-      } else {
-        new Notice(
-          `Published to ${publishedCount} group${publishedCount === 1 ? "" : "s"}`,
-          3000,
-        );
-        setIsOpen(false);
+        return;
       }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      new Notice(`Publish failed: ${errorMessage}`, 5000);
-      console.error("Publish failed:", error);
-    } finally {
-      setIsPublishing(false);
-    }
-  }, [plugin, file, isLoading, isPublishing, unpublishedGroups]);
+      new Notice(
+        `Published to ${publishedCount} group${publishedCount === 1 ? "" : "s"}`,
+        3000,
+      );
+      setIsOpen(false);
+    });
+  }, [plugin, file, isLoading, unpublishedGroups.length, runPublishAction]);
 
   if (!frontmatter) {
     return null;
@@ -159,7 +171,7 @@ export const PublishGroupDropdown = ({
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        disabled={isLoading || !!loadError}
+        disabled={isLoading && isOpen}
         className={`rounded border px-2 py-1 text-xs ${
           publishedCount > 0
             ? "border-green-600 bg-green-200 text-green-800 dark:bg-green-900/60 dark:text-green-300"
@@ -171,21 +183,21 @@ export const PublishGroupDropdown = ({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-50 mt-1 min-w-[12rem] rounded border border-gray-200 bg-white py-1 shadow-md">
+        <div className="absolute right-0 z-50 mt-1 min-w-[12rem] rounded border border-gray-200 bg-white py-1 shadow-md dark:border-gray-600 dark:bg-gray-900">
           <div
             role="button"
             tabIndex={0}
-            onClick={() => void handlePublishToAllGroups()}
+            onClick={() => handlePublishToAllGroups()}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                void handlePublishToAllGroups();
+                handlePublishToAllGroups();
               }
             }}
-            className={`border-b border-gray-200 px-3 py-1.5 text-xs font-medium ${
+            className={`border-b border-gray-200 px-3 py-1.5 text-xs font-medium dark:border-gray-600 ${
               isLoading || isPublishing || unpublishedGroups.length === 0
-                ? "cursor-default text-gray-400"
-                : "cursor-pointer text-gray-900 hover:bg-gray-100"
+                ? "cursor-default text-gray-400 dark:text-gray-500"
+                : "cursor-pointer text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800"
             }`}
             title={
               unpublishedGroups.length === 0
@@ -197,51 +209,50 @@ export const PublishGroupDropdown = ({
           </div>
 
           {isLoading && (
-            <div className="px-3 py-2 text-xs text-gray-700">
+            <div className="px-3 py-2 text-xs text-gray-700 dark:text-gray-300">
               Loading groups...
             </div>
           )}
 
           {loadError && (
-            <div className="px-3 py-2 text-xs text-gray-700">{loadError}</div>
+            <div className="px-3 py-2 text-xs text-gray-700 dark:text-gray-300">
+              {loadError}
+            </div>
           )}
 
           {!isLoading &&
             !loadError &&
             groupsWithPublishedState.length === 0 && (
-              <div className="px-3 py-2 text-xs text-gray-700">
+              <div className="px-3 py-2 text-xs text-gray-700 dark:text-gray-300">
                 You are not a member of any groups.
               </div>
             )}
 
           {!isLoading &&
             !loadError &&
-            groupsWithPublishedState.map((group) => {
-              const isPublished = group.isPublished;
-              return (
-                <button
-                  key={group.id}
-                  type="button"
-                  disabled={isPublishing || isPublished}
-                  onClick={() => void handlePublishToGroup(group.id)}
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium ${
-                    isPublished
-                      ? "cursor-default opacity-80"
-                      : "hover:bg-gray-100"
-                  }`}
-                  title={
-                    isPublished
-                      ? "Already published to this group"
-                      : `Publish to ${group.name}`
-                  }
-                >
-                  <span className="inline-flex w-4 shrink-0 justify-center">
-                    {isPublished ? "✓" : ""}
-                  </span>
-                  <span className="truncate">{group.name}</span>
-                </button>
-              );
-            })}
+            groupsWithPublishedState.map((group) => (
+              <button
+                key={group.id}
+                type="button"
+                disabled={isPublishing || group.isPublished}
+                onClick={() => handlePublishToGroup(group.id)}
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium ${
+                  group.isPublished
+                    ? "cursor-default opacity-80"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+                title={
+                  group.isPublished
+                    ? "Already published to this group"
+                    : `Publish to ${group.name}`
+                }
+              >
+                <span className="inline-flex w-4 shrink-0 justify-center">
+                  {group.isPublished ? "✓" : ""}
+                </span>
+                <span className="truncate">{group.name}</span>
+              </button>
+            ))}
         </div>
       )}
     </div>

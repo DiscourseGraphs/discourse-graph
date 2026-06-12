@@ -21,22 +21,6 @@ import {
 import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 
-export const getAvailableGroupIds = async (
-  client: DGSupabaseClient,
-): Promise<string[]> => {
-  const { data, error } = await client
-    .from("group_membership")
-    .select("group_id")
-    .eq("member_id", (await client.auth.getUser()).data.user?.id || "");
-
-  if (error) {
-    console.error("Error fetching groups:", error);
-    throw new Error(`Failed to fetch groups: ${error.message}`);
-  }
-
-  return (data || []).map((g) => g.group_id);
-};
-
 export type MyGroup = {
   id: string;
   name: string;
@@ -59,6 +43,10 @@ export const getMyGroups = async (
     )
     .map((g) => ({ id: g.id, name: g.name }));
 };
+
+export const getAvailableGroupIds = async (
+  client: DGSupabaseClient,
+): Promise<string[]> => (await getMyGroups(client)).map((group) => group.id);
 
 type PublishedNode = {
   source_local_id: string;

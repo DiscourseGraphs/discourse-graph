@@ -3,7 +3,6 @@ import {
   TFile,
   WorkspaceLeaf,
   Notice,
-  FrontMatterCache,
   setIcon,
   setTooltip,
 } from "obsidian";
@@ -21,7 +20,7 @@ import {
 import { refreshImportedFile } from "~/utils/importNodes";
 import { PublishGroupDropdown } from "~/components/PublishGroupDropdown";
 import { createBaseForNodeType } from "~/utils/baseForNodeType";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 type DiscourseContextProps = {
   activeFile: TFile | null;
@@ -45,21 +44,6 @@ export const InfoTooltip = ({ content }: InfoTooltipProps) => (
 const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
   const plugin = usePlugin();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [, setMetadataVersion] = useState(0);
-
-  useEffect(() => {
-    if (!activeFile) return;
-
-    const ref = plugin.app.metadataCache.on("changed", (file) => {
-      if (file.path === activeFile.path) {
-        setMetadataVersion((version) => version + 1);
-      }
-    });
-
-    return () => {
-      plugin.app.metadataCache.offref(ref);
-    };
-  }, [plugin.app.metadataCache, activeFile?.path]);
 
   const extractContentFromTitle = (format: string, title: string): string => {
     if (!format) return "";

@@ -23,6 +23,14 @@ import type { DiscourseNodeInVault } from "./getDiscourseNodes";
 import type { SupabaseContext } from "./supabaseContext";
 import type { TablesInsert } from "@repo/database/dbTypes";
 
+export const getPublishedToGroups = (
+  frontmatter: FrontMatterCache | Record<string, unknown>,
+): string[] => {
+  const publishedToGroups = frontmatter.publishedToGroups as unknown;
+  if (!Array.isArray(publishedToGroups)) return [];
+  return publishedToGroups.filter((g): g is string => typeof g === "string");
+};
+
 const publishSchema = async ({
   client,
   spaceId,
@@ -499,10 +507,7 @@ export const publishNodeToGroup = async ({
     await plugin.app.fileManager.processFrontMatter(
       file,
       (fm: Record<string, unknown>) => {
-        const publishedToGroups = fm.publishedToGroups as unknown;
-        const current = Array.isArray(publishedToGroups)
-          ? publishedToGroups.filter((g): g is string => typeof g === "string")
-          : [];
+        const current = getPublishedToGroups(fm);
         if (!current.includes(myGroup)) {
           fm.publishedToGroups = [...current, myGroup];
         }
