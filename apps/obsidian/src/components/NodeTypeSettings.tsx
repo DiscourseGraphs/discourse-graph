@@ -841,7 +841,7 @@ const NodeTypeSettings = () => {
   const confirmDeleteNodeType = (index: number): void => {
     const nodeType = nodeTypes[index] || { name: "Unnamed" };
     const modal = new ConfirmationModal(plugin.app, {
-      title: "Delete Node Type",
+      title: "Delete node type",
       message: `Are you sure you want to delete the node type "${nodeType.name}"?`,
       onConfirm: () => void handleDeleteNodeType(index),
     });
@@ -1138,7 +1138,7 @@ const NodeTypeSettings = () => {
     return (
       <div className="node-type-list">
         <button onClick={handleAddNodeType} className="mod-cta">
-          Add Node Type
+          Add node type
         </button>
 
         {localNodeTypes.length > 0 && (
@@ -1193,7 +1193,7 @@ const NodeTypeSettings = () => {
           <h3 className="dg-h3">
             {isEditingImported
               ? `[Read only] Imported from ${getAndFormatImportSource(editingNodeType.importedFromRid || "", plugin.settings.spaceNames)}`
-              : "Edit Node Type"}
+              : "Edit node type"}
           </h3>
         </div>
         {FIELD_CONFIG_ARRAY.map(renderField)}

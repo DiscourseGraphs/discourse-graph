@@ -1180,7 +1180,15 @@ export const ClipboardPanel = () => {
     }
   }, [availableNodeTypes, selectedNodeType]);
 
+  useEffect(() => {
+    if (pages.length === 0) {
+      setSearchQuery("");
+      setSelectedNodeType("All");
+    }
+  }, [pages.length]);
+
   const hasActiveFilters = !!searchQuery || selectedNodeType !== "All";
+  const hasPages = pages.length > 0;
 
   if (!isOpen) return null;
 
@@ -1228,105 +1236,117 @@ export const ClipboardPanel = () => {
       </div>
       {!isCollapsed && (
         <>
-          <div
-            className="flex items-center gap-1 px-2 py-1"
-            style={{ borderTop: "1px solid hsl(0, 0%, 91%)" }}
-          >
-            <InputGroup
-              small
-              leftIcon="search"
-              placeholder="Find page"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1"
-              rightElement={
-                searchQuery ? (
-                  <Button
-                    minimal
-                    small
-                    icon="cross"
-                    onClick={() => setSearchQuery("")}
-                  />
-                ) : undefined
-              }
-            />
-            <Popover
-              position={Position.BOTTOM}
-              content={
-                <div
-                  onPointerDown={(e) => e.stopPropagation()}
-                  style={{ pointerEvents: "all" }}
-                >
-                  <Menu>
-                    {availableNodeTypes.map((type) => (
-                      <MenuItem
-                        key={type}
-                        active={selectedNodeType === type}
-                        onClick={() => setSelectedNodeType(type)}
-                        text={
-                          <span className="flex items-center gap-2">
-                            {type !== "All" && (
-                              <span
-                                className="inline-block h-3 w-3 shrink-0 rounded-full"
-                                style={{
-                                  backgroundColor:
-                                    nodeTypeColorMap[type] || "#000000",
-                                }}
-                              />
-                            )}
-                            {type}
-                          </span>
-                        }
-                      />
-                    ))}
-                  </Menu>
-                </div>
-              }
+          {hasPages ? (
+            <div
+              className="flex items-center gap-1 px-2 py-1"
+              style={{ borderTop: "1px solid hsl(0, 0%, 91%)" }}
             >
+              <InputGroup
+                small
+                leftIcon="search"
+                placeholder="Filter nodes"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
+                rightElement={
+                  searchQuery ? (
+                    <Button
+                      minimal
+                      small
+                      icon="cross"
+                      onClick={() => setSearchQuery("")}
+                    />
+                  ) : undefined
+                }
+              />
+              <Popover
+                position={Position.BOTTOM}
+                content={
+                  <div
+                    onPointerDown={(e) => e.stopPropagation()}
+                    style={{ pointerEvents: "all" }}
+                  >
+                    <Menu>
+                      {availableNodeTypes.map((type) => (
+                        <MenuItem
+                          key={type}
+                          active={selectedNodeType === type}
+                          onClick={() => setSelectedNodeType(type)}
+                          text={
+                            <span className="flex items-center gap-2">
+                              {type !== "All" && (
+                                <span
+                                  className="inline-block h-3 w-3 shrink-0 rounded-full"
+                                  style={{
+                                    backgroundColor:
+                                      nodeTypeColorMap[type] || "#000000",
+                                  }}
+                                />
+                              )}
+                              {type}
+                            </span>
+                          }
+                        />
+                      ))}
+                    </Menu>
+                  </div>
+                }
+              >
+                <Button
+                  minimal
+                  small
+                  rightIcon="caret-down"
+                  text={selectedNodeType}
+                />
+              </Popover>
               <Button
                 minimal
                 small
-                rightIcon="caret-down"
-                text={selectedNodeType}
+                icon="filter-remove"
+                disabled={!hasActiveFilters}
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedNodeType("All");
+                }}
+                title="Clear filters"
               />
-            </Popover>
-            <Button
-              minimal
-              small
-              icon="filter-remove"
-              disabled={!hasActiveFilters}
-              onClick={() => {
-                setSearchQuery("");
-                setSelectedNodeType("All");
-              }}
-              title="Clear filters"
-            />
-            <Popover
-              position={Position.BOTTOM_RIGHT}
-              content={
-                <div
-                  className="p-3"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  style={{ pointerEvents: "all" }}
-                >
-                  <Switch
-                    checked={showNodesOnCanvas}
-                    alignIndicator="right"
-                    className="m-0 w-full"
-                    label="Show nodes on canvas"
-                    onChange={(e) =>
-                      setShowNodesOnCanvas(
-                        (e.target as HTMLInputElement).checked,
-                      )
-                    }
-                  />
-                </div>
-              }
-            >
-              <Button minimal small icon="settings" title="Clipboard options" />
-            </Popover>
-          </div>
-          <div className="max-h-96 overflow-y-auto px-4 pb-4">
+              <Popover
+                position={Position.BOTTOM_RIGHT}
+                content={
+                  <div
+                    className="p-3"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    style={{ pointerEvents: "all" }}
+                  >
+                    <Switch
+                      checked={showNodesOnCanvas}
+                      alignIndicator="right"
+                      className="m-0 w-full"
+                      label="Show nodes on canvas"
+                      onChange={(e) =>
+                        setShowNodesOnCanvas(
+                          (e.target as HTMLInputElement).checked,
+                        )
+                      }
+                    />
+                  </div>
+                }
+              >
+                <Button
+                  minimal
+                  small
+                  icon="settings"
+                  title="Clipboard options"
+                />
+              </Popover>
+            </div>
+          ) : null}
+          <div
+            className="max-h-96 overflow-y-auto px-4 pb-4"
+            style={
+              hasPages ? undefined : { borderTop: "1px solid hsl(0, 0%, 91%)" }
+            }
+          >
             {pages.length === 0 ? (
               <NonIdealState
                 action={
@@ -1336,6 +1356,7 @@ export const ClipboardPanel = () => {
                     minimal
                     small
                     text="Add page"
+                    className="mt-2"
                   />
                 }
               />

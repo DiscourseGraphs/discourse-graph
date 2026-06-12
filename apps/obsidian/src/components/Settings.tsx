@@ -50,7 +50,7 @@ const Settings = () => {
               : "!bg-transparent"
           }`}
         >
-          Node Types
+          Node types
         </button>
         <button
           onClick={() => setActiveTab("relationTypes")}
@@ -60,7 +60,7 @@ const Settings = () => {
               : "!bg-transparent"
           }`}
         >
-          Relation Types
+          Relation types
         </button>
         <button
           onClick={() => setActiveTab("relations")}
@@ -70,12 +70,12 @@ const Settings = () => {
               : "!bg-transparent"
           }`}
         >
-          Discourse Relations
+          Discourse relations
         </button>
         {/* Hidden Admin Panel tab - only visible when activeTab is "admin-panel" */}
         {activeTab === "admin-panel" && (
           <button className="!bg-modifier-hover accent-border-bottom mr-2 cursor-pointer border-0 px-4 py-2">
-            Admin Panel
+            Admin panel
           </button>
         )}
       </div>

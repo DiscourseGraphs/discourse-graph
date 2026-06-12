@@ -1659,7 +1659,7 @@ export type Database = {
           s_target: number
           s_worker: string
         }
-        Returns: undefined
+        Returns: Json
       }
       extract_references: { Args: { refs: Json }; Returns: number[] }
       file_access: { Args: { hashvalue: string }; Returns: boolean }

@@ -5,6 +5,7 @@ import {
   TAbstractFile,
   getFrontMatterInfo,
 } from "obsidian";
+import type { Settings } from "~/types";
 
 type TemplatePluginInfo = {
   isEnabled: boolean;
@@ -62,6 +63,105 @@ export const getTemplatePluginInfo = (app: App): TemplatePluginInfo => {
     console.error("Error accessing Templates plugin:", error);
     return { isEnabled: false, folderPath: "" };
   }
+};
+
+export const getTemplateBasenameFromPath = (path: string): string | null => {
+  if (!path.toLowerCase().endsWith(".md")) {
+    return null;
+  }
+
+  const fileName = path.split("/").pop();
+  if (!fileName) {
+    return null;
+  }
+
+  return fileName.replace(/\.md$/i, "");
+};
+
+export const isDirectTemplateChild = (
+  path: string,
+  folderPath: string,
+): boolean => {
+  const basename = getTemplateBasenameFromPath(path);
+  if (!basename) {
+    return false;
+  }
+
+  return path === `${folderPath}/${basename}.md`;
+};
+
+export type TemplateSettingsSyncResult = {
+  updatedNodeTypeNames: string[];
+  action: "updated" | "cleared" | null;
+};
+
+type TemplateSyncContext = {
+  app: App;
+  settings: Settings;
+};
+
+export const syncNodeTypeTemplatesOnTemplateFileChange = ({
+  plugin,
+  oldPath,
+  newFile,
+}: {
+  plugin: TemplateSyncContext;
+  oldPath: string;
+  newFile?: TFile;
+}): TemplateSettingsSyncResult => {
+  const { isEnabled, folderPath } = getTemplatePluginInfo(plugin.app);
+
+  if (!isEnabled || !folderPath) {
+    return { updatedNodeTypeNames: [], action: null };
+  }
+
+  if (!isDirectTemplateChild(oldPath, folderPath)) {
+    return { updatedNodeTypeNames: [], action: null };
+  }
+
+  const oldBasename = getTemplateBasenameFromPath(oldPath);
+  if (!oldBasename) {
+    return { updatedNodeTypeNames: [], action: null };
+  }
+
+  const matchingNodeTypes = plugin.settings.nodeTypes.filter(
+    (nodeType) => nodeType.template === oldBasename,
+  );
+
+  if (matchingNodeTypes.length === 0) {
+    return { updatedNodeTypeNames: [], action: null };
+  }
+
+  const now = Date.now();
+  let action: "updated" | "cleared";
+
+  if (newFile) {
+    if (isDirectTemplateChild(newFile.path, folderPath)) {
+      const newBasename = newFile.basename;
+      for (const nodeType of matchingNodeTypes) {
+        nodeType.template = newBasename;
+        nodeType.modified = now;
+      }
+      action = "updated";
+    } else {
+      for (const nodeType of matchingNodeTypes) {
+        nodeType.template = undefined;
+        nodeType.modified = now;
+      }
+      action = "cleared";
+    }
+  } else {
+    for (const nodeType of matchingNodeTypes) {
+      nodeType.template = undefined;
+      nodeType.modified = now;
+    }
+    action = "cleared";
+  }
+
+  return {
+    updatedNodeTypeNames: matchingNodeTypes.map((nodeType) => nodeType.name),
+    action,
+  };
 };
 
 export const getTemplateFiles = (app: App): string[] => {

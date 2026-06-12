@@ -5,55 +5,100 @@ author: ""
 published: true
 ---
 
-## Creating a node
+Discourse nodes are Obsidian notes with Discourse Graph metadata (node type, relations, etc.). You can create them from selected text, from scratch, by converting an embedded image, by converting an existing note, from node tags, or from a canvas.
 
-To create a discourse node, first select the text you want to turn into a node:
+## Create a discourse node from selected text
 
-![select text](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FInIer-iPGs.png?alt=media&token=fad214f6-f426-4249-8b0a-d5a403894600)
+When you start from a selection, the plugin opens the **Create discourse node** modal pre-filled with the selected text.
 
-There are two ways you can create a node:
+### Option A: Hotkey (node type picker)
 
-### Using command keys (recommended)
+1. Select text in your note
+2. Press your configured hotkey (default is `\`)
+3. Pick a node type in the popup
+4. Review and confirm in the **Create discourse node** modal
 
-#### Turn selected text into discourse node
+![hotkey](/docs/obsidian/hot-key-create-node.png)
 
-1. Press `Cmd + \` (or your configured hotkey)
-2. The Node Menu will open as a popup
-   ![node menu](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FS6eU6y70eX.png?alt=media&token=00e61ddf-877b-4752-a65b-272e80a0a19c)
-3. Select the node type you want to turn the text into
-4. A new discourse node will be created
-   ![node created](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2F1VNkJC0aH8.png?alt=media&token=df9a26aa-997b-4b56-a307-87a80e350b28)
+### Option B: Right-click menu (“Turn into discourse node”)
 
-#### Creating new node from scratch
+1. Select text in your note
+2. Right-click the selection
+3. Choose a node type under **Turn into discourse node**
+4. Review and confirm in the **Create discourse node** modal
 
-1. Press `Cmd + \` (or your configured hotkey)
-2. Enter the title and node type
-   ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FyYxtLKkx6B.png?alt=media&token=7f4f02df-d1fe-4529-8530-90acb0dc74b8)
+![right-click](/docs/obsidian/right-click-create-node.png)
 
-### Using the right-click menu
+### Option C: Command palette (“Create discourse node”)
 
-1. Right-click on the selected text
-   Alternatively, you can right-click on the selected text
+1. Select text in your note (optional)
+2. Open the command palette
+3. Run **Create discourse node**
+4. Review and confirm in the **Create discourse node** modal
 
-![right click menu](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2F4UqeVkqLz7.png?alt=media&token=d2373152-d251-45fe-afb6-56373d6092aa) 2. Choose a node type from the "Turn into discourse node" menu
+![command](/docs/obsidian/command-create-node.png)
 
-### Turn existing page into discourse node
+- **Content field**: Auto-resizes as you type and enforces Obsidian’s filename byte
+  limit.
+- **Type field**: In create mode, you can change the node type until you confirm.
+- **Search existing nodes**: In most create flows, typing shows matching existing
+  nodes; selecting one inserts it instead of creating a new file.
+  - The file explorer **Convert into** flow disables this search.
+- **Relationship with “…”** (optional): If you start from a note (selection, node
+  tag, or canvas), you may see a relationship selector to relate the created/selected
+  node to the current file.
+- **Insert backlink** (optional): In create mode, you can choose whether the plugin
+  inserts a backlink in the current note when you confirm.
 
-If a page is not a discourse node, you can turn it into one by clicking on the file menu, and chosing "Convert into" option
-![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FCAGcQrCONJ.png?alt=media&token=fba6a6c9-038c-4a63-a46f-920bb8b37df1)
+## Convert an embedded image into a discourse node
 
-After choosing a node type, you can edit the title and node type in the menu
-![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FVZ-jWbffHY.png?alt=media&token=6d7e5861-1df6-4148-8c11-4767a6e130f0)
+For images embedded in a note (for example `![[photo.png]]`):
+
+1. Open the note in **Live Preview** or **Reading** view
+2. Click the embedded image (the **Convert to node** button appears on the embed, similar to Obsidian’s edit-block control)
+3. Click **Convert to node**
+4. In the **Create discourse node** modal, choose a node type, enter a title, and click **Confirm**
+
+The plugin creates the discourse node, adds the image to that node’s note, and replaces the embed in your current note with a link to the new node.
+
+![image-convert](/docs/obsidian/image-embed-create-node.png)
+
+## Convert an existing page into a discourse node
+
+If a page is not already a discourse node, you can convert it.
+
+1. In the file explorer, right-click a note
+2. Choose **Convert into**, then pick a node type
+3. Review and confirm in the **Modify discourse node** modal
+
+Note: In this flow, the modal is **create-only** (it does not offer “search existing nodes”) because the intent is to convert the current file into a new discourse node.
+
+![file-explorer-convert](/docs/obsidian/file-explorer-convert.png)
+
+You can perform the same function from the file menu
+![file-menu](/docs/obsidian/file-menu-convert-2.png)
+
+## Create nodes from node tags
+
+If you use [node tags](/docs/obsidian/core-features/node-tags), you can hover a tag and click **Create [Node type]** to open the modal.
+
+![On hover](/docs/obsidian/on-hover-node-tag.png)
+
+## Create nodes from a canvas
+
+On a Discourse Graph canvas, creating a node opens the same modal, and then adds the node as a new canvas shape.
+
+More detailed instruction [here](/docs/obsidian/core-features/canvas#create-a-new-node)
 
 ## Node templates
 
 When creating a node, if you've configured a [template for that node type](/docs/obsidian/configuration/node-types-templates#working-with-templates), the template content will be automatically applied to the new node.
 
-The new node will be saved in the designated folder that you created in the [General settings](/docs/obsidian/configuration/general-settings)
+The new node will be saved in the designated folder that you created in the [General settings](/docs/obsidian/configuration/general-settings).
 
 ## Related
 
 After creating nodes:
 
 - [Create relationships between nodes](/docs/obsidian/core-features/creating-discourse-relationships)
-- [Learn how to explore your graph](/docs/obsidian/core-features/canvas)
+- [Explore your graph on the canvas](/docs/obsidian/core-features/canvas)
