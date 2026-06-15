@@ -57,7 +57,6 @@ export const IndexSchema = z.object({
 type RoamNode = {
   text: string;
   children?: RoamNode[];
-  uid?: string;
   heading?: 0 | 1 | 2 | 3;
   open?: boolean;
 };
@@ -66,7 +65,6 @@ export const RoamNodeSchema: z.ZodType<RoamNode> = z.lazy(() =>
   z.object({
     text: z.string(),
     children: RoamNodeSchema.array().optional(),
-    uid: z.string().optional(),
     heading: z
       .union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
       .optional(),
