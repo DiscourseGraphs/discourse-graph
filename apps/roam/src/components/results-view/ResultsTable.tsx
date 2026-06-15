@@ -42,6 +42,7 @@ const ExtraContextRow = ({ uid }: { uid: string }) => {
 };
 
 const COLUMN_RESIZING_CLASS = "roamjs-query-column-resizing";
+const MIN_COLUMN_WIDTH = 40;
 
 const ResultHeader = React.forwardRef<
   Record<string, HTMLTableCellElement>,
@@ -175,6 +176,7 @@ type ResultRowProps = {
   onResizeStart: (e: React.PointerEvent<HTMLDivElement>) => void;
   onResize: (e: React.PointerEvent<HTMLDivElement>) => void;
   onResizeEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onResizeLostPointerCapture: (e: React.PointerEvent<HTMLDivElement>) => void;
   parentUid: string;
   ctrlClick?: (e: Result) => void;
   views: { column: string; mode: string; value: string }[];
@@ -190,6 +192,7 @@ const ResultRow = ({
   onResizeStart,
   onResize,
   onResizeEnd,
+  onResizeLostPointerCapture,
   onRefresh,
 }: ResultRowProps) => {
   const storedRelationsEnabled = getStoredRelationsEnabled();
@@ -399,6 +402,7 @@ const ResultRow = ({
                   onPointerMove={onResize}
                   onPointerUp={onResizeEnd}
                   onPointerCancel={onResizeEnd}
+                  onLostPointerCapture={onResizeLostPointerCapture}
                 />
               )}
             </td>
@@ -414,6 +418,7 @@ type ColumnWidths = {
 };
 
 type DragInfo = {
+  pointerId: number | null;
   startX: number;
   moved: boolean;
   leftHeader: HTMLElement | null;
@@ -421,6 +426,16 @@ type DragInfo = {
   leftStartWidth: number;
   rightStartWidth: number;
 };
+
+const getInitialDragInfo = (): DragInfo => ({
+  pointerId: null,
+  startX: 0,
+  moved: false,
+  leftHeader: null,
+  rightHeader: null,
+  leftStartWidth: 0,
+  rightStartWidth: 0,
+});
 
 const ResultsTable = ({
   columns,
@@ -453,14 +468,7 @@ const ResultsTable = ({
   showInterface?: boolean;
 }) => {
   const tableRef = useRef<HTMLTableElement | null>(null);
-  const dragInfo = useRef<DragInfo>({
-    startX: 0,
-    moved: false,
-    leftHeader: null,
-    rightHeader: null,
-    leftStartWidth: 0,
-    rightStartWidth: 0,
-  });
+  const dragInfo = useRef<DragInfo>(getInitialDragInfo());
 
   const viewsByColumn = useMemo(
     () => Object.fromEntries(views.map((v) => [v.column, v])),
@@ -494,6 +502,7 @@ const ResultsTable = ({
 
   const onResizeStart = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
+    if (dragInfo.current.pointerId !== null) return;
     const { leftColumnUid, rightColumnUid } = e.currentTarget.dataset;
     if (!leftColumnUid || !rightColumnUid || !tableRef.current) return;
 
@@ -512,6 +521,7 @@ const ResultsTable = ({
     document.body.classList.add(COLUMN_RESIZING_CLASS);
 
     dragInfo.current = {
+      pointerId: e.pointerId,
       startX: e.clientX,
       moved: false,
       leftHeader,
@@ -522,7 +532,9 @@ const ResultsTable = ({
   }, []);
 
   const onResize = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    if (dragInfo.current.pointerId !== e.pointerId) return;
+    e.preventDefault();
+    e.stopPropagation();
 
     const { startX, leftHeader, rightHeader, leftStartWidth, rightStartWidth } =
       dragInfo.current;
@@ -531,30 +543,29 @@ const ResultsTable = ({
 
     const delta = e.clientX - startX;
     if (delta !== 0) dragInfo.current.moved = true;
-    const minWidth = 40;
 
     let newLeftWidth = leftStartWidth + delta;
     let newRightWidth = rightStartWidth - delta;
 
-    const leftBelow = newLeftWidth < minWidth;
-    const rightBelow = newRightWidth < minWidth;
+    const leftBelow = newLeftWidth < MIN_COLUMN_WIDTH;
+    const rightBelow = newRightWidth < MIN_COLUMN_WIDTH;
 
     if (leftBelow && !rightBelow) {
-      const adjustment = minWidth - newLeftWidth;
-      newLeftWidth = minWidth;
+      const adjustment = MIN_COLUMN_WIDTH - newLeftWidth;
+      newLeftWidth = MIN_COLUMN_WIDTH;
       newRightWidth -= adjustment;
     } else if (rightBelow && !leftBelow) {
-      const adjustment = minWidth - newRightWidth;
-      newRightWidth = minWidth;
+      const adjustment = MIN_COLUMN_WIDTH - newRightWidth;
+      newRightWidth = MIN_COLUMN_WIDTH;
       newLeftWidth -= adjustment;
     } else if (leftBelow && rightBelow) {
-      const totalMin = minWidth * 2;
+      const totalMin = MIN_COLUMN_WIDTH * 2;
       const startTotal = leftStartWidth + rightStartWidth;
 
       if (startTotal > totalMin) {
         const scale = totalMin / startTotal;
-        newLeftWidth = Math.max(minWidth, leftStartWidth * scale);
-        newRightWidth = Math.max(minWidth, rightStartWidth * scale);
+        newLeftWidth = Math.max(MIN_COLUMN_WIDTH, leftStartWidth * scale);
+        newRightWidth = Math.max(MIN_COLUMN_WIDTH, rightStartWidth * scale);
       } else {
         newLeftWidth = leftStartWidth;
         newRightWidth = rightStartWidth;
@@ -565,28 +576,31 @@ const ResultsTable = ({
     rightHeader.style.width = `${newRightWidth}px`;
   }, []);
 
-  const onResizeEnd = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-      e.currentTarget.releasePointerCapture(e.pointerId);
+  const finishResize = useCallback(
+    ({
+      pointerId,
+      resizeHandle,
+    }: {
+      pointerId: number;
+      resizeHandle?: HTMLDivElement;
+    }) => {
+      const currentDrag = dragInfo.current;
+      if (currentDrag.pointerId !== pointerId) return;
+
+      dragInfo.current = getInitialDragInfo();
+
+      if (resizeHandle?.hasPointerCapture(pointerId)) {
+        resizeHandle.releasePointerCapture(pointerId);
+      }
+
       document.body.classList.remove(COLUMN_RESIZING_CLASS);
-      const { moved } = dragInfo.current;
-      dragInfo.current = {
-        startX: 0,
-        moved: false,
-        leftHeader: null,
-        rightHeader: null,
-        leftStartWidth: 0,
-        rightStartWidth: 0,
-      };
-      if (!moved) return;
+      if (!currentDrag.moved) return;
 
       const totalWidth = tableRef.current?.offsetWidth;
       if (!totalWidth || totalWidth === 0) {
         return;
       }
-      const minWidth = 40;
-      const minPercent = (minWidth / totalWidth) * 100;
+      const minPercent = (MIN_COLUMN_WIDTH / totalWidth) * 100;
 
       const finalWidths: ColumnWidths = { ...columnWidths };
       const uids = visibleColumns.map((c) => c.uid);
@@ -617,6 +631,20 @@ const ResultsTable = ({
       }
     },
     [parentUid, columnWidths, visibleColumns, preventSavingSettings],
+  );
+  const onResizeEnd = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      finishResize({ pointerId: e.pointerId, resizeHandle: e.currentTarget });
+    },
+    [finishResize],
+  );
+  const onResizeLostPointerCapture = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      finishResize({ pointerId: e.pointerId });
+    },
+    [finishResize],
   );
 
   const resultHeaderSetFilters = React.useCallback(
@@ -745,6 +773,7 @@ const ResultsTable = ({
               onResizeStart={onResizeStart}
               onResize={onResize}
               onResizeEnd={onResizeEnd}
+              onResizeLostPointerCapture={onResizeLostPointerCapture}
             />
             {extraRowUid === r.uid && (
               <tr className={`roamjs-${extraRowType}-row roamjs-extra-row`}>
