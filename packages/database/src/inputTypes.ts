@@ -20,5 +20,13 @@ export type LocalContentDataInput = Partial<
   }
 >;
 export type LocalConceptDataInput = Partial<
-  Database["public"]["CompositeTypes"]["concept_local_input"]
+  Omit<
+    Database["public"]["CompositeTypes"]["concept_local_input"],
+    "document_inline" | "author_inline" | "creator_inline" | "contents_inline"
+  > & {
+    document_inline: LocalDocumentDataInput;
+    author_inline: LocalAccountDataInput;
+    creator_inline: LocalAccountDataInput;
+    contents_inline: LocalContentDataInput[];
+  }
 >;

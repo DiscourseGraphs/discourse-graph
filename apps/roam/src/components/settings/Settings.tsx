@@ -39,6 +39,8 @@ const settingsTabIds = {
   leftSidebarGlobal: "left-sidebar-global-settings",
 } as const;
 
+const ADMIN_TAB_ID = "secret-admin-panel";
+
 type SectionHeaderProps = {
   children: React.ReactNode;
   className?: string;
@@ -108,6 +110,12 @@ export const SettingsDialog = ({
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
+  const { version, buildDate } = getVersionWithDate();
+  const openAdminPanel = (): void => {
+    setShowAdminPanel(true);
+    setActiveTabId(ADMIN_TAB_ID);
+    posthog.capture("Settings: Admin Panel Opened from Footer");
+  };
 
   useEffect(() => {
     posthog.capture("Settings: Dialog Opened", {
@@ -121,7 +129,7 @@ export const SettingsDialog = ({
         e.stopPropagation();
         e.preventDefault();
         setShowAdminPanel(true);
-        setActiveTabId("secret-admin-panel");
+        setActiveTabId(ADMIN_TAB_ID);
         posthog.capture("Settings: Admin Panel Opened via Shortcut");
       }
     };
@@ -309,8 +317,8 @@ export const SettingsDialog = ({
           <Tabs.Expander />
           {/* Secret Admin Panel */}
           <Tab
-            hidden={!showAdminPanel}
-            id="secret-admin-panel"
+            hidden={true}
+            id={ADMIN_TAB_ID}
             title="Admin"
             className="overflow-y-auto"
             panel={<AdminPanel globalSettings={settings.globalSettings} />}
@@ -330,9 +338,19 @@ export const SettingsDialog = ({
           Send Feedback
         </Button>
       </div>
-      <div className="absolute bottom-4 right-4">
+      <div className="absolute bottom-4 right-4 flex items-center gap-2">
+        {showAdminPanel && (
+          <Button
+            minimal={true}
+            outlined={true}
+            small={true}
+            onClick={openAdminPanel}
+          >
+            Admin
+          </Button>
+        )}
         <span className="text-xs text-gray-500">
-          v{getVersionWithDate().version}-{getVersionWithDate().buildDate}
+          v{version}-{buildDate}
         </span>
       </div>
       {/* <Button

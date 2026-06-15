@@ -36,7 +36,7 @@ export class InlineNodeTypePicker {
       const rect = range.getBoundingClientRect();
 
       if (rect.width === 0 && rect.height === 0) {
-        const span = document.createElement("span");
+        const span = createSpan();
         span.textContent = "\u200B";
         range.insertNode(span);
         const spanRect = span.getBoundingClientRect();
@@ -54,10 +54,10 @@ export class InlineNodeTypePicker {
   }
 
   private createPopover(): HTMLElement {
-    const popover = document.createElement("div");
+    const popover = createDiv();
     popover.className =
       "inline-node-type-picker fixed z-[10000] bg-primary border border-modifier-border rounded-md shadow-[0_4px_12px_rgba(0,0,0,0.15)] max-h-[300px] overflow-y-auto min-w-[200px] max-w-[400px]";
-    const itemsContainer = document.createElement("div");
+    const itemsContainer = createDiv();
     itemsContainer.className = "inline-node-type-items-container";
     popover.appendChild(itemsContainer);
 
@@ -70,7 +70,7 @@ export class InlineNodeTypePicker {
     container.innerHTML = "";
 
     if (this.items.length === 0) {
-      const noResults = document.createElement("div");
+      const noResults = createDiv();
       noResults.className = "p-3 text-center text-muted text-sm";
       noResults.textContent = "No node types available";
       container.appendChild(noResults);
@@ -78,20 +78,20 @@ export class InlineNodeTypePicker {
     }
 
     this.items.forEach((item, index) => {
-      const itemEl = document.createElement("div");
+      const itemEl = createDiv();
       itemEl.className = `inline-node-type-item px-3 py-2 cursor-pointer flex items-center gap-2 border-b border-[var(--background-modifier-border-hover)]${
         index === this.selectedIndex ? " bg-modifier-hover" : ""
       }`;
       itemEl.dataset.index = index.toString();
 
       if (item.color) {
-        const colorDot = document.createElement("div");
+        const colorDot = createDiv();
         colorDot.className = "w-3 h-3 rounded-full shrink-0";
         colorDot.style.backgroundColor = item.color;
         itemEl.appendChild(colorDot);
       }
 
-      const nameText = document.createElement("div");
+      const nameText = createDiv();
       nameText.textContent = item.name;
       nameText.className = "font-medium text-normal text-sm";
       itemEl.appendChild(nameText);
@@ -201,17 +201,25 @@ export class InlineNodeTypePicker {
       }
     };
 
-    document.addEventListener("keydown", this.keydownHandler, true);
-    document.addEventListener("mousedown", this.clickOutsideHandler, true);
+    activeDocument.addEventListener("keydown", this.keydownHandler, true);
+    activeDocument.addEventListener(
+      "mousedown",
+      this.clickOutsideHandler,
+      true,
+    );
   }
 
   private removeEventHandlers() {
     if (this.keydownHandler) {
-      document.removeEventListener("keydown", this.keydownHandler, true);
+      activeDocument.removeEventListener("keydown", this.keydownHandler, true);
       this.keydownHandler = null;
     }
     if (this.clickOutsideHandler) {
-      document.removeEventListener("mousedown", this.clickOutsideHandler, true);
+      activeDocument.removeEventListener(
+        "mousedown",
+        this.clickOutsideHandler,
+        true,
+      );
       this.clickOutsideHandler = null;
     }
   }
@@ -225,7 +233,7 @@ export class InlineNodeTypePicker {
     if (!position) return;
 
     this.popover = this.createPopover();
-    document.body.appendChild(this.popover);
+    activeDocument.body.appendChild(this.popover);
 
     const popoverRect = this.popover.getBoundingClientRect();
     const viewportWidth = window.innerWidth;

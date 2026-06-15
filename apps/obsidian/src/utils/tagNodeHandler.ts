@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { App, Editor, Notice, MarkdownView, TFile } from "obsidian";
 import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
@@ -83,6 +82,12 @@ export class TagNodeHandler {
    * Refresh discourse tag colors when node types change
    */
   public refreshColors(): void {
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    activeView?.contentEl
+      .querySelectorAll("[data-dg-discourse-tag-node]")
+      .forEach((el) => {
+        delete (el as HTMLElement).dataset.dgDiscourseTagNode;
+      });
     this.processTagsInView();
   }
 
@@ -155,7 +160,7 @@ export class TagNodeHandler {
    * Process an element and its children for discourse node tags
    */
   private processElement(element: HTMLElement): void {
-    if (!document.contains(element)) {
+    if (!activeDocument.contains(element)) {
       return;
     }
 
@@ -164,7 +169,7 @@ export class TagNodeHandler {
         return;
       }
 
-      const tag = nodeType.tag as string;
+      const tag = nodeType.tag;
       const tagSelector = `.cm-tag-${tag}`;
 
       if (element.matches(tagSelector)) {
@@ -178,7 +183,7 @@ export class TagNodeHandler {
           if (
             tagEl.dataset.discourseTagProcessed === "true" ||
             tagEl.closest(".discourse-tag-popover") === tagEl ||
-            !document.contains(tagEl)
+            !activeDocument.contains(tagEl)
           ) {
             return;
           }
@@ -216,9 +221,16 @@ export class TagNodeHandler {
     );
     const colors = getNodeTagColors(nodeType, nodeIndex);
 
-    tagElement.style.backgroundColor = colors.backgroundColor;
-    tagElement.style.color = colors.textColor;
-    tagElement.style.cursor = "pointer";
+    // Use data-* + CSS variables only — do not add classes here. The tag observer
+    // watches class mutations; classList.add fights CodeMirror and can freeze the app.
+    if (tagElement.dataset.dgDiscourseTagNode !== nodeType.id) {
+      tagElement.dataset.dgDiscourseTag = "true";
+      tagElement.dataset.dgDiscourseTagNode = nodeType.id;
+      tagElement.setCssProps({
+        "--dg-discourse-tag-bg": colors.backgroundColor,
+        "--dg-discourse-tag-fg": colors.textColor,
+      });
+    }
 
     if (!alreadyProcessed) {
       const editor = this.getActiveEditor();
@@ -440,7 +452,7 @@ export class TagNodeHandler {
     };
 
     const getClosestRect = (): DOMRect => {
-      const range = document.createRange();
+      const range = activeDocument.createRange();
       range.selectNodeContents(tagElement);
       const clientRects = range.getClientRects();
 
@@ -495,7 +507,7 @@ export class TagNodeHandler {
 
       const rect = getClosestRect();
 
-      this.currentTooltip = document.createElement("div");
+      this.currentTooltip = createDiv();
       this.currentTooltip.className = "discourse-tag-popover";
       this.currentTooltip.style.cssText = `
         position: fixed;
@@ -510,7 +522,7 @@ export class TagNodeHandler {
         pointer-events: auto;
       `;
 
-      const createButton = document.createElement("button");
+      const createButton = createEl("button");
       createButton.textContent = `Create ${nodeType.name}`;
       createButton.className = "mod-cta dg-create-node-button";
 
@@ -525,7 +537,7 @@ export class TagNodeHandler {
 
       this.currentTooltip.appendChild(createButton);
 
-      document.body.appendChild(this.currentTooltip);
+      activeDocument.body.appendChild(this.currentTooltip);
 
       this.currentTooltip.addEventListener("mouseenter", () => {
         if (hoverTimeout) {
@@ -659,7 +671,7 @@ export class TagNodeHandler {
       this.currentTooltip.remove();
       this.currentTooltip = null;
     }
-    const tooltips = document.querySelectorAll(".discourse-tag-popover");
+    const tooltips = activeDocument.querySelectorAll(".discourse-tag-popover");
     tooltips.forEach((tooltip) => tooltip.remove());
   }
 
@@ -667,7 +679,7 @@ export class TagNodeHandler {
    * Cleanup processed tags
    */
   private cleanupProcessedTags(): void {
-    const processedTags = document.querySelectorAll(
+    const processedTags = activeDocument.querySelectorAll(
       '[data-discourse-tag-processed="true"]',
     );
     processedTags.forEach((tag) => {
@@ -680,11 +692,13 @@ export class TagNodeHandler {
       }
       tag.removeAttribute("data-discourse-tag-processed");
 
-      // Reset styles for the tag element
       const htmlTag = tag as HTMLElement;
-      htmlTag.style.backgroundColor = "";
-      htmlTag.style.color = "";
-      htmlTag.style.cursor = "";
+      delete htmlTag.dataset.dgDiscourseTag;
+      delete htmlTag.dataset.dgDiscourseTagNode;
+      htmlTag.setCssProps({
+        "--dg-discourse-tag-bg": "",
+        "--dg-discourse-tag-fg": "",
+      });
     });
   }
 

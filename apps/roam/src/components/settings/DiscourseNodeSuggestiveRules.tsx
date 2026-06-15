@@ -48,10 +48,9 @@ const DiscourseNodeSuggestiveRules = ({
   const handleUpdateEmbeddings = async (): Promise<void> => {
     setIsUpdating(true);
     try {
-      const blockNodesSince = await getAllDiscourseNodesSince(
-        new Date(0).toISOString(),
-        [node],
-      );
+      const blockNodesSince = await getAllDiscourseNodesSince(undefined, [
+        node,
+      ]);
       const supabaseClient = await getLoggedInClient();
       if (!supabaseClient) return;
 

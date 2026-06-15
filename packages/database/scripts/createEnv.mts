@@ -87,7 +87,9 @@ const makeBranchEnv = async (vercel: Vercel, vercelToken: string) => {
     console.warn("No deployment for branch " + branch);
     return;
   }
-  const url = result.deployments[0]!.url;
+  const deployment = result.deployments[0];
+  if (!deployment) throw new Error("Could not get deployment");
+  const url = deployment.meta?.branchAlias ?? deployment.url;
   try {
     execSync(
       `vercel -t ${vercelToken} env pull --environment preview --git-branch ${branch} .env.branch`,
@@ -106,17 +108,22 @@ const makeBranchEnv = async (vercel: Vercel, vercelToken: string) => {
 };
 
 const makeProductionEnv = async (vercel: Vercel, vercelToken: string) => {
-  const result = await vercel.deployments.getDeployments({
+  const result = await vercel.projects.getProjectDomains({
     ...baseParams,
-    projectId: projectIdOrName,
-    limit: 1,
-    target: "production",
-    state: "READY",
+    idOrName: projectIdOrName,
+    production: "true",
   });
-  if (result.deployments.length == 0) {
-    throw new Error("No production deployment found");
+  const domains = result.domains.filter(
+    (d) => !d.redirect && d.apexName.indexOf("vercel") < 0,
+  );
+  if (domains.length === 0) {
+    throw new Error("No production domains found");
   }
-  const url = result.deployments[0]!.url;
+  if (domains.length > 1) {
+    console.log(domains);
+    throw new Error("Too many production domains found");
+  }
+  const url = domains[0]!.name;
   execSync(
     `vercel -t ${vercelToken} env pull --environment production .env.production`,
   );

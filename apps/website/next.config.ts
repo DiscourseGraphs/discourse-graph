@@ -1,5 +1,6 @@
 import nextra from "nextra";
 import type { NextConfig } from "next";
+import type { RouteHas } from "next/dist/lib/load-custom-routes";
 import { config } from "@repo/database/dbDotEnv";
 import { DOCS_REDIRECTS } from "./docsRouteMap";
 
@@ -19,6 +20,28 @@ const nextConfig: NextConfig = {
   async redirects() {
     return DOCS_REDIRECTS;
   },
+  async rewrites() {
+    function negotiateSchema(prefix: string) {
+      return {
+        source: `${prefix}`,
+        has: [
+          {
+            type: "header",
+            key: "accept",
+            value: "(.*)(\\btext/turtle\\b|\\btext/\\*|\\*/\\*)(.*)",
+          } as RouteHas,
+        ],
+        destination: `${prefix}.ttl`,
+      };
+    }
+    return {
+      beforeFiles: [
+        negotiateSchema("/schema/dg_base"),
+        negotiateSchema("/schema/dg_core"),
+      ],
+    };
+  },
+
   turbopack: {
     resolveAlias: {
       "next-mdx-import-source-file": "./mdx-components.tsx",
