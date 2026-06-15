@@ -163,7 +163,7 @@ const BooleanField = ({
       if (!disabled) onChange(!value);
     }}
   >
-    <input type="checkbox" checked={!!value} disabled={disabled} />
+    <input type="checkbox" checked={!!value} disabled={disabled} readOnly />
   </div>
 );
 
