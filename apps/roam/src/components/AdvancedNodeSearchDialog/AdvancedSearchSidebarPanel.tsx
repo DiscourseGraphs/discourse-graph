@@ -238,8 +238,6 @@ export const AdvancedSearchSidebarPanel = ({
   });
 
   useEffect(() => {
-    if (!debouncedSearchTerm) return;
-
     onPersistState({
       query: debouncedSearchTerm,
       results,
