@@ -174,7 +174,98 @@ export const MAX_WIDTH = "400px";
 
 const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
 
+const ROAM_PAGE_DROP_MIME_TYPE = "application/x-roam-page";
+const ROAM_BLOCK_DROP_MIME_TYPE = "application/x-roam-uid";
+const TEMP_DRAG_ATTR = "data-roamjs-canvas-page-ref-draggable";
 const PAGE_REF_REGEX = /^\[\[(.+?)\]\]$/;
+
+const getClosestPageRef = (target: EventTarget | null): HTMLElement | null =>
+  target instanceof HTMLElement
+    ? target.closest<HTMLElement>(".rm-page-ref")
+    : null;
+
+const getPageTitleFromPageRef = (pageRef: HTMLElement): string | undefined => {
+  const pageTitle =
+    pageRef.getAttribute("data-tag") ||
+    pageRef.getAttribute("data-link-title") ||
+    pageRef
+      .closest<HTMLElement>("[data-link-title]")
+      ?.getAttribute("data-link-title");
+
+  return pageTitle?.replace(/\\"/g, '"') || undefined;
+};
+
+let pageRefDragSourceSubscriptionCount = 0;
+let cleanupRoamPageRefDragSources: (() => void) | undefined;
+
+const createRoamPageRefDragSourceCleanup = (): (() => void) => {
+  let activePageRef: HTMLElement | null = null;
+
+  const clearActivePageRef = (): void => {
+    if (activePageRef?.hasAttribute(TEMP_DRAG_ATTR)) {
+      activePageRef.draggable = false;
+      activePageRef.removeAttribute(TEMP_DRAG_ATTR);
+    }
+    activePageRef = null;
+  };
+
+  const handlePointerDown = (e: MouseEvent | PointerEvent): void => {
+    if (e.defaultPrevented || e.button !== 0) return;
+    const pageRef = getClosestPageRef(e.target);
+    if (!pageRef || pageRef.draggable || !getPageTitleFromPageRef(pageRef)) {
+      return;
+    }
+
+    clearActivePageRef();
+    activePageRef = pageRef;
+    pageRef.draggable = true;
+    pageRef.setAttribute(TEMP_DRAG_ATTR, "true");
+  };
+
+  const handleDragStart = (e: DragEvent): void => {
+    const pageRef = getClosestPageRef(e.target);
+    const pageTitle = pageRef ? getPageTitleFromPageRef(pageRef) : undefined;
+    if (pageTitle) {
+      e.dataTransfer?.setData(ROAM_PAGE_DROP_MIME_TYPE, pageTitle);
+    }
+  };
+
+  document.addEventListener("pointerdown", handlePointerDown, true);
+  document.addEventListener("mousedown", handlePointerDown, true);
+  document.addEventListener("pointerup", clearActivePageRef, true);
+  document.addEventListener("mouseup", clearActivePageRef, true);
+  document.addEventListener("pointercancel", clearActivePageRef, true);
+  document.addEventListener("dragstart", handleDragStart, true);
+  document.addEventListener("dragend", clearActivePageRef, true);
+
+  return () => {
+    clearActivePageRef();
+    document.removeEventListener("pointerdown", handlePointerDown, true);
+    document.removeEventListener("mousedown", handlePointerDown, true);
+    document.removeEventListener("pointerup", clearActivePageRef, true);
+    document.removeEventListener("mouseup", clearActivePageRef, true);
+    document.removeEventListener("pointercancel", clearActivePageRef, true);
+    document.removeEventListener("dragstart", handleDragStart, true);
+    document.removeEventListener("dragend", clearActivePageRef, true);
+  };
+};
+
+const enableRoamPageRefDragSources = (): (() => void) => {
+  pageRefDragSourceSubscriptionCount += 1;
+  cleanupRoamPageRefDragSources ||= createRoamPageRefDragSourceCleanup();
+
+  let subscribed = true;
+  return () => {
+    if (!subscribed) return;
+    subscribed = false;
+    pageRefDragSourceSubscriptionCount -= 1;
+
+    if (pageRefDragSourceSubscriptionCount === 0) {
+      cleanupRoamPageRefDragSources?.();
+      cleanupRoamPageRefDragSources = undefined;
+    }
+  };
+};
 
 /** Valid file size for asset props; undefined when unknown (e.g. Roam/file API not a real File) to avoid persisting null. */
 const getValidFileSize = (file: { size?: number }): number | undefined =>
@@ -641,64 +732,21 @@ const TldrawCanvasShared = ({
     return getUids(blockInput as HTMLDivElement).blockUid;
   };
 
-  // Handle Roam block drag and drop
+  // Handle Roam page reference and block drag sources
   useEffect(() => {
-    const temporaryDraggableAttribute = "data-roamjs-canvas-page-ref-draggable";
-    let activePageRef: HTMLElement | null = null;
-    const isPageRefDragSource = (pageRef: HTMLElement): boolean =>
-      !!pageRef.closest(
-        ".roamjs-query-results-view, .roamjs-discourse-result-panel, .roamjs-discourse-context-overlay-container, .rm-query, .rm-query-content",
-      );
-    const clearActivePageRef = () => {
-      if (activePageRef?.hasAttribute(temporaryDraggableAttribute)) {
-        activePageRef.draggable = false;
-        activePageRef.removeAttribute(temporaryDraggableAttribute);
-      }
-      activePageRef = null;
-    };
-    const handlePointerDown = (e: PointerEvent) => {
-      if (e.defaultPrevented || e.button !== 0) return;
-      const target = e.target as HTMLElement;
-      const pageRef = target.closest<HTMLElement>(".rm-page-ref");
-      if (!pageRef || pageRef.draggable || !isPageRefDragSource(pageRef))
-        return;
-
-      activePageRef = pageRef;
-      pageRef.draggable = true;
-      pageRef.setAttribute(temporaryDraggableAttribute, "true");
-    };
+    const disablePageRefDragSources = enableRoamPageRefDragSources();
     const handleDragStart = (e: DragEvent) => {
       const target = e.target as HTMLElement;
-
-      const pageRef = target.closest<HTMLElement>(".rm-page-ref");
-      if (pageRef && isPageRefDragSource(pageRef)) {
-        const pageTitle = (
-          pageRef.getAttribute("data-tag") ||
-          pageRef.getAttribute("data-link-title") ||
-          pageRef.parentElement?.getAttribute("data-link-title")
-        )?.replace(/\\"/g, '"');
-        if (pageTitle) {
-          e.dataTransfer?.setData("application/x-roam-page", pageTitle);
-          return;
-        }
-      }
+      if (getClosestPageRef(target)) return;
 
       const uid = getBlockUidFromBullet(target);
-      if (uid) e.dataTransfer?.setData("application/x-roam-uid", uid);
+      if (uid) e.dataTransfer?.setData(ROAM_BLOCK_DROP_MIME_TYPE, uid);
     };
 
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("pointerup", clearActivePageRef);
-    document.addEventListener("pointercancel", clearActivePageRef);
     document.addEventListener("dragstart", handleDragStart);
-    document.addEventListener("dragend", clearActivePageRef);
     return () => {
-      clearActivePageRef();
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("pointerup", clearActivePageRef);
-      document.removeEventListener("pointercancel", clearActivePageRef);
+      disablePageRefDragSources();
       document.removeEventListener("dragstart", handleDragStart);
-      document.removeEventListener("dragend", clearActivePageRef);
     };
   }, []);
 
@@ -709,7 +757,7 @@ const TldrawCanvasShared = ({
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
 
-    const pageTitle = e.dataTransfer.getData("application/x-roam-page");
+    const pageTitle = e.dataTransfer.getData(ROAM_PAGE_DROP_MIME_TYPE);
     if (pageTitle && appRef.current && extensionAPI) {
       posthog.capture("Canvas: Roam Page Dropped");
       const dropPoint = appRef.current.screenToPage({
@@ -724,7 +772,7 @@ const TldrawCanvasShared = ({
       return;
     }
 
-    const uid = e.dataTransfer.getData("application/x-roam-uid");
+    const uid = e.dataTransfer.getData(ROAM_BLOCK_DROP_MIME_TYPE);
 
     if (!uid || !appRef.current || !extensionAPI) return;
     posthog.capture("Canvas: Roam Block Dropped");
@@ -1374,14 +1422,6 @@ const InsideEditorAndUiContext = ({
           const isLive = isLiveBlock(uid);
           if (!blockText || !isLive)
             return await callDefaultTextHandler(content);
-
-          const refMatch = blockText.match(PAGE_REF_REGEX);
-          if (refMatch?.[1] && (await tryCreatePageNodeShape(refMatch[1]))) {
-            posthog.capture("Canvas: Node Added from External Content", {
-              source: "block-page-reference",
-            });
-            return;
-          }
 
           await createDiscourseNodeShape({
             uid,
