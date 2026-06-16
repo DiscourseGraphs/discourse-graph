@@ -6,6 +6,7 @@ import {
   getAllRelations,
   isDiscourseNodeShape,
 } from "~/components/canvas/canvasUtils";
+import { isRelationComplete } from "~/utils/isRelationComplete";
 
 type RelationTypeDropdownProps = {
   sourceId: TLShapeId;
@@ -47,17 +48,7 @@ export const RelationTypeDropdown = ({
     const seenLabels = new Set<string>();
 
     for (const relation of allRelations) {
-      if (
-        !relation.label?.trim?.() ||
-        !relation.complement?.trim?.() ||
-        relation.complement === "?" ||
-        !relation.source?.trim?.() ||
-        relation.source === "?" ||
-        !relation.destination?.trim?.() ||
-        relation.destination === "?"
-      ) {
-        continue;
-      }
+      if (!isRelationComplete(relation)) continue;
       const { isDirect: isForward, isReverse } = checkConnectionType(
         relation,
         startNodeType,

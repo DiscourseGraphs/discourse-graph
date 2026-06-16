@@ -44,6 +44,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import updateBlock from "roamjs-components/writes/updateBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import { isRelationComplete } from "~/utils/isRelationComplete";
 import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
@@ -518,13 +519,12 @@ export const RelationEditPanel = ({
     }
   }, [label]);
 
-  const isRelationComplete =
-    label.trim().length > 0 &&
-    complement.trim().length > 0 &&
-    source.trim().length > 0 &&
-    source !== "?" &&
-    destination.trim().length > 0 &&
-    destination !== "?";
+  const isEditingRelationComplete = isRelationComplete({
+    label,
+    complement,
+    source,
+    destination,
+  });
 
   return (
     <>
@@ -543,7 +543,7 @@ export const RelationEditPanel = ({
           icon={"floppy-disk"}
           text={"Save"}
           intent={Intent.PRIMARY}
-          disabled={loading || !hasChanges || !isRelationComplete}
+          disabled={loading || !hasChanges || !isEditingRelationComplete}
           className="select-none"
           onClick={() => {
             setLoading(true);
