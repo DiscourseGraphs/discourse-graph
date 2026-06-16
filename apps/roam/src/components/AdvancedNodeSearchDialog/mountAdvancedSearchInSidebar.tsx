@@ -34,7 +34,9 @@ const isRightSidebarOpen = (): boolean => {
 
 const getRoamSidebarWindows = async (): Promise<RoamSidebarWindow[]> => {
   try {
-    const windows = await window.roamAlphaAPI.ui.rightSidebar.getWindows();
+    const windows = await Promise.resolve(
+      window.roamAlphaAPI.ui.rightSidebar.getWindows(),
+    );
     return windows ?? [];
   } catch {
     return [];
