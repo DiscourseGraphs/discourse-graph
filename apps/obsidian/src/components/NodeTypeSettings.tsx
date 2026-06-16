@@ -160,7 +160,7 @@ const BooleanField = ({
   <input
     type="checkbox"
     checked={!!value}
-    onChange={(e) => onChange((e.target as HTMLInputElement).checked)}
+    onChange={(e) => onChange(e.target.checked)}
     disabled={disabled}
   />
 );
@@ -727,6 +727,7 @@ const NodeTypeSettings = () => {
     }
 
     setErrors((prev) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- we don't need the field value
       const { [field]: _, ...rest } = prev;
       return rest;
     });
@@ -840,7 +841,7 @@ const NodeTypeSettings = () => {
   const confirmDeleteNodeType = (index: number): void => {
     const nodeType = nodeTypes[index] || { name: "Unnamed" };
     const modal = new ConfirmationModal(plugin.app, {
-      title: "Delete Node Type",
+      title: "Delete node type",
       message: `Are you sure you want to delete the node type "${nodeType.name}"?`,
       onConfirm: () => void handleDeleteNodeType(index),
     });
@@ -885,7 +886,7 @@ const NodeTypeSettings = () => {
     if (!editingNodeType) return;
 
     if (!templateConfig.isEnabled || !templateConfig.folderPath) {
-      new Notice("Configure and enable the Obsidian Templates plugin first.");
+      new Notice("Configure and enable the Obsidian templates plugin first.");
       return;
     }
 
@@ -1137,7 +1138,7 @@ const NodeTypeSettings = () => {
     return (
       <div className="node-type-list">
         <button onClick={handleAddNodeType} className="mod-cta">
-          Add Node Type
+          Add node type
         </button>
 
         {localNodeTypes.length > 0 && (
@@ -1192,7 +1193,7 @@ const NodeTypeSettings = () => {
           <h3 className="dg-h3">
             {isEditingImported
               ? `[Read only] Imported from ${getAndFormatImportSource(editingNodeType.importedFromRid || "", plugin.settings.spaceNames)}`
-              : "Edit Node Type"}
+              : "Edit node type"}
           </h3>
         </div>
         {FIELD_CONFIG_ARRAY.map(renderField)}

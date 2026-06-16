@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { usePlugin } from "./PluginContext";
 import { setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
-import { SLACK_LOGO, WHITE_LOGO_SVG } from "~/icons";
+import { DiscourseGraphLogoIcon, SlackLogoIcon } from "./Icons";
 
 const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
 const COMMUNITY_URL =
@@ -10,18 +10,6 @@ const COMMUNITY_URL =
 
 const InfoSection = () => {
   const plugin = usePlugin();
-  const logoRef = useRef<HTMLDivElement>(null);
-  const communityIconRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (logoRef.current) {
-      logoRef.current.innerHTML = WHITE_LOGO_SVG;
-    }
-    if (communityIconRef.current) {
-      communityIconRef.current.innerHTML = SLACK_LOGO;
-    }
-  }, []);
-
   return (
     <div className="flex justify-center">
       <div
@@ -29,10 +17,11 @@ const InfoSection = () => {
         style={{ background: "var(--tag-background)" }}
       >
         <div
-          ref={logoRef}
           className="flex h-12 w-12 items-center justify-center"
           style={{ color: "var(--interactive-accent)" }}
-        />
+        >
+          <DiscourseGraphLogoIcon />
+        </div>
         <div
           className="font-semibold"
           style={{ color: "var(--interactive-accent)" }}
@@ -48,7 +37,9 @@ const InfoSection = () => {
           rel="noopener noreferrer"
           aria-label="Community"
         >
-          <div ref={communityIconRef} className="icon" />
+          <span className="icon flex items-center">
+            <SlackLogoIcon />
+          </span>
           <span>Community</span>
           <span
             className="icon"

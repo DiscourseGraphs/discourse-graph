@@ -206,12 +206,8 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "open-discourse-graph-settings",
     name: "Open Discourse Graphs settings",
     callback: () => {
-      // plugin.app.setting is an unofficial API
-      /* eslint-disable @typescript-eslint/no-unsafe-call */
-      const setting = (plugin.app as unknown as { setting: any }).setting;
-      setting.open();
-      setting.openTabById(plugin.manifest.id);
-      /* eslint-enable @typescript-eslint/no-unsafe-call */
+      plugin.app.setting.open();
+      plugin.app.setting.openTabById(plugin.manifest.id);
     },
   });
 

@@ -10,6 +10,7 @@ import {
 } from "./DiscourseRelationUtil";
 import { discourseContext } from "~/components/canvas/Tldraw";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
+import { isRelationComplete } from "~/utils/isRelationComplete";
 
 export type AddReferencedNodeType = Record<string, ReferenceFormatType[]>;
 type ReferenceFormatType = {
@@ -340,6 +341,17 @@ export const createAllRelationShapeTools = (
 
         override onEnter = () => {
           this.didTimeout = false;
+
+          const selectedRelations = discourseContext.relations[name] || [];
+          const hasIncompleteSelectedRelation = selectedRelations.some(
+            (relation) => !isRelationComplete(relation),
+          );
+          if (hasIncompleteSelectedRelation) {
+            this.cancelAndWarn(
+              "Relation type is incomplete. Set label, complement, source, and destination in settings.",
+            );
+            return;
+          }
 
           const target = this.editor.getShapeAtPoint(
             this.editor.inputs.currentPagePoint,
