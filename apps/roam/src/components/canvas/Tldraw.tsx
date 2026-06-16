@@ -1405,7 +1405,7 @@ const InsideEditorAndUiContext = ({
           const pageMatch = text.match(PAGE_REF_REGEX);
           if (pageMatch?.[1]) {
             if (await tryCreatePageNodeShape(pageMatch[1])) {
-              posthog.capture("Canvas: Node Added from External Content", {
+              posthog.capture("Canvas: Node Added from Text Content", {
                 source: "page-reference",
               });
               return;
@@ -1429,7 +1429,7 @@ const InsideEditorAndUiContext = ({
             nodeType: "blck-node",
             content,
           });
-          posthog.capture("Canvas: Node Added from External Content", {
+          posthog.capture("Canvas: Node Added from Text Content", {
             source: "block-reference",
           });
         } catch (error) {
