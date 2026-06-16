@@ -10,7 +10,9 @@ const isNonEmptyNonPlaceholder = (
   return trimmed.length > 0 && !PLACEHOLDER_VALUES.has(trimmed);
 };
 
-export const isRelationComplete = (relation: DiscourseRelation): boolean =>
+export const isRelationComplete = (
+  relation: Partial<DiscourseRelation>,
+): boolean =>
   isNonEmptyNonPlaceholder(relation.label) &&
   isNonEmptyNonPlaceholder(relation.complement) &&
   isNonEmptyNonPlaceholder(relation.source) &&
