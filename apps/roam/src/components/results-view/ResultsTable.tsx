@@ -609,13 +609,15 @@ const ResultsTable = ({
           `thead td[data-column="${uid}"]`,
         );
         if (header) {
-          const headerWidth = (header as HTMLElement).offsetWidth;
+          const headerElement = header as HTMLElement;
+          const headerWidth = headerElement.offsetWidth;
+          let finalWidth = columnWidths[uid] || "5%";
           if (headerWidth > 0) {
             const percent = (headerWidth / totalWidth) * 100;
-            finalWidths[uid] = `${Math.max(minPercent, percent)}%`;
-          } else {
-            finalWidths[uid] = columnWidths[uid] || "5%";
+            finalWidth = `${Math.max(minPercent, percent)}%`;
           }
+          finalWidths[uid] = finalWidth;
+          headerElement.style.width = finalWidth;
         }
       });
       setColumnWidths(finalWidths);
