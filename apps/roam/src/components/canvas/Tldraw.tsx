@@ -177,22 +177,34 @@ const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`
 const ROAM_PAGE_DROP_MIME_TYPE = "application/x-roam-page";
 const ROAM_BLOCK_DROP_MIME_TYPE = "application/x-roam-uid";
 const TEMP_DRAG_ATTR = "data-roamjs-canvas-page-ref-draggable";
+const PAGE_REF_CLICK_SUPPRESSION_MS = 750;
 const PAGE_REF_REGEX = /^\[\[(.+?)\]\]$/;
 
-const getClosestPageRef = (target: EventTarget | null): HTMLElement | null =>
-  target instanceof HTMLElement
-    ? target.closest<HTMLElement>(".rm-page-ref")
-    : null;
+type PageRefDragSource = {
+  element: HTMLElement;
+  title: string;
+};
 
-const getPageTitleFromPageRef = (pageRef: HTMLElement): string | undefined => {
+const getPageRefDragSource = (
+  target: EventTarget | null,
+): PageRefDragSource | null => {
+  if (!(target instanceof HTMLElement)) return null;
+
+  const pageRef = target.closest<HTMLElement>(".rm-page-ref");
+  const pageRefContainer = target.closest<HTMLElement>("[data-link-title]");
+  const element = pageRef || pageRefContainer;
+  if (!element) return null;
+
   const pageTitle =
-    pageRef.getAttribute("data-tag") ||
-    pageRef.getAttribute("data-link-title") ||
+    pageRef?.getAttribute("data-tag") ||
+    pageRef?.getAttribute("data-link-title") ||
     pageRef
-      .closest<HTMLElement>("[data-link-title]")
-      ?.getAttribute("data-link-title");
+      ?.closest<HTMLElement>("[data-link-title]")
+      ?.getAttribute("data-link-title") ||
+    pageRefContainer?.getAttribute("data-link-title");
 
-  return pageTitle?.replace(/\\"/g, '"') || undefined;
+  const title = pageTitle?.replace(/\\"/g, '"');
+  return title ? { element, title } : null;
 };
 
 let pageRefDragSourceSubscriptionCount = 0;
@@ -200,6 +212,7 @@ let cleanupRoamPageRefDragSources: (() => void) | undefined;
 
 const createRoamPageRefDragSourceCleanup = (): (() => void) => {
   let activePageRef: HTMLElement | null = null;
+  let suppressPageRefClickUntil = 0;
 
   const clearActivePageRef = (): void => {
     if (activePageRef?.hasAttribute(TEMP_DRAG_ATTR)) {
@@ -211,23 +224,37 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
 
   const handlePointerDown = (e: MouseEvent | PointerEvent): void => {
     if (e.defaultPrevented || e.button !== 0) return;
-    const pageRef = getClosestPageRef(e.target);
-    if (!pageRef || pageRef.draggable || !getPageTitleFromPageRef(pageRef)) {
+    const source = getPageRefDragSource(e.target);
+    if (!source || source.element.draggable) {
       return;
     }
 
     clearActivePageRef();
-    activePageRef = pageRef;
-    pageRef.draggable = true;
-    pageRef.setAttribute(TEMP_DRAG_ATTR, "true");
+    activePageRef = source.element;
+    source.element.draggable = true;
+    source.element.setAttribute(TEMP_DRAG_ATTR, "true");
   };
 
   const handleDragStart = (e: DragEvent): void => {
-    const pageRef = getClosestPageRef(e.target);
-    const pageTitle = pageRef ? getPageTitleFromPageRef(pageRef) : undefined;
-    if (pageTitle) {
-      e.dataTransfer?.setData(ROAM_PAGE_DROP_MIME_TYPE, pageTitle);
+    const source = getPageRefDragSource(e.target);
+    if (source) {
+      suppressPageRefClickUntil = Date.now() + PAGE_REF_CLICK_SUPPRESSION_MS;
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = "copy";
+      e.dataTransfer?.setData(ROAM_PAGE_DROP_MIME_TYPE, source.title);
     }
+  };
+
+  const handleClick = (e: MouseEvent): void => {
+    if (
+      Date.now() > suppressPageRefClickUntil ||
+      !getPageRefDragSource(e.target)
+    ) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    suppressPageRefClickUntil = 0;
   };
 
   document.addEventListener("pointerdown", handlePointerDown, true);
@@ -236,6 +263,7 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
   document.addEventListener("mouseup", clearActivePageRef, true);
   document.addEventListener("pointercancel", clearActivePageRef, true);
   document.addEventListener("dragstart", handleDragStart, true);
+  document.addEventListener("click", handleClick, true);
   document.addEventListener("dragend", clearActivePageRef, true);
 
   return () => {
@@ -246,6 +274,7 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     document.removeEventListener("mouseup", clearActivePageRef, true);
     document.removeEventListener("pointercancel", clearActivePageRef, true);
     document.removeEventListener("dragstart", handleDragStart, true);
+    document.removeEventListener("click", handleClick, true);
     document.removeEventListener("dragend", clearActivePageRef, true);
   };
 };
@@ -737,7 +766,7 @@ const TldrawCanvasShared = ({
     const disablePageRefDragSources = enableRoamPageRefDragSources();
     const handleDragStart = (e: DragEvent) => {
       const target = e.target as HTMLElement;
-      if (getClosestPageRef(target)) return;
+      if (getPageRefDragSource(target)) return;
 
       const uid = getBlockUidFromBullet(target);
       if (uid) e.dataTransfer?.setData(ROAM_BLOCK_DROP_MIME_TYPE, uid);
