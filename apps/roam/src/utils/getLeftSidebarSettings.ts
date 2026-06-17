@@ -1,4 +1,7 @@
 import { RoamBasicNode } from "roamjs-components/types";
+import { BLOCK_REF_REGEX } from "roamjs-components/dom/constants";
+import extractRef from "roamjs-components/util/extractRef";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import {
   BooleanSetting,
   getUidAndBooleanSetting,
@@ -13,10 +16,41 @@ import type {
   PersonalSection,
 } from "~/components/settings/utils/zodSchema";
 
+type StringSettingWithValueUid = StringSetting & { valueUid?: string };
+
 type LeftSidebarPersonalSectionSettings = {
   uid: string;
   truncateResult: IntSetting;
   folded: BooleanSetting;
+  alias?: StringSettingWithValueUid;
+  resultLimit?: IntSetting;
+};
+
+const BLOCK_REF_FULL_MATCH = new RegExp(`^${BLOCK_REF_REGEX.source}$`);
+export const QUERY_BLOCK_MARKER = /\{\{query block(?::[^}]*)?\}\}/;
+
+const getUidAndStringSettingWithValueUid = ({
+  tree,
+  text,
+}: {
+  tree: RoamBasicNode[];
+  text: string;
+}): StringSettingWithValueUid => {
+  const node = tree.find((node) => node.text === text);
+  const valueChild = node?.children?.[0];
+  return {
+    uid: node?.uid,
+    value: valueChild?.text ?? "",
+    valueUid: valueChild?.uid,
+  };
+};
+
+export const isQueryBlockRef = (text: string): boolean => {
+  if (!BLOCK_REF_FULL_MATCH.test(text)) return false;
+  const blockText = getTextByBlockUid(extractRef(text));
+  if (!blockText) return false;
+  if (blockText.includes(":SmartBlock:")) return false;
+  return QUERY_BLOCK_MARKER.test(blockText);
 };
 
 export type PersonalSectionChild = RoamBasicNode & {
@@ -123,10 +157,23 @@ const getPersonalSectionSettings = (
     text: "Folded",
   });
 
+  const aliasSetting = getUidAndStringSettingWithValueUid({
+    tree: settingsTree,
+    text: "Alias",
+  });
+
+  const resultLimitSetting = getUidAndIntSetting({
+    tree: settingsTree,
+    text: "Result-limit",
+    defaultValue: 10,
+  });
+
   return {
     uid: settingsNode.uid,
     truncateResult: truncateResultSetting,
     folded: foldedSetting,
+    alias: aliasSetting,
+    resultLimit: resultLimitSetting,
   };
 };
 
@@ -266,6 +313,15 @@ export const mergePersonalSectionsWithAccessor = (
         folded: {
           uid: legacy?.settings?.folded.uid ?? "",
           value: snap.Settings.Folded,
+        },
+        alias: {
+          uid: legacy?.settings?.alias?.uid,
+          valueUid: legacy?.settings?.alias?.valueUid,
+          value: snap.Settings.Alias,
+        },
+        resultLimit: {
+          uid: legacy?.settings?.resultLimit?.uid,
+          value: snap.Settings["Result-limit"],
         },
       },
       children:
