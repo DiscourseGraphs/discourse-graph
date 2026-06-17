@@ -124,8 +124,7 @@ export const persistRelationBetweenNodeShapes = async ({
       targetFile,
       alreadyExisted,
     };
-  } catch (error) {
-    console.error("Failed to persist relation:", error);
+  } catch {
     showToast({
       severity: "error",
       title: "Failed to Save Relation",

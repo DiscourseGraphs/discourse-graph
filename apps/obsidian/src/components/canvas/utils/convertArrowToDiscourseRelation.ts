@@ -1,11 +1,5 @@
 import type { TFile } from "obsidian";
-import {
-  createShapeId,
-  Editor,
-  TLArrowShape,
-  TLShape,
-  TLShapeId,
-} from "tldraw";
+import { createShapeId, Editor, TLArrowShape, TLShapeId } from "tldraw";
 import DiscourseGraphPlugin from "~/index";
 import { DiscourseNodeShape } from "~/components/canvas/shapes/DiscourseNodeShape";
 import { DiscourseRelationShape } from "~/components/canvas/shapes/DiscourseRelationShape";
@@ -18,8 +12,10 @@ import { persistRelationBetweenNodeShapes } from "~/components/canvas/utils/rela
 import { removeRelationById } from "~/utils/relationsStore";
 import {
   getDiscourseNodeTypeId,
+  getRelationDirection,
   getRelationLabelForDirection,
   getValidRelationTypesForNodePair,
+  isDiscourseNodeShape,
 } from "~/components/canvas/utils/relationTypeUtils";
 import { getRelationTypeById } from "~/utils/typeUtils";
 import { toTldrawColor } from "~/utils/tldrawColors";
@@ -41,9 +37,6 @@ type ResolveNativeArrowFailureReason =
   | "same-node"
   | "not-discourse-node"
   | "missing-type-id";
-
-const isDiscourseNodeShape = (shape: TLShape): shape is DiscourseNodeShape =>
-  shape.type === "discourse-node";
 
 const getNativeArrowBindings = (
   editor: Editor,
@@ -101,7 +94,7 @@ const resolveNativeArrowDiscoursePair = (
   return {
     ok: true,
     value: {
-      arrow: shape as TLArrowShape,
+      arrow: shape,
       startBinding: start,
       endBinding: end,
       startNode,
@@ -188,12 +181,22 @@ export const convertArrowToDiscourseRelation = async ({
   const relationType = getRelationTypeById(plugin, relationTypeId);
   if (!relationType) return;
 
+  const { direct, reverse } = getRelationDirection({
+    discourseRelations: plugin.settings.discourseRelations,
+    relationTypeId,
+    sourceNodeTypeId: startNodeTypeId,
+    targetNodeTypeId: endNodeTypeId,
+  });
+  const isReverseOnly = reverse && !direct;
+  const persistStartNode = isReverseOnly ? endNode : startNode;
+  const persistEndNode = isReverseOnly ? startNode : endNode;
+
   const persistResult = await persistRelationBetweenNodeShapes({
     plugin,
     canvasFile,
     editor,
-    startNode,
-    endNode,
+    startNode: persistStartNode,
+    endNode: persistEndNode,
     relationTypeId,
   });
 
