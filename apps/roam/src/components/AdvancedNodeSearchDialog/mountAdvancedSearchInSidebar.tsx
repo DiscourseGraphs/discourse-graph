@@ -206,10 +206,7 @@ const restorePersistedDockedSearchSidebarWindows = (): void => {
     const sidebarWindow = document.querySelector<HTMLElement>(
       `[data-sidebar-window-id="${savedState.windowId}"]`,
     );
-    if (
-      !sidebarWindow ||
-      sidebarWindow.querySelector(`.${DG_SEARCH_ROOT_CLASS}`)
-    ) {
+    if (!sidebarWindow || activeUnmounts.has(savedState.dgSearchId)) {
       continue;
     }
 
@@ -285,5 +282,8 @@ export const initDockedSearchSidebarPersistence = (): (() => void) => {
 
     activeUnmounts.forEach((unmount) => unmount());
     activeUnmounts.clear();
+    document
+      .querySelectorAll(`.${DG_SEARCH_ROOT_CLASS}`)
+      .forEach((root) => root.remove());
   };
 };
