@@ -96,8 +96,8 @@ const ResultRow = ({
     onMouseEnter={onMouseEnter}
     role="option"
     style={{
-      background: active ? "rgba(95, 87, 192, 0.08)" : undefined,
-      boxShadow: active ? "inset 3px 0 0 #5f57c0" : undefined,
+      background: active ? "rgba(167, 182, 194, 0.3)" : undefined,
+      boxShadow: active ? "inset 3px 0 0 rgba(167, 182, 194, 0.3)" : undefined,
     }}
   >
     <Tag minimal style={getTagStyle(nodeConfig)}>
