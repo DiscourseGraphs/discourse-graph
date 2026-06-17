@@ -13,6 +13,9 @@ import {
 export const DEBOUNCE_MS = 250;
 export const MAX_RESULTS = 50;
 
+export const getSearchKeywords = (searchTerm: string): string[] =>
+  searchTerm.split(/\s+/).filter(Boolean);
+
 export type SortField = "relevance" | "alphabetical" | "dateCreated" | "author";
 export type SortDirection = "asc" | "desc";
 
@@ -42,6 +45,15 @@ export type SearchResult = {
   createdAt: string;
   lastModified: string;
   authorName: string;
+};
+
+export type DockedSearchState = {
+  query: string;
+  results: SearchResult[];
+  selectedNodeTypeIds: string[];
+  sort: SortConfig;
+  windowId?: string;
+  dgSearchId?: string;
 };
 
 export type ScoredSearchHit = {

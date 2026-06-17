@@ -12,12 +12,12 @@ import {
   Popover,
   Position,
 } from "@blueprintjs/core";
-import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
 import {
   NODE_TYPE_FILTER_SEARCH_THRESHOLD,
   filterDiscourseNodesByQuery,
   fromPopoverSelectedIds,
+  getDiscourseNodeIndicatorColor,
   getSelectAllCheckState,
   hasActiveTypeFilter,
   toPopoverSelectedIds,
@@ -29,9 +29,6 @@ export type DiscourseNodeTypeFilterProps = {
   onSelectedTypeIdsChange: (ids: string[]) => void;
   onPopoverOpenChange?: (isOpen: boolean) => void;
 };
-
-const getNodeIndicatorColor = (node: DiscourseNode): string =>
-  formatHexColor(node.canvasSettings?.color) || "#000";
 
 const NodeTypeFilterRow = ({
   isChecked,
@@ -52,7 +49,7 @@ const NodeTypeFilterRow = ({
         <span className="inline-flex items-center gap-2 font-normal">
           <span
             className="h-3 w-3 rounded-full"
-            style={{ backgroundColor: getNodeIndicatorColor(node) }}
+            style={{ backgroundColor: getDiscourseNodeIndicatorColor(node) }}
           />
           <span className="font-normal">{node.text}</span>
         </span>

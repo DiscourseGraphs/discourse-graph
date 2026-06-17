@@ -1,9 +1,15 @@
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 
 /* Advanced search: when `selectedTypeIds` has no values, show all node types; otherwise, filter to the selected types. */
 export const NODE_TYPE_FILTER_SEARCH_THRESHOLD = 7;
 
 export type SelectAllCheckState = "off" | "indeterminate" | "on";
+
+export const getDiscourseNodeIndicatorColor = (
+  node: DiscourseNode,
+  fallback = "#000",
+): string => formatHexColor(node.canvasSettings?.color) || fallback;
 
 export const hasActiveTypeFilter = ({
   selectedTypeIds,
