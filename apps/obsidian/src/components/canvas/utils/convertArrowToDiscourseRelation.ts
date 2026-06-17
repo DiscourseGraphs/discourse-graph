@@ -1,5 +1,11 @@
 import type { TFile } from "obsidian";
-import { createShapeId, Editor, TLArrowShape, TLShapeId } from "tldraw";
+import {
+  createShapeId,
+  Editor,
+  TLArrowShape,
+  TLShape,
+  TLShapeId,
+} from "tldraw";
 import DiscourseGraphPlugin from "~/index";
 import { DiscourseNodeShape } from "~/components/canvas/shapes/DiscourseNodeShape";
 import { DiscourseRelationShape } from "~/components/canvas/shapes/DiscourseRelationShape";
@@ -38,6 +44,10 @@ type ResolveNativeArrowFailureReason =
   | "not-discourse-node"
   | "missing-type-id";
 
+const isArrowShape = (
+  shape: TLShape | null | undefined,
+): shape is TLArrowShape => shape?.type === "arrow";
+
 const getNativeArrowBindings = (
   editor: Editor,
   arrowId: TLShapeId,
@@ -59,7 +69,7 @@ const resolveNativeArrowDiscoursePair = (
   | { ok: true; value: ResolvedNativeArrowPair }
   | { ok: false; reason: ResolveNativeArrowFailureReason } => {
   const shape = editor.getShape(arrowId);
-  if (!shape || shape.type !== "arrow") {
+  if (!isArrowShape(shape)) {
     return { ok: false, reason: "not-arrow" };
   }
 
