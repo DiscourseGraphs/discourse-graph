@@ -31,6 +31,7 @@ import {
   type SearchResult,
   type SortConfig,
   buildSearchIndex,
+  formatBadgeText,
   formatMetadataDate,
   getSearchKeywords,
   splitWithHighlights,
@@ -46,8 +47,9 @@ import {
 
 type Props = Record<string, unknown>;
 
-const getNodeBadgeText = (node: DiscourseNode): string =>
-  (node.tag?.trim() || node.text).slice(0, 3).toUpperCase();
+const getNodeBadgeText = (node: DiscourseNode): string => {
+  return formatBadgeText(node.tag?.trim() || node.text);
+};
 
 const getTagStyle = (node: DiscourseNode | undefined): React.CSSProperties => {
   const color = node?.canvasSettings?.color;
@@ -99,7 +101,9 @@ const ResultRow = ({
     }}
   >
     <Tag minimal style={getTagStyle(nodeConfig)}>
-      {nodeConfig ? getNodeBadgeText(nodeConfig) : result.nodeTypeLabel}
+      {nodeConfig
+        ? getNodeBadgeText(nodeConfig)
+        : formatBadgeText(result.nodeTypeLabel)}
     </Tag>
     <span className="min-w-0 break-words text-sm leading-snug text-gray-900">
       {renderHighlightedText(stripTypePrefix(result.title), keywords)}
