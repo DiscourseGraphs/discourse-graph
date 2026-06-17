@@ -68,6 +68,9 @@ export const formatMetadataDate = (value: string): string => {
   });
 };
 
+export const formatBadgeText = (text: string): string =>
+  text.replace(/^#/, "").slice(0, 3).toUpperCase();
+
 export const stripTypePrefix = (title: string): string => {
   const match = title.match(/^\[\[.*?\]\]\s*-\s*(.*)/s);
   return match ? match[1] : title;

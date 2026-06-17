@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Button,
   Dialog,
@@ -37,6 +31,7 @@ import {
   type SearchResult,
   type SortConfig,
   buildSearchIndex,
+  formatBadgeText,
   formatMetadataDate,
   searchIndexedNodes,
   sortSearchResults,
@@ -50,8 +45,7 @@ import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
 type Props = Record<string, unknown>;
 
 const getNodeBadgeText = (node: DiscourseNode): string => {
-  const text = (node.tag?.trim() || node.text).replace(/^#/, "");
-  return text.slice(0, 3).toUpperCase();
+  return formatBadgeText(node.tag?.trim() || node.text);
 };
 
 const getTagStyle = (node: DiscourseNode | undefined): React.CSSProperties => {
@@ -106,7 +100,7 @@ const ResultRow = ({
     <Tag minimal style={getTagStyle(nodeConfig)}>
       {nodeConfig
         ? getNodeBadgeText(nodeConfig)
-        : result.nodeTypeLabel.replace(/^#/, "").slice(0, 3).toUpperCase()}
+        : formatBadgeText(result.nodeTypeLabel)}
     </Tag>
     <span className="min-w-0 break-words text-sm leading-snug text-gray-900">
       {renderHighlightedText(stripTypePrefix(result.title), keywords)}
