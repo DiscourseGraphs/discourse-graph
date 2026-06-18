@@ -3,8 +3,6 @@ import type DiscourseGraphPlugin from "~/index";
 import type { ImportFolderMetadata } from "~/types";
 import {
   buildImportFolderBasename,
-  isUserRenamedFolderBasename,
-  needsLegacyFolderRename,
   sanitizeImportFolderName,
 } from "./importFolderNaming";
 
@@ -56,60 +54,26 @@ const writeImportFolderMetadata = async ({
   await adapter.write(metadataPath, JSON.stringify(metadata, null, 2));
 };
 
-const resolveMetadataDuplicate = async ({
+const findImportFolderBySpaceUri = async ({
   adapter,
-  existingFolderPath,
-  newFolderPath,
+  spaceUri,
 }: {
   adapter: DataAdapter;
-  existingFolderPath: string;
-  newFolderPath: string;
-}): Promise<string> => {
-  const existingMetadataPath = `${existingFolderPath}/${DG_METADATA_FILE}`;
-  const newMetadataPath = `${newFolderPath}/${DG_METADATA_FILE}`;
-
-  const existingStat = await adapter.stat(existingMetadataPath);
-  const newStat = await adapter.stat(newMetadataPath);
-
-  const newIsNewer =
-    existingStat && newStat && existingStat.mtime < newStat.mtime;
-  if (newIsNewer) {
-    await adapter.remove(existingMetadataPath);
-    return newFolderPath;
-  }
-
-  await adapter.remove(newMetadataPath);
-  return existingFolderPath;
-};
-
-const buildSpaceUriToFolderMap = async (
-  adapter: DataAdapter,
-): Promise<Map<string, string>> => {
-  const map = new Map<string, string>();
-
+  spaceUri: string;
+}): Promise<{ folderPath: string; metadata: ImportFolderMetadata } | null> => {
   const importExists = await adapter.exists(IMPORT_ROOT);
-  if (!importExists) return map;
+  if (!importExists) return null;
 
   const { folders } = await adapter.list(IMPORT_ROOT);
 
   for (const folderPath of folders) {
     const metadata = await readImportFolderMetadata(adapter, folderPath);
-    if (!metadata) continue;
-
-    if (map.has(metadata.spaceUri)) {
-      const existingPath = map.get(metadata.spaceUri)!;
-      const keptPath = await resolveMetadataDuplicate({
-        adapter,
-        existingFolderPath: existingPath,
-        newFolderPath: folderPath,
-      });
-      map.set(metadata.spaceUri, keptPath);
-    } else {
-      map.set(metadata.spaceUri, folderPath);
+    if (metadata?.spaceUri === spaceUri) {
+      return { folderPath, metadata };
     }
   }
 
-  return map;
+  return null;
 };
 
 const resolveUniqueImportFolderPath = async ({
@@ -177,7 +141,6 @@ const reconcileImportFolderForSpace = async ({
   ownerUserName?: string;
   warnIfUserNameMissing?: boolean;
 }): Promise<string> => {
-  const basename = getImportFolderBasename(folderPath);
   const userName = ownerUserName ?? metadata.userName;
   const updatedMetadata: ImportFolderMetadata = {
     ...metadata,
@@ -185,64 +148,61 @@ const reconcileImportFolderForSpace = async ({
     ...(userName ? { userName } : {}),
   };
 
-  if (metadata.migrated) {
-    if (updatedMetadata.spaceName !== metadata.spaceName) {
+  const writeIfChanged = async (): Promise<void> => {
+    if (
+      updatedMetadata.spaceName !== metadata.spaceName ||
+      updatedMetadata.userName !== metadata.userName
+    ) {
       await writeImportFolderMetadata({
         adapter,
         folderPath,
         metadata: updatedMetadata,
       });
     }
+  };
+
+  if (metadata.migrated) {
+    await writeIfChanged();
     return folderPath;
   }
 
-  const alreadyPrefixed =
-    !!userName && basename === buildImportFolderBasename(userName, spaceName);
-
-  if (
-    alreadyPrefixed ||
-    isUserRenamedFolderBasename(basename, spaceName, userName)
-  ) {
-    await writeImportFolderMetadata({
-      adapter,
-      folderPath,
-      metadata: { ...updatedMetadata, migrated: true },
-    });
-    return folderPath;
-  }
-
-  if (!needsLegacyFolderRename({ metadata, basename, spaceName, userName })) {
-    if (warnIfUserNameMissing && !userName) {
+  if (!userName) {
+    if (warnIfUserNameMissing) {
       console.warn(
         `Discourse Graphs: skipping import folder rename for "${folderPath}" — owner username unknown.`,
       );
-    } else if (updatedMetadata.spaceName !== metadata.spaceName) {
-      await writeImportFolderMetadata({
-        adapter,
-        folderPath,
-        metadata: updatedMetadata,
-      });
+    } else {
+      await writeIfChanged();
     }
     return folderPath;
   }
 
-  const newPath = await resolveUniqueImportFolderPath({
-    adapter,
-    desiredBasename: buildImportFolderBasename(userName!, spaceName),
-    spaceUri,
-  });
+  const targetBasename = buildImportFolderBasename(userName, spaceName);
+  let finalPath = folderPath;
 
-  if (newPath !== folderPath) {
-    await renameImportFolder({ app, adapter, oldPath: folderPath, newPath });
+  if (getImportFolderBasename(folderPath) !== targetBasename) {
+    finalPath = await resolveUniqueImportFolderPath({
+      adapter,
+      desiredBasename: targetBasename,
+      spaceUri,
+    });
+    if (finalPath !== folderPath) {
+      await renameImportFolder({
+        app,
+        adapter,
+        oldPath: folderPath,
+        newPath: finalPath,
+      });
+    }
   }
 
   await writeImportFolderMetadata({
     adapter,
-    folderPath: newPath,
-    metadata: { ...updatedMetadata, userName: userName!, migrated: true },
+    folderPath: finalPath,
+    metadata: { ...updatedMetadata, userName, migrated: true },
   });
 
-  return newPath;
+  return finalPath;
 };
 
 export const resolveFolderForSpaceUri = async ({
@@ -258,26 +218,20 @@ export const resolveFolderForSpaceUri = async ({
   spaceName: string;
   ownerUserName?: string;
 }): Promise<string> => {
-  const spaceUriToFolder = await buildSpaceUriToFolderMap(adapter);
-
-  if (spaceUriToFolder.has(spaceUri)) {
-    const folderPath = spaceUriToFolder.get(spaceUri)!;
-    const existingMetadata = await readImportFolderMetadata(
+  const existingFolder = await findImportFolderBySpaceUri({
+    adapter,
+    spaceUri,
+  });
+  if (existingFolder) {
+    return reconcileImportFolderForSpace({
+      app,
       adapter,
-      folderPath,
-    );
-    if (existingMetadata) {
-      return reconcileImportFolderForSpace({
-        app,
-        adapter,
-        folderPath,
-        metadata: existingMetadata,
-        spaceUri,
-        spaceName,
-        ownerUserName,
-      });
-    }
-    return folderPath;
+      folderPath: existingFolder.folderPath,
+      metadata: existingFolder.metadata,
+      spaceUri,
+      spaceName,
+      ownerUserName,
+    });
   }
 
   const { folders } = (await adapter.exists(IMPORT_ROOT))
