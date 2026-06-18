@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "publish": "tsx scripts/publish.ts --version 0.1.0",
-    "check-types": "tsc --noEmit --skipLibCheck"
+    "check-types": "tsc --noEmit --skipLibCheck",
+    "test:mcp-bridge": "tsx --test tests/mcpBridge.test.ts tests/mcpBridgeWrite.test.ts tests/mcpBridgeWriteExecutor.test.ts"
   },
   "keywords": [],
   "author": "",

@@ -36,13 +36,14 @@ const getOverlayInfo = async (
   tag: string,
   ignoreCache?: boolean,
 ): Promise<DiscourseData> => {
+  const resolvedUid = getPageUidByPageTitle(tag);
   try {
     const relations = getDiscourseRelations();
     const nodes = getDiscourseNodes(relations);
 
-    const [results, refs] = await Promise.all([
+    const [resultsOutcome, refsOutcome] = await Promise.allSettled([
       getDiscourseContextResults({
-        uid: getPageUidByPageTitle(tag),
+        uid: resolvedUid,
         nodes,
         relations,
         ignoreCache,
@@ -52,9 +53,16 @@ const getOverlayInfo = async (
       ),
     ]);
 
+    const results =
+      resultsOutcome.status === "fulfilled" ? resultsOutcome.value : [];
+
+    const refsResult =
+      refsOutcome.status === "fulfilled" ? refsOutcome.value : undefined;
+    const refCount = Array.isArray(refsResult) ? refsResult.length : 0;
+
     return {
       results,
-      refs: refs.length,
+      refs: refCount,
     };
   } catch (error) {
     console.error(`Error getting overlay info for ${tag}:`, error);

@@ -584,11 +584,11 @@ const registerDiscourseDatalogTranslators = (snapshot?: SettingsSnapshot) => {
             const forwardClauses: DatalogClause[] = [];
             const reverseClauses: DatalogClause[] = [];
             const sourceTriples = filteredRelations
-              .map((r) => r.triples.find((t) => t[2] === "source"))
+              .map((r) => r.triples?.find((t) => t[2] === "source"))
               .filter((x) => x !== undefined);
             const targetTriples = filteredRelations
               .map((r) =>
-                r.triples.find(
+                r.triples?.find(
                   (t) => t[2] === "destination" || t[2] === "target",
                 ),
               )
@@ -829,8 +829,8 @@ const registerDiscourseDatalogTranslators = (snapshot?: SettingsSnapshot) => {
                 source: relationSource,
                 destination: relationTarget,
               }) => {
-                const sourceTriple = triples.find((t) => t[2] === "source");
-                const targetTriple = triples.find(
+                const sourceTriple = triples?.find((t) => t[2] === "source");
+                const targetTriple = triples?.find(
                   (t) => t[2] === "destination" || t[2] === "target",
                 );
                 if (!sourceTriple || !targetTriple) return [];

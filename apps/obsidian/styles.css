@@ -100,3 +100,100 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   border: none !important;
   box-shadow: none !important;
 }
+
+/* MCP write approval pill */
+.dg-mcp-write-pill {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 100;
+  padding: 8px 14px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 999px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-s);
+  cursor: pointer;
+}
+
+.dg-mcp-write-pill:hover {
+  background: var(--background-modifier-hover);
+}
+
+.dg-mcp-write-panel {
+  position: fixed;
+  bottom: 56px;
+  right: 16px;
+  z-index: 100;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(60vh, 480px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  background: var(--background-primary);
+  box-shadow: var(--shadow-l);
+}
+
+.dg-mcp-write-panel__header {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.dg-mcp-write-panel__empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.dg-mcp-write-batch {
+  padding: 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-secondary);
+}
+
+.dg-mcp-write-batch + .dg-mcp-write-batch {
+  margin-top: 10px;
+}
+
+.dg-mcp-write-batch__title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.dg-mcp-write-batch__operations {
+  margin: 0 0 10px 18px;
+  padding: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dg-mcp-write-batch__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dg-mcp-write-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dg-mcp-write-btn--approve {
+  background: var(--color-green);
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+
+.dg-mcp-write-btn--reject {
+  background: transparent;
+  color: var(--text-muted);
+}

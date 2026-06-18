@@ -44,13 +44,13 @@ const buildSelections = ({
 }: SelectionConfig): Selection[] => {
   const selections: Selection[] = [];
 
-  if (r.triples.some((t) => t.some((a) => /context/i.test(a)))) {
+  if (r.triples?.some((t) => t?.some?.((a) => /context/i.test(a)))) {
     selections.push({
       uid: window.roamAlphaAPI.util.generateUID(),
       label: "context",
       text: `node:${conditionUid}-Context`,
     });
-  } else if (r.triples.some((t) => t.some((a) => /anchor/i.test(a)))) {
+  } else if (r.triples?.some((t) => t?.some?.((a) => /anchor/i.test(a)))) {
     selections.push({
       uid: window.roamAlphaAPI.util.generateUID(),
       label: "anchor",
@@ -76,28 +76,35 @@ const executeQueries = async (
   onResult?: onResult,
 ) => {
   const promises = queryConfigs.map(async ({ relation, queryPromise }) => {
-    let results = await queryPromise();
-    results = results.map((r) => ({ ...r, ctxTargetUid: targetUid }));
-    if (onResult) {
-      const groupedResult = {
-        label: relation.text,
-        results: Object.fromEntries(
-          results
-            .filter((a) => a.uid !== targetUid)
-            .map((res) => [
-              res.uid,
-              {
-                ...res,
-                target: nodeTextByType[relation.target],
-                complement: relation.isComplement ? 1 : 0,
-                id: relation.id,
-              },
-            ]),
-        ),
-      };
-      onResult(groupedResult);
+    try {
+      let results = await queryPromise();
+      if (!Array.isArray(results)) {
+        results = [];
+      }
+      results = results.map((r) => ({ ...r, ctxTargetUid: targetUid }));
+      if (onResult) {
+        const groupedResult = {
+          label: relation.text,
+          results: Object.fromEntries(
+            results
+              .filter((a) => a.uid !== targetUid)
+              .map((res) => [
+                res.uid,
+                {
+                  ...res,
+                  target: nodeTextByType[relation.target],
+                  complement: relation.isComplement ? 1 : 0,
+                  id: relation.id,
+                },
+              ]),
+          ),
+        };
+        onResult(groupedResult);
+      }
+      return { relation, results };
+    } catch {
+      return { relation, results: [] as Result[] };
     }
-    return { relation, results };
   });
 
   const results = await Promise.all(promises);
@@ -249,7 +256,7 @@ const getDiscourseContextResults = async ({
   );
 
   resultsWithRelation.forEach((r) =>
-    r.results
+    (r.results ?? [])
       .filter((a) => a.uid !== targetUid)
       .forEach(
         (res) =>
