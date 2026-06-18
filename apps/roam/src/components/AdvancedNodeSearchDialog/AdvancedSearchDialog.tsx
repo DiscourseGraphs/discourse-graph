@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Button,
   Dialog,
-  InputGroup,
+  Icon,
   NonIdealState,
   Spinner,
   SpinnerSize,
@@ -40,6 +40,7 @@ import {
 import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
+import { NodeTypeChipsSearchInput } from "./NodeTypeChipsSearchInput";
 import {
   type SearchIndex,
   useAdvancedNodeSearchResults,
@@ -161,6 +162,7 @@ const AdvancedNodeSearchDialog = ({
   const [sort, setSort] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
   const [discourseNodes, setDiscourseNodes] = useState<DiscourseNode[]>([]);
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
+  const [isTypeFilterPopoverOpen, setIsTypeFilterPopoverOpen] = useState(false);
   const resultsPanelRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [insertTarget, setInsertTarget] = useState<InsertTarget | null>(null);
@@ -291,7 +293,7 @@ const AdvancedNodeSearchDialog = ({
     ? "error"
     : isIndexLoading
       ? "indexing"
-      : !debouncedSearchTerm
+      : !debouncedSearchTerm && selectedNodeTypeIds.length === 0
         ? "initial"
         : !results.length
           ? "empty"
@@ -362,15 +364,21 @@ const AdvancedNodeSearchDialog = ({
     onClose();
   }, [activeResult, contentState, onClose]);
 
-  const onKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleSearchKeyDown = useCallback(
+    (event: React.KeyboardEvent): void => {
       if (event.key === "ArrowDown" && results.length) {
         event.preventDefault();
-        setActiveIndex((index) => Math.min(index + 1, results.length - 1));
-      } else if (event.key === "ArrowUp" && results.length) {
+        setActiveIndex((index) =>
+          Math.min(Math.max(index, 0) + 1, results.length - 1),
+        );
+        return;
+      }
+      if (event.key === "ArrowUp" && results.length) {
         event.preventDefault();
         setActiveIndex((index) => Math.max(index - 1, 0));
-      } else if (
+        return;
+      }
+      if (
         event.key === "Enter" &&
         event.altKey &&
         contentState === "results" &&
@@ -388,7 +396,9 @@ const AdvancedNodeSearchDialog = ({
         event.preventDefault();
         if (event.shiftKey) void onOpenInSidebar();
         else void onOpen();
-      } else if (
+        return;
+      }
+      if (
         event.key === "Enter" &&
         (event.metaKey || event.ctrlKey) &&
         contentState === "results" &&
@@ -397,7 +407,10 @@ const AdvancedNodeSearchDialog = ({
       ) {
         event.preventDefault();
         void onInsert();
-      } else if (event.key === "Escape") {
+        return;
+      }
+      if (event.key === "Escape") {
+        if (isTypeFilterPopoverOpen) return;
         event.preventDefault();
         onClose();
       }
@@ -405,6 +418,7 @@ const AdvancedNodeSearchDialog = ({
     [
       activeResult,
       contentState,
+      isTypeFilterPopoverOpen,
       insertTarget,
       onClose,
       onOpenSearchSidebar,
@@ -415,6 +429,14 @@ const AdvancedNodeSearchDialog = ({
     ],
   );
 
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.defaultPrevented) return;
+      handleSearchKeyDown(event);
+    },
+    [handleSearchKeyDown],
+  );
+
   const showSplitView = contentState === "results";
 
   return (
@@ -422,7 +444,7 @@ const AdvancedNodeSearchDialog = ({
       autoFocus={false}
       canEscapeKeyClose
       canOutsideClickClose
-      className="flex max-w-4xl flex-col overflow-hidden bg-white p-0"
+      className="flex w-full max-w-4xl flex-col overflow-hidden bg-white p-0"
       enforceFocus={false}
       isOpen={isOpen}
       onClose={onClose}
@@ -438,19 +460,27 @@ const AdvancedNodeSearchDialog = ({
         onMouseUp={(event) => event.stopPropagation()}
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <div className="flex flex-none items-center gap-2 border-b border-gray-200 px-3 py-2">
-          <InputGroup
-            fill
-            inputRef={inputRef}
-            leftIcon="search"
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              setSearchTerm(event.target.value)
-            }
-            placeholder="Search discourse nodes..."
-            value={searchTerm}
-          />
+        <div className="flex w-full flex-none items-start gap-2 border-b border-gray-200 px-3 py-2">
+          <div className="flex min-h-9 min-w-0 flex-1 items-center rounded border border-gray-300 bg-white px-2 py-1">
+            <Icon
+              className="mr-2 shrink-0 self-center text-gray-500"
+              icon="search"
+              size={16}
+            />
+            <NodeTypeChipsSearchInput
+              inputRef={inputRef}
+              nodeTypes={discourseNodes}
+              onSearchKeyDown={handleSearchKeyDown}
+              onSearchTermChange={setSearchTerm}
+              onSelectedTypeIdsChange={setSelectedNodeTypeIds}
+              searchTerm={searchTerm}
+              selectedTypeIds={selectedNodeTypeIds}
+            />
+          </div>
           <DiscourseNodeTypeFilter
+            layoutAnchorKey={selectedNodeTypeIds.length}
             nodeTypes={discourseNodes}
+            onPopoverOpenChange={setIsTypeFilterPopoverOpen}
             onSelectedTypeIdsChange={setSelectedNodeTypeIds}
             selectedTypeIds={selectedNodeTypeIds}
           />
@@ -498,7 +528,7 @@ const AdvancedNodeSearchDialog = ({
                 <Spinner size={SpinnerSize.SMALL} />
               )}
               {contentState === "empty" && (
-                <span>No matches. Try another keyword.</span>
+                <span>No matches. Try another keyword or filter.</span>
               )}
               {contentState === "error" && (
                 <span>
