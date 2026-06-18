@@ -342,8 +342,8 @@ importers:
         specifier: 3.5.2
         version: 3.5.2(react@18.2.0)
       roamjs-components:
-        specifier: 0.88.1
-        version: 0.88.1(f3dd466ad63c875d7b4d2c35ecf33e51)
+        specifier: 0.88.3
+        version: 0.88.3(bf7afe7a8e3269c4acb427d06becbe47)
       tldraw:
         specifier: 2.4.6
         version: 2.4.6(patch_hash=56e196052862c9a58a11b43e5e121384cd1d6548416afa0f16e9fbfbf0e4080d)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -10148,8 +10148,8 @@ packages:
     deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
 
-  roamjs-components@0.88.1:
-    resolution: {integrity: sha512-AnL+30xUDRKPfmoUQyS5FTAEUwNAGzqyTYTNzDzDZbD9bYSJCguS43eOwUYXI66gAHYgul4xiZuUtNWxKwmLpg==}
+  roamjs-components@0.88.3:
+    resolution: {integrity: sha512-eCKpgKSLoxtOqRZG9c0KOwTQIu2WrYzuipvfeGI377dzUZ8AIj4hJaq6qYzBPL7N1bnns0mMcjHiBhOgLgQTBg==}
     engines: {node: '>=16.0.0', npm: '>=7.0.0'}
     hasBin: true
     peerDependencies:
@@ -23497,7 +23497,7 @@ snapshots:
     dependencies:
       glob: 7.2.3
 
-  roamjs-components@0.88.1(f3dd466ad63c875d7b4d2c35ecf33e51):
+  roamjs-components@0.88.3(bf7afe7a8e3269c4acb427d06becbe47):
     dependencies:
       '@blueprintjs/core': 3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@blueprintjs/datetime': 3.23.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
