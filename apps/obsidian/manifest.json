@@ -6,5 +6,5 @@
   "description": "Add semantic structure to your notes with the Discourse Graph protocol.",
   "author": "Discourse Graphs",
   "authorUrl": "https://discoursegraphs.com",
-  "isDesktopOnly": false
+  "isDesktopOnly": true
 }
