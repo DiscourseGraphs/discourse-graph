@@ -374,7 +374,7 @@ export class QueryEngine {
           if (opts?.excludeImported) {
             const fm = this.app.metadataCache.getFileCache(file)
               ?.frontmatter as Record<string, unknown> | undefined;
-            if (fm?.importedFromRid || fm?.importedFromSpaceUri) continue;
+            if (fm?.importedFromRid) continue;
           }
           files.push(file);
         }
