@@ -12,60 +12,32 @@ export const buildImportFolderBasename = (
   return sanitizeImportFolderName(`${userName}-${spaceName}`);
 };
 
-export const isLegacyFolderBasename = (
-  basename: string,
-  spaceName: string,
-): boolean => {
-  return basename === sanitizeImportFolderName(spaceName);
-};
-
-/** Matches old collision folders: `{spaceName}-{6-char id}`. */
-export const isLegacyCollisionFolderBasename = (
+/** Pre-migration names: `{spaceName}` or old collision `{spaceName}-{6-char id}`. */
+export const isLegacyImportFolderBasename = (
   basename: string,
   spaceName: string,
 ): boolean => {
   const sanitized = sanitizeImportFolderName(spaceName);
+  if (basename === sanitized) return true;
+
   const prefix = `${sanitized}-`;
   if (!basename.startsWith(prefix)) return false;
-  const suffix = basename.slice(prefix.length);
-  return /^[a-z0-9]{6}$/.test(suffix);
+  return /^[a-z0-9]{6}$/.test(basename.slice(prefix.length));
 };
 
-export const isLegacyOrCollisionFolderBasename = (
+export const isUserRenamedFolderBasename = (
   basename: string,
   spaceName: string,
+  userName?: string,
 ): boolean => {
-  return (
-    isLegacyFolderBasename(basename, spaceName) ||
-    isLegacyCollisionFolderBasename(basename, spaceName)
-  );
-};
-
-export const isExpectedMigratedBasename = (
-  basename: string,
-  userName: string,
-  spaceName: string,
-): boolean => {
-  return basename === buildImportFolderBasename(userName, spaceName);
-};
-
-export const isCustomFolderBasename = ({
-  basename,
-  spaceName,
-  userName,
-}: {
-  basename: string;
-  spaceName: string;
-  userName?: string;
-}): boolean => {
-  if (isLegacyOrCollisionFolderBasename(basename, spaceName)) return false;
-  if (userName && isExpectedMigratedBasename(basename, userName, spaceName)) {
+  if (isLegacyImportFolderBasename(basename, spaceName)) return false;
+  if (userName && basename === buildImportFolderBasename(userName, spaceName)) {
     return false;
   }
   return true;
 };
 
-export const shouldAutoRenameFolder = ({
+export const needsLegacyFolderRename = ({
   metadata,
   basename,
   spaceName,
@@ -77,6 +49,6 @@ export const shouldAutoRenameFolder = ({
   userName?: string;
 }): boolean => {
   if (metadata.migrated) return false;
-  if (!isLegacyOrCollisionFolderBasename(basename, spaceName)) return false;
+  if (!isLegacyImportFolderBasename(basename, spaceName)) return false;
   return !!userName;
 };
