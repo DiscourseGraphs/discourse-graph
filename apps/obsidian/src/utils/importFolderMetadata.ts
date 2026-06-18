@@ -5,7 +5,6 @@ import {
   buildImportFolderBasename,
   isCustomFolderBasename,
   isExpectedMigratedBasename,
-  isLegacyFolderBasename,
   sanitizeImportFolderName,
   shouldAutoRenameFolder,
 } from "./importFolderNaming";
@@ -364,8 +363,9 @@ const resolveUserNameFromFolder = (
     .filter((file) => file.path.startsWith(`${folderPath}/`));
 
   for (const file of files) {
-    const authorId =
-      plugin.app.metadataCache.getFileCache(file)?.frontmatter?.authorId;
+    const frontmatter = plugin.app.metadataCache.getFileCache(file)
+      ?.frontmatter as Record<string, unknown> | undefined;
+    const authorId = frontmatter?.authorId;
     if (typeof authorId === "number" && userNames[authorId]) {
       return userNames[authorId];
     }

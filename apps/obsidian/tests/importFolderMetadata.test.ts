@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-floating-promises */
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildImportFolderBasename,
   isCustomFolderBasename,
   isExpectedMigratedBasename,
+  isLegacyCollisionFolderBasename,
   isLegacyFolderBasename,
   sanitizeImportFolderName,
   shouldAutoRenameFolder,
@@ -86,6 +88,40 @@ test("isCustomFolderBasename treats unexpected names as custom", () => {
   assert.equal(
     isCustomFolderBasename({
       basename: buildImportFolderBasename("Alice", "My Vault"),
+      spaceName: "My Vault",
+      userName: "Alice",
+    }),
+    false,
+  );
+});
+
+test("isLegacyCollisionFolderBasename matches old collision suffix folders", () => {
+  assert.equal(
+    isLegacyCollisionFolderBasename("My Vault-abc123", "My Vault"),
+    true,
+  );
+  assert.equal(
+    isLegacyCollisionFolderBasename("Alice-My Vault", "My Vault"),
+    false,
+  );
+});
+
+test("shouldAutoRenameFolder treats collision-suffixed legacy folders as eligible", () => {
+  assert.equal(
+    shouldAutoRenameFolder({
+      metadata: {},
+      basename: "My Vault-abc123",
+      spaceName: "My Vault",
+      userName: "Alice",
+    }),
+    true,
+  );
+});
+
+test("isCustomFolderBasename does not treat collision-suffixed legacy folders as custom", () => {
+  assert.equal(
+    isCustomFolderBasename({
+      basename: "My Vault-abc123",
       spaceName: "My Vault",
       userName: "Alice",
     }),

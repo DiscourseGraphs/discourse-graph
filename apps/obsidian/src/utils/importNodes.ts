@@ -20,7 +20,6 @@ import {
 } from "./importRelations";
 import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
-import { getUserNameById } from "./typeUtils";
 
 export type MyGroup = {
   id: string;
@@ -306,7 +305,8 @@ export const resolveOwnerUserName = (
     }
   }
 
-  return getUserNameById(plugin, topAuthorId);
+  const userNames = plugin.settings.userNames ?? {};
+  return userNames[topAuthorId];
 };
 
 export const fetchNodeContent = async ({
