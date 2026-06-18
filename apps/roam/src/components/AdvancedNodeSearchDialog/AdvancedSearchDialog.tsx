@@ -28,7 +28,6 @@ import { mountAdvancedSearchInSidebar } from "./mountAdvancedSearchInSidebar";
 import {
   DEBOUNCE_MS,
   DEFAULT_SORT_CONFIG,
-  MAX_RESULTS,
   type SearchResult,
   type SortConfig,
   buildSearchIndex,
