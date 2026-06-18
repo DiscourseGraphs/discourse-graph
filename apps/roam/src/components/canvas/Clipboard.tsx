@@ -40,6 +40,7 @@ import {
   TLDefaultSizeStyle,
   TLDefaultFontStyle,
   FONT_FAMILIES,
+  TLShapePartial,
 } from "tldraw";
 import { useAtom } from "@tldraw/state-react";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
@@ -698,7 +699,7 @@ const ClipboardPageSection = ({
       });
 
       const shapeId = createShapeId();
-      const shape = {
+      const shape: TLShapePartial<DiscourseNodeShape> = {
         id: shapeId,
         type: DISCOURSE_NODE_SHAPE_TYPE,
         x: pagePoint.x - w / 2,
