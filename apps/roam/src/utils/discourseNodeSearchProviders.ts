@@ -83,7 +83,7 @@ type DiscourseNodeFormatMatcher = {
 
 type RoamSemanticSearchHit = {
   uid?: string;
-  type?: string;
+  type?: "chunk" | "block" | "page";
   text?: string;
   title?: string;
   string?: string;
@@ -272,16 +272,18 @@ const runRoamSemanticSearch = async ({
 
   const hits = (await window.roamAlphaAPI.data.async.semanticSearch({
     "search-str": trimmedQuery,
-    "hide-code-blocks": true,
+    "hide-code-blocks": false,
+    "search-blocks": false,
     "search-pages": true,
     k: ROAM_SEMANTIC_SEARCH_RESULT_LIMIT,
   })) as RoamSemanticSearchHit[];
+  const pageHits = hits.filter((hit) => hit.type === "page");
 
   const titlesByUid = await pullPageTitlesByUid(
-    hits.map((hit) => hit.uid || ""),
+    pageHits.map((hit) => hit.uid || ""),
   );
 
-  const rawResults = hits.map((hit, index) => {
+  const rawResults = pageHits.map((hit, index) => {
     const uid = hit.uid || "";
     const title = uid ? titlesByUid[uid] : undefined;
     return toResultItem({
@@ -305,10 +307,13 @@ const runRoamSemanticSearch = async ({
 
   return {
     rawResults,
-    rawResultCount: hits.length,
+    rawResultCount: pageHits.length,
     filteredResults,
     filteredResultCount: filteredResults.length,
-    note: `.semanticSearch returned ${hits.length}/${ROAM_SEMANTIC_SEARCH_RESULT_LIMIT} page hits; ${filteredResults.length} matched discourse node page-title formats.`,
+    note:
+      `.semanticSearch returned ${pageHits.length}/${ROAM_SEMANTIC_SEARCH_RESULT_LIMIT} page hits; ` +
+      `${hits.length - pageHits.length} non-page hits were discarded; ` +
+      `${filteredResults.length} matched discourse node page-title formats.`,
   };
 };
 
