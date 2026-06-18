@@ -4,6 +4,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
+// TODO rename/move this file to discourseMigrations.ts
+// as it is used for both relation and node shapes
 import {
   createMigrationSequence,
   createBindingId,
@@ -186,6 +189,8 @@ export const createMigrations = ({
       {
         id: versions["MigrateNodeTypeToDiscourseNode"],
         scope: "record",
+        // Assumes node type ids and relation ids are distinct. Legacy
+        // /anchor/-backed relation nodes are not supported by this migration.
         filter: (r: any) => {
           const recordType = getRecordType(r);
           return (

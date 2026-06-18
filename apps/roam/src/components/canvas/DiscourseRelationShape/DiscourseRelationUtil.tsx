@@ -119,6 +119,15 @@ const COLOR_ARRAY = Array.from(DefaultColorStyle.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
   .reverse() as TLDefaultColorStyle[];
 
+const isRelationShapeType = (shapeType: string): boolean =>
+  Object.values(discourseContext.relations).some((relations) =>
+    relations.some((relation) => relation.id === shapeType),
+  );
+
+const isBindableDiscourseNodeShapeType = (shapeType: string): boolean =>
+  shapeType === DISCOURSE_NODE_SHAPE_TYPE ||
+  (!!discourseContext.nodes[shapeType] && !isRelationShapeType(shapeType));
+
 export const getRelationColor = (
   relationName: string,
   index?: number,
@@ -1230,7 +1239,7 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     toShapeType,
   }: TLShapeUtilCanBindOpts<DiscourseRelationShape>): boolean {
     // bindings can go from arrows to shapes, but not from shapes to arrows
-    return toShapeType === DISCOURSE_NODE_SHAPE_TYPE;
+    return isBindableDiscourseNodeShapeType(toShapeType);
   }
 
   override canBeLaidOut: TLShapeUtilFlag<DiscourseRelationShape> = () => {
