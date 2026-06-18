@@ -318,39 +318,24 @@ export const fireQuerySync = (args: FireQueryArgs): QueryResult[] => {
 const fireQuery: FireQuery = async (_args) => {
   const { isCustomEnabled, customNode, local, ...args } = _args;
 
-  let query: string;
-  let formatResult: (result: unknown[]) => Promise<QueryResult>;
-  let inputs: (string | number)[];
-
-  try {
-    const queryConfig = isCustomEnabled
-      ? {
-          query: customNode as string,
-          formatResult: (r: unknown[]): Promise<QueryResult> =>
-            Promise.resolve({
-              text: "",
-              uid: "",
-              ...Object.fromEntries(
-                r.flatMap((p, index) =>
-                  typeof p === "object" && p !== null
-                    ? Object.entries(p)
-                    : [[index.toString(), p]],
-                ),
+  const { query, formatResult, inputs } = isCustomEnabled
+    ? {
+        query: customNode as string,
+        formatResult: (r: unknown[]): Promise<QueryResult> =>
+          Promise.resolve({
+            text: "",
+            uid: "",
+            ...Object.fromEntries(
+              r.flatMap((p, index) =>
+                typeof p === "object" && p !== null
+                  ? Object.entries(p)
+                  : [[index.toString(), p]],
               ),
-            }),
-          inputs: [] as (string | number)[],
-        }
-      : getDatalogQuery(args);
-    query = queryConfig.query;
-    formatResult = queryConfig.formatResult;
-    inputs = queryConfig.inputs;
-  } catch (e) {
-    console.group("🚨 Roam Query Setup Error");
-    console.error((e as Error).message);
-    console.groupEnd();
-    return [];
-  }
-
+            ),
+          }),
+        inputs: [],
+      }
+    : getDatalogQuery(args);
   try {
     const nodeEnv = getNodeEnv();
     const queryId = nodeEnv === "development" ? nanoid(4) : "";
@@ -371,10 +356,6 @@ const fireQuery: FireQuery = async (_args) => {
       );
     } else {
       queryResults = await window.roamAlphaAPI.data.backend.q(query, ...inputs);
-    }
-
-    if (!Array.isArray(queryResults)) {
-      queryResults = [];
     }
 
     if (nodeEnv === "development") {
