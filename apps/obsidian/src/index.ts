@@ -37,8 +37,13 @@ import {
   migrateFrontmatterRelationsToRelationsJson,
   mergeAllRelationsJsonToRoot,
 } from "~/utils/relationsStore";
-import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
+import {
+  migrateImportFolderMetadata,
+  migrateImportFolderNames,
+} from "./utils/importFolderMetadata";
 import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
+import { fetchUserNames } from "~/utils/importNodes";
+import { getLoggedInClient } from "~/utils/supabaseContext";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -63,16 +68,28 @@ export default class DiscourseGraphPlugin extends Plugin {
       console.error("Failed to migrate import folder metadata:", error);
     });
 
+    await migrateImportFolderNames(this).catch((error) => {
+      console.error("Failed to migrate import folder names:", error);
+    });
+
     registerTemplateSettingsSync(this);
 
     if (this.settings.syncModeEnabled === true) {
-      void initializeSupabaseSync(this).catch((error) => {
-        console.error("Failed to initialize Supabase sync:", error);
-        new Notice(
-          `Failed to initialize Supabase sync: ${error instanceof Error ? error.message : String(error)}`,
-          5000,
-        );
-      });
+      void initializeSupabaseSync(this)
+        .then(async () => {
+          const client = await getLoggedInClient(this);
+          if (client) {
+            await fetchUserNames(this, client);
+          }
+          await migrateImportFolderNames(this);
+        })
+        .catch((error) => {
+          console.error("Failed to initialize Supabase sync:", error);
+          new Notice(
+            `Failed to initialize Supabase sync: ${error instanceof Error ? error.message : String(error)}`,
+            5000,
+          );
+        });
 
       try {
         this.fileChangeListener = new FileChangeListener(this);

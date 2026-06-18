@@ -20,6 +20,7 @@ import {
 } from "./importRelations";
 import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
+import { getUserNameById } from "./typeUtils";
 
 export type MyGroup = {
   id: string;
@@ -279,6 +280,33 @@ export const fetchUserNames = async (
   );
   plugin.settings.userNames = nameById;
   await plugin.saveSettings();
+};
+
+export const resolveOwnerUserName = (
+  nodes: ImportableNode[],
+  plugin: DiscourseGraphPlugin,
+): string | undefined => {
+  const authorCounts = new Map<number, number>();
+  for (const node of nodes) {
+    if (node.authorId !== undefined) {
+      authorCounts.set(
+        node.authorId,
+        (authorCounts.get(node.authorId) ?? 0) + 1,
+      );
+    }
+  }
+  if (authorCounts.size === 0) return undefined;
+
+  let topAuthorId = 0;
+  let topCount = 0;
+  for (const [authorId, count] of authorCounts) {
+    if (count > topCount) {
+      topCount = count;
+      topAuthorId = authorId;
+    }
+  }
+
+  return getUserNameById(plugin, topAuthorId);
 };
 
 export const fetchNodeContent = async ({
@@ -1304,6 +1332,13 @@ export const importSelectedNodes = async ({
 
   const queryEngine = new QueryEngine(plugin.app);
 
+  if (
+    !plugin.settings.userNames ||
+    Object.keys(plugin.settings.userNames).length === 0
+  ) {
+    await fetchUserNames(plugin, client);
+  }
+
   let successCount = 0;
   let failedCount = 0;
   let processedCount = 0;
@@ -1336,10 +1371,13 @@ export const importSelectedNodes = async ({
     }
 
     const spaceName = spaceNames.get(spaceId) ?? `space-${spaceId}`;
+    const ownerUserName = resolveOwnerUserName(nodes, plugin);
     const importFolderPath = await resolveFolderForSpaceUri({
       adapter: plugin.app.vault.adapter,
+      app: plugin.app,
       spaceUri,
       spaceName,
+      ownerUserName,
     });
 
     // Process each node in this space
