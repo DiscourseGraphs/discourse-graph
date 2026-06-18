@@ -210,6 +210,7 @@ const pullPageTitlesByUid = async (
 
   return pulledPages.reduce(
     (acc, page, index) => {
+      if (!page) return acc;
       const uid = page[":block/uid"] || uniqueUids[index];
       const title = page[":node/title"];
       if (uid && title) acc[uid] = title;
