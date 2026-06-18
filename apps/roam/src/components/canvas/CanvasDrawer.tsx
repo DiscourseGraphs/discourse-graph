@@ -18,7 +18,11 @@ import { Editor, useEditor, TLShapeId } from "tldraw";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import { DiscourseNodeShape } from "./DiscourseNodeUtil";
+import {
+  DISCOURSE_NODE_SHAPE_TYPE,
+  DiscourseNodeShape,
+  getDiscourseNodeTypeId,
+} from "./DiscourseNodeUtil";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 
@@ -56,14 +60,15 @@ export const CanvasDrawerContent = ({
     const entries: NodeGroup[] = Object.entries(groupedShapes).map(
       ([uid, shapes]) => {
         const primaryShape = shapes[0];
+        const nodeTypeId = getDiscourseNodeTypeId({ shape: primaryShape });
         const typeLabel =
-          discourseNodes.find((n) => n.type === primaryShape.type)?.text ||
-          primaryShape.type ||
+          discourseNodes.find((n) => n.type === nodeTypeId)?.text ||
+          nodeTypeId ||
           "Unknown";
         return {
           uid,
           title: primaryShape.props.title,
-          type: primaryShape.type,
+          type: nodeTypeId,
           typeLabel,
           shapes,
           isDuplicate: shapes.length > 1,
@@ -402,6 +407,7 @@ export const CanvasDrawerPanel = () => {
       const allRecords = editor.store.allRecords();
       const shapes = allRecords.filter((record) => {
         if (record.typeName !== "shape") return false;
+        if (record.type !== DISCOURSE_NODE_SHAPE_TYPE) return false;
         const shape = record as DiscourseNodeShape;
         return !!shape.props?.uid;
       }) as DiscourseNodeShape[];

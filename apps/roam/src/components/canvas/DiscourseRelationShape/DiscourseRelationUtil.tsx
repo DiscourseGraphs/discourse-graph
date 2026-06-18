@@ -103,6 +103,7 @@ import createPage from "roamjs-components/writes/createPage";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import triplesToBlocks from "~/utils/triplesToBlocks";
 import {
+  DISCOURSE_NODE_SHAPE_TYPE,
   DiscourseNodeUtil,
   DiscourseNodeShape,
   getDiscourseNodeTypeId,
@@ -175,6 +176,14 @@ export const createAllReferencedNodeUtils = (
         if (!sourceId) return;
         const source = editor.getShape(sourceId);
         if (!target || !source) return;
+        if (
+          !isDiscourseNodeShapeTypeGuard(target) ||
+          !isDiscourseNodeShapeTypeGuard(source)
+        ) {
+          return deleteAndWarn(
+            "Invalid shape type. Expected a DiscourseNodeShape.",
+          );
+        }
 
         const possibleTargets = allAddReferencedNodeByAction[arrow.type].map(
           (action) => action.destinationType,
@@ -188,16 +197,6 @@ export const createAllReferencedNodeUtils = (
             `Target node must be of type ${possibleTargets
               .map((t) => discourseContext.nodes[t].text)
               .join(", ")}`,
-          );
-        }
-
-        // type check
-        if (
-          !this.isDiscourseNodeShape(target) ||
-          !this.isDiscourseNodeShape(source)
-        ) {
-          return deleteAndWarn(
-            "Invalid shape type. Expected a DiscourseNodeShape.",
           );
         }
 
@@ -627,6 +626,14 @@ export const createAllRelationShapeUtils = (
         if (!sourceId) return;
         const source = editor.getShape(sourceId);
         if (!target || !source) return;
+        if (
+          !isDiscourseNodeShapeTypeGuard(target) ||
+          !isDiscourseNodeShapeTypeGuard(source)
+        ) {
+          return deleteAndWarn(
+            "Invalid shape type. Expected a DiscourseNodeShape.",
+          );
+        }
         const relations = Object.values(discourseContext.relations).flat();
         const relation = relations.find((r) => r.id === arrow.type);
         if (!relation) return;
@@ -1003,7 +1010,12 @@ export const createAllRelationShapeUtils = (
             const startNode = this.editor.getShape(newBindings.start.toId);
             const endNode = this.editor.getShape(newBindings.end.toId);
 
-            if (startNode && endNode) {
+            if (
+              startNode &&
+              endNode &&
+              isDiscourseNodeShapeTypeGuard(startNode) &&
+              isDiscourseNodeShapeTypeGuard(endNode)
+            ) {
               const startNodeType = getDiscourseNodeTypeId({
                 shape: startNode,
               });
@@ -1218,7 +1230,7 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     toShapeType,
   }: TLShapeUtilCanBindOpts<DiscourseRelationShape>): boolean {
     // bindings can go from arrows to shapes, but not from shapes to arrows
-    return toShapeType !== "arrow";
+    return toShapeType === DISCOURSE_NODE_SHAPE_TYPE;
   }
 
   override canBeLaidOut: TLShapeUtilFlag<DiscourseRelationShape> = () => {

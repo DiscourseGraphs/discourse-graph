@@ -11,7 +11,10 @@ import {
 import { discourseContext } from "~/components/canvas/Tldraw";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import { isRelationComplete } from "~/utils/isRelationComplete";
-import { getDiscourseNodeTypeId } from "~/components/canvas/DiscourseNodeUtil";
+import {
+  getDiscourseNodeTypeId,
+  isDiscourseNodeShape,
+} from "~/components/canvas/DiscourseNodeUtil";
 
 export type AddReferencedNodeType = Record<string, ReferenceFormatType[]>;
 type ReferenceFormatType = {
@@ -81,6 +84,7 @@ export const createAllReferencedNodeTools = (
           const sourceName = allAddReferencedNodeByAction[action][0].sourceName;
           if (
             target &&
+            isDiscourseNodeShape(target) &&
             getDiscourseNodeTypeId({ shape: target }) === sourceType
           ) {
             this.shapeType = `${action}`;
@@ -376,9 +380,10 @@ export const createAllRelationShapeTools = (
             // }
           );
 
-          const targetNodeTypeId = target
-            ? getDiscourseNodeTypeId({ shape: target })
-            : undefined;
+          const targetNodeTypeId =
+            target && isDiscourseNodeShape(target)
+              ? getDiscourseNodeTypeId({ shape: target })
+              : undefined;
           const relation = discourseContext.relations[name].find(
             (r) =>
               r.source === targetNodeTypeId ||

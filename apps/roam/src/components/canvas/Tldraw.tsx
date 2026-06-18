@@ -1083,10 +1083,8 @@ const TldrawCanvasShared = ({
                 // navigate / open in sidebar
                 const validModifier = e.shiftKey || e.ctrlKey; // || e.metaKey;
                 if (!(e.name === "pointer_up" && validModifier)) return;
-                const shape = app.getShapeAtPoint(
-                  app.inputs.currentPagePoint,
-                ) as DiscourseNodeShape;
-                if (!shape) return;
+                const shape = app.getShapeAtPoint(app.inputs.currentPagePoint);
+                if (!shape || !isDiscourseNodeShape(app, shape)) return;
                 const shapeUid = shape.props.uid;
 
                 if (!isLiveBlock(shapeUid)) {

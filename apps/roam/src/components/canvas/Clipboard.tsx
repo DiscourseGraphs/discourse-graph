@@ -536,6 +536,7 @@ const ClipboardPageSection = ({
     const allRecords = editor.store.allRecords();
     allRecords.forEach((record) => {
       if (record.typeName !== "shape") return;
+      if (record.type !== DISCOURSE_NODE_SHAPE_TYPE) return;
       const shape = record as DiscourseNodeShape;
       const uid = shape.props?.uid;
       if (!uid) return;
@@ -674,6 +675,7 @@ const ClipboardPageSection = ({
       if (!showNodesOnCanvas) {
         const nodeExistsOnCanvas = editor.store.allRecords().some((record) => {
           if (record.typeName !== "shape") return false;
+          if (record.type !== DISCOURSE_NODE_SHAPE_TYPE) return false;
           const shape = record as DiscourseNodeShape;
           return shape.props?.uid === node.uid;
         });
