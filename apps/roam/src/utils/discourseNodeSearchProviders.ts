@@ -14,7 +14,7 @@ import {
   queryDiscourseNodesByFormatSync,
 } from "~/utils/discourseNodeSearch";
 
-export const ROAM_SEMANTIC_SEARCH_RESULT_LIMIT = 100;
+export const ROAM_SEMANTIC_SEARCH_RESULT_LIMIT = 200;
 export const SEARCH_TEST_RESULT_LIMIT = 100;
 const SUPABASE_MATCH_THRESHOLD = 0;
 
@@ -35,7 +35,7 @@ export const ADMIN_SEARCH_PROVIDER_DEFINITIONS: AdminSearchProviderDefinition[] 
     {
       id: "roamSemantic",
       title: "Roam semantic",
-      description: "Roam Alpha API .semanticSearch, capped at 100 raw hits.",
+      description: "Roam Alpha API .semanticSearch page hits.",
     },
     {
       id: "miniSearch",
@@ -44,8 +44,8 @@ export const ADMIN_SEARCH_PROVIDER_DEFINITIONS: AdminSearchProviderDefinition[] 
     },
     {
       id: "roamFuzzy",
-      title: "Roam fuzzy",
-      description: "Default Roam query, then local fuzzy filtering.",
+      title: "Fuzzy",
+      description: "npm fuzzy package over locally gathered discourse nodes.",
     },
     {
       id: "supabaseSemantic",
@@ -273,6 +273,7 @@ const runRoamSemanticSearch = async ({
   const hits = (await window.roamAlphaAPI.data.async.semanticSearch({
     "search-str": trimmedQuery,
     "hide-code-blocks": true,
+    "search-pages": true,
     k: ROAM_SEMANTIC_SEARCH_RESULT_LIMIT,
   })) as RoamSemanticSearchHit[];
 
@@ -307,7 +308,7 @@ const runRoamSemanticSearch = async ({
     rawResultCount: hits.length,
     filteredResults,
     filteredResultCount: filteredResults.length,
-    note: `.semanticSearch returned ${hits.length}/${ROAM_SEMANTIC_SEARCH_RESULT_LIMIT} raw hits; ${filteredResults.length} matched discourse node page-title formats.`,
+    note: `.semanticSearch returned ${hits.length}/${ROAM_SEMANTIC_SEARCH_RESULT_LIMIT} page hits; ${filteredResults.length} matched discourse node page-title formats.`,
   };
 };
 

@@ -83,41 +83,43 @@ const ResultList = ({
       {items.map((item, index) => {
         const score = formatScore(item.score);
         return (
-          <li
-            key={`${item.uid}-${index}`}
-            className="border-t border-gray-100 first:border-t-0"
-          >
-            <button
-              type="button"
-              className="flex w-full items-start gap-2 px-2 py-2 text-left hover:bg-gray-50"
+          <li key={`${item.uid}-${index}`}>
+            <Button
+              alignText="left"
+              fill
+              minimal
+              className="!h-auto !justify-start !px-2 !py-2"
               onClick={(event) => void openSearchResult(item, event)}
-            >
-              {item.nodeTypeLabel && (
-                <Tag minimal className="mt-0.5 flex-shrink-0">
-                  {item.nodeTypeLabel}
-                </Tag>
-              )}
-              {!item.nodeTypeLabel && item.source && (
-                <Tag minimal className="mt-0.5 flex-shrink-0">
-                  {item.source}
-                </Tag>
-              )}
-              <span className="min-w-0 flex-1">
-                <span className="block break-words text-sm leading-snug text-gray-900">
-                  {item.text}
-                </span>
-                {item.rawText && item.rawText !== item.text && (
-                  <span className="mt-1 block truncate text-xs text-gray-500">
-                    {item.rawText}
+              text={
+                <span className="flex w-full items-start gap-2">
+                  {item.nodeTypeLabel && (
+                    <Tag minimal className="mt-0.5 flex-shrink-0">
+                      {item.nodeTypeLabel}
+                    </Tag>
+                  )}
+                  {!item.nodeTypeLabel && item.source && (
+                    <Tag minimal className="mt-0.5 flex-shrink-0">
+                      {item.source}
+                    </Tag>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block break-words text-sm leading-snug text-gray-900">
+                      {item.text}
+                    </span>
+                    {item.rawText && item.rawText !== item.text && (
+                      <span className="mt-1 block truncate text-xs text-gray-500">
+                        {item.rawText}
+                      </span>
+                    )}
                   </span>
-                )}
-              </span>
-              {score && (
-                <span className="mt-0.5 flex-shrink-0 text-xs tabular-nums text-gray-500">
-                  {score}
+                  {score && (
+                    <span className="mt-0.5 flex-shrink-0 text-xs tabular-nums text-gray-500">
+                      {score}
+                    </span>
+                  )}
                 </span>
-              )}
-            </button>
+              }
+            />
           </li>
         );
       })}
@@ -138,8 +140,9 @@ const SemanticLimitSummary = ({
   return (
     <div className="rounded border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
       .semanticSearch returned {result.rawResultCount}/
-      {ROAM_SEMANTIC_SEARCH_RESULT_LIMIT} raw hits. {result.filteredResultCount}{" "}
-      remained after discourse node page-title filtering ({survivalRate}%).
+      {ROAM_SEMANTIC_SEARCH_RESULT_LIMIT} page hits.{" "}
+      {result.filteredResultCount} matched discourse node page-title formats (
+      {survivalRate}%).
     </div>
   );
 };
@@ -155,9 +158,16 @@ const ProviderResultCard = ({
   onToggleRaw: () => void;
   result: AdminSearchProviderResult;
 }): React.ReactElement => {
-  const hasRawOverflow = result.rawResultCount > result.rawResults.length;
   const hasFilteredOverflow =
     result.filteredResultCount > result.filteredResults.length;
+  const rawJson = JSON.stringify(
+    {
+      rawResultCount: result.rawResultCount,
+      results: result.rawResults,
+    },
+    null,
+    2,
+  );
 
   return (
     <section className="min-w-0 rounded border border-gray-200 bg-white">
@@ -190,6 +200,10 @@ const ProviderResultCard = ({
           <div className="rounded border border-red-200 bg-red-50 px-2 py-2 text-sm text-red-800">
             {result.error}
           </div>
+        ) : isRawVisible ? (
+          <pre className="m-0 max-h-96 overflow-auto rounded bg-gray-50 p-3 text-xs leading-snug text-gray-900">
+            {rawJson}
+          </pre>
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
@@ -216,21 +230,6 @@ const ProviderResultCard = ({
               emptyText="No discourse node matches after filtering."
               items={result.filteredResults}
             />
-
-            {isRawVisible && (
-              <div className="mt-3 border-t border-gray-200 pt-2">
-                <div className="mb-1 flex items-center justify-between text-xs font-semibold text-gray-600">
-                  <span>Raw results before filtering</span>
-                  {hasRawOverflow && (
-                    <span>Showing first {SEARCH_TEST_RESULT_LIMIT}</span>
-                  )}
-                </div>
-                <ResultList
-                  emptyText="No raw results."
-                  items={result.rawResults}
-                />
-              </div>
-            )}
           </>
         )}
       </div>
@@ -305,11 +304,11 @@ const SearchTestTab = (): React.ReactElement => {
 
   const renderWorkspace = (expanded: boolean): React.ReactElement => (
     <div
-      className={`flex min-h-0 flex-col gap-3 ${expanded ? "h-full p-4" : "p-3"}`}
+      className={`flex min-h-0 flex-col gap-3 ${expanded ? "h-full p-3" : "p-3"}`}
     >
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-none flex-wrap items-center gap-2">
         <InputGroup
-          className="min-w-64 flex-1"
+          className={expanded ? "min-w-72 max-w-xl flex-1" : "min-w-64 flex-1"}
           leftIcon="search"
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
             setQuery(event.target.value)
@@ -340,12 +339,16 @@ const SearchTestTab = (): React.ReactElement => {
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded border border-gray-200 bg-gray-50 px-3 py-2">
+      <div
+        className={`flex flex-none flex-wrap items-center rounded border border-gray-200 bg-gray-50 ${
+          expanded ? "gap-x-3 gap-y-0.5 px-2 py-1" : "gap-x-4 gap-y-1 px-3 py-2"
+        }`}
+      >
         {ADMIN_SEARCH_PROVIDER_DEFINITIONS.map((provider) => (
           <Checkbox
             key={provider.id}
             checked={selectedProviderIdSet.has(provider.id)}
-            className="!mb-0"
+            className="!mb-0 whitespace-nowrap"
             label={provider.title}
             onChange={() => toggleProvider(provider.id)}
           />
@@ -366,20 +369,20 @@ const SearchTestTab = (): React.ReactElement => {
       </div>
 
       {lastQuery && (
-        <div className="text-xs text-gray-500">
+        <div className="flex-none text-xs text-gray-500">
           Comparing providers for <strong>{lastQuery}</strong>
         </div>
       )}
 
       {isSearching && (
-        <div className="flex items-center gap-2 px-2 py-6 text-sm text-gray-600">
+        <div className="flex flex-1 items-start gap-2 px-2 py-6 text-sm text-gray-600">
           <Spinner size={SpinnerSize.SMALL} />
           Searching selected providers...
         </div>
       )}
 
       {!isSearching && Object.keys(resultsByProvider).length > 0 && (
-        <div className="grid min-h-0 grid-cols-1 gap-3 overflow-y-auto xl:grid-cols-2">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto xl:grid-cols-2">
           {selectedProviderIds.map((providerId) => {
             const result = resultsByProvider[providerId];
             if (!result) return null;
@@ -405,13 +408,16 @@ const SearchTestTab = (): React.ReactElement => {
         autoFocus={false}
         canEscapeKeyClose
         canOutsideClickClose
-        className="overflow-hidden"
+        className="relative flex max-h-none max-w-none flex-col overflow-hidden bg-white p-0"
         enforceFocus={false}
         isOpen={isExpanded}
         onClose={() => setIsExpanded(false)}
         style={{
-          height: "min(90vh, 900px)",
-          width: "min(96vw, 1200px)",
+          height: "100vh",
+          margin: 0,
+          maxHeight: "100vh",
+          maxWidth: "100vw",
+          width: "100vw",
         }}
       >
         <div className="flex h-full min-h-0 flex-col">
