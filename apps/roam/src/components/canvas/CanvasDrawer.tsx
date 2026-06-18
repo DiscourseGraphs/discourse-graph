@@ -405,11 +405,20 @@ export const CanvasDrawerPanel = () => {
   useEffect(() => {
     const updateGroupedShapes = () => {
       const allRecords = editor.store.allRecords();
+      const nodeTypeSet = new Set(getDiscourseNodes().map((node) => node.type));
       const shapes = allRecords.filter((record) => {
         if (record.typeName !== "shape") return false;
-        if (record.type !== DISCOURSE_NODE_SHAPE_TYPE) return false;
         const shape = record as DiscourseNodeShape;
-        return !!shape.props?.uid;
+        if (
+          record.type !== DISCOURSE_NODE_SHAPE_TYPE &&
+          !nodeTypeSet.has(record.type)
+        ) {
+          return false;
+        }
+        return (
+          !!shape.props?.uid &&
+          nodeTypeSet.has(getDiscourseNodeTypeId({ shape }))
+        );
       }) as DiscourseNodeShape[];
 
       const grouped = shapes.reduce((acc: GroupedShapes, shape) => {

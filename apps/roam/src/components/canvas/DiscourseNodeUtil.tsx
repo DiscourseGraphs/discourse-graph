@@ -19,6 +19,7 @@ import {
   TLDefaultFontStyle,
   DefaultFontStyle,
   toDomPrecision,
+  TLAnyShapeUtilConstructor,
 } from "tldraw";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
@@ -155,18 +156,21 @@ export const getDiscourseNodeTypeId = ({
 export const isDiscourseNodeShape = (
   shape: TLShape,
 ): shape is DiscourseNodeShape => {
-  return shape.type === DISCOURSE_NODE_SHAPE_TYPE;
+  return (
+    shape.type === DISCOURSE_NODE_SHAPE_TYPE ||
+    !!discourseContext.nodes[shape.type]
+  );
 };
 
 export type DiscourseNodeShape = TLBaseShape<
-  typeof DISCOURSE_NODE_SHAPE_TYPE,
+  string,
   {
     w: number;
     h: number;
     // opacity: TLOpacityType;
     uid: string;
     title: string;
-    nodeTypeId: string;
+    nodeTypeId?: string;
     imageUrl?: string;
     size: TLDefaultSizeStyle;
     fontFamily: TLDefaultFontStyle;
@@ -769,3 +773,28 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     );
   }
 }
+
+export const createLegacyDiscourseNodeShapeUtils = (
+  nodes: DiscourseNode[],
+): TLAnyShapeUtilConstructor[] => {
+  return nodes
+    .filter((node) => node.type !== DISCOURSE_NODE_SHAPE_TYPE)
+    .map((node) => {
+      class LegacyDiscourseNodeUtil extends DiscourseNodeUtil {
+        static override type = node.type;
+        static override props = {
+          ...DiscourseNodeUtil.props,
+          nodeTypeId: T.optional(T.string),
+        } as typeof DiscourseNodeUtil.props;
+
+        override getDefaultProps(): DiscourseNodeShape["props"] {
+          return {
+            ...super.getDefaultProps(),
+            nodeTypeId: node.type,
+          };
+        }
+      }
+
+      return LegacyDiscourseNodeUtil as TLAnyShapeUtilConstructor;
+    });
+};

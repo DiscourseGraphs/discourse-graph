@@ -1,6 +1,7 @@
 import type { Editor } from "tldraw";
 import {
   DISCOURSE_NODE_SHAPE_TYPE,
+  getDiscourseNodeTypeId,
   type DiscourseNodeShape,
 } from "~/components/canvas/DiscourseNodeUtil";
 
@@ -68,9 +69,11 @@ export const syncCanvasNodeTitlesOnLoad = async (
   const allRecords = editor.store.allRecords();
   const discourseNodeShapes = allRecords.filter((r) => {
     if (r.typeName !== "shape") return false;
-    if (r.type !== DISCOURSE_NODE_SHAPE_TYPE) return false;
     const shape = r as DiscourseNodeShape;
-    if (!nodeTypeSet.has(shape.props.nodeTypeId)) return false;
+    if (r.type !== DISCOURSE_NODE_SHAPE_TYPE && !nodeTypeSet.has(r.type)) {
+      return false;
+    }
+    if (!nodeTypeSet.has(getDiscourseNodeTypeId({ shape }))) return false;
     return typeof shape.props?.uid === "string";
   }) as DiscourseNodeShape[];
 

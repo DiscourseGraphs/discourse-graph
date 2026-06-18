@@ -52,6 +52,7 @@ import {
   DEFAULT_STYLE_PROPS,
   DISCOURSE_NODE_SHAPE_TYPE,
   FONT_SIZES,
+  getDiscourseNodeTypeId,
 } from "./DiscourseNodeUtil";
 import { openBlockInSidebar, createBlock } from "roamjs-components/writes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -533,11 +534,18 @@ const ClipboardPageSection = ({
   const shapesByUid = useMemo(() => {
     void storeVersion;
     const groupedShapes = new Map<string, DiscourseNodeShape[]>();
+    const nodeTypeIds = new Set(discourseNodes.map((node) => node.type));
     const allRecords = editor.store.allRecords();
     allRecords.forEach((record) => {
       if (record.typeName !== "shape") return;
-      if (record.type !== DISCOURSE_NODE_SHAPE_TYPE) return;
+      if (
+        record.type !== DISCOURSE_NODE_SHAPE_TYPE &&
+        !nodeTypeIds.has(record.type)
+      ) {
+        return;
+      }
       const shape = record as DiscourseNodeShape;
+      if (!nodeTypeIds.has(getDiscourseNodeTypeId({ shape }))) return;
       const uid = shape.props?.uid;
       if (!uid) return;
       const currentShapes = groupedShapes.get(uid);
@@ -548,7 +556,7 @@ const ClipboardPageSection = ({
       }
     });
     return groupedShapes;
-  }, [editor.store, storeVersion]);
+  }, [discourseNodes, editor.store, storeVersion]);
 
   const groupedNodes = useMemo(() => {
     const groups: NodeGroup[] = discourseNodes.map((node) => {
@@ -673,11 +681,20 @@ const ClipboardPageSection = ({
     async (node: { uid: string; text: string }, pagePoint: Vec) => {
       if (!extensionAPI) return;
       if (!showNodesOnCanvas) {
+        const nodeTypeIds = new Set(discourseNodes.map((node) => node.type));
         const nodeExistsOnCanvas = editor.store.allRecords().some((record) => {
           if (record.typeName !== "shape") return false;
-          if (record.type !== DISCOURSE_NODE_SHAPE_TYPE) return false;
+          if (
+            record.type !== DISCOURSE_NODE_SHAPE_TYPE &&
+            !nodeTypeIds.has(record.type)
+          ) {
+            return false;
+          }
           const shape = record as DiscourseNodeShape;
-          return shape.props?.uid === node.uid;
+          return (
+            nodeTypeIds.has(getDiscourseNodeTypeId({ shape })) &&
+            shape.props?.uid === node.uid
+          );
         });
         if (nodeExistsOnCanvas) return;
       }
@@ -719,7 +736,7 @@ const ClipboardPageSection = ({
       };
       editor.createShape<DiscourseNodeShape>(shape);
     },
-    [editor, extensionAPI, showNodesOnCanvas],
+    [discourseNodes, editor, extensionAPI, showNodesOnCanvas],
   );
 
   // Drag and drop handlers

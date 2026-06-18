@@ -5,7 +5,10 @@ import {
   TLAnyShapeUtilConstructor,
 } from "tldraw";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-import { DiscourseNodeUtil } from "./DiscourseNodeUtil";
+import {
+  createLegacyDiscourseNodeShapeUtils,
+  DiscourseNodeUtil,
+} from "./DiscourseNodeUtil";
 import {
   createAllReferencedNodeUtils,
   createAllRelationShapeUtils,
@@ -55,28 +58,22 @@ const getUtilTypes = <T extends { type: string }>({
   return utils.map((u) => u.type);
 };
 
-const getCustomShapeTypes = ({
-  allNodes,
-  utils,
-}: {
-  allNodes: DiscourseNode[];
-  utils: readonly TLAnyShapeUtilConstructor[];
-}): string[] => {
-  return [
-    ...new Set([...getUtilTypes({ utils }), ...allNodes.map((n) => n.type)]),
-  ];
-};
-
 const createShapeUtils = ({
+  allNodes,
   allRelationIds,
   allAddReferencedNodeByAction,
+  includeLegacyNodeTypes = false,
 }: {
   allNodes: DiscourseNode[];
   allRelationIds: string[];
   allAddReferencedNodeByAction: AddReferencedNodeType;
+  includeLegacyNodeTypes?: boolean;
 }): TLAnyShapeUtilConstructor[] => {
   return [
     DiscourseNodeUtil,
+    ...(includeLegacyNodeTypes
+      ? createLegacyDiscourseNodeShapeUtils(allNodes)
+      : []),
     ...createAllRelationShapeUtils(allRelationIds),
     ...createAllReferencedNodeUtils(allAddReferencedNodeByAction),
   ];
@@ -117,8 +114,7 @@ export const useCanvasStoreAdapterArgs = ({
     allRelationIds,
     allAddReferencedNodeByAction,
   });
-  const customShapeTypes = getCustomShapeTypes({
-    allNodes,
+  const customShapeTypes = getUtilTypes({
     utils: customShapeUtils,
   });
   const customBindingTypes = getUtilTypes({
@@ -142,6 +138,8 @@ export const useCanvasStoreAdapterArgs = ({
         allNodes,
         allRelationIds,
         allAddReferencedNodeByAction,
+        // Cloudflare rooms may still stream pre-migration node-id shape records.
+        includeLegacyNodeTypes: true,
       }),
     }),
     [pageUid, allNodes, allRelationIds, allAddReferencedNodeByAction],
@@ -159,12 +157,11 @@ export const useCanvasStoreAdapterArgs = ({
   const stableCustomShapeTypes = useMemo(
     () => ({
       pageUid,
-      value: getCustomShapeTypes({
-        allNodes,
+      value: getUtilTypes({
         utils: stableCustomShapeUtils,
       }),
     }),
-    [pageUid, allNodes, stableCustomShapeUtils],
+    [pageUid, stableCustomShapeUtils],
   ).value;
   const stableCustomBindingTypes = useMemo(
     () => ({
