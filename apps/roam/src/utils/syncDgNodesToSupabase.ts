@@ -18,6 +18,7 @@ import {
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
+import { convertRoamNodeToFullContent } from "./convertRoamNodeToFullContent";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { intersection } from "@repo/utils/setOperations";
 import type { Json, Enums } from "@repo/database/dbTypes";
@@ -618,6 +619,9 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
     nodes: roamNodes,
   });
+  const fullContent = convertRoamNodeToFullContent({
+    nodes: roamNodes,
+  });
 
   let nodesWithEmbeddings: LocalContentDataInput[];
   try {
@@ -658,7 +662,9 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     }
   };
 
-  await uploadBatches(chunk(nodesWithEmbeddings, BATCH_SIZE));
+  await uploadBatches(
+    chunk([...nodesWithEmbeddings, ...fullContent], BATCH_SIZE),
+  );
 };
 
 const getAllUsers = async (): Promise<LocalAccountDataInput[]> => {
