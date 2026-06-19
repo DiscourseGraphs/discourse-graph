@@ -3,7 +3,6 @@ import { spaceUriAndLocalIdToRid } from "./lib/rid";
 
 const ROAM_SOURCE_SPACE_ID = "https://roamresearch.com/#/app/MAPLab";
 const ROAM_SOURCE_NODE_ID = "tgWb6JozF";
-const ROAM_SOURCE_NODE_TYPE_ID = "rCLM0schema";
 
 const roamFullMarkdown = `# Sleep improves memory consolidation
 
@@ -22,7 +21,7 @@ export const roamOriginNodeExample: CrossAppNode = {
     ROAM_SOURCE_NODE_ID,
   ),
   nodeType: {
-    sourceNodeTypeId: ROAM_SOURCE_NODE_TYPE_ID,
+    sourceNodeTypeId: "rCLM0schema",
     label: "Claim",
   },
   content: {
@@ -35,7 +34,6 @@ export const roamOriginNodeExample: CrossAppNode = {
 const OBSIDIAN_SOURCE_SPACE_ID = "obsidian:9a8b7c6d5e4f3210";
 const OBSIDIAN_SOURCE_NODE_ID = "0192f1a0-7b3c-7e2a-9f10-1a2b3c4d5e6f";
 const OBSIDIAN_SOURCE_NODE_TYPE_ID = "evd-7c1f9a2b";
-const OBSIDIAN_TITLE = "EVD - REM sleep and recall";
 
 const obsidianFullMarkdown = `---
 nodeTypeId: ${OBSIDIAN_SOURCE_NODE_TYPE_ID}
@@ -62,7 +60,7 @@ export const obsidianOriginNodeExample: CrossAppNode = {
     label: "Evidence",
   },
   content: {
-    direct: { value: OBSIDIAN_TITLE },
+    direct: { value: "EVD - REM sleep and recall" },
     full: { format: "text/markdown", value: obsidianFullMarkdown },
   },
   sourceModifiedAt: "2026-06-14T10:30:00.000Z",
