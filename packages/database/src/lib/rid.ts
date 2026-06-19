@@ -1,7 +1,5 @@
-// Express a pair of (spaceUri, sourceLocalId) as a single stable cross-app id
-// (RID), and parse it back. Shared by Roam and Obsidian so both apps use one
-// identity format for cross-app share / discovery / import / refresh.
-// We follow https://github.com/BlockScience/rid-lib:
+// Functions to express a pair of spaceUri, sourceLocalId as a single string, and back.
+// We're following https://github.com/BlockScience/rid-lib:
 // Either a Web URL, with the last segment as the sourceLocalId;
 // OR the format `orn:<platform>.<subtype>:<source identifier>/<sourceLocalId>`
 // With the assumption that the sourceUri has the form <platform>:<source identifier>

@@ -2,22 +2,14 @@ import type {
   LocalConceptDataInput,
   LocalContentDataInput,
 } from "../inputTypes";
-import {
-  FULL_CONTENT_FORMAT,
-  type CrossAppNode,
-} from "../crossAppNodeContract";
+import type { CrossAppNode } from "../crossAppNodeContract";
 import { spaceUriAndLocalIdToRid } from "../lib/rid";
 
 /**
- * Reference fixtures for the cross-app node content contract (ENG-1847).
+ * Contract fixtures with the database inputs they persist as.
  *
- * Each fixture pairs the contract-level `CrossAppNode` with the existing
- * `LocalConceptDataInput` + `LocalContentDataInput[]` it persists as — showing
- * downstream Roam/Obsidian tickets exactly how the contract maps onto
- * `upsert_concepts` / `upsert_content` without redefining the payload. The
- * fixtures use the `space_url` / `author_local_id` string keys so they stay
- * portable; the live source apps pass their resolved numeric `space_id` /
- * `author_id` from `SupabaseContext` instead.
+ * These use portable string keys; live apps resolve numeric IDs through
+ * `SupabaseContext`.
  */
 export type CrossAppNodeFixture = {
   node: CrossAppNode;
@@ -25,11 +17,9 @@ export type CrossAppNodeFixture = {
   contents: LocalContentDataInput[];
 };
 
-// --- Roam-origin node: a Claim shared from a Roam graph ---------------------
-
 const ROAM_SPACE_URL = "https://roamresearch.com/#/app/MAPLab";
-const ROAM_NODE_ID = "tgWb6JozF"; // a Roam block/page uid
-const ROAM_CLAIM_SCHEMA_ID = "rCLM0schema"; // source_local_id of the Claim schema Concept
+const ROAM_NODE_ID = "tgWb6JozF";
+const ROAM_CLAIM_SCHEMA_ID = "rCLM0schema";
 const ROAM_NODE_RID = spaceUriAndLocalIdToRid(ROAM_SPACE_URL, ROAM_NODE_ID);
 
 const roamFullMarkdown = `# Sleep improves memory consolidation
@@ -41,14 +31,15 @@ Multiple studies show that sleep after learning strengthens memory traces.
 
 export const roamOriginNode: CrossAppNodeFixture = {
   node: {
-    sourceApp: "Roam",
-    sourceSpace: { url: ROAM_SPACE_URL, name: "MAPLab" },
-    sourceLocalId: ROAM_NODE_ID,
-    rid: ROAM_NODE_RID,
-    nodeType: { sourceLocalId: ROAM_CLAIM_SCHEMA_ID, label: "Claim" },
+    sourceApp: "roam",
+    sourceSpaceId: ROAM_SPACE_URL,
+    sourceSpaceName: "MAPLab",
+    sourceNodeId: ROAM_NODE_ID,
+    sourceNodeRid: ROAM_NODE_RID,
+    nodeType: { sourceNodeTypeId: ROAM_CLAIM_SCHEMA_ID, label: "Claim" },
     content: {
       direct: { value: "Sleep improves memory consolidation" },
-      full: { format: FULL_CONTENT_FORMAT, value: roamFullMarkdown },
+      full: { format: "text/markdown", value: roamFullMarkdown },
     },
     sourceModifiedAt: "2026-06-12T14:00:00.000Z",
   },
@@ -86,14 +77,12 @@ export const roamOriginNode: CrossAppNodeFixture = {
   ],
 };
 
-// --- Obsidian-origin node: an Evidence note shared from an Obsidian vault ----
-
-const OBSIDIAN_VAULT_ID = "9a8b7c6d5e4f3210"; // app.appId
+const OBSIDIAN_VAULT_ID = "9a8b7c6d5e4f3210";
 const OBSIDIAN_SPACE_URL = `obsidian:${OBSIDIAN_VAULT_ID}`;
-const OBSIDIAN_NODE_ID = "0192f1a0-7b3c-7e2a-9f10-1a2b3c4d5e6f"; // uuidv7 nodeInstanceId
-const OBSIDIAN_EVD_SCHEMA_ID = "evd-7c1f9a2b"; // nodeTypeId
+const OBSIDIAN_NODE_ID = "0192f1a0-7b3c-7e2a-9f10-1a2b3c4d5e6f";
+const OBSIDIAN_EVD_SCHEMA_ID = "evd-7c1f9a2b";
 const OBSIDIAN_FILE_PATH = "Discourse Nodes/EVD - REM sleep and recall.md";
-const OBSIDIAN_TITLE = "EVD - REM sleep and recall"; // file basename
+const OBSIDIAN_TITLE = "EVD - REM sleep and recall";
 const OBSIDIAN_NODE_RID = spaceUriAndLocalIdToRid(
   OBSIDIAN_SPACE_URL,
   OBSIDIAN_NODE_ID,
@@ -115,20 +104,21 @@ Participants with more REM sleep showed better next-day recall.
 
 export const obsidianOriginNode: CrossAppNodeFixture = {
   node: {
-    sourceApp: "Obsidian",
-    sourceSpace: { url: OBSIDIAN_SPACE_URL, name: "Research Vault" },
-    sourceLocalId: OBSIDIAN_NODE_ID,
-    rid: OBSIDIAN_NODE_RID,
-    nodeType: { sourceLocalId: OBSIDIAN_EVD_SCHEMA_ID, label: "Evidence" },
+    sourceApp: "obsidian",
+    sourceSpaceId: OBSIDIAN_SPACE_URL,
+    sourceSpaceName: "Research Vault",
+    sourceNodeId: OBSIDIAN_NODE_ID,
+    sourceNodeRid: OBSIDIAN_NODE_RID,
+    nodeType: { sourceNodeTypeId: OBSIDIAN_EVD_SCHEMA_ID, label: "Evidence" },
     content: {
       direct: { value: OBSIDIAN_TITLE },
-      full: { format: FULL_CONTENT_FORMAT, value: obsidianFullMarkdown },
+      full: { format: "text/markdown", value: obsidianFullMarkdown },
     },
     sourceModifiedAt: "2026-06-14T10:30:00.000Z",
   },
   concept: {
     space_url: OBSIDIAN_SPACE_URL,
-    name: OBSIDIAN_FILE_PATH, // Obsidian uses the file path as the Concept name
+    name: OBSIDIAN_FILE_PATH,
     source_local_id: OBSIDIAN_NODE_ID,
     schema_represented_by_local_id: OBSIDIAN_EVD_SCHEMA_ID,
     is_schema: false,
