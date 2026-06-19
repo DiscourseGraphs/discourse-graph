@@ -12,15 +12,17 @@ import { spaceUriAndLocalIdToRid } from "../lib/rid";
  * Reference fixtures for the cross-app node content contract (ENG-1847).
  *
  * Each fixture pairs the contract-level `CrossAppNode` with the existing
- * `LocalConceptDataInput` + `LocalContentDataInput[]` it persists as — showing
- * downstream Roam/Obsidian tickets exactly how the contract maps onto
- * `upsert_concepts` / `upsert_content` without redefining the payload. The
- * fixtures use the `space_url` / `author_local_id` string keys so they stay
- * portable; the live source apps pass their resolved numeric `space_id` /
- * `author_id` from `SupabaseContext` instead.
+ * persistence rows it maps onto — the node-type `schemaConcept` it depends on,
+ * the instance `concept`, and its `LocalContentDataInput[]` — showing downstream
+ * Roam/Obsidian tickets exactly how the contract maps onto `upsert_concepts` /
+ * `upsert_content` without redefining the payload. The fixtures use the
+ * `space_url` / `author_local_id` string keys so they stay portable; the live
+ * source apps pass their resolved numeric `space_id` / `author_id` from
+ * `SupabaseContext` instead.
  */
 export type CrossAppNodeFixture = {
   node: CrossAppNode;
+  schemaConcept: LocalConceptDataInput;
   concept: LocalConceptDataInput;
   contents: LocalContentDataInput[];
 };
@@ -51,6 +53,16 @@ export const roamOriginNode: CrossAppNodeFixture = {
       full: { format: FULL_CONTENT_FORMAT, value: roamFullMarkdown },
     },
     sourceModifiedAt: "2026-06-12T14:00:00.000Z",
+  },
+  schemaConcept: {
+    space_url: ROAM_SPACE_URL,
+    name: "Claim",
+    source_local_id: ROAM_CLAIM_SCHEMA_ID,
+    is_schema: true,
+    author_local_id: "roam-account-uid",
+    created: "2026-06-01T09:00:00.000Z",
+    last_modified: "2026-06-01T09:00:00.000Z",
+    literal_content: { label: "Claim" },
   },
   concept: {
     space_url: ROAM_SPACE_URL,
@@ -125,6 +137,16 @@ export const obsidianOriginNode: CrossAppNodeFixture = {
       full: { format: FULL_CONTENT_FORMAT, value: obsidianFullMarkdown },
     },
     sourceModifiedAt: "2026-06-14T10:30:00.000Z",
+  },
+  schemaConcept: {
+    space_url: OBSIDIAN_SPACE_URL,
+    name: "Evidence",
+    source_local_id: OBSIDIAN_EVD_SCHEMA_ID,
+    is_schema: true,
+    author_local_id: "obsidian-account-uid",
+    created: "2026-06-01T08:00:00.000Z",
+    last_modified: "2026-06-01T08:00:00.000Z",
+    literal_content: { label: "Evidence" },
   },
   concept: {
     space_url: OBSIDIAN_SPACE_URL,
