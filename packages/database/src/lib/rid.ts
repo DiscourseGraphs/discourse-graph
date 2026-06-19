@@ -10,6 +10,9 @@ export const spaceUriAndLocalIdToRid = (
   localId: string,
   subtype?: string,
 ): string => {
+  // Both RID forms use `/` as the sourceLocalId delimiter, so callers must pass
+  // slash-free localIds (or pre-encode them) for ridToSpaceUriAndLocalId to
+  // round-trip the original pair.
   if (spaceUri.startsWith("http")) return `${spaceUri}/${localId}`;
   const parts = spaceUri.split(":");
   if (parts.length === 2)
