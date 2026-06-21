@@ -12,7 +12,7 @@ import { buildFullMarkdown } from "./convertRoamNodeToFullContent";
  * Derived from:
  * https://roamresearch.com/#/app/plugin-testing-akamatsulab2/page/dnHNmYwe5
  *
- * Observed output from `window.dgFullMarkdownForPage({ uid: "dnHNmYwe5" })`:
+ * Observed markdown output:
  *
  * # [[CLM]] - Actin assembly peaks 8 seconds before endocytic scission
  *

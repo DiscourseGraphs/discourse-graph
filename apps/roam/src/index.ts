@@ -31,9 +31,7 @@ import {
 import {
   initializeSupabaseSync,
   setSyncActivity,
-  syncEng1848ReviewPage,
 } from "./utils/syncDgNodesToSupabase";
-import { buildFullMarkdownForPage } from "./utils/convertRoamNodeToFullContent";
 import { initPluginTimer } from "./utils/pluginTimer";
 import { initPostHog } from "./utils/posthog";
 import { initSchema } from "./components/settings/utils/init";
@@ -152,16 +150,7 @@ export default runExtension(async (onloadArgs) => {
     listActiveQueries: () => listActiveQueries(),
     isDiscourseNode: isDiscourseNode,
     getDiscourseNodes: getDiscourseNodes,
-    buildFullMarkdownForPage,
   };
-  (window as unknown as Record<string, unknown>).dgFullMarkdownForPage =
-    buildFullMarkdownForPage;
-  (window as unknown as Record<string, unknown>).dgSyncEng1848ReviewPage =
-    syncEng1848ReviewPage;
-  // Temporary ENG-1848 review smoke test for:
-  // https://roamresearch.com/#/app/plugin-testing-akamatsulab2/page/dnHNmYwe5
-  // Uncomment while loaded on that page to sync it and log the `my_contents` readback.
-  // void syncEng1848ReviewPage();
   window.roamjs?.extension &&
     (window.roamjs.extension.queryBuilder = queryBuilderApi);
 
@@ -229,8 +218,6 @@ export default runExtension(async (onloadArgs) => {
       cleanups.forEach((fn) => fn());
       setSyncActivity(false);
       unregisterSlashCommands();
-      delete (window as unknown as Record<string, unknown>)
-        .dgSyncEng1848ReviewPage;
       window.roamjs?.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
       // @ts-expect-error - tldraw throws a warning on multiple loads
       delete window[Symbol.for("__signia__")];
