@@ -623,6 +623,27 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     nodes: roamNodes,
   });
 
+  const uploadBatches = async (
+    batches: LocalContentDataInput[][],
+  ): Promise<void> => {
+    for (let idx = 0; idx < batches.length; idx++) {
+      const batch = batches[idx];
+
+      const { error } = await supabaseClient.rpc("upsert_content", {
+        data: batch as Json,
+        v_space_id: context.spaceId,
+        v_creator_id: userId,
+        content_as_document: true,
+      });
+
+      if (error) {
+        throw new Error(`upsert_content failed for batch ${idx + 1}:`, error);
+      }
+    }
+  };
+
+  await uploadBatches(chunk(fullContent, BATCH_SIZE));
+
   let nodesWithEmbeddings: LocalContentDataInput[];
   try {
     nodesWithEmbeddings = await fetchEmbeddingsForNodes(
@@ -645,26 +666,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     );
   }
 
-  const uploadBatches = async (batches: LocalContentDataInput[][]) => {
-    for (let idx = 0; idx < batches.length; idx++) {
-      const batch = batches[idx];
-
-      const { error } = await supabaseClient.rpc("upsert_content", {
-        data: batch as Json,
-        v_space_id: context.spaceId,
-        v_creator_id: userId,
-        content_as_document: true,
-      });
-
-      if (error) {
-        throw new Error(`upsert_content failed for batch ${idx + 1}:`, error);
-      }
-    }
-  };
-
-  await uploadBatches(
-    chunk([...nodesWithEmbeddings, ...fullContent], BATCH_SIZE),
-  );
+  await uploadBatches(chunk(nodesWithEmbeddings, BATCH_SIZE));
 };
 
 const getAllUsers = async (): Promise<LocalAccountDataInput[]> => {
@@ -703,6 +705,76 @@ const upsertUsers = async (
     console.error("upsert_accounts_in_space failed:", error);
     throw error;
   }
+};
+
+const ENG_1848_REVIEW_GRAPH = "plugin-testing-akamatsulab2";
+const ENG_1848_REVIEW_PAGE_UID = "dnHNmYwe5";
+
+export const syncEng1848ReviewPage = async () => {
+  const currentGraph = window.roamAlphaAPI.graph.name;
+  const currentUid =
+    await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
+
+  if (
+    currentGraph !== ENG_1848_REVIEW_GRAPH ||
+    currentUid !== ENG_1848_REVIEW_PAGE_UID
+  ) {
+    console.log("[ENG-1848 review sync] skipped", {
+      expectedGraph: ENG_1848_REVIEW_GRAPH,
+      expectedUid: ENG_1848_REVIEW_PAGE_UID,
+      currentGraph,
+      currentUid,
+    });
+    return null;
+  }
+
+  const supabaseClient = await getLoggedInClient();
+  const context = await getSupabaseContext();
+  if (!supabaseClient || !context) {
+    throw new Error("[ENG-1848 review sync] Missing Supabase client/context");
+  }
+
+  const allNodeTypes = getDiscourseNodes().filter(
+    (node) => node.backedBy === "user",
+  );
+  const reviewNode = (
+    await getAllDiscourseNodesSince(undefined, allNodeTypes)
+  ).find((node) => node.source_local_id === ENG_1848_REVIEW_PAGE_UID);
+
+  if (!reviewNode) {
+    throw new Error(
+      `[ENG-1848 review sync] Could not find ${ENG_1848_REVIEW_PAGE_UID}`,
+    );
+  }
+
+  await upsertUsers(await getAllUsers(), supabaseClient, context);
+  const fullContent = convertRoamNodeToFullContent({ nodes: [reviewNode] });
+  if (fullContent.length === 0) {
+    throw new Error("[ENG-1848 review sync] Could not build full content");
+  }
+  const { error: upsertError } = await supabaseClient.rpc("upsert_content", {
+    data: fullContent as unknown as Json,
+    v_space_id: context.spaceId,
+    v_creator_id: context.userId,
+    content_as_document: true,
+  });
+  if (upsertError) {
+    throw upsertError;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("my_contents")
+    .select("source_local_id, variant, text")
+    .eq("space_id", context.spaceId)
+    .eq("source_local_id", ENG_1848_REVIEW_PAGE_UID)
+    .eq("variant", "full");
+
+  if (error) {
+    throw error;
+  }
+
+  console.log("[ENG-1848 review sync] complete", data);
+  return data;
 };
 
 let doSync = true;

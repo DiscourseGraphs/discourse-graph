@@ -48,6 +48,35 @@ export const buildFullMarkdown = ({
   return body ? `# ${title}\n\n${body}\n` : `# ${title}\n`;
 };
 
+export const buildFullMarkdownForPage = async ({
+  uid,
+  title,
+}: {
+  uid?: string;
+  title?: string;
+} = {}): Promise<string> => {
+  const targetUid =
+    uid ??
+    (await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid()) ??
+    window.roamAlphaAPI.util.dateToPageUid(new Date());
+  const tree = getFullTreeByParentUid(targetUid);
+  const resolvedTitle = title ?? tree.text;
+  const viewType = getPageViewType(resolvedTitle) || tree.viewType || "bullet";
+  const markdown = buildFullMarkdown({
+    title: resolvedTitle,
+    blocks: tree.children,
+    viewType,
+  });
+
+  console.log("[DG Full Markdown]", {
+    uid: targetUid,
+    title: resolvedTitle,
+    markdown,
+  });
+
+  return markdown;
+};
+
 export const convertRoamNodeToFullContent = ({
   nodes,
 }: {
