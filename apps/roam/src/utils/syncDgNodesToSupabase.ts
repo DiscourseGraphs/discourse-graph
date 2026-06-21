@@ -637,7 +637,9 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
       });
 
       if (error) {
-        throw new Error(`upsert_content failed for batch ${idx + 1}:`, error);
+        throw new Error(`upsert_content failed for batch ${idx + 1}`, {
+          cause: error,
+        });
       }
     }
   };
