@@ -1,18 +1,56 @@
 import { App, DataAdapter, Notice, TFolder } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import type { ImportFolderMetadata } from "~/types";
-import {
-  buildImportFolderBasename,
-  sanitizeImportFolderName,
-} from "./importFolderNaming";
 
 const DG_METADATA_FILE = ".dg.metadata";
 const IMPORT_ROOT = "import";
+
+const sanitizeImportFolderName = (fileName: string): string => {
+  return fileName
+    .replace(/[<>:"/\\|?*]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const buildImportFolderBasename = (
+  userName: string,
+  spaceName: string,
+): string => {
+  return sanitizeImportFolderName(`${userName}-${spaceName}`);
+};
 
 const generateShortId = (): string => Math.random().toString(36).slice(2, 8);
 
 const getImportFolderBasename = (folderPath: string): string =>
   folderPath.split("/").pop() ?? "";
+
+const parseImportFolderMetadataRaw = (
+  raw: string,
+): ImportFolderMetadata | null => {
+  const tryParse = (content: string): unknown => JSON.parse(content);
+
+  let parsed: unknown;
+  try {
+    parsed = tryParse(raw);
+  } catch {
+    try {
+      parsed = tryParse(raw.replace(/,\s*([\]}])/g, "$1"));
+    } catch {
+      return null;
+    }
+  }
+
+  if (
+    parsed !== null &&
+    typeof parsed === "object" &&
+    "spaceUri" in parsed &&
+    typeof (parsed as Record<string, unknown>).spaceUri === "string"
+  ) {
+    return parsed as ImportFolderMetadata;
+  }
+
+  return null;
+};
 
 const readImportFolderMetadata = async (
   adapter: DataAdapter,
@@ -24,18 +62,7 @@ const readImportFolderMetadata = async (
     if (!exists) return null;
 
     const raw = await adapter.read(metadataPath);
-    const parsed: unknown = JSON.parse(raw);
-
-    if (
-      parsed !== null &&
-      typeof parsed === "object" &&
-      "spaceUri" in parsed &&
-      typeof (parsed as Record<string, unknown>).spaceUri === "string"
-    ) {
-      return parsed as ImportFolderMetadata;
-    }
-
-    return null;
+    return parseImportFolderMetadataRaw(raw);
   } catch {
     return null;
   }
@@ -54,6 +81,32 @@ const writeImportFolderMetadata = async ({
   await adapter.write(metadataPath, JSON.stringify(metadata, null, 2));
 };
 
+const resolveMetadataDuplicate = async ({
+  adapter,
+  existingFolderPath,
+  newFolderPath,
+}: {
+  adapter: DataAdapter;
+  existingFolderPath: string;
+  newFolderPath: string;
+}): Promise<string> => {
+  const existingMetadataPath = `${existingFolderPath}/${DG_METADATA_FILE}`;
+  const newMetadataPath = `${newFolderPath}/${DG_METADATA_FILE}`;
+
+  const existingStat = await adapter.stat(existingMetadataPath);
+  const newStat = await adapter.stat(newMetadataPath);
+
+  const newIsNewer =
+    existingStat && newStat && existingStat.mtime < newStat.mtime;
+  if (newIsNewer) {
+    await adapter.remove(existingMetadataPath);
+    return newFolderPath;
+  }
+
+  await adapter.remove(newMetadataPath);
+  return existingFolderPath;
+};
+
 const findImportFolderBySpaceUri = async ({
   adapter,
   spaceUri,
@@ -66,14 +119,30 @@ const findImportFolderBySpaceUri = async ({
 
   const { folders } = await adapter.list(IMPORT_ROOT);
 
+  let keptFolderPath: string | null = null;
+
   for (const folderPath of folders) {
     const metadata = await readImportFolderMetadata(adapter, folderPath);
-    if (metadata?.spaceUri === spaceUri) {
-      return { folderPath, metadata };
+    if (metadata?.spaceUri !== spaceUri) continue;
+
+    if (keptFolderPath === null) {
+      keptFolderPath = folderPath;
+      continue;
     }
+
+    keptFolderPath = await resolveMetadataDuplicate({
+      adapter,
+      existingFolderPath: keptFolderPath,
+      newFolderPath: folderPath,
+    });
   }
 
-  return null;
+  if (!keptFolderPath) return null;
+
+  const metadata = await readImportFolderMetadata(adapter, keptFolderPath);
+  if (!metadata) return null;
+
+  return { folderPath: keptFolderPath, metadata };
 };
 
 const resolveUniqueImportFolderPath = async ({
