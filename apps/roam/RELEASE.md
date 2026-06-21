@@ -6,24 +6,30 @@ GitHub Actions, and Roam Depot.
 ## Release Tracking Model
 
 Roam uses a scheduled Linear release pipeline. At any time, there should be one
-active Roam release collecting new work and, after a release is completed, a new
-release should be created manually for the next version.
+active Roam release collecting new work. After a release is submitted to Roam for
+review, that release is frozen and a new release should be created manually for
+the next version.
 
-After a release is marked `Released` in Linear:
+After the `roam-release.yaml` workflow moves a release to
+`Sent to Roam for Review` in Linear:
 
 1. Create the next Roam release manually in the Roam Linear release pipeline.
 2. Use the next version number, such as `0.20.0`.
 3. Move that new Linear release to `In Progress`.
+4. Bump `apps/roam/package.json` to that next version in a follow-up PR.
 
-Once the next release is in progress, the `roam-main.yaml` workflow automatically
-syncs eligible merged work into that release when commits land on `main` and
-touch Roam-related paths such as `apps/roam/**`.
+The post-submission package bump must happen after `roam-release.yaml` runs,
+because that workflow reads `apps/roam/package.json` for the version being sent
+to Roam. Once the next release is in progress and the package version has been
+bumped, the `roam-main.yaml` workflow automatically syncs eligible merged work
+into that release when commits land on `main` and touch Roam-related paths such
+as `apps/roam/**`.
 
 ## Preparing Release Notes
 
 Before publishing a Roam release:
 
-1. Bump `apps/roam/package.json` to the release version.
+1. Bump `apps/roam/package.json` to the release version being submitted.
 2. Create a PR for that version bump.
 3. Generate release notes from the Linear release. The Linear Agent can generate
    these from the issues included in the Linear release.
@@ -52,7 +58,11 @@ When the version bump and changelog are merged:
 2. Confirm the workflow succeeds.
 3. The workflow updates Roam Depot metadata and moves the Linear release to
    `Sent to Roam for Review`.
-4. Cut the Roam Depot PR to Roam.
+4. Treat the release as frozen in Linear.
+5. Create the next Roam Linear release, move it to `In Progress`, and bump
+   `apps/roam/package.json` to that next version in a follow-up PR. This keeps
+   the alpha branch and release metadata aligned with the active release line.
+6. Cut the Roam Depot PR to Roam.
 
 At this point the release is submitted for Roam review, but it is not finished.
 
@@ -64,11 +74,13 @@ After the Roam Depot PR is merged by Roam:
 2. Change the Linear release from `Sent to Roam for Review` to `Released`.
 3. If using the manual completion workflow, run `Complete Roam Linear Release`
    (`.github/workflows/roam-release-complete.yaml`) with the release version.
-4. Immediately create the next Linear release at the next version number and
-   move it to `In Progress`.
+4. Confirm the next Linear release is already `In Progress` and
+   `apps/roam/package.json` is already bumped to that next version.
 
-Creating the next in-progress Linear release is required so future Roam commits
-can be collected automatically by `roam-main.yaml`.
+Creating the next in-progress Linear release and bumping the Roam package version
+after submission is required so future Roam commits can be collected
+automatically by `roam-main.yaml` and reflected with the correct alpha/release
+version.
 
 ## Workflow Responsibilities
 
