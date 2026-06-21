@@ -13,27 +13,27 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 
 ### Added
 
-* **Advanced search (BETA, behind admin flag)** - New node search dialog with filtering, sorting, preview, result insertion, and opening results in the main panel or right sidebar.
-* **Canvas sharing** - Share Data now appears in the canvas selection menu for selected discourse nodes.
-* **Convert existing page to node** - Command palette action to turn an existing page into a discourse node.
+- **Advanced search (BETA, behind admin flag)** - New node search dialog with filtering, sorting, preview, result insertion, and opening results in the main panel or right sidebar.
+- **Canvas sharing** - Share Data now appears in the canvas selection menu for selected discourse nodes.
+- **Convert existing page to node** - Command palette action to turn an existing page into a discourse node.
 
 ### Changed
 
-* **Custom favorites in sidebar** - Query sections render in the sidebar, and drag reorders now persist.
-* **Custom favorites in sidebar** - Global and personal settings tabs stay hidden when the left sidebar feature is off, and the global section starts open when it has children.
-* **SmartBlocks in Custom favorites in sidebar** - SmartBlocks render as clickable items in the left sidebar.
-* **Canvas shortcuts** - Per-user canvas keyboard shortcuts now work with the new settings flow.
-* **Canvas embed** - Embedded canvas selection now works with the mouse, and duplicate node-type shortcuts are no longer assigned.
+- **Custom favorites in sidebar** - Query sections render in the sidebar, and drag reorders now persist.
+- **Custom favorites in sidebar** - Global and personal settings tabs stay hidden when the left sidebar feature is off, and the global section starts open when it has children.
+- **SmartBlocks in Custom favorites in sidebar** - SmartBlocks render as clickable items in the left sidebar.
+- **Canvas shortcuts** - Per-user canvas keyboard shortcuts now work with the new settings flow.
+- **Canvas embed** - Embedded canvas selection now works with the mouse, and duplicate node-type shortcuts are no longer assigned.
 
 ### Fixed
 
-* **Image resizing** - Image controls no longer overlap the resize handle.
-* **Suggestion mode** - Reflow on first load is corrected, and searching from all pages works again.
-* **Node type menu** - The node type menu now scrolls when there are many node types.
-* **Create relation flow** - The relation dialog no longer closes when there is no match, and incomplete relation types no longer crash the canvas.
-* **Template editing** - Changing a node template no longer fails with a duplicate block error.
-* **Search result tags** - Search result tags no longer show a leading `#`.
-* **Roam sync** - Missing concepts are recovered during sync, and page-load observer paths no longer repeat settings reads as often.
+- **Image resizing** - Image controls no longer overlap the resize handle.
+- **Suggestion mode** - Reflow on first load is corrected, and searching from all pages works again.
+- **Node type menu** - The node type menu now scrolls when there are many node types.
+- **Create relation flow** - The relation dialog no longer closes when there is no match, and incomplete relation types no longer crash the canvas.
+- **Template editing** - Changing a node template no longer fails with a duplicate block error.
+- **Search result tags** - Search result tags no longer show a leading `#`.
+- **Roam sync** - Missing concepts are recovered during sync, and page-load observer paths no longer repeat settings reads as often.
 
 ## [0.19.0] - 2026-05-11
 
