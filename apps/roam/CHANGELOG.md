@@ -9,7 +9,7 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 - Minor version bumps are released on a regular cadence.
 - Patch version bumps are for bugfixes and hotfixes.
 
-## [0.20.0] - 2026-06-01
+## [0.20.0] - 2026-06-21
 
 ### Added
 
