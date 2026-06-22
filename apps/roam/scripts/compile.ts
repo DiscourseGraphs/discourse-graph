@@ -199,12 +199,10 @@ export const compile = ({
           ? `"${dbEnv.SUPABASE_PUBLISHABLE_KEY}"`
           : "null",
         "process.env.NEXT_API_ROOT": `"${dbEnv.NEXT_API_ROOT || ""}"`,
-        "window.__DISCOURSE_GRAPH_VERSION__": JSON.stringify(getVersion()),
-        "window.__DISCOURSE_GRAPH_BUILD_DATE__": JSON.stringify(getBuildDate()),
-        "window.__DISCOURSE_GRAPH_BUILD_COMMIT__":
-          JSON.stringify(getBuildCommit()),
-        "window.__DISCOURSE_GRAPH_BUILD_BRANCH__":
-          JSON.stringify(getBuildBranch()),
+        "window.__DISCOURSE_GRAPH_VERSION__": `"${getVersion()}"`,
+        "window.__DISCOURSE_GRAPH_BUILD_DATE__": `"${getBuildDate()}"`,
+        "window.__DISCOURSE_GRAPH_BUILD_COMMIT__": `"${getBuildCommit()}"`,
+        "window.__DISCOURSE_GRAPH_BUILD_BRANCH__": `"${getBuildBranch()}"`,
       },
       sourcemap: process.env.NODE_ENV === "production" ? "external" : "inline",
       minify: process.env.NODE_ENV === "production",
