@@ -84,6 +84,13 @@ import getDiscourseRelations, {
 } from "~/utils/getDiscourseRelations";
 import { AddReferencedNodeType } from "./canvas/DiscourseRelationShape/DiscourseRelationTool";
 import posthog from "posthog-js";
+import { getMyGroups, type MyGroup } from "@repo/database/lib/groups";
+import {
+  publishNodesToGroups,
+  type PublishNode,
+} from "~/utils/publishNodesToGroups";
+import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import { isSyncEnabled } from "~/components/settings/utils/accessors";
 
 const ExportProgress = ({ id }: { id: string }) => {
   const [progress, setProgress] = useState(0);
@@ -212,6 +219,30 @@ const ExportDialog: ExportDialogComponent = ({
   );
 
   const [canSendToGitHub, setCanSendToGitHub] = useState(false);
+
+  const syncEnabled = useMemo(() => isSyncEnabled(), []);
+  const [myGroups, setMyGroups] = useState<MyGroup[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [groupsLoaded, setGroupsLoaded] = useState(false);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [groupsError, setGroupsError] = useState("");
+  const [publishError, setPublishError] = useState("");
+
+  const publishableNodes = useMemo(
+    () =>
+      syncEnabled
+        ? results
+            .map((r) => {
+              const node = findDiscourseNode({ uid: r.uid });
+              return node && node.backedBy === "user"
+                ? { uid: r.uid, type: node.type }
+                : null;
+            })
+            .filter((n): n is PublishNode => n !== null)
+        : [],
+    [results, syncEnabled],
+  );
+  const nonDiscourseCount = results.length - publishableNodes.length;
 
   const writeFileToRepo = async ({
     filename,
@@ -764,6 +795,98 @@ const ExportDialog: ExportDialogComponent = ({
       });
     }
   };
+  useEffect(() => {
+    if (
+      !syncEnabled ||
+      !isOpen ||
+      selectedTabId !== "publish" ||
+      groupsLoaded ||
+      groupsLoading
+    )
+      return;
+    setGroupsLoading(true);
+    void (async () => {
+      try {
+        const client = await getLoggedInClient();
+        if (!client) throw new Error("Could not connect to sync.");
+        const groups = await getMyGroups(client);
+        setMyGroups(groups);
+      } catch (e) {
+        setGroupsError((e as Error).message || "Failed to load groups.");
+      } finally {
+        setGroupsLoading(false);
+        setGroupsLoaded(true);
+      }
+    })();
+  }, [syncEnabled, isOpen, selectedTabId, groupsLoaded, groupsLoading]);
+
+  const handlePublish = async () => {
+    setPublishError("");
+    setLoading(true);
+    try {
+      const client = await getLoggedInClient();
+      const context = await getSupabaseContext();
+      if (!client || !context) throw new Error("Could not connect to sync.");
+      const {
+        publishedNodeUids,
+        skippedUnsyncedUids,
+        okGroupIds,
+        failedGroupIds,
+      } = await publishNodesToGroups({
+        client,
+        spaceId: context.spaceId,
+        groupIds: selectedGroupIds,
+        nodes: publishableNodes,
+      });
+      posthog.capture("Export Dialog: Publish", {
+        groupCount: okGroupIds.length,
+        publishedNodeCount: publishedNodeUids.length,
+        skippedUnsyncedCount: skippedUnsyncedUids.length,
+        nonDiscourseCount,
+        failedGroupCount: failedGroupIds.length,
+      });
+      const hasPublishedNodes = publishedNodeUids.length > 0;
+      const messages = hasPublishedNodes
+        ? [
+            `Published ${publishedNodeUids.length} node${
+              publishedNodeUids.length === 1 ? "" : "s"
+            } to ${okGroupIds.length} group${
+              okGroupIds.length === 1 ? "" : "s"
+            }.`,
+          ]
+        : ["No nodes were published."];
+      if (skippedUnsyncedUids.length)
+        messages.push(
+          `${skippedUnsyncedUids.length} not synced yet — try again shortly.`,
+        );
+      if (nonDiscourseCount)
+        messages.push(`${nonDiscourseCount} skipped (not discourse nodes).`);
+      if (failedGroupIds.length)
+        messages.push(
+          `${failedGroupIds.length} group${
+            failedGroupIds.length === 1 ? "" : "s"
+          } failed.`,
+        );
+      renderToast({
+        content: messages.join(" "),
+        intent:
+          failedGroupIds.length || !hasPublishedNodes ? "warning" : "success",
+        id: "query-builder-publish-success",
+      });
+      if (hasPublishedNodes) onClose();
+    } catch (e) {
+      internalError({
+        error: e as Error,
+        type: "Publish Dialog Failed",
+        userMessage:
+          "Looks like there was an error publishing. The team has been notified.",
+      });
+      setPublishError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const ExportPanel = (
     <>
       <div className={Classes.DIALOG_BODY}>
@@ -1042,6 +1165,68 @@ const ExportDialog: ExportDialogComponent = ({
     </>
   );
 
+  const PublishPanel = (
+    <>
+      <div className={Classes.DIALOG_BODY}>
+        {groupsLoading || !groupsLoaded ? (
+          <div className="my-2.5">Loading groups…</div>
+        ) : groupsError ? (
+          <div className="my-2.5">{groupsError}</div>
+        ) : myGroups.length === 0 ? (
+          <div className="my-2.5">
+            You are not a member of any sharing group.
+          </div>
+        ) : (
+          <>
+            <Label>Publish to group(s)</Label>
+            {myGroups.map((group) => (
+              <Checkbox
+                key={group.id}
+                checked={selectedGroupIds.includes(group.id)}
+                label={group.name}
+                onChange={(e) => {
+                  const { checked } = e.target as HTMLInputElement;
+                  setSelectedGroupIds((prev) =>
+                    checked
+                      ? [...prev, group.id]
+                      : prev.filter((id) => id !== group.id),
+                  );
+                }}
+              />
+            ))}
+            <div className="mt-2.5">
+              {`Publishing ${publishableNodes.length} discourse node${
+                publishableNodes.length === 1 ? "" : "s"
+              }`}
+              {nonDiscourseCount > 0 &&
+                ` (${nonDiscourseCount} non-discourse result${
+                  nonDiscourseCount === 1 ? "" : "s"
+                } will be skipped)`}
+            </div>
+          </>
+        )}
+      </div>
+      <div className={Classes.DIALOG_FOOTER}>
+        <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+          <span style={{ color: "darkred" }}>{publishError}</span>
+          <Button text={"Cancel"} intent={Intent.NONE} onClick={onClose} />
+          <Button
+            text={"Publish"}
+            intent={Intent.PRIMARY}
+            onClick={() => void handlePublish()}
+            loading={loading}
+            disabled={
+              loading ||
+              selectedGroupIds.length === 0 ||
+              publishableNodes.length === 0
+            }
+            style={{ minWidth: 64 }}
+          />
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <>
       <Dialog
@@ -1067,6 +1252,9 @@ const ExportDialog: ExportDialogComponent = ({
         >
           <Tab id="sendto" title="Send To" panel={SendToPanel} />
           <Tab id="export" title="Export" panel={ExportPanel} />
+          {syncEnabled && (
+            <Tab id="publish" title="Publish" panel={PublishPanel} />
+          )}
         </Tabs>
       </Dialog>
       <ExportProgress id={exportId} />

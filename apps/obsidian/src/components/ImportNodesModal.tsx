@@ -4,9 +4,9 @@ import { StrictMode, useState, useEffect, useCallback } from "react";
 import type DiscourseGraphPlugin from "../index";
 import type { ImportableNode, GroupWithNodes } from "~/types";
 import { getUserNameById } from "~/utils/typeUtils";
+import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import {
   fetchUserNames,
-  getAvailableGroupIds,
   getPublishedNodesForGroups,
   getLocalNodeInstanceIds,
   getSpaceNameFromIds,
