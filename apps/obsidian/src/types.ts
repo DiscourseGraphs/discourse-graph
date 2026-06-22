@@ -115,8 +115,6 @@ export type ImportFolderMetadata = {
   spaceUri: string;
   spaceName: string;
   userName?: string;
-  /** Set after auto-rename or when the user has a custom folder name. */
-  migrated?: boolean;
 };
 
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";

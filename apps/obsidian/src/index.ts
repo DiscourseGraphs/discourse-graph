@@ -37,10 +37,7 @@ import {
   migrateFrontmatterRelationsToRelationsJson,
   mergeAllRelationsJsonToRoot,
 } from "~/utils/relationsStore";
-import {
-  migrateImportFolderMetadata,
-  migrateImportFolderNames,
-} from "./utils/importFolderMetadata";
+import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
 import { fetchUserNames } from "~/utils/importNodes";
 import { getLoggedInClient } from "~/utils/supabaseContext";
@@ -68,10 +65,6 @@ export default class DiscourseGraphPlugin extends Plugin {
       console.error("Failed to migrate import folder metadata:", error);
     });
 
-    await migrateImportFolderNames(this).catch((error) => {
-      console.error("Failed to migrate import folder names:", error);
-    });
-
     registerTemplateSettingsSync(this);
 
     if (this.settings.syncModeEnabled === true) {
@@ -81,7 +74,6 @@ export default class DiscourseGraphPlugin extends Plugin {
           if (client) {
             await fetchUserNames(this, client);
           }
-          await migrateImportFolderNames(this);
         })
         .catch((error) => {
           console.error("Failed to initialize Supabase sync:", error);

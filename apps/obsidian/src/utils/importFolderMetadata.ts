@@ -1,4 +1,4 @@
-import { App, DataAdapter, Notice, TFolder } from "obsidian";
+import { DataAdapter, Notice } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import type { ImportFolderMetadata } from "~/types";
 
@@ -169,120 +169,13 @@ const resolveUniqueImportFolderPath = async ({
   return path;
 };
 
-const renameImportFolder = async ({
-  app,
-  adapter,
-  oldPath,
-  newPath,
-}: {
-  app: App;
-  adapter: DataAdapter;
-  oldPath: string;
-  newPath: string;
-}): Promise<void> => {
-  if (oldPath === newPath) return;
-
-  const folder = app.vault.getAbstractFileByPath(oldPath);
-  if (folder instanceof TFolder) {
-    await app.fileManager.renameFile(folder, newPath);
-    return;
-  }
-
-  await adapter.rename(oldPath, newPath);
-};
-
-const reconcileImportFolderForSpace = async ({
-  app,
-  adapter,
-  folderPath,
-  metadata,
-  spaceUri,
-  spaceName,
-  ownerUserName,
-  warnIfUserNameMissing = false,
-}: {
-  app: App;
-  adapter: DataAdapter;
-  folderPath: string;
-  metadata: ImportFolderMetadata;
-  spaceUri: string;
-  spaceName: string;
-  ownerUserName?: string;
-  warnIfUserNameMissing?: boolean;
-}): Promise<string> => {
-  const userName = ownerUserName ?? metadata.userName;
-  const updatedMetadata: ImportFolderMetadata = {
-    ...metadata,
-    spaceName,
-    ...(userName ? { userName } : {}),
-  };
-
-  const writeIfChanged = async (): Promise<void> => {
-    if (
-      updatedMetadata.spaceName !== metadata.spaceName ||
-      updatedMetadata.userName !== metadata.userName
-    ) {
-      await writeImportFolderMetadata({
-        adapter,
-        folderPath,
-        metadata: updatedMetadata,
-      });
-    }
-  };
-
-  if (metadata.migrated) {
-    await writeIfChanged();
-    return folderPath;
-  }
-
-  if (!userName) {
-    if (warnIfUserNameMissing) {
-      console.warn(
-        `Discourse Graphs: skipping import folder rename for "${folderPath}" — owner username unknown.`,
-      );
-    } else {
-      await writeIfChanged();
-    }
-    return folderPath;
-  }
-
-  const targetBasename = buildImportFolderBasename(userName, spaceName);
-  let finalPath = folderPath;
-
-  if (getImportFolderBasename(folderPath) !== targetBasename) {
-    finalPath = await resolveUniqueImportFolderPath({
-      adapter,
-      desiredBasename: targetBasename,
-      spaceUri,
-    });
-    if (finalPath !== folderPath) {
-      await renameImportFolder({
-        app,
-        adapter,
-        oldPath: folderPath,
-        newPath: finalPath,
-      });
-    }
-  }
-
-  await writeImportFolderMetadata({
-    adapter,
-    folderPath: finalPath,
-    metadata: { ...updatedMetadata, userName, migrated: true },
-  });
-
-  return finalPath;
-};
-
 export const resolveFolderForSpaceUri = async ({
   adapter,
-  app,
   spaceUri,
   spaceName,
   ownerUserName,
 }: {
   adapter: DataAdapter;
-  app: App;
   spaceUri: string;
   spaceName: string;
   ownerUserName?: string;
@@ -292,15 +185,14 @@ export const resolveFolderForSpaceUri = async ({
     spaceUri,
   });
   if (existingFolder) {
-    return reconcileImportFolderForSpace({
-      app,
-      adapter,
-      folderPath: existingFolder.folderPath,
-      metadata: existingFolder.metadata,
-      spaceUri,
-      spaceName,
-      ownerUserName,
-    });
+    if (existingFolder.metadata.spaceName !== spaceName) {
+      await writeImportFolderMetadata({
+        adapter,
+        folderPath: existingFolder.folderPath,
+        metadata: { ...existingFolder.metadata, spaceName },
+      });
+    }
+    return existingFolder.folderPath;
   }
 
   const { folders } = (await adapter.exists(IMPORT_ROOT))
@@ -318,21 +210,16 @@ export const resolveFolderForSpaceUri = async ({
     );
     if (existingMetadata) continue;
 
-    const metadata: ImportFolderMetadata = {
-      spaceUri,
-      spaceName,
-      ...(ownerUserName ? { userName: ownerUserName } : {}),
-    };
-    await writeImportFolderMetadata({ adapter, folderPath, metadata });
-    return reconcileImportFolderForSpace({
-      app,
+    await writeImportFolderMetadata({
       adapter,
       folderPath,
-      metadata,
-      spaceUri,
-      spaceName,
-      ownerUserName,
+      metadata: {
+        spaceUri,
+        spaceName,
+        ...(ownerUserName ? { userName: ownerUserName } : {}),
+      },
     });
+    return folderPath;
   }
 
   const desiredBasename = ownerUserName
@@ -351,61 +238,11 @@ export const resolveFolderForSpaceUri = async ({
     metadata: {
       spaceUri,
       spaceName,
-      ...(ownerUserName ? { userName: ownerUserName, migrated: true } : {}),
+      ...(ownerUserName ? { userName: ownerUserName } : {}),
     },
   });
 
   return newPath;
-};
-
-const resolveUserNameFromFolder = (
-  plugin: DiscourseGraphPlugin,
-  folderPath: string,
-): string | undefined => {
-  const userNames = plugin.settings.userNames ?? {};
-  const files = plugin.app.vault
-    .getMarkdownFiles()
-    .filter((file) => file.path.startsWith(`${folderPath}/`));
-
-  for (const file of files) {
-    const authorId = plugin.app.metadataCache.getFileCache(file)?.frontmatter
-      ?.authorId as number | undefined;
-    if (typeof authorId === "number" && userNames[authorId]) {
-      return userNames[authorId];
-    }
-  }
-
-  return undefined;
-};
-
-export const migrateImportFolderNames = async (
-  plugin: DiscourseGraphPlugin,
-): Promise<void> => {
-  const adapter = plugin.app.vault.adapter;
-
-  const importExists = await adapter.exists(IMPORT_ROOT);
-  if (!importExists) return;
-
-  const { folders } = await adapter.list(IMPORT_ROOT);
-
-  for (const folderPath of folders) {
-    const metadata = await readImportFolderMetadata(adapter, folderPath);
-    if (!metadata || metadata.migrated) continue;
-
-    const userName =
-      metadata.userName ?? resolveUserNameFromFolder(plugin, folderPath);
-
-    await reconcileImportFolderForSpace({
-      app: plugin.app,
-      adapter,
-      folderPath,
-      metadata,
-      spaceUri: metadata.spaceUri,
-      spaceName: metadata.spaceName,
-      ownerUserName: userName,
-      warnIfUserNameMissing: true,
-    });
-  }
 };
 
 export const migrateImportFolderMetadata = async (

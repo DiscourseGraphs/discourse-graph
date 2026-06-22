@@ -1374,7 +1374,6 @@ export const importSelectedNodes = async ({
     const ownerUserName = resolveOwnerUserName(nodes, plugin);
     const importFolderPath = await resolveFolderForSpaceUri({
       adapter: plugin.app.vault.adapter,
-      app: plugin.app,
       spaceUri,
       spaceName,
       ownerUserName,
