@@ -58,10 +58,8 @@ export const notifyBlockSuggestionAdded = async (
     return;
   }
 
-  let sidebarWindows: RoamSidebarWindow[] = [];
-  try {
-    sidebarWindows = window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
-  } catch {}
+  const sidebarWindows: RoamSidebarWindow[] =
+    window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
 
   const existingWindow = sidebarWindows.find(
     (w) =>
