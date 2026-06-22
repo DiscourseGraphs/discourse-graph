@@ -331,49 +331,49 @@ const SuggestionsBody = ({
             rel.destination === discourseNode.type) ||
           (rel.destination === node.type && rel.source === discourseNode.type),
       );
-      if (!relevantRelns.length) {
+      if (relevantRelns.length) {
+        if (relevantRelns.length > 1) {
+          // I don't want to panick the user with this.
+          // TODO: Maybe think of adding a relation type picker?
+          console.warn("Picking an arbitrary relation");
+        }
+        const rel = relevantRelns[0];
+        try {
+          if (rel.destination === node.type)
+            await createReifiedRelation({
+              sourceUid: tagUid,
+              destinationUid: node.uid,
+              relationBlockUid: rel.id,
+            });
+          else
+            await createReifiedRelation({
+              sourceUid: node.uid,
+              destinationUid: tagUid,
+              relationBlockUid: rel.id,
+            });
+        } catch (error) {
+          console.error("Failed to create reified relation:", error);
+          renderToast({
+            id: "suggestions-create-block-error",
+            content: "Failed to create relation",
+            intent: "danger",
+            timeout: 5000,
+          });
+          return;
+        }
+        await notifySuggestiveModeAdopted({
+          adoptionType: "relation",
+          sourceTitle: tag,
+          destinationTitle: node.text,
+        });
+      } else {
         renderToast({
           id: "suggestions-create-block-error",
           content: "Could not identify a relevant relation",
           intent: "danger",
           timeout: 5000,
         });
-        return;
       }
-      if (relevantRelns.length > 1) {
-        // I don't want to panick the user with this.
-        // TODO: Maybe think of adding a relation type picker?
-        console.warn("Picking an arbitrary relation");
-      }
-      const rel = relevantRelns[0];
-      try {
-        if (rel.destination === node.type)
-          await createReifiedRelation({
-            sourceUid: tagUid,
-            destinationUid: node.uid,
-            relationBlockUid: rel.id,
-          });
-        else
-          await createReifiedRelation({
-            sourceUid: node.uid,
-            destinationUid: tagUid,
-            relationBlockUid: rel.id,
-          });
-      } catch (error) {
-        console.error("Failed to create reified relation:", error);
-        renderToast({
-          id: "suggestions-create-block-error",
-          content: "Failed to create relation",
-          intent: "danger",
-          timeout: 5000,
-        });
-        return;
-      }
-      await notifySuggestiveModeAdopted({
-        adoptionType: "relation",
-        sourceTitle: tag,
-        destinationTitle: node.text,
-      });
     } else {
       await createBlock({
         parentUid: blockUid,
