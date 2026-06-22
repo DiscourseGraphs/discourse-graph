@@ -45,7 +45,7 @@ export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
 };
 
-const COLOR_WRITE_DEBOUNCE_MS = 250;
+const COLOR_WRITE_DEBOUNCE_MS = 150;
 
 type DiscourseNodeColorSettingProps = {
   canvasUid: string;
