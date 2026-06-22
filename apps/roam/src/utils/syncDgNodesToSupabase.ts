@@ -610,16 +610,15 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   roamNodes: RoamDiscourseNodeData[],
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
+  options: { includeFullContent?: boolean } = {},
 ): Promise<void> => {
   const { userId } = context;
+  const { includeFullContent = false } = options;
 
   if (roamNodes.length === 0) {
     return;
   }
   const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
-    nodes: roamNodes,
-  });
-  const fullContent = convertRoamNodeToFullContent({
     nodes: roamNodes,
   });
 
@@ -644,7 +643,12 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     }
   };
 
-  await uploadBatches(chunk(fullContent, BATCH_SIZE));
+  if (includeFullContent) {
+    const fullContent = convertRoamNodeToFullContent({
+      nodes: roamNodes,
+    });
+    await uploadBatches(chunk(fullContent, BATCH_SIZE));
+  }
 
   let nodesWithEmbeddings: LocalContentDataInput[];
   try {
