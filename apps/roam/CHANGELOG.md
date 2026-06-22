@@ -9,6 +9,19 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 - Minor version bumps are released on a regular cadence.
 - Patch version bumps are for bugfixes and hotfixes.
 
+## [0.21.0] - 2026-06-22
+
+### Changed
+
+- **Build metadata includes the commit SHA** - Release builds now stamp version metadata with the build commit, and branch builds keep the date/branch/commit format.
+- **Per-install Roam extension version telemetry** - Extension load analytics now include per-install version metadata to help debug Roam app dev URL caching.
+- **Canvas shape nodes use discourse-node** - Canvas shape nodes now use the shared `discourse-node` type instead of the old `node-type` identifier.
+- **Legacy anchor-backed node types removed** - Canvas node type handling no longer includes the unused legacy anchor path.
+
+### Fixed
+
+- **Color picker writes are debounced** - Dragging the discourse node color picker now updates the UI immediately but saves the final color after a short pause instead of writing on every change.
+
 ## [0.20.0] - 2026-06-21
 
 ### Added
