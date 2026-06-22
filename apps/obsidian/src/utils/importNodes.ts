@@ -10,7 +10,7 @@ import {
   getImportedNodesInfo,
   getLocalNodeKeyToEndpointId,
 } from "~/utils/relationsStore";
-import { spaceUriAndLocalIdToRid } from "./rid";
+import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Tables } from "@repo/database/dbTypes";
 import { getSpaceNameIdFromRid } from "./spaceFromRid";

@@ -37,6 +37,7 @@ import SuggestiveModeSettings from "./SuggestiveModeSettings";
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 import type { FeatureFlags } from "./utils/zodSchema";
 import { nextRoot } from "@repo/utils/execContext";
+import SearchTestTab from "./SearchTestTab";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -498,6 +499,7 @@ const AdminPanel = ({
           </div>
         }
       />
+      <Tab id="search-test" title="Search test" panel={<SearchTestTab />} />
       {isSyncEnabled() && (
         <Tab
           id="sync-mode-settings"

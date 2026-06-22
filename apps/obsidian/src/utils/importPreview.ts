@@ -11,7 +11,7 @@ import {
   fetchRelationInstancesFromSpace,
   type RemoteRelationInstance,
 } from "./importRelations";
-import { spaceUriAndLocalIdToRid } from "./rid";
+import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 
 export type RelationTriplet = {
   sourceNodeTypeName: string;

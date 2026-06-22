@@ -6,19 +6,6 @@ import getPageViewType from "roamjs-components/queries/getPageViewType";
 import type { TreeNode, ViewType } from "roamjs-components/types";
 import type { LocalContentDataInput } from "@repo/database/inputTypes";
 
-/**
- * Builds the `full` cross-app content variant for Roam discourse nodes.
- *
- * Per the shared cross-app node contract (ENG-1847,
- * `@repo/database/crossAppNodeContract`), every shared node must persist a
- * `full` variant: a self-sufficient markdown body the destination app can
- * materialize without querying Roam. Roam previously emitted only the `direct`
- * title content; this fills that gap (ENG-1848, F2/F3). The body reuses the
- * existing `toMarkdown` page serializer with block-refs and embeds inlined for
- * self-sufficiency, prefixed with the node title as an H1 — matching the
- * contract's Roam fixture. Known MVP0 markdown-fidelity limits live on F3.
- */
-
 const FULL_MARKDOWN_OPTS = {
   refs: true,
   embeds: true,

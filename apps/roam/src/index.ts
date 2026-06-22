@@ -138,7 +138,7 @@ export default runExtension(async (onloadArgs) => {
 
   const { extensionAPI } = onloadArgs;
 
-  window.roamjs.extension.queryBuilder = {
+  const queryBuilderApi = {
     runQuery: (parentUid: string) =>
       runQuery({ parentUid, extensionAPI }).then(
         ({ allProcessedResults }) => allProcessedResults,
@@ -149,9 +149,10 @@ export default runExtension(async (onloadArgs) => {
     },
     listActiveQueries: () => listActiveQueries(),
     isDiscourseNode: isDiscourseNode,
-    // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
   };
+  window.roamjs?.extension &&
+    (window.roamjs.extension.queryBuilder = queryBuilderApi);
 
   installDiscourseFloatingMenu(onloadArgs, settings);
 
@@ -217,7 +218,7 @@ export default runExtension(async (onloadArgs) => {
       cleanups.forEach((fn) => fn());
       setSyncActivity(false);
       unregisterSlashCommands();
-      window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
+      window.roamjs?.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
       // @ts-expect-error - tldraw throws a warning on multiple loads
       delete window[Symbol.for("__signia__")];
       document.removeEventListener(

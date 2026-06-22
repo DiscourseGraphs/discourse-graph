@@ -3,7 +3,7 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { uuidv7 } from "uuidv7";
 import type DiscourseGraphPlugin from "~/index";
 import type { DiscourseRelationType, DiscourseRelation } from "~/types";
-import { spaceUriAndLocalIdToRid } from "./rid";
+import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import {
   loadRelations,
   addRelationNoCheck,
