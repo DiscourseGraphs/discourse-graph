@@ -1,0 +1,341 @@
+<scoping doc>
+- Scoping doc
+    - ## Metadata
+        - **Status**: DRAFT
+        - **Owner**: [[Michael Gartner]]
+        - **Reviewers**: [[Marc-Antoine Parent]]
+        - **Related notes**:
+            - `docs/atjson-canonical-storage-plan.md`
+            - `docs/atjson-port-plan.md`
+        - **Related Linear project/issues**: TBD
+    - ## 1. Summary
+        - **One-sentence summary**: Add DG ATJSON as the canonical stored content representation while preserving the current Obsidian Markdown sink/import flow.
+        - **Problem**: Discourse Graphs currently stores app-native text and Markdown rows, but does not yet persist a portable canonical content model that can later render cleanly to Obsidian, Roam, and website publishing surfaces.
+        - **Proposed solution**: Add `Content.content_type`, keep `variant` as the semantic content slice,
+            - and write canonical DG ATJSON rows alongside existing text and Markdown rows, 
+                - or overwrite with new and only ever keep one, eg: nextjs hop to control the translation > there's benefits to doing this first, we can control the transformation without worrying about client versions, etc
+            - with the structured document stored in `Content.metadata.content` and derived plain text stored in `Content.text`.
+        - **Expected outcome**: The database can store canonical ATJSON without interrupting current Obsidian behavior, and the later ATJSON-to-Obsidian, ATJSON-to-Roam, and HTML conversion work has a stable storage target.
+    - ## 2. Goal + Non-Goals
+        - ### Goal
+            - Add write-only canonical ATJSON storage for Discourse Graphs content in a way that keeps all current app flows working.
+            - The v0 goal is specifically to:
+                - treat `variant` as the semantic slice, such as `direct`, `full`, or `direct_and_description`
+                - treat `content_type` as the representation, such as `text/plain`, `text/markdown`, `text/roam+markdown`, `text/osbidian+markdown`, `application/roam+json` or `application/vnd.discourse-graph.atjson+json; version=1`
+                - store canonical DG ATJSON in `Content.metadata.content`
+                - keep `Content.text` as a derived plain-text projection for search, previews, duplicate detection, and existing text-centered tooling
+                - keep existing Obsidian imports reading `direct/text/plain` and `full/text/markdown`
+                - prepare for later ATJSON-to-Obsidian and ATJSON-to-Roam renderers
+        - ### Non-Goals
+            - Do not replace the current Obsidian Markdown import path in v0.
+                - this could be true if we do nextjs hop to control the translation first
+            - Do not make destination readers prefer ATJSON in v0.
+            - Do not port SamePage wholesale.
+            - Do not introduce SamePage sync, networking, Automerge, IPFS, or protocol runtime code.
+            - Do not serialize ATJSON into `Content.text`.
+            - Do not embed serialized ATJSON JSON.
+            - Do not introduce a new `ContentVariant` for ATJSON.
+            - Do not make Markdown a final cross-app canonical format.
+    - ## 3. v0 Scope
+        - ### In scope
+            - Add `Content.content_type`.
+            - Backfill existing content rows into explicit content types.
+            - Update content uniqueness to include `content_type`.
+                - not true if we nextjs hop to control the translation
+            - Update `FileReference` to continue pointing at the Markdown `full` content row.
+            - Update `content_local_input`, `_local_content_to_db_content`, `upsert_content`, views, and generated database types.
+            - Add shared content type constants:
+                - `text/plain`
+                - `text/markdown`
+                - `text/roam+markdown`
+                - `text/roam+obsidian`
+                - `application/vnd.discourse-graph.atjson+json; version=1`
+            - Create or use a DG-owned `DgDocument` canonical model.
+            - Write ATJSON rows from Obsidian without changing the current Markdown rows.
+                - unless we do this first nextjs hop to control the translation
+            - Write ATJSON rows from Roam without removing existing text rows.
+                - unless we do this first nextjs hop to control the translation
+            - Store ATJSON payloads in `metadata.content`.
+            - Store derived plain text in `text`.
+            - Add tests and manual validation proving the existing Obsidian sink/import still works.
+        - ### Out of scope
+            - ATJSON-preferred import.
+            - ATJSON-to-Obsidian rendering in production app reads.
+            - ATJSON-to-Roam rendering or materialization in production app reads.
+            - API content negotiation.
+                - unless we do this first nextjs hop to control the translation
+            - Native export as a stored canonical format.
+            - Replacing existing Markdown asset/file-reference behavior.
+            - Continuous sync or automatic background import behavior beyond what exists today.
+        - ### Deferred to v1+
+            - porting
+                - Port DG ATJSON to Obsidian Markdown rendering.
+                - Port DG ATJSON to Roam rendering/materialization.
+                - unless we do this first nextjs hop to control the translation
+            - Add renderer parity tests and then switch destination readers to prefer ATJSON.
+            - Add HTML rendering for website publishing (if it exists and is a use case we are pursuing)
+            - Decide whether native exports should also be stored as durable representations.
+                - not if we do this first nextjs hop to control the translation
+            - Decide long-term content API representation negotiation.
+                - could be moved up with nextjs hop to control the translation
+    - ## 4. In-Scope Use Cases
+        - ### UC1: Existing Obsidian user continues publishing and importing content
+            - **Actor**: Discourse Graphs user in Obsidian.
+            - **Trigger**: User publishes or imports content using the current working Obsidian flow.
+            - **Happy path**:
+                1. User publishes or imports content from Obsidian.
+                2. Existing `direct/text/plain` title rows and `full/text/markdown` body rows remain available.
+                3. Obsidian import continues to materialize Markdown from the same representation it uses today.
+            - **Frequency**: Regularly; this is the compatibility baseline.
+        - ### UC2: Obsidian-authored content is stored as canonical ATJSON
+            - **Actor**: Discourse Graphs user in Obsidian.
+            - **Trigger**: User syncs or publishes an Obsidian-authored DG node.
+            - **Happy path**:
+                1. User creates or updates a DG node in Obsidian.
+                2. The current text and Markdown content rows are written as before.
+                3. A canonical ATJSON row is also written for the same content.
+                    - over overwritten
+                4. The ATJSON document is available for later cross-app rendering work.
+            - **Frequency**: Every Obsidian write after v0 rollout is enabled.
+        - ### UC3: Roam-authored content is stored as canonical ATJSON
+            - **Actor**: Discourse Graphs user in Roam.
+            - **Trigger**: User syncs a Roam page or block tree into Discourse Graphs.
+            - **Happy path**:
+                1. User updates content in Roam.
+                2. Existing Roam text rows continue to be written.
+                3. A canonical ATJSON row is also written from the Roam-native page/block structure.
+                    - over overwritten
+                4. The ATJSON document preserves enough structure for later Roam and Obsidian renderers.
+            - **Frequency**: Every Roam write after v0 rollout is enabled.
+        - ### UC4: Engineer validates canonical payloads before read-path rollout
+            - **Actor**: Engineer or database admin.
+            - **Trigger**: Preparing to build ATJSON-to-Obsidian, ATJSON-to-Roam, or HTML rendering.
+            - **Happy path**:
+                1. Engineer queries content rows by `variant` and `content_type`.
+                2. Engineer inspects `Content.metadata.content` for canonical DG ATJSON.
+                3. Engineer uses the derived `Content.text` projection for search, previews, or debugging.
+                4. Renderer work can proceed against real stored canonical documents without changing current readers.
+            - **Frequency**: During migration validation and renderer development.
+    - ## 5. Constraints / Assumptions / Dependencies
+        - ### Constraints
+            - The current Obsidian import path must keep working throughout the rollout.
+            - ATJSON must be added alongside existing rows before any reader is switched over.
+                - over overwritten
+            - Existing text-centered tooling should still be able to use `Content.text`.
+            - `FileReference` must continue to attach to the current Markdown `full` row until asset handling is intentionally moved to ATJSON.
+            - Database type generation must happen after schema changes.
+        - ### Assumptions
+            - `variant` is the semantic content slice, not the representation format.
+            - `content_type` is the representation discriminator.
+            - ATJSON payloads live in `Content.metadata.content`.
+            - `Content.text` on ATJSON rows is derived plain text.
+            - The canonical model is DG-owned and ATJSON-compatible, not SamePage's exact runtime schema.
+            - The first rollout is write-only for ATJSON.
+        - ### Dependencies
+            - Database migration support for `packages/database/supabase/schemas/content.sql`.
+            - Generated Supabase type updates in `packages/database/src/dbTypes.ts`.
+            - Current app writers in `apps/obsidian` and `apps/roam`.
+            - SamePage reference parser and renderer code listed in `docs/atjson-canonical-storage-plan.md`.
+            - Shared `@repo/content-model` package work from `docs/atjson-port-plan.md`.
+    - ## 6. Requirements
+        - ### Functional requirements
+            - ### F1: Add content representation discriminator
+                - **Requirement**: Add `Content.content_type text not null default 'text/plain'` and expose it through relevant content inputs, views, functions, and generated types.
+                - **Acceptance criteria**:
+                    - Existing non-`full` rows resolve to `text/plain`.
+                    - Existing `full` rows resolve to `text/markdown`.
+                    - `my_contents` exposes `content_type`.
+                    - App queries can filter by both `variant` and `content_type`.
+                - **Notes**: `content_type` distinguishes representation; it does not replace `variant`.
+            - ### F2: Allow multiple representations for the same content slice
+                - **Requirement**: Update content uniqueness and upsert behavior to use `(space_id, source_local_id, variant, content_type)`.
+                - **Acceptance criteria**:
+                    - A `full/text/markdown` row and a `full/application/vnd.discourse-graph.atjson+json; version=1` row can coexist.
+                    - Upserting one representation does not overwrite another representation for the same content slice.
+                    - `upsert_content` conflicts on the four-column key.
+                - **Notes**: Do not add ATJSON as a `ContentVariant`.
+            - ### F3: Store canonical ATJSON in metadata
+                - **Requirement**: Store canonical DG ATJSON in `Content.metadata.content` and store only derived plain text in `Content.text`.
+                - **Acceptance criteria**:
+                    - ATJSON rows use `content_type = 'application/vnd.discourse-graph.atjson+json; version=1'`.
+                    - ATJSON rows store a valid `DgDocument` in `metadata.content`.
+                    - ATJSON rows do not store serialized JSON in `text`.
+                    - Search and preview tooling can use the derived plain-text projection.
+                - **Notes**: This reflects the database guidance that the content itself should be in the metadata JSON blob.
+            - ### F4: Preserve current Obsidian import behavior
+                - **Milestone**: Milestones 2 and 4
+                - **Requirement**: Keep Obsidian import reading `direct/text/plain` and `full/text/markdown` until ATJSON renderer parity exists.
+                - **Acceptance criteria**:
+                    - Existing Obsidian import still succeeds after `content_type` is introduced.
+                    - Obsidian import does not prefer ATJSON in v0.
+                    - Current Markdown body behavior remains unchanged.
+                - **Notes**: This is the key compatibility requirement.
+            - ### F5: Keep file references attached to Markdown rows
+                - **Milestone**: Milestone 2
+                - **Requirement**: Update `FileReference` so it still points to the Markdown `full` content row after content uniqueness includes `content_type`.
+                - **Acceptance criteria**:
+                    - `FileReference` has or derives `content_type = 'text/markdown'`.
+                    - The foreign key references `(space_id, source_local_id, variant, content_type)`.
+                    - Existing asset/file-reference behavior continues to work.
+                - **Notes**: Moving file references into ATJSON is deferred.
+            - ### ^^F6: Write ATJSON alongside existing Obsidian rows^^
+                - **Milestone**: Milestone 4
+                - **Requirement**: Update the Obsidian writer to keep writing current rows and additionally write `full/application/vnd.discourse-graph.atjson+json; version=1`.
+                - **Acceptance criteria**:
+                    - Obsidian still writes `direct/text/plain`.
+                    - Obsidian still writes `full/text/markdown`.
+                    - Obsidian also writes `full/application/vnd.discourse-graph.atjson+json; version=1`.
+                    - The ATJSON row uses `metadata.content` for the canonical document and `text` for derived plain text.
+                - **Notes**: This should not change the current import path.
+            - ### ^^F7: Write ATJSON alongside existing Roam rows^^
+                - **Milestone**: Milestone 4
+                - **Requirement**: Update the Roam writer to keep current text rows and additionally write `full/application/vnd.discourse-graph.atjson+json; version=1`.
+                - **Acceptance criteria**:
+                    - Existing Roam write behavior remains intact.
+                    - Roam ATJSON is derived from Roam-native page/block structure, not from Markdown when native structure is available.
+                    - The ATJSON row uses `metadata.content` for the canonical document and `text` for derived plain text.
+                - **Notes**: If cross-app Markdown import is needed before ATJSON renderers are ready, Roam may also need to emit `full/text/markdown` for shared nodes.
+            - ### F8: Define shared content type constants
+                - **Milestone**: Milestone 3
+                - **Requirement**: Define shared constants for supported content types and use them from app writers/readers.
+                - **Acceptance criteria**:
+                    - Constants exist for `text/plain`, `text/markdown`, and DG ATJSON.
+                    - App code does not rely on repeated raw content-type strings where a shared constant is available.
+                - **Notes**: The constants should live where both app code and storage integration code can use them without circular dependencies.
+            - ### F9: Map later conversion rollout without activating it
+                - **Milestone**: Milestone 5
+                - **Requirement**: Document the follow-up path for ATJSON-to-Obsidian, ATJSON-to-Roam, HTML rendering, and API representation negotiation.
+                - **Acceptance criteria**:
+                    - The follow-up work is captured as deferred scope.
+                        - less out of scope if nextjs hop to control the translation
+                    - Destination readers remain on current text/Markdown rows in v0.
+                    - Renderer parity tests are required before reader switch-over.
+                - **Notes**: The implementation plan is in `docs/atjson-port-plan.md`.
+        - ### Non-functional requirements
+            - ### N1: Backward compatibility
+                - **Requirement**: Existing Obsidian publish/import and Roam write behavior must continue to work during and after the v0 rollout.
+                - **Acceptance criteria**:
+                    - Manual validation confirms current Obsidian import still works after ATJSON rows exist.
+                    - Existing readers do not break when multiple representations exist for the same content slice.
+            - ### N2: Data clarity
+                - **Requirement**: Stored rows must make semantic slice and representation format explicit.
+                - **Acceptance criteria**:
+                    - Engineers can identify content by both `variant` and `content_type`.
+                    - ATJSON is not hidden inside `variant` names or serialized into text fields.
+            - ### N3: Search and embedding safety
+                - **Requirement**: Text search, previews, duplicate detection, and embeddings must operate on human-readable text projections, not serialized ATJSON.
+                - **Acceptance criteria**:
+                    - ATJSON rows store derived plain text in `Content.text`.
+                    - Serialized ATJSON is never sent to embedding generation.
+            - ### N4: Type safety and maintainability
+                - **Requirement**: TypeScript code should use typed content constants and shared model types where practical.
+                - **Acceptance criteria**:
+                    - Generated database types are updated after schema changes.
+                    - App code can compile against the new `content_type` field.
+                    - New conversion code avoids `any` where practical.
+            - ### N5: Explicit rollout
+                - **Requirement**: v0 should not introduce new implicit sync or automatic read-path switching.
+                - **Acceptance criteria**:
+                    - ATJSON rows are written explicitly by existing write flows.
+                    - Destination readers switch to ATJSON only in a later planned phase.
+    - ## 7. Milestones
+        - ### Milestone 0: noop endopoints
+            - re: nextjs hop to control the translation
+            - add content type addition
+        - ### Milestone 1: Storage and canonical model foundation
+            - **Functional requirements**: [F1](#f1-add-content-representation-discriminator), [F2](#f2-allow-multiple-representations-for-the-same-content-slice), [F3](#f3-store-canonical-atjson-in-metadata), [F4](#f4-preserve-current-obsidian-import-behavior), [F5](#f5-keep-file-references-attached-to-markdown-rows), [F8](#f8-define-shared-content-type-constants)
+            - **Deliverable**: Database representation support plus the minimal DG-owned `DgDocument` model needed for write-only ATJSON storage.
+            - **Acceptance criteria**:
+                - Existing rows are backfilled into explicit content types.
+                - Multiple content representations can coexist for the same semantic slice.
+                - `content_local_input`, `_local_content_to_db_content`, `upsert_content`, views, `FileReference`, and generated database types all support `content_type`.
+                - File references still attach to Markdown `full/text/markdown` rows.
+                - Shared constants exist for `text/plain`, `text/markdown`, and DG ATJSON.
+                - Obsidian content can produce a valid canonical `DgDocument`.
+                - Roam page/block content can produce a valid canonical `DgDocument`.
+                - Derived plain text can be produced from the canonical document.
+                - Validation covers spans, title/body rules, block parents, and reference attributes.
+            - **Dependencies**: Migration review, database type regeneration, and `@repo/content-model` package work.
+            - **Estimate**: 3-7 days, depending on adapter depth included in v0.
+        - ### Milestone 2: Write-only ATJSON rollout
+            - **Functional requirements**: [F3](#f3-store-canonical-atjson-in-metadata), [F4](#f4-preserve-current-obsidian-import-behavior), [F6](#f6-write-atjson-alongside-existing-obsidian-rows), [F7](#f7-write-atjson-alongside-existing-roam-rows)
+            - **Deliverable**: Obsidian and Roam writers add ATJSON rows while preserving existing text and Markdown rows.
+            - **Acceptance criteria**:
+                - Obsidian writes `direct/text/plain`, `full/text/markdown`, and `full/application/vnd.discourse-graph.atjson+json; version=1`.
+                - Roam keeps current text rows and additionally writes `full/application/vnd.discourse-graph.atjson+json; version=1`.
+                - ATJSON payloads are stored in `metadata.content`.
+                - `text` contains derived plain text, not serialized ATJSON.
+                - Inline embeddings are only accepted for intentional `text/plain` rows.
+                - Existing Obsidian import still reads `direct/text/plain` and `full/text/markdown`.
+                - No destination reader prefers ATJSON in v0.
+            - **Dependencies**: Milestone 1.
+            - **Estimate**: 1-3 days.
+        - ### Milestone 3: Deferred conversion rollout mapped
+            - **Functional requirements**: [F9](#f9-map-later-conversion-rollout-without-activating-it)
+            - **Deliverable**: Follow-up scope or issues for renderers, read-path switch-over, and representation negotiation.
+            - **Acceptance criteria**:
+                - ATJSON-to-Obsidian renderer/read-path work is ticketed.
+                - ATJSON-to-Roam renderer/materializer work is ticketed.
+                - HTML rendering or website publishing integration work is ticketed.
+                - API representation negotiation is explicitly deferred or scoped.
+                - Renderer parity requirements are documented before any reader switch-over.
+            - **Dependencies**: Stored ATJSON examples from Milestone 2.
+            - **Estimate**: 0.5-1 day for scoping; implementation estimated separately.
+    - ## 8. Open Questions
+        - ### Where should shared content type constants live?
+            - **Current leaning**: Put them in the shared content-model package if it can be consumed cleanly by app writers; otherwise use a small shared database/content constants module.
+        - ### How much of the Obsidian and Roam parser work is required for v0?
+            - **Current leaning**: Implement only enough source-to-canonical conversion for write-only ATJSON rows, then deepen fidelity during renderer parity work.
+                - Punt storing both until we are deciding to store atJSON, store native until we have the full test suite
+        - ### Should native export formats become stored durable representations?
+            - **Current leaning**: Defer until canonical ATJSON storage and app renderers are stable.
+                - leaning towards yes
+        - ### What is the long-term source for embeddings?
+            - **Current leaning**: Keep embeddings based on human-readable derived text, not serialized structured content.
+    - ## 9. Risks
+        - ### Risk: Existing Obsidian import breaks during schema migration
+            - **Impact**: Users lose the current working write/import path.
+            - **Mitigation**: Backfill before enforcing new uniqueness, update queries to filter explicit content types, and manually validate current Obsidian import before enabling ATJSON writes.
+        - ### Risk: ATJSON rows overwrite Markdown rows
+            - **Impact**: Existing Markdown import behavior breaks or data is lost.
+            - **Mitigation**: Use `(space_id, source_local_id, variant, content_type)` as the uniqueness key and update `upsert_content` conflict behavior.
+        - ### Risk: Serialized JSON enters search or embedding paths
+            - **Impact**: Search quality drops, embeddings become noisy, and text tooling becomes harder to reason about.
+            - **Mitigation**: Store canonical content in `metadata.content`; store only derived plain text in `text`; add regression tests.
+        - ### Risk: File references lose their target row
+            - **Impact**: Assets attached to Obsidian Markdown content break.
+            - **Mitigation**: Add or derive `FileReference.content_type = 'text/markdown'` and update the foreign key to the four-column content key.
+        - ### Risk: Canonical model overfits SamePage
+            - **Impact**: DG inherits SamePage-specific assumptions that do not fit Roam, Obsidian, and website publishing.
+            - **Mitigation**: Use SamePage as a reference, but define a DG-owned `DgDocument` with explicit title/body split, typed references, and block identity.
+        - ### Risk: Readers switch to ATJSON before renderer parity
+            - **Impact**: Import behavior changes before ATJSON-to-native rendering is trustworthy.
+            - **Mitigation**: Keep v0 write-only and require renderer parity tests before read-path switch-over.
+    - ## 10. Approval Checklist
+        - {{[[DONE]]}} Goal is clear.
+        - {{[[DONE]]}} v0 scope is clear.
+        - {{[[DONE]]}} Out-of-scope items are explicit.
+        - {{[[DONE]]}} Use cases describe user/system workflows, not implementation debate.
+        - {{[[DONE]]}} Functional requirements can become Linear issues.
+        - {{[[DONE]]}} Non-functional requirements are concrete and testable.
+        - {{[[DONE]]}} Milestones have acceptance criteria.
+        - {{[[DONE]]}} Open questions and risks are captured.
+</scoping doc>
+  
+  And here's the notes from our conversation. - nextjs hop to control the
+  translation
+      - there's benefits to doing this first, we can control the transformation without worrying about client versions, etc
+  - `Content.content_type`
+      - include obsidian markdown / roam markdown so we can (if we need to) transform between them
+  - MAP: native first then switch to atjson might be more efficient
+      - until we have the full test suite
+      - or until we are happy with the results of said test suite
+  - Punt storing both until we are deciding to store atJSON
+      - benefits of storing native
+          - when moving from native-native, moving target that we'll always be behind
+          - debugging
+              - if we store an atjson conversion, and it goes wrong, we don't know why, how, can't inspect
+
+I want you to ask any questions you have for sure but we're going to create first. I want you to respond with drafts of the project title, what milestones
+we create, and what tasks we would create. Each task should be a single PR. Aim for at most 500 lines of code and we should have probably between three and
+five milestones but less is generally better if possible but do what makes sense.
