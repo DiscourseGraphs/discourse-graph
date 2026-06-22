@@ -25,7 +25,7 @@
     "@repo/typescript-config": "workspace:*",
     "@turbo/gen": "^2.5.4",
     "@types/eslint": "catalog:",
-    "@types/node": "^20.11.24",
+    "@types/node": "catalog:",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "catalog:",
