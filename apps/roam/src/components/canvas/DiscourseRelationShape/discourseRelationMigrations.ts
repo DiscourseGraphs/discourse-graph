@@ -189,8 +189,7 @@ export const createMigrations = ({
       {
         id: versions["MigrateNodeTypeToDiscourseNode"],
         scope: "record",
-        // Assumes node type ids and relation ids are distinct. Legacy
-        // /anchor/-backed relation nodes are not supported by this migration.
+        // Assumes node type ids and relation ids are distin
         filter: (r: any) => {
           const recordType = getRecordType(r);
           return (
