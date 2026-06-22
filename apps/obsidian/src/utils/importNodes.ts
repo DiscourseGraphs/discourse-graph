@@ -281,32 +281,49 @@ export const fetchUserNames = async (
   await plugin.saveSettings();
 };
 
-export const resolveOwnerUserName = (
-  nodes: ImportableNode[],
-  plugin: DiscourseGraphPlugin,
-): string | undefined => {
-  const authorCounts = new Map<number, number>();
-  for (const node of nodes) {
-    if (node.authorId !== undefined) {
-      authorCounts.set(
-        node.authorId,
-        (authorCounts.get(node.authorId) ?? 0) + 1,
-      );
-    }
-  }
-  if (authorCounts.size === 0) return undefined;
+export const getSpaceOwnerNames = async (
+  client: DGSupabaseClient,
+  spaceIds: number[],
+): Promise<Map<number, string>> => {
+  if (spaceIds.length === 0) return new Map();
 
-  let topAuthorId = 0;
-  let topCount = 0;
-  for (const [authorId, count] of authorCounts) {
-    if (count > topCount) {
-      topCount = count;
-      topAuthorId = authorId;
-    }
+  const { data: localAccess, error: laError } = await client
+    .from("LocalAccess")
+    .select("space_id, account_id")
+    .in("space_id", spaceIds);
+
+  if (laError || !localAccess) {
+    console.error("Error fetching space local access:", laError);
+    return new Map();
   }
 
-  const userNames = plugin.settings.userNames ?? {};
-  return userNames[topAuthorId];
+  const accountIds = [...new Set(localAccess.map((r) => r.account_id))];
+
+  const { data: accounts, error: accError } = await client
+    .from("my_accounts")
+    .select("id, name")
+    .in("id", accountIds)
+    .eq("agent_type", "person");
+
+  if (accError || !accounts) {
+    console.error("Error fetching space owner names:", accError);
+    return new Map();
+  }
+
+  const nameById = new Map(
+    accounts
+      .filter((a): a is typeof a & { name: string } => a.name !== null)
+      .map((a) => [a.id, a.name]),
+  );
+
+  const result = new Map<number, string>();
+  for (const { space_id, account_id } of localAccess) {
+    if (!result.has(space_id)) {
+      const name = nameById.get(account_id);
+      if (name) result.set(space_id, name);
+    }
+  }
+  return result;
 };
 
 export const fetchNodeContent = async ({
@@ -1332,13 +1349,6 @@ export const importSelectedNodes = async ({
 
   const queryEngine = new QueryEngine(plugin.app);
 
-  if (
-    !plugin.settings.userNames ||
-    Object.keys(plugin.settings.userNames).length === 0
-  ) {
-    await fetchUserNames(plugin, client);
-  }
-
   let successCount = 0;
   let failedCount = 0;
   let processedCount = 0;
@@ -1353,9 +1363,11 @@ export const importSelectedNodes = async ({
     nodesBySpace.get(node.spaceId)!.push(node);
   }
 
-  const spaceUris = await getSpaceUris(client, [...nodesBySpace.keys()]);
-  const spaceNames = await getSpaceNameFromIds(client, [
-    ...nodesBySpace.keys(),
+  const spaceIdList = [...nodesBySpace.keys()];
+  const [spaceUris, spaceNames, spaceOwnerNames] = await Promise.all([
+    getSpaceUris(client, spaceIdList),
+    getSpaceNameFromIds(client, spaceIdList),
+    getSpaceOwnerNames(client, spaceIdList),
   ]);
 
   // Process each space
@@ -1371,7 +1383,7 @@ export const importSelectedNodes = async ({
     }
 
     const spaceName = spaceNames.get(spaceId) ?? `space-${spaceId}`;
-    const ownerUserName = resolveOwnerUserName(nodes, plugin);
+    const ownerUserName = spaceOwnerNames.get(spaceId);
     const importFolderPath = await resolveFolderForSpaceUri({
       adapter: plugin.app.vault.adapter,
       spaceUri,
