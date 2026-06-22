@@ -7,7 +7,6 @@ import {
   Card,
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import ReactDOM from "react-dom";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import { ContextContent } from "./DiscourseContext";
 import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
@@ -22,7 +21,6 @@ import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
-import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import internalError from "~/utils/internalError";
