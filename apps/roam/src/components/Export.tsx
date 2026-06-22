@@ -234,7 +234,9 @@ const ExportDialog: ExportDialogComponent = ({
         ? results
             .map((r) => {
               const node = findDiscourseNode({ uid: r.uid });
-              return node ? { uid: r.uid, type: node.type } : null;
+              return node && node.backedBy === "user"
+                ? { uid: r.uid, type: node.type }
+                : null;
             })
             .filter((n): n is PublishNode => n !== null)
         : [],
@@ -843,11 +845,16 @@ const ExportDialog: ExportDialogComponent = ({
         nonDiscourseCount,
         failedGroupCount: failedGroupIds.length,
       });
-      const messages = [
-        `Published ${publishedNodeUids.length} node${
-          publishedNodeUids.length === 1 ? "" : "s"
-        } to ${okGroupIds.length} group${okGroupIds.length === 1 ? "" : "s"}.`,
-      ];
+      const hasPublishedNodes = publishedNodeUids.length > 0;
+      const messages = hasPublishedNodes
+        ? [
+            `Published ${publishedNodeUids.length} node${
+              publishedNodeUids.length === 1 ? "" : "s"
+            } to ${okGroupIds.length} group${
+              okGroupIds.length === 1 ? "" : "s"
+            }.`,
+          ]
+        : ["No nodes were published."];
       if (skippedUnsyncedUids.length)
         messages.push(
           `${skippedUnsyncedUids.length} not synced yet — try again shortly.`,
@@ -862,10 +869,11 @@ const ExportDialog: ExportDialogComponent = ({
         );
       renderToast({
         content: messages.join(" "),
-        intent: failedGroupIds.length ? "warning" : "success",
+        intent:
+          failedGroupIds.length || !hasPublishedNodes ? "warning" : "success",
         id: "query-builder-publish-success",
       });
-      onClose();
+      if (hasPublishedNodes) onClose();
     } catch (e) {
       internalError({
         error: e as Error,
@@ -1160,7 +1168,7 @@ const ExportDialog: ExportDialogComponent = ({
   const PublishPanel = (
     <>
       <div className={Classes.DIALOG_BODY}>
-        {groupsLoading ? (
+        {groupsLoading || !groupsLoaded ? (
           <div className="my-2.5">Loading groups…</div>
         ) : groupsError ? (
           <div className="my-2.5">{groupsError}</div>

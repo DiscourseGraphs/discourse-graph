@@ -1,4 +1,5 @@
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import { getAvailableGroupIds } from "@repo/database/lib/groups";
 
 export type PublishNode = {
   uid: string;
@@ -46,6 +47,16 @@ export const publishNodesToGroups = async ({
   };
   if (nodes.length === 0 || groupIds.length === 0) return result;
 
+  const availableGroupIds = new Set(await getAvailableGroupIds(client));
+  const requestedGroupIds = [...new Set(groupIds)];
+  const targetGroupIds = requestedGroupIds.filter((groupId) =>
+    availableGroupIds.has(groupId),
+  );
+  result.failedGroupIds = requestedGroupIds.filter(
+    (groupId) => !availableGroupIds.has(groupId),
+  );
+  if (targetGroupIds.length === 0) return result;
+
   const uids = [...new Set(nodes.map((node) => node.uid))];
 
   const syncedRes = await client
@@ -75,13 +86,15 @@ export const publishNodesToGroups = async ({
     .eq("space_id", spaceId)
     .eq("is_schema", true)
     .in("source_local_id", types);
+  if (schemaRes.error) throw schemaRes.error;
   const syncedSchemaIds = onlyStrings(
     (schemaRes.data ?? []).map((row) => row.source_local_id),
   );
 
   const resourceIds = [...syncedNodeUids, ...syncedSchemaIds];
 
-  for (const groupId of groupIds) {
+  for (const groupId of targetGroupIds) {
+    // Existing reader/editor access is broader than partial, so leave it intact.
     const spaceAccessRes = await client
       .from("SpaceAccess")
       .upsert(
