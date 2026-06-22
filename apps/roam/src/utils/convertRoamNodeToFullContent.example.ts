@@ -3,11 +3,10 @@ import type { CrossAppNode } from "@repo/database/crossAppNodeContract";
 import { buildFullMarkdown } from "./convertRoamNodeToFullContent";
 
 /**
- * Typed example for ENG-1848 ("tests or fixtures cover representative Roam
- * block content becoming `full` markdown"). This is not a concrete test; it
- * documents the `tree.children` shape returned by `getFullTreeByParentUid` for
- * a real Roam claim page and type-checks the generated markdown against the
- * contract.
+ * Typed example for ENG-1848 full markdown coverage. This is not a concrete
+ * test; it documents the `tree.children` shape returned by
+ * `getFullTreeByParentUid` for a real Roam claim page and type-checks the
+ * generated markdown against the contract.
  *
  * Derived from:
  * https://roamresearch.com/#/app/plugin-testing-akamatsulab2/page/dnHNmYwe5

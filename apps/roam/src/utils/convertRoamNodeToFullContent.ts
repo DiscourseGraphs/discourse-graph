@@ -1,10 +1,18 @@
 import { toMarkdown } from "./pageToMarkdown";
-import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import { type DiscourseNode } from "./getDiscourseNodes";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import type { TreeNode, ViewType } from "roamjs-components/types";
 import type { LocalContentDataInput } from "@repo/database/inputTypes";
+
+export type RoamFullContentNode = {
+  author_local_id: string;
+  source_local_id: string;
+  created: string | number;
+  last_modified: string | number;
+  text: string;
+  node_title?: string;
+};
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
@@ -38,7 +46,7 @@ export const buildFullMarkdown = ({
 export const convertRoamNodeToFullContent = ({
   nodes,
 }: {
-  nodes: RoamDiscourseNodeData[];
+  nodes: RoamFullContentNode[];
 }): LocalContentDataInput[] =>
   nodes.flatMap((node) => {
     try {

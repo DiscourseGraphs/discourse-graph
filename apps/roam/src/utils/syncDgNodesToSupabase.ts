@@ -3,6 +3,7 @@ import {
   getAllDiscourseNodesSince,
   nodeTypeSince,
 } from "./getAllDiscourseNodesSince";
+import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import {
   getLoggedInClient,
@@ -18,7 +19,10 @@ import {
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
-import { convertRoamNodeToFullContent } from "./convertRoamNodeToFullContent";
+import {
+  convertRoamNodeToFullContent,
+  type RoamFullContentNode,
+} from "./convertRoamNodeToFullContent";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { intersection } from "@repo/utils/setOperations";
 import type { Json, Enums } from "@repo/database/dbTypes";
@@ -42,6 +46,7 @@ const SYNC_TIMEOUT = "60s"; // must be less than half the SYNC_INTERVAL.
 const BATCH_SIZE = 200;
 const CONCEPT_BATCH_SIZE = 200;
 const END_SYNC_TASK_RESULT_VERSION = 1;
+const DEFAULT_SYNC_TIME = new Date("1970-01-01").getTime();
 
 type SyncPhaseDurations = Record<string, number>;
 
@@ -556,16 +561,29 @@ export const convertDgToSupabaseConcepts = async ({
   nodesSince,
   since,
   allNodeTypes,
+  sharedNodeTypeIds = new Set<string>(),
   supabaseClient,
   context,
 }: {
   nodesSince: RoamDiscourseNodeData[];
   since: number | undefined;
   allNodeTypes: DiscourseNode[];
+  sharedNodeTypeIds?: ReadonlySet<string>;
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
 }) => {
-  const nodeTypes = await nodeTypeSince(since, allNodeTypes);
+  const changedNodeTypes = await nodeTypeSince(since, allNodeTypes);
+  const nodeTypesByUid = new Map(
+    changedNodeTypes.map((nodeType) => [nodeType.type, nodeType]),
+  );
+
+  allNodeTypes.forEach((nodeType) => {
+    if (sharedNodeTypeIds.has(nodeType.type)) {
+      nodeTypesByUid.set(nodeType.type, nodeType);
+    }
+  });
+  const nodeTypes = Array.from(nodeTypesByUid.values());
+
   await upsertNodeSchemaToContent({
     nodeTypesUids: nodeTypes.map((node) => node.type),
     spaceId: context.spaceId,
@@ -606,49 +624,50 @@ export const convertDgToSupabaseConcepts = async ({
   });
 };
 
+const uploadContentBatches = async ({
+  content,
+  supabaseClient,
+  context,
+}: {
+  content: LocalContentDataInput[];
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+}): Promise<void> => {
+  if (content.length === 0) {
+    return;
+  }
+
+  const batches = chunk(content, BATCH_SIZE);
+
+  for (let idx = 0; idx < batches.length; idx++) {
+    const batch = batches[idx];
+
+    const { error } = await supabaseClient.rpc("upsert_content", {
+      data: batch as Json,
+      v_space_id: context.spaceId,
+      v_creator_id: context.userId,
+      content_as_document: true,
+    });
+
+    if (error) {
+      throw new Error(`upsert_content failed for batch ${idx + 1}`, {
+        cause: error,
+      });
+    }
+  }
+};
+
 export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   roamNodes: RoamDiscourseNodeData[],
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
-  options: { includeFullContent?: boolean } = {},
 ): Promise<void> => {
-  const { userId } = context;
-  const { includeFullContent = false } = options;
-
   if (roamNodes.length === 0) {
     return;
   }
   const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
     nodes: roamNodes,
   });
-
-  const uploadBatches = async (
-    batches: LocalContentDataInput[][],
-  ): Promise<void> => {
-    for (let idx = 0; idx < batches.length; idx++) {
-      const batch = batches[idx];
-
-      const { error } = await supabaseClient.rpc("upsert_content", {
-        data: batch as Json,
-        v_space_id: context.spaceId,
-        v_creator_id: userId,
-        content_as_document: true,
-      });
-
-      if (error) {
-        throw new Error(`upsert_content failed for batch ${idx + 1}`, {
-          cause: error,
-        });
-      }
-    }
-  };
-
-  if (includeFullContent) {
-    const fullContent = convertRoamNodeToFullContent({
-      nodes: roamNodes,
-    });
-    await uploadBatches(chunk(fullContent, BATCH_SIZE));
-  }
 
   let nodesWithEmbeddings: LocalContentDataInput[];
   try {
@@ -672,7 +691,32 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     );
   }
 
-  await uploadBatches(chunk(nodesWithEmbeddings, BATCH_SIZE));
+  await uploadContentBatches({
+    content: nodesWithEmbeddings,
+    supabaseClient,
+    context,
+  });
+};
+
+const upsertRoamNodesToSupabaseAsFullContent = async ({
+  nodes,
+  supabaseClient,
+  context,
+}: {
+  nodes: RoamFullContentNode[];
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+}): Promise<void> => {
+  if (nodes.length === 0) {
+    return;
+  }
+
+  const fullContent = convertRoamNodeToFullContent({ nodes });
+  await uploadContentBatches({
+    content: fullContent,
+    supabaseClient,
+    context,
+  });
 };
 
 const getAllUsers = async (): Promise<LocalAccountDataInput[]> => {
@@ -780,6 +824,108 @@ const getAllMissingOrNewDiscourseNodes = async ({
     ...newNodes,
     ...allNodes.filter((n) => !existingIds.has(n.source_local_id)),
   ];
+};
+
+const getSharedSourceLocalIds = async ({
+  supabaseClient,
+  spaceId,
+}: {
+  supabaseClient: DGSupabaseClient;
+  spaceId: number;
+}): Promise<Set<string>> => {
+  const sharedResources = await getAllPages(
+    supabaseClient
+      .from("ResourceAccess")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .order("source_local_id")
+      .order("account_uid"),
+    1000,
+  );
+
+  if (!Array.isArray(sharedResources)) throw sharedResources;
+
+  return new Set(sharedResources.map((resource) => resource.source_local_id));
+};
+
+type SharedFullContentUpdateRow = {
+  author_local_id: string;
+  source_local_id: string;
+  created: number;
+  node_edit_time: number;
+  page_edit_time: number;
+  text: string;
+};
+
+type SharedFullContentUpdate = {
+  fullContentNode: RoamFullContentNode;
+  nodeTypeId: string;
+};
+
+const getSharedRoamNodesWithFullContentUpdatesSince = async ({
+  sourceLocalIds,
+  since,
+  nodeTypes,
+}: {
+  sourceLocalIds: ReadonlySet<string>;
+  since: number | undefined;
+  nodeTypes: DiscourseNode[];
+}): Promise<SharedFullContentUpdate[]> => {
+  const sharedSourceLocalIds = Array.from(sourceLocalIds);
+  if (sharedSourceLocalIds.length === 0 || nodeTypes.length === 0) {
+    return [];
+  }
+
+  const sinceMs = since ?? DEFAULT_SYNC_TIME;
+  const query = `[
+    :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?pageEditTime ?author_local_id
+    :keys text source_local_id created node_edit_time page_edit_time author_local_id
+    :in $ [?sharedUid ...] ?since
+    :where
+      [?node :block/uid ?sharedUid]
+      [?node :node/title ?node-title]
+      [?node :block/uid ?uid]
+      [?node :create/time ?nodeCreateTime]
+      [?node :create/user ?user-eid]
+      [?user-eid :user/uid ?author_local_id]
+      [(get-else $ ?node :edit/time ?nodeCreateTime) ?nodeEditTime]
+      [(get-else $ ?node :page/edit-time ?nodeEditTime) ?pageEditTime]
+      [or
+        [(> ?nodeEditTime ?since)]
+        [(> ?pageEditTime ?since)]]
+  ]`;
+
+  const rows = (await window.roamAlphaAPI.data.backend.q(
+    query,
+    sharedSourceLocalIds,
+    sinceMs,
+  )) as unknown[] as SharedFullContentUpdateRow[];
+  const typeMatchers = nodeTypes.map((node) => ({
+    node,
+    regex: getDiscourseNodeFormatExpression(node.format),
+  }));
+
+  return rows.flatMap((row) => {
+    const matchingNodeType = typeMatchers.find(({ regex }) =>
+      regex.test(row.text),
+    )?.node;
+    if (matchingNodeType === undefined) {
+      return [];
+    }
+
+    return [
+      {
+        fullContentNode: {
+          author_local_id: row.author_local_id,
+          source_local_id: row.source_local_id,
+          created: row.created,
+          last_modified: Math.max(row.node_edit_time, row.page_edit_time),
+          text: row.text,
+        },
+        nodeTypeId: matchingNodeType.type,
+      },
+    ];
+  });
 };
 
 export const createOrUpdateDiscourseEmbedding = async (
@@ -899,7 +1045,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       (n) => n.backedBy === "user",
     );
 
-    const allNodeInstances = await measureSyncPhase({
+    const changedNodeInstances = await measureSyncPhase({
       phase: isInitialSync
         ? "getAllMissingOrNewDiscourseNodes"
         : "getAllDiscourseNodesSince",
@@ -914,6 +1060,32 @@ export const createOrUpdateDiscourseEmbedding = async (
             })
           : getAllDiscourseNodesSince(sinceTime, allDgNodeTypes),
     });
+    const sharedSourceLocalIds = await measureSyncPhase({
+      phase: "getSharedSourceLocalIds",
+      phases,
+      operation: () =>
+        getSharedSourceLocalIds({
+          supabaseClient: activeSupabaseClient,
+          spaceId: activeContext.spaceId,
+        }),
+    });
+    const sharedFullContentUpdates = await measureSyncPhase({
+      phase: "getSharedFullContentUpdates",
+      phases,
+      operation: () =>
+        getSharedRoamNodesWithFullContentUpdatesSince({
+          sourceLocalIds: sharedSourceLocalIds,
+          since: sinceTime,
+          nodeTypes: allDgNodeTypes,
+        }),
+    });
+    const sharedFullContentNodes = sharedFullContentUpdates.map(
+      (update) => update.fullContentNode,
+    );
+    const sharedNodeTypeIds = new Set(
+      sharedFullContentUpdates.map((update) => update.nodeTypeId),
+    );
+
     await measureSyncPhase({
       phase: "upsertUsers",
       phases,
@@ -925,19 +1097,30 @@ export const createOrUpdateDiscourseEmbedding = async (
       phases,
       operation: () =>
         upsertNodesToSupabaseAsContentWithEmbeddings(
-          allNodeInstances,
+          changedNodeInstances,
           activeSupabaseClient,
           activeContext,
         ),
+    });
+    await measureSyncPhase({
+      phase: "upsertFullContent",
+      phases,
+      operation: () =>
+        upsertRoamNodesToSupabaseAsFullContent({
+          nodes: sharedFullContentNodes,
+          supabaseClient: activeSupabaseClient,
+          context: activeContext,
+        }),
     });
     await measureSyncPhase({
       phase: "convertConcepts",
       phases,
       operation: () =>
         convertDgToSupabaseConcepts({
-          nodesSince: allNodeInstances,
+          nodesSince: changedNodeInstances,
           since: sinceTime,
           allNodeTypes: allDgNodeTypes,
+          sharedNodeTypeIds,
           supabaseClient: activeSupabaseClient,
           context: activeContext,
         }),
