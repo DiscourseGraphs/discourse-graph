@@ -3,8 +3,9 @@ import ReactDOM from "react-dom";
 
 const ROAM_TITLE_CONTAINER_CLASS = "rm-title-display-container";
 const ADDITIONS_CONTAINER_CLASS = "discourse-graph-title-additions";
-const INLINE_ADDITION_CLASS = "discourse-graph-title-addition-inline";
-const BLOCK_ADDITION_CLASS = "discourse-graph-title-addition-block";
+const ADDITIONS_CONTAINER_CLASSES = `${ADDITIONS_CONTAINER_CLASS} flex flex-wrap items-start gap-x-2 gap-y-2`;
+const INLINE_ADDITION_CLASSES = "min-w-0 flex-none";
+const BLOCK_ADDITION_CLASSES = "min-w-0 basis-full grow shrink-0";
 
 type TitleAdditionLayout = "inline" | "block";
 
@@ -30,7 +31,7 @@ export const handleTitleAdditions = (
     if (!parent) return;
 
     container = document.createElement("div");
-    container.className = ADDITIONS_CONTAINER_CLASS;
+    container.className = ADDITIONS_CONTAINER_CLASSES;
 
     const oldMarginBottom = getComputedStyle(h1).marginBottom;
     const oldMarginBottomNum = Number.isFinite(parseFloat(oldMarginBottom))
@@ -51,7 +52,7 @@ export const handleTitleAdditions = (
   if (React.isValidElement(element)) {
     const renderContainer = document.createElement("div");
     renderContainer.className =
-      layout === "inline" ? INLINE_ADDITION_CLASS : BLOCK_ADDITION_CLASS;
+      layout === "inline" ? INLINE_ADDITION_CLASSES : BLOCK_ADDITION_CLASSES;
     container.appendChild(renderContainer);
     // eslint-disable-next-line react/no-deprecated
     ReactDOM.render(element, renderContainer);

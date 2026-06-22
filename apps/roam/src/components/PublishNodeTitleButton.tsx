@@ -15,7 +15,7 @@ const PublishNodeTitleButton = ({
   title: string;
   nodeType: string;
 }): JSX.Element => (
-  <div className="discourse-graph-publish-title-button flex space-x-2">
+  <div className="flex space-x-2">
     <Button
       text="Publish"
       icon="upload"

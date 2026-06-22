@@ -2,24 +2,6 @@
   outline-width: 2px;
 }
 
-.discourse-graph-title-additions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  column-gap: 8px;
-  row-gap: 8px;
-}
-
-.discourse-graph-title-addition-inline {
-  flex: 0 0 auto;
-  min-width: 0;
-}
-
-.discourse-graph-title-addition-block {
-  flex: 1 0 100%;
-  min-width: 0;
-}
-
 .roamjs-item-dirty,
 .roamjs-item-dirty.bp3-menu-item .bp3-icon,
 .roamjs-item-dirty.bp3-button .bp3-icon {
