@@ -1,4 +1,5 @@
 import esbuild from "esbuild";
+import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
@@ -17,6 +18,38 @@ const getVersion = (): string => {
 
 const getBuildDate = (): string => {
   return new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+};
+
+const runGitCommand = (command: string): string | undefined => {
+  try {
+    return execSync(command, {
+      cwd: process.cwd(),
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return undefined;
+  }
+};
+
+const getBuildCommit = (): string => {
+  return (
+    process.env.DISCOURSE_GRAPH_BUILD_COMMIT ||
+    process.env.GITHUB_SHA ||
+    runGitCommand("git rev-parse HEAD") ||
+    "-"
+  );
+};
+
+const getBuildBranch = (): string => {
+  return (
+    process.env.DISCOURSE_GRAPH_BUILD_BRANCH ||
+    process.env.GITHUB_HEAD_REF ||
+    process.env.GITHUB_REF_NAME ||
+    runGitCommand("git rev-parse --abbrev-ref HEAD") ||
+    "-"
+  );
 };
 let envContents = null;
 
@@ -166,8 +199,12 @@ export const compile = ({
           ? `"${dbEnv.SUPABASE_PUBLISHABLE_KEY}"`
           : "null",
         "process.env.NEXT_API_ROOT": `"${dbEnv.NEXT_API_ROOT || ""}"`,
-        "window.__DISCOURSE_GRAPH_VERSION__": `"${getVersion()}"`,
-        "window.__DISCOURSE_GRAPH_BUILD_DATE__": `"${getBuildDate()}"`,
+        "window.__DISCOURSE_GRAPH_VERSION__": JSON.stringify(getVersion()),
+        "window.__DISCOURSE_GRAPH_BUILD_DATE__": JSON.stringify(getBuildDate()),
+        "window.__DISCOURSE_GRAPH_BUILD_COMMIT__":
+          JSON.stringify(getBuildCommit()),
+        "window.__DISCOURSE_GRAPH_BUILD_BRANCH__":
+          JSON.stringify(getBuildBranch()),
       },
       sourcemap: process.env.NODE_ENV === "production" ? "external" : "inline",
       minify: process.env.NODE_ENV === "production",
