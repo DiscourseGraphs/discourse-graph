@@ -38,6 +38,9 @@ export const POST = async (request: Request) => {
       username,
       version,
       buildDate,
+      buildCommit,
+      buildBranch,
+      versionStamp,
       context = {},
     } = body;
 
@@ -65,6 +68,9 @@ export const POST = async (request: Request) => {
         username,
         version,
         buildDate,
+        buildCommit,
+        buildBranch,
+        versionStamp,
         context,
       }),
     });

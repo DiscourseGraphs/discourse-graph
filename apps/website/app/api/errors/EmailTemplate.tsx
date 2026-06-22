@@ -16,6 +16,9 @@ export const EmailTemplate = ({
   graphName,
   version,
   buildDate,
+  buildCommit,
+  buildBranch,
+  versionStamp,
   username,
   context,
 }: ErrorEmailProps) => {
@@ -28,6 +31,9 @@ export const EmailTemplate = ({
       <ErrorField label="Username" value={username} />
       <ErrorField label="Version" value={version} />
       <ErrorField label="Build Date" value={buildDate} />
+      <ErrorField label="Build Commit" value={buildCommit ?? "-"} />
+      <ErrorField label="Build Branch" value={buildBranch ?? "-"} />
+      <ErrorField label="Version Stamp" value={versionStamp ?? "-"} />
 
       <div>
         <h2>Error Details</h2>

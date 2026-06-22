@@ -45,7 +45,12 @@
   ],
   "tasks": {
     "build": {
-      "env": ["ROAM_BUILD_SCRIPT"],
+      "env": [
+        "ROAM_BUILD_SCRIPT",
+        "DISCOURSE_GRAPH_BUILD_BRANCH",
+        "DISCOURSE_GRAPH_BUILD_COMMIT",
+        "GITHUB_SHA"
+      ],
       "dependsOn": ["@repo/database#genenv"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [

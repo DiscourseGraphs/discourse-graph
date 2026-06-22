@@ -6,6 +6,9 @@ export type ErrorEmailProps = {
   graphName: string;
   version: string;
   buildDate: string;
+  buildCommit?: string;
+  buildBranch?: string;
+  versionStamp?: string;
   username: string;
   context?: Record<string, unknown>;
 };

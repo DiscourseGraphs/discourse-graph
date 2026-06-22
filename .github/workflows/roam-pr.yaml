@@ -12,6 +12,8 @@ on:
       - "packages/ui/**"
 env:
   BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+  DISCOURSE_GRAPH_BUILD_COMMIT: ${{ github.event.pull_request.head.sha }}
+  DISCOURSE_GRAPH_BUILD_BRANCH: ${{ github.head_ref }}
   GITHUB_HEAD_REF: ${{ github.head_ref }}
   GITHUB_REF_NAME: ${{ github.ref_name }}
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

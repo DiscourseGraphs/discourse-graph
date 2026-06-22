@@ -38,13 +38,17 @@ export const initPostHog = (): void => {
       return result;
     },
     loaded: (posthog) => {
-      const { version, buildDate } = getVersionWithDate();
+      const { version, buildDate, buildCommit, buildBranch, versionStamp } =
+        getVersionWithDate();
       const userUid = window.roamAlphaAPI.user.uid() || "";
       const graphName = window.roamAlphaAPI.graph.name;
       if (userUid) posthog.identify(userUid);
       posthog.register_for_session({
         version: version || "-",
         buildDate: buildDate || "-",
+        buildCommit: buildCommit || "-",
+        buildBranch: buildBranch || "-",
+        versionStamp: versionStamp || "-",
         graphName,
       });
       posthog.capture("Extension Loaded");
