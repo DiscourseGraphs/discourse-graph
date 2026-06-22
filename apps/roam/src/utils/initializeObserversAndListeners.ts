@@ -45,7 +45,6 @@ import {
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { renderImageToolsMenu } from "./renderImageToolsMenu";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
-import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
@@ -56,6 +55,8 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import findDiscourseNode from "./findDiscourseNode";
 import {
   bulkReadSettings,
+  getFeatureFlag,
+  isSyncEnabled,
   type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import {
@@ -124,12 +125,14 @@ export const initObservers = ({
 
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
-        renderPublishNodeTitleButton({
-          h1,
-          uid,
-          title,
-          nodeType: node.type,
-        });
+        if (isSyncEnabled() && node.backedBy === "user") {
+          renderPublishNodeTitleButton({
+            h1,
+            uid,
+            title,
+            nodeType: node.type,
+          });
+        }
         if (settings.personalSettings[PERSONAL_KEYS.discourseContextOverlay]) {
           renderDiscourseContext({ h1, uid });
         }

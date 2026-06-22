@@ -247,6 +247,14 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   const shareCurrentNode = () => {
+    if (!isSyncEnabled()) {
+      renderToast({
+        id: "share-node-sync-disabled",
+        content: "Sync must be enabled to publish discourse nodes.",
+      });
+      return;
+    }
+
     const pageUid = getCurrentPageUid();
     if (!pageUid) {
       renderToast({
@@ -266,10 +274,10 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     }
 
     const discourseNode = findDiscourseNode({ uid: pageUid, title: pageTitle });
-    if (!discourseNode || discourseNode.backedBy === "default") {
+    if (!discourseNode || discourseNode.backedBy !== "user") {
       renderToast({
         id: "share-node-not-a-node",
-        content: "This page is not a discourse node, so it can't be shared.",
+        content: "This page is not a publishable discourse node.",
       });
       return;
     }

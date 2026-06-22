@@ -217,10 +217,12 @@ const ExportDialog: ExportDialogComponent = ({
     useState<(typeof SEND_TO_DESTINATIONS)[number]>("page");
   const isSendToGraph = activeSendToDestination === "graph";
   const [livePages, setLivePages] = useState<Result[]>([]);
+  const syncEnabled = useMemo(() => isSyncEnabled(), []);
   const [selectedTabId, setSelectedTabId] = useState("sendto");
   useEffect(() => {
+    if (initialPanel === "publish" && !syncEnabled) return;
     if (initialPanel) setSelectedTabId(INITIAL_PANEL_TO_TAB_ID[initialPanel]);
-  }, [initialPanel]);
+  }, [initialPanel, syncEnabled]);
   const [includeDiscourseContext, setIncludeDiscourseContext] = useState(false);
   const [gitHubAccessToken, setGitHubAccessToken] = useState<string | null>(
     getSetting<string | null>("oauth-github", null),
@@ -228,7 +230,6 @@ const ExportDialog: ExportDialogComponent = ({
 
   const [canSendToGitHub, setCanSendToGitHub] = useState(false);
 
-  const syncEnabled = useMemo(() => isSyncEnabled(), []);
   const [myGroups, setMyGroups] = useState<MyGroup[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupsLoaded, setGroupsLoaded] = useState(false);
