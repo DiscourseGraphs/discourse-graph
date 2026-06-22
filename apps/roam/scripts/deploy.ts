@@ -74,7 +74,7 @@ const deploy = async () => {
         addRandomSuffix: false,
         allowOverwrite: true,
         token,
-        cacheControlMaxAge: 60 * 60 * 24, // 1 day
+        cacheControlMaxAge: 60, // 60 seconds
       });
 
       console.log(`✅ Uploaded to ${blob.url}`);
