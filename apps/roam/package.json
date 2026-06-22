@@ -21,7 +21,7 @@
     "@repo/typescript-config": "workspace:*",
     "@types/file-saver": "2.0.5",
     "@types/nanoid": "2.0.0",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/react": "catalog:roam",
     "@types/react-dom": "catalog:roam",
     "@types/react-vertical-timeline-component": "^3.3.3",

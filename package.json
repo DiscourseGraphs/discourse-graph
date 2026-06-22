@@ -20,9 +20,15 @@
     "typescript": "5.5.4"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "packageManager": "pnpm@10.15.1",
+  "pnpm": {
+    "overrides": {
+      "@types/react": "^19",
+      "@types/react-dom": "^19"
+    }
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
