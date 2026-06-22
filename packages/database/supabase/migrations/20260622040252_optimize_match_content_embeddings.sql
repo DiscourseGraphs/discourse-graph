@@ -3,6 +3,8 @@
 
 set search_path to public, extensions ;
 
+DROP FUNCTION IF EXISTS public.match_content_embeddings(extensions.vector, double precision, integer, integer) ;
+
 CREATE OR REPLACE FUNCTION public.match_content_embeddings (
 query_embedding extensions.vector,
 match_threshold double precision,
