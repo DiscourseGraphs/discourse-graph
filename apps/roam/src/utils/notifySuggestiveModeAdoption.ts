@@ -1,7 +1,6 @@
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getPageUidByBlockUid from "roamjs-components/queries/getPageUidByBlockUid";
-import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
@@ -44,8 +43,16 @@ export const notifyBlockSuggestionAdded = async (
     ? targetBlockUid
     : getPageUidByBlockUid(targetBlockUid) || targetBlockUid;
 
-  const mainUid = getCurrentPageUid();
-  const isOpenInMain = mainUid === pageUid || mainUid === targetBlockUid;
+  // getOpenPageOrBlockUid returns a page uid when a page is open, or a block uid
+  // when the user is zoomed into a block. Resolve either to a page uid for comparison.
+  const mainRawUid =
+    await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
+  const mainPageUid = mainRawUid
+    ? isPageUid(mainRawUid)
+      ? mainRawUid
+      : getPageUidByBlockUid(mainRawUid) || mainRawUid
+    : null;
+  const isOpenInMain = mainPageUid === pageUid;
 
   if (
     isOpenInMain ||
@@ -58,8 +65,10 @@ export const notifyBlockSuggestionAdded = async (
     return;
   }
 
-  const sidebarWindows: RoamSidebarWindow[] =
-    window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
+  let sidebarWindows: RoamSidebarWindow[] = [];
+  try {
+    sidebarWindows = window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
+  } catch {}
 
   const existingWindow = sidebarWindows.find(
     (w) =>
