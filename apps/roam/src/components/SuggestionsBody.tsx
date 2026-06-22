@@ -364,7 +364,11 @@ const SuggestionsBody = ({
           });
           return;
         }
-        notifyRelationSuggestionAdded(tag, node.text);
+        try {
+          notifyRelationSuggestionAdded(tag, node.text);
+        } catch (error) {
+          console.error("Failed to show suggestion added notification:", error);
+        }
       } else {
         renderToast({
           id: "suggestions-create-block-error",
@@ -378,7 +382,11 @@ const SuggestionsBody = ({
         parentUid: blockUid,
         node: { text: `[[${node.text}]]` },
       });
-      await notifyBlockSuggestionAdded(blockUid);
+      try {
+        await notifyBlockSuggestionAdded(blockUid);
+      } catch (error) {
+        console.error("Failed to show suggestion added notification:", error);
+      }
     }
 
     posthog.capture("Suggestive Mode: Suggestion Adopted", {
