@@ -66,6 +66,9 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "test": {
+      "outputs": []
+    },
     "dev": {
       "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH"],
       "cache": false,

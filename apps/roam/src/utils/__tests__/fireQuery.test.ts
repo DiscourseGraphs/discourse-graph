@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+type ConditionToDatalogArgs = {
+  source: string;
+  target: string;
+};
+
 vi.mock("~/utils/conditionToDatalog", () => ({
-  default: vi.fn(({ source, target }) => [
+  default: vi.fn(({ source, target }: ConditionToDatalogArgs) => [
     {
       type: "data-pattern",
       arguments: [
@@ -73,7 +78,10 @@ describe("fireQuery", () => {
               q: vi
                 .fn()
                 .mockResolvedValue([
-                  [{ ":node/title": "Local", ":block/uid": "l1" }],
+                  [
+                    { ":node/title": "Local", ":block/uid": "l1" },
+                    { ":block/uid": "l1" },
+                  ],
                 ]),
             },
           },
@@ -81,7 +89,10 @@ describe("fireQuery", () => {
             q: vi
               .fn()
               .mockResolvedValue([
-                [{ ":node/title": "Remote", ":block/uid": "r1" }],
+                [
+                  { ":node/title": "Remote", ":block/uid": "r1" },
+                  { ":block/uid": "r1" },
+                ],
               ]),
           },
           fast: {

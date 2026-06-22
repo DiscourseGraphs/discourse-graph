@@ -72,7 +72,7 @@ describe("replaceDatalogVariables", () => {
       [
         {
           type: "fn-expr",
-          fn: "identity",
+          fn: "get",
           arguments: [{ type: "variable", value: "node" }],
           binding: {
             type: "bind-scalar",

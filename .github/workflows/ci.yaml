@@ -34,6 +34,9 @@ jobs:
       - name: Check TypeScript Types
         run: npx turbo check-types
 
+      - name: Run Tests
+        run: npx turbo run test --filter=roam --ui stream
+
   lint-changed-files:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

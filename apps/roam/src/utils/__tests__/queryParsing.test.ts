@@ -1,11 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+type SettingsTreeNode = {
+  text: string;
+  children?: SettingsTreeNode[];
+};
+
+type GetSettingValueArgs = {
+  tree?: SettingsTreeNode[];
+  key: string;
+};
+
 vi.mock("roamjs-components/util/getSubTree", () => ({
   default: vi.fn(),
 }));
 vi.mock("roamjs-components/util/getSettingValueFromTree", () => ({
   default: vi.fn(
-    ({ tree, key }) =>
+    ({ tree = [], key }: GetSettingValueArgs): string =>
       tree.find((t: { text: string }) => t.text === key)?.children?.[0]?.text ||
       "",
   ),
@@ -42,23 +52,36 @@ describe("parseQuery", () => {
       ],
     };
     mockedGetSubTree.mockImplementation(({ key }) => {
-      if (key === "conditions") return { uid: "conditions-uid", children: [] };
+      if (key === "conditions") {
+        return { uid: "conditions-uid", text: "conditions", children: [] };
+      }
       if (key === "selections") {
         return {
           uid: "selections-uid",
+          text: "selections",
           children: [
-            { uid: "sel-node", text: "node", children: [{ text: "Title" }] },
+            {
+              uid: "sel-node",
+              text: "node",
+              children: [{ uid: "title-label", text: "Title", children: [] }],
+            },
             {
               uid: "sel-created",
               text: "created",
-              children: [{ text: "Created" }],
+              children: [
+                { uid: "created-label", text: "Created", children: [] },
+              ],
             },
           ],
         };
       }
       return {
         uid: "custom-uid",
-        children: [{ text: "[:find ?x]" }, { text: "enabled" }],
+        text: "custom",
+        children: [
+          { uid: "custom-query", text: "[:find ?x]", children: [] },
+          { uid: "custom-enabled", text: "enabled", children: [] },
+        ],
       };
     });
 

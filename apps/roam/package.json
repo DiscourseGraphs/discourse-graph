@@ -10,8 +10,8 @@
     "lint:fix": "eslint . --fix",
     "publish": "tsx scripts/publish.ts",
     "check-types": "tsc --noEmit --skipLibCheck",
-    "test": "vitest run src/utils/__tests__",
-    "test:watch": "vitest src/utils/__tests__"
+    "test": "vitest run --config vitest.config.mts",
+    "test:watch": "vitest --config vitest.config.mts"
   },
   "license": "Apache-2.0",
   "devDependencies": {
@@ -21,6 +21,7 @@
     "@repo/typescript-config": "workspace:*",
     "@types/file-saver": "2.0.5",
     "@types/nanoid": "2.0.0",
+    "@types/node": "^20",
     "@types/react": "catalog:roam",
     "@types/react-dom": "catalog:roam",
     "@types/react-vertical-timeline-component": "^3.3.3",
