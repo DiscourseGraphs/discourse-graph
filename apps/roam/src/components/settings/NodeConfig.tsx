@@ -45,36 +45,103 @@ export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
 };
 
-const COLOR_WRITE_DEBOUNCE_MS = 300;
+const COLOR_WRITE_DEBOUNCE_MS = 250;
 
-type PendingColorWrite = {
-  blockUid: string;
+type DiscourseNodeColorSettingProps = {
+  canvasUid: string;
   nodeType: string;
-  value: string;
+  initialColor?: string;
+  tagValue: string;
 };
 
-const writeColorSetting = ({
-  blockUid,
+const DiscourseNodeColorSetting = ({
+  canvasUid,
   nodeType,
-  value,
-}: PendingColorWrite): void => {
-  void setInputSetting({
-    blockUid,
-    key: "color",
-    value,
-  });
-  setDiscourseNodeSetting(
-    nodeType,
-    [DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.color],
-    value,
+  initialColor,
+  tagValue,
+}: DiscourseNodeColorSettingProps): React.ReactElement => {
+  const [color, setColor] = useState<string>(() =>
+    formatHexColor(initialColor ?? ""),
   );
-};
+  const colorWriteTimeoutRef = useRef<number | null>(null);
 
-const pendingColorWriteFlushers = new Set<() => void>();
+  const persistColorValue = useCallback(
+    (colorValue: string): void => {
+      void setInputSetting({
+        blockUid: canvasUid,
+        key: "color",
+        value: colorValue,
+      });
+      setDiscourseNodeSetting(
+        nodeType,
+        [DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.color],
+        colorValue,
+      );
+    },
+    [canvasUid, nodeType],
+  );
 
-export const flushPendingNodeColorWrites = (): void => {
-  pendingColorWriteFlushers.forEach((flushPendingColorWrite) =>
-    flushPendingColorWrite(),
+  useEffect(() => {
+    return () => {
+      if (!colorWriteTimeoutRef.current) return;
+
+      window.clearTimeout(colorWriteTimeoutRef.current);
+    };
+  }, []);
+
+  const persistColorAfterPause = (colorValue: string): void => {
+    if (colorWriteTimeoutRef.current) {
+      window.clearTimeout(colorWriteTimeoutRef.current);
+      colorWriteTimeoutRef.current = null;
+    }
+    colorWriteTimeoutRef.current = window.setTimeout(() => {
+      persistColorValue(colorValue);
+      colorWriteTimeoutRef.current = null;
+    }, COLOR_WRITE_DEBOUNCE_MS);
+  };
+
+  return (
+    <>
+      {tagValue && (
+        <div className="flex items-center gap-1.5 pl-1">
+          <span className="text-xs italic text-gray-400">Preview:</span>
+          <span style={color ? getNodeTagStyles(color) : undefined}>
+            #{tagValue.replace(/^#/, "")}
+          </span>
+        </div>
+      )}
+      <Label>
+        Color
+        <Description description="Changes the color of tags and canvas nodes" />
+        <ControlGroup>
+          <InputGroup
+            style={{ width: 120 }}
+            type={"color"}
+            value={color}
+            onChange={(e) => {
+              const nextColor = e.target.value;
+              const colorValue = nextColor.replace("#", ""); // remove hash to not create roam link
+              setColor(nextColor);
+              persistColorAfterPause(colorValue);
+            }}
+          />
+          <Tooltip content={color ? "Unset" : "Color not set"}>
+            <Icon
+              className={"ml-2 align-middle opacity-80"}
+              icon={color ? "delete" : "info-sign"}
+              onClick={() => {
+                if (colorWriteTimeoutRef.current) {
+                  window.clearTimeout(colorWriteTimeoutRef.current);
+                  colorWriteTimeoutRef.current = null;
+                }
+                setColor("");
+                persistColorValue("");
+              }}
+            />
+          </Tooltip>
+        </ControlGroup>
+      </Label>
+    </>
   );
 };
 
@@ -119,14 +186,6 @@ const NodeConfig = ({
     key: "Attributes",
   });
 
-  const [color, setColor] = useState<string>(() =>
-    formatHexColor(node.canvasSettings?.color ?? ""),
-  );
-  const colorWriteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-  const pendingColorWriteRef = useRef<PendingColorWrite | null>(null);
-
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
   const [tagError, setTagError] = useState("");
   const [formatError, setFormatError] = useState("");
@@ -135,62 +194,6 @@ const NodeConfig = ({
   const [tagValue, setTagValue] = useState(node.tag || "");
   const [formatValue, setFormatValue] = useState(node.format || "");
   const [shortcutValue, setShortcutValue] = useState(node.shortcut || "");
-
-  const clearColorWriteTimeout = useCallback((): void => {
-    if (!colorWriteTimeoutRef.current) return;
-
-    clearTimeout(colorWriteTimeoutRef.current);
-    colorWriteTimeoutRef.current = null;
-  }, []);
-
-  const persistColor = useCallback(
-    (colorValue: string): void => {
-      const colorWrite = {
-        blockUid: canvasUid,
-        nodeType: node.type,
-        value: colorValue,
-      };
-
-      pendingColorWriteRef.current = null;
-      writeColorSetting(colorWrite);
-    },
-    [canvasUid, node.type],
-  );
-
-  const persistColorAfterPause = useCallback(
-    (colorValue: string): void => {
-      const colorWrite = {
-        blockUid: canvasUid,
-        nodeType: node.type,
-        value: colorValue,
-      };
-
-      clearColorWriteTimeout();
-      pendingColorWriteRef.current = colorWrite;
-      colorWriteTimeoutRef.current = setTimeout(() => {
-        writeColorSetting(colorWrite);
-        pendingColorWriteRef.current = null;
-        colorWriteTimeoutRef.current = null;
-      }, COLOR_WRITE_DEBOUNCE_MS);
-    },
-    [canvasUid, clearColorWriteTimeout, node.type],
-  );
-
-  const flushPendingColorWrite = useCallback((): void => {
-    clearColorWriteTimeout();
-    if (!pendingColorWriteRef.current) return;
-
-    writeColorSetting(pendingColorWriteRef.current);
-    pendingColorWriteRef.current = null;
-  }, [clearColorWriteTimeout]);
-
-  useEffect(() => {
-    pendingColorWriteFlushers.add(flushPendingColorWrite);
-    return () => {
-      pendingColorWriteFlushers.delete(flushPendingColorWrite);
-      flushPendingColorWrite();
-    };
-  }, [flushPendingColorWrite]);
   const validate = useCallback(
     ({
       tag,
@@ -346,47 +349,13 @@ const NodeConfig = ({
                   parentUid={node.type}
                   uid={tagUid}
                 />
-                {tagValue && (
-                  <div className="flex items-center gap-1.5 pl-1">
-                    <span className="text-xs italic text-gray-400">
-                      Preview:
-                    </span>
-                    <span style={color ? getNodeTagStyles(color) : undefined}>
-                      #{tagValue.replace(/^#/, "")}
-                    </span>
-                  </div>
-                )}
               </div>
-              <>
-                <Label>
-                  Color
-                  <Description description="Changes the color of tags and canvas nodes" />
-                  <ControlGroup>
-                    <InputGroup
-                      style={{ width: 120 }}
-                      type={"color"}
-                      value={color}
-                      onChange={(e) => {
-                        const nextColor = e.target.value;
-                        const colorValue = nextColor.replace("#", ""); // remove hash to not create roam link
-                        setColor(nextColor);
-                        persistColorAfterPause(colorValue);
-                      }}
-                    />
-                    <Tooltip content={color ? "Unset" : "Color not set"}>
-                      <Icon
-                        className={"ml-2 align-middle opacity-80"}
-                        icon={color ? "delete" : "info-sign"}
-                        onClick={() => {
-                          clearColorWriteTimeout();
-                          setColor("");
-                          persistColor("");
-                        }}
-                      />
-                    </Tooltip>
-                  </ControlGroup>
-                </Label>
-              </>
+              <DiscourseNodeColorSetting
+                canvasUid={canvasUid}
+                nodeType={node.type}
+                initialColor={node.canvasSettings?.color}
+                tagValue={tagValue}
+              />
             </div>
           }
         />
