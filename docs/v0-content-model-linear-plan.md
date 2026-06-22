@@ -54,6 +54,8 @@ Every task below should be one Linear engineering ticket and one PR. Use this ex
 
 Keep each section to 1-3 short bullets. `Out of Scope` and `Notes` may be omitted only when genuinely empty. Do not put local repo-doc links in Linear tickets; pull any needed facts into the ticket body because Linear becomes the durable source. Linear issue links and durable external references are okay when they materially help implementation.
 
+When a task depends on SamePage reference code, include the relevant SamePage file paths or durable links in that ticket's `Notes`, not only in this plan. Keep those references explicitly reference-only: they should guide parser, renderer, adapter, or fixture behavior without bringing in SamePage runtime, sync, networking, Automerge, IPFS, or protocol dependencies. Do not add SamePage references to storage-only tickets where they do not help implementation.
+
 ## Key interfaces
 
 - `variant` remains the semantic slice; `content_type` becomes the representation discriminator.
