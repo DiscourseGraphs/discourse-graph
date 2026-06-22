@@ -383,7 +383,7 @@ const SuggestionsBody = ({
         node: { text: `[[${node.text}]]` },
       });
       try {
-        await notifyBlockSuggestionAdded(blockUid);
+        await notifyBlockSuggestionAdded(blockUid, tag, node.text);
       } catch (error) {
         console.error("Failed to show suggestion added notification:", error);
       }

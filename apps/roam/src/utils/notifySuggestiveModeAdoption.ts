@@ -1,7 +1,5 @@
 import { render as renderToast } from "roamjs-components/components/Toast";
-import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getPageUidByBlockUid from "roamjs-components/queries/getPageUidByBlockUid";
-import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { isPageUid } from "~/utils/isPageUid";
@@ -36,8 +34,30 @@ const focusSidebarOutline = (windowId?: string, delayMs = 0): void => {
   delayMs > 0 ? setTimeout(focus, delayMs) : focus();
 };
 
+const getSidebarWindows = (): RoamSidebarWindow[] => {
+  try {
+    return window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
+  } catch {
+    // Sidebar API can be unavailable during Roam teardown.
+    return [];
+  }
+};
+
+const findNewWindowId = ({
+  before,
+  after,
+}: {
+  before: RoamSidebarWindow[];
+  after: RoamSidebarWindow[];
+}): string | undefined => {
+  const beforeIds = new Set(before.map((w) => w["window-id"]));
+  return after.find((w) => !beforeIds.has(w["window-id"]))?.["window-id"];
+};
+
 export const notifyBlockSuggestionAdded = async (
   targetBlockUid: string,
+  sourceTitle: string,
+  destinationTitle: string,
 ): Promise<void> => {
   const pageUid = isPageUid(targetBlockUid)
     ? targetBlockUid
@@ -58,21 +78,14 @@ export const notifyBlockSuggestionAdded = async (
     isOpenInMain ||
     getPersonalSetting<boolean>([PERSONAL_KEYS.disableSidebarOpen])
   ) {
-    const pageTitle = getPageTitleByPageUid(pageUid);
     showSuggestionToast(
-      pageTitle ? `Added to [[${pageTitle}]]` : "Added to outline",
+      `Added relation between [[${sourceTitle}]] and [[${destinationTitle}]]`,
     );
     return;
   }
 
-  let sidebarWindows: RoamSidebarWindow[] = [];
-  try {
-    sidebarWindows = window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
-  } catch {
-    // Sidebar API can be unavailable during Roam teardown.
-  }
-
-  const existingWindow = sidebarWindows.find(
+  const sidebarWindowsBefore = getSidebarWindows();
+  const existingWindow = sidebarWindowsBefore.find(
     (w) =>
       w.type === "outline" &&
       (w["block-uid"] === targetBlockUid || w["block-uid"] === pageUid),
@@ -83,8 +96,19 @@ export const notifyBlockSuggestionAdded = async (
     return;
   }
 
-  await openBlockInSidebar(targetBlockUid);
-  focusSidebarOutline(undefined, 100);
+  await window.roamAlphaAPI.ui.rightSidebar.addWindow({
+    window: {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "block-uid": pageUid,
+      type: "outline",
+    },
+  });
+
+  const newWindowId = findNewWindowId({
+    before: sidebarWindowsBefore,
+    after: getSidebarWindows(),
+  });
+  focusSidebarOutline(newWindowId, newWindowId ? 0 : 100);
 };
 
 export const notifyRelationSuggestionAdded = (
