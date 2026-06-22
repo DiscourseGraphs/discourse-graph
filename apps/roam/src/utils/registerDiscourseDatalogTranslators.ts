@@ -90,7 +90,7 @@ const ANY_DISCOURSE_NODE = "Any discourse node";
 
 const registerDiscourseDatalogTranslators = (snapshot?: SettingsSnapshot) => {
   const discourseRelations = getDiscourseRelations(snapshot);
-  const discourseNodes = getDiscourseNodes(discourseRelations, snapshot);
+  const discourseNodes = getDiscourseNodes(snapshot);
 
   const isACallback: Parameters<
     typeof registerDatalogTranslator

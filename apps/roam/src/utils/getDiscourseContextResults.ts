@@ -166,7 +166,7 @@ const buildQueryConfig = ({
 const getDiscourseContextResults = async ({
   uid: targetUid,
   relations = getDiscourseRelations(),
-  nodes = getDiscourseNodes(relations),
+  nodes = getDiscourseNodes(),
   ignoreCache,
   onResult,
 }: {

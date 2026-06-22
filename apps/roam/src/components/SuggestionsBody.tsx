@@ -51,7 +51,7 @@ const getOverlayInfo = async (
   try {
     if (cache[tag]) return cache[tag];
 
-    const nodes = getDiscourseNodes(relations);
+    const nodes = getDiscourseNodes();
 
     const [results, refs] = await Promise.all([
       getDiscourseContextResults({

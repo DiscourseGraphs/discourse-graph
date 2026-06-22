@@ -47,7 +47,7 @@ const deriveNodeAttribute = async ({
   uid: string;
 }): Promise<string | number> => {
   const relations = getDiscourseRelations();
-  const nodes = getDiscourseNodes(relations);
+  const nodes = getDiscourseNodes();
   const discourseNode = findDiscourseNode({ uid, nodes });
   if (!discourseNode) return 0;
   const nodeType = discourseNode.type;

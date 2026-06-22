@@ -6,7 +6,6 @@ import {
   type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import discourseConfigRef from "./discourseConfigRef";
-import getDiscourseRelations from "./getDiscourseRelations";
 import { roamNodeToCondition } from "./parseQuery";
 import { Condition } from "./types";
 import { InputTextNode, RoamBasicNode } from "roamjs-components/types";
@@ -22,7 +21,7 @@ export type DiscourseNode = {
   shortcut: string;
   tag?: string;
   specification: Condition[];
-  backedBy: "user" | "default" | "relation";
+  backedBy: "user" | "default";
   canvasSettings: {
     [k: string]: string;
   };
@@ -107,11 +106,7 @@ const getUidAndBooleanSetting = ({
   };
 };
 
-const getDiscourseNodes = (
-  relations?: ReturnType<typeof getDiscourseRelations>,
-  snapshot?: SettingsSnapshot,
-) => {
-  const resolvedRelations = relations ?? getDiscourseRelations(snapshot);
+const getDiscourseNodes = (snapshot?: SettingsSnapshot) => {
   const newStoreEnabled = snapshot
     ? snapshot.featureFlags["Use new settings store"]
     : isNewSettingsStoreEnabled();
