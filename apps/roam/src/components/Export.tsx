@@ -128,7 +128,7 @@ export type ExportDialogProps = {
   title?: string;
   columns?: Column[];
   isExportDiscourseGraph?: boolean;
-  initialPanel?: "sendTo" | "export";
+  initialPanel?: "sendTo" | "export" | "publish";
 };
 
 type ExportDialogComponent = (
@@ -141,6 +141,14 @@ const EXPORT_DESTINATIONS = [
   { id: "github", label: "Send to GitHub", active: true },
 ];
 const SEND_TO_DESTINATIONS = ["page", "graph"];
+const INITIAL_PANEL_TO_TAB_ID: Record<
+  NonNullable<ExportDialogProps["initialPanel"]>,
+  string
+> = {
+  sendTo: "sendto",
+  export: "export",
+  publish: "publish",
+};
 
 const exportDestinationById = Object.fromEntries(
   EXPORT_DESTINATIONS.map((ed) => [ed.id, ed]),
@@ -211,7 +219,7 @@ const ExportDialog: ExportDialogComponent = ({
   const [livePages, setLivePages] = useState<Result[]>([]);
   const [selectedTabId, setSelectedTabId] = useState("sendto");
   useEffect(() => {
-    if (initialPanel === "export") setSelectedTabId("export");
+    if (initialPanel) setSelectedTabId(INITIAL_PANEL_TO_TAB_ID[initialPanel]);
   }, [initialPanel]);
   const [includeDiscourseContext, setIncludeDiscourseContext] = useState(false);
   const [gitHubAccessToken, setGitHubAccessToken] = useState<string | null>(

@@ -281,6 +281,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     exportRender({
       results: [{ uid: pageUid, text: pageTitle, type: discourseNode.type }],
       isExportDiscourseGraph: true,
+      initialPanel: "publish",
     });
   };
 
