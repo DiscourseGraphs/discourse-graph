@@ -46,8 +46,10 @@ import type { OnloadArgs } from "roamjs-components/types";
 import { DiscourseContextType } from "./Tldraw";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import {
-  BaseDiscourseNodeUtil,
   COLOR_ARRAY,
+  DISCOURSE_NODE_SHAPE_TYPE,
+  getDiscourseNodeTypeId,
+  isDiscourseNodeShape,
   type DiscourseNodeShape,
 } from "./DiscourseNodeUtil";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
@@ -188,7 +190,7 @@ export const getOnSelectForShape = ({
         });
         editor.createShapes([
           {
-            type: nodeType,
+            type: DISCOURSE_NODE_SHAPE_TYPE,
             id: createShapeId(),
             props: {
               uid,
@@ -198,6 +200,7 @@ export const getOnSelectForShape = ({
               imageUrl: nodeImageUrl,
               fontFamily: "sans",
               size: "s",
+              nodeTypeId: nodeType,
             },
             x,
             y,
@@ -236,15 +239,8 @@ export const getOnSelectForShape = ({
 type ShareableCanvasResult = Result & { type: string };
 
 const isCanvasDiscourseNodeShape = (
-  editor: Editor,
   shape: TLShape,
-): shape is DiscourseNodeShape => {
-  try {
-    return editor.getShapeUtil(shape) instanceof BaseDiscourseNodeUtil;
-  } catch {
-    return false;
-  }
-};
+): shape is DiscourseNodeShape => isDiscourseNodeShape(shape);
 
 const getCanvasNodeText = (shape: DiscourseNodeShape): string =>
   getPageTitleByPageUid(shape.props.uid) ||
@@ -252,16 +248,14 @@ const getCanvasNodeText = (shape: DiscourseNodeShape): string =>
   shape.props.title;
 
 export const getShareableCanvasSelectionResults = ({
-  editor,
   shapes,
 }: {
-  editor: Editor;
   shapes: TLShape[];
 }): ShareableCanvasResult[] => {
   const seenUids = new Set<string>();
 
   return shapes.reduce<ShareableCanvasResult[]>((results, shape) => {
-    if (!isCanvasDiscourseNodeShape(editor, shape)) return results;
+    if (!isCanvasDiscourseNodeShape(shape)) return results;
 
     const { uid } = shape.props;
     if (!uid || !isLiveBlock(uid) || seenUids.has(uid)) return results;
@@ -270,7 +264,7 @@ export const getShareableCanvasSelectionResults = ({
     if (!text) return results;
 
     seenUids.add(uid);
-    results.push({ text, uid, type: shape.type });
+    results.push({ text, uid, type: getDiscourseNodeTypeId({ shape }) });
     return results;
   }, []);
 };
@@ -294,7 +288,6 @@ export const CustomContextMenu = ({
     [editor],
   );
   const shareableResults = getShareableCanvasSelectionResults({
-    editor,
     shapes: selectedShapes,
   });
   const isTextSelected = selectedShape?.type === "text";
@@ -312,7 +305,6 @@ export const CustomContextMenu = ({
             onSelect={() => {
               const currentSelectedShapes = editor.getSelectedShapes();
               const currentResults = getShareableCanvasSelectionResults({
-                editor,
                 shapes: currentSelectedShapes,
               });
               if (!currentResults.length) return;

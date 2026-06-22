@@ -4,7 +4,6 @@ import {
   TLBaseShape,
   useEditor,
   DefaultColorStyle,
-  Editor,
   createShapeId,
   TLDefaultHorizontalAlignStyle,
   TLDefaultVerticalAlignStyle,
@@ -16,9 +15,11 @@ import {
   DefaultSizeStyle,
   T,
   FONT_FAMILIES,
+  TLShape,
   TLDefaultFontStyle,
   DefaultFontStyle,
   toDomPrecision,
+  TLAnyShapeUtilConstructor,
 } from "tldraw";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
@@ -92,6 +93,8 @@ export const COLOR_PALETTE: Record<string, string> = {
   yellow: "#ffc078",
 };
 
+export const DISCOURSE_NODE_SHAPE_TYPE = "discourse-node";
+
 const getRelationIds = () =>
   new Set(
     Object.values(discourseContext.relations).flatMap((rs) =>
@@ -107,7 +110,7 @@ export const createNodeShapeTools = (
       static id = n.type;
       static initial = "idle";
       static isLockable = true;
-      shapeType = n.type;
+      nodeTypeId = n.type;
 
       override onEnter = () => {
         this.editor.setCursor({
@@ -121,10 +124,14 @@ export const createNodeShapeTools = (
         const shapeId = createShapeId();
         this.editor.createShape({
           id: shapeId,
-          type: this.shapeType,
+          type: DISCOURSE_NODE_SHAPE_TYPE,
           x: currentPagePoint.x,
           y: currentPagePoint.y,
-          props: { fontFamily: "sans", size: "s" },
+          props: {
+            fontFamily: "sans",
+            size: "s",
+            nodeTypeId: this.nodeTypeId,
+          },
         });
         this.editor.setEditingShape(shapeId);
       };
@@ -132,23 +139,27 @@ export const createNodeShapeTools = (
   });
 };
 
-export const createNodeShapeUtils = (nodes: DiscourseNode[]) => {
-  return nodes.map((node) => {
-    class DiscourseNodeUtil extends BaseDiscourseNodeUtil {
-      constructor(editor: Editor) {
-        super(editor, node.type);
-      }
-      static override type = node.type; // removing this gives undefined error
-      // getDefaultProps(): DiscourseNodeShape["props"] {
-      //   const baseProps = super.getDefaultProps();
-      //   return {
-      //     ...baseProps,
-      //     color: node.color,
-      //   };
-      // }
-    }
-    return DiscourseNodeUtil;
-  });
+type ShapeWithOptionalNodeTypeId = TLShape & {
+  props?: {
+    nodeTypeId?: string;
+  };
+};
+
+export const getDiscourseNodeTypeId = ({
+  shape,
+}: {
+  shape: ShapeWithOptionalNodeTypeId;
+}): string => {
+  return shape.props?.nodeTypeId || shape.type;
+};
+
+export const isDiscourseNodeShape = (
+  shape: TLShape,
+): shape is DiscourseNodeShape => {
+  return (
+    shape.type === DISCOURSE_NODE_SHAPE_TYPE ||
+    !!discourseContext.nodes[shape.type]
+  );
 };
 
 export type DiscourseNodeShape = TLBaseShape<
@@ -159,18 +170,14 @@ export type DiscourseNodeShape = TLBaseShape<
     // opacity: TLOpacityType;
     uid: string;
     title: string;
+    nodeTypeId?: string;
     imageUrl?: string;
     size: TLDefaultSizeStyle;
     fontFamily: TLDefaultFontStyle;
   }
 >;
-export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
-  type: string;
-
-  constructor(editor: Editor, type: string) {
-    super(editor);
-    this.type = type;
-  }
+export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
+  static override type = DISCOURSE_NODE_SHAPE_TYPE;
 
   static override props = {
     w: T.number,
@@ -178,6 +185,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
     // opacity: T.number,
     uid: T.string,
     title: T.string,
+    nodeTypeId: T.string,
     imageUrl: T.optional(T.string),
     size: DefaultSizeStyle,
     fontFamily: DefaultFontStyle,
@@ -194,6 +202,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
       h: 64,
       uid: window.roamAlphaAPI.util.generateUID(),
       title: "",
+      nodeTypeId: "",
       size: "s",
       fontFamily: "sans",
     };
@@ -239,7 +248,11 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
     const nodesInCanvas = Object.fromEntries(
       allRecords
         .filter((r): r is DiscourseNodeShape => {
-          return r.typeName === "shape" && nodeIds.has(r.type);
+          if (r.typeName !== "shape") return false;
+          const nodeTypeId = getDiscourseNodeTypeId({ shape: r });
+          return (
+            r.typeName === "shape" && !!nodeTypeId && nodeIds.has(nodeTypeId)
+          );
         })
         .map((r) => [r.props.uid, r] as const),
     );
@@ -330,12 +343,14 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
     editor.createShapes(shapesToCreate).createBindings(bindingsToCreate);
   }
 
-  getColors() {
-    return getDiscourseNodeColors({ nodeType: this.type });
+  getColors(shape: DiscourseNodeShape) {
+    return getDiscourseNodeColors({
+      nodeType: getDiscourseNodeTypeId({ shape }),
+    });
   }
 
   async toSvg(shape: DiscourseNodeShape): Promise<JSX.Element> {
-    const { backgroundColor, textColor } = this.getColors();
+    const { backgroundColor, textColor } = this.getColors(shape);
     const padding = Number(DEFAULT_STYLE_PROPS.padding.replace("px", ""));
     const props = shape.props;
     const bounds = new Box(0, 0, props.w, props.h);
@@ -432,7 +447,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
     const extensionAPI = useExtensionAPI();
     const {
       canvasSettings: { alias = "", "key-image": isKeyImage = "" } = {},
-    } = discourseContext.nodes[shape.type] || {};
+    } = discourseContext.nodes[getDiscourseNodeTypeId({ shape })] || {};
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const isOverlayEnabled = useMemo(
       () => getPersonalSetting<boolean>([PERSONAL_KEYS.overlayInCanvas]),
@@ -448,7 +463,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
     // Detect discourse node tags in block text for blck-node shapes
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const matchedNodeForConversion = useMemo(() => {
-      if (shape.type !== "blck-node") return null;
+      if (getDiscourseNodeTypeId({ shape }) !== "blck-node") return null;
       if (!isLiveBlock(shape.props.uid)) return null;
       const blockText = getTextByBlockUid(shape.props.uid);
       if (!blockText) return null;
@@ -469,9 +484,9 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
         }
       }
       return null;
-    }, [shape.type, shape.props.uid]);
+    }, [shape]);
 
-    const { backgroundColor, textColor } = this.getColors();
+    const { backgroundColor, textColor } = this.getColors(shape);
     const showEmbeddedRoamBlock =
       !isPageUid(shape.props.uid) && isLiveBlock(shape.props.uid);
 
@@ -490,7 +505,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
           const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
             nodeText: text,
             uid,
-            nodeType: this.type,
+            nodeType: getDiscourseNodeTypeId({ shape }),
             extensionAPI,
           });
           this.updateProps(shape.id, shape.type, { h, w, imageUrl });
@@ -501,7 +516,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
         const restoreToolState = () => {
           if (wasToolLocked) {
             this.editor.updateInstanceState({ isToolLocked: true });
-            this.editor.setCurrentTool(shape.type);
+            this.editor.setCurrentTool(getDiscourseNodeTypeId({ shape }));
           } else {
             this.editor.setCurrentTool("select");
           }
@@ -511,7 +526,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
 
         renderModifyNodeDialog({
           mode: isCreating ? "create" : "edit",
-          nodeType: shape.type,
+          nodeType: getDiscourseNodeTypeId({ shape }),
           initialValue: { text: shape.props.title, uid: shape.props.uid },
           // Only pass it when editing an existing node that has a valid Roam block UID
           sourceBlockUid:
@@ -536,6 +551,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
             this.updateProps(shape.id, shape.type, {
               title: text,
               uid,
+              nodeTypeId: getDiscourseNodeTypeId({ shape }),
             });
 
             const autoCanvasRelations = getPersonalSetting<boolean>([
@@ -658,7 +674,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
                       });
                       editor.createShapes([
                         {
-                          type: node.type,
+                          type: DISCOURSE_NODE_SHAPE_TYPE,
                           id: createShapeId(),
                           props: {
                             uid,
@@ -668,6 +684,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
                             imageUrl: nodeImageUrl,
                             fontFamily: "sans",
                             size: "s",
+                            nodeTypeId: node.type,
                           },
                           x,
                           y,
@@ -756,3 +773,28 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
     );
   }
 }
+
+export const createLegacyDiscourseNodeShapeUtils = (
+  nodes: DiscourseNode[],
+): TLAnyShapeUtilConstructor[] => {
+  return nodes
+    .filter((node) => node.type !== DISCOURSE_NODE_SHAPE_TYPE)
+    .map((node) => {
+      class LegacyDiscourseNodeUtil extends DiscourseNodeUtil {
+        static override type = node.type;
+        static override props = {
+          ...DiscourseNodeUtil.props,
+          nodeTypeId: T.optional(T.string),
+        } as typeof DiscourseNodeUtil.props;
+
+        override getDefaultProps(): DiscourseNodeShape["props"] {
+          return {
+            ...super.getDefaultProps(),
+            nodeTypeId: node.type,
+          };
+        }
+      }
+
+      return LegacyDiscourseNodeUtil as TLAnyShapeUtilConstructor;
+    });
+};
