@@ -70,6 +70,14 @@ const writeColorSetting = ({
   );
 };
 
+const pendingColorWriteFlushers = new Set<() => void>();
+
+export const flushPendingNodeColorWrites = (): void => {
+  pendingColorWriteFlushers.forEach((flushPendingColorWrite) =>
+    flushPendingColorWrite(),
+  );
+};
+
 const generateTagPlaceholder = (node: DiscourseNode): string => {
   // Extract first reference from format like [[CLM]], [[QUE]], [[EVD]]
   const referenceMatch = node.format.match(/\[\[([A-Z]+)\]\]/);
@@ -168,16 +176,21 @@ const NodeConfig = ({
     [canvasUid, clearColorWriteTimeout, node.type],
   );
 
-  useEffect(
-    () => () => {
-      clearColorWriteTimeout();
-      if (!pendingColorWriteRef.current) return;
+  const flushPendingColorWrite = useCallback((): void => {
+    clearColorWriteTimeout();
+    if (!pendingColorWriteRef.current) return;
 
-      writeColorSetting(pendingColorWriteRef.current);
-      pendingColorWriteRef.current = null;
-    },
-    [clearColorWriteTimeout],
-  );
+    writeColorSetting(pendingColorWriteRef.current);
+    pendingColorWriteRef.current = null;
+  }, [clearColorWriteTimeout]);
+
+  useEffect(() => {
+    pendingColorWriteFlushers.add(flushPendingColorWrite);
+    return () => {
+      pendingColorWriteFlushers.delete(flushPendingColorWrite);
+      flushPendingColorWrite();
+    };
+  }, [flushPendingColorWrite]);
   const validate = useCallback(
     ({
       tag,

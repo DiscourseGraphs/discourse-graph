@@ -21,7 +21,7 @@ import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
 import getDiscourseNodes, {
   excludeDefaultNodes,
 } from "~/utils/getDiscourseNodes";
-import NodeConfig from "./NodeConfig";
+import NodeConfig, { flushPendingNodeColorWrites } from "./NodeConfig";
 import HomePersonalSettings from "./HomePersonalSettings";
 import CanvasShortcutSettings from "./CanvasShortcutSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
@@ -148,6 +148,7 @@ export const SettingsDialog = ({
     <Dialog
       isOpen={isOpen}
       onClose={() => {
+        flushPendingNodeColorWrites();
         refreshConfigTree();
         onClose?.();
       }}
