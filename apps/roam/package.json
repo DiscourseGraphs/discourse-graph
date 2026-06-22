@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "publish": "tsx scripts/publish.ts",
-    "check-types": "tsc --noEmit --skipLibCheck"
+    "check-types": "tsc --noEmit --skipLibCheck",
+    "test": "vitest run src/utils/__tests__",
+    "test:watch": "vitest src/utils/__tests__"
   },
   "license": "Apache-2.0",
   "devDependencies": {
@@ -26,7 +28,8 @@
     "dotenv": "^16.0.3",
     "esbuild": "0.17.14",
     "tailwindcss": "^3.4.17",
-    "tsx": "^4.19.2"
+    "tsx": "^4.19.2",
+    "vitest": "^4.0.0"
   },
   "//": "axios dep temporary - need to fix the dep in underlying libraries",
   "tags": [
