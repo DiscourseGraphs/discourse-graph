@@ -1,6 +1,7 @@
 import { openQueryDrawer } from "~/components/QueryDrawer";
 import { render as exportRender } from "~/components/Export";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import { openShareNodeDialog } from "~/utils/openShareNodeDialog";
 import { createBlock, updateBlock } from "roamjs-components/writes";
 import {
   getCurrentPageUid,
@@ -278,10 +279,10 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
       nodeType: discourseNode.type,
     });
 
-    exportRender({
-      results: [{ uid: pageUid, text: pageTitle, type: discourseNode.type }],
-      isExportDiscourseGraph: true,
-      initialPanel: "publish",
+    openShareNodeDialog({
+      uid: pageUid,
+      title: pageTitle,
+      nodeType: discourseNode.type,
     });
   };
 
