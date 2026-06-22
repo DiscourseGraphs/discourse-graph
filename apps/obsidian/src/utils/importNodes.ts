@@ -21,12 +21,6 @@ import {
 import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 
-// Group membership helpers were promoted to @repo/database/lib/groups so Roam
-// can share them (apps can't cross-import). Re-exported here for existing
-// Obsidian importers.
-export type { MyGroup } from "@repo/database/lib/groups";
-export { getAvailableGroupIds, getMyGroups } from "@repo/database/lib/groups";
-
 type PublishedNode = {
   source_local_id: string;
   space_id: number;
