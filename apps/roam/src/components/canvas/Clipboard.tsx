@@ -394,8 +394,16 @@ type NodeGroup = {
   uid: string;
   text: string;
   type: string;
+  typeId: string;
   shapes: DiscourseNodeShape[];
   isDuplicate: boolean;
+};
+
+type ClipboardDiscourseNode = {
+  uid: string;
+  text: string;
+  type: string;
+  typeId: string;
 };
 
 type DragState =
@@ -440,7 +448,7 @@ const ClipboardPageSection = ({
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [discourseNodes, setDiscourseNodes] = useState<
-    Array<{ uid: string; text: string; type: string }>
+    ClipboardDiscourseNode[]
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -472,6 +480,7 @@ const ClipboardPageSection = ({
               uid: refPage.uid,
               text: refPage.text,
               type: discourseNode.text,
+              typeId: discourseNode.type,
             },
           ];
         });
@@ -534,7 +543,7 @@ const ClipboardPageSection = ({
   const shapesByUid = useMemo(() => {
     void storeVersion;
     const groupedShapes = new Map<string, DiscourseNodeShape[]>();
-    const nodeTypeIds = new Set(discourseNodes.map((node) => node.type));
+    const nodeTypeIds = new Set(discourseNodes.map((node) => node.typeId));
     const allRecords = editor.store.allRecords();
     allRecords.forEach((record) => {
       if (record.typeName !== "shape") return;
@@ -565,6 +574,7 @@ const ClipboardPageSection = ({
         uid: node.uid,
         text: node.text,
         type: node.type,
+        typeId: node.typeId,
         shapes,
         isDuplicate: shapes.length > 1,
       };
@@ -681,7 +691,7 @@ const ClipboardPageSection = ({
     async (node: { uid: string; text: string }, pagePoint: Vec) => {
       if (!extensionAPI) return;
       if (!showNodesOnCanvas) {
-        const nodeTypeIds = new Set(discourseNodes.map((node) => node.type));
+        const nodeTypeIds = new Set(discourseNodes.map((node) => node.typeId));
         const nodeExistsOnCanvas = editor.store.allRecords().some((record) => {
           if (record.typeName !== "shape") return false;
           if (
