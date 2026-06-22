@@ -124,13 +124,15 @@ export const initObservers = ({
 
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
-        renderDiscourseContext({ h1, uid });
         renderPublishNodeTitleButton({
           h1,
           uid,
           title,
           nodeType: node.type,
         });
+        if (settings.personalSettings[PERSONAL_KEYS.discourseContextOverlay]) {
+          renderDiscourseContext({ h1, uid });
+        }
         if (getFeatureFlag("Duplicate node alert enabled")) {
           renderPossibleDuplicates(h1, title, node);
         }
