@@ -1,5 +1,5 @@
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import { ridToSpaceUriAndLocalId } from "./rid";
+import { ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
 
 export const getSpaceNameIdFromRid = async (
   client: DGSupabaseClient,

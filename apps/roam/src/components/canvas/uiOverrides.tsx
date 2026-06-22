@@ -45,7 +45,13 @@ import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { OnloadArgs } from "roamjs-components/types";
 import { DiscourseContextType } from "./Tldraw";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
-import { COLOR_ARRAY } from "./DiscourseNodeUtil";
+import {
+  COLOR_ARRAY,
+  DISCOURSE_NODE_SHAPE_TYPE,
+  getDiscourseNodeTypeId,
+  isDiscourseNodeShape,
+  type DiscourseNodeShape,
+} from "./DiscourseNodeUtil";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
@@ -57,6 +63,11 @@ import { CanvasSyncMode } from "./canvasSyncMode";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import posthog from "posthog-js";
+import { render as renderShareDataDialog } from "~/components/Export";
+import type { Result } from "roamjs-components/types/query-builder";
+import isLiveBlock from "roamjs-components/queries/isLiveBlock";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 
 const SyncModeMenuSwitchItem = ({
   checked,
@@ -179,7 +190,7 @@ export const getOnSelectForShape = ({
         });
         editor.createShapes([
           {
-            type: nodeType,
+            type: DISCOURSE_NODE_SHAPE_TYPE,
             id: createShapeId(),
             props: {
               uid,
@@ -189,6 +200,7 @@ export const getOnSelectForShape = ({
               imageUrl: nodeImageUrl,
               fontFamily: "sans",
               size: "s",
+              nodeTypeId: nodeType,
             },
             x,
             y,
@@ -224,6 +236,39 @@ export const getOnSelectForShape = ({
   return () => {};
 };
 
+type ShareableCanvasResult = Result & { type: string };
+
+const isCanvasDiscourseNodeShape = (
+  shape: TLShape,
+): shape is DiscourseNodeShape => isDiscourseNodeShape(shape);
+
+const getCanvasNodeText = (shape: DiscourseNodeShape): string =>
+  getPageTitleByPageUid(shape.props.uid) ||
+  getTextByBlockUid(shape.props.uid) ||
+  shape.props.title;
+
+export const getShareableCanvasSelectionResults = ({
+  shapes,
+}: {
+  shapes: TLShape[];
+}): ShareableCanvasResult[] => {
+  const seenUids = new Set<string>();
+
+  return shapes.reduce<ShareableCanvasResult[]>((results, shape) => {
+    if (!isCanvasDiscourseNodeShape(shape)) return results;
+
+    const { uid } = shape.props;
+    if (!uid || !isLiveBlock(uid) || seenUids.has(uid)) return results;
+
+    const text = getCanvasNodeText(shape);
+    if (!text) return results;
+
+    seenUids.add(uid);
+    results.push({ text, uid, type: getDiscourseNodeTypeId({ shape }) });
+    return results;
+  }, []);
+};
+
 export const CustomContextMenu = ({
   extensionAPI,
   allNodes,
@@ -237,12 +282,45 @@ export const CustomContextMenu = ({
     () => editor.getOnlySelectedShape(),
     [editor],
   );
+  const selectedShapes = useValue(
+    "selectedShapes",
+    () => editor.getSelectedShapes(),
+    [editor],
+  );
+  const shareableResults = getShareableCanvasSelectionResults({
+    shapes: selectedShapes,
+  });
   const isTextSelected = selectedShape?.type === "text";
   const isImageSelected = selectedShape?.type === "image";
 
   return (
     <DefaultContextMenu>
       <DefaultContextMenuContent />
+      {shareableResults.length > 0 && (
+        <TldrawUiMenuGroup id="share-data-group">
+          <TldrawUiMenuItem
+            id="share-data"
+            label="Share Data"
+            readonlyOk
+            onSelect={() => {
+              const currentSelectedShapes = editor.getSelectedShapes();
+              const currentResults = getShareableCanvasSelectionResults({
+                shapes: currentSelectedShapes,
+              });
+              if (!currentResults.length) return;
+
+              posthog.capture("Canvas: Share Data Clicked", {
+                resultCount: currentResults.length,
+                selectedShapeCount: currentSelectedShapes.length,
+              });
+              renderShareDataDialog({
+                results: currentResults,
+                isExportDiscourseGraph: true,
+              });
+            }}
+          />
+        </TldrawUiMenuGroup>
+      )}
       {(isTextSelected || isImageSelected) && (
         <TldrawUiMenuGroup id="convert-to-group">
           <TldrawUiMenuSubmenu id="convert-to-submenu" label="Convert To">

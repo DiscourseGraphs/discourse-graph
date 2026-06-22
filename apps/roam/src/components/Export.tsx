@@ -62,7 +62,8 @@ import {
 } from "@tldraw/editor";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import {
-  createNodeShapeUtils,
+  DiscourseNodeUtil,
+  DISCOURSE_NODE_SHAPE_TYPE,
   DiscourseNodeShape,
 } from "~/components/canvas/DiscourseNodeUtil";
 import { discourseContext, MAX_WIDTH } from "~/components/canvas/Tldraw";
@@ -327,7 +328,7 @@ const ExportDialog: ExportDialogComponent = ({
       );
       const allRelations = relations;
       const allRelationIds = allRelations.map((r) => r.id);
-      const allNodes = getDiscourseNodes(allRelations);
+      const allNodes = getDiscourseNodes();
       const allAddReferencedNodeByAction = (() => {
         const obj: AddReferencedNodeType = {};
 
@@ -362,7 +363,7 @@ const ExportDialog: ExportDialogComponent = ({
       );
 
       // UTILS
-      const discourseNodeUtils = createNodeShapeUtils(allNodes);
+      const discourseNodeUtils = [DiscourseNodeUtil];
       const discourseRelationUtils =
         createAllRelationShapeUtils(allRelationIds);
       const referencedNodeUtils = createAllReferencedNodeUtils(
@@ -552,12 +553,13 @@ const ExportDialog: ExportDialogComponent = ({
         index: currentIndex,
         rotation: 0,
         isLocked: false,
-        type: nodeType,
+        type: DISCOURSE_NODE_SHAPE_TYPE,
         props: {
           w,
           h,
           uid: r.uid,
           title: String(r[firstColumnKey]),
+          nodeTypeId: nodeType,
           imageUrl,
           size: "s",
           fontFamily: "sans",

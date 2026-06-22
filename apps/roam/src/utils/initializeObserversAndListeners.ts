@@ -158,7 +158,7 @@ export const initObservers = ({
   const getNodesForTagBatch = (): DiscourseNode[] => {
     if (batchedTagNodes === null) {
       const settings = bulkReadSettings();
-      batchedTagNodes = getDiscourseNodes(undefined, settings);
+      batchedTagNodes = getDiscourseNodes(settings);
       queueMicrotask(() => {
         batchedTagNodes = null;
       });
@@ -253,9 +253,7 @@ export const initObservers = ({
     // doesn't work if they update via sidebar
     if (
       (configPageUid && evt.oldURL.endsWith(configPageUid)) ||
-      getDiscourseNodes(undefined, settings).some(({ type }) =>
-        evt.oldURL.endsWith(type),
-      )
+      getDiscourseNodes(settings).some(({ type }) => evt.oldURL.endsWith(type))
     ) {
       refreshConfigTree(settings);
     }

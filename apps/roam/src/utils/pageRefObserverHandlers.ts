@@ -56,10 +56,7 @@ const getBatchSettingsSnapshot = (): SettingsSnapshot => {
 const getBatchDiscourseNodes = (): DiscourseNode[] => {
   if (batchDiscourseNodes) return batchDiscourseNodes;
 
-  batchDiscourseNodes = getDiscourseNodes(
-    undefined,
-    getBatchSettingsSnapshot(),
-  );
+  batchDiscourseNodes = getDiscourseNodes(getBatchSettingsSnapshot());
   queueBatchCacheClear();
   return batchDiscourseNodes;
 };

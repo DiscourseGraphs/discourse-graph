@@ -7,7 +7,10 @@ import { getVaultId, getLocalSpaceUri } from "./supabaseContext";
 import type { RelationInstance } from "~/types";
 import { QueryEngine, getImportedNodesRaw } from "~/services/QueryEngine";
 import { publishNewRelation } from "./publishNode";
-import { ridToSpaceUriAndLocalId, spaceUriAndLocalIdToRid } from "./rid";
+import {
+  ridToSpaceUriAndLocalId,
+  spaceUriAndLocalIdToRid,
+} from "@repo/database/lib/rid";
 import { getSpaceIdsBySpaceUris } from "./spaceFromRid";
 
 const RELATIONS_FILE_NAME = "relations.json";

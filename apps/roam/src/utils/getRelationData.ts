@@ -68,7 +68,7 @@ export const getRelationDataUtil = async ({
 
 const getRelationData = async (local?: boolean) => {
   const allRelations = getDiscourseRelations();
-  const allNodes = getDiscourseNodes(allRelations);
+  const allNodes = getDiscourseNodes();
   const nodeLabelByType = Object.fromEntries(
     allNodes.map((a) => [a.type, a.text]),
   );

@@ -103,8 +103,11 @@ import createPage from "roamjs-components/writes/createPage";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import triplesToBlocks from "~/utils/triplesToBlocks";
 import {
-  BaseDiscourseNodeUtil,
+  DISCOURSE_NODE_SHAPE_TYPE,
+  DiscourseNodeUtil,
   DiscourseNodeShape,
+  getDiscourseNodeTypeId,
+  isDiscourseNodeShape as isDiscourseNodeShapeTypeGuard,
 } from "~/components/canvas/DiscourseNodeUtil";
 import { checkConnectionType } from "~/components/canvas/canvasUtils";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -115,6 +118,15 @@ import internalError from "~/utils/internalError";
 const COLOR_ARRAY = Array.from(DefaultColorStyle.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
   .reverse() as TLDefaultColorStyle[];
+
+const isRelationShapeType = (shapeType: string): boolean =>
+  Object.values(discourseContext.relations).some((relations) =>
+    relations.some((relation) => relation.id === shapeType),
+  );
+
+const isBindableDiscourseNodeShapeType = (shapeType: string): boolean =>
+  shapeType === DISCOURSE_NODE_SHAPE_TYPE ||
+  (!!discourseContext.nodes[shapeType] && !isRelationShapeType(shapeType));
 
 export const getRelationColor = (
   relationName: string,
@@ -147,8 +159,7 @@ export const createAllReferencedNodeUtils = (
       static override type = action;
 
       isDiscourseNodeShape(shape: TLShape): shape is DiscourseNodeShape {
-        const shapeUtil = this.editor.getShapeUtil(shape.type);
-        return shapeUtil instanceof BaseDiscourseNodeUtil;
+        return isDiscourseNodeShapeTypeGuard(shape);
       }
 
       handleCreateRelationsInRoam = async ({
@@ -174,25 +185,27 @@ export const createAllReferencedNodeUtils = (
         if (!sourceId) return;
         const source = editor.getShape(sourceId);
         if (!target || !source) return;
+        if (
+          !isDiscourseNodeShapeTypeGuard(target) ||
+          !isDiscourseNodeShapeTypeGuard(source)
+        ) {
+          return deleteAndWarn(
+            "Invalid shape type. Expected a DiscourseNodeShape.",
+          );
+        }
 
         const possibleTargets = allAddReferencedNodeByAction[arrow.type].map(
           (action) => action.destinationType,
         );
-        if (!possibleTargets.includes(target.type)) {
+        if (
+          !possibleTargets.includes(
+            getDiscourseNodeTypeId({ shape: target }) || "",
+          )
+        ) {
           return deleteAndWarn(
             `Target node must be of type ${possibleTargets
               .map((t) => discourseContext.nodes[t].text)
               .join(", ")}`,
-          );
-        }
-
-        // type check
-        if (
-          !this.isDiscourseNodeShape(target) ||
-          !this.isDiscourseNodeShape(source)
-        ) {
-          return deleteAndWarn(
-            "Invalid shape type. Expected a DiscourseNodeShape.",
           );
         }
 
@@ -588,7 +601,7 @@ const asDiscourseNodeShape = (
   editor: Editor,
 ): DiscourseNodeShape | null => {
   const shapeUtil = editor.getShapeUtil(shape.type);
-  return shapeUtil instanceof BaseDiscourseNodeUtil
+  return shapeUtil instanceof DiscourseNodeUtil
     ? (shape as DiscourseNodeShape)
     : null;
 };
@@ -622,12 +635,20 @@ export const createAllRelationShapeUtils = (
         if (!sourceId) return;
         const source = editor.getShape(sourceId);
         if (!target || !source) return;
+        if (
+          !isDiscourseNodeShapeTypeGuard(target) ||
+          !isDiscourseNodeShapeTypeGuard(source)
+        ) {
+          return deleteAndWarn(
+            "Invalid shape type. Expected a DiscourseNodeShape.",
+          );
+        }
         const relations = Object.values(discourseContext.relations).flat();
         const relation = relations.find((r) => r.id === arrow.type);
         if (!relation) return;
 
-        const sourceNodeType = source.type;
-        const targetNodeType = target.type;
+        const sourceNodeType = getDiscourseNodeTypeId({ shape: source });
+        const targetNodeType = getDiscourseNodeTypeId({ shape: target });
 
         // Check all relations with the same label for a match
         const {
@@ -884,15 +905,18 @@ export const createAllRelationShapeUtils = (
 
         // Validate target node type compatibility before creating binding
         if (
-          target.type !== "arrow" &&
+          isDiscourseNodeShapeTypeGuard(target) &&
           otherBinding &&
           target.id !== otherBinding.toId &&
           (!currentBinding || target.id !== currentBinding.toId)
         ) {
           const sourceNodeId = otherBinding.toId;
           const sourceNode = this.editor.getShape(sourceNodeId);
-          const targetNodeType = target.type;
-          const sourceNodeType = sourceNode?.type;
+          if (!sourceNode || !isDiscourseNodeShapeTypeGuard(sourceNode)) {
+            return update;
+          }
+          const targetNodeType = getDiscourseNodeTypeId({ shape: target });
+          const sourceNodeType = getDiscourseNodeTypeId({ shape: sourceNode });
 
           if (sourceNodeType && targetNodeType && shape.type) {
             const isValidConnection = this.isValidNodeConnection(
@@ -995,9 +1019,16 @@ export const createAllRelationShapeUtils = (
             const startNode = this.editor.getShape(newBindings.start.toId);
             const endNode = this.editor.getShape(newBindings.end.toId);
 
-            if (startNode && endNode) {
-              const startNodeType = startNode.type;
-              const endNodeType = endNode.type;
+            if (
+              startNode &&
+              endNode &&
+              isDiscourseNodeShapeTypeGuard(startNode) &&
+              isDiscourseNodeShapeTypeGuard(endNode)
+            ) {
+              const startNodeType = getDiscourseNodeTypeId({
+                shape: startNode,
+              });
+              const endNodeType = getDiscourseNodeTypeId({ shape: endNode });
 
               const { isReverse, matchingRelation } =
                 this.checkConnectionTypeAcrossLabel(
@@ -1208,7 +1239,7 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     toShapeType,
   }: TLShapeUtilCanBindOpts<DiscourseRelationShape>): boolean {
     // bindings can go from arrows to shapes, but not from shapes to arrows
-    return toShapeType !== "arrow";
+    return isBindableDiscourseNodeShapeType(toShapeType);
   }
 
   override canBeLaidOut: TLShapeUtilFlag<DiscourseRelationShape> = () => {

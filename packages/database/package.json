@@ -11,7 +11,8 @@
       "default": "./src/dbDotEnv.mjs"
     },
     "./dbTypes": "./src/dbTypes.ts",
-    "./inputTypes": "./src/inputTypes.ts"
+    "./inputTypes": "./src/inputTypes.ts",
+    "./crossAppNodeContract": "./src/crossAppNodeContract.ts"
   },
   "typesVersions": {
     "*": {

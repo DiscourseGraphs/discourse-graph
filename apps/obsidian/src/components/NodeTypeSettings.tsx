@@ -157,12 +157,14 @@ const BooleanField = ({
   onChange: (value: boolean) => void;
   disabled?: boolean;
 }) => (
-  <input
-    type="checkbox"
-    checked={!!value}
-    onChange={(e) => onChange(e.target.checked)}
-    disabled={disabled}
-  />
+  <div
+    className={`checkbox-container ${value ? "is-enabled" : ""}`}
+    onClick={() => {
+      if (!disabled) onChange(!value);
+    }}
+  >
+    <input type="checkbox" checked={!!value} disabled={disabled} readOnly />
+  </div>
 );
 
 const TextField = ({

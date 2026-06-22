@@ -1,24 +1,6 @@
-import {
-  Button,
-  Icon,
-  Portal,
-  Switch,
-  Tabs,
-  Tab,
-  Tooltip,
-  Spinner,
-} from "@blueprintjs/core";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-} from "react";
-import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
+import { Switch, Tabs, Tab, Spinner } from "@blueprintjs/core";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Result } from "roamjs-components/types/query-builder";
-import nanoId from "nanoid";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import ResultsView from "./results-view/ResultsView";
 import posthog from "posthog-js";
@@ -34,188 +16,12 @@ type Props = {
   overlayRefresh?: () => void;
 };
 
-const ExtraColumnRow = (r: Result) => {
-  const [contextOpen, setContextOpen] = useState(false);
-  const [contextRowReady, setContextRowReady] = useState(false);
-  const contextId = useMemo(() => `td-${nanoId()}`, []);
-  const anchorId = useMemo(() => `td-${nanoId()}`, []);
-  const [anchorOpen, setAnchorOpen] = useState(false);
-  const [anchorRowReady, setAnchorRowReady] = useState(false);
-  const containerRef = useRef<HTMLSpanElement>(null);
-  const contextPageTitle = useMemo(
-    () =>
-      r["context-uid"] && getPageTitleByPageUid(r["context-uid"].toString()),
-    [r["context-uid"]],
-  );
-  const contextBreadCrumbs = useMemo(
-    () =>
-      r["context-uid"]
-        ? window.roamAlphaAPI
-            .q(
-              `[:find (pull ?p [:node/title :block/string :block/uid]) :where
-              [?b :block/uid "${r["context-uid"]}"]
-              [?b :block/parents ?p]
-            ]`,
-            )
-            .map(
-              (a) => a[0] as { string?: string; title?: string; uid: string },
-            )
-            .map((a) => ({ uid: a.uid, text: a.string || a.title || "" }))
-        : [],
-    [r["context-uid"]],
-  );
-  const contextChildren = useMemo(
-    () =>
-      r["context-uid"] && contextPageTitle
-        ? getShallowTreeByParentUid(r["context-uid"].toString()).map(
-            ({ uid }) => uid,
-          )
-        : [r["context-uid"].toString()],
-    [r["context-uid"], contextPageTitle, r.uid],
-  );
-  useEffect(() => {
-    if (contextOpen && containerRef.current) {
-      const row = containerRef.current.closest("tr");
-      const contextElement = document.createElement("tr");
-      const contextTd = document.createElement("td");
-      contextTd.colSpan = row?.childElementCount || 0;
-      contextElement.id = contextId;
-      row?.parentElement?.insertBefore(contextElement, row.nextElementSibling);
-      contextElement.append(contextTd);
-      setContextRowReady(true);
-    } else {
-      setContextRowReady(false);
-      document.getElementById(contextId)?.remove();
-    }
-  }, [contextOpen, setContextRowReady, contextId]);
-  useEffect(() => {
-    if (contextRowReady) {
-      setTimeout(() => {
-        contextChildren.forEach((uid) => {
-          const el = document.querySelector<HTMLElement>(
-            `tr#${contextId} div[data-uid="${uid}"]`,
-          );
-          if (el)
-            window.roamAlphaAPI.ui.components.renderBlock({
-              uid,
-              el,
-            });
-        });
-      }, 1);
-    }
-  }, [contextRowReady]);
-  useEffect(() => {
-    if (anchorOpen) {
-      const row = containerRef.current?.closest("tr");
-      const anchorElement = document.createElement("tr");
-      const anchorTd = document.createElement("td");
-      anchorTd.colSpan = row?.childElementCount || 0;
-      anchorElement.id = anchorId;
-      row?.parentElement?.insertBefore(anchorElement, row.nextElementSibling);
-      anchorElement.append(anchorTd);
-      setAnchorRowReady(true);
-    } else {
-      setAnchorRowReady(false);
-      document.getElementById(anchorId)?.remove();
-    }
-  }, [anchorOpen, setAnchorRowReady, anchorId]);
-  return (
-    <span ref={containerRef}>
-      {r["context-uid"] && (
-        <Tooltip content={"Context"}>
-          <Button
-            onClick={() => setContextOpen(!contextOpen)}
-            small
-            active={contextOpen}
-            style={{
-              opacity: 0.5,
-              fontSize: "0.8em",
-              ...(contextOpen
-                ? {
-                    opacity: 1,
-                    color: "#8A9BA8",
-                    backgroundColor: "#F5F8FA",
-                  }
-                : {}),
-            }}
-            minimal
-            icon="info-sign"
-          />
-        </Tooltip>
-      )}
-      <style>
-        {`#${contextId} td,
-#${anchorId} td {
-  position: relative;
-  background-color: #F5F8FA;
-  padding: 16px;
-  max-height: 240px;
-  overflow-y: scroll;
-}
-#${contextId} .bp3-portal,
-#${anchorId} .bp3-portal {
-  position: relative;
-}`}
-      </style>
-      {contextRowReady && (
-        <Portal
-          container={
-            document.getElementById(contextId)
-              ?.firstElementChild as HTMLDataElement
-          }
-          className={"relative"}
-        >
-          {contextPageTitle ? (
-            <h3 style={{ margin: 0 }}>{contextPageTitle}</h3>
-          ) : (
-            <div className="rm-zoom">
-              {contextBreadCrumbs.map((bc) => (
-                <div key={bc.uid} className="rm-zoom-item">
-                  <span className="rm-zoom-item-content">{bc.text}</span>
-                  <Icon icon={"chevron-right"} />
-                </div>
-              ))}
-            </div>
-          )}
-          {contextChildren.map((uid) => (
-            <div data-uid={uid} key={uid}></div>
-          ))}
-        </Portal>
-      )}
-      {r.anchor && (
-        <Tooltip content={"See Related Relations"}>
-          <Button
-            onClick={() => setAnchorOpen(!anchorOpen)}
-            active={anchorOpen}
-            small
-            style={{
-              opacity: 0.5,
-              fontSize: "0.8em",
-              ...(anchorOpen
-                ? {
-                    opacity: 1,
-                    color: "#8A9BA8",
-                    backgroundColor: "#F5F8FA",
-                  }
-                : {}),
-            }}
-            minimal
-            icon={"resolve"}
-          />
-        </Tooltip>
-      )}
-      {anchorRowReady && (
-        <Portal
-          container={
-            document.getElementById(anchorId)
-              ?.firstElementChild as HTMLDataElement
-          }
-        >
-          <ContextContent uid={r["anchor-uid"]} results={[]} />
-        </Portal>
-      )}
-    </span>
-  );
+const removeTargetFromResult = (
+  result: Partial<Result & { target: string }>,
+): Result => {
+  const tableResult = { ...result };
+  delete tableResult.target;
+  return tableResult as Result;
 };
 
 const ContextTab = ({
@@ -270,7 +76,7 @@ const ContextTab = ({
       // TODO - always save settings, but maybe separate from root `parentUid`?
       preventSavingSettings
       parentUid={parentUid}
-      results={Object.values(results).map(({ target, ...a }) => a as Result)}
+      results={Object.values(results).map(removeTargetFromResult)}
       columns={columns}
       onRefresh={onRefresh}
       header={
