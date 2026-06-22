@@ -38,7 +38,7 @@ const getOverlayInfo = async (
 ): Promise<DiscourseData> => {
   try {
     const relations = getDiscourseRelations();
-    const nodes = getDiscourseNodes(relations);
+    const nodes = getDiscourseNodes();
 
     const [results, refs] = await Promise.all([
       getDiscourseContextResults({

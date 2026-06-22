@@ -486,12 +486,12 @@ const TldrawCanvasShared = ({
     return Object.keys(discourseContext.relations);
   }, []);
   const allNodes = useMemo(() => {
-    const allNodes = getDiscourseNodes(allRelations);
+    const allNodes = getDiscourseNodes();
     discourseContext.nodes = Object.fromEntries(
       allNodes.map((n, index) => [n.type, { ...n, index }]),
     );
     return allNodes;
-  }, [allRelations]);
+  }, []);
 
   const allAddReferencedNodeByAction = useMemo(() => {
     const obj: AddReferencedNodeType = {};

@@ -50,12 +50,6 @@ const buildSelections = ({
       label: "context",
       text: `node:${conditionUid}-Context`,
     });
-  } else if (r.triples.some((t) => t.some((a) => /anchor/i.test(a)))) {
-    selections.push({
-      uid: window.roamAlphaAPI.util.generateUID(),
-      label: "anchor",
-      text: `node:${conditionUid}-Anchor`,
-    });
   }
 
   return selections;
@@ -172,7 +166,7 @@ const buildQueryConfig = ({
 const getDiscourseContextResults = async ({
   uid: targetUid,
   relations = getDiscourseRelations(),
-  nodes = getDiscourseNodes(relations),
+  nodes = getDiscourseNodes(),
   ignoreCache,
   onResult,
 }: {

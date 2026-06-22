@@ -27,7 +27,7 @@ const findDiscourseNode = ({
     return discourseNodeTypeCache[uid];
   }
 
-  const resolvedNodes = nodes ?? getDiscourseNodes(undefined, snapshot);
+  const resolvedNodes = nodes ?? getDiscourseNodes(snapshot);
   const matchingNode =
     resolvedNodes.find((node) =>
       title === undefined

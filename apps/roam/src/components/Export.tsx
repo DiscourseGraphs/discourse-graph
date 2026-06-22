@@ -327,7 +327,7 @@ const ExportDialog: ExportDialogComponent = ({
       );
       const allRelations = relations;
       const allRelationIds = allRelations.map((r) => r.id);
-      const allNodes = getDiscourseNodes(allRelations);
+      const allNodes = getDiscourseNodes();
       const allAddReferencedNodeByAction = (() => {
         const obj: AddReferencedNodeType = {};
 
