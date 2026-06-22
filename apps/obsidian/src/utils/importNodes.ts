@@ -2,6 +2,15 @@ import type { Json } from "@repo/database/dbTypes";
 import matter from "gray-matter";
 import { App, Notice, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import {
+  type ContentResolveRequest,
+  resolveContentViaApi,
+  type ContentResolveRow,
+} from "@repo/database/lib/contentApi";
+import {
+  TEXT_MARKDOWN_CONTENT_TYPE,
+  TEXT_PLAIN_CONTENT_TYPE,
+} from "@repo/content-model/constants";
 import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
@@ -24,6 +33,34 @@ import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 export type MyGroup = {
   id: string;
   name: string;
+};
+
+const nativeContentTypeForVariant = (variant: "direct" | "full"): string =>
+  variant === "direct" ? TEXT_PLAIN_CONTENT_TYPE : TEXT_MARKDOWN_CONTENT_TYPE;
+
+const resolveNativeContentRows = async ({
+  client,
+  spaceId,
+  requests,
+  errorContext,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  requests: ContentResolveRequest["requests"];
+  errorContext: string;
+}): Promise<ContentResolveRow[] | null> => {
+  try {
+    return await resolveContentViaApi({
+      supabaseClient: client,
+      request: {
+        spaceId,
+        requests,
+      },
+    });
+  } catch (error) {
+    console.error(errorContext, error);
+    return null;
+  }
 };
 
 export const getAvailableGroupIds = async (
@@ -97,9 +134,10 @@ export const getPublishedNodesForGroups = async ({
   const { data, error } = await client
     .from("my_contents")
     .select(
-      "source_local_id, space_id, text, created, last_modified, variant, metadata, author_id",
+      "source_local_id, space_id, text, created, last_modified, variant, metadata, author_id, content_type",
     )
-    .neq("space_id", currentSpaceId);
+    .neq("space_id", currentSpaceId)
+    .in("content_type", [TEXT_PLAIN_CONTENT_TYPE, TEXT_MARKDOWN_CONTENT_TYPE]);
 
   if (error) {
     console.error("Error fetching published nodes:", error);
@@ -119,6 +157,7 @@ export const getPublishedNodesForGroups = async ({
     variant: string | null;
     author_id: number | null;
     metadata: Json;
+    content_type: string | null;
   };
 
   const key = (r: Row) => `${r.space_id ?? ""}\t${r.source_local_id ?? ""}`;
@@ -140,7 +179,10 @@ export const getPublishedNodesForGroups = async ({
     const latest = withDate.reduce((a, b) =>
       (a.last_modified ?? "") >= (b.last_modified ?? "") ? a : b,
     );
-    const direct = rows.find((r) => r.variant === "direct");
+    const direct = rows.find(
+      (r) =>
+        r.variant === "direct" && r.content_type === TEXT_PLAIN_CONTENT_TYPE,
+    );
     const text = direct?.text ?? latest.text ?? "";
     const createdAt = latest.created
       ? new Date(latest.created + "Z").valueOf()
@@ -292,19 +334,22 @@ export const fetchNodeContent = async ({
   nodeInstanceId: string;
   variant: "direct" | "full";
 }): Promise<string | null> => {
-  const { data, error } = await client
-    .from("my_contents")
-    .select("text")
-    .eq("source_local_id", nodeInstanceId)
-    .eq("space_id", spaceId)
-    .eq("variant", variant)
-    .maybeSingle();
+  const rows = await resolveNativeContentRows({
+    client,
+    spaceId,
+    errorContext: `Error fetching node content (${variant}):`,
+    requests: [
+      {
+        source_local_id: nodeInstanceId,
+        variant,
+        content_type: nativeContentTypeForVariant(variant),
+      },
+    ],
+  });
+  const data = rows?.[0];
 
-  if (error || !data || data.text == null) {
-    console.error(
-      `Error fetching node content (${variant}):`,
-      error || "No data",
-    );
+  if (!data || data.text == null) {
+    console.error(`Error fetching node content (${variant}):`, "No data");
     return null;
   }
 
@@ -326,18 +371,24 @@ export const fetchNodeContentWithMetadata = async ({
   createdAt: number;
   modifiedAt: number;
 } | null> => {
-  const { data, error } = await client
-    .from("my_contents")
-    .select("text, created, last_modified")
-    .eq("source_local_id", nodeInstanceId)
-    .eq("space_id", spaceId)
-    .eq("variant", variant)
-    .maybeSingle();
+  const rows = await resolveNativeContentRows({
+    client,
+    spaceId,
+    errorContext: `Error fetching node content with metadata (${variant}):`,
+    requests: [
+      {
+        source_local_id: nodeInstanceId,
+        variant,
+        content_type: nativeContentTypeForVariant(variant),
+      },
+    ],
+  });
+  const data = rows?.[0];
 
-  if (error || !data || data.text == null) {
+  if (!data || data.text == null) {
     console.error(
       `Error fetching node content with metadata (${variant}):`,
-      error || "No data",
+      "No data",
     );
     return null;
   }
@@ -371,28 +422,32 @@ const fetchNodeContentForImport = async ({
   authorId: number;
   filePath?: string;
 } | null> => {
-  const { data, error } = await client
-    .from("my_contents")
-    .select("text, created, last_modified, variant, metadata, author_id")
-    .eq("source_local_id", nodeInstanceId)
-    .eq("space_id", spaceId)
-    .in("variant", ["direct", "full"]);
+  const rows = await resolveNativeContentRows({
+    client,
+    spaceId,
+    errorContext: "Error fetching node content for import:",
+    requests: [
+      {
+        source_local_id: nodeInstanceId,
+        variant: "direct",
+        content_type: TEXT_PLAIN_CONTENT_TYPE,
+      },
+      {
+        source_local_id: nodeInstanceId,
+        variant: "full",
+        content_type: TEXT_MARKDOWN_CONTENT_TYPE,
+      },
+    ],
+  });
+  if (!rows) return null;
 
-  if (error) {
-    console.error("Error fetching node content for import:", error);
-    return null;
-  }
-
-  const rows = (data ?? []) as Array<{
-    text: string | null;
-    created: string | null;
-    last_modified: string | null;
-    author_id: number | null;
-    variant: string | null;
-    metadata: Json;
-  }>;
-  const direct = rows.find((r) => r.variant === "direct");
-  const full = rows.find((r) => r.variant === "full");
+  const direct = rows.find(
+    (r) => r.variant === "direct" && r.content_type === TEXT_PLAIN_CONTENT_TYPE,
+  );
+  const full = rows.find(
+    (r) =>
+      r.variant === "full" && r.content_type === TEXT_MARKDOWN_CONTENT_TYPE,
+  );
   const authorId = full?.author_id ?? direct?.author_id ?? null;
 
   if (
@@ -437,14 +492,20 @@ export const getSourceContentDates = async ({
   if (!client) return null;
   const { spaceId } = await getSpaceNameIdFromRid(client, importedFromRid);
   if (spaceId < 0) return null;
-  const { data, error } = await client
-    .from("my_contents")
-    .select("created, last_modified")
-    .eq("source_local_id", nodeInstanceId)
-    .eq("space_id", spaceId)
-    .eq("variant", "direct")
-    .maybeSingle();
-  if (error || !data) return null;
+  const rows = await resolveNativeContentRows({
+    client,
+    spaceId,
+    errorContext: "Error fetching source content dates:",
+    requests: [
+      {
+        source_local_id: nodeInstanceId,
+        variant: "direct",
+        content_type: TEXT_PLAIN_CONTENT_TYPE,
+      },
+    ],
+  });
+  const data = rows?.[0];
+  if (!data) return null;
   return {
     createdAt: data.created ?? new Date(0).toISOString(),
     modifiedAt: data.last_modified ?? new Date(0).toISOString(),
@@ -1567,14 +1628,19 @@ export const refreshImportedFile = async ({
   if (spaceId === -1) {
     return { success: false, error: "Could not get the space Id" };
   }
-  const metadataResp = await supabaseClient
-    .from("Content")
-    .select("metadata")
-    .eq("space_id", spaceId)
-    .eq("source_local_id", frontmatter.nodeInstanceId)
-    .eq("variant", "direct")
-    .maybeSingle();
-  const metadata = metadataResp.data?.metadata;
+  const metadataRows = await resolveNativeContentRows({
+    client: supabaseClient,
+    spaceId,
+    errorContext: "Error fetching source file metadata:",
+    requests: [
+      {
+        source_local_id: frontmatter.nodeInstanceId,
+        variant: "direct",
+        content_type: TEXT_PLAIN_CONTENT_TYPE,
+      },
+    ],
+  });
+  const metadata = metadataRows?.[0]?.metadata;
   const filePath: string | undefined =
     typeof metadata === "object" &&
     typeof (metadata as Record<string, unknown>).filePath === "string"

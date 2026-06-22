@@ -291,6 +291,32 @@ Then(
   },
 );
 
+Then(
+  "a user logged in space {word} should see these content rows:",
+  async (spaceName: string, expectedRowsString: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const expectedRows = JSON.parse(expectedRowsString) as Array<
+      Record<string, Json>
+    >;
+    const client = await getLoggedinDatabase(spaceId);
+    const response = await client
+      .from("my_contents")
+      .select("source_local_id, variant, content_type, text, metadata")
+      .eq("space_id", spaceId)
+      .order("content_type");
+    assert.equal(response.error, null);
+    const rows = (response.data || []).map((row) => {
+      const expectedKeys = new Set(Object.keys(expectedRows[0] || {}));
+      return Object.fromEntries(
+        Object.entries(row).filter(([key]) => expectedKeys.has(key)),
+      );
+    });
+    assert.deepEqual(rows, expectedRows);
+  },
+);
+
 // invoke the upsert_accounts_in_space function, expects json
 Given(
   "user {word} upserts these accounts to space {word}:",

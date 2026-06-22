@@ -6,15 +6,16 @@ CREATE TABLE IF NOT EXISTS public."FileReference" (
     "created" timestamp without time zone NOT NULL,
     last_modified timestamp without time zone NOT NULL,
     -- not allowed virtual with user types
-    variant public."ContentVariant" GENERATED ALWAYS AS ('full') STORED
+    variant public."ContentVariant" GENERATED ALWAYS AS ('full') STORED,
+    content_type text GENERATED ALWAYS AS ('text/markdown') STORED
 );
 ALTER TABLE ONLY public."FileReference"
 ADD CONSTRAINT "FileReference_pkey" PRIMARY KEY (source_local_id, space_id, filepath);
 
 ALTER TABLE ONLY public."FileReference"
 ADD CONSTRAINT "FileReference_content_fkey" FOREIGN KEY (
-    space_id, source_local_id, variant
-) REFERENCES public."Content" (space_id, source_local_id, variant) ON DELETE CASCADE;
+    space_id, source_local_id, variant, content_type
+) REFERENCES public."Content" (space_id, source_local_id, variant, content_type) ON DELETE CASCADE;
 -- note the absence of on update ; the generated column forbids cascade, so it will error
 -- However, update on those columns should never happen.
 
@@ -29,7 +30,8 @@ SELECT
     filepath,
     filehash,
     created,
-    last_modified
+    last_modified,
+    content_type
 FROM public."FileReference"
     LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (

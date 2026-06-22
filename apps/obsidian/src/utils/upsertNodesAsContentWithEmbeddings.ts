@@ -1,11 +1,21 @@
 import { nextApiRoot } from "@repo/utils/execContext";
 import { DGSupabaseClient } from "@repo/database/lib/client";
-import { Json, CompositeTypes } from "@repo/database/dbTypes";
+import { Json } from "@repo/database/dbTypes";
+import type { LocalContentDataInput } from "@repo/database/inputTypes";
+import {
+  DG_ATJSON_CONTENT_TYPE,
+  TEXT_MARKDOWN_CONTENT_TYPE,
+  TEXT_PLAIN_CONTENT_TYPE,
+} from "@repo/content-model/constants";
+import { fromObsidianMarkdown } from "@repo/content-model/adapters/obsidian";
+import {
+  createAtJsonContentMetadata,
+  derivePlainTextFromDgDocument,
+} from "@repo/content-model/text";
+import { upsertContentViaApi } from "@repo/database/lib/contentApi";
 import { SupabaseContext } from "./supabaseContext";
 import { ObsidianDiscourseNodeData, ChangeType } from "./syncDgNodesToSupabase";
 import { default as DiscourseGraphPlugin } from "~/index";
-
-type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
 
 type ContentVariant = "direct" | "full";
 
@@ -63,19 +73,36 @@ const createNodeContentEntries = async (
       ...baseEntry,
       text: node.file.basename,
       variant: "direct",
+      content_type: TEXT_PLAIN_CONTENT_TYPE,
       metadata: { filePath: node.file.path },
     });
   }
 
-  // Create full entry (content) if needed - no embeddings
+  // Create full native Markdown and ATJSON entries if needed - no embeddings.
   if (variantsToCreate.includes("full")) {
     try {
       const fullContent = await plugin.app.vault.read(node.file);
+      const document = fromObsidianMarkdown({
+        title: node.file.basename,
+        markdown: fullContent,
+        metadata: {
+          filePath: node.file.path,
+          source: "obsidian",
+        },
+      });
       entries.push({
         ...baseEntry,
         text: fullContent,
         variant: "full",
+        content_type: TEXT_MARKDOWN_CONTENT_TYPE,
         metadata: node.frontmatter as Json,
+      });
+      entries.push({
+        ...baseEntry,
+        text: derivePlainTextFromDgDocument(document),
+        variant: "full",
+        content_type: DG_ATJSON_CONTENT_TYPE,
+        metadata: createAtJsonContentMetadata(document) as unknown as Json,
       });
     } catch (error) {
       console.error(`Error reading file content for ${node.file.path}:`, error);
@@ -163,16 +190,18 @@ const uploadBatches = async (
   context: SupabaseContext,
 ): Promise<void> => {
   const { spaceId, userId } = context;
-  for (let idx = 0; idx < batches.length; idx++) {
-    const batch = batches[idx];
-    const { error } = await supabaseClient.rpc("upsert_content", {
-      data: batch as unknown as Json,
-      v_space_id: spaceId,
-      v_creator_id: userId,
-      content_as_document: true,
-    });
-
-    if (error) {
+  for (const [idx, batch] of batches.entries()) {
+    try {
+      await upsertContentViaApi({
+        supabaseClient,
+        request: {
+          data: batch,
+          spaceId,
+          creatorId: userId,
+          contentAsDocument: true,
+        },
+      });
+    } catch (error) {
       console.error(`upsert_content failed for batch ${idx + 1}:`, error);
       throw error;
     }
@@ -209,10 +238,10 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async ({
   });
 
   const directVariantEntries = allContentEntries.filter(
-    (entry) => entry.variant === "direct",
+    (entry) => entry.content_type === TEXT_PLAIN_CONTENT_TYPE,
   );
-  const fullVariantEntries = allContentEntries.filter(
-    (entry) => entry.variant === "full",
+  const representationEntries = allContentEntries.filter(
+    (entry) => entry.content_type !== TEXT_PLAIN_CONTENT_TYPE,
   );
 
   let directEntriesWithEmbeddings: LocalContentDataInput[];
@@ -222,7 +251,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async ({
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${errorMessage}`,
+      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed - ${errorMessage}`,
     );
     throw new Error(errorMessage);
   }
@@ -238,7 +267,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async ({
 
   const allEntriesToUpload = [
     ...directEntriesWithEmbeddings,
-    ...fullVariantEntries,
+    ...representationEntries,
   ];
 
   const batchSize = 200;

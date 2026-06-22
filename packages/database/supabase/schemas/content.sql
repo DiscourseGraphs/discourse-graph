@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS public."Content" (
     document_id bigint NOT NULL,
     source_local_id character varying,
     variant public."ContentVariant" NOT NULL DEFAULT 'direct',
+    content_type text NOT NULL DEFAULT 'text/plain',
     author_id bigint,
     creator_id bigint,
     created timestamp without time zone NOT NULL,
@@ -130,7 +131,7 @@ CREATE INDEX "Content_part_of" ON public."Content" USING btree (
 CREATE INDEX "Content_space" ON public."Content" USING btree (space_id);
 
 CREATE UNIQUE INDEX content_space_local_id_variant_idx ON public."Content" USING btree (
-    space_id, source_local_id, variant
+    space_id, source_local_id, variant, content_type
 ) NULLS DISTINCT;
 
 CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
@@ -261,7 +262,8 @@ SELECT
     scale,
     space_id,
     last_modified,
-    part_of_id
+    part_of_id,
+    content_type
 FROM public."Content"
     LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (
@@ -337,7 +339,8 @@ CREATE TYPE public.content_local_input AS (
     author_inline public.account_local_input,
     creator_inline public.account_local_input,
     embedding_inline public.inline_embedding_input,
-    variant public."ContentVariant"
+    variant public."ContentVariant",
+    content_type text
 );
 
 
@@ -410,7 +413,9 @@ BEGIN
   END IF;
   IF data.part_of_local_id IS NOT NULL THEN
     SELECT id FROM public."Content"
-      WHERE source_local_id = data.part_of_local_id INTO content.part_of_id;
+      WHERE source_local_id = data.part_of_local_id
+      AND content_type = COALESCE(data.content_type, 'text/plain')
+      LIMIT 1 INTO content.part_of_id;
   END IF;
   IF data.space_url IS NOT NULL THEN
     SELECT id FROM public."Space"
@@ -598,6 +603,7 @@ BEGIN
         document_id,
         source_local_id,
         variant,
+        content_type,
         author_id,
         creator_id,
         created,
@@ -611,6 +617,7 @@ BEGIN
         db_content.document_id,
         db_content.source_local_id,
         COALESCE(db_content.variant, 'direct'::public."ContentVariant"),
+        COALESCE(db_content.content_type, 'text/plain'),
         db_content.author_id,
         db_content.creator_id,
         db_content.created,
@@ -621,7 +628,7 @@ BEGIN
         db_content.last_modified,
         db_content.part_of_id
     )
-    ON CONFLICT (space_id, source_local_id, variant) DO UPDATE SET
+    ON CONFLICT (space_id, source_local_id, variant, content_type) DO UPDATE SET
         document_id = COALESCE(db_content.document_id, EXCLUDED.document_id),
         author_id = COALESCE(db_content.author_id, EXCLUDED.author_id),
         creator_id = COALESCE(db_content.creator_id, EXCLUDED.creator_id),
@@ -632,7 +639,8 @@ BEGIN
         last_modified = COALESCE(db_content.last_modified, EXCLUDED.last_modified),
         part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id)
     RETURNING id INTO STRICT upsert_id;
-    IF model(embedding_inline(local_content)) IS NOT NULL THEN
+    IF COALESCE(db_content.content_type, 'text/plain') = 'text/plain'
+       AND model(embedding_inline(local_content)) IS NOT NULL THEN
         PERFORM public.upsert_content_embedding(upsert_id, model(embedding_inline(local_content)),  vector(embedding_inline(local_content)));
     END IF;
     RETURN NEXT upsert_id;

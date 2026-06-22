@@ -1,5 +1,9 @@
 import { Notice, TFile } from "obsidian";
 import { addFile } from "@repo/database/lib/files";
+import {
+  TEXT_MARKDOWN_CONTENT_TYPE,
+  TEXT_PLAIN_CONTENT_TYPE,
+} from "@repo/content-model/constants";
 import mime from "mime-types";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
@@ -60,6 +64,7 @@ const getAllNodeInstanceIdsFromSupabase = async (
       .select("source_local_id")
       .eq("space_id", spaceId)
       .eq("scale", "document")
+      .in("content_type", [TEXT_PLAIN_CONTENT_TYPE, TEXT_MARKDOWN_CONTENT_TYPE])
       .not("source_local_id", "is", null);
 
     if (error) {
@@ -169,6 +174,7 @@ const getLastContentSyncTime = async (
     .from("my_contents")
     .select("last_modified")
     .eq("space_id", spaceId)
+    .in("content_type", [TEXT_PLAIN_CONTENT_TYPE, TEXT_MARKDOWN_CONTENT_TYPE])
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -275,6 +281,7 @@ const getExistingTitlesFromDatabase = async (
       .select("source_local_id, text")
       .eq("space_id", spaceId)
       .eq("variant", "direct")
+      .eq("content_type", TEXT_PLAIN_CONTENT_TYPE)
       .in("source_local_id", nodeInstanceIds);
 
   if (directError) {

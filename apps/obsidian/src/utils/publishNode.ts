@@ -1,5 +1,6 @@
 import type { FrontMatterCache, TFile } from "obsidian";
 import type { default as DiscourseGraphPlugin } from "~/index";
+import { TEXT_MARKDOWN_CONTENT_TYPE } from "@repo/content-model/constants";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
@@ -428,6 +429,7 @@ export const publishNodeToGroup = async ({
     .eq("source_local_id", nodeId)
     .eq("space_id", spaceId)
     .eq("variant", "full")
+    .eq("content_type", TEXT_MARKDOWN_CONTENT_TYPE)
     .maybeSingle();
   if (idResponse.error || !idResponse.data) {
     throw idResponse.error || new Error("no data while fetching node");

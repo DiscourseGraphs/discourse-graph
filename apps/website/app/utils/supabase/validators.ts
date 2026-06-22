@@ -188,9 +188,20 @@ export const contentInputValidation = (
 ): string | null => {
   if (!data || typeof data !== "object")
     return "Invalid request body: expected a JSON object.";
-  const { author_id, created, last_modified, scale, space_id, text } = data;
+  const {
+    author_id,
+    content_type,
+    created,
+    last_modified,
+    scale,
+    space_id,
+    text,
+  } = data;
 
   if (!text || typeof text !== "string") return "Invalid or missing text.";
+  if (content_type !== undefined && typeof content_type !== "string") {
+    return "Invalid content_type.";
+  }
   if (!scale || typeof scale !== "string") return "Invalid or missing scale.";
   if (
     space_id === undefined ||

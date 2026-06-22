@@ -257,6 +257,7 @@ export type Database = {
       Content: {
         Row: {
           author_id: number | null
+          content_type: string
           created: string
           creator_id: number | null
           document_id: number
@@ -272,6 +273,7 @@ export type Database = {
         }
         Insert: {
           author_id?: number | null
+          content_type?: string
           created: string
           creator_id?: number | null
           document_id: number
@@ -287,6 +289,7 @@ export type Database = {
         }
         Update: {
           author_id?: number | null
+          content_type?: string
           created?: string
           creator_id?: number | null
           document_id?: number
@@ -581,6 +584,7 @@ export type Database = {
       }
       FileReference: {
         Row: {
+          content_type: string | null
           created: string
           filehash: string
           filepath: string
@@ -590,6 +594,7 @@ export type Database = {
           variant: Database["public"]["Enums"]["ContentVariant"] | null
         }
         Insert: {
+          content_type?: string | null
           created: string
           filehash: string
           filepath: string
@@ -599,6 +604,7 @@ export type Database = {
           variant?: Database["public"]["Enums"]["ContentVariant"] | null
         }
         Update: {
+          content_type?: string | null
           created?: string
           filehash?: string
           filepath?: string
@@ -610,24 +616,24 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant"]
+            columns: ["space_id", "source_local_id", "variant", "content_type"]
             isOneToOne: false
             referencedRelation: "Content"
-            referencedColumns: ["space_id", "source_local_id", "variant"]
+            referencedColumns: ["space_id", "source_local_id", "variant", "content_type"]
           },
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant"]
+            columns: ["space_id", "source_local_id", "variant", "content_type"]
             isOneToOne: false
             referencedRelation: "my_contents"
-            referencedColumns: ["space_id", "source_local_id", "variant"]
+            referencedColumns: ["space_id", "source_local_id", "variant", "content_type"]
           },
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant"]
+            columns: ["space_id", "source_local_id", "variant", "content_type"]
             isOneToOne: false
             referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
-            referencedColumns: ["space_id", "source_local_id", "variant"]
+            referencedColumns: ["space_id", "source_local_id", "variant", "content_type"]
           },
         ]
       }
@@ -1033,6 +1039,7 @@ export type Database = {
       my_contents: {
         Row: {
           author_id: number | null
+          content_type: string | null
           created: string | null
           creator_id: number | null
           document_id: number | null
@@ -1143,6 +1150,7 @@ export type Database = {
       my_contents_with_embedding_openai_text_embedding_3_small_1536: {
         Row: {
           author_id: number | null
+          content_type: string | null
           created: string | null
           creator_id: number | null
           document_id: number | null
@@ -1304,6 +1312,7 @@ export type Database = {
       }
       my_file_references: {
         Row: {
+          content_type: string | null
           created: string | null
           filehash: string | null
           filepath: string | null
@@ -1985,6 +1994,7 @@ export type Database = {
           | Database["public"]["CompositeTypes"]["inline_embedding_input"]
           | null
         variant: Database["public"]["Enums"]["ContentVariant"] | null
+        content_type: string | null
       }
       document_local_input: {
         space_id: number | null

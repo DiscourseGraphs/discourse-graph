@@ -1,4 +1,5 @@
 import type { PostgrestResponse } from "@supabase/supabase-js";
+import { TEXT_PLAIN_CONTENT_TYPE } from "@repo/content-model/constants";
 import type { SupabaseContext } from "./supabaseContext";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Tables } from "@repo/database/dbTypes";
@@ -76,6 +77,7 @@ const getAllContentLocalIdsFromSupabase = async (
       .from("my_contents")
       .select("source_local_id")
       .eq("space_id", spaceId)
+      .eq("content_type", TEXT_PLAIN_CONTENT_TYPE)
       .not("source_local_id", "is", null);
 
     if (error) {

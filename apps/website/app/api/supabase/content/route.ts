@@ -31,7 +31,7 @@ const processAndUpsertContentEntry = async (
     supabase,
     tableName: "Content",
     insertData: data,
-    uniqueOn: ["space_id", "source_local_id"],
+    uniqueOn: ["space_id", "source_local_id", "variant", "content_type"],
   });
 
   return result;

@@ -28,6 +28,7 @@ enums:
       direct:
       direct_and_children:
       direct_and_description:
+      full:
   Validation:
     description: Whether a given value was given by a person, or suggested by an automated agent (and then possibly infirmed.)
     permissible_values:
@@ -225,6 +226,8 @@ classes:
       - id
       - document
       - source_local_id
+      - variant
+      - content_type
       - author
       - creator
       - created
@@ -245,6 +248,8 @@ classes:
         unique_key_slots:
           - space
           - source_local_id
+          - variant
+          - content_type
 
   # ContentDerivation:
   #   description: A derivation relation between content units
@@ -484,3 +489,9 @@ slots:
     range: string
     description: The unique identifier of the content in the remote source
     # In the case of a document, could it be the URL?
+  content_type:
+    range: string
+    description: The representation format of a Content row.
+  variant:
+    range: ContentVariant
+    required: true

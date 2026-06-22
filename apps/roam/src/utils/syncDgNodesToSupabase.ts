@@ -1,4 +1,5 @@
 import posthog from "posthog-js";
+import { TEXT_PLAIN_CONTENT_TYPE } from "@repo/content-model/constants";
 import {
   getAllDiscourseNodesSince,
   nodeTypeSince,
@@ -24,6 +25,7 @@ import type { Json, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
 import { FatalError } from "@repo/database/lib/contextFunctions";
+import { upsertContentViaApi } from "@repo/database/lib/contentApi";
 import { getAllPages } from "@repo/database/lib/pagination";
 import type {
   LocalConceptDataInput,
@@ -539,16 +541,15 @@ const upsertNodeSchemaToContent = async ({
   const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
     nodes: result,
   });
-  const { error } = await supabaseClient.rpc("upsert_content", {
-    data: contentData as Json,
-    v_space_id: spaceId,
-    v_creator_id: userId,
-    content_as_document: true,
+  await upsertContentViaApi({
+    supabaseClient,
+    request: {
+      data: contentData,
+      spaceId,
+      creatorId: userId,
+      contentAsDocument: true,
+    },
   });
-  if (error) {
-    console.error("upsert_content failed:", error);
-    throw new Error(error.message);
-  }
 };
 
 export const convertDgToSupabaseConcepts = async ({
@@ -618,12 +619,16 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
     nodes: roamNodes,
   });
+  const textPlainEntries = allNodeInstancesAsLocalContent.filter(
+    (entry) => entry.content_type === TEXT_PLAIN_CONTENT_TYPE,
+  );
+  const representationEntries = allNodeInstancesAsLocalContent.filter(
+    (entry) => entry.content_type !== TEXT_PLAIN_CONTENT_TYPE,
+  );
 
   let nodesWithEmbeddings: LocalContentDataInput[];
   try {
-    nodesWithEmbeddings = await fetchEmbeddingsForNodes(
-      allNodeInstancesAsLocalContent,
-    );
+    nodesWithEmbeddings = await fetchEmbeddingsForNodes(textPlainEntries);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(
@@ -632,7 +637,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     throw new Error(message);
   }
 
-  if (nodesWithEmbeddings.length !== allNodeInstancesAsLocalContent.length) {
+  if (nodesWithEmbeddings.length !== textPlainEntries.length) {
     console.error(
       "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
     );
@@ -645,20 +650,21 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     for (let idx = 0; idx < batches.length; idx++) {
       const batch = batches[idx];
 
-      const { error } = await supabaseClient.rpc("upsert_content", {
-        data: batch as Json,
-        v_space_id: context.spaceId,
-        v_creator_id: userId,
-        content_as_document: true,
+      await upsertContentViaApi({
+        supabaseClient,
+        request: {
+          data: batch,
+          spaceId: context.spaceId,
+          creatorId: userId,
+          contentAsDocument: true,
+        },
       });
-
-      if (error) {
-        throw new Error(`upsert_content failed for batch ${idx + 1}:`, error);
-      }
     }
   };
 
-  await uploadBatches(chunk(nodesWithEmbeddings, BATCH_SIZE));
+  await uploadBatches(
+    chunk([...nodesWithEmbeddings, ...representationEntries], BATCH_SIZE),
+  );
 };
 
 const getAllUsers = async (): Promise<LocalAccountDataInput[]> => {
@@ -740,6 +746,7 @@ const getAllMissingOrNewDiscourseNodes = async ({
       .from("my_contents")
       .select("source_local_id")
       .eq("space_id", spaceId)
+      .eq("content_type", TEXT_PLAIN_CONTENT_TYPE)
       .order("id"),
     1000,
   );

@@ -22,7 +22,7 @@ const batchInsertContentProcess = async (
     supabase,
     tableName: "Content",
     items: contentItems,
-    uniqueOn: ["space_id", "source_local_id"],
+    uniqueOn: ["space_id", "source_local_id", "variant", "content_type"],
     inputValidator: contentInputValidation,
   });
 };
