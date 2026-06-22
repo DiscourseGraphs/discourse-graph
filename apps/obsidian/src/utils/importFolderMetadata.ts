@@ -24,32 +24,30 @@ const generateShortId = (): string => Math.random().toString(36).slice(2, 8);
 const getImportFolderBasename = (folderPath: string): string =>
   folderPath.split("/").pop() ?? "";
 
+const isImportFolderMetadata = (
+  value: unknown,
+): value is ImportFolderMetadata => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.spaceUri === "string" && typeof v.spaceName === "string";
+};
+
 const parseImportFolderMetadataRaw = (
   raw: string,
 ): ImportFolderMetadata | null => {
-  const tryParse = (content: string): unknown => JSON.parse(content);
-
   let parsed: unknown;
   try {
-    parsed = tryParse(raw);
+    parsed = JSON.parse(raw);
   } catch {
     try {
-      parsed = tryParse(raw.replace(/,\s*([\]}])/g, "$1"));
+      // Tolerate trailing commas in case the file was hand-edited outside the plugin.
+      parsed = JSON.parse(raw.replace(/,\s*([\]}])/g, "$1"));
     } catch {
       return null;
     }
   }
 
-  if (
-    parsed !== null &&
-    typeof parsed === "object" &&
-    "spaceUri" in parsed &&
-    typeof (parsed as Record<string, unknown>).spaceUri === "string"
-  ) {
-    return parsed as ImportFolderMetadata;
-  }
-
-  return null;
+  return isImportFolderMetadata(parsed) ? parsed : null;
 };
 
 const readImportFolderMetadata = async (
