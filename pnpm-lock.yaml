@@ -42,6 +42,9 @@ catalogs:
     react-dom:
       specifier: ^19.1.0
       version: 19.1.1
+    vitest:
+      specifier: ^4.0.0
+      version: 4.1.6
   obsidian:
     '@types/react':
       specifier: ^19.0.12
@@ -403,7 +406,7 @@ importers:
         specifier: ^4.19.2
         version: 4.20.5
       vitest:
-        specifier: ^4.0.0
+        specifier: 'catalog:'
         version: 4.1.6(@edge-runtime/vm@3.2.0)(@opentelemetry/api@1.9.0)(@types/node@20.19.13)(jsdom@20.0.3)(msw@2.11.1(@types/node@20.19.13)(typescript@5.5.4))(vite@7.3.3(@types/node@20.19.13)(jiti@1.21.7)(tsx@4.20.5)(yaml@2.8.2))
 
   apps/tldraw-sync-worker:
@@ -543,7 +546,7 @@ importers:
         specifier: ^5
         version: 5.5.4
       vitest:
-        specifier: ^4.0.0
+        specifier: 'catalog:'
         version: 4.1.6(@edge-runtime/vm@3.2.0)(@opentelemetry/api@1.9.0)(@types/node@20.19.13)(jsdom@20.0.3)(msw@2.11.1(@types/node@20.19.13)(typescript@5.5.4))(vite@7.3.3(@types/node@20.19.13)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/database:

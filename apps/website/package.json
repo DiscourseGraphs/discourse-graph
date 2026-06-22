@@ -39,7 +39,7 @@
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "dotenv": "^16.0.0",
-    "vitest": "^4.0.0",
+    "vitest": "catalog:",
     "@repo/tailwind-config": "workspace:*",
     "@repo/types": "workspace:*",
     "@repo/typescript-config": "workspace:*",

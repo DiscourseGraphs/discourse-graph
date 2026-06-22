@@ -30,7 +30,7 @@
     "esbuild": "0.17.14",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
-    "vitest": "^4.0.0"
+    "vitest": "catalog:"
   },
   "//": "axios dep temporary - need to fix the dep in underlying libraries",
   "tags": [
