@@ -1,5 +1,6 @@
 import { BLOCK_REF_REGEX } from "roamjs-components/dom/constants";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
+import getPageUidByBlockUid from "roamjs-components/queries/getPageUidByBlockUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getPageMetadata from "./getPageMetadata";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
@@ -20,6 +21,7 @@ import {
   pullBlockToTreeNode,
   collectUids,
 } from "./exportUtils";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 const MATCHES_NONE = /$.+^/;
 
@@ -127,6 +129,8 @@ export const toMarkdown = ({
     removeSpecialCharacters: boolean;
     linkType: string;
     flatten?: boolean;
+    blockRefsAsLinks?: boolean;
+    blockAnchors?: boolean;
   };
 }): string => {
   const {
@@ -138,21 +142,37 @@ export const toMarkdown = ({
     removeSpecialCharacters,
     linkType,
     flatten = false,
+    blockRefsAsLinks = false,
+    blockAnchors = false,
   } = opts;
   const processedText = c.text
-    .replace(embeds ? EMBED_REGEX : MATCHES_NONE, (_, blockUid) => {
+    .replace(embeds ? EMBED_REGEX : MATCHES_NONE, (_, blockUid: string) => {
       const reference = getFullTreeByParentUid(blockUid);
       return toMarkdown({ c: reference, i, v, opts });
     })
-    .replace(embeds ? EMBED_CHILDREN_REGEX : MATCHES_NONE, (_, blockUid) => {
-      const reference = getFullTreeByParentUid(blockUid);
-      return reference.children
-        .map((child) => toMarkdown({ c: child, i, v, opts }))
-        .join("\n");
-    })
-    .replace(refs ? BLOCK_REF_REGEX : MATCHES_NONE, (_, blockUid) => {
-      const reference = getTextByBlockUid(blockUid);
-      return reference || blockUid;
+    .replace(
+      embeds ? EMBED_CHILDREN_REGEX : MATCHES_NONE,
+      (_, blockUid: string) => {
+        const reference = getFullTreeByParentUid(blockUid);
+        return reference.children
+          .map((child) => toMarkdown({ c: child, i, v, opts }))
+          .join("\n");
+      },
+    )
+    .replace(refs ? BLOCK_REF_REGEX : MATCHES_NONE, (_, blockUid: string) => {
+      const reference = getTextByBlockUid(blockUid) || blockUid;
+
+      if (blockRefsAsLinks) {
+        const pageUid = blockAnchors
+          ? getPageUidByBlockUid(blockUid)
+          : blockUid;
+        if (pageUid === blockUid || pageUid === "")
+          return toLink(reference, blockUid, linkType);
+        else
+          // Note that the roam anchor follows a more complex pattern
+          // Here using the block anchor as target for internal export consistency
+          return toLink(reference, `${pageUid}#block-${blockUid}`, linkType);
+      } else return reference;
     })
     .replace(/{{\[\[TODO\]\]}}/g, v === "bullet" ? "[ ]" : "- [ ]")
     .replace(/{{\[\[DONE\]\]}}/g, v === "bullet" ? "[x]" : "- [x]")
@@ -160,13 +180,15 @@ export const toMarkdown = ({
     .replace(/(?<!\n)```/g, "\n```") // Add line break before last code blocks
     .trim();
   const finalProcessedText =
-    simplifiedFilename || removeSpecialCharacters
+    simplifiedFilename || removeSpecialCharacters || blockRefsAsLinks
       ? XRegExp.matchRecursive(processedText, "#?\\[\\[", "\\]\\]", "i", {
           valueNames: ["between", "left", "match", "right"],
           unbalanced: "skip",
         })
           .map((s) => {
             if (s.name === "match") {
+              const pageUid = getPageUidByPageTitle(s.value);
+              if (pageUid.length > 0) return toLink(s.value, pageUid, linkType);
               const name = getFilename({
                 title: s.value,
                 allNodes,
@@ -205,8 +227,8 @@ export const toMarkdown = ({
     })
     .join("");
   const lineBreak = v === "document" ? "\n" : "";
-
-  return `${indentation}${viewTypePrefix}${headingPrefix}${finalProcessedText}${lineBreak}${childrenMarkdown}`;
+  const blockAnchor = blockAnchors ? `{#block-${c.uid}}` : "";
+  return `${indentation}${viewTypePrefix}${headingPrefix}${blockAnchor}${finalProcessedText}${lineBreak}${childrenMarkdown}`;
 };
 
 export const pageToMarkdown = async (
@@ -222,6 +244,8 @@ export const pageToMarkdown = async (
     maxFilenameLength,
     removeSpecialCharacters,
     linkType,
+    blockRefsAsLinks = false,
+    blockAnchors = false,
   }: {
     includeDiscourseContext: boolean;
     appendRefNodeContext: boolean;
@@ -233,6 +257,8 @@ export const pageToMarkdown = async (
     maxFilenameLength: number;
     removeSpecialCharacters: boolean;
     linkType: string;
+    blockRefsAsLinks?: boolean;
+    blockAnchors?: boolean;
   },
 ): Promise<{ title: string; content: string; uids: Set<string> }> => {
   const v = getPageViewType(text) || "bullet";
@@ -287,6 +313,8 @@ export const pageToMarkdown = async (
           maxFilenameLength,
           removeSpecialCharacters,
           linkType,
+          blockAnchors,
+          blockRefsAsLinks,
         },
       }),
     )
