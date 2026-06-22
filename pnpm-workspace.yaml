@@ -68,6 +68,17 @@ overrides:
   roam>@types/react-dom: 18.2.17
   roam>react: 18.2.0
   roam>react-dom: 18.2.0
+  # LDO fork (rdfjs2 branch) — vendored tarballs in vendor/ldo/
+  # All internal @ldo/* packages must be overridden so transitive deps resolve here too.
+  "@ldo/ldo": "file:vendor/ldo/ldo-ldo-1.0.0-alpha.50.tgz"
+  "@ldo/dataset": "file:vendor/ldo/ldo-dataset-1.0.0-alpha.50.tgz"
+  "@ldo/jsonld-dataset-proxy": "file:vendor/ldo/ldo-jsonld-dataset-proxy-1.0.0-alpha.50.tgz"
+  "@ldo/rdf-utils": "file:vendor/ldo/ldo-rdf-utils-1.0.0-alpha.50.tgz"
+  "@ldo/subscribable-dataset": "file:vendor/ldo/ldo-subscribable-dataset-1.0.0-alpha.50.tgz"
+  "@ldo/traverser-shexj": "file:vendor/ldo/ldo-traverser-shexj-1.0.0-alpha.50.tgz"
+  "@ldo/type-traverser": "file:vendor/ldo/ldo-type-traverser-1.0.0-alpha.50.tgz"
+  "@ldo/schema-converter-shex": "file:vendor/ldo/ldo-schema-converter-shex-1.0.0-alpha.50.tgz"
+  "@ldo/cli": "file:vendor/ldo/ldo-cli-1.0.0-alpha.50.tgz"
 
 patchedDependencies:
   "@blueprintjs/core@^3.50.4": patches/@blueprintjs__core@3.50.4.patch
