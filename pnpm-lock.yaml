@@ -71,6 +71,15 @@ overrides:
   roam>@types/react-dom: 18.2.17
   roam>react: 18.2.0
   roam>react-dom: 18.2.0
+  '@ldo/ldo': file:vendor/ldo/ldo-ldo-1.0.0-alpha.50.tgz
+  '@ldo/dataset': file:vendor/ldo/ldo-dataset-1.0.0-alpha.50.tgz
+  '@ldo/jsonld-dataset-proxy': file:vendor/ldo/ldo-jsonld-dataset-proxy-1.0.0-alpha.50.tgz
+  '@ldo/rdf-utils': file:vendor/ldo/ldo-rdf-utils-1.0.0-alpha.50.tgz
+  '@ldo/subscribable-dataset': file:vendor/ldo/ldo-subscribable-dataset-1.0.0-alpha.50.tgz
+  '@ldo/traverser-shexj': file:vendor/ldo/ldo-traverser-shexj-1.0.0-alpha.50.tgz
+  '@ldo/type-traverser': file:vendor/ldo/ldo-type-traverser-1.0.0-alpha.50.tgz
+  '@ldo/schema-converter-shex': file:vendor/ldo/ldo-schema-converter-shex-1.0.0-alpha.50.tgz
+  '@ldo/cli': file:vendor/ldo/ldo-cli-1.0.0-alpha.50.tgz
 
 patchedDependencies:
   '@blueprintjs/core@^3.50.4':
@@ -452,17 +461,35 @@ importers:
   apps/website:
     dependencies:
       '@ldo/cli':
-        specifier: 1.0.0-alpha.51
-        version: 1.0.0-alpha.51(web-streams-polyfill@3.3.3)
+        specifier: file:../../vendor/ldo/ldo-cli-1.0.0-alpha.50.tgz
+        version: file:vendor/ldo/ldo-cli-1.0.0-alpha.50.tgz(web-streams-polyfill@3.3.3)
       '@ldo/ldo':
-        specifier: 1.0.0-alpha.51
-        version: 1.0.0-alpha.51
+        specifier: file:../../vendor/ldo/ldo-ldo-1.0.0-alpha.50.tgz
+        version: file:vendor/ldo/ldo-ldo-1.0.0-alpha.50.tgz
       '@ldo/rdf-utils':
-        specifier: 1.0.0-alpha.51
-        version: 1.0.0-alpha.51
+        specifier: file:../../vendor/ldo/ldo-rdf-utils-1.0.0-alpha.50.tgz
+        version: file:vendor/ldo/ldo-rdf-utils-1.0.0-alpha.50.tgz
       '@ldo/traverser-shexj':
-        specifier: 1.0.0-alpha.51
-        version: 1.0.0-alpha.51
+        specifier: file:../../vendor/ldo/ldo-traverser-shexj-1.0.0-alpha.50.tgz
+        version: file:vendor/ldo/ldo-traverser-shexj-1.0.0-alpha.50.tgz
+      '@rdfjs/data-model':
+        specifier: ^2.1.1
+        version: 2.1.2
+      '@rdfjs/dataset':
+        specifier: ^2.0.2
+        version: 2.0.3
+      '@rdfjs/formats-common':
+        specifier: ^3.1.0
+        version: 3.1.0
+      '@rdfjs/serializer-ntriples':
+        specifier: ^2.0.1
+        version: 2.0.1
+      '@rdfjs/sink':
+        specifier: ^2.0.1
+        version: 2.0.1
+      '@rdfjs/to-ntriples':
+        specifier: ^3.0.1
+        version: 3.0.1
       '@rdfjs/types':
         specifier: ^2.0.1
         version: 2.0.1
@@ -499,6 +526,9 @@ importers:
       lucide-react:
         specifier: ^0.540.0
         version: 0.540.0(react@19.1.1)
+      n3:
+        specifier: 2.0.1
+        version: 2.0.1
       next:
         specifier: ^16.2.0
         version: 16.2.6(@opentelemetry/api@1.9.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -517,6 +547,12 @@ importers:
       posthog-node:
         specifier: ^5.34.2
         version: 5.34.2(rxjs@7.8.2)
+      rdf-streaming-store:
+        specifier: ^2.1.1
+        version: 2.1.1
+      rdf-utils-fs:
+        specifier: ^3.0.1
+        version: 3.0.1
       react:
         specifier: 'catalog:'
         version: 19.1.1
@@ -526,6 +562,9 @@ importers:
       resend:
         specifier: ^4.0.1
         version: 4.8.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      shacl-engine:
+        specifier: ^1.1.0
+        version: 1.1.2
       showdown:
         specifier: ^2.1.0
         version: 2.1.0
@@ -557,6 +596,9 @@ importers:
       '@types/jsonld':
         specifier: ^1.5.15
         version: 1.5.15
+      '@types/n3':
+        specifier: ^1.26.1
+        version: 1.26.1
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.0
@@ -1279,11 +1321,54 @@ packages:
     resolution: {integrity: sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==}
     engines: {node: '>=0.1.90'}
 
+  '@colors/colors@1.6.0':
+    resolution: {integrity: sha512-Ir+AOibqzrIsL6ajt3Rz3LskB7OiMVHqltZmspbW/TJuTVuyOMirVqAkjfY6JISiLHgyNqicAC8AyHHGzNd/dA==}
+    engines: {node: '>=0.1.90'}
+
   '@comunica/actor-abstract-mediatyped@4.5.0':
     resolution: {integrity: sha512-KbLuhbTcfAQHJeLo3CDDdffCZdfA1qDu15XIdW+7P03UpUp9xMw4p1G0kYtoXwj9KzWguY704TUtpJVBO1GOnw==}
 
+  '@comunica/actor-abstract-mediatyped@5.3.0':
+    resolution: {integrity: sha512-60+GYULL9d/jfsTsGodLwPTIZvlDeqLZwtYSaFbMV9ykzaZs5AJp7LDyA5DeNUBPN228fty0jX2FlAXGf7ZGdg==}
+
   '@comunica/actor-abstract-parse@4.5.0':
     resolution: {integrity: sha512-THNdQsJ58HtkyeW9ghVyLrYEQfSPNfmVAJTDSqOxIujjCdimPbzS2LBXoDdw13GuxWWOATssbm1LwXDlX0xMIQ==}
+
+  '@comunica/actor-abstract-path@5.3.0':
+    resolution: {integrity: sha512-exK0EcWyscuu7psF2U4Cm4iAlOW1fWRAqCZLJo0I7v+8hXtCHTLx2P2bV2LFUvt8Kry4ATzUrrm019RX4b0+hg==}
+
+  '@comunica/actor-bindings-aggregator-factory-average@5.3.0':
+    resolution: {integrity: sha512-dsTR0dQPnisdX9xklFz/WcyA60t9SpDef1Bzryl/cETr9pnnD+HMF3aDZYvmfINUp3YjRP8cxJeWVHPv+kyluA==}
+
+  '@comunica/actor-bindings-aggregator-factory-count@5.3.0':
+    resolution: {integrity: sha512-tLdoFX2poA0tKXXGAREMps0aI3x+MNEGbRftPFD24NbMybmCjSWyN0L3Az29eoWL4zIkmhMK9S/xaguB4k85pg==}
+
+  '@comunica/actor-bindings-aggregator-factory-group-concat@5.3.0':
+    resolution: {integrity: sha512-dypWIfRmvr99qu/0MQWE0oCuhHRt/6NT68c/wctO1ZDb9WPzO24XsjYNcQHPer69uoZIY8s61/V3MJ4/we3dFQ==}
+
+  '@comunica/actor-bindings-aggregator-factory-max@5.3.0':
+    resolution: {integrity: sha512-FlOY4BrSp0uhLCwEh4cHsFFwsiulr3CIfJ+r010WA/n+qwSSp/iGH9s4zmfbqC1tBRrFK9alCdxQJr0BY17MDA==}
+
+  '@comunica/actor-bindings-aggregator-factory-min@5.3.0':
+    resolution: {integrity: sha512-9UGaNaDab76Po3XFOIIZm2RCZDc7Gbwcrr+2hgG5DuJjtxBwl7z3pMkHFYjaBikF9GFaZ1VjT0sW51S80Y8rbg==}
+
+  '@comunica/actor-bindings-aggregator-factory-sample@5.3.0':
+    resolution: {integrity: sha512-ib4MpjNKyGRdKwNjRjoP/Chf5ba8hqDq/LTac8bry405EeimiCZvOmbWa6QQwIvkAtfjMmeydCclMmdnjS8hNQ==}
+
+  '@comunica/actor-bindings-aggregator-factory-sum@5.3.0':
+    resolution: {integrity: sha512-KWS4sYMvYGEhuxVD12OmxGGf7ZU6vV9u4kdq8v9OTTKiEb3YzaQa7IlzsF94qHoek1xH5xp+N7dxaOG+H3z87w==}
+
+  '@comunica/actor-bindings-aggregator-factory-wildcard-count@5.3.0':
+    resolution: {integrity: sha512-BlZLzCTT/FoMCLS+iGxRf0C3tNDjAoO6/ZcT+H0U+DZ/adhpcw6h90FsLKeolW7tSRVUHNV8BJN4UcLE4x9Czg==}
+
+  '@comunica/actor-context-preprocess-convert-shortcuts@5.3.0':
+    resolution: {integrity: sha512-Jb17oQjiZrtvWcEfIWlzb7bVHWq0Buxl0YKj+Lpdd8yJMf2euRo7yW84CK0SWtcMa3zmWRR6iz11AVwoAxwvcg==}
+
+  '@comunica/actor-context-preprocess-set-defaults@5.3.0':
+    resolution: {integrity: sha512-XUuCgi3pI3A+WK1f4IaL+EGKf+LRk8Tyh1W4f7l/66D7YhU7zT3dpSHQ0czywDgZGD8y8BB5avLHF/NlufEQHQ==}
+
+  '@comunica/actor-context-preprocess-source-to-destination@5.3.0':
+    resolution: {integrity: sha512-SqlOUs6WiTg2/bGuU7nJdaz/YAZD/yInEsJ1yBXZuuZtgyLsbuFIyIkzce4Jc6WmHvyUklabRVygtVv1ToBAzQ==}
 
   '@comunica/actor-dereference-fallback@4.5.0':
     resolution: {integrity: sha512-q5D3DEEm5B1+j6FcVZvyRV59ApHys/hBSlO2iCYcVnMg8S04PYlNzjgyERg0+2BjaG5KsbPDSwYlfRUMfJLIug==}
@@ -1297,11 +1382,515 @@ packages:
   '@comunica/actor-dereference-rdf-parse@4.5.0':
     resolution: {integrity: sha512-Vs5Cs1GXov1tIWxDzoASA7TWGJOduEKiHqbsvGWAD8CwxRsdi8KSRHoyvKLVNAQUMiHBNe/PTV8G59O1Q53aYQ==}
 
+  '@comunica/actor-expression-evaluator-factory-default@5.3.0':
+    resolution: {integrity: sha512-DlPOGnaZzJQr3w1rMszrPLIGLJIPwQgtfyfLUcUhtYuMMTAzvfP4xpnA7RNW4CkvlJsynWf0QhDLECjMSw1+Cw==}
+
+  '@comunica/actor-function-factory-expression-bnode@5.3.0':
+    resolution: {integrity: sha512-ehEsR4UERdQGVq/uFyHpqV3egO9SkO/jGIESM8FngimoiMftPN71Qddgkz0AmS8r5mkNg9lADswR5mgQzUB0YA==}
+
+  '@comunica/actor-function-factory-expression-bound@5.3.0':
+    resolution: {integrity: sha512-b0Dg6K7clkaDTHZzzG5OzhZI5IEF+kUahl+uFI2iDXULNhEUnnZpI9yrNeCMqSDUa3HUq/M0mvrWg0kskv70Jg==}
+
+  '@comunica/actor-function-factory-expression-coalesce@5.3.0':
+    resolution: {integrity: sha512-pDqtK2e9qD1claWiCJ0pSYGCcAJQVM/JzdQEaGjbMIGJosDdJfPJ5NiWS7GeU2/nOUJVlsUocpURy7Pw+6h6Iw==}
+
+  '@comunica/actor-function-factory-expression-concat@5.3.0':
+    resolution: {integrity: sha512-4fHbURg9zA40zf3ZNo3Jh7f01K+xZoE8EBZMlT+f9sRN7hrV/486Nfc5Dg+wsDBPkjgWk4nkoXqFQr2O9Vkjow==}
+
+  '@comunica/actor-function-factory-expression-extensions@5.3.0':
+    resolution: {integrity: sha512-eEB6A14IIetbZ3uCRtz2A3r2d4Lq/XtxNwT42oOBH1UxLu7fHBKL+8BobwSdp+pzzJVvzrv7keVy5lz4g84hnQ==}
+
+  '@comunica/actor-function-factory-expression-if@5.3.0':
+    resolution: {integrity: sha512-YxTBMXUaqUAj8qKQrhCWQrygM1j20oDj3uwzWNUqPXd6JgSiXyGrlifxYD7Y8Pg9/6FLsn3aCprK/TQJqJUZLg==}
+
+  '@comunica/actor-function-factory-expression-in@5.3.0':
+    resolution: {integrity: sha512-SIgBJHHXwDZ0d8NAfWbnLHC76s9KV3SGeKbX7+oPvCvNsYh8aAfZqAHbIKddNQSqpTaKzeD5n46Eqh78uumyPA==}
+
+  '@comunica/actor-function-factory-expression-logical-and@5.3.0':
+    resolution: {integrity: sha512-mqIbZjsmt/ABJkuZ6WBXFkZigfj+dPcHw8tNDRHX4cqKflBJNtxbSd4p0aHcZo4pZkhbpuQO8XlL5C4NBTFR/A==}
+
+  '@comunica/actor-function-factory-expression-logical-or@5.3.0':
+    resolution: {integrity: sha512-gqYJvIPTU6OY6QZpsA6z/Xxs9WmTy3rY6mxfZG7F8BfqgHzzKeTexa4fvd5GppcWZuaCIuRhbBVa5Z1zleffxA==}
+
+  '@comunica/actor-function-factory-expression-not-in@5.3.0':
+    resolution: {integrity: sha512-1K5sR8h8PrYOH/grF6FQBKGI2Be/VwM/kjJ8Hef5oBAYvf1hvYkAaxQ8TOGkLW8navDhoCR2b0I19D7EZoP7zA==}
+
+  '@comunica/actor-function-factory-expression-same-term@5.3.0':
+    resolution: {integrity: sha512-BrYg/2YkC1R9DTZEdT6sWCwvoRICvLT+62DsdF4p8XZxe2T3VEQyAoQTivwkbTpRQnxiLSh3gTd2I3AXwQOw+w==}
+
+  '@comunica/actor-function-factory-term-abs@5.3.0':
+    resolution: {integrity: sha512-dTltBZjkgga9j4Q+BFqvEE+WvgEWKJtWjIxWs67KKikNIoIfZDCYWXMXlQMJNC4N09qNATEM7iyz6ttLfY3wHg==}
+
+  '@comunica/actor-function-factory-term-addition@5.3.0':
+    resolution: {integrity: sha512-A5sEZKM+NJ2tiaFP6QN8oNY+0IF5JTVNuMrlpl8fsVmBzpUMmc+j7SzttQp9wmqo0JKmFdq/hSGhBbhmtqtpGQ==}
+
+  '@comunica/actor-function-factory-term-ceil@5.3.0':
+    resolution: {integrity: sha512-ozUlZyJt7Ra34EDOmdxnrpnuH1fHGOBmvFUavD+0uR66PXPrsV6EFH/HW0VNfcVe/iPehN0lDFF+SyFeLml3Ug==}
+
+  '@comunica/actor-function-factory-term-contains@5.3.0':
+    resolution: {integrity: sha512-6dYnydAdwOfrcJRq9/R7sUqrmCXXZ5381KHtPgnw0va4K32D2QxArIlWO92dYZzDgJ1v+UNRXK5xmbOOg4qW+Q==}
+
+  '@comunica/actor-function-factory-term-datatype@5.3.0':
+    resolution: {integrity: sha512-z7SJgfJvElB+dR6CdnMgMkB+qK2DupXti7yiqI4DPADiHovipriz0ChAplGSWXzJ+O++1L5PHeeYiBqY8rpuzQ==}
+
+  '@comunica/actor-function-factory-term-day@5.3.0':
+    resolution: {integrity: sha512-jRYSd2lFENaqcRi0LGzr2JSG/I4zvzgBzlmvw4m8OXIZ75sDkCOPRguWPJoidq7AdmpK5mVNIEhrJJVNNDrotg==}
+
+  '@comunica/actor-function-factory-term-division@5.3.0':
+    resolution: {integrity: sha512-vnVeRW2sAKa5KHY4AXlyYMF71DcAzr5zf7lCwPuUoXS+vKuAkO+tGztdEVjKxo4G0mzc3VVbmDuXO2MWIsOhrg==}
+
+  '@comunica/actor-function-factory-term-encode-for-uri@5.3.0':
+    resolution: {integrity: sha512-82nSJ9LhJqiCl9Aq0MDZa2ekUOeknMUJ6pHxnSYXeS9TYoA+xj5IiMw4tEsZIc7ziIuAQwcR10+mbHptYm3FPg==}
+
+  '@comunica/actor-function-factory-term-equality@5.3.0':
+    resolution: {integrity: sha512-wxXJVrrNhsljCmenegig6JP+2MJQtx3GdbL1BmGT22OL14DRYr4/GKeCcUTJkKo7LTGQijapqgU3zolKtOICVA==}
+
+  '@comunica/actor-function-factory-term-floor@5.3.0':
+    resolution: {integrity: sha512-Yxq3DqjD2ezAfnB9r//q32zVqqSsA6+AKNd37PO4BByQiShCO3RIysJGCeh5f986OP8f6E7/QCS2EhtzGVteKQ==}
+
+  '@comunica/actor-function-factory-term-greater-than-equal@5.3.0':
+    resolution: {integrity: sha512-QclM//r2ACVcJ4aUMD9aFf8DlPON/otvabvQDzqUs+f7ioOtd6j3aSOLSs96I64QCoo2BWRiAhWGLIQRRdhAjQ==}
+
+  '@comunica/actor-function-factory-term-greater-than@5.3.0':
+    resolution: {integrity: sha512-Qn8hwSntpwenHGBvoVkBST0nRFz6zEnuhI+5w0Hq/eo2qKb8MDtrpEWn3KjG0g8F+UTHDygAsjTwnTijYdtlOw==}
+
+  '@comunica/actor-function-factory-term-has-lang@5.3.0':
+    resolution: {integrity: sha512-wcFcYd/Qd4UQd30N1+L5tGQADBjVv90lk2y9NvxwrBl0LnfdOOSyaeVMI8IjAu3zs8U9S1rZEQygg/94rs+WIg==}
+
+  '@comunica/actor-function-factory-term-has-langdir@5.3.0':
+    resolution: {integrity: sha512-WlTohELdTI6vzozhAd6Lxs+e/AByvWD/enlT3ZrgyP2blZ/QEjAMik49rRKfRZkLymC+I7SIZQoljsH03SSVQA==}
+
+  '@comunica/actor-function-factory-term-hours@5.3.0':
+    resolution: {integrity: sha512-84joaPb7/IOWxVeF5a2tdT4J2+bNCcT8OqLnw4rbqlnGVd0yXTe2eJIF4tb5jUvu06TYTkiF+TWf9fY48n5jsg==}
+
+  '@comunica/actor-function-factory-term-inequality@5.3.0':
+    resolution: {integrity: sha512-AunuPU6IfkjqimfjbS8KcxjgeE2cYseBZ1FHs+dDCHq7nHxl8lnoul/CKliQPWtqAkJPicXNIAX8Y2SjAy8Tvw==}
+
+  '@comunica/actor-function-factory-term-iri@5.3.0':
+    resolution: {integrity: sha512-qxdaqoAJmCNJ/u/XaU2hMxjo2mQ8vw5ZvBSNuMCbI+KXIKRLV9AidRvjKMnaSa2KE3maoxqA6r9+pJUHz+H3nw==}
+
+  '@comunica/actor-function-factory-term-is-blank@5.3.0':
+    resolution: {integrity: sha512-q01xpJ9ms8+3Prz/UkMYOFJWQXZDSXYSY0EHgeAhSCpUMbpRNZFqwwJM5tJXMHbjB5AT4RiqEHGZ3mcW2jB+cg==}
+
+  '@comunica/actor-function-factory-term-is-iri@5.3.0':
+    resolution: {integrity: sha512-5+kxYCn/FmPHFzLIqNosGftphXAuvUuY/xgpPYvUnTlh/gjM2BbCgQR6xiUmibnZPguJsCb3t7Nmygw45y2GMg==}
+
+  '@comunica/actor-function-factory-term-is-literal@5.3.0':
+    resolution: {integrity: sha512-oqN1BeRjNlHpvSi0aFHPQH/2/heTFo0S4OFolQD6i5OADTPbQDMmlgkfLCv6Vd3vJDK0S+YD571xx/ull0gqRg==}
+
+  '@comunica/actor-function-factory-term-is-numeric@5.3.0':
+    resolution: {integrity: sha512-mxLI9HiODJVxG7X58rCbSnOTTF0eT/6Ui5G2m0/UQJJPM/kEusNSBnbQcRbUM+npeJKpNCZkDDwMJyhFYDLwRw==}
+
+  '@comunica/actor-function-factory-term-is-triple@5.3.0':
+    resolution: {integrity: sha512-IgToUw/6+FnbuCiR6JN99Phxbc8wdazIzGZtQVwA1XfSp00Prj1/i4ItuZKeqBZpntZbvyXHEafRSfa4SXzivQ==}
+
+  '@comunica/actor-function-factory-term-lang@5.3.0':
+    resolution: {integrity: sha512-L8kb+o8HPDy6VjQHpAjRBnn1C4BcTTJjJ0LhvNxJqPD5nVg5dD9BIWf2l6Vv3UMZX9CaUoDpRr0v5b1fULDJvg==}
+
+  '@comunica/actor-function-factory-term-langdir@5.3.0':
+    resolution: {integrity: sha512-PPVlAVaVr2y+s9jz7LDC/6+P5GxeS2Q/NtAOc6+ISpTGvaN7dIinXK+3ECR1Ly0fGW9MgHWPkfPBCMnZjbMZIA==}
+
+  '@comunica/actor-function-factory-term-langmatches@5.3.0':
+    resolution: {integrity: sha512-wSBLX2oP4Uj9Xz1uC0daTvrPePZ8cnEOr3B+MFENitQZOMfMQrxj56kqTDKlIP3ymWcnRSQo33mMUhjcMDNa7A==}
+
+  '@comunica/actor-function-factory-term-lcase@5.3.0':
+    resolution: {integrity: sha512-Cz1hwmBSQKp4jkk/pPZl2Hz+bWzcYX5sgPFrR+5VOT/1GoXXRhKGxCGrlNoIvwTVmg2TsdxEUHBFztyQwAqXJQ==}
+
+  '@comunica/actor-function-factory-term-lesser-than-equal@5.3.0':
+    resolution: {integrity: sha512-dZuNLI+cQGeSjq/DOzUQFvVMV7BjuiHzKiC2onOrjwy6ea7ewFBqepY5KMVjHbU+kjO+JChIglIVd9qmdet45g==}
+
+  '@comunica/actor-function-factory-term-lesser-than@5.3.0':
+    resolution: {integrity: sha512-93LdymVrC+9T5Wep6kiSbhL6Cu3orH4r/24FUFDlZcW+dSoPXQXeSPo315iTqpIALl0LOkXmrWONlq7YuqXRWw==}
+
+  '@comunica/actor-function-factory-term-md5@5.3.0':
+    resolution: {integrity: sha512-ycyd5sjyfyxUyzg9xG62SSnm+xGXeCqmV57K7c6ecUezd5OrKZpW8PvobNQ8kYsF7NFMuJm6wxDBSxKkrGwpFQ==}
+
+  '@comunica/actor-function-factory-term-minutes@5.3.0':
+    resolution: {integrity: sha512-sALHIQ/mhXrSJMpPE9IJDEZK4bCH5V9v8e/ofTjn06hqIRo3g/oNbDLKa9MEhqlL6LiHUVV14yLBuDuTYmEucQ==}
+
+  '@comunica/actor-function-factory-term-month@5.3.0':
+    resolution: {integrity: sha512-T4FUk5Nw7TMim5Ic0j69vz3uoXYPUBxLFyUgtAT33EbFPeKea/vphGhimP/BcV/344Pdhh1uUJuMPDsHC1mO4Q==}
+
+  '@comunica/actor-function-factory-term-multiplication@5.3.0':
+    resolution: {integrity: sha512-qidJiLwSt5+H9S/IQV/KoqW9bVhcw0qXY9pUqjWxrTDvOVwShHRzVBCXFbn0ru4DO4jt56CSMPRWZGdynPed8A==}
+
+  '@comunica/actor-function-factory-term-not@5.3.0':
+    resolution: {integrity: sha512-/jpBfyCknSEKAhRYAxcxvGv5/uRr/A/A36sAGpwknqWkRDGV2sZ7XQdn9bqP1pQwz4vxLIUhMTalPspNsAl/cQ==}
+
+  '@comunica/actor-function-factory-term-now@5.3.0':
+    resolution: {integrity: sha512-18ZS0ysFKJwjGMBB9/xI5140DqW5sp45unDfURlNKLuRgQAqjK5kkjyr72otLNW1JwtlDDt5qun6kr9d84SFAg==}
+
+  '@comunica/actor-function-factory-term-object@5.3.0':
+    resolution: {integrity: sha512-pgPS3sLt6lCZmQSuojuPArA5pOfXRjYwOQuqnl98/gkjdHgZaZhV+rLF2qYQYO0q5QxOUacp6l9yE7wfcoX25Q==}
+
+  '@comunica/actor-function-factory-term-predicate@5.3.0':
+    resolution: {integrity: sha512-zR+6OPTQGpl+XDs41+leFhBZuPTvLUIspKscLS8ujLuMsT9eZVf7PZm4Rkhg3cL0BW5S60SqCdkJVEFAi7TGVw==}
+
+  '@comunica/actor-function-factory-term-rand@5.3.0':
+    resolution: {integrity: sha512-ln1CvevDInjP7w0sGdoYqKesW2FuQ/eM3VgPFbWC4l3kUP2xmiHGSO010eP6He4WDtsZsKBk+KfPsMMUGKXc2g==}
+
+  '@comunica/actor-function-factory-term-regex@5.3.0':
+    resolution: {integrity: sha512-zFHFkF3td+UqcM5vwLXTzRRkSSiyDPFqv9QPZADp5kiDYG9bh/dVYvEOgMGV5k3tbBAJOmm9QXcgLHLzEkmsQw==}
+
+  '@comunica/actor-function-factory-term-replace@5.3.0':
+    resolution: {integrity: sha512-Pp15O8ebd88uV0s3CFQrd7SlVJ9XCD+Wd/ql3CB71Ak1tN1jY0XqrDRZsxqjGgG1dzotXExbAaSR5pe3G+BdGA==}
+
+  '@comunica/actor-function-factory-term-round@5.3.0':
+    resolution: {integrity: sha512-YSvkEeGorh5gb6QGL00TPrAxlTz8JOxLN0LTzo1ToQ/2WkMAWv/nhwNUaxuxPv+HuCMg7HWLd4SecQqSUWXhdg==}
+
+  '@comunica/actor-function-factory-term-seconds@5.3.0':
+    resolution: {integrity: sha512-u0p4kRtIcCxL944AGEJzGbYk7JwurFGu4NrwnS8egBXeGISRjufoAU9ZECP7vIJza+TZv2ir5m3FP9RyWqpBUg==}
+
+  '@comunica/actor-function-factory-term-sha1@5.3.0':
+    resolution: {integrity: sha512-GnsH0U+PfxhlCI3mVm5547t12IS94u4jk3aC4ZP6Oxw4WWoOFJoYg5e/aJrgwWw9F0e582YWV7C+oAcOa6QMeQ==}
+
+  '@comunica/actor-function-factory-term-sha256@5.3.0':
+    resolution: {integrity: sha512-l4NxLQZ2pX8/8KunB8tS2GDCoR/H8L2e0TRuDnF4J9o0MkV5DyNhnGdpBb/46l8v97pSOceLXD6XeYUEYE3Rxw==}
+
+  '@comunica/actor-function-factory-term-sha384@5.3.0':
+    resolution: {integrity: sha512-Bis+CineidELoPZHHy9dw+YRrBhpVuMjH4LTouHy/KxqOefvcWFt7BBzrZX53HRWr8BNG1WWLhlOc9muGrGbNQ==}
+
+  '@comunica/actor-function-factory-term-sha512@5.3.0':
+    resolution: {integrity: sha512-1Cuto34d1DNNP5C8EEzTsREAw3PKvjCJGxhBRaBr7WEoffMjpFQT1EJvSBSPezWYpLjdjj6sfyxowFOUV0bfkg==}
+
+  '@comunica/actor-function-factory-term-str-after@5.3.0':
+    resolution: {integrity: sha512-LiKZu97xsuHLTMkpADsxbFn2QZcdN5xLXmg5TCGdA4jYwhTD7IWecxrlT7UbpoXLPvgiD7aeBxNrEXwXOUQrog==}
+
+  '@comunica/actor-function-factory-term-str-before@5.3.0':
+    resolution: {integrity: sha512-P090fcLfnVwyC6iDJMGJ0av+jmUurV7SDsVPW7O1qUNW4cXiMZaj0lbP23XEa0x/5PPX26f8Nitveawv/ZzZUQ==}
+
+  '@comunica/actor-function-factory-term-str-dt@5.3.0':
+    resolution: {integrity: sha512-FTuepSrOU6SxJW1Y5MxdU5FJN9/2wIE58DcpvmVlipVMhjTpsWfw/MRPg3GYCampS4M+OMpKxFzbDVRGdXjtfQ==}
+
+  '@comunica/actor-function-factory-term-str-ends@5.3.0':
+    resolution: {integrity: sha512-oNPkw0ReAVGsXiZl5yMwwMgMOcv61Bs/prrFE5iIas9HjwmvQjlcJHT4S7WEH1s1I2fLFF8dl0nOJHNoO8cUDg==}
+
+  '@comunica/actor-function-factory-term-str-lang@5.3.0':
+    resolution: {integrity: sha512-a5+7ccZYB3wrpC58UD1U4SM2jczZYpeGha8do7WMe9iapxat7XO95E6v44P3qcZOHlHv5HIOYgktVkLkt6oL2Q==}
+
+  '@comunica/actor-function-factory-term-str-langdir@5.3.0':
+    resolution: {integrity: sha512-6MoEM6ZzSussLJC2gi4+HqIg6dxpGJk2qTrBehp9vncmTsOlmGrIoruh9uStZ1Si0nrTeyvowtB853jQrKZGGw==}
+
+  '@comunica/actor-function-factory-term-str-len@5.3.0':
+    resolution: {integrity: sha512-NYeG5TZrPqfUfVwb2Rf35QGF7e48r7yluDpqPWsLaPloGdifwtTJvx+r4P4drkxgRNGhej88RafayqeQF1Y/GQ==}
+
+  '@comunica/actor-function-factory-term-str-starts@5.3.0':
+    resolution: {integrity: sha512-HX120EomFPcDiGTzI/J5EsCEe2c+il3XEs3gSsqmFDP8bX6djHxK/N6so1lZzzTf15QAxJuSh86z5zojEeCq7g==}
+
+  '@comunica/actor-function-factory-term-str-uuid@5.3.0':
+    resolution: {integrity: sha512-mQTLBTC0V5Eq9uIA7+MZSU34aiWA1nowMcVkk2EfX+1TbnApDH4wNEakTbonUFuTRkKG3SuYcoQFdlljMgMQRw==}
+
+  '@comunica/actor-function-factory-term-str@5.3.0':
+    resolution: {integrity: sha512-nrSGuAwFeF+5NXHsAIvoUgXbGZ46nUCCcqA1b8aKF+/074qb652ljb6P/nXv5ShLgsre+fQ0OFGe+z+wI9A9bQ==}
+
+  '@comunica/actor-function-factory-term-sub-str@5.3.0':
+    resolution: {integrity: sha512-eWwIKdz6878shFiiguRjkMzVu5X8r0+KnzkG9ulnmARDz3ISkXKIpQoQsIj8sZmUtxpl4wS9sEgVjvj5umlagA==}
+
+  '@comunica/actor-function-factory-term-subject@5.3.0':
+    resolution: {integrity: sha512-pj0RCMF9oaYdXgxwh13c4c5x4YthuFfMnOMhat9FtmbN991gutTqdBHP4dxsML1iRyYfpk/WOl+DnEY6CSBxCA==}
+
+  '@comunica/actor-function-factory-term-subtraction@5.3.0':
+    resolution: {integrity: sha512-j5uzCNw5EqJ9GjthhBlo4IpX8MSJvCbU3DbVGB1N/NZkGg5LMeHC3/CKfYurusgWCNbD7c7RXr65pAohj5X5ow==}
+
+  '@comunica/actor-function-factory-term-timezone@5.3.0':
+    resolution: {integrity: sha512-TtQNwQFzBuot0YtgnIr6uGjazblmJpvUYaIJmHxCZEhDxmLyidNS7pWvw45n3w/puwYArjzwn+tS4zSCZlwYVQ==}
+
+  '@comunica/actor-function-factory-term-triple@5.3.0':
+    resolution: {integrity: sha512-Cj4kSimz2e7/SRswnn8RuK2ccNWWT00Wwvz0stYBEGll6X+G/jGiOEnd8yx57G9GoeTh2/ggE8vG5wK+rBF+kg==}
+
+  '@comunica/actor-function-factory-term-tz@5.3.0':
+    resolution: {integrity: sha512-OpGcbjrp5/L+efY/IouVX6x4UM2FbNtyUQhPon2UJPvg/JPzJlBKZCq2NwmjmAmXVyU2t1WPaaO7ZbuWHWaNBA==}
+
+  '@comunica/actor-function-factory-term-ucase@5.3.0':
+    resolution: {integrity: sha512-bwdotNq4cemUE/ryFaqI0XTqE4mR7cthUjkZ+Y1NdFVX/7JbFXH92xSTwZp6e6wWNALVJXjcW7ilWjwC8WsQ3g==}
+
+  '@comunica/actor-function-factory-term-unary-minus@5.3.0':
+    resolution: {integrity: sha512-Iqs5SCMaSDCU60rkgDVDlXlSK1VSOVcCQojobdX5fwMpfLRNfTSk5kiZDsFYZZ7givTcWtrhzwJdpH0xbL3snA==}
+
+  '@comunica/actor-function-factory-term-unary-plus@5.3.0':
+    resolution: {integrity: sha512-Vmrf4sKYZx/p3cHvolVXpNySBB8egFFsK5x0CBLkjWknFMAaLQgJ+/VHCpAX3S4Fa2BxzEzfiReLZdzJaWYD3w==}
+
+  '@comunica/actor-function-factory-term-uuid@5.3.0':
+    resolution: {integrity: sha512-pU1Bkb6wJaC9v+OFBQW5vPHztC7O0Z5qxyOvF1A+ACc70Cm+Vpf/dqQkTfGCw29J0QqtDvR+WDWcwzOpcGOw0g==}
+
+  '@comunica/actor-function-factory-term-xsd-to-boolean@5.3.0':
+    resolution: {integrity: sha512-epMZs8+BF24LiEfx+oESctP6Yz6l2iee4etwi3U63qT8GdLBQ+K8yBYB12HeXd9jUBcx4thUGFlg5QRKWH8RpQ==}
+
+  '@comunica/actor-function-factory-term-xsd-to-date@5.3.0':
+    resolution: {integrity: sha512-fV5W3gExau7dp6OTQjCROjDhcUU9+rEBuY+clNi06IKEoKeza61Mw8aGExe+uz5PbmXJlo9HU1n1sHjSXnLY1g==}
+
+  '@comunica/actor-function-factory-term-xsd-to-datetime@5.3.0':
+    resolution: {integrity: sha512-WhiWzCFFldi6ggYzIOBRHnLrXZXd7qnrXVwiH2b/qldaiCBpQ/S/OdaMWA3YeRuWj9UUyWQEJJfKDn6UOT8Hcg==}
+
+  '@comunica/actor-function-factory-term-xsd-to-day-time-duration@5.3.0':
+    resolution: {integrity: sha512-Bnemng9tfPdEkt++vM9tnmkXAHy6ktcX5RbePK0V8lDxpyED8nwc/7fEMrYa2X0uFc40doxOOhiO5Nl3P0pMmw==}
+
+  '@comunica/actor-function-factory-term-xsd-to-decimal@5.3.0':
+    resolution: {integrity: sha512-NrIwHXj1uLf7i+QgJMVnHqrSe0HGWhID/wBwORk6nrv+PFjI3ErBhvqzLapDbcmr0BlPaxyVx118lYzQZF5TQg==}
+
+  '@comunica/actor-function-factory-term-xsd-to-double@5.3.0':
+    resolution: {integrity: sha512-Fhqy/BiEO4XvSkh6vaOEuE9bPZm+kw0kd5XK7WklwYcrTjA62kXlKeJnOHy5JyKXLxNhF+ii5hjJ51WIKnujAQ==}
+
+  '@comunica/actor-function-factory-term-xsd-to-duration@5.3.0':
+    resolution: {integrity: sha512-flpjFPFHL2Zmu3w+Re2AYvkAV5MK3JhysnRqeLR/+37wk4k113hf1UUCm8xt6rxg5fgSBlW7/7akfphEzGmHbQ==}
+
+  '@comunica/actor-function-factory-term-xsd-to-float@5.3.0':
+    resolution: {integrity: sha512-Dn9HLU13KkI0hnHoY2PRSLb8lj9fHA7ABHkhvHcg0s39SuI1VZva6GtdKOeDlJiUFOztjgDpyZXg6GpPW0c0KA==}
+
+  '@comunica/actor-function-factory-term-xsd-to-integer@5.3.0':
+    resolution: {integrity: sha512-LbgcUNtZ1QVqS+cWUPH/tjeCpyhsWin3y2/5gt3susk2CgehBmt7XiDGm49V2hZwtfQRpTShBrkvDMM5fhTHXg==}
+
+  '@comunica/actor-function-factory-term-xsd-to-string@5.3.0':
+    resolution: {integrity: sha512-vNXIcD2DCnGjPnaW58IMORI//bcfYTcHQlK/hvgbl/Ggrw3O/hGRwtMdrBt8wRQWbd9/ylBOrbIJe6dFer0Dcw==}
+
+  '@comunica/actor-function-factory-term-xsd-to-time@5.3.0':
+    resolution: {integrity: sha512-fCRzgcgY6aNn07fGw4YpsUsYcEASJewWGIK8M7XNJqt8ZlJmxEgLpviLuzYpJkMUq85gM0XlH1zfMUkEl17ViA==}
+
+  '@comunica/actor-function-factory-term-xsd-to-year-month-duration@5.3.0':
+    resolution: {integrity: sha512-q+qKRm8Cni2x8GN+rNtTrPKzjv6eEWkMaR6KwGVdkt89/PKcj8exX/xEDlHuV3smUt8FwVUALL8zGGQ22wk2gA==}
+
+  '@comunica/actor-function-factory-term-year@5.3.0':
+    resolution: {integrity: sha512-/FLzdcP/sIdmOjaRqDwo8gfhp4CajNC/QEPxcvMaM5awjIgAJ77xxmgIBwIVBD5PUQMVTQQsZ8eeicm4TLSxaA==}
+
+  '@comunica/actor-hash-bindings-murmur@5.3.0':
+    resolution: {integrity: sha512-fd82PmyTl6B/XJT0Ny8y8Tm6D6dpCGNONfox5E07nA12won/ot7YDdE0UyygHvq1ypIWnWNmnO7HirVzGDJkkQ==}
+
+  '@comunica/actor-hash-quads-murmur@5.3.0':
+    resolution: {integrity: sha512-AhqeHlcfxTzOz3Y1EuaDlDi6/WqyCOQcnZ61TegIMlQXA+JjntMtefYkAdysdWEppB63LohAcp+hvClVsTh6mA==}
+
   '@comunica/actor-http-fetch@4.5.0':
     resolution: {integrity: sha512-rhPBWOWe0tGDgwXbRgURwiGcbw1KY58oMByT7MVi5SLMpiK1Tjjb6KoMz5SOkZWsD1z6JY65J/VLxKFSj37ogQ==}
 
   '@comunica/actor-http-proxy@4.5.0':
     resolution: {integrity: sha512-M5UQ+/IqXFNXLu9qSFNeeph/vaP349HQozqZzOY+HTO4TNWSIcB/XO6HgE3SC7r4G+KV+s9WbHwQO/8PxshBPQ==}
+
+  '@comunica/actor-http-proxy@5.3.0':
+    resolution: {integrity: sha512-XzIDfH5Jhg2Q63vpUb4gyltaHqWeg00Pa1Oc+qdOREzy71hi6lsqQPTXdfh2zrK7I61PGvBB9DKpMloY3MObkQ==}
+
+  '@comunica/actor-init-query@5.3.0':
+    resolution: {integrity: sha512-57nD6J9g4hPTM9XX8HA4F07q/KlW6YfbmIyqZuUdLz5IkT1my8ceoGkNdRBQyZmjN174ChZUCZkBuR+oPzBVWg==}
+
+  '@comunica/actor-optimize-query-operation-assign-sources-exhaustive@5.3.0':
+    resolution: {integrity: sha512-PX42YLREzgZcZ5Lz0Kdxp2OZYM5qEIzFqK2tUZ4pmIdfqJD2nqss5fIDwWChO1XZVjFE55/+TvykCTyPWBddQg==}
+
+  '@comunica/actor-optimize-query-operation-bgp-to-join@5.3.0':
+    resolution: {integrity: sha512-n6ss2cRvdg3wyKdGC/kp/px+0geAvkk24Ob1dDdy4+7bosSubhbFmMH0azpwApvqWETdbZQznhw+MW+YN5JeVw==}
+
+  '@comunica/actor-optimize-query-operation-construct-distinct@5.3.0':
+    resolution: {integrity: sha512-bM1g6HC2+WKPrtjD5x1FOI0OYgqfN7d+0Ks+vW/uSFC5ag0e6mVH/GeSRjby2PSd+Vmi2EAs8xnshq45T9T7MA==}
+
+  '@comunica/actor-optimize-query-operation-describe-to-constructs-subject@5.3.0':
+    resolution: {integrity: sha512-+tg/JKfHZMVx5zRBH/taZP1J2zkJlPRWnwGTB6T7t15OXUN+zAcTMwf0v93QfN1wdlRY2hPqJMMi6BTUJMV+DA==}
+
+  '@comunica/actor-optimize-query-operation-distinct-terms-pushdown@5.3.0':
+    resolution: {integrity: sha512-1t2dXxAcFMNj+sltazjM2MawOKxPWjq7su6i7sSFVwU2iyBBF6FHGYq7AZHEcgeZZESepu1Wc1N6cfwIigiUUg==}
+
+  '@comunica/actor-optimize-query-operation-filter-pushdown@5.3.0':
+    resolution: {integrity: sha512-qEHY1gL5h6SdXi79s4JGPZKrDdzdtC3mXRX7JfRaxcaS6RvUT2Nfqf4HCEhz1VT5dca2NfV4bLMdVIHiHevdmw==}
+
+  '@comunica/actor-optimize-query-operation-group-file-sources@5.3.0':
+    resolution: {integrity: sha512-/7GTHmbimaAgWCnnuP6BH4wvhMWvUlgYiDyei6fjYtTlKG50oAhUmDcGbt3awsA/xgHfBhHLVXYghdNcTLn0jQ==}
+
+  '@comunica/actor-optimize-query-operation-group-sources@5.3.0':
+    resolution: {integrity: sha512-MYQG9QbSKkrxct4UH8Rrs9BV9F2KiXtJakApabZ4o5Nzn4cbQirhc1nZY2dMZyT9M5HLDauswfHUWBGsrto0zw==}
+
+  '@comunica/actor-optimize-query-operation-join-bgp@5.3.0':
+    resolution: {integrity: sha512-kImYzuGpH6FE6lJZPqP23tyfTiJzo46Wo6X3oiePri79tLmlVaulADqUKTRrOZHNFTQi4F0L3MI2yaMJkrHifw==}
+
+  '@comunica/actor-optimize-query-operation-join-connected@5.3.0':
+    resolution: {integrity: sha512-Iywr/GkLf/wmruAv9IGEnSDqEyzmNcZudHVR5kWS0YF2RLzSt4t0PX/VGd+iZoOu5nGpYiMbRONJr4EAOhoGRA==}
+
+  '@comunica/actor-optimize-query-operation-leftjoin-expression-pushdown@5.3.0':
+    resolution: {integrity: sha512-U1q9CeRNB0Gcdbhq87G5zMv9lyBL8W3qHi+PLn/K5KZIw2W6B2vMGbdmiXmYxOMeTxpHd6pJIK/sX8EBikdrug==}
+
+  '@comunica/actor-optimize-query-operation-prune-empty-source-operations@5.3.0':
+    resolution: {integrity: sha512-DWSgeL6y2ph5ia/8vlfj3TSIniCwyKT2LSPwsSIpVdn2MkCKw80p6jxDbpdTG1mLqEXqz0Kjp25jgVGoW/CdYg==}
+
+  '@comunica/actor-optimize-query-operation-query-source-identify@5.3.0':
+    resolution: {integrity: sha512-jvU5zrpJj/32F6fQ3G1VU3QhG7xpXlfBWk4tKKdbs+d4hbwBS0Nn34/utn6DWiTpOUIWuGpio9Z2uQ4VJMHpyA==}
+
+  '@comunica/actor-optimize-query-operation-query-source-skolemize@5.3.0':
+    resolution: {integrity: sha512-utQuZ0ED6Bc21/jblXi15Ec+dO4OrAtugZDpP2TKEeousDh3fCgnEGTAuAfcpbkdJ8/4Wft8mv68YaoqVWv13A==}
+
+  '@comunica/actor-optimize-query-operation-rewrite-add@5.3.0':
+    resolution: {integrity: sha512-Uh+dZ+8BlUcyd9LBU6OmhmLNorNzv9VUc81BQhMAcEyJPjMUHZUDpGtBRqne4BdSYF0/08dxx52QerPcp1+13g==}
+
+  '@comunica/actor-optimize-query-operation-rewrite-copy@5.3.0':
+    resolution: {integrity: sha512-Y3oGFfn14K4J4MAMvuZss43N9MqdJhkCShaTFJk96bm4FWKRPhDNJvQ9sMf/lMprRIocOO+AP0gA+J1UWKg4rQ==}
+
+  '@comunica/actor-optimize-query-operation-rewrite-move@5.3.0':
+    resolution: {integrity: sha512-4gHdgEvPNosME8ecYBAFGUd9jw6Cih1At6NdhoPIWG2To6RAyXbYNA4Lj+JymiFl/HDwz6pxC60o/Y17QvOIyw==}
+
+  '@comunica/actor-query-operation-ask@5.3.0':
+    resolution: {integrity: sha512-9ozBM6K5VLQsD3mZkOoE6NH5jITghM6EtmB9+0DZlk/k9HF+TbhvXkh8h8NLo/mY05urrYsYyl8YgjN9X/ZtmQ==}
+
+  '@comunica/actor-query-operation-bgp-join@5.3.0':
+    resolution: {integrity: sha512-8veOnDvl6HZdHCCoy+VIX9WlQdZFlndCf2bZQaCBYt9Rgcu7maMfx19sDmwFK04fAly73dws35l2VZO7v6TD9A==}
+
+  '@comunica/actor-query-operation-construct@5.3.0':
+    resolution: {integrity: sha512-I+V1jDXwWm6Pfxd4csbB0Gjjci/NCutKSr/GS1nu4SGdWxaL9oQDVjBtwaklnYA43iAUsl5vB9j5wuhtCyj/Kw==}
+
+  '@comunica/actor-query-operation-distinct-identity@5.3.0':
+    resolution: {integrity: sha512-xiTM6zAvaXOL2ubLpj59jNeBbcMXTGWl7oip/2zfyOwr5EA47jgRkHbitWlqrpIbOVJBjtOlGXJVGH2u3Hdf2A==}
+
+  '@comunica/actor-query-operation-extend@5.3.0':
+    resolution: {integrity: sha512-Xv8lfdDRqOtoA06YBUgrCaXY66js7Lhll7v9D5Tvkso3Mszsk1GCLnVwWgiMIkWK5qd+ZD1yoo8+f/UIRe953w==}
+
+  '@comunica/actor-query-operation-filter@5.3.0':
+    resolution: {integrity: sha512-KNHa3ESOY58EDp8MrknzBVirdYkgQa335jpz99edXoJ48YJSlsWUbQpVR3MwHri3aGjK9V6LV7cQn8oU5DrfbA==}
+
+  '@comunica/actor-query-operation-from-quad@5.3.0':
+    resolution: {integrity: sha512-L+vl1QVIi+wPZMEb0Q6SWAJ2GYvPpsNPztU73EGTRsLuo5rePOCg47V8iz1Nj5psNv9IVW+e9bdA8R7ACY1FdQ==}
+
+  '@comunica/actor-query-operation-group@5.3.0':
+    resolution: {integrity: sha512-TGBfjuVECdGCF+AUIPfc+Zv6c4EXSEKVQoXRcBuAhK7YxXd/U74uurar6KnoWjgc61IsNfuS7J3t567IKZ+oNg==}
+
+  '@comunica/actor-query-operation-join@5.3.0':
+    resolution: {integrity: sha512-CcHxkuaVUg+5K2UkhrMOZ3m5V7cGhMgQsqu6N2N+Y+g+QjJ9Nsm5xsSRJuu5jGM8MS/40sXUXuBArJNj/Sx63g==}
+
+  '@comunica/actor-query-operation-leftjoin@5.3.0':
+    resolution: {integrity: sha512-6NhfaXJGM480CSpFnjlJm1s51YJdzfVaRKkRLQ9shIPeWiDgQfVo+IJm/WMchYUFYs1RYAGUU4z0e7IEgcbhjg==}
+
+  '@comunica/actor-query-operation-minus@5.3.0':
+    resolution: {integrity: sha512-1pyEv8lNmbsZYxpbnAcyUjkSndgvkeTlyeyIyALhSrkbFo/y1c7cAC5HVD3F/CQVbDsM9Zjm8ZNi6eb0fspszw==}
+
+  '@comunica/actor-query-operation-nodes@5.3.0':
+    resolution: {integrity: sha512-QN4wnv7WDYC8QEyltEliDcqNpVYE2tgrLzW/zyp9DpnUDbwBJt2/29WcrXNfg2riS5UZ6z1EVjBRZ68h4kD3Jw==}
+
+  '@comunica/actor-query-operation-nop@5.3.0':
+    resolution: {integrity: sha512-nuhkZg3dWHSawedwQjMXzV+Ei6LoEyVuPHl6QvOdWyryJl1jc9onRvjmGqcWgNef4e68O4JDKkC2XcAJ2DyMNA==}
+
+  '@comunica/actor-query-operation-orderby@5.3.0':
+    resolution: {integrity: sha512-8Ytd/AWtrgG3yui1VI6AlE4dZNy1CSeOygh6aYvTJuGhEotmq0U/2rRvKgXJ0soRFCrjKiqVZH0hB0dOoPqMoQ==}
+
+  '@comunica/actor-query-operation-path-alt@5.3.0':
+    resolution: {integrity: sha512-NgOB1qb+fVQlZyBF1NILvXwEY3cyOSNtFuGthTmbwnsEAbWtNyN6VRTnYLXwQE1MQiJmmIR/WBs9dcFEhCkYbg==}
+
+  '@comunica/actor-query-operation-path-inv@5.3.0':
+    resolution: {integrity: sha512-trWKSWwyoOKxfSBqLxQ3q2CVkqDBX6RyZt34AUhtptuLCdCCeV8zzrrtDJOpQbXrZVJ/IAJNGsgype8aIKU3Vg==}
+
+  '@comunica/actor-query-operation-path-link@5.3.0':
+    resolution: {integrity: sha512-rVioPKxpTx9VtIuwt6Ej9ws+plFtSGcqk/7QcjGt66MyZA1CHuCqdYOgY3CiKRuz74SW76Kp+fNpau/EpFw0cw==}
+
+  '@comunica/actor-query-operation-path-nps@5.3.0':
+    resolution: {integrity: sha512-c1DoFCYUsejZBTR1i3zaLW68FQqVgrrVr0cmBGcApz4iBUTqGWP7Ygl/0Uu88GY/krUSPjuPB6m6Bl/DhXNO/g==}
+
+  '@comunica/actor-query-operation-path-one-or-more@5.3.0':
+    resolution: {integrity: sha512-JdhnJvRrzroyQMqokRBPWNQ6lSwNjpR5mh8nzvGSvMOxLqua9TXs8ZOksrJZiru1/L97SgNYzlDWm1LVmGmwlw==}
+
+  '@comunica/actor-query-operation-path-seq@5.3.0':
+    resolution: {integrity: sha512-ERERE7n+BJuw/wwWV8Kc2X2/vFWANLHkP/eGUO2tN+6fHgKsWSzNRRbJokhnjE4ldqNgs3qSZgDA9ioW5qxBcQ==}
+
+  '@comunica/actor-query-operation-path-zero-or-more@5.3.0':
+    resolution: {integrity: sha512-v/F3KwJFDGJhjr6oRmhYED9Ra2XZFa/982nTIIl3uOwP2lw0TDTPHR5hwIG65bv77IY8G/CZ7d8UDJq9jEu9HA==}
+
+  '@comunica/actor-query-operation-path-zero-or-one@5.3.0':
+    resolution: {integrity: sha512-P8aGi+DL7bqqF2mO4pZewTjxxL90CHRK/iIjwQzx6MHXBYY5+X5uoSrWMDx0GtIZ1kzX1HYZiLFS0SJNg+e29w==}
+
+  '@comunica/actor-query-operation-project@5.3.0':
+    resolution: {integrity: sha512-5JlXX0+iH2dXIFN0mAA8r0iP6i5Sxd3yMNu1nJq2EaMNY+yUDkW0sanjDVqi+3c+vUP4CVaI3uwYjbgEPykf+w==}
+
+  '@comunica/actor-query-operation-reduced-hash@5.3.0':
+    resolution: {integrity: sha512-3OLKzcq0aO1Kyjz1qOWJEotiNPae29h2+v0uzTgbDzfsZxxVk0S85zl1AWQSTYs+A79PItKFYPaiDVzsYDiKtQ==}
+
+  '@comunica/actor-query-operation-slice@5.3.0':
+    resolution: {integrity: sha512-A+aNV+wF7KT2f+GEprahjqNd6n2/KQZfbKNoDU/9ZJVEPkl8vT9zZ1ScM7iife/VVTeLybw3KIFJcqOrDveUvQ==}
+
+  '@comunica/actor-query-operation-source@5.3.0':
+    resolution: {integrity: sha512-YyBseNXKnm5QuueihMeOui0hkNGTS7f4XqxDGxoILi9AgxQZIJI+UAhhLXN4Jt+wcvSyIqGMMhleYkpINemdZQ==}
+
+  '@comunica/actor-query-operation-union@5.3.0':
+    resolution: {integrity: sha512-btM/bNbtWh6LIlXgvpTgjFOqNXUfv7kW4izCVBx4uS+e4yb+7rTEi2jNJ9dsF2uXHltRW13m24NR82d/P92TUg==}
+
+  '@comunica/actor-query-operation-update-clear@5.3.0':
+    resolution: {integrity: sha512-jfJG+p/1aZWqgvKfw5Wp6jdhQkpJZPD5WbK87RXR6guqxj6YPSeTNSrKtJncp8lUg3y99OPgAYTTNqVdFJPA8w==}
+
+  '@comunica/actor-query-operation-update-compositeupdate@5.3.0':
+    resolution: {integrity: sha512-6dfRIzfU65soQ99wBZLyEQ2vapG8wLaM7tIbL6c70zcsmT+FrvR8TyqbwE9J9udl4x7TdhZYFpltvCfkUewZ2Q==}
+
+  '@comunica/actor-query-operation-update-create@5.3.0':
+    resolution: {integrity: sha512-sesINoFuaEfUvysskio+E7rD34mSmYEwLhEn/CACrDb9dztdgqej/IatGFQWKZpw6PezDysBVYW5vp5MQS5Bhg==}
+
+  '@comunica/actor-query-operation-update-deleteinsert@5.3.0':
+    resolution: {integrity: sha512-yorNuXAvhoWN8A4SmVvqaXREpEadNFPX5gZ97rxPel8auiOnICMCLP1LaRk4mp1RgVRx6b14caQnw8rXMQo1cg==}
+
+  '@comunica/actor-query-operation-update-drop@5.3.0':
+    resolution: {integrity: sha512-FHWlHRHkNTqQWkudlgjXTtZlruwK/kRbZLyMU4kD1XyJMvYeyvJeXUxi+ZYBSJ0DBoZuYnfCupLw97xGcgYkkw==}
+
+  '@comunica/actor-query-operation-update-load@5.3.0':
+    resolution: {integrity: sha512-Qi+a6rI56UnSTY7vMJdDwo5x0JRvqBH6W5tNYFjcVSp4pBSJQyt5mgeGECh4nXPOhNSqCSmrwVIoL0YJpytl4w==}
+
+  '@comunica/actor-query-operation-values@5.3.0':
+    resolution: {integrity: sha512-SbUXQvAbGrKH5s/6A2w1JuQDfssrPgJWXAoC3YfdNlEn8CKC2xGrzNmwGma97ldKZwhxZAQaIMPK0kMOKKst+w==}
+
+  '@comunica/actor-query-parse-sparql@5.3.0':
+    resolution: {integrity: sha512-SiSf65f9I3NM4jvzHp8DjfvuLeTLoBemRl54BwdM/VF7LF3XcsqcRrtY/BKIcPNipEt21z6hP6UWrRyywjTrYA==}
+
+  '@comunica/actor-query-process-sequential@5.3.0':
+    resolution: {integrity: sha512-e7J6oAfs5OufRdCLY29jv/gNhLkNqWWUrbmJFFfZ6sKKfu1K/Jxqb5OT+jAC4DiMfcB1Z8WMUAKe6ptQkL7WeQ==}
+
+  '@comunica/actor-query-source-identify-rdfjs@5.3.0':
+    resolution: {integrity: sha512-40YD/5Ole/BjVfsRqaaLaW/kW/NtuMCBKO8rqJXsCmVFDUoaFFOn4TQOE9T710hxRu3cZuadlaTuciPuEKLoUQ==}
+
+  '@comunica/actor-rdf-join-entries-sort-cardinality@5.3.0':
+    resolution: {integrity: sha512-QnPoP58iijCZ5ES+24kPygP7sFaxInjYSiBtFn6RhVESe0lW5r2A7r5jeFGkwlAJuHXkJUOxw3mn0Nyn+z8qQw==}
+
+  '@comunica/actor-rdf-join-entries-sort-selectivity@5.3.0':
+    resolution: {integrity: sha512-AJienaS/Zdpl76KuT6uJ2hm3oF3+z5U843A4wY9j4/iuc/7W62orU2mGLHVG7EuE6ynRrG1jB5tQXZQKH7pEdg==}
+
+  '@comunica/actor-rdf-join-inner-hash@5.3.0':
+    resolution: {integrity: sha512-KGxul6J+cezhVkM73ivPaQyha8+1ghpN3kPbExN2K1/iUjU0Ew2Prh0DYdnhLaRTrHsd/rhtzcIPgE0Xx2bXZg==}
+
+  '@comunica/actor-rdf-join-inner-multi-bind-source@5.3.0':
+    resolution: {integrity: sha512-Kt7G31sbSdj5vexXAHnbtbW47idiZ/vbjWIm4SuUsvYCOm2jKpag2UeyFC0A+T1TPKFb32g5vt/OM0Snn616KQ==}
+
+  '@comunica/actor-rdf-join-inner-multi-bind@5.3.0':
+    resolution: {integrity: sha512-rmvWZEG8F4WKPqpiRMKYvMwA6wA10WkeZwhYoS5cUKl42ywemvNDExLA6JgtJ6Ib9smlZcyZWWQYav+5l09gHA==}
+
+  '@comunica/actor-rdf-join-inner-multi-empty@5.3.0':
+    resolution: {integrity: sha512-h7W1/cZOb87f/vd7BowSWsvmW6r1CiBbkbSU9/R+PIn4oTIOiHQG+i6IaYee/6is7SLhnziVC5Kr4TgP5/C/CQ==}
+
+  '@comunica/actor-rdf-join-inner-multi-smallest-filter-bindings@5.3.0':
+    resolution: {integrity: sha512-LbFKEI6Fr0bqxm15esb+BbM2nYs6OKhf/2893wKoIoUEqWm4laGtZfsZaqFEE97ePPAYih5PoUyufSHrnpUUag==}
+
+  '@comunica/actor-rdf-join-inner-multi-smallest@5.3.0':
+    resolution: {integrity: sha512-oLm0sYvlD6l80WwkDpqiieUbd2zOoR/QIdl7utcf9V/ZIdmoNubtoIhezWfcAwpcvTJ6YyIL0srX93dQ9mjiYA==}
+
+  '@comunica/actor-rdf-join-inner-nestedloop@5.3.0':
+    resolution: {integrity: sha512-/PrAyVVFrKxWMVu/SMXIpJzBo10W4rQCQI0adWi2b8/NV01CSjf9Lbo4Ikxkn17giZJHid8ni7bS1hRE3c14MQ==}
+
+  '@comunica/actor-rdf-join-inner-none@5.3.0':
+    resolution: {integrity: sha512-uRbdlP4OjkcvIiAenU2Jxo2Sw1uOBo0QoGO/UcmJfFCMQWbvzFliVICJfgjwPazrpfZLtIBQ/8xpkTbzn7GjgQ==}
+
+  '@comunica/actor-rdf-join-inner-single@5.3.0':
+    resolution: {integrity: sha512-XTQXtQgTbjxMqwaXonWt0AdXHHQ49dDNeG5VUNdGsEYrY4uHio8m1zAfWV8ZBCwf8x371v2sXWl4Sz3rL5zNoQ==}
+
+  '@comunica/actor-rdf-join-inner-symmetrichash@5.3.0':
+    resolution: {integrity: sha512-r09fO1Fwg6P9rud0Gv/vmt39KD8hmXT17zYlKn0mkg1cLhtmSFVNra1tW0PdQzdpYWXWNDxyAojerDW1HjZ8dQ==}
+
+  '@comunica/actor-rdf-join-minus-hash@5.3.0':
+    resolution: {integrity: sha512-836AXeggHS1NZ7/cE5jRpT4DGeBPzKnkOakJzzLzExeHp6+d33Qsa3okB9LrkJoptEgL7QGaoUreyfhOhJO1uA==}
+
+  '@comunica/actor-rdf-join-optional-bind@5.3.0':
+    resolution: {integrity: sha512-G+1CySU4KRuN16YTOENfEuE7Ba/CbIBDBXX9dpPUMDWTlxJQ787oHmK9keop6mtAgIvh1J8ukhpcAxG2QNPPrw==}
+
+  '@comunica/actor-rdf-join-optional-hash@5.3.0':
+    resolution: {integrity: sha512-EExbPqR+N9ux07lewB9FJHACCINpz+b0hBw4fZDObjB3C7MzHUAlV3iJrEbiRQI8KtHGE0A2Dz1xcYWV66p0fw==}
+
+  '@comunica/actor-rdf-join-optional-nestedloop@5.3.0':
+    resolution: {integrity: sha512-vsYkMqBbvoAgUBjgGQB4BxtO09l0T178OGqO33Np0RXEo3vuAkL+jjIUD4wL10Zr9F8XZ6OEAmrhT/di9FMqww==}
+
+  '@comunica/actor-rdf-join-selectivity-variable-counting@5.3.0':
+    resolution: {integrity: sha512-1VG2rIYdE+zVpG3T3QtACffrFBFR3tDdXZNCnwMur+HTvDlBZB7ni4tRGl1ENnGnXw8JUKdJoJTPX0a7YiGYnQ==}
+
+  '@comunica/actor-rdf-metadata-accumulate-cardinality@5.3.0':
+    resolution: {integrity: sha512-vDNJOHoRO7Lhk+dmIT9ZWiUBjDBi5hbOJDMke0akZP5mc2rooVckKyWDlofxqyk6bI4bDGDfQs8T9LnFw9v9xg==}
+
+  '@comunica/actor-rdf-metadata-accumulate-pagesize@5.3.0':
+    resolution: {integrity: sha512-93ibAxT9DTXNWMsOB9NGCmBaDNMNnGHXW+n8BsqNnUeqX9SY1C96wxD34u8nNvfb8BAtwEopzsMqCA3a+9HCfA==}
+
+  '@comunica/actor-rdf-metadata-accumulate-requesttime@5.3.0':
+    resolution: {integrity: sha512-TJ3mj+Y1l2CgfekoPdbx2w9yIbAwPam9mWL/YLaNkYkYEfQkcgAq+SN3eLPbIklRmjzcfkaXmE57QR1NZgTlng==}
 
   '@comunica/actor-rdf-parse-html-microdata@4.5.0':
     resolution: {integrity: sha512-wxoXLS0nxV4ZqJEsx+zdZLjkRxZPFo+bXt+0fVEuDdBwL5WaJ6WPEL3fqbiH3QuaTu08k9klnsg2L1ncCeHhGg==}
@@ -1330,17 +1919,83 @@ packages:
   '@comunica/actor-rdf-parse-xml-rdfa@4.5.0':
     resolution: {integrity: sha512-1uQuq3xsokT0wWf9O6d+SyuNEvGX+bgSSGBCQF9YDjc2RygiZATUdThDmh4VDUYJzUCxHb3YM1XyJ+U2Si6xpA==}
 
+  '@comunica/actor-rdf-update-quads-rdfjs-store@5.3.0':
+    resolution: {integrity: sha512-NQd2F2MU5Wk6XjDTXHcV1P3Ttv6JzWfTEVpQM+9TcT0S55BTQWcMwJ03KhgHNwrCFFUOc3enQxMhwXL0g4ckIg==}
+
+  '@comunica/actor-term-comparator-factory-expression-evaluator@5.3.0':
+    resolution: {integrity: sha512-Qg08JwUHQLjMYlQt5S07Basrd1dPJAIUlW9/NGtvPOrXCu8ukEfVjbPy7KIuz64okmLJUxS5IAcit6OqAl3OoQ==}
+
+  '@comunica/bus-bindings-aggregator-factory@5.3.0':
+    resolution: {integrity: sha512-SxMOl6Zd9jolBbOIOIqkgLCGIR/6rbL/pCwsDpBU+dcpQPECEQZW51N55/t9R3pSBci20ft8AIUjyv2HC6MkdQ==}
+
+  '@comunica/bus-context-preprocess@5.3.0':
+    resolution: {integrity: sha512-zEXJE1fzbG652rGTsb4CVfvI+H9B+YwCAXQq6UtMJqelVFFBSYBXMsyzHbYYN5EafRUMyfwtxxETGd4q809/sw==}
+
   '@comunica/bus-dereference-rdf@4.5.0':
     resolution: {integrity: sha512-z9NQ7zOoNQH7XoiZEHkMl4Y6fYLkinP+KQgGGSTm2ylhAHnId7qf+UVZhbe1+jmX50YhNOPc3ZT1LOm1YdSnzw==}
 
   '@comunica/bus-dereference@4.5.0':
     resolution: {integrity: sha512-aaiPxZMS/KlkLbQErOtGRMtirVGWYVEmQiFtlKkak2w+584rHTS33m0YD21r6iuQ9RIleRIAb8kAsPa6zDgAnA==}
 
+  '@comunica/bus-expression-evaluator-factory@5.3.0':
+    resolution: {integrity: sha512-5IxLzVAmwv9Aj30F17viNVFQT3EKDWXeTV1WFBLfkxFFiah5fX5gqOTKPVCYgf4n3uAjmcKtEkkRUpXU10a+Ig==}
+
+  '@comunica/bus-function-factory@5.3.0':
+    resolution: {integrity: sha512-s/zSlCwvFLiFqSS+qhYeorOEUD/5CUMm/dJilTZsy1Dct8VYCx6Rk0wbNYkgxlnd91K/xj1ZCgCMITA+m23J5g==}
+
+  '@comunica/bus-hash-bindings@5.3.0':
+    resolution: {integrity: sha512-Kapq4bVjWEhHm4+c/8K50UdiGMzcePyWeDv9nj9SBRIqu+lnu67Rzwb+zk9KmiHiQKlJqr4EIguaYJqJPuym3w==}
+
+  '@comunica/bus-hash-quads@5.3.0':
+    resolution: {integrity: sha512-cPblIA/tIgl3Hr/zkEpnckxr9YP3u+8MovWCwOlQ/7qmO8CZQGyhj+g23gzzMstrLG3KtGnFinkXPiYqr1qytg==}
+
+  '@comunica/bus-http-invalidate@5.3.0':
+    resolution: {integrity: sha512-RZw7IEYNLy2DY2fUvXA4CUxzrLeYYofr+soXdKKpvwDYyXqOoNGEZoJP962/RDFORm5hvgZyOWoau5Rg9MAkUg==}
+
   '@comunica/bus-http@4.5.0':
     resolution: {integrity: sha512-wWyPNNOl6shDbtibdBl/pa9OIcoEMemNIo/J4tUViXxYXZ8i1h4FZ6PqaLtAls6O+pV71mR4SKJzKEUuiZiXPg==}
 
+  '@comunica/bus-http@5.3.0':
+    resolution: {integrity: sha512-/d8FS02Jb5gvFDw21ZiH2Bvt3PRkMN3kkowTRBIArB4wJjt1c7DRXCt2uS7zToNVa0mAdZmKIlC1vpY6g6o3SA==}
+
   '@comunica/bus-init@4.5.0':
     resolution: {integrity: sha512-9TYFLjirHDt7HPXj3eQW9KX3x5T3mZ1G/EKadL1gQxo0FAqs3y8TdicepCLhk3HY/egidlyv9WQYAPvJ+WAmAg==}
+
+  '@comunica/bus-init@5.3.0':
+    resolution: {integrity: sha512-d0Eyp1MhjTAttzBsglLJd3CLi+D7Z3Beat1a396+qdrqXWNV74TFazKMhymSmwwEUZMeyiIR/YttosOkl1ujkw==}
+
+  '@comunica/bus-merge-bindings-context@5.3.0':
+    resolution: {integrity: sha512-1o8i7aVxWkZhlSEFbbO5YsRvEtQcepRxbrcwovX9qhDpoaZgcEcOIG3cG56+McxD6hZcJoRIJAnOjggmL5rPiw==}
+
+  '@comunica/bus-optimize-query-operation@5.3.0':
+    resolution: {integrity: sha512-YsI+cfmW8Syblu50hs1HrSRZIkW/cZMmdjGlq02kRr9YUyexk05h1mzAblWP1/63VbvTVc42MPkm57JShp5Z0g==}
+
+  '@comunica/bus-query-operation@5.3.0':
+    resolution: {integrity: sha512-acJ87Hsw62NGSCKGbb/YN51zC4d+Tjin3V3DARjnbP7koyltInW8BkNbsZjPr+R5rhvEQbCfxLSuwuk7bg4IIQ==}
+
+  '@comunica/bus-query-parse@5.3.0':
+    resolution: {integrity: sha512-DnklxCi7+HjsB/6zmVrupmjQxDEkWydWXBOp++suVjrrxaD0BbOXNwInD33Kr5j9pSMPrBUck0nk8+mHc8JiZA==}
+
+  '@comunica/bus-query-process@5.3.0':
+    resolution: {integrity: sha512-NOpHUBA3qxF9Y4vmHaGlnGnGxPUNthT9GdkvT3jyH3ykU8RPIbrpeRZfS5Kdv2rj3Z/EvTlUXIEF63ENdAReAA==}
+
+  '@comunica/bus-query-result-serialize@5.3.0':
+    resolution: {integrity: sha512-jWz0031xw1AfdgdpvDPAGV1s1jkK9wSMY5dm3kAAn9bzudLOQekvxyMDUiX5Wrk7nF4xDo/CZO1HsCX6eLCOtw==}
+
+  '@comunica/bus-query-source-identify@5.3.0':
+    resolution: {integrity: sha512-7tMFWemw1CojMqYwJpd42ojZA5QZQCN1/ITDTuUVTh1stny+siCTpAmqMLAwxpKs2AWeuj9ytkUGd/jk8zH6Ww==}
+
+  '@comunica/bus-rdf-join-entries-sort@5.3.0':
+    resolution: {integrity: sha512-J5ivYZTKWy61W0KwuxBCbgNlNaX+acJTUaS5s/pR5SLrrMDE19yBaJAgOAP8bPlW19IPnqjMuvmrAhGRes/qyA==}
+
+  '@comunica/bus-rdf-join-selectivity@5.3.0':
+    resolution: {integrity: sha512-vH3RVitPhWEBGOPgA3Utq4eOT2YJXYAsLMShH9fmckW+Gyn8gHkn/bvUyX3XX3eC0eFhOno3reCUQWXjgcOmfw==}
+
+  '@comunica/bus-rdf-join@5.3.0':
+    resolution: {integrity: sha512-frR1cwzcM6knfkxMB0kLgTc31N2dU3XhK4DeZhbkXtj8Nyu2g7YMhrU/HEOToNj/lrr4/utxsisg63c9e2/IUg==}
+
+  '@comunica/bus-rdf-metadata-accumulate@5.3.0':
+    resolution: {integrity: sha512-qQFIhWFvqNVT3Lbfe+gF8pWFEyFGhZ4nHRBbSYuhfF53Uq4odEwx/NwFkbrPqH4QWAnKy+uqUCr1RTvNa/0Zyg==}
 
   '@comunica/bus-rdf-parse-html@4.5.0':
     resolution: {integrity: sha512-yKsPuCIOLF5TXqoXXo+utZehG2diTCBnNleXrOI8Utr4Qu5rAU4oQ5+FC0UByMu5hr+g/TGm2A+IHSVzFRCUfw==}
@@ -1348,33 +2003,116 @@ packages:
   '@comunica/bus-rdf-parse@4.5.0':
     resolution: {integrity: sha512-TnTS9F2GSbibuCd0Rep20C9WXU0KH0iWl2S2xycefMFrZK7noA8LeT/AHNshQlMPKejKxWME+jNsvcXgC++8zw==}
 
+  '@comunica/bus-rdf-update-quads@5.3.0':
+    resolution: {integrity: sha512-3GiRK60Cdnu0jnk7ux9EZBy/GlfsKCITReuFiAQEwUQs5nqRHq2MQ+f8gjaVICc9L50jICNGOXHRn095IFskpA==}
+
+  '@comunica/bus-term-comparator-factory@5.3.0':
+    resolution: {integrity: sha512-Xk61lo643QXfH9f34M7vNdaOART32Gjp3R6IdOsLqgCmrwM0FtvUt8UB+FWgTV4G6n8aRJwFw2e8M9v3kw3obg==}
+
   '@comunica/config-query-sparql@4.4.0':
     resolution: {integrity: sha512-ZVK6eqpYLNa3MRLOWjRaudgfSdraJH/oZIkc5S2doJI2ZmnHROqQUtjPs13kwkI3hGZ6MVBtLm55oz+tKj2lKA==}
 
+  '@comunica/config-query-sparql@5.3.0':
+    resolution: {integrity: sha512-5snTR5p0yjQCIiRrNu6tzNAD1EfahkSNmQUB2AUI04S/lfz97HQ1ycvQroeJ7P08goyBtld2s0AReexUnNhcfw==}
+
   '@comunica/context-entries@4.5.0':
     resolution: {integrity: sha512-mgeSYFBcpMKLq34COpy129LVHigGUgA1uEI66WXmk3mdmlAKRQNe9D/W2Q924w0FZZmIOpeLMo+s358tFsodow==}
+
+  '@comunica/context-entries@5.3.0':
+    resolution: {integrity: sha512-B4KXcYgYDrg1HCl1kCyhHM2I/xvyJsSbf8bxHY2xWnaqqytLJPyyMffKdHFRflHc1JmlqpYV6vyc4+5ZBUWzAw==}
 
   '@comunica/core@4.5.0':
     resolution: {integrity: sha512-UFHBboFaY0eESH0H8qJRIRuRfda2QduS886l2sRum/V4qhzJkMpf3zdOoZoBbRDU24PBmliWysi9TEsaPsyRwg==}
     engines: {node: '>=14.0'}
 
+  '@comunica/core@5.3.0':
+    resolution: {integrity: sha512-f3TIl78jS/Td4b7jcXm8Ps2aTz70yujgrMn2vYKg6YLcvumA7yVJ5yVvgDz+jhv7wnQfk8yJfnzi2PYwuM4UMw==}
+    engines: {node: '>=14.0'}
+
+  '@comunica/logger-pretty@5.3.0':
+    resolution: {integrity: sha512-GcpITJMRzlnOCJ8XbiKWIFQZJ1a6SyCHo5Yb/aXW24JIS7F4DFmogKdywQSffPnxT+0qTFPJn8ZDPaMeLfp1Jg==}
+
+  '@comunica/logger-void@5.3.0':
+    resolution: {integrity: sha512-/AY/8lT7A33nEtJ1bKgecVF52zR8mj6WQKoEM2RDvDG3ZKjwVDy3uZd2rOiz18lN58YHL7sCN1bxyrVGgjc40g==}
+
+  '@comunica/mediator-all@5.3.0':
+    resolution: {integrity: sha512-Fl2VqjdMGZSdqxJ/QkShgTH+kO0m0J3wiMGI1nzB4eSxqcJi8vI/AFDmlEnlodGR8xQyRKTM54/PVF6HUdd96w==}
+
   '@comunica/mediator-combine-pipeline@4.5.0':
     resolution: {integrity: sha512-Z4uLxugl+Ls8oAwD0dAIQg+i1rkiXbpiFLhgv5h6nksnz9q6Nv14xItm6baivxAJ9p8XVHCOwPxW46YJBtWIoQ==}
+
+  '@comunica/mediator-combine-pipeline@5.3.0':
+    resolution: {integrity: sha512-I3OzVq2HlFOREEUBm5r4Hs8J1gDGyL4Ms45e2gJfEfuQuMKIIdCeUkdLrqHhqA1xgryybFV2PZ2bD7L6V2/xVw==}
 
   '@comunica/mediator-combine-union@4.5.0':
     resolution: {integrity: sha512-aCoO3CiANssR8PEjad2aNuCcfhKdUFZWplTWq77cVUMVc4nsUWNleeEvN6kfOx51qdT8lFpH3b8X+S7bT8CABg==}
 
+  '@comunica/mediator-combine-union@5.3.0':
+    resolution: {integrity: sha512-us4Ficcn9dMfeMAWPYaM386hwsWzBjYF2VClSkCn3hQW8G702HOs384pxFA5CDaqUUpn2HZZdokM72S8JTMFCg==}
+
+  '@comunica/mediator-join-coefficients-fixed@5.3.0':
+    resolution: {integrity: sha512-oqMfzit7DD6vwGxxLtFf5gBZVrVvLRGe6scksmnp32aq4RWPv5/PLg2DmsCq8bRIzKnMG4kDJaFh9aSBAmXG8g==}
+
   '@comunica/mediator-number@4.5.0':
     resolution: {integrity: sha512-fChc4gh+gtwPOS0F5eNeDuU4Kyb2fAuppN28d1/5s+OUr5v+1Wya7yZ1zbPHYxDMWZEpJBR06eX6djcI0gKlkQ==}
+
+  '@comunica/mediator-number@5.3.0':
+    resolution: {integrity: sha512-Mb21LNiMZfjN4fF9st7eBpupX+AdrPLSrzJ8jquv5N5jK3ss8ctAPU6Kqs8c6DLkTmdfGIqUt9lQMQ7fodgj1A==}
 
   '@comunica/mediator-race@4.5.0':
     resolution: {integrity: sha512-eAWjQolFMOxKoKuUMmcQzxwf/ZL9ooT0/OUWv1vbVfHIQb/eqDs/h8wDqwXMgEiK5dIF9ZQYaRL2vEaLq+U3Ew==}
 
+  '@comunica/mediator-race@5.3.0':
+    resolution: {integrity: sha512-m66N9pMJ5FHS4Pt8arLyIS85cfDsXmhAcUxUVbxQw1+hAfBoQKRmWfZdTqdW55d9xeMxZysGFV1w3k5aar4SKA==}
+
+  '@comunica/mediatortype-accuracy@5.3.0':
+    resolution: {integrity: sha512-+A9HiGR4iIu95xSGysrJSzKvCkxY7mXZOO96by0cr3ZqbaCuCcHNBlxQLQcPWHExLz7eo1t+43KLUB3DkzSRig==}
+
+  '@comunica/mediatortype-join-coefficients@5.3.0':
+    resolution: {integrity: sha512-v3iZCMrnjtBoXkYIdLg/9PDI0SZTVvk/txuMS9k4BNS9hp+e8FE73HmufH8oLdkQ8vxHCIY/G6cacqAn0eEMnA==}
+
   '@comunica/mediatortype-time@4.5.0':
     resolution: {integrity: sha512-HND+om4L0VW3VcQrLHHE4+7Nsg7soC98i7g7UqqzDkJ4fix2FnJs0i9WH4RP+oLcx+bPhBSl5mG1m44A6sV19g==}
 
+  '@comunica/mediatortype-time@5.3.0':
+    resolution: {integrity: sha512-5OF11XzzolSbD2L0pA9QQdrYa3VGCge0eH88uBD8wYh/7UChOmo3J6lVjWE9Ct2GEWosJc1kUa33iu7Dfy962g==}
+
+  '@comunica/query-sparql-rdfjs-lite@5.3.0':
+    resolution: {integrity: sha512-t31sGSBYSEoDu3jCqMiwXFvnfhfb3wwSs4yUtfEez9CQ9JIg4dR9/i13xP8YRTd2Mfcltm/0iId9bj5V0JuHlA==}
+
+  '@comunica/runner@5.3.0':
+    resolution: {integrity: sha512-RjbneWhBfD0TYQbDQ6hEfjAJQe2HhF7eVEA3CwJd8zHHMSUaypijK2ptERIi75prL5llN8Rvod9i/B4eYQ6FRA==}
+    hasBin: true
+
   '@comunica/types@4.5.0':
     resolution: {integrity: sha512-XhnkspVgYilchErpSAELHRA7B4wRszDdvCkhbd52vjLrThzGUDfDoGx+56y4AeziWkxQLNug8AZbo/Q6J2vCzQ==}
+
+  '@comunica/types@5.3.0':
+    resolution: {integrity: sha512-kuEX8uPzCgkVFQRFBrIA7ZYYkiWmQ3BhLlhii9GL3PfbquU0V2QOsebcP21l3rOSNBV63G3IQiWFdhk1Lql2pw==}
+
+  '@comunica/utils-algebra@5.3.0':
+    resolution: {integrity: sha512-P/2qjAtuI/wk5RXDkrJuGlgwrRYh+vtl45ZzADs1YEeklzNM4AWT1Fbl501qnwi4MApr6xwPK6OxoQQ+ergB7g==}
+
+  '@comunica/utils-bindings-factory@5.3.0':
+    resolution: {integrity: sha512-CFlQAMKg00a42S/bFKFNUUCyECXPhcqApV/VFcbh4lNWZ0y/9SqQ4Qq/JymH9R3DigshFjEgBCxQ0AIOzBV8Jw==}
+
+  '@comunica/utils-bindings-index@5.3.0':
+    resolution: {integrity: sha512-8k36woPeAEkSU/kcUvs9mgYIi7dawfPH9+si/nQlfST3NegUK8TPE0qAnzFQV/uvqDSg5+Cpo2cfl4/h0C4jWQ==}
+
+  '@comunica/utils-data-factory@5.0.0':
+    resolution: {integrity: sha512-F5nkZjDSDdydAItS19svrWdWdCTx7pLCGlVomePa1IiF117TOZZMyI9bcFmh9SoIpmoitfMPHre3Fhm8DSd0uQ==}
+
+  '@comunica/utils-expression-evaluator@5.3.0':
+    resolution: {integrity: sha512-moaI6ZA5G62dvxUzTjiw9xqoc+EKopIgSp/a+aBVu95gqj02zm0rHWVOAdgCLyu19l58uMK7MCR6hwDbLnbsDQ==}
+
+  '@comunica/utils-iterator@5.0.0':
+    resolution: {integrity: sha512-iognyhJ4kkwZe2zZTB9MbELiUKypVGWjLFSY+xnVqu7WjDAAkmj2KuD9jRKXdYsvMT43CUo7JXh+2vIxYGL68Q==}
+
+  '@comunica/utils-metadata@5.3.0':
+    resolution: {integrity: sha512-4INJurpISwJQ37YjguK2+usOs5nLVbD3/cXiKE2Kc44QKMdX3ykySjmNvZRd3VSfd5G50ML8KtHeCZUR5C8CbQ==}
+
+  '@comunica/utils-query-operation@5.3.0':
+    resolution: {integrity: sha512-gmqfXoo1G7UMKemyOYgp6yF8KEqb/PLiWX2MlRB8+YniswjotGSJ/IBY/24UEW6GnHqNMSQsNQ8LjKa5UxzrGw==}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -1479,6 +2217,9 @@ packages:
 
   '@cucumber/tag-expressions@9.1.0':
     resolution: {integrity: sha512-bvHjcRFZ+J1TqIa9eFNO1wGHqwx4V9ZKV3hYgkuK/VahHx73uiP4rKV3JVrvWSMrwrFvJG6C8aEwnCWSvbyFdQ==}
+
+  '@dabh/diagnostics@2.0.8':
+    resolution: {integrity: sha512-R4MSXTVnuMzGD7bzHdW2ZhhdPC/igELENcq5IjEverBvq5hn1SXCWcsi6eSsdWP0/Ur+SItRRjAktmdoX/8R/Q==}
 
   '@digitalbazaar/http-client@1.2.0':
     resolution: {integrity: sha512-W9KQQ5pUJcaR0I4c2HPJC0a7kRbZApIorZgPnEDwMBgj16iQzutGLrCXYaZOmxqVLVNqqlQ4aUJh+HBQZy4W6Q==}
@@ -2722,48 +3463,42 @@ packages:
   '@juggle/resize-observer@3.4.0':
     resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
 
-  '@ldo/cli@1.0.0-alpha.51':
-    resolution: {integrity: sha512-+//vjmenLXRJUkYpd+rpPz/jScp21TQf3nl5/HKipnOndrW2ikiWDDVqL3vQzH3qWVnexu+Cc/UcVL9ZnOVXnA==}
+  '@ldo/cli@file:vendor/ldo/ldo-cli-1.0.0-alpha.50.tgz':
+    resolution: {integrity: sha512-7c0ElbuBkfHL+T2FV2HeQOL9YvSLf6NhRNhWl0mcrNV2Rdl31ggDX45ctmstclz8/uT+e4+csOpoa4V0OFDEhQ==, tarball: file:vendor/ldo/ldo-cli-1.0.0-alpha.50.tgz}
+    version: 1.0.0-alpha.50
     hasBin: true
 
-  '@ldo/dataset@0.0.1-alpha.24':
-    resolution: {integrity: sha512-Jlh6DjvLN4gOOT8SYCKQaHZB8taeHvoriQRbF3s5CtYFf8Ne20job+02cToE1kVcBCinBrjZ/qnZ777wje+Z7A==}
+  '@ldo/dataset@file:vendor/ldo/ldo-dataset-1.0.0-alpha.50.tgz':
+    resolution: {integrity: sha512-sa1Ud1MDnz5p7h5rHUh20MYVxjIoA678/tVo2EY/cUH3EZgWivFx1p5SVWz5ZmCC1ekbtSsiMbL1Lexnd/zM3Q==, tarball: file:vendor/ldo/ldo-dataset-1.0.0-alpha.50.tgz}
+    version: 1.0.0-alpha.50
 
-  '@ldo/dataset@1.0.0-alpha.51':
-    resolution: {integrity: sha512-ZaRCPGxUB9RooLwKYjcQt6XYjAabCWPbtZZrcKJv1yKgOQOXw214cMArmlrYeHJPoEB+Qo7fsq63Vg6CQeZOgg==}
+  '@ldo/jsonld-dataset-proxy@file:vendor/ldo/ldo-jsonld-dataset-proxy-1.0.0-alpha.50.tgz':
+    resolution: {integrity: sha512-fUm0khJp9TO2yYsKTM0qVy2qQBh+jbQpgFTggyPIZd5y3FJh9s9ppDWIhKFdyWKFOtXIXyRUADcYKkg7azsMWg==, tarball: file:vendor/ldo/ldo-jsonld-dataset-proxy-1.0.0-alpha.50.tgz}
+    version: 1.0.0-alpha.50
 
-  '@ldo/jsonld-dataset-proxy@0.0.1-alpha.29':
-    resolution: {integrity: sha512-6r1tn/t82aJ6vjxEGyNSJTzQJgz1Z4Pu875o4EolXXJZCu7TiXBdsW6HyAuloqiIV5b6A2b+M6G0mOuObndooA==}
+  '@ldo/ldo@file:vendor/ldo/ldo-ldo-1.0.0-alpha.50.tgz':
+    resolution: {integrity: sha512-nMjfYP/L88A2z558xduenF+Opl7XIYVpkor54VYphGR8LV7Gk55vJfIrQETlHUccf6xZyCaw4P+vRMEEbgYxwQ==, tarball: file:vendor/ldo/ldo-ldo-1.0.0-alpha.50.tgz}
+    version: 1.0.0-alpha.50
 
-  '@ldo/jsonld-dataset-proxy@1.0.0-alpha.51':
-    resolution: {integrity: sha512-ZDBJlyQ/oj9SJ7ufR8HPWFUhmzq9+3aHBt220NbocY5QqrLGPBEVq8SiiPCuxJn+Ye95OAJL4rCTafkXd/E9Sw==}
+  '@ldo/rdf-utils@file:vendor/ldo/ldo-rdf-utils-1.0.0-alpha.50.tgz':
+    resolution: {integrity: sha512-P8SC28ZMmJnyiKYoMNF++iHiYQvGOfBWlhP4dLdzOvdu2dUTvMQK9EI5XnSazqadJ56DAu7yZhS6U7hsuc/4RQ==, tarball: file:vendor/ldo/ldo-rdf-utils-1.0.0-alpha.50.tgz}
+    version: 1.0.0-alpha.50
 
-  '@ldo/ldo@0.0.1-alpha.29':
-    resolution: {integrity: sha512-eci3e2FlaSoOWN5vzLQaJhrmznuuK89yTr/ZLvmWIK2bvsY8QOArAx8EiGgwvvrzvHpG7ezaoW1ThS/53QFiqQ==}
+  '@ldo/schema-converter-shex@file:vendor/ldo/ldo-schema-converter-shex-1.0.0-alpha.50.tgz':
+    resolution: {integrity: sha512-NNGkvw7jUMWAHMMEJucuPF03pLREhQ/q4KsctlmYnE+uDAoBWfpqw5MSQipwxe4PUEwBxDepAVVyrj+aIeqAcw==, tarball: file:vendor/ldo/ldo-schema-converter-shex-1.0.0-alpha.50.tgz}
+    version: 1.0.0-alpha.50
 
-  '@ldo/ldo@1.0.0-alpha.51':
-    resolution: {integrity: sha512-a++67keLWExy+CLKyKyBfNomEcKxmuuWnE+6ZMzZxK7Su6NSv8W12uecLd7x1lt+G6mX6VFFMKuqpw6pRnHLtg==}
+  '@ldo/subscribable-dataset@file:vendor/ldo/ldo-subscribable-dataset-1.0.0-alpha.50.tgz':
+    resolution: {integrity: sha512-EyhitVt5zazS8Dlp0ZZ77ha0VH00A7xFPula0aPCan20L5wMaEZmHr5Z+waqGLPsB1tHAPr8YaPSFMiN01Jywg==, tarball: file:vendor/ldo/ldo-subscribable-dataset-1.0.0-alpha.50.tgz}
+    version: 1.0.0-alpha.50
 
-  '@ldo/rdf-utils@0.0.1-alpha.24':
-    resolution: {integrity: sha512-L6gV/pS7107ODinnvvD4sUBb9VM/7IuVeFWZnN0Jmyk7XBiviPLVUvReO18UB7mambXweLS7efl+Z0W2NnsH1A==}
+  '@ldo/traverser-shexj@file:vendor/ldo/ldo-traverser-shexj-1.0.0-alpha.50.tgz':
+    resolution: {integrity: sha512-Tb9hUbonHmuPKkhI7mAsjvTrb96BlpNYNLoQMHS2X47d0KWV43Vqxm+ACB8ONTW3V5BpNgdUNqpQdAcx6W09lg==, tarball: file:vendor/ldo/ldo-traverser-shexj-1.0.0-alpha.50.tgz}
+    version: 1.0.0-alpha.50
 
-  '@ldo/rdf-utils@1.0.0-alpha.51':
-    resolution: {integrity: sha512-DGkmv1ZeJ8c9TIa6vWXav9n6KIrqHzeRTle6JUcMOEFbzB3AP8qQpUmKcaTpw8HCINQEjQv+bmNeUbfWpCAQ3g==}
-
-  '@ldo/schema-converter-shex@1.0.0-alpha.51':
-    resolution: {integrity: sha512-YvUBrYS8a5g/nDMYce+1h4K/zZ1KzezxX9V0RiiFk5SeCsNKtbELSS+ZADd1tTjLiwQRN2p1CIUX3P63rMbwqg==}
-
-  '@ldo/subscribable-dataset@0.0.1-alpha.24':
-    resolution: {integrity: sha512-grQ0/pzdx4euBOTxMHqQqebOYBqrBbNS9Jk8sYFR4u/dEg8e6nIGz0E4beI83dHp/hT8fT18gs/gV4UxZzmphQ==}
-
-  '@ldo/subscribable-dataset@1.0.0-alpha.51':
-    resolution: {integrity: sha512-WubtsqL9fDtjH8kGaQB3issHf9b2Lxl49EPK9VE3PaT2WJwDWA7wUMbrBsYNJ2wNsIZ8z4qlrjHqsbKACWXp/A==}
-
-  '@ldo/traverser-shexj@1.0.0-alpha.51':
-    resolution: {integrity: sha512-GXdyYiLL8rWZNXMfKXJfaUfYsEddEaOxDzIgzHklb/QS1+KYcHtWavJGc45X3PIhv7S43rMB1UG6rzDlQrrNNg==}
-
-  '@ldo/type-traverser@1.0.0-alpha.51':
-    resolution: {integrity: sha512-ONZQ8Wd4qBKdp/QvL926xU96qfYhcl0HFziewZrn7O3OyDwDY+bkZN4o03Ksza8h4IYqVrjsfUCpAQP5K2rwpw==}
+  '@ldo/type-traverser@file:vendor/ldo/ldo-type-traverser-1.0.0-alpha.50.tgz':
+    resolution: {integrity: sha512-vDYsvUkVW3fMTPyKDqeNuXcyxY4LvpMR63SZ/ZapkmWCbWDLGPpNWekfwtSyPsULpST7/kQuW492g1K0JUc65w==, tarball: file:vendor/ldo/ldo-type-traverser-1.0.0-alpha.50.tgz}
+    version: 1.0.0-alpha.50
 
   '@mapbox/node-pre-gyp@2.0.0':
     resolution: {integrity: sha512-llMXd39jtP0HpQLVI37Bf1m2ADlEb35GYSh1SDSLsBhR+5iCxiNGlT31yqbNtVHygHAtMy6dWFERpU2JgufhPg==}
@@ -4244,23 +4979,75 @@ packages:
   '@radix-ui/rect@1.1.1':
     resolution: {integrity: sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw==}
 
-  '@rdfjs/data-model@1.3.4':
-    resolution: {integrity: sha512-iKzNcKvJotgbFDdti7GTQDCYmL7GsGldkYStiP0K8EYtN7deJu5t7U11rKTz+nR7RtesUggT+lriZ7BakFv8QQ==}
+  '@rdfjs/data-model@2.1.1':
+    resolution: {integrity: sha512-6mcOI4DjIPS6MOZw23H8oAdujHCk5gippVNQ7mKwliYTvTNh+uqRM91B9OLqhoAoNcQ3t49Dx2ooIMRG9/6ooA==}
     hasBin: true
 
   '@rdfjs/data-model@2.1.2':
     resolution: {integrity: sha512-yoSVlyCltqbaCTse3uSdf5Vo3q4UskcTm+3klaUQTwOq7Z5aCZLtLPZatXTPzr+S0WEcjTZvD++A+r3QmgamsA==}
     hasBin: true
 
-  '@rdfjs/dataset@1.1.1':
-    resolution: {integrity: sha512-BNwCSvG0cz0srsG5esq6CQKJc1m8g/M0DZpLuiEp0MMpfwguXX7VeS8TCg4UUG3DV/DqEvhy83ZKSEjdsYseeA==}
+  '@rdfjs/dataset@2.0.2':
+    resolution: {integrity: sha512-6YJx+5n5Uxzq9dd9I0GGcIo6eopZOPfcsAfxSGX5d+YBzDgVa1cbtEBFnaPyPKiQsOm4+Cr3nwypjpg02YKPlA==}
     hasBin: true
+
+  '@rdfjs/dataset@2.0.3':
+    resolution: {integrity: sha512-Ur6M0nDFXMJWNYe1IBDBaQV/nIwRbe3+I58syOHnzZNbe7ZHumUOS/0XQ1+9WYF31tmQU7w741MRn6W3J+OTeg==}
+    hasBin: true
+
+  '@rdfjs/formats-common@3.1.0':
+    resolution: {integrity: sha512-wgz5za/Uls+pttLdLl/aH0m0LQNgjqpWwk9exNs2Smmb2CosynRo4S0+CxeNOVZh4zeUm7oAlr1CK/tyg4Ff6g==}
+
+  '@rdfjs/formats@4.0.1':
+    resolution: {integrity: sha512-Rg53vP+x1bnGAqJNKgEzJEUPDhj+tCpzb6wdmfLoVFq4XoZ589+cg2ScFDUMMyAVsgKXvSWjDhQ9f9ab254ZxA==}
+
+  '@rdfjs/namespace@2.0.1':
+    resolution: {integrity: sha512-U85NWVGnL3gWvOZ4eXwUcv3/bom7PAcutSBQqmVWvOaslPy+kDzAJCH1WYBLpdQd4yMmJ+bpJcDl9rcHtXeixg==}
+
+  '@rdfjs/parser-jsonld@2.1.3':
+    resolution: {integrity: sha512-VYnPEwVdqFAPTo9F8XIN4UpGPdNzhBaCFv5b5OT74pA7H8so4aTno3Yd6M5I9bhTrUoCQjpjgr+ugYlvWxdBIA==}
+
+  '@rdfjs/parser-n3@2.2.0':
+    resolution: {integrity: sha512-gsQpcjAJ/uNoCt/SV/Eteuxjfbcmyh3cnh/Agixik8DqodLrcqxeeAJqDe+36jMxRQ08FDKTdKMxwKtTkS11vg==}
+
+  '@rdfjs/prefix-map@0.1.2':
+    resolution: {integrity: sha512-qapFYVPYyYepg0sFy7T512667iZsN9a3RNcyNBTBV+O8wrU3v/URQZOipCTNrEm1BXzZ7KCK1Yi8HrE1y+uRuQ==}
+
+  '@rdfjs/serializer-jsonld-ext@4.0.2':
+    resolution: {integrity: sha512-l/A6gQgKWYYGOPbcVZWnaamqWPtShL4FDrEqh5F85Fw0PdSca7q0YOBpB8ihxKmiGmfXa+SB4M8l9iyEegcp7Q==}
+
+  '@rdfjs/serializer-jsonld@2.0.1':
+    resolution: {integrity: sha512-O8WzdY7THsse/nMsrMLd2e51ADHO2SIUrkiZ9Va/8W3lXeeeiwDRPMppWy/i9yL4q6EM8iMW1riV7E0mK3fsBQ==}
+
+  '@rdfjs/serializer-ntriples@2.0.1':
+    resolution: {integrity: sha512-G1ZI0qaN/MUHxeCwr59JscO2LdyIb6MNQdXOv7NFBZuodyHsxxhJRFmMVn+3SEXeNJbVeEEbWBrLglCUgJ8XjQ==}
+
+  '@rdfjs/serializer-turtle@1.1.5':
+    resolution: {integrity: sha512-uvIFUOuMuk8JrJnng/tWKIQ+8XI6YLEms75YdvZ49LtIyyfbDqKz76EybgnD/zZYfMhVVkguKtheBC9h08g1PQ==}
+
+  '@rdfjs/sink-map@2.0.1':
+    resolution: {integrity: sha512-BwCTTsMN/tfQl6QzD2oHn9A08e4af+hlzAz/d5XXrlOkYMEDUAqFuh2Odj9EbayhAEeN4wA743Mj2yC0/s69rg==}
+
+  '@rdfjs/sink@2.0.1':
+    resolution: {integrity: sha512-smzIFGF6EH1sLAJR9F3p2wMNrN44JjPeYAoITTJLqtuNC319K7IXaJ+qNLBGTtapZ/jvpx2Tks0TjcH9KrAvEA==}
+
+  '@rdfjs/term-map@2.0.2':
+    resolution: {integrity: sha512-EJ2FmmdEUsSR/tU1nrizRLWzH24YzhuvesrbUWxC3Fs0ilYNdtTbg0RaFJDUnJF3HkbNBQe8Zrt/uvU/hcKnHg==}
 
   '@rdfjs/term-set@1.1.0':
     resolution: {integrity: sha512-QQ4yzVe1Rvae/GN9SnOhweHNpaxQtnAjeOVciP/yJ0Gfxtbphy2tM56ZsRLV04Qq5qMcSclZIe6irYyEzx/UwQ==}
 
+  '@rdfjs/term-set@2.0.3':
+    resolution: {integrity: sha512-DyXrKWEx+mtAFUZVU7bc3Va6/KZ8PsIp0RVdyWT9jfDgI/HCvNisZaBtAcm+SYTC45o+7WLkbudkk1bfaKVB0A==}
+
   '@rdfjs/to-ntriples@2.0.0':
     resolution: {integrity: sha512-nDhpfhx6W6HKsy4HjyLp3H1nbrX1CiUCWhWQwKcYZX1s9GOjcoQTwY7GUUbVec0hzdJDQBR6gnjxtENBDt482Q==}
+
+  '@rdfjs/to-ntriples@3.0.1':
+    resolution: {integrity: sha512-gjoPAvh4j7AbGMjcDn/8R4cW+d/FPtbfbMM0uQXkyfBFtNUW2iVgrqsgJ65roLc54Y9A2TTFaeeTGSvY9a0HCQ==}
+
+  '@rdfjs/tree@0.2.1':
+    resolution: {integrity: sha512-J70CQ7R8Ivfs1FFUxtFN7ADb5wTMgbhn0O558NXSXQHItmSavT6cXmQlIokbmboU+grhu56iR/8Bl9do8LCq+w==}
 
   '@rdfjs/types@1.1.2':
     resolution: {integrity: sha512-wqpOJK1QCbmsGNtyzYnojPU8gRDPid2JO0Q0kMtb4j65xhCK880cnKAfEOwC+dX85VJcCByQx5zOwyyfCjDJsg==}
@@ -4857,6 +5644,9 @@ packages:
     resolution: {integrity: sha512-IUuj2zpGdeKaY5OdGnU83BUJsv7OA9uw3rNVSOuvzLMXMpBTU+W6V0SsQh6iI32lKUJArlnEU4BIzp83hghR/g==}
     engines: {node: '>=18.0.0'}
 
+  '@so-ric/colorspace@1.1.6':
+    resolution: {integrity: sha512-/KiKkpHNOBgkFJwu9sh48LkHSMYGyuTcSFK/qMBdnOAlrRJzRSXAOFB5qwzaVQuDl8wAvHVMkaASQDReTahxuw==}
+
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
@@ -5169,6 +5959,42 @@ packages:
   '@tootallnate/quickjs-emscripten@0.23.0':
     resolution: {integrity: sha512-C5Mc6rdnsaJDjO3UpGW/CQTHtCKaYlScZTly4JIu97Jxo/odCiH0ITnDXSJPTOrEKk/ycSZ0AOgTmkDtkOsvIA==}
 
+  '@traqula/algebra-sparql-1-1@1.2.0':
+    resolution: {integrity: sha512-+0CH9csrlAvq6rLiW+t3eBp6ELFYANM96wrM3Afwh2c+yZm41TOGHQKqA17r+PHCDm7TCJKgSzJvVEuesCHe6Q==}
+
+  '@traqula/algebra-sparql-1-2@1.2.0':
+    resolution: {integrity: sha512-dFZqnPUYlQpao9XeIjjtxV6ye9PNrPxfw7chmX9DzqqA6CWuklaVrmn2DftOUG7IzcvyvUxeXf5EYZ4S4KUz9Q==}
+
+  '@traqula/algebra-transformations-1-1@1.2.0':
+    resolution: {integrity: sha512-lVztghs5wDL2KCVLqpxFlA2v9amexMjnh+rkrGTWgOqC3x/qZC9w6MoEpd/eLjZ9ShW7PK9pB3h2ZImBVnfXPQ==}
+
+  '@traqula/algebra-transformations-1-2@1.2.0':
+    resolution: {integrity: sha512-bTGh8oQbdPYBPHyMVjTj81Xs9Wf7oWLp9dqCPhEzD4MAgXn32UVF2mjUXJiD2pC9avZzo6Dn2Y6//s9VPX9f3Q==}
+
+  '@traqula/chevrotain@1.1.0':
+    resolution: {integrity: sha512-VpcoQKb2ZnsOQPlPO2mE9hfR0Aidp7drwTCtaXfpdRHGkXeQ5Nv4rnxmxwUoEDRzu6b/3z4n8oTd+sYhe4fAaA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+
+  '@traqula/core@1.2.0':
+    resolution: {integrity: sha512-4NEYjNKD31u1DMbccRNXBnpEQsoeVrTTrJfxbDU11/5zHQdcyrXYlJ7Dq2t3hlZgStMbVJrZbZJsr6p+lZBeZA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+
+  '@traqula/parser-sparql-1-1@1.2.0':
+    resolution: {integrity: sha512-UsBEV03dxSfmiUYupvr2DJInGdnkgUCPBYbdp9IWgsbP43rIguhbllTHGwzzgYeuAtMd2SnhMc5kB93Asm/VuQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+
+  '@traqula/parser-sparql-1-2@1.2.0':
+    resolution: {integrity: sha512-13wAa4k78e2ZOzMSTyI0vs9Mj3of3267pMmeY7NtstVLQkQVXYuzR9JF08U8Dbq8dezZHBEFZwUtpQd5MqYhhg==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+
+  '@traqula/rules-sparql-1-1@1.2.0':
+    resolution: {integrity: sha512-akf/+UOVrurX9NREnupQfCyYj4seg305nmNuIcJJ6QN/V2ikb1WGwcUeS2iMELtY3MsRdb4A13xbY4GtblCYmQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+
+  '@traqula/rules-sparql-1-2@1.2.0':
+    resolution: {integrity: sha512-4NwxRSZnlxwoDuJmuMl+2ebZbEZEnZxkA5WI06o9NVRTLPn1BiWl/lxNVMI03Jx48xyFyuui0qifVqD0sU3UBQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+
   '@ts-jison/common@0.4.1-alpha.1':
     resolution: {integrity: sha512-SDbHzq+UMD+V3ciKVBHwCEgVqSeyQPTCjOsd/ZNTGySUVg4x3EauR9ZcEfdVFAsYRR38XWgDI+spq5LDY46KvQ==}
 
@@ -5369,6 +6195,9 @@ packages:
   '@types/http-link-header@1.0.7':
     resolution: {integrity: sha512-snm5oLckop0K3cTDAiBnZDy6ncx9DJ3mCRDvs42C884MbVYPP74Tiq2hFsSDRTyjK6RyDYDIulPiW23ge+g5Lw==}
 
+  '@types/imurmurhash@0.1.4':
+    resolution: {integrity: sha512-Zo/QlTiAvOP3pd9nuPOw33k0l/QssLOBrriShWzUE4qhIZByIF3rCoyF8ZTxdyFTUM2mYljYLqMUeLvA3NJUmQ==}
+
   '@types/inquirer@6.5.0':
     resolution: {integrity: sha512-rjaYQ9b9y/VFGOpqBEXRavc3jh0a+e6evAbI31tMda8VlPaSy0AZJfXsvmIe3wklc7W6C3zCSfleuMXR7NOyXw==}
 
@@ -5423,6 +6252,9 @@ packages:
   '@types/minimatch@6.0.0':
     resolution: {integrity: sha512-zmPitbQ8+6zNutpwgcQuLcsEpn/Cj54Kbn7L5pX0Os5kdWplB7xPgEh/g+SWOB/qmows2gpuCaPyduq8ZZRnxA==}
     deprecated: This is a stub types definition. minimatch provides its own type definitions, so you do not need this installed.
+
+  '@types/minimist@1.2.5':
+    resolution: {integrity: sha512-hov8bUuiLiyFPGyFPE1lwWhmzYbirOXQNNo40+y3zow8aFVTeyn3VWL0VFFfdNddA8S4Vf0Tc062rzyNr7Paag==}
 
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
@@ -5492,6 +6324,9 @@ packages:
   '@types/scheduler@0.16.8':
     resolution: {integrity: sha512-WZLiwShhwLRmeV6zH+GkbOFT6Z6VklCItrDioxUnv+u4Ll+8vKeFySoFyK/0ctcRpOmwAicELfmys1sDc/Rw+A==}
 
+  '@types/semver@7.8.0':
+    resolution: {integrity: sha512-1mAINjtQCXXeLkJ9ehXkwOcBpqtLxiVtKhpUf83DdRNdQKV0iXZpaHYqRr7nj+wvxuJzoAmAwXI+sCNMv1CzLQ==}
+
   '@types/shexj@2.1.7':
     resolution: {integrity: sha512-pu/0vIZxFTMPVjTlo5MJKFkBL/EbAuFhtCXpmBB7ZdUiyNpc6pt8GxfyRPqdf6q2SsWu71a/vbhvGK2IZN2Eug==}
 
@@ -5500,6 +6335,9 @@ packages:
 
   '@types/sizzle@2.3.10':
     resolution: {integrity: sha512-TC0dmN0K8YcWEAEfiPi5gJP14eJe30TTGjkvek3iM/1NdHHsdCA/Td6GvNndMOo/iSnIsZ4HuuhrYPDAmbxzww==}
+
+  '@types/spark-md5@3.0.5':
+    resolution: {integrity: sha512-lWf05dnD42DLVKQJZrDHtWFidcLrHuip01CtnC2/S6AMhX4t9ZlEUj4iuRlAnts0PQk7KESOqKxeGE/b6sIPGg==}
 
   '@types/sparqljs@3.1.12':
     resolution: {integrity: sha512-zg/sdKKtYI0845wKPSuSgunyU1o/+7tRzMw85lHsf4p/0UbA6+65MXAyEtv1nkaqSqrq/bXm7+bqXas+Xo5dpQ==}
@@ -5518,6 +6356,9 @@ packages:
 
   '@types/tough-cookie@4.0.5':
     resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
+
+  '@types/triple-beam@1.3.5':
+    resolution: {integrity: sha512-6WaYesThRMCl19iryMYP7/x2OVgCtbIVflDGFpWnb9irXI3UjYE4AzmYuiUKY1AJstGijoY+MgUszMgRxIYTYw==}
 
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
@@ -6048,6 +6889,9 @@ packages:
   asynciterator@3.10.0:
     resolution: {integrity: sha512-eDOBoUf2m+4ht0ETVn2SCfuBIZZ6UWyyQbP++LRPKoK7PmrCQq37pJ6vRvyef4o1Pn+CwWnzMlkXxGdh/krVIw==}
 
+  asyncjoin@1.2.4:
+    resolution: {integrity: sha512-7/1g5uV2/iTDQteJ/pxqZq6qkO5406V+vNyOCYtHJ+mo6bmvvQHHrZgd7AtU/rx+cnz08NPWlwk8daW61thnlA==}
+
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
 
@@ -6118,6 +6962,9 @@ packages:
 
   bidi-js@1.0.3:
     resolution: {integrity: sha512-RKshQI1R3YQ+n9YJz2QQ147P66ELpa1FQEg20Dk8oW9t2KgLbpDLLp9aGZ7y8WHSshDknG0bknqGw5/tyCs5tw==}
+
+  bignumber.js@11.1.5:
+    resolution: {integrity: sha512-6WmzCNtUnfKpbozq+hOgWaZMMzORmYBwF1xZScyoIX3QRYWeKTtxxwDOW5tIz7C9BdjkIYHGTcelCLkXg0mndw==}
 
   bin-links@6.0.0:
     resolution: {integrity: sha512-X4CiKlcV2GjnCMwnKAfbVWpHa++65th9TuzAEYtZoATiOE2DQKhSp4CJlyLoTqdhBKlXjpXjCTYPNNFS33Fi6w==}
@@ -6311,9 +7158,6 @@ packages:
   chevrotain@11.1.2:
     resolution: {integrity: sha512-opLQzEVriiH1uUQ4Kctsd49bRoFDXGGSC4GUqj7pGyxM3RehRhvTlZJc1FL/Flew2p5uwxa1tUDWKzI4wNM8pg==}
 
-  child-process-promise@2.2.1:
-    resolution: {integrity: sha512-Fi4aNdqBsr0mv+jgWxcZ/7rAIC2mgihrptyVI4foh/rrjY/3BNjfP9+oaiFx/fzim+1ZyCNBae0DlyfQhSugog==}
-
   chokidar@3.6.0:
     resolution: {integrity: sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw==}
     engines: {node: '>= 8.10.0'}
@@ -6436,18 +7280,34 @@ packages:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
     engines: {node: '>=7.0.0'}
 
+  color-convert@3.1.3:
+    resolution: {integrity: sha512-fasDH2ont2GqF5HpyO4w0+BcewlhHEZOFn9c1ckZdHpJ56Qb7MHhH/IcJZbBGgvdtwdwNbLvxiBEdg336iA9Sg==}
+    engines: {node: '>=14.6'}
+
   color-name@1.1.3:
     resolution: {integrity: sha512-72fSenhMw2HZMTVHeCA9KCmpEIbzWiQsjN+BHcBbS9vr1mtt+vJjPdksIBNUmKAW8TFUDPJK5SUU3QhE9NEXDw==}
 
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
 
+  color-name@2.1.1:
+    resolution: {integrity: sha512-p2FdgwVx1a9yWBHP2wI0VgShkDpgN4kZISkxdNipGBJWpa5G6b04OINlVWCyJj0JmfvcPrgqt95E9k8yvaOJFg==}
+    engines: {node: '>=12.20'}
+
   color-string@1.9.1:
     resolution: {integrity: sha512-shrVawQFojnZv6xM40anx4CkoDP+fZsw/ZerEMsW/pyzsRbElpsL/DBVW7q3ExxwusdNXI3lXpuhEZkzs8p5Eg==}
+
+  color-string@2.1.4:
+    resolution: {integrity: sha512-Bb6Cq8oq0IjDOe8wJmi4JeNn763Xs9cfrBcaylK1tPypWzyoy2G3l90v9k64kjphl/ZJjPIShFztenRomi8WTg==}
+    engines: {node: '>=18'}
 
   color@4.2.3:
     resolution: {integrity: sha512-1rXeuUUiGGrykh+CeBdu5Ie7OJwinCgQY0bc7GCRxy5xVHy+moaqkpL/jqQq0MtQOeYcrqEz4abc5f0KtU7W4A==}
     engines: {node: '>=12.5.0'}
+
+  color@5.0.3:
+    resolution: {integrity: sha512-ezmVcLR3xAVp8kYOm4GS45ZLLgIE6SPAFoduLr6hTDajwb3KZ2F46gulK3XpcwRFb5KKGCSezCBAY4Dw4HsyXA==}
+    engines: {node: '>=18'}
 
   colord@2.9.3:
     resolution: {integrity: sha512-jeC1axXpnb0/2nn/Y1LPuLdgXBLH7aDcHu4KEKfqw3CUhX7ZpfBSlPKyqXE6btIgEzfWtrX3/tyBCaCvXvMkOw==}
@@ -6504,6 +7364,10 @@ packages:
   commander@9.5.0:
     resolution: {integrity: sha512-KRs7WVDKg86PWiuAqhDrAQnTXZKraVcCc6vFdL14qrZ/DcWwuRo7VoiYXalXO7S5GKpqYiVEwCbgFDfxNHKJBQ==}
     engines: {node: ^12.20.0 || >=14}
+
+  componentsjs@6.4.0:
+    resolution: {integrity: sha512-H3AmzWARyQB5V/XJ7brjnFVfqywedjVFX3n528GKjEpQvNY4HXu5CBOAWDADjeSC42cufVc7C+J+cGTsgeKRzg==}
+    hasBin: true
 
   compress-commons@4.1.2:
     resolution: {integrity: sha512-D3uMHtGc/fcO1Gt1/L7i1e33VOvD4A9hfQLP+6ewd+BvG/gQ84Yh4oftEhAdjSMgBgwGL+jsppT7JYNpo6MHHg==}
@@ -6613,9 +7477,6 @@ packages:
 
   cross-fetch@3.2.0:
     resolution: {integrity: sha512-Q+xVJLoGOeIMXZmbUK4HYk+69cQH6LudR0Vu/pRm2YlU/hDV9CiS0gKUMaWY5f2NeUH9C1nV3bsTlCo0FsTV1Q==}
-
-  cross-spawn@4.0.2:
-    resolution: {integrity: sha512-yAXz/pA1tD8Gtg2S98Ekf/sewp3Lcp3YoFKJ4Hkp5h5yLWnKVTDU0kwjKJ8NDCYcfTLfyGkzTikst+jWypT1iA==}
 
   cross-spawn@6.0.6:
     resolution: {integrity: sha512-VqCUuhcd1iB+dsv8gxPttb5iZh/D0iubSP21g36KXdEuf6I5JiioesUVjpCdHV9MZRUfVFlvwtIUyPfxo5trtw==}
@@ -7065,6 +7926,9 @@ packages:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
 
+  duplex-to@2.0.0:
+    resolution: {integrity: sha512-f2nMnk11mwDptEFBTv2mcWHpF4ENAbuQ63yTiSy/99rG4Exsxsf0GJhJYq/AHF2cdMYswSx23LPuoijBflpquQ==}
+
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
 
@@ -7096,6 +7960,9 @@ packages:
 
   emoji-regex@9.2.2:
     resolution: {integrity: sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg==}
+
+  enabled@2.0.0:
+    resolution: {integrity: sha512-AKrN98kuwOzMIdAizXGI86UFBoo26CL21UM763y1h/GMSJ4/OHU9k2YlsmBpyScFo/wbLzWQJBMCW4+IO3/+OQ==}
 
   encodeurl@2.0.0:
     resolution: {integrity: sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==}
@@ -7496,6 +8363,9 @@ packages:
       picomatch:
         optional: true
 
+  fecha@4.2.3:
+    resolution: {integrity: sha512-OP2IUU6HeYKJi3i0z4A19kHMQoLVs4Hc+DPqqxI2h/DPZHTm/vjsfC6P0b4jCMy14XizLBqvndQ+UilD7707Jw==}
+
   fetch-blob@2.1.2:
     resolution: {integrity: sha512-YKqtUDwqLyfyMnmbw8XD6Q8j9i/HggKtPEI+pZ1+8bvheBu78biSmNaXWusx1TauGqtUUGx/cBb1mKdq2rLYow==}
     engines: {node: ^10.17.0 || >=12.3.0}
@@ -7554,6 +8424,9 @@ packages:
 
   flatted@3.3.3:
     resolution: {integrity: sha512-GX+ysw4PBCz0PzosHDepZGANEuFCMLrnRTiEy9McGjmkCQYwRq4A/X786G/fjM/+OjsWSU1ZrY5qyARZmO/uwg==}
+
+  fn.name@1.1.0:
+    resolution: {integrity: sha512-GRnmB5gPyJpAhTQdSZTSp9uaPSvl09KoYcMQtsB9rQoOmzs9dH6ffeccH+Z+cv6P68Hu5bC6JjRh4Ah/mHSNRw==}
 
   follow-redirects@1.15.11:
     resolution: {integrity: sha512-deG2P0JfjrTxl50XGCDyfI97ZGVCxIpfKYmfyrQ54n5FO/0gfIES8C/Psl6kWVDolizcaaxZJnTS0QSMxvnsBQ==}
@@ -7791,6 +8664,9 @@ packages:
     resolution: {integrity: sha512-mS1lbMsxgQj6hge1XZ6p7GPhbrtFwUFYi3wRzXAC/FmYnyXMTvvI3td3rjmQ2u8ewXueaSvRPWaEcgVVOT9Jnw==}
     engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
 
+  grapoi@1.3.0:
+    resolution: {integrity: sha512-hV/rM/7a5MqzpdI7Zc0muQdD+njoOxMVjEf9U2Y79Uv/lfVNn68NZKU2MHlxlAKdkqEcAOBbQbBS1cdVHbfFoQ==}
+
   gray-matter@4.0.3:
     resolution: {integrity: sha512-5v6yZd4JK3eMI3FqqCouswVqwugaA9r4dNZB1wwcmrD02QkV5H0y7XBQW8QwQqEaZY1pM9aqORSORhJRdNK44Q==}
     engines: {node: '>=6.0'}
@@ -7836,6 +8712,9 @@ packages:
   has-tostringtag@1.0.2:
     resolution: {integrity: sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw==}
     engines: {node: '>= 0.4'}
+
+  hash.js@1.1.7:
+    resolution: {integrity: sha512-taOaskGt4z4SOANNseOviYDvjEJinIkRgmp7LbKP2YTTmVxWBl87s/uzK9r+44BclBSp2X7K1hqeNfz9JbBeXA==}
 
   hasown@2.0.2:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
@@ -8518,6 +9397,9 @@ packages:
   jsonld-streaming-parser@4.0.1:
     resolution: {integrity: sha512-6M4y9YGgADk3nXJebbRrxEdMVBJ9bnz+peAvjTXUievopqaE8sg/qml/I6Sp1ln7rpOKffsNZWSre6B7N76szw==}
 
+  jsonld-streaming-parser@5.0.1:
+    resolution: {integrity: sha512-Rf230DRAWe5p1H4e7phk1vo4FHEMOmC5xVcIywKJBBcwy6zaJWFcAvPcwngufNTdJs7dpTMbKQDjp4TYDpMKUQ==}
+
   jsonld2graphobject@0.0.4:
     resolution: {integrity: sha512-7siWYw9/EaD9lWyMbHr2uLMy8kbNVyOtDlsAWJUlUjVfXpcJcwLN6f0qeNt0ySV4fDoAJOjJXNvo7V/McrubAg==}
 
@@ -8572,6 +9454,9 @@ packages:
 
   knuth-shuffle-seeded@1.0.6:
     resolution: {integrity: sha512-9pFH0SplrfyKyojCLxZfMcvkhf5hH0d+UwR9nTVJ/DDQJGuzcXjTwB7TP7sDfehSudlGGaOLblmEWqv04ERVWg==}
+
+  kuler@2.0.0:
+    resolution: {integrity: sha512-Xq9nH7KlWZmXAtodXDDRE7vs6DU1gTU8zYDHDiWLSip45Egwq3plLHzPn27NgvzL2r1LMPC1vdqh98sQxtqj4A==}
 
   ky-universal@0.8.2:
     resolution: {integrity: sha512-xe0JaOH9QeYxdyGLnzUOVGK4Z6FGvDVzcXFTdrYA1f33MZdEa45sUDaMBy98xQMcsd2XIBrTXRrRYnegcSdgVQ==}
@@ -8721,6 +9606,10 @@ packages:
     resolution: {integrity: sha512-9ie8ItPR6tjY5uYJh8K/Zrv/RMZ5VOlOWvtZdEHYSTFKZfIBPQa9tOAEeAWhd+AnIneLJ22w5fjOYtoutpWq5w==}
     engines: {node: '>=18'}
 
+  logform@2.7.0:
+    resolution: {integrity: sha512-TFYA4jnP7PVbmlBIfhlSe+WKxs9dklXMTEGcBCIvLhE/Tn3H6Gk1norupVW7m5Cnd4bLcr08AytbyV/xj7f/kQ==}
+    engines: {node: '>= 12.0.0'}
+
   long@5.3.2:
     resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
 
@@ -8750,9 +9639,6 @@ packages:
   lru-cache@11.5.2:
     resolution: {integrity: sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g==}
     engines: {node: 20 || >=22}
-
-  lru-cache@4.1.5:
-    resolution: {integrity: sha512-sWZlbEP2OsHNkXrMl5GYk/jKk70MBng6UU4YI/qGDYbgf6YbP4EvmqISbXCoJiRKs+1bSpFHVgQxvJ17F2li5g==}
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
@@ -9072,6 +9958,9 @@ packages:
     engines: {node: '>=16.13'}
     hasBin: true
 
+  minimalistic-assert@1.0.1:
+    resolution: {integrity: sha512-UtJcAD4yEaGtjPezWuO9wC4nwUnVH/8/Im3yEHQP4b67cXlD/Qr9hdITCU1xDbSEXg2XKNaP8jsReV7vQd00/A==}
+
   minimatch@10.1.1:
     resolution: {integrity: sha512-enIvLvRAFZYXJzkCYG5RKmPfrFArdLv+R+lbQ53BmIMLIry74bjKzX6iHAm8WYamJkhSSEabrWN5D97XnKObjQ==}
     engines: {node: 20 || >=22}
@@ -9181,6 +10070,14 @@ packages:
     resolution: {integrity: sha512-SQknS0ua90rN+3RHuk8BeIqeYyqIH/+ecViZxX08jR4j6MugqWRjtONl3uANG/crWXnOM2WIqBJtjIhVYFha+w==}
     engines: {node: '>=12.0'}
 
+  n3@2.0.1:
+    resolution: {integrity: sha512-Q6TPsTrlEoELXQ47tSBYcAZ800PQN9gtSImRUqQYoBq+Q7riIUAoDgf3tuMv6PuwonO86SBIx5GfOxvS4A/4kw==}
+    engines: {node: '>=12.0'}
+
+  n3@2.2.14:
+    resolution: {integrity: sha512-NP9PyzT7oXlqEJrrpm5TlqV0hH6cVBkBHf3nk37VMW5oiS4Xto62kOifizEOq0FpN0357mSmCQDFIOI1GKUzng==}
+    engines: {node: '>=12.0'}
+
   nanoevents@7.0.1:
     resolution: {integrity: sha512-o6lpKiCxLeijK4hgsqfR6CNToPyRU3keKyyI6uwuHRvpRTbZ0wXw51WRgyldVugZqoJfkGFrjrIenYH3bfEO3Q==}
     engines: {node: ^14.0.0 || ^16.0.0 || >=18.0.0}
@@ -9200,6 +10097,9 @@ packages:
 
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
+
+  negotiate@1.0.1:
+    resolution: {integrity: sha512-KBCIM4dAIT9j/pSXLHHQbZG74NmKNXTtxU2zHN0HG6uzzuFE01m1UdGoUmVHmACiBuCAOL7KwfqSW1oUQBj/vg==}
 
   negotiator@1.0.0:
     resolution: {integrity: sha512-8Ofs/AUQh8MaEcrlq5xOX0CQ9ypTF5dl78mjlMNfOK08fzpgTHQRQPBxcPlEtIw0yRpws+Zo/3r+5WRby7u3Gg==}
@@ -9318,10 +10218,6 @@ packages:
   node-releases@2.0.19:
     resolution: {integrity: sha512-xxOWJsBKtzAq7DY0J+DTzuz58K8e7sJbdgwkbMWQe8UYB6ekmsQ45q0M/tJDsGaZmbC+l7n57UV8Hl5tHxO9uw==}
 
-  node-version@1.2.0:
-    resolution: {integrity: sha512-ma6oU4Sk0qOoKEAymVoTvk8EdXEobdS7m/mAGhDJ8Rouugho48crHBORAmy5BoOcv8wraPM6xumapQp5hl4iIQ==}
-    engines: {node: '>=6.0.0'}
-
   nopt@8.1.0:
     resolution: {integrity: sha512-ieGu42u/Qsa4TFktmaKEwM6MQH0pOWnaB3htzh0JRtx84+Mebc0cbZYN5bC+6WTZ4+77xrL9Pn5m7CV6VIkV7A==}
     engines: {node: ^18.17.0 || >=20.5.0}
@@ -9422,6 +10318,9 @@ packages:
 
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
+
+  one-time@1.0.0:
+    resolution: {integrity: sha512-5DXOiRKwuSEcQ/l0kGCF6Q3jcADFv5tSmRaJck/OqkVFcOzutB134KRSfF0xDrL39MNnqxbHBbUUcjZIhTgb2g==}
 
   onetime@5.1.2:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
@@ -9896,9 +10795,6 @@ packages:
   promise-polyfill@1.1.6:
     resolution: {integrity: sha512-7rrONfyLkDEc7OJ5QBkqa4KI4EBhCd340xRuIUPGCfu13znS+vx+VDdrT9ODAJHlXm7w4lbxN3DRjyv58EuzDg==}
 
-  promise-polyfill@6.1.0:
-    resolution: {integrity: sha512-g0LWaH0gFsxovsU7R5LrrhHhWAWiHRnh1GPrhXnPgYsDkIqjRYUYSZEsej/wtleDrz5xVSIDbeKfidztp2XHFQ==}
-
   promise@8.3.0:
     resolution: {integrity: sha512-rZPNPKTOYVNEEKFaq1HqTgOwZD+4/YHS5ukLzQCypkj+OkYx7iv0mA91lJlpPPZ8vMau3IIGj5Qlwrx+8iiSmg==}
 
@@ -9998,9 +10894,6 @@ packages:
   proxy-from-env@1.1.0:
     resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
 
-  pseudomap@1.0.2:
-    resolution: {integrity: sha512-b/YwNhb8lk1Zz2+bXXpS/LK9OisiZZ1SNsSLxN1x2OXVEhW2Ckr/7mWE5vrC1ZTiJlD9g19jWszTmJsB+oEpFQ==}
-
   psl@1.15.0:
     resolution: {integrity: sha512-JZd3gMVBAVQkSs6HdNZo9Sdo0LNcQeMNP3CozBJb3JYC/QUYZTnKxP+f8oWRX4rHP5EurWxqAHTSwUCjlNKa1w==}
 
@@ -10085,11 +10978,23 @@ packages:
   rdf-isomorphic@2.0.1:
     resolution: {integrity: sha512-8pfA3PeDs1sVrZ2R3dCR4KRM69m3pQGhzviNQq5Az/+Zch4I+fKstjGxCZ5ADAFPsm9zxHk8zMEQ/BFcqlnLKw==}
 
+  rdf-literal@2.0.0:
+    resolution: {integrity: sha512-jlQ+h7EvnXmncmk8OzOYR8T3gNfd4g0LQXbflHkEkancic8dh0Tdt5RiRq8vUFndjIeNHt1RWeA5TAj6rgrtng==}
+
   rdf-namespaces@1.17.0:
     resolution: {integrity: sha512-/Y3TcMZ/doQ/PVyQUy2Mt6I3puVoks9mU0+XifFAlZqnCNl0zMwA3dKOmCcyVMyuMZ4iPKNuzseLcoF5E+pGAg==}
 
+  rdf-object@3.0.0:
+    resolution: {integrity: sha512-qefryIRh1d9gqZUKp2qQwzIWLbmQspsc2bvVoOCCp126MZmKubcUTigHiMlCrUI9g7MDCrdTFAwcAal1lVR09A==}
+
   rdf-parse@4.0.0:
     resolution: {integrity: sha512-lNVuUKPVAdX9lJYYrJFhdQHFulYjk95BYvuNsE+eUs/M93sdsovH/Ga8bTAxagmpsoQ4LzMPa2YqeHX8ysltOA==}
+
+  rdf-quad@2.0.0:
+    resolution: {integrity: sha512-wR3x+ypdPh6jlFy+i/+U3jUlr5078GHfBkqf3TPPJa7zJVurkJY0J8ALKPWYd1V4oyYsqJCHr3xNM5RDlvH32A==}
+
+  rdf-streaming-store@2.1.1:
+    resolution: {integrity: sha512-hw9n1WdsSI74d89EDGQv5dYb5PaFXjjm4BqdSwJ7JMa5Cx27pwtv5qbXZvSXZmle90/myI2At+TIpdLJQmujBg==}
 
   rdf-string@1.6.3:
     resolution: {integrity: sha512-HIVwQ2gOqf+ObsCLSUAGFZMIl3rh9uGcRf1KbM85UDhKqP+hy6qj7Vz8FKt3GA54RiThqK3mNcr66dm1LP0+6g==}
@@ -10100,11 +11005,20 @@ packages:
   rdf-terms@2.0.0:
     resolution: {integrity: sha512-9O+ifVcvY4ZktOr+uXKswoOV6airAsIKeqCr+C47kFZBB8X+NyPSqDRGgI6X+je8It6z2e9jZhWwjJiEZ8Yn5Q==}
 
+  rdf-utils-fs@3.0.1:
+    resolution: {integrity: sha512-tliym/PfedUEvaTYTFkuOvnqV0TvOyp7R5mzIXlAPIL3kNmSIMfpXIxU3RmCX2FiQOGr0p5Qury04bMN0xp6iA==}
+
+  rdf-validation@0.1.1:
+    resolution: {integrity: sha512-z2RbRcsKOM+CWa7qoI4LWCQQTji64eoBNLvbP3++0ZE4pO4EP1xkV5asSH4TULeLfDEuMhzyDXRnAjA+8R2l4w==}
+
   rdfa-streaming-parser@2.0.1:
     resolution: {integrity: sha512-7Yyaj030LO7iQ38Wh/RNLVeYrVFJeyx3dpCK7C1nvX55eIN/gE4HWfbg4BYI9X7Bd+eUIUMVeiKYLmYjV6apow==}
 
   rdfxml-streaming-parser@2.4.0:
     resolution: {integrity: sha512-f+tdI1wxOiPzMbFWRtOwinwPsqac0WIN80668yFKcVdFCSTGOWTM70ucQGUSdDZZo7pce/UvZgV0C3LDj0P7tg==}
+
+  rdfxml-streaming-parser@3.3.0:
+    resolution: {integrity: sha512-ym3RO0T4K4NOF23BpsvrNyhIdevuZvY/1kYV5gQJ6z3s0m6Ui9ZH1QZIA/VyNEWHG0x1nTg1QzN/0i4KMVk3EA==}
 
   react-charts@3.0.0-beta.57:
     resolution: {integrity: sha512-vqas7IQhsnDGcMxreGaWXvSIL3poEMoUBNltJrslz/+m0pI3QejBCszL1QrLNYQfOWXrbZADfedi/a+yWOQ7Hw==}
@@ -10574,6 +11488,10 @@ packages:
     resolution: {integrity: sha512-x/+Cz4YrimQxQccJf5mKEbIa1NzeCRNI5Ecl/ekmlYaampdNLPalVyIcCZNNH3MvmqBugV5TMYZXv0ljslUlaw==}
     engines: {node: '>= 0.4'}
 
+  safe-stable-stringify@2.5.0:
+    resolution: {integrity: sha512-b3rppTKm9T+PsVCBEOUR46GWI7fdOs00VKZ1+9c1EWDaDMvjQc6tUwuFyIprgGgTcWoVHSKrU8H31ZHA2e0RHA==}
+    engines: {node: '>=10'}
+
   safer-buffer@2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
 
@@ -10666,6 +11584,9 @@ packages:
 
   setprototypeof@1.2.0:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
+
+  shacl-engine@1.1.2:
+    resolution: {integrity: sha512-ypclUwHJ6KPYUZb8ggslN7BSOwza9vgIwQgLY0oey0Xbzla6B7cRWroeDvfkntYzU1HnERgGvC/qsKge3a6s1Q==}
 
   shaclc-parse@1.4.3:
     resolution: {integrity: sha512-MQJWVFjfzzMUvieFO0STWjIo49ywy63UkVSsr0e8+8xHUns6X+i3yWYxNKd+GtSEJjBNZxxrUubog+hnd7PvRA==}
@@ -10811,6 +11732,9 @@ packages:
   space-separated-tokens@2.0.2:
     resolution: {integrity: sha512-PEGlAwrG8yXGXRjW32fGbg66JAlOAwbObuqVoJpv/mRgoWDQfgH1wDPvtzWyUSNAXBGSk8h755YDbbcEy3SH2Q==}
 
+  spark-md5@3.0.2:
+    resolution: {integrity: sha512-wcFzz9cDfbuqe0FZzfi2or1sgyIrsDwmPwfZC4hiNidPdPINjeUwNfv5kldczoEAcjl9Y1L3SM7Uz2PUEQzxQw==}
+
   sparqlalgebrajs@5.0.2:
     resolution: {integrity: sha512-Xz7byRqWqCMkbM+3ogGmKO/wsezQKQQNleoggP03sCTTFfCh/ZlN5CGt+HkrOenDSktZ93jpKFbbaIRjLOYtWw==}
     hasBin: true
@@ -10844,6 +11768,9 @@ packages:
     resolution: {integrity: sha512-wYc3VLZHRzwYrWJhkEqkhLb31TI0SOkfYZDkUhXdp3NoCnNS0FqajiQszZZjfow/VYEuc6Q5sZh9nM6kPy2NBQ==}
     engines: {node: '>=20.16.0'}
     hasBin: true
+
+  stack-trace@0.0.10:
+    resolution: {integrity: sha512-KGzahc7puUKkzyMt+IqAep+TVNbKP+k2Lmwhub39m1AsTSkaDutx56aDCo+HLDzf/D26BIHTJWNiTG1KAJiQCg==}
 
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
@@ -10884,6 +11811,9 @@ packages:
     resolution: {integrity: sha512-KXDYZ9dszj6bzvnEMRYvxgeTHU74QBFL54XKtP3nyMuJ81CFYtABZ3bAzL2EdFUaEwJOBOgENyFj3R7oTzDyyw==}
     engines: {node: '>=4', npm: '>=6'}
 
+  stream-chunks@1.0.0:
+    resolution: {integrity: sha512-/G+kinLx3pKXChtuko82taA4gZo56zFG2b2BbhmugmS0TUPBL40c5b2vjonS+gAHYK/cSKM9m0WTvAJYgDUeNw==}
+
   stream-to-array@2.3.0:
     resolution: {integrity: sha512-UsZtOYEn4tWU2RGLOXr/o/xjRBftZRlG3dEWoaHr8j4GuypJ3isitGbVyjQKAuMu+xbiop8q224TjiZWc4XTZA==}
 
@@ -10892,6 +11822,9 @@ packages:
 
   stream-to-string@1.2.1:
     resolution: {integrity: sha512-WsvTDNF8UYs369Yko3pcdTducQtYpzEZeOV7cTuReyFvOoA9S/DLJ6sYK+xPafSPHhUMpaxiljKYnT6JSFztIA==}
+
+  streamify-array@1.0.1:
+    resolution: {integrity: sha512-ZnswaBcC6B1bhPLSQOlC6CdaDUSzU0wr2lvvHpbHNms8V7+DLd8uEAzDAWpsjxbFkijBHhuObFO/qqu52DZUMA==}
 
   streamx@2.25.0:
     resolution: {integrity: sha512-0nQuG6jf1w+wddNEEXCF4nTg3LtufWINB5eFEN+5TNZW7KWJp6x87+JFL43vaAUPyCfH1wID+mNVyW6OHtFamg==}
@@ -11112,6 +12045,9 @@ packages:
   text-decoder@1.2.7:
     resolution: {integrity: sha512-vlLytXkeP4xvEq2otHeJfSQIRyWxo/oZGEbXrtEEF9Hnmrdly59sUbzZ/QgyWuLYHctCHxFF4tRQZNQ9k60ExQ==}
 
+  text-hex@1.0.0:
+    resolution: {integrity: sha512-uuVGNWzgJ4yhRaNSiubPY7OjISw4sw4E5Uv0wbjp+OzcbmVU/rsT8ujgcXJhn9ypzsgr5vlzpPqP+MBBKcGvbg==}
+
   then-request@6.0.2:
     resolution: {integrity: sha512-3ZBiG7JvP3wbDzA9iNY5zJQcHL4jn/0BWtXIkagfz7QgOL/LqjCEOBQuJNZfu0XYnv5JhKh+cDxCPM4ILrqruA==}
     engines: {node: '>=6.0.0'}
@@ -11248,6 +12184,10 @@ packages:
 
   trim-lines@3.0.1:
     resolution: {integrity: sha512-kRj8B+YHZCc9kQYdWfJB2/oUl9rA99qbowYYBtr4ui4mZyAQ2JpvVBd/6U2YloATfqBhBTSMhTpgBHtU0Mf3Rg==}
+
+  triple-beam@1.4.1:
+    resolution: {integrity: sha512-aZbgViZrg1QNcG+LULa7nhZpJTZSLm/mXnHXnbAbjmN5aSa0y7V+wvv6+4WaBtpISJzThKy+PIPxc1Nq1EJ9mg==}
+    engines: {node: '>= 14.0.0'}
 
   trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
@@ -11884,6 +12824,14 @@ packages:
   wicked-good-xpath@1.3.0:
     resolution: {integrity: sha512-Gd9+TUn5nXdwj/hFsPVx5cuHHiF5Bwuc30jZ4+ronF1qHK5O7HD0sgmXWSEgwKquT3ClLoKPVbO6qGwVwLzvAw==}
 
+  winston-transport@4.9.0:
+    resolution: {integrity: sha512-8drMJ4rkgaPo1Me4zD/3WLfI/zPdA9o2IipKODunnGDcuqbHwjsbB79ylv04LCGGzU0xQ6vTznOMpQGaLhhm6A==}
+    engines: {node: '>= 12.0.0'}
+
+  winston@3.19.0:
+    resolution: {integrity: sha512-LZNJgPzfKR+/J3cHkxcpHKpKKvGfDZVPS4hfJCc4cCG0CgYzvlD6yE/S3CIL/Yt91ak327YCpiF/0MyeZHEHKA==}
+    engines: {node: '>= 12.0.0'}
+
   word-wrap@1.2.5:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
@@ -11990,9 +12938,6 @@ packages:
   y18n@5.0.8:
     resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
     engines: {node: '>=10'}
-
-  yallist@2.1.2:
-    resolution: {integrity: sha512-ncTzHV7NvsQZkYe1DW7cbDLm0YpzHmZF5r/iyP3ZnQtMiJ+pjzisCiMNI+Sj+xQF5pXhSHxSB3uDbsBTzY/c2A==}
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
@@ -12978,15 +13923,147 @@ snapshots:
   '@colors/colors@1.5.0':
     optional: true
 
+  '@colors/colors@1.6.0': {}
+
   '@comunica/actor-abstract-mediatyped@4.5.0':
     dependencies:
       '@comunica/core': 4.5.0
       '@comunica/types': 4.5.0
 
+  '@comunica/actor-abstract-mediatyped@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+
   '@comunica/actor-abstract-parse@4.5.0':
     dependencies:
       '@comunica/core': 4.5.0
       readable-stream: 4.7.0
+
+  '@comunica/actor-abstract-path@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+      rdf-string: 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-bindings-aggregator-factory-average@5.3.0':
+    dependencies:
+      '@comunica/bus-bindings-aggregator-factory': 5.3.0
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-bindings-aggregator-factory-count@5.3.0':
+    dependencies:
+      '@comunica/bus-bindings-aggregator-factory': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-bindings-aggregator-factory-group-concat@5.3.0':
+    dependencies:
+      '@comunica/bus-bindings-aggregator-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-bindings-aggregator-factory-max@5.3.0':
+    dependencies:
+      '@comunica/bus-bindings-aggregator-factory': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-bindings-aggregator-factory-min@5.3.0':
+    dependencies:
+      '@comunica/bus-bindings-aggregator-factory': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-bindings-aggregator-factory-sample@5.3.0':
+    dependencies:
+      '@comunica/bus-bindings-aggregator-factory': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-bindings-aggregator-factory-sum@5.3.0':
+    dependencies:
+      '@comunica/bus-bindings-aggregator-factory': 5.3.0
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-bindings-aggregator-factory-wildcard-count@5.3.0':
+    dependencies:
+      '@comunica/bus-bindings-aggregator-factory': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@rdfjs/types': 2.0.1
+      rdf-string: 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-context-preprocess-convert-shortcuts@5.3.0':
+    dependencies:
+      '@comunica/bus-context-preprocess': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+
+  '@comunica/actor-context-preprocess-set-defaults@5.3.0':
+    dependencies:
+      '@comunica/bus-context-preprocess': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@rdfjs/types': 2.0.1
+      rdf-data-factory: 2.0.2
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-context-preprocess-source-to-destination@5.3.0':
+    dependencies:
+      '@comunica/bus-context-preprocess': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+    transitivePeerDependencies:
+      - encoding
 
   '@comunica/actor-dereference-fallback@4.5.0':
     dependencies:
@@ -13021,6 +14098,706 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  '@comunica/actor-expression-evaluator-factory-default@5.3.0':
+    dependencies:
+      '@comunica/bus-expression-evaluator-factory': 5.3.0
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-expression-bnode@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-data-factory': 5.0.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-expression-bound@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-expression-coalesce@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-expression-concat@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-expression-extensions@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      rdf-data-factory: 2.0.2
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-expression-if@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-expression-in@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-expression-logical-and@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-expression-logical-or@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-expression-not-in@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-expression-same-term@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-abs@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-addition@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      bignumber.js: 11.1.5
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-ceil@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-contains@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-datatype@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-day@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-division@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      bignumber.js: 11.1.5
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-encode-for-uri@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-equality@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-floor@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-greater-than-equal@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-greater-than@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-has-lang@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-has-langdir@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-hours@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-inequality@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-iri@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      relative-to-absolute-iri: 1.0.8
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-is-blank@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-is-iri@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-is-literal@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-is-numeric@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-is-triple@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-lang@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-langdir@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-langmatches@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-lcase@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-lesser-than-equal@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-lesser-than@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-md5@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@types/spark-md5': 3.0.5
+      spark-md5: 3.0.2
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-minutes@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-month@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-multiplication@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      bignumber.js: 11.1.5
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-not@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-now@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-object@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-predicate@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-rand@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-regex@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-replace@5.3.0':
+    dependencies:
+      '@comunica/actor-function-factory-term-regex': 5.3.0
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-round@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-seconds@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-sha1@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      hash.js: 1.1.7
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-sha256@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      hash.js: 1.1.7
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-sha384@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      hash.js: 1.1.7
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-sha512@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      hash.js: 1.1.7
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-str-after@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-str-before@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-str-dt@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-str-ends@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-str-lang@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-str-langdir@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-str-len@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-str-starts@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-str-uuid@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@types/uuid': 10.0.0
+      uuid: 11.1.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-str@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-sub-str@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-subject@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-subtraction@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      bignumber.js: 11.1.5
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-timezone@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-triple@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-tz@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-ucase@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-unary-minus@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-unary-plus@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-uuid@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@types/uuid': 10.0.0
+      uuid: 11.1.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-xsd-to-boolean@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-xsd-to-date@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-xsd-to-datetime@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-xsd-to-day-time-duration@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-xsd-to-decimal@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-xsd-to-double@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-xsd-to-duration@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-xsd-to-float@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-xsd-to-integer@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-xsd-to-string@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-xsd-to-time@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-xsd-to-year-month-duration@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-function-factory-term-year@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-hash-bindings-murmur@5.3.0':
+    dependencies:
+      '@comunica/bus-hash-bindings': 5.3.0
+      '@comunica/core': 5.3.0
+      '@types/imurmurhash': 0.1.4
+      imurmurhash: 0.1.4
+
+  '@comunica/actor-hash-quads-murmur@5.3.0':
+    dependencies:
+      '@comunica/bus-hash-quads': 5.3.0
+      '@comunica/core': 5.3.0
+      '@types/imurmurhash': 0.1.4
+      imurmurhash: 0.1.4
+
   '@comunica/actor-http-fetch@4.5.0':
     dependencies:
       '@comunica/bus-http': 4.5.0
@@ -13039,6 +14816,921 @@ snapshots:
       '@comunica/types': 4.5.0
     transitivePeerDependencies:
       - encoding
+
+  '@comunica/actor-http-proxy@5.3.0':
+    dependencies:
+      '@comunica/bus-http': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-time': 5.3.0
+      '@comunica/types': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-init-query@5.3.0':
+    dependencies:
+      '@comunica/actor-http-proxy': 5.3.0
+      '@comunica/bus-http-invalidate': 5.3.0
+      '@comunica/bus-init': 5.3.0
+      '@comunica/bus-query-process': 5.3.0
+      '@comunica/bus-query-result-serialize': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/logger-pretty': 5.3.0
+      '@comunica/runner': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@rdfjs/types': 2.0.1
+      '@types/yargs': 17.0.35
+      asynciterator: 3.10.0
+      negotiate: 1.0.1
+      rdf-quad: 2.0.0
+      readable-stream: 4.7.0
+      yargs: 17.7.2
+    optionalDependencies:
+      process: 0.11.10
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-assign-sources-exhaustive@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-bgp-to-join@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-construct-distinct@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-describe-to-constructs-subject@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-distinct-terms-pushdown@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-filter-pushdown@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+      rdf-terms: 2.0.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-group-file-sources@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/bus-query-source-identify': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-group-sources@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-join-bgp@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-join-connected@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-leftjoin-expression-pushdown@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-prune-empty-source-operations@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-query-source-identify@5.3.0':
+    dependencies:
+      '@comunica/bus-context-preprocess': 5.3.0
+      '@comunica/bus-http-invalidate': 5.3.0
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/bus-query-source-identify': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      lru-cache: 11.5.2
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-query-source-skolemize@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-data-factory': 5.0.0
+      '@comunica/utils-metadata': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+      rdf-terms: 2.0.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-rewrite-add@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@rdfjs/types': 2.0.1
+      rdf-data-factory: 2.0.2
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-rewrite-copy@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-optimize-query-operation-rewrite-move@5.3.0':
+    dependencies:
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-ask@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-bgp-join@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-construct@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+      rdf-terms: 2.0.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-distinct-identity@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+      rdf-string: 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-extend@5.3.0':
+    dependencies:
+      '@comunica/bus-expression-evaluator-factory': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-filter@5.3.0':
+    dependencies:
+      '@comunica/bus-expression-evaluator-factory': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-from-quad@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-group@5.3.0':
+    dependencies:
+      '@comunica/bus-bindings-aggregator-factory': 5.3.0
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-join@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-metadata': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+      rdf-data-factory: 2.0.2
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-leftjoin@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-minus@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-nodes@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-nop@5.3.0':
+    dependencies:
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-metadata': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-orderby@5.3.0':
+    dependencies:
+      '@comunica/bus-expression-evaluator-factory': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-term-comparator-factory': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-path-alt@5.3.0':
+    dependencies:
+      '@comunica/actor-abstract-path': 5.3.0
+      '@comunica/actor-query-operation-union': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-rdf-metadata-accumulate': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-path-inv@5.3.0':
+    dependencies:
+      '@comunica/actor-abstract-path': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-path-link@5.3.0':
+    dependencies:
+      '@comunica/actor-abstract-path': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-path-nps@5.3.0':
+    dependencies:
+      '@comunica/actor-abstract-path': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-path-one-or-more@5.3.0':
+    dependencies:
+      '@comunica/actor-abstract-path': 5.3.0
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-path-seq@5.3.0':
+    dependencies:
+      '@comunica/actor-abstract-path': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-path-zero-or-more@5.3.0':
+    dependencies:
+      '@comunica/actor-abstract-path': 5.3.0
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-path-zero-or-one@5.3.0':
+    dependencies:
+      '@comunica/actor-abstract-path': 5.3.0
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-metadata': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-project@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-data-factory': 5.0.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-reduced-hash@5.3.0':
+    dependencies:
+      '@comunica/bus-hash-bindings': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+      lru-cache: 11.5.2
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-slice@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-source@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-metadata': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-union@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-rdf-metadata-accumulate': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-metadata': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-update-clear@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-rdf-update-quads': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-update-compositeupdate@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-update-create@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-rdf-update-quads': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-update-deleteinsert@5.3.0':
+    dependencies:
+      '@comunica/actor-query-operation-construct': 5.3.0
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-rdf-update-quads': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-update-drop@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-rdf-update-quads': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-update-load@5.3.0':
+    dependencies:
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-query-source-identify': 5.3.0
+      '@comunica/bus-rdf-update-quads': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-operation-values@5.3.0':
+    dependencies:
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-metadata': 5.3.0
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-parse-sparql@5.3.0':
+    dependencies:
+      '@comunica/bus-query-parse': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@traqula/algebra-sparql-1-2': 1.2.0
+      '@traqula/parser-sparql-1-2': 1.2.0
+      '@traqula/rules-sparql-1-2': 1.2.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-process-sequential@5.3.0':
+    dependencies:
+      '@comunica/bus-context-preprocess': 5.3.0
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-optimize-query-operation': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-query-parse': 5.3.0
+      '@comunica/bus-query-process': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-query-source-identify-rdfjs@5.3.0':
+    dependencies:
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-query-source-identify': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-metadata': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+      rdf-terms: 2.0.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-entries-sort-cardinality@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join-entries-sort': 5.3.0
+      '@comunica/core': 5.3.0
+
+  '@comunica/actor-rdf-join-entries-sort-selectivity@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join-entries-sort': 5.3.0
+      '@comunica/bus-rdf-join-selectivity': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+
+  '@comunica/actor-rdf-join-inner-hash@5.3.0':
+    dependencies:
+      '@comunica/bus-hash-bindings': 5.3.0
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-bindings-index': 5.3.0
+      '@comunica/utils-iterator': 5.0.0
+      asynciterator: 3.10.0
+      asyncjoin: 1.2.4
+      rdf-string: 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-inner-multi-bind-source@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/bus-rdf-join-entries-sort': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-iterator': 5.0.0
+      '@comunica/utils-query-operation': 5.3.0
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-inner-multi-bind@5.3.0':
+    dependencies:
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/bus-rdf-join-entries-sort': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-inner-multi-empty@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-metadata': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-inner-multi-smallest-filter-bindings@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/bus-rdf-join-entries-sort': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-iterator': 5.0.0
+      '@comunica/utils-query-operation': 5.3.0
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-inner-multi-smallest@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/bus-rdf-join-entries-sort': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-inner-nestedloop@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      asyncjoin: 1.2.4
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-inner-none@5.3.0':
+    dependencies:
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-metadata': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-inner-single@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-inner-symmetrichash@5.3.0':
+    dependencies:
+      '@comunica/bus-hash-bindings': 5.3.0
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      asyncjoin: 1.2.4
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-minus-hash@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-bindings-index': 5.3.0
+      '@comunica/utils-iterator': 5.0.0
+      '@rdfjs/types': 2.0.1
+      rdf-string: 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-optional-bind@5.3.0':
+    dependencies:
+      '@comunica/actor-rdf-join-inner-multi-bind': 5.3.0
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-optional-hash@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-bindings-index': 5.3.0
+      '@comunica/utils-iterator': 5.0.0
+      asynciterator: 3.10.0
+      rdf-string: 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-optional-nestedloop@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      asyncjoin: 1.2.4
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-rdf-join-selectivity-variable-counting@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join-selectivity': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-accuracy': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+
+  '@comunica/actor-rdf-metadata-accumulate-cardinality@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-metadata-accumulate': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+
+  '@comunica/actor-rdf-metadata-accumulate-pagesize@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-metadata-accumulate': 5.3.0
+      '@comunica/core': 5.3.0
+
+  '@comunica/actor-rdf-metadata-accumulate-requesttime@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-metadata-accumulate': 5.3.0
+      '@comunica/core': 5.3.0
 
   '@comunica/actor-rdf-parse-html-microdata@4.5.0':
     dependencies:
@@ -13132,6 +15824,51 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  '@comunica/actor-rdf-update-quads-rdfjs-store@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-update-quads': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-query-operation': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+      event-emitter-promisify: 1.1.0
+      rdf-string: 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/actor-term-comparator-factory-expression-evaluator@5.3.0':
+    dependencies:
+      '@comunica/actor-expression-evaluator-factory-default': 5.3.0
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/bus-term-comparator-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/bus-bindings-aggregator-factory@5.3.0':
+    dependencies:
+      '@comunica/bus-expression-evaluator-factory': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+      '@rdfjs/types': 2.0.1
+      rdf-string: 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/bus-context-preprocess@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+
   '@comunica/bus-dereference-rdf@4.5.0':
     dependencies:
       '@comunica/bus-dereference': 4.5.0
@@ -13152,9 +15889,54 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  '@comunica/bus-expression-evaluator-factory@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/bus-function-factory@5.3.0':
+    dependencies:
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-expression-evaluator': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/bus-hash-bindings@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@rdfjs/types': 2.0.1
+
+  '@comunica/bus-hash-quads@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      rdf-data-factory: 2.0.2
+
+  '@comunica/bus-http-invalidate@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+
   '@comunica/bus-http@4.5.0':
     dependencies:
       '@comunica/core': 4.5.0
+      '@jeswr/stream-to-string': 2.0.0
+      is-stream: 2.0.1
+      readable-from-web: 1.0.0
+      readable-stream-node-to-web: 1.0.1
+
+  '@comunica/bus-http@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
       '@jeswr/stream-to-string': 2.0.0
       is-stream: 2.0.1
       readable-from-web: 1.0.0
@@ -13164,6 +15946,94 @@ snapshots:
     dependencies:
       '@comunica/core': 4.5.0
       readable-stream: 4.7.0
+
+  '@comunica/bus-init@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      readable-stream: 4.7.0
+
+  '@comunica/bus-merge-bindings-context@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+
+  '@comunica/bus-optimize-query-operation@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+
+  '@comunica/bus-query-operation@5.3.0':
+    dependencies:
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-metadata': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/bus-query-parse@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@rdfjs/types': 2.0.1
+
+  '@comunica/bus-query-process@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+
+  '@comunica/bus-query-result-serialize@5.3.0':
+    dependencies:
+      '@comunica/actor-abstract-mediatyped': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+
+  '@comunica/bus-query-source-identify@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@comunica/utils-iterator': 5.0.0
+      '@comunica/utils-metadata': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+      rdf-string: 2.0.1
+      rdf-terms: 2.0.0
+
+  '@comunica/bus-rdf-join-entries-sort@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+
+  '@comunica/bus-rdf-join-selectivity@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-accuracy': 5.3.0
+      '@comunica/types': 5.3.0
+
+  '@comunica/bus-rdf-join@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join-entries-sort': 5.3.0
+      '@comunica/bus-rdf-join-selectivity': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-iterator': 5.0.0
+      '@comunica/utils-metadata': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/bus-rdf-metadata-accumulate@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
 
   '@comunica/bus-rdf-parse-html@4.5.0':
     dependencies:
@@ -13177,7 +16047,30 @@ snapshots:
       '@comunica/core': 4.5.0
       '@rdfjs/types': 2.0.1
 
+  '@comunica/bus-rdf-update-quads@5.3.0':
+    dependencies:
+      '@comunica/actor-optimize-query-operation-query-source-skolemize': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/bus-term-comparator-factory@5.3.0':
+    dependencies:
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/core': 5.3.0
+      '@rdfjs/types': 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
   '@comunica/config-query-sparql@4.4.0': {}
+
+  '@comunica/config-query-sparql@5.3.0': {}
 
   '@comunica/context-entries@4.5.0':
     dependencies:
@@ -13189,31 +16082,308 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  '@comunica/context-entries@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@rdfjs/types': 2.0.1
+      jsonld-context-parser: 2.4.0
+    transitivePeerDependencies:
+      - encoding
+
   '@comunica/core@4.5.0':
     dependencies:
       '@comunica/types': 4.5.0
       immutable: 5.1.9
+
+  '@comunica/core@5.3.0':
+    dependencies:
+      '@comunica/types': 5.3.0
+      immutable: 5.1.9
+
+  '@comunica/logger-pretty@5.3.0':
+    dependencies:
+      '@comunica/types': 5.3.0
+      object-inspect: 1.13.4
+      process: 0.11.10
+
+  '@comunica/logger-void@5.3.0':
+    dependencies:
+      '@comunica/types': 5.3.0
+
+  '@comunica/mediator-all@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
 
   '@comunica/mediator-combine-pipeline@4.5.0':
     dependencies:
       '@comunica/core': 4.5.0
       '@comunica/types': 4.5.0
 
+  '@comunica/mediator-combine-pipeline@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+
   '@comunica/mediator-combine-union@4.5.0':
     dependencies:
       '@comunica/core': 4.5.0
+
+  '@comunica/mediator-combine-union@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+
+  '@comunica/mediator-join-coefficients-fixed@5.3.0':
+    dependencies:
+      '@comunica/bus-rdf-join': 5.3.0
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/mediatortype-join-coefficients': 5.3.0
+      '@comunica/types': 5.3.0
+    transitivePeerDependencies:
+      - encoding
 
   '@comunica/mediator-number@4.5.0':
     dependencies:
       '@comunica/core': 4.5.0
 
+  '@comunica/mediator-number@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+
   '@comunica/mediator-race@4.5.0':
     dependencies:
       '@comunica/core': 4.5.0
 
+  '@comunica/mediator-race@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+
+  '@comunica/mediatortype-accuracy@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+
+  '@comunica/mediatortype-join-coefficients@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+      '@rdfjs/types': 2.0.1
+
   '@comunica/mediatortype-time@4.5.0':
     dependencies:
       '@comunica/core': 4.5.0
+
+  '@comunica/mediatortype-time@5.3.0':
+    dependencies:
+      '@comunica/core': 5.3.0
+
+  '@comunica/query-sparql-rdfjs-lite@5.3.0':
+    dependencies:
+      '@comunica/actor-bindings-aggregator-factory-average': 5.3.0
+      '@comunica/actor-bindings-aggregator-factory-count': 5.3.0
+      '@comunica/actor-bindings-aggregator-factory-group-concat': 5.3.0
+      '@comunica/actor-bindings-aggregator-factory-max': 5.3.0
+      '@comunica/actor-bindings-aggregator-factory-min': 5.3.0
+      '@comunica/actor-bindings-aggregator-factory-sample': 5.3.0
+      '@comunica/actor-bindings-aggregator-factory-sum': 5.3.0
+      '@comunica/actor-bindings-aggregator-factory-wildcard-count': 5.3.0
+      '@comunica/actor-context-preprocess-convert-shortcuts': 5.3.0
+      '@comunica/actor-context-preprocess-set-defaults': 5.3.0
+      '@comunica/actor-context-preprocess-source-to-destination': 5.3.0
+      '@comunica/actor-expression-evaluator-factory-default': 5.3.0
+      '@comunica/actor-function-factory-expression-bnode': 5.3.0
+      '@comunica/actor-function-factory-expression-bound': 5.3.0
+      '@comunica/actor-function-factory-expression-coalesce': 5.3.0
+      '@comunica/actor-function-factory-expression-concat': 5.3.0
+      '@comunica/actor-function-factory-expression-extensions': 5.3.0
+      '@comunica/actor-function-factory-expression-if': 5.3.0
+      '@comunica/actor-function-factory-expression-in': 5.3.0
+      '@comunica/actor-function-factory-expression-logical-and': 5.3.0
+      '@comunica/actor-function-factory-expression-logical-or': 5.3.0
+      '@comunica/actor-function-factory-expression-not-in': 5.3.0
+      '@comunica/actor-function-factory-expression-same-term': 5.3.0
+      '@comunica/actor-function-factory-term-abs': 5.3.0
+      '@comunica/actor-function-factory-term-addition': 5.3.0
+      '@comunica/actor-function-factory-term-ceil': 5.3.0
+      '@comunica/actor-function-factory-term-contains': 5.3.0
+      '@comunica/actor-function-factory-term-datatype': 5.3.0
+      '@comunica/actor-function-factory-term-day': 5.3.0
+      '@comunica/actor-function-factory-term-division': 5.3.0
+      '@comunica/actor-function-factory-term-encode-for-uri': 5.3.0
+      '@comunica/actor-function-factory-term-equality': 5.3.0
+      '@comunica/actor-function-factory-term-floor': 5.3.0
+      '@comunica/actor-function-factory-term-greater-than': 5.3.0
+      '@comunica/actor-function-factory-term-greater-than-equal': 5.3.0
+      '@comunica/actor-function-factory-term-has-lang': 5.3.0
+      '@comunica/actor-function-factory-term-has-langdir': 5.3.0
+      '@comunica/actor-function-factory-term-hours': 5.3.0
+      '@comunica/actor-function-factory-term-inequality': 5.3.0
+      '@comunica/actor-function-factory-term-iri': 5.3.0
+      '@comunica/actor-function-factory-term-is-blank': 5.3.0
+      '@comunica/actor-function-factory-term-is-iri': 5.3.0
+      '@comunica/actor-function-factory-term-is-literal': 5.3.0
+      '@comunica/actor-function-factory-term-is-numeric': 5.3.0
+      '@comunica/actor-function-factory-term-is-triple': 5.3.0
+      '@comunica/actor-function-factory-term-lang': 5.3.0
+      '@comunica/actor-function-factory-term-langdir': 5.3.0
+      '@comunica/actor-function-factory-term-langmatches': 5.3.0
+      '@comunica/actor-function-factory-term-lcase': 5.3.0
+      '@comunica/actor-function-factory-term-lesser-than': 5.3.0
+      '@comunica/actor-function-factory-term-lesser-than-equal': 5.3.0
+      '@comunica/actor-function-factory-term-md5': 5.3.0
+      '@comunica/actor-function-factory-term-minutes': 5.3.0
+      '@comunica/actor-function-factory-term-month': 5.3.0
+      '@comunica/actor-function-factory-term-multiplication': 5.3.0
+      '@comunica/actor-function-factory-term-not': 5.3.0
+      '@comunica/actor-function-factory-term-now': 5.3.0
+      '@comunica/actor-function-factory-term-object': 5.3.0
+      '@comunica/actor-function-factory-term-predicate': 5.3.0
+      '@comunica/actor-function-factory-term-rand': 5.3.0
+      '@comunica/actor-function-factory-term-regex': 5.3.0
+      '@comunica/actor-function-factory-term-replace': 5.3.0
+      '@comunica/actor-function-factory-term-round': 5.3.0
+      '@comunica/actor-function-factory-term-seconds': 5.3.0
+      '@comunica/actor-function-factory-term-sha1': 5.3.0
+      '@comunica/actor-function-factory-term-sha256': 5.3.0
+      '@comunica/actor-function-factory-term-sha384': 5.3.0
+      '@comunica/actor-function-factory-term-sha512': 5.3.0
+      '@comunica/actor-function-factory-term-str': 5.3.0
+      '@comunica/actor-function-factory-term-str-after': 5.3.0
+      '@comunica/actor-function-factory-term-str-before': 5.3.0
+      '@comunica/actor-function-factory-term-str-dt': 5.3.0
+      '@comunica/actor-function-factory-term-str-ends': 5.3.0
+      '@comunica/actor-function-factory-term-str-lang': 5.3.0
+      '@comunica/actor-function-factory-term-str-langdir': 5.3.0
+      '@comunica/actor-function-factory-term-str-len': 5.3.0
+      '@comunica/actor-function-factory-term-str-starts': 5.3.0
+      '@comunica/actor-function-factory-term-str-uuid': 5.3.0
+      '@comunica/actor-function-factory-term-sub-str': 5.3.0
+      '@comunica/actor-function-factory-term-subject': 5.3.0
+      '@comunica/actor-function-factory-term-subtraction': 5.3.0
+      '@comunica/actor-function-factory-term-timezone': 5.3.0
+      '@comunica/actor-function-factory-term-triple': 5.3.0
+      '@comunica/actor-function-factory-term-tz': 5.3.0
+      '@comunica/actor-function-factory-term-ucase': 5.3.0
+      '@comunica/actor-function-factory-term-unary-minus': 5.3.0
+      '@comunica/actor-function-factory-term-unary-plus': 5.3.0
+      '@comunica/actor-function-factory-term-uuid': 5.3.0
+      '@comunica/actor-function-factory-term-xsd-to-boolean': 5.3.0
+      '@comunica/actor-function-factory-term-xsd-to-date': 5.3.0
+      '@comunica/actor-function-factory-term-xsd-to-datetime': 5.3.0
+      '@comunica/actor-function-factory-term-xsd-to-day-time-duration': 5.3.0
+      '@comunica/actor-function-factory-term-xsd-to-decimal': 5.3.0
+      '@comunica/actor-function-factory-term-xsd-to-double': 5.3.0
+      '@comunica/actor-function-factory-term-xsd-to-duration': 5.3.0
+      '@comunica/actor-function-factory-term-xsd-to-float': 5.3.0
+      '@comunica/actor-function-factory-term-xsd-to-integer': 5.3.0
+      '@comunica/actor-function-factory-term-xsd-to-string': 5.3.0
+      '@comunica/actor-function-factory-term-xsd-to-time': 5.3.0
+      '@comunica/actor-function-factory-term-xsd-to-year-month-duration': 5.3.0
+      '@comunica/actor-function-factory-term-year': 5.3.0
+      '@comunica/actor-hash-bindings-murmur': 5.3.0
+      '@comunica/actor-hash-quads-murmur': 5.3.0
+      '@comunica/actor-init-query': 5.3.0
+      '@comunica/actor-optimize-query-operation-assign-sources-exhaustive': 5.3.0
+      '@comunica/actor-optimize-query-operation-bgp-to-join': 5.3.0
+      '@comunica/actor-optimize-query-operation-construct-distinct': 5.3.0
+      '@comunica/actor-optimize-query-operation-describe-to-constructs-subject': 5.3.0
+      '@comunica/actor-optimize-query-operation-distinct-terms-pushdown': 5.3.0
+      '@comunica/actor-optimize-query-operation-filter-pushdown': 5.3.0
+      '@comunica/actor-optimize-query-operation-group-file-sources': 5.3.0
+      '@comunica/actor-optimize-query-operation-group-sources': 5.3.0
+      '@comunica/actor-optimize-query-operation-join-bgp': 5.3.0
+      '@comunica/actor-optimize-query-operation-join-connected': 5.3.0
+      '@comunica/actor-optimize-query-operation-leftjoin-expression-pushdown': 5.3.0
+      '@comunica/actor-optimize-query-operation-prune-empty-source-operations': 5.3.0
+      '@comunica/actor-optimize-query-operation-query-source-identify': 5.3.0
+      '@comunica/actor-optimize-query-operation-query-source-skolemize': 5.3.0
+      '@comunica/actor-optimize-query-operation-rewrite-add': 5.3.0
+      '@comunica/actor-optimize-query-operation-rewrite-copy': 5.3.0
+      '@comunica/actor-optimize-query-operation-rewrite-move': 5.3.0
+      '@comunica/actor-query-operation-ask': 5.3.0
+      '@comunica/actor-query-operation-bgp-join': 5.3.0
+      '@comunica/actor-query-operation-construct': 5.3.0
+      '@comunica/actor-query-operation-distinct-identity': 5.3.0
+      '@comunica/actor-query-operation-extend': 5.3.0
+      '@comunica/actor-query-operation-filter': 5.3.0
+      '@comunica/actor-query-operation-from-quad': 5.3.0
+      '@comunica/actor-query-operation-group': 5.3.0
+      '@comunica/actor-query-operation-join': 5.3.0
+      '@comunica/actor-query-operation-leftjoin': 5.3.0
+      '@comunica/actor-query-operation-minus': 5.3.0
+      '@comunica/actor-query-operation-nodes': 5.3.0
+      '@comunica/actor-query-operation-nop': 5.3.0
+      '@comunica/actor-query-operation-orderby': 5.3.0
+      '@comunica/actor-query-operation-path-alt': 5.3.0
+      '@comunica/actor-query-operation-path-inv': 5.3.0
+      '@comunica/actor-query-operation-path-link': 5.3.0
+      '@comunica/actor-query-operation-path-nps': 5.3.0
+      '@comunica/actor-query-operation-path-one-or-more': 5.3.0
+      '@comunica/actor-query-operation-path-seq': 5.3.0
+      '@comunica/actor-query-operation-path-zero-or-more': 5.3.0
+      '@comunica/actor-query-operation-path-zero-or-one': 5.3.0
+      '@comunica/actor-query-operation-project': 5.3.0
+      '@comunica/actor-query-operation-reduced-hash': 5.3.0
+      '@comunica/actor-query-operation-slice': 5.3.0
+      '@comunica/actor-query-operation-source': 5.3.0
+      '@comunica/actor-query-operation-union': 5.3.0
+      '@comunica/actor-query-operation-update-clear': 5.3.0
+      '@comunica/actor-query-operation-update-compositeupdate': 5.3.0
+      '@comunica/actor-query-operation-update-create': 5.3.0
+      '@comunica/actor-query-operation-update-deleteinsert': 5.3.0
+      '@comunica/actor-query-operation-update-drop': 5.3.0
+      '@comunica/actor-query-operation-update-load': 5.3.0
+      '@comunica/actor-query-operation-values': 5.3.0
+      '@comunica/actor-query-parse-sparql': 5.3.0
+      '@comunica/actor-query-process-sequential': 5.3.0
+      '@comunica/actor-query-source-identify-rdfjs': 5.3.0
+      '@comunica/actor-rdf-join-entries-sort-cardinality': 5.3.0
+      '@comunica/actor-rdf-join-entries-sort-selectivity': 5.3.0
+      '@comunica/actor-rdf-join-inner-hash': 5.3.0
+      '@comunica/actor-rdf-join-inner-multi-bind': 5.3.0
+      '@comunica/actor-rdf-join-inner-multi-bind-source': 5.3.0
+      '@comunica/actor-rdf-join-inner-multi-empty': 5.3.0
+      '@comunica/actor-rdf-join-inner-multi-smallest': 5.3.0
+      '@comunica/actor-rdf-join-inner-multi-smallest-filter-bindings': 5.3.0
+      '@comunica/actor-rdf-join-inner-nestedloop': 5.3.0
+      '@comunica/actor-rdf-join-inner-none': 5.3.0
+      '@comunica/actor-rdf-join-inner-single': 5.3.0
+      '@comunica/actor-rdf-join-inner-symmetrichash': 5.3.0
+      '@comunica/actor-rdf-join-minus-hash': 5.3.0
+      '@comunica/actor-rdf-join-optional-bind': 5.3.0
+      '@comunica/actor-rdf-join-optional-hash': 5.3.0
+      '@comunica/actor-rdf-join-optional-nestedloop': 5.3.0
+      '@comunica/actor-rdf-join-selectivity-variable-counting': 5.3.0
+      '@comunica/actor-rdf-metadata-accumulate-cardinality': 5.3.0
+      '@comunica/actor-rdf-metadata-accumulate-pagesize': 5.3.0
+      '@comunica/actor-rdf-metadata-accumulate-requesttime': 5.3.0
+      '@comunica/actor-rdf-update-quads-rdfjs-store': 5.3.0
+      '@comunica/actor-term-comparator-factory-expression-evaluator': 5.3.0
+      '@comunica/bus-function-factory': 5.3.0
+      '@comunica/bus-http-invalidate': 5.3.0
+      '@comunica/bus-query-operation': 5.3.0
+      '@comunica/config-query-sparql': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/logger-void': 5.3.0
+      '@comunica/mediator-all': 5.3.0
+      '@comunica/mediator-combine-pipeline': 5.3.0
+      '@comunica/mediator-combine-union': 5.3.0
+      '@comunica/mediator-join-coefficients-fixed': 5.3.0
+      '@comunica/mediator-number': 5.3.0
+      '@comunica/mediator-race': 5.3.0
+      '@comunica/runner': 5.3.0
+      '@comunica/types': 5.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/runner@5.3.0':
+    dependencies:
+      '@comunica/bus-init': 5.3.0
+      '@comunica/core': 5.3.0
+      componentsjs: 6.4.0
+      process: 0.11.10
+    transitivePeerDependencies:
+      - encoding
 
   '@comunica/types@4.5.0':
     dependencies:
@@ -13222,6 +16392,75 @@ snapshots:
       asynciterator: 3.10.0
       lru-cache: 10.4.3
       sparqlalgebrajs: 5.0.2
+
+  '@comunica/types@5.3.0':
+    dependencies:
+      '@comunica/utils-algebra': 5.3.0
+      '@rdfjs/types': 2.0.1
+      '@types/yargs': 17.0.35
+      asynciterator: 3.10.0
+      lru-cache: 11.5.2
+
+  '@comunica/utils-algebra@5.3.0':
+    dependencies:
+      '@rdfjs/types': 2.0.1
+      '@traqula/algebra-transformations-1-2': 1.2.0
+      '@traqula/core': 1.2.0
+      rdf-terms: 2.0.0
+
+  '@comunica/utils-bindings-factory@5.3.0':
+    dependencies:
+      '@comunica/bus-merge-bindings-context': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@rdfjs/types': 2.0.1
+      immutable: 5.1.9
+      rdf-string: 2.0.1
+
+  '@comunica/utils-bindings-index@5.3.0':
+    dependencies:
+      '@comunica/types': 5.3.0
+      '@rdfjs/types': 2.0.1
+
+  '@comunica/utils-data-factory@5.0.0':
+    dependencies:
+      '@rdfjs/types': 2.0.1
+
+  '@comunica/utils-expression-evaluator@5.3.0':
+    dependencies:
+      '@comunica/context-entries': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@rdfjs/types': 2.0.1
+      lru-cache: 11.5.2
+      rdf-data-factory: 2.0.2
+      rdf-string: 2.0.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@comunica/utils-iterator@5.0.0':
+    dependencies:
+      asynciterator: 3.10.0
+
+  '@comunica/utils-metadata@5.3.0':
+    dependencies:
+      '@comunica/types': 5.3.0
+      '@rdfjs/types': 2.0.1
+      asynciterator: 3.10.0
+
+  '@comunica/utils-query-operation@5.3.0':
+    dependencies:
+      '@comunica/context-entries': 5.3.0
+      '@comunica/core': 5.3.0
+      '@comunica/types': 5.3.0
+      '@comunica/utils-algebra': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@rdfjs/types': 2.0.1
+      rdf-data-factory: 2.0.2
+      rdf-string: 2.0.1
+      rdf-terms: 2.0.0
+    transitivePeerDependencies:
+      - encoding
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
@@ -13368,6 +16607,12 @@ snapshots:
       lodash.sortby: 4.7.0
 
   '@cucumber/tag-expressions@9.1.0': {}
+
+  '@dabh/diagnostics@2.0.8':
+    dependencies:
+      '@so-ric/colorspace': 1.1.6
+      enabled: 2.0.0
+      kuler: 2.0.0
 
   '@digitalbazaar/http-client@1.2.0(web-streams-polyfill@3.3.3)':
     dependencies:
@@ -14169,7 +17414,7 @@ snapshots:
 
   '@jeswr/shacl2shex@1.5.1':
     dependencies:
-      '@ldo/ldo': 0.0.1-alpha.29
+      '@ldo/ldo': file:vendor/ldo/ldo-ldo-1.0.0-alpha.50.tgz
       '@rdfjs/term-set': 1.1.0
       '@rdfjs/types': 2.0.1
       '@shexjs/neighborhood-rdfjs': 1.0.0-alpha.29
@@ -14207,14 +17452,13 @@ snapshots:
 
   '@juggle/resize-observer@3.4.0': {}
 
-  '@ldo/cli@1.0.0-alpha.51(web-streams-polyfill@3.3.3)':
+  '@ldo/cli@file:vendor/ldo/ldo-cli-1.0.0-alpha.50.tgz(web-streams-polyfill@3.3.3)':
     dependencies:
       '@jeswr/shacl2shex': 1.5.1
-      '@ldo/ldo': 1.0.0-alpha.51
-      '@ldo/schema-converter-shex': 1.0.0-alpha.51(web-streams-polyfill@3.3.3)
+      '@ldo/ldo': file:vendor/ldo/ldo-ldo-1.0.0-alpha.50.tgz
+      '@ldo/schema-converter-shex': file:vendor/ldo/ldo-schema-converter-shex-1.0.0-alpha.50.tgz(web-streams-polyfill@3.3.3)
       '@shexjs/parser': 1.0.0-alpha.28
       camelcase: 9.0.0
-      child-process-promise: 2.2.1
       commander: 9.5.0
       ejs: 3.1.10
       loading-cli: 1.1.2
@@ -14229,83 +17473,50 @@ snapshots:
       - encoding
       - web-streams-polyfill
 
-  '@ldo/dataset@0.0.1-alpha.24':
+  '@ldo/dataset@file:vendor/ldo/ldo-dataset-1.0.0-alpha.50.tgz':
     dependencies:
-      '@ldo/rdf-utils': 0.0.1-alpha.24
-      '@rdfjs/dataset': 1.1.1
+      '@ldo/rdf-utils': file:vendor/ldo/ldo-rdf-utils-1.0.0-alpha.50.tgz
+      '@rdfjs/data-model': 2.1.1
+      '@rdfjs/dataset': 2.0.2
+      '@rdfjs/types': 2.0.1
       buffer: 6.0.3
       readable-stream: 4.7.0
 
-  '@ldo/dataset@1.0.0-alpha.51':
+  '@ldo/jsonld-dataset-proxy@file:vendor/ldo/ldo-jsonld-dataset-proxy-1.0.0-alpha.50.tgz':
     dependencies:
-      '@ldo/rdf-utils': 1.0.0-alpha.51
-      '@rdfjs/dataset': 1.1.1
-      '@rdfjs/types': 1.1.2
-      buffer: 6.0.3
-      readable-stream: 4.7.0
-
-  '@ldo/jsonld-dataset-proxy@0.0.1-alpha.29':
-    dependencies:
-      '@ldo/rdf-utils': 0.0.1-alpha.24
-      '@ldo/subscribable-dataset': 0.0.1-alpha.24
-      '@rdfjs/data-model': 1.3.4
-      '@rdfjs/dataset': 1.1.1
+      '@ldo/dataset': file:vendor/ldo/ldo-dataset-1.0.0-alpha.50.tgz
+      '@ldo/rdf-utils': file:vendor/ldo/ldo-rdf-utils-1.0.0-alpha.50.tgz
+      '@ldo/subscribable-dataset': file:vendor/ldo/ldo-subscribable-dataset-1.0.0-alpha.50.tgz
+      '@rdfjs/types': 2.0.1
       jsonld2graphobject: 0.0.4
     transitivePeerDependencies:
       - encoding
 
-  '@ldo/jsonld-dataset-proxy@1.0.0-alpha.51':
+  '@ldo/ldo@file:vendor/ldo/ldo-ldo-1.0.0-alpha.50.tgz':
     dependencies:
-      '@ldo/dataset': 1.0.0-alpha.51
-      '@ldo/rdf-utils': 1.0.0-alpha.51
-      '@ldo/subscribable-dataset': 1.0.0-alpha.51
-      '@rdfjs/types': 1.1.2
-      jsonld2graphobject: 0.0.4
-    transitivePeerDependencies:
-      - encoding
-
-  '@ldo/ldo@0.0.1-alpha.29':
-    dependencies:
-      '@ldo/dataset': 0.0.1-alpha.24
-      '@ldo/jsonld-dataset-proxy': 0.0.1-alpha.29
-      '@ldo/subscribable-dataset': 0.0.1-alpha.24
-      '@rdfjs/data-model': 1.3.4
+      '@ldo/dataset': file:vendor/ldo/ldo-dataset-1.0.0-alpha.50.tgz
+      '@ldo/jsonld-dataset-proxy': file:vendor/ldo/ldo-jsonld-dataset-proxy-1.0.0-alpha.50.tgz
+      '@ldo/rdf-utils': file:vendor/ldo/ldo-rdf-utils-1.0.0-alpha.50.tgz
+      '@ldo/subscribable-dataset': file:vendor/ldo/ldo-subscribable-dataset-1.0.0-alpha.50.tgz
+      '@rdfjs/types': 2.0.1
       buffer: 6.0.3
       readable-stream: 4.7.0
     transitivePeerDependencies:
       - encoding
 
-  '@ldo/ldo@1.0.0-alpha.51':
+  '@ldo/rdf-utils@file:vendor/ldo/ldo-rdf-utils-1.0.0-alpha.50.tgz':
     dependencies:
-      '@ldo/dataset': 1.0.0-alpha.51
-      '@ldo/jsonld-dataset-proxy': 1.0.0-alpha.51
-      '@ldo/rdf-utils': 1.0.0-alpha.51
-      '@ldo/subscribable-dataset': 1.0.0-alpha.51
-      '@rdfjs/types': 1.1.2
-      buffer: 6.0.3
-      readable-stream: 4.7.0
-    transitivePeerDependencies:
-      - encoding
-
-  '@ldo/rdf-utils@0.0.1-alpha.24':
-    dependencies:
-      '@rdfjs/data-model': 1.3.4
+      '@rdfjs/data-model': 2.1.1
+      '@rdfjs/types': 2.0.1
       n3: 1.26.0
       rdf-string: 1.6.3
 
-  '@ldo/rdf-utils@1.0.0-alpha.51':
+  '@ldo/schema-converter-shex@file:vendor/ldo/ldo-schema-converter-shex-1.0.0-alpha.50.tgz(web-streams-polyfill@3.3.3)':
     dependencies:
-      '@rdfjs/data-model': 1.3.4
-      '@rdfjs/types': 1.1.2
-      n3: 1.26.0
-      rdf-string: 1.6.3
-
-  '@ldo/schema-converter-shex@1.0.0-alpha.51(web-streams-polyfill@3.3.3)':
-    dependencies:
-      '@ldo/jsonld-dataset-proxy': 1.0.0-alpha.51
-      '@ldo/ldo': 1.0.0-alpha.51
-      '@ldo/traverser-shexj': 1.0.0-alpha.51
-      '@ldo/type-traverser': 1.0.0-alpha.51
+      '@ldo/jsonld-dataset-proxy': file:vendor/ldo/ldo-jsonld-dataset-proxy-1.0.0-alpha.50.tgz
+      '@ldo/ldo': file:vendor/ldo/ldo-ldo-1.0.0-alpha.50.tgz
+      '@ldo/traverser-shexj': file:vendor/ldo/ldo-traverser-shexj-1.0.0-alpha.50.tgz
+      '@ldo/type-traverser': file:vendor/ldo/ldo-type-traverser-1.0.0-alpha.50.tgz
       dts-dom: 3.6.0
       jsonld: 5.2.0(web-streams-polyfill@3.3.3)
       jsonld2graphobject: 0.0.5
@@ -14314,23 +17525,18 @@ snapshots:
       - encoding
       - web-streams-polyfill
 
-  '@ldo/subscribable-dataset@0.0.1-alpha.24':
+  '@ldo/subscribable-dataset@file:vendor/ldo/ldo-subscribable-dataset-1.0.0-alpha.50.tgz':
     dependencies:
-      '@ldo/dataset': 0.0.1-alpha.24
-      '@ldo/rdf-utils': 0.0.1-alpha.24
-
-  '@ldo/subscribable-dataset@1.0.0-alpha.51':
-    dependencies:
-      '@ldo/dataset': 1.0.0-alpha.51
-      '@ldo/rdf-utils': 1.0.0-alpha.51
-      '@rdfjs/types': 1.1.2
+      '@ldo/dataset': file:vendor/ldo/ldo-dataset-1.0.0-alpha.50.tgz
+      '@ldo/rdf-utils': file:vendor/ldo/ldo-rdf-utils-1.0.0-alpha.50.tgz
+      '@rdfjs/types': 2.0.1
       uuid: 11.1.0
 
-  '@ldo/traverser-shexj@1.0.0-alpha.51':
+  '@ldo/traverser-shexj@file:vendor/ldo/ldo-traverser-shexj-1.0.0-alpha.50.tgz':
     dependencies:
-      '@ldo/type-traverser': 1.0.0-alpha.51
+      '@ldo/type-traverser': file:vendor/ldo/ldo-type-traverser-1.0.0-alpha.50.tgz
 
-  '@ldo/type-traverser@1.0.0-alpha.51':
+  '@ldo/type-traverser@file:vendor/ldo/ldo-type-traverser-1.0.0-alpha.50.tgz':
     dependencies:
       uuid: 8.3.2
 
@@ -16498,21 +19704,114 @@ snapshots:
 
   '@radix-ui/rect@1.1.1': {}
 
-  '@rdfjs/data-model@1.3.4':
-    dependencies:
-      '@rdfjs/types': 2.0.1
+  '@rdfjs/data-model@2.1.1': {}
 
   '@rdfjs/data-model@2.1.2': {}
 
-  '@rdfjs/dataset@1.1.1':
+  '@rdfjs/dataset@2.0.2': {}
+
+  '@rdfjs/dataset@2.0.3': {}
+
+  '@rdfjs/formats-common@3.1.0':
     dependencies:
-      '@rdfjs/data-model': 1.3.4
+      '@rdfjs/parser-jsonld': 2.1.3
+      '@rdfjs/parser-n3': 2.2.0
+      '@rdfjs/serializer-jsonld': 2.0.1
+      '@rdfjs/serializer-ntriples': 2.0.1
+      '@rdfjs/sink-map': 2.0.1
+      rdfxml-streaming-parser: 2.4.0
+
+  '@rdfjs/formats@4.0.1':
+    dependencies:
+      '@rdfjs/parser-jsonld': 2.1.3
+      '@rdfjs/parser-n3': 2.2.0
+      '@rdfjs/serializer-jsonld': 2.0.1
+      '@rdfjs/serializer-jsonld-ext': 4.0.2
+      '@rdfjs/serializer-ntriples': 2.0.1
+      '@rdfjs/serializer-turtle': 1.1.5
+      '@rdfjs/sink-map': 2.0.1
+      rdfxml-streaming-parser: 3.3.0
+
+  '@rdfjs/namespace@2.0.1':
+    dependencies:
+      '@rdfjs/data-model': 2.1.2
+
+  '@rdfjs/parser-jsonld@2.1.3':
+    dependencies:
+      '@rdfjs/data-model': 2.1.2
+      '@rdfjs/sink': 2.0.1
+      duplex-to: 2.0.0
+      jsonld-streaming-parser: 5.0.1
+      readable-stream: 4.7.0
+
+  '@rdfjs/parser-n3@2.2.0':
+    dependencies:
+      '@rdfjs/data-model': 2.1.2
+      '@rdfjs/sink': 2.0.1
+      duplex-to: 2.0.0
+      n3: 2.2.14
+      readable-stream: 4.7.0
+
+  '@rdfjs/prefix-map@0.1.2':
+    dependencies:
+      readable-stream: 4.7.0
+
+  '@rdfjs/serializer-jsonld-ext@4.0.2':
+    dependencies:
+      '@rdfjs/sink': 2.0.1
+      jsonld: 9.0.0
+      readable-stream: 4.7.0
+      stream-chunks: 1.0.0
+
+  '@rdfjs/serializer-jsonld@2.0.1':
+    dependencies:
+      '@rdfjs/sink': 2.0.1
+      readable-stream: 4.7.0
+
+  '@rdfjs/serializer-ntriples@2.0.1':
+    dependencies:
+      '@rdfjs/sink': 2.0.1
+      '@rdfjs/to-ntriples': 3.0.1
+      duplex-to: 2.0.0
+      readable-stream: 4.7.0
+
+  '@rdfjs/serializer-turtle@1.1.5':
+    dependencies:
+      '@rdfjs/data-model': 2.1.2
+      '@rdfjs/namespace': 2.0.1
+      '@rdfjs/prefix-map': 0.1.2
+      '@rdfjs/sink': 2.0.1
+      '@rdfjs/term-map': 2.0.2
+      '@rdfjs/to-ntriples': 3.0.1
+      '@rdfjs/tree': 0.2.1
+      readable-stream: 4.7.0
+      stream-chunks: 1.0.0
+
+  '@rdfjs/sink-map@2.0.1': {}
+
+  '@rdfjs/sink@2.0.1': {}
+
+  '@rdfjs/term-map@2.0.2':
+    dependencies:
+      '@rdfjs/to-ntriples': 3.0.1
 
   '@rdfjs/term-set@1.1.0':
     dependencies:
       '@rdfjs/to-ntriples': 2.0.0
 
+  '@rdfjs/term-set@2.0.3':
+    dependencies:
+      '@rdfjs/to-ntriples': 3.0.1
+
   '@rdfjs/to-ntriples@2.0.0': {}
+
+  '@rdfjs/to-ntriples@3.0.1': {}
+
+  '@rdfjs/tree@0.2.1':
+    dependencies:
+      '@rdfjs/namespace': 2.0.1
+      '@rdfjs/term-map': 2.0.2
+      '@rdfjs/term-set': 2.0.3
 
   '@rdfjs/types@1.1.2':
     dependencies:
@@ -17185,6 +20484,11 @@ snapshots:
       '@smithy/types': 4.4.0
       tslib: 2.8.1
 
+  '@so-ric/colorspace@1.1.6':
+    dependencies:
+      color: 5.0.3
+      text-hex: 1.0.0
+
   '@standard-schema/spec@1.1.0': {}
 
   '@supabase/auth-js@2.105.4':
@@ -17629,6 +20933,63 @@ snapshots:
 
   '@tootallnate/quickjs-emscripten@0.23.0': {}
 
+  '@traqula/algebra-sparql-1-1@1.2.0':
+    dependencies:
+      '@traqula/algebra-transformations-1-1': 1.2.0
+      '@traqula/core': 1.2.0
+      '@traqula/rules-sparql-1-1': 1.2.0
+
+  '@traqula/algebra-sparql-1-2@1.2.0':
+    dependencies:
+      '@traqula/algebra-sparql-1-1': 1.2.0
+      '@traqula/algebra-transformations-1-1': 1.2.0
+      '@traqula/algebra-transformations-1-2': 1.2.0
+      '@traqula/core': 1.2.0
+
+  '@traqula/algebra-transformations-1-1@1.2.0':
+    dependencies:
+      '@traqula/core': 1.2.0
+      '@traqula/rules-sparql-1-1': 1.2.0
+      fast-deep-equal: 3.1.3
+      rdf-data-factory: 2.0.2
+      rdf-isomorphic: 2.0.1
+      rdf-string: 2.0.1
+
+  '@traqula/algebra-transformations-1-2@1.2.0':
+    dependencies:
+      '@traqula/algebra-transformations-1-1': 1.2.0
+      '@traqula/rules-sparql-1-2': 1.2.0
+      rdf-string: 2.0.1
+
+  '@traqula/chevrotain@1.1.0': {}
+
+  '@traqula/core@1.2.0':
+    dependencies:
+      '@traqula/chevrotain': 1.1.0
+
+  '@traqula/parser-sparql-1-1@1.2.0':
+    dependencies:
+      '@traqula/core': 1.2.0
+      '@traqula/rules-sparql-1-1': 1.2.0
+
+  '@traqula/parser-sparql-1-2@1.2.0':
+    dependencies:
+      '@traqula/core': 1.2.0
+      '@traqula/parser-sparql-1-1': 1.2.0
+      '@traqula/rules-sparql-1-1': 1.2.0
+      '@traqula/rules-sparql-1-2': 1.2.0
+      rdf-data-factory: 2.0.2
+
+  '@traqula/rules-sparql-1-1@1.2.0':
+    dependencies:
+      '@traqula/chevrotain': 1.1.0
+      '@traqula/core': 1.2.0
+
+  '@traqula/rules-sparql-1-2@1.2.0':
+    dependencies:
+      '@traqula/core': 1.2.0
+      '@traqula/rules-sparql-1-1': 1.2.0
+
   '@ts-jison/common@0.4.1-alpha.1': {}
 
   '@ts-jison/lexer@0.4.1-alpha.1':
@@ -17899,6 +21260,8 @@ snapshots:
     dependencies:
       '@types/node': 22.20.0
 
+  '@types/imurmurhash@0.1.4': {}
+
   '@types/inquirer@6.5.0':
     dependencies:
       '@types/through': 0.0.33
@@ -17957,6 +21320,8 @@ snapshots:
   '@types/minimatch@6.0.0':
     dependencies:
       minimatch: 10.2.6
+
+  '@types/minimist@1.2.5': {}
 
   '@types/ms@2.1.0': {}
 
@@ -18035,11 +21400,15 @@ snapshots:
 
   '@types/scheduler@0.16.8': {}
 
+  '@types/semver@7.8.0': {}
+
   '@types/shexj@2.1.7': {}
 
   '@types/showdown@2.0.6': {}
 
   '@types/sizzle@2.3.10': {}
+
+  '@types/spark-md5@3.0.5': {}
 
   '@types/sparqljs@3.1.12':
     dependencies:
@@ -18058,6 +21427,8 @@ snapshots:
   '@types/tinycolor2@1.4.6': {}
 
   '@types/tough-cookie@4.0.5': {}
+
+  '@types/triple-beam@1.3.5': {}
 
   '@types/trusted-types@2.0.7':
     optional: true
@@ -18869,6 +22240,10 @@ snapshots:
     dependencies:
       tiny-set-immediate: 1.0.2
 
+  asyncjoin@1.2.4:
+    dependencies:
+      asynciterator: 3.10.0
+
   asynckit@0.4.0: {}
 
   at-least-node@1.0.0: {}
@@ -18920,6 +22295,8 @@ snapshots:
   bidi-js@1.0.3:
     dependencies:
       require-from-string: 2.0.2
+
+  bignumber.js@11.1.5: {}
 
   bin-links@6.0.0:
     dependencies:
@@ -19161,12 +22538,6 @@ snapshots:
       '@chevrotain/utils': 11.1.2
       lodash-es: 4.17.23
 
-  child-process-promise@2.2.1:
-    dependencies:
-      cross-spawn: 4.0.2
-      node-version: 1.2.0
-      promise-polyfill: 6.1.0
-
   chokidar@3.6.0:
     dependencies:
       anymatch: 3.1.3
@@ -19284,19 +22655,34 @@ snapshots:
     dependencies:
       color-name: 1.1.4
 
+  color-convert@3.1.3:
+    dependencies:
+      color-name: 2.1.1
+
   color-name@1.1.3: {}
 
   color-name@1.1.4: {}
+
+  color-name@2.1.1: {}
 
   color-string@1.9.1:
     dependencies:
       color-name: 1.1.4
       simple-swizzle: 0.2.2
 
+  color-string@2.1.4:
+    dependencies:
+      color-name: 2.1.1
+
   color@4.2.3:
     dependencies:
       color-convert: 2.0.1
       color-string: 1.9.1
+
+  color@5.0.3:
+    dependencies:
+      color-convert: 3.1.3
+      color-string: 2.1.4
 
   colord@2.9.3: {}
 
@@ -19329,6 +22715,25 @@ snapshots:
   commander@8.3.0: {}
 
   commander@9.5.0: {}
+
+  componentsjs@6.4.0:
+    dependencies:
+      '@rdfjs/types': 2.0.1
+      '@types/minimist': 1.2.5
+      '@types/node': 18.19.124
+      '@types/semver': 7.8.0
+      jsonld-context-parser: 3.1.0
+      minimist: 1.2.8
+      rdf-data-factory: 2.0.2
+      rdf-object: 3.0.0
+      rdf-parse: 4.0.0
+      rdf-quad: 2.0.0
+      rdf-string: 2.0.1
+      rdf-terms: 2.0.0
+      semver: 7.7.4
+      winston: 3.19.0
+    transitivePeerDependencies:
+      - encoding
 
   compress-commons@4.1.2:
     dependencies:
@@ -19429,11 +22834,6 @@ snapshots:
       node-fetch: 2.7.0
     transitivePeerDependencies:
       - encoding
-
-  cross-spawn@4.0.2:
-    dependencies:
-      lru-cache: 4.1.5
-      which: 1.3.1
 
   cross-spawn@6.0.6:
     dependencies:
@@ -19904,6 +23304,8 @@ snapshots:
       es-errors: 1.3.0
       gopd: 1.2.0
 
+  duplex-to@2.0.0: {}
+
   eastasianwidth@0.2.0: {}
 
   edge-runtime@2.5.9:
@@ -19933,6 +23335,8 @@ snapshots:
   emoji-regex@8.0.0: {}
 
   emoji-regex@9.2.2: {}
+
+  enabled@2.0.0: {}
 
   encodeurl@2.0.0: {}
 
@@ -20618,6 +24022,8 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.4
 
+  fecha@4.2.3: {}
+
   fetch-blob@2.1.2: {}
 
   fetch-blob@3.2.0:
@@ -20675,6 +24081,8 @@ snapshots:
       keyv: 4.5.4
 
   flatted@3.3.3: {}
+
+  fn.name@1.1.0: {}
 
   follow-redirects@1.15.11(debug@4.4.3):
     optionalDependencies:
@@ -20926,6 +24334,11 @@ snapshots:
 
   graphql@16.11.0: {}
 
+  grapoi@1.3.0:
+    dependencies:
+      '@rdfjs/namespace': 2.0.1
+      '@rdfjs/term-set': 2.0.3
+
   gray-matter@4.0.3:
     dependencies:
       js-yaml: 3.14.1
@@ -20969,6 +24382,11 @@ snapshots:
   has-tostringtag@1.0.2:
     dependencies:
       has-symbols: 1.1.0
+
+  hash.js@1.1.7:
+    dependencies:
+      inherits: 2.0.4
+      minimalistic-assert: 1.0.1
 
   hasown@2.0.2:
     dependencies:
@@ -21826,6 +25244,18 @@ snapshots:
       rdf-data-factory: 1.1.3
       readable-stream: 4.7.0
 
+  jsonld-streaming-parser@5.0.1:
+    dependencies:
+      '@bergos/jsonparse': 1.4.2
+      '@types/http-link-header': 1.0.7
+      '@types/readable-stream': 4.0.24
+      buffer: 6.0.3
+      canonicalize: 1.0.8
+      http-link-header: 1.1.4
+      jsonld-context-parser: 3.1.0
+      rdf-data-factory: 2.0.2
+      readable-stream: 4.7.0
+
   jsonld2graphobject@0.0.4:
     dependencies:
       '@rdfjs/types': 1.1.2
@@ -21902,6 +25332,8 @@ snapshots:
   knuth-shuffle-seeded@1.0.6:
     dependencies:
       seed-random: 2.2.0
+
+  kuler@2.0.0: {}
 
   ky-universal@0.8.2(ky@0.25.1)(web-streams-polyfill@3.3.3):
     dependencies:
@@ -22040,6 +25472,15 @@ snapshots:
       strip-ansi: 7.1.0
       wrap-ansi: 9.0.2
 
+  logform@2.7.0:
+    dependencies:
+      '@colors/colors': 1.6.0
+      '@types/triple-beam': 1.3.5
+      fecha: 4.2.3
+      ms: 2.1.3
+      safe-stable-stringify: 2.5.0
+      triple-beam: 1.4.1
+
   long@5.3.2: {}
 
   longest-streak@3.1.0: {}
@@ -22063,11 +25504,6 @@ snapshots:
   lru-cache@11.2.1: {}
 
   lru-cache@11.5.2: {}
-
-  lru-cache@4.1.5:
-    dependencies:
-      pseudomap: 1.0.2
-      yallist: 2.1.2
 
   lru-cache@5.1.1:
     dependencies:
@@ -22697,6 +26133,8 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  minimalistic-assert@1.0.1: {}
+
   minimatch@10.1.1:
     dependencies:
       '@isaacs/brace-expansion': 5.0.0
@@ -22858,6 +26296,16 @@ snapshots:
       buffer: 6.0.3
       readable-stream: 4.7.0
 
+  n3@2.0.1:
+    dependencies:
+      buffer: 6.0.3
+      readable-stream: 4.7.0
+
+  n3@2.2.14:
+    dependencies:
+      buffer: 6.0.3
+      readable-stream: 4.7.0
+
   nanoevents@7.0.1: {}
 
   nanoid@2.0.4: {}
@@ -22867,6 +26315,8 @@ snapshots:
   nanoid@4.0.2: {}
 
   natural-compare@1.4.0: {}
+
+  negotiate@1.0.1: {}
 
   negotiator@1.0.0: {}
 
@@ -23030,8 +26480,6 @@ snapshots:
 
   node-releases@2.0.19: {}
 
-  node-version@1.2.0: {}
-
   nopt@8.1.0:
     dependencies:
       abbrev: 3.0.1
@@ -23131,6 +26579,10 @@ snapshots:
   once@1.4.0:
     dependencies:
       wrappy: 1.0.2
+
+  one-time@1.0.0:
+    dependencies:
+      fn.name: 1.1.0
 
   onetime@5.1.2:
     dependencies:
@@ -23608,8 +27060,6 @@ snapshots:
 
   promise-polyfill@1.1.6: {}
 
-  promise-polyfill@6.1.0: {}
-
   promise@8.3.0:
     dependencies:
       asap: 2.0.6
@@ -23785,8 +27235,6 @@ snapshots:
       - supports-color
 
   proxy-from-env@1.1.0: {}
-
-  pseudomap@1.0.2: {}
 
   psl@1.15.0:
     dependencies:
@@ -23973,7 +27421,18 @@ snapshots:
       rdf-string: 2.0.1
       rdf-terms: 2.0.0
 
+  rdf-literal@2.0.0:
+    dependencies:
+      rdf-data-factory: 2.0.2
+
   rdf-namespaces@1.17.0: {}
+
+  rdf-object@3.0.0:
+    dependencies:
+      jsonld-context-parser: 3.1.0
+      rdf-data-factory: 2.0.2
+      rdf-string: 2.0.1
+      streamify-array: 1.0.1
 
   rdf-parse@4.0.0:
     dependencies:
@@ -24006,6 +27465,22 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  rdf-quad@2.0.0:
+    dependencies:
+      rdf-data-factory: 2.0.2
+      rdf-literal: 2.0.0
+      rdf-string: 2.0.1
+
+  rdf-streaming-store@2.1.1:
+    dependencies:
+      '@rdfjs/types': 2.0.1
+      '@types/n3': 1.26.1
+      '@types/readable-stream': 4.0.24
+      n3: 1.26.0
+      rdf-string: 2.0.1
+      rdf-terms: 2.0.0
+      readable-stream: 4.7.0
+
   rdf-string@1.6.3:
     dependencies:
       '@rdfjs/types': 2.0.1
@@ -24019,6 +27494,18 @@ snapshots:
     dependencies:
       rdf-data-factory: 2.0.2
       rdf-string: 2.0.1
+
+  rdf-utils-fs@3.0.1:
+    dependencies:
+      '@rdfjs/formats': 4.0.1
+      readable-stream: 4.7.0
+
+  rdf-validation@0.1.1:
+    dependencies:
+      '@rdfjs/data-model': 2.1.2
+      '@rdfjs/namespace': 2.0.1
+      '@rdfjs/term-map': 2.0.2
+      '@rdfjs/to-ntriples': 3.0.1
 
   rdfa-streaming-parser@2.0.1:
     dependencies:
@@ -24035,6 +27522,16 @@ snapshots:
       '@types/readable-stream': 2.3.15
       buffer: 6.0.3
       rdf-data-factory: 1.1.3
+      readable-stream: 4.7.0
+      relative-to-absolute-iri: 1.0.8
+      validate-iri: 1.0.1
+
+  rdfxml-streaming-parser@3.3.0:
+    dependencies:
+      '@rubensworks/saxes': 6.0.1
+      '@types/readable-stream': 4.0.24
+      buffer: 6.0.3
+      rdf-data-factory: 2.0.2
       readable-stream: 4.7.0
       relative-to-absolute-iri: 1.0.8
       validate-iri: 1.0.1
@@ -24772,6 +28269,8 @@ snapshots:
       es-errors: 1.3.0
       is-regex: 1.2.1
 
+  safe-stable-stringify@2.5.0: {}
+
   safer-buffer@2.1.2: {}
 
   sandbox@2.5.6:
@@ -24883,6 +28382,22 @@ snapshots:
   setprototypeof@1.1.1: {}
 
   setprototypeof@1.2.0: {}
+
+  shacl-engine@1.1.2:
+    dependencies:
+      '@comunica/query-sparql-rdfjs-lite': 5.3.0
+      '@comunica/utils-bindings-factory': 5.3.0
+      '@rdfjs/namespace': 2.0.1
+      '@rdfjs/term-map': 2.0.2
+      '@rdfjs/term-set': 2.0.3
+      '@rdfjs/to-ntriples': 3.0.1
+      grapoi: 1.3.0
+      lodash: 4.17.21
+      rdf-literal: 2.0.0
+      rdf-validation: 0.1.1
+      readable-stream: 4.7.0
+    transitivePeerDependencies:
+      - encoding
 
   shaclc-parse@1.4.3:
     dependencies:
@@ -25108,6 +28623,8 @@ snapshots:
 
   space-separated-tokens@2.0.2: {}
 
+  spark-md5@3.0.2: {}
+
   sparqlalgebrajs@5.0.2:
     dependencies:
       '@types/sparqljs': 3.1.12
@@ -25149,6 +28666,8 @@ snapshots:
     dependencies:
       cookie-es: 2.0.0
 
+  stack-trace@0.0.10: {}
+
   stackback@0.0.2: {}
 
   stackframe@1.3.4: {}
@@ -25179,6 +28698,11 @@ snapshots:
 
   stoppable@1.1.0: {}
 
+  stream-chunks@1.0.0:
+    dependencies:
+      buffer: 6.0.3
+      string_decoder: 1.3.0
+
   stream-to-array@2.3.0:
     dependencies:
       any-promise: 1.3.0
@@ -25192,6 +28716,8 @@ snapshots:
   stream-to-string@1.2.1:
     dependencies:
       promise-polyfill: 1.1.6
+
+  streamify-array@1.0.1: {}
 
   streamx@2.25.0:
     dependencies:
@@ -25510,6 +29036,8 @@ snapshots:
     transitivePeerDependencies:
       - react-native-b4a
 
+  text-hex@1.0.0: {}
+
   then-request@6.0.2:
     dependencies:
       '@types/concat-stream': 1.6.1
@@ -25676,6 +29204,8 @@ snapshots:
   tree-kill@1.2.2: {}
 
   trim-lines@3.0.1: {}
+
+  triple-beam@1.4.1: {}
 
   trough@2.2.0: {}
 
@@ -26505,6 +30035,26 @@ snapshots:
 
   wicked-good-xpath@1.3.0: {}
 
+  winston-transport@4.9.0:
+    dependencies:
+      logform: 2.7.0
+      readable-stream: 3.6.2
+      triple-beam: 1.4.1
+
+  winston@3.19.0:
+    dependencies:
+      '@colors/colors': 1.6.0
+      '@dabh/diagnostics': 2.0.8
+      async: 3.2.6
+      is-stream: 2.0.1
+      logform: 2.7.0
+      one-time: 1.0.0
+      readable-stream: 3.6.2
+      safe-stable-stringify: 2.5.0
+      stack-trace: 0.0.10
+      triple-beam: 1.4.1
+      winston-transport: 4.9.0
+
   word-wrap@1.2.5: {}
 
   wordwrap@1.0.0: {}
@@ -26597,8 +30147,6 @@ snapshots:
   xtend@4.0.2: {}
 
   y18n@5.0.8: {}
-
-  yallist@2.1.2: {}
 
   yallist@3.1.1: {}
 
