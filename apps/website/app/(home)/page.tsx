@@ -854,11 +854,13 @@ const Home = async () => {
             <p className="mb-4 text-sm text-secondary">
               Periodic news and info about the Discourse Graphs project.
             </p>
+
             <form
               action="https://buttondown.com/api/emails/embed-subscribe/DiscourseGraphs"
               method="post"
               className="flex gap-2"
             >
+              <input type="hidden" name="embed" value="1" />
               <input
                 type="email"
                 name="email"
@@ -874,6 +876,7 @@ const Home = async () => {
                 Subscribe
               </button>
             </form>
+
           </div>
         </div>
       </footer>
