@@ -57,7 +57,6 @@ set search_path to public, extensions ;
 CREATE OR REPLACE FUNCTION public.match_content_embeddings (
 query_embedding extensions.vector,
 match_threshold double precision,
-match_count integer,
 current_document_id integer DEFAULT NULL::integer)
 RETURNS TABLE (
 content_id bigint,
@@ -76,14 +75,12 @@ FROM public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS c
 WHERE 1 - (c.vector <=> query_embedding) > match_threshold
   AND (current_document_id IS NULL OR c.document_id = current_document_id)
 ORDER BY
-  c.vector <=> query_embedding ASC
-LIMIT match_count;
+  c.vector <=> query_embedding ASC;
 $$ ;
 
 ALTER FUNCTION public.match_content_embeddings (
 query_embedding extensions.vector,
 match_threshold double precision,
-match_count integer,
 current_document_id integer) OWNER TO "postgres" ;
 
 CREATE OR REPLACE FUNCTION public.match_embeddings_for_subset_nodes (

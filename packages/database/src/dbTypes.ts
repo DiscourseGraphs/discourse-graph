@@ -1722,7 +1722,6 @@ export type Database = {
       match_content_embeddings: {
         Args: {
           current_document_id?: number
-          match_count: number
           match_threshold: number
           query_embedding: string
         }

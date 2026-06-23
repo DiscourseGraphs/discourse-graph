@@ -512,11 +512,12 @@ const runSupabaseSemanticSearch = async ({
   }
 
   const queryEmbedding = await createEmbedding(trimmedQuery);
-  const { data, error } = await supabase.rpc("match_content_embeddings", {
-    query_embedding: JSON.stringify(queryEmbedding),
-    match_threshold: SUPABASE_MATCH_THRESHOLD,
-    match_count: SEARCH_TEST_RESULT_LIMIT,
-  });
+  const { data, error } = await supabase
+    .rpc("match_content_embeddings", {
+      query_embedding: JSON.stringify(queryEmbedding),
+      match_threshold: SUPABASE_MATCH_THRESHOLD,
+    })
+    .limit(SEARCH_TEST_RESULT_LIMIT);
 
   if (error) {
     throw new Error(error.message);
