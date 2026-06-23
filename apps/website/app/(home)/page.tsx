@@ -822,13 +822,15 @@ const Home = async () => {
               href="https://github.com/DiscourseGraphs"
               className="text-secondary transition-colors hover:text-white"
             >
-              Github
+              GitHub
+
             </Link>
             <Link
               href="https://www.youtube.com/@discoursegraphs"
               className="text-secondary transition-colors hover:text-white"
             >
-              Youtube
+              YouTube
+
             </Link>
             <Link
               href="https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg"
