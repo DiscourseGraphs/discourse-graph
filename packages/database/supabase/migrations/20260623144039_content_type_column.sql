@@ -240,7 +240,7 @@ BEGIN
         scale = COALESCE(db_content.scale, EXCLUDED.scale),
         last_modified = COALESCE(db_content.last_modified, EXCLUDED.last_modified),
         part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id),
-        content_type = COALESCE(db_document.content_type, EXCLUDED.content_type)
+        content_type = COALESCE(db_content.content_type, EXCLUDED.content_type)
     RETURNING id INTO STRICT upsert_id;
     IF model(embedding_inline(local_content)) IS NOT NULL THEN
         PERFORM public.upsert_content_embedding(upsert_id, model(embedding_inline(local_content)),  vector(embedding_inline(local_content)));
