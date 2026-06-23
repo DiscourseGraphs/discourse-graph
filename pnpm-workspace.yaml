@@ -23,6 +23,7 @@ allowedDeprecatedVersions:
 
 # The global versions. In the react case, applies to website in practice
 catalog:
+  "@types/node": ^22
   "@types/eslint": 8.56.12
   "@types/react": ^19.1.12
   "@types/react-dom": ^19.1.9
