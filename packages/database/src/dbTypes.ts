@@ -257,6 +257,7 @@ export type Database = {
       Content: {
         Row: {
           author_id: number | null
+          content_type: string | null
           created: string
           creator_id: number | null
           document_id: number
@@ -272,6 +273,7 @@ export type Database = {
         }
         Insert: {
           author_id?: number | null
+          content_type?: string | null
           created: string
           creator_id?: number | null
           document_id: number
@@ -287,6 +289,7 @@ export type Database = {
         }
         Update: {
           author_id?: number | null
+          content_type?: string | null
           created?: string
           creator_id?: number | null
           document_id?: number
@@ -498,6 +501,7 @@ export type Database = {
       Document: {
         Row: {
           author_id: number
+          content_type: string | null
           contents: unknown
           created: string
           id: number
@@ -509,6 +513,7 @@ export type Database = {
         }
         Insert: {
           author_id: number
+          content_type?: string | null
           contents?: unknown
           created: string
           id?: number
@@ -520,6 +525,7 @@ export type Database = {
         }
         Update: {
           author_id?: number
+          content_type?: string | null
           contents?: unknown
           created?: string
           id?: number
@@ -1033,6 +1039,7 @@ export type Database = {
       my_contents: {
         Row: {
           author_id: number | null
+          content_type: string | null
           created: string | null
           creator_id: number | null
           document_id: number | null
@@ -1255,6 +1262,7 @@ export type Database = {
       my_documents: {
         Row: {
           author_id: number | null
+          content_type: string | null
           contents: unknown
           created: string | null
           id: number | null
@@ -1421,6 +1429,7 @@ export type Database = {
         }
         Returns: {
           author_id: number | null
+          content_type: string | null
           created: string
           creator_id: number | null
           document_id: number
@@ -1447,6 +1456,7 @@ export type Database = {
         }
         Returns: {
           author_id: number
+          content_type: string | null
           contents: unknown
           created: string
           id: number
@@ -1592,6 +1602,7 @@ export type Database = {
         Args: { concept: Database["public"]["Views"]["my_concepts"]["Row"] }
         Returns: {
           author_id: number | null
+          content_type: string | null
           created: string | null
           creator_id: number | null
           document_id: number | null
@@ -1642,6 +1653,7 @@ export type Database = {
         Args: { content: Database["public"]["Views"]["my_contents"]["Row"] }
         Returns: {
           author_id: number | null
+          content_type: string | null
           contents: unknown
           created: string | null
           id: number | null
@@ -1994,6 +2006,7 @@ export type Database = {
           | Database["public"]["CompositeTypes"]["inline_embedding_input"]
           | null
         variant: Database["public"]["Enums"]["ContentVariant"] | null
+        content_type: string | null
       }
       document_local_input: {
         space_id: number | null
@@ -2009,6 +2022,7 @@ export type Database = {
         author_inline:
           | Database["public"]["CompositeTypes"]["account_local_input"]
           | null
+        content_type: string | null
       }
       inline_embedding_input: {
         model: string | null

@@ -16,18 +16,18 @@ Feature: Concept queries
     # Add Documents as support for the Content objects
     # Note: table syntax is explained in features/step-definitions/stepdefs.ts, look for `added to the database`.
     And Document are added to the database:
-      | $id | source_local_id | created    | last_modified | _author_id | _space_id |
-      | d1  | ld1             | 2025/01/01 |    2025/01/01 | user1      | s1        |
-      | d2  | ld2             | 2025/01/01 |    2025/01/01 | user1      | s1        |
-      | d5  | ld5             | 2025/01/01 |    2025/01/01 | user2      | s1        |
-      | d7  | ld7             | 2025/01/01 |    2025/01/01 | user1      | s1        |
+      | $id | source_local_id | created    | last_modified | _author_id | _space_id | content_type          |
+      | d1  | ld1             | 2025/01/01 |    2025/01/01 | user1      | s1        | application/roam+json |
+      | d2  | ld2             | 2025/01/01 |    2025/01/01 | user1      | s1        | application/roam+json |
+      | d5  | ld5             | 2025/01/01 |    2025/01/01 | user2      | s1        | application/roam+json |
+      | d7  | ld7             | 2025/01/01 |    2025/01/01 | user1      | s1        | application/roam+json |
     # Add Content as support for the Concept objects, esp. schemas
     And Content are added to the database:
-      | $id | source_local_id | _document_id | text       | created    | last_modified | scale    | _author_id | _space_id |
-      | ct1 | lct1            | d1           | Claim      | 2025/01/01 |    2025/01/01 | document | user1      | s1        |
-      | ct2 | lct2            | d2           | claim 1    | 2025/01/01 |    2025/01/01 | document | user1      | s1        |
-      | ct5 | lct5            | d5           | Opposes    | 2025/01/01 |    2025/01/01 | document | user2      | s1        |
-      | ct7 | lct7            | d7           | Hypothesis | 2025/01/01 |    2025/01/01 | document | user1      | s1        |
+      | $id | source_local_id | _document_id | text       | created    | last_modified | scale    | _author_id | _space_id | content_type |
+      | ct1 | lct1            | d1           | Claim      | 2025/01/01 |    2025/01/01 | document | user1      | s1        | text/plain   |
+      | ct2 | lct2            | d2           | claim 1    | 2025/01/01 |    2025/01/01 | document | user1      | s1        | text/plain   |
+      | ct5 | lct5            | d5           | Opposes    | 2025/01/01 |    2025/01/01 | document | user2      | s1        | text/plain   |
+      | ct7 | lct7            | d7           | Hypothesis | 2025/01/01 |    2025/01/01 | document | user1      | s1        | text/plain   |
     # First add schemas
     And Concept are added to the database:
       | $id | name       | _space_id | _author_id | source_local_id | created    | last_modified | @is_schema | _schema_id | @literal_content                | @reference_content |

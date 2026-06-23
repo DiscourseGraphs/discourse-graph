@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS public."Document" (
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     last_modified timestamp without time zone NOT NULL,
     author_id bigint NOT NULL,
-    contents oid
+    contents oid,
+    content_type character varying NOT NULL DEFAULT 'text/plain'
 );
 
 ALTER TABLE ONLY public."Document"
@@ -86,7 +87,8 @@ CREATE TABLE IF NOT EXISTS public."Content" (
     scale public."Scale" NOT NULL,
     space_id bigint,
     last_modified timestamp without time zone NOT NULL,
-    part_of_id bigint
+    part_of_id bigint,
+    content_type character varying NOT NULL DEFAULT 'text/plain'
 );
 
 ALTER TABLE ONLY public."Content"
@@ -238,7 +240,8 @@ SELECT
     metadata,
     last_modified,
     author_id,
-    contents
+    contents,
+    content_type
 FROM
     public."Document"
     LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
@@ -261,7 +264,8 @@ SELECT
     scale,
     space_id,
     last_modified,
-    part_of_id
+    part_of_id,
+    content_type
 FROM public."Content"
     LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (
@@ -301,6 +305,7 @@ CREATE TYPE public.document_local_input AS (
     last_modified timestamp without time zone,
     author_id bigint,
     contents oid,
+    content_type character varying,
     -- local values
     author_local_id character varying,
     space_url character varying,
@@ -326,6 +331,7 @@ CREATE TYPE public.content_local_input AS (
     space_id bigint,
     last_modified timestamp without time zone,
     part_of_id bigint,
+    content_type character varying,
     -- local values
     document_local_id character varying,
     creator_local_id character varying,
@@ -559,6 +565,10 @@ BEGIN
       local_content.document_inline.last_modified := db_content.last_modified;
       local_content.document_inline.created := db_content.created;
       local_content.document_inline.author_id := db_content.author_id;
+      local_content.document_inline.content_type := CASE
+          WHEN v_platform='Roam' THEN 'application/roam+json'
+          WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
+          ELSE 'text/plain' END;
     END IF;
     IF source_local_id(document_inline(local_content)) IS NOT NULL THEN
       db_document := public._local_document_to_db_document(document_inline(local_content));
