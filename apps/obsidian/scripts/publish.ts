@@ -616,16 +616,17 @@ const createGithubRelease = async ({
     fs.copyFileSync(manifestSrc, manifestDest);
     updateManifest(releaseTempDir, version);
 
-    const release = await octokit.request(
-      "POST /repos/{owner}/{repo}/releases",
-      {
-        owner,
-        repo,
-        tag_name: tagName,
-        name: releaseTitle,
-        prerelease: isPrerelease,
-        generate_release_notes: true,
-      },
+    const release = await requestWithRetry<any>(
+      () =>
+        octokit.request("POST /repos/{owner}/{repo}/releases", {
+          owner,
+          repo,
+          tag_name: tagName,
+          name: releaseTitle,
+          prerelease: isPrerelease,
+          generate_release_notes: true,
+        }),
+      "creating GitHub release",
     );
 
     if (!release.data.upload_url) {
@@ -650,14 +651,18 @@ const createGithubRelease = async ({
         `?name=${file}`,
       );
 
-      await octokit.request(`POST ${uploadUrl}`, {
-        headers: {
-          "content-type": contentType,
-          "content-length": String(stats.size),
-        },
-        data: fileContent,
-        name: file,
-      });
+      await requestWithRetry(
+        () =>
+          octokit.request(`POST ${uploadUrl}`, {
+            headers: {
+              "content-type": contentType,
+              "content-length": String(stats.size),
+            },
+            data: fileContent,
+            name: file,
+          }),
+        `uploading release asset ${file}`,
+      );
 
       log(`Uploaded ${file}`);
     }
