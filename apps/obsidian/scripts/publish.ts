@@ -36,6 +36,7 @@ const EXCLUDE_PATTERNS = [
   ".next",
   "out",
   "build",
+  "scripts",
   ".git",
   ".vscode",
   ".cursor",
