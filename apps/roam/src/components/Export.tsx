@@ -154,6 +154,27 @@ const exportDestinationById = Object.fromEntries(
   EXPORT_DESTINATIONS.map((ed) => [ed.id, ed]),
 );
 
+const getReferencedUids = (uid: string): string[] => {
+  const result =
+    (window.roamAlphaAPI?.pull?.("[{:block/refs [:block/uid]}]", [
+      ":block/uid",
+      uid,
+    ]) as { [":block/refs"]?: { ":block/uid"?: string }[] } | null) || {};
+  return (result[":block/refs"] || []).flatMap((ref) =>
+    ref[":block/uid"] ? [ref[":block/uid"]] : [],
+  );
+};
+
+const getResultPublishNodes = (result: Result): PublishNode[] => {
+  const directNode = findDiscourseNode({ uid: result.uid });
+  if (directNode && directNode.backedBy === "user")
+    return [{ uid: result.uid, type: directNode.type }];
+  return getReferencedUids(result.uid).flatMap((uid) => {
+    const node = findDiscourseNode({ uid });
+    return node && node.backedBy === "user" ? [{ uid, type: node.type }] : [];
+  });
+};
+
 const ExportDialog: ExportDialogComponent = ({
   onClose,
   isOpen,
@@ -237,21 +258,26 @@ const ExportDialog: ExportDialogComponent = ({
   const [groupsError, setGroupsError] = useState("");
   const [publishError, setPublishError] = useState("");
 
-  const publishableNodes = useMemo(
-    () =>
-      syncEnabled
-        ? results
-            .map((r) => {
-              const node = findDiscourseNode({ uid: r.uid });
-              return node && node.backedBy === "user"
-                ? { uid: r.uid, type: node.type }
-                : null;
-            })
-            .filter((n): n is PublishNode => n !== null)
-        : [],
-    [results, syncEnabled],
-  );
-  const nonDiscourseCount = results.length - publishableNodes.length;
+  const { publishableNodes, nonDiscourseCount } = useMemo(() => {
+    if (!syncEnabled)
+      return { publishableNodes: [] as PublishNode[], nonDiscourseCount: 0 };
+    const seen = new Set<string>();
+    const publishableNodes: PublishNode[] = [];
+    let nonDiscourseCount = 0;
+    for (const result of results) {
+      const resolved = getResultPublishNodes(result);
+      if (resolved.length === 0) {
+        nonDiscourseCount += 1;
+        continue;
+      }
+      for (const node of resolved) {
+        if (seen.has(node.uid)) continue;
+        seen.add(node.uid);
+        publishableNodes.push(node);
+      }
+    }
+    return { publishableNodes, nonDiscourseCount };
+  }, [results, syncEnabled]);
 
   const writeFileToRepo = async ({
     filename,
