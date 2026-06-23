@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { exec } from "child_process";
 import util from "util";
+import crypto from "crypto";
 // https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
 // TODO if possible: change apps/obsidian to ESM. Use require until then.
 // import { Octokit } from "@octokit/core";
@@ -47,6 +48,9 @@ const REQUIRED_BUILD_FILES = [
   "manifest.json",
   "styles.css",
 ] as const;
+const BLOB_UPLOAD_BATCH_SIZE = 10;
+const MAX_GITHUB_RETRIES = 5;
+const BASE_RETRY_DELAY_MS = 2_000;
 
 const TARGET_REPO = "DiscourseGraphs/discourse-graph-obsidian";
 const OWNER = "DiscourseGraphs";
@@ -54,6 +58,96 @@ const REPO = "discourse-graph-obsidian";
 
 const log = (message: string): void => {
   console.log(`[Obsidian Publisher] ${message}`);
+};
+
+const sleep = async (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+const isSecondaryRateLimitError = (error: unknown): boolean => {
+  const maybeError = error as {
+    status?: number;
+    response?: { data?: { message?: string } };
+    message?: string;
+  };
+  const message =
+    maybeError?.response?.data?.message?.toLowerCase() ??
+    maybeError?.message?.toLowerCase() ??
+    "";
+  return maybeError?.status === 403 && message.includes("secondary rate limit");
+};
+
+const getRetryDelayMs = (error: unknown, attempt: number): number => {
+  const maybeError = error as {
+    response?: { headers?: Record<string, string | undefined> };
+  };
+  const retryAfterHeader = maybeError?.response?.headers?.["retry-after"];
+  const retryAfterSeconds = Number(retryAfterHeader);
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+    return retryAfterSeconds * 1000;
+  }
+  return BASE_RETRY_DELAY_MS * 2 ** attempt;
+};
+
+const requestWithRetry = async <T = unknown>(
+  request: () => Promise<T>,
+  context: string,
+): Promise<T> => {
+  let attempt = 0;
+
+  while (true) {
+    try {
+      return await request();
+    } catch (error) {
+      if (!isSecondaryRateLimitError(error) || attempt >= MAX_GITHUB_RETRIES) {
+        throw error;
+      }
+
+      const delayMs = getRetryDelayMs(error, attempt);
+      log(
+        `Secondary rate limit hit during ${context}. Retrying in ${Math.ceil(delayMs / 1000)}s (attempt ${attempt + 1}/${MAX_GITHUB_RETRIES})...`,
+      );
+      await sleep(delayMs);
+      attempt += 1;
+    }
+  }
+};
+
+const getAllFiles = (dir: string, baseDir: string = dir): string[] => {
+  const files: string[] = [];
+
+  fs.readdirSync(dir, { withFileTypes: true }).forEach((entry) => {
+    const fullPath = path.join(dir, entry.name);
+    const relativePath = path.relative(baseDir, fullPath);
+
+    if (shouldExclude(fullPath, baseDir)) {
+      log(`Excluding: ${relativePath}`);
+      return;
+    }
+
+    if (entry.isDirectory()) {
+      files.push(...getAllFiles(fullPath, baseDir));
+    } else {
+      files.push(relativePath);
+    }
+  });
+
+  return files;
+};
+
+const getGitBlobSha = (content: Buffer): string => {
+  const header = Buffer.from(`blob ${content.length}\0`, "utf8");
+  return crypto
+    .createHash("sha1")
+    .update(Buffer.concat([header, content]))
+    .digest("hex");
+};
+
+const chunk = <T>(items: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
 };
 
 const getEnvVar = (name: string): string => {
@@ -306,13 +400,14 @@ const updateMainBranch = async (
   const repo = REPO;
 
   try {
-    const { data: ref } = await octokit.request(
-      "GET /repos/{owner}/{repo}/git/refs/{ref}",
-      {
-        owner,
-        repo,
-        ref: "heads/main",
-      },
+    const { data: ref } = await requestWithRetry<any>(
+      () =>
+        octokit.request("GET /repos/{owner}/{repo}/git/refs/{ref}", {
+          owner,
+          repo,
+          ref: "heads/main",
+        }),
+      "fetching main branch ref",
     );
 
     if (!ref?.object?.sha) {
@@ -320,114 +415,165 @@ const updateMainBranch = async (
     }
     const currentSha = ref.object.sha;
 
-    const { data: currentCommit } = await octokit.request(
-      "GET /repos/{owner}/{repo}/git/commits/{commit_sha}",
-      {
-        owner,
-        repo,
-        commit_sha: currentSha,
-      },
+    const { data: currentCommit } = await requestWithRetry<any>(
+      () =>
+        octokit.request("GET /repos/{owner}/{repo}/git/commits/{commit_sha}", {
+          owner,
+          repo,
+          commit_sha: currentSha,
+        }),
+      "fetching current main commit",
     );
 
     if (!currentCommit?.tree?.sha) {
       throw new Error("Failed to get current commit tree");
     }
     const currentTreeSha = currentCommit.tree.sha;
+    const { data: existingTree } = await requestWithRetry<any>(
+      () =>
+        octokit.request("GET /repos/{owner}/{repo}/git/trees/{tree_sha}", {
+          owner,
+          repo,
+          tree_sha: currentTreeSha,
+          recursive: "1",
+        }),
+      "fetching recursive main tree",
+    );
 
-    const getAllFiles = (dir: string, baseDir: string = dir): string[] => {
-      const files: string[] = [];
-
-      fs.readdirSync(dir, { withFileTypes: true }).forEach((entry) => {
-        const fullPath = path.join(dir, entry.name);
-        const relativePath = path.relative(baseDir, fullPath);
-
-        if (shouldExclude(fullPath, baseDir)) {
-          log(`Excluding: ${relativePath}`);
-          return;
-        }
-
-        if (entry.isDirectory()) {
-          files.push(...getAllFiles(fullPath, baseDir));
-        } else {
-          files.push(relativePath);
-        }
-      });
-
-      return files;
-    };
+    const existingBlobShasByPath = new Map<string, string>(
+      (existingTree.tree ?? [])
+        .filter(
+          (entry: any): entry is { path: string; sha: string; type: string } =>
+            Boolean(entry.path && entry.sha && entry.type === "blob"),
+        )
+        .map((entry: { path: string; sha: string }) => [entry.path, entry.sha]),
+    );
 
     const allFiles = getAllFiles(tempDir);
     log(`Found ${allFiles.length} files to update`);
-
-    const blobPromises = allFiles.map(async (filePath) => {
+    const normalizedAllFiles = allFiles.map((filePath) =>
+      filePath.replace(/\\/g, "/"),
+    );
+    const currentRepoFiles = new Set<string>(existingBlobShasByPath.keys());
+    const localFiles = new Set<string>(normalizedAllFiles);
+    const filesToDelete = [...currentRepoFiles].filter(
+      (repoFilePath) => !localFiles.has(repoFilePath),
+    );
+    const filesToUpdate = allFiles.filter((filePath) => {
       const fullPath = path.join(tempDir, filePath);
       const content = fs.readFileSync(fullPath);
-
-      const { data: blob } = await octokit.request(
-        "POST /repos/{owner}/{repo}/git/blobs",
-        {
-          owner,
-          repo,
-          content: content.toString("base64"),
-          encoding: "base64",
-        },
-      );
-
-      if (!blob?.sha) {
-        throw new Error(`Failed to create blob for ${filePath}`);
-      }
-
-      return {
-        path: filePath.replace(/\\/g, "/"), // Normalize path separators for GitHub
-        sha: blob.sha,
-      };
+      const normalizedPath = filePath.replace(/\\/g, "/");
+      const existingSha = existingBlobShasByPath.get(normalizedPath);
+      return getGitBlobSha(content) !== existingSha;
     });
 
-    const blobs = await Promise.all(blobPromises);
+    log(
+      `Detected ${filesToUpdate.length} changed files (${allFiles.length - filesToUpdate.length} unchanged skipped)`,
+    );
+    log(`Detected ${filesToDelete.length} files to delete from target repo`);
 
-    const { data: newTree } = await octokit.request(
-      "POST /repos/{owner}/{repo}/git/trees",
-      {
-        owner,
-        repo,
-        base_tree: currentTreeSha,
-        tree: blobs.map((blob) => ({
-          path: blob.path,
-          mode: "100644" as const,
-          type: "blob" as const,
-          sha: blob.sha,
-        })),
-      },
+    if (filesToUpdate.length === 0 && filesToDelete.length === 0) {
+      log("No changes detected on main branch; skipping commit update");
+      return;
+    }
+
+    const blobBatchChunks = chunk(filesToUpdate, BLOB_UPLOAD_BATCH_SIZE);
+    const blobs: Array<{ path: string; sha: string }> = [];
+
+    for (const [batchIndex, blobBatch] of blobBatchChunks.entries()) {
+      log(
+        `Uploading blob batch ${batchIndex + 1}/${blobBatchChunks.length} (${blobBatch.length} files)...`,
+      );
+
+      const batchBlobs = await Promise.all(
+        blobBatch.map(async (filePath) => {
+          const fullPath = path.join(tempDir, filePath);
+          const content = fs.readFileSync(fullPath);
+
+          const { data: blob } = await requestWithRetry<any>(
+            () =>
+              octokit.request("POST /repos/{owner}/{repo}/git/blobs", {
+                owner,
+                repo,
+                content: content.toString("base64"),
+                encoding: "base64",
+              }),
+            `creating blob for ${filePath}`,
+          );
+
+          if (!blob?.sha) {
+            throw new Error(`Failed to create blob for ${filePath}`);
+          }
+
+          return {
+            path: filePath.replace(/\\/g, "/"), // Normalize path separators for GitHub
+            sha: blob.sha,
+          };
+        }),
+      );
+
+      blobs.push(...batchBlobs);
+    }
+
+    const treeUpdates = blobs.map((blob) => ({
+      path: blob.path,
+      mode: "100644" as const,
+      type: "blob" as const,
+      sha: blob.sha,
+    }));
+    const treeDeletions = filesToDelete.map((filePath) => ({
+      path: filePath,
+      mode: "100644" as const,
+      type: "blob" as const,
+      sha: null,
+    }));
+
+    const { data: newTree } = await requestWithRetry<any>(
+      () =>
+        octokit.request("POST /repos/{owner}/{repo}/git/trees", {
+          owner,
+          repo,
+          base_tree: currentTreeSha,
+          tree: [...treeUpdates, ...treeDeletions],
+        }),
+      "creating updated git tree",
     );
 
     if (!newTree?.sha) {
       throw new Error("Failed to create new tree");
     }
 
-    const { data: newCommit } = await octokit.request(
-      "POST /repos/{owner}/{repo}/git/commits",
-      {
-        owner,
-        repo,
-        message: `Release v${version}`,
-        tree: newTree.sha,
-        parents: [currentSha],
-      },
+    const { data: newCommit } = await requestWithRetry<any>(
+      () =>
+        octokit.request("POST /repos/{owner}/{repo}/git/commits", {
+          owner,
+          repo,
+          message: `Release v${version}`,
+          tree: newTree.sha,
+          parents: [currentSha],
+        }),
+      "creating release commit",
     );
 
     if (!newCommit?.sha) {
       throw new Error("Failed to create new commit");
     }
 
-    await octokit.request("PATCH /repos/{owner}/{repo}/git/refs/{ref}", {
-      owner,
-      repo,
-      ref: "heads/main",
-      sha: newCommit.sha,
-    });
+    await requestWithRetry(
+      () =>
+        octokit.request("PATCH /repos/{owner}/{repo}/git/refs/{ref}", {
+          owner,
+          repo,
+          ref: "heads/main",
+          sha: newCommit.sha,
+        }),
+      "updating main branch reference",
+    );
 
     log(`Successfully updated main branch with commit: ${newCommit.sha}`);
-    log(`Updated ${blobs.length} files`);
+    log(
+      `Updated ${blobs.length} files and deleted ${filesToDelete.length} files`,
+    );
   } catch (error) {
     log(`Failed to update main branch: ${error}`);
     throw error;
@@ -447,7 +593,7 @@ const createGithubRelease = async ({
   const octokit = new Octokit({ auth: token });
   const owner = OWNER;
   const repo = REPO;
-  const tagName = `v${version}`;
+  const tagName = `${version}`;
   const releaseTitle = releaseName || `Discourse Graph v${version}`;
   const isPrerelease = !isExternalRelease(version);
 
