@@ -15,21 +15,19 @@ const PublishNodeTitleButton = ({
   title: string;
   nodeType: string;
 }): JSX.Element => (
-  <div className="flex space-x-2">
-    <Button
-      text="Publish"
-      icon="upload"
-      minimal
-      outlined
-      onClick={() => {
-        posthog.capture("Share Node: Page Title Button Triggered", {
-          pageUid: uid,
-          nodeType,
-        });
-        openShareNodeDialog({ uid, title, nodeType });
-      }}
-    />
-  </div>
+  <Button
+    text="Publish"
+    icon="upload"
+    minimal
+    outlined
+    onClick={() => {
+      posthog.capture("Share Node: Page Title Button Triggered", {
+        pageUid: uid,
+        nodeType,
+      });
+      openShareNodeDialog({ uid, title, nodeType });
+    }}
+  />
 );
 
 export const renderPublishNodeTitleButton = ({

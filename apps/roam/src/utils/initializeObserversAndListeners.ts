@@ -55,8 +55,6 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import findDiscourseNode from "./findDiscourseNode";
 import {
   bulkReadSettings,
-  getFeatureFlag,
-  isSyncEnabled,
   type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import {
@@ -64,6 +62,7 @@ import {
   settingKeys,
 } from "~/components/settings/utils/settingsEmitter";
 import {
+  FEATURE_FLAG_KEYS,
   PERSONAL_KEYS,
   GLOBAL_KEYS,
 } from "~/components/settings/utils/settingKeys";
@@ -125,7 +124,10 @@ export const initObservers = ({
 
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
-        if (isSyncEnabled() && node.backedBy === "user") {
+        const syncEnabled =
+          settings.featureFlags[FEATURE_FLAG_KEYS.duplicateNodeAlertEnabled] ||
+          settings.featureFlags[FEATURE_FLAG_KEYS.suggestiveModeOverlayEnabled];
+        if (syncEnabled && node.backedBy === "user") {
           renderPublishNodeTitleButton({
             h1,
             uid,
@@ -136,7 +138,9 @@ export const initObservers = ({
         if (settings.personalSettings[PERSONAL_KEYS.discourseContextOverlay]) {
           renderDiscourseContext({ h1, uid });
         }
-        if (getFeatureFlag("Duplicate node alert enabled")) {
+        if (
+          settings.featureFlags[FEATURE_FLAG_KEYS.duplicateNodeAlertEnabled]
+        ) {
           renderPossibleDuplicates(h1, title, node);
         }
         const linkedReferencesDiv = document.querySelector(
@@ -223,7 +227,7 @@ export const initObservers = ({
       });
   }) as EventListener;
 
-  if (getFeatureFlag("Suggestive mode overlay enabled")) {
+  if (settings.featureFlags[FEATURE_FLAG_KEYS.suggestiveModeOverlayEnabled]) {
     addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
   }
 
