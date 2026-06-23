@@ -2,8 +2,8 @@ ALTER TABLE public."Document" ADD COLUMN content_type character varying NOT NULL
 ALTER TABLE public."Content" ADD COLUMN content_type character varying NOT NULL DEFAULT 'text/plain';
 
 UPDATE public."Content" SET content_type = 'text/obsidian+markdown' WHERE variant = 'full';
-UPDATE public."Document" SET content_type = 'text/obsidian+markdown' WHERE space_id IN (SELECT id FROM public."Space" WHERE platform='Obsidian');
-UPDATE public."Document" SET content_type = 'application/roam+json' WHERE space_id IN (SELECT id FROM public."Space" WHERE platform='Roam');
+UPDATE public."Document" SET content_type = 'text/obsidian+markdown' WHERE space_id IN (SELECT id FROM public."Space" WHERE platform = 'Obsidian');
+UPDATE public."Document" SET content_type = 'application/roam+json' WHERE space_id IN (SELECT id FROM public."Space" WHERE platform = 'Roam');
 
 CREATE OR REPLACE VIEW public.my_documents AS
 SELECT

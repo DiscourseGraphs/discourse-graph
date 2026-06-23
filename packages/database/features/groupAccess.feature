@@ -23,12 +23,12 @@ Feature: Group content access
   Scenario: Sharing content
     When Document are added to the database:
       | $id | source_local_id | created    | last_modified | _author_id | _space_id | content_type          |
-      | d1  | ld1             | 2025/01/01 |    2025/01/01 | user1      | s1        | application/roam+json |
-      | d2  | ld2             | 2025/01/01 |    2025/01/01 | user1      | s1        | application/roam+json |
+      | d1  | ld1             | 2025/01/01 | 2025/01/01    | user1      | s1        | application/roam+json |
+      | d2  | ld2             | 2025/01/01 | 2025/01/01    | user1      | s1        | application/roam+json |
     And Content are added to the database:
       | $id | source_local_id | _document_id | text    | created    | last_modified | scale    | _author_id | _space_id | content_type |
-      | ct1 | lct1            | d1           | Claim 1 | 2025/01/01 |    2025/01/01 | document | user1      | s1        | text/plain   |
-      | ct2 | lct2            | d2           | Claim 2 | 2025/01/01 |    2025/01/01 | document | user1      | s1        | text/plain   |
+      | ct1 | lct1            | d1           | Claim 1 | 2025/01/01 | 2025/01/01    | document | user1      | s1        | text/plain   |
+      | ct2 | lct2            | d2           | Claim 2 | 2025/01/01 | 2025/01/01    | document | user1      | s1        | text/plain   |
     Then a user logged in space s1 should see 2 PlatformAccount in the database
     And a user logged in space s1 should see 2 Content in the database
     And a user logged in space s2 should see 2 PlatformAccount in the database
