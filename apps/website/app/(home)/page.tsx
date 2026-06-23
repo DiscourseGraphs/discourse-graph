@@ -806,8 +806,8 @@ const Home = async () => {
         </div>
       </main>
 
-      <footer className="mt-12 border-t border-neutral-light/10 bg-neutral-dark px-6 py-10">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 md:grid-cols-3 md:items-start">
+      <footer className="mt-12 border-t border-neutral-light/10 bg-neutral-dark py-10">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 md:grid-cols-3 md:items-start">
           {/* Logo + copyright */}
           <div className="flex flex-col gap-3">
             <Logo textClassName="text-white" linked={false} />
