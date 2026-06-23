@@ -471,7 +471,8 @@ BEGIN
         metadata,
         last_modified,
         author_id,
-        contents
+        contents,
+        content_type
     ) VALUES (
         db_document.space_id,
         db_document.source_local_id,
@@ -480,14 +481,16 @@ BEGIN
         db_document.metadata,
         db_document.last_modified,
         db_document.author_id,
-        db_document.contents
+        db_document.contents,
+        db_document.content_type
     )
     ON CONFLICT (space_id, source_local_id) DO UPDATE SET
         author_id = COALESCE(db_document.author_id, EXCLUDED.author_id),
         created = COALESCE(db_document.created, EXCLUDED.created),
         last_modified = COALESCE(db_document.last_modified, EXCLUDED.last_modified),
         url = COALESCE(db_document.url, EXCLUDED.url),
-        metadata = COALESCE(db_document.metadata, EXCLUDED.metadata)
+        metadata = COALESCE(db_document.metadata, EXCLUDED.metadata),
+        content_type = COALESCE(db_document.content_type, EXCLUDED.content_type)
     RETURNING id INTO STRICT upsert_id;
     RETURN NEXT upsert_id;
   END LOOP;
@@ -583,7 +586,8 @@ BEGIN
         metadata,
         last_modified,
         author_id,
-        contents
+        contents,
+        content_type
       ) VALUES (
         COALESCE(db_document.space_id, v_space_id),
         db_document.source_local_id,
@@ -592,7 +596,8 @@ BEGIN
         COALESCE(db_document.metadata, '{}'::jsonb),
         db_document.last_modified,
         db_document.author_id,
-        db_document.contents
+        db_document.contents,
+        db_document.content_type
       )
       ON CONFLICT (space_id, source_local_id) DO UPDATE SET
           url = COALESCE(db_document.url, EXCLUDED.url),
@@ -600,7 +605,8 @@ BEGIN
           metadata = COALESCE(db_document.metadata, EXCLUDED.metadata),
           last_modified = COALESCE(db_document.last_modified, EXCLUDED.last_modified),
           author_id = COALESCE(db_document.author_id, EXCLUDED.author_id),
-          contents = COALESCE(db_document.contents, EXCLUDED.contents)
+          contents = COALESCE(db_document.contents, EXCLUDED.contents),
+          content_type = COALESCE(db_document.content_type, EXCLUDED.content_type)
       RETURNING id INTO STRICT document_id;
       db_content.document_id := document_id;
     END IF;
@@ -616,7 +622,8 @@ BEGIN
         scale,
         space_id,
         last_modified,
-        part_of_id
+        part_of_id,
+        content_type
     ) VALUES (
         db_content.document_id,
         db_content.source_local_id,
@@ -629,7 +636,8 @@ BEGIN
         db_content.scale,
         db_content.space_id,
         db_content.last_modified,
-        db_content.part_of_id
+        db_content.part_of_id,
+        db_content.content_type
     )
     ON CONFLICT (space_id, source_local_id, variant) DO UPDATE SET
         document_id = COALESCE(db_content.document_id, EXCLUDED.document_id),
@@ -640,7 +648,8 @@ BEGIN
         metadata = COALESCE(db_content.metadata, EXCLUDED.metadata),
         scale = COALESCE(db_content.scale, EXCLUDED.scale),
         last_modified = COALESCE(db_content.last_modified, EXCLUDED.last_modified),
-        part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id)
+        part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id),
+        content_type = COALESCE(db_document.content_type, EXCLUDED.content_type)
     RETURNING id INTO STRICT upsert_id;
     IF model(embedding_inline(local_content)) IS NOT NULL THEN
         PERFORM public.upsert_content_embedding(upsert_id, model(embedding_inline(local_content)),  vector(embedding_inline(local_content)));
