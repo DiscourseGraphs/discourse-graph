@@ -141,6 +141,8 @@ const KanbanCard = (card: {
             ) : cardView.mode === "link" ? (
               <div className="p-2">
                 <a
+                  className={"rm-page-ref"}
+                  data-link-title={getPageTitleByPageUid(displayUid) || ""}
                   href={getRoamUrl(displayUid)}
                   onClick={(e) => {
                     if (e.shiftKey) {
