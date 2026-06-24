@@ -12,6 +12,7 @@ import { ANY_RELATION_REGEX } from "./deriveDiscourseNodeAttribute";
 
 const resultCache: Record<string, Awaited<ReturnType<typeof fireQuery>>> = {};
 const CACHE_TIMEOUT = 1000 * 60 * 5;
+const ANY_RELATION_ID = "any_relation";
 
 type BuildQueryConfig = {
   args: {
@@ -233,7 +234,7 @@ const getDiscourseContextResults = async ({
     ? [
         {
           r: {
-            id: "null",
+            id: ANY_RELATION_ID,
             complement: "Has Any Relation To",
             label: "Has Any Relation To",
             triples: [],
@@ -263,7 +264,6 @@ const getDiscourseContextResults = async ({
     queryConfigs,
     targetUid,
     nodeTextByType,
-    onResult,
   );
   if (
     useReifiedRelations &&
@@ -288,14 +288,16 @@ const getDiscourseContextResults = async ({
         return {
           relation: {
             id: ruid,
-            label: ruid.endsWith("-false")
+            label: ruid.endsWith("-true")
               ? relation.r.label
               : relation.r.complement,
-            isComplement: ruid.endsWith("-false"),
-            text: ruid.endsWith("-false")
+            isComplement: ruid.endsWith("-true"),
+            text: ruid.endsWith("-true")
               ? relation.r.label
               : relation.r.complement,
-            target: targetUid,
+            target: ruid.endsWith("-true")
+              ? relation.r.source
+              : relation.r.destination,
           },
           results,
         };
@@ -326,10 +328,14 @@ const getDiscourseContextResults = async ({
           }),
       ),
   );
-  return Object.entries(groupedResults).map(([label, results]) => ({
-    label,
-    results,
-  }));
+  const asResultList = Object.entries(groupedResults)
+    .filter(([, results]) => Object.keys(results).length > 0)
+    .map(([label, results]) => ({
+      label,
+      results,
+    }));
+  if (onResult) asResultList.map((r) => onResult(r));
+  return asResultList;
 };
 
 export default getDiscourseContextResults;
