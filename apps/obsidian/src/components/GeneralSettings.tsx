@@ -3,6 +3,9 @@ import { usePlugin } from "./PluginContext";
 import { setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
 import { DiscourseGraphLogoIcon, SlackLogoIcon } from "./Icons";
+import { openExportSpecsModal } from "./ExportSpecsModal";
+import { openImportSpecsModal } from "./ImportSpecsModal";
+import { getDgSchemaFileName } from "~/utils/specArchive";
 
 const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
 const COMMUNITY_URL =
@@ -148,6 +151,7 @@ const GeneralSettings = () => {
   const [nodeTagHotkey, setNodeTagHotkey] = useState<string>(
     plugin.settings.nodeTagHotkey,
   );
+  const schemaFileName = getDgSchemaFileName(plugin.app.vault.getName());
 
   const handleToggleChange = (newValue: boolean) => {
     setShowIdsInFrontmatter(newValue);
@@ -272,6 +276,26 @@ const GeneralSettings = () => {
 
       <div className="setting-item">
         <div className="setting-item-info">
+          <div className="setting-item-name">Import discourse graph schema</div>
+          <div className="setting-item-description">
+            Choose a schema JSON file from your computer and preview how it maps
+            to your existing node types, relation types, relation triples, and
+            templates.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <button
+            type="button"
+            className="rounded border px-3 py-1.5 text-sm"
+            onClick={() => openImportSpecsModal(plugin)}
+          >
+            Open import modal
+          </button>
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-info">
           <div className="setting-item-name">Node tag hotkey</div>
           <div className="setting-item-description">
             Key to press after a space to open the node tags menu. Default:
@@ -295,6 +319,25 @@ const GeneralSettings = () => {
             placeholder="\"
             maxLength={1}
           />
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">Export discourse graph schema</div>
+          <div className="setting-item-description">
+            Export selected node types, relation types, relation triples, and
+            templates to a JSON file named <code>{schemaFileName}</code>.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <button
+            type="button"
+            className="rounded border px-3 py-1.5 text-sm"
+            onClick={() => void openExportSpecsModal(plugin)}
+          >
+            Open export modal
+          </button>
         </div>
       </div>
 
