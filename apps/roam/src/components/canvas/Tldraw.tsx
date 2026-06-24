@@ -89,6 +89,10 @@ import {
   createAllReferencedNodeTools,
   createAllRelationShapeTools,
 } from "./DiscourseRelationShape/DiscourseRelationTool";
+import {
+  getDiscourseRelationTypeId,
+  isDiscourseRelationShape,
+} from "./DiscourseRelationShape/DiscourseRelationUtil";
 import ConvertToDialog from "./ConvertToDialog";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
@@ -575,17 +579,20 @@ const TldrawCanvasShared = ({
         const selectedShapes = app.getSelectedShapes();
         const relationShape = selectedShapes.find(
           (shape) =>
-            allRelationIds.includes(shape.type) ||
+            isDiscourseRelationShape(shape) ||
             allAddReferencedNodeActions.includes(shape.type),
         );
 
         if (relationShape) {
           relationCreationRef.current.relationShapeId = relationShape.id;
+          const relationType = isDiscourseRelationShape(relationShape)
+            ? getDiscourseRelationTypeId({ shape: relationShape })
+            : relationShape.type;
 
           // Check if we have a target shape
           if (shapeAtPoint && isDiscourseNodeShape(app, shapeAtPoint)) {
             posthog.capture("Canvas: Relation Created", {
-              relationType: relationShape.type,
+              relationType,
               toolType: relationCreationRef.current.toolType || "",
             });
             // We have a valid target, call the relation creation method

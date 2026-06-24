@@ -6,6 +6,7 @@ import {
 } from "~/components/canvas/DiscourseNodeUtil";
 import {
   BaseDiscourseRelationUtil,
+  DISCOURSE_RELATION_SHAPE_TYPE,
   DiscourseRelationShape,
   getRelationColor,
 } from "~/components/canvas/DiscourseRelationShape/DiscourseRelationUtil";
@@ -312,12 +313,14 @@ export const DragHandleOverlay = () => {
       const arrowId = createShapeId();
       editor.createShape<DiscourseRelationShape>({
         id: arrowId,
-        type: relationId,
+        type: DISCOURSE_RELATION_SHAPE_TYPE,
         x: sourceBounds.midX,
         y: sourceBounds.midY,
         props: {
           color,
+          labelColor: color,
           text: label,
+          relationTypeId: relationId,
           dash: "draw",
           size: "m",
           fill: "none",

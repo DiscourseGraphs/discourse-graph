@@ -60,12 +60,10 @@ const getUtilTypes = <T extends { type: string }>({
 
 const createShapeUtils = ({
   allNodes,
-  allRelationIds,
   allAddReferencedNodeByAction,
   includeLegacyNodeTypes = false,
 }: {
   allNodes: DiscourseNode[];
-  allRelationIds: string[];
   allAddReferencedNodeByAction: AddReferencedNodeType;
   includeLegacyNodeTypes?: boolean;
 }): TLAnyShapeUtilConstructor[] => {
@@ -74,20 +72,18 @@ const createShapeUtils = ({
     ...(includeLegacyNodeTypes
       ? createLegacyDiscourseNodeShapeUtils(allNodes)
       : []),
-    ...createAllRelationShapeUtils(allRelationIds),
+    ...createAllRelationShapeUtils(),
     ...createAllReferencedNodeUtils(allAddReferencedNodeByAction),
   ];
 };
 
 const createBindingUtils = ({
-  allRelationIds,
   allAddReferencedNodeByAction,
 }: {
-  allRelationIds: string[];
   allAddReferencedNodeByAction: AddReferencedNodeType;
 }): TLAnyBindingUtilConstructor[] => {
   return [
-    ...createAllRelationBindings(allRelationIds),
+    ...createAllRelationBindings(),
     ...createAllReferencedNodeBindings(allAddReferencedNodeByAction),
   ];
 };
@@ -107,11 +103,9 @@ export const useCanvasStoreAdapterArgs = ({
 }): CanvasStoreAdapterArgs => {
   const customShapeUtils = createShapeUtils({
     allNodes,
-    allRelationIds,
     allAddReferencedNodeByAction,
   });
   const customBindingUtils = createBindingUtils({
-    allRelationIds,
     allAddReferencedNodeByAction,
   });
   const customShapeTypes = getUtilTypes({
@@ -136,23 +130,21 @@ export const useCanvasStoreAdapterArgs = ({
       pageUid,
       value: createShapeUtils({
         allNodes,
-        allRelationIds,
         allAddReferencedNodeByAction,
         // Cloudflare rooms may still stream pre-migration node-id shape records.
         includeLegacyNodeTypes: true,
       }),
     }),
-    [pageUid, allNodes, allRelationIds, allAddReferencedNodeByAction],
+    [pageUid, allNodes, allAddReferencedNodeByAction],
   ).value;
   const stableCustomBindingUtils = useMemo(
     () => ({
       pageUid,
       value: createBindingUtils({
-        allRelationIds,
         allAddReferencedNodeByAction,
       }),
     }),
-    [pageUid, allRelationIds, allAddReferencedNodeByAction],
+    [pageUid, allAddReferencedNodeByAction],
   ).value;
   const stableCustomShapeTypes = useMemo(
     () => ({
