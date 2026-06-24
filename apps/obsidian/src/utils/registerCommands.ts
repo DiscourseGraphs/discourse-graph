@@ -5,7 +5,6 @@ import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
 import { ImportNodesModal } from "~/components/ImportNodesModal";
 import { openExportSpecsModal } from "~/components/ExportSpecsModal";
-import { openImportSpecsModal } from "~/components/ImportSpecsModal";
 import { convertPageToDiscourseNode, createDiscourseNode } from "./createNode";
 import { refreshAllImportedFiles } from "./importNodes";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
@@ -16,6 +15,7 @@ import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUt
 import type { DiscourseNode } from "~/types";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { createBaseForNodeType } from "./baseForNodeType";
+import { openImportSpecsModal } from "~/components/ImportSpecsModal";
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;

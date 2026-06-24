@@ -1,50 +1,61 @@
-import type { SpecImportPreview } from "~/utils/specImport";
+import type { ImportPreviewStats, LoadedSchemaFile } from "~/utils/specImport";
 
 export const ImportSchemaPreviewSummary = ({
-  preview,
+  loadedSchemaFile,
+  previewStats,
 }: {
-  preview: SpecImportPreview;
+  loadedSchemaFile: LoadedSchemaFile;
+  previewStats: ImportPreviewStats;
 }) => {
   return (
     <>
       <div className="mb-4 rounded border p-3 text-sm">
-        <div className="font-medium">Archive metadata</div>
+        <div className="font-medium">Schema file metadata</div>
         <div className="text-muted mt-1">
           Vault:{" "}
-          <span className="font-medium">{preview.archive.vaultName}</span>
+          <span className="font-medium">
+            {loadedSchemaFile.schemaFile.vaultName}
+          </span>
         </div>
         <div className="text-muted">
           Exported at:{" "}
-          <span className="font-medium">{preview.archive.exportedAt}</span>
+          <span className="font-medium">
+            {loadedSchemaFile.schemaFile.exportedAt}
+          </span>
         </div>
         <div className="text-muted">
           Plugin version:{" "}
-          <span className="font-medium">{preview.archive.pluginVersion}</span>
+          <span className="font-medium">
+            {loadedSchemaFile.schemaFile.pluginVersion}
+          </span>
         </div>
       </div>
 
       <div className="mb-4 rounded border p-3 text-sm">
-        <div className="font-medium">Current preview stats (full archive)</div>
+        <div className="font-medium">
+          Current preview stats (full schema file)
+        </div>
         <div className="text-muted mt-1">
-          Node types: {preview.nodeTypes.total} total (
-          {preview.nodeTypes.newCount} new, {preview.nodeTypes.matchedById} ID
-          matches, {preview.nodeTypes.matchedByName} name matches)
+          Node types: {previewStats.nodeTypes.total} total (
+          {previewStats.nodeTypes.newCount} new,{" "}
+          {previewStats.nodeTypes.matchedById} ID matches,{" "}
+          {previewStats.nodeTypes.matchedByName} name matches)
         </div>
         <div className="text-muted">
-          Relation types: {preview.relationTypes.total} total (
-          {preview.relationTypes.newCount} new,{" "}
-          {preview.relationTypes.matchedById} ID matches,{" "}
-          {preview.relationTypes.matchedByLabel} label matches)
+          Relation types: {previewStats.relationTypes.total} total (
+          {previewStats.relationTypes.newCount} new,{" "}
+          {previewStats.relationTypes.matchedById} ID matches,{" "}
+          {previewStats.relationTypes.matchedByLabel} label matches)
         </div>
         <div className="text-muted">
-          Relation triples: {preview.discourseRelations.total} total (
-          {preview.discourseRelations.newCount} new,{" "}
-          {preview.discourseRelations.existingCount} existing)
+          Relation triples: {previewStats.discourseRelations.total} total (
+          {previewStats.discourseRelations.newCount} new,{" "}
+          {previewStats.discourseRelations.existingCount} existing)
         </div>
         <div className="text-muted">
-          Templates: {preview.templates.total} total (
-          {preview.templates.newCount} new, {preview.templates.existingCount}{" "}
-          existing)
+          Templates: {previewStats.templates.total} total (
+          {previewStats.templates.newCount} new,{" "}
+          {previewStats.templates.existingCount} existing)
         </div>
       </div>
     </>

@@ -5,6 +5,8 @@ import {
   applySchemaImportSelection,
   ImportFileSelectionCancelledError,
   pickAndPreviewSchemaImport,
+  type ImportPreviewStats,
+  type LoadedSchemaFile,
   type SpecImportPreview,
 } from "~/utils/specImport";
 import {
@@ -26,31 +28,34 @@ export const openImportSpecsModal = (plugin: DiscourseGraphPlugin): void => {
 
 const ImportPreviewSelection = ({
   plugin,
-  preview,
+  loadedSchemaFile,
+  previewStats,
   isApplyingImport,
   setIsApplyingImport,
   onResetPreview,
   onClose,
 }: {
   plugin: DiscourseGraphPlugin;
-  preview: SpecImportPreview;
+  loadedSchemaFile: LoadedSchemaFile;
+  previewStats: ImportPreviewStats;
   isApplyingImport: boolean;
   setIsApplyingImport: (value: boolean) => void;
   onResetPreview: () => void;
   onClose: () => void;
 }) => {
   const source = useMemo<SchemaSelectionSource>(() => {
+    const schemaFile = loadedSchemaFile.schemaFile;
     return {
-      nodeTypes: preview.archive.nodeTypes,
-      relationTypes: preview.archive.relationTypes,
-      relationTriples: preview.archive.discourseRelations,
-      templateNames: preview.archive.templates.map((template) => template.name),
+      nodeTypes: schemaFile.nodeTypes,
+      relationTypes: schemaFile.relationTypes,
+      relationTriples: schemaFile.discourseRelations,
+      templateNames: schemaFile.templates.map((template) => template.name),
     };
-  }, [preview]);
+  }, [loadedSchemaFile]);
 
   const selection = useSchemaSelection({
     source,
-    resetKey: preview.sourcePath,
+    resetKey: loadedSchemaFile.sourcePath,
     initialValues: {
       nodeTypeIds: source.nodeTypes.map((nodeType) => nodeType.id),
       relationTypeIds: source.relationTypes.map(
@@ -77,7 +82,7 @@ const ImportPreviewSelection = ({
     try {
       const result = await applySchemaImportSelection({
         plugin,
-        preview,
+        loadedSchemaFile,
         selection: {
           nodeTypeIds: selected.nodeTypeIds,
           relationTypeIds: selected.relationTypeIds,
@@ -113,12 +118,17 @@ const ImportPreviewSelection = ({
   return (
     <SchemaSelectionModalBody
       title="Import schema preview"
-      description={`Source file: ${preview.sourcePath}`}
+      description={`Source file: ${loadedSchemaFile.sourcePath}`}
       source={source}
       selection={selection}
       emptyTemplateText="No templates found in this schema file."
       onDependencyViolation={(message) => new Notice(message)}
-      beforePanel={<ImportSchemaPreviewSummary preview={preview} />}
+      beforePanel={
+        <ImportSchemaPreviewSummary
+          loadedSchemaFile={loadedSchemaFile}
+          previewStats={previewStats}
+        />
+      }
       footerSecondaryLabel="Choose another file"
       onFooterSecondaryClick={onResetPreview}
       footerPrimaryLabel={isApplyingImport ? "Importing..." : "Import selected"}
@@ -184,7 +194,8 @@ const ImportSpecsContent = ({ plugin, onClose }: ImportSpecsModalProps) => {
   return (
     <ImportPreviewSelection
       plugin={plugin}
-      preview={preview}
+      loadedSchemaFile={preview.loadedSchemaFile}
+      previewStats={preview.previewStats}
       isApplyingImport={isApplyingImport}
       setIsApplyingImport={setIsApplyingImport}
       onResetPreview={() => setPreview(null)}

@@ -2,6 +2,10 @@ import type DiscourseGraphPlugin from "~/index";
 import { uuidv7 } from "uuidv7";
 import { parseDgSchemaFile, type DgSchemaFile } from "~/utils/specValidation";
 import { createTemplateFile, getTemplateFiles } from "~/utils/templates";
+import {
+  NativeFileDialogCancelledError,
+  openJsonFromUserLocation,
+} from "~/utils/nativeJsonFileDialogs";
 import type {
   DiscourseNode,
   DiscourseRelation,
@@ -9,40 +13,17 @@ import type {
 } from "~/types";
 import { toTldrawColor } from "~/utils/tldrawColors";
 
-type SaveDialogOpenResult = {
-  canceled: boolean;
-  filePaths: string[];
-};
-
-type ElectronDialog = {
-  showOpenDialog: (options: {
-    title: string;
-    properties: string[];
-    filters: Array<{ name: string; extensions: string[] }>;
-  }) => Promise<SaveDialogOpenResult>;
-};
-
-type ElectronLike = {
-  dialog?: ElectronDialog;
-  remote?: {
-    dialog?: ElectronDialog;
-  };
-};
-
-type FsPromisesLike = {
-  readFile: (path: string, encoding: string) => Promise<string>;
-};
-
-export class ImportFileSelectionCancelledError extends Error {
-  constructor() {
-    super("Import cancelled");
-    this.name = "ImportFileSelectionCancelledError";
-  }
-}
-
 export type SpecImportPreview = {
-  archive: DgSchemaFile;
+  loadedSchemaFile: LoadedSchemaFile;
+  previewStats: ImportPreviewStats;
+};
+
+export type LoadedSchemaFile = {
   sourcePath: string;
+  schemaFile: DgSchemaFile;
+};
+
+export type ImportPreviewStats = {
   nodeTypes: {
     total: number;
     matchedById: number;
@@ -98,136 +79,9 @@ export type SpecImportApplyResult = {
   warnings: string[];
 };
 
-const isElectronDialog = (value: unknown): value is ElectronDialog => {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "showOpenDialog" in value &&
-    typeof (value as { showOpenDialog: unknown }).showOpenDialog === "function"
-  );
-};
-
-const getElectronDialog = (value: unknown): ElectronDialog | null => {
-  if (typeof value !== "object" || value === null) {
-    return null;
-  }
-  const electronLike = value as ElectronLike;
-  const directDialog = electronLike.dialog;
-  if (isElectronDialog(directDialog)) {
-    return directDialog;
-  }
-  const remoteDialog = electronLike.remote?.dialog;
-  if (isElectronDialog(remoteDialog)) {
-    return remoteDialog;
-  }
-  return null;
-};
-
-const parseJsonArchiveContent = (content: string): DgSchemaFile => {
+const parseSchemaFileContent = (content: string): DgSchemaFile => {
   const parsed = JSON.parse(content) as unknown;
   return parseDgSchemaFile(parsed);
-};
-
-const readWithFileSystemAccessApi = async (): Promise<{
-  archive: DgSchemaFile;
-  sourcePath: string;
-} | null> => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const picker = (
-    window as Window & {
-      showOpenFilePicker?: (options: {
-        multiple: boolean;
-        types: Array<{
-          description: string;
-          accept: Record<string, string[]>;
-        }>;
-      }) => Promise<Array<{ getFile: () => Promise<File> }>>;
-    }
-  ).showOpenFilePicker;
-
-  if (!picker) {
-    return null;
-  }
-
-  try {
-    const [fileHandle] = await picker({
-      multiple: false,
-      types: [
-        {
-          description: "JSON files",
-          accept: { "application/json": [".json"] },
-        },
-      ],
-    });
-    if (!fileHandle) {
-      throw new ImportFileSelectionCancelledError();
-    }
-    const file = await fileHandle.getFile();
-    const content = await file.text();
-    return {
-      archive: parseJsonArchiveContent(content),
-      sourcePath: file.name,
-    };
-  } catch (error) {
-    if (error instanceof ImportFileSelectionCancelledError) {
-      throw error;
-    }
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new ImportFileSelectionCancelledError();
-    }
-    throw error;
-  }
-};
-
-const readWithElectronDialog = async (): Promise<{
-  archive: DgSchemaFile;
-  sourcePath: string;
-} | null> => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const windowWithRequire = window as Window & {
-    require?: (name: string) => unknown;
-  };
-  if (!windowWithRequire.require) {
-    return null;
-  }
-
-  const electron = windowWithRequire.require("electron");
-  const dialog = getElectronDialog(electron);
-  if (!dialog) {
-    return null;
-  }
-
-  const result = await dialog.showOpenDialog({
-    title: "Import discourse graph schema",
-    properties: ["openFile"],
-    filters: [{ name: "JSON files", extensions: ["json"] }],
-  });
-  if (result.canceled || !result.filePaths[0]) {
-    throw new ImportFileSelectionCancelledError();
-  }
-
-  const fsPromises = windowWithRequire.require("fs/promises");
-  if (
-    typeof fsPromises !== "object" ||
-    fsPromises === null ||
-    !("readFile" in fsPromises) ||
-    typeof (fsPromises as { readFile: unknown }).readFile !== "function"
-  ) {
-    throw new Error("Unable to access filesystem read API for import.");
-  }
-  const typedFsPromises = fsPromises as FsPromisesLike;
-  const sourcePath = result.filePaths[0];
-  const content = await typedFsPromises.readFile(sourcePath, "utf8");
-  return {
-    archive: parseJsonArchiveContent(content),
-    sourcePath,
-  };
 };
 
 const normalizeLabel = (value: string): string => {
@@ -251,13 +105,10 @@ export const pickAndPreviewSchemaImport = async ({
 }: {
   plugin: DiscourseGraphPlugin;
 }): Promise<SpecImportPreview> => {
-  const fromFilePicker = await readWithFileSystemAccessApi();
-  const file = fromFilePicker ?? (await readWithElectronDialog());
-  if (!file) {
-    throw new Error(
-      "Schema import requires a file picker. Your environment does not expose one.",
-    );
-  }
+  const file = await openJsonFromUserLocation({
+    title: "Import discourse graph schema",
+  });
+  const schemaFile = parseSchemaFileContent(file.content);
 
   const localNodeTypeById = new Map(
     plugin.settings.nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
@@ -285,7 +136,7 @@ export const pickAndPreviewSchemaImport = async ({
   let nodeMatchedById = 0;
   let nodeMatchedByName = 0;
   const nodeTypeIdMapping = new Map<string, string>();
-  for (const nodeType of file.archive.nodeTypes) {
+  for (const nodeType of schemaFile.nodeTypes) {
     const matchById = localNodeTypeById.get(nodeType.id);
     if (matchById) {
       nodeMatchedById += 1;
@@ -306,7 +157,7 @@ export const pickAndPreviewSchemaImport = async ({
   let relationTypeMatchedById = 0;
   let relationTypeMatchedByLabel = 0;
   const relationTypeIdMapping = new Map<string, string>();
-  for (const relationType of file.archive.relationTypes) {
+  for (const relationType of schemaFile.relationTypes) {
     const matchById = localRelationTypeById.get(relationType.id);
     if (matchById) {
       relationTypeMatchedById += 1;
@@ -337,7 +188,7 @@ export const pickAndPreviewSchemaImport = async ({
   );
 
   let existingRelationCount = 0;
-  for (const relation of file.archive.discourseRelations) {
+  for (const relation of schemaFile.discourseRelations) {
     const mappedSourceId =
       nodeTypeIdMapping.get(relation.sourceId) ?? relation.sourceId;
     const mappedDestinationId =
@@ -357,51 +208,59 @@ export const pickAndPreviewSchemaImport = async ({
 
   const localTemplateNames = new Set(getTemplateFiles(plugin.app));
   let existingTemplateCount = 0;
-  for (const template of file.archive.templates) {
+  for (const template of schemaFile.templates) {
     if (localTemplateNames.has(template.name)) {
       existingTemplateCount += 1;
     }
   }
 
-  return {
-    archive: file.archive,
+  const loadedSchemaFile: LoadedSchemaFile = {
     sourcePath: file.sourcePath,
+    schemaFile,
+  };
+
+  const previewStats: ImportPreviewStats = {
     nodeTypes: {
-      total: file.archive.nodeTypes.length,
+      total: schemaFile.nodeTypes.length,
       matchedById: nodeMatchedById,
       matchedByName: nodeMatchedByName,
       newCount:
-        file.archive.nodeTypes.length - nodeMatchedById - nodeMatchedByName,
+        schemaFile.nodeTypes.length - nodeMatchedById - nodeMatchedByName,
     },
     relationTypes: {
-      total: file.archive.relationTypes.length,
+      total: schemaFile.relationTypes.length,
       matchedById: relationTypeMatchedById,
       matchedByLabel: relationTypeMatchedByLabel,
       newCount:
-        file.archive.relationTypes.length -
+        schemaFile.relationTypes.length -
         relationTypeMatchedById -
         relationTypeMatchedByLabel,
     },
     discourseRelations: {
-      total: file.archive.discourseRelations.length,
+      total: schemaFile.discourseRelations.length,
       existingCount: existingRelationCount,
-      newCount: file.archive.discourseRelations.length - existingRelationCount,
+      newCount: schemaFile.discourseRelations.length - existingRelationCount,
     },
     templates: {
-      total: file.archive.templates.length,
+      total: schemaFile.templates.length,
       existingCount: existingTemplateCount,
-      newCount: file.archive.templates.length - existingTemplateCount,
+      newCount: schemaFile.templates.length - existingTemplateCount,
     },
+  };
+
+  return {
+    loadedSchemaFile,
+    previewStats,
   };
 };
 
 const applyTemplateFiles = async ({
   plugin,
-  archive,
+  schemaFile,
   selectedTemplateNames,
 }: {
   plugin: DiscourseGraphPlugin;
-  archive: DgSchemaFile;
+  schemaFile: DgSchemaFile;
   selectedTemplateNames: Set<string>;
 }): Promise<{
   availability: Map<string, boolean>;
@@ -417,14 +276,14 @@ const applyTemplateFiles = async ({
   let skipped = 0;
 
   const templatesByName = new Map(
-    archive.templates.map((template) => [template.name, template]),
+    schemaFile.templates.map((template) => [template.name, template]),
   );
   for (const templateName of selectedTemplateNames) {
     const template = templatesByName.get(templateName);
     if (!template) {
       skipped += 1;
       warnings.push(
-        `Template "${templateName}" was selected but not found in import archive.`,
+        `Template "${templateName}" was selected but not found in schema file.`,
       );
       availability.set(templateName, false);
       continue;
@@ -458,22 +317,22 @@ const applyTemplateFiles = async ({
 
 export const applySchemaImportSelection = async ({
   plugin,
-  preview,
+  loadedSchemaFile,
   selection,
 }: {
   plugin: DiscourseGraphPlugin;
-  preview: SpecImportPreview;
+  loadedSchemaFile: LoadedSchemaFile;
   selection: SpecImportSelection;
 }): Promise<SpecImportApplyResult> => {
   const warnings: string[] = [];
-  const archive = preview.archive;
+  const schemaFile = loadedSchemaFile.schemaFile;
 
   const selectedRelationIds = new Set(selection.discourseRelationIds);
   const selectedNodeTypeIds = new Set(selection.nodeTypeIds);
   const selectedRelationTypeIds = new Set(selection.relationTypeIds);
   const selectedTemplateNames = new Set(selection.templateNames);
 
-  for (const relation of archive.discourseRelations) {
+  for (const relation of schemaFile.discourseRelations) {
     if (!selectedRelationIds.has(relation.id)) continue;
     selectedNodeTypeIds.add(relation.sourceId);
     selectedNodeTypeIds.add(relation.destinationId);
@@ -482,16 +341,16 @@ export const applySchemaImportSelection = async ({
 
   const templatesResult = await applyTemplateFiles({
     plugin,
-    archive,
+    schemaFile,
     selectedTemplateNames,
   });
   warnings.push(...templatesResult.warnings);
 
-  const archiveNodeTypesById = new Map(
-    archive.nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
+  const schemaNodeTypesById = new Map(
+    schemaFile.nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
   );
-  const archiveRelationTypesById = new Map(
-    archive.relationTypes.map((relationType) => [
+  const schemaRelationTypesById = new Map(
+    schemaFile.relationTypes.map((relationType) => [
       relationType.id,
       relationType,
     ]),
@@ -504,10 +363,10 @@ export const applySchemaImportSelection = async ({
   let templateAttachedToExisting = 0;
 
   for (const nodeTypeId of selectedNodeTypeIds) {
-    const importedNodeType = archiveNodeTypesById.get(nodeTypeId);
+    const importedNodeType = schemaNodeTypesById.get(nodeTypeId);
     if (!importedNodeType) {
       warnings.push(
-        `Node type "${nodeTypeId}" was selected but missing from archive.`,
+        `Node type "${nodeTypeId}" was selected but missing from schema file.`,
       );
       continue;
     }
@@ -586,10 +445,10 @@ export const applySchemaImportSelection = async ({
   let relationTypesMatchedByLabel = 0;
 
   for (const relationTypeId of selectedRelationTypeIds) {
-    const importedRelationType = archiveRelationTypesById.get(relationTypeId);
+    const importedRelationType = schemaRelationTypesById.get(relationTypeId);
     if (!importedRelationType) {
       warnings.push(
-        `Relation type "${relationTypeId}" was selected but missing from archive.`,
+        `Relation type "${relationTypeId}" was selected but missing from schema file.`,
       );
       continue;
     }
@@ -630,7 +489,7 @@ export const applySchemaImportSelection = async ({
 
   let discourseRelationsCreated = 0;
   let discourseRelationsExisting = 0;
-  for (const relation of archive.discourseRelations) {
+  for (const relation of schemaFile.discourseRelations) {
     if (!selectedRelationIds.has(relation.id)) {
       continue;
     }
@@ -696,3 +555,5 @@ export const applySchemaImportSelection = async ({
     warnings,
   };
 };
+
+export { NativeFileDialogCancelledError as ImportFileSelectionCancelledError };
