@@ -3,12 +3,12 @@ import { useMemo, useState } from "react";
 import type DiscourseGraphPlugin from "~/index";
 import {
   applySchemaImportSelection,
-  ImportFileSelectionCancelledError,
   pickAndPreviewSchemaImport,
   type ImportPreviewStats,
   type LoadedSchemaFile,
   type SpecImportPreview,
 } from "~/utils/specImport";
+import { NativeFileDialogCancelledError } from "~/utils/nativeJsonFileDialogs";
 import {
   useSchemaSelection,
   type SchemaSelectionSource,
@@ -91,8 +91,9 @@ const ImportPreviewSelection = ({
         },
       });
 
+      const { created } = result;
       new Notice(
-        `Import complete: ${result.nodeTypes.created} node type(s), ${result.relationTypes.created} relation type(s), ${result.discourseRelations.created} relation triple(s), and ${result.templates.created} template(s) created.`,
+        `Import complete: ${created.nodeTypes} node type(s), ${created.relationTypes} relation type(s), ${created.discourseRelations} relation triple(s), and ${created.templates} template(s) created.`,
         7000,
       );
 
@@ -150,7 +151,7 @@ const ImportSpecsContent = ({ plugin, onClose }: ImportSpecsModalProps) => {
       const nextPreview = await pickAndPreviewSchemaImport({ plugin });
       setPreview(nextPreview);
     } catch (error) {
-      if (error instanceof ImportFileSelectionCancelledError) {
+      if (error instanceof NativeFileDialogCancelledError) {
         return;
       }
       console.error("Failed to load schema import file:", error);

@@ -122,20 +122,13 @@ export type DiscourseSchemaTemplate = {
   content: string;
 };
 
-export type DiscourseSchemaRelationType = Omit<
-  DiscourseRelationType,
-  "color"
-> & {
-  color: string;
-};
-
 export type DiscourseSchemaFile = {
   version: number;
   exportedAt: string;
   pluginVersion: string;
   vaultName: string;
   nodeTypes: DiscourseNode[];
-  relationTypes: DiscourseSchemaRelationType[];
+  relationTypes: DiscourseRelationType[];
   discourseRelations: DiscourseRelation[];
   templates: DiscourseSchemaTemplate[];
 };

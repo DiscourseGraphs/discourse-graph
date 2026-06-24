@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { DiscourseSchemaFile, DiscourseSchemaTemplate } from "~/types";
+import type { DiscourseSchemaFile } from "~/types";
 
 export const DG_SCHEMA_EXPORT_VERSION = 1;
 
@@ -62,9 +62,6 @@ export const dgSchemaFileSchema = z.object({
   templates: z.array(templateExportSchema),
 });
 
-export type DgSchemaFile = DiscourseSchemaFile;
-export type TemplateExportRecord = DiscourseSchemaTemplate;
-
 const normalizeToKebabCase = (value: string): string => {
   return value
     .trim()
@@ -81,6 +78,6 @@ export const getDgSchemaFileName = (vaultName?: string): string => {
   return `dg-schema-${safeVaultName}.json`;
 };
 
-export const parseDgSchemaFile = (value: unknown): DgSchemaFile => {
-  return dgSchemaFileSchema.parse(value) as DgSchemaFile;
+export const parseDgSchemaFile = (value: unknown): DiscourseSchemaFile => {
+  return dgSchemaFileSchema.parse(value) as DiscourseSchemaFile;
 };

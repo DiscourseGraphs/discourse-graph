@@ -3,20 +3,15 @@ import type DiscourseGraphPlugin from "~/index";
 import type {
   DiscourseNode,
   DiscourseRelation,
-  DiscourseRelationType,
+  DiscourseSchemaFile,
+  DiscourseSchemaTemplate,
 } from "~/types";
 import {
   DG_SCHEMA_EXPORT_VERSION,
   getDgSchemaFileName,
-  parseDgSchemaFile,
-  type DgSchemaFile,
-  type TemplateExportRecord,
 } from "~/utils/specValidation";
 import { getTemplatePluginInfo } from "~/utils/templates";
-import {
-  NativeFileDialogCancelledError,
-  saveJsonToUserLocation,
-} from "~/utils/nativeJsonFileDialogs";
+import { saveJsonToUserLocation } from "~/utils/nativeJsonFileDialogs";
 
 export type SpecExportSelection = {
   nodeTypeIds: string[];
@@ -25,21 +20,8 @@ export type SpecExportSelection = {
   templateNames: string[];
 };
 
-export type SpecExportDependencySummary = {
-  autoIncludedNodeTypeIds: string[];
-  autoIncludedRelationTypeIds: string[];
-};
-
 export type SpecExportResult = {
   filePath: string;
-  payload: DgSchemaFile;
-  dependencySummary: SpecExportDependencySummary;
-  warnings: string[];
-};
-
-type BuildPayloadResult = {
-  payload: DgSchemaFile;
-  dependencySummary: SpecExportDependencySummary;
   warnings: string[];
 };
 
@@ -53,9 +35,9 @@ const getTemplateContents = async ({
 }: {
   plugin: DiscourseGraphPlugin;
   templateNames: string[];
-}): Promise<{ templates: TemplateExportRecord[]; warnings: string[] }> => {
+}): Promise<{ templates: DiscourseSchemaTemplate[]; warnings: string[] }> => {
   const warnings: string[] = [];
-  const templates: TemplateExportRecord[] = [];
+  const templates: DiscourseSchemaTemplate[] = [];
   const { isEnabled, folderPath } = getTemplatePluginInfo(plugin.app);
 
   if (!isEnabled || !folderPath) {
@@ -83,59 +65,36 @@ const getTemplateContents = async ({
   return { templates, warnings };
 };
 
-export const buildSchemaExportPayload = async ({
+const buildSchemaExportPayload = async ({
   plugin,
   selection,
 }: {
   plugin: DiscourseGraphPlugin;
   selection: SpecExportSelection;
-}): Promise<BuildPayloadResult> => {
+}): Promise<{ payload: DiscourseSchemaFile; warnings: string[] }> => {
   const nodeTypeMap = asMap(plugin.settings.nodeTypes);
   const relationTypeMap = asMap(plugin.settings.relationTypes);
   const discourseRelationMap = asMap(plugin.settings.discourseRelations);
+
+  const selectedNodeTypes: DiscourseNode[] = selection.nodeTypeIds
+    .map((id) => nodeTypeMap.get(id))
+    .filter((nodeType): nodeType is DiscourseNode => !!nodeType);
+
+  const selectedRelationTypes = selection.relationTypeIds
+    .map((id) => relationTypeMap.get(id))
+    .filter((relationType) => !!relationType);
 
   const selectedDiscourseRelations: DiscourseRelation[] =
     selection.discourseRelationIds
       .map((id) => discourseRelationMap.get(id))
       .filter((relation): relation is DiscourseRelation => !!relation);
 
-  const dependencyRelationTypeIds = new Set<string>();
-  const dependencyNodeTypeIds = new Set<string>();
-
-  for (const relation of selectedDiscourseRelations) {
-    dependencyRelationTypeIds.add(relation.relationshipTypeId);
-    dependencyNodeTypeIds.add(relation.sourceId);
-    dependencyNodeTypeIds.add(relation.destinationId);
-  }
-
-  const selectedRelationTypeIds = new Set(selection.relationTypeIds);
-  for (const relationTypeId of dependencyRelationTypeIds) {
-    selectedRelationTypeIds.add(relationTypeId);
-  }
-
-  const selectedNodeTypeIds = new Set(selection.nodeTypeIds);
-  for (const nodeTypeId of dependencyNodeTypeIds) {
-    selectedNodeTypeIds.add(nodeTypeId);
-  }
-
-  const selectedNodeTypes: DiscourseNode[] = [...selectedNodeTypeIds]
-    .map((id) => nodeTypeMap.get(id))
-    .filter((nodeType): nodeType is DiscourseNode => !!nodeType);
-
-  const selectedRelationTypes: DiscourseRelationType[] = [
-    ...selectedRelationTypeIds,
-  ]
-    .map((id) => relationTypeMap.get(id))
-    .filter(
-      (relationType): relationType is DiscourseRelationType => !!relationType,
-    );
-
   const { templates, warnings } = await getTemplateContents({
     plugin,
     templateNames: selection.templateNames,
   });
 
-  const payload = parseDgSchemaFile({
+  const payload: DiscourseSchemaFile = {
     version: DG_SCHEMA_EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
     pluginVersion: plugin.manifest.version,
@@ -144,61 +103,29 @@ export const buildSchemaExportPayload = async ({
     relationTypes: selectedRelationTypes,
     discourseRelations: selectedDiscourseRelations,
     templates,
-  });
-
-  return {
-    payload,
-    dependencySummary: {
-      autoIncludedNodeTypeIds: [...dependencyNodeTypeIds].filter(
-        (id) => !selection.nodeTypeIds.includes(id),
-      ),
-      autoIncludedRelationTypeIds: [...dependencyRelationTypeIds].filter(
-        (id) => !selection.relationTypeIds.includes(id),
-      ),
-    },
-    warnings,
   };
+
+  return { payload, warnings };
 };
 
-const saveSchemaExportFile = async ({
-  fileName,
-  content,
-}: {
-  fileName: string;
-  content: string;
-}): Promise<string> => {
-  return saveJsonToUserLocation({
-    title: "Export discourse graph schema",
-    fileName,
-    content,
-  });
-};
-
-export const exportSchemaSelectionToVault = async ({
+export const exportSchemaSelection = async ({
   plugin,
   selection,
 }: {
   plugin: DiscourseGraphPlugin;
   selection: SpecExportSelection;
 }): Promise<SpecExportResult> => {
-  const { payload, dependencySummary, warnings } =
-    await buildSchemaExportPayload({
-      plugin,
-      selection,
-    });
+  const { payload, warnings } = await buildSchemaExportPayload({
+    plugin,
+    selection,
+  });
   const serializedPayload = JSON.stringify(payload, null, 2);
   const fileName = getDgSchemaFileName(plugin.app.vault.getName());
-  const filePath = await saveSchemaExportFile({
+  const filePath = await saveJsonToUserLocation({
+    title: "Export discourse graph schema",
     fileName,
     content: serializedPayload,
   });
 
-  return {
-    filePath,
-    payload,
-    dependencySummary,
-    warnings,
-  };
+  return { filePath, warnings };
 };
-
-export { NativeFileDialogCancelledError as ExportSaveCancelledError };

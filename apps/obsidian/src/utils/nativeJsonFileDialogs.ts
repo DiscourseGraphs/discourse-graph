@@ -9,12 +9,12 @@ type OpenDialogResult = {
 };
 
 type ElectronDialog = {
-  showSaveDialog?: (options: {
+  showSaveDialog: (options: {
     title: string;
     defaultPath: string;
     filters: Array<{ name: string; extensions: string[] }>;
   }) => Promise<SaveDialogResult>;
-  showOpenDialog?: (options: {
+  showOpenDialog: (options: {
     title: string;
     properties: string[];
     filters: Array<{ name: string; extensions: string[] }>;
@@ -33,34 +33,8 @@ type FsPromisesLike = {
   writeFile: (path: string, data: string, encoding: string) => Promise<void>;
 };
 
-type SaveFilePickerHandle = {
-  name: string;
-  createWritable: () => Promise<{
-    write: (data: string) => Promise<void>;
-    close: () => Promise<void>;
-  }>;
-};
-
-type OpenFilePickerHandle = {
-  getFile: () => Promise<File>;
-};
-
-type BrowserWindowWithPickers = Window & {
-  require?: (name: string) => unknown;
-  showSaveFilePicker?: (options: {
-    suggestedName: string;
-    types: Array<{
-      description: string;
-      accept: Record<string, string[]>;
-    }>;
-  }) => Promise<SaveFilePickerHandle>;
-  showOpenFilePicker?: (options: {
-    multiple: boolean;
-    types: Array<{
-      description: string;
-      accept: Record<string, string[]>;
-    }>;
-  }) => Promise<OpenFilePickerHandle[]>;
+type ElectronWindow = Window & {
+  require: (name: string) => unknown;
 };
 
 export class NativeFileDialogCancelledError extends Error {
@@ -70,191 +44,35 @@ export class NativeFileDialogCancelledError extends Error {
   }
 }
 
-const isAbortError = (error: unknown): boolean => {
-  return error instanceof Error && error.name === "AbortError";
-};
-
-const getBrowserWindow = (): BrowserWindowWithPickers | null => {
-  if (typeof window === "undefined") {
-    return null;
+const getElectronWindow = (): ElectronWindow => {
+  if (typeof window === "undefined" || !("require" in window)) {
+    throw new Error(
+      "Schema export/import requires Obsidian desktop (Electron).",
+    );
   }
-  return window as BrowserWindowWithPickers;
+  return window as ElectronWindow;
 };
 
-const getFsPromises = (value: unknown): FsPromisesLike => {
+const getFsPromises = (electronWindow: ElectronWindow): FsPromisesLike => {
+  const fsPromises = electronWindow.require("fs/promises");
   if (
-    typeof value !== "object" ||
-    value === null ||
-    !("readFile" in value) ||
-    !("writeFile" in value) ||
-    typeof (value as { readFile: unknown }).readFile !== "function" ||
-    typeof (value as { writeFile: unknown }).writeFile !== "function"
+    typeof fsPromises !== "object" ||
+    fsPromises === null ||
+    !("readFile" in fsPromises) ||
+    !("writeFile" in fsPromises)
   ) {
     throw new Error("Unable to access filesystem read/write APIs.");
   }
-  return value as FsPromisesLike;
+  return fsPromises as FsPromisesLike;
 };
 
-const getElectronDialog = (value: unknown): ElectronDialog | null => {
-  if (typeof value !== "object" || value === null) {
-    return null;
+const getElectronDialog = (electronWindow: ElectronWindow): ElectronDialog => {
+  const electron = electronWindow.require("electron") as ElectronLike;
+  const dialog = electron.dialog ?? electron.remote?.dialog;
+  if (!dialog?.showSaveDialog || !dialog.showOpenDialog) {
+    throw new Error("Unable to access Electron file dialogs.");
   }
-  const electronLike = value as ElectronLike;
-  const directDialog = electronLike.dialog;
-  if (directDialog) {
-    return directDialog;
-  }
-  const remoteDialog = electronLike.remote?.dialog;
-  if (remoteDialog) {
-    return remoteDialog;
-  }
-  return null;
-};
-
-const saveWithFileSystemAccessApi = async ({
-  fileName,
-  content,
-}: {
-  fileName: string;
-  content: string;
-}): Promise<string | null> => {
-  const browserWindow = getBrowserWindow();
-  if (!browserWindow?.showSaveFilePicker) {
-    return null;
-  }
-  try {
-    const fileHandle = await browserWindow.showSaveFilePicker({
-      suggestedName: fileName,
-      types: [
-        {
-          description: "JSON files",
-          accept: { "application/json": [".json"] },
-        },
-      ],
-    });
-    const writable = await fileHandle.createWritable();
-    await writable.write(content);
-    await writable.close();
-    return fileHandle.name;
-  } catch (error) {
-    if (isAbortError(error)) {
-      throw new NativeFileDialogCancelledError();
-    }
-    throw error;
-  }
-};
-
-const saveWithElectronDialog = async ({
-  fileName,
-  content,
-  title,
-}: {
-  fileName: string;
-  content: string;
-  title: string;
-}): Promise<string | null> => {
-  const browserWindow = getBrowserWindow();
-  if (!browserWindow?.require) {
-    return null;
-  }
-  const electron = browserWindow.require("electron");
-  const dialog = getElectronDialog(electron);
-  if (!dialog?.showSaveDialog) {
-    return null;
-  }
-  const result = await dialog.showSaveDialog({
-    title,
-    defaultPath: fileName,
-    filters: [{ name: "JSON files", extensions: ["json"] }],
-  });
-  if (result.canceled || !result.filePath) {
-    throw new NativeFileDialogCancelledError();
-  }
-  const fsPromises = getFsPromises(browserWindow.require("fs/promises"));
-  await fsPromises.writeFile(result.filePath, content, "utf8");
-  return result.filePath;
-};
-
-const triggerBrowserDownload = ({
-  fileName,
-  content,
-}: {
-  fileName: string;
-  content: string;
-}): string => {
-  const blob = new Blob([content], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.style.display = "none";
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
-  return fileName;
-};
-
-const openWithFileSystemAccessApi = async (): Promise<{
-  content: string;
-  sourcePath: string;
-} | null> => {
-  const browserWindow = getBrowserWindow();
-  if (!browserWindow?.showOpenFilePicker) {
-    return null;
-  }
-  try {
-    const [fileHandle] = await browserWindow.showOpenFilePicker({
-      multiple: false,
-      types: [
-        {
-          description: "JSON files",
-          accept: { "application/json": [".json"] },
-        },
-      ],
-    });
-    if (!fileHandle) {
-      throw new NativeFileDialogCancelledError();
-    }
-    const file = await fileHandle.getFile();
-    return {
-      content: await file.text(),
-      sourcePath: file.name,
-    };
-  } catch (error) {
-    if (isAbortError(error)) {
-      throw new NativeFileDialogCancelledError();
-    }
-    throw error;
-  }
-};
-
-const openWithElectronDialog = async ({
-  title,
-}: {
-  title: string;
-}): Promise<{ content: string; sourcePath: string } | null> => {
-  const browserWindow = getBrowserWindow();
-  if (!browserWindow?.require) {
-    return null;
-  }
-  const electron = browserWindow.require("electron");
-  const dialog = getElectronDialog(electron);
-  if (!dialog?.showOpenDialog) {
-    return null;
-  }
-  const result = await dialog.showOpenDialog({
-    title,
-    properties: ["openFile"],
-    filters: [{ name: "JSON files", extensions: ["json"] }],
-  });
-  if (result.canceled || !result.filePaths[0]) {
-    throw new NativeFileDialogCancelledError();
-  }
-  const fsPromises = getFsPromises(browserWindow.require("fs/promises"));
-  const sourcePath = result.filePaths[0];
-  const content = await fsPromises.readFile(sourcePath, "utf8");
-  return { content, sourcePath };
+  return dialog;
 };
 
 export const saveJsonToUserLocation = async ({
@@ -266,22 +84,19 @@ export const saveJsonToUserLocation = async ({
   fileName: string;
   content: string;
 }): Promise<string> => {
-  const pathFromFsApi = await saveWithFileSystemAccessApi({
-    fileName,
-    content,
-  });
-  if (pathFromFsApi) {
-    return pathFromFsApi;
-  }
-  const pathFromElectron = await saveWithElectronDialog({
+  const electronWindow = getElectronWindow();
+  const dialog = getElectronDialog(electronWindow);
+  const result = await dialog.showSaveDialog({
     title,
-    fileName,
-    content,
+    defaultPath: fileName,
+    filters: [{ name: "JSON files", extensions: ["json"] }],
   });
-  if (pathFromElectron) {
-    return pathFromElectron;
+  if (result.canceled || !result.filePath) {
+    throw new NativeFileDialogCancelledError();
   }
-  return triggerBrowserDownload({ fileName, content });
+  const fsPromises = getFsPromises(electronWindow);
+  await fsPromises.writeFile(result.filePath, content, "utf8");
+  return result.filePath;
 };
 
 export const openJsonFromUserLocation = async ({
@@ -289,15 +104,18 @@ export const openJsonFromUserLocation = async ({
 }: {
   title: string;
 }): Promise<{ content: string; sourcePath: string }> => {
-  const fromFsApi = await openWithFileSystemAccessApi();
-  if (fromFsApi) {
-    return fromFsApi;
+  const electronWindow = getElectronWindow();
+  const dialog = getElectronDialog(electronWindow);
+  const result = await dialog.showOpenDialog({
+    title,
+    properties: ["openFile"],
+    filters: [{ name: "JSON files", extensions: ["json"] }],
+  });
+  if (result.canceled || !result.filePaths[0]) {
+    throw new NativeFileDialogCancelledError();
   }
-  const fromElectron = await openWithElectronDialog({ title });
-  if (fromElectron) {
-    return fromElectron;
-  }
-  throw new Error(
-    "Schema import requires a file picker. Your environment does not expose one.",
-  );
+  const fsPromises = getFsPromises(electronWindow);
+  const sourcePath = result.filePaths[0];
+  const content = await fsPromises.readFile(sourcePath, "utf8");
+  return { content, sourcePath };
 };

@@ -1,10 +1,8 @@
 import { App, Notice } from "obsidian";
 import { useMemo, useState } from "react";
 import type DiscourseGraphPlugin from "~/index";
-import {
-  exportSchemaSelectionToVault,
-  ExportSaveCancelledError,
-} from "~/utils/specExport";
+import { exportSchemaSelection } from "~/utils/specExport";
+import { NativeFileDialogCancelledError } from "~/utils/nativeJsonFileDialogs";
 import { getDgSchemaFileName } from "~/utils/specValidation";
 import { getTemplateFiles } from "~/utils/templates";
 import {
@@ -69,7 +67,7 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
 
     setIsExporting(true);
     try {
-      const result = await exportSchemaSelectionToVault({
+      const result = await exportSchemaSelection({
         plugin,
         selection: {
           nodeTypeIds: payload.nodeTypeIds,
@@ -79,20 +77,13 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
         },
       });
 
-      const autoIncludedCount =
-        result.dependencySummary.autoIncludedNodeTypeIds.length +
-        result.dependencySummary.autoIncludedRelationTypeIds.length;
       const warningSuffix =
         result.warnings.length > 0
           ? ` (${result.warnings.length} warning${result.warnings.length === 1 ? "" : "s"})`
           : "";
 
       new Notice(
-        `Exported schema to ${result.filePath}${warningSuffix}${
-          autoIncludedCount > 0
-            ? ` with ${autoIncludedCount} auto-included dependency item(s).`
-            : "."
-        }`,
+        `Exported schema to ${result.filePath}${warningSuffix}.`,
         6000,
       );
 
@@ -104,7 +95,7 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
 
       onClose();
     } catch (error) {
-      if (error instanceof ExportSaveCancelledError) {
+      if (error instanceof NativeFileDialogCancelledError) {
         return;
       }
       console.error("Failed to export schema:", error);
