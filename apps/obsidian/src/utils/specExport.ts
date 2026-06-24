@@ -8,10 +8,10 @@ import type {
 import {
   DG_SCHEMA_EXPORT_VERSION,
   getDgSchemaFileName,
-  parseDgSchemaArchive,
-  type DgSchemaArchive,
+  parseDgSchemaFile,
+  type DgSchemaFile,
   type TemplateExportRecord,
-} from "~/utils/specArchive";
+} from "~/utils/specValidation";
 import { getTemplatePluginInfo } from "~/utils/templates";
 
 export type SpecExportSelection = {
@@ -28,13 +28,13 @@ export type SpecExportDependencySummary = {
 
 export type SpecExportResult = {
   filePath: string;
-  payload: DgSchemaArchive;
+  payload: DgSchemaFile;
   dependencySummary: SpecExportDependencySummary;
   warnings: string[];
 };
 
 type BuildPayloadResult = {
-  payload: DgSchemaArchive;
+  payload: DgSchemaFile;
   dependencySummary: SpecExportDependencySummary;
   warnings: string[];
 };
@@ -316,7 +316,7 @@ export const buildSchemaExportPayload = async ({
     templateNames: selection.templateNames,
   });
 
-  const payload = parseDgSchemaArchive({
+  const payload = parseDgSchemaFile({
     version: DG_SCHEMA_EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
     pluginVersion: plugin.manifest.version,

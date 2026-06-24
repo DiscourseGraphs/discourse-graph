@@ -117,4 +117,27 @@ export type ImportFolderMetadata = {
   userName?: string;
 };
 
+export type DiscourseSchemaTemplate = {
+  name: string;
+  content: string;
+};
+
+export type DiscourseSchemaRelationType = Omit<
+  DiscourseRelationType,
+  "color"
+> & {
+  color: string;
+};
+
+export type DiscourseSchemaFile = {
+  version: number;
+  exportedAt: string;
+  pluginVersion: string;
+  vaultName: string;
+  nodeTypes: DiscourseNode[];
+  relationTypes: DiscourseSchemaRelationType[];
+  discourseRelations: DiscourseRelation[];
+  templates: DiscourseSchemaTemplate[];
+};
+
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";

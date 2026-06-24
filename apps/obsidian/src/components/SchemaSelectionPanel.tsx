@@ -1,80 +1,50 @@
-type SchemaNodeTypeLike = {
-  id: string;
-  name: string;
-  template?: string;
-};
-
-type SchemaRelationTypeLike = {
-  id: string;
-  label: string;
-};
-
-type SchemaRelationTripleLike = {
-  id: string;
-  sourceId: string;
-  destinationId: string;
-  relationshipTypeId: string;
-};
+import type {
+  SchemaSelectionSource,
+  SchemaSelectionState,
+} from "~/components/useSchemaSelection";
 
 type SchemaSelectionPanelProps = {
-  nodeTypes: SchemaNodeTypeLike[];
-  relationTypes: SchemaRelationTypeLike[];
-  relationTriples: SchemaRelationTripleLike[];
-  templateNames: string[];
-  selectedNodeTypeIds: Set<string>;
-  selectedRelationTypeIds: Set<string>;
-  selectedRelationIds: Set<string>;
-  selectedTemplateNames: Set<string>;
-  requiredNodeTypeIds: Set<string>;
-  requiredRelationTypeIds: Set<string>;
-  onSelectAllNodeTypes: () => void;
-  onDeselectOptionalNodeTypes: () => void;
-  onToggleNodeType: (nodeTypeId: string, shouldSelect: boolean) => void;
-  onSelectAllRelationTypes: () => void;
-  onDeselectOptionalRelationTypes: () => void;
-  onToggleRelationType: (relationTypeId: string, shouldSelect: boolean) => void;
-  onSelectAllRelationTriples: () => void;
-  onDeselectAllRelationTriples: () => void;
-  onToggleRelationTriple: (relationId: string, shouldSelect: boolean) => void;
-  onSelectAllTemplates: () => void;
-  onDeselectAllTemplates: () => void;
-  onToggleTemplate: (templateName: string, shouldSelect: boolean) => void;
+  source: SchemaSelectionSource;
+  selection: SchemaSelectionState;
   emptyTemplateText: string;
+  onDependencyViolation?: (message: string) => void;
 };
 
 export const SchemaSelectionPanel = ({
-  nodeTypes,
-  relationTypes,
-  relationTriples,
-  templateNames,
-  selectedNodeTypeIds,
-  selectedRelationTypeIds,
-  selectedRelationIds,
-  selectedTemplateNames,
-  requiredNodeTypeIds,
-  requiredRelationTypeIds,
-  onSelectAllNodeTypes,
-  onDeselectOptionalNodeTypes,
-  onToggleNodeType,
-  onSelectAllRelationTypes,
-  onDeselectOptionalRelationTypes,
-  onToggleRelationType,
-  onSelectAllRelationTriples,
-  onDeselectAllRelationTriples,
-  onToggleRelationTriple,
-  onSelectAllTemplates,
-  onDeselectAllTemplates,
-  onToggleTemplate,
+  source,
+  selection,
   emptyTemplateText,
+  onDependencyViolation,
 }: SchemaSelectionPanelProps) => {
+  const {
+    selectedNodeTypeIds,
+    selectedRelationTypeIds,
+    selectedRelationIds,
+    selectedTemplateNames,
+    requiredNodeTypeIds,
+    requiredRelationTypeIds,
+    selectAllNodeTypes,
+    deselectOptionalNodeTypes,
+    toggleNodeType,
+    selectAllRelationTypes,
+    deselectOptionalRelationTypes,
+    toggleRelationType,
+    selectAllRelationTriples,
+    deselectAllRelationTriples,
+    toggleRelationTriple,
+    selectAllTemplates,
+    deselectAllTemplates,
+    toggleTemplate,
+  } = selection;
+
   const nodeTypeById = new Map(
-    nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
+    source.nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
   );
   const relationTypeById = new Map(
-    relationTypes.map((relationType) => [relationType.id, relationType]),
+    source.relationTypes.map((relationType) => [relationType.id, relationType]),
   );
   const templateToNodeTypeNames = new Map<string, string[]>();
-  for (const nodeType of nodeTypes) {
+  for (const nodeType of source.nodeTypes) {
     if (!nodeType.template) continue;
     const current = templateToNodeTypeNames.get(nodeType.template) ?? [];
     current.push(nodeType.name);
@@ -113,21 +83,21 @@ export const SchemaSelectionPanel = ({
               <button
                 type="button"
                 className="rounded border px-2 py-1 text-xs"
-                onClick={onSelectAllNodeTypes}
+                onClick={selectAllNodeTypes}
               >
                 Select all
               </button>
               <button
                 type="button"
                 className="rounded border px-2 py-1 text-xs"
-                onClick={onDeselectOptionalNodeTypes}
+                onClick={deselectOptionalNodeTypes}
               >
                 Deselect optional
               </button>
             </div>
           </div>
           <div className="space-y-1">
-            {nodeTypes.map((nodeType) => {
+            {source.nodeTypes.map((nodeType) => {
               const isRequired = requiredNodeTypeIds.has(nodeType.id);
               return (
                 <label
@@ -137,9 +107,19 @@ export const SchemaSelectionPanel = ({
                   <input
                     type="checkbox"
                     checked={selectedNodeTypeIds.has(nodeType.id)}
-                    onChange={(event) =>
-                      onToggleNodeType(nodeType.id, event.target.checked)
-                    }
+                    onChange={(event) => {
+                      const result = toggleNodeType(
+                        nodeType.id,
+                        event.target.checked,
+                      );
+                      if (
+                        !result.ok &&
+                        result.reason &&
+                        onDependencyViolation
+                      ) {
+                        onDependencyViolation(result.reason);
+                      }
+                    }}
                     disabled={isRequired}
                   />
                   <span>{nodeType.name}</span>
@@ -161,21 +141,21 @@ export const SchemaSelectionPanel = ({
               <button
                 type="button"
                 className="rounded border px-2 py-1 text-xs"
-                onClick={onSelectAllRelationTypes}
+                onClick={selectAllRelationTypes}
               >
                 Select all
               </button>
               <button
                 type="button"
                 className="rounded border px-2 py-1 text-xs"
-                onClick={onDeselectOptionalRelationTypes}
+                onClick={deselectOptionalRelationTypes}
               >
                 Deselect optional
               </button>
             </div>
           </div>
           <div className="space-y-1">
-            {relationTypes.map((relationType) => {
+            {source.relationTypes.map((relationType) => {
               const isRequired = requiredRelationTypeIds.has(relationType.id);
               return (
                 <label
@@ -185,12 +165,19 @@ export const SchemaSelectionPanel = ({
                   <input
                     type="checkbox"
                     checked={selectedRelationTypeIds.has(relationType.id)}
-                    onChange={(event) =>
-                      onToggleRelationType(
+                    onChange={(event) => {
+                      const result = toggleRelationType(
                         relationType.id,
                         event.target.checked,
-                      )
-                    }
+                      );
+                      if (
+                        !result.ok &&
+                        result.reason &&
+                        onDependencyViolation
+                      ) {
+                        onDependencyViolation(result.reason);
+                      }
+                    }}
                     disabled={isRequired}
                   />
                   <span>{relationType.label}</span>
@@ -212,21 +199,21 @@ export const SchemaSelectionPanel = ({
               <button
                 type="button"
                 className="rounded border px-2 py-1 text-xs"
-                onClick={onSelectAllRelationTriples}
+                onClick={selectAllRelationTriples}
               >
                 Select all
               </button>
               <button
                 type="button"
                 className="rounded border px-2 py-1 text-xs"
-                onClick={onDeselectAllRelationTriples}
+                onClick={deselectAllRelationTriples}
               >
                 Deselect all
               </button>
             </div>
           </div>
           <div className="space-y-1">
-            {relationTriples.map((relation) => {
+            {source.relationTriples.map((relation) => {
               const sourceName =
                 nodeTypeById.get(relation.sourceId)?.name ?? relation.sourceId;
               const destinationName =
@@ -245,7 +232,7 @@ export const SchemaSelectionPanel = ({
                     type="checkbox"
                     checked={selectedRelationIds.has(relation.id)}
                     onChange={(event) =>
-                      onToggleRelationTriple(relation.id, event.target.checked)
+                      toggleRelationTriple(relation.id, event.target.checked)
                     }
                   />
                   <span className="rounded bg-secondary px-1.5 py-0.5 text-xs">
@@ -270,24 +257,24 @@ export const SchemaSelectionPanel = ({
               <button
                 type="button"
                 className="rounded border px-2 py-1 text-xs"
-                onClick={onSelectAllTemplates}
+                onClick={selectAllTemplates}
               >
                 Select all
               </button>
               <button
                 type="button"
                 className="rounded border px-2 py-1 text-xs"
-                onClick={onDeselectAllTemplates}
+                onClick={deselectAllTemplates}
               >
                 Deselect all
               </button>
             </div>
           </div>
-          {templateNames.length === 0 ? (
+          {source.templateNames.length === 0 ? (
             <p className="text-muted text-sm">{emptyTemplateText}</p>
           ) : (
             <div className="space-y-1">
-              {templateNames.map((templateName) => (
+              {source.templateNames.map((templateName) => (
                 <label
                   key={templateName}
                   className="flex items-center gap-2 text-sm"
@@ -296,7 +283,7 @@ export const SchemaSelectionPanel = ({
                     type="checkbox"
                     checked={selectedTemplateNames.has(templateName)}
                     onChange={(event) =>
-                      onToggleTemplate(templateName, event.target.checked)
+                      toggleTemplate(templateName, event.target.checked)
                     }
                   />
                   <span>{templateName}.md</span>

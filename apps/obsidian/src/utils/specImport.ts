@@ -1,9 +1,6 @@
 import type DiscourseGraphPlugin from "~/index";
 import { uuidv7 } from "uuidv7";
-import {
-  parseDgSchemaArchive,
-  type DgSchemaArchive,
-} from "~/utils/specArchive";
+import { parseDgSchemaFile, type DgSchemaFile } from "~/utils/specValidation";
 import { createTemplateFile, getTemplateFiles } from "~/utils/templates";
 import type {
   DiscourseNode,
@@ -44,7 +41,7 @@ export class ImportFileSelectionCancelledError extends Error {
 }
 
 export type SpecImportPreview = {
-  archive: DgSchemaArchive;
+  archive: DgSchemaFile;
   sourcePath: string;
   nodeTypes: {
     total: number;
@@ -126,13 +123,13 @@ const getElectronDialog = (value: unknown): ElectronDialog | null => {
   return null;
 };
 
-const parseJsonArchiveContent = (content: string): DgSchemaArchive => {
+const parseJsonArchiveContent = (content: string): DgSchemaFile => {
   const parsed = JSON.parse(content) as unknown;
-  return parseDgSchemaArchive(parsed);
+  return parseDgSchemaFile(parsed);
 };
 
 const readWithFileSystemAccessApi = async (): Promise<{
-  archive: DgSchemaArchive;
+  archive: DgSchemaFile;
   sourcePath: string;
 } | null> => {
   if (typeof window === "undefined") {
@@ -186,7 +183,7 @@ const readWithFileSystemAccessApi = async (): Promise<{
 };
 
 const readWithElectronDialog = async (): Promise<{
-  archive: DgSchemaArchive;
+  archive: DgSchemaFile;
   sourcePath: string;
 } | null> => {
   if (typeof window === "undefined") {
@@ -404,7 +401,7 @@ const applyTemplateFiles = async ({
   selectedTemplateNames,
 }: {
   plugin: DiscourseGraphPlugin;
-  archive: DgSchemaArchive;
+  archive: DgSchemaFile;
   selectedTemplateNames: Set<string>;
 }): Promise<{
   availability: Map<string, boolean>;

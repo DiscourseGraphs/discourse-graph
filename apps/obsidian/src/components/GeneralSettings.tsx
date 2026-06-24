@@ -5,7 +5,7 @@ import SuggestInput from "./SuggestInput";
 import { DiscourseGraphLogoIcon, SlackLogoIcon } from "./Icons";
 import { openExportSpecsModal } from "./ExportSpecsModal";
 import { openImportSpecsModal } from "./ImportSpecsModal";
-import { getDgSchemaFileName } from "~/utils/specArchive";
+import { getDgSchemaFileName } from "~/utils/specValidation";
 
 const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
 const COMMUNITY_URL =
