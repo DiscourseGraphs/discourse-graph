@@ -1,34 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-
-type SchemaNodeTypeLike = {
-  id: string;
-  name: string;
-  template?: string;
-};
-
-type SchemaRelationTypeLike = {
-  id: string;
-  label: string;
-};
-
-type SchemaRelationTripleLike = {
-  id: string;
-  sourceId: string;
-  destinationId: string;
-  relationshipTypeId: string;
-};
+import type {
+  DiscourseNode,
+  DiscourseRelation,
+  DiscourseRelationType,
+} from "~/types";
 
 export type SchemaSelectionSource = {
-  nodeTypes: SchemaNodeTypeLike[];
-  relationTypes: SchemaRelationTypeLike[];
-  relationTriples: SchemaRelationTripleLike[];
-  templateNames: string[];
-};
-
-type SchemaSelectionInitialValues = {
-  nodeTypeIds: string[];
-  relationTypeIds: string[];
-  relationIds: string[];
+  nodeTypes: Pick<DiscourseNode, "id" | "name" | "template">[];
+  relationTypes: Pick<DiscourseRelationType, "id" | "label">[];
+  relationTriples: Pick<
+    DiscourseRelation,
+    "id" | "sourceId" | "destinationId" | "relationshipTypeId"
+  >[];
   templateNames: string[];
 };
 
@@ -96,32 +79,47 @@ export const getReferencedTemplateNames = (
 
 export const useSchemaSelection = ({
   source,
-  initialValues,
+  initialTemplateNames,
   resetKey,
 }: {
   source: SchemaSelectionSource;
-  initialValues: SchemaSelectionInitialValues;
+  /**
+   * Template names to pre-select on mount and on reset. Defaults to all
+   * templates in source when not provided.
+   */
+  initialTemplateNames?: string[];
   resetKey: string;
 }): SchemaSelectionState => {
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<Set<string>>(
-    () => new Set(initialValues.nodeTypeIds),
+    () => new Set(source.nodeTypes.map((nodeType) => nodeType.id)),
   );
   const [selectedRelationTypeIds, setSelectedRelationTypeIds] = useState<
     Set<string>
-  >(() => new Set(initialValues.relationTypeIds));
+  >(() => new Set(source.relationTypes.map((relationType) => relationType.id)));
   const [selectedRelationIds, setSelectedRelationIds] = useState<Set<string>>(
-    () => new Set(initialValues.relationIds),
+    () => new Set(source.relationTriples.map((relation) => relation.id)),
   );
   const [selectedTemplateNames, setSelectedTemplateNames] = useState<
     Set<string>
-  >(() => new Set(initialValues.templateNames));
+  >(() => new Set(initialTemplateNames ?? source.templateNames));
 
+  // resetKey is the only trigger; source and initialTemplateNames are read
+  // from the current render's closure when resetKey changes.
   useEffect(() => {
-    setSelectedNodeTypeIds(new Set(initialValues.nodeTypeIds));
-    setSelectedRelationTypeIds(new Set(initialValues.relationTypeIds));
-    setSelectedRelationIds(new Set(initialValues.relationIds));
-    setSelectedTemplateNames(new Set(initialValues.templateNames));
-  }, [initialValues, resetKey]);
+    setSelectedNodeTypeIds(
+      new Set(source.nodeTypes.map((nodeType) => nodeType.id)),
+    );
+    setSelectedRelationTypeIds(
+      new Set(source.relationTypes.map((relationType) => relationType.id)),
+    );
+    setSelectedRelationIds(
+      new Set(source.relationTriples.map((relation) => relation.id)),
+    );
+    setSelectedTemplateNames(
+      new Set(initialTemplateNames ?? source.templateNames),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
 
   const requiredRelationTypeIds = useMemo(() => {
     const requiredIds = new Set<string>();

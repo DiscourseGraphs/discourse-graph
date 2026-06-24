@@ -56,14 +56,6 @@ const ImportPreviewSelection = ({
   const selection = useSchemaSelection({
     source,
     resetKey: loadedSchemaFile.sourcePath,
-    initialValues: {
-      nodeTypeIds: source.nodeTypes.map((nodeType) => nodeType.id),
-      relationTypeIds: source.relationTypes.map(
-        (relationType) => relationType.id,
-      ),
-      relationIds: source.relationTriples.map((relation) => relation.id),
-      templateNames: source.templateNames,
-    },
   });
 
   const handleApplyImport = async (): Promise<void> => {
