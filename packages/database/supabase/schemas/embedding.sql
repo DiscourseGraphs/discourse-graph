@@ -127,10 +127,10 @@ CREATE POLICY embedding_openai_te3s_1536_select_policy ON public."ContentEmbeddi
 FOR SELECT USING (public.content_in_space (target_id) OR public.can_view_content (target_id)) ;
 DROP POLICY IF EXISTS embedding_openai_te3s_1536_delete_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536" ;
 CREATE POLICY embedding_openai_te3s_1536_delete_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536"
-FOR DELETE USING (public.content_in_space (target_id)) ;
+FOR DELETE USING (public.content_in_space (target_id, 'editor')) ;
 DROP POLICY IF EXISTS embedding_openai_te3s_1536_insert_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536" ;
 CREATE POLICY embedding_openai_te3s_1536_insert_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536"
-FOR INSERT WITH CHECK (public.content_in_space (target_id)) ;
+FOR INSERT WITH CHECK (public.content_in_space (target_id, 'editor')) ;
 DROP POLICY IF EXISTS embedding_openai_te3s_1536_update_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536" ;
 CREATE POLICY embedding_openai_te3s_1536_update_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536"
-FOR UPDATE USING (public.content_in_space (target_id)) ;
+FOR UPDATE USING (public.content_in_space (target_id, 'editor')) ;

@@ -652,12 +652,12 @@ $$;
 
 COMMENT ON FUNCTION public.content_in_space IS 'security utility: does current user have access to this content''s space?';
 
-CREATE OR REPLACE FUNCTION public.document_in_space(document_id BIGINT) RETURNS boolean
+CREATE OR REPLACE FUNCTION public.document_in_space(document_id BIGINT, access_level public."SpaceAccessPermissions" = 'reader') RETURNS boolean
 STABLE
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT public.in_space(space_id) FROM public."Document" WHERE id=document_id
+    SELECT public.in_space(space_id, access_level) FROM public."Document" WHERE id=document_id
 $$;
 
 COMMENT ON FUNCTION public.document_in_space IS 'security utility: does current user have access to this document''s space?';
@@ -668,11 +668,11 @@ DROP POLICY IF EXISTS document_policy ON public."Document";
 DROP POLICY IF EXISTS document_select_policy ON public."Document";
 CREATE POLICY document_select_policy ON public."Document" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 DROP POLICY IF EXISTS document_delete_policy ON public."Document";
-CREATE POLICY document_delete_policy ON public."Document" FOR DELETE USING (public.in_space(space_id));
+CREATE POLICY document_delete_policy ON public."Document" FOR DELETE USING (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS document_insert_policy ON public."Document";
-CREATE POLICY document_insert_policy ON public."Document" FOR INSERT WITH CHECK (public.in_space(space_id));
+CREATE POLICY document_insert_policy ON public."Document" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS document_update_policy ON public."Document";
-CREATE POLICY document_update_policy ON public."Document" FOR UPDATE USING (public.in_space(space_id));
+CREATE POLICY document_update_policy ON public."Document" FOR UPDATE USING (public.in_space(space_id, 'editor'));
 
 ALTER TABLE public."Content" ENABLE ROW LEVEL SECURITY;
 
@@ -680,11 +680,11 @@ DROP POLICY IF EXISTS content_policy ON public."Content";
 DROP POLICY IF EXISTS content_select_policy ON public."Content";
 CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 DROP POLICY IF EXISTS content_delete_policy ON public."Content";
-CREATE POLICY content_delete_policy ON public."Content" FOR DELETE USING (public.in_space(space_id));
+CREATE POLICY content_delete_policy ON public."Content" FOR DELETE USING (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS content_insert_policy ON public."Content";
-CREATE POLICY content_insert_policy ON public."Content" FOR INSERT WITH CHECK (public.in_space(space_id));
+CREATE POLICY content_insert_policy ON public."Content" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS content_update_policy ON public."Content";
-CREATE POLICY content_update_policy ON public."Content" FOR UPDATE USING (public.in_space(space_id));
+CREATE POLICY content_update_policy ON public."Content" FOR UPDATE USING (public.in_space(space_id, 'editor'));
 
 ALTER TABLE public."ResourceAccess" ENABLE ROW LEVEL SECURITY;
 

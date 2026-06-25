@@ -133,6 +133,14 @@ WHERE (
     OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT null)
 );
 
+CREATE OR REPLACE FUNCTION public.can_view_concept(concept_id BIGINT) RETURNS BOOLEAN
+STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT public.can_view_specific_resource(space_id, source_local_id) FROM public."Concept" WHERE id=concept_id;
+$$;
+
 -- following https://docs.postgrest.org/en/v13/references/api/resource_embedding.html#recursive-relationships
 CREATE OR REPLACE FUNCTION public.schema_of_concept(concept public."Concept")
 RETURNS SETOF public."Concept" STRICT STABLE
@@ -521,11 +529,11 @@ DROP POLICY IF EXISTS concept_policy ON public."Concept";
 DROP POLICY IF EXISTS concept_select_policy ON public."Concept";
 CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 DROP POLICY IF EXISTS concept_delete_policy ON public."Concept";
-CREATE POLICY concept_delete_policy ON public."Concept" FOR DELETE USING (public.in_space(space_id));
+CREATE POLICY concept_delete_policy ON public."Concept" FOR DELETE USING (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS concept_insert_policy ON public."Concept";
-CREATE POLICY concept_insert_policy ON public."Concept" FOR INSERT WITH CHECK (public.in_space(space_id));
+CREATE POLICY concept_insert_policy ON public."Concept" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS concept_update_policy ON public."Concept";
-CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE USING (public.in_space(space_id));
+CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE USING (public.in_space(space_id, 'editor'));
 
 -- since ResourceAccess is used for both Content and Concepts,
 -- we cannot count on the usual foreign key delete cascades.
