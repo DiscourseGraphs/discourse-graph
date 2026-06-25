@@ -1,7 +1,10 @@
 /* eslint @typescript-eslint/no-explicit-any : 0 */
 import assert from "assert";
 import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
-import { createClient } from "@supabase/supabase-js";
+import {
+  createClient,
+  type PostgrestSingleResponse,
+} from "@supabase/supabase-js";
 import {
   Constants,
   type Database,
@@ -206,6 +209,7 @@ When(
     if (PLATFORMS.indexOf(platform) < 0)
       throw new Error(`Platform must be one of ${PLATFORMS.join(", ")}`);
     const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceOfUsername = (world.spaceOfUsername || {}) as LocalRefsType;
     const spaceResponse = await fetchOrCreateSpaceDirect({
       password: SPACE_ANONYMOUS_PASSWORD,
       url: `https://roamresearch.com/#/app/${spaceName}`,
@@ -227,7 +231,9 @@ When(
       password: SPACE_ANONYMOUS_PASSWORD,
     });
     localRefs[userAccountId] = userId;
+    spaceOfUsername[userAccountId] = spaceId;
     world.localRefs = localRefs;
+    world.spaceOfUsername = spaceOfUsername;
   },
 );
 
@@ -259,6 +265,16 @@ const getLoggedinDatabase = async (spaceId: number) => {
   });
   assert.equal(loginResponse.error, null);
   return client;
+};
+
+const getLoggedinDatabaseForUsername = async (userName: string) => {
+  assert.notStrictEqual(userName, undefined);
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  assert(localRefs[userName]);
+  const spaceOfUsername = (world.spaceOfUsername || {}) as LocalRefsType;
+  const spaceId = spaceOfUsername[userName];
+  assert(typeof spaceId === "number");
+  return await getLoggedinDatabase(spaceId);
 };
 
 // A test of non-empty object count for the named table, as seen by the user
@@ -299,7 +315,7 @@ Given(
     const localRefs = (world.localRefs || {}) as LocalRefsType;
     const spaceId = localRefs[spaceName];
     if (typeof spaceId !== "number") assert.fail("spaceId not a number");
-    const client = await getLoggedinDatabase(spaceId);
+    const client = await getLoggedinDatabaseForUsername(userName);
     const response = await client.rpc("upsert_accounts_in_space", {
       space_id_: spaceId,
       accounts,
@@ -308,20 +324,37 @@ Given(
   },
 );
 
+const upsertDocs = async (
+  userName: string,
+  spaceName: string,
+  docString: string,
+): Promise<PostgrestSingleResponse<number[]>> => {
+  const data = JSON.parse(docString) as Json;
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const spaceId = localRefs[spaceName];
+  if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+  const client = await getLoggedinDatabaseForUsername(userName);
+  return await client.rpc("upsert_documents", {
+    v_space_id: spaceId,
+    data,
+  });
+  //assert.equal(response.error, null);
+};
+
 // invoke the upsert_documents function, expects json
 Given(
   "user {word} upserts these documents to space {word}:",
   async (userName: string, spaceName: string, docString: string) => {
-    const data = JSON.parse(docString) as Json;
-    const localRefs = (world.localRefs || {}) as LocalRefsType;
-    const spaceId = localRefs[spaceName];
-    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
-    const client = await getLoggedinDatabase(spaceId);
-    const response = await client.rpc("upsert_documents", {
-      v_space_id: spaceId,
-      data,
-    });
+    const response = await upsertDocs(userName, spaceName, docString);
     assert.equal(response.error, null);
+  },
+);
+
+Given(
+  "user {word} fails to upsert these documents to space {word}:",
+  async (userName: string, spaceName: string, docString: string) => {
+    const response = await upsertDocs(userName, spaceName, docString);
+    assert(response.error);
   },
 );
 
@@ -335,7 +368,7 @@ Given(
     if (typeof spaceId !== "number") assert.fail("spaceId not a number");
     const userId = localRefs[userName];
     if (typeof userId !== "number") assert.fail("userId not a number");
-    const client = await getLoggedinDatabase(spaceId);
+    const client = await getLoggedinDatabaseForUsername(userName);
     const response = await client.rpc("upsert_content", {
       v_space_id: spaceId,
       data,
@@ -354,7 +387,7 @@ Given(
     const localRefs = (world.localRefs || {}) as LocalRefsType;
     const spaceId = localRefs[spaceName];
     if (typeof spaceId !== "number") assert.fail("spaceId not a number");
-    const client = await getLoggedinDatabase(spaceId);
+    const client = await getLoggedinDatabaseForUsername(userName);
     const response = await client.rpc("upsert_concepts", {
       v_space_id: spaceId,
       data,
