@@ -257,7 +257,7 @@ export type Database = {
       Content: {
         Row: {
           author_id: number | null
-          content_type: string | null
+          content_type: string
           created: string
           creator_id: number | null
           document_id: number
@@ -273,7 +273,7 @@ export type Database = {
         }
         Insert: {
           author_id?: number | null
-          content_type?: string | null
+          content_type?: string
           created: string
           creator_id?: number | null
           document_id: number
@@ -289,7 +289,7 @@ export type Database = {
         }
         Update: {
           author_id?: number | null
-          content_type?: string | null
+          content_type?: string
           created?: string
           creator_id?: number | null
           document_id?: number
@@ -501,7 +501,7 @@ export type Database = {
       Document: {
         Row: {
           author_id: number
-          content_type: string | null
+          content_type: string
           contents: unknown
           created: string
           id: number
@@ -513,7 +513,7 @@ export type Database = {
         }
         Insert: {
           author_id: number
-          content_type?: string | null
+          content_type?: string
           contents?: unknown
           created: string
           id?: number
@@ -525,7 +525,7 @@ export type Database = {
         }
         Update: {
           author_id?: number
-          content_type?: string | null
+          content_type?: string
           contents?: unknown
           created?: string
           id?: number
@@ -1429,7 +1429,7 @@ export type Database = {
         }
         Returns: {
           author_id: number | null
-          content_type: string | null
+          content_type: string
           created: string
           creator_id: number | null
           document_id: number
@@ -1456,7 +1456,7 @@ export type Database = {
         }
         Returns: {
           author_id: number
-          content_type: string | null
+          content_type: string
           contents: unknown
           created: string
           id: number
