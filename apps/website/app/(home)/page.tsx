@@ -441,6 +441,18 @@ const Home = async () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
+                    Frontiers in Research: Open Science Catalyze Panel
+                  </h3>
+                  <p className="mb-2 text-neutral-dark">June 18, 2026 | Zoom</p>
+                  <Link
+                    href="https://discoursegraphs.github.io/panel-qa-site/#panelists"
+                    className="text-primary transition-colors hover:text-primary/80"
+                  >
+                    View panel notes →
+                  </Link>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
                     Toward Modular Open Science
                   </h3>
                   <p className="mb-2 text-neutral-dark">
