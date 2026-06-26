@@ -6,6 +6,7 @@ import {
   MarkdownView,
   WorkspaceLeaf,
   Notice,
+  Platform,
 } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { SettingsTab } from "~/components/Settings";
@@ -39,11 +40,16 @@ import {
 } from "~/utils/relationsStore";
 import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
+import {
+  createMcpBridgeService,
+  type McpBridgeService,
+} from "~/services/mcpBridge";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
   private tagNodeHandler: TagNodeHandler | null = null;
   private fileChangeListener: FileChangeListener | null = null;
+  private mcpBridge: McpBridgeService | null = null;
   private currentViewActions: { leaf: WorkspaceLeaf; action: HTMLElement }[] =
     [];
   private pendingCanvasSwitches = new Set<string>();
@@ -85,6 +91,13 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
+
+    if (Platform.isDesktop) {
+      this.mcpBridge = createMcpBridgeService(this);
+      void this.mcpBridge.start().catch((error: unknown) => {
+        console.error("Failed to start MCP bridge:", error);
+      });
+    }
 
     this.registerEvent(
       this.app.workspace.on(
@@ -441,6 +454,17 @@ export default class DiscourseGraphPlugin extends Plugin {
     if (this.fileChangeListener) {
       this.fileChangeListener.cleanup();
       this.fileChangeListener = null;
+    }
+
+    if (this.mcpBridge) {
+      void this.mcpBridge.stop().catch((error: unknown) => {
+        console.error("Failed to stop MCP bridge:", error);
+      });
+      this.mcpBridge = null;
+    }
+
+    if (typeof window !== "undefined") {
+      delete window.dgMcpBridge;
     }
   }
 }
