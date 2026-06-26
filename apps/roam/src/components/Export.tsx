@@ -11,6 +11,7 @@ import {
   Toast,
   Tooltip,
   Tab,
+  Tag,
   Tabs,
   RadioGroup,
   Radio,
@@ -86,6 +87,7 @@ import { AddReferencedNodeType } from "./canvas/DiscourseRelationShape/Discourse
 import posthog from "posthog-js";
 import { getMyGroups, type MyGroup } from "@repo/database/lib/groups";
 import {
+  getPublishedNodeCountsByGroup,
   publishNodesToGroups,
   type PublishNode,
 } from "~/utils/publishNodesToGroups";
@@ -175,6 +177,23 @@ const getResultPublishNodes = (result: Result): PublishNode[] => {
   });
 };
 
+type PublishableNodesState = {
+  publishableNodes: PublishNode[];
+  nonDiscourseCount: number;
+};
+
+type GroupShareState = {
+  sharedNodeCount: number;
+  publishableNodeCount: number;
+  isFullyShared: boolean;
+  isPartiallyShared: boolean;
+};
+
+const EMPTY_PUBLISHABLE_NODES_STATE: PublishableNodesState = {
+  publishableNodes: [],
+  nonDiscourseCount: 0,
+};
+
 const ExportDialog: ExportDialogComponent = ({
   onClose,
   isOpen,
@@ -255,29 +274,52 @@ const ExportDialog: ExportDialogComponent = ({
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupsLoaded, setGroupsLoaded] = useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [sharedNodeCountsByGroupId, setSharedNodeCountsByGroupId] = useState<
+    Record<string, number>
+  >({});
   const [groupsError, setGroupsError] = useState("");
   const [publishError, setPublishError] = useState("");
 
-  const { publishableNodes, nonDiscourseCount } = useMemo(() => {
-    if (!syncEnabled)
-      return { publishableNodes: [] as PublishNode[], nonDiscourseCount: 0 };
-    const seen = new Set<string>();
-    const publishableNodes: PublishNode[] = [];
-    let nonDiscourseCount = 0;
-    for (const result of results) {
-      const resolved = getResultPublishNodes(result);
-      if (resolved.length === 0) {
-        nonDiscourseCount += 1;
-        continue;
+  const { publishableNodes, nonDiscourseCount } =
+    useMemo<PublishableNodesState>(() => {
+      if (!syncEnabled) return EMPTY_PUBLISHABLE_NODES_STATE;
+      const seen = new Set<string>();
+      const publishableNodes: PublishNode[] = [];
+      let nonDiscourseCount = 0;
+      for (const result of results) {
+        const resolved = getResultPublishNodes(result);
+        if (resolved.length === 0) {
+          nonDiscourseCount += 1;
+          continue;
+        }
+        for (const node of resolved) {
+          if (seen.has(node.uid)) continue;
+          seen.add(node.uid);
+          publishableNodes.push(node);
+        }
       }
-      for (const node of resolved) {
-        if (seen.has(node.uid)) continue;
-        seen.add(node.uid);
-        publishableNodes.push(node);
-      }
-    }
-    return { publishableNodes, nonDiscourseCount };
-  }, [results, syncEnabled]);
+      return { publishableNodes, nonDiscourseCount };
+    }, [results, syncEnabled]);
+
+  const publishableNodeUids = useMemo(
+    () => publishableNodes.map((node) => node.uid),
+    [publishableNodes],
+  );
+
+  const getGroupShareState = (groupId: string): GroupShareState => {
+    const sharedNodeCount = sharedNodeCountsByGroupId[groupId] ?? 0;
+    const publishableNodeCount = publishableNodeUids.length;
+    const isFullyShared =
+      publishableNodeCount > 0 && sharedNodeCount === publishableNodeCount;
+    const isPartiallyShared =
+      sharedNodeCount > 0 && sharedNodeCount < publishableNodeCount;
+    return {
+      sharedNodeCount,
+      publishableNodeCount,
+      isFullyShared,
+      isPartiallyShared,
+    };
+  };
 
   const writeFileToRepo = async ({
     filename,
@@ -845,6 +887,27 @@ const ExportDialog: ExportDialogComponent = ({
         const client = await getLoggedInClient();
         if (!client) throw new Error("Could not connect to sync.");
         const groups = await getMyGroups(client);
+        const groupIds = groups.map((group) => group.id);
+        if (publishableNodeUids.length > 0) {
+          const context = await getSupabaseContext();
+          if (!context) throw new Error("Could not connect to sync.");
+          const sharedNodeCounts = await getPublishedNodeCountsByGroup({
+            client,
+            spaceId: context.spaceId,
+            groupIds,
+            nodeUids: publishableNodeUids,
+          });
+          setSharedNodeCountsByGroupId(sharedNodeCounts);
+          setSelectedGroupIds((prev) =>
+            prev.filter(
+              (groupId) =>
+                (sharedNodeCounts[groupId] ?? 0) < publishableNodeUids.length,
+            ),
+          );
+        } else {
+          setSharedNodeCountsByGroupId({});
+          setSelectedGroupIds([]);
+        }
         setMyGroups(groups);
       } catch (e) {
         setGroupsError((e as Error).message || "Failed to load groups.");
@@ -853,7 +916,14 @@ const ExportDialog: ExportDialogComponent = ({
         setGroupsLoaded(true);
       }
     })();
-  }, [syncEnabled, isOpen, selectedTabId, groupsLoaded, groupsLoading]);
+  }, [
+    syncEnabled,
+    isOpen,
+    selectedTabId,
+    groupsLoaded,
+    groupsLoading,
+    publishableNodeUids,
+  ]);
 
   const handlePublish = async () => {
     setPublishError("");
@@ -1214,21 +1284,46 @@ const ExportDialog: ExportDialogComponent = ({
         ) : (
           <>
             <Label>Publish to group(s)</Label>
-            {myGroups.map((group) => (
-              <Checkbox
-                key={group.id}
-                checked={selectedGroupIds.includes(group.id)}
-                label={group.name}
-                onChange={(e) => {
-                  const { checked } = e.target as HTMLInputElement;
-                  setSelectedGroupIds((prev) =>
-                    checked
-                      ? [...prev, group.id]
-                      : prev.filter((id) => id !== group.id),
-                  );
-                }}
-              />
-            ))}
+            {myGroups.map((group) => {
+              const {
+                sharedNodeCount,
+                publishableNodeCount,
+                isFullyShared,
+                isPartiallyShared,
+              } = getGroupShareState(group.id);
+              const isSelected = selectedGroupIds.includes(group.id);
+              return (
+                <Checkbox
+                  key={group.id}
+                  checked={isFullyShared || isSelected}
+                  disabled={isFullyShared}
+                  indeterminate={isPartiallyShared && !isSelected}
+                  labelElement={
+                    <span>
+                      {group.name}{" "}
+                      {isFullyShared ? (
+                        <Tag minimal intent={Intent.SUCCESS}>
+                          Already shared
+                        </Tag>
+                      ) : isPartiallyShared ? (
+                        <Tag minimal>
+                          {sharedNodeCount}/{publishableNodeCount} shared
+                        </Tag>
+                      ) : null}
+                    </span>
+                  }
+                  onChange={(e) => {
+                    if (isFullyShared) return;
+                    const { checked } = e.target as HTMLInputElement;
+                    setSelectedGroupIds((prev) =>
+                      checked
+                        ? [...new Set([...prev, group.id])]
+                        : prev.filter((id) => id !== group.id),
+                    );
+                  }}
+                />
+              );
+            })}
             <div className="mt-2.5">
               {`Publishing ${publishableNodes.length} discourse node${
                 publishableNodes.length === 1 ? "" : "s"

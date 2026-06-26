@@ -13,6 +13,52 @@ type PublishNodesResult = {
   failedGroupIds: string[];
 };
 
+export const getPublishedNodeCountsByGroup = async ({
+  client,
+  spaceId,
+  groupIds,
+  nodeUids,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  groupIds: string[];
+  nodeUids: string[];
+}): Promise<Record<string, number>> => {
+  const uniqueGroupIds = [...new Set(groupIds)];
+  const uniqueNodeUids = [...new Set(nodeUids)];
+  if (uniqueGroupIds.length === 0 || uniqueNodeUids.length === 0) return {};
+
+  const groupIdSet = new Set(uniqueGroupIds);
+  const nodeUidSet = new Set(uniqueNodeUids);
+  const accessRes = await client
+    .from("ResourceAccess")
+    .select("account_uid, source_local_id")
+    .eq("space_id", spaceId)
+    .in("account_uid", uniqueGroupIds)
+    .in("source_local_id", uniqueNodeUids);
+  if (accessRes.error) throw accessRes.error;
+
+  const nodeUidsByGroupId = new Map<string, Set<string>>();
+  for (const row of accessRes.data ?? []) {
+    if (
+      !groupIdSet.has(row.account_uid) ||
+      !nodeUidSet.has(row.source_local_id)
+    )
+      continue;
+    const sharedNodeUids =
+      nodeUidsByGroupId.get(row.account_uid) ?? new Set<string>();
+    sharedNodeUids.add(row.source_local_id);
+    nodeUidsByGroupId.set(row.account_uid, sharedNodeUids);
+  }
+
+  return Object.fromEntries(
+    uniqueGroupIds.map((groupId) => [
+      groupId,
+      nodeUidsByGroupId.get(groupId)?.size ?? 0,
+    ]),
+  );
+};
+
 // 23505 = unique_violation: the grant already exists, which counts as success.
 const isIgnorableUpsertError = (error: { code?: string } | null): boolean =>
   !error || error.code === "23505";
