@@ -376,6 +376,9 @@ BEGIN
   IF document.metadata IS NULL then
     document.metadata := '{}';
   END IF;
+  IF document.content_type IS NULL THEN
+    document.content_type = 'text/plain';
+  END IF;
   RETURN document;
 END;
 $$;
@@ -568,12 +571,14 @@ BEGIN
       local_content.document_inline.last_modified := db_content.last_modified;
       local_content.document_inline.created := db_content.created;
       local_content.document_inline.author_id := db_content.author_id;
-      local_content.document_inline.content_type := CASE
+    END IF;
+    IF source_local_id(document_inline(local_content)) IS NOT NULL THEN
+      IF content_type(document_inline(local_content)) IS NULL THEN
+        local_content.document_inline.content_type := CASE
           WHEN v_platform='Roam' THEN 'application/roam+json'
           WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
           ELSE 'text/plain' END;
-    END IF;
-    IF source_local_id(document_inline(local_content)) IS NOT NULL THEN
+      END IF;
       db_document := public._local_document_to_db_document(document_inline(local_content));
       IF (db_document.author_id IS NULL AND author_inline(local_content) IS NOT NULL) THEN
         db_document.author_id := upsert_account_in_space(v_space_id, author_inline(local_content));
