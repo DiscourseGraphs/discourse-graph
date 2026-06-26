@@ -17,6 +17,7 @@ const withNextra = nextra({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ["jsdom"],
   async redirects() {
     return DOCS_REDIRECTS;
   },

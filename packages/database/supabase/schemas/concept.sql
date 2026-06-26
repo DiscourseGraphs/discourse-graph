@@ -106,6 +106,7 @@ ADD CONSTRAINT "Concept_space_id_fkey" FOREIGN KEY (
 
 
 REVOKE ALL ON TABLE public."Concept" FROM anon;
+GRANT SELECT ON TABLE public."Concept" TO anon;
 GRANT ALL ON TABLE public."Concept" TO authenticated;
 GRANT ALL ON TABLE public."Concept" TO service_role;
 
