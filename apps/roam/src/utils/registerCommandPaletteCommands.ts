@@ -1,6 +1,7 @@
 import { openQueryDrawer } from "~/components/QueryDrawer";
 import { render as exportRender } from "~/components/Export";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import { openShareNodeDialog } from "~/utils/openShareNodeDialog";
 import { createBlock, updateBlock } from "roamjs-components/writes";
 import {
   getCurrentPageUid,
@@ -29,6 +30,7 @@ import {
   getPersonalSetting,
   setPersonalSetting,
   setGlobalSetting,
+  isSyncEnabled,
 } from "~/components/settings/utils/accessors";
 import {
   DISCOURSE_NODE_KEYS,
@@ -244,6 +246,54 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     });
   };
 
+  const shareCurrentNode = () => {
+    if (!isSyncEnabled()) {
+      renderToast({
+        id: "share-node-sync-disabled",
+        content: "Sync must be enabled to publish discourse nodes.",
+      });
+      return;
+    }
+
+    const pageUid = getCurrentPageUid();
+    if (!pageUid) {
+      renderToast({
+        id: "share-node-no-page",
+        content: "Navigate to a discourse node page to share it.",
+      });
+      return;
+    }
+
+    const pageTitle = getPageTitleByPageUid(pageUid);
+    if (!pageTitle) {
+      renderToast({
+        id: "share-node-no-title",
+        content: "Could not determine the current page title.",
+      });
+      return;
+    }
+
+    const discourseNode = findDiscourseNode({ uid: pageUid, title: pageTitle });
+    if (!discourseNode || discourseNode.backedBy !== "user") {
+      renderToast({
+        id: "share-node-not-a-node",
+        content: "This page is not a publishable discourse node.",
+      });
+      return;
+    }
+
+    posthog.capture("Share Node: Current Node Command Triggered", {
+      pageUid,
+      nodeType: discourseNode.type,
+    });
+
+    openShareNodeDialog({
+      uid: pageUid,
+      title: pageTitle,
+      nodeType: discourseNode.type,
+    });
+  };
+
   const exportDiscourseGraph = async () => {
     posthog.capture("Export: Discourse Graph Command Triggered");
     const discourseNodes = getDiscourseNodes().filter(excludeDefaultNodes);
@@ -364,6 +414,9 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Export - Current page", exportCurrentPage);
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
+  if (isSyncEnabled()) {
+    void addCommand("DG: Share current node", shareCurrentNode);
+  }
   if (getFeatureFlag("Advanced node search enabled")) {
     void addCommand("DG: Open Node Search", () => {
       posthog.capture("Node Search: Open Command Triggered");
