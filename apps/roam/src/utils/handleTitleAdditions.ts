@@ -3,10 +3,16 @@ import ReactDOM from "react-dom";
 
 const ROAM_TITLE_CONTAINER_CLASS = "rm-title-display-container";
 const ADDITIONS_CONTAINER_CLASS = "discourse-graph-title-additions";
+const ADDITIONS_CONTAINER_CLASSES = `${ADDITIONS_CONTAINER_CLASS} flex flex-wrap items-start gap-x-2 gap-y-2`;
+const INLINE_ADDITION_CLASSES = "min-w-0 flex-none";
+const BLOCK_ADDITION_CLASSES = "min-w-0 basis-full grow shrink-0";
+
+type TitleAdditionLayout = "inline" | "block";
 
 export const handleTitleAdditions = (
   h1: HTMLHeadingElement,
   element: React.ReactNode,
+  { layout = "block" }: { layout?: TitleAdditionLayout } = {},
 ): void => {
   const titleDisplayContainer =
     h1.closest(`.${ROAM_TITLE_CONTAINER_CLASS}`) ||
@@ -25,7 +31,7 @@ export const handleTitleAdditions = (
     if (!parent) return;
 
     container = document.createElement("div");
-    container.className = `${ADDITIONS_CONTAINER_CLASS} flex flex-col`;
+    container.className = ADDITIONS_CONTAINER_CLASSES;
 
     const oldMarginBottom = getComputedStyle(h1).marginBottom;
     const oldMarginBottomNum = Number.isFinite(parseFloat(oldMarginBottom))
@@ -45,6 +51,8 @@ export const handleTitleAdditions = (
 
   if (React.isValidElement(element)) {
     const renderContainer = document.createElement("div");
+    renderContainer.className =
+      layout === "inline" ? INLINE_ADDITION_CLASSES : BLOCK_ADDITION_CLASSES;
     container.appendChild(renderContainer);
     // eslint-disable-next-line react/no-deprecated
     ReactDOM.render(element, renderContainer);
