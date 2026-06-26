@@ -1512,6 +1512,7 @@ export type Database = {
         }
       }
       can_access_account: { Args: { account_uid: string }; Returns: boolean }
+      can_view_concept: { Args: { concept_id: number }; Returns: boolean }
       can_view_content: { Args: { content_id: number }; Returns: boolean }
       can_view_specific_resource: {
         Args: { source_local_id_: string; space_id_: number }
@@ -1630,7 +1631,13 @@ export type Database = {
         }
         Returns: string
       }
-      document_in_space: { Args: { document_id: number }; Returns: boolean }
+      document_in_space: {
+        Args: {
+          access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"]
+          document_id: number
+        }
+        Returns: boolean
+      }
       document_of_content: {
         Args: { content: Database["public"]["Views"]["my_contents"]["Row"] }
         Returns: {
@@ -1812,7 +1819,10 @@ export type Database = {
             }
           }
       unowned_account_in_shared_space: {
-        Args: { p_account_id: number }
+        Args: {
+          access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"]
+          p_account_id: number
+        }
         Returns: boolean
       }
       upsert_account_in_space: {

@@ -20,7 +20,7 @@ Feature: Group content access
     And user of space s2 accepts the group invitation
     Then user of space s2 should be a member of group invite_group
 
-  Scenario: Creating content
+  Scenario: Sharing content
     When Document are added to the database:
       | $id | source_local_id | created    | last_modified | _author_id | _space_id |
       | d1  | ld1             | 2025/01/01 | 2025/01/01    | user1      | s1        |
@@ -47,3 +47,43 @@ Feature: Group content access
     Then a user logged in space s1 should see 2 Content in the database
     Then a user logged in space s2 should see 1 Content in the database
     And a user logged in space s2 should see 2 Space in the database
+
+  Scenario: Reader permissions do not allow cross-space edit
+    When user of space s1 creates group my_group
+    And user of space s1 adds space s2 to group my_group
+    And SpaceAccess are added to the database:
+      | _account_uid | _space_id | permissions |
+      | my_group     | s1        | reader      |
+      | my_group     | s2        | reader      |
+    Then user user2 fails to upsert these documents to space s1:
+      """json
+      [
+        {
+          "source_local_id": "s1",
+          "created": "2000/01/01",
+          "last_modified": "2001/01/02",
+          "author_local_id": "user1"
+        }
+      ]
+      """
+
+  Scenario: Edit permissions allow cross-space edit
+    When user of space s1 creates group my_group
+    And user of space s1 adds space s2 to group my_group
+    And SpaceAccess are added to the database:
+      | _account_uid | _space_id | permissions |
+      | my_group     | s1        | editor      |
+      | my_group     | s2        | editor      |
+    When user user2 upserts these documents to space s1:
+      """json
+      [
+        {
+          "source_local_id": "s1",
+          "created": "2000/01/01",
+          "last_modified": "2001/01/02",
+          "author_local_id": "user1"
+        }
+      ]
+      """
+    Then a user logged in space s1 should see 1 Document in the database
+    And a user logged in space s2 should see 1 Document in the database
