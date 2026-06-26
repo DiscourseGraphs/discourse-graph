@@ -57,19 +57,6 @@ const buildSelections = ({
       text: `node:${conditionUid}-Context`,
     });
   }
-  if (ANY_RELATION_REGEX.test(r.label)) {
-    selections.push({
-      uid: window.roamAlphaAPI.util.generateUID(),
-      label: "relationUid",
-      text: "hasSchema",
-    });
-    selections.push({
-      uid: window.roamAlphaAPI.util.generateUID(),
-      label: "effectiveSource",
-      text: "effectiveSource",
-    });
-  }
-
   return selections;
 };
 
@@ -148,7 +135,20 @@ const buildQueryConfig = ({
   const returnNode = nodeTextByType[target];
 
   const conditionUid = window.roamAlphaAPI.util.generateUID();
+  const isAllRelationsQuery = ANY_RELATION_REGEX.test(r.label);
   const selections = buildSelections({ r, conditionUid });
+  const findVariables = isAllRelationsQuery
+    ? [
+        {
+          label: "relationUid",
+          variable: `${conditionUid}-relSchema`,
+        },
+        {
+          label: "effectiveSource",
+          variable: `${conditionUid}-relSource`,
+        },
+      ]
+    : [];
   const { nodes, relations } = fireQueryContext;
   return {
     relation,
@@ -166,6 +166,7 @@ const buildQueryConfig = ({
           },
         ],
         selections,
+        findVariables,
         context: {
           relationsInQuery: [relation],
           customNodes: nodes,
@@ -290,26 +291,21 @@ const getDiscourseContextResults = async ({
         const relation = uniqueRelations.get(ruid);
         if (!relation) {
           console.error("Relation with obsolete relation type:" + ruid);
-          return { relation, results };
+          return undefined;
         }
+        const isComplement = relation.complement;
         return {
           relation: {
-            id: ruid,
-            label: ruid.endsWith("-true")
-              ? relation.r.label
-              : relation.r.complement,
-            isComplement: ruid.endsWith("-true"),
-            text: ruid.endsWith("-true")
-              ? relation.r.label
-              : relation.r.complement,
-            target: ruid.endsWith("-true")
-              ? relation.r.source
-              : relation.r.destination,
+            id: relation.id,
+            label: isComplement ? relation.r.complement : relation.r.label,
+            isComplement,
+            text: isComplement ? relation.r.complement : relation.r.label,
+            target: isComplement ? relation.r.source : relation.r.destination,
           },
           results,
         };
       })
-      .filter((o) => !!o.relation);
+      .filter((o): o is NonNullable<typeof o> => !!o);
   }
   const groupedResults = Object.fromEntries(
     resultsWithRelation.map((r) => [
