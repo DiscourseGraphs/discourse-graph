@@ -6,7 +6,8 @@ import findDiscourseNode from "./findDiscourseNode";
 import getDiscourseNodes from "./getDiscourseNodes";
 import getDiscourseRelations from "./getDiscourseRelations";
 
-export const ANY_RELATION_REGEX = /Has Any Relation To/i;
+export const ANY_RELATION_NAME = "Has Any Relation To";
+export const ANY_RELATION_REGEX = RegExp(ANY_RELATION_NAME, "i");
 
 const evaluate = async (s: string) =>
   window.RoamLazy

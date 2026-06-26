@@ -8,7 +8,10 @@ import conditionToDatalog, {
   getTitleDatalog,
   registerDatalogTranslator,
 } from "./conditionToDatalog";
-import { ANY_RELATION_REGEX } from "./deriveDiscourseNodeAttribute";
+import {
+  ANY_RELATION_NAME,
+  ANY_RELATION_REGEX,
+} from "./deriveDiscourseNodeAttribute";
 import getDiscourseNodes, {
   excludeDefaultNodes,
   type DiscourseNode,
@@ -404,7 +407,7 @@ const registerDiscourseDatalogTranslators = (snapshot?: SettingsSnapshot) => {
   const relationLabels = new Set(
     discourseRelations.flatMap((d) => [d.label, d.complement].filter(Boolean)),
   );
-  relationLabels.add(ANY_RELATION_REGEX.source);
+  relationLabels.add(ANY_RELATION_NAME);
   relationLabels.forEach((label) => {
     unregisters.add(
       registerDatalogTranslator({
@@ -816,6 +819,8 @@ const registerDiscourseDatalogTranslators = (snapshot?: SettingsSnapshot) => {
               [
                 { from: source, to: source },
                 { from: target, to: target },
+                { from: "relSchema", to: "relSchema" },
+                { from: "relSource", to: "relSource" },
                 { from: true, to: (v) => `${uid}-${v}` },
               ],
               clauses,
