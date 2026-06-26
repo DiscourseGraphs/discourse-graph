@@ -43,7 +43,9 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
   const selection = useSchemaSelection({
     source,
     resetKey: "export",
-    initialTemplateNames: [...getReferencedTemplateNames(source.nodeTypes)],
+    initialTemplateNames: [
+      ...getReferencedTemplateNames(source.nodeTypes),
+    ].filter((name) => source.templateNames.includes(name)),
   });
 
   const handleExport = async (): Promise<void> => {
