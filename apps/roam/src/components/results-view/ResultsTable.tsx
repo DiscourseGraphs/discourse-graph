@@ -23,6 +23,7 @@ import { ContextContent } from "~/components/DiscourseContext";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { CONTEXT_OVERLAY_SUGGESTION } from "~/utils/predefinedSelections";
 import { strictQueryForReifiedBlocks } from "~/utils/createReifiedBlock";
+import { refreshDiscourseContextsForMutatedUids } from "~/utils/discourseContextMutationRefresh";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import {
   RenderRoamBlock,
@@ -286,7 +287,9 @@ const ResultRow = ({
               content: "Relation deleted",
               intent: "success",
             });
-            onRefresh(true);
+            refreshDiscourseContextsForMutatedUids({
+              uids: [data.sourceUid, data.destinationUid],
+            });
           })
           .catch((e) => {
             // this one should be an internalError

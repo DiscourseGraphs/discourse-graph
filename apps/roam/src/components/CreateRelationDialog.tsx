@@ -24,9 +24,10 @@ import type { Result } from "~/utils/types";
 import internalError from "~/utils/internalError";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import posthog from "posthog-js";
+import { refreshDiscourseContextsForMutatedUids } from "~/utils/discourseContextMutationRefresh";
 
 export type CreateRelationDialogProps = {
-  onClose: () => void;
+  onClose: (created?: boolean) => void;
   sourceNodeUid: string;
 };
 
@@ -159,12 +160,18 @@ const CreateRelationDialog = ({
     if (selectedTargetUid === "") return false;
     const relation = identifyRelationMatch(selectedTargetText);
     if (relation === null) return false;
+    const sourceUid = relation.forward ? sourceNodeUid : selectedTargetUid;
+    const destinationUid = relation.forward ? selectedTargetUid : sourceNodeUid;
     const result = await createReifiedRelation({
       relationBlockUid: relation.id,
-      sourceUid: relation.forward ? sourceNodeUid : selectedTargetUid,
-      destinationUid: relation.forward ? selectedTargetUid : sourceNodeUid,
+      sourceUid,
+      destinationUid,
     });
-    return result !== undefined;
+    if (result === undefined) return false;
+    refreshDiscourseContextsForMutatedUids({
+      uids: [sourceNodeUid, selectedTargetUid],
+    });
+    return true;
   };
 
   const onCreateSync = (): void => {
@@ -173,8 +180,8 @@ const CreateRelationDialog = ({
       hasTarget: !!selectedTargetUid,
     });
     onCreate()
-      .then((result: boolean) => {
-        if (result) {
+      .then((created) => {
+        if (created) {
           renderToast({
             id: `discourse-relation-created-${Date.now()}`,
             intent: "success",
@@ -188,7 +195,7 @@ const CreateRelationDialog = ({
             content: <span>Failed to create relation</span>,
           });
         }
-        onClose();
+        onClose(created);
       })
       .catch(() => {
         renderToast({
@@ -196,7 +203,7 @@ const CreateRelationDialog = ({
           intent: "danger",
           content: <span>Failed to create relation</span>,
         });
-        onClose();
+        onClose(false);
       });
   };
 
@@ -227,7 +234,7 @@ const CreateRelationDialog = ({
   return (
     <Dialog
       isOpen={true}
-      onClose={onClose}
+      onClose={() => onClose(false)}
       autoFocus={false}
       className="roamjs-canvas-dialog"
     >
@@ -264,7 +271,7 @@ const CreateRelationDialog = ({
       </div>
       <div className={Classes.DIALOG_FOOTER}>
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-          <Button minimal onClick={onClose}>
+          <Button minimal onClick={() => onClose(false)}>
             Cancel
           </Button>
           <Button
