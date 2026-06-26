@@ -263,11 +263,14 @@ const getDiscourseContextResults = async ({
       complement: relation.complement,
     }),
   );
+  const postQueryOnResult = useReifiedRelations ? onResult : undefined;
+  onResult = postQueryOnResult ? undefined : onResult;
 
   let resultsWithRelation = await executeQueries(
     queryConfigs,
     targetUid,
     nodeTextByType,
+    onResult,
   );
   if (
     useReifiedRelations &&
@@ -338,7 +341,7 @@ const getDiscourseContextResults = async ({
       label,
       results,
     }));
-  if (onResult) asResultList.map((r) => onResult(r));
+  if (postQueryOnResult) asResultList.map((r) => postQueryOnResult(r));
   return asResultList;
 };
 
