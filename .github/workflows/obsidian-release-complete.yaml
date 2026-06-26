@@ -1,0 +1,26 @@
+name: Complete Obsidian Linear Release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Obsidian release version to complete in Linear, for example 0.1.0."
+        required: true
+        type: string
+
+jobs:
+  complete-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Complete Linear release
+        id: complete-linear-release
+        if: ${{ inputs.version != '' }}
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
+          command: complete
+          version: ${{ inputs.version }}
