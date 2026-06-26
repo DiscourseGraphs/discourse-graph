@@ -281,6 +281,16 @@ export const fetchUserNames = async (
   await plugin.saveSettings();
 };
 
+const resolveOwnerUserName = (
+  nodes: ImportableNode[],
+  plugin: DiscourseGraphPlugin,
+): string | undefined => {
+  const authorId = nodes.find((n) => n.authorId !== undefined)?.authorId;
+  return authorId !== undefined
+    ? (plugin.settings.userNames ?? {})[authorId]
+    : undefined;
+};
+
 export const fetchNodeContent = async ({
   client,
   spaceId,
@@ -1318,9 +1328,11 @@ export const importSelectedNodes = async ({
     nodesBySpace.get(node.spaceId)!.push(node);
   }
 
-  const spaceUris = await getSpaceUris(client, [...nodesBySpace.keys()]);
-  const spaceNames = await getSpaceNameFromIds(client, [
-    ...nodesBySpace.keys(),
+  const spaceIdList = [...nodesBySpace.keys()];
+  const [spaceUris, spaceNames] = await Promise.all([
+    getSpaceUris(client, spaceIdList),
+    getSpaceNameFromIds(client, spaceIdList),
+    fetchUserNames(plugin, client),
   ]);
 
   // Process each space
@@ -1336,10 +1348,12 @@ export const importSelectedNodes = async ({
     }
 
     const spaceName = spaceNames.get(spaceId) ?? `space-${spaceId}`;
+    const ownerUserName = resolveOwnerUserName(nodes, plugin);
     const importFolderPath = await resolveFolderForSpaceUri({
       adapter: plugin.app.vault.adapter,
       spaceUri,
       spaceName,
+      ownerUserName,
     });
 
     // Process each node in this space
