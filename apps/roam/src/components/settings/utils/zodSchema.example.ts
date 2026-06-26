@@ -89,6 +89,7 @@ const featureFlags: FeatureFlags = {
   "Enable left sidebar": true,
   "Duplicate node alert enabled": true,
   "Suggestive mode overlay enabled": true,
+  "Cross-app node import enabled": true,
   "Use new settings store": false,
 };
 
@@ -97,6 +98,7 @@ const defaultFeatureFlags: FeatureFlags = {
   "Enable left sidebar": false,
   "Duplicate node alert enabled": false,
   "Suggestive mode overlay enabled": false,
+  "Cross-app node import enabled": false,
   "Use new settings store": false,
 };
 
