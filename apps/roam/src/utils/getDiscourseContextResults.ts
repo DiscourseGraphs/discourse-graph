@@ -8,7 +8,10 @@ import getDiscourseRelations, {
 } from "./getDiscourseRelations";
 import { Selection } from "./types";
 import { getSetting } from "./extensionSettings";
-import { ANY_RELATION_REGEX } from "./deriveDiscourseNodeAttribute";
+import {
+  ANY_RELATION_NAME,
+  ANY_RELATION_REGEX,
+} from "./deriveDiscourseNodeAttribute";
 
 const resultCache: Record<string, Awaited<ReturnType<typeof fireQuery>>> = {};
 const CACHE_TIMEOUT = 1000 * 60 * 5;
@@ -233,10 +236,11 @@ const getDiscourseContextResults = async ({
   const queryRelations = useReifiedRelations
     ? [
         {
+          id: ANY_RELATION_ID,
           r: {
             id: ANY_RELATION_ID,
-            complement: "Has Any Relation To",
-            label: "Has Any Relation To",
+            complement: ANY_RELATION_NAME,
+            label: ANY_RELATION_NAME,
             triples: [],
             source: "*",
             destination: "*",
