@@ -30,8 +30,6 @@ const NODE_TEST = /^node:(\s*[^:]+\s*)(:.*)?$/i;
 const ACTION_TEST = /^action:\s*([^:]+)\s*(?::(.*))?$/i;
 const DATE_FORMAT_TEST = /^date-format\(([^,)]+),([^,)]+)\)$/i;
 const MILLISECONDS_IN_DAY = 1000 * 60 * 60 * 24;
-const HAS_SCHEMA_TEST = /^hasSchema$/;
-const EFFECTIVE_SOURCE_TEST = /^effectiveSource$/;
 
 const getArgValue = (key: string, result: QueryResult) => {
   if (/^today$/i.test(key)) return new Date();
@@ -286,26 +284,6 @@ const predefinedSelections: PredefinedSelection[] = [
       return getUserDisplayNameById(r?.[":edit/user"]?.[":db/id"]);
     },
     suggestions: EDIT_BY_SUGGESTIONS,
-  },
-  {
-    test: HAS_SCHEMA_TEST,
-    pull: () => {
-      return "?relSchema";
-    },
-    mapper: () => {
-      // not sure here?
-      return "?relSchema";
-    },
-  },
-  {
-    test: EFFECTIVE_SOURCE_TEST,
-    pull: () => {
-      return "?relSource";
-    },
-    mapper: () => {
-      // not sure here?
-      return "?relSource";
-    },
   },
   {
     test: NODE_TEST,
