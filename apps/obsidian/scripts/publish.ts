@@ -390,6 +390,18 @@ const copyBuildFiles = (buildDir: string, tempDir: string): void => {
   });
 };
 
+const sanitizePackageJsonForMirror = (tempDir: string): void => {
+  const packageJsonPath = path.join(tempDir, "package.json");
+  if (!fs.existsSync(packageJsonPath)) return;
+
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+  if (packageJson?.scripts) {
+    delete packageJson.scripts;
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+    log("Removed package.json scripts for mirrored publish repo");
+  }
+};
+
 const updateMainBranch = async (
   tempDir: string,
   version: string,
@@ -693,6 +705,7 @@ const publish = async (config: PublishConfig): Promise<void> => {
 
     copyDirectory({ src: obsidianDir, dest: tempDir, baseDir: obsidianDir });
     copyBuildFiles(buildDir, tempDir);
+    sanitizePackageJsonForMirror(tempDir);
 
     if (isExternal) {
       updateManifest(tempDir, version);
