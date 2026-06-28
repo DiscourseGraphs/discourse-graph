@@ -290,7 +290,13 @@ const getDiscourseContextResults = async ({
       .map(([ruid, results]) => {
         const relation = uniqueRelations.get(ruid);
         if (!relation) {
-          console.error("Relation with obsolete relation type:" + ruid);
+          /*
+           * A stored reified relation can outlive its relation schema, or the
+           * schema can stop applying to this node type after source/destination
+           * settings change. Drop that stale result from discourse context
+           * instead of treating it as a runtime failure.
+           */
+          console.warn("Relation with obsolete relation type:" + ruid);
           return undefined;
         }
         const isComplement = relation.complement;
