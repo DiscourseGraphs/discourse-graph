@@ -286,32 +286,35 @@ const getDiscourseContextResults = async ({
       byRel[relKey] = byRel[relKey] || [];
       byRel[relKey].push(r);
     }
-    resultsWithRelation = Object.entries(byRel)
-      .map(([ruid, results]) => {
-        const relation = uniqueRelations.get(ruid);
-        if (!relation) {
-          /*
-           * A stored reified relation can outlive its relation schema, or the
-           * schema can stop applying to this node type after source/destination
-           * settings change. Drop that stale result from discourse context
-           * instead of treating it as a runtime failure.
-           */
-          console.warn("Relation with obsolete relation type:" + ruid);
-          return undefined;
-        }
+    resultsWithRelation = Array.from(uniqueRelations.entries()).flatMap(
+      ([ruid, relation]) => {
+        const results = byRel[ruid];
+        if (!results?.length) return [];
+        delete byRel[ruid];
         const isComplement = relation.complement;
-        return {
-          relation: {
-            id: relation.id,
-            label: isComplement ? relation.r.complement : relation.r.label,
-            isComplement,
-            text: isComplement ? relation.r.complement : relation.r.label,
-            target: isComplement ? relation.r.source : relation.r.destination,
+        return [
+          {
+            relation: {
+              id: relation.id,
+              label: isComplement ? relation.r.complement : relation.r.label,
+              isComplement,
+              text: isComplement ? relation.r.complement : relation.r.label,
+              target: isComplement ? relation.r.source : relation.r.destination,
+            },
+            results,
           },
-          results,
-        };
-      })
-      .filter((o): o is NonNullable<typeof o> => !!o);
+        ];
+      },
+    );
+    Object.keys(byRel).forEach((ruid) => {
+      /*
+       * A stored reified relation can outlive its relation schema, or the
+       * schema can stop applying to this node type after source/destination
+       * settings change. Drop that stale result from discourse context
+       * instead of treating it as a runtime failure.
+       */
+      console.warn("Relation with obsolete relation type:" + ruid);
+    });
   }
   const groupedResults = Object.fromEntries(
     resultsWithRelation.map((r) => [

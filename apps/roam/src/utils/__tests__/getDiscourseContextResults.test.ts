@@ -68,7 +68,7 @@ describe("getDiscourseContextResults", () => {
     mocks.findDiscourseNode.mockReturnValue({ type: "CLM" });
   });
 
-  it("regroups all-relation reified query results by relation direction", async () => {
+  it("regroups all-relation reified query results by schema order", async () => {
     const onResult = vi.fn();
     const nodes: DiscourseNode[] = [
       makeNode({ type: "CLM", text: "Claim" }),
@@ -96,16 +96,16 @@ describe("getDiscourseContextResults", () => {
 
     mocks.fireQuery.mockResolvedValue([
       {
-        text: "Question A",
-        uid: "question-a",
-        relationUid: "supports",
-        effectiveSource: "claim-a",
-      },
-      {
         text: "Evidence A",
         uid: "evidence-a",
         relationUid: "informs",
         effectiveSource: "evidence-a",
+      },
+      {
+        text: "Question A",
+        uid: "question-a",
+        relationUid: "supports",
+        effectiveSource: "claim-a",
       },
     ]);
 
