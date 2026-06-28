@@ -114,6 +114,7 @@ import {
   CanvasStoreAdapterArgs,
   useCanvasStoreAdapterArgs,
 } from "./useCanvasStoreAdapterArgs";
+import { areAutoCanvasRelationsSuppressed } from "./autoCanvasRelationsSuppression";
 import posthog from "posthog-js";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
@@ -1486,6 +1487,8 @@ const InsideEditorAndUiContext = ({
 
       const removeAfterCreateHandler =
         editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
+          if (areAutoCanvasRelationsSuppressed()) return;
+
           const util = editor.getShapeUtil(shape);
           if (util instanceof DiscourseNodeUtil) {
             const autoCanvasRelations = getPersonalSetting<boolean>([
