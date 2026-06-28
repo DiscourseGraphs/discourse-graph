@@ -978,7 +978,7 @@ const ExportDialog: ExportDialogComponent = ({
       </div>
       <div className={Classes.DIALOG_FOOTER}>
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-          <span style={{ color: "darkred" }}>{error}</span>
+          <span className="text-red-700">{error}</span>
           <Button text={"Cancel"} intent={Intent.NONE} onClick={onClose} />
           <Button
             text={"Export"}
@@ -1217,7 +1217,7 @@ const ExportDialog: ExportDialogComponent = ({
       </div>
       <div className={Classes.DIALOG_FOOTER}>
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-          <span style={{ color: "darkred" }}>{publishError}</span>
+          <span className="text-red-700">{publishError}</span>
           <Button text={"Cancel"} intent={Intent.NONE} onClick={onClose} />
           <Button
             text={"Publish"}
