@@ -7,9 +7,15 @@ import getDiscourseRelations, {
   DiscourseRelation,
 } from "./getDiscourseRelations";
 import { Selection } from "./types";
+import { getSetting } from "./extensionSettings";
+import {
+  ANY_RELATION_NAME,
+  ANY_RELATION_REGEX,
+} from "./deriveDiscourseNodeAttribute";
 
 const resultCache: Record<string, Awaited<ReturnType<typeof fireQuery>>> = {};
 const CACHE_TIMEOUT = 1000 * 60 * 5;
+const ANY_RELATION_ID = "any_relation";
 
 type BuildQueryConfig = {
   args: {
@@ -51,7 +57,6 @@ const buildSelections = ({
       text: `node:${conditionUid}-Context`,
     });
   }
-
   return selections;
 };
 
@@ -130,7 +135,20 @@ const buildQueryConfig = ({
   const returnNode = nodeTextByType[target];
 
   const conditionUid = window.roamAlphaAPI.util.generateUID();
+  const isAllRelationsQuery = ANY_RELATION_REGEX.test(r.label);
   const selections = buildSelections({ r, conditionUid });
+  const findVariables = isAllRelationsQuery
+    ? [
+        {
+          label: "relationUid",
+          variable: `${conditionUid}-relSchema`,
+        },
+        {
+          label: "effectiveSource",
+          variable: `${conditionUid}-relSource`,
+        },
+      ]
+    : [];
   const { nodes, relations } = fireQueryContext;
   return {
     relation,
@@ -148,6 +166,7 @@ const buildQueryConfig = ({
           },
         ],
         selections,
+        findVariables,
         context: {
           relationsInQuery: [relation],
           customNodes: nodes,
@@ -180,6 +199,10 @@ const getDiscourseContextResults = async ({
 
   const discourseNode = findDiscourseNode({ uid: targetUid });
   if (!discourseNode) return [];
+  const useReifiedRelations = getSetting<boolean>(
+    "use-reified-relations",
+    false,
+  );
   const nodeType = discourseNode?.type;
   const nodeTextByType = Object.fromEntries(
     nodes.map(({ type, text }) => [type, text]),
@@ -211,9 +234,25 @@ const getDiscourseContextResults = async ({
   });
 
   const relationsWithComplement = Array.from(uniqueRelations.values());
+  const queryRelations = useReifiedRelations
+    ? [
+        {
+          id: ANY_RELATION_ID,
+          r: {
+            id: ANY_RELATION_ID,
+            complement: ANY_RELATION_NAME,
+            label: ANY_RELATION_NAME,
+            triples: [],
+            source: "*",
+            destination: "*",
+          },
+          complement: false,
+        },
+      ]
+    : relationsWithComplement;
 
   const context = { nodes, relations };
-  const queryConfigs = relationsWithComplement.map((relation) =>
+  const queryConfigs = queryRelations.map((relation) =>
     buildQueryConfig({
       args,
       targetUid,
@@ -225,13 +264,58 @@ const getDiscourseContextResults = async ({
       complement: relation.complement,
     }),
   );
+  const postQueryOnResult = useReifiedRelations ? onResult : undefined;
+  onResult = postQueryOnResult ? undefined : onResult;
 
-  const resultsWithRelation = await executeQueries(
+  let resultsWithRelation = await executeQueries(
     queryConfigs,
     targetUid,
     nodeTextByType,
     onResult,
   );
+  if (
+    useReifiedRelations &&
+    resultsWithRelation.length > 0 &&
+    resultsWithRelation[0].results.length > 0
+  ) {
+    const byRel: Record<string, Result[]> = {};
+    const results = resultsWithRelation[0].results;
+    resultsWithRelation = [];
+    for (const r of results) {
+      const relKey = `${r.relationUid as string}-${r.effectiveSource !== targetUid}`;
+      byRel[relKey] = byRel[relKey] || [];
+      byRel[relKey].push(r);
+    }
+    resultsWithRelation = Array.from(uniqueRelations.entries()).flatMap(
+      ([ruid, relation]) => {
+        const results = byRel[ruid];
+        if (!results?.length) return [];
+        delete byRel[ruid];
+        const isComplement = relation.complement;
+        return [
+          {
+            relation: {
+              id: relation.id,
+              label: isComplement ? relation.r.complement : relation.r.label,
+              isComplement,
+              text: isComplement ? relation.r.complement : relation.r.label,
+              target: isComplement ? relation.r.source : relation.r.destination,
+            },
+            results,
+          },
+        ];
+      },
+    );
+    Object.keys(byRel).forEach((ruid) => {
+      /*
+       * A stored reified relation can outlive its relation schema, or the
+       * schema can stop applying to this node type after source/destination
+       * settings change. Drop that stale result from discourse context
+       * instead of treating it as a runtime failure.
+       */
+      console.warn("Relation with obsolete relation type:" + ruid);
+    });
+  }
   const groupedResults = Object.fromEntries(
     resultsWithRelation.map((r) => [
       r.relation.text,
@@ -256,10 +340,14 @@ const getDiscourseContextResults = async ({
           }),
       ),
   );
-  return Object.entries(groupedResults).map(([label, results]) => ({
-    label,
-    results,
-  }));
+  const asResultList = Object.entries(groupedResults)
+    .filter(([, results]) => Object.keys(results).length > 0)
+    .map(([label, results]) => ({
+      label,
+      results,
+    }));
+  if (postQueryOnResult) asResultList.map((r) => postQueryOnResult(r));
+  return asResultList;
 };
 
 export default getDiscourseContextResults;

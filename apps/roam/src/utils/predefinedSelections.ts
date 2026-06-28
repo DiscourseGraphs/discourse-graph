@@ -367,9 +367,7 @@ const predefinedSelections: PredefinedSelection[] = [
           (c): c is QBClause => c.type === "clause" && c.target === selectedVar,
         );
         if (introducedCondition?.relation === "references") {
-          const sourceUid = result[
-            `${introducedCondition.source}-uid`
-          ] as string;
+          const sourceUid = result[`${introducedCondition.source}-uid`];
           if (sourceUid) {
             const blockText = getTextByBlockUid(sourceUid);
             await updateBlock({

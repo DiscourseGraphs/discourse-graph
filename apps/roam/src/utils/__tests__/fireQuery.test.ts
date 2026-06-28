@@ -66,6 +66,34 @@ describe("getDatalogQuery", () => {
     ]);
     expect(formatted).toMatchObject({ text: "A", uid: "u1", Created: "123" });
   });
+
+  it("adds internal find variables to the query output", async () => {
+    const built = getDatalogQuery({
+      conditions: [],
+      selections: [],
+      findVariables: [
+        { label: "relationUid", variable: "condition-relSchema" },
+        { label: "effectiveSource", variable: "?condition-relSource" },
+      ],
+    });
+
+    expect(built.query).toContain("?condition-relSchema");
+    expect(built.query).toContain("?condition-relSource");
+
+    const formatted = await built.formatResult([
+      { ":node/title": "A", ":block/uid": "u1" },
+      { ":block/uid": "u1" },
+      "rel-1",
+      "source-1",
+    ]);
+
+    expect(formatted).toMatchObject({
+      text: "A",
+      uid: "u1",
+      relationUid: "rel-1",
+      effectiveSource: "source-1",
+    });
+  });
 });
 
 describe("fireQuery", () => {
