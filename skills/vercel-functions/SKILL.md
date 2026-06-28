@@ -8,24 +8,23 @@ metadata:
     - "https://vercel.com/docs/functions/runtimes"
   sitemap: "https://vercel.com/sitemap/docs.xml"
   pathPatterns:
-    - 'api/**/*.*'
-    - 'pages/api/**'
-    - 'src/pages/api/**'
-    - 'app/**/route.*'
-    - 'src/app/**/route.*'
-    - 'apps/*/api/**/*.*'
-    - 'apps/*/app/**/route.*'
-    - 'apps/*/src/app/**/route.*'
-    - 'apps/*/pages/api/**'
-    - 'vercel.json'
-    - 'apps/*/vercel.json'
+    - "api/**/*.*"
+    - "pages/api/**"
+    - "src/pages/api/**"
+    - "app/**/route.*"
+    - "src/app/**/route.*"
+    - "apps/*/api/**/*.*"
+    - "apps/*/app/**/route.*"
+    - "apps/*/src/app/**/route.*"
+    - "apps/*/pages/api/**"
+    - "vercel.json"
+    - "apps/*/vercel.json"
   bashPatterns:
     - '\bvercel\s+dev\b'
     - '\bvercel\s+logs\b'
 validate:
-  -
-    pattern: export\s+default\s+function
-    message: 'Use named exports (GET, POST, PUT, DELETE) instead of default export for route handlers'
+  - pattern: export\s+default\s+function
+    message: "Use named exports (GET, POST, PUT, DELETE) instead of default export for route handlers"
     severity: error
     # Skip on App Router page / layout / loading / error / not-found / sitemap / template / default files,
     # which require a default export by Next.js convention. Detected via the 'use client' directive,
@@ -34,56 +33,48 @@ validate:
     # element with a capitalised component tag — all signals that the file is a page-style file rather
     # than a route handler. See anthropics/claude-code#54989.
     skipIfFileContains: "(?:^|\\n)\\s*['\"]use\\s+client['\"]|export\\s+const\\s+(?:metadata|dynamic|revalidate|fetchCache|runtime)\\b|export\\s+default\\s+(?:async\\s+)?function\\s+\\w*(?:Page|Layout|Loading|Error|NotFound|Sitemap|Template|Default|sitemap|robots|opengraph|manifest)\\b|<[A-Z][A-Za-z0-9]*|\\{\\s*children\\s*[,}:]|MetadataRoute\\.|from\\s+['\"]next/(?:font|image|link|navigation|headers|cookies)['\"]"
-  -
-    pattern: NextApiRequest|NextApiResponse
-    message: 'NextApiRequest/NextApiResponse are Pages Router types — use Web API Request/Response'
+  - pattern: NextApiRequest|NextApiResponse
+    message: "NextApiRequest/NextApiResponse are Pages Router types — use Web API Request/Response"
     severity: error
-  -
-    pattern: 'from\s+[''"](openai|@anthropic-ai/sdk|anthropic)[''"]|new\s+(OpenAI|Anthropic)\('
-    message: 'Direct AI provider SDK detected in route handler. Use the Vercel AI SDK for streaming, tools, and provider abstraction.'
+  - pattern: 'from\s+[''"](openai|@anthropic-ai/sdk|anthropic)[''"]|new\s+(OpenAI|Anthropic)\('
+    message: "Direct AI provider SDK detected in route handler. Use the Vercel AI SDK for streaming, tools, and provider abstraction."
     severity: recommended
     upgradeToSkill: ai-sdk
-    upgradeWhy: 'Replace vendor-locked provider SDKs with @ai-sdk/openai or @ai-sdk/anthropic for unified streaming and tool support.'
+    upgradeWhy: "Replace vendor-locked provider SDKs with @ai-sdk/openai or @ai-sdk/anthropic for unified streaming and tool support."
     skipIfFileContains: '@ai-sdk/|from\s+[''"](ai)[''"]|import.*from\s+[''"](ai)[''"]|streamText|generateText'
-  -
-    pattern: 'setTimeout\s*\(|setInterval\s*\(|await\s+new\s+Promise\s*\([^)]*setTimeout'
-    message: 'Long-running or polling logic detected in a serverless handler. Functions have execution time limits.'
+  - pattern: 'setTimeout\s*\(|setInterval\s*\(|await\s+new\s+Promise\s*\([^)]*setTimeout'
+    message: "Long-running or polling logic detected in a serverless handler. Functions have execution time limits."
     severity: recommended
     upgradeToSkill: workflow
-    upgradeWhy: 'Move delayed/polling logic to Vercel Workflow for durable execution with pause, resume, retries, and crash safety.'
-    skipIfFileContains: 'use workflow|use step|@vercel/workflow'
-  -
-    pattern: 'writeFile(Sync)?\(|createWriteStream\(|from\s+[''"](multer|formidable)[''"]|fs\.writeFile'
-    message: 'Local filesystem write detected. Serverless functions have ephemeral, read-only filesystems.'
+    upgradeWhy: "Move delayed/polling logic to Vercel Workflow for durable execution with pause, resume, retries, and crash safety."
+    skipIfFileContains: "use workflow|use step|@vercel/workflow"
+  - pattern: 'writeFile(Sync)?\(|createWriteStream\(|from\s+[''"](multer|formidable)[''"]|fs\.writeFile'
+    message: "Local filesystem write detected. Serverless functions have ephemeral, read-only filesystems."
     severity: error
     upgradeToSkill: vercel-storage
-    upgradeWhy: 'Replace local filesystem writes with Vercel Blob, Neon, or Upstash for persistent, platform-native storage.'
-    skipIfFileContains: '@vercel/blob|@upstash/|@neondatabase/'
-  -
-    pattern: 'export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)\b'
-    message: 'Route handler has no observability instrumentation. Add logging and error tracking for production debugging.'
+    upgradeWhy: "Replace local filesystem writes with Vercel Blob, Neon, or Upstash for persistent, platform-native storage."
+    skipIfFileContains: "@vercel/blob|@upstash/|@neondatabase/"
+  - pattern: 'export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)\b'
+    message: "Route handler has no observability instrumentation. Add logging and error tracking for production debugging."
     severity: warn
     skipIfFileContains: 'console\.error|logger\.|captureException|Sentry|@vercel/otel|withTracing'
-  -
-    pattern: 'from\s+[''""](lru-cache|node-cache|memory-cache)[''""]|new\s+(LRUCache|NodeCache|Map)\(\s*\).*cache'
-    message: 'In-process memory cache detected in serverless function. Process memory is not shared across invocations.'
+  - pattern: 'from\s+[''""](lru-cache|node-cache|memory-cache)[''""]|new\s+(LRUCache|NodeCache|Map)\(\s*\).*cache'
+    message: "In-process memory cache detected in serverless function. Process memory is not shared across invocations."
     severity: recommended
     upgradeToSkill: runtime-cache
-    upgradeWhy: 'Replace in-process caches with Vercel Runtime Cache (getCache from @vercel/functions) for region-aware caching that persists across invocations.'
+    upgradeWhy: "Replace in-process caches with Vercel Runtime Cache (getCache from @vercel/functions) for region-aware caching that persists across invocations."
     skipIfFileContains: 'getCache|from\s+[''""]\@vercel/functions[''""]'
-  -
-    pattern: 'maxRetries\s*[=:]|retryCount\s*[=:]|retry\s*\(\s*|for\s*\([^)]*retry|while\s*\([^)]*retry'
-    message: 'Manual retry logic detected. Use Vercel Workflow DevKit for automatic retries with durable execution.'
+  - pattern: 'maxRetries\s*[=:]|retryCount\s*[=:]|retry\s*\(\s*|for\s*\([^)]*retry|while\s*\([^)]*retry'
+    message: "Manual retry logic detected. Use Vercel Workflow DevKit for automatic retries with durable execution."
     severity: recommended
     upgradeToSkill: workflow
-    upgradeWhy: 'Replace manual retry loops with Workflow DevKit steps that provide automatic retries, crash safety, and observability.'
+    upgradeWhy: "Replace manual retry loops with Workflow DevKit steps that provide automatic retries, crash safety, and observability."
     skipIfFileContains: 'use workflow|use step|@vercel/workflow|from\s+[''""](workflow)[''""]'
-  -
-    pattern: 'from\s+[''"](express)[''""]|require\s*\(\s*[''"](express)[''""\)]'
-    message: 'Express.js detected in a Vercel project. Vercel Functions use the Web Request/Response API — Express middleware, req/res, and app.listen() do not work in serverless.'
+  - pattern: 'from\s+[''"](express)[''""]|require\s*\(\s*[''"](express)[''""\)]'
+    message: "Express.js detected in a Vercel project. Vercel Functions use the Web Request/Response API — Express middleware, req/res, and app.listen() do not work in serverless."
     severity: recommended
     upgradeToSkill: vercel-functions
-    upgradeWhy: 'Replace Express with Next.js route handlers (export async function GET/POST) or Vercel Functions using the Web Request/Response API.'
+    upgradeWhy: "Replace Express with Next.js route handlers (export async function GET/POST) or Vercel Functions using the Web Request/Response API."
     skipIfFileContains: 'export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)|from\s+[''""](next/server|@vercel/functions)[''""]'
 retrieval:
   aliases:
@@ -103,47 +94,37 @@ retrieval:
     - streaming
     - Cron Jobs
 chainTo:
-  -
-    pattern: 'from\s+[''\"](openai|@anthropic-ai/sdk|anthropic)[''"]|new\s+(OpenAI|Anthropic)\('
+  - pattern: 'from\s+[''\"](openai|@anthropic-ai/sdk|anthropic)[''"]|new\s+(OpenAI|Anthropic)\('
     targetSkill: ai-sdk
-    message: 'Direct AI provider SDK in route handler — loading AI SDK guidance for unified streaming and tool support.'
-  -
-    pattern: 'setTimeout\s*\(|setInterval\s*\(|await\s+new\s+Promise\s*\([^)]*setTimeout'
+    message: "Direct AI provider SDK in route handler — loading AI SDK guidance for unified streaming and tool support."
+  - pattern: 'setTimeout\s*\(|setInterval\s*\(|await\s+new\s+Promise\s*\([^)]*setTimeout'
     targetSkill: workflow
-    message: 'Long-running or polling logic in serverless handler — loading Workflow DevKit for durable execution.'
-  -
-    pattern: 'writeFile(Sync)?\(|createWriteStream\(|from\s+[''\"](multer|formidable)[''"]|fs\.writeFile'
+    message: "Long-running or polling logic in serverless handler — loading Workflow DevKit for durable execution."
+  - pattern: 'writeFile(Sync)?\(|createWriteStream\(|from\s+[''\"](multer|formidable)[''"]|fs\.writeFile'
     targetSkill: vercel-storage
-    message: 'Local filesystem write in serverless function — loading Vercel Storage guidance for platform-native persistence.'
-  -
-    pattern: 'from\s+[''""]@vercel/(postgres|kv)[''""]'
+    message: "Local filesystem write in serverless function — loading Vercel Storage guidance for platform-native persistence."
+  - pattern: 'from\s+[''""]@vercel/(postgres|kv)[''""]'
     targetSkill: vercel-storage
-    message: '@vercel/postgres and @vercel/kv are sunset — loading Vercel Storage guidance for Neon and Upstash migration.'
-  -
-    pattern: 'generateObject\s*\(|streamObject\s*\(|toDataStreamResponse|maxSteps\b|CoreMessage\b'
+    message: "@vercel/postgres and @vercel/kv are sunset — loading Vercel Storage guidance for Neon and Upstash migration."
+  - pattern: 'generateObject\s*\(|streamObject\s*\(|toDataStreamResponse|maxSteps\b|CoreMessage\b'
     targetSkill: ai-sdk
-    message: 'Deprecated AI SDK v5 API detected — loading AI SDK v6 guidance for migration.'
-  -
-    pattern: 'while\s*\(\s*true\s*\)\s*\{|for\s*\(\s*;\s*;\s*\)\s*\{|setInterval\s*\(\s*async'
+    message: "Deprecated AI SDK v5 API detected — loading AI SDK v6 guidance for migration."
+  - pattern: 'while\s*\(\s*true\s*\)\s*\{|for\s*\(\s*;\s*;\s*\)\s*\{|setInterval\s*\(\s*async'
     targetSkill: workflow
-    message: 'Polling loop in serverless function detected — loading Workflow DevKit for durable, crash-safe execution with pause/resume.'
+    message: "Polling loop in serverless function detected — loading Workflow DevKit for durable, crash-safe execution with pause/resume."
     skipIfFileContains: "use workflow|use step|from\\s+['\"]workflow['\"]"
-  -
-    pattern: "from\\s+['\"]express['\"]|require\\s*\\(\\s*['\"]express['\"]"
+  - pattern: "from\\s+['\"]express['\"]|require\\s*\\(\\s*['\"]express['\"]"
     targetSkill: vercel-functions
-    message: 'Express.js detected — loading Vercel Functions guidance for Web Request/Response API route handlers that replace Express middleware and routing.'
+    message: "Express.js detected — loading Vercel Functions guidance for Web Request/Response API route handlers that replace Express middleware and routing."
     skipIfFileContains: "export\\s+(async\\s+)?function\\s+(GET|POST|PUT|PATCH|DELETE)"
-  -
-    pattern: 'from\s+[''""](lru-cache|node-cache|memory-cache)[''""]|new\s+(LRUCache|NodeCache|Map)\(\s*\).*cache'
+  - pattern: 'from\s+[''""](lru-cache|node-cache|memory-cache)[''""]|new\s+(LRUCache|NodeCache|Map)\(\s*\).*cache'
     targetSkill: runtime-cache
-    message: 'In-process memory cache in serverless function — loading Runtime Cache guidance for region-aware caching that persists across invocations.'
+    message: "In-process memory cache in serverless function — loading Runtime Cache guidance for region-aware caching that persists across invocations."
     skipIfFileContains: 'getCache|from\s+[''""]\@vercel/functions[''""]'
-  -
-    pattern: 'maxRetries\s*[=:]|retryCount\s*[=:]|retry\s*\(\s*|for\s*\([^)]*retry|while\s*\([^)]*retry'
+  - pattern: 'maxRetries\s*[=:]|retryCount\s*[=:]|retry\s*\(\s*|for\s*\([^)]*retry|while\s*\([^)]*retry'
     targetSkill: workflow
-    message: 'Manual retry logic in serverless handler — loading Workflow DevKit guidance for automatic retries with durable execution.'
+    message: "Manual retry logic in serverless handler — loading Workflow DevKit guidance for automatic retries with durable execution."
     skipIfFileContains: 'use workflow|use step|@vercel/workflow|from\s+[''""](workflow)[''""]'
-
 ---
 
 # Vercel Functions
@@ -153,6 +134,7 @@ You are an expert in Vercel Functions — the compute layer of the Vercel platfo
 ## Function Types
 
 ### Serverless Functions (Node.js)
+
 - Full Node.js runtime, all npm packages available
 - Default for Next.js API routes, Server Actions, Server Components
 - Cold starts: 800ms–2.5s (with DB connections)
@@ -161,11 +143,12 @@ You are an expert in Vercel Functions — the compute layer of the Vercel platfo
 ```ts
 // app/api/hello/route.ts
 export async function GET() {
-  return Response.json({ message: 'Hello from Node.js' })
+  return Response.json({ message: "Hello from Node.js" });
 }
 ```
 
 ### Edge Functions (V8 Isolates)
+
 - Lightweight V8 runtime, Web Standard APIs only
 - Ultra-low cold starts (<1ms globally)
 - Limited API surface (no full Node.js)
@@ -173,10 +156,10 @@ export async function GET() {
 
 ```ts
 // app/api/hello/route.ts
-export const runtime = 'edge'
+export const runtime = "edge";
 
 export async function GET() {
-  return new Response('Hello from the Edge')
+  return new Response("Hello from the Edge");
 }
 ```
 
@@ -194,21 +177,22 @@ Node.js 24 LTS is now GA on Vercel for both builds and functions. Features V8 13
 
 ### Choosing Runtime
 
-| Need | Runtime | Why |
-|------|---------|-----|
-| Full Node.js APIs, npm packages | `nodejs` | Full compatibility |
-| Lower latency, CPU-bound work | `nodejs` + Bun | ~28% latency reduction |
-| Ultra-low latency, simple logic | `edge` | <1ms cold start, global |
-| Database connections, heavy deps | `nodejs` | Edge lacks full Node.js |
-| Auth/redirect at the edge | `edge` | Fastest response |
-| AI streaming | Either | Both support streaming |
-| Systems-level performance | `rust` (beta) | Native speed, Fluid Compute |
+| Need                             | Runtime        | Why                         |
+| -------------------------------- | -------------- | --------------------------- |
+| Full Node.js APIs, npm packages  | `nodejs`       | Full compatibility          |
+| Lower latency, CPU-bound work    | `nodejs` + Bun | ~28% latency reduction      |
+| Ultra-low latency, simple logic  | `edge`         | <1ms cold start, global     |
+| Database connections, heavy deps | `nodejs`       | Edge lacks full Node.js     |
+| Auth/redirect at the edge        | `edge`         | Fastest response            |
+| AI streaming                     | Either         | Both support streaming      |
+| Systems-level performance        | `rust` (beta)  | Native speed, Fluid Compute |
 
 ## Fluid Compute
 
 Fluid Compute is the unified execution model for all Vercel Functions (both Node.js and Edge).
 
 Key benefits:
+
 - **Optimized concurrency**: Multiple invocations on a single instance — up to 85% cost reduction for high-concurrency workloads
 - **Extended durations**: Default 300s for all plans; up to 800s on Pro/Enterprise
 - **Active CPU pricing**: Charges only while CPU is actively working, not during idle/await time. Enabled by default for all plans. Memory-only periods billed at a significantly lower rate.
@@ -219,10 +203,10 @@ Key benefits:
 
 ### Instance Sizes
 
-| Size | CPU | Memory |
-|------|-----|--------|
-| Standard (default) | 1 vCPU | 2 GB |
-| Performance | 2 vCPU | 4 GB |
+| Size               | CPU    | Memory |
+| ------------------ | ------ | ------ |
+| Standard (default) | 1 vCPU | 2 GB   |
+| Performance        | 2 vCPU | 4 GB   |
 
 Hobby projects use Standard CPU. The Basic CPU instance has been removed.
 
@@ -230,37 +214,37 @@ Hobby projects use Standard CPU. The Basic CPU instance has been removed.
 
 ```ts
 // Continue work after sending response
-import { waitUntil } from '@vercel/functions'
+import { waitUntil } from "@vercel/functions";
 
 export async function POST(req: Request) {
-  const data = await req.json()
+  const data = await req.json();
 
   // Send response immediately
-  const response = Response.json({ received: true })
+  const response = Response.json({ received: true });
 
   // Continue processing in background
   waitUntil(async () => {
-    await processAnalytics(data)
-    await sendNotification(data)
-  })
+    await processAnalytics(data);
+    await sendNotification(data);
+  });
 
-  return response
+  return response;
 }
 ```
 
 ### Next.js `after` (equivalent)
 
 ```ts
-import { after } from 'next/server'
+import { after } from "next/server";
 
 export async function POST(req: Request) {
-  const data = await req.json()
+  const data = await req.json();
 
   after(async () => {
-    await logToAnalytics(data)
-  })
+    await logToAnalytics(data);
+  });
 
-  return Response.json({ ok: true })
+  return Response.json({ ok: true });
 }
 ```
 
@@ -270,20 +254,20 @@ Zero-config streaming for both runtimes. Essential for AI applications.
 
 ```ts
 export async function POST(req: Request) {
-  const encoder = new TextEncoder()
+  const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       for (const chunk of data) {
-        controller.enqueue(encoder.encode(chunk))
-        await new Promise(r => setTimeout(r, 100))
+        controller.enqueue(encoder.encode(chunk));
+        await new Promise((r) => setTimeout(r, 100));
       }
-      controller.close()
+      controller.close();
     },
-  })
+  });
 
   return new Response(stream, {
-    headers: { 'Content-Type': 'text/event-stream' },
-  })
+    headers: { "Content-Type": "text/event-stream" },
+  });
 }
 ```
 
@@ -312,12 +296,12 @@ The cron endpoint receives a normal HTTP request. Verify it's from Vercel:
 
 ```ts
 export async function GET(req: Request) {
-  const authHeader = req.headers.get('authorization')
+  const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response('Unauthorized', { status: 401 })
+    return new Response("Unauthorized", { status: 401 });
   }
   // Do scheduled work
-  return Response.json({ ok: true })
+  return Response.json({ ok: true });
 }
 ```
 
@@ -343,11 +327,11 @@ export async function GET(req: Request) {
 
 All plans now default to 300s execution time with Fluid Compute.
 
-| Plan | Default | Max |
-|------|---------|-----|
-| Hobby | 300s | 300s |
-| Pro | 300s | 800s |
-| Enterprise | 300s | 800s |
+| Plan       | Default | Max  |
+| ---------- | ------- | ---- |
+| Hobby      | 300s    | 300s |
+| Pro        | 300s    | 800s |
+| Enterprise | 300s    | 800s |
 
 ## Common Pitfalls
 

@@ -7,26 +7,25 @@ metadata:
     - "https://react.dev/reference/react"
     - "https://react.dev/learn"
   pathPatterns:
-    - 'src/components/**/*.tsx'
-    - 'src/components/**/*.jsx'
-    - 'app/components/**/*.tsx'
-    - 'app/components/**/*.jsx'
-    - 'components/**/*.tsx'
-    - 'components/**/*.jsx'
-    - 'src/ui/**/*.tsx'
-    - 'lib/components/**/*.tsx'
+    - "src/components/**/*.tsx"
+    - "src/components/**/*.jsx"
+    - "app/components/**/*.tsx"
+    - "app/components/**/*.jsx"
+    - "components/**/*.tsx"
+    - "components/**/*.jsx"
+    - "src/ui/**/*.tsx"
+    - "lib/components/**/*.tsx"
   bashPatterns: []
   importPatterns:
-    - 'react'
-    - 'react-dom'
+    - "react"
+    - "react-dom"
 validate:
-  -
-    pattern: 'from\s+[''"](styled-components|@emotion/styled|@emotion/react|@mui/material|@chakra-ui/react)[''"]|styled\.'
-    message: 'Legacy CSS-in-JS or component library detected. Consider shadcn/ui + Tailwind for modern Vercel-native UI.'
+  - pattern: 'from\s+[''"](styled-components|@emotion/styled|@emotion/react|@mui/material|@chakra-ui/react)[''"]|styled\.'
+    message: "Legacy CSS-in-JS or component library detected. Consider shadcn/ui + Tailwind for modern Vercel-native UI."
     severity: warn
     upgradeToSkill: shadcn
-    upgradeWhy: 'Migrate from CSS-in-JS/MUI/Chakra to shadcn/ui + Tailwind CSS for better SSR performance and Vercel ecosystem alignment.'
-    skipIfFileContains: '@/components/ui|shadcn|tailwindcss'
+    upgradeWhy: "Migrate from CSS-in-JS/MUI/Chakra to shadcn/ui + Tailwind CSS for better SSR performance and Vercel ecosystem alignment."
+    skipIfFileContains: "@/components/ui|shadcn|tailwindcss"
 retrieval:
   aliases:
     - react review
@@ -45,11 +44,9 @@ retrieval:
     - TSX
     - component
 chainTo:
-  -
-    pattern: 'from\s+[''\"](styled-components|@emotion/styled|@emotion/react|@mui/material|@chakra-ui/react)[''"]|styled\.'
+  - pattern: 'from\s+[''\"](styled-components|@emotion/styled|@emotion/react|@mui/material|@chakra-ui/react)[''"]|styled\.'
     targetSkill: shadcn
-    message: 'Legacy CSS-in-JS or component library detected — loading shadcn/ui guidance for modern Vercel-native UI.'
-
+    message: "Legacy CSS-in-JS or component library detected — loading shadcn/ui guidance for modern Vercel-native UI."
 ---
 
 # Vercel React Best Practices
@@ -59,6 +56,7 @@ Comprehensive performance optimization guide for React and Next.js applications,
 ## When to Apply
 
 Reference these guidelines when:
+
 - Writing new React components or Next.js pages
 - Implementing data fetching (client or server-side)
 - Reviewing code for performance issues
@@ -67,16 +65,16 @@ Reference these guidelines when:
 
 ## Rule Categories by Priority
 
-| Priority | Category | Impact | Prefix |
-|----------|----------|--------|--------|
-| 1 | Eliminating Waterfalls | CRITICAL | `async-` |
-| 2 | Bundle Size Optimization | CRITICAL | `bundle-` |
-| 3 | Server-Side Performance | HIGH | `server-` |
-| 4 | Client-Side Data Fetching | MEDIUM-HIGH | `client-` |
-| 5 | Re-render Optimization | MEDIUM | `rerender-` |
-| 6 | Rendering Performance | MEDIUM | `rendering-` |
-| 7 | JavaScript Performance | LOW-MEDIUM | `js-` |
-| 8 | Advanced Patterns | LOW | `advanced-` |
+| Priority | Category                  | Impact      | Prefix       |
+| -------- | ------------------------- | ----------- | ------------ |
+| 1        | Eliminating Waterfalls    | CRITICAL    | `async-`     |
+| 2        | Bundle Size Optimization  | CRITICAL    | `bundle-`    |
+| 3        | Server-Side Performance   | HIGH        | `server-`    |
+| 4        | Client-Side Data Fetching | MEDIUM-HIGH | `client-`    |
+| 5        | Re-render Optimization    | MEDIUM      | `rerender-`  |
+| 6        | Rendering Performance     | MEDIUM      | `rendering-` |
+| 7        | JavaScript Performance    | LOW-MEDIUM  | `js-`        |
+| 8        | Advanced Patterns         | LOW         | `advanced-`  |
 
 ## Quick Reference
 
@@ -178,6 +176,7 @@ rules/bundle-barrel-imports.md
 ```
 
 Each rule file contains:
+
 - Brief explanation of why it matters
 - Incorrect code example with explanation
 - Correct code example with explanation

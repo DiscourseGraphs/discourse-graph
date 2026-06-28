@@ -7,13 +7,13 @@ metadata:
     - "https://ui.shadcn.com/docs"
     - "https://ui.shadcn.com/docs/components"
   pathPatterns:
-    - 'components.json'
-    - 'components/ui/**'
-    - 'src/components/ui/**'
-    - 'apps/*/components/ui/**'
-    - 'apps/*/src/components/ui/**'
-    - 'packages/*/components/ui/**'
-    - 'packages/*/src/components/ui/**'
+    - "components.json"
+    - "components/ui/**"
+    - "src/components/ui/**"
+    - "apps/*/components/ui/**"
+    - "apps/*/src/components/ui/**"
+    - "packages/*/components/ui/**"
+    - "packages/*/src/components/ui/**"
   bashPatterns:
     - '\bnpx\s+shadcn\b'
     - '\bnpx\s+shadcn@latest\s+(init|add|build|search|list|migrate|info|docs|view)\b'
@@ -22,9 +22,8 @@ metadata:
     - '\bpnpm\s+create\s+next-app\b'
     - '\bnpm\s+create\s+next-app\b'
 validate:
-  -
-    pattern: '"base"\s*:\s*"base-ui"'
-    message: 'AI Elements components use Radix-specific APIs (asChild, openDelay) and have type errors with Base UI. If this project uses AI Elements, reinitialize with: npx shadcn@latest init -d --base radix -f'
+  - pattern: '"base"\s*:\s*"base-ui"'
+    message: "AI Elements components use Radix-specific APIs (asChild, openDelay) and have type errors with Base UI. If this project uses AI Elements, reinitialize with: npx shadcn@latest init -d --base radix -f"
     severity: warn
 retrieval:
   aliases:
@@ -43,7 +42,6 @@ retrieval:
     - registry
     - theme
     - components.json
-
 ---
 
 # shadcn/ui
@@ -82,6 +80,7 @@ npx shadcn@latest init --template vite -d
 ```
 
 Options:
+
 - `-d, --defaults` — **Use default configuration, skip all interactive prompts** (REQUIRED for CI/agent use)
 - `-y, --yes` — Skip confirmation prompts (does NOT skip library selection — use `-d` instead)
 - `-f, --force` — Force overwrite existing configuration
@@ -95,6 +94,7 @@ Options:
 > **Deprecated in CLI v4**: `--style`, `--base-color`, `--src-dir`, `--no-base-style`, and `--css-variables` flags are removed and will error. The `registry:build` and `registry:mcp` registry types are also deprecated. Use `registry:base` and `registry:font` instead.
 
 The init command:
+
 1. Detects your framework (Next.js, Vite, React Router, Astro, Laravel, TanStack Start)
 2. Installs required dependencies (Radix UI, tailwind-merge, class-variance-authority)
 3. Creates `components.json` configuration
@@ -119,6 +119,7 @@ npx shadcn@latest add https://elements.ai-sdk.dev/api/registry/all.json
 ```
 
 Options:
+
 - `-o, --overwrite` — Overwrite existing files
 - `-p, --path` — Custom install path
 - `-a, --all` — Install all components
@@ -179,10 +180,10 @@ The `new-york` style now uses a single `radix-ui` package instead of individual 
 
 ```tsx
 // OLD — individual packages
-import * as DialogPrimitive from "@radix-ui/react-dialog"
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 
 // NEW — unified package
-import { Dialog as DialogPrimitive } from "radix-ui"
+import { Dialog as DialogPrimitive } from "radix-ui";
 ```
 
 To migrate existing projects: `npx shadcn@latest migrate radix`. After migration, remove unused `@radix-ui/react-*` packages from `package.json`.
@@ -208,7 +209,7 @@ The `components.json` file configures how shadcn/ui works in your project:
   "tailwind": {
     "config": "tailwind.config.ts",
     "css": "src/app/globals.css",
-    "baseColor": "zinc",  // Options: gray, neutral, slate, stone, zinc, mauve, olive, mist, taupe
+    "baseColor": "zinc", // Options: gray, neutral, slate, stone, zinc, mauve, olive, mist, taupe
     "cssVariables": true
   },
   "aliases": {
@@ -301,11 +302,11 @@ For dark mode, use the `dark` class on `<html>`:
 Or use next-themes for toggling:
 
 ```tsx
-import { ThemeProvider } from 'next-themes'
+import { ThemeProvider } from "next-themes";
 
 <ThemeProvider attribute="class" defaultTheme="dark">
   {children}
-</ThemeProvider>
+</ThemeProvider>;
 ```
 
 ### Custom Colors
@@ -333,26 +334,26 @@ Use in components:
 
 ## Most Common Components
 
-| Component | Use Case |
-|-----------|----------|
-| `button` | Actions, form submission |
-| `card` | Content containers |
-| `dialog` | Modals, confirmation prompts |
-| `input` / `textarea` | Form fields |
-| `select` | Dropdowns |
-| `table` | Data display |
-| `tabs` | View switching |
-| `command` | Command palette (Cmd+K) |
-| `dropdown-menu` | Context menus |
-| `popover` | Floating content |
-| `tooltip` | Hover hints |
-| `badge` | Status indicators |
-| `avatar` | User profile images |
-| `scroll-area` | Scrollable containers |
-| `separator` | Visual dividers |
-| `label` | Form labels |
-| `sheet` | Slide-out panels |
-| `skeleton` | Loading placeholders |
+| Component            | Use Case                     |
+| -------------------- | ---------------------------- |
+| `button`             | Actions, form submission     |
+| `card`               | Content containers           |
+| `dialog`             | Modals, confirmation prompts |
+| `input` / `textarea` | Form fields                  |
+| `select`             | Dropdowns                    |
+| `table`              | Data display                 |
+| `tabs`               | View switching               |
+| `command`            | Command palette (Cmd+K)      |
+| `dropdown-menu`      | Context menus                |
+| `popover`            | Floating content             |
+| `tooltip`            | Hover hints                  |
+| `badge`              | Status indicators            |
+| `avatar`             | User profile images          |
+| `scroll-area`        | Scrollable containers        |
+| `separator`          | Visual dividers              |
+| `label`              | Form labels                  |
+| `sheet`              | Slide-out panels             |
+| `skeleton`           | Loading placeholders         |
 
 ## Design Direction for shadcn on Vercel
 
@@ -371,17 +372,17 @@ shadcn/ui is not only a component source generator. In the Vercel stack it is th
 
 ### Reach for this first
 
-| Use case | Reach for this first | Why |
-|----------|----------------------|-----|
-| Settings page | `Tabs` + `Card` + `Form` | Clear information grouping with predictable save flows |
-| Data dashboard | `Card` + `Badge` + `Table` + `DropdownMenu` | Covers summary, status, dense data, and row actions without custom shells |
-| CRUD table | `Table` + `DropdownMenu` + `Sheet` + `AlertDialog` | Supports browse, act, edit, and destructive confirmation in a standard pattern |
-| Auth screen | `Card` + `Label` + `Input` + `Button` + `Alert` | Keeps entry flows focused and gives errors a proper treatment |
-| Global search | `Command` + `Dialog` | Fast keyboard-first discovery with an established interaction model |
-| Mobile nav | `Sheet` + `Button` + `Separator` | Provides a compact navigation shell that adapts cleanly to small screens |
-| Detail page | header + `Badge` + `Separator` + `Card` | Balances hierarchy, metadata, and supporting content without over-nesting |
-| Filters | `Card` sidebar + `Sheet` + `Select` | Works for persistent desktop filters and collapsible mobile controls |
-| Empty/loading/error states | `Card` + `Skeleton` + `Alert` | Gives non-happy paths a designed surface instead of placeholder text |
+| Use case                   | Reach for this first                               | Why                                                                            |
+| -------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Settings page              | `Tabs` + `Card` + `Form`                           | Clear information grouping with predictable save flows                         |
+| Data dashboard             | `Card` + `Badge` + `Table` + `DropdownMenu`        | Covers summary, status, dense data, and row actions without custom shells      |
+| CRUD table                 | `Table` + `DropdownMenu` + `Sheet` + `AlertDialog` | Supports browse, act, edit, and destructive confirmation in a standard pattern |
+| Auth screen                | `Card` + `Label` + `Input` + `Button` + `Alert`    | Keeps entry flows focused and gives errors a proper treatment                  |
+| Global search              | `Command` + `Dialog`                               | Fast keyboard-first discovery with an established interaction model            |
+| Mobile nav                 | `Sheet` + `Button` + `Separator`                   | Provides a compact navigation shell that adapts cleanly to small screens       |
+| Detail page                | header + `Badge` + `Separator` + `Card`            | Balances hierarchy, metadata, and supporting content without over-nesting      |
+| Filters                    | `Card` sidebar + `Sheet` + `Select`                | Works for persistent desktop filters and collapsible mobile controls           |
+| Empty/loading/error states | `Card` + `Skeleton` + `Alert`                      | Gives non-happy paths a designed surface instead of placeholder text           |
 
 ### Composition recipes
 
@@ -410,11 +411,11 @@ Create your own component registry to share across projects:
 
 ### Registry Types (CLI v4)
 
-| Type | Purpose |
-|------|---------|
-| `registry:ui` | Individual UI components |
+| Type            | Purpose                                                                |
+| --------------- | ---------------------------------------------------------------------- |
+| `registry:ui`   | Individual UI components                                               |
 | `registry:base` | Full design system payload — components, deps, CSS vars, fonts, config |
-| `registry:font` | Font configuration as a first-class registry item |
+| `registry:font` | Font configuration as a first-class registry item                      |
 
 ### 1. Define registry.json
 
@@ -470,6 +471,7 @@ npx shadcn@latest add https://your-domain.com/r/my-component.json
 ```
 
 **After running `shadcn init`**, always:
+
 1. Replace font declarations in `@theme inline` with literal Geist font names (as shown above)
 2. Move the font variable classNames from `<body>` to `<html>` in `layout.tsx`:
 
@@ -506,11 +508,11 @@ This applies to most shadcn components — they use Tailwind classes for sizing,
 All shadcn components use the `cn()` utility for conditional class merging:
 
 ```ts
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 ```
 
@@ -520,17 +522,17 @@ Since you own the source code, extend components directly:
 
 ```tsx
 // components/ui/button.tsx — add your custom variant
-const buttonVariants = cva('...', {
+const buttonVariants = cva("...", {
   variants: {
     variant: {
-      default: '...',
-      destructive: '...',
+      default: "...",
+      destructive: "...",
       // Add custom variants
-      success: 'bg-green-600 text-white hover:bg-green-700',
-      premium: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
+      success: "bg-green-600 text-white hover:bg-green-700",
+      premium: "bg-gradient-to-r from-purple-500 to-pink-500 text-white",
     },
   },
-})
+});
 ```
 
 ### Wrapping with TooltipProvider
@@ -539,7 +541,7 @@ Many components require `TooltipProvider` at the root:
 
 ```tsx
 // app/layout.tsx
-import { TooltipProvider } from '@/components/ui/tooltip'
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function RootLayout({ children }) {
   return (
@@ -548,7 +550,7 @@ export default function RootLayout({ children }) {
         <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>
-  )
+  );
 }
 ```
 
