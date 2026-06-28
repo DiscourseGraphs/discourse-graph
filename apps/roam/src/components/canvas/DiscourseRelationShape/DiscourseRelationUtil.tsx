@@ -1216,6 +1216,8 @@ export const createAllRelationShapeUtils = (
 
   class DiscourseRelationFallbackUtil extends BaseDiscourseRelationUtil {
     static override type = DISCOURSE_RELATION_SHAPE_TYPE;
+
+    handleCreateRelationsInRoam = async (): Promise<void> => undefined;
   }
 
   return [...relationShapeUtils, DiscourseRelationFallbackUtil];
