@@ -3,12 +3,6 @@ import getBlockProps, { type json } from "./getBlockProps";
 import setBlockProps from "./setBlockProps";
 import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
 
-/**
- * Stable identity of a node imported into Roam from another app, persisted on the
- * imported page so it can be re-found (duplicate prevention) and refreshed later.
- * Field names mirror the app-neutral `CrossAppNode` contract; the page's display
- * title is kept separate from this stored identity.
- */
 export type ImportedSourceIdentity = {
   sourceApp: CrossAppNode["sourceApp"];
   sourceSpaceId: string;
@@ -18,10 +12,6 @@ export type ImportedSourceIdentity = {
   sourceModifiedAt: string;
 };
 
-/**
- * Sub-key under the shared `discourse-graph` block-props namespace holding the
- * imported source identity, alongside any other discourse-graph props.
- */
 export const IMPORTED_FROM_PROP_KEY = "importedFrom";
 
 const isJsonObject = (value: json): value is { [key: string]: json } =>
@@ -30,10 +20,6 @@ const isJsonObject = (value: json): value is { [key: string]: json } =>
 const isSourceApp = (value: json): value is CrossAppNode["sourceApp"] =>
   value === "roam" || value === "obsidian";
 
-/**
- * Derive the stored identity from a cross-app node payload. The display title
- * comes from the `direct` content variant, per the contract.
- */
 export const toImportedSourceIdentity = (
   node: CrossAppNode,
 ): ImportedSourceIdentity => ({
@@ -45,11 +31,6 @@ export const toImportedSourceIdentity = (
   sourceModifiedAt: node.sourceModifiedAt,
 });
 
-/**
- * Extract the imported source identity from a page's normalized block props, or
- * `undefined` when the page was not imported (or the metadata is malformed).
- * Pure: pass the result of `getBlockProps(uid)`.
- */
 export const parseImportedSourceIdentity = (
   props: Record<string, json>,
 ): ImportedSourceIdentity | undefined => {
@@ -84,18 +65,11 @@ export const parseImportedSourceIdentity = (
   };
 };
 
-/** Read the imported source identity stored on a Roam page, if any. */
 export const readImportedSourceIdentity = (
   pageUid: string,
 ): ImportedSourceIdentity | undefined =>
   parseImportedSourceIdentity(getBlockProps(pageUid));
 
-/**
- * Write (or overwrite) the imported source identity on a Roam page. Merges into
- * the `discourse-graph` props namespace so sibling metadata is preserved, and
- * lives in block props so it survives overwrites of the page's content. Used on
- * first import and on refresh.
- */
 export const writeImportedSourceIdentity = (
   pageUid: string,
   identity: ImportedSourceIdentity,
@@ -113,11 +87,6 @@ export const writeImportedSourceIdentity = (
   setBlockProps(pageUid, { [DISCOURSE_GRAPH_PROP_NAME]: dgData });
 };
 
-/**
- * Find the uid of an already-imported Roam page by its source RID, or `null`.
- * `sourceNodeRid` is the canonical cross-app identity key, so it alone
- * identifies an imported node. Warns if more than one page shares a RID.
- */
 export const findImportedNodeUidByRid = async (
   sourceNodeRid: string,
 ): Promise<string | null> => {

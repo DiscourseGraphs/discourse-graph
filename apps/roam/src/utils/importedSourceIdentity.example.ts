@@ -6,13 +6,8 @@ import {
 } from "./importedSourceIdentity";
 
 /**
- * Example of the source identity persisted on a Roam page when an Obsidian-origin
- * shared node is imported. Derived from the cross-app node contract so the stored
- * shape stays in lockstep with `CrossAppNode`. Not imported by runtime code; this
- * file exists to type-check and document the stored metadata.
- *
- * The source node type is intentionally absent from the stored identity: node-type
- * mapping is the materializer's concern (ENG-1858), not ENG-1856's.
+ * Example source identity persisted on a Roam page when an Obsidian-origin node is
+ * imported, type-checked against the cross-app node contract. Not used at runtime.
  */
 
 const OBSIDIAN_SOURCE_SPACE_ID = "obsidian:9a8b7c6d5e4f3210";
