@@ -267,7 +267,7 @@ export const createAllReferencedNodeUtils = (
           labelPosition: 0.5,
           font: "draw",
           scale: 1,
-          relationTypeId: undefined,
+          relationTypeId: null,
         };
       }
       override onHandleDrag: TLOnHandleDragHandler<DiscourseRelationShape> = (
@@ -809,7 +809,7 @@ export const createAllRelationShapeUtils = (
           labelPosition: 0.5,
           font: "draw",
           scale: 1,
-          relationTypeId: undefined,
+          relationTypeId: null,
         };
       }
       override onHandleDrag: TLOnHandleDragHandler<DiscourseRelationShape> = (
@@ -1225,7 +1225,7 @@ export const createAllRelationShapeUtils = (
 
 const relationShapeProps = {
   ...arrowShapeProps,
-  relationTypeId: T.optional(T.string),
+  relationTypeId: T.string.nullable().optional(),
 };
 
 export type RelationShapeProps = RecordPropsType<typeof relationShapeProps>;
@@ -1280,7 +1280,7 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
       labelPosition: 0.5,
       font: "draw",
       scale: 1,
-      relationTypeId: undefined,
+      relationTypeId: null,
     };
   }
 
