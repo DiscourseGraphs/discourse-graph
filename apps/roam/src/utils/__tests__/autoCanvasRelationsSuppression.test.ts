@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   areAutoCanvasRelationsSuppressed,
+  shouldCreateAutoCanvasRelations,
   withAutoCanvasRelationsSuppressed,
 } from "~/components/canvas/autoCanvasRelationsSuppression";
 
@@ -39,5 +40,19 @@ describe("auto canvas relation suppression", () => {
     ).toThrow("load failed");
 
     expect(areAutoCanvasRelationsSuppressed()).toBe(false);
+  });
+
+  it("allows auto canvas relations for user-created records", () => {
+    expect(shouldCreateAutoCanvasRelations({ source: "user" })).toBe(true);
+  });
+
+  it("skips auto canvas relations for remote-created records", () => {
+    expect(shouldCreateAutoCanvasRelations({ source: "remote" })).toBe(false);
+  });
+
+  it("skips user-created records while suppression is active", () => {
+    withAutoCanvasRelationsSuppressed(() => {
+      expect(shouldCreateAutoCanvasRelations({ source: "user" })).toBe(false);
+    });
   });
 });
