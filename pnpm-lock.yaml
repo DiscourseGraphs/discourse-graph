@@ -245,6 +245,9 @@ importers:
       '@octokit/core':
         specifier: ^6.1.3
         version: 6.1.6
+      '@repo/content-model':
+        specifier: workspace:*
+        version: link:../../packages/content-model
       '@repo/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -575,6 +578,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@repo/content-model':
+        specifier: workspace:*
+        version: link:../content-model
       '@repo/utils':
         specifier: workspace:*
         version: link:../utils
