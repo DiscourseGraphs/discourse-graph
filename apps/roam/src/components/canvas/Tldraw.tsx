@@ -115,6 +115,7 @@ import {
   CanvasStoreAdapterArgs,
   useCanvasStoreAdapterArgs,
 } from "./useCanvasStoreAdapterArgs";
+import { shouldCreateAutoCanvasRelations } from "./autoCanvasRelationsSuppression";
 import posthog from "posthog-js";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
@@ -1498,19 +1499,24 @@ const InsideEditorAndUiContext = ({
         );
 
       const removeAfterCreateHandler =
-        editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
-          const util = editor.getShapeUtil(shape);
-          if (util instanceof DiscourseNodeUtil) {
-            const autoCanvasRelations = getPersonalSetting<boolean>([
-              PERSONAL_KEYS.autoCanvasRelations,
-            ]);
-            if (autoCanvasRelations) {
-              void util.createExistingRelations({
-                shape: shape as DiscourseNodeShape,
-              });
+        editor.sideEffects.registerAfterCreateHandler(
+          "shape",
+          (shape, source) => {
+            if (!shouldCreateAutoCanvasRelations({ source })) return;
+
+            const util = editor.getShapeUtil(shape);
+            if (util instanceof DiscourseNodeUtil) {
+              const autoCanvasRelations = getPersonalSetting<boolean>([
+                PERSONAL_KEYS.autoCanvasRelations,
+              ]);
+              if (autoCanvasRelations) {
+                void util.createExistingRelations({
+                  shape: shape as DiscourseNodeShape,
+                });
+              }
             }
-          }
-        });
+          },
+        );
 
       return () => {
         removeBeforeChangeHandler();

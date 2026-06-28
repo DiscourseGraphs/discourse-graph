@@ -9,6 +9,7 @@ import {
   loadSnapshot,
 } from "tldraw";
 import { getRoamCanvasSnapshot } from "./useRoamStore";
+import { withAutoCanvasRelationsSuppressed } from "./autoCanvasRelationsSuppression";
 
 export type CanvasSyncMode = "local" | "sync";
 export type CanvasSyncMigrationState = "pending" | "done";
@@ -218,7 +219,10 @@ export const migrateLocalCanvasToCloud = ({
     };
   }
 
-  loadSnapshot(store, localSnapshot);
+  // Loading a local snapshot into the cloud store replays shape creation.
+  // Suppress auto-generated relations so migration copies the canvas exactly
+  // instead of creating duplicate relation shapes for imported nodes.
+  withAutoCanvasRelationsSuppressed(() => loadSnapshot(store, localSnapshot));
 
   setCanvasSyncSettings({
     pageUid,
