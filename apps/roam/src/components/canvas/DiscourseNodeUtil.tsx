@@ -31,6 +31,7 @@ import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { isPageUid } from "./Tldraw";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { discourseContext } from "./Tldraw";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
@@ -524,10 +525,16 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
           dialogRenderedRef.current = false;
         };
 
+        const initialTitle = isCreating
+          ? shape.props.title
+          : getPageTitleByPageUid(shape.props.uid) ||
+            getTextByBlockUid(shape.props.uid) ||
+            shape.props.title;
+
         renderModifyNodeDialog({
           mode: isCreating ? "create" : "edit",
           nodeType: getDiscourseNodeTypeId({ shape }),
-          initialValue: { text: shape.props.title, uid: shape.props.uid },
+          initialValue: { text: initialTitle, uid: shape.props.uid },
           // Only pass it when editing an existing node that has a valid Roam block UID
           sourceBlockUid:
             !isCreating && isLiveBlock(shape.props.uid)
