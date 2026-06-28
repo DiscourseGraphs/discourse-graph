@@ -36,6 +36,7 @@ import {
   TLShapeUtilConstructor,
   TLShape,
   TLDefaultColorStyle,
+  T,
 } from "tldraw";
 import { RelationBindings } from "./DiscourseRelationBindings";
 import {
@@ -118,6 +119,8 @@ import internalError from "~/utils/internalError";
 const COLOR_ARRAY = Array.from(DefaultColorStyle.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
   .reverse() as TLDefaultColorStyle[];
+
+export const DISCOURSE_RELATION_SHAPE_TYPE = "discourse-relation";
 
 const isRelationShapeType = (shapeType: string): boolean =>
   Object.values(discourseContext.relations).some((relations) =>
@@ -264,6 +267,7 @@ export const createAllReferencedNodeUtils = (
           labelPosition: 0.5,
           font: "draw",
           scale: 1,
+          relationTypeId: undefined,
         };
       }
       override onHandleDrag: TLOnHandleDragHandler<DiscourseRelationShape> = (
@@ -609,7 +613,7 @@ const asDiscourseNodeShape = (
 export const createAllRelationShapeUtils = (
   allRelationIds: string[],
 ): TLShapeUtilConstructor<DiscourseRelationShape>[] => {
-  return allRelationIds.map((id) => {
+  const relationShapeUtils = allRelationIds.map((id) => {
     class DiscourseRelationUtil extends BaseDiscourseRelationUtil {
       static override type = id;
 
@@ -805,6 +809,7 @@ export const createAllRelationShapeUtils = (
           labelPosition: 0.5,
           font: "draw",
           scale: 1,
+          relationTypeId: undefined,
         };
       }
       override onHandleDrag: TLOnHandleDragHandler<DiscourseRelationShape> = (
@@ -1208,13 +1213,24 @@ export const createAllRelationShapeUtils = (
     }
     return DiscourseRelationUtil;
   });
+
+  class DiscourseRelationFallbackUtil extends BaseDiscourseRelationUtil {
+    static override type = DISCOURSE_RELATION_SHAPE_TYPE;
+  }
+
+  return [...relationShapeUtils, DiscourseRelationFallbackUtil];
 };
 
-export type RelationShapeProps = RecordPropsType<typeof arrowShapeProps>;
+const relationShapeProps = {
+  ...arrowShapeProps,
+  relationTypeId: T.optional(T.string),
+};
+
+export type RelationShapeProps = RecordPropsType<typeof relationShapeProps>;
 export type DiscourseRelationShape = TLBaseShape<string, RelationShapeProps>;
 
 export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
-  static override props = arrowShapeProps;
+  static override props = relationShapeProps;
 
   cancelAndWarn = (title: string) => {
     dispatchToastEvent({
@@ -1262,6 +1278,7 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
       labelPosition: 0.5,
       font: "draw",
       scale: 1,
+      relationTypeId: undefined,
     };
   }
 
