@@ -49,6 +49,10 @@ export const navigation: NavigationList = [
         title: "Sharing",
         href: `${ROOT}/sharing-discourse-graph`,
       },
+      {
+        title: "Experiment tracking",
+        href: `${ROOT}/experiment-tracking`,
+      },
     ],
   },
   {
