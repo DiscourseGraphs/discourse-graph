@@ -4,6 +4,7 @@ import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
 import { ImportNodesModal } from "~/components/ImportNodesModal";
+import { openExportSpecsModal } from "~/components/ExportSpecsModal";
 import { convertPageToDiscourseNode, createDiscourseNode } from "./createNode";
 import { refreshAllImportedFiles } from "./importNodes";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
@@ -191,6 +192,14 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
           });
       }
       return true;
+    },
+  });
+
+  plugin.addCommand({
+    id: "export-dg-schema",
+    name: "Export discourse graph schema",
+    callback: () => {
+      openExportSpecsModal(plugin);
     },
   });
 
