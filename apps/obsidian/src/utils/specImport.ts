@@ -332,7 +332,8 @@ export const applySchemaImportSelection = async ({
       ...importedNodeType,
       template:
         importedNodeType.template &&
-        selectedTemplateNames.has(importedNodeType.template)
+        (selectedTemplateNames.has(importedNodeType.template) ||
+          matchPlan.existingTemplateNames.has(importedNodeType.template))
           ? importedNodeType.template
           : undefined,
       modified: Date.now(),
