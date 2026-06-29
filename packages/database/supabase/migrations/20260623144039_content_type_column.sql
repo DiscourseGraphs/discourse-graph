@@ -3,7 +3,7 @@ ALTER TABLE public."Content" ADD COLUMN content_type character varying NOT NULL 
 
 UPDATE public."Content" SET content_type = 'text/obsidian+markdown' WHERE variant = 'full';
 UPDATE public."Document" SET content_type = 'text/obsidian+markdown' WHERE space_id IN (SELECT id FROM public."Space" WHERE platform = 'Obsidian');
-UPDATE public."Document" SET content_type = 'application/roam+json' WHERE space_id IN (SELECT id FROM public."Space" WHERE platform = 'Roam');
+UPDATE public."Document" SET content_type = 'text/roam+markdown' WHERE space_id IN (SELECT id FROM public."Space" WHERE platform = 'Roam');
 
 CREATE OR REPLACE VIEW public.my_documents AS
 SELECT
@@ -198,7 +198,7 @@ BEGIN
     IF source_local_id(document_inline(local_content)) IS NOT NULL THEN
       IF content_type(document_inline(local_content)) IS NULL THEN
         local_content.document_inline.content_type := CASE
-          WHEN v_platform='Roam' THEN 'application/roam+json'
+          WHEN v_platform='Roam' THEN 'text/roam+markdown'
           WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
           ELSE 'text/plain' END;
       END IF;
@@ -357,7 +357,7 @@ BEGIN
                 END IF;
                 IF content_type(document_inline(local_concept)) IS NULL THEN
                   local_concept.document_inline.content_type := CASE
-                    WHEN v_platform='Roam' THEN 'application/roam+json'
+                    WHEN v_platform='Roam' THEN 'text/roam+markdown'
                     WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
                     ELSE 'text/plain' END;
                 END IF;
@@ -389,7 +389,7 @@ BEGIN
                     END IF;
                     IF content_type(document_inline(content_inline)) IS NULL THEN
                       content_inline.document_inline.content_type := CASE
-                        WHEN v_platform='Roam' THEN 'application/roam+json'
+                        WHEN v_platform='Roam' THEN 'text/roam+markdown'
                         WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
                         ELSE 'text/plain' END;
                     END IF;

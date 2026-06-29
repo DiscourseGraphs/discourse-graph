@@ -20,7 +20,7 @@ Feature: Content access
           "created": "2000/01/01",
           "last_modified": "2001/01/02",
           "author_local_id": "user1",
-          "content_type": "application/roam+json"
+          "content_type": "text/roam+markdown"
         }
       ]
       """
@@ -38,7 +38,7 @@ Feature: Content access
             "created": "2000/01/01",
             "last_modified": "2001/01/02",
             "author_local_id": "user2",
-            "content_type": "application/roam+json"
+            "content_type": "text/roam+markdown"
           },
           "source_local_id": "s1",
           "scale": "document",
@@ -68,7 +68,7 @@ Feature: Content access
             "created": "2000/01/01",
             "last_modified": "2001/01/02",
             "author_local_id": "user2",
-            "content_type": "application/roam+json"
+            "content_type": "text/roam+markdown"
           },
           "source_local_id": "s3",
           "scale": "document",

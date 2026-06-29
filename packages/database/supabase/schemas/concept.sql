@@ -458,7 +458,7 @@ BEGIN
                 END IF;
                 IF content_type(document_inline(local_concept)) IS NULL THEN
                   local_concept.document_inline.content_type := CASE
-                    WHEN v_platform='Roam' THEN 'application/roam+json'
+                    WHEN v_platform='Roam' THEN 'text/roam+markdown'
                     WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
                     ELSE 'text/plain' END;
                 END IF;
@@ -490,7 +490,7 @@ BEGIN
                     END IF;
                     IF content_type(document_inline(content_inline)) IS NULL THEN
                       content_inline.document_inline.content_type := CASE
-                        WHEN v_platform='Roam' THEN 'application/roam+json'
+                        WHEN v_platform='Roam' THEN 'text/roam+markdown'
                         WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
                         ELSE 'text/plain' END;
                     END IF;

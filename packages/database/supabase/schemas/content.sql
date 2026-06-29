@@ -575,7 +575,7 @@ BEGIN
     IF source_local_id(document_inline(local_content)) IS NOT NULL THEN
       IF content_type(document_inline(local_content)) IS NULL THEN
         local_content.document_inline.content_type := CASE
-          WHEN v_platform='Roam' THEN 'application/roam+json'
+          WHEN v_platform='Roam' THEN 'text/roam+markdown'
           WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
           ELSE 'text/plain' END;
       END IF;

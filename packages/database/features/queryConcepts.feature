@@ -16,11 +16,11 @@ Feature: Concept queries
     # Add Documents as support for the Content objects
     # Note: table syntax is explained in features/step-definitions/stepdefs.ts, look for `added to the database`.
     And Document are added to the database:
-      | $id | source_local_id | created    | last_modified | _author_id | _space_id | content_type          |
-      | d1  | ld1             | 2025/01/01 | 2025/01/01    | user1      | s1        | application/roam+json |
-      | d2  | ld2             | 2025/01/01 | 2025/01/01    | user1      | s1        | application/roam+json |
-      | d5  | ld5             | 2025/01/01 | 2025/01/01    | user2      | s1        | application/roam+json |
-      | d7  | ld7             | 2025/01/01 | 2025/01/01    | user1      | s1        | application/roam+json |
+      | $id | source_local_id | created    | last_modified | _author_id | _space_id | content_type       |
+      | d1  | ld1             | 2025/01/01 | 2025/01/01    | user1      | s1        | text/roam+markdown |
+      | d2  | ld2             | 2025/01/01 | 2025/01/01    | user1      | s1        | text/roam+markdown |
+      | d5  | ld5             | 2025/01/01 | 2025/01/01    | user2      | s1        | text/roam+markdown |
+      | d7  | ld7             | 2025/01/01 | 2025/01/01    | user1      | s1        | text/roam+markdown |
     # Add Content as support for the Concept objects, esp. schemas
     And Content are added to the database:
       | $id | source_local_id | _document_id | text       | created    | last_modified | scale    | _author_id | _space_id | content_type |
