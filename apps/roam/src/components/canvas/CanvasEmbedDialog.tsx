@@ -65,7 +65,8 @@ const CanvasEmbedDialog = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Embed Canvas"
-      className="dg-canvas-embed-dialog pb-0"
+      className="roamjs-canvas-dialog pb-0"
+      style={{ width: "400px" }}
     >
       <div className="p-4">{renderContent()}</div>
     </Dialog>

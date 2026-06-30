@@ -17,6 +17,25 @@ This repository uses Turborepo.
 - packages/eslint-config: ESLint preset
 - packages/ui: Core React components
 
+## Git & Publishing Conventions
+
+### Branch Naming
+
+When working on Linear issues, prefer using the Linear-provided branch name when available. Linear automatically generates branch names in the format `eng-####-descriptive-name` (e.g., `eng-1912-scaffold-repocontent-model`).
+
+- Use Linear's generated branch name for consistency and traceability
+- Branch names should be lowercase with hyphens separating words
+- Include the Linear ticket ID at the start of the branch name
+
+### Pull Request Titles
+
+PR titles for Linear-backed work should follow this format:
+
+- Format: `ENG-#### Ticket title`
+- The ticket ID must be uppercased (e.g., `ENG-1912` not `eng-1912`)
+- Follow the ticket ID with the exact Linear ticket title
+- Example: `ENG-1912 Scaffold @repo/content-model`
+
 ## Style Guide
 
 ### UI Guidelines

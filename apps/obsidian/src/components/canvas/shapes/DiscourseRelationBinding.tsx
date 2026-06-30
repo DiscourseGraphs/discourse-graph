@@ -139,6 +139,18 @@ export class BaseRelationBindingUtil extends BindingUtil<RelationBinding> {
     }
   }
 
+  static isRelationReified(shapeId: TLShapeId): boolean {
+    return BaseRelationBindingUtil.reifiedArrows.has(shapeId);
+  }
+
+  static markRelationReified(shapeId: TLShapeId): void {
+    BaseRelationBindingUtil.reifiedArrows.add(shapeId);
+  }
+
+  static unmarkRelationReified(shapeId: TLShapeId): void {
+    BaseRelationBindingUtil.reifiedArrows.delete(shapeId);
+  }
+
   /**
    * Check selected relation shapes for completed bindings
    * Called from mouseup event handler
@@ -150,19 +162,20 @@ export class BaseRelationBindingUtil extends BindingUtil<RelationBinding> {
     ) as DiscourseRelationShape[];
 
     relationShapes.forEach((arrow) => {
+      if (arrow.meta.relationInstanceId) return;
+
       const bindings = getArrowBindings(editor, arrow);
       if (
         bindings.start &&
         bindings.end &&
-        !BaseRelationBindingUtil.reifiedArrows.has(arrow.id)
+        !BaseRelationBindingUtil.isRelationReified(arrow.id)
       ) {
-        BaseRelationBindingUtil.reifiedArrows.add(arrow.id);
         const util = editor.getShapeUtil(arrow);
         if (util instanceof DiscourseRelationUtil) {
+          BaseRelationBindingUtil.markRelationReified(arrow.id);
           util.reifyRelation(arrow, bindings).catch((error) => {
             console.error("Failed to reify relation:", error);
-            // Remove from reified set on error so it can be retried
-            BaseRelationBindingUtil.reifiedArrows.delete(arrow.id);
+            BaseRelationBindingUtil.unmarkRelationReified(arrow.id);
           });
         }
       }

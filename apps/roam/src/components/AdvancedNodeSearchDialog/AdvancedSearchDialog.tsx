@@ -1,20 +1,13 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Button,
   Dialog,
-  InputGroup,
+  Icon,
   NonIdealState,
   Spinner,
   SpinnerSize,
   Tag,
 } from "@blueprintjs/core";
-import MiniSearch from "minisearch";
 import posthog from "posthog-js";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -31,25 +24,33 @@ import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
+import { mountAdvancedSearchInSidebar } from "./mountAdvancedSearchInSidebar";
 import {
   DEBOUNCE_MS,
   DEFAULT_SORT_CONFIG,
   type SearchResult,
   type SortConfig,
   buildSearchIndex,
+  formatBadgeText,
   formatMetadataDate,
-  searchIndexedNodes,
-  sortSearchResults,
+  getSearchKeywords,
   splitWithHighlights,
   stripTypePrefix,
 } from "./utils";
+import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
+import { NodeTypeChipsSearchInput } from "./NodeTypeChipsSearchInput";
+import {
+  type SearchIndex,
+  useAdvancedNodeSearchResults,
+} from "./useAdvancedNodeSearchResults";
 
 type Props = Record<string, unknown>;
 
-const getNodeBadgeText = (node: DiscourseNode): string =>
-  (node.tag?.trim() || node.text).slice(0, 3).toUpperCase();
+const getNodeBadgeText = (node: DiscourseNode): string => {
+  return formatBadgeText(node.tag?.trim() || node.text);
+};
 
 const getTagStyle = (node: DiscourseNode | undefined): React.CSSProperties => {
   const color = node?.canvasSettings?.color;
@@ -96,12 +97,14 @@ const ResultRow = ({
     onMouseEnter={onMouseEnter}
     role="option"
     style={{
-      background: active ? "rgba(95, 87, 192, 0.08)" : undefined,
-      boxShadow: active ? "inset 3px 0 0 #5f57c0" : undefined,
+      background: active ? "rgba(167, 182, 194, 0.3)" : undefined,
+      boxShadow: active ? "inset 3px 0 0 rgba(167, 182, 194, 0.3)" : undefined,
     }}
   >
     <Tag minimal style={getTagStyle(nodeConfig)}>
-      {nodeConfig ? getNodeBadgeText(nodeConfig) : result.nodeTypeLabel}
+      {nodeConfig
+        ? getNodeBadgeText(nodeConfig)
+        : formatBadgeText(result.nodeTypeLabel)}
     </Tag>
     <span className="min-w-0 break-words text-sm leading-snug text-gray-900">
       {renderHighlightedText(stripTypePrefix(result.title), keywords)}
@@ -155,27 +158,30 @@ const AdvancedNodeSearchDialog = ({
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [indexError, setIndexError] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searchIndex, setSearchIndex] = useState<SearchIndex | null>(null);
   const [sort, setSort] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
-  const miniSearchRef = useRef<MiniSearch<
-    SearchResult & { id: string }
-  > | null>(null);
-  const allResultsRef = useRef<SearchResult[]>([]);
+  const [discourseNodes, setDiscourseNodes] = useState<DiscourseNode[]>([]);
+  const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
+  const [isTypeFilterPopoverOpen, setIsTypeFilterPopoverOpen] = useState(false);
   const resultsPanelRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [insertTarget, setInsertTarget] = useState<InsertTarget | null>(null);
 
-  const nodeConfigByType = useMemo(() => {
-    const discourseNodes = getDiscourseNodes().filter(
-      (node) => node.backedBy === "user",
-    );
-    return Object.fromEntries(
-      discourseNodes.map((node) => [node.type, node]),
-    ) as Record<string, DiscourseNode>;
-  }, []);
+  const nodeConfigByType = Object.fromEntries(
+    discourseNodes.map((node) => [node.type, node]),
+  );
+
+  const results = useAdvancedNodeSearchResults({
+    debouncedSearchTerm,
+    selectedNodeTypeIds,
+    sort,
+    isIndexLoading,
+    indexError,
+    searchIndex,
+  });
 
   const activeResult = results[activeIndex] ?? null;
-  const keywords = debouncedSearchTerm.split(/\s+/).filter(Boolean);
+  const keywords = getSearchKeywords(debouncedSearchTerm);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -200,46 +206,27 @@ const AdvancedNodeSearchDialog = ({
       setDebouncedSearchTerm("");
       setActiveIndex(0);
       setSort(DEFAULT_SORT_CONFIG);
-      setResults([]);
+      setSelectedNodeTypeIds([]);
+      setSearchIndex(null);
       setIndexError(false);
     }
   }, [isOpen]);
 
   useEffect(() => {
-    if (
-      !isOpen ||
-      isIndexLoading ||
-      indexError ||
-      !debouncedSearchTerm ||
-      !miniSearchRef.current
-    ) {
-      setResults([]);
-      return;
-    }
-
-    const scoredHits = searchIndexedNodes({
-      miniSearch: miniSearchRef.current,
-      allResults: allResultsRef.current,
-      searchTerm: debouncedSearchTerm,
-    });
-
-    setResults(sortSearchResults({ hits: scoredHits, sort }));
-  }, [debouncedSearchTerm, indexError, isIndexLoading, isOpen, sort]);
-
-  useEffect(() => {
     let cancelled = false;
     setIsIndexLoading(true);
     setIndexError(false);
+    setSearchIndex(null);
 
     const discourseNodes = getDiscourseNodes().filter(
       (node) => node.backedBy === "user",
     );
+    setDiscourseNodes(discourseNodes);
 
     void buildSearchIndex(discourseNodes)
       .then(({ miniSearch, results: indexedResults }) => {
         if (cancelled) return;
-        miniSearchRef.current = miniSearch;
-        allResultsRef.current = indexedResults;
+        setSearchIndex({ miniSearch, allResults: indexedResults });
       })
       .catch((error) => {
         console.error("Error building advanced node search index:", error);
@@ -270,7 +257,7 @@ const AdvancedNodeSearchDialog = ({
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [debouncedSearchTerm, sort]);
+  }, [debouncedSearchTerm, selectedNodeTypeIds, sort]);
 
   useEffect(() => {
     const panel = resultsPanelRef.current;
@@ -306,11 +293,47 @@ const AdvancedNodeSearchDialog = ({
     ? "error"
     : isIndexLoading
       ? "indexing"
-      : !debouncedSearchTerm
+      : !debouncedSearchTerm && selectedNodeTypeIds.length === 0
         ? "initial"
         : !results.length
           ? "empty"
           : "results";
+
+  const onOpenSearchSidebar = useCallback(async () => {
+    if (contentState !== "results" || !results.length) return;
+
+    try {
+      await mountAdvancedSearchInSidebar({
+        query: debouncedSearchTerm,
+        results,
+        selectedNodeTypeIds,
+        sort,
+      });
+
+      posthog.capture("Advanced Node Search: Dock search sidebar", {
+        resultCount: results.length,
+        searchTerm: debouncedSearchTerm,
+        selectedNodeTypeCount: selectedNodeTypeIds.length,
+        sortDirection: sort.direction,
+        sortField: sort.field,
+      });
+      onClose();
+    } catch (error) {
+      console.error("Failed to dock search results in the sidebar:", error);
+      renderToast({
+        id: "advanced-node-search-sidebar-open-error",
+        content: "Could not dock search results in the right sidebar.",
+        intent: "danger",
+      });
+    }
+  }, [
+    contentState,
+    debouncedSearchTerm,
+    onClose,
+    results,
+    selectedNodeTypeIds,
+    sort,
+  ]);
   const handleSortChange = useCallback((nextSort: SortConfig): void => {
     setSort(nextSort);
   }, []);
@@ -341,14 +364,28 @@ const AdvancedNodeSearchDialog = ({
     onClose();
   }, [activeResult, contentState, onClose]);
 
-  const onKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleSearchKeyDown = useCallback(
+    (event: React.KeyboardEvent): void => {
       if (event.key === "ArrowDown" && results.length) {
         event.preventDefault();
-        setActiveIndex((index) => Math.min(index + 1, results.length - 1));
-      } else if (event.key === "ArrowUp" && results.length) {
+        setActiveIndex((index) =>
+          Math.min(Math.max(index, 0) + 1, results.length - 1),
+        );
+        return;
+      }
+      if (event.key === "ArrowUp" && results.length) {
         event.preventDefault();
         setActiveIndex((index) => Math.max(index - 1, 0));
+        return;
+      }
+      if (
+        event.key === "Enter" &&
+        event.altKey &&
+        contentState === "results" &&
+        results.length
+      ) {
+        event.preventDefault();
+        void onOpenSearchSidebar();
       } else if (
         event.key === "Enter" &&
         !event.metaKey &&
@@ -359,7 +396,9 @@ const AdvancedNodeSearchDialog = ({
         event.preventDefault();
         if (event.shiftKey) void onOpenInSidebar();
         else void onOpen();
-      } else if (
+        return;
+      }
+      if (
         event.key === "Enter" &&
         (event.metaKey || event.ctrlKey) &&
         contentState === "results" &&
@@ -368,7 +407,10 @@ const AdvancedNodeSearchDialog = ({
       ) {
         event.preventDefault();
         void onInsert();
-      } else if (event.key === "Escape") {
+        return;
+      }
+      if (event.key === "Escape") {
+        if (isTypeFilterPopoverOpen) return;
         event.preventDefault();
         onClose();
       }
@@ -376,13 +418,23 @@ const AdvancedNodeSearchDialog = ({
     [
       activeResult,
       contentState,
+      isTypeFilterPopoverOpen,
       insertTarget,
       onClose,
+      onOpenSearchSidebar,
       onInsert,
       onOpen,
       onOpenInSidebar,
       results.length,
     ],
+  );
+
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.defaultPrevented) return;
+      handleSearchKeyDown(event);
+    },
+    [handleSearchKeyDown],
   );
 
   const showSplitView = contentState === "results";
@@ -392,7 +444,7 @@ const AdvancedNodeSearchDialog = ({
       autoFocus={false}
       canEscapeKeyClose
       canOutsideClickClose
-      className="flex max-w-4xl flex-col overflow-hidden bg-white p-0"
+      className="flex w-full max-w-4xl flex-col overflow-hidden bg-white p-0"
       enforceFocus={false}
       isOpen={isOpen}
       onClose={onClose}
@@ -408,18 +460,30 @@ const AdvancedNodeSearchDialog = ({
         onMouseUp={(event) => event.stopPropagation()}
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <div className="flex flex-none items-center gap-2 border-b border-gray-200 px-3 py-2">
-          <InputGroup
-            fill
-            inputRef={inputRef}
-            leftIcon="search"
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              setSearchTerm(event.target.value)
-            }
-            placeholder="Search discourse nodes..."
-            value={searchTerm}
+        <div className="flex w-full flex-none items-start gap-2 border-b border-gray-200 px-3 py-2">
+          <div className="flex min-h-9 min-w-0 flex-1 items-center rounded border border-gray-300 bg-white px-2 py-1">
+            <Icon
+              className="mr-2 shrink-0 self-center text-gray-500"
+              icon="search"
+              size={16}
+            />
+            <NodeTypeChipsSearchInput
+              inputRef={inputRef}
+              nodeTypes={discourseNodes}
+              onSearchKeyDown={handleSearchKeyDown}
+              onSearchTermChange={setSearchTerm}
+              onSelectedTypeIdsChange={setSelectedNodeTypeIds}
+              searchTerm={searchTerm}
+              selectedTypeIds={selectedNodeTypeIds}
+            />
+          </div>
+          <DiscourseNodeTypeFilter
+            layoutAnchorKey={selectedNodeTypeIds.length}
+            nodeTypes={discourseNodes}
+            onPopoverOpenChange={setIsTypeFilterPopoverOpen}
+            onSelectedTypeIdsChange={setSelectedNodeTypeIds}
+            selectedTypeIds={selectedNodeTypeIds}
           />
-
           <DiscourseNodeSortControl
             disabled={isIndexLoading || indexError}
             onSortChange={handleSortChange}
@@ -464,7 +528,7 @@ const AdvancedNodeSearchDialog = ({
                 <Spinner size={SpinnerSize.SMALL} />
               )}
               {contentState === "empty" && (
-                <span>No matches. Try another keyword.</span>
+                <span>No matches. Try another keyword or filter.</span>
               )}
               {contentState === "error" && (
                 <span>
@@ -481,6 +545,7 @@ const AdvancedNodeSearchDialog = ({
           onInsert={() => void onInsert()}
           onOpen={() => void onOpen()}
           onOpenInSidebar={() => void onOpenInSidebar()}
+          onOpenSearchSidebar={() => void onOpenSearchSidebar()}
         />
       </div>
     </Dialog>

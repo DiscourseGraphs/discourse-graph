@@ -20,7 +20,7 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/mime-types": "3.0.1",
-    "@types/node": "^20",
+    "@types/node": "catalog:",
     "@types/react": "catalog:obsidian",
     "@types/react-dom": "catalog:obsidian",
     "autoprefixer": "^10.4.21",

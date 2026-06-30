@@ -538,11 +538,12 @@ export const findSimilarNodesVectorOnly = async ({
 
     const queryEmbedding = await createEmbedding(text);
 
-    const { data, error } = await supabase.rpc("match_content_embeddings", {
-      query_embedding: JSON.stringify(queryEmbedding),
-      match_threshold: threshold,
-      match_count: limit,
-    });
+    const { data, error } = await supabase
+      .rpc("match_content_embeddings", {
+        query_embedding: JSON.stringify(queryEmbedding),
+        match_threshold: threshold,
+      })
+      .limit(limit);
 
     if (error) {
       console.error("Vector search failed:", error);

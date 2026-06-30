@@ -5,17 +5,24 @@ import getUids from "roamjs-components/dom/getUids";
 import NodeMenu from "~/components/DiscourseNodeMenu";
 import { OnloadArgs } from "roamjs-components/types";
 import posthog from "posthog-js";
+import {
+  bulkReadSettings,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
 
 type ImageToolsMenuProps = {
   blockUid: string;
   extensionAPI: OnloadArgs["extensionAPI"];
+  initialSettings: SettingsSnapshot;
 };
 
 const ImageToolsMenu = ({
   blockUid,
   extensionAPI,
+  initialSettings,
 }: ImageToolsMenuProps): JSX.Element => {
   const [menuKey, setMenuKey] = useState(0);
+  const [settings, setSettings] = useState(initialSettings);
 
   const handleEditBlock = useCallback((): void => {
     posthog.capture("Image Tools Menu: Edit Block Clicked");
@@ -24,12 +31,22 @@ const ImageToolsMenu = ({
     });
   }, [blockUid]);
 
+  const refreshSettings = useCallback((): void => {
+    setSettings(bulkReadSettings());
+  }, []);
+
   const handleMenuClose = useCallback(() => {
     setMenuKey((prev) => prev + 1);
   }, []);
 
   const trigger = (
-    <Button icon={"label" as IconName} minimal small title="Add Node Tag" />
+    <Button
+      icon={"label" as IconName}
+      minimal
+      small
+      title="Add Node Tag"
+      onMouseDown={refreshSettings}
+    />
   );
 
   return (
@@ -45,6 +62,7 @@ const ImageToolsMenu = ({
         extensionAPI={extensionAPI}
         trigger={trigger}
         isShift={false}
+        settingsSnapshot={settings}
       />
 
       <Button
@@ -125,6 +143,7 @@ const attachHoverListeners = (
 export const renderImageToolsMenu = (
   imageElement: HTMLImageElement,
   extensionAPI: OnloadArgs["extensionAPI"],
+  initialSettings: SettingsSnapshot,
 ): void => {
   const wrapper = getImageWrapper(imageElement);
   if (!wrapper) return;
@@ -142,7 +161,11 @@ export const renderImageToolsMenu = (
 
   // eslint-disable-next-line react/no-deprecated
   ReactDOM.render(
-    <ImageToolsMenu blockUid={blockUid} extensionAPI={extensionAPI} />,
+    <ImageToolsMenu
+      blockUid={blockUid}
+      extensionAPI={extensionAPI}
+      initialSettings={initialSettings}
+    />,
     menuContainer,
   );
 };

@@ -46,6 +46,8 @@ import {
   settingKeys,
 } from "./components/settings/utils/settingsEmitter";
 import { mountLeftSidebar } from "./components/LeftSidebarView";
+import { initDockedSearchSidebarPersistence } from "~/components/AdvancedNodeSearchDialog/mountAdvancedSearchInSidebar";
+import { getVersionWithDate } from "./utils/getVersion";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -73,9 +75,10 @@ export default runExtension(async (onloadArgs) => {
   }
 
   if (process.env.NODE_ENV === "development") {
+    const { version } = getVersionWithDate();
     renderToast({
       id: "discourse-graph-loaded",
-      content: "Successfully loaded",
+      content: `Successfully loaded v${version}`,
       intent: "success",
       timeout: 500,
     });
@@ -194,6 +197,7 @@ export default runExtension(async (onloadArgs) => {
   const { blockUids } = await initSchema();
 
   const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
+  const cleanupDockedSearchSidebar = initDockedSearchSidebarPersistence();
 
   console.log(
     `[DG Plugin] Total load: ${Math.round(performance.now() - pluginLoadStart)}ms`,
@@ -211,6 +215,7 @@ export default runExtension(async (onloadArgs) => {
     unload: () => {
       unsubLeftSidebarFlag();
       cleanupPullWatchers();
+      cleanupDockedSearchSidebar();
       cleanups.forEach((fn) => fn());
       setSyncActivity(false);
       unregisterSlashCommands();

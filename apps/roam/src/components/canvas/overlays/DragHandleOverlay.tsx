@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { TLShapeId, useEditor, useValue } from "tldraw";
-import { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
+import {
+  DiscourseNodeShape,
+  getDiscourseNodeTypeId,
+} from "~/components/canvas/DiscourseNodeUtil";
 import {
   hasValidRelationTypes,
   isDiscourseNodeShape,
@@ -204,7 +207,11 @@ export const DragHandleOverlay = () => {
         }
 
         // Validate that relation types exist between these node types
-        if (!hasValidRelationTypes(selectedNode.type, target.type)) {
+        const selectedNodeTypeId = getDiscourseNodeTypeId({
+          shape: selectedNode,
+        });
+        const targetNodeTypeId = getDiscourseNodeTypeId({ shape: target });
+        if (!hasValidRelationTypes(selectedNodeTypeId, targetNodeTypeId)) {
           dispatchToastEvent({
             id: "tldraw-no-valid-relation",
             title: "No relation types are defined between these node types",

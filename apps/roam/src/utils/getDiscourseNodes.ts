@@ -6,7 +6,6 @@ import {
   type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import discourseConfigRef from "./discourseConfigRef";
-import getDiscourseRelations from "./getDiscourseRelations";
 import { roamNodeToCondition } from "./parseQuery";
 import { Condition } from "./types";
 import { InputTextNode, RoamBasicNode } from "roamjs-components/types";
@@ -22,7 +21,7 @@ export type DiscourseNode = {
   shortcut: string;
   tag?: string;
   specification: Condition[];
-  backedBy: "user" | "default" | "relation";
+  backedBy: "user" | "default";
   canvasSettings: {
     [k: string]: string;
   };
@@ -107,91 +106,58 @@ const getUidAndBooleanSetting = ({
   };
 };
 
-const getDiscourseNodes = (
-  relations?: ReturnType<typeof getDiscourseRelations>,
-  snapshot?: SettingsSnapshot,
-) => {
-  const resolvedRelations = relations ?? getDiscourseRelations(snapshot);
+const getDiscourseNodes = (snapshot?: SettingsSnapshot) => {
   const newStoreEnabled = snapshot
     ? snapshot.featureFlags["Use new settings store"]
     : isNewSettingsStoreEnabled();
-  const configuredNodes = (
-    newStoreEnabled
-      ? getAllDiscourseNodes()
-      : Object.entries(discourseConfigRef.nodes).map(
-          ([type, { text, children }]): DiscourseNode => {
-            const suggestiveRules = getSubTree({
-              tree: children,
-              key: "Suggestive Rules",
-            });
-            const embeddingBlockRef = getSubTree({
-              tree: suggestiveRules.children,
-              key: "Embedding Block Ref",
-            });
+  const configuredNodes = newStoreEnabled
+    ? getAllDiscourseNodes()
+    : Object.entries(discourseConfigRef.nodes).map(
+        ([type, { text, children }]): DiscourseNode => {
+          const suggestiveRules = getSubTree({
+            tree: children,
+            key: "Suggestive Rules",
+          });
+          const embeddingBlockRef = getSubTree({
+            tree: suggestiveRules.children,
+            key: "Embedding Block Ref",
+          });
 
-            return {
-              format: getSettingValueFromTree({
-                tree: children,
-                key: "format",
-              }),
-              text,
-              shortcut: getSettingValueFromTree({
-                tree: children,
-                key: "shortcut",
-              }),
-              tag: getSettingValueFromTree({ tree: children, key: "tag" }),
-              type,
-              specification: getSpecification(children),
-              backedBy: "user",
-              canvasSettings: Object.fromEntries(
-                getSubTree({ tree: children, key: "canvas" }).children.map(
-                  (c) => [c.text, c.children[0]?.text || ""] as const,
-                ),
+          return {
+            format: getSettingValueFromTree({
+              tree: children,
+              key: "format",
+            }),
+            text,
+            shortcut: getSettingValueFromTree({
+              tree: children,
+              key: "shortcut",
+            }),
+            tag: getSettingValueFromTree({ tree: children, key: "tag" }),
+            type,
+            specification: getSpecification(children),
+            backedBy: "user",
+            canvasSettings: Object.fromEntries(
+              getSubTree({ tree: children, key: "canvas" }).children.map(
+                (c) => [c.text, c.children[0]?.text || ""] as const,
               ),
-              graphOverview:
-                children.filter((c) => c.text === "Graph Overview").length > 0,
-              description: getSettingValueFromTree({
-                tree: children,
-                key: "description",
-              }),
-              template: getSubTree({ tree: children, key: "template" })
-                .children,
-              embeddingRef: embeddingBlockRef?.children?.[0]?.text,
-              embeddingRefUid: embeddingBlockRef?.uid,
-              isFirstChild: getUidAndBooleanSetting({
-                tree: suggestiveRules.children,
-                text: "First Child",
-              }),
-            };
-          },
-        )
-  ).concat(
-    resolvedRelations
-      .filter((r) => r.triples.some((t) => t.some((n) => /anchor/i.test(n))))
-      .map((r) => ({
-        format: "",
-        text: r.label,
-        type: r.id,
-        shortcut: r.label.slice(0, 1),
-        tag: "",
-        specification: r.triples.map(([source, relation, target]) => ({
-          type: "clause",
-          source: /anchor/i.test(source) ? r.label : source,
-          relation,
-          target:
-            target === "source"
-              ? r.source
-              : target === "destination"
-                ? r.destination
-                : /anchor/i.test(target)
-                  ? r.label
-                  : target,
-          uid: window.roamAlphaAPI.util.generateUID(),
-        })),
-        backedBy: "relation",
-        canvasSettings: {},
-      })),
-  );
+            ),
+            graphOverview:
+              children.filter((c) => c.text === "Graph Overview").length > 0,
+            description: getSettingValueFromTree({
+              tree: children,
+              key: "description",
+            }),
+            template: getSubTree({ tree: children, key: "template" }).children,
+            embeddingRef: embeddingBlockRef?.children?.[0]?.text,
+            embeddingRefUid: embeddingBlockRef?.uid,
+            isFirstChild: getUidAndBooleanSetting({
+              tree: suggestiveRules.children,
+              text: "First Child",
+            }),
+          };
+        },
+      );
   const configuredNodeTexts = new Set(configuredNodes.map((n) => n.text));
   const defaultNodes = DEFAULT_NODES.filter(
     (n) => !configuredNodeTexts.has(n.text),

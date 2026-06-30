@@ -11,7 +11,8 @@
       "default": "./src/dbDotEnv.mjs"
     },
     "./dbTypes": "./src/dbTypes.ts",
-    "./inputTypes": "./src/inputTypes.ts"
+    "./inputTypes": "./src/inputTypes.ts",
+    "./crossAppNodeContract": "./src/crossAppNodeContract.ts"
   },
   "typesVersions": {
     "*": {
@@ -43,6 +44,7 @@
     "deploy:functions": "tsx scripts/deploy.ts -f"
   },
   "dependencies": {
+    "@repo/content-model": "workspace:*",
     "@repo/utils": "workspace:*",
     "@supabase/auth-js": "catalog:",
     "@supabase/functions-js": "catalog:",
@@ -54,7 +56,7 @@
     "@cucumber/cucumber": "^12.7.0",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "^20",
+    "@types/node": "catalog:",
     "@vercel/sdk": "^1.19.40",
     "dotenv": "^16.6.1",
     "eslint": "catalog:",

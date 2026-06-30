@@ -2,9 +2,8 @@ import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import { type SupabaseContext } from "./supabaseContext";
 import { nextApiRoot } from "@repo/utils/execContext";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { Json, CompositeTypes } from "@repo/database/dbTypes";
-
-type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
+import type { Json } from "@repo/database/dbTypes";
+import type { LocalContentDataInput } from "@repo/database/inputTypes";
 
 const EMBEDDING_BATCH_SIZE = 200;
 const EMBEDDING_MODEL = "openai_text_embedding_3_small_1536";
@@ -33,6 +32,7 @@ export const convertRoamNodeToLocalContent = ({
       text: text,
       variant: variant,
       scale: "document",
+      // use the default text/plain content type
     };
   });
 };

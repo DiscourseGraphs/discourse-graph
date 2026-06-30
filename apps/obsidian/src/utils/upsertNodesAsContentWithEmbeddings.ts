@@ -63,6 +63,7 @@ const createNodeContentEntries = async (
       ...baseEntry,
       text: node.file.basename,
       variant: "direct",
+      content_type: "text/plain",
       metadata: { filePath: node.file.path },
     });
   }
@@ -75,6 +76,7 @@ const createNodeContentEntries = async (
         ...baseEntry,
         text: fullContent,
         variant: "full",
+        content_type: "text/obsidian+markdown",
         metadata: node.frontmatter as Json,
       });
     } catch (error) {

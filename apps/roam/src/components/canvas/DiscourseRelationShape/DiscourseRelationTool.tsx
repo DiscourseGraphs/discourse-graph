@@ -10,6 +10,11 @@ import {
 } from "./DiscourseRelationUtil";
 import { discourseContext } from "~/components/canvas/Tldraw";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
+import { isRelationComplete } from "~/utils/isRelationComplete";
+import {
+  getDiscourseNodeTypeId,
+  isDiscourseNodeShape,
+} from "~/components/canvas/DiscourseNodeUtil";
 
 export type AddReferencedNodeType = Record<string, ReferenceFormatType[]>;
 type ReferenceFormatType = {
@@ -77,10 +82,15 @@ export const createAllReferencedNodeTools = (
 
           const sourceType = allAddReferencedNodeByAction[action][0].sourceType;
           const sourceName = allAddReferencedNodeByAction[action][0].sourceName;
-          if (target?.type === sourceType) {
+          if (
+            target &&
+            isDiscourseNodeShape(target) &&
+            getDiscourseNodeTypeId({ shape: target }) === sourceType
+          ) {
             this.shapeType = `${action}`;
           } else {
             this.cancelAndWarn(`Starting node must be one of ${sourceName}`);
+            return;
           }
           if (!target) {
             this.createArrowShape();
@@ -340,6 +350,17 @@ export const createAllRelationShapeTools = (
         override onEnter = () => {
           this.didTimeout = false;
 
+          const selectedRelations = discourseContext.relations[name] || [];
+          const hasIncompleteSelectedRelation = selectedRelations.some(
+            (relation) => !isRelationComplete(relation),
+          );
+          if (hasIncompleteSelectedRelation) {
+            this.cancelAndWarn(
+              "Relation type is incomplete. Set label, complement, source, and destination in settings.",
+            );
+            return;
+          }
+
           const target = this.editor.getShapeAtPoint(
             this.editor.inputs.currentPagePoint,
             // {
@@ -359,8 +380,14 @@ export const createAllRelationShapeTools = (
             // }
           );
 
+          const targetNodeTypeId =
+            target && isDiscourseNodeShape(target)
+              ? getDiscourseNodeTypeId({ shape: target })
+              : undefined;
           const relation = discourseContext.relations[name].find(
-            (r) => r.source === target?.type || r.destination === target?.type,
+            (r) =>
+              r.source === targetNodeTypeId ||
+              r.destination === targetNodeTypeId,
           );
           if (relation) {
             this.shapeType = relation.id;
@@ -375,6 +402,7 @@ export const createAllRelationShapeTools = (
             this.cancelAndWarn(
               `Starting node must be one of ${uniqueTypes.join(", ")}`,
             );
+            return;
           }
           if (!target) {
             this.createArrowShape();

@@ -1,8 +1,8 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import { getSubTree } from "roamjs-components/util";
-import Description from "roamjs-components/components/Description";
+import Description from "~/components/settings/SettingsDescription";
 import {
   Label,
   Tabs,
@@ -39,9 +39,110 @@ import {
   DiscourseNodeFlagPanel,
   DiscourseNodeSelectPanel,
 } from "./components/BlockPropSettingPanels";
+import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
+};
+
+const COLOR_WRITE_DEBOUNCE_MS = 150;
+
+type DiscourseNodeColorSettingProps = {
+  canvasUid: string;
+  nodeType: string;
+  initialColor?: string;
+  tagValue: string;
+};
+
+const DiscourseNodeColorSetting = ({
+  canvasUid,
+  nodeType,
+  initialColor,
+  tagValue,
+}: DiscourseNodeColorSettingProps): React.ReactElement => {
+  const [color, setColor] = useState<string>(() =>
+    formatHexColor(initialColor ?? ""),
+  );
+  const colorWriteTimeoutRef = useRef<number | null>(null);
+
+  const persistColorValue = useCallback(
+    (colorValue: string): void => {
+      void setInputSetting({
+        blockUid: canvasUid,
+        key: "color",
+        value: colorValue,
+      });
+      setDiscourseNodeSetting(
+        nodeType,
+        [DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.color],
+        colorValue,
+      );
+    },
+    [canvasUid, nodeType],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (!colorWriteTimeoutRef.current) return;
+
+      window.clearTimeout(colorWriteTimeoutRef.current);
+    };
+  }, []);
+
+  const persistColorAfterPause = (colorValue: string): void => {
+    if (colorWriteTimeoutRef.current) {
+      window.clearTimeout(colorWriteTimeoutRef.current);
+      colorWriteTimeoutRef.current = null;
+    }
+    colorWriteTimeoutRef.current = window.setTimeout(() => {
+      persistColorValue(colorValue);
+      colorWriteTimeoutRef.current = null;
+    }, COLOR_WRITE_DEBOUNCE_MS);
+  };
+
+  return (
+    <>
+      {tagValue && (
+        <div className="flex items-center gap-1.5 pl-1">
+          <span className="text-xs italic text-gray-400">Preview:</span>
+          <span style={color ? getNodeTagStyles(color) : undefined}>
+            #{tagValue.replace(/^#/, "")}
+          </span>
+        </div>
+      )}
+      <Label>
+        Color
+        <Description description="Changes the color of tags and canvas nodes" />
+        <ControlGroup>
+          <InputGroup
+            style={{ width: 120 }}
+            type={"color"}
+            value={color}
+            onChange={(e) => {
+              const nextColor = e.target.value;
+              const colorValue = nextColor.replace("#", ""); // remove hash to not create roam link
+              setColor(nextColor);
+              persistColorAfterPause(colorValue);
+            }}
+          />
+          <Tooltip content={color ? "Unset" : "Color not set"}>
+            <Icon
+              className={"ml-2 align-middle opacity-80"}
+              icon={color ? "delete" : "info-sign"}
+              onClick={() => {
+                if (colorWriteTimeoutRef.current) {
+                  window.clearTimeout(colorWriteTimeoutRef.current);
+                  colorWriteTimeoutRef.current = null;
+                }
+                setColor("");
+                persistColorValue("");
+              }}
+            />
+          </Tooltip>
+        </ControlGroup>
+      </Label>
+    </>
+  );
 };
 
 const generateTagPlaceholder = (node: DiscourseNode): string => {
@@ -84,10 +185,6 @@ const NodeConfig = ({
     parentUid: node.type,
     key: "Attributes",
   });
-
-  const [color, setColor] = useState<string>(() =>
-    formatHexColor(node.canvasSettings?.color ?? ""),
-  );
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
   const [tagError, setTagError] = useState("");
@@ -209,7 +306,10 @@ const NodeConfig = ({
               <DiscourseNodeTextPanel
                 nodeType={node.type}
                 title="Description"
-                description={`Describing what the ${node.text} node represents in your graph.`}
+                description={withDocsLink(
+                  `Describing what the ${node.text} node represents in your graph.`,
+                  ROAM_DOCS.grammarNodes,
+                )}
                 settingKeys={[DISCOURSE_NODE_KEYS.description]}
                 initialValue={node.description}
                 multiline
@@ -220,7 +320,10 @@ const NodeConfig = ({
               <DiscourseNodeTextPanel
                 nodeType={node.type}
                 title="Shortcut"
-                description={`The trigger to quickly create a ${node.text} page from the node menu.`}
+                description={withDocsLink(
+                  `The trigger to quickly create a ${node.text} page from the node menu.`,
+                  ROAM_DOCS.creatingNodes,
+                )}
                 settingKeys={[DISCOURSE_NODE_KEYS.shortcut]}
                 initialValue={node.shortcut}
                 error={shortcutError}
@@ -233,7 +336,10 @@ const NodeConfig = ({
                 <DiscourseNodeTextPanel
                   nodeType={node.type}
                   title="Tag"
-                  description={`Designate a hashtag for marking potential ${node.text}.`}
+                  description={withDocsLink(
+                    `Designate a hashtag for marking potential ${node.text}.`,
+                    ROAM_DOCS.taggingCandidateNodes,
+                  )}
                   settingKeys={[DISCOURSE_NODE_KEYS.tag]}
                   initialValue={node.tag}
                   placeholder={generateTagPlaceholder(node)}
@@ -243,69 +349,13 @@ const NodeConfig = ({
                   parentUid={node.type}
                   uid={tagUid}
                 />
-                {tagValue && (
-                  <div className="flex items-center gap-1.5 pl-1">
-                    <span className="text-xs italic text-gray-400">
-                      Preview:
-                    </span>
-                    <span style={color ? getNodeTagStyles(color) : undefined}>
-                      #{tagValue.replace(/^#/, "")}
-                    </span>
-                  </div>
-                )}
               </div>
-              <>
-                <Label>
-                  Color
-                  <Description description="Changes the color of tags and canvas nodes" />
-                  <ControlGroup>
-                    <InputGroup
-                      style={{ width: 120 }}
-                      type={"color"}
-                      value={color}
-                      onChange={(e) => {
-                        const colorValue = e.target.value.replace("#", ""); // remove hash to not create roam link
-                        setColor(e.target.value);
-                        void setInputSetting({
-                          blockUid: canvasUid,
-                          key: "color",
-                          value: colorValue,
-                        });
-                        setDiscourseNodeSetting(
-                          node.type,
-                          [
-                            DISCOURSE_NODE_KEYS.canvasSettings,
-                            CANVAS_KEYS.color,
-                          ],
-                          colorValue,
-                        );
-                      }}
-                    />
-                    <Tooltip content={color ? "Unset" : "Color not set"}>
-                      <Icon
-                        className={"ml-2 align-middle opacity-80"}
-                        icon={color ? "delete" : "info-sign"}
-                        onClick={() => {
-                          setColor("");
-                          void setInputSetting({
-                            blockUid: canvasUid,
-                            key: "color",
-                            value: "",
-                          });
-                          setDiscourseNodeSetting(
-                            node.type,
-                            [
-                              DISCOURSE_NODE_KEYS.canvasSettings,
-                              CANVAS_KEYS.color,
-                            ],
-                            "",
-                          );
-                        }}
-                      />
-                    </Tooltip>
-                  </ControlGroup>
-                </Label>
-              </>
+              <DiscourseNodeColorSetting
+                canvasUid={canvasUid}
+                nodeType={node.type}
+                initialColor={node.canvasSettings?.color}
+                tagValue={tagValue}
+              />
             </div>
           }
         />
@@ -330,7 +380,10 @@ const NodeConfig = ({
               <DiscourseNodeTextPanel
                 nodeType={node.type}
                 title="Format"
-                description={`DEPRECATED - Use specification instead. The format ${node.text} pages should have.`}
+                description={withDocsLink(
+                  `DEPRECATED - Use specification instead. The format ${node.text} pages should have.`,
+                  ROAM_DOCS.grammarNodes,
+                )}
                 settingKeys={[DISCOURSE_NODE_KEYS.format]}
                 initialValue={node.format}
                 error={formatError}
@@ -342,9 +395,10 @@ const NodeConfig = ({
               <Label>
                 Specification
                 <Description
-                  description={
-                    "The conditions specified to identify a ${nodeText} node."
-                  }
+                  description={withDocsLink(
+                    `The conditions specified to identify a ${node.text} node.`,
+                    ROAM_DOCS.grammarNodes,
+                  )}
                 />
                 <DiscourseNodeSpecification
                   node={node}
@@ -369,7 +423,10 @@ const NodeConfig = ({
               <DualWriteBlocksPanel
                 nodeType={node.type}
                 title="Template"
-                description={`The template that auto fills ${node.text} page when generated.`}
+                description={withDocsLink(
+                  `The template that auto fills ${node.text} page when generated.`,
+                  ROAM_DOCS.creatingNodes,
+                )}
                 settingKeys={TEMPLATE_SETTING_KEYS}
                 uid={templateUid}
                 defaultValue={node.template}
@@ -393,7 +450,10 @@ const NodeConfig = ({
               <DiscourseNodeSelectPanel
                 nodeType={node.type}
                 title="Overlay"
-                description="Select which attribute is used for the discourse overlay"
+                description={withDocsLink(
+                  "Select which attribute is used for the discourse overlay",
+                  ROAM_DOCS.discourseAttributes,
+                )}
                 settingKeys={[DISCOURSE_NODE_KEYS.overlay]}
                 options={attributeNode.children.map((c) => c.text)}
                 initialValue={

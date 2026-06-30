@@ -10,7 +10,7 @@ import {
   getImportedNodesInfo,
   getLocalNodeKeyToEndpointId,
 } from "~/utils/relationsStore";
-import { spaceUriAndLocalIdToRid } from "./rid";
+import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Tables } from "@repo/database/dbTypes";
 import { getSpaceNameIdFromRid } from "./spaceFromRid";
@@ -20,22 +20,6 @@ import {
 } from "./importRelations";
 import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
-
-export const getAvailableGroupIds = async (
-  client: DGSupabaseClient,
-): Promise<string[]> => {
-  const { data, error } = await client
-    .from("group_membership")
-    .select("group_id")
-    .eq("member_id", (await client.auth.getUser()).data.user?.id || "");
-
-  if (error) {
-    console.error("Error fetching groups:", error);
-    throw new Error(`Failed to fetch groups: ${error.message}`);
-  }
-
-  return (data || []).map((g) => g.group_id);
-};
 
 type PublishedNode = {
   source_local_id: string;

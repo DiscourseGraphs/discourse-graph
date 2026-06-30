@@ -9,6 +9,7 @@ import {
 import { ArrowBigDownDash, CircleGauge } from "lucide-react";
 import { getLatestBlogs } from "~/(home)/blog/readBlogs";
 import { TeamPerson } from "~/components/TeamPerson";
+import { Logo } from "~/components/Logo";
 import { TEAM_MEMBERS } from "~/data/constants";
 
 const Home = async () => {
@@ -440,6 +441,18 @@ const Home = async () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
+                    Frontiers in Research: Open Science Catalyze Panel
+                  </h3>
+                  <p className="mb-2 text-neutral-dark">June 18, 2026 | Zoom</p>
+                  <Link
+                    href="https://discoursegraphs.github.io/panel-qa-site/#panelists"
+                    className="text-primary transition-colors hover:text-primary/80"
+                  >
+                    View panel notes →
+                  </Link>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
                     Toward Modular Open Science
                   </h3>
                   <p className="mb-2 text-neutral-dark">
@@ -805,45 +818,75 @@ const Home = async () => {
         </div>
       </main>
 
-      <footer className="mt-12 border-t border-neutral-light/10 bg-neutral-dark px-6 py-6">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <p className="text-secondary">
-            © 2024-{new Date().getFullYear()} Homeworld Collective
-          </p>
-          <div className="flex items-center space-x-4">
+      <footer className="mt-12 border-t border-neutral-light/10 bg-neutral-dark py-10">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 md:grid-cols-3 md:items-start">
+          {/* Logo + copyright */}
+          <div className="flex flex-col gap-3">
+            <Logo textClassName="text-white" linked={false} />
+            <p className="text-sm text-secondary">
+              © 2024-{new Date().getFullYear()} Homeworld Collective
+            </p>
+          </div>
+
+          {/* Links */}
+          <div className="flex flex-col gap-2">
             <Link
               href="https://github.com/DiscourseGraphs"
-              aria-label="GitHub Repository"
+              className="text-secondary transition-colors hover:text-white"
             >
-              <Image
-                src="/github.svg"
-                alt="GitHub"
-                width={24}
-                height={24}
-                className="opacity-80 transition-opacity hover:opacity-100"
-              />
+              GitHub
+            </Link>
+            <Link
+              href="https://www.youtube.com/@discoursegraphs"
+              className="text-secondary transition-colors hover:text-white"
+            >
+              YouTube
             </Link>
             <Link
               href="https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg"
-              aria-label="Slack"
+              className="text-secondary transition-colors hover:text-white"
             >
-              <Image
-                src="/slack.svg"
-                alt="Slack"
-                width={24}
-                height={24}
-                className="opacity-80 transition-opacity hover:opacity-100"
-              />
+              Slack
+            </Link>
+            <Link
+              href="https://bsky.app/profile/discoursegraphs.bsky.social"
+              className="text-secondary transition-colors hover:text-white"
+            >
+              Bluesky
             </Link>
           </div>
-          {/* <div className="flex space-x-4">
-              <Link href="#" className="text-secondary hover:text-neutral-dark">
-                Privacy Policy
-              </Link>
-              <Link href="#" className="text-secondary hover:text-neutral-dark">
-                Terms of Service
-              </Link>
-            </div> */}
+
+          {/* Email subscription */}
+          <div className="rounded-lg border border-neutral-light/20 p-6">
+            <h3 className="mb-1 text-lg font-semibold text-white">
+              Stay up to date
+            </h3>
+            <p className="mb-4 text-sm text-secondary">
+              Periodic news and info about the Discourse Graphs project.
+            </p>
+
+            <form
+              action="https://buttondown.com/api/emails/embed-subscribe/DiscourseGraphs"
+              method="post"
+              className="flex gap-2"
+            >
+              <input type="hidden" name="embed" value="1" />
+              <input
+                type="email"
+                name="email"
+                id="bd-email"
+                placeholder="your@email.com"
+                required
+                className="min-w-0 flex-1 rounded border border-neutral-light/30 bg-neutral-dark px-3 py-2 text-sm text-white placeholder-neutral-light/50 focus:outline-none focus:ring-1 focus:ring-white/40"
+              />
+              <button
+                type="submit"
+                className="rounded border border-white px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-neutral-dark"
+              >
+                Subscribe
+              </button>
+            </form>
+          </div>
         </div>
       </footer>
     </div>

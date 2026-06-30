@@ -18,7 +18,11 @@ import { Editor, useEditor, TLShapeId } from "tldraw";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import { DiscourseNodeShape } from "./DiscourseNodeUtil";
+import {
+  DISCOURSE_NODE_SHAPE_TYPE,
+  DiscourseNodeShape,
+  getDiscourseNodeTypeId,
+} from "./DiscourseNodeUtil";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 
@@ -56,14 +60,15 @@ export const CanvasDrawerContent = ({
     const entries: NodeGroup[] = Object.entries(groupedShapes).map(
       ([uid, shapes]) => {
         const primaryShape = shapes[0];
+        const nodeTypeId = getDiscourseNodeTypeId({ shape: primaryShape });
         const typeLabel =
-          discourseNodes.find((n) => n.type === primaryShape.type)?.text ||
-          primaryShape.type ||
+          discourseNodes.find((n) => n.type === nodeTypeId)?.text ||
+          nodeTypeId ||
           "Unknown";
         return {
           uid,
           title: primaryShape.props.title,
-          type: primaryShape.type,
+          type: nodeTypeId,
           typeLabel,
           shapes,
           isDuplicate: shapes.length > 1,
@@ -400,10 +405,20 @@ export const CanvasDrawerPanel = () => {
   useEffect(() => {
     const updateGroupedShapes = () => {
       const allRecords = editor.store.allRecords();
+      const nodeTypeSet = new Set(getDiscourseNodes().map((node) => node.type));
       const shapes = allRecords.filter((record) => {
         if (record.typeName !== "shape") return false;
         const shape = record as DiscourseNodeShape;
-        return !!shape.props?.uid;
+        if (
+          record.type !== DISCOURSE_NODE_SHAPE_TYPE &&
+          !nodeTypeSet.has(record.type)
+        ) {
+          return false;
+        }
+        return (
+          !!shape.props?.uid &&
+          nodeTypeSet.has(getDiscourseNodeTypeId({ shape }))
+        );
       }) as DiscourseNodeShape[];
 
       const grouped = shapes.reduce((acc: GroupedShapes, shape) => {

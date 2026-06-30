@@ -132,7 +132,7 @@ const RelationshipSettings = () => {
     }
 
     const modal = new ConfirmationModal(plugin.app, {
-      title: "Delete Relation",
+      title: "Delete relation",
       message,
       onConfirm: () => handleDeleteRelation(index),
     });
@@ -339,7 +339,7 @@ const RelationshipSettings = () => {
           <div className="setting-item mt-4">
             <div className="flex gap-2">
               <button onClick={handleAddRelation} className="p-2">
-                Add Relation
+                Add relation
               </button>
             </div>
           </div>

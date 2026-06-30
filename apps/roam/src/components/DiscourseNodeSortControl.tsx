@@ -121,7 +121,7 @@ export const DiscourseNodeSortControl = ({
       aria-label={`Sort by ${sortLabel}`}
       className={`${
         isTriggerActive
-          ? "!bg-[rgba(95,87,192,0.1)] !text-[#5f57c0]"
+          ? "!bg-[rgba(167, 182, 194, 0.3)] !text-[#5f57c0]"
           : "!text-gray-600 hover:!bg-gray-100 hover:!text-gray-900"
       }`}
       disabled={disabled}

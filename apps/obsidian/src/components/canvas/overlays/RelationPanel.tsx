@@ -329,7 +329,7 @@ export const RelationsPanel = ({
     } catch (e) {
       showToast({
         severity: "error",
-        title: "Failed to Delete Relation",
+        title: "Failed to delete relation",
         description: "Could not delete relation",
         targetCanvasId: canvasFile.path,
       });
@@ -360,7 +360,7 @@ export const RelationsPanel = ({
       if (!sourceId || !destId) {
         showToast({
           severity: "error",
-          title: "Could Not Resolve Nodes",
+          title: "Could not resolve nodes",
           description:
             "Could not resolve node instance IDs for the selected files.",
           targetCanvasId: canvasFile.path,
@@ -452,7 +452,7 @@ export const RelationsPanel = ({
       console.error("Failed to create relation to file", e);
       showToast({
         severity: "error",
-        title: "Failed to Create Relation",
+        title: "Failed to create relation",
         description: "Could not create relation to file",
         targetCanvasId: canvasFile.path,
       });

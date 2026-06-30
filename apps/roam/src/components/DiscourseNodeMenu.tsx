@@ -27,7 +27,10 @@ import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
-import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import {
+  setPersonalSetting,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import type { PersonalSettings } from "~/components/settings/utils/zodSchema";
 
@@ -38,6 +41,7 @@ type Props = {
   trigger?: JSX.Element;
   isShift?: boolean;
   menuMaxHeight?: number;
+  settingsSnapshot?: SettingsSnapshot;
 };
 
 const NodeMenu = ({
@@ -48,6 +52,7 @@ const NodeMenu = ({
   trigger,
   isShift,
   menuMaxHeight,
+  settingsSnapshot,
 }: { onClose: () => void } & Props) => {
   const isInitialTextSelected =
     !!textarea && textarea.selectionStart !== textarea.selectionEnd;
@@ -56,8 +61,9 @@ const NodeMenu = ({
     isInitialTextSelected || (isShift ?? false),
   );
   const userDiscourseNodes = useMemo(
-    () => getDiscourseNodes().filter((n) => n.backedBy === "user"),
-    [],
+    () =>
+      getDiscourseNodes(settingsSnapshot).filter((n) => n.backedBy === "user"),
+    [settingsSnapshot],
   );
   const discourseNodes = userDiscourseNodes.filter(
     (n) => showNodeTypes || n.tag,
@@ -359,10 +365,12 @@ export const TextSelectionNodeMenu = ({
   textarea,
   extensionAPI,
   onClose,
+  settingsSnapshot,
 }: {
   textarea: HTMLTextAreaElement;
   extensionAPI: OnloadArgs["extensionAPI"];
   onClose: () => void;
+  settingsSnapshot?: SettingsSnapshot;
 }) => {
   const trigger = (
     <Button
@@ -403,6 +411,7 @@ export const TextSelectionNodeMenu = ({
       onClose={onClose}
       isShift
       menuMaxHeight={menuMaxHeight}
+      settingsSnapshot={settingsSnapshot}
     />
   );
 };

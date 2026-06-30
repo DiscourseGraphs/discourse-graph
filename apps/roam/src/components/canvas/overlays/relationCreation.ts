@@ -10,12 +10,14 @@ import {
   getRelationColor,
 } from "~/components/canvas/DiscourseRelationShape/DiscourseRelationUtil";
 import { createOrUpdateArrowBinding } from "~/components/canvas/DiscourseRelationShape/helpers";
+import { getDiscourseNodeTypeId } from "~/components/canvas/DiscourseNodeUtil";
 import {
   checkConnectionType,
   getAllRelations,
   isDiscourseNodeShape,
 } from "~/components/canvas/canvasUtils";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
+import { isRelationComplete } from "~/utils/isRelationComplete";
 
 type RelationTypeOption = { id: string; label: string; color: string };
 
@@ -84,22 +86,26 @@ export const getValidRelationTypesBetween = (
   )
     return [];
 
+  const startNodeType = getDiscourseNodeTypeId({ shape: startNode });
+  const endNodeType = getDiscourseNodeTypeId({ shape: endNode });
+
   const colorPalette = DefaultColorThemePalette.lightMode;
   const validTypes: RelationTypeOption[] = [];
   const seenLabels = new Set<string>();
 
   for (const relation of getAllRelations()) {
+    if (!isRelationComplete(relation)) continue;
     const { isDirect, isReverse } = checkConnectionType(
       relation,
-      startNode.type,
-      endNode.type,
+      startNodeType,
+      endNodeType,
     );
     if (!isDirect && !isReverse) continue;
 
     const label = getDirectionalRelationLabel({
       relation,
-      sourceNodeType: startNode.type,
-      targetNodeType: endNode.type,
+      sourceNodeType: startNodeType,
+      targetNodeType: endNodeType,
     });
     if (seenLabels.has(label)) continue;
     seenLabels.add(label);
@@ -128,11 +134,17 @@ export const createDefaultRelationBetweenNodes = async ({
 
   const sourceNode = editor.getShape(sourceId);
   const targetNode = editor.getShape(targetId);
-  if (!sourceNode || !targetNode) return null;
+  if (
+    !sourceNode ||
+    !targetNode ||
+    !isDiscourseNodeShape(editor, sourceNode) ||
+    !isDiscourseNodeShape(editor, targetNode)
+  )
+    return null;
   const label = getDirectionalRelationLabel({
     relation: selectedRelation,
-    sourceNodeType: sourceNode.type,
-    targetNodeType: targetNode.type,
+    sourceNodeType: getDiscourseNodeTypeId({ shape: sourceNode }),
+    targetNodeType: getDiscourseNodeTypeId({ shape: targetNode }),
   });
 
   const sourceBounds = editor.getShapePageBounds(sourceId);

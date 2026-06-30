@@ -4,12 +4,12 @@ import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
 import { ImportNodesModal } from "~/components/ImportNodesModal";
-import { createDiscourseNode } from "./createNode";
+import { convertPageToDiscourseNode, createDiscourseNode } from "./createNode";
 import { refreshAllImportedFiles } from "./importNodes";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
 import { syncAllNodesAndRelations } from "./syncDgNodesToSupabase";
-import { publishNode } from "./publishNode";
+import { openPublishGroupPicker } from "./publishGroupSelection";
 import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 import type { DiscourseNode } from "~/types";
 import { TldrawView } from "~/components/canvas/TldrawView";
@@ -76,6 +76,55 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         initialTitle: selectedText,
         onSubmit: createModifyNodeModalSubmitHandler(plugin, editor),
       }).open();
+    },
+  });
+
+  plugin.addCommand({
+    id: "convert-current-page-to-discourse-node",
+    name: "Convert current page to discourse node",
+    checkCallback: (checking: boolean) => {
+      const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      const file = activeView?.file;
+      if (!file) return false;
+
+      if (!checking) {
+        const fileCache = plugin.app.metadataCache.getFileCache(file);
+        const frontmatter = fileCache?.frontmatter as
+          | Record<string, unknown>
+          | undefined;
+        const fileNodeTypeId =
+          typeof frontmatter?.nodeTypeId === "string"
+            ? frontmatter.nodeTypeId
+            : undefined;
+        const isAlreadyDiscourseNode =
+          !!fileNodeTypeId &&
+          plugin.settings.nodeTypes.some(
+            (nodeType) => nodeType.id === fileNodeTypeId,
+          );
+
+        if (isAlreadyDiscourseNode) {
+          new Notice("Current page is already a discourse node", 3000);
+          return true;
+        }
+
+        new ModifyNodeModal(plugin.app, {
+          nodeTypes: plugin.settings.nodeTypes,
+          plugin,
+          initialTitle: file.basename,
+          // Command palette flow should mirror file-menu conversion.
+          disableExistingNodeSearch: true,
+          onSubmit: async ({ nodeType, title }) => {
+            await convertPageToDiscourseNode({
+              plugin,
+              file,
+              nodeType,
+              title,
+            });
+          },
+        }).open();
+      }
+
+      return true;
     },
   });
 
@@ -157,12 +206,8 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "open-discourse-graph-settings",
     name: "Open Discourse Graphs settings",
     callback: () => {
-      // plugin.app.setting is an unofficial API
-      /* eslint-disable @typescript-eslint/no-unsafe-call */
-      const setting = (plugin.app as unknown as { setting: any }).setting;
-      setting.open();
-      setting.openTabById(plugin.manifest.id);
-      /* eslint-enable @typescript-eslint/no-unsafe-call */
+      plugin.app.setting.open();
+      plugin.app.setting.openTabById(plugin.manifest.id);
     },
   });
 
@@ -262,23 +307,15 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       if (!frontmatter.nodeTypeId) {
         return false;
       }
+      if (frontmatter.importedFromRid) {
+        return false;
+      }
       if (!checking) {
         if (!frontmatter.nodeInstanceId) {
           new Notice("Please sync the node first");
           return true;
         }
-        // TODO (in follow-up PRs):
-        // Maybe sync the node now if unsynced
-        // Ensure that the node schema is synced to the database, and shared
-        // sync the assets to the database
-        publishNode({ plugin, file, frontmatter })
-          .then(() => {
-            new Notice("Published");
-          })
-          .catch((error: Error) => {
-            new Notice(error.message);
-            console.error(error);
-          });
+        void openPublishGroupPicker({ plugin, file });
       }
       return true;
     },

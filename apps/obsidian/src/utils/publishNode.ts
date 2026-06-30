@@ -11,16 +11,25 @@ import {
   type RelationsFile,
 } from "./relationsStore";
 import type { RelationInstance } from "~/types";
-import { getAvailableGroupIds } from "./importNodes";
+import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import {
   syncAllNodesAndRelations,
   syncPublishedNodeAssets,
 } from "./syncDgNodesToSupabase";
 import { isProvisionalSchema } from "./typeUtils";
+import { intersection, difference } from "@repo/utils/setOperations";
 
 import type { DiscourseNodeInVault } from "./getDiscourseNodes";
 import type { SupabaseContext } from "./supabaseContext";
 import type { TablesInsert } from "@repo/database/dbTypes";
+
+export const getPublishedToGroups = (
+  frontmatter: FrontMatterCache | Record<string, unknown>,
+): string[] => {
+  const publishedToGroups = frontmatter.publishedToGroups as unknown;
+  if (!Array.isArray(publishedToGroups)) return [];
+  return publishedToGroups.filter((g): g is string => typeof g === "string");
+};
 
 const publishSchema = async ({
   client,
@@ -66,31 +75,6 @@ const publishSchema = async ({
     console.error("Error publishing schema:", publishResponse.error);
     // Don't throw - schema publishing failure shouldn't block node publishing
   }
-};
-
-const intersection = <T>(set1: Set<T>, set2: Set<T>): Set<T> => {
-  // @ts-expect-error - Set.intersection is ES2025 feature
-  if (set1.intersection) return set1.intersection(set2); // eslint-disable-line
-  const r: Set<T> = new Set();
-  for (const x of set1) {
-    if (set2.has(x)) r.add(x);
-  }
-  return r;
-};
-
-const difference = <T>(set1: Set<T>, set2: Set<T>): Set<T> => {
-  // @ts-expect-error - Set.difference is ES2025 feature
-  if (set1.difference) return set1.difference(set2); // eslint-disable-line
-  const result = new Set(set1);
-  if (set1.size <= set2.size)
-    for (const e of set1) {
-      if (set2.has(e)) result.delete(e);
-    }
-  else
-    for (const e of set2) {
-      if (result.has(e)) result.delete(e);
-    }
-  return result;
 };
 
 export const publishNewRelation = async (
@@ -253,10 +237,12 @@ export const publishNode = async ({
   plugin,
   file,
   frontmatter,
+  groupId,
 }: {
   plugin: DiscourseGraphPlugin;
   file: TFile;
   frontmatter: FrontMatterCache;
+  groupId?: string;
 }): Promise<void> => {
   const client = await getLoggedInClient(plugin);
   if (!client) throw new Error("Cannot get client");
@@ -267,8 +253,11 @@ export const publishNode = async ({
   // Hopefully temporary workaround for sync bug
   await syncAllNodesAndRelations(plugin);
   const commonGroups = existingPublish.filter((g) => myGroups.has(g));
-  // temporary single-group assumption
-  const myGroup = (commonGroups.length > 0 ? commonGroups : [...myGroups])[0]!;
+  const myGroup =
+    groupId ?? (commonGroups.length > 0 ? commonGroups : [...myGroups])[0]!;
+  if (!myGroups.has(myGroup)) {
+    throw new Error("You are not a member of that group");
+  }
   return await publishNodeToGroup({ plugin, file, frontmatter, myGroup });
 };
 
@@ -415,11 +404,13 @@ export const publishNodeToGroup = async ({
   file,
   frontmatter,
   myGroup,
+  skipFrontmatterUpdate = false,
 }: {
   plugin: DiscourseGraphPlugin;
   file: TFile;
   frontmatter: FrontMatterCache;
   myGroup: string;
+  skipFrontmatterUpdate?: boolean;
 }): Promise<void> => {
   const nodeId = frontmatter.nodeInstanceId as string | undefined;
   if (!nodeId) throw new Error("Please sync the node first");
@@ -512,11 +503,15 @@ export const publishNodeToGroup = async ({
     file,
     attachments,
   });
-  if (!existingPublish.includes(myGroup))
+  if (!skipFrontmatterUpdate && !existingPublish.includes(myGroup)) {
     await plugin.app.fileManager.processFrontMatter(
       file,
       (fm: Record<string, unknown>) => {
-        fm.publishedToGroups = [...existingPublish, myGroup];
+        const current = getPublishedToGroups(fm);
+        if (!current.includes(myGroup)) {
+          fm.publishedToGroups = [...current, myGroup];
+        }
       },
     );
+  }
 };

@@ -114,21 +114,19 @@ export const ModifyNodeForm = ({
     }
 
     if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
+      window.clearTimeout(debounceTimeoutRef.current);
     }
 
     setIsSearching(true);
     debounceTimeoutRef.current = window.setTimeout(() => {
-      void (async () => {
+      void (() => {
         try {
           const results = selectedNodeType
-            ? await queryEngine.current.searchDiscourseNodesByTitle(
+            ? queryEngine.current.searchDiscourseNodesByTitle(
                 searchQuery,
                 selectedNodeType.id,
               )
-            : await queryEngine.current.searchDiscourseNodesByTitle(
-                searchQuery,
-              );
+            : queryEngine.current.searchDiscourseNodesByTitle(searchQuery);
           setSearchResults(results);
         } catch (error) {
           console.error("Error searching nodes:", error);
@@ -140,7 +138,7 @@ export const ModifyNodeForm = ({
     }, 250);
     return () => {
       if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
+        window.clearTimeout(debounceTimeoutRef.current);
       }
     };
   }, [query, selectedNodeType, isEditMode, disableExistingNodeSearch]);
