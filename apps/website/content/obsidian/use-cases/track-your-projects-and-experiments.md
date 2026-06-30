@@ -21,7 +21,7 @@ The Project structure facilitates the creation of a traditional research narrati
 
 This vault contains an example project page, `PRJ - Passarine Songbird Cargo Capacity`, that demonstrates a project structure appropriate to experimental research.
 
-![Project Page](/docs/obsidian/prj-page.PNG)
+![Project Page](/docs/guides/obsidian/prj-page.png)
 
 - The **Resources** section can be used to organize protocols, references, datasets, reagent lists, etc. It's also a convenient spot to pre-register your working **Hypothesis**
 
@@ -41,11 +41,11 @@ Create a new project by
 
 1. Creating a new note in the "Projects" Folder and applying the Project Template from the Templater menu in the left sidebar
 
-![templater flow](/docs/obsidian/create-prj01.png)
+![templater flow](/docs/guides/obsidian/create-prj01.png)
 
 2. Navigating to your "Projects" base in the "Bases" folder and selecting "+ New"
 
-![bases flow](/docs/obsidian/create-prj02.png)
+![bases flow](/docs/guides/obsidian/create-prj02.png)
 
 ## The relationship between your Projects and your Discourse Graph
 
@@ -61,12 +61,12 @@ These three Questions are all part of the same work package, and while their res
 
 The Project is also the natural container for the **Experiment** node, which is a flavor of the **Source** node for laboratory work. Your Project will probably contain several experiments -- you can see from the `Experiments.base` that each Experiment is associated with a Project via its frontmatter for easier queryability.
 
-![Project-as-container](/docs/obsidian/prj-container.png)
+![Project-as-container](/docs/guides/obsidian/prj-container.png)
 
-Learn more about creating and tracking experiments [here](/docs/obsidian/experiment-tracking).
+Learn more about creating and tracking experiments [here](/docs/obsidian/core-features/experiment-tracking).
 
 ## What else would you like to do?
 
-- [Build and Utilize a Personal Knowledge Base](/docs/obsidian/build-utilize-personal-knowledge-base)
-- [Synthesize Insights from the Literature](/docs/obsidian/synthesize-insights-from-literature)
-- [Share your ideas & research](/docs/obsidian/share-your-ideas-and-research)
+- [Build and Utilize a Personal Knowledge Base](/docs/obsidian/use-cases/build-utilize-personal-knowledge-base)
+- [Synthesize Insights from the Literature](/docs/obsidian/use-cases/synthesize-insights-from-literature)
+- [Share your ideas & research](/docs/obsidian/use-cases/share-your-ideas-and-research)

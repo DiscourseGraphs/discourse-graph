@@ -3,6 +3,7 @@ import { useMDXComponents } from "mdx-components";
 
 type DocsPageTemplateProps = Omit<EvaluateResult, "default"> & {
   children: React.ReactNode;
+  isUseCasePage?: boolean;
 };
 
 const hasPrimaryHeading = (sourceCode: string): boolean =>
@@ -10,6 +11,7 @@ const hasPrimaryHeading = (sourceCode: string): boolean =>
 
 const DocsPageTemplate = ({
   children,
+  isUseCasePage,
   metadata,
   sourceCode,
   ...wrapperProps
@@ -25,7 +27,11 @@ const DocsPageTemplate = ({
   return (
     <Wrapper metadata={metadata} sourceCode={sourceCode} {...wrapperProps}>
       {!hasPrimaryHeading(sourceCode) && <H1>{metadata.title}</H1>}
-      {children}
+      {isUseCasePage ? (
+        <div className="use-case-content">{children}</div>
+      ) : (
+        children
+      )}
     </Wrapper>
   );
 };

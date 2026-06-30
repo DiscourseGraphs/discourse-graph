@@ -52,6 +52,6 @@ If you decide an Issue captures something worth doing, you can easily change it 
 
 ## What else would you like to do?
 
-- [Synthesize Insights from the Literature](/docs/obsidian/synthesize-insights-from-literature)
-- [Build and Utilize a Personal Knowledge Base](/docs/obsidian/build-utilize-personal-knowledge-base)
-- [Share your ideas & research](/docs/obsidian/share-your-ideas-and-research)
+- [Synthesize Insights from the Literature](/docs/obsidian/use-cases/synthesize-insights-from-literature)
+- [Build and Utilize a Personal Knowledge Base](/docs/obsidian/use-cases/build-utilize-personal-knowledge-base)
+- [Share your ideas & research](/docs/obsidian/use-cases/share-your-ideas-and-research)
