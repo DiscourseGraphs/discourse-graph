@@ -524,6 +524,9 @@ importers:
       '@tailwindcss/typography':
         specifier: ^0.5.15
         version: 0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@22.20.0)(typescript@5.5.4)))
+      '@types/hast':
+        specifier: ^3.0.4
+        version: 3.0.4
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.0
@@ -554,6 +557,9 @@ importers:
       typescript:
         specifier: ^5
         version: 5.5.4
+      unist-util-visit:
+        specifier: ^5.1.0
+        version: 5.1.0
       vitest:
         specifier: 'catalog:'
         version: 4.1.6(@edge-runtime/vm@3.2.0)(@opentelemetry/api@1.9.0)(@types/node@22.20.0)(jsdom@20.0.3)(msw@2.11.1(@types/node@22.20.0)(typescript@5.5.4))(vite@7.3.3(@types/node@22.20.0)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))
@@ -5089,9 +5095,6 @@ packages:
   '@types/node@20.11.0':
     resolution: {integrity: sha512-o9bjXmDNcF7GbM4CNQpmi+TutCgap/K3w1JyKgxAjqx41zp9qlIAVFi0IhCNsJcXolEqLWhbFbEeL0PvYm4pcQ==}
 
-  '@types/node@20.19.13':
-    resolution: {integrity: sha512-yCAeZl7a0DxgNVteXFHt9+uyFbqXGy/ShC4BlcHkoE0AfGXYv/BUiplV72DjMYXHDBXFjhvr6DD1NiRVfB4j8g==}
-
   '@types/node@22.20.0':
     resolution: {integrity: sha512-QWlFW2wf3nTjC13/DqRnBpR4ZO36VJH/JVBkA/vcnmbTBNQIlnObqyqZE1tUR7+Ni23Lda8R1BxMfbXRpCUx5g==}
 
@@ -5871,7 +5874,7 @@ packages:
   basic-ftp@5.0.5:
     resolution: {integrity: sha512-4Bcg1P8xhUuqcii/S0Z9wiHIrQVPMermM1any+MX5GeGD7faD3/msQUDGLol9wOcz4/jbg/WJnGqoJF6LiBdtg==}
     engines: {node: '>=10.0.0'}
-    deprecated: Security vulnerability fixed in 5.2.0, please upgrade
+    deprecated: Security vulnerability fixed in 5.2.1, please upgrade
 
   before-after-hook@3.0.2:
     resolution: {integrity: sha512-Nik3Sc0ncrMK4UUdXQmAnRtzmNQTAAXmXIopizwZ1W1t8QmfJj+zL4OA2I7XPTPW5z5TDqv4hRo/JzouDJnX3A==}
@@ -10621,6 +10624,7 @@ packages:
 
   stream-to-promise@2.2.0:
     resolution: {integrity: sha512-HAGUASw8NT0k8JvIVutB2Y/9iBk7gpgEyAudXwNJmZERdMITGdajOa4VJfD/kNiA3TppQpTP4J+CtcHwdzKBAw==}
+    deprecated: Deprecated. Use node:stream/promises and node:stream/consumers instead.
 
   streamx@2.25.0:
     resolution: {integrity: sha512-0nQuG6jf1w+wddNEEXCF4nTg3LtufWINB5eFEN+5TNZW7KWJp6x87+JFL43vaAUPyCfH1wID+mNVyW6OHtFamg==}
@@ -11281,8 +11285,8 @@ packages:
   unist-util-visit-parents@6.0.1:
     resolution: {integrity: sha512-L/PqWzfTP9lzzEa6CKs0k2nARxTdZduw3zyh8d2NVBnsyvHjSX4TWse388YrrQKbvI8w20fGjGlhgT96WwKykw==}
 
-  unist-util-visit@5.0.0:
-    resolution: {integrity: sha512-MR04uvD+07cwl/yhVuVWAtw+3GOR/knlL55Nd/wAdblk27GCVt3lqpTivy/tkJcZoNPzTwS1Y+KMojlLDhoTzg==}
+  unist-util-visit@5.1.0:
+    resolution: {integrity: sha512-m+vIdyeCOpdr/QeQCu2EzxX/ohgS8KbnPDgFni4dQsfSCtpz8UqDyY5GjRru8PDKuYn7Fq19j1CQ+nJSsGKOzg==}
 
   universal-github-app-jwt@2.2.2:
     resolution: {integrity: sha512-dcmbeSrOdTnsjGjUfAlqNDJrhxXizjAz94ija9Qw8YkZ1uu0d+GoZzyH+Jb9tIIqvGsadUfwg+22k5aDqqwzbw==}
@@ -13606,7 +13610,7 @@ snapshots:
       unified: 11.0.5
       unist-util-position-from-estree: 2.0.0
       unist-util-stringify-position: 4.0.0
-      unist-util-visit: 5.0.0
+      unist-util-visit: 5.1.0
       vfile: 6.0.3
     transitivePeerDependencies:
       - supports-color
@@ -14055,7 +14059,7 @@ snapshots:
 
   '@playwright/test@1.29.0':
     dependencies:
-      '@types/node': 20.19.13
+      '@types/node': 22.20.0
       playwright-core: 1.29.0
 
   '@popperjs/core@2.11.8': {}
@@ -16447,12 +16451,12 @@ snapshots:
     dependencies:
       mermaid: 11.13.0
       react: 19.1.1
-      unist-util-visit: 5.0.0
+      unist-util-visit: 5.1.0
 
   '@theguild/remark-npm2yarn@0.3.3':
     dependencies:
       npm-to-yarn: 3.0.1
-      unist-util-visit: 5.0.0
+      unist-util-visit: 5.1.0
 
   '@tiptap/core@2.26.2(@tiptap/pm@2.26.2)':
     dependencies:
@@ -17060,7 +17064,7 @@ snapshots:
 
   '@types/jsdom@20.0.1':
     dependencies:
-      '@types/node': 20.19.13
+      '@types/node': 22.20.0
       '@types/tough-cookie': 4.0.5
       parse5: 7.3.0
 
@@ -17121,10 +17125,6 @@ snapshots:
   '@types/node@20.11.0':
     dependencies:
       undici-types: 5.26.5
-
-  '@types/node@20.19.13':
-    dependencies:
-      undici-types: 6.21.0
 
   '@types/node@22.20.0':
     dependencies:
@@ -20394,7 +20394,7 @@ snapshots:
       mdast-util-to-hast: 13.2.0
       parse5: 7.3.0
       unist-util-position: 5.0.0
-      unist-util-visit: 5.0.0
+      unist-util-visit: 5.1.0
       vfile: 6.0.3
       web-namespaces: 2.0.1
       zwitch: 2.0.4
@@ -21533,7 +21533,7 @@ snapshots:
       micromark-util-sanitize-uri: 2.0.1
       trim-lines: 3.0.1
       unist-util-position: 5.0.0
-      unist-util-visit: 5.0.0
+      unist-util-visit: 5.1.0
       vfile: 6.0.3
 
   mdast-util-to-markdown@2.1.2:
@@ -21545,7 +21545,7 @@ snapshots:
       mdast-util-to-string: 4.0.0
       micromark-util-classify-character: 2.0.1
       micromark-util-decode-string: 2.0.1
-      unist-util-visit: 5.0.0
+      unist-util-visit: 5.1.0
       zwitch: 2.0.4
 
   mdast-util-to-string@4.0.0:
@@ -22121,7 +22121,7 @@ snapshots:
       title: 4.0.1
       ts-morph: 27.0.2
       unist-util-remove: 4.0.0
-      unist-util-visit: 5.0.0
+      unist-util-visit: 5.1.0
       unist-util-visit-children: 3.0.0
       yaml: 2.8.2
       zod: 4.3.6
@@ -23440,7 +23440,7 @@ snapshots:
       rehype-parse: 9.0.1
       shiki: 3.23.0
       unified: 11.0.5
-      unist-util-visit: 5.0.0
+      unist-util-visit: 5.1.0
 
   rehype-raw@7.0.0:
     dependencies:
@@ -23506,7 +23506,7 @@ snapshots:
       estree-util-is-identifier-name: 3.0.0
       estree-util-value-to-estree: 3.5.0
       reading-time: 1.5.0
-      unist-util-visit: 5.0.0
+      unist-util-visit: 5.1.0
 
   remark-rehype@11.1.2:
     dependencies:
@@ -23521,7 +23521,7 @@ snapshots:
       retext: 9.0.0
       retext-smartypants: 6.2.0
       unified: 11.0.5
-      unist-util-visit: 5.0.0
+      unist-util-visit: 5.1.0
 
   remark-stringify@11.0.0:
     dependencies:
@@ -23596,7 +23596,7 @@ snapshots:
     dependencies:
       '@types/nlcst': 2.0.3
       nlcst-to-string: 4.0.0
-      unist-util-visit: 5.0.0
+      unist-util-visit: 5.1.0
 
   retext-stringify@4.0.0:
     dependencies:
@@ -24953,7 +24953,7 @@ snapshots:
   unist-util-remove-position@5.0.0:
     dependencies:
       '@types/unist': 3.0.3
-      unist-util-visit: 5.0.0
+      unist-util-visit: 5.1.0
 
   unist-util-remove@4.0.0:
     dependencies:
@@ -24974,7 +24974,7 @@ snapshots:
       '@types/unist': 3.0.3
       unist-util-is: 6.0.0
 
-  unist-util-visit@5.0.0:
+  unist-util-visit@5.1.0:
     dependencies:
       '@types/unist': 3.0.3
       unist-util-is: 6.0.0

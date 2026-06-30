@@ -9,8 +9,10 @@ published: true
 
 Discourse graphs turn literature synthesis into a **question-directed activity**: instead of merely absorbing disconnected insights from different sources, the discourse graph workflow orients your reading around a central guiding question of your own devising.
 
-- #hyp-candidate This purpose-driven reading increases engagement with the text and retention of salient data.
-- #hyp-candidate It also incentivizes reading widely and strategically, as papers from many different authors/fields may have made small but significant contributions to your question.
+- <nodeTag type="hyp">#hyp-candidate</nodeTag>
+  This purpose-driven reading increases engagement with the text and retention of salient data.
+- <nodeTag type="hyp">#hyp-candidate</nodeTag>
+  It also incentivizes reading widely and strategically, as papers from many different authors/fields may have made small but significant contributions to your question.
 
 There's a bit of a chicken-and-egg problem here, as engaging in question-driven analysis of the literature first requires the development of a question, which usually involves at least some loosely-directed exploration. Discourse graphs accommodate both phases of the explore/exploit curve.
 
@@ -22,11 +24,11 @@ Let's assume that your exploration phase is influenced by the items in your refe
 
 ![ref manager](/docs/guides/obsidian/biblio.png)
 
-This example vault uses [Zotsidian](https://github.com/Qiwei-Zhao/zotsidian), a Zotero integration plugin with built-in discourse graph support. 🥰
+The [example vault](https://github.com/DiscourseGraphs/obsidian-lab-example) uses [Zotsidian](https://github.com/Qiwei-Zhao/zotsidian), a Zotero integration plugin with built-in discourse graph support. 🥰
 
-> **Note:** If you like your reference manager, you can keep your reference manager -- they all play well with discourse graphs
+> [!note]- If you like your reference manager, you can keep your reference manager -- they all play well with discourse graphs
 >
-> ![a note from a former president](/docs/guides/obsidian/obama.png)
+> ![a note from a former president | 250](/docs/guides/obsidian/obama.png)
 
 ### Managing literature sources with Zotsidian
 
@@ -37,7 +39,7 @@ This example vault uses [Zotsidian](https://github.com/Qiwei-Zhao/zotsidian), a 
 - [Install Zotsidian](https://github.com/Qiwei-Zhao/zotsidian#install-from-github-release) and enable the plugin
 - check your plugin settings:
 
-![settings](/docs/guides/obsidian/zotsidian-settings.png)
+![settings | 350](/docs/guides/obsidian/zotsidian-settings.png)
 
 These settings control:
 
@@ -48,7 +50,7 @@ These settings control:
 
 ![hover card](/docs/guides/obsidian/hover.png)
 
-> **Tip:** The hovercard is useful when you're creating a lot of Source pages at once but can interfere with other mouse-over operations.
+> [!tip] The hovercard is useful when you're creating a lot of Source pages at once but can interfere with other mouse-over operations.
 
 In this vault the hotkey `Ctrl-Shift-Y` opens a search panel that you can use to search for references in your Zotero library.
 
@@ -72,7 +74,8 @@ At the outset of the _exploration_ phase, you probably have a topic in mind, or 
 
 ![a question](/docs/guides/obsidian/merton-que.png)
 
-> **Note:** As long as you use wikilink syntax (`[[mertonMatthewEffectScience1968]]`) the notes you make here will be referenced at the bottom of the appropriate Source page so that you can find them later.
+> [!note]- As long as you use wikilink syntax
+> ([[mertonMatthewEffectScience1968]]) the notes you make here will be referenced at the bottom of the appropriate Source page so that you can find them later.
 >
 > ![alt text](/docs/guides/obsidian/merton-mentions.png)
 
@@ -104,7 +107,7 @@ The [Discourse Canvas](/docs/obsidian/core-features/canvas) can be used to assem
 
 ![lit review](/docs/guides/obsidian/lit-rev.png)
 
-As you collect and assimilate claims and evidence sourced directly from the literature, you will probably develop a few claims of your own that derive from your reading but aren't directly statewd in any of the articles. This is your **Synthesis Claim**: an initial position on the question that you'd like to test further.
+As you collect and assimilate claims and evidence sourced directly from the literature, you will probably develop a few claims of your own that derive from your reading but aren't directly stated in any of the articles. This is your **Synthesis Claim**: an initial position on the question that you'd like to test further.
 
 ![lit review](/docs/guides/obsidian/lit-rev02.png)
 
@@ -120,7 +123,7 @@ In the discourse graph workflow, these phases are largely simultaneous and mutua
 
 ![moving along the curve](/docs/guides/obsidian/exp-exp02.png)
 
-> **Tip:** We're developing an LLM-assisted workflow for extracting claims & evidence from the literature. Join us on [Slack](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg) to learn more.
+> [!tip] We're developing an LLM-assisted workflow for extracting claims & evidence from the literature. Join us on [Slack](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg) to learn more.
 
 ## What else would you like to do?
 

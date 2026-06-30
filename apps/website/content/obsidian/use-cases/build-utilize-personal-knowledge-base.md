@@ -47,7 +47,7 @@ As you build out your graph, your discourse nodes will begin to form "paths of d
 
 ![graph view](/docs/guides/obsidian/graph-view02.png)
 
-> **Tip — Graph Gardening:** Add a random note picker to your vault to get in the habit of reviewing older notes for potential conversion to discourse nodes.
+> [!tip] Graph Gardening: Add a random note picker to your vault to get in the habit of reviewing older notes for potential conversion to discourse nodes.
 
 ### Managing a large vault
 
