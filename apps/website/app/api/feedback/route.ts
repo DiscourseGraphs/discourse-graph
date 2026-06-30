@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import cors from "~/utils/llm/cors";
 
 const LINEAR_API_URL = "https://api.linear.app/graphql";
-const LINEAR_TEAM_ID = "e69757b7-976a-4567-836f-16f8a4d59df2";
-const LINEAR_TRIAGE_STATE_ID = "b4d95c83-3020-4f2a-9f38-5de042c66f6b";
+const LINEAR_TEAM_ID = "e69757b7-976a-4567-836f-16f8a4d59df2"; // Engineering team
+const LINEAR_TRIAGE_STATE_ID = "b4d95c83-3020-4f2a-9f38-5de042c66f6b"; // Triage status
 
 type FeedbackType = "feedback" | "bug_report" | "feature_request";
 

@@ -121,6 +121,8 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
         pluginVersion: plugin.manifest.version,
       };
 
+      console.log("[FeedbackModal] POST", FEEDBACK_ENDPOINT, payload);
+
       const response = await requestUrl({
         url: FEEDBACK_ENDPOINT,
         method: "POST",
@@ -128,13 +130,17 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
         body: JSON.stringify(payload),
       });
 
+      console.log("[FeedbackModal] response status:", response.status);
+      console.log("[FeedbackModal] response body:", response.json);
+
       if (response.status >= 200 && response.status < 300) {
         new Notice("Feedback submitted — thank you!");
         onClose();
       } else {
         new Notice("Failed to submit feedback. Please try again.");
       }
-    } catch {
+    } catch (err) {
+      console.error("[FeedbackModal] request failed:", err);
       new Notice("Failed to submit feedback. Please check your connection.");
     } finally {
       setIsSubmitting(false);
