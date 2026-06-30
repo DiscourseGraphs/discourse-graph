@@ -81,12 +81,19 @@ const createIssue = async (
   return data.issueCreate.issue;
 };
 
-const prepareUpload = async (
-  apiKey: string,
-  filename: string,
-  contentType: string,
-  size: number,
-): Promise<{
+type PrepareUploadParams = {
+  apiKey: string;
+  filename: string;
+  contentType: string;
+  size: number;
+};
+
+const prepareUpload = async ({
+  apiKey,
+  filename,
+  contentType,
+  size,
+}: PrepareUploadParams): Promise<{
   uploadUrl: string;
   assetUrl: string;
   headers: { key: string; value: string }[];
@@ -111,12 +118,19 @@ const prepareUpload = async (
   return data.fileUpload.uploadFile;
 };
 
-const attachToIssue = async (
-  apiKey: string,
-  issueId: string,
-  assetUrl: string,
-  title: string,
-): Promise<void> => {
+type AttachToIssueParams = {
+  apiKey: string;
+  issueId: string;
+  assetUrl: string;
+  title: string;
+};
+
+const attachToIssue = async ({
+  apiKey,
+  issueId,
+  assetUrl,
+  title,
+}: AttachToIssueParams): Promise<void> => {
   await linearRequest(
     apiKey,
     `mutation AttachmentCreate($input: AttachmentCreateInput!) {
@@ -135,12 +149,12 @@ const uploadScreenshotToLinear = async (
 ): Promise<void> => {
   const buffer = Buffer.from(screenshot.data, "base64");
 
-  const { uploadUrl, assetUrl, headers } = await prepareUpload(
+  const { uploadUrl, assetUrl, headers } = await prepareUpload({
     apiKey,
-    screenshot.name,
-    screenshot.mimeType,
-    buffer.byteLength,
-  );
+    filename: screenshot.name,
+    contentType: screenshot.mimeType,
+    size: buffer.byteLength,
+  });
 
   const uploadHeaders = Object.fromEntries(
     headers.map(({ key, value }) => [key, value]),
@@ -153,7 +167,7 @@ const uploadScreenshotToLinear = async (
 
   if (!putRes.ok) throw new Error(`Screenshot upload failed: ${putRes.status}`);
 
-  await attachToIssue(apiKey, issueId, assetUrl, "Screenshot");
+  await attachToIssue({ apiKey, issueId, assetUrl, title: "Screenshot" });
 };
 
 const buildDescription = (payload: FeedbackPayload): string => {
@@ -206,7 +220,5 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   }
 };
 
-export const OPTIONS = async (request: NextRequest): Promise<NextResponse> => {
-  const response = new NextResponse(null, { status: 204 });
-  return cors(request, response) as NextResponse;
-};
+export const OPTIONS = (request: NextRequest): NextResponse =>
+  cors(request, new NextResponse(null, { status: 204 })) as NextResponse;

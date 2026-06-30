@@ -45,7 +45,7 @@ type FeedbackContentProps = {
 };
 
 const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
-  const [email, setEmail] = useState(plugin.settings.username ?? "");
+  const [email, setEmail] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [feedbackType, setFeedbackType] = useState<FeedbackType>("bug_report");
