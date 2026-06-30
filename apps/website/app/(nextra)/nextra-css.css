@@ -52,8 +52,12 @@ details.callout > summary::-webkit-details-marker {
   font-size: 0.9em;
 }
 
-.callout-body > *:first-child { margin-top: 0; }
-.callout-body > *:last-child { margin-bottom: 0; }
+.callout-body > *:first-child {
+  margin-top: 0;
+}
+.callout-body > *:last-child {
+  margin-bottom: 0;
+}
 
 html:not(.dark) .nextra-search-results a {
   color: #1f1f1f !important;

@@ -60,6 +60,7 @@ export function rehypeCallouts() {
       if (!match) return;
 
       const [, rawType, fold, titleText] = match;
+      if (!rawType) return;
       const type = rawType.toLowerCase();
       const isFoldable = fold === "+" || fold === "-";
       const isOpen = fold !== "-";
