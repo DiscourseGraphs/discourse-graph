@@ -4,6 +4,10 @@
   --nextra-content-width: 90rem;
 }
 
+.use-case-content img {
+  border: 1px solid #cbcbcb;
+}
+
 html:not(.dark) .nextra-search-results a {
   color: #1f1f1f !important;
 }

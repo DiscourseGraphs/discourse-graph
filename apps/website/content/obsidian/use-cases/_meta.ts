@@ -1,10 +1,13 @@
 import type { MetaRecord } from "nextra";
 
 const meta: MetaRecord = {
-  "literature-reviewing": "Literature review",
-  "research-roadmapping": "Research notes",
-  "reading-clubs": "Reading clubs and seminars",
-  "lab-notebooks": "Lab notebooks",
+  "build-utilize-personal-knowledge-base":
+    "Build and Utilize a Personal Knowledge Base",
+  "synthesize-insights-from-literature":
+    "Synthesize Insights from the Literature",
+  "share-your-ideas-and-research": "Share your ideas & research",
+  "track-your-projects-and-experiments": "Track your Projects and Experiments",
+  "experiment-tracking": "Experiment Tracking",
 };
 
 export default meta;
