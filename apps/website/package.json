@@ -18,9 +18,9 @@
   "dependencies": {
     "@repo/database": "workspace:*",
     "@repo/ui": "workspace:*",
+    "@supabase/auth-js": "catalog:",
     "@supabase/ssr": "catalog:",
     "@supabase/supabase-js": "catalog:",
-    "@supabase/auth-js": "catalog:",
     "clsx": "^2.1.1",
     "gray-matter": "^4.0.3",
     "lucide-react": "^0.540.0",
@@ -38,20 +38,22 @@
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
-    "dotenv": "^16.0.0",
-    "vitest": "catalog:",
     "@repo/tailwind-config": "workspace:*",
     "@repo/types": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@tailwindcss/typography": "^0.5.15",
+    "@types/hast": "^3.0.4",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "autoprefixer": "^10.4.20",
+    "dotenv": "^16.0.0",
     "eslint": "catalog:",
     "pagefind": "^1.4.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
-    "typescript": "^5"
+    "typescript": "^5",
+    "unist-util-visit": "^5.1.0",
+    "vitest": "catalog:"
   }
 }

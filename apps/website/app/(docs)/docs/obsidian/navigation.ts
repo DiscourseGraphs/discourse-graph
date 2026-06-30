@@ -67,6 +67,10 @@ export const navigation: NavigationList = [
         title: "Querying your discourse graph",
         href: `${ROOT}/querying-discourse-graph`,
       },
+      {
+        title: "Experiment tracking",
+        href: `${ROOT}/experiment-tracking`,
+      },
     ],
   },
 
@@ -83,20 +87,20 @@ export const navigation: NavigationList = [
     title: "🚢 Use cases",
     links: [
       {
-        title: "Literature review",
-        href: `${ROOT}/literature-reviewing`,
+        title: "Build and Utilize a Personal Knowledge Base",
+        href: `${ROOT}/build-utilize-personal-knowledge-base`,
       },
       {
-        title: "Research notes",
-        href: `${ROOT}/research-roadmapping`,
+        title: "Synthesize Insights from the Literature",
+        href: `${ROOT}/synthesize-insights-from-literature`,
       },
       {
-        title: "Reading clubs & seminars",
-        href: `${ROOT}/reading-clubs`,
+        title: "Share your ideas & research",
+        href: `${ROOT}/share-your-ideas-and-research`,
       },
       {
-        title: "Lab notebooks",
-        href: `${ROOT}/lab-notebooks`,
+        title: "Track your Projects and Experiments",
+        href: `${ROOT}/track-your-projects-and-experiments`,
       },
     ],
   },

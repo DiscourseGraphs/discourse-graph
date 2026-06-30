@@ -39,7 +39,10 @@ const Page = async ({ params }: DocsPageProps): Promise<React.ReactElement> => {
     const { default: MDXContent, ...wrapperProps } = result;
 
     return (
-      <DocsPageTemplate {...wrapperProps}>
+      <DocsPageTemplate
+        {...wrapperProps}
+        isUseCasePage={mdxPath?.[0] === "use-cases"}
+      >
         <MDXContent params={{ mdxPath: mdxPath ?? [] }} />
       </DocsPageTemplate>
     );
