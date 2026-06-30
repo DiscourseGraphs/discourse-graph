@@ -21,7 +21,7 @@ We've just added a feature to allow you to share "live" nodes with your collabor
 ![](/docs/guides/obsidian/backrooms.jpg)
 _Opening the admin panel_
 
-> **Note:** For further information on the sync mode feature, visit [the website docs](/docs/obsidian/advanced-features/sync-and-import). To request access, please email discoursegraphs@gmail.com
+> [!info] For further information on the sync mode feature, visit [the website docs](/docs/obsidian/advanced-features/sync-and-import). To request access, please email discoursegraphs@gmail.com
 
 ## Sharing your discourse canvas
 
@@ -36,7 +36,7 @@ _Example Canvas walkthrough_
 
 You can create a "presentation view" for your discourse nodes by adding the material/images you wish to highlight at the top of the page -- the first image on the page is automatically selected as the image that displays on the discourse canvas.
 
-> **Tip:** You can [modify your discourse templates](/docs/obsidian/configuration/node-types-templates) to customize your presentation view.
+> [!tip] You can [modify your discourse templates](/docs/obsidian/configuration/node-types-templates) to customize your presentation view.
 
 ### Exporting your Canvas
 
@@ -45,7 +45,7 @@ You can export a static .png or .svg image of your discourse canvas from the men
 ![export a png or svg](/docs/guides/obsidian/canvas-export%201.png)
 _Canvas export menu_
 
-> **Note:** It is not possible at present to export a "live" discourse canvas to another graph.
+> [!note] It is not possible at present to export a "live" discourse canvas to another graph.
 
 ## Drafting a manuscript from your discourse graph
 
