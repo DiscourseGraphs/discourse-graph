@@ -34,6 +34,10 @@ import type { PageGroup } from "~/components/settings/utils/zodSchema";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import posthog from "posthog-js";
+import {
+  notifyBlockSuggestionAdded,
+  notifyRelationSuggestionAdded,
+} from "~/utils/notifySuggestiveModeAdoption";
 
 export type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -360,6 +364,11 @@ const SuggestionsBody = ({
           });
           return;
         }
+        try {
+          notifyRelationSuggestionAdded(tag, node.text);
+        } catch (error) {
+          console.error("Failed to show suggestion added notification:", error);
+        }
       } else {
         renderToast({
           id: "suggestions-create-block-error",
@@ -373,7 +382,13 @@ const SuggestionsBody = ({
         parentUid: blockUid,
         node: { text: `[[${node.text}]]` },
       });
+      try {
+        await notifyBlockSuggestionAdded(blockUid, tag, node.text);
+      } catch (error) {
+        console.error("Failed to show suggestion added notification:", error);
+      }
     }
+
     posthog.capture("Suggestive Mode: Suggestion Adopted", {
       tag,
       nodeType: node.type,
