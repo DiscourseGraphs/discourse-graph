@@ -9,7 +9,11 @@ type ImgProps = React.ImgHTMLAttributes<HTMLImageElement>;
 const parseAltSize = (alt?: string): { alt: string; width?: number } => {
   if (!alt) return { alt: "" };
   const match = alt.match(/^(.*?)\s*\|\s*(\d+)\s*$/);
-  if (match) return { alt: match[1].trim(), width: parseInt(match[2], 10) };
+  if (match)
+    return {
+      alt: match[1]?.trim() ?? "",
+      width: parseInt(match[2] ?? "0", 10),
+    };
   return { alt };
 };
 
@@ -122,6 +126,7 @@ const Blockquote = ({ children }: React.HTMLAttributes<HTMLElement>) => {
   if (!match) return <blockquote>{children}</blockquote>;
 
   const [, rawType, fold, titleText] = match;
+  if (!rawType) return <blockquote>{children}</blockquote>;
   const type = rawType.toLowerCase();
   const isFoldable = fold === "+" || fold === "-";
   const isOpen = fold !== "-";
