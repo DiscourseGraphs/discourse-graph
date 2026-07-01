@@ -14,6 +14,7 @@ import fireQuery from "./fireQuery";
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
+import { renderDiscoverSharedNodesDialog } from "~/components/DiscoverSharedNodesDialog";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import {
   getOverlayHandler,
@@ -413,6 +414,11 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   );
   void addCommand("DG: Export - Current page", exportCurrentPage);
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
+  if (getFeatureFlag("Cross-app node import enabled")) {
+    void addCommand("DG: Import - Discover shared nodes", () =>
+      renderDiscoverSharedNodesDialog(),
+    );
+  }
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
   if (isSyncEnabled()) {
     void addCommand("DG: Share current node", shareCurrentNode);

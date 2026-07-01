@@ -273,6 +273,9 @@ const FeatureFlagsTab = (): React.ReactElement => {
   const [advancedNodeSearchValue, setAdvancedNodeSearchValue] = useState(
     getFeatureFlag("Advanced node search enabled"),
   );
+  const [crossAppImportValue, setCrossAppImportValue] = useState(
+    getFeatureFlag("Cross-app node import enabled"),
+  );
   const syncAlreadyEnabled = duplicateNodeAlertValue || suggestiveOverlayValue;
 
   const ensureSyncEnabled = (
@@ -368,6 +371,14 @@ const FeatureFlagsTab = (): React.ReactElement => {
         featureKey="Advanced node search enabled"
         value={advancedNodeSearchValue}
         onAfterChange={(checked) => setAdvancedNodeSearchValue(checked)}
+      />
+
+      <FeatureFlagPanel
+        title="Cross-app node import"
+        description="Show the DG: Import - Discover shared nodes command for importing nodes shared from other graphs (Obsidian/Roam). Reload the graph after toggling."
+        featureKey="Cross-app node import enabled"
+        value={crossAppImportValue}
+        onAfterChange={(checked) => setCrossAppImportValue(checked)}
       />
 
       <Alert

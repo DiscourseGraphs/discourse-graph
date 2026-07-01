@@ -159,6 +159,7 @@ export const FeatureFlagsSchema = z.object({
   "Enable left sidebar": z.boolean().default(false),
   "Duplicate node alert enabled": z.boolean().default(false),
   "Suggestive mode overlay enabled": z.boolean().default(false),
+  "Cross-app node import enabled": z.boolean().default(false),
   "Use new settings store": z.boolean().default(false),
 });
 
