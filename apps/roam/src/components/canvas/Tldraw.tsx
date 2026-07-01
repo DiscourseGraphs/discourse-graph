@@ -176,6 +176,128 @@ export const MAX_WIDTH = "400px";
 
 const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
 
+const ROAM_PAGE_DROP_MIME_TYPE = "application/x-roam-page";
+const ROAM_BLOCK_DROP_MIME_TYPE = "application/x-roam-uid";
+const TEMP_DRAG_ATTR = "data-roamjs-canvas-page-ref-draggable";
+const PAGE_REF_CLICK_SUPPRESSION_MS = 750;
+const PAGE_REF_REGEX = /^\[\[(.+?)\]\]$/;
+
+type PageRefDragSource = {
+  element: HTMLElement;
+  title: string;
+};
+
+const getPageRefDragSource = (
+  target: EventTarget | null,
+): PageRefDragSource | null => {
+  if (!(target instanceof HTMLElement)) return null;
+
+  const pageRef = target.closest<HTMLElement>(".rm-page-ref");
+  const pageRefContainer = target.closest<HTMLElement>("[data-link-title]");
+  const element = pageRef || pageRefContainer;
+  if (!element) return null;
+
+  const pageTitle =
+    pageRef?.getAttribute("data-tag") ||
+    pageRef?.getAttribute("data-link-title") ||
+    pageRef
+      ?.closest<HTMLElement>("[data-link-title]")
+      ?.getAttribute("data-link-title") ||
+    pageRefContainer?.getAttribute("data-link-title");
+
+  const title = pageTitle?.replace(/\\"/g, '"');
+  return title ? { element, title } : null;
+};
+
+let pageRefDragSourceSubscriptionCount = 0;
+let cleanupRoamPageRefDragSources: (() => void) | undefined;
+
+const createRoamPageRefDragSourceCleanup = (): (() => void) => {
+  let activePageRef: HTMLElement | null = null;
+  let suppressPageRefClickUntil = 0;
+
+  const clearActivePageRef = (): void => {
+    if (activePageRef?.hasAttribute(TEMP_DRAG_ATTR)) {
+      activePageRef.draggable = false;
+      activePageRef.removeAttribute(TEMP_DRAG_ATTR);
+    }
+    activePageRef = null;
+  };
+
+  const handlePointerDown = (e: MouseEvent | PointerEvent): void => {
+    if (e.defaultPrevented || e.button !== 0) return;
+    const source = getPageRefDragSource(e.target);
+    if (!source || source.element.draggable) {
+      return;
+    }
+
+    clearActivePageRef();
+    activePageRef = source.element;
+    source.element.draggable = true;
+    source.element.setAttribute(TEMP_DRAG_ATTR, "true");
+  };
+
+  const handleDragStart = (e: DragEvent): void => {
+    const source = getPageRefDragSource(e.target);
+    if (source) {
+      suppressPageRefClickUntil = Date.now() + PAGE_REF_CLICK_SUPPRESSION_MS;
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = "copy";
+      e.dataTransfer?.setData(ROAM_PAGE_DROP_MIME_TYPE, source.title);
+    }
+  };
+
+  const handleClick = (e: MouseEvent): void => {
+    if (
+      Date.now() > suppressPageRefClickUntil ||
+      !getPageRefDragSource(e.target)
+    ) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    suppressPageRefClickUntil = 0;
+  };
+
+  document.addEventListener("pointerdown", handlePointerDown, true);
+  document.addEventListener("mousedown", handlePointerDown, true);
+  document.addEventListener("pointerup", clearActivePageRef, true);
+  document.addEventListener("mouseup", clearActivePageRef, true);
+  document.addEventListener("pointercancel", clearActivePageRef, true);
+  document.addEventListener("dragstart", handleDragStart, true);
+  document.addEventListener("click", handleClick, true);
+  document.addEventListener("dragend", clearActivePageRef, true);
+
+  return () => {
+    clearActivePageRef();
+    document.removeEventListener("pointerdown", handlePointerDown, true);
+    document.removeEventListener("mousedown", handlePointerDown, true);
+    document.removeEventListener("pointerup", clearActivePageRef, true);
+    document.removeEventListener("mouseup", clearActivePageRef, true);
+    document.removeEventListener("pointercancel", clearActivePageRef, true);
+    document.removeEventListener("dragstart", handleDragStart, true);
+    document.removeEventListener("click", handleClick, true);
+    document.removeEventListener("dragend", clearActivePageRef, true);
+  };
+};
+
+const enableRoamPageRefDragSources = (): (() => void) => {
+  pageRefDragSourceSubscriptionCount += 1;
+  cleanupRoamPageRefDragSources ||= createRoamPageRefDragSourceCleanup();
+
+  let subscribed = true;
+  return () => {
+    if (!subscribed) return;
+    subscribed = false;
+    pageRefDragSourceSubscriptionCount -= 1;
+
+    if (pageRefDragSourceSubscriptionCount === 0) {
+      cleanupRoamPageRefDragSources?.();
+      cleanupRoamPageRefDragSources = undefined;
+    }
+  };
+};
+
 /** Valid file size for asset props; undefined when unknown (e.g. Roam/file API not a real File) to avoid persisting null. */
 const getValidFileSize = (file: { size?: number }): number | undefined =>
   typeof file.size === "number" && Number.isFinite(file.size) && file.size > 0
@@ -641,17 +763,22 @@ const TldrawCanvasShared = ({
     return getUids(blockInput as HTMLDivElement).blockUid;
   };
 
-  // Handle Roam block drag and drop
+  // Handle Roam page reference and block drag sources
   useEffect(() => {
+    const disablePageRefDragSources = enableRoamPageRefDragSources();
     const handleDragStart = (e: DragEvent) => {
       const target = e.target as HTMLElement;
-      const uid = getBlockUidFromBullet(target);
+      if (getPageRefDragSource(target)) return;
 
-      if (uid) e.dataTransfer?.setData("application/x-roam-uid", uid);
+      const uid = getBlockUidFromBullet(target);
+      if (uid) e.dataTransfer?.setData(ROAM_BLOCK_DROP_MIME_TYPE, uid);
     };
 
     document.addEventListener("dragstart", handleDragStart);
-    return () => document.removeEventListener("dragstart", handleDragStart);
+    return () => {
+      disablePageRefDragSources();
+      document.removeEventListener("dragstart", handleDragStart);
+    };
   }, []);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -660,7 +787,23 @@ const TldrawCanvasShared = ({
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const uid = e.dataTransfer.getData("application/x-roam-uid");
+
+    const pageTitle = e.dataTransfer.getData(ROAM_PAGE_DROP_MIME_TYPE);
+    if (pageTitle && appRef.current && extensionAPI) {
+      posthog.capture("Canvas: Roam Page Dropped");
+      const dropPoint = appRef.current.screenToPage({
+        x: e.clientX,
+        y: e.clientY,
+      });
+      void appRef.current.putExternalContent({
+        type: "text",
+        text: `[[${pageTitle}]]`,
+        point: dropPoint,
+      });
+      return;
+    }
+
+    const uid = e.dataTransfer.getData(ROAM_BLOCK_DROP_MIME_TYPE);
 
     if (!uid || !appRef.current || !extensionAPI) return;
     posthog.capture("Canvas: Roam Block Dropped");
@@ -1281,30 +1424,36 @@ const InsideEditorAndUiContext = ({
         try {
           const text = content.text ?? "";
 
-          // Check for page reference: [[pageName]]
-          const pageMatch = text.match(/^\[\[(.+?)\]\]$/);
-          if (pageMatch?.[1]) {
-            const pageName = pageMatch[1];
-            const pageUid = getPageUidByPageTitle(pageName);
-            if (!pageUid) return await callDefaultTextHandler(content);
-
+          const tryCreatePageNodeShape = async (
+            title: string,
+          ): Promise<boolean> => {
+            const pageUid = getPageUidByPageTitle(title);
+            if (!pageUid) return false;
             const nodeType = findDiscourseNode({
               uid: pageUid,
-              title: pageName,
+              title,
               nodes: allNodes,
             });
-            if (!nodeType) return await callDefaultTextHandler(content);
-
+            if (!nodeType) return false;
             await createDiscourseNodeShape({
               uid: pageUid,
-              nodeText: pageName,
+              nodeText: title,
               nodeType: nodeType.type,
               content,
             });
-            posthog.capture("Canvas: Node Added from External Content", {
-              source: "page-reference",
-            });
-            return;
+            return true;
+          };
+
+          // Check for page reference: [[pageName]]
+          const pageMatch = text.match(PAGE_REF_REGEX);
+          if (pageMatch?.[1]) {
+            if (await tryCreatePageNodeShape(pageMatch[1])) {
+              posthog.capture("Canvas: Node Added from Text Content", {
+                source: "page-reference",
+              });
+              return;
+            }
+            return await callDefaultTextHandler(content);
           }
 
           // Check for block reference: ((uid))
@@ -1323,7 +1472,7 @@ const InsideEditorAndUiContext = ({
             nodeType: "blck-node",
             content,
           });
-          posthog.capture("Canvas: Node Added from External Content", {
+          posthog.capture("Canvas: Node Added from Text Content", {
             source: "block-reference",
           });
         } catch (error) {
