@@ -63,17 +63,19 @@ const HomeLayout = async ({
               <Logo />
             </div>
 
-            <HomeNavigationMenu items={navigationItems} />
+            <div className="flex items-center gap-3">
+              <HomeNavigationMenu items={navigationItems} />
 
-            <div className="hidden md:block">
-              {/* Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS. */}
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-              <a
-                href="/docs"
-                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 hover:text-white"
-              >
-                Open docs
-              </a>
+              <div className="hidden lg:block">
+                {/* Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS. */}
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                <a
+                  href="/docs"
+                  className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 hover:text-white"
+                >
+                  Open docs
+                </a>
+              </div>
             </div>
           </div>
         </header>

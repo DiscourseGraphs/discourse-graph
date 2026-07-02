@@ -25,7 +25,7 @@ export const HomeNavigationMenu = ({
 }: HomeNavigationMenuProps): React.ReactElement => {
   return (
     <>
-      <div className="md:hidden">
+      <div className="lg:hidden">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -58,7 +58,7 @@ export const HomeNavigationMenu = ({
         </DropdownMenu>
       </div>
 
-      <nav aria-label="Primary navigation" className="hidden md:flex md:flex-1">
+      <nav aria-label="Primary navigation" className="hidden lg:flex">
         <ul className="flex flex-wrap justify-end gap-x-5 gap-y-2 text-sm font-medium text-neutral-dark/75">
           {items.map((item) => (
             <li key={item.href} className="shrink-0">
