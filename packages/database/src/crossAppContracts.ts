@@ -57,12 +57,20 @@ export type CrossAppEmbedding = {
   embedding?: Enums<"EmbeddingName">;
 };
 
+// An inline document, to put inside Content (or Concept)
+export type CrossAppDocument = CrossAppBase & {
+  // MIME type
+  contentType: string;
+};
+
 // A Content object. It can be put inline inside a concept.
 // Missing CrossAppBase attributes are inferred from enclosing object.
 export type InlineCrossAppContent = Partial<CrossAppBase> & {
   value: string;
   embedding?: CrossAppEmbedding;
   scale?: Enums<"Scale">;
+  partOf?: LocalId;
+  document?: LocalId;
   contentType?: ContentType;
 };
 
@@ -78,6 +86,8 @@ export type CrossAppNode = CrossAppBase & {
     direct: InlineCrossAppContent;
     full?: InlineCrossAppTypedContent;
   };
+  // This is a way to define document globally for all contents
+  document?: LocalId;
 };
 
 // A relation instance
