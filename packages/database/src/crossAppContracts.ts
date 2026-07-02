@@ -21,6 +21,29 @@ export type CrossAppBase = LocalRef & {
   author: Ref;
 };
 
+// A node schema
+export type CrossAppNodeSchema = CrossAppBase & {
+  label: string;
+  template?: string;
+  templateTitle?: string;
+};
+
+// A relation type schema
+export type CrossAppRelationTypeSchema = CrossAppBase & {
+  label: string;
+  complement: string;
+  // should we add colour? format?
+};
+
+// A relation triple schema
+export type CrossAppRelationTripleSchema = CrossAppBase & {
+  label: string;
+  complement: string;
+  relation?: Ref | CrossAppRelationTypeSchema;
+  sourceType: Ref;
+  destinationType: Ref;
+};
+
 // An inline vector semantic embedding
 export type CrossAppEmbedding = {
   value: number[];
