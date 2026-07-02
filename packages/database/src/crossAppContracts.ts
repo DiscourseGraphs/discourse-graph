@@ -21,6 +21,20 @@ type CrossAppBase = LocalRef & {
   author: Ref;
 };
 
+type SpaceRef = DbRef | { url: string; sourceApp: Enums<"Platform"> };
+
+export type LocalOrRemoteRef =
+  | LocalRef
+  | {
+      localId: string;
+      // infer space from context if absent.
+      space?: SpaceRef;
+    }
+  | {
+      // A string that contains combined space and localId
+      rid: string;
+    };
+
 // A node schema
 export type CrossAppNodeSchema = CrossAppBase & {
   label: string;
@@ -71,4 +85,11 @@ export type CrossAppNode = CrossAppBase & {
     direct: InlineCrossAppContent;
     full: InlineCrossAppTypedContent;
   };
+};
+
+// A relation instance
+export type CrossAppRelation = CrossAppBase & {
+  relationType: Ref;
+  source: LocalOrRemoteRef;
+  destination: LocalOrRemoteRef;
 };
