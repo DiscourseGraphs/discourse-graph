@@ -85,18 +85,69 @@ export type CrossAppEmbedding = {
   embedding?: Enums<"EmbeddingName">;
 };
 
-// A Content object. It can be put inline inside a concept.
-// Missing CrossAppBase attributes are inferred from enclosing object.
-export type InlineCrossAppContent = Partial<CrossAppBase> & {
+// An asset reference
+export type CrossAppAsset = {
+  content: ArrayBuffer;
+  mimetype: string;
+  createdAt: Date;
+  modifiedAt?: Date;
+  filepath?: string;
+};
+
+// Document fields
+type CrossAppDocumentExtras = {
+  // MIME type
+  contentType: string;
+};
+
+// An inline document, to put inside Content or Concept.
+// Currently, we fully infer Documents (setting content_as_document=true)
+// since our nodes are pages; so this is not used yet.
+export type InlineCrossAppDocument = Partial<CrossAppBase> &
+  CrossAppDocumentExtras;
+
+// A standalone document, for `upsert_documents`. Not currently used.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type StandaloneCrossAppDocument = LocalRef &
+  CrossAppBase &
+  CrossAppDocumentExtras;
+
+// Content fields
+type CrossAppContentExtras = {
   value: string;
   embedding?: CrossAppEmbedding;
   scale?: Enums<"Scale">;
+  partOf?: Ref;
+  assets?: CrossAppAsset[];
+  document?: InlineCrossAppDocument;
   contentType?: ContentType;
 };
+
+// A Content object. It can be put inline inside a concept.
+// Missing CrossAppBase attributes are inferred from enclosing object.
+export type InlineCrossAppContent = Partial<CrossAppBase> &
+  CrossAppContentExtras;
+
+// A standalone content object, for `upsert_content`
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type StandaloneCrossAppContent = LocalRef &
+  CrossAppBase &
+  CrossAppContentExtras;
 
 // An inline Content with obligatory typing
 type InlineCrossAppTypedContent = InlineCrossAppContent & {
   contentType: ContentType;
+};
+
+// A platform account
+// either standalone for `upsert_account_in_space`,
+// or inline in Content or Concept
+export type CrossAppAccount = {
+  accountLocalId: string;
+  name?: string;
+  email?: string;
+  // agentType: Enums<"AgentType"> = 'person'  // inferred
+  // dgAccount?: string; // uuid
 };
 
 // A node instance
@@ -106,6 +157,8 @@ export type CrossAppNode = CrossAppBase & {
     direct: InlineCrossAppContent;
     full: InlineCrossAppTypedContent;
   };
+  // This is a way to define document globally for all contents
+  document?: InlineCrossAppDocument;
 };
 
 // A relation instance
