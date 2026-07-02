@@ -14,6 +14,28 @@ type DbRef = {
 // Generalized reference
 export type Ref = LocalRef | DbRef;
 
+type SpaceRef = DbRef | { url: string; sourceApp: Enums<"Platform"> };
+
+// A potentially cross-space reference
+export type LocalOrRemoteRef =
+  | DbRef
+  | {
+      localId: string;
+      // Treat as LocalRef if space is absent
+      space?: SpaceRef;
+      // make the options mutually exclusive
+      dbId?: never;
+      rid?: never;
+    }
+  | {
+      // A string that contains combined space and localId
+      rid: string;
+      // make the options mutually exclusive
+      dbId?: never;
+      localId?: never;
+      space?: never;
+    };
+
 // Common attributes for most types
 export type CrossAppBase = LocalRef & {
   createdAt: Date;
@@ -84,4 +106,11 @@ export type CrossAppNode = CrossAppBase & {
     direct: InlineCrossAppContent;
     full: InlineCrossAppTypedContent;
   };
+};
+
+// A relation instance
+export type CrossAppRelation = CrossAppBase & {
+  relationType: Ref;
+  source: LocalOrRemoteRef;
+  destination: LocalOrRemoteRef;
 };
