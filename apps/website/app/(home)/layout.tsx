@@ -63,7 +63,7 @@ const HomeLayout = async ({
               <Logo />
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-6">
               <HomeNavigationMenu items={navigationItems} />
 
               <div className="hidden lg:block">

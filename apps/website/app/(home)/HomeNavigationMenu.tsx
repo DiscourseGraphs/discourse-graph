@@ -23,6 +23,8 @@ type HomeNavigationMenuProps = {
 export const HomeNavigationMenu = ({
   items,
 }: HomeNavigationMenuProps): React.ReactElement => {
+  const desktopItems = items.filter((item) => !item.isDocumentNavigation);
+
   return (
     <>
       <div className="lg:hidden">
@@ -60,7 +62,7 @@ export const HomeNavigationMenu = ({
 
       <nav aria-label="Primary navigation" className="hidden lg:flex">
         <ul className="flex flex-wrap justify-end gap-x-5 gap-y-2 text-sm font-medium text-neutral-dark/75">
-          {items.map((item) => (
+          {desktopItems.map((item) => (
             <li key={item.href} className="shrink-0">
               {item.isDocumentNavigation ? (
                 // Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS.
