@@ -48,6 +48,7 @@ const HomeLayout = async ({
     ...(hasUpdates ? [{ href: "/#updates", label: "Updates" }] : []),
     { href: "/#talks", label: "Talks" },
     { href: "/#team", label: "Team" },
+    { href: "/#supporters", label: "Supporters" },
     { href: "/docs", isDocumentNavigation: true, label: "Docs" },
     { href: "/#contact", label: "Contact" },
   ];
