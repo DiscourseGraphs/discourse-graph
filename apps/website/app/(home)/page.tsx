@@ -346,11 +346,8 @@ const Home = async (): Promise<ReactElement> => {
       </section>
 
       <main className="flex-1">
-        <section
-          id="about"
-          className="scroll-mt-36 px-5 py-16 sm:px-6 md:scroll-mt-24 lg:py-24"
-        >
-          <div className="mx-auto max-w-7xl">
+        <section className="px-5 py-16 sm:px-6 lg:py-24">
+          <div id="about" className="mx-auto max-w-7xl scroll-mt-20">
             <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
               <SectionHeader
                 eyebrow="About"
@@ -463,11 +460,8 @@ const Home = async (): Promise<ReactElement> => {
           </div>
         </section>
 
-        <section
-          id="plugins"
-          className="scroll-mt-36 bg-white px-5 py-16 sm:px-6 md:scroll-mt-24 lg:py-24"
-        >
-          <div className="mx-auto max-w-7xl">
+        <section className="bg-white px-5 py-16 sm:px-6 lg:py-24">
+          <div id="plugins" className="mx-auto max-w-7xl scroll-mt-20">
             <SectionHeader
               eyebrow="Plugins"
               isWide
@@ -601,11 +595,8 @@ const Home = async (): Promise<ReactElement> => {
           </div>
         </section>
 
-        <section
-          id="resources"
-          className="scroll-mt-36 bg-white px-5 py-16 sm:px-6 md:scroll-mt-24 lg:py-24"
-        >
-          <div className="mx-auto max-w-7xl">
+        <section className="bg-white px-5 py-16 sm:px-6 lg:py-24">
+          <div id="resources" className="mx-auto max-w-7xl scroll-mt-20">
             <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
               <SectionHeader
                 eyebrow="Resources"
@@ -641,11 +632,8 @@ const Home = async (): Promise<ReactElement> => {
           </div>
         </section>
 
-        <section
-          id="events"
-          className="scroll-mt-36 px-5 py-16 sm:px-6 md:scroll-mt-24 lg:py-24"
-        >
-          <div className="mx-auto max-w-7xl">
+        <section className="px-5 py-16 sm:px-6 lg:py-24">
+          <div id="events" className="mx-auto max-w-7xl scroll-mt-20">
             <SectionHeader
               eyebrow="Events"
               isWide
@@ -680,11 +668,8 @@ const Home = async (): Promise<ReactElement> => {
         </section>
 
         {blogs.length > 0 && (
-          <section
-            id="updates"
-            className="scroll-mt-36 bg-white px-5 py-16 sm:px-6 md:scroll-mt-24 lg:py-24"
-          >
-            <div className="mx-auto max-w-7xl">
+          <section className="bg-white px-5 py-16 sm:px-6 lg:py-24">
+            <div id="updates" className="mx-auto max-w-7xl scroll-mt-20">
               <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
                 <SectionHeader
                   eyebrow="Updates"
@@ -721,11 +706,8 @@ const Home = async (): Promise<ReactElement> => {
           </section>
         )}
 
-        <section
-          id="talks"
-          className="scroll-mt-36 px-5 py-16 sm:px-6 md:scroll-mt-24 lg:py-24"
-        >
-          <div className="mx-auto max-w-7xl">
+        <section className="px-5 py-16 sm:px-6 lg:py-24">
+          <div id="talks" className="mx-auto max-w-7xl scroll-mt-20">
             <SectionHeader
               eyebrow="Talks"
               isWide
@@ -770,11 +752,8 @@ const Home = async (): Promise<ReactElement> => {
           </div>
         </section>
 
-        <section
-          id="team"
-          className="scroll-mt-36 bg-white px-5 py-16 sm:px-6 md:scroll-mt-24 lg:py-24"
-        >
-          <div className="mx-auto max-w-7xl">
+        <section className="bg-white px-5 py-16 sm:px-6 lg:py-24">
+          <div id="team" className="mx-auto max-w-7xl scroll-mt-20">
             <SectionHeader
               eyebrow="Team"
               isWide
@@ -794,11 +773,8 @@ const Home = async (): Promise<ReactElement> => {
           </div>
         </section>
 
-        <section
-          id="supporters"
-          className="scroll-mt-36 px-5 py-16 sm:px-6 md:scroll-mt-24 lg:py-24"
-        >
-          <div className="mx-auto max-w-7xl">
+        <section className="px-5 py-16 sm:px-6 lg:py-24">
+          <div id="supporters" className="mx-auto max-w-7xl scroll-mt-20">
             <SectionHeader
               eyebrow="Supporters"
               isWide
@@ -830,11 +806,11 @@ const Home = async (): Promise<ReactElement> => {
           </div>
         </section>
 
-        <section
-          id="contact"
-          className="scroll-mt-36 bg-neutral-dark px-5 py-16 text-white sm:px-6 md:scroll-mt-24 lg:py-24"
-        >
-          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <section className="bg-neutral-dark px-5 pb-48 pt-16 text-white sm:px-6 lg:pb-56 lg:pt-24">
+          <div
+            id="contact"
+            className="mx-auto grid max-w-7xl scroll-mt-20 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center"
+          >
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
                 Contact
