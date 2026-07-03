@@ -237,10 +237,13 @@ export const AdvancedSearchSidebarPanel = ({
     dockedResults,
   });
 
+  const isFrozenSnapshot =
+    debouncedSearchTerm.trim() === query.trim() && dockedResults.length > 0;
+
   useEffect(() => {
     onPersistState({
       query: debouncedSearchTerm,
-      results,
+      results: isFrozenSnapshot ? dockedResults : results,
       selectedNodeTypeIds,
       sort,
       windowId,
@@ -249,7 +252,10 @@ export const AdvancedSearchSidebarPanel = ({
   }, [
     debouncedSearchTerm,
     dgSearchId,
+    dockedResults,
+    isFrozenSnapshot,
     onPersistState,
+    query,
     results,
     selectedNodeTypeIds,
     sort,

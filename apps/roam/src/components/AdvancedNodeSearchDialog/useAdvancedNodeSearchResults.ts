@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MiniSearch from "minisearch";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import {
@@ -11,6 +11,7 @@ import {
   type SearchResult,
   type SortConfig,
 } from "./utils";
+import { isDockedSnapshot } from "./dockedSearchSnapshot";
 
 export type SearchIndex = {
   miniSearch: MiniSearch<SearchResult & { id: string }>;
@@ -89,25 +90,28 @@ export const useAdvancedNodeSearchResults = ({
   dockedQuery,
   dockedResults,
 }: UseAdvancedNodeSearchResultsArgs): SearchResult[] => {
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const frozenSnapshot = useMemo(
+    () =>
+      isDockedSnapshot({
+        debouncedSearchTerm,
+        dockedQuery,
+        dockedResults,
+      }),
+    [debouncedSearchTerm, dockedQuery, dockedResults],
+  );
+
+  const [liveResults, setLiveResults] = useState<SearchResult[]>([]);
 
   useEffect(() => {
+    if (frozenSnapshot) return;
+
     if (!debouncedSearchTerm) {
-      setResults([]);
-      return;
-    }
-
-    const isDockedQuery =
-      dockedQuery !== undefined &&
-      debouncedSearchTerm.trim() === dockedQuery.trim();
-
-    if (isDockedQuery && dockedResults) {
-      setResults(dockedResults);
+      setLiveResults([]);
       return;
     }
 
     if (isIndexLoading || indexError || !searchIndex) {
-      setResults([]);
+      setLiveResults([]);
       return;
     }
 
@@ -143,12 +147,12 @@ export const useAdvancedNodeSearchResults = ({
         if (cancelled) return;
 
         const scoredHits = hitsToScoredSearchHits({ hits, resultsByUid });
-        setResults(sortSearchResults({ hits: scoredHits, sort }));
+        setLiveResults(sortSearchResults({ hits: scoredHits, sort }));
       })
       .catch((error) => {
         console.error("Advanced node search failed:", error);
         if (cancelled) return;
-        setResults(
+        setLiveResults(
           sortSearchResults({
             hits: hitsToScoredSearchHits({
               hits: runKeywordSearch(),
@@ -164,8 +168,7 @@ export const useAdvancedNodeSearchResults = ({
     };
   }, [
     debouncedSearchTerm,
-    dockedQuery,
-    dockedResults,
+    frozenSnapshot,
     indexError,
     isIndexLoading,
     searchIndex,
@@ -173,5 +176,9 @@ export const useAdvancedNodeSearchResults = ({
     sort,
   ]);
 
-  return results;
+  if (frozenSnapshot && dockedResults) {
+    return dockedResults;
+  }
+
+  return liveResults;
 };
