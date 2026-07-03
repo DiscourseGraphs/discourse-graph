@@ -59,6 +59,7 @@ export type DockedSearchState = {
 export type ScoredSearchHit = {
   result: SearchResult;
   score: number;
+  source?: "semantic" | "keyword";
 };
 
 type MiniSearchDocument = SearchResult & {
@@ -229,6 +230,17 @@ export const sortSearchResults = ({
 
     switch (sort.field) {
       case "relevance":
+        if (aHit.source && bHit.source && aHit.source !== bHit.source) {
+          comparison =
+            sort.direction === "desc"
+              ? aHit.source === "semantic"
+                ? -1
+                : 1
+              : aHit.source === "semantic"
+                ? 1
+                : -1;
+          break;
+        }
         comparison = compareNumbers(aHit.score, bHit.score, sort.direction);
         break;
       case "alphabetical":
