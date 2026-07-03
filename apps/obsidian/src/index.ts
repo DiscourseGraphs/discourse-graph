@@ -44,6 +44,10 @@ export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
   private tagNodeHandler: TagNodeHandler | null = null;
   private fileChangeListener: FileChangeListener | null = null;
+  private activeNodePopover:
+    | NodeTagSuggestPopover
+    | InlineNodeTypePicker
+    | null = null;
   private currentViewActions: { leaf: WorkspaceLeaf; action: HTMLElement }[] =
     [];
   private pendingCanvasSwitches = new Set<string>();
@@ -282,9 +286,6 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   private setupNodeTagHotkey() {
-    let activePopover: NodeTagSuggestPopover | InlineNodeTypePicker | null =
-      null;
-
     const nodeTagHotkeyExtension = EditorView.domEventHandlers({
       keydown: (event: KeyboardEvent) => {
         // Access settings dynamically to handle changes
@@ -296,8 +297,8 @@ export default class DiscourseGraphPlugin extends Plugin {
         event.preventDefault();
         event.stopPropagation();
 
-        activePopover?.close();
-        activePopover = null;
+        this.activeNodePopover?.close();
+        this.activeNodePopover = null;
 
         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (activeView?.editor) {
@@ -311,14 +312,14 @@ export default class DiscourseGraphPlugin extends Plugin {
               plugin: this,
               selectedText: selectedText.trim(),
             });
-            activePopover = picker;
+            this.activeNodePopover = picker;
             picker.open();
           } else {
             const popover = new NodeTagSuggestPopover(
               editor,
               this.settings.nodeTypes,
             );
-            activePopover = popover;
+            this.activeNodePopover = popover;
             popover.open();
           }
         }
@@ -436,6 +437,8 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   onunload() {
+    this.activeNodePopover?.close();
+    this.activeNodePopover = null;
     this.cleanupViewActions();
     activeDocument.body.classList.remove("dg-hide-frontmatter-ids");
 
