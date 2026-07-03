@@ -528,13 +528,14 @@ export class QueryEngine {
     const files: TFile[] = [];
     const allFiles = this.app.vault.getMarkdownFiles();
     for (const f of allFiles) {
-      const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
-      const nodeTypeId = (fm as Record<string, unknown> | undefined)
-        ?.nodeTypeId;
+      const fm = this.app.metadataCache.getFileCache(f)?.frontmatter as
+        | Record<string, unknown>
+        | undefined;
+      const nodeTypeId = fm?.nodeTypeId;
       if (!nodeTypeId) continue;
       if (
         opts?.excludeImported &&
-        (fm as Record<string, unknown>)?.importedFromRid
+        (fm?.importedFromRid || fm?.importedFromSpaceUri)
       ) {
         continue;
       }
