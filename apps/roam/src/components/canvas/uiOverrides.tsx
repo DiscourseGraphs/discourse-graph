@@ -264,6 +264,7 @@ const getArrowBoundNodeInfo = (
   const startBinding = bindings.find((b) => b.props.terminal === "start");
   const endBinding = bindings.find((b) => b.props.terminal === "end");
   if (!startBinding || !endBinding) return null;
+  if (startBinding.toId === endBinding.toId) return null;
 
   const startShape = editor.getShape(startBinding.toId);
   const endShape = editor.getShape(endBinding.toId);
