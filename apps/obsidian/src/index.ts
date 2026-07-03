@@ -282,6 +282,9 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   private setupNodeTagHotkey() {
+    let activePopover: NodeTagSuggestPopover | InlineNodeTypePicker | null =
+      null;
+
     const nodeTagHotkeyExtension = EditorView.domEventHandlers({
       keydown: (event: KeyboardEvent) => {
         // Access settings dynamically to handle changes
@@ -293,26 +296,29 @@ export default class DiscourseGraphPlugin extends Plugin {
         event.preventDefault();
         event.stopPropagation();
 
+        activePopover?.close();
+        activePopover = null;
+
         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (activeView?.editor) {
           const editor = activeView.editor;
           const selectedText = editor.getSelection();
 
           if (selectedText && selectedText.trim().length > 0) {
-            // Text is selected: open node type picker to create node from selection
             const picker = new InlineNodeTypePicker({
               editor,
               nodeTypes: this.settings.nodeTypes,
               plugin: this,
               selectedText: selectedText.trim(),
             });
+            activePopover = picker;
             picker.open();
           } else {
-            // No selection: open the candidate node tag popover
             const popover = new NodeTagSuggestPopover(
               editor,
               this.settings.nodeTypes,
             );
+            activePopover = popover;
             popover.open();
           }
         }
