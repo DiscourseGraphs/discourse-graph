@@ -43,18 +43,20 @@ export const useAdvancedNodeSearchResults = ({
     [debouncedSearchTerm, dockedQuery],
   );
 
-  const [scoredResults, setScoredResults] = useState<ScoredSearchResult[]>([]);
+  const [unsortedScoredResults, setUnsortedScoredResults] = useState<
+    ScoredSearchResult[]
+  >([]);
 
   useEffect(() => {
     if (isDockedQuery) return;
 
     if (!debouncedSearchTerm) {
-      setScoredResults([]);
+      setUnsortedScoredResults([]);
       return;
     }
 
     if (isIndexLoading || indexError || !searchIndex) {
-      setScoredResults([]);
+      setUnsortedScoredResults([]);
       return;
     }
 
@@ -87,12 +89,12 @@ export const useAdvancedNodeSearchResults = ({
     })
       .then((results) => {
         if (cancelled) return;
-        setScoredResults(results);
+        setUnsortedScoredResults(results);
       })
       .catch((error) => {
         console.error("Advanced node search failed:", error);
         if (cancelled) return;
-        setScoredResults(runMiniSearch());
+        setUnsortedScoredResults(runMiniSearch());
       });
 
     return () => {
@@ -107,14 +109,14 @@ export const useAdvancedNodeSearchResults = ({
     selectedNodeTypeIds,
   ]);
 
-  const sortedLiveResults = useMemo(
-    () => sortSearchResults({ scoredResults, sort }),
-    [scoredResults, sort],
+  const results = useMemo(
+    () => sortSearchResults({ scoredResults: unsortedScoredResults, sort }),
+    [unsortedScoredResults, sort],
   );
 
   if (isDockedQuery && dockedResults) {
     return dockedResults;
   }
 
-  return sortedLiveResults;
+  return results;
 };
