@@ -117,4 +117,20 @@ export type ImportFolderMetadata = {
   userName?: string;
 };
 
+export type DiscourseSchemaTemplate = {
+  name: string;
+  content: string;
+};
+
+export type DiscourseSchemaFile = {
+  version: number;
+  exportedAt: string;
+  pluginVersion: string;
+  vaultName: string;
+  nodeTypes: DiscourseNode[];
+  relationTypes: DiscourseRelationType[];
+  discourseRelations: DiscourseRelation[];
+  templates: DiscourseSchemaTemplate[];
+};
+
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";
