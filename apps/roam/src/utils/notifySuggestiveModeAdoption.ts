@@ -150,7 +150,7 @@ export const notifyBlockSuggestionAdded = async (
   await window.roamAlphaAPI.ui.rightSidebar.addWindow({
     window: {
       type: "outline",
-      // @ts-expect-error - block-uid is valid for outline sidebar windows.
+      // @ts-expect-error - block-uid is valid for outline sidebar windows
       // eslint-disable-next-line @typescript-eslint/naming-convention
       "block-uid": pageUid,
     },
