@@ -91,11 +91,11 @@ type CommandPaletteCommand = {
 
 type CommandPaletteAddCommand = ((
   command: CommandPaletteCommand,
-) => unknown) & {
+) => Promise<void>) & {
   __dgPlaywrightPatched?: boolean;
 };
 
-type DgPlaywrightWindow = Window & {
+type DgPlaywrightWindow = {
   __dgPlaywrightCommandLabels?: string[];
   __dgPlaywrightCommandCallbacks?: Record<string, () => void>;
   roamAlphaAPI?: {
@@ -329,7 +329,7 @@ const installDirectoryPickerShim = async ({
       };
 
       Object.defineProperty(
-        window as DgPlaywrightWindow,
+        window as unknown as DgPlaywrightWindow,
         "showDirectoryPicker",
         {
           configurable: true,
@@ -423,7 +423,7 @@ const removeExistingDeveloperExtensions = async ({
 
 const installCommandPaletteObserver = async (page: Page): Promise<void> => {
   await page.evaluate((): void => {
-    const dgWindow = window as DgPlaywrightWindow;
+    const dgWindow = window as unknown as DgPlaywrightWindow;
     dgWindow.__dgPlaywrightCommandLabels = [];
     dgWindow.__dgPlaywrightCommandCallbacks = {};
 
@@ -435,8 +435,8 @@ const installCommandPaletteObserver = async (page: Page): Promise<void> => {
 
       const originalAddCommand = addCommand.bind(commandPalette) as (
         command: CommandPaletteCommand,
-      ) => unknown;
-      const patchedAddCommand: CommandPaletteAddCommand = (command) => {
+      ) => Promise<void>;
+      const patchedAddCommand: CommandPaletteAddCommand = async (command) => {
         if (command.label?.startsWith("DG:")) {
           dgWindow.__dgPlaywrightCommandLabels?.push(command.label);
           if (command.callback) {
@@ -446,7 +446,7 @@ const installCommandPaletteObserver = async (page: Page): Promise<void> => {
             };
           }
         }
-        return originalAddCommand(command);
+        await originalAddCommand(command);
       };
       patchedAddCommand.__dgPlaywrightPatched = true;
       commandPalette.addCommand = patchedAddCommand;
@@ -468,7 +468,7 @@ const waitForDiscourseGraphLoaded = async ({
 }: PageTimeoutOptions): Promise<void> => {
   await page.waitForFunction(
     () => {
-      const dgWindow = window as DgPlaywrightWindow;
+      const dgWindow = window as unknown as DgPlaywrightWindow;
       return Boolean(
         dgWindow.roamjs?.extension?.queryBuilder?.runQuery &&
           dgWindow.roamjs?.extension?.queryBuilder?.getDiscourseNodes,
@@ -483,7 +483,7 @@ const getDiscourseGraphGlobalProof = async (
   page: Page,
 ): Promise<DiscourseGraphGlobalProof> =>
   page.evaluate((): DiscourseGraphGlobalProof => {
-    const dgWindow = window as DgPlaywrightWindow;
+    const dgWindow = window as unknown as DgPlaywrightWindow;
     const queryBuilder = dgWindow.roamjs?.extension?.queryBuilder;
     const getDiscourseNodes = queryBuilder?.getDiscourseNodes;
     const nodes =
@@ -502,7 +502,7 @@ const verifyDiscourseGraphUi = async ({
 }: PageTimeoutOptions): Promise<DiscourseGraphUiProof> => {
   await page.waitForFunction(
     () => {
-      const dgWindow = window as DgPlaywrightWindow;
+      const dgWindow = window as unknown as DgPlaywrightWindow;
       return dgWindow.__dgPlaywrightCommandLabels?.includes(
         "DG: Open - Discourse settings",
       );
@@ -513,12 +513,13 @@ const verifyDiscourseGraphUi = async ({
 
   const commandLabels = await page.evaluate(
     (): string[] =>
-      (window as DgPlaywrightWindow).__dgPlaywrightCommandLabels || [],
+      (window as unknown as DgPlaywrightWindow).__dgPlaywrightCommandLabels ||
+      [],
   );
 
   await closeOpenModals(page);
   await page.evaluate((): void => {
-    const dgWindow = window as DgPlaywrightWindow;
+    const dgWindow = window as unknown as DgPlaywrightWindow;
     const openSettings =
       dgWindow.__dgPlaywrightCommandCallbacks?.[
         "DG: Open - Discourse settings"
