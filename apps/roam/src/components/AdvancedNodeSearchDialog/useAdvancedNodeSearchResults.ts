@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import MiniSearch from "minisearch";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import {
-  logDiscourseNodeSearchResults,
-  searchDiscourseNodes,
-} from "~/utils/searchDiscourseNodes";
+import { searchDiscourseNodes } from "~/utils/searchDiscourseNodes";
 import {
   searchDiscourseNodesWithMiniSearch,
   sortSearchResults,
@@ -51,7 +48,10 @@ export const useAdvancedNodeSearchResults = ({
   >([]);
 
   useEffect(() => {
-    if (isDockedQuery) return;
+    if (isDockedQuery) {
+      setUnsortedScoredResults([]);
+      return;
+    }
 
     if (!debouncedSearchTerm) {
       setUnsortedScoredResults([]);
@@ -63,6 +63,7 @@ export const useAdvancedNodeSearchResults = ({
       return;
     }
 
+    setUnsortedScoredResults([]);
     let cancelled = false;
     const typeFilter = selectedNodeTypeIds.length
       ? selectedNodeTypeIds
@@ -94,16 +95,9 @@ export const useAdvancedNodeSearchResults = ({
         if (cancelled) return;
         setUnsortedScoredResults(results);
       })
-      .catch((error) => {
-        console.error("Advanced node search failed:", error);
+      .catch(() => {
         if (cancelled) return;
-        const results = runMiniSearch();
-        logDiscourseNodeSearchResults({
-          path: "miniSearch only (hook error)",
-          query: debouncedSearchTerm,
-          results,
-        });
-        setUnsortedScoredResults(results);
+        setUnsortedScoredResults(runMiniSearch());
       });
 
     return () => {

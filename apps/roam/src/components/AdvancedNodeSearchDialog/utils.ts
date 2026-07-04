@@ -223,14 +223,7 @@ export const sortSearchResults = ({
     switch (sort.field) {
       case "relevance":
         if (aEntry.source !== bEntry.source) {
-          comparison =
-            sort.direction === "desc"
-              ? aEntry.source === "semantic"
-                ? -1
-                : 1
-              : aEntry.source === "semantic"
-                ? 1
-                : -1;
+          comparison = aEntry.source === "semantic" ? -1 : 1;
           break;
         }
         comparison = compareNumbers(aEntry.score, bEntry.score, sort.direction);
