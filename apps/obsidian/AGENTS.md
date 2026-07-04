@@ -1,5 +1,19 @@
 You are working on the Obsidian plugin that implements the Discourse Graph protocol.
 
+## Linting
+
+After editing any Obsidian plugin code, run lint before finishing:
+
+```bash
+pnpm --dir apps/obsidian lint
+```
+
+Fix all reported warnings and errors. Pay special attention to `obsidianmd/*` rule violations — these indicate Obsidian plugin store review risks. The obsidianmd rules fire as warnings (due to the shared `eslint-plugin-only-warn` preset), but they still fail lint and block commits via lint-staged.
+
+For manifest and store checks that ESLint does not cover (description wording, funding URL, etc.), use the `obsidian-plugin-guidelines` skill.
+
+Note: `apps/obsidian` uses ESLint 9 with `eslint-plugin-obsidianmd` layered on top of the monorepo's shared React/TS rules. Other apps (roam, website) use ESLint 8 and are unaffected.
+
 ## Dependencies
 
 Prefer existing dependencies from package.json.

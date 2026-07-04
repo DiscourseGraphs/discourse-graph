@@ -34,7 +34,8 @@
     "tailwindConfig": "./packages/tailwind-config/tailwind.config.ts"
   },
   "lint-staged": {
-    "*.{js,mjs,ts,tsx,md,mdx}": "prettier -w"
+    "*.{js,mjs,ts,tsx,md,mdx}": "prettier -w",
+    "apps/obsidian/**/*.{ts,tsx}": "pnpm --dir apps/obsidian exec eslint --fix"
   },
   "dependencies": {
     "posthog-js": "catalog:"
