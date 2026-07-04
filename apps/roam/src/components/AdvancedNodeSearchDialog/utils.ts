@@ -9,6 +9,15 @@ import {
   getPulledDiscourseNodeUid,
   queryDiscourseNodesByFormat,
 } from "~/utils/discourseNodeSearch";
+import type {
+  ScoredSearchHit,
+  SearchResult,
+} from "~/utils/advancedNodeSearchTypes";
+
+export type {
+  ScoredSearchHit,
+  SearchResult,
+} from "~/utils/advancedNodeSearchTypes";
 
 export const DEBOUNCE_MS = 250;
 export const MAX_RESULTS = 50;
@@ -36,17 +45,6 @@ export const SORT_FIELD_LABELS: Record<SortField, string> = {
   author: "Author",
 };
 
-export type SearchResult = {
-  uid: string;
-  title: string;
-  type: string;
-  nodeTypeLabel: string;
-  excerpt: string;
-  createdAt: string;
-  lastModified: string;
-  authorName: string;
-};
-
 export type DockedSearchState = {
   query: string;
   results: SearchResult[];
@@ -54,12 +52,6 @@ export type DockedSearchState = {
   sort: SortConfig;
   windowId?: string;
   dgSearchId?: string;
-};
-
-export type ScoredSearchHit = {
-  result: SearchResult;
-  score: number;
-  source?: "semantic" | "keyword";
 };
 
 type MiniSearchDocument = SearchResult & {
@@ -303,7 +295,7 @@ export const searchIndexedNodes = ({
     .map((result) => {
       const searchResult = resultsByUid.get(String(result.id));
       if (!searchResult) return null;
-      return { result: searchResult, score: result.score };
+      return { result: searchResult, score: result.score, source: "keyword" };
     })
     .filter((hit): hit is ScoredSearchHit => !!hit);
 };

@@ -1,62 +1,34 @@
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import {
-  runRoamSemanticSearch,
-  type AdminSearchResultItem,
-} from "~/utils/discourseNodeSearchProviders";
+  combineScoredSearchHits,
+  toScoredSearchHit,
+  type ScoredSearchHit,
+  type SearchResult,
+} from "~/utils/advancedNodeSearchTypes";
+import { runRoamSemanticSearch } from "~/utils/discourseNodeSearchProviders";
 
 export const SEMANTIC_SEARCH_MIN_DISCOURSE_RESULTS = 5;
 
-export type DiscourseSearchHitSource = "semantic" | "keyword";
-
-export type DiscourseSearchHit = {
-  uid: string;
-  text: string;
-  type?: string;
-  nodeTypeLabel?: string;
-  score: number;
-  source: DiscourseSearchHitSource;
-};
+export type {
+  ScoredSearchHit,
+  SearchResult,
+  SearchHitSource,
+} from "~/utils/advancedNodeSearchTypes";
 
 export const shouldUseRoamSemanticSearch = (): boolean =>
   window.roamAlphaAPI.data.semanticSearchEnabled();
 
-export const combineDiscourseSearchResults = ({
-  semantic,
-  keyword,
-}: {
-  semantic: DiscourseSearchHit[];
-  keyword: DiscourseSearchHit[];
-}): DiscourseSearchHit[] => {
-  const seenUids = new Set(semantic.map((hit) => hit.uid));
-  const combined = [...semantic];
-
-  keyword.forEach((hit) => {
-    if (seenUids.has(hit.uid)) return;
-    seenUids.add(hit.uid);
-    combined.push(hit);
-  });
-
-  return combined;
-};
-
-const toSemanticHit = (item: AdminSearchResultItem): DiscourseSearchHit => ({
-  uid: item.uid,
-  text: item.text,
-  type: item.type,
-  nodeTypeLabel: item.nodeTypeLabel,
-  score: item.score ?? 0,
-  source: "semantic",
-});
-
 export const searchDiscourseNodesWithSemanticFallback = async ({
   nodeTypes,
   query,
+  resultsByUid,
   runKeywordSearch,
 }: {
   nodeTypes: DiscourseNode[];
   query: string;
-  runKeywordSearch: () => DiscourseSearchHit[];
-}): Promise<DiscourseSearchHit[]> => {
+  resultsByUid: Map<string, SearchResult>;
+  runKeywordSearch: () => ScoredSearchHit[];
+}): Promise<ScoredSearchHit[]> => {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return [];
 
@@ -69,7 +41,17 @@ export const searchDiscourseNodesWithSemanticFallback = async ({
       nodeTypes,
       query: trimmedQuery,
     });
-    const semanticHits = providerResult.filteredResults.map(toSemanticHit);
+    const semanticHits = providerResult.filteredResults.map((item) =>
+      toScoredSearchHit({
+        uid: item.uid,
+        title: item.text,
+        type: item.type,
+        nodeTypeLabel: item.nodeTypeLabel,
+        score: item.score ?? 0,
+        source: "semantic",
+        resultsByUid,
+      }),
+    );
 
     if (
       providerResult.filteredResultCount >=
@@ -78,7 +60,7 @@ export const searchDiscourseNodesWithSemanticFallback = async ({
       return semanticHits;
     }
 
-    return combineDiscourseSearchResults({
+    return combineScoredSearchHits({
       semantic: semanticHits,
       keyword: runKeywordSearch(),
     });
