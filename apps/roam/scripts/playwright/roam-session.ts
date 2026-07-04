@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   chromium as defaultChromium,
   type Browser,
@@ -71,7 +70,7 @@ type OpenRoamSessionResult = {
   slotConfig: SlotConfig;
 };
 
-const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const SCRIPT_DIR = __dirname;
 export const ROAM_APP_ROOT = path.resolve(SCRIPT_DIR, "../..");
 export const REPO_ROOT = path.resolve(ROAM_APP_ROOT, "../..");
 export const DEFAULT_ENV_PATH = path.join(ROAM_APP_ROOT, ".env");
