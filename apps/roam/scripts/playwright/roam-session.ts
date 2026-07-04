@@ -1,9 +1,75 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium as defaultChromium } from "playwright";
+import {
+  chromium as defaultChromium,
+  type Browser,
+  type BrowserContext,
+  type BrowserType,
+  type Page,
+  type ViewportSize,
+} from "playwright";
 
 export { defaultChromium };
+
+export type CliArgs = Record<string, string | boolean | undefined>;
+export type Slot = "1" | "2" | "3";
+export type SlotEnvName = "EMAIL" | "PASSWORD" | "GRAPH_URL" | "PROFILE_DIR";
+
+export type SlotConfig = {
+  slot: Slot;
+  email?: string;
+  password?: string;
+  graphUrl: string;
+  profileDir: string;
+};
+
+type ResolveSlotConfigOptions = {
+  slot?: string | boolean;
+  requireCredentials?: boolean;
+  graphUrl?: string;
+  profileDir?: string;
+};
+
+type WaitForReadySelectorOptions = {
+  page: Page;
+  timeout: number;
+};
+
+type LoginWithStoredCredentialsOptions = {
+  page: Page;
+  email: string;
+  password: string;
+  timeout: number;
+};
+
+type WaitForRoamReadyOptions = {
+  page: Page;
+  slotConfig: SlotConfig;
+  headless: boolean;
+  allowInteractiveLogin?: boolean;
+  allowCredentialLogin?: boolean;
+  timeout?: number;
+  loginTimeout?: number;
+};
+
+type OpenRoamSessionOptions = {
+  slot?: string | boolean;
+  graphUrl?: string;
+  profileDir?: string;
+  headless?: boolean;
+  viewport?: ViewportSize;
+  timeout?: number;
+  allowInteractiveLogin?: boolean;
+  allowCredentialLogin?: boolean;
+  chromium?: BrowserType<Browser>;
+};
+
+type OpenRoamSessionResult = {
+  context: BrowserContext;
+  page: Page;
+  slotConfig: SlotConfig;
+};
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 export const ROAM_APP_ROOT = path.resolve(SCRIPT_DIR, "../..");
@@ -13,7 +79,7 @@ export const DEFAULT_ARTIFACT_DIR = path.join(
   REPO_ROOT,
   "local/roam-playwright/artifacts",
 );
-const SLOT_VALUES = ["1", "2", "3"];
+const SLOT_VALUES = ["1", "2", "3"] as const;
 
 const READY_SELECTORS = [
   ".roam-app",
@@ -23,8 +89,11 @@ const READY_SELECTORS = [
 
 let envLoaded = false;
 
-export const parseArgs = (argv) => {
-  const args = {};
+export const getEnvValue = (name: string): string | undefined =>
+  process.env[name];
+
+export const parseArgs = (argv: string[]): CliArgs => {
+  const args: CliArgs = {};
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (!token.startsWith("--")) continue;
@@ -36,12 +105,24 @@ export const parseArgs = (argv) => {
   return args;
 };
 
-export const timestamp = () => new Date().toISOString().replace(/[:.]/g, "-");
+export const getStringArg = (
+  args: CliArgs,
+  key: string,
+): string | undefined => {
+  const value = args[key];
+  return typeof value === "string" ? value : undefined;
+};
 
-export const getEnvPath = () =>
-  path.resolve(process.env.DG_ROAM_PLAYWRIGHT_ENV_PATH || DEFAULT_ENV_PATH);
+export const getBooleanArg = (args: CliArgs, key: string): boolean =>
+  args[key] === true;
 
-export const loadRootEnv = (envPath = getEnvPath()) => {
+export const timestamp = (): string =>
+  new Date().toISOString().replace(/[:.]/g, "-");
+
+export const getEnvPath = (): string =>
+  path.resolve(getEnvValue("DG_ROAM_PLAYWRIGHT_ENV_PATH") || DEFAULT_ENV_PATH);
+
+export const loadRootEnv = (envPath = getEnvPath()): void => {
   if (envLoaded) return;
   envLoaded = true;
   if (!fs.existsSync(envPath)) return;
@@ -63,28 +144,38 @@ export const loadRootEnv = (envPath = getEnvPath()) => {
       value = value.slice(1, -1);
     }
 
-    if (key && process.env[key] === undefined) process.env[key] = value;
+    if (key && getEnvValue(key) === undefined) process.env[key] = value;
   }
 };
 
-export const normalizeSlot = (slotValue = "1") => {
+export const normalizeSlot = (slotValue: string | boolean = "1"): Slot => {
   const slot = String(slotValue);
-  if (!SLOT_VALUES.includes(slot)) {
+  if (!SLOT_VALUES.includes(slot as Slot)) {
     throw new Error(`Invalid Playwright slot "${slot}". Expected 1, 2, or 3.`);
   }
-  return slot;
+  return slot as Slot;
 };
 
-export const defaultProfileDirForSlot = (slot) =>
+export const defaultProfileDirForSlot = (slot: Slot): string =>
   path.join(REPO_ROOT, `local/roam-playwright/profiles/playwright-${slot}`);
 
-export const slotEnvKey = ({ slot, name }) =>
-  `DG_ROAM_PLAYWRIGHT_${name}_${slot}`;
+export const slotEnvKey = ({
+  slot,
+  name,
+}: {
+  slot: Slot;
+  name: SlotEnvName;
+}): string => `DG_ROAM_PLAYWRIGHT_${name}_${slot}`;
 
-export const getSlotEnvValue = ({ slot, name }) =>
-  process.env[slotEnvKey({ slot, name })];
+export const getSlotEnvValue = ({
+  slot,
+  name,
+}: {
+  slot: Slot;
+  name: SlotEnvName;
+}): string | undefined => getEnvValue(slotEnvKey({ slot, name }));
 
-export const graphNameFromRoamUrl = (graphUrl) => {
+export const graphNameFromRoamUrl = (graphUrl: string): string => {
   const hashMatch = /#\/app\/([^/?#]+)/.exec(graphUrl);
   if (hashMatch) return decodeURIComponent(hashMatch[1]);
 
@@ -94,30 +185,28 @@ export const graphNameFromRoamUrl = (graphUrl) => {
 };
 
 export const resolveSlotConfig = ({
-  slot: slotValue = process.env.DG_ROAM_PLAYWRIGHT_SLOT || "1",
+  slot: slotValue = getEnvValue("DG_ROAM_PLAYWRIGHT_SLOT") || "1",
   requireCredentials = true,
   graphUrl,
   profileDir,
-} = {}) => {
+}: ResolveSlotConfigOptions = {}): SlotConfig => {
   loadRootEnv();
   const slot = normalizeSlot(slotValue);
-  const config = {
-    slot,
-    email: getSlotEnvValue({ slot, name: "EMAIL" }),
-    password: getSlotEnvValue({ slot, name: "PASSWORD" }),
-    graphUrl: graphUrl || getSlotEnvValue({ slot, name: "GRAPH_URL" }),
-    profileDir:
-      profileDir ||
-      getSlotEnvValue({ slot, name: "PROFILE_DIR" }) ||
-      defaultProfileDirForSlot(slot),
-  };
+  const graphUrlValue =
+    graphUrl || getSlotEnvValue({ slot, name: "GRAPH_URL" });
+  const profileDirValue =
+    profileDir ||
+    getSlotEnvValue({ slot, name: "PROFILE_DIR" }) ||
+    defaultProfileDirForSlot(slot);
+  const email = getSlotEnvValue({ slot, name: "EMAIL" });
+  const password = getSlotEnvValue({ slot, name: "PASSWORD" });
 
-  const missing = [];
-  if (!config.graphUrl) missing.push(slotEnvKey({ slot, name: "GRAPH_URL" }));
-  if (requireCredentials && !config.email) {
+  const missing: string[] = [];
+  if (!graphUrlValue) missing.push(slotEnvKey({ slot, name: "GRAPH_URL" }));
+  if (requireCredentials && !email) {
     missing.push(slotEnvKey({ slot, name: "EMAIL" }));
   }
-  if (requireCredentials && !config.password) {
+  if (requireCredentials && !password) {
     missing.push(slotEnvKey({ slot, name: "PASSWORD" }));
   }
 
@@ -127,17 +216,30 @@ export const resolveSlotConfig = ({
     );
   }
 
-  return config;
+  if (!graphUrlValue) {
+    throw new Error("A Roam graph URL is required.");
+  }
+
+  return {
+    slot,
+    email,
+    password,
+    graphUrl: graphUrlValue,
+    profileDir: profileDirValue,
+  };
 };
 
-const looksLikeSignin = async (page) =>
+const looksLikeSignin = async (page: Page): Promise<boolean> =>
   page.url().includes("/signin") ||
   page.url().includes("#/signin") ||
   (await page.locator('input[type="password"]').count()) > 0;
 
-const waitForReadySelector = async ({ page, timeout }) => {
+const waitForReadySelector = async ({
+  page,
+  timeout,
+}: WaitForReadySelectorOptions): Promise<void> => {
   await page.waitForFunction(
-    (selectors) =>
+    (selectors: string[]) =>
       selectors.some((selector) => document.querySelector(selector)),
     READY_SELECTORS,
     { timeout },
@@ -149,7 +251,7 @@ const loginWithStoredCredentials = async ({
   email,
   password,
   timeout,
-}) => {
+}: LoginWithStoredCredentialsOptions): Promise<void> => {
   await page
     .locator('input[name="email"], input[type="email"]')
     .first()
@@ -173,14 +275,15 @@ export const waitForRoamReady = async ({
   slotConfig,
   headless,
   allowInteractiveLogin = false,
-  allowCredentialLogin = process.env.DG_ROAM_PLAYWRIGHT_AUTO_LOGIN !== "false",
+  allowCredentialLogin = getEnvValue("DG_ROAM_PLAYWRIGHT_AUTO_LOGIN") !==
+    "false",
   timeout = 30_000,
   loginTimeout = 5 * 60_000,
-}) => {
+}: WaitForRoamReadyOptions): Promise<void> => {
   await page.waitForTimeout(1500);
 
   if (await looksLikeSignin(page)) {
-    if (allowCredentialLogin && slotConfig.password) {
+    if (allowCredentialLogin && slotConfig.email && slotConfig.password) {
       await loginWithStoredCredentials({
         page,
         email: slotConfig.email,
@@ -201,7 +304,7 @@ export const waitForRoamReady = async ({
       "Roam login required. Complete login in the opened browser window.",
     );
     await page.waitForFunction(
-      (selectors) => {
+      (selectors: string[]) => {
         const notSignin =
           !location.href.includes("/signin") &&
           !location.href.includes("#/signin");
@@ -220,16 +323,17 @@ export const waitForRoamReady = async ({
 };
 
 export const openRoamSession = async ({
-  slot = process.env.DG_ROAM_PLAYWRIGHT_SLOT || "1",
+  slot = getEnvValue("DG_ROAM_PLAYWRIGHT_SLOT") || "1",
   graphUrl,
   profileDir,
-  headless = process.env.HEADLESS !== "false",
+  headless = getEnvValue("HEADLESS") !== "false",
   viewport = { width: 1440, height: 1000 },
   timeout = 30_000,
   allowInteractiveLogin = false,
-  allowCredentialLogin = process.env.DG_ROAM_PLAYWRIGHT_AUTO_LOGIN !== "false",
+  allowCredentialLogin = getEnvValue("DG_ROAM_PLAYWRIGHT_AUTO_LOGIN") !==
+    "false",
   chromium = defaultChromium,
-} = {}) => {
+}: OpenRoamSessionOptions = {}): Promise<OpenRoamSessionResult> => {
   const slotConfig = resolveSlotConfig({ slot, graphUrl, profileDir });
   const resolvedConfig = {
     ...slotConfig,

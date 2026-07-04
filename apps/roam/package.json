@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "publish": "tsx scripts/publish.ts",
-    "playwright:open": "node scripts/playwright/open-roam.mjs",
+    "playwright:open": "tsx scripts/playwright/open-roam.ts",
     "check-types": "tsc --noEmit --skipLibCheck",
     "test": "vitest run --config vitest.config.mts",
     "test:watch": "vitest --config vitest.config.mts"
