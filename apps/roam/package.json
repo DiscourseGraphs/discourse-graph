@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "publish": "tsx scripts/publish.ts",
+    "playwright:open": "node scripts/playwright/open-roam.mjs",
     "check-types": "tsc --noEmit --skipLibCheck",
     "test": "vitest run --config vitest.config.mts",
     "test:watch": "vitest --config vitest.config.mts"
@@ -28,6 +29,7 @@
     "axios": "^0.27.2",
     "dotenv": "^16.0.3",
     "esbuild": "0.17.14",
+    "playwright": "^1.61.1",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
     "vitest": "catalog:"
