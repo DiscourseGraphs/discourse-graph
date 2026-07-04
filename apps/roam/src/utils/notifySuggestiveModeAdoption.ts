@@ -1,8 +1,28 @@
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageUidByBlockUid from "roamjs-components/queries/getPageUidByBlockUid";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { isPageUid } from "~/utils/isPageUid";
+
+const isTargetOpenInMainWindow = ({
+  mainRawUid,
+  mainPageUid,
+  pageUid,
+  targetBlockUid,
+}: {
+  mainRawUid: string | null;
+  mainPageUid: string | null;
+  pageUid: string;
+  targetBlockUid: string;
+}): boolean => {
+  if (!mainRawUid) return false;
+  return (
+    mainPageUid === pageUid ||
+    mainRawUid === targetBlockUid ||
+    mainRawUid === pageUid
+  );
+};
 
 type RoamSidebarWindow = {
   type: string;
@@ -19,19 +39,52 @@ const showSuggestionToast = (content: string): void => {
   });
 };
 
-// When opening a new window, omit windowId and pass a delay to let Roam finish rendering.
-const focusSidebarOutline = (windowId?: string, delayMs = 0): void => {
-  const focus = () => {
-    const container = windowId
-      ? document.querySelector<HTMLElement>(
-          `[data-sidebar-window-id="${windowId}"]`,
-        )
-      : document.querySelector<HTMLElement>(".rm-sidebar-outline");
-    container
-      ?.querySelector<HTMLElement>(".rm-title-display")
-      ?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-  };
-  delayMs > 0 ? setTimeout(focus, delayMs) : focus();
+type RightSidebarWithOrder = typeof window.roamAlphaAPI.ui.rightSidebar & {
+  setWindowOrder?: (action: {
+    windows: Array<{ window: RoamSidebarWindow }>;
+  }) => Promise<void>;
+};
+
+const bringSidebarWindowToTop = async (windowId: string): Promise<void> => {
+  try {
+    await window.roamAlphaAPI.ui.rightSidebar.open();
+  } catch {
+    // Sidebar may already be open.
+  }
+
+  const windows = getSidebarWindows();
+  const targetIndex = windows.findIndex((w) => w["window-id"] === windowId);
+  if (targetIndex <= 0) return;
+
+  const reordered = [
+    windows[targetIndex],
+    ...windows.slice(0, targetIndex),
+    ...windows.slice(targetIndex + 1),
+  ];
+
+  const setWindowOrder = (
+    window.roamAlphaAPI.ui.rightSidebar as RightSidebarWithOrder
+  ).setWindowOrder;
+  if (setWindowOrder) {
+    try {
+      await setWindowOrder({
+        windows: reordered.map((sidebarWindow) => ({ window: sidebarWindow })),
+      });
+      return;
+    } catch (error) {
+      console.warn("Failed to reorder sidebar window:", error);
+    }
+  }
+
+  // Avoid clicking `.rm-title-display` — Roam shows a daily-note rename tip.
+  const container = document.querySelector<HTMLElement>(
+    `[data-sidebar-window-id="${windowId}"]`,
+  );
+  const focusTarget =
+    container?.querySelector<HTMLElement>(".roam-article") ?? container;
+  focusTarget?.dispatchEvent(
+    new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+  );
 };
 
 const getSidebarWindows = (): RoamSidebarWindow[] => {
@@ -43,21 +96,9 @@ const getSidebarWindows = (): RoamSidebarWindow[] => {
   }
 };
 
-const findNewWindowId = ({
-  before,
-  after,
-}: {
-  before: RoamSidebarWindow[];
-  after: RoamSidebarWindow[];
-}): string | undefined => {
-  const beforeIds = new Set(before.map((w) => w["window-id"]));
-  return after.find((w) => !beforeIds.has(w["window-id"]))?.["window-id"];
-};
-
 export const notifyBlockSuggestionAdded = async (
   targetBlockUid: string,
   sourceTitle: string,
-  destinationTitle: string,
 ): Promise<void> => {
   const pageUid = isPageUid(targetBlockUid)
     ? targetBlockUid
@@ -67,20 +108,30 @@ export const notifyBlockSuggestionAdded = async (
   // when the user is zoomed into a block. Resolve either to a page uid for comparison.
   const mainRawUid =
     await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
+  const mainRawIsPage = mainRawUid ? isPageUid(mainRawUid) : false;
   const mainPageUid = mainRawUid
-    ? isPageUid(mainRawUid)
+    ? mainRawIsPage
       ? mainRawUid
       : getPageUidByBlockUid(mainRawUid) || mainRawUid
     : null;
-  const isOpenInMain = mainPageUid === pageUid;
+  const sourcePageUid = getPageUidByPageTitle(sourceTitle);
 
-  if (
-    isOpenInMain ||
-    getPersonalSetting<boolean>([PERSONAL_KEYS.disableSidebarOpen])
-  ) {
-    showSuggestionToast(
-      `Added relation between [[${sourceTitle}]] and [[${destinationTitle}]]`,
-    );
+  const isContentPageOpenInMain = isTargetOpenInMainWindow({
+    mainRawUid,
+    mainPageUid,
+    pageUid,
+    targetBlockUid,
+  });
+  const isSourcePageOpenInMain =
+    !!sourcePageUid &&
+    (mainPageUid === sourcePageUid || mainRawUid === sourcePageUid);
+  const isOpenInMain = isContentPageOpenInMain || isSourcePageOpenInMain;
+  const disableSidebarOpen = getPersonalSetting<boolean>([
+    PERSONAL_KEYS.disableSidebarOpen,
+  ]);
+
+  if (isOpenInMain || disableSidebarOpen) {
+    showSuggestionToast(`Added to [[${sourceTitle}]]`);
     return;
   }
 
@@ -92,7 +143,7 @@ export const notifyBlockSuggestionAdded = async (
   );
 
   if (existingWindow) {
-    focusSidebarOutline(existingWindow["window-id"]);
+    await bringSidebarWindowToTop(existingWindow["window-id"]);
     return;
   }
 
@@ -105,11 +156,7 @@ export const notifyBlockSuggestionAdded = async (
     },
   });
 
-  const newWindowId = findNewWindowId({
-    before: sidebarWindowsBefore,
-    after: getSidebarWindows(),
-  });
-  focusSidebarOutline(newWindowId, newWindowId ? 0 : 100);
+  await window.roamAlphaAPI.ui.rightSidebar.open();
 };
 
 export const notifyRelationSuggestionAdded = (

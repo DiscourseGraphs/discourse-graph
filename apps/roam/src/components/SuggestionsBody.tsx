@@ -318,7 +318,9 @@ const SuggestionsBody = ({
   };
 
   const handleCreateBlock = async (node: SuggestedNode) => {
-    if (getStoredRelationsEnabled()) {
+    const useReifiedRelations = getStoredRelationsEnabled();
+
+    if (useReifiedRelations) {
       if (discourseNode === false) {
         renderToast({
           id: "suggestions-create-block-error",
@@ -383,7 +385,7 @@ const SuggestionsBody = ({
         node: { text: `[[${node.text}]]` },
       });
       try {
-        await notifyBlockSuggestionAdded(blockUid, tag, node.text);
+        await notifyBlockSuggestionAdded(blockUid, tag);
       } catch (error) {
         console.error("Failed to show suggestion added notification:", error);
       }
@@ -393,7 +395,7 @@ const SuggestionsBody = ({
       tag,
       nodeType: node.type,
       nodeText: node.text,
-      useReifiedRelations: getStoredRelationsEnabled(),
+      useReifiedRelations: useReifiedRelations,
     });
     setHydeFilteredNodes((prev) => prev.filter((n) => n.uid !== node.uid));
   };
