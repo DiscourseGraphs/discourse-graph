@@ -81,5 +81,6 @@ PR titles for Linear-backed work should follow this format:
 
 ### Testing
 
-- Write unit tests for new functionality
-- Ensure tests are meaningful and maintainable
+- Write unit tests for new functionality when the target app or package has established test infrastructure (a `test` script in its `package.json` and existing tests that run in CI for that package).
+- Do not add unit tests to apps or packages without that infrastructure. For example, `apps/roam` does not run tests in CI, so do not generate Roam unit tests unless the user explicitly asks for them.
+- Ensure tests are meaningful and maintainable when they are added.

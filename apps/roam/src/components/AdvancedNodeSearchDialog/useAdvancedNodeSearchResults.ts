@@ -8,10 +8,10 @@ import {
 import {
   searchIndexedNodes,
   sortSearchResults,
+  type ScoredSearchHit,
   type SearchResult,
   type SortConfig,
 } from "./utils";
-import { isDockedSnapshot } from "./dockedSearchSnapshot";
 
 export type SearchIndex = {
   miniSearch: MiniSearch<SearchResult & { id: string }>;
@@ -47,7 +47,7 @@ const hitsToScoredSearchHits = ({
 }: {
   hits: DiscourseSearchHit[];
   resultsByUid: Map<string, SearchResult>;
-}) =>
+}): ScoredSearchHit[] =>
   hits
     .map((hit) => {
       const indexedResult = resultsByUid.get(hit.uid);
@@ -70,15 +70,7 @@ const hitsToScoredSearchHits = ({
         source: hit.source,
       };
     })
-    .filter(
-      (
-        hit,
-      ): hit is {
-        result: SearchResult;
-        score: number;
-        source: DiscourseSearchHit["source"];
-      } => !!hit,
-    );
+    .filter((hit): hit is ScoredSearchHit => !!hit);
 
 export const useAdvancedNodeSearchResults = ({
   debouncedSearchTerm,
@@ -90,28 +82,25 @@ export const useAdvancedNodeSearchResults = ({
   dockedQuery,
   dockedResults,
 }: UseAdvancedNodeSearchResultsArgs): SearchResult[] => {
-  const frozenSnapshot = useMemo(
+  const isDockedQuery = useMemo(
     () =>
-      isDockedSnapshot({
-        debouncedSearchTerm,
-        dockedQuery,
-        dockedResults,
-      }),
-    [debouncedSearchTerm, dockedQuery, dockedResults],
+      dockedQuery !== undefined &&
+      debouncedSearchTerm.trim() === dockedQuery.trim(),
+    [debouncedSearchTerm, dockedQuery],
   );
 
-  const [liveResults, setLiveResults] = useState<SearchResult[]>([]);
+  const [scoredHits, setScoredHits] = useState<ScoredSearchHit[]>([]);
 
   useEffect(() => {
-    if (frozenSnapshot) return;
+    if (isDockedQuery) return;
 
     if (!debouncedSearchTerm) {
-      setLiveResults([]);
+      setScoredHits([]);
       return;
     }
 
     if (isIndexLoading || indexError || !searchIndex) {
-      setLiveResults([]);
+      setScoredHits([]);
       return;
     }
 
@@ -145,20 +134,15 @@ export const useAdvancedNodeSearchResults = ({
     })
       .then((hits) => {
         if (cancelled) return;
-
-        const scoredHits = hitsToScoredSearchHits({ hits, resultsByUid });
-        setLiveResults(sortSearchResults({ hits: scoredHits, sort }));
+        setScoredHits(hitsToScoredSearchHits({ hits, resultsByUid }));
       })
       .catch((error) => {
         console.error("Advanced node search failed:", error);
         if (cancelled) return;
-        setLiveResults(
-          sortSearchResults({
-            hits: hitsToScoredSearchHits({
-              hits: runKeywordSearch(),
-              resultsByUid,
-            }),
-            sort,
+        setScoredHits(
+          hitsToScoredSearchHits({
+            hits: runKeywordSearch(),
+            resultsByUid,
           }),
         );
       });
@@ -168,17 +152,21 @@ export const useAdvancedNodeSearchResults = ({
     };
   }, [
     debouncedSearchTerm,
-    frozenSnapshot,
     indexError,
+    isDockedQuery,
     isIndexLoading,
     searchIndex,
     selectedNodeTypeIds,
-    sort,
   ]);
 
-  if (frozenSnapshot && dockedResults) {
+  const sortedLiveResults = useMemo(
+    () => sortSearchResults({ hits: scoredHits, sort }),
+    [scoredHits, sort],
+  );
+
+  if (isDockedQuery && dockedResults) {
     return dockedResults;
   }
 
-  return liveResults;
+  return sortedLiveResults;
 };

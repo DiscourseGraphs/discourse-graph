@@ -17,3 +17,7 @@ When styling Roam UI, use this priority order:
 Any new Roam UI should feel native to Roam and consistent with existing BlueprintJS and repository usage, not like a separate visual palette.
 Use the roamAlphaApi docs from https://roamresearch.com/#/app/developer-documentation/page/tIaOPdXCj.
 Use Roam Depot/Extension API docs from https://roamresearch.com/#/app/developer-documentation/page/y31lhjIqU.
+
+## Testing
+
+Do not add unit tests for Roam unless the user explicitly asks. Roam is not covered by CI test runs; validate Roam changes manually in the extension instead.
