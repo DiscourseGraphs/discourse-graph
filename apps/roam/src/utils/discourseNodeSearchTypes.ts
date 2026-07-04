@@ -1,4 +1,4 @@
-export type SearchHitSource = "semantic" | "keyword";
+export type DiscourseNodeSearchSource = "semantic" | "miniSearch";
 
 export type SearchResult = {
   uid: string;
@@ -11,38 +11,37 @@ export type SearchResult = {
   authorName: string;
 };
 
-export type ScoredSearchHit = {
+export type ScoredSearchResult = {
   result: SearchResult;
   score: number;
-  source: SearchHitSource;
+  source: DiscourseNodeSearchSource;
 };
 
-export const combineScoredSearchHits = ({
+export const combineSemanticAndMiniSearchResults = ({
   semantic,
-  keyword,
+  miniSearch,
 }: {
-  semantic: ScoredSearchHit[];
-  keyword: ScoredSearchHit[];
-}): ScoredSearchHit[] => {
-  const seenUids = new Set(semantic.map((hit) => hit.result.uid));
+  semantic: ScoredSearchResult[];
+  miniSearch: ScoredSearchResult[];
+}): ScoredSearchResult[] => {
+  const seenUids = new Set(semantic.map((entry) => entry.result.uid));
   const combined = [...semantic];
 
-  keyword.forEach((hit) => {
-    if (seenUids.has(hit.result.uid)) return;
-    seenUids.add(hit.result.uid);
-    combined.push(hit);
+  miniSearch.forEach((entry) => {
+    if (seenUids.has(entry.result.uid)) return;
+    seenUids.add(entry.result.uid);
+    combined.push(entry);
   });
 
   return combined;
 };
 
-export const toScoredSearchHit = ({
+export const toScoredSearchResultFromSemantic = ({
   uid,
   title,
   type,
   nodeTypeLabel,
   score,
-  source,
   resultsByUid,
 }: {
   uid: string;
@@ -50,12 +49,11 @@ export const toScoredSearchHit = ({
   type?: string;
   nodeTypeLabel?: string;
   score: number;
-  source: SearchHitSource;
   resultsByUid: Map<string, SearchResult>;
-}): ScoredSearchHit => {
+}): ScoredSearchResult => {
   const indexedResult = resultsByUid.get(uid);
   if (indexedResult) {
-    return { result: indexedResult, score, source };
+    return { result: indexedResult, score, source: "semantic" };
   }
 
   return {
@@ -70,6 +68,6 @@ export const toScoredSearchHit = ({
       authorName: "Unknown",
     },
     score,
-    source,
+    source: "semantic",
   };
 };

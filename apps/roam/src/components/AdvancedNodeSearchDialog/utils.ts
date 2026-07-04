@@ -10,14 +10,14 @@ import {
   queryDiscourseNodesByFormat,
 } from "~/utils/discourseNodeSearch";
 import type {
-  ScoredSearchHit,
+  ScoredSearchResult,
   SearchResult,
-} from "~/utils/advancedNodeSearchTypes";
+} from "~/utils/discourseNodeSearchTypes";
 
 export type {
-  ScoredSearchHit,
+  ScoredSearchResult,
   SearchResult,
-} from "~/utils/advancedNodeSearchTypes";
+} from "~/utils/discourseNodeSearchTypes";
 
 export const DEBOUNCE_MS = 250;
 export const MAX_RESULTS = 50;
@@ -207,33 +207,33 @@ export const isNonDefaultSort = (sort: SortConfig): boolean =>
   sort.direction !== DEFAULT_SORT_CONFIG.direction;
 
 export const sortSearchResults = ({
-  hits,
+  scoredResults,
   sort,
 }: {
-  hits: ScoredSearchHit[];
+  scoredResults: ScoredSearchResult[];
   sort: SortConfig;
 }): SearchResult[] => {
-  const sorted = [...hits];
+  const sorted = [...scoredResults];
 
-  sorted.sort((aHit, bHit) => {
-    const a = aHit.result;
-    const b = bHit.result;
+  sorted.sort((aEntry, bEntry) => {
+    const a = aEntry.result;
+    const b = bEntry.result;
     let comparison = 0;
 
     switch (sort.field) {
       case "relevance":
-        if (aHit.source && bHit.source && aHit.source !== bHit.source) {
+        if (aEntry.source !== bEntry.source) {
           comparison =
             sort.direction === "desc"
-              ? aHit.source === "semantic"
+              ? aEntry.source === "semantic"
                 ? -1
                 : 1
-              : aHit.source === "semantic"
+              : aEntry.source === "semantic"
                 ? 1
                 : -1;
           break;
         }
-        comparison = compareNumbers(aHit.score, bHit.score, sort.direction);
+        comparison = compareNumbers(aEntry.score, bEntry.score, sort.direction);
         break;
       case "alphabetical":
         comparison = compareStrings(
@@ -263,10 +263,10 @@ export const sortSearchResults = ({
     return comparison || a.uid.localeCompare(b.uid);
   });
 
-  return sorted.map((hit) => hit.result);
+  return sorted.map((entry) => entry.result);
 };
 
-export const searchIndexedNodes = ({
+export const searchDiscourseNodesWithMiniSearch = ({
   miniSearch,
   allResults,
   searchTerm,
@@ -276,7 +276,7 @@ export const searchIndexedNodes = ({
   allResults: SearchResult[];
   searchTerm: string;
   typeFilter?: string[];
-}): ScoredSearchHit[] => {
+}): ScoredSearchResult[] => {
   const resultsByUid = new Map(
     allResults.map((result) => [result.uid, result]),
   );
@@ -295,7 +295,11 @@ export const searchIndexedNodes = ({
     .map((result) => {
       const searchResult = resultsByUid.get(String(result.id));
       if (!searchResult) return null;
-      return { result: searchResult, score: result.score, source: "keyword" };
+      return {
+        result: searchResult,
+        score: result.score,
+        source: "miniSearch",
+      };
     })
-    .filter((hit): hit is ScoredSearchHit => !!hit);
+    .filter((entry): entry is ScoredSearchResult => !!entry);
 };

@@ -1,39 +1,39 @@
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import {
-  combineScoredSearchHits,
-  toScoredSearchHit,
-  type ScoredSearchHit,
+  combineSemanticAndMiniSearchResults,
+  toScoredSearchResultFromSemantic,
+  type ScoredSearchResult,
   type SearchResult,
-} from "~/utils/advancedNodeSearchTypes";
+} from "~/utils/discourseNodeSearchTypes";
 import { runRoamSemanticSearch } from "~/utils/discourseNodeSearchProviders";
 
 export const SEMANTIC_SEARCH_MIN_DISCOURSE_RESULTS = 5;
 
 export type {
-  ScoredSearchHit,
+  DiscourseNodeSearchSource,
+  ScoredSearchResult,
   SearchResult,
-  SearchHitSource,
-} from "~/utils/advancedNodeSearchTypes";
+} from "~/utils/discourseNodeSearchTypes";
 
-export const shouldUseRoamSemanticSearch = (): boolean =>
+export const isRoamSemanticSearchEnabled = (): boolean =>
   window.roamAlphaAPI.data.semanticSearchEnabled();
 
-export const searchDiscourseNodesWithSemanticFallback = async ({
+export const searchDiscourseNodes = async ({
   nodeTypes,
   query,
   resultsByUid,
-  runKeywordSearch,
+  runMiniSearch,
 }: {
   nodeTypes: DiscourseNode[];
   query: string;
   resultsByUid: Map<string, SearchResult>;
-  runKeywordSearch: () => ScoredSearchHit[];
-}): Promise<ScoredSearchHit[]> => {
+  runMiniSearch: () => ScoredSearchResult[];
+}): Promise<ScoredSearchResult[]> => {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return [];
 
-  if (!shouldUseRoamSemanticSearch()) {
-    return runKeywordSearch();
+  if (!isRoamSemanticSearchEnabled()) {
+    return runMiniSearch();
   }
 
   try {
@@ -41,14 +41,13 @@ export const searchDiscourseNodesWithSemanticFallback = async ({
       nodeTypes,
       query: trimmedQuery,
     });
-    const semanticHits = providerResult.filteredResults.map((item) =>
-      toScoredSearchHit({
+    const semanticResults = providerResult.filteredResults.map((item) =>
+      toScoredSearchResultFromSemantic({
         uid: item.uid,
         title: item.text,
         type: item.type,
         nodeTypeLabel: item.nodeTypeLabel,
         score: item.score ?? 0,
-        source: "semantic",
         resultsByUid,
       }),
     );
@@ -57,14 +56,14 @@ export const searchDiscourseNodesWithSemanticFallback = async ({
       providerResult.filteredResultCount >=
       SEMANTIC_SEARCH_MIN_DISCOURSE_RESULTS
     ) {
-      return semanticHits;
+      return semanticResults;
     }
 
-    return combineScoredSearchHits({
-      semantic: semanticHits,
-      keyword: runKeywordSearch(),
+    return combineSemanticAndMiniSearchResults({
+      semantic: semanticResults,
+      miniSearch: runMiniSearch(),
     });
   } catch {
-    return runKeywordSearch();
+    return runMiniSearch();
   }
 };

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import MiniSearch from "minisearch";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import { searchDiscourseNodesWithSemanticFallback } from "~/utils/discourseNodeSemanticSearch";
+import { searchDiscourseNodes } from "~/utils/searchDiscourseNodes";
 import {
-  searchIndexedNodes,
+  searchDiscourseNodesWithMiniSearch,
   sortSearchResults,
-  type ScoredSearchHit,
+  type ScoredSearchResult,
   type SearchResult,
   type SortConfig,
 } from "./utils";
@@ -43,18 +43,18 @@ export const useAdvancedNodeSearchResults = ({
     [debouncedSearchTerm, dockedQuery],
   );
 
-  const [scoredHits, setScoredHits] = useState<ScoredSearchHit[]>([]);
+  const [scoredResults, setScoredResults] = useState<ScoredSearchResult[]>([]);
 
   useEffect(() => {
     if (isDockedQuery) return;
 
     if (!debouncedSearchTerm) {
-      setScoredHits([]);
+      setScoredResults([]);
       return;
     }
 
     if (isIndexLoading || indexError || !searchIndex) {
-      setScoredHits([]);
+      setScoredResults([]);
       return;
     }
 
@@ -71,28 +71,28 @@ export const useAdvancedNodeSearchResults = ({
       searchIndex.allResults.map((result) => [result.uid, result]),
     );
 
-    const runKeywordSearch = (): ScoredSearchHit[] =>
-      searchIndexedNodes({
+    const runMiniSearch = (): ScoredSearchResult[] =>
+      searchDiscourseNodesWithMiniSearch({
         miniSearch: searchIndex.miniSearch,
         allResults: searchIndex.allResults,
         searchTerm: debouncedSearchTerm,
         typeFilter,
       });
 
-    void searchDiscourseNodesWithSemanticFallback({
+    void searchDiscourseNodes({
       nodeTypes: discourseNodes,
       query: debouncedSearchTerm,
       resultsByUid,
-      runKeywordSearch,
+      runMiniSearch,
     })
-      .then((hits) => {
+      .then((results) => {
         if (cancelled) return;
-        setScoredHits(hits);
+        setScoredResults(results);
       })
       .catch((error) => {
         console.error("Advanced node search failed:", error);
         if (cancelled) return;
-        setScoredHits(runKeywordSearch());
+        setScoredResults(runMiniSearch());
       });
 
     return () => {
@@ -108,8 +108,8 @@ export const useAdvancedNodeSearchResults = ({
   ]);
 
   const sortedLiveResults = useMemo(
-    () => sortSearchResults({ hits: scoredHits, sort }),
-    [scoredHits, sort],
+    () => sortSearchResults({ scoredResults, sort }),
+    [scoredResults, sort],
   );
 
   if (isDockedQuery && dockedResults) {
