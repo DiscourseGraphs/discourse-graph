@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention -- Supabase query results use snake_case column names */
 import type { Json } from "@repo/database/dbTypes";
+import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import type DiscourseGraphPlugin from "~/index";
 import {
   fetchUserNames,
-  getAvailableGroupIds,
   getSpaceNameFromIds,
   getSpaceUris,
 } from "./importNodes";

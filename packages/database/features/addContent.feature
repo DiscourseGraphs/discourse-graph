@@ -19,7 +19,8 @@ Feature: Content access
           "source_local_id": "page1_uid",
           "created": "2000/01/01",
           "last_modified": "2001/01/02",
-          "author_local_id": "user1"
+          "author_local_id": "user1",
+          "content_type": "text/roam+markdown"
         }
       ]
       """
@@ -36,13 +37,15 @@ Feature: Content access
             "space_local_id": "s1",
             "created": "2000/01/01",
             "last_modified": "2001/01/02",
-            "author_local_id": "user2"
+            "author_local_id": "user2",
+            "content_type": "text/roam+markdown"
           },
           "source_local_id": "s1",
           "scale": "document",
           "created": "2000/01/01",
           "last_modified": "2001/01/02",
-          "text": "Some text"
+          "text": "Some text",
+          "content_type": "text/plain"
         },
         {
           "author_local_id": "user2",
@@ -53,7 +56,8 @@ Feature: Content access
           "created": "2000/01/02",
           "last_modified": "2001/01/03",
           "part_of_local_id": "s1",
-          "text": "Some subtext"
+          "text": "Some subtext",
+          "content_type": "text/plain"
         },
         {
           "space_local_id": "s1",
@@ -63,7 +67,8 @@ Feature: Content access
             "space_local_id": "s1",
             "created": "2000/01/01",
             "last_modified": "2001/01/02",
-            "author_local_id": "user2"
+            "author_local_id": "user2",
+            "content_type": "text/roam+markdown"
           },
           "source_local_id": "s3",
           "scale": "document",
@@ -71,6 +76,7 @@ Feature: Content access
           "last_modified": "2001/01/03",
           "part_of_local_id": "s2",
           "text": "Some subsubtext",
+          "content_type": "text/plain",
           "embedding_inline": {
             "model": "openai_text_embedding_3_small_1536",
             "vector": [

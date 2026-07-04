@@ -1,3 +1,5 @@
+import type { contentTypes } from "@repo/content-model";
+
 export type CrossAppNode = {
   sourceApp: "roam" | "obsidian";
   /**
@@ -27,7 +29,7 @@ export type CrossAppNode = {
        * Contract media type for `full.value`; current Content rows store the
        * markdown in `text`, not in a typed media column.
        */
-      format: "text/markdown";
+      format: typeof contentTypes.markdown;
       value: string;
     };
   };

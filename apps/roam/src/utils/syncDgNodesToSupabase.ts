@@ -18,6 +18,7 @@ import {
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
+import { convertRoamNodeToFullContent } from "./convertRoamNodeToFullContent";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { intersection } from "@repo/utils/setOperations";
 import type { Json, Enums } from "@repo/database/dbTypes";
@@ -609,8 +610,10 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   roamNodes: RoamDiscourseNodeData[],
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
+  options: { includeFullContent?: boolean } = {},
 ): Promise<void> => {
   const { userId } = context;
+  const { includeFullContent = false } = options;
 
   if (roamNodes.length === 0) {
     return;
@@ -618,6 +621,34 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
     nodes: roamNodes,
   });
+
+  const uploadBatches = async (
+    batches: LocalContentDataInput[][],
+  ): Promise<void> => {
+    for (let idx = 0; idx < batches.length; idx++) {
+      const batch = batches[idx];
+
+      const { error } = await supabaseClient.rpc("upsert_content", {
+        data: batch as Json,
+        v_space_id: context.spaceId,
+        v_creator_id: userId,
+        content_as_document: true,
+      });
+
+      if (error) {
+        throw new Error(`upsert_content failed for batch ${idx + 1}`, {
+          cause: error,
+        });
+      }
+    }
+  };
+
+  if (includeFullContent) {
+    const fullContent = convertRoamNodeToFullContent({
+      nodes: roamNodes,
+    });
+    await uploadBatches(chunk(fullContent, BATCH_SIZE));
+  }
 
   let nodesWithEmbeddings: LocalContentDataInput[];
   try {
@@ -640,23 +671,6 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
       "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
     );
   }
-
-  const uploadBatches = async (batches: LocalContentDataInput[][]) => {
-    for (let idx = 0; idx < batches.length; idx++) {
-      const batch = batches[idx];
-
-      const { error } = await supabaseClient.rpc("upsert_content", {
-        data: batch as Json,
-        v_space_id: context.spaceId,
-        v_creator_id: userId,
-        content_as_document: true,
-      });
-
-      if (error) {
-        throw new Error(`upsert_content failed for batch ${idx + 1}:`, error);
-      }
-    }
-  };
 
   await uploadBatches(chunk(nodesWithEmbeddings, BATCH_SIZE));
 };

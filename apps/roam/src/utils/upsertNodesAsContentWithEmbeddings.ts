@@ -32,6 +32,7 @@ export const convertRoamNodeToLocalContent = ({
       text: text,
       variant: variant,
       scale: "document",
+      // use the default text/plain content type
     };
   });
 };

@@ -1234,7 +1234,7 @@ const NodeTypeSettings = () => {
                   void createBaseForNodeType(plugin, editingNodeType)
                 }
               >
-                Create Base view
+                Create new Base view
               </button>
             </div>
           </div>
