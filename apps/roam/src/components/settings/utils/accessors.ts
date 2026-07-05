@@ -765,7 +765,6 @@ export const readAllLegacyDiscourseNodeSettings = (
 };
 
 export const isSyncEnabled = (): boolean =>
-  getFeatureFlag("Duplicate node alert enabled") ||
   getFeatureFlag("Suggestive mode overlay enabled");
 
 export const setFeatureFlag = (
