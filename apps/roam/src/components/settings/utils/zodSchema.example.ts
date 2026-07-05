@@ -137,10 +137,6 @@ const suggestiveModeGlobalSettings: SuggestiveModeGlobalSettings = {
 
 const leftSidebarGlobalSettings: LeftSidebarGlobalSettings = {
   Children: ["daily-notes-uid", "quick-capture-uid", "inbox-uid"],
-  Settings: {
-    Collapsable: true,
-    Folded: false,
-  },
 };
 
 const globalSettings: GlobalSettings = {
@@ -148,10 +144,6 @@ const globalSettings: GlobalSettings = {
   "Canvas page format": "Canvas - {date} - {title}",
   "Left sidebar": {
     Children: ["daily-notes-uid", "quick-capture-uid", "inbox-uid"],
-    Settings: {
-      Collapsable: true,
-      Folded: false,
-    },
   },
   Export: {
     "Remove special characters": true,
@@ -255,10 +247,6 @@ const defaultGlobalSettings: GlobalSettings = {
   "Canvas page format": "",
   "Left sidebar": {
     Children: [],
-    Settings: {
-      Collapsable: false,
-      Folded: false,
-    },
   },
   Export: {
     "Remove special characters": false,
@@ -372,6 +360,7 @@ const personalSettings: PersonalSettings = {
       },
     },
   ],
+  "Global section folded": false,
   "Personal node menu trigger": { modifiers: 0, key: ";;" },
   "Node search menu trigger": "//",
   "Discourse tool shortcut": { modifiers: 0, key: "d" },
@@ -404,6 +393,7 @@ const personalSettings: PersonalSettings = {
 
 const defaultPersonalSettings: PersonalSettings = {
   "Left sidebar": [],
+  "Global section folded": false,
   "Personal node menu trigger": { modifiers: 0, key: "" },
   "Node search menu trigger": "",
   "Discourse tool shortcut": { modifiers: 0, key: "" },

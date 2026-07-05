@@ -125,7 +125,7 @@ const ensureLegacyConfigBlocks = async (pageUid: string): Promise<void> => {
   const globalSectionMap = buildBlockMap(leftSidebarMap["Global-Section"]);
   await ensureBlocksExist(
     leftSidebarMap["Global-Section"],
-    ["Children", "Settings"],
+    ["Children"],
     globalSectionMap,
   );
 
