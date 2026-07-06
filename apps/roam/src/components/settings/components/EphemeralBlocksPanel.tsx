@@ -14,7 +14,7 @@ import {
 import type { DiscourseNodeBaseProps } from "./BlockPropSettingPanels";
 
 const DEBOUNCE_MS = 250;
-const TEMPLATE_BUFFER_TEXT = "Template (editing)";
+const TEMPLATE_BUFFER_TEXT = "Template";
 
 type DualWriteBlocksPanelProps = DiscourseNodeBaseProps & {
   uid: string;
