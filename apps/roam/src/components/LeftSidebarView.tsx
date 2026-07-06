@@ -179,9 +179,6 @@ const toggleFoldedState = async ({
   }
 };
 
-const RENDERED_BLOCK_INTERACTIVE_SELECTOR =
-  "a, button, input, [data-link-title], [data-tag], .rm-block-ref";
-
 const RoamRenderedBlock = ({
   uid,
   onNavigate,
@@ -203,7 +200,7 @@ const RoamRenderedBlock = ({
 
   const handleClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest(RENDERED_BLOCK_INTERACTIVE_SELECTOR)) return;
+    if (target.closest("button")) return;
     onNavigate(e);
   };
 
@@ -1063,6 +1060,9 @@ export const mountLeftSidebar = async ({
       .dg-sidebar-rendered-block .block-border-left { display: none; }
       .dg-sidebar-rendered-block .block-ref-count-button { display: none; }
       .dg-sidebar-rendered-block .rm-block-main { min-height: unset; padding: 0; }
+      .dg-sidebar-rendered-block * { pointer-events: none; }
+      .dg-sidebar-rendered-block button,
+      .dg-sidebar-rendered-block button * { pointer-events: auto; }
     `;
     document.head.appendChild(style);
   }
