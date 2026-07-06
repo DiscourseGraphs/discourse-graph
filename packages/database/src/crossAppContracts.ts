@@ -1,7 +1,7 @@
 import type { ContentType } from "@repo/content-model";
 import { Enums } from "./dbTypes";
 
-export type LocalRef = {
+type LocalRef = {
   // This localId is expected to be unique within the current space
   localId: string;
 };
@@ -12,7 +12,7 @@ type DbRef = {
 };
 
 // Generalized reference
-export type Ref = LocalRef | DbRef;
+type Ref = LocalRef | DbRef;
 
 // Common attributes for most types
 type CrossAppBase = LocalRef & {
@@ -22,14 +22,14 @@ type CrossAppBase = LocalRef & {
 };
 
 // An inline vector semantic embedding
-export type CrossAppEmbedding = {
+type CrossAppEmbedding = {
   value: number[];
   embedding?: Enums<"EmbeddingName">;
 };
 
 // A Content object. It can be put inline inside a concept.
 // Missing CrossAppBase attributes are inferred from enclosing object.
-export type InlineCrossAppContent = Partial<CrossAppBase> & {
+type InlineCrossAppContent = Partial<CrossAppBase> & {
   value: string;
   embedding?: CrossAppEmbedding;
   scale?: Enums<"Scale">;
@@ -37,7 +37,7 @@ export type InlineCrossAppContent = Partial<CrossAppBase> & {
 };
 
 // An inline Content with obligatory typing
-export type InlineCrossAppTypedContent = InlineCrossAppContent & {
+type InlineCrossAppTypedContent = InlineCrossAppContent & {
   contentType: ContentType;
 };
 
