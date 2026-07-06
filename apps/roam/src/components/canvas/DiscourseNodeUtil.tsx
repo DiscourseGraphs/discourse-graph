@@ -41,7 +41,10 @@ import {
   getParallelArrowBend,
 } from "./DiscourseRelationShape/helpers";
 import { loadImage } from "~/utils/loadImage";
-import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
+import {
+  DISCOURSE_RELATION_SHAPE_TYPE,
+  getRelationColor,
+} from "./DiscourseRelationShape/DiscourseRelationUtil";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import NodeMenu from "~/components/DiscourseNodeMenu";
@@ -220,7 +223,11 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     relationIds?: Set<string>;
   }) {
     const editor = this.editor;
-    const bindingsToThisShape = Array.from(relationIds).flatMap((r) =>
+    const relationBindingTypes = new Set([
+      DISCOURSE_RELATION_SHAPE_TYPE,
+      ...relationIds,
+    ]);
+    const bindingsToThisShape = Array.from(relationBindingTypes).flatMap((r) =>
       editor.getBindingsToShape(shape.id, r),
     );
     const relationIdsAndType = bindingsToThisShape.map((b) => {
@@ -272,24 +279,28 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
         )
         .filter((id) => id !== undefined),
     );
-    const currentShapeRelations = Array.from(
-      discourseContextRelationIds,
-    ).flatMap((relationId) => {
-      const bindingsToThisShape = editor.getBindingsToShape(
-        shape.id,
-        relationId,
-      );
-      return bindingsToThisShape.map((b) => {
-        const arrowId = b.fromId;
-        const bindingsFromArrow = editor.getBindingsFromShape(
-          arrowId,
+    const relationBindingTypes = new Set([
+      DISCOURSE_RELATION_SHAPE_TYPE,
+      ...discourseContextRelationIds,
+    ]);
+    const currentShapeRelations = Array.from(relationBindingTypes).flatMap(
+      (relationId) => {
+        const bindingsToThisShape = editor.getBindingsToShape(
+          shape.id,
           relationId,
         );
-        const endBinding = bindingsFromArrow.find((b) => b.toId !== shape.id);
-        if (!endBinding) return null;
-        return { startId: shape.id, endId: endBinding.toId };
-      });
-    });
+        return bindingsToThisShape.map((b) => {
+          const arrowId = b.fromId;
+          const bindingsFromArrow = editor.getBindingsFromShape(
+            arrowId,
+            relationId,
+          );
+          const endBinding = bindingsFromArrow.find((b) => b.toId !== shape.id);
+          if (!endBinding) return null;
+          return { startId: shape.id, endId: endBinding.toId };
+        });
+      },
+    );
 
     const toCreate = discourseContextResults
       .flatMap((r) =>
@@ -319,7 +330,10 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
         return { relationId, complement, nodeId, arrowId, label };
       });
 
-    const allRelationIds = getRelationIds();
+    const relationBindingTypesForBend = new Set([
+      DISCOURSE_RELATION_SHAPE_TYPE,
+      ...getRelationIds(),
+    ]);
     const reservedBendsByPair = new Map<string, number[]>();
     const shapesToCreate = toCreate.map(
       ({ relationId, complement, nodeId, arrowId, label }, index) => {
@@ -332,20 +346,33 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
           editor,
           startShapeId: startId,
           endShapeId: endId,
-          relationIds: allRelationIds,
+          relationIds: relationBindingTypesForBend,
           reservedCanonicalBends,
         });
         reservedBendsByPair.set(pairKey, [
           ...reservedCanonicalBends,
           canonicalBend,
         ]);
-        return { id: arrowId, type: relationId, props: { color, bend } };
+        return {
+          id: arrowId,
+          type: DISCOURSE_RELATION_SHAPE_TYPE,
+          props: {
+            color,
+            labelColor: color,
+            text: label,
+            relationTypeId: relationId,
+            bend,
+          },
+        };
       },
     );
 
     const bindingsToCreate = toCreate.flatMap(
-      ({ relationId, complement, nodeId, arrowId }) => {
-        const staticRelationProps = { type: relationId, fromId: arrowId };
+      ({ complement, nodeId, arrowId }) => {
+        const staticRelationProps = {
+          type: DISCOURSE_RELATION_SHAPE_TYPE,
+          fromId: arrowId,
+        };
         return [
           {
             ...staticRelationProps,
