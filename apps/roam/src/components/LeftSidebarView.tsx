@@ -179,6 +179,9 @@ const toggleFoldedState = async ({
   }
 };
 
+const RENDERED_BLOCK_INTERACTIVE_SELECTOR =
+  "a, button, input, [data-link-title], [data-tag], .rm-block-ref";
+
 const RoamRenderedBlock = ({
   uid,
   onNavigate,
@@ -200,7 +203,7 @@ const RoamRenderedBlock = ({
 
   const handleClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest("[data-roamjs-smartblock-button]")) return;
+    if (target.closest(RENDERED_BLOCK_INTERACTIVE_SELECTOR)) return;
     onNavigate(e);
   };
 
