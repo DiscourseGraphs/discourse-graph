@@ -65,10 +65,7 @@ const crossAppContentToDbContent = (
     ...decodeLocalRef(content, "source_local_id"),
     text: content.value,
     scale: content.scale || "document",
-    content_type:
-      content.contentType ||
-      (variant === "full" ? document?.contentType : undefined) ||
-      "text/plain",
+    content_type: content.contentType || "text/plain",
     variant: variant,
     created: (content.createdAt || node?.createdAt)?.toISOString(),
     last_modified: (content.modifiedAt || node?.modifiedAt)?.toISOString(),
