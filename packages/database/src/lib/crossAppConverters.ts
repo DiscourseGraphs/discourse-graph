@@ -6,7 +6,7 @@ import {
   CrossAppBase,
   CrossAppNode,
 } from "../crossAppContracts";
-import { LocalContentDataInput } from "../inputTypes";
+import { LocalContentDataInput, LocalConceptDataInput } from "../inputTypes";
 import { Enums, CompositeTypes } from "../dbTypes";
 
 type InlineEmbeddingInput = CompositeTypes<"inline_embedding_input">;
@@ -55,6 +55,9 @@ const filterUndefined = <T extends Record<string, unknown>>(data: T): T => {
   ) as T;
 };
 
+const filterUndefinedArray = <T>(data: (T | undefined)[]): T[] =>
+  data.filter((v) => v !== undefined);
+
 const inlineCrossAppContentToDbContent = (
   content: InlineCrossAppContent | undefined,
   variant: Enums<"ContentVariant">,
@@ -88,4 +91,21 @@ export const crossAppNodeToDbContent = (
     },
     variant,
   );
+};
+
+export const crossAppNodeToDbConcept = (
+  node: CrossAppNode,
+): LocalConceptDataInput => {
+  return filterUndefined<LocalConceptDataInput>({
+    ...decodeLocalRef(node, "source_local_id"),
+    name: node.content.direct.value,
+    ...decodeRef(node.author, "author_id", "author_local_id"),
+    ...decodeRef(node.nodeType, "schema_id", "schema_represented_by_local_id"),
+    contents_inline: filterUndefinedArray([
+      crossAppNodeToDbContent(node, "direct"),
+      crossAppNodeToDbContent(node, "full"),
+    ]),
+    created: node.createdAt?.toISOString(),
+    last_modified: node.modifiedAt?.toISOString(),
+  });
 };
