@@ -8,7 +8,7 @@ import {
   openRoamSession,
   parseArgs,
   timestamp,
-} from "./roam-session";
+} from "./roamSession";
 
 type OpenRoamResult = {
   ok: true;
