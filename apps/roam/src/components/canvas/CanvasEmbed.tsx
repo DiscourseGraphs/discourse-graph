@@ -51,7 +51,7 @@ const CanvasEmbedChrome = ({
   <div className="relative h-full w-full">
     <TldrawCanvas title={title} />
     <Button
-      className="absolute right-2 top-2 z-20"
+      className="absolute bottom-2 right-8 z-20"
       icon="edit"
       minimal
       small
