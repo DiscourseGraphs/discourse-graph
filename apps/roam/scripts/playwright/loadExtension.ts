@@ -71,6 +71,7 @@ type LoadExtensionResult = {
   profileDir: string;
   distDir: string;
   extensionName: string;
+  developerExtensionName: string;
   loadedFiles: LoadedFileProof[];
   screenshotPath: string;
   resultPath: string;
@@ -80,7 +81,10 @@ type LoadExtensionResult = {
   dgGlobal: DiscourseGraphGlobalProof | null;
   dgUi: DiscourseGraphUiProof | null;
   pageErrors: string[];
+  consoleMessages: string[];
+  failedRequests: string[];
   knownWarnings: string[];
+  error: string | null;
   capturedAt: string | null;
 };
 
@@ -171,6 +175,13 @@ const closeOpenModals = async (page: Page): Promise<void> => {
     await page.keyboard.press("Escape").catch(() => undefined);
     await page.waitForTimeout(250);
   }
+};
+
+const installSerializedFunctionShim = async (page: Page): Promise<void> => {
+  // tsx can serialize Playwright-evaluated closures with esbuild's name helper.
+  await page.evaluate(
+    "window.__name = (target, value) => Object.defineProperty(target, 'name', { value, configurable: true })",
+  );
 };
 
 const readPackageName = async (repoDir: string): Promise<string | null> => {
@@ -391,24 +402,26 @@ const ensureDeveloperMode = async ({
 
 const removeExistingDeveloperExtensions = async ({
   page,
-  extensionName,
+  extensionNames,
 }: {
   page: Page;
-  extensionName: string;
+  extensionNames: string[];
 }): Promise<number> =>
-  page.evaluate(async (name: string): Promise<number> => {
+  page.evaluate(async (names: string[]): Promise<number> => {
     const pause = (ms: number): Promise<void> =>
       new Promise((resolve) => window.setTimeout(resolve, ms));
+    const namesToRemove = new Set(names);
     let removed = 0;
 
     for (let pass = 0; pass < 10; pass += 1) {
       const row = Array.from(
         document.querySelectorAll(".rm-extension-installed"),
-      ).find(
-        (element) =>
+      ).find((element) =>
+        namesToRemove.has(
           element
             .querySelector(".rm-extension-installed__name")
-            ?.textContent?.trim() === name,
+            ?.textContent?.trim() || "",
+        ),
       );
 
       if (!row) break;
@@ -419,7 +432,50 @@ const removeExistingDeveloperExtensions = async ({
     }
 
     return removed;
+  }, extensionNames);
+
+const reloadDeveloperExtension = async ({
+  page,
+  extensionName,
+  timeout,
+}: {
+  page: Page;
+  extensionName: string;
+  timeout: number;
+}): Promise<void> => {
+  await page.waitForFunction(
+    (name: string) =>
+      Array.from(document.querySelectorAll(".rm-extension-installed")).some(
+        (element) =>
+          element
+            .querySelector(".rm-extension-installed__name")
+            ?.textContent?.trim() === name,
+      ),
+    extensionName,
+    { timeout },
+  );
+
+  await page.evaluate((name: string): void => {
+    const rows = Array.from(
+      document.querySelectorAll(".rm-extension-installed"),
+    );
+    const row = rows
+      .reverse()
+      .find(
+        (element) =>
+          element
+            .querySelector(".rm-extension-installed__name")
+            ?.textContent?.trim() === name,
+      );
+    const reloadButton = row
+      ?.querySelector(".bp3-icon-refresh")
+      ?.closest("button");
+    if (!(reloadButton instanceof HTMLElement)) {
+      throw new Error(`Could not find reload button for ${name}.`);
+    }
+    reloadButton.click();
   }, extensionName);
+};
 
 const installCommandPaletteObserver = async (page: Page): Promise<void> => {
   await page.evaluate((): void => {
@@ -500,16 +556,19 @@ const verifyDiscourseGraphUi = async ({
   page,
   timeout,
 }: PageTimeoutOptions): Promise<DiscourseGraphUiProof> => {
-  await page.waitForFunction(
-    () => {
-      const dgWindow = window as unknown as DgPlaywrightWindow;
-      return dgWindow.__dgPlaywrightCommandLabels?.includes(
-        "DG: Open - Discourse settings",
-      );
-    },
-    undefined,
-    { timeout },
-  );
+  const commandWasCaptured = await page
+    .waitForFunction(
+      () => {
+        const dgWindow = window as unknown as DgPlaywrightWindow;
+        return dgWindow.__dgPlaywrightCommandLabels?.includes(
+          "DG: Open - Discourse settings",
+        );
+      },
+      undefined,
+      { timeout: Math.min(timeout, 5_000) },
+    )
+    .then(() => true)
+    .catch(() => false);
 
   const commandLabels = await page.evaluate(
     (): string[] =>
@@ -517,18 +576,34 @@ const verifyDiscourseGraphUi = async ({
       [],
   );
 
-  await closeOpenModals(page);
-  await page.evaluate((): void => {
-    const dgWindow = window as unknown as DgPlaywrightWindow;
-    const openSettings =
-      dgWindow.__dgPlaywrightCommandCallbacks?.[
-        "DG: Open - Discourse settings"
-      ];
-    if (!openSettings) {
-      throw new Error("DG settings command callback was not registered.");
-    }
-    openSettings();
-  });
+  if (commandWasCaptured) {
+    await closeOpenModals(page);
+    await page.evaluate((): void => {
+      const dgWindow = window as unknown as DgPlaywrightWindow;
+      const openSettings =
+        dgWindow.__dgPlaywrightCommandCallbacks?.[
+          "DG: Open - Discourse settings"
+        ];
+      if (!openSettings) {
+        throw new Error("DG settings command callback was not registered.");
+      }
+      openSettings();
+    });
+  } else {
+    await clickByDom(
+      page
+        .locator(".rm-modal-dialog--settings")
+        .getByText(/^Discourse Graphs(?: \(dev\))?$/)
+        .first(),
+      timeout,
+    );
+    await clickByDom(
+      page.locator(".rm-modal-dialog--settings button", {
+        hasText: /^Open Settings$/i,
+      }),
+      timeout,
+    );
+  }
 
   const dialog = page
     .locator(".bp3-dialog, .bp3-dialog-container")
@@ -586,6 +661,7 @@ const main = async (): Promise<void> => {
     getStringArg(args, "extension-name") ||
     (await readPackageName(distDir)) ||
     "roam";
+  const developerExtensionName = path.basename(distDir);
 
   await fs.mkdir(outDir, { recursive: true });
 
@@ -606,6 +682,7 @@ const main = async (): Promise<void> => {
     profileDir: slotConfig.profileDir,
     distDir,
     extensionName,
+    developerExtensionName,
     loadedFiles: files.map(({ name, content }) => ({
       name,
       bytes: Buffer.byteLength(content),
@@ -618,9 +695,28 @@ const main = async (): Promise<void> => {
     dgGlobal: null,
     dgUi: null,
     pageErrors: [],
+    consoleMessages: [],
+    failedRequests: [],
     knownWarnings: [],
+    error: null,
     capturedAt: null,
   };
+
+  const pushBounded = (messages: string[], message: string): void => {
+    messages.push(message);
+    if (messages.length > 50) messages.shift();
+  };
+
+  page.on("console", (message) => {
+    pushBounded(result.consoleMessages, `${message.type()}: ${message.text()}`);
+  });
+
+  page.on("requestfailed", (request) => {
+    pushBounded(
+      result.failedRequests,
+      `${request.url()} ${request.failure()?.errorText || ""}`.trim(),
+    );
+  });
 
   page.on("pageerror", (error) => {
     const message = error.message;
@@ -634,7 +730,18 @@ const main = async (): Promise<void> => {
     result.pageErrors.push(message);
   });
 
+  const persistResult = async (): Promise<void> => {
+    result.configuredGraphLoaded = page.url().startsWith(slotConfig.graphUrl);
+    result.pageTitleAvailable = Boolean(await page.title().catch(() => ""));
+    result.capturedAt = new Date().toISOString();
+    await page
+      .screenshot({ path: screenshotPath, fullPage: false })
+      .catch(() => undefined);
+    await fs.writeFile(resultPath, `${JSON.stringify(result, null, 2)}\n`);
+  };
+
   try {
+    await installSerializedFunctionShim(page);
     await installDirectoryPickerShim({
       page,
       dirName: path.basename(distDir),
@@ -645,25 +752,32 @@ const main = async (): Promise<void> => {
     result.developerMode = await ensureDeveloperMode({ page, timeout });
     result.removedExisting = await removeExistingDeveloperExtensions({
       page,
-      extensionName,
+      extensionNames: [extensionName, developerExtensionName],
     });
 
     await page
       .locator(".rm-extensions-installed__header button.bp3-icon-folder-new")
       .click({ force: true, timeout });
+    await reloadDeveloperExtension({
+      page,
+      extensionName: developerExtensionName,
+      timeout,
+    });
 
     await waitForDiscourseGraphLoaded({ page, timeout });
     result.dgGlobal = await getDiscourseGraphGlobalProof(page);
     result.dgUi = await verifyDiscourseGraphUi({ page, timeout });
     await page.waitForTimeout(1500);
-    await page.screenshot({ path: screenshotPath, fullPage: false });
 
     result.ok = true;
-    result.configuredGraphLoaded = page.url().startsWith(slotConfig.graphUrl);
-    result.pageTitleAvailable = Boolean(await page.title());
-    result.capturedAt = new Date().toISOString();
-    await fs.writeFile(resultPath, `${JSON.stringify(result, null, 2)}\n`);
+    await persistResult();
     console.log(JSON.stringify(result, null, 2));
+  } catch (error: unknown) {
+    result.error =
+      error instanceof Error ? error.stack || error.message : String(error);
+    await persistResult();
+    console.error(JSON.stringify(result, null, 2));
+    throw error;
   } finally {
     if (getBooleanArg(args, "keep-open")) {
       console.log("Browser context left open. Press Ctrl+C to close it.");
