@@ -638,23 +638,24 @@ const GlobalSection = ({
     try {
       const nextIsOpen = !isOpen;
       setIsOpen(nextIsOpen);
-      const markerText = getGlobalSectionFoldedMarkerText(
-        window.roamAlphaAPI.user.uid() || "",
-      );
-      if (nextIsOpen) {
-        const children = getBasicTreeByParentUid(leftSidebarUid);
-        await Promise.all(
-          children
-            .filter((c) => c.text === markerText)
-            .map((c) => deleteBlock(c.uid)),
-        );
-      } else {
-        await createBlock({
-          parentUid: leftSidebarUid,
-          node: { text: markerText },
-        });
+      const userUid = window.roamAlphaAPI.user.uid();
+      if (userUid) {
+        const markerText = getGlobalSectionFoldedMarkerText(userUid);
+        if (nextIsOpen) {
+          const children = getBasicTreeByParentUid(leftSidebarUid);
+          await Promise.all(
+            children
+              .filter((c) => c.text === markerText)
+              .map((c) => deleteBlock(c.uid)),
+          );
+        } else {
+          await createBlock({
+            parentUid: leftSidebarUid,
+            node: { text: markerText },
+          });
+        }
+        refreshConfigTree();
       }
-      refreshConfigTree();
       setPersonalSetting([PERSONAL_KEYS.globalSectionFolded], !nextIsOpen);
     } finally {
       isTogglingRef.current = false;

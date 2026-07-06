@@ -317,12 +317,13 @@ export const getLeftSidebarSettings = (
     tree: leftSidebarChildren,
     text: "Sidebar Migrated",
   });
-  const globalSectionFolded = getUidAndBooleanSetting({
-    tree: leftSidebarChildren,
-    text: getGlobalSectionFoldedMarkerText(
-      window.roamAlphaAPI.user.uid() || "",
-    ),
-  });
+  const currentUserUid = window.roamAlphaAPI.user.uid();
+  const globalSectionFolded: BooleanSetting = currentUserUid
+    ? getUidAndBooleanSetting({
+        tree: leftSidebarChildren,
+        text: getGlobalSectionFoldedMarkerText(currentUserUid),
+      })
+    : { uid: undefined, value: false };
   return {
     uid: leftSidebarUid,
     favoritesMigrated,
