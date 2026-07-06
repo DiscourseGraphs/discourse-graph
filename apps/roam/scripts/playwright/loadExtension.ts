@@ -12,7 +12,9 @@ import {
   openRoamSession,
   parseArgs,
   timestamp,
-} from "./roam-session";
+
+} from "./roamSession";
+
 
 type ExtensionRootFile = {
   name: string;
