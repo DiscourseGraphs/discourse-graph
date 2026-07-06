@@ -1650,7 +1650,7 @@ export function createOrUpdateArrowBinding(
   props: TLArrowBindingProps,
   shouldCreateRelation = false,
 ) {
-  const arrowId = typeof relation === "string" ? relation : relation.id;
+  const arrowId = relation.id;
   const targetId = typeof target === "string" ? target : target.id;
   const bindingType = getDiscourseRelationBindingType({ shape: relation });
 

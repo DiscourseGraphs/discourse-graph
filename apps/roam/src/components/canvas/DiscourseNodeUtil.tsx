@@ -40,7 +40,9 @@ import { createTextJsxFromSpans } from "./DiscourseRelationShape/helpers";
 import { loadImage } from "~/utils/loadImage";
 import {
   DISCOURSE_RELATION_SHAPE_TYPE,
+  getDiscourseRelationTypeId,
   getRelationColor,
+  isDiscourseRelationShape,
 } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
@@ -281,20 +283,32 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       ...discourseContextRelationIds,
     ]);
     const currentShapeRelations = Array.from(relationBindingTypes).flatMap(
-      (relationId) => {
+      (bindingType) => {
         const bindingsToThisShape = editor.getBindingsToShape(
           shape.id,
-          relationId,
+          bindingType,
         );
-        return bindingsToThisShape.map((b) => {
-          const arrowId = b.fromId;
+        return bindingsToThisShape.flatMap((bindingToThisShape) => {
+          const arrowId = bindingToThisShape.fromId;
+          const arrow = editor.getShape(arrowId);
+          if (!arrow || !isDiscourseRelationShape(arrow)) return [];
+
           const bindingsFromArrow = editor.getBindingsFromShape(
             arrowId,
-            relationId,
+            bindingType,
           );
-          const endBinding = bindingsFromArrow.find((b) => b.toId !== shape.id);
-          if (!endBinding) return null;
-          return { startId: shape.id, endId: endBinding.toId };
+          const endBinding = bindingsFromArrow.find(
+            (bindingFromArrow) => bindingFromArrow.toId !== shape.id,
+          );
+          if (!endBinding) return [];
+
+          return [
+            {
+              startId: shape.id,
+              endId: endBinding.toId,
+              relationTypeId: getDiscourseRelationTypeId({ shape: arrow }),
+            },
+          ];
         });
       },
     );
@@ -312,13 +326,15 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
             };
           }),
       )
-      .filter(({ complement, nodeId }) => {
+      .filter(({ relationId, complement, nodeId }) => {
         const startId = complement ? nodesInCanvas[nodeId].id : shape.id;
         const endId = complement ? shape.id : nodesInCanvas[nodeId].id;
         const relationAlreadyExists = currentShapeRelations.some((r) => {
+          if (r.relationTypeId !== relationId) return false;
+
           return complement
-            ? r?.startId === endId && r?.endId === startId
-            : r?.startId === startId && r?.endId === endId;
+            ? r.startId === endId && r.endId === startId
+            : r.startId === startId && r.endId === endId;
         });
         return !relationAlreadyExists;
       })
