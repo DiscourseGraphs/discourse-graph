@@ -21,6 +21,7 @@ import {
 } from "@repo/database/lib/contextFunctions";
 
 type Platform = Enums<"Platform">;
+type ContentVariant = Enums<"ContentVariant">;
 type TableName = keyof Database["public"]["Tables"];
 type LocalRefsType = Record<string, number | string>;
 const PLATFORMS: readonly Platform[] = Constants.public.Enums.Platform;
@@ -303,6 +304,30 @@ Then(
     const response = await client
       .from(tableName)
       .select("*", { count: "exact" });
+    assert.equal(response.count, expectedCount);
+  },
+);
+
+Then(
+  "a user logged in space {word} should see {int} content rows with variant {string} and content type {string}",
+  async (
+    ...[spaceName, expectedCount, variant, contentType]: [
+      string,
+      number,
+      ContentVariant,
+      string,
+    ]
+  ) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const client = await getLoggedinDatabase(spaceId);
+    const response = await client
+      .from("my_contents")
+      .select("*", { count: "exact", head: true })
+      .eq("variant", variant)
+      .eq("content_type", contentType);
+    assert.equal(response.error, null);
     assert.equal(response.count, expectedCount);
   },
 );

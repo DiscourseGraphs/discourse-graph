@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS public."FileReference" (
     filehash character varying NOT NULL, -- or binary?
     "created" timestamp without time zone NOT NULL,
     last_modified timestamp without time zone NOT NULL,
+    content_type character varying NOT NULL DEFAULT 'text/obsidian+markdown',
     -- not allowed virtual with user types
     variant public."ContentVariant" GENERATED ALWAYS AS ('full') STORED
 );
@@ -13,8 +14,8 @@ ADD CONSTRAINT "FileReference_pkey" PRIMARY KEY (source_local_id, space_id, file
 
 ALTER TABLE ONLY public."FileReference"
 ADD CONSTRAINT "FileReference_content_fkey" FOREIGN KEY (
-    space_id, source_local_id, variant
-) REFERENCES public."Content" (space_id, source_local_id, variant) ON DELETE CASCADE;
+    space_id, source_local_id, variant, content_type
+) REFERENCES public."Content" (space_id, source_local_id, variant, content_type) ON DELETE CASCADE;
 -- note the absence of on update ; the generated column forbids cascade, so it will error
 -- However, update on those columns should never happen.
 

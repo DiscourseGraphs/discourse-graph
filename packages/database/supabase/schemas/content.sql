@@ -131,8 +131,8 @@ CREATE INDEX "Content_part_of" ON public."Content" USING btree (
 
 CREATE INDEX "Content_space" ON public."Content" USING btree (space_id);
 
-CREATE UNIQUE INDEX content_space_local_id_variant_idx ON public."Content" USING btree (
-    space_id, source_local_id, variant
+CREATE UNIQUE INDEX content_space_local_id_variant_content_type_idx ON public."Content" USING btree (
+    space_id, source_local_id, variant, content_type
 ) NULLS DISTINCT;
 
 CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
@@ -180,7 +180,7 @@ ADD CONSTRAINT "ResourceAccess_account_uid_fkey" FOREIGN KEY (
 
 CREATE INDEX resource_access_content_local_id_idx ON public."ResourceAccess" (source_local_id, space_id);
 
--- note that I cannot have a foreign key for Content because the variant is part of the unique key.
+-- note that I cannot have a foreign key for Content because variant and content_type are part of the unique key.
 
 GRANT ALL ON TABLE public."ResourceAccess" TO authenticated;
 GRANT ALL ON TABLE public."ResourceAccess" TO service_role;
@@ -429,6 +429,9 @@ BEGIN
   IF content.metadata IS NULL then
     content.metadata := '{}';
   END IF;
+  IF content.content_type IS NULL THEN
+    content.content_type := 'text/plain';
+  END IF;
   RETURN content;
 END;
 $$;
@@ -644,7 +647,7 @@ BEGIN
         db_content.part_of_id,
         db_content.content_type
     )
-    ON CONFLICT (space_id, source_local_id, variant) DO UPDATE SET
+    ON CONFLICT (space_id, source_local_id, variant, content_type) DO UPDATE SET
         document_id = COALESCE(db_content.document_id, EXCLUDED.document_id),
         author_id = COALESCE(db_content.author_id, EXCLUDED.author_id),
         creator_id = COALESCE(db_content.creator_id, EXCLUDED.creator_id),
@@ -653,8 +656,7 @@ BEGIN
         metadata = COALESCE(db_content.metadata, EXCLUDED.metadata),
         scale = COALESCE(db_content.scale, EXCLUDED.scale),
         last_modified = COALESCE(db_content.last_modified, EXCLUDED.last_modified),
-        part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id),
-        content_type = COALESCE(db_content.content_type, EXCLUDED.content_type)
+        part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id)
     RETURNING id INTO STRICT upsert_id;
     IF model(embedding_inline(local_content)) IS NOT NULL THEN
         PERFORM public.upsert_content_embedding(upsert_id, model(embedding_inline(local_content)),  vector(embedding_inline(local_content)));

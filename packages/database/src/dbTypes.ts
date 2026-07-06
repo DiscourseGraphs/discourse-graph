@@ -587,6 +587,7 @@ export type Database = {
       }
       FileReference: {
         Row: {
+          content_type: string
           created: string
           filehash: string
           filepath: string
@@ -596,6 +597,7 @@ export type Database = {
           variant: Database["public"]["Enums"]["ContentVariant"] | null
         }
         Insert: {
+          content_type?: string
           created: string
           filehash: string
           filepath: string
@@ -605,6 +607,7 @@ export type Database = {
           variant?: Database["public"]["Enums"]["ContentVariant"] | null
         }
         Update: {
+          content_type?: string
           created?: string
           filehash?: string
           filepath?: string
@@ -616,24 +619,39 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant"]
+            columns: ["space_id", "source_local_id", "variant", "content_type"]
             isOneToOne: false
             referencedRelation: "Content"
-            referencedColumns: ["space_id", "source_local_id", "variant"]
+            referencedColumns: [
+              "space_id",
+              "source_local_id",
+              "variant",
+              "content_type",
+            ]
           },
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant"]
+            columns: ["space_id", "source_local_id", "variant", "content_type"]
             isOneToOne: false
             referencedRelation: "my_contents"
-            referencedColumns: ["space_id", "source_local_id", "variant"]
+            referencedColumns: [
+              "space_id",
+              "source_local_id",
+              "variant",
+              "content_type",
+            ]
           },
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant"]
+            columns: ["space_id", "source_local_id", "variant", "content_type"]
             isOneToOne: false
             referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
-            referencedColumns: ["space_id", "source_local_id", "variant"]
+            referencedColumns: [
+              "space_id",
+              "source_local_id",
+              "variant",
+              "content_type",
+            ]
           },
         ]
       }
@@ -1164,6 +1182,7 @@ export type Database = {
           text: string | null
           variant: Database["public"]["Enums"]["ContentVariant"] | null
           vector: string | null
+          content_type: string | null
         }
         Relationships: [
           {

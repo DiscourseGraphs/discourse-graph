@@ -133,3 +133,52 @@ Feature: Content access
     And a user logged in space s1 should see 3 Content in the database
     And a user logged in space s1 should see 1 ContentEmbedding_openai_text_embedding_3_small_1536 in the database
     And a user logged in space s1 should see 1 Document in the database
+
+  Scenario: Full content representations with different content types coexist
+    When user user1 upserts these documents to space s1:
+      """json
+      [
+        {
+          "source_local_id": "page1_uid",
+          "created": "2000/01/01",
+          "last_modified": "2001/01/02",
+          "author_local_id": "user1",
+          "content_type": "text/markdown"
+        }
+      ]
+      """
+    And user user1 upserts this content to space s1:
+      """json
+      [
+        {
+          "author_local_id": "user1",
+          "document_local_id": "page1_uid",
+          "source_local_id": "page1_uid",
+          "variant": "full",
+          "scale": "document",
+          "created": "2000/01/01",
+          "last_modified": "2001/01/02",
+          "text": "# Markdown",
+          "content_type": "text/markdown"
+        }
+      ]
+      """
+    And user user1 upserts this content to space s1:
+      """json
+      [
+        {
+          "author_local_id": "user1",
+          "document_local_id": "page1_uid",
+          "source_local_id": "page1_uid",
+          "variant": "full",
+          "scale": "document",
+          "created": "2000/01/01",
+          "last_modified": "2001/01/02",
+          "text": "{\"type\":\"root\",\"children\":[]}",
+          "content_type": "application/vnd.discourse-graph.atjson+json; version=1"
+        }
+      ]
+      """
+    Then a user logged in space s1 should see 2 Content in the database
+    And a user logged in space s1 should see 1 content rows with variant "full" and content type "text/markdown"
+    And a user logged in space s1 should see 1 content rows with variant "full" and content type "application/vnd.discourse-graph.atjson+json; version=1"
