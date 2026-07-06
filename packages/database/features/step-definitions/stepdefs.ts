@@ -308,15 +308,14 @@ Then(
   },
 );
 
+/* eslint-disable max-params -- Cucumber inspects function.length for step arity. */
 Then(
   "a user logged in space {word} should see {int} content rows with variant {string} and content type {string}",
   async (
-    ...[spaceName, expectedCount, variant, contentType]: [
-      string,
-      number,
-      ContentVariant,
-      string,
-    ]
+    spaceName: string,
+    expectedCount: number,
+    variant: ContentVariant,
+    contentType: string,
   ) => {
     const localRefs = (world.localRefs || {}) as LocalRefsType;
     const spaceId = localRefs[spaceName];
@@ -331,6 +330,7 @@ Then(
     assert.equal(response.count, expectedCount);
   },
 );
+/* eslint-enable max-params */
 
 // invoke the upsert_accounts_in_space function, expects json
 Given(
