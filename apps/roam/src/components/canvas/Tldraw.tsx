@@ -37,7 +37,6 @@ import {
   TLAssetId,
   getHashForString,
   TLShapeId,
-  TLShape,
   TLStore,
   TLStoreWithStatus,
   useToasts,
@@ -222,14 +221,13 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     activePageRef = null;
   };
 
-  const handlePointerDown = (e: MouseEvent | PointerEvent): void => {
-    if (e.defaultPrevented || e.button !== 0) return;
+  const markHoveredPageRefDraggable = (e: PointerEvent): void => {
     const source = getPageRefDragSource(e.target);
-    if (!source || source.element.draggable) {
-      return;
-    }
+    if (source?.element === activePageRef) return;
 
     clearActivePageRef();
+    if (!source) return;
+
     activePageRef = source.element;
     source.element.draggable = true;
     source.element.setAttribute(TEMP_DRAG_ATTR, "true");
@@ -237,7 +235,7 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
 
   const handleDragStart = (e: DragEvent): void => {
     const source = getPageRefDragSource(e.target);
-    if (source) {
+    if (source?.element === activePageRef) {
       suppressPageRefClickUntil = Date.now() + PAGE_REF_CLICK_SUPPRESSION_MS;
       if (e.dataTransfer) e.dataTransfer.effectAllowed = "copy";
       e.dataTransfer?.setData(ROAM_PAGE_DROP_MIME_TYPE, source.title);
@@ -257,22 +255,18 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     suppressPageRefClickUntil = 0;
   };
 
-  document.addEventListener("pointerdown", handlePointerDown, true);
-  document.addEventListener("mousedown", handlePointerDown, true);
-  document.addEventListener("pointerup", clearActivePageRef, true);
-  document.addEventListener("mouseup", clearActivePageRef, true);
-  document.addEventListener("pointercancel", clearActivePageRef, true);
+  document.addEventListener("pointerover", markHoveredPageRefDraggable, true);
   document.addEventListener("dragstart", handleDragStart, true);
   document.addEventListener("click", handleClick, true);
   document.addEventListener("dragend", clearActivePageRef, true);
 
   return () => {
     clearActivePageRef();
-    document.removeEventListener("pointerdown", handlePointerDown, true);
-    document.removeEventListener("mousedown", handlePointerDown, true);
-    document.removeEventListener("pointerup", clearActivePageRef, true);
-    document.removeEventListener("mouseup", clearActivePageRef, true);
-    document.removeEventListener("pointercancel", clearActivePageRef, true);
+    document.removeEventListener(
+      "pointerover",
+      markHoveredPageRefDraggable,
+      true,
+    );
     document.removeEventListener("dragstart", handleDragStart, true);
     document.removeEventListener("click", handleClick, true);
     document.removeEventListener("dragend", clearActivePageRef, true);
