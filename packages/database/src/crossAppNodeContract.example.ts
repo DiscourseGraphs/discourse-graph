@@ -1,3 +1,4 @@
+import { contentTypes } from "@repo/content-model";
 import type { CrossAppNode } from "./crossAppNodeContract";
 import { spaceUriAndLocalIdToRid } from "./lib/rid";
 
@@ -26,7 +27,7 @@ export const roamOriginNodeExample: CrossAppNode = {
   },
   content: {
     direct: { value: "Sleep improves memory consolidation" },
-    full: { format: "text/markdown", value: roamFullMarkdown },
+    full: { format: contentTypes.markdown, value: roamFullMarkdown },
   },
   sourceModifiedAt: "2026-06-12T14:00:00.000Z",
 };
@@ -61,7 +62,7 @@ export const obsidianOriginNodeExample: CrossAppNode = {
   },
   content: {
     direct: { value: "EVD - REM sleep and recall" },
-    full: { format: "text/markdown", value: obsidianFullMarkdown },
+    full: { format: contentTypes.markdown, value: obsidianFullMarkdown },
   },
   sourceModifiedAt: "2026-06-14T10:30:00.000Z",
 };

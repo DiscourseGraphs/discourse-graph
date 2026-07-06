@@ -456,6 +456,12 @@ BEGIN
                 IF last_modified(document_inline(local_concept)) IS NULL THEN
                     local_concept.document_inline.last_modified := last_modified(local_concept);
                 END IF;
+                IF content_type(document_inline(local_concept)) IS NULL THEN
+                  local_concept.document_inline.content_type := CASE
+                    WHEN v_platform='Roam' THEN 'text/roam+markdown'
+                    WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
+                    ELSE 'text/plain' END;
+                END IF;
             END IF;
             FOREACH content_inline IN ARRAY contents_inline(local_concept)
             LOOP
@@ -465,6 +471,9 @@ BEGIN
                     content_inline.author_local_id := local_concept.author_local_id;
                 ELSIF author_inline(content_inline) IS NULL AND NOT author_inline(local_concept) IS NULL THEN
                     content_inline.author_inline := local_concept.author_inline;
+                END IF;
+                IF content_type(content_inline) IS NULL THEN
+                    content_inline.content_type := 'text/plain';
                 END IF;
                 IF creator_id(content_inline) IS NULL THEN
                     IF creator_local_id(content_inline) IS NULL AND creator_local_id(local_concept) IS NOT NULL THEN
@@ -478,6 +487,12 @@ BEGIN
                         content_inline.document_local_id := local_concept.document_local_id;
                     ELSIF document_inline(content_inline) IS NULL AND NOT document_inline(local_concept) IS NULL THEN
                         content_inline.document_inline := local_concept.document_inline;
+                    END IF;
+                    IF content_type(document_inline(content_inline)) IS NULL THEN
+                      content_inline.document_inline.content_type := CASE
+                        WHEN v_platform='Roam' THEN 'text/roam+markdown'
+                        WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
+                        ELSE 'text/plain' END;
                     END IF;
                 END IF;
                 IF source_local_id(content_inline) IS NULL AND source_local_id(local_concept) IS NOT NULL THEN

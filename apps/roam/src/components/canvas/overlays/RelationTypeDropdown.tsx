@@ -1,13 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { TLShapeId, useEditor, DefaultColorThemePalette } from "tldraw";
-import { getRelationColor } from "~/components/canvas/DiscourseRelationShape/DiscourseRelationUtil";
-import {
-  checkConnectionType,
-  getAllRelations,
-  isDiscourseNodeShape,
-} from "~/components/canvas/canvasUtils";
-import { isRelationComplete } from "~/utils/isRelationComplete";
-import { getDiscourseNodeTypeId } from "~/components/canvas/DiscourseNodeUtil";
+import { TLShapeId, useEditor } from "tldraw";
+import { getValidRelationTypesBetween } from "./relationCreation";
 
 type RelationTypeDropdownProps = {
   sourceId: TLShapeId;
@@ -27,50 +20,10 @@ export const RelationTypeDropdown = ({
   const editor = useEditor();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Get valid relation types based on source/target node types
-  const validRelationTypes = useMemo(() => {
-    const startNode = editor.getShape(sourceId);
-    const endNode = editor.getShape(targetId);
-    if (!startNode || !endNode) return [];
-
-    // Verify both are discourse nodes
-    if (
-      !isDiscourseNodeShape(editor, startNode) ||
-      !isDiscourseNodeShape(editor, endNode)
-    )
-      return [];
-
-    const startNodeType = getDiscourseNodeTypeId({ shape: startNode });
-    const endNodeType = getDiscourseNodeTypeId({ shape: endNode });
-
-    const colorPalette = DefaultColorThemePalette.lightMode;
-    const validTypes: { id: string; label: string; color: string }[] = [];
-    const allRelations = getAllRelations();
-    const seenLabels = new Set<string>();
-
-    for (const relation of allRelations) {
-      if (!isRelationComplete(relation)) continue;
-      const { isDirect: isForward, isReverse } = checkConnectionType(
-        relation,
-        startNodeType,
-        endNodeType,
-      );
-
-      if (!isForward && !isReverse) continue;
-
-      const label =
-        isReverse && relation.complement ? relation.complement : relation.label;
-
-      if (!seenLabels.has(label)) {
-        seenLabels.add(label);
-        const tldrawColor = getRelationColor(relation.label);
-        const hexColor = colorPalette[tldrawColor]?.solid ?? "#333";
-        validTypes.push({ id: relation.id, label, color: hexColor });
-      }
-    }
-
-    return validTypes;
-  }, [editor, sourceId, targetId]);
+  const validRelationTypes = useMemo(
+    () => getValidRelationTypesBetween(editor, sourceId, targetId),
+    [editor, sourceId, targetId],
+  );
 
   // Handle click outside
   useEffect(() => {

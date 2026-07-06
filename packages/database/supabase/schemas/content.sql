@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS public."Document" (
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     last_modified timestamp without time zone NOT NULL,
     author_id bigint NOT NULL,
-    contents oid
+    contents oid,
+    content_type character varying NOT NULL DEFAULT 'text/plain'
 );
 
 ALTER TABLE ONLY public."Document"
@@ -86,7 +87,8 @@ CREATE TABLE IF NOT EXISTS public."Content" (
     scale public."Scale" NOT NULL,
     space_id bigint,
     last_modified timestamp without time zone NOT NULL,
-    part_of_id bigint
+    part_of_id bigint,
+    content_type character varying NOT NULL DEFAULT 'text/plain'
 );
 
 ALTER TABLE ONLY public."Content"
@@ -238,7 +240,8 @@ SELECT
     metadata,
     last_modified,
     author_id,
-    contents
+    contents,
+    content_type
 FROM
     public."Document"
     LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
@@ -261,7 +264,8 @@ SELECT
     scale,
     space_id,
     last_modified,
-    part_of_id
+    part_of_id,
+    content_type
 FROM public."Content"
     LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (
@@ -301,6 +305,7 @@ CREATE TYPE public.document_local_input AS (
     last_modified timestamp without time zone,
     author_id bigint,
     contents oid,
+    content_type character varying,
     -- local values
     author_local_id character varying,
     space_url character varying,
@@ -326,6 +331,7 @@ CREATE TYPE public.content_local_input AS (
     space_id bigint,
     last_modified timestamp without time zone,
     part_of_id bigint,
+    content_type character varying,
     -- local values
     document_local_id character varying,
     creator_local_id character varying,
@@ -369,6 +375,9 @@ BEGIN
   -- now avoid null defaults
   IF document.metadata IS NULL then
     document.metadata := '{}';
+  END IF;
+  IF document.content_type IS NULL THEN
+    document.content_type = 'text/plain';
   END IF;
   RETURN document;
 END;
@@ -465,7 +474,8 @@ BEGIN
         metadata,
         last_modified,
         author_id,
-        contents
+        contents,
+        content_type
     ) VALUES (
         db_document.space_id,
         db_document.source_local_id,
@@ -474,14 +484,16 @@ BEGIN
         db_document.metadata,
         db_document.last_modified,
         db_document.author_id,
-        db_document.contents
+        db_document.contents,
+        db_document.content_type
     )
     ON CONFLICT (space_id, source_local_id) DO UPDATE SET
         author_id = COALESCE(db_document.author_id, EXCLUDED.author_id),
         created = COALESCE(db_document.created, EXCLUDED.created),
         last_modified = COALESCE(db_document.last_modified, EXCLUDED.last_modified),
         url = COALESCE(db_document.url, EXCLUDED.url),
-        metadata = COALESCE(db_document.metadata, EXCLUDED.metadata)
+        metadata = COALESCE(db_document.metadata, EXCLUDED.metadata),
+        content_type = COALESCE(db_document.content_type, EXCLUDED.content_type)
     RETURNING id INTO STRICT upsert_id;
     RETURN NEXT upsert_id;
   END LOOP;
@@ -561,6 +573,12 @@ BEGIN
       local_content.document_inline.author_id := db_content.author_id;
     END IF;
     IF source_local_id(document_inline(local_content)) IS NOT NULL THEN
+      IF content_type(document_inline(local_content)) IS NULL THEN
+        local_content.document_inline.content_type := CASE
+          WHEN v_platform='Roam' THEN 'text/roam+markdown'
+          WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
+          ELSE 'text/plain' END;
+      END IF;
       db_document := public._local_document_to_db_document(document_inline(local_content));
       IF (db_document.author_id IS NULL AND author_inline(local_content) IS NOT NULL) THEN
         db_document.author_id := upsert_account_in_space(v_space_id, author_inline(local_content));
@@ -573,7 +591,8 @@ BEGIN
         metadata,
         last_modified,
         author_id,
-        contents
+        contents,
+        content_type
       ) VALUES (
         COALESCE(db_document.space_id, v_space_id),
         db_document.source_local_id,
@@ -582,7 +601,8 @@ BEGIN
         COALESCE(db_document.metadata, '{}'::jsonb),
         db_document.last_modified,
         db_document.author_id,
-        db_document.contents
+        db_document.contents,
+        db_document.content_type
       )
       ON CONFLICT (space_id, source_local_id) DO UPDATE SET
           url = COALESCE(db_document.url, EXCLUDED.url),
@@ -590,7 +610,8 @@ BEGIN
           metadata = COALESCE(db_document.metadata, EXCLUDED.metadata),
           last_modified = COALESCE(db_document.last_modified, EXCLUDED.last_modified),
           author_id = COALESCE(db_document.author_id, EXCLUDED.author_id),
-          contents = COALESCE(db_document.contents, EXCLUDED.contents)
+          contents = COALESCE(db_document.contents, EXCLUDED.contents),
+          content_type = COALESCE(db_document.content_type, EXCLUDED.content_type)
       RETURNING id INTO STRICT document_id;
       db_content.document_id := document_id;
     END IF;
@@ -606,7 +627,8 @@ BEGIN
         scale,
         space_id,
         last_modified,
-        part_of_id
+        part_of_id,
+        content_type
     ) VALUES (
         db_content.document_id,
         db_content.source_local_id,
@@ -619,7 +641,8 @@ BEGIN
         db_content.scale,
         db_content.space_id,
         db_content.last_modified,
-        db_content.part_of_id
+        db_content.part_of_id,
+        db_content.content_type
     )
     ON CONFLICT (space_id, source_local_id, variant) DO UPDATE SET
         document_id = COALESCE(db_content.document_id, EXCLUDED.document_id),
@@ -630,7 +653,8 @@ BEGIN
         metadata = COALESCE(db_content.metadata, EXCLUDED.metadata),
         scale = COALESCE(db_content.scale, EXCLUDED.scale),
         last_modified = COALESCE(db_content.last_modified, EXCLUDED.last_modified),
-        part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id)
+        part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id),
+        content_type = COALESCE(db_content.content_type, EXCLUDED.content_type)
     RETURNING id INTO STRICT upsert_id;
     IF model(embedding_inline(local_content)) IS NOT NULL THEN
         PERFORM public.upsert_content_embedding(upsert_id, model(embedding_inline(local_content)),  vector(embedding_inline(local_content)));

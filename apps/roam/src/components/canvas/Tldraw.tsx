@@ -99,6 +99,7 @@ import { CanvasDrawerPanel } from "./CanvasDrawer";
 import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import internalError from "~/utils/internalError";
 import { syncCanvasNodeTitlesOnLoad } from "~/utils/syncCanvasNodeTitlesOnLoad";
+import { registerCanvasSessionStatePersistence } from "~/utils/canvasSessionState";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 import { HistoryEntry } from "@tldraw/store";
 import { TLRecord } from "@tldraw/tlschema";
@@ -118,6 +119,7 @@ import {
   CanvasStoreAdapterArgs,
   useCanvasStoreAdapterArgs,
 } from "./useCanvasStoreAdapterArgs";
+import { shouldCreateAutoCanvasRelations } from "./autoCanvasRelationsSuppression";
 import posthog from "posthog-js";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
@@ -1046,6 +1048,14 @@ const TldrawCanvasShared = ({
             components={editorComponents}
             store={store}
             onMount={(app) => {
+              const unregisterCanvasSessionStatePersistence =
+                registerCanvasSessionStatePersistence({
+                  editor: app,
+                  graphName: window.roamAlphaAPI.graph.name,
+                  userUid: window.roamAlphaAPI.user.uid() || "",
+                  pageUid,
+                });
+
               if (process.env.NODE_ENV !== "production") {
                 if (!window.tldrawApps) window.tldrawApps = {};
                 const { tldrawApps } = window;
@@ -1132,6 +1142,10 @@ const TldrawCanvasShared = ({
                   }
                 }
               });
+
+              return () => {
+                unregisterCanvasSessionStatePersistence();
+              };
             }}
           >
             <ClipboardProvider canvasPageTitle={title}>
@@ -1492,19 +1506,24 @@ const InsideEditorAndUiContext = ({
         );
 
       const removeAfterCreateHandler =
-        editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
-          const util = editor.getShapeUtil(shape);
-          if (util instanceof DiscourseNodeUtil) {
-            const autoCanvasRelations = getPersonalSetting<boolean>([
-              PERSONAL_KEYS.autoCanvasRelations,
-            ]);
-            if (autoCanvasRelations) {
-              void util.createExistingRelations({
-                shape: shape as DiscourseNodeShape,
-              });
+        editor.sideEffects.registerAfterCreateHandler(
+          "shape",
+          (shape, source) => {
+            if (!shouldCreateAutoCanvasRelations({ source })) return;
+
+            const util = editor.getShapeUtil(shape);
+            if (util instanceof DiscourseNodeUtil) {
+              const autoCanvasRelations = getPersonalSetting<boolean>([
+                PERSONAL_KEYS.autoCanvasRelations,
+              ]);
+              if (autoCanvasRelations) {
+                void util.createExistingRelations({
+                  shape: shape as DiscourseNodeShape,
+                });
+              }
             }
-          }
-        });
+          },
+        );
 
       return () => {
         removeBeforeChangeHandler();

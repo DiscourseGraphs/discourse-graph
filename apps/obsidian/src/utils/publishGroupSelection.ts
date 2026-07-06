@@ -1,11 +1,11 @@
 import { Notice, type FrontMatterCache, type TFile } from "obsidian";
-import type DiscourseGraphPlugin from "~/index";
-import { PublishGroupSuggestModal } from "~/components/PublishGroupSuggestModal";
 import {
   getAvailableGroupIds,
   getMyGroups,
   type MyGroup,
-} from "~/utils/importNodes";
+} from "@repo/database/lib/groups";
+import type DiscourseGraphPlugin from "~/index";
+import { PublishGroupSuggestModal } from "~/components/PublishGroupSuggestModal";
 import { getLoggedInClient } from "~/utils/supabaseContext";
 import {
   getPublishedToGroups,
