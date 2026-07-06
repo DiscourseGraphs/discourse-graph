@@ -1,5 +1,5 @@
 ---
-name: dg-roam-load-extension
+name: roam-load-extension
 description: Build and load the local Discourse Graphs apps/roam extension into Roam Research through Roam Depot developer mode using a Playwright test account. Use when verifying local apps/roam changes in a real Roam graph, checking that DG commands/settings load, or capturing proof after loading apps/roam/dist.
 ---
 
@@ -7,18 +7,18 @@ description: Build and load the local Discourse Graphs apps/roam extension into 
 
 Use this skill to build `apps/roam`, load `apps/roam/dist` through Roam Depot developer mode, and verify that the Discourse Graphs extension is active.
 
-It composes with `dg-roam-playwright-session` for account/profile selection.
+It composes with `roam-playwright-session` for account/profile selection.
 
 ## Quick Start
 
 ```sh
-pnpm --filter roam playwright:load-extension -- --slot 1
+pnpm --filter roam playwright:loadExtension -- --slot 1
 ```
 
 Use another slot for isolated work:
 
 ```sh
-pnpm --filter roam playwright:load-extension -- --slot 2
+pnpm --filter roam playwright:loadExtension -- --slot 2
 ```
 
 The script builds `apps/roam` by default, loads `apps/roam/dist`, verifies `window.roamjs.extension.queryBuilder`, and writes proof under `local/roam-playwright/artifacts`.

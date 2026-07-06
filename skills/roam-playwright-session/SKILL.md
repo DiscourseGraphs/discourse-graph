@@ -1,5 +1,5 @@
 ---
-name: dg-roam-playwright-session
+name: roam-playwright-session
 description: Open Roam Research with a Discourse Graphs Playwright test account and persistent profile for apps/roam extension testing. Use when developing or verifying the Discourse Graphs Roam extension, rotating between the three local Playwright Roam accounts, capturing screenshot proof, or inspecting live Roam DOM behavior from this repository.
 ---
 
