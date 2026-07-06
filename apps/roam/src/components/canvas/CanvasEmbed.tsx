@@ -83,7 +83,7 @@ export const renderCanvasEmbed = (
     return;
   }
 
-  const location = getUids(button.closest(".roam-block") as HTMLDivElement);
+  const location = getUids(button.closest<HTMLDivElement>(".roam-block"));
 
   const wrapper = document.createElement("div");
   wrapper.className = "dg-canvas-embed my-2 w-full overflow-hidden rounded-md";
