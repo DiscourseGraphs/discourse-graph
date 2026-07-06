@@ -443,11 +443,11 @@ export const CustomContextMenu = ({
       if (!selectedShape || selectedShape.type !== "arrow") return null;
       const boundNodes = getArrowBoundNodeInfo(editor, selectedShape);
       if (!boundNodes) return null;
-      const relationTypes = getValidRelationTypesBetween(
+      const relationTypes = getValidRelationTypesBetween({
         editor,
-        boundNodes.startId,
-        boundNodes.endId,
-      );
+        startId: boundNodes.startId,
+        endId: boundNodes.endId,
+      });
       if (relationTypes.length === 0) return null;
       return { arrowId: selectedShape.id, ...boundNodes, relationTypes };
     },

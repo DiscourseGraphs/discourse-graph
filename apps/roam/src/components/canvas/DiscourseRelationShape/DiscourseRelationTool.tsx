@@ -17,7 +17,7 @@ import {
 } from "~/components/canvas/DiscourseNodeUtil";
 
 export type AddReferencedNodeType = Record<string, ReferenceFormatType[]>;
-type ReferenceFormatType = {
+export type ReferenceFormatType = {
   format: string;
   sourceName: string;
   sourceType: string;

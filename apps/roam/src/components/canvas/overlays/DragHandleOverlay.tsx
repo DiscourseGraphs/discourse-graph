@@ -1,16 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { TLShapeId, useEditor, useValue } from "tldraw";
-import {
-  DiscourseNodeShape,
-  getDiscourseNodeTypeId,
-} from "~/components/canvas/DiscourseNodeUtil";
-import {
-  hasValidRelationTypes,
-  isDiscourseNodeShape,
-} from "~/components/canvas/canvasUtils";
+import { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
+import { isDiscourseNodeShape } from "~/components/canvas/canvasUtils";
+import type { AddReferencedNodeType } from "~/components/canvas/DiscourseRelationShape/DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import { RelationTypeDropdown } from "./RelationTypeDropdown";
-import { createDefaultRelationBetweenNodes } from "./relationCreation";
+import {
+  createDefaultRelationBetweenNodes,
+  getValidRelationTypesBetween,
+  type RelationTypeOption,
+} from "./relationCreation";
 
 const HANDLE_RADIUS = 5;
 const HANDLE_HIT_AREA = 12;
@@ -63,7 +62,11 @@ const getEdgeMidpoints = (bounds: {
   },
 ];
 
-export const DragHandleOverlay = () => {
+export const DragHandleOverlay = ({
+  allAddReferencedNodeByAction,
+}: {
+  allAddReferencedNodeByAction: AddReferencedNodeType;
+}) => {
   const editor = useEditor();
 
   // Drag state: track the drag line in viewport coords (no tldraw shapes)
@@ -206,15 +209,16 @@ export const DragHandleOverlay = () => {
           return;
         }
 
-        // Validate that relation types exist between these node types
-        const selectedNodeTypeId = getDiscourseNodeTypeId({
-          shape: selectedNode,
+        const validRelationTypes = getValidRelationTypesBetween({
+          editor,
+          startId: selectedNode.id,
+          endId: target.id,
+          allAddReferencedNodeByAction,
         });
-        const targetNodeTypeId = getDiscourseNodeTypeId({ shape: target });
-        if (!hasValidRelationTypes(selectedNodeTypeId, targetNodeTypeId)) {
+        if (!validRelationTypes.length) {
           dispatchToastEvent({
             id: "tldraw-no-valid-relation",
-            title: "No relation types are defined between these node types",
+            title: "No relation options are defined between these node types",
             severity: "warning",
           });
           sourceNodeRef.current = null;
@@ -249,24 +253,25 @@ export const DragHandleOverlay = () => {
         dragCleanupRef.current = null;
       };
     },
-    [selectedNode, editor],
+    [selectedNode, editor, allAddReferencedNodeByAction],
   );
 
   const handleDropdownSelect = useCallback(
-    (relationId: string) => {
+    (option: RelationTypeOption) => {
       if (!pending) return;
 
       void createDefaultRelationBetweenNodes({
         editor,
-        relationId,
+        relationId: option.id,
         sourceId: pending.sourceId,
         targetId: pending.targetId,
+        allAddReferencedNodeByAction,
       });
 
       setPending(null);
       sourceNodeRef.current = null;
     },
-    [editor, pending],
+    [editor, pending, allAddReferencedNodeByAction],
   );
 
   const handleDropdownDismiss = useCallback(() => {
@@ -345,6 +350,7 @@ export const DragHandleOverlay = () => {
           sourceId={pending.sourceId}
           targetId={pending.targetId}
           dropdownPos={pending.dropdownPos}
+          allAddReferencedNodeByAction={allAddReferencedNodeByAction}
           onSelect={handleDropdownSelect}
           onDismiss={handleDropdownDismiss}
         />

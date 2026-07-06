@@ -1,12 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { TLShapeId, useEditor } from "tldraw";
-import { getValidRelationTypesBetween } from "./relationCreation";
+import type { AddReferencedNodeType } from "~/components/canvas/DiscourseRelationShape/DiscourseRelationTool";
+import {
+  getValidRelationTypesBetween,
+  type RelationTypeOption,
+} from "./relationCreation";
 
 type RelationTypeDropdownProps = {
   sourceId: TLShapeId;
   targetId: TLShapeId;
   dropdownPos: { x: number; y: number };
-  onSelect: (relationId: string) => void;
+  allAddReferencedNodeByAction: AddReferencedNodeType;
+  onSelect: (option: RelationTypeOption) => void;
   onDismiss: () => void;
 };
 
@@ -14,6 +19,7 @@ export const RelationTypeDropdown = ({
   sourceId,
   targetId,
   dropdownPos,
+  allAddReferencedNodeByAction,
   onSelect,
   onDismiss,
 }: RelationTypeDropdownProps) => {
@@ -21,8 +27,14 @@ export const RelationTypeDropdown = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const validRelationTypes = useMemo(
-    () => getValidRelationTypesBetween(editor, sourceId, targetId),
-    [editor, sourceId, targetId],
+    () =>
+      getValidRelationTypesBetween({
+        editor,
+        startId: sourceId,
+        endId: targetId,
+        allAddReferencedNodeByAction,
+      }),
+    [editor, sourceId, targetId, allAddReferencedNodeByAction],
   );
 
   // Handle click outside
@@ -58,8 +70,8 @@ export const RelationTypeDropdown = ({
   }, [onDismiss]);
 
   const handleSelect = useCallback(
-    (relationId: string) => {
-      onSelect(relationId);
+    (option: RelationTypeOption) => {
+      onSelect(option);
     },
     [onSelect],
   );
@@ -87,8 +99,8 @@ export const RelationTypeDropdown = ({
         </div>
         {validRelationTypes.map((rt) => (
           <button
-            key={rt.id}
-            onClick={() => handleSelect(rt.id)}
+            key={`${rt.kind}-${rt.id}`}
+            onClick={() => handleSelect(rt)}
             className="flex w-full cursor-pointer items-center gap-2 rounded-md border-none bg-transparent px-3 py-2 text-left text-[13px] text-[#333] hover:bg-[#f0f0f0]"
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.backgroundColor =

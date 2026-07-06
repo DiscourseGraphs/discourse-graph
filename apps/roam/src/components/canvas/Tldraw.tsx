@@ -690,7 +690,11 @@ const TldrawCanvasShared = ({
   const editorComponents: TLEditorComponents = {
     ...defaultEditorComponents,
     OnTheCanvas: ToastListener,
-    InFrontOfTheCanvas: DragHandleOverlay,
+    InFrontOfTheCanvas: () => (
+      <DragHandleOverlay
+        allAddReferencedNodeByAction={allAddReferencedNodeByAction}
+      />
+    ),
   };
   const customUiComponents: TLUiComponents = createUiComponents({
     allNodes,
