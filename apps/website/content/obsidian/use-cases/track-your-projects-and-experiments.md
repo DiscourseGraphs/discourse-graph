@@ -5,6 +5,8 @@ author: ""
 published: true
 ---
 
+> [!tip] This guide makes reference to templates available in an example vault that you can find [here](https://github.com/DiscourseGraphs/obsidian-lab-example)
+
 ## How to use Projects
 
 The **Project** acts as a container for multiple activities exploring a particular research question. You can think of it as a conceptual framework to structure a set of Discourse nodes related to a certain research goal.
@@ -19,7 +21,7 @@ The Project structure facilitates the creation of a traditional research narrati
 
 ### Examples
 
-This vault contains an example project page, `PRJ - Passarine Songbird Cargo Capacity`, that demonstrates a project structure appropriate to experimental research.
+The [discourse graph example vault](https://github.com/DiscourseGraphs/obsidian-lab-example) contains an example project page, `PRJ - Passarine Songbird Cargo Capacity`, that demonstrates a project structure appropriate to experimental research.
 
 ![Project Page](/docs/guides/obsidian/prj-page.png)
 
@@ -49,7 +51,7 @@ Create a new project by
 
 ## The relationship between your Projects and your Discourse Graph
 
-In this example vault, the **Project** is not treated as a discourse node but rather an organizational background for other nodes. You can see how this works in the `Canvas - PRJ - Passarine Songbird Cargo Capacity`: the Project contains 3 **Questions:**
+In the example vault, the **Project** is not treated as a discourse node but rather an organizational background for other nodes. You can see how this works in the `Canvas - PRJ - Passarine Songbird Cargo Capacity`: the Project contains 3 **Questions:**
 
 - the original motivating question: `QUE - Can a 5 ounce bird carry a one-pound coconut?`
 - a question that arose during the course of the initial investigation: `QUE - what is the airspeed velocity of an unladen swallow?`
