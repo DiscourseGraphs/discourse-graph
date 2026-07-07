@@ -5,6 +5,8 @@ author: ""
 published: true
 ---
 
+> [!tip] This guide makes reference to templates available in an example vault that you can find [here](https://github.com/DiscourseGraphs/obsidian-lab-example)
+
 ## Literature Synthesis with discourse graphs
 
 Discourse graphs turn literature synthesis into a **question-directed activity**: instead of merely absorbing disconnected insights from different sources, the discourse graph workflow orients your reading around a central guiding question of your own devising.
@@ -52,7 +54,7 @@ These settings control:
 
 > [!tip] The hovercard is useful when you're creating a lot of Source pages at once but can interfere with other mouse-over operations.
 
-In this vault the hotkey `Ctrl-Shift-Y` opens a search panel that you can use to search for references in your Zotero library.
+In the example vault the hotkey `Ctrl-Shift-Y` opens a search panel that you can use to search for references in your Zotero library.
 
 ![zotsidian search](/docs/guides/obsidian/zot-search.png)
 

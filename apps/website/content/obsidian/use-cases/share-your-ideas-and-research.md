@@ -77,10 +77,10 @@ You can [modify your discourse graph templates](/docs/obsidian/configuration/nod
 ![](/docs/guides/obsidian/graph-argument-evd.png)
 _An example of an Evidence node with methods context_
 
-Discourse nodes are modular and composable and can be re-used in multiple projects. One strategy to maximize composability is to capture "'evergreen" information in the node template and add additional project-specific context in the "log" section.
+Discourse nodes are modular and composable and can be re-used in multiple projects. One strategy to maximize composability is to capture "evergreen" information in the node template and add additional project-specific context in the "log" section.
 
 ![](/docs/guides/obsidian/node-log.png)
-_In this vault CLM, HYP, ISS, EXP, & QUE node templates have a "log" section_
+_In the [Obsidian example vault](https://github.com/DiscourseGraphs/obsidian-lab-example) CLM, HYP, ISS, EXP, & QUE node templates have a "log" section_
 
 ## Exporting your graph
 
