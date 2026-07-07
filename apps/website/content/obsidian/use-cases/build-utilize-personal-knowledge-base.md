@@ -135,7 +135,40 @@ Similarly, plugins like [Zotsidian](https://github.com/Qiwei-Zhao/zotsidian) ena
 After you've captured capture a few ideas, you can mark those that you might want to add to your graph later as [candidate nodes](/docs/obsidian/core-features/node-tags). The _progressive formalization_ ethos of the discourse graph protocol also applies to the process of deciding how to direct your attention: you can have a number of leads on potential projects active at once, and decide which ones to curate further later.
 
 ![bullet journal](/docs/guides/obsidian/bullet-journal.png)
-_Bullet Journal with candidate nodes in a [Daily Notes](https://obsidian.md/help/plugins/daily-notes) page _
+_Bullet Journal with candidate nodes in a [Daily Notes](https://obsidian.md/help/plugins/daily-notes) page_
+
+## Searching & Querying your vault
+
+### Datacore
+
+The discourse graph plugin uses the [Datacore plugin](https://github.com/blacksmithgu/datacore) to power its search & query features. Datacore can read inline fields and text in addition to frontmatter and display them in interactive, live-updating components. The catch is that it requires React/JSX code blocks, a departure from the human-readable " just a text file" ethos that many Obsidian users prefer.
+
+Used judiciously, Datacore is very powerful for searching and creating logs and task lists, and for automatically routing items to your attention. It can also be used to create custom widgets that execute frequently-used scripts, like those in this vault for automatically creating a named Discourse Canvas or aliasing a node title.
+
+![alt text](bases+datacore.png)
+_The template depicted here includes one Base and two Datacore features: an aliasing widget and a log widget_
+
+### Bases
+
+Bases are Obsidian's native database layer. They can be used to filter your notes by frontmatter property. They do not require any code to maintain, but they cannot be used to peer into note content: this limitation makes the design of your notes' frontmatter content especially important.
+
+![alt text](source-base01.png)
+_Source Base_
+
+### Choices, choices
+
+So when should you use Bases vs Datacore? The following table can help you develop a sense for the appropriate tool:
+
+| Task                                                             | Tool     |
+| ---------------------------------------------------------------- | -------- |
+| Kanban active lab Projects by Status                             | Bases    |
+| Source/Evidence intake triage                                    | Bases    |
+| Count EVD per CLM                                                | Bases    |
+| simple self-serve dashboards                                     | Bases    |
+| Modeling Supports/Opposes as reified, queryable relations        | Datacore |
+| Reading Evidence bundles nested as sections in one file          | Datacore |
+| Anything using inline (`::`) fields from a synced/exported vault | Datacore |
+| Custom widgets                                                   | Datacore |
 
 ## What else would you like to do?
 
