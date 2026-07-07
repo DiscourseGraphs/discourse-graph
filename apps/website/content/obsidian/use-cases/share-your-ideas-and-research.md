@@ -61,9 +61,15 @@ _Using canvas layers to organize article sections_
 The Canvas layout can also be used to spot "gaps" in your argument at a glance, before Reviewer #2 rushes in to fill them with part of their œuvre.
 
 ![](/docs/guides/obsidian/gap-spotting.png)
-_Spotting unsupported Claims before Reviewer #2_
+_Spotting unsupported Claims before Reviewer # 2_
 
-The Canvas is also useful for designing figure panels.
+The Canvas is also useful for designing figure panels -- particularly for deciding which figures should be composed into figure panels, and which visual evidence is crucial enough to highlight in the main body of the text vs. the supplementary information.
+
+![figure design](figdesign01.PNG)
+_Experimental setup in one panel for greatest impact ..._
+
+![figure design](figdesign02.PNG)
+_While the data speaks for itself_
 
 ### Arguing with your graph
 
