@@ -18,24 +18,10 @@ const parseAltSize = (alt?: string): { alt: string; width?: number } => {
 };
 
 // ── Node tag pills ──────────────────────────────────────────────────────────
-
-const NODE_TAG_COLORS: Record<string, string> = {
-  que: "#f76707",
-  hyp: "#8ce99a",
-  evd: "#ff8787",
-  res: "#4dabf7",
-  iss: "#e599f7",
-  clm: "#4263eb",
-  src: "#adb5bd",
-};
-
-const getTextColor = (bg: string): string => {
-  const hex = bg.replace("#", "");
-  const r = parseInt(hex.slice(0, 2), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5 ? "#000" : "#fff";
-};
+// Default per-type colors live in nextra-css.css (`.node-tag[data-type="..."]`),
+// which derives background/border/text from a single `--node-tag-color` via
+// color-mix — the same pattern used for callouts below. The `color` prop here
+// is only for one-off overrides that skip the CSS default.
 
 type NodeTagProps = {
   type?: string;
@@ -44,21 +30,11 @@ type NodeTagProps = {
 };
 
 const NodeTag = ({ type, color, children }: NodeTagProps) => {
-  const bg = color ?? (type ? (NODE_TAG_COLORS[type] ?? "#adb5bd") : "#adb5bd");
-  const textColor = getTextColor(bg);
+  const style = color
+    ? ({ "--node-tag-color": color } as React.CSSProperties)
+    : undefined;
   return (
-    <span
-      style={{
-        backgroundColor: bg,
-        color: textColor,
-        padding: "1px 10px",
-        borderRadius: "999px",
-        fontSize: "0.85em",
-        fontWeight: 500,
-        display: "inline-block",
-        whiteSpace: "nowrap",
-      }}
-    >
+    <span className="node-tag" data-type={type} style={style}>
       {children ?? (type ? `#${type}-candidate` : "")}
     </span>
   );

@@ -8,6 +8,44 @@
   border: 1px solid #cbcbcb;
 }
 
+/* Node tags — soft pill: tinted background, colored border/text, matching
+   the candidate-tag styling from the Roam graph's roam/css (screenshots).
+   hyp/clm share green and evd/res share red since the docs treat those pairs
+   as equivalent (Results Graph vs. Discourse Graph dialect). */
+.node-tag {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 0.85em;
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: color-mix(in srgb, var(--node-tag-color, #adb5bd) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--node-tag-color, #adb5bd) 45%, transparent);
+  color: color-mix(in srgb, var(--node-tag-color, #adb5bd) 75%, #000);
+}
+
+.node-tag[data-type="que"] {
+  --node-tag-color: #e8590c;
+}
+.node-tag[data-type="hyp"] {
+  --node-tag-color: #40c057;
+}
+.node-tag[data-type="evd"] {
+  --node-tag-color: #e03131;
+}
+.node-tag[data-type="res"] {
+  --node-tag-color: #e03131;
+}
+.node-tag[data-type="clm"] {
+  --node-tag-color: #40c057;
+}
+.node-tag[data-type="iss"] {
+  --node-tag-color: #ae3ec9;
+}
+.node-tag[data-type="src"] {
+  --node-tag-color: #495057;
+}
+
 /* Callouts */
 .callout {
   border: 1px solid color-mix(in srgb, var(--callout-color) 30%, transparent);

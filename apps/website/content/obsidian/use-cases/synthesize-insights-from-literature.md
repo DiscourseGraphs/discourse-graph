@@ -11,9 +11,9 @@ published: true
 
 Discourse graphs turn literature synthesis into a **question-directed activity**: instead of merely absorbing disconnected insights from different sources, the discourse graph workflow orients your reading around a central guiding question of your own devising.
 
-- <nodeTag type="hyp">#hyp-candidate</nodeTag>
+- <nodetag type="hyp" />
   This purpose-driven reading increases engagement with the text and retention of salient data.
-- <nodeTag type="hyp">#hyp-candidate</nodeTag>
+- <nodetag type="hyp" />
   It also incentivizes reading widely and strategically, as papers from many different authors/fields may have made small but significant contributions to your question.
 
 There's a bit of a chicken-and-egg problem here, as engaging in question-driven analysis of the literature first requires the development of a question, which usually involves at least some loosely-directed exploration. Discourse graphs accommodate both phases of the explore/exploit curve.

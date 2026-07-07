@@ -14,9 +14,9 @@ Ideally the target is a **Hypothesis** you are testing, and the experiment page 
 
 ### A quick word on candidate nodes
 
-**Candidate Results** are preliminary observations attached to a particular experiment. They might be first impressions formed from a certain data artefact. Use this tag to mark candidate results: #res-candidate
+**Candidate Results** are preliminary observations attached to a particular experiment. They might be first impressions formed from a certain data artefact. Use this tag to mark candidate results: <nodetag type="res" />
 
-**Candidate Issues** surface potential problems or future experiments. Use this tag to mark candidate issues: #iss-candidate
+**Candidate Issues** surface potential problems or future experiments. Use this tag to mark candidate issues: <nodetag type="iss" />
 
 When you're more confident in the observation, you can use the "Create Discourse Node" popup to convert the candidate result into a proper Result. This will affect where the Result appears in queries and its appearance on your Project Canvas. It will also give you a warm sense of accomplishment (this can be done to mature all candidate node types).
 
