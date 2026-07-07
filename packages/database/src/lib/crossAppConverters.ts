@@ -55,10 +55,9 @@ const filterUndefined = <T extends Record<string, unknown>>(data: T): T => {
   ) as T;
 };
 
-const crossAppContentToDbContent = (
+const inlineCrossAppContentToDbContent = (
   content: InlineCrossAppContent | undefined,
   variant: Enums<"ContentVariant">,
-  node?: CrossAppNode,
 ): LocalContentDataInput | undefined => {
   if (content === undefined) return undefined;
   return filterUndefined<LocalContentDataInput>({
@@ -66,23 +65,27 @@ const crossAppContentToDbContent = (
     text: content.value,
     scale: content.scale || "document",
     content_type: content.contentType || "text/plain",
-    variant: variant,
-    created: (content.createdAt || node?.createdAt)?.toISOString(),
-    last_modified: (content.modifiedAt || node?.modifiedAt)?.toISOString(),
-    ...decodeRef(
-      content.author || node?.author,
-      "author_id",
-      "author_local_id",
-    ),
+    variant,
+    created: content.createdAt?.toISOString(),
+    last_modified: content.modifiedAt?.toISOString(),
+    ...decodeRef(content.author, "author_id", "author_local_id"),
     embedding_inline: crossAppEmbeddingToDbEmbedding(content.embedding),
   });
 };
 
-export const crossAppInlineContentToDbContent = (
+export const crossAppNodeToDbContent = (
   node: CrossAppNode | undefined,
   variant: "full" | "direct",
 ): LocalContentDataInput | undefined => {
   if (node === undefined) return undefined;
   const content = node.content[variant];
-  return crossAppContentToDbContent(content, variant, node);
+  return inlineCrossAppContentToDbContent(
+    {
+      ...content,
+      createdAt: content.createdAt || node.createdAt,
+      modifiedAt: content.modifiedAt || node.modifiedAt,
+      author: content.author || node.author,
+    },
+    variant,
+  );
 };
