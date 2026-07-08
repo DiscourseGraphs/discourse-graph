@@ -23,6 +23,8 @@ Use this question to determine whether a code change requires a documentation up
 
 If no docs update is needed, inform the dev and stop.
 
+If a docs content request requires new styling, layout, component, theme, route, or CSS behavior that existing Nextra features cannot provide, do not fold that work into the docs content update. Flag it as a separate Linear ticket for adding new Nextra functionality.
+
 ## File path to docs scope mapping
 
 | Changed file path pattern          | Docs scope                | Target docs location                                                                   |

@@ -59,6 +59,10 @@ Sidebar order comes from the nearest `_meta.ts` file in the content tree. If you
 
 Flat legacy redirects, such as `/docs/obsidian/<slug>` to `/docs/obsidian/<section>/<slug>`, are maintained in `apps/website/docsRouteMap.ts`.
 
+Use existing Nextra Markdown, MDX, and `nextra/components` features for styling and layout before proposing anything custom. For example, use Nextra callouts, cards, steps, tabs, tables, and file trees when those fit the content.
+
+If the docs need a styling or presentation feature that Nextra does not currently provide, create a separate Linear ticket to add that Nextra functionality. Do not include theme, layout, route, component, or CSS changes in a content-only docs update.
+
 Detailed guidance for plugin docs lives next to the update-user-docs skill:
 
 - **[llm-authoring-guide.md](./skills/update-user-docs/references/llm-authoring-guide.md)** - a short guide non-devs can give to an LLM before asking it to write or update docs

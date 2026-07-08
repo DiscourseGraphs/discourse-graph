@@ -31,6 +31,22 @@ published: true
 
 Use sentence case for page titles unless the title includes an official product name, plugin name, or UI label.
 
+## Nextra styling and formats
+
+Use existing Nextra Markdown, MDX, and `nextra/components` features before proposing custom styling.
+
+Good first choices include:
+
+- Standard Markdown headings, lists, links, tables, and code fences
+- Nextra `Callout` for warnings, tips, notes, and important context
+- Nextra `Cards` for small sets of high-level navigation options
+- Nextra `Steps` for ordered setup or workflow instructions
+- Nextra `Tabs` for compact platform or mode variants
+- Nextra `Table` and `FileTree` when structured data or file paths need clearer presentation
+
+Do not change docs structural code, theme files, route shells, app layouts, shared components, or CSS as part of adding content.
+If the content needs a styling or presentation feature that existing Nextra features cannot support, stop and flag the author to create a separate Linear ticket for adding that Nextra functionality.
+
 ## Links
 
 - Prefer absolute docs routes for cross-page links, such as `/docs/obsidian/core-features/node-tags`.

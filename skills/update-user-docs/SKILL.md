@@ -19,6 +19,8 @@ If no argument is provided, use the current branch's diff against main, commit m
 - Put Roam docs under `apps/website/content/roam/**`.
 - Do not edit legacy docs route shells or deleted legacy docs paths such as `apps/website/app/(docs)/docs/*/pages`, `docMap.ts`, `navigation.ts`, or `sharedPages`.
 - Do not update runtime code, app routes, or package interfaces unless the dev explicitly asks for that separately.
+- Use existing Nextra Markdown, MDX, and `nextra/components` features before proposing custom styling or layout.
+- Do not add or change theme, layout, route, component, or CSS code while adding documentation content. If existing Nextra features are not enough, flag the author to create a separate Linear ticket for new Nextra functionality.
 
 ## When to Run
 

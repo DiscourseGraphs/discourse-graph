@@ -13,9 +13,13 @@ Use these paths:
 - Sidebar order: nearest _meta.ts file
 - Flat legacy redirects: apps/website/docsRouteMap.ts
 
-Do not edit route shells or legacy docs paths. Do not use app/(docs)/docs/*/pages, docMap.ts, navigation.ts, or sharedPages.
+Use existing Nextra Markdown, MDX, and nextra/components features first for styling and layout, such as Callout, Cards, Steps, Tabs, Table, and FileTree when appropriate.
+
+Do not edit route shells, theme/layout code, shared components, CSS, or legacy docs paths. Do not use app/(docs)/docs/*/pages, docMap.ts, navigation.ts, or sharedPages.
 
 If adding a page, choose the right platform section, create a kebab-case .md or .mdx file, update the nearest _meta.ts, and update docsRouteMap.ts only when a flat /docs/<platform>/<slug> redirect should exist.
+
+If existing Nextra features are not enough for the requested styling, do not implement new styling in the docs change. Ask for a separate Linear ticket to add the needed Nextra functionality.
 
 For screenshots, use real files in apps/website/public/docs/<platform>/ when available. If screenshots are missing, add an HTML TODO comment and list the needed screenshots in your summary. Do not add broken placeholder images.
 
@@ -65,6 +69,7 @@ If the screenshot is not available yet, add a comment like:
 - Docs edits are under `apps/website/content/**`.
 - New pages are registered in the nearest `_meta.ts`.
 - Needed flat redirects are in `apps/website/docsRouteMap.ts`.
+- Styling uses existing Nextra features and does not change structural code.
 - New links resolve to existing routes or files.
 - Screenshot TODOs are comments, not broken images.
 - No positive instructions point to legacy docs paths.
