@@ -19,7 +19,7 @@ Use Project pages to:
 
 The Project structure facilitates the creation of a traditional research narrative and aids in keeping track of all the moving parts that go into a scientific ms.
 
-### Using the different sections of the Project Page
+### the project page
 
 You can see the layout of a Project Page in the **Project/Horizontal Dashboard** showcase in the [roam template lab graph](https://roamresearch.com/#/app/template-lab/page/wnEmTP0TK)
 
@@ -40,17 +40,18 @@ _Project Meeting Notes_ can be used to keep track of project updates and link pr
 
 The _Project Canvas_ Smartblock first creates and then navigates to a [Canvas](https://roamresearch.com/#/app/template-lab/page/tAY-vitwh) for visualizing the components of your project.
 
-## How to create a Project
+### creating a project
 
 Create a new Project by navigating to your home page and pressing the `New Project` Smartblock under "Projects & Experiments."
 
 You'll be prompted to enter a Project Name, the current status of the Project, and the research **Question** the Project is meant to address.
 
 ![](/docs/guides/roam/new-project-modal.png)
+_the "Create Project" modal_
 
 > [!tip] You can create a new project from anywhere in your graph by typing `jj` followed by `createproject` (no spaces!)
 
-## Reviewing recent work done in a Project
+### reviewing recent work done in a project
 
 The **Experiments, Issues, & Results Dashboard** provides a quick overview of experiments-in-progress, potential new experiments, and experimental results.
 
@@ -80,45 +81,53 @@ When you're more confident in an observation, you can use the "Create Discourse 
 You can see the layout and function of an experiment page here:
 
 ![](/docs/guides/roam/experiment-page-dashboard.png)
+_example experiment page_
 
 The experiment page highlights the Hypothesis being investigated and gathers **ToDos**, **Issues**, and **Results** related to the experimental goal in several query blocks. As you add results & candidate results and issues & candidate issues, they will be added to the query blocks on your Experiment page.
 
 An _Experimental Log_, like a lab notebook/Daily Notes page, can be used to organize actions and observations by date.
 
-## How to create an Experiment
+### creating an experiment
 
 You can create an experiment using the `New Experiment` Smartblocks on your Home Page or Project Page.
 
 ![](/docs/guides/roam/project-page-new-experiment-button.png)
+_creating a new experiment from a project page_
 
 ![](/docs/guides/roam/home-page-projects-experiments-dashboard.png)
+_creating a new experiment from our home page_
 
 You can also create a new experiment from anywhere in your graph by typing `jj add experiment page template`, or by typing `jj` and selecting "Create Experiment Page" from the dropdown menu in the modal.
 
 ![](/docs/guides/roam/jj-create-experiment-smartblock.png)
+_creating a new experiment from the smartblock hotkey menu_
 
 You'll be prompted for several attributes relevant to the experiment: experiment type, title, model organism, question addressed, and project. Any fields irrelevant to your experiment can be left blank.
 
 ![](/docs/guides/roam/create-experiment-modal.png)
+_the "create experiment" modal_
 
 > [!tip]- If you're using the template graph, the inputs for Model Organism and Experiment Type can be adjusted on your **🐭 🧪 Lab Housekeeping** page.
 > Editing the lists under "Model organisms/systems" and "Type of Experiment" will change the dropdowns in the "Create Experiment" window.
 
-![](/docs/guides/roam/lab-housekeeping-model-systems-experiment-types.png)
+![modal|250](/docs/guides/roam/lab-housekeeping-model-systems-experiment-types.png)
+_experiment options menu_
 
-### Logging your Observations
+### logging your observations
 
 The **Experimental log** can be used as a complement or replacement for your lab notebook.
 
 In your Experiment page, click "New Entry" to log today's notes. You can alternatively click the calendar icon to insert notes for another date. These notes should be scrapbook-style: messy notes to self, links, screenshots, etc.
 
 ![](/docs/guides/roam/new-entry-button.png)
+_creating a log entry_
 
 > [!tip] The same entry will show up on your **Home page**; you can edit in either place
 
 You can add images by dragging them onto the page, copy/pasting, or typing `/image` to summon the image upload menu.
 
 ![](/docs/guides/roam/add-image-menu.gif)
+_adding images by drag-&-drop and from the image upload menu_
 
 Mark a promising plot or observation as a candidate result by typing `\` to summon the candidate node menu and selecting `res-candidate`. You can use this same menu to note fledgling claims, hypotheses, and issues as well. You can revisit these nodes later for review.
 
