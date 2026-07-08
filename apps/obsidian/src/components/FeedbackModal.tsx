@@ -1,17 +1,23 @@
+import { nextApiRoot } from "@repo/utils/execContext";
 import { App, Modal, Notice, requestUrl, setIcon } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import { StrictMode, useState, useRef, useEffect } from "react";
 import type DiscourseGraphPlugin from "~/index";
 
-const FEEDBACK_ENDPOINT = `${process.env.NEXT_API_ROOT}/feedback`;
+const FEEDBACK_ENDPOINT = `${nextApiRoot()}/feedback`;
 
-type FeedbackType = "feedback" | "bug_report" | "feature_request";
+const FEEDBACK_TYPES = ["feedback", "bugReport", "featureRequest"] as const;
+
+type FeedbackType = (typeof FEEDBACK_TYPES)[number];
 
 const FEEDBACK_TYPE_LABELS: Record<FeedbackType, string> = {
-  bug_report: "Bug report",
-  feature_request: "Feature request",
   feedback: "Feedback",
+  bugReport: "Bug report",
+  featureRequest: "Feature request",
 };
+
+const isFeedbackType = (value: string): value is FeedbackType =>
+  (FEEDBACK_TYPES as readonly string[]).includes(value);
 
 const readFileAsBase64 = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -48,7 +54,7 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
   const [email, setEmail] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [feedbackType, setFeedbackType] = useState<FeedbackType>("bug_report");
+  const [feedbackType, setFeedbackType] = useState<FeedbackType>("bugReport");
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -102,26 +108,28 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
 
     setIsSubmitting(true);
     try {
-      const screenshotBase64 = screenshot
-        ? await readFileAsBase64(screenshot)
-        : undefined;
-
-      const payload = {
+      const payload: {
+        email?: string;
+        title: string;
+        description?: string;
+        type: FeedbackType;
+        screenshot?: { data: string; mimeType: string; name: string };
+        pluginVersion: string;
+      } = {
         email: email.trim() || undefined,
         title: title.trim(),
         description: description.trim() || undefined,
         type: feedbackType,
-        screenshot: screenshotBase64
-          ? {
-              data: screenshotBase64,
-              mimeType: screenshot!.type,
-              name: screenshot!.name,
-            }
-          : undefined,
         pluginVersion: plugin.manifest.version,
       };
 
-      console.log("[FeedbackModal] POST", FEEDBACK_ENDPOINT, payload);
+      if (screenshot) {
+        payload.screenshot = {
+          data: await readFileAsBase64(screenshot),
+          mimeType: screenshot.type,
+          name: screenshot.name,
+        };
+      }
 
       const response = await requestUrl({
         url: FEEDBACK_ENDPOINT,
@@ -129,9 +137,6 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      console.log("[FeedbackModal] response status:", response.status);
-      console.log("[FeedbackModal] response body:", response.json);
 
       if (response.status >= 200 && response.status < 300) {
         new Notice("Feedback submitted — thank you!");
@@ -245,10 +250,14 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
       {/* Feedback type */}
       <select
         value={feedbackType}
-        onChange={(e) => setFeedbackType(e.target.value as FeedbackType)}
+        onChange={(e) => {
+          if (isFeedbackType(e.target.value)) {
+            setFeedbackType(e.target.value);
+          }
+        }}
         className={selectClass}
       >
-        {(Object.keys(FEEDBACK_TYPE_LABELS) as FeedbackType[]).map((type) => (
+        {FEEDBACK_TYPES.map((type) => (
           <option key={type} value={type}>
             {FEEDBACK_TYPE_LABELS[type]}
           </option>

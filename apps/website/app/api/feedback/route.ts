@@ -5,12 +5,12 @@ const LINEAR_API_URL = "https://api.linear.app/graphql";
 const LINEAR_TEAM_ID = "e69757b7-976a-4567-836f-16f8a4d59df2"; // Engineering team
 const LINEAR_TRIAGE_STATE_ID = "b4d95c83-3020-4f2a-9f38-5de042c66f6b"; // Triage status
 
-type FeedbackType = "feedback" | "bug_report" | "feature_request";
+type FeedbackType = "feedback" | "bugReport" | "featureRequest";
 
 const FEEDBACK_TYPE_LABELS: Record<FeedbackType, string> = {
   feedback: "Feedback",
-  bug_report: "Bug report",
-  feature_request: "Feature request",
+  bugReport: "Bug report",
+  featureRequest: "Feature request",
 };
 
 type ScreenshotPayload = {
@@ -203,13 +203,26 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     const description = buildDescription(payload);
     const issue = await createIssue(apiKey, payload.title.trim(), description);
 
+    let screenshotWarning: string | undefined;
     if (payload.screenshot) {
-      await uploadScreenshotToLinear(apiKey, issue.id, payload.screenshot);
+      try {
+        await uploadScreenshotToLinear(apiKey, issue.id, payload.screenshot);
+      } catch (e) {
+        console.error("Screenshot upload failed after issue creation:", e);
+        screenshotWarning = "Issue created but screenshot attachment failed";
+      }
     }
 
     return cors(
       request,
-      NextResponse.json({ success: true, issue }, { status: 201 }),
+      NextResponse.json(
+        {
+          success: true,
+          issue,
+          ...(screenshotWarning && { warning: screenshotWarning }),
+        },
+        { status: 201 },
+      ),
     ) as NextResponse;
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unexpected error";
