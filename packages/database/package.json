@@ -12,7 +12,7 @@
     },
     "./dbTypes": "./src/dbTypes.ts",
     "./inputTypes": "./src/inputTypes.ts",
-    "./crossAppNodeContract": "./src/crossAppNodeContract.ts"
+    "./crossAppContracts": "./src/crossAppContracts.ts"
   },
   "typesVersions": {
     "*": {

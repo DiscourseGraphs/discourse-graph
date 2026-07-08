@@ -1,6 +1,6 @@
 import { contentTypes } from "@repo/content-model";
 import type { TreeNode } from "roamjs-components/types";
-import type { CrossAppNode } from "@repo/database/crossAppNodeContract";
+import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import { buildFullMarkdown } from "./convertRoamNodeToFullContent";
 
 /**
@@ -227,7 +227,8 @@ export const roamClaimFullMarkdownExample: {
   title,
   blocks,
   full: {
-    format: contentTypes.markdown,
+    contentType: contentTypes.markdown,
     value: buildFullMarkdown({ title, blocks }),
+    author: { localId: "someone" },
   },
 };

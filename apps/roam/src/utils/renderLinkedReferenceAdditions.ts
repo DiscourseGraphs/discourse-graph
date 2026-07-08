@@ -20,6 +20,7 @@ export const renderDiscourseContext = ({
       uid,
       id: nanoid(),
     }),
+    { layout: "inline" },
   );
   h1.setAttribute("data-roamjs-top-discourse-context", "true");
 };

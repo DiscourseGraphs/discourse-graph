@@ -61,12 +61,51 @@ details.callout > summary::-webkit-details-marker {
 
 html:not(.dark) .nextra-search-results a {
   color: #1f1f1f !important;
+.nextra-reset,
+.nextra-search-results {
+  --nextra-primary-hue: 212deg;
+  --nextra-primary-saturation: 100%;
+  --nextra-primary-lightness: 45%;
+  --nextra-bg: 250, 250, 250;
+  --x-color-nextra-bg: rgb(var(--nextra-bg));
+  --x-color-primary-100: hsl(
+    var(--nextra-primary-hue) var(--nextra-primary-saturation)
+      calc(var(--nextra-primary-lightness) + 49%)
+  );
+  --x-color-primary-200: hsl(
+    var(--nextra-primary-hue) var(--nextra-primary-saturation)
+      calc(var(--nextra-primary-lightness) + 41%)
+  );
+  --x-color-primary-300: hsl(
+    var(--nextra-primary-hue) var(--nextra-primary-saturation)
+      calc(var(--nextra-primary-lightness) + 32%)
+  );
+  --x-color-primary-400: hsl(
+    var(--nextra-primary-hue) var(--nextra-primary-saturation)
+      calc(var(--nextra-primary-lightness) + 21%)
+  );
+  --x-color-primary-500: hsl(
+    var(--nextra-primary-hue) var(--nextra-primary-saturation)
+      calc(var(--nextra-primary-lightness) + 5%)
+  );
+  --x-color-primary-600: hsl(
+    var(--nextra-primary-hue) var(--nextra-primary-saturation)
+      var(--nextra-primary-lightness)
+  );
+  --x-color-primary-700: hsl(
+    var(--nextra-primary-hue) var(--nextra-primary-saturation)
+      calc(var(--nextra-primary-lightness) - 6%)
+  );
+  --x-color-primary-800: hsl(
+    var(--nextra-primary-hue) var(--nextra-primary-saturation)
+      calc(var(--nextra-primary-lightness) - 13%)
+  );
 }
 
-html:not(.dark) .nextra-search-results a[data-focus] {
-  color: #1f1f1f !important;
-}
-
-html:not(.dark) .nextra-search-results mark {
-  color: #1f1f1f !important;
+.dark .nextra-reset,
+.dark .nextra-search-results {
+  --nextra-primary-hue: 204deg;
+  --nextra-primary-saturation: 100%;
+  --nextra-primary-lightness: 55%;
+  --nextra-bg: 17, 17, 17;
 }
