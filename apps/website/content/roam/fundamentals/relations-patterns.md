@@ -20,7 +20,7 @@ The legacy pattern workflow recognizes a few common writing and outlining struct
 
 Like this:
 
-![](/docs/roam/relation-informs.png)
+![](/docs/guides/roam/relation-informs.png)
 
 The system recognizes that this piece of evidence **informs** the question.
 
@@ -34,7 +34,7 @@ Indent a block underneath the connecting block and reference an evidence page.
 
 Like this:
 
-![](/docs/roam/relation-supports.png)
+![](/docs/guides/roam/relation-supports.png)
 
 The system recognizes that this piece of evidence **supports** that claim.
 
@@ -48,6 +48,6 @@ Indent a block underneath the connecting block and reference an evidence page.
 
 Like this:
 
-![](/docs/roam/relation-opposes.png)
+![](/docs/guides/roam/relation-opposes.png)
 
 The system recognizes that this piece of evidence **opposes** that claim.

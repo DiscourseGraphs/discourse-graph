@@ -9,7 +9,7 @@ You can export your discourse graph as a whole, or from queries of your graph, t
 
 The extension exports to a number of formats, select an export option to see the options available.
 
-![](/docs/roam/command-palette-export.png)
+![](/docs/guides/roam/command-palette-export.png)
 
 Demo:
 
@@ -19,7 +19,7 @@ Demo:
 
 We have a range of options for customizing the markdown export. These can be found on the `Export` tab of the discourse graph configuration.
 
-![](/docs/roam/settings-export.png)
+![](/docs/guides/roam/settings-export.png)
 
 Here is a brief explanation of each option:
 
@@ -45,7 +45,7 @@ Here is a brief explanation of each option:
   - `date: {date}`
 
 - You can add properties as key-value pairs in the same format:
-  - ![](/docs/roam/settings-export-frontmatter.png)
+  - ![](/docs/guides/roam/settings-export-frontmatter.png)
 
 `Resolve block references` and `Resolve block embeds`
 

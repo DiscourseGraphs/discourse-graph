@@ -21,4 +21,4 @@ https://www.loom.com/share/471fcf7dc13246439cb35feedb110470
 
 You can customize the template for specific nodes in the Settings Panel.
 
-![](/docs/roam/node-template.png)
+![](/docs/guides/roam/node-template.png)
