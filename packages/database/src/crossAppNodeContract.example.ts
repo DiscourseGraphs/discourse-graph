@@ -1,7 +1,7 @@
-import type { CrossAppNode } from "./crossAppNodeContract";
-import { spaceUriAndLocalIdToRid } from "./lib/rid";
+import { contentTypes } from "@repo/content-model";
+import type { CrossAppNode } from "./crossAppContracts";
 
-const ROAM_SOURCE_SPACE_ID = "https://roamresearch.com/#/app/MAPLab";
+// const ROAM_SOURCE_SPACE_ID = "https://roamresearch.com/#/app/MAPLab";
 const ROAM_SOURCE_NODE_ID = "tgWb6JozF";
 
 const roamFullMarkdown = `# Sleep improves memory consolidation
@@ -12,26 +12,27 @@ Multiple studies show that sleep after learning strengthens memory traces.
 `;
 
 export const roamOriginNodeExample: CrossAppNode = {
-  sourceApp: "roam",
-  sourceSpaceId: ROAM_SOURCE_SPACE_ID,
-  sourceSpaceName: "MAPLab",
-  sourceNodeId: ROAM_SOURCE_NODE_ID,
-  sourceNodeRid: spaceUriAndLocalIdToRid(
-    ROAM_SOURCE_SPACE_ID,
-    ROAM_SOURCE_NODE_ID,
-  ),
+  localId: ROAM_SOURCE_NODE_ID,
   nodeType: {
-    sourceNodeTypeId: "rCLM0schema",
-    label: "Claim",
+    localId: "rCLM0schema",
   },
   content: {
-    direct: { value: "Sleep improves memory consolidation" },
-    full: { format: "text/markdown", value: roamFullMarkdown },
+    direct: {
+      value: "Sleep improves memory consolidation",
+      author: { localId: "someone" },
+    },
+    full: {
+      contentType: contentTypes.markdown,
+      value: roamFullMarkdown,
+      author: { localId: "someone" },
+    },
   },
-  sourceModifiedAt: "2026-06-12T14:00:00.000Z",
+  createdAt: new Date("2026-06-12T14:00:00.000Z"),
+  modifiedAt: new Date("2026-06-12T15:00:00.000Z"),
+  author: { localId: "maparent" },
 };
 
-const OBSIDIAN_SOURCE_SPACE_ID = "obsidian:9a8b7c6d5e4f3210";
+// const OBSIDIAN_SOURCE_SPACE_ID = "obsidian:9a8b7c6d5e4f3210";
 const OBSIDIAN_SOURCE_NODE_ID = "0192f1a0-7b3c-7e2a-9f10-1a2b3c4d5e6f";
 const OBSIDIAN_SOURCE_NODE_TYPE_ID = "evd-7c1f9a2b";
 
@@ -46,22 +47,22 @@ Participants with more REM sleep showed better next-day recall.
 `;
 
 export const obsidianOriginNodeExample: CrossAppNode = {
-  sourceApp: "obsidian",
-  sourceSpaceId: OBSIDIAN_SOURCE_SPACE_ID,
-  sourceSpaceName: "Research Vault",
-  sourceNodeId: OBSIDIAN_SOURCE_NODE_ID,
-  sourceNodeRid: spaceUriAndLocalIdToRid(
-    OBSIDIAN_SOURCE_SPACE_ID,
-    OBSIDIAN_SOURCE_NODE_ID,
-    "note",
-  ),
+  localId: OBSIDIAN_SOURCE_NODE_ID,
   nodeType: {
-    sourceNodeTypeId: OBSIDIAN_SOURCE_NODE_TYPE_ID,
-    label: "Evidence",
+    localId: OBSIDIAN_SOURCE_NODE_TYPE_ID,
   },
   content: {
-    direct: { value: "EVD - REM sleep and recall" },
-    full: { format: "text/markdown", value: obsidianFullMarkdown },
+    direct: {
+      value: "EVD - REM sleep and recall",
+      author: { localId: "someone" },
+    },
+    full: {
+      contentType: contentTypes.markdown,
+      value: obsidianFullMarkdown,
+      author: { localId: "someone" },
+    },
   },
-  sourceModifiedAt: "2026-06-14T10:30:00.000Z",
+  createdAt: new Date("2026-06-14T10:30:00.000Z"),
+  modifiedAt: new Date("2026-06-14T15:00:00.000Z"),
+  author: { localId: "maparent" },
 };

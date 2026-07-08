@@ -12,7 +12,7 @@
     },
     "./dbTypes": "./src/dbTypes.ts",
     "./inputTypes": "./src/inputTypes.ts",
-    "./crossAppNodeContract": "./src/crossAppNodeContract.ts"
+    "./crossAppContracts": "./src/crossAppContracts.ts"
   },
   "typesVersions": {
     "*": {
@@ -44,6 +44,7 @@
     "deploy:functions": "tsx scripts/deploy.ts -f"
   },
   "dependencies": {
+    "@repo/content-model": "workspace:*",
     "@repo/utils": "workspace:*",
     "@supabase/auth-js": "catalog:",
     "@supabase/functions-js": "catalog:",

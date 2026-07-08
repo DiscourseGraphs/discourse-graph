@@ -1,0 +1,30 @@
+{
+  "name": "@repo/content-model",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./validation": "./src/validation/index.ts",
+    "./text": "./src/text/index.ts",
+    "./constants": "./src/constants/index.ts",
+    "./core": "./src/core/index.ts",
+    "./adapters": "./src/adapters/index.ts",
+    "./render": "./src/render/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check-types": "tsc --noEmit --skipLibCheck",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "5.5.4",
+    "vitest": "catalog:"
+  }
+}
