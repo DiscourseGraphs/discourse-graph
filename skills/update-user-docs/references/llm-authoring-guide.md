@@ -59,9 +59,8 @@ Use screenshots only when the file exists or the dev provides it.
 If the screenshot is not available yet, add a comment like:
 
 ```markdown
-<!-- TODO: Add screenshot of the node type picker in Obsidian. -->
-
-![Screenshot placeholder](/docs/obsidian/example-screenshot.png)
+<!-- TODO: Add screenshot of [describe the UI element or feature] -->
+<!-- ![Screenshot placeholder](/docs/obsidian/example-screenshot.png) -->
 ```
 
 ## Final review checklist

@@ -62,8 +62,7 @@ Use public paths in Markdown:
 
 ```markdown
 <!-- TODO: Add screenshot of [describe the UI element or feature] -->
-
-![Screenshot placeholder](/docs/roam/my-image.png)
+<!-- ![Screenshot placeholder](/docs/roam/my-image.png) -->
 ```
 
 For UI changes or visual features:
@@ -76,7 +75,6 @@ For UI changes or visual features:
 
 - When adding or updating cross-links (e.g., `[text](./other-page)`), verify that the target page exists.
 - If a link target does not exist, flag it to the dev.
--
 
 ## Cross-platform content
 
