@@ -50,11 +50,21 @@ Blog posts are located in `/apps/website/content/blog/`
 
 ### Plugin Documentation
 
+Plugin docs live in the Nextra content tree:
+
+- **Obsidian docs:** `apps/website/content/obsidian/...`
+- **Roam docs:** `apps/website/content/roam/...`
+
+Sidebar order comes from the nearest `_meta.ts` file in the content tree. If you add a page, add the Markdown or MDX file in the right section and update that section's `_meta.ts`.
+
+Flat legacy redirects, such as `/docs/obsidian/<slug>` to `/docs/obsidian/<section>/<slug>`, are maintained in `apps/website/docsRouteMap.ts`.
+
 Detailed guidance for plugin docs lives next to the update-user-docs skill:
 
-- **[navigation-mapping.md](./skills/update-user-docs/references/navigation-mapping.md)** — where files live, `docMap.ts` (shared pages), and `navigation.ts` (every new page)
-- **[doc-conventions.md](./skills/update-user-docs/references/doc-conventions.md)** — filenames, frontmatter, screenshots, and cross-links
-- **[scope-detection.md](./skills/update-user-docs/references/scope-detection.md)** — how changed file paths map to Obsidian vs Roam vs shared docs (useful when unsure where a doc belongs)
+- **[llm-authoring-guide.md](./skills/update-user-docs/references/llm-authoring-guide.md)** - a short guide non-devs can give to an LLM before asking it to write or update docs
+- **[navigation-mapping.md](./skills/update-user-docs/references/navigation-mapping.md)** - how `_meta.ts` controls sidebar registration and when `docsRouteMap.ts` needs a redirect
+- **[doc-conventions.md](./skills/update-user-docs/references/doc-conventions.md)** - filenames, frontmatter, screenshots, and cross-links
+- **[scope-detection.md](./skills/update-user-docs/references/scope-detection.md)** - how changed file paths map to Obsidian, Roam, both-platform, or docs-site updates
 
 ### Documentation Images
 
@@ -74,8 +84,8 @@ When referencing images in your documentation, use relative paths from the publi
 To preview your changes locally:
 
 1. **Environment setup**: Copy `/apps/website/.env.example` to `/apps/website/.env` and configure any necessary environment variables
-2. **Install dependencies**: Run `npm install` from the project root
-3. **Start development server**: Run `npm run dev` or `npx turbo dev` to start the website locally
+2. **Install dependencies**: Run `pnpm install` from the project root
+3. **Start development server**: Run `pnpm dev` or `pnpm exec turbo dev` to start the website locally
 4. **View your changes**: Navigate to `http://localhost:3000` to see your documentation
 
 The website uses Next.js with the App Router, so changes to Markdown files should be reflected automatically during development.
