@@ -61,6 +61,8 @@ details.callout > summary::-webkit-details-marker {
 
 html:not(.dark) .nextra-search-results a {
   color: #1f1f1f !important;
+}
+
 .nextra-reset,
 .nextra-search-results {
   --nextra-primary-hue: 212deg;
