@@ -66,6 +66,11 @@
   color: color-mix(in srgb, var(--callout-color) 60%, #000);
 }
 
+.callout-title-text {
+  flex: 1;
+  min-width: 0;
+}
+
 .callout-fold {
   margin-left: auto;
   transition: transform 0.2s ease;

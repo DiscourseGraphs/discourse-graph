@@ -5,11 +5,13 @@ author: ""
 published: true
 ---
 
+> [!tip] This guide references a [roam example graph](https://roamresearch.com/#/app/template-lab/page/wnEmTP0TK) that you can download and use as a starterpack for creating your own discourse graph
+
 ## How to use Projects
 
 A **Project** acts as a container for multiple experiments exploring a particular research question. You can think of it as a conceptual framework to structure a set of Discourse nodes related to a certain research goal.
 
-Use Project pages to
+Use Project pages to:
 
 - Prioritize experiments
 - Keep relevant resources at hand (links, etc.)
@@ -19,19 +21,19 @@ The Project structure facilitates the creation of a traditional research narrati
 
 ### Examples
 
-You can see the layout of a Project Page in the **Project/Horizontal Dashboard** showcase.
+You can see the layout of a Project Page in the **Project/Horizontal Dashboard** showcase in the [roam template lab graph](https://roamresearch.com/#/app/template-lab/page/wnEmTP0TK)
 
 ![](/docs/guides/roam/project-dash.png)
 
-The **Resources** section can be used to organize protocols, references, datasets, reagent lists, etc. It's also a convenient spot to pre-register your working **Hypothesis**.
+The _Resources_ section can be used to organize protocols, references, datasets, reagent lists, etc. It's also a convenient spot to pre-register your working **Hypothesis**.
 
 ![](/docs/roam/project-page-overview.png)
 
-The **Experiments, Issues, & Results** section can be used to keep track of multiple active experiments and filter by status, observations made from those experiments (Results), and ideas for future experiments (Issues). You can create new experiments using the Smartblock in this section.
+The _Experiments, Issues, & Results_ section can be used to keep track of multiple active experiments and filter by status, observations made from those experiments (**Results**), and ideas for future experiments (**Issues**). You can create new experiments using the Smartblock in this section.
 
-**Project Meeting Notes** can be used to keep track of project updates and link project-relevant information from other parts of your graph. Like your **Daily Notes Page**, it has a Smartblock function for regular entries.
+_Project Meeting Notes_ can be used to keep track of project updates and link project-relevant information from other parts of your graph. Like your _Daily Notes Page_, it has a Smartblock function for regular entries.
 
-The **Project Canvas** Smartblock first creates and then navigates to a [Canvas](https://roamresearch.com/#/app/template-lab/page/tAY-vitwh) for visualizing the components of your project.
+The _Project Canvas_ Smartblock first creates and then navigates to a [Canvas](https://roamresearch.com/#/app/template-lab/page/tAY-vitwh) for visualizing the components of your project.
 
 ## How to create a Project
 
@@ -41,7 +43,7 @@ You'll be prompted to enter a Project Name, the current status of the Project, a
 
 ![](/docs/roam/new-project-modal.png)
 
-💡 _You can create a new project from anywhere in your graph by typing `jj` followed by `createproject` (no spaces!)_
+> [!tip] You can create a new project from anywhere in your graph by typing `jj` followed by `createproject` (no spaces!)
 
 ## Reviewing recent work done in a Project
 
@@ -76,7 +78,7 @@ You can see the layout and function of an experiment page here:
 
 The experiment page highlights the Hypothesis being investigated and gathers **ToDos**, **Issues**, and **Results** related to the experimental goal in several query blocks. As you add results & candidate results and issues & candidate issues, they will be added to the query blocks on your Experiment page.
 
-An **Experimental Log**, like a lab notebook/Daily Notes page, can be used to organize actions and observations by date.
+An _Experimental Log_, like a lab notebook/Daily Notes page, can be used to organize actions and observations by date.
 
 ## How to create an Experiment
 

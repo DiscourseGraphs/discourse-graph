@@ -112,8 +112,10 @@ const Blockquote = ({ children }: React.HTMLAttributes<HTMLElement>) => {
   const titleContent = (
     <>
       <span className="callout-icon">{icon}</span>
-      {titleText}
-      {pChildren.slice(1)}
+      <span className="callout-title-text">
+        {titleText}
+        {pChildren.slice(1)}
+      </span>
       {isFoldable && <span className="callout-fold">▾</span>}
     </>
   );
