@@ -524,9 +524,6 @@ importers:
       '@tailwindcss/typography':
         specifier: ^0.5.15
         version: 0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@22.20.0)(typescript@5.5.4)))
-      '@types/hast':
-        specifier: ^3.0.4
-        version: 3.0.4
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.0
@@ -557,9 +554,6 @@ importers:
       typescript:
         specifier: ^5
         version: 5.5.4
-      unist-util-visit:
-        specifier: ^5.1.0
-        version: 5.1.0
       vitest:
         specifier: 'catalog:'
         version: 4.1.6(@edge-runtime/vm@3.2.0)(@opentelemetry/api@1.9.0)(@types/node@22.20.0)(jsdom@20.0.3)(msw@2.11.1(@types/node@22.20.0)(typescript@5.5.4))(vite@7.3.3(@types/node@22.20.0)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))

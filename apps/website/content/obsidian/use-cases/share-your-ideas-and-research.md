@@ -65,10 +65,10 @@ _Spotting unsupported Claims before Reviewer # 2_
 
 The Canvas is also useful for designing figure panels -- particularly for deciding which figures should be composed into figure panels, and which visual evidence is crucial enough to highlight in the main body of the text vs. the supplementary information.
 
-![figure design](figdesign01.PNG)
+![figure design](/docs/guides/obsidian/figdesign01.png)
 _Experimental setup in one panel for greatest impact ..._
 
-![figure design](figdesign02.PNG)
+![figure design](/docs/guides/obsidian/figdesign02.png)
 _While the data speaks for itself_
 
 ### Arguing with your graph

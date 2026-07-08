@@ -168,19 +168,20 @@ export const useMDXComponents = (
     | React.ComponentType<ImgProps>
     | undefined;
 
-  const DocImage = ({ alt, width, ...props }: ImgProps) => {
+  const docImage = (props: ImgProps): React.ReactElement => {
+    const { alt, width, ...imageProps } = props;
     const { alt: cleanAlt, width: parsedWidth } = parseAltSize(alt);
     const resolvedWidth = parsedWidth ?? width;
     if (BaseImg) {
-      return <BaseImg alt={cleanAlt} width={resolvedWidth} {...props} />;
+      return <BaseImg alt={cleanAlt} width={resolvedWidth} {...imageProps} />;
     }
     // eslint-disable-next-line @next/next/no-img-element
-    return <img alt={cleanAlt} width={resolvedWidth} {...props} />;
+    return <img alt={cleanAlt} width={resolvedWidth} {...imageProps} />;
   };
 
   return {
     ...themeComponents,
-    img: DocImage,
+    img: docImage,
     blockquote: Blockquote,
     nodetag: NodeTag,
     ...components,
