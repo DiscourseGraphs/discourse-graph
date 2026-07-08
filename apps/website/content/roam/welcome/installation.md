@@ -9,6 +9,6 @@ The Discourse Graphs extension available for installation via Roam Depot.
 
 Search for Discourse Graph in Roam Depot
 
-![](/docs/guides/roam/browse-roam-depot.png)
-![](/docs/guides/roam/find-in-roam-depot.png)
-![](/docs/guides/roam/install-instruction-roam-depot.png)
+![](/docs/roam/browse-roam-depot.png)
+![](/docs/roam/find-in-roam-depot.png)
+![](/docs/roam/install-instruction-roam-depot.png)

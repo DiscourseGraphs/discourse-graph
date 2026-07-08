@@ -9,11 +9,11 @@ published: true
 
 To give an intuition for what it is, here is a figure of a visual representation of a simple Discourse Graph for a body of literature on bans and antisocial behavior in online forums. You may recognize similarities to things like argument maps.
 
-![](/docs/guides/roam/argument-map.png)
+![](/docs/roam/argument-map.png)
 
 Consider how that information model foregrounds the conceptual building blocks and relationships that are important for synthesis, compared to a typical "[iTunes for papers](http://joelchan.me/assets/pdf/2019-cscw-beyond-itunes-for-papers.pdf)" model that foregrounds documents in a way that forces us to drudge through [tedious extraction work](https://dl.acm.org/doi/abs/10.1145/3295750.3298937) before we can do the thinking we want to do!
 
-![](/docs/guides/roam/bans-hate-speech.png)
+![](/docs/roam/bans-hate-speech.png)
 
 This information model (theoretically!) has high potential for augmenting individual and collective "research-grade" synthesis (e.g., lit reviews for a dissertation or grant proposal).
 

@@ -14,11 +14,11 @@ The discourse context component adds a "higher-signal" linked references section
 
 ## Group by target node
 
-![](/docs/guides/roam/discourse-context-group-by-target.gif)
+![](/docs/roam/discourse-context-group-by-target.gif)
 
 ## Filter results
 
-![](/docs/guides/roam/discourse-context-filter.gif)
+![](/docs/roam/discourse-context-filter.gif)
 
 ## Demo
 

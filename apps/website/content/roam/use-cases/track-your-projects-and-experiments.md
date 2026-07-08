@@ -19,15 +19,20 @@ Use Project pages to:
 
 The Project structure facilitates the creation of a traditional research narrative and aids in keeping track of all the moving parts that go into a scientific ms.
 
-### Examples
+### Using the different sections of the Project Page
 
 You can see the layout of a Project Page in the **Project/Horizontal Dashboard** showcase in the [roam template lab graph](https://roamresearch.com/#/app/template-lab/page/wnEmTP0TK)
 
+> ![!tip]- to create a horizontal dashboard view of 2 or more blocks:
+> place your cursor in their parent (un-indented) block > press `Ctrl-P` to bring up the command palette > select "change block view" > press "h" for horizontal
+
 ![](/docs/guides/roam/project-dash.png)
+_Example project page layout using the horizontal block view: click to embiggen_
 
 The _Resources_ section can be used to organize protocols, references, datasets, reagent lists, etc. It's also a convenient spot to pre-register your working **Hypothesis**.
 
 ![](/docs/guides/roam/project-page-overview.png)
+_click to embiggen_
 
 The _Experiments, Issues, & Results_ section can be used to keep track of multiple active experiments and filter by status, observations made from those experiments (**Results**), and ideas for future experiments (**Issues**). You can create new experiments using the Smartblock in this section.
 
@@ -70,7 +75,7 @@ Making an experiment page helps you track multiple days' work and stay oriented 
 
 When you're more confident in an observation, you can use the "Create Discourse Node" popup to convert the candidate into a proper node. This will affect where it appears in queries and its appearance on your Project Canvas — and it will give you a warm sense of accomplishment. This works for all candidate node types.
 
-### Example Experiments
+### experiment page layout
 
 You can see the layout and function of an experiment page here:
 

@@ -16,7 +16,7 @@ You can define discourse attributes that for each discourse node, which compute 
 
 These attributes can be handy for sorting/querying nodes. For instance, if you create a discourse attribute for Claim nodes that is a function of the number of Evidence nodes that Support the Claim, like this:
 
-![](/docs/guides/roam/settings-discourse-attributes.png)
+![](/docs/roam/settings-discourse-attributes.png)
 
 You can add discourse attributes as a column to display and sort/filter by when [Querying your discourse graph](/docs/roam/guides/querying-discourse-graph) by adding a `discourse:{label}` selection.
 
