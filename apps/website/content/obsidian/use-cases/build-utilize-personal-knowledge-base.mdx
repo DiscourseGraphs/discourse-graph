@@ -6,6 +6,7 @@ published: true
 ---
 
 import Image from "next/image";
+import { Callout } from "nextra/components";
 
 ## Turn your tsundoku pile into a knowledge base with discourse graphs
 
@@ -68,7 +69,10 @@ As you build out your graph, your discourse nodes will begin to form "paths of d
   className="docs-bordered-image"
 />
 
-> [!tip] Graph Gardening: Add a random note picker to your vault to get in the habit of reviewing older notes for potential conversion to discourse nodes.
+<Callout type="info" emoji="💡">
+  **Graph Gardening:** Add a random note picker to your vault to get in the
+  habit of reviewing older notes for potential conversion to discourse nodes.
+</Callout>
 
 ### Managing a large vault
 
@@ -204,10 +208,7 @@ This habit of intentional reading is a great way to nudge yourself toward [contr
 If you're using a highlighter like [memex](memex.garden) or the [Obsidian web clipper](https://obsidian.md/clipper), you can
 
 1. highlight the relevant text
-2. import it into your vault via the tool's import feature or copy-past
-
-   e
-
+2. bring it into your vault via the tool's import feature or copy-paste
 3. Select `Convert into` from the file window menu to turn it into a discourse node
 
 <Image
