@@ -26,11 +26,11 @@ You can create a new experiment by
 
 1. Creating a new note and applying the Experiment Template from the Templater menu in the left sidebar
 
-![templater flow](/docs/guides/obsidian/create-exp01.png)
+![templater flow](/docs/obsidian/create-exp01.png)
 
 2. Navigating to your "Experiments" base in the "Bases" folder and selecting "+ New"
 
-![bases flow](/docs/guides/obsidian/create-exp02.png)
+![bases flow](/docs/obsidian/create-exp02.png)
 
 3. Using any of the methods to create nodes (Remember, an Experiment is a type of **Source**)
 
@@ -42,13 +42,13 @@ Conversely, each Result in your graph should reference an Experiment.
 
 The Experiment also has a relationship with the **Issue** node, as Experiments _suggest/produce_ **Issues** that may later be developed into Experiments.
 
-![iss-exp relations](/docs/guides/obsidian/iss-exp.png)
+![iss-exp relations](/docs/obsidian/iss-exp.png)
 
 ## Transforming an Issue into an Experiment
 
 If you decide an Issue captures something worth doing, you can easily change it into an Experiment: the **Issue** template is identical to the **Experiment** template, so you can either duplicate the node and change the name and metadata to use your preferred EXP syntax (e.g. "@measurement -") or simply edit the title of the Issue in place.
 
-![issue example](/docs/guides/obsidian/iss-ex.png)
+![issue example](/docs/obsidian/iss-ex.png)
 
 ## What else would you like to do?
 
