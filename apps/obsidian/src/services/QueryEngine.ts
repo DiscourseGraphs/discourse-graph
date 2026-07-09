@@ -287,7 +287,7 @@ export class QueryEngine {
                 matchedNodeType,
                 alternativePattern: pattern.alternativePattern,
                 extractedContent,
-                selected: true,
+                selected: false,
               });
             }
             break; // Stop checking other patterns for this file
@@ -374,7 +374,7 @@ export class QueryEngine {
           if (opts?.excludeImported) {
             const fm = this.app.metadataCache.getFileCache(file)
               ?.frontmatter as Record<string, unknown> | undefined;
-            if (fm?.importedFromRid || fm?.importedFromSpaceUri) continue;
+            if (fm?.importedFromRid) continue;
           }
           files.push(file);
         }
@@ -528,13 +528,14 @@ export class QueryEngine {
     const files: TFile[] = [];
     const allFiles = this.app.vault.getMarkdownFiles();
     for (const f of allFiles) {
-      const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
-      const nodeTypeId = (fm as Record<string, unknown> | undefined)
-        ?.nodeTypeId;
+      const fm = this.app.metadataCache.getFileCache(f)?.frontmatter as
+        | Record<string, unknown>
+        | undefined;
+      const nodeTypeId = fm?.nodeTypeId;
       if (!nodeTypeId) continue;
       if (
         opts?.excludeImported &&
-        (fm as Record<string, unknown>)?.importedFromRid
+        (fm?.importedFromRid || fm?.importedFromSpaceUri)
       ) {
         continue;
       }
@@ -590,7 +591,7 @@ export class QueryEngine {
             matchedNodeType,
             alternativePattern: pattern.alternativePattern,
             extractedContent,
-            selected: true,
+            selected: false,
           });
           break;
         }
