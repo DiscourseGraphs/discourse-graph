@@ -5,6 +5,8 @@ Use this guide when asking an LLM to write or update Discourse Graphs docs.
 ## Copy/paste prompt
 
 ```text
+Preferred: Use the $update-user-docs skill to update plugin docs.  If you cannot use the skill, follow these instructions:
+
 Write or update Discourse Graphs user docs in the live Nextra content tree only.
 
 Use these paths:

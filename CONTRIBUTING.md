@@ -12,7 +12,7 @@ If you’re uncertain about the value of your proposed change, don’t hesitate 
 
 Here’s how to contribute:
 
-1. [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and [clone](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) the repository.
+1. [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) or [clone](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) the repository.
 2. [Create a new branch](https://docs.github.com/en/desktop/contributing-and-collaborating-using-github-desktop/managing-branches) for your updates.
 3. Implement your changes, making sure your code:
    - Is formatted with [Prettier](https://prettier.io)
@@ -63,7 +63,7 @@ Use existing Nextra Markdown, MDX, and `nextra/components` features for styling 
 
 If the docs need a styling or presentation feature that Nextra does not currently provide, create a separate Linear ticket to add that Nextra functionality. Do not include theme, layout, route, component, or CSS changes in a content-only docs update.
 
-Detailed guidance for plugin docs lives next to the update-user-docs skill:
+Preferred: Use the `$update-user-docs` skill to update plugin docs. Detailed guidance for plugin docs lives next to the `$update-user-docs` skill:
 
 - **[llm-authoring-guide.md](./skills/update-user-docs/references/llm-authoring-guide.md)** - a short guide non-devs can give to an LLM before asking it to write or update docs
 - **[navigation-mapping.md](./skills/update-user-docs/references/navigation-mapping.md)** - how `_meta.ts` controls sidebar registration and when `docsRouteMap.ts` needs a redirect
@@ -89,7 +89,7 @@ To preview your changes locally:
 
 1. **Environment setup**: Copy `/apps/website/.env.example` to `/apps/website/.env` and configure any necessary environment variables
 2. **Install dependencies**: Run `pnpm install` from the project root
-3. **Start development server**: Run `pnpm dev` or `pnpm exec turbo dev` to start the website locally
+3. **Start development server**: Run `pnpm exec turbo dev -F website` or navigate to `apps/website` and run `pnpm dev` to start the website locally
 4. **View your changes**: Navigate to `http://localhost:3000` to see your documentation
 
 The website uses Next.js with the App Router, so changes to Markdown files should be reflected automatically during development.
