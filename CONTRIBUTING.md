@@ -61,6 +61,8 @@ Flat legacy redirects, such as `/docs/obsidian/<slug>` to `/docs/obsidian/<secti
 
 Use existing Nextra Markdown, MDX, and `nextra/components` features for styling and layout before proposing anything custom. For example, use Nextra callouts, cards, steps, tabs, tables, and file trees when those fit the content.
 
+For discourse candidate tag pills, use the existing global MDX component: `<NodeTag type="clm" />`, `<NodeTag type="evd" />`, or `<NodeTag type="que" />`. Allowed `type` values are `que`, `clm`, `evd`, `src`, `hyp`, `res`, and `iss`. Use a `.mdx` file when a page needs `NodeTag`, and do not add one-off tag styling or CSS.
+
 If the docs need a styling or presentation feature that Nextra does not currently provide, create a separate Linear ticket to add that Nextra functionality. Do not include theme, layout, route, component, or CSS changes in a content-only docs update.
 
 Preferred: Use the `$update-user-docs` skill to update plugin docs. Detailed guidance for plugin docs lives next to the `$update-user-docs` skill:
