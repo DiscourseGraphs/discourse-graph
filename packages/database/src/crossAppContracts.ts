@@ -82,6 +82,6 @@ export type CrossAppNode = CrossAppBase & {
   nodeType: Ref;
   content: {
     direct: InlineCrossAppContent;
-    full: InlineCrossAppTypedContent;
+    full?: InlineCrossAppTypedContent;
   };
 };
