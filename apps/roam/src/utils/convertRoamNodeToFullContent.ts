@@ -3,8 +3,10 @@ import { type DiscourseNode } from "./getDiscourseNodes";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import type { TreeNode, ViewType } from "roamjs-components/types";
-import type { LocalContentDataInput } from "@repo/database/inputTypes";
 import { contentTypes } from "@repo/content-model";
+import type { CrossAppNode } from "@repo/database/crossAppContracts";
+import { crossAppNodeToDbContent } from "@repo/database/lib/crossAppConverters";
+import type { LocalContentDataInput } from "@repo/database/inputTypes";
 
 export type RoamFullContentNode = {
   author_local_id: string;
@@ -12,6 +14,7 @@ export type RoamFullContentNode = {
   created: string | number;
   last_modified: string | number;
   text: string;
+  node_type_id: string;
   node_title?: string;
 };
 
@@ -54,20 +57,27 @@ export const convertRoamNodeToFullContent = ({
       const title = node.node_title ?? node.text;
       const blocks = getFullTreeByParentUid(node.source_local_id).children;
       const viewType = getPageViewType(title) || "bullet";
-      return [
-        {
-          author_local_id: node.author_local_id,
-          source_local_id: node.source_local_id,
-          created: new Date(node.created || Date.now()).toISOString(),
-          last_modified: new Date(
-            node.last_modified || Date.now(),
-          ).toISOString(),
-          text: buildFullMarkdown({ title, blocks, viewType }),
-          variant: "full",
-          content_type: contentTypes.roamMarkdown,
-          scale: "document",
+      const crossAppNode: CrossAppNode = {
+        author: { localId: node.author_local_id },
+        localId: node.source_local_id,
+        createdAt: new Date(node.created || Date.now()),
+        modifiedAt: new Date(node.last_modified || Date.now()),
+        nodeType: { localId: node.node_type_id },
+        content: {
+          direct: {
+            localId: node.source_local_id,
+            value: title,
+          },
+          full: {
+            localId: node.source_local_id,
+            value: buildFullMarkdown({ title, blocks, viewType }),
+            contentType: contentTypes.roamMarkdown,
+            scale: "document",
+          },
         },
-      ];
+      };
+      const fullContent = crossAppNodeToDbContent(crossAppNode, "full");
+      return fullContent === undefined ? [] : [fullContent];
     } catch (error) {
       console.error(
         `convertRoamNodeToFullContent: failed to build full markdown for ${node.source_local_id}:`,

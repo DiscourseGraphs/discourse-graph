@@ -854,19 +854,20 @@ const getSharedNodeInstanceSourceLocalIds = async ({
       .select("source_local_id")
       .eq("space_id", spaceId)
       .eq("is_schema", false)
+      .eq("arity", 0)
       .order("source_local_id"),
     1000,
   );
 
   if (!Array.isArray(syncedInstanceConcepts)) throw syncedInstanceConcepts;
 
-  return new Set(
+  const syncedInstanceSourceLocalIds = new Set(
     syncedInstanceConcepts
       .map((concept) => concept.source_local_id)
-      .filter(
-        (id): id is string => id !== null && sharedSourceLocalIds.has(id),
-      ),
+      .filter((id): id is string => id !== null),
   );
+
+  return intersection(syncedInstanceSourceLocalIds, sharedSourceLocalIds);
 };
 
 const getSharedSourceLocalIdsMissingFullContent = async ({
@@ -976,6 +977,7 @@ const getSharedRoamNodesWithFullContentUpdatesSince = async ({
           created: row.created,
           last_modified: Math.max(row.node_edit_time, row.page_edit_time),
           text: row.text,
+          node_type_id: matchingNodeType.type,
         },
         nodeTypeId: matchingNodeType.type,
       },

@@ -1,13 +1,7 @@
 import type { TreeNode } from "roamjs-components/types";
-import type { CrossAppNode } from "@repo/database/crossAppNodeContract";
+import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import { buildFullMarkdown } from "./convertRoamNodeToFullContent";
 import { contentTypes } from "@repo/content-model";
-
-/**
- * Compact example of a Roam page tree rendered as shared `full` markdown
- * content. Typechecking this file keeps the example aligned with the cross-app
- * content contract.
- */
 
 const block = (text: string, children: TreeNode[] = []): TreeNode => ({
   text,
@@ -41,7 +35,7 @@ export const roamClaimFullMarkdownSimpleExample: {
   title,
   blocks,
   full: {
-    format: contentTypes.markdown,
+    contentType: contentTypes.markdown,
     value: buildFullMarkdown({ title, blocks }),
   },
 };
