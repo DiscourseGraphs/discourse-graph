@@ -2,20 +2,6 @@ import React from "react";
 import { useMDXComponents as getThemeComponents } from "nextra-theme-docs";
 
 type MdxComponentMap = Record<string, unknown>;
-type ImgProps = React.ImgHTMLAttributes<HTMLImageElement>;
-
-// ── Image sizing ────────────────────────────────────────────────────────────
-
-const parseAltSize = (alt?: string): { alt: string; width?: number } => {
-  if (!alt) return { alt: "" };
-  const match = alt.match(/^(.*?)\s*\|\s*(\d+)\s*$/);
-  if (match)
-    return {
-      alt: match[1]?.trim() ?? "",
-      width: parseInt(match[2] ?? "0", 10),
-    };
-  return { alt };
-};
 
 // ── Node tag pills ──────────────────────────────────────────────────────────
 
@@ -164,24 +150,9 @@ export const useMDXComponents = (
   components: MdxComponentMap = {},
 ): MdxComponentMap => {
   const themeComponents = getThemeComponents();
-  const BaseImg = themeComponents.img as
-    | React.ComponentType<ImgProps>
-    | undefined;
-
-  const docImage = (props: ImgProps): React.ReactElement => {
-    const { alt, width, ...imageProps } = props;
-    const { alt: cleanAlt, width: parsedWidth } = parseAltSize(alt);
-    const resolvedWidth = parsedWidth ?? width;
-    if (BaseImg) {
-      return <BaseImg alt={cleanAlt} width={resolvedWidth} {...imageProps} />;
-    }
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img alt={cleanAlt} width={resolvedWidth} {...imageProps} />;
-  };
 
   return {
     ...themeComponents,
-    img: docImage,
     blockquote: Blockquote,
     nodetag: NodeTag,
     ...components,

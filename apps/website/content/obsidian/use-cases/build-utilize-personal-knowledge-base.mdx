@@ -5,9 +5,18 @@ author: ""
 published: true
 ---
 
+import Image from "next/image";
+
 ## Turn your tsundoku pile into a knowledge base with discourse graphs
 
-![tsundoku pile](/docs/obsidian/tsundoku.png)
+<Image
+  src="/docs/obsidian/tsundoku.png"
+  alt="tsundoku pile"
+  width={195}
+  height={302}
+  className="docs-bordered-image"
+/>
+
 _Candidate for saddest short poem_
 
 Many researchers have established pipeline for accumulating potentially useful evidence and insights, but fewer ways of managing and exploiting these resources.
@@ -24,7 +33,13 @@ For Obsidian (& Roam), the answer is **yes**. Your discourse nodes can coexist w
 
 If you are a **"folder-centric"** Obsidian user, we recommend keeping your discourse graph an folder within your vault.
 
-![left sidebar](/docs/obsidian/left-sidebar.png)
+<Image
+  src="/docs/obsidian/left-sidebar.png"
+  alt="left sidebar"
+  width={330}
+  height={403}
+  className="docs-bordered-image"
+/>
 
 The Discourse Graph plugin lets you configure a default folder (or per-node-type folders) for discourse nodes in its settings, independent of Obsidian's own "Default location for new notes" setting.
 
@@ -45,7 +60,13 @@ If you're a **"graph-centric"** vault user, following Obsidian wiki-linking and 
 
 As you build out your graph, your discourse nodes will begin to form "paths of desire" around the central Questions in your vault.
 
-![graph view](/docs/obsidian/graph-view02.png)
+<Image
+  src="/docs/obsidian/graph-view02.png"
+  alt="graph view"
+  width={971}
+  height={924}
+  className="docs-bordered-image"
+/>
 
 > [!tip] Graph Gardening: Add a random note picker to your vault to get in the habit of reviewing older notes for potential conversion to discourse nodes.
 
@@ -66,10 +87,24 @@ You can transform a variety of file types into discourse nodes:
 
 As long as it can be referenced (`[filename]`) in a markdown file with the appropriate frontmatter, it can be part of your discourse graph.
 
-![Obsidian web clipper](/docs/obsidian/clipping01.png)
+<Image
+  src="/docs/obsidian/clipping01.png"
+  alt="Obsidian web clipper"
+  width={853}
+  height={713}
+  className="docs-bordered-image"
+/>
+
 _This web clipping has been converted into a Source_
 
-![image to CLM](/docs/obsidian/img-clm02.png)
+<Image
+  src="/docs/obsidian/img-clm02.png"
+  alt="image to CLM"
+  width={773}
+  height={864}
+  className="docs-bordered-image"
+/>
+
 _This web screenshot has been converted into a Claim_
 
 ### Best practices for node conversion
@@ -78,21 +113,43 @@ The goal of transforming a **note** into a dg **node** is to preserve as much co
 
 First, paraphrase the key insight of the note and record the source of the insight. This paraphrase is your new discourse node/filename. The rest of the note will become a **Source** node where the remaining note text can be retained as additional context for the insight. You might extract several discourse nodes or [candidate nodes](/docs/obsidian/core-features/node-tags) from a single web-clipped article, but breaking it out into a single DG node + SRC is enough to get started.
 
-![claim](/docs/obsidian/clm-clip02.png)
+<Image
+  src="/docs/obsidian/clm-clip02.png"
+  alt="claim"
+  width={744}
+  height={832}
+  className="docs-bordered-image"
+/>
+
 _CLM node with SRC node attributing a blog_
 
 In the above image, you can see the a second related Claim and its Source has already been extracted from the same web clipping. If you decide to pursue this topic further, you've already identified another Source node to investigate (Klein _et al._)
 
 Adding `[[wiki-links]]` to key terms will keep your new node in conversation with the rest of your vault as you build your graph. This can help you to find appropriate [discourse relations](/docs/obsidian/core-features/creating-discourse-relationships) later.
 
-![source](/docs/obsidian/src-node-clip.png)
+<Image
+  src="/docs/obsidian/src-node-clip.png"
+  alt="source"
+  width={517}
+  height={759}
+  className="docs-bordered-image"
+/>
+
 _This SRC node from a web clipping is linked to the rest of the vault_
 
 As you go through your vault, you might find that certain sources are accumulating multiple mentions in your graph. Identifying especially productive sources can help you to decide how to allocate your attention.
 
 Of course you may be the author of many of the original notes in your vault -- in that case, we suggest retaining the relevant contextual information on the QUE/CLM/EVD node itself -- but remember to create a Source node for yourself!
 
-![self-cite | 350](/docs/obsidian/drmanhattan.png)
+<Image
+  src="/docs/obsidian/drmanhattan.png"
+  alt="self-cite"
+  width={640}
+  height={801}
+  className="docs-bordered-image"
+  sizes="350px"
+  style={{ width: 350 }}
+/>
 
 ### Progressive formalization
 
@@ -100,42 +157,98 @@ The goal is to gradually convert most of your existing notes into a graph of int
 
 You can jumpstart the process by identifying [candidate nodes](/docs/obsidian/core-features/node-tags) in your existing notes, and revisiting these notes to decide which nodes should be promoted to full-fledged discourse nodes. The trigger for such a promotion is identifying their relevance to one of your research questions, or finding a potential [discourse relation](/docs/obsidian/core-features/creating-discourse-relationships) elsewhere in your graph.
 
-![the graph](/docs/obsidian/graph-view01.png)
+<Image
+  src="/docs/obsidian/graph-view01.png"
+  alt="the graph"
+  width={786}
+  height={795}
+  className="docs-bordered-image"
+/>
+
 _So much room for activities!_
 
 ## Creating new discourse nodes
 
 Build out your discourse graph by reading with an eye to capturing information relevant to your current questions or that inspires new questions.
 
-![web clipping](/docs/obsidian/new-node01.png)
+<Image
+  src="/docs/obsidian/new-node01.png"
+  alt="web clipping"
+  width={498}
+  height={668}
+  className="docs-bordered-image"
+/>
+
 _Here's a [web clipping](https://obsidian.md/clipper) captured with an eye to turning it into a CLM node - the Obsidian web clipper helpfully captures the source in the frontmatter_
 
-![claim node](/docs/obsidian/new-node02.png)
+<Image
+  src="/docs/obsidian/new-node02.png"
+  alt="claim node"
+  width={544}
+  height={772}
+  className="docs-bordered-image"
+/>
+
 _... and here's the CLM node. Note that it's linked to 3 sources: one named after the article url where the full text is captured, one to the author, & one to the author's institution -- this reflects the organizational preferences of the vault owner; a single SRC node can contain all this information_
 
 This habit of intentional reading is a great way to nudge yourself toward [contributing to the public conversation](/docs/obsidian/use-cases/share-your-ideas-and-research).
 
-![you should start a blog](/docs/obsidian/cat-meme.png)
+<Image
+  src="/docs/obsidian/cat-meme.png"
+  alt="you should start a blog"
+  width={454}
+  height={327}
+  className="docs-bordered-image"
+/>
 
 If you're using a highlighter like [memex](memex.garden) or the [Obsidian web clipper](https://obsidian.md/clipper), you can
 
 1. highlight the relevant text
-2. import it into your vault via the tool's import feature or copy-paste
+2. import it into your vault via the tool's import feature or copy-past
+
+   e
+
 3. Select `Convert into` from the file window menu to turn it into a discourse node
 
-![convert menu](/docs/obsidian/convert-menu.png)
+<Image
+  src="/docs/obsidian/convert-menu.png"
+  alt="convert menu"
+  width={1016}
+  height={843}
+  className="docs-bordered-image"
+/>
 
-![memex highlight](/docs/obsidian/memex-res.png)
+<Image
+  src="/docs/obsidian/memex-res.png"
+  alt="memex highlight"
+  width={771}
+  height={413}
+  className="docs-bordered-image"
+/>
+
 _Result node spotted in the wild_
 
 Similarly, plugins like [Zotsidian](https://github.com/Qiwei-Zhao/zotsidian) enable you to import items from your reference manager pre-formatted as Sources.
 
-![readymade Source](/docs/obsidian/zot-import.png)
+<Image
+  src="/docs/obsidian/zot-import.png"
+  alt="readymade Source"
+  width={776}
+  height={889}
+  className="docs-bordered-image"
+/>
 
 After you've captured capture a few ideas, you can mark those that you might want to add to your graph later as [candidate nodes](/docs/obsidian/core-features/node-tags). The _progressive formalization_ ethos of the discourse graph protocol also applies to the process of deciding how to direct your attention: you can have a number of leads on potential projects active at once, and decide which ones to curate further later.
 
-![bullet journal](/docs/obsidian/bullet-journal.png)
-_Bullet Journal with candidate nodes in a [Daily Notes](https://obsidian.md/help/plugins/daily-notes) page _
+<Image
+  src="/docs/obsidian/bullet-journal.png"
+  alt="bullet journal"
+  width={763}
+  height={384}
+  className="docs-bordered-image"
+/>
+
+_Bullet Journal with candidate nodes in a [Daily Notes](https://obsidian.md/help/plugins/daily-notes) page_
 
 ## What else would you like to do?
 
