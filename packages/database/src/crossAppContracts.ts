@@ -40,13 +40,19 @@ export type CrossAppRelationTypeSchema = CrossAppSchemaBase & {
 };
 
 // A relation triple schema
-export type CrossAppRelationTripleSchema = CrossAppSchemaBase & {
-  label: string;
-  complement: string;
-  relation?: Ref | CrossAppRelationTypeSchema;
-  sourceType: Ref;
-  destinationType: Ref;
-};
+export type CrossAppRelationTripleSchema = CrossAppSchemaBase &
+  (
+    | {
+        label: string;
+        complement: string;
+      }
+    | {
+        relation: Ref;
+      }
+  ) & {
+    sourceType: Ref;
+    destinationType: Ref;
+  };
 
 // An inline vector semantic embedding
 export type CrossAppEmbedding = {
