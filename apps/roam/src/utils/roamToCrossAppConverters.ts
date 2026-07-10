@@ -1,13 +1,21 @@
-import type { CrossAppNode } from "@repo/database/crossAppContracts";
+import type {
+  CrossAppNode,
+  CrossAppNodeSchema,
+  CrossAppRelation,
+  CrossAppRelationTripleSchema,
+} from "@repo/database/crossAppContracts";
 import type { RoamFullContentNode } from "./convertRoamNodeToFullContent";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import type { TreeNode, ViewType } from "roamjs-components/types";
 import type { NodeUidWithType } from "~/utils/publishNodesToGroups";
 import type { Json } from "@repo/database/dbTypes";
+import type { ReifiedRelationDataWithRelId } from "./createReifiedBlock";
+import type { DiscourseRelation } from "./getDiscourseRelations";
 import { toMarkdown } from "./pageToMarkdown";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { contentTypes } from "@repo/content-model";
+import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
@@ -115,4 +123,83 @@ export const nodeUidsWithTypeToCrossApp = async (
     };
   });
   return results;
+};
+
+export const reifiedRelationToCrossApp = (
+  r: ReifiedRelationDataWithRelId,
+  isImportedFromSpaceUri: (nodeUid: string) => string | undefined,
+): CrossAppRelation | null => {
+  const sourceSpaceUri = isImportedFromSpaceUri(r.sourceUid);
+  const destinationSpaceUri = isImportedFromSpaceUri(r.destinationUid);
+  const sourceId =
+    sourceSpaceUri === undefined
+      ? r.sourceUid
+      : spaceUriAndLocalIdToRid(sourceSpaceUri, r.sourceUid);
+  const destinationId =
+    destinationSpaceUri === undefined
+      ? r.destinationUid
+      : spaceUriAndLocalIdToRid(destinationSpaceUri, r.destinationUid);
+  const relData = window.roamAlphaAPI.pull(
+    "[:create/time :edit/time {:create/user [:user/uid]}]",
+    `[:block/uid "${r.relationId}"]`,
+  ) as Record<string, Json>;
+  if (relData == undefined || !relData[":create/user"]) return null;
+  const userUid = (relData[":create/user"] as Record<string, string>)[
+    ":user/uid"
+  ];
+
+  return {
+    localId: r.relationId,
+    relationType: r.hasSchema,
+    source: sourceId,
+    destination: destinationId,
+    authorId: userUid,
+    createdAt: new Date(relData[":create/time"] as number),
+    modifiedAt: new Date(relData[":edit/time"] as number),
+  };
+};
+
+export const relationTripleSchemaToCrossApp = (
+  r: DiscourseRelation,
+): CrossAppRelationTripleSchema | null => {
+  const relData = window.roamAlphaAPI.pull(
+    "[:create/time :edit/time {:create/user [:user/uid]}]",
+    `[:block/uid "${r.id}"]`,
+  ) as Record<string, Json>;
+  if (!relData) return null;
+  const userUid = (relData[":create/user"] as Record<string, string>)[
+    ":user/uid"
+  ];
+
+  return {
+    localId: r.id,
+    sourceType: r.source,
+    destinationType: r.destination,
+    label: r.label,
+    complement: r.complement,
+    authorId: userUid,
+    createdAt: new Date(relData[":create/time"] as number),
+    modifiedAt: new Date(relData[":edit/time"] as number),
+  };
+};
+
+export const nodeSchemaToCrossApp = (
+  s: DiscourseNode,
+): CrossAppNodeSchema | null => {
+  const relData = window.roamAlphaAPI.pull(
+    "[:create/time :edit/time {:create/user [:user/uid]}]",
+    `[:block/uid "${s.type}"]`,
+  ) as unknown as {
+    ":create/time": number;
+    ":edit/time": number;
+    ":create/user": { ":user/uid": string };
+  };
+  if (!relData) return null;
+  const userUid = relData[":create/user"][":user/uid"];
+  return {
+    localId: s.type,
+    label: s.text,
+    authorId: userUid,
+    createdAt: new Date(relData[":create/time"]),
+  };
 };
