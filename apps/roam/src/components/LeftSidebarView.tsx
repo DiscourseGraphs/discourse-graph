@@ -179,7 +179,13 @@ const toggleFoldedState = async ({
   }
 };
 
-const RoamRenderedBlock = ({ uid }: { uid: string }) => {
+const RoamRenderedBlock = ({
+  uid,
+  onNavigate,
+}: {
+  uid: string;
+  onNavigate: (e: React.MouseEvent) => void;
+}) => {
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
@@ -192,8 +198,14 @@ const RoamRenderedBlock = ({ uid }: { uid: string }) => {
     };
   }, [uid]);
 
+  const handleClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("button")) return;
+    onNavigate(e);
+  };
+
   return (
-    <div className="dg-sidebar-rendered-block">
+    <div className="dg-sidebar-rendered-block" onClick={handleClick}>
       <RenderRoamBlock key={version} uid={uid} open={false} />
     </div>
   );
@@ -215,8 +227,11 @@ const ChildRow = ({
   if (ref.type === "block" && isSmartBlockUid(ref.uid)) {
     return (
       <div className="pl-8 pr-2.5">
-        <div className="section-child-item rounded-sm leading-normal text-gray-600">
-          <RoamRenderedBlock uid={ref.uid} />
+        <div className="section-child-item cursor-pointer rounded-sm leading-normal text-gray-600">
+          <RoamRenderedBlock
+            uid={ref.uid}
+            onNavigate={(e) => void openTarget(e, child.text, onloadArgs)}
+          />
         </div>
       </div>
     );
@@ -1045,6 +1060,9 @@ export const mountLeftSidebar = async ({
       .dg-sidebar-rendered-block .block-border-left { display: none; }
       .dg-sidebar-rendered-block .block-ref-count-button { display: none; }
       .dg-sidebar-rendered-block .rm-block-main { min-height: unset; padding: 0; }
+      .dg-sidebar-rendered-block * { pointer-events: none; }
+      .dg-sidebar-rendered-block button,
+      .dg-sidebar-rendered-block button * { pointer-events: auto; }
     `;
     document.head.appendChild(style);
   }
