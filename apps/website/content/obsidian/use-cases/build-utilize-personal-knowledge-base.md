@@ -141,18 +141,18 @@ _Bullet Journal with candidate nodes in a [Daily Notes](https://obsidian.md/help
 
 ### Datacore
 
-The discourse graph plugin uses the [Datacore plugin](https://github.com/blacksmithgu/datacore) to power its search & query features. Datacore can read inline fields and text in addition to frontmatter and display them in interactive, live-updating components. The catch is that it requires React/JSX code blocks, a departure from the human-readable " just a text file" ethos that many Obsidian users prefer.
+The discourse graph plugin uses the [Datacore plugin](https://github.com/blacksmithgu/datacore) to power its search & query features. Datacore can read inline fields and text in addition to frontmatter and display them in interactive, live-updating components. The catch is that it requires React/JSX code blocks, a departure from the "just a text file" ethos that many Obsidian users prefer.
 
 Used judiciously, Datacore is very powerful for searching and creating logs and task lists, and for automatically routing items to your attention. It can also be used to create custom widgets that execute frequently-used scripts, like those in this vault for automatically creating a named Discourse Canvas or aliasing a node title.
 
-![alt text](/docs/guides/obsidian/bases+datacore.png)
+![bases and datacore](/docs/guides/obsidian/bases+datacore.png)
 _The template depicted here includes one Base and two Datacore features: an aliasing widget and a log widget_
 
 ### Bases
 
 Bases are Obsidian's native database layer. They can be used to filter your notes by frontmatter property. They do not require any code to maintain, but they cannot be used to peer into note content: this limitation makes the design of your notes' frontmatter content especially important.
 
-![alt text](/docs/guides/obsidian/source-base01.png)
+![source base](/docs/guides/obsidian/source-base01.png)
 _Source Base_
 
 ### Choices, choices

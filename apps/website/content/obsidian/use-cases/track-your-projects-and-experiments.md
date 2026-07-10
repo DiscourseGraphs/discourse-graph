@@ -65,7 +65,7 @@ The Project is also the natural container for the **Experiment** node, which is 
 
 ![Project-as-container](/docs/guides/obsidian/prj-container.png)
 
-Learn more about creating and tracking experiments [here](/docs/obsidian/core-features/experiment-tracking).
+Learn more about creating and tracking experiments [here](/docs/obsidian/use-cases/experiment-tracking).
 
 ## What else would you like to do?
 
