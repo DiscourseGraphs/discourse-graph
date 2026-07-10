@@ -32,6 +32,7 @@ import {
   isQueryBlockRef,
   type LeftSidebarConfig,
   type LeftSidebarPersonalSectionConfig,
+  getGlobalSectionFoldedMarkerText,
   mergeGlobalSectionWithAccessor,
   mergePersonalSectionsWithAccessor,
 } from "~/utils/getLeftSidebarSettings";
@@ -51,7 +52,6 @@ import {
   PERSONAL_KEYS,
   GLOBAL_KEYS,
   LEFT_SIDEBAR_KEYS,
-  LEFT_SIDEBAR_SETTINGS_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import type { LeftSidebarGlobalSettings } from "~/components/settings/utils/zodSchema";
 import { createBlock } from "roamjs-components/writes";
@@ -632,53 +632,46 @@ const PersonalSections = ({
 
 const GlobalSection = ({
   config,
+  folded,
+  leftSidebarUid,
   onGlobalChildrenReorder,
   onloadArgs,
 }: {
   config: LeftSidebarConfig["global"];
+  folded: boolean;
+  leftSidebarUid: string;
   onGlobalChildrenReorder: (oldIndex: number, newIndex: number) => void;
   onloadArgs: OnloadArgs;
 }) => {
-  const [isOpen, setIsOpen] = useState<boolean>(!config.settings?.folded.value);
+  const [isOpen, setIsOpen] = useState<boolean>(!folded);
   const isTogglingRef = useRef(false);
   if (!config.children?.length) return null;
-  const isCollapsable = config.settings?.collapsable.value;
 
   const handleToggle = async () => {
-    if (!isCollapsable || !config.settings) return;
     if (isTogglingRef.current) return;
     isTogglingRef.current = true;
     try {
-      const settings = config.settings;
       const nextIsOpen = !isOpen;
       setIsOpen(nextIsOpen);
-      if (nextIsOpen) {
-        const children = getBasicTreeByParentUid(settings.uid);
-        await Promise.all(
-          children
-            .filter((c) => c.text === "Folded")
-            .map((c) => deleteBlock(c.uid)),
-        );
-        settings.folded.uid = undefined;
-        settings.folded.value = false;
-      } else {
-        const newUid = window.roamAlphaAPI.util.generateUID();
-        await createBlock({
-          parentUid: settings.uid,
-          node: { text: "Folded", uid: newUid },
-        });
-        settings.folded.uid = newUid;
-        settings.folded.value = true;
+      const userUid = window.roamAlphaAPI.user.uid();
+      if (userUid) {
+        const markerText = getGlobalSectionFoldedMarkerText(userUid);
+        if (nextIsOpen) {
+          const children = getBasicTreeByParentUid(leftSidebarUid);
+          await Promise.all(
+            children
+              .filter((c) => c.text === markerText)
+              .map((c) => deleteBlock(c.uid)),
+          );
+        } else {
+          await createBlock({
+            parentUid: leftSidebarUid,
+            node: { text: markerText },
+          });
+        }
+        refreshConfigTree();
       }
-      refreshConfigTree();
-      setGlobalSetting(
-        [
-          GLOBAL_KEYS.leftSidebar,
-          LEFT_SIDEBAR_KEYS.settings,
-          LEFT_SIDEBAR_SETTINGS_KEYS.folded,
-        ],
-        !nextIsOpen,
-      );
+      setPersonalSetting([PERSONAL_KEYS.globalSectionFolded], !nextIsOpen);
     } finally {
       isTogglingRef.current = false;
     }
@@ -705,18 +698,12 @@ const GlobalSection = ({
       >
         <div className="flex w-full items-center justify-between">
           <span>GLOBAL</span>
-          {isCollapsable && (
-            <span className="sidebar-title-button-chevron p-1">
-              <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
-            </span>
-          )}
+          <span className="sidebar-title-button-chevron p-1">
+            <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
+          </span>
         </div>
       </div>
-      {isCollapsable ? (
-        <Collapse isOpen={isOpen}>{children}</Collapse>
-      ) : (
-        children
-      )}
+      <Collapse isOpen={isOpen}>{children}</Collapse>
     </>
   );
 };
@@ -733,6 +720,9 @@ const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
     : getPersonalSetting<
         ReturnType<typeof getPersonalSettings>[typeof PERSONAL_KEYS.leftSidebar]
       >([PERSONAL_KEYS.leftSidebar]);
+  const globalSectionFoldedValue = snapshot
+    ? snapshot.personalSettings[PERSONAL_KEYS.globalSectionFolded]
+    : getPersonalSetting<boolean>([PERSONAL_KEYS.globalSectionFolded]);
 
   // Read UIDs from old system (needed for fold CRUD during dual-write)
   const oldConfig = getCurrentLeftSidebarConfig();
@@ -742,6 +732,10 @@ const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
     favoritesMigrated: oldConfig.favoritesMigrated,
     sidebarMigrated: oldConfig.sidebarMigrated,
     global: mergeGlobalSectionWithAccessor(oldConfig.global, globalValues),
+    globalSectionFolded: {
+      uid: oldConfig.globalSectionFolded.uid,
+      value: globalSectionFoldedValue ?? oldConfig.globalSectionFolded.value,
+    },
     personal: {
       uid: oldConfig.personal.uid,
       sections: mergePersonalSectionsWithAccessor(
@@ -931,6 +925,8 @@ const LeftSidebarView = ({
       <FavoritesPopover onloadArgs={onloadArgs} />
       <GlobalSection
         config={config.global}
+        folded={config.globalSectionFolded.value}
+        leftSidebarUid={config.uid}
         onGlobalChildrenReorder={reorderGlobalChildren}
         onloadArgs={onloadArgs}
       />
