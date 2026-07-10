@@ -45,9 +45,12 @@ export type CrossAppRelationTripleSchema = CrossAppSchemaBase &
     | {
         label: string;
         complement: string;
+        relation?: never;
       }
     | {
         relation: Ref;
+        label?: never;
+        complement?: never;
       }
   ) & {
     sourceType: Ref;
