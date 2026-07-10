@@ -28,43 +28,31 @@ const SharedNodeRow = ({ node }: { node: DiscoveredSharedNode }) => (
       <Tag minimal>{node.sourceApp}</Tag>
     </td>
     <td>
-      <div
-        style={{ maxWidth: "13rem", overflowWrap: "anywhere", fontWeight: 500 }}
-      >
+      <div className="max-w-52 font-medium [overflow-wrap:anywhere]">
         {node.sourceSpaceName}
       </div>
       <div
-        className={[Classes.MONOSPACE_TEXT, Classes.TEXT_MUTED].join(" ")}
-        style={{
-          maxWidth: "13rem",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          fontSize: "0.75rem",
-        }}
+        className={[
+          Classes.MONOSPACE_TEXT,
+          Classes.TEXT_MUTED,
+          "max-w-52 truncate text-xs",
+        ].join(" ")}
         title={node.sourceSpaceId}
       >
         {node.sourceSpaceId}
       </div>
     </td>
     <td>
-      <div
-        style={{ maxWidth: "18rem", overflowWrap: "anywhere", fontWeight: 500 }}
-      >
+      <div className="max-w-72 font-medium [overflow-wrap:anywhere]">
         {node.title}
       </div>
     </td>
     <td>
       {node.sourceNodeId ? (
         <div
-          className={Classes.MONOSPACE_TEXT}
-          style={{
-            maxWidth: "11rem",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            fontSize: "0.75rem",
-          }}
+          className={[Classes.MONOSPACE_TEXT, "max-w-44 truncate text-xs"].join(
+            " ",
+          )}
           title={node.sourceNodeRid}
         >
           {node.sourceNodeId}
@@ -73,7 +61,7 @@ const SharedNodeRow = ({ node }: { node: DiscoveredSharedNode }) => (
         <span className={Classes.TEXT_MUTED}>Not provided</span>
       )}
     </td>
-    <td style={{ whiteSpace: "nowrap" }} title={node.modifiedAt}>
+    <td className="whitespace-nowrap" title={node.modifiedAt}>
       {formatModifiedAt(node.modifiedAt)}
     </td>
     <td>
@@ -142,25 +130,23 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <Dialog
+      autoFocus={false}
       canEscapeKeyClose
-      canOutsideClickClose={false}
+      canOutsideClickClose
+      enforceFocus={false}
       style={{ width: "min(68rem, calc(100vw - 2rem))" }}
       isOpen
       onClose={onClose}
       title="Discover shared nodes"
     >
       <div
-        className={Classes.DIALOG_BODY}
-        style={{
-          display: "flex",
-          minHeight: "18rem",
-          flexDirection: "column",
-          gap: "0.75rem",
-        }}
+        className={[Classes.DIALOG_BODY, "flex min-h-72 flex-col gap-3"].join(
+          " ",
+        )}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <div className="flex items-center gap-2">
           <InputGroup
-            style={{ minWidth: 0, flex: 1 }}
+            className="min-w-0 flex-1"
             leftIcon="search"
             onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
               setSearch(event.target.value)
@@ -180,40 +166,26 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         </div>
 
         {loading ? (
-          <div
-            style={{
-              display: "flex",
-              minHeight: "13rem",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          <div className="flex min-h-52 items-center justify-center">
             <Spinner />
           </div>
         ) : error ? (
           <Callout intent={Intent.DANGER} title="Could not load shared nodes">
-            <div style={{ marginBottom: "0.75rem" }}>{error}</div>
+            <div className="mb-3">{error}</div>
             <Button icon="refresh" onClick={() => void loadNodes()}>
               Try again
             </Button>
           </Callout>
         ) : visibleNodes.length === 0 ? (
-          <div
-            style={{
-              display: "flex",
-              minHeight: "13rem",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          <div className="flex min-h-52 items-center justify-center">
             <NonIdealState
               icon="search"
               title={search ? "No matching shared nodes" : "No shared nodes"}
             />
           </div>
         ) : (
-          <div style={{ minHeight: 0, overflow: "auto" }}>
-            <HTMLTable striped style={{ width: "100%" }}>
+          <div className="min-h-0 overflow-auto">
+            <HTMLTable striped className="w-full">
               <thead>
                 <tr>
                   <th>Source app</th>
@@ -234,14 +206,8 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         )}
       </div>
       <div className={Classes.DIALOG_FOOTER}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <span className={Classes.TEXT_MUTED} style={{ fontSize: "0.75rem" }}>
+        <div className="flex items-center justify-between">
+          <span className={[Classes.TEXT_MUTED, "text-xs"].join(" ")}>
             {loading || error
               ? ""
               : `${visibleNodes.length} of ${nodes.length} nodes`}

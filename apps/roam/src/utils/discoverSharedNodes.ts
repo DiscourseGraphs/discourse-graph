@@ -30,7 +30,6 @@ type SharedSpace = Pick<
   "id" | "name" | "platform" | "url"
 >;
 type ValidSharedSpace = {
-  id: number;
   name: string;
   platform: "Roam" | "Obsidian";
   url: string;
@@ -107,7 +106,6 @@ export const buildDiscoveredSharedNodes = ({
         [
           space.id,
           {
-            id: space.id,
             name: space.name,
             platform: space.platform,
             url: space.url,
@@ -301,7 +299,7 @@ const getSharedNodeRows = async ({
   };
 };
 
-export const getImportedSourceRids = async (): Promise<Set<string>> => {
+const getImportedSourceRids = async (): Promise<Set<string>> => {
   const query = `[:find [?rid ...]
     :where
       [?page :block/props ?props]
