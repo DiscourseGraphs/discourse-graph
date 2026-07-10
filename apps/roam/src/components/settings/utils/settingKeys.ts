@@ -13,7 +13,6 @@ import type {
 
 export const FEATURE_FLAG_KEYS = {
   enableLeftSidebar: "Enable left sidebar",
-  duplicateNodeAlertEnabled: "Duplicate node alert enabled",
   suggestiveModeOverlayEnabled: "Suggestive mode overlay enabled",
   useNewSettingsStore: "Use new settings store",
 } as const satisfies Record<string, keyof FeatureFlags>;
