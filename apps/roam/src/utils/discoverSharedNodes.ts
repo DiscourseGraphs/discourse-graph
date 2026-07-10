@@ -1,5 +1,6 @@
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
+import { getAllPages } from "@repo/database/lib/pagination";
 import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import type { Tables } from "@repo/database/dbTypes";
 import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
@@ -207,19 +208,16 @@ const getGroupSharedResources = async (
   const groupIds = await getAvailableGroupIds(client);
   if (groupIds.length === 0) return [];
 
-  const resources: ResourceAccess[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const response = await client
+  const resources = await getAllPages(
+    client
       .from("ResourceAccess")
       .select("space_id, source_local_id")
       .in("account_uid", groupIds)
       .order("space_id")
-      .order("source_local_id")
-      .range(from, from + PAGE_SIZE - 1);
-    if (response.error) throw response.error;
-    resources.push(...response.data);
-    if (response.data.length < PAGE_SIZE) break;
-  }
+      .order("source_local_id"),
+    PAGE_SIZE,
+  );
+  if (!Array.isArray(resources)) throw resources;
 
   return [
     ...new Map(
