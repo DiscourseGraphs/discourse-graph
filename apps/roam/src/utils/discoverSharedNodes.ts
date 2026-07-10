@@ -3,9 +3,7 @@ import {
   listGroupSharedNodes,
   type SharedNodeCandidate,
 } from "@repo/database/lib/sharedNodes";
-import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
-
-const IMPORTED_FROM_PROP_KEY = "importedFrom";
+import { getImportedSourceRids } from "./importedSourceIdentity";
 
 export type DiscoveredSharedNode = {
   alreadyImported: boolean;
@@ -35,19 +33,6 @@ export const toDiscoveredSharedNodes = ({
     sourceSpaceName: candidate.spaceName,
     title: candidate.title,
   }));
-
-const getImportedSourceRids = async (): Promise<Set<string>> => {
-  const query = `[:find [?rid ...]
-    :where
-      [?page :block/props ?props]
-      [(get ?props :${DISCOURSE_GRAPH_PROP_NAME}) ?dgData]
-      [(get ?dgData :${IMPORTED_FROM_PROP_KEY}) ?imported]
-      [(get ?imported :sourceNodeRid) ?rid]]`;
-  const result = (await window.roamAlphaAPI.data.async.q(query)) as unknown[];
-  return new Set(
-    result.filter((rid): rid is string => typeof rid === "string"),
-  );
-};
 
 export const discoverSharedNodes = async ({
   client,
