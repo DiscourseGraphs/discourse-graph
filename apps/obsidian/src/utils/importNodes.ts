@@ -55,8 +55,9 @@ export const getPublishedNodesForGroups = async ({
     const filePath: string | undefined =
       metadata !== null &&
       typeof metadata === "object" &&
-      typeof (metadata as Record<string, any>).filePath === "string"
-        ? (metadata as Record<string, any>).filePath
+      !Array.isArray(metadata) &&
+      typeof metadata.filePath === "string"
+        ? metadata.filePath
         : undefined;
     return {
       source_local_id: candidate.sourceLocalId,
