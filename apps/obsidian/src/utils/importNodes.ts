@@ -2,6 +2,7 @@ import type { Json } from "@repo/database/dbTypes";
 import matter from "gray-matter";
 import { App, Notice, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import { listGroupSharedNodes } from "@repo/database/lib/sharedNodes";
 import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
@@ -40,84 +41,35 @@ export const getPublishedNodesForGroups = async ({
   groupIds: string[];
   currentSpaceId: number;
 }): Promise<Array<PublishedNode>> => {
-  if (groupIds.length === 0) {
-    return [];
-  }
-
-  // Query my_contents (RLS applied); exclude current space. Get both variants so we can use
-  // the latest last_modified per node and prefer "direct" for text (title).
-  const { data, error } = await client
-    .from("my_contents")
-    .select(
-      "source_local_id, space_id, text, created, last_modified, variant, metadata, author_id",
-    )
-    .neq("space_id", currentSpaceId);
-
-  if (error) {
+  const candidates = await listGroupSharedNodes({
+    client,
+    currentSpaceId,
+    groupIds,
+  }).catch((error: { message?: string }) => {
     console.error("Error fetching published nodes:", error);
     throw new Error(`Failed to fetch published nodes: ${error.message}`);
-  }
+  });
 
-  if (!data || data.length === 0) {
-    return [];
-  }
-
-  type Row = {
-    source_local_id: string | null;
-    space_id: number | null;
-    text: string | null;
-    created: string | null;
-    last_modified: string | null;
-    variant: string | null;
-    author_id: number | null;
-    metadata: Json;
-  };
-
-  const key = (r: Row) => `${r.space_id ?? ""}\t${r.source_local_id ?? ""}`;
-  const groups = new Map<string, Row[]>();
-  for (const row of data as Row[]) {
-    if (row.source_local_id == null || row.space_id == null) continue;
-    const k = key(row);
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k)!.push(row);
-  }
-
-  const nodes: Array<PublishedNode> = [];
-
-  for (const rows of groups.values()) {
-    const withDate = rows.filter(
-      (r) => r.last_modified != null && r.text != null,
-    );
-    if (withDate.length === 0) continue;
-    const latest = withDate.reduce((a, b) =>
-      (a.last_modified ?? "") >= (b.last_modified ?? "") ? a : b,
-    );
-    const direct = rows.find((r) => r.variant === "direct");
-    const text = direct?.text ?? latest.text ?? "";
-    const createdAt = latest.created
-      ? new Date(latest.created + "Z").valueOf()
-      : 0;
-    const modifiedAt = latest.last_modified
-      ? new Date(latest.last_modified + "Z").valueOf()
-      : 0;
+  return candidates.map((candidate) => {
+    const metadata = candidate.directMetadata;
     const filePath: string | undefined =
-      direct &&
-      typeof direct.metadata === "object" &&
-      typeof (direct.metadata as Record<string, any>).filePath === "string"
-        ? (direct.metadata as Record<string, any>).filePath
+      metadata !== null &&
+      typeof metadata === "object" &&
+      typeof (metadata as Record<string, any>).filePath === "string"
+        ? (metadata as Record<string, any>).filePath
         : undefined;
-    nodes.push({
-      source_local_id: latest.source_local_id!,
-      space_id: latest.space_id!,
-      text,
-      createdAt,
-      modifiedAt,
+    return {
+      source_local_id: candidate.sourceLocalId,
+      space_id: candidate.spaceId,
+      text: candidate.title,
+      createdAt: candidate.created
+        ? new Date(candidate.created + "Z").valueOf()
+        : 0,
+      modifiedAt: new Date(candidate.lastModified + "Z").valueOf(),
       filePath,
-      authorId: latest.author_id ?? undefined,
-    });
-  }
-
-  return nodes;
+      authorId: candidate.authorId,
+    };
+  });
 };
 
 export const getLocalNodeInstanceIds = (
