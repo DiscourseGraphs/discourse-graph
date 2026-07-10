@@ -143,7 +143,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
   return (
     <Dialog
       canEscapeKeyClose
-      canOutsideClickClose
+      canOutsideClickClose={false}
       style={{ width: "min(68rem, calc(100vw - 2rem))" }}
       isOpen
       onClose={onClose}
