@@ -1,4 +1,4 @@
-import { isSupportedContentType } from "@repo/content-model";
+import { isSupportedContentType } from "@repo/content-model/constants";
 import type { CrossAppNode } from "../crossAppContracts";
 import type { DGSupabaseClient } from "./client";
 import { getAvailableGroupIds } from "./groups";
