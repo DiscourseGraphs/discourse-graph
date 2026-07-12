@@ -1,7 +1,6 @@
 import type { Rid } from "@repo/database/crossAppContracts";
 import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
 import getBlockProps, { type json } from "./getBlockProps";
-import setBlockProps from "./setBlockProps";
 
 export type ImportedSourceIdentity = {
   sourceModifiedAt: string;
@@ -45,16 +44,23 @@ export const writeImportedSourceIdentity = ({
   pageUid: string;
   sourceModifiedAt: string;
   sourceNodeRid: string;
-}): void => {
-  const existing = getBlockProps(pageUid)[DISCOURSE_GRAPH_PROP_NAME];
+}): Promise<void> => {
+  const props = getBlockProps(pageUid);
+  const existing = props[DISCOURSE_GRAPH_PROP_NAME];
   const discourseGraphProps = isJsonObject(existing) ? existing : {};
 
-  setBlockProps(pageUid, {
-    [DISCOURSE_GRAPH_PROP_NAME]: {
-      ...discourseGraphProps,
-      [IMPORTED_FROM_PROP_KEY]: {
-        [SOURCE_MODIFIED_AT_KEY]: sourceModifiedAt,
-        [SOURCE_NODE_RID_KEY]: sourceNodeRid,
+  return window.roamAlphaAPI.data.block.update({
+    block: {
+      uid: pageUid,
+      props: {
+        ...props,
+        [DISCOURSE_GRAPH_PROP_NAME]: {
+          ...discourseGraphProps,
+          [IMPORTED_FROM_PROP_KEY]: {
+            [SOURCE_MODIFIED_AT_KEY]: sourceModifiedAt,
+            [SOURCE_NODE_RID_KEY]: sourceNodeRid,
+          },
+        },
       },
     },
   });
