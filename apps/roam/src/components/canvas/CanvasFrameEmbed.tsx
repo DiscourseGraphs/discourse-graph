@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Button, Card, Elevation } from "@blueprintjs/core";
 import type { Editor, TLFrameShape, TLShapeId } from "tldraw";
 import { TldrawCanvas, type CanvasEmbedOptions } from "./Tldraw";
 import { getCanvasFrameShapes } from "./useRoamStore";
@@ -139,36 +140,30 @@ export const CanvasFrameEmbed = ({
   return (
     <div style={{ position: "relative", height: "100%", width: "100%" }}>
       <TldrawCanvas title={title} embedOptions={embedOptions} />
-      <button
-        type="button"
-        className="bp3-button bp3-minimal bp3-small"
+      <Button
+        small
         title="Re-center on frame"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={handleRecenter}
-        style={{
-          position: "absolute",
-          top: 6,
-          right: 6,
-          zIndex: 300,
-          background: "rgba(255,255,255,0.9)",
-        }}
+        style={{ position: "absolute", top: 6, right: 6, zIndex: 300 }}
       >
         ⌖
-      </button>
+      </Button>
       {frameMissing && (
-        <div
-          className="rounded px-2 py-1 text-xs text-[#5c7080] shadow"
+        <Card
+          elevation={Elevation.ONE}
+          className="text-xs text-[#5c7080]"
           style={{
             position: "absolute",
             bottom: 6,
             left: 6,
             zIndex: 300,
-            background: "rgba(255,255,255,0.9)",
+            padding: "4px 8px",
           }}
         >
           Frame {frame.name ? `“${frame.name}” ` : ""}not found on [[
           {title}]]
-        </div>
+        </Card>
       )}
     </div>
   );
