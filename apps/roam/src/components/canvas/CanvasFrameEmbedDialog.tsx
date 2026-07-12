@@ -190,7 +190,7 @@ const CanvasFrameEmbedDialog = ({
 
 export const renderCanvasFrameEmbedDialog = (
   props: CanvasFrameEmbedDialogProps,
-) =>
+): (() => void) | undefined =>
   renderOverlay({
     // eslint-disable-next-line @typescript-eslint/naming-convention
     Overlay: CanvasFrameEmbedDialog,

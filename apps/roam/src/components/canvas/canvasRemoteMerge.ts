@@ -60,7 +60,9 @@ export const fixShapeIndices = (
   );
 };
 
-export const filterUserRecords = (data: SerializedStore<TLRecord>) => {
+export const filterUserRecords = (
+  data: SerializedStore<TLRecord>,
+): SerializedStore<TLRecord> => {
   return Object.fromEntries(
     Object.entries(data).filter(([key]) => {
       return !/^(user_presence|camera|instance|instance_page_state|user|user_document):/.test(
