@@ -1,7 +1,7 @@
 import { updateBlock } from "roamjs-components/writes";
 import { renderCanvasEmbedDialog } from "~/components/canvas/CanvasEmbedDialog";
 import { renderCanvasFrameEmbedDialog } from "~/components/canvas/CanvasFrameEmbedDialog";
-import { serializeDgFrameEmbed } from "~/utils/dgFrameEmbed";
+import { serializeDgCanvasEmbed } from "~/utils/dgCanvasEmbed";
 
 type SlashCommandContext = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -48,7 +48,7 @@ const SLASH_COMMANDS: {
         onSelect: ({ title, frameName, frameShapeId }) => {
           void updateBlock({
             uid,
-            text: serializeDgFrameEmbed({ title, frameName, frameShapeId }),
+            text: serializeDgCanvasEmbed({ title, frameName, frameShapeId }),
           }).then(() => document.body.click());
         },
       });

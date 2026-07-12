@@ -9,14 +9,14 @@ import type { TLFrameShape, TLShape } from "tldraw";
 import { getCanvasPageTitles } from "~/utils/isCanvasPage";
 import { getRoamCanvasSnapshot } from "./useRoamStore";
 
-export type DgFrameEmbedSelection = {
+export type DgCanvasFrameSelection = {
   title: string;
   frameName?: string;
   frameShapeId?: string;
 };
 
 type CanvasFrameEmbedDialogProps = {
-  onSelect: (selection: DgFrameEmbedSelection) => void;
+  onSelect: (selection: DgCanvasFrameSelection) => void;
 };
 
 type FrameOption = { id: string; name: string; childCount: number };

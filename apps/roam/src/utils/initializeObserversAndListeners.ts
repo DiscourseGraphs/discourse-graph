@@ -50,7 +50,6 @@ import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
 import { renderPublishNodeTitleButton } from "~/components/PublishNodeTitleButton";
 import { renderCanvasEmbed } from "~/components/canvas/CanvasEmbed";
-import { renderCanvasFrameEmbed } from "~/components/canvas/CanvasFrameEmbed";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import findDiscourseNode from "./findDiscourseNode";
@@ -169,11 +168,6 @@ export const initObservers = ({
   const canvasEmbedObserver = createButtonObserver({
     attribute: "dg-canvas",
     render: (b) => renderCanvasEmbed(b, onloadArgs),
-  });
-
-  const canvasFrameEmbedObserver = createButtonObserver({
-    attribute: "dg-frame",
-    render: (b) => renderCanvasFrameEmbed(b, onloadArgs),
   });
 
   let batchedTagNodes: DiscourseNode[] | null = null;
@@ -475,7 +469,6 @@ export const initObservers = ({
       pageTitleObserver,
       queryBlockObserver,
       canvasEmbedObserver,
-      canvasFrameEmbedObserver,
       graphOverviewExportObserver,
       nodeTagPopupButtonObserver,
       leftSidebarObserver,
