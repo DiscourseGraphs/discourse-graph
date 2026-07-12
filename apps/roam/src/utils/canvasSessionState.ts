@@ -99,26 +99,18 @@ export const getCanvasSessionStorageKey = ({
   graphName,
   userUid,
   pageUid,
-  instanceKey,
 }: {
   graphName: string;
   userUid: string;
   pageUid: string;
-  // Optional per-embed discriminator (the embed's block uid). When present, the
-  // viewport is remembered per embed instance instead of per canvas page, so two
-  // embeds of the same canvas hold independent viewports. Omitted for main-page
-  // and sidebar canvases, keeping their storage key (and behavior) unchanged.
-  instanceKey?: string;
 }): string => {
-  const parts = [
+  return [
     CANVAS_SESSION_STORAGE_PREFIX,
     `v${CANVAS_SESSION_STORAGE_VERSION}`,
     encodeStoragePart(graphName),
     encodeStoragePart(userUid || "anonymous"),
     encodeStoragePart(pageUid),
-  ];
-  if (instanceKey) parts.push(encodeStoragePart(instanceKey));
-  return parts.join(":");
+  ].join(":");
 };
 
 export const readCanvasSessionState = ({
@@ -250,7 +242,6 @@ export const registerCanvasSessionStatePersistence = ({
   graphName,
   userUid,
   pageUid,
-  instanceKey,
   storage = getCanvasSessionStorage(),
   saveDelayMs = CANVAS_SESSION_SAVE_DELAY_MS,
 }: {
@@ -258,7 +249,6 @@ export const registerCanvasSessionStatePersistence = ({
   graphName: string;
   userUid: string;
   pageUid: string;
-  instanceKey?: string;
   storage?: CanvasSessionStorage | null;
   saveDelayMs?: number;
 }): (() => void) => {
@@ -268,7 +258,6 @@ export const registerCanvasSessionStatePersistence = ({
     graphName,
     userUid,
     pageUid,
-    instanceKey,
   });
   let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 

@@ -190,16 +190,12 @@ export const isPageUid = (uid: string) =>
     ":node/title"
   ];
 
-// Options for mounting the canvas inside a block embed (`{{dg-frame: ...}}`).
+// Options for mounting the canvas inside a block embed (`{{dg-canvas: ...}}`).
 // Left undefined for main-page and sidebar canvases, whose behavior is unchanged.
 export type CanvasEmbedOptions = {
-  // When set (the embed's block uid), viewport/session state is remembered per
-  // embed instance instead of per canvas page — so two embeds of the same canvas
-  // hold independent viewports. Used by frameless embeds.
-  instanceKey?: string;
   // Frame-anchored embeds manage their own camera (zoom-to-frame on every mount)
   // and intentionally do not persist panning across remounts, so they opt out of
-  // the per-page/per-instance session persistence entirely.
+  // the per-page session persistence entirely.
   disableSessionPersistence?: boolean;
   // Start the editor in focus mode (what cmd+. toggles), hiding the tldraw
   // menus/toolbar chrome — block embeds are for viewing first, so they default
@@ -1087,7 +1083,6 @@ const TldrawCanvasShared = ({
                       graphName: window.roamAlphaAPI.graph.name,
                       userUid: window.roamAlphaAPI.user.uid() || "",
                       pageUid,
-                      instanceKey: embedOptions?.instanceKey,
                     });
 
               if (process.env.NODE_ENV !== "production") {
