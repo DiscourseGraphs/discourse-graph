@@ -81,20 +81,20 @@ const personalRecordTypes = new Set([
 const pruneState = (state: SerializedStore<TLRecord>) =>
   Object.fromEntries(
     Object.entries(state).filter(
-      ([_, record]) => !personalRecordTypes.has(record.typeName),
+      ([, record]) => !personalRecordTypes.has(record.typeName),
     ),
   );
 
 const diffObjects = (
-  oldRecord: Record<string, any>,
-  newRecord: Record<string, any>,
-): Record<string, any> => {
+  oldRecord: Record<string, unknown>,
+  newRecord: Record<string, unknown>,
+): Record<string, unknown> => {
   const allKeys = Array.from(
     new Set(Object.keys(oldRecord).concat(Object.keys(newRecord))),
   );
   return Object.fromEntries(
     allKeys
-      .map((key) => {
+      .map((key): [string, unknown] | null => {
         const oldValue = oldRecord[key];
         const newValue = newRecord[key];
         if (typeof oldValue !== typeof newValue) {
@@ -105,7 +105,11 @@ const diffObjects = (
           oldValue !== null &&
           newValue !== null
         ) {
-          const diffed = diffObjects(oldValue, newValue);
+          // Both branches are non-null objects (their `typeof` matched above).
+          const diffed = diffObjects(
+            oldValue as Record<string, unknown>,
+            newValue as Record<string, unknown>,
+          );
           if (Object.keys(diffed).length) {
             return [key, diffed];
           }
@@ -116,7 +120,7 @@ const diffObjects = (
         }
         return null;
       })
-      .filter((e): e is [string, any] => !!e),
+      .filter((e): e is [string, unknown] => !!e),
   );
 };
 
@@ -139,20 +143,23 @@ export const calculateDiff = (
     ),
     updated: Object.fromEntries(
       Object.keys(newState)
-        .map((id) => {
+        .map((id): [string, [TLRecord, TLRecord]] | null => {
           const oldRecord = oldState[id];
           const newRecord = newState[id];
           if (!oldRecord || !newRecord) {
             return null;
           }
 
-          const diffed = diffObjects(oldRecord, newRecord);
+          const diffed = diffObjects(
+            oldRecord as unknown as Record<string, unknown>,
+            newRecord as unknown as Record<string, unknown>,
+          );
           if (Object.keys(diffed).length) {
             return [id, [oldRecord, newRecord]];
           }
           return null;
         })
-        .filter((e): e is [string, any] => !!e),
+        .filter((e): e is [string, [TLRecord, TLRecord]] => !!e),
     ),
   };
 };
