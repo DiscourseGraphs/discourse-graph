@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getFrameEmbedMode,
   parseDgCanvasEmbed,
   serializeDgCanvasEmbed,
 } from "~/utils/dgCanvasEmbed";
@@ -85,6 +86,75 @@ describe("parseDgCanvasEmbed", () => {
     expect(parseDgCanvasEmbed("{{dg-query: [[My Canvas]]}}")).toBeNull();
     expect(parseDgCanvasEmbed("just some text")).toBeNull();
   });
+
+  it("parses the trailing `live` modifier in every frame-argument shape", () => {
+    expect(
+      parseDgCanvasEmbed(
+        '{{dg-canvas: [[My Canvas]] "Frame A" shape:aB1_c-2 live}}',
+      ),
+    ).toEqual({
+      title: "My Canvas",
+      frameName: "Frame A",
+      frameShapeId: "shape:aB1_c-2",
+      live: true,
+    });
+    expect(
+      parseDgCanvasEmbed("{{dg-canvas: [[My Canvas]] shape:aB1_c-2 live}}"),
+    ).toEqual({
+      title: "My Canvas",
+      frameShapeId: "shape:aB1_c-2",
+      live: true,
+    });
+    expect(
+      parseDgCanvasEmbed('{{dg-canvas: [[My Canvas]] "Frame A" live}}'),
+    ).toEqual({
+      title: "My Canvas",
+      frameName: "Frame A",
+      live: true,
+    });
+  });
+
+  it("parses a bare `live` with no frame argument (frameless embeds are live anyway)", () => {
+    expect(parseDgCanvasEmbed("{{dg-canvas: [[My Canvas]] live}}")).toEqual({
+      title: "My Canvas",
+      live: true,
+    });
+  });
+
+  // `live` is canonical: lowercase, always last. Anything else falls under the
+  // existing degradation contract (frame args ignored, whole-canvas embed).
+  it("degrades when `live` is misplaced, cased differently, or followed by junk", () => {
+    expect(
+      parseDgCanvasEmbed("{{dg-canvas: [[My Canvas]] live shape:aB1_c-2}}"),
+    ).toEqual({ title: "My Canvas" });
+    expect(
+      parseDgCanvasEmbed('{{dg-canvas: [[My Canvas]] "Frame A" Live}}'),
+    ).toEqual({ title: "My Canvas" });
+    expect(
+      parseDgCanvasEmbed('{{dg-canvas: [[My Canvas]] "Frame A" live junk}}'),
+    ).toEqual({ title: "My Canvas" });
+  });
+});
+
+describe("getFrameEmbedMode", () => {
+  it("defaults to snapshot for local-mode canvases", () => {
+    expect(getFrameEmbedMode({ canvasSyncMode: "local" })).toBe("snapshot");
+  });
+
+  it("honors an explicit live request regardless of sync mode", () => {
+    expect(getFrameEmbedMode({ live: true, canvasSyncMode: "local" })).toBe(
+      "live",
+    );
+    expect(getFrameEmbedMode({ live: true, canvasSyncMode: "sync" })).toBe(
+      "live",
+    );
+  });
+
+  it("falls back to a labeled live embed for sync-mode canvases", () => {
+    expect(getFrameEmbedMode({ canvasSyncMode: "sync" })).toBe(
+      "live-sync-fallback",
+    );
+  });
 });
 
 describe("serializeDgCanvasEmbed", () => {
@@ -102,6 +172,20 @@ describe("serializeDgCanvasEmbed", () => {
     };
     const text = serializeDgCanvasEmbed(embed);
     expect(text).toBe('{{dg-canvas: [[My Canvas]] "Frame A" shape:aB1_c-2}}');
+    expect(parseDgCanvasEmbed(text)).toEqual(embed);
+  });
+
+  it("round-trips the live modifier", () => {
+    const embed = {
+      title: "My Canvas",
+      frameName: "Frame A",
+      frameShapeId: "shape:aB1_c-2",
+      live: true,
+    };
+    const text = serializeDgCanvasEmbed(embed);
+    expect(text).toBe(
+      '{{dg-canvas: [[My Canvas]] "Frame A" shape:aB1_c-2 live}}',
+    );
     expect(parseDgCanvasEmbed(text)).toEqual(embed);
   });
 

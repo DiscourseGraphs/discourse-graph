@@ -85,10 +85,10 @@ import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import renderToast from "roamjs-components/components/Toast";
 import {
-  AddReferencedNodeType,
   createAllReferencedNodeTools,
   createAllRelationShapeTools,
 } from "./DiscourseRelationShape/DiscourseRelationTool";
+import { buildAllAddReferencedNodeByAction } from "~/utils/buildAllAddReferencedNodeByAction";
 import ConvertToDialog from "./ConvertToDialog";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
@@ -96,6 +96,8 @@ import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import internalError from "~/utils/internalError";
 import { syncCanvasNodeTitlesOnLoad } from "~/utils/syncCanvasNodeTitlesOnLoad";
 import { registerCanvasSessionStatePersistence } from "~/utils/canvasSessionState";
+import { consumeFrameZoomHint } from "~/utils/canvasFrameZoomHint";
+import { zoomToFrame } from "./canvasFrameRef";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 import { HistoryEntry } from "@tldraw/store";
 import { TLRecord } from "@tldraw/tlschema";
@@ -528,35 +530,10 @@ const TldrawCanvasShared = ({
     return allNodes;
   }, []);
 
-  const allAddReferencedNodeByAction = useMemo(() => {
-    const obj: AddReferencedNodeType = {};
-
-    // TODO: support multiple referenced node
-    // with migration from format to specification
-    allNodes.forEach((n) => {
-      const referencedNodes = [...n.format.matchAll(/{([\w\d-]+)}/g)].filter(
-        (match) => match[1] !== "content",
-      );
-
-      if (referencedNodes.length > 0) {
-        const sourceName = referencedNodes[0][1];
-        const sourceType = allNodes.find((node) => node.text === sourceName)
-          ?.type as string;
-
-        if (!obj[`Add ${sourceName}`]) obj[`Add ${sourceName}`] = [];
-
-        obj[`Add ${sourceName}`].push({
-          format: n.format,
-          sourceName,
-          sourceType,
-          destinationType: n.type,
-          destinationName: n.text,
-        });
-      }
-    });
-
-    return obj;
-  }, [allNodes]);
+  const allAddReferencedNodeByAction = useMemo(
+    () => buildAllAddReferencedNodeByAction(allNodes),
+    [allNodes],
+  );
   const allAddReferencedNodeActions = useMemo(() => {
     return Object.keys(allAddReferencedNodeByAction);
   }, [allAddReferencedNodeByAction]);
@@ -1085,6 +1062,38 @@ const TldrawCanvasShared = ({
                       pageUid,
                     });
 
+              // A frame snapshot's "Open canvas" button leaves a one-shot hint
+              // to land zoomed on its frame. Consumed after session persistence
+              // restored the remembered camera, so the hint wins. Main-page /
+              // sidebar mounts only.
+              //
+              // zoomToBounds is a no-op against an unmeasured (zero-size)
+              // viewport, and on a cold page load the editor's viewport is not
+              // measured yet at onMount — a single deferred frame lands too
+              // early and leaves the camera at the default origin. Retry across
+              // frames until the viewport is measured and the frame resolves,
+              // then zoom exactly once. Bounded so a deleted/missing frame or a
+              // never-sized container gives up instead of spinning.
+              let zoomHintRaf: number | null = null;
+              if (!embedOptions) {
+                const zoomHint = consumeFrameZoomHint({ pageUid });
+                if (zoomHint) {
+                  let zoomHintAttempts = 0;
+                  const applyZoomHint = () => {
+                    zoomHintRaf = null;
+                    const screen = app.getViewportScreenBounds();
+                    const viewportMeasured =
+                      !!screen && screen.w > 1 && screen.h > 1;
+                    if (viewportMeasured && zoomToFrame(app, zoomHint)) return;
+                    // ~90 frames ≈ 1.5s: long enough for a cold canvas to size
+                    // its container, short enough to stop if the frame is gone.
+                    if (zoomHintAttempts++ < 90)
+                      zoomHintRaf = requestAnimationFrame(applyZoomHint);
+                  };
+                  zoomHintRaf = requestAnimationFrame(applyZoomHint);
+                }
+              }
+
               if (process.env.NODE_ENV !== "production") {
                 if (!window.tldrawApps) window.tldrawApps = {};
                 const { tldrawApps } = window;
@@ -1185,6 +1194,7 @@ const TldrawCanvasShared = ({
               embedOptions?.onEditorMount?.(app);
 
               return () => {
+                if (zoomHintRaf !== null) cancelAnimationFrame(zoomHintRaf);
                 unregisterCanvasSessionStatePersistence();
               };
             }}

@@ -6,6 +6,10 @@
 //   {{dg-canvas: [[Canvas Page Title]] "Frame Name"}}              frame by name (hand-written)
 //   {{dg-canvas: [[Canvas Page Title]] "Frame Name" shape:abc}}    frame by id (what the picker writes)
 //   {{dg-canvas: [[Canvas Page Title]] shape:abc}}                 frame by id (name omitted)
+//   {{dg-canvas: [[Canvas Page Title]] "Frame Name" shape:abc live}}  frame, live editor (see below)
+//
+// Frame-anchored embeds render as a static snapshot by default; a trailing
+// `live` token (lowercase, always last) opts back into the interactive editor.
 //
 // Frames are referenced by tldraw shape id (stable across renames and moves);
 // the display name is carried alongside for human readability and as a
@@ -24,6 +28,9 @@ export type DgCanvasEmbed = {
   // Full tldraw shape id, e.g. "shape:abc123" (tldraw ids use the nanoid
   // alphabet: A-Z a-z 0-9 _ -).
   frameShapeId?: string;
+  // Frame embeds only: force the interactive editor instead of the default
+  // static snapshot.
+  live?: boolean;
 };
 
 // Group 1: page title. Group 2: everything between the closing `]]` and the
@@ -37,8 +44,12 @@ export const DG_CANVAS_EMBED_REGEX =
   /\{\{dg-canvas:\s*\[\[(.+?)\]\]([\s\S]*?)\}\}/i;
 
 // The tail only counts as a frame reference if it is exactly an optional
-// quoted frame name followed by an optional shape-id token.
-const FRAME_ARGS_REGEX = /^\s*(?:"([^"]*)"\s*)?(shape:[A-Za-z0-9_-]+)?\s*$/;
+// quoted frame name followed by an optional shape-id token, optionally
+// followed by the `live` modifier. Kept case-sensitive: shape ids are
+// case-sensitive, and a canonical lowercase `live` keeps the degradation
+// rule simple (anything else in the tail → whole-canvas embed).
+const FRAME_ARGS_REGEX =
+  /^\s*(?:"([^"]*)"\s*)?(shape:[A-Za-z0-9_-]+)?\s*(live)?\s*$/;
 
 export const parseDgCanvasEmbed = (blockText: string): DgCanvasEmbed | null => {
   const match = blockText.match(DG_CANVAS_EMBED_REGEX);
@@ -55,6 +66,7 @@ export const parseDgCanvasEmbed = (blockText: string): DgCanvasEmbed | null => {
     title,
     ...(frameName ? { frameName } : {}),
     ...(frameShapeId ? { frameShapeId } : {}),
+    ...(frameArgs?.[3] ? { live: true } : {}),
   };
 };
 
@@ -62,6 +74,7 @@ export const serializeDgCanvasEmbed = ({
   title,
   frameName,
   frameShapeId,
+  live,
 }: DgCanvasEmbed): string => {
   let inner = `dg-canvas: [[${title}]]`;
   // The name is only ever a readability/fallback hint (the id is authoritative),
@@ -71,5 +84,22 @@ export const serializeDgCanvasEmbed = ({
   const safeName = frameName?.replace(/"/g, "'").replace(/[{}]/g, "");
   if (safeName) inner += ` "${safeName}"`;
   if (frameShapeId) inner += ` ${frameShapeId}`;
+  if (live) inner += " live";
   return `{{${inner}}}`;
 };
+
+// How a frame-anchored embed should render. Pure so it is unit-testable: the
+// caller supplies the canvas's effective sync mode. Sync-mode canvases fall
+// back to the live embed because their block-props snapshot may lag the
+// multiplayer room — an explicit `live` request is already the live editor,
+// so the fallback distinction only matters for labeling.
+export type FrameEmbedMode = "snapshot" | "live" | "live-sync-fallback";
+
+export const getFrameEmbedMode = ({
+  live,
+  canvasSyncMode,
+}: {
+  live?: boolean;
+  canvasSyncMode: "local" | "sync";
+}): FrameEmbedMode =>
+  live ? "live" : canvasSyncMode === "sync" ? "live-sync-fallback" : "snapshot";

@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Card, Elevation } from "@blueprintjs/core";
-import type { Editor, TLFrameShape, TLShapeId } from "tldraw";
+import { Button, Card, Elevation, Icon } from "@blueprintjs/core";
+import type { Editor } from "tldraw";
 import { TldrawCanvas, type CanvasEmbedOptions } from "./Tldraw";
 import { getCanvasFrameShapes } from "./useRoamStore";
+import { zoomToFrame, type FrameRef } from "./canvasFrameRef";
 
-const FRAME_ZOOM_INSET = 16;
-
-export type FrameRef = { name?: string; shapeId?: string };
+export type { FrameRef } from "./canvasFrameRef";
 
 // Decide whether a parsed frame argument actually maps to a frame on the canvas
 // by scanning the persisted frame shapes (no editor mounted). The classic embed
@@ -42,59 +41,18 @@ export const findCanvasFrameRef = ({
   }
 };
 
-// Resolve a frame by shape id first (stable across renames and moves), then fall
-// back to a case-insensitive, trimmed name match. Duplicate names resolve to the
-// first match with a warning. Returns null if neither path finds a frame.
-const resolveFrameShape = (
-  editor: Editor,
-  frame: FrameRef,
-): TLFrameShape | null => {
-  if (frame.shapeId) {
-    const byId = editor.getShape<TLFrameShape>(frame.shapeId as TLShapeId);
-    if (byId?.type === "frame") return byId;
-  }
-
-  if (frame.name) {
-    const target = frame.name.trim().toLowerCase();
-    const matches = editor
-      .getCurrentPageShapes()
-      .filter(
-        (shape): shape is TLFrameShape =>
-          shape.type === "frame" &&
-          ((shape as TLFrameShape).props.name ?? "").trim().toLowerCase() ===
-            target,
-      );
-    if (matches.length > 1) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `dg-canvas: multiple frames named "${frame.name}"; using the first match.`,
-      );
-    }
-    if (matches[0]) return matches[0];
-  }
-
-  return null;
-};
-
-// Frame always wins: zoom to the frame's current bounds so the embed tracks the
-// frame even when it has been moved or resized on the canvas since last mount.
-const zoomToFrame = (editor: Editor, frame: FrameRef): boolean => {
-  const shape = resolveFrameShape(editor, frame);
-  if (!shape) return false;
-  const bounds = editor.getShapePageBounds(shape);
-  if (!bounds) return false;
-  editor.zoomToBounds(bounds, { inset: FRAME_ZOOM_INSET });
-  return true;
-};
-
 // Frame-anchored variant of the canvas embed: mounted by renderCanvasEmbed only
-// when the block's frame argument maps to a real frame on the canvas.
+// when the block's frame argument maps to a real frame on the canvas. The
+// optional notice explains a forced live render (e.g. the sync-mode fallback
+// from the snapshot renderer).
 export const CanvasFrameEmbed = ({
   title,
   frame,
+  notice,
 }: {
   title: string;
   frame: FrameRef;
+  notice?: string;
 }) => {
   const editorRef = useRef<Editor | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -149,6 +107,22 @@ export const CanvasFrameEmbed = ({
       >
         ⌖
       </Button>
+      {notice && (
+        <Card
+          elevation={Elevation.ONE}
+          title={notice}
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 44,
+            zIndex: 300,
+            padding: "2px 6px",
+            cursor: "help",
+          }}
+        >
+          <Icon icon="info-sign" size={12} color="#5c7080" />
+        </Card>
+      )}
       {frameMissing && (
         <Card
           elevation={Elevation.ONE}
