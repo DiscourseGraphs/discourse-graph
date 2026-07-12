@@ -1,5 +1,4 @@
 import type { Json } from "@repo/database/dbTypes";
-import matter from "gray-matter";
 import { App, Notice, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { listGroupSharedNodes } from "@repo/database/lib/sharedNodes";
@@ -21,6 +20,13 @@ import {
 } from "./importRelations";
 import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
+import {
+  buildImportedNodeFrontmatter,
+  buildSourceNodeTypeIdMap,
+  getAvailableImportPath,
+  type SourceNodeConcept,
+  type SourceNodeSchema,
+} from "./sharedNodeImport";
 
 type PublishedNode = {
   source_local_id: string;
@@ -70,22 +76,20 @@ export const getPublishedNodesForGroups = async ({
   });
 };
 
-export const getLocalNodeInstanceIds = (
-  plugin: DiscourseGraphPlugin,
-): Set<string> => {
+export const getImportedNodeKeys = async ({
+  plugin,
+  client,
+}: {
+  plugin: DiscourseGraphPlugin;
+  client: DGSupabaseClient;
+}): Promise<Set<string>> => {
   const queryEngine = new QueryEngine(plugin.app);
-  const files = queryEngine.getFilesWithNodeInstanceId();
-  const nodeInstanceIds = new Set<string>();
-
-  for (const file of files) {
-    const cache = plugin.app.metadataCache.getFileCache(file);
-    const frontmatter = cache?.frontmatter;
-    if (frontmatter?.nodeInstanceId) {
-      nodeInstanceIds.add(frontmatter.nodeInstanceId as string);
-    }
-  }
-
-  return nodeInstanceIds;
+  const { nodeKeys } = await getImportedNodesInfo({
+    queryEngine,
+    plugin,
+    client,
+  });
+  return nodeKeys;
 };
 
 /**
@@ -320,6 +324,47 @@ const fetchNodeContentForImport = async ({
     filePath,
     authorId,
   };
+};
+
+const fetchSourceNodeTypeIds = async ({
+  client,
+  spaceId,
+  nodeInstanceIds,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  nodeInstanceIds: string[];
+}): Promise<Map<string, string>> => {
+  const { data: conceptRows, error: conceptError } = await client
+    .from("my_concepts")
+    .select("source_local_id, schema_id")
+    .eq("space_id", spaceId)
+    .eq("is_schema", false)
+    .in("source_local_id", nodeInstanceIds);
+  if (conceptError || !conceptRows) return new Map();
+
+  const concepts = conceptRows as SourceNodeConcept[];
+  const schemaIds = [
+    ...new Set(
+      concepts
+        .map((concept) => concept.schema_id)
+        .filter((schemaId): schemaId is number => schemaId !== null),
+    ),
+  ];
+  if (schemaIds.length === 0) return new Map();
+
+  const { data: schemaRows, error: schemaError } = await client
+    .from("my_concepts")
+    .select("id, source_local_id")
+    .eq("space_id", spaceId)
+    .eq("is_schema", true)
+    .in("id", schemaIds);
+  if (schemaError || !schemaRows) return new Map();
+
+  return buildSourceNodeTypeIdMap({
+    concepts,
+    schemas: schemaRows as SourceNodeSchema[],
+  });
 };
 
 /**
@@ -937,24 +982,6 @@ const sanitizePathForImport = (path: string): string => {
     .join("/");
 };
 
-type ParsedFrontmatter = {
-  nodeTypeId?: string;
-  nodeInstanceId?: string;
-  publishedToGroups?: string[];
-  authorId?: number;
-  [key: string]: unknown;
-};
-
-const parseFrontmatter = (
-  content: string,
-): { frontmatter: ParsedFrontmatter; body: string } => {
-  const { data, content: body } = matter(content);
-  return {
-    frontmatter: (data ?? {}) as ParsedFrontmatter,
-    body: body ?? "",
-  };
-};
-
 /**
  * Parse literal_content from a Concept schema into fields for DiscourseNode.
  * Handles both nested form { label, template, source_data: { format, color, tag } }
@@ -1096,6 +1123,8 @@ const processFileContent = async ({
   sourceSpaceId,
   sourceSpaceUri,
   rawContent,
+  sourceNodeId,
+  sourceNodeTypeId,
   originalFilePath,
   filePath,
   importedCreatedAt,
@@ -1107,6 +1136,8 @@ const processFileContent = async ({
   sourceSpaceId: number;
   sourceSpaceUri: string;
   rawContent: string;
+  sourceNodeId: string;
+  sourceNodeTypeId: string;
   originalFilePath?: string;
   filePath: string;
   importedCreatedAt?: number;
@@ -1131,24 +1162,6 @@ const processFileContent = async ({
     await plugin.app.vault.process(file, () => rawContent, stat);
   }
 
-  // 2. Parse frontmatter from rawContent (metadataCache is updated async and is
-  //    often empty immediately after create/modify), then map nodeTypeId and update frontmatter.
-  const { frontmatter } = parseFrontmatter(rawContent);
-  const sourceNodeTypeId = frontmatter.nodeTypeId;
-  if (typeof sourceNodeTypeId !== "string") {
-    await plugin.app.vault.delete(file);
-    return {
-      error: "importedNode missing sourceNodeTypeId",
-    };
-  }
-  const sourceNodeId = frontmatter.nodeInstanceId;
-  if (typeof sourceNodeId !== "string") {
-    await plugin.app.vault.delete(file);
-    return {
-      error: "importedNode missing nodeInstanceId",
-    };
-  }
-
   const mappedNodeTypeId = await mapNodeTypeIdToLocal({
     plugin,
     client,
@@ -1161,16 +1174,22 @@ const processFileContent = async ({
     file,
     (fm) => {
       const record = fm as Record<string, unknown>;
-      if (mappedNodeTypeId !== undefined) {
-        record.nodeTypeId = mappedNodeTypeId;
-      }
-      record.importedFromRid = spaceUriAndLocalIdToRid(
+      const importedFromRid = spaceUriAndLocalIdToRid(
         sourceSpaceUri,
         sourceNodeId,
         "note",
       );
-      record.lastModified = importedModifiedAt;
-      if (authorId) record.authorId = authorId;
+      Object.assign(
+        record,
+        buildImportedNodeFrontmatter({
+          existingFrontmatter: record,
+          sourceNodeId,
+          mappedNodeTypeId,
+          importedFromRid,
+          importedModifiedAt,
+          authorId,
+        }),
+      );
     },
     stat,
   );
@@ -1238,6 +1257,11 @@ export const importSelectedNodes = async ({
     }
 
     const spaceName = spaceNames.get(spaceId) ?? `space-${spaceId}`;
+    const sourceNodeTypeIds = await fetchSourceNodeTypeIds({
+      client,
+      spaceId,
+      nodeInstanceIds: nodes.map((node) => node.nodeInstanceId),
+    });
     const importFolderPath = await resolveFolderForSpaceUri({
       adapter: plugin.app.vault.adapter,
       spaceUri,
@@ -1247,6 +1271,13 @@ export const importSelectedNodes = async ({
     // Process each node in this space
     for (const node of nodes) {
       try {
+        const sourceNodeTypeId = sourceNodeTypeIds.get(node.nodeInstanceId);
+        if (!sourceNodeTypeId) {
+          failedCount++;
+          processedCount++;
+          onProgress?.(processedCount, totalNodes);
+          continue;
+        }
         const importedFromRid = spaceUriAndLocalIdToRid(
           spaceUri,
           node.nodeInstanceId,
@@ -1299,6 +1330,10 @@ export const importSelectedNodes = async ({
               ? sanitizePathForImport(contentFilePath)
               : `${sanitizedFileName}.md`;
           finalFilePath = `${importFolderPath}/${pathUnderImport}`;
+          finalFilePath = await getAvailableImportPath({
+            desiredPath: finalFilePath,
+            pathExists: (path) => plugin.app.vault.adapter.exists(path),
+          });
 
           // Ensure all parent folders exist (e.g. import/VaultName/Discourse Nodes/SubFolder)
           const dirParts = finalFilePath.split("/");
@@ -1318,6 +1353,8 @@ export const importSelectedNodes = async ({
           sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
           rawContent: content,
+          sourceNodeId: node.nodeInstanceId,
+          sourceNodeTypeId,
           originalFilePath: contentFilePath,
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
