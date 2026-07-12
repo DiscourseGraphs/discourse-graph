@@ -74,12 +74,12 @@ export const TldrawPreviewComponent = ({
   const [isReady, setIsReady] = useState(false);
   const [isEditorMounted, setIsEditorMounted] = useState(false);
   const isCreatingRelationRef = useRef(false);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
   const isSavingRef = useRef<boolean>(false);
   const lastShiftClickRef = useRef<number>(0);
   const SHIFT_CLICK_DEBOUNCE_MS = 300; // Prevent double clicks within 300ms
   const lastSavedDataRef = useRef<string>("");
-  const editorRef = useRef<Editor | null>(null);
+  const editorRef = useRef<Editor>(null);
   const plugin = usePlugin();
 
   const customShapeUtils = [
