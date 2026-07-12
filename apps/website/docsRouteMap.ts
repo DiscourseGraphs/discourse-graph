@@ -35,6 +35,7 @@ export const OBSIDIAN_DOC_SECTIONS = {
     "discourse-context",
     "canvas",
     "node-tags",
+    "querying-discourse-graph",
   ],
   "advanced-features": ["command-palette", "sync-and-import"],
   "use-cases": [

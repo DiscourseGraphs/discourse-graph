@@ -1,8 +1,11 @@
 import React from "react";
+import { Button } from "@blueprintjs/core";
+import posthog from "posthog-js";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import getBlockUidFromTarget from "roamjs-components/dom/getBlockUidFromTarget";
+import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { TldrawCanvas } from "./Tldraw";
@@ -15,6 +18,38 @@ const CanvasEmbedPlaceholder = ({ message }: { message: string }) => (
     style={{ height: "100px" }}
   >
     {message}
+  </div>
+);
+
+const handleEditBlock = (location: { blockUid: string; windowId: string }) => {
+  posthog.capture("Canvas Embed: Edit Block Clicked");
+  void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+    location: {
+      "block-uid": location.blockUid,
+      "window-id": location.windowId,
+    },
+  });
+};
+
+// The whole-canvas embed, with an inline "Edit Block" button so the user can
+// jump to the source block from the mounted canvas.
+const CanvasEmbedChrome = ({
+  title,
+  location,
+}: {
+  title: string;
+  location: { blockUid: string; windowId: string };
+}) => (
+  <div className="relative h-full w-full">
+    <TldrawCanvas title={title} />
+    <Button
+      className="absolute bottom-2 right-8 z-20"
+      icon="edit"
+      minimal
+      small
+      title="Edit Block"
+      onClick={() => handleEditBlock(location)}
+    />
   </div>
 );
 
@@ -53,6 +88,7 @@ export const renderCanvasEmbed = (
     frameName: parsed.frameName,
     frameShapeId: parsed.frameShapeId,
   });
+  const location = getUids(button.closest<HTMLDivElement>(".roam-block"));
 
   const wrapper = document.createElement("div");
   wrapper.className = frame
@@ -67,7 +103,7 @@ export const renderCanvasEmbed = (
       {frame ? (
         <CanvasFrameEmbed title={parsed.title} frame={frame} />
       ) : (
-        <TldrawCanvas title={parsed.title} />
+        <CanvasEmbedChrome title={parsed.title} location={location} />
       )}
     </ExtensionApiContextProvider>,
     wrapper,

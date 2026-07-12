@@ -1,7 +1,7 @@
 import type { ContentType } from "@repo/content-model";
-import { Enums } from "./dbTypes";
+import { Enums, type Json } from "./dbTypes";
 
-type LocalRef = {
+export type LocalRef = {
   // This localId is expected to be unique within the current space
   localId: string;
 };
@@ -12,24 +12,60 @@ type DbRef = {
 };
 
 // Generalized reference
-type Ref = LocalRef | DbRef;
+export type Ref = LocalRef | DbRef;
 
 // Common attributes for most types
-type CrossAppBase = LocalRef & {
+export type CrossAppBase = LocalRef & {
   createdAt: Date;
   modifiedAt?: Date;
   author: Ref;
 };
 
+export type CrossAppSchemaBase = CrossAppBase & {
+  metadata?: Json;
+};
+
+// A node schema
+export type CrossAppNodeSchema = CrossAppSchemaBase & {
+  label: string;
+  template?: string;
+  templateTitle?: string;
+};
+
+// A relation type schema
+export type CrossAppRelationTypeSchema = CrossAppSchemaBase & {
+  label: string;
+  complement: string;
+  // should we add colour? format?
+};
+
+// A relation triple schema
+export type CrossAppRelationTripleSchema = CrossAppSchemaBase &
+  (
+    | {
+        label: string;
+        complement: string;
+        relation?: never;
+      }
+    | {
+        relation: Ref;
+        label?: never;
+        complement?: never;
+      }
+  ) & {
+    sourceType: Ref;
+    destinationType: Ref;
+  };
+
 // An inline vector semantic embedding
-type CrossAppEmbedding = {
+export type CrossAppEmbedding = {
   value: number[];
   embedding?: Enums<"EmbeddingName">;
 };
 
 // A Content object. It can be put inline inside a concept.
 // Missing CrossAppBase attributes are inferred from enclosing object.
-type InlineCrossAppContent = Partial<CrossAppBase> & {
+export type InlineCrossAppContent = Partial<CrossAppBase> & {
   value: string;
   embedding?: CrossAppEmbedding;
   scale?: Enums<"Scale">;
