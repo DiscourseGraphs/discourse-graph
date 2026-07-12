@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildSharedNodeCandidates } from "../sharedNodes";
+import {
+  buildSharedNodeCandidates,
+  buildSharedNodePayload,
+} from "../sharedNodes";
 
 type BuildArgs = Parameters<typeof buildSharedNodeCandidates>[0];
 
@@ -157,5 +160,53 @@ describe("buildSharedNodeCandidates", () => {
         ],
       }).map((node) => node.sourceLocalId),
     ).toEqual(["node-1", "node-2"]);
+  });
+});
+
+describe("buildSharedNodePayload", () => {
+  const concept = {
+    author_id: 42,
+    created: "2026-06-14T10:00:00.000Z",
+    last_modified: "2026-06-14T12:00:00.000Z",
+    schema_id: 200,
+    source_local_id: "node-1",
+  };
+
+  it("builds the CrossAppNode consumed by the Roam materializer", () => {
+    expect(buildSharedNodePayload({ concept, contents })).toEqual({
+      author: { dbId: 42 },
+      content: {
+        direct: {
+          contentType: "text/plain",
+          value: "EVD - REM sleep and recall",
+        },
+        full: {
+          contentType: "text/markdown",
+          value: "# EVD - REM sleep and recall",
+        },
+      },
+      createdAt: new Date("2026-06-14T10:00:00.000Z"),
+      localId: "node-1",
+      modifiedAt: new Date("2026-06-14T15:00:00.000Z"),
+      nodeType: { dbId: 200 },
+    });
+  });
+
+  it("rejects an incomplete payload before it reaches the materializer", () => {
+    expect(() =>
+      buildSharedNodePayload({
+        concept,
+        contents: contents.filter((content) => content.variant !== "full"),
+      }),
+    ).toThrow("Shared node is missing its full content");
+  });
+
+  it("uses the modified time when the source has no created time", () => {
+    const payload = buildSharedNodePayload({
+      concept: { ...concept, created: null },
+      contents: contents.map((content) => ({ ...content, created: null })),
+    });
+
+    expect(payload.createdAt).toEqual(new Date("2026-06-14T15:00:00.000Z"));
   });
 });

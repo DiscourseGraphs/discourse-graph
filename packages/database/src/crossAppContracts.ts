@@ -1,4 +1,4 @@
-import type { ContentType } from "@repo/content-model";
+import type { ContentType } from "@repo/content-model/constants";
 import { Enums } from "./dbTypes";
 
 export type LocalRef = {

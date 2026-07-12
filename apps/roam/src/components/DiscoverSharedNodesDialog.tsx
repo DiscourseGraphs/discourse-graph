@@ -1,6 +1,7 @@
 import {
   Button,
   Callout,
+  Checkbox,
   Classes,
   Dialog,
   HTMLTable,
@@ -17,13 +18,41 @@ import {
   discoverSharedNodes,
   type DiscoveredSharedNode,
 } from "~/utils/discoverSharedNodes";
+import { importDiscoveredSharedNode } from "~/utils/importDiscoveredSharedNode";
+import {
+  importSelectedSharedNodes,
+  type SelectedSharedNodeImportResult,
+} from "~/utils/importSelectedSharedNodes";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 
 const formatModifiedAt = (modifiedAt: string): string =>
   new Date(modifiedAt).toLocaleString();
 
-const SharedNodeRow = ({ node }: { node: DiscoveredSharedNode }) => (
+const SharedNodeRow = ({
+  disabled,
+  node,
+  onToggle,
+  selected,
+}: {
+  disabled: boolean;
+  node: DiscoveredSharedNode;
+  onToggle: (node: DiscoveredSharedNode) => void;
+  selected: boolean;
+}) => (
   <tr>
+    <td>
+      <Checkbox
+        aria-label={`Select ${node.title}`}
+        checked={selected}
+        disabled={disabled || node.sourceApp !== "Obsidian"}
+        onChange={() => onToggle(node)}
+        title={
+          node.sourceApp === "Obsidian"
+            ? undefined
+            : "Only Obsidian-origin nodes can be imported into Roam"
+        }
+      />
+    </td>
     <td>
       <Tag minimal>{node.sourceApp}</Tag>
     </td>
@@ -76,15 +105,62 @@ const SharedNodeRow = ({ node }: { node: DiscoveredSharedNode }) => (
   </tr>
 );
 
+const ImportResultCallout = ({
+  result,
+}: {
+  result: SelectedSharedNodeImportResult;
+}) => {
+  const failedCount = result.failed.length;
+  const intent =
+    failedCount === 0
+      ? Intent.SUCCESS
+      : result.imported > 0 || result.skipped > 0
+        ? Intent.WARNING
+        : Intent.DANGER;
+
+  return (
+    <Callout
+      intent={intent}
+      title={`${result.imported} imported, ${result.skipped} skipped, ${failedCount} failed`}
+    >
+      {result.updated > 0 && (
+        <div className={failedCount > 0 ? "mb-2" : undefined}>
+          {result.updated} previously imported{" "}
+          {result.updated === 1 ? "node was" : "nodes were"} updated.
+        </div>
+      )}
+      {failedCount > 0 && (
+        <ul className="m-0 pl-5">
+          {result.failed.map(({ message, node }) => (
+            <li key={node.sourceNodeRid}>
+              <strong>{node.title}:</strong> {message}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Callout>
+  );
+};
+
 const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
   const [nodes, setNodes] = useState<DiscoveredSharedNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [importError, setImportError] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] =
+    useState<SelectedSharedNodeImportResult>();
   const [search, setSearch] = useState("");
+  const [selectedSourceRids, setSelectedSourceRids] = useState<Set<string>>(
+    new Set(),
+  );
 
   const loadNodes = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError("");
+    setImportError("");
+    setImportResult(undefined);
+    setSelectedSourceRids(new Set());
     try {
       const [client, context] = await Promise.all([
         getLoggedInClient(),
@@ -128,11 +204,88 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     );
   }, [nodes, search]);
 
+  const selectedNodes = useMemo(
+    () => nodes.filter((node) => selectedSourceRids.has(node.sourceNodeRid)),
+    [nodes, selectedSourceRids],
+  );
+  const visibleImportableNodes = useMemo(
+    () => visibleNodes.filter((node) => node.sourceApp === "Obsidian"),
+    [visibleNodes],
+  );
+  const allVisibleSelected =
+    visibleImportableNodes.length > 0 &&
+    visibleImportableNodes.every((node) =>
+      selectedSourceRids.has(node.sourceNodeRid),
+    );
+  const someVisibleSelected = visibleImportableNodes.some((node) =>
+    selectedSourceRids.has(node.sourceNodeRid),
+  );
+
+  const toggleNode = useCallback((node: DiscoveredSharedNode): void => {
+    setSelectedSourceRids((current) => {
+      const next = new Set(current);
+      if (next.has(node.sourceNodeRid)) next.delete(node.sourceNodeRid);
+      else next.add(node.sourceNodeRid);
+      return next;
+    });
+  }, []);
+
+  const toggleAllVisible = useCallback((): void => {
+    setSelectedSourceRids((current) => {
+      const next = new Set(current);
+      if (allVisibleSelected) {
+        visibleImportableNodes.forEach((node) =>
+          next.delete(node.sourceNodeRid),
+        );
+      } else {
+        visibleImportableNodes.forEach((node) => next.add(node.sourceNodeRid));
+      }
+      return next;
+    });
+  }, [allVisibleSelected, visibleImportableNodes]);
+
+  const importSelected = useCallback(async (): Promise<void> => {
+    setImporting(true);
+    setImportError("");
+    setImportResult(undefined);
+    try {
+      const client = await getLoggedInClient();
+      if (!client) throw new Error("Could not connect to shared persistence.");
+
+      const result = await importSelectedSharedNodes({
+        materializeNode: (node) => importDiscoveredSharedNode({ client, node }),
+        nodes: selectedNodes,
+      });
+      const failedSourceRids = new Set(
+        result.failed.map(({ node }) => node.sourceNodeRid),
+      );
+      setNodes((current) =>
+        current.map((node) =>
+          selectedSourceRids.has(node.sourceNodeRid) &&
+          !failedSourceRids.has(node.sourceNodeRid)
+            ? { ...node, alreadyImported: true }
+            : node,
+        ),
+      );
+      setSelectedSourceRids(failedSourceRids);
+      setImportResult(result);
+    } catch (importError) {
+      console.error("Failed to import selected shared nodes:", importError);
+      setImportError(
+        importError instanceof Error
+          ? importError.message
+          : "Could not import selected shared nodes.",
+      );
+    } finally {
+      setImporting(false);
+    }
+  }, [selectedNodes, selectedSourceRids]);
+
   return (
     <Dialog
       autoFocus={false}
-      canEscapeKeyClose
-      canOutsideClickClose
+      canEscapeKeyClose={!importing}
+      canOutsideClickClose={!importing}
       enforceFocus={false}
       style={{ width: "min(68rem, calc(100vw - 2rem))" }}
       isOpen
@@ -157,13 +310,20 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           <Tooltip content="Reload shared nodes">
             <Button
               aria-label="Reload shared nodes"
-              disabled={loading}
+              disabled={loading || importing}
               icon="refresh"
               minimal
               onClick={() => void loadNodes()}
             />
           </Tooltip>
         </div>
+
+        {importResult && <ImportResultCallout result={importResult} />}
+        {importError && (
+          <Callout intent={Intent.DANGER} title="Could not import shared nodes">
+            {importError}
+          </Callout>
+        )}
 
         {loading ? (
           <div className="flex min-h-52 items-center justify-center">
@@ -188,6 +348,17 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
             <HTMLTable striped className="w-full">
               <thead>
                 <tr>
+                  <th>
+                    <Checkbox
+                      aria-label="Select all visible Obsidian nodes"
+                      checked={allVisibleSelected}
+                      disabled={
+                        importing || visibleImportableNodes.length === 0
+                      }
+                      indeterminate={someVisibleSelected && !allVisibleSelected}
+                      onChange={toggleAllVisible}
+                    />
+                  </th>
                   <th>Source app</th>
                   <th>Source space</th>
                   <th>Title</th>
@@ -198,7 +369,13 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
               </thead>
               <tbody>
                 {visibleNodes.map((node) => (
-                  <SharedNodeRow key={node.sourceNodeRid} node={node} />
+                  <SharedNodeRow
+                    key={node.sourceNodeRid}
+                    disabled={importing}
+                    node={node}
+                    onToggle={toggleNode}
+                    selected={selectedSourceRids.has(node.sourceNodeRid)}
+                  />
                 ))}
               </tbody>
             </HTMLTable>
@@ -210,9 +387,22 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           <span className={[Classes.TEXT_MUTED, "text-xs"].join(" ")}>
             {loading || error
               ? ""
-              : `${visibleNodes.length} of ${nodes.length} nodes`}
+              : `${visibleNodes.length} of ${nodes.length} nodes · ${selectedNodes.length} selected`}
           </span>
-          <Button onClick={onClose}>Close</Button>
+          <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+            <Button disabled={importing} onClick={onClose}>
+              Close
+            </Button>
+            <Button
+              disabled={importing || selectedNodes.length === 0}
+              intent={Intent.PRIMARY}
+              loading={importing}
+              onClick={() => void importSelected()}
+            >
+              Import selected
+              {selectedNodes.length > 0 ? ` (${selectedNodes.length})` : ""}
+            </Button>
+          </div>
         </div>
       </div>
     </Dialog>
