@@ -86,12 +86,10 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     setLoading(true);
     setError("");
     try {
-      const [client, context] = await Promise.all([
-        getLoggedInClient(),
-        getSupabaseContext(),
-      ]);
-      if (!client || !context)
-        throw new Error("Could not connect to shared persistence.");
+      const context = await getSupabaseContext();
+      if (!context) throw new Error("Could not connect to shared persistence.");
+      const client = await getLoggedInClient();
+      if (!client) throw new Error("Could not connect to shared persistence.");
       setNodes(
         await discoverSharedNodes({
           client,
