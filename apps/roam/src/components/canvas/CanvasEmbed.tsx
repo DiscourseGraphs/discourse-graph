@@ -9,7 +9,8 @@ import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { TldrawCanvas } from "./Tldraw";
-import { CanvasFrameEmbed, findCanvasFrameRef } from "./CanvasFrameEmbed";
+import { findCanvasFrameRef } from "./CanvasFrameEmbed";
+import { CanvasFrameEmbedRouter } from "./CanvasFrameSnapshot";
 import { parseDgCanvasEmbed } from "~/utils/dgCanvasEmbed";
 
 const CanvasEmbedPlaceholder = ({ message }: { message: string }) => (
@@ -101,7 +102,12 @@ export const renderCanvasEmbed = (
   renderWithUnmount(
     <ExtensionApiContextProvider {...onloadArgs}>
       {frame ? (
-        <CanvasFrameEmbed title={parsed.title} frame={frame} />
+        <CanvasFrameEmbedRouter
+          title={parsed.title}
+          pageUid={pageUid}
+          frame={frame}
+          live={parsed.live}
+        />
       ) : (
         <CanvasEmbedChrome title={parsed.title} location={location} />
       )}

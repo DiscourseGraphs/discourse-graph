@@ -85,10 +85,10 @@ import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import renderToast from "roamjs-components/components/Toast";
 import {
-  AddReferencedNodeType,
   createAllReferencedNodeTools,
   createAllRelationShapeTools,
 } from "./DiscourseRelationShape/DiscourseRelationTool";
+import { buildAllAddReferencedNodeByAction } from "~/utils/buildAllAddReferencedNodeByAction";
 import ConvertToDialog from "./ConvertToDialog";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
@@ -96,6 +96,8 @@ import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import internalError from "~/utils/internalError";
 import { syncCanvasNodeTitlesOnLoad } from "~/utils/syncCanvasNodeTitlesOnLoad";
 import { registerCanvasSessionStatePersistence } from "~/utils/canvasSessionState";
+import { consumeFrameZoomHint } from "~/utils/canvasFrameZoomHint";
+import { zoomToFrame } from "./canvasFrameRef";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 import { HistoryEntry } from "@tldraw/store";
 import { TLRecord } from "@tldraw/tlschema";
@@ -528,35 +530,10 @@ const TldrawCanvasShared = ({
     return allNodes;
   }, []);
 
-  const allAddReferencedNodeByAction = useMemo(() => {
-    const obj: AddReferencedNodeType = {};
-
-    // TODO: support multiple referenced node
-    // with migration from format to specification
-    allNodes.forEach((n) => {
-      const referencedNodes = [...n.format.matchAll(/{([\w\d-]+)}/g)].filter(
-        (match) => match[1] !== "content",
-      );
-
-      if (referencedNodes.length > 0) {
-        const sourceName = referencedNodes[0][1];
-        const sourceType = allNodes.find((node) => node.text === sourceName)
-          ?.type as string;
-
-        if (!obj[`Add ${sourceName}`]) obj[`Add ${sourceName}`] = [];
-
-        obj[`Add ${sourceName}`].push({
-          format: n.format,
-          sourceName,
-          sourceType,
-          destinationType: n.type,
-          destinationName: n.text,
-        });
-      }
-    });
-
-    return obj;
-  }, [allNodes]);
+  const allAddReferencedNodeByAction = useMemo(
+    () => buildAllAddReferencedNodeByAction(allNodes),
+    [allNodes],
+  );
   const allAddReferencedNodeActions = useMemo(() => {
     return Object.keys(allAddReferencedNodeByAction);
   }, [allAddReferencedNodeByAction]);
@@ -1085,6 +1062,22 @@ const TldrawCanvasShared = ({
                       pageUid,
                     });
 
+              // A frame snapshot's "Open canvas" button leaves a one-shot hint
+              // to land zoomed on its frame. Consumed after session persistence
+              // restored the remembered camera, so the hint wins; deferred one
+              // frame so the viewport is measured (same pattern as the frame
+              // embed's zoom-on-mount). Main-page/sidebar mounts only.
+              let zoomHintRaf: number | null = null;
+              if (!embedOptions) {
+                const zoomHint = consumeFrameZoomHint({ pageUid });
+                if (zoomHint) {
+                  zoomHintRaf = requestAnimationFrame(() => {
+                    zoomHintRaf = null;
+                    zoomToFrame(app, zoomHint);
+                  });
+                }
+              }
+
               if (process.env.NODE_ENV !== "production") {
                 if (!window.tldrawApps) window.tldrawApps = {};
                 const { tldrawApps } = window;
@@ -1185,6 +1178,7 @@ const TldrawCanvasShared = ({
               embedOptions?.onEditorMount?.(app);
 
               return () => {
+                if (zoomHintRaf !== null) cancelAnimationFrame(zoomHintRaf);
                 unregisterCanvasSessionStatePersistence();
               };
             }}

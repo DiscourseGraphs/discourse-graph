@@ -58,7 +58,7 @@ const getUtilTypes = <T extends { type: string }>({
   return utils.map((u) => u.type);
 };
 
-const createShapeUtils = ({
+export const createShapeUtils = ({
   allNodes,
   allRelationIds,
   allAddReferencedNodeByAction,
@@ -79,7 +79,7 @@ const createShapeUtils = ({
   ];
 };
 
-const createBindingUtils = ({
+export const createBindingUtils = ({
   allRelationIds,
   allAddReferencedNodeByAction,
 }: {
