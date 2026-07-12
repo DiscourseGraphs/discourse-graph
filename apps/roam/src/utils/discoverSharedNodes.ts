@@ -11,6 +11,7 @@ export type DiscoveredSharedNode = {
   sourceApp: "Roam" | "Obsidian";
   sourceNodeId?: string;
   sourceNodeRid: string;
+  sourceSpaceDatabaseId: number;
   sourceSpaceId: string;
   sourceSpaceName: string;
   title: string;
@@ -29,6 +30,7 @@ export const toDiscoveredSharedNodes = ({
     sourceApp: candidate.platform,
     sourceNodeId: candidate.sourceLocalId || undefined,
     sourceNodeRid: candidate.rid,
+    sourceSpaceDatabaseId: candidate.spaceId,
     sourceSpaceId: candidate.spaceUri,
     sourceSpaceName: candidate.spaceName,
     title: candidate.title,

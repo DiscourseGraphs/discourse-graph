@@ -1,3 +1,5 @@
+import { isSupportedContentType } from "@repo/content-model";
+import type { CrossAppNode } from "../crossAppContracts";
 import type { DGSupabaseClient } from "./client";
 import { getAvailableGroupIds } from "./groups";
 import { getAllPages } from "./pagination";
@@ -31,6 +33,19 @@ type SharedSpace = Pick<
   Tables<"my_spaces">,
   "id" | "name" | "platform" | "url"
 >;
+type SharedNodePayloadConcept = Pick<
+  Tables<"my_concepts">,
+  "author_id" | "created" | "last_modified" | "schema_id" | "source_local_id"
+>;
+type SharedNodePayloadContent = Pick<
+  Tables<"my_contents">,
+  | "author_id"
+  | "content_type"
+  | "created"
+  | "last_modified"
+  | "text"
+  | "variant"
+>;
 type ValidSharedSpace = {
   name: string;
   platform: "Roam" | "Obsidian";
@@ -56,6 +71,77 @@ export type SharedNodeRows = {
   contents: SharedContent[];
   resources: ResourceAccess[];
   spaces: SharedSpace[];
+};
+
+const getValidDate = (values: (string | null)[]): Date | undefined => {
+  const value = values.find(
+    (candidate): candidate is string =>
+      typeof candidate === "string" && !Number.isNaN(Date.parse(candidate)),
+  );
+  return value ? new Date(value) : undefined;
+};
+
+export const buildSharedNodePayload = ({
+  concept,
+  contents,
+}: {
+  concept: SharedNodePayloadConcept;
+  contents: SharedNodePayloadContent[];
+}): CrossAppNode => {
+  const direct = contents.find((content) => content.variant === "direct");
+  const full = contents.find((content) => content.variant === "full");
+  const authorId = concept.author_id ?? direct?.author_id ?? full?.author_id;
+  const modifiedAt = getValidDate(
+    [concept.last_modified, direct?.last_modified, full?.last_modified]
+      .filter((value): value is string => typeof value === "string")
+      .sort((left, right) => Date.parse(right) - Date.parse(left)),
+  );
+  const sourceCreatedAt = getValidDate([
+    concept.created,
+    direct?.created ?? null,
+    full?.created ?? null,
+  ]);
+
+  if (typeof concept.source_local_id !== "string")
+    throw new Error("Shared node is missing its source-local ID");
+  if (typeof concept.schema_id !== "number")
+    throw new Error("Shared node is missing its node type");
+  if (typeof authorId !== "number")
+    throw new Error("Shared node is missing its author");
+  if (!modifiedAt) throw new Error("Shared node is missing its modified time");
+  const createdAt = sourceCreatedAt ?? modifiedAt;
+  if (typeof direct?.text !== "string")
+    throw new Error("Shared node is missing its direct content");
+  if (typeof full?.text !== "string")
+    throw new Error("Shared node is missing its full content");
+  if (
+    typeof full.content_type !== "string" ||
+    !isSupportedContentType(full.content_type)
+  )
+    throw new Error(
+      `Shared node has unsupported full content type '${String(full.content_type)}'`,
+    );
+
+  return {
+    author: { dbId: authorId },
+    content: {
+      direct: {
+        value: direct.text,
+        ...(typeof direct.content_type === "string" &&
+        isSupportedContentType(direct.content_type)
+          ? { contentType: direct.content_type }
+          : {}),
+      },
+      full: {
+        contentType: full.content_type,
+        value: full.text,
+      },
+    },
+    createdAt,
+    localId: concept.source_local_id,
+    modifiedAt,
+    nodeType: { dbId: concept.schema_id },
+  };
 };
 
 const getResourceKey = ({
@@ -316,4 +402,39 @@ export const listGroupSharedNodes = async ({
 }): Promise<SharedNodeCandidate[]> => {
   const rows = await getSharedNodeRows({ client, currentSpaceId, groupIds });
   return buildSharedNodeCandidates({ ...rows, currentSpaceId });
+};
+
+export const getSharedNodePayload = async ({
+  client,
+  sourceLocalId,
+  spaceId,
+}: {
+  client: DGSupabaseClient;
+  sourceLocalId: string;
+  spaceId: number;
+}): Promise<CrossAppNode> => {
+  const [conceptResponse, contentsResponse] = await Promise.all([
+    client
+      .from("my_concepts")
+      .select("author_id, created, last_modified, schema_id, source_local_id")
+      .eq("space_id", spaceId)
+      .eq("source_local_id", sourceLocalId)
+      .eq("is_schema", false)
+      .maybeSingle(),
+    client
+      .from("my_contents")
+      .select("author_id, content_type, created, last_modified, text, variant")
+      .eq("space_id", spaceId)
+      .eq("source_local_id", sourceLocalId)
+      .in("variant", ["direct", "full"]),
+  ]);
+  if (conceptResponse.error) throw conceptResponse.error;
+  if (contentsResponse.error) throw contentsResponse.error;
+  if (!conceptResponse.data)
+    throw new Error(`Shared node '${sourceLocalId}' is no longer available`);
+
+  return buildSharedNodePayload({
+    concept: conceptResponse.data,
+    contents: contentsResponse.data,
+  });
 };

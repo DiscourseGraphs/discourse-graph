@@ -30,6 +30,7 @@ describe("toDiscoveredSharedNodes", () => {
         sourceApp: "Obsidian",
         sourceNodeId: "node-1",
         sourceNodeRid: "orn:obsidian.note:vault-a/node-1",
+        sourceSpaceDatabaseId: 20,
         sourceSpaceId: "obsidian:vault-a",
         sourceSpaceName: "Research vault",
         title: "EVD - REM sleep and recall",
