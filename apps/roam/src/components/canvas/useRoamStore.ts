@@ -17,6 +17,8 @@ import {
   defaultShapeUtils,
   loadSnapshot,
   MigrationSequence,
+  TLFrameShape,
+  TLShape,
   TLStoreSnapshot,
   TLStore,
 } from "tldraw";
@@ -135,6 +137,27 @@ export const getRoamCanvasSnapshot = ({
     store: filterUserRecords(snapshot.store),
   };
 };
+
+// The raw persisted record map from block props, without constructing or
+// migrating a TLStore (modern `{ store, schema }` store, or the legacy raw
+// store, whichever is present). Cheap read for callers that only need to
+// inspect records — no throwaway editor, and no ValidationError on an
+// un-migrated legacy node shape the way loadSnapshot-without-utils would throw.
+export const getPersistedCanvasStore = (
+  pageUid: string,
+): SerializedStore<TLRecord> => {
+  const { initialSnapshot, oldData } = getPersistedRoamCanvasState({ pageUid });
+  return initialSnapshot ? initialSnapshot.store : (oldData ?? {});
+};
+
+// Frame shapes on a canvas. Frames are default tldraw shapes — present verbatim
+// in both persisted formats and untouched by discourse-node migrations — so
+// this raw scan needs no migration or shape utils.
+export const getCanvasFrameShapes = (pageUid: string): TLFrameShape[] =>
+  Object.values(getPersistedCanvasStore(pageUid)).filter(
+    (record): record is TLFrameShape =>
+      record.typeName === "shape" && (record as TLShape).type === "frame",
+  );
 
 export const useRoamStore = ({
   customShapeUtils,

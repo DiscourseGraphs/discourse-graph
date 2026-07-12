@@ -7,7 +7,7 @@ import renderOverlay, {
 } from "roamjs-components/util/renderOverlay";
 import type { TLFrameShape, TLShape } from "tldraw";
 import { getCanvasPageTitles } from "~/utils/isCanvasPage";
-import { getRoamCanvasSnapshot } from "./useRoamStore";
+import { getPersistedCanvasStore } from "./useRoamStore";
 
 export type DgCanvasFrameSelection = {
   title: string;
@@ -21,22 +21,13 @@ type CanvasFrameEmbedDialogProps = {
 
 type FrameOption = { id: string; name: string; childCount: number };
 
-// Enumerate frames on a canvas without mounting an editor, by reading the
-// persisted store snapshot from block props and filtering for frame shapes.
-// Frames are default tldraw shapes, so they survive even with no custom shape
-// utils passed. Sync-mode canvases may show a slightly stale list — acceptable
-// for a picker. Any read/upgrade failure degrades to "whole canvas only".
+// Enumerate frames (with a child-shape count as a disambiguator) from the raw
+// persisted store — no editor mounted, no migration. Sync-mode canvases may
+// show a slightly stale list, acceptable for a picker; any read failure
+// degrades to "whole canvas only".
 const getCanvasFrames = (pageUid: string): FrameOption[] => {
   try {
-    const snapshot = getRoamCanvasSnapshot({
-      pageUid,
-      migrations: [],
-      customShapeUtils: [],
-      customBindingUtils: [],
-    });
-    if (!snapshot) return [];
-
-    const records = Object.values(snapshot.store);
+    const records = Object.values(getPersistedCanvasStore(pageUid));
 
     const childCounts = new Map<string, number>();
     for (const record of records) {

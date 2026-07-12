@@ -1,18 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import type { Editor, TLFrameShape, TLShape, TLShapeId } from "tldraw";
+import type { Editor, TLFrameShape, TLShapeId } from "tldraw";
 import { TldrawCanvas, type CanvasEmbedOptions } from "./Tldraw";
-import { getRoamCanvasSnapshot } from "./useRoamStore";
+import { getCanvasFrameShapes } from "./useRoamStore";
 
 const FRAME_ZOOM_INSET = 16;
 
 export type FrameRef = { name?: string; shapeId?: string };
 
-// Decide whether a parsed frame argument actually maps to a frame on the
-// canvas, by reading the persisted store snapshot without mounting an editor
-// (frames are default tldraw shapes, so no custom utils are needed). The
-// classic embed renderer uses this to route: no match -> the frame argument is
-// ignored and the whole canvas renders. Sync-mode canvases may have a slightly
-// stale snapshot; the worst case is falling back to the whole-canvas embed.
+// Decide whether a parsed frame argument actually maps to a frame on the canvas
+// by scanning the persisted frame shapes (no editor mounted). The classic embed
+// renderer uses this to route: no match -> the frame argument is ignored and the
+// whole canvas renders. Sync-mode canvases may have a slightly stale snapshot;
+// the worst case is falling back to the whole-canvas embed.
 export const findCanvasFrameRef = ({
   pageUid,
   frameName,
@@ -24,18 +23,7 @@ export const findCanvasFrameRef = ({
 }): FrameRef | null => {
   if (!frameName && !frameShapeId) return null;
   try {
-    const snapshot = getRoamCanvasSnapshot({
-      pageUid,
-      migrations: [],
-      customShapeUtils: [],
-      customBindingUtils: [],
-    });
-    if (!snapshot) return null;
-
-    const frames = Object.values(snapshot.store).filter(
-      (record): record is TLFrameShape =>
-        record.typeName === "shape" && (record as TLShape).type === "frame",
-    );
+    const frames = getCanvasFrameShapes(pageUid);
     const matchesId =
       !!frameShapeId && frames.some((frame) => frame.id === frameShapeId);
     const target = frameName?.trim().toLowerCase();
