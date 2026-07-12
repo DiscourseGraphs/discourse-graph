@@ -1064,17 +1064,33 @@ const TldrawCanvasShared = ({
 
               // A frame snapshot's "Open canvas" button leaves a one-shot hint
               // to land zoomed on its frame. Consumed after session persistence
-              // restored the remembered camera, so the hint wins; deferred one
-              // frame so the viewport is measured (same pattern as the frame
-              // embed's zoom-on-mount). Main-page/sidebar mounts only.
+              // restored the remembered camera, so the hint wins. Main-page /
+              // sidebar mounts only.
+              //
+              // zoomToBounds is a no-op against an unmeasured (zero-size)
+              // viewport, and on a cold page load the editor's viewport is not
+              // measured yet at onMount — a single deferred frame lands too
+              // early and leaves the camera at the default origin. Retry across
+              // frames until the viewport is measured and the frame resolves,
+              // then zoom exactly once. Bounded so a deleted/missing frame or a
+              // never-sized container gives up instead of spinning.
               let zoomHintRaf: number | null = null;
               if (!embedOptions) {
                 const zoomHint = consumeFrameZoomHint({ pageUid });
                 if (zoomHint) {
-                  zoomHintRaf = requestAnimationFrame(() => {
+                  let zoomHintAttempts = 0;
+                  const applyZoomHint = () => {
                     zoomHintRaf = null;
-                    zoomToFrame(app, zoomHint);
-                  });
+                    const screen = app.getViewportScreenBounds();
+                    const viewportMeasured =
+                      !!screen && screen.w > 1 && screen.h > 1;
+                    if (viewportMeasured && zoomToFrame(app, zoomHint)) return;
+                    // ~90 frames ≈ 1.5s: long enough for a cold canvas to size
+                    // its container, short enough to stop if the frame is gone.
+                    if (zoomHintAttempts++ < 90)
+                      zoomHintRaf = requestAnimationFrame(applyZoomHint);
+                  };
+                  zoomHintRaf = requestAnimationFrame(applyZoomHint);
                 }
               }
 
