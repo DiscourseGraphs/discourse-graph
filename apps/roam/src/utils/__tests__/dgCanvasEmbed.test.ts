@@ -68,6 +68,19 @@ describe("parseDgCanvasEmbed", () => {
     ).toEqual({ title: "My Canvas", frameName: "Frame A" });
   });
 
+  // A lone `}` inside a frame name must not stop the match at the wrong place and
+  // blank the whole block — the embed still parses (title + id survive) rather
+  // than returning null.
+  it("keeps a `}` inside a frame name from blanking the embed", () => {
+    expect(
+      parseDgCanvasEmbed('{{dg-canvas: [[My Canvas]] "Fig }2" shape:aB1_c-2}}'),
+    ).toEqual({
+      title: "My Canvas",
+      frameName: "Fig }2",
+      frameShapeId: "shape:aB1_c-2",
+    });
+  });
+
   it("returns null for a non-dg-canvas embed or unrelated text", () => {
     expect(parseDgCanvasEmbed("{{dg-query: [[My Canvas]]}}")).toBeNull();
     expect(parseDgCanvasEmbed("just some text")).toBeNull();
@@ -90,6 +103,21 @@ describe("serializeDgCanvasEmbed", () => {
     const text = serializeDgCanvasEmbed(embed);
     expect(text).toBe('{{dg-canvas: [[My Canvas]] "Frame A" shape:aB1_c-2}}');
     expect(parseDgCanvasEmbed(text)).toEqual(embed);
+  });
+
+  it("strips curly braces from the frame name so the serialized token round-trips", () => {
+    const text = serializeDgCanvasEmbed({
+      title: "My Canvas",
+      frameName: "Draft }v2{",
+      frameShapeId: "shape:x",
+    });
+    // Braces gone; the token parses back to a whole, non-null embed.
+    expect(text).toBe('{{dg-canvas: [[My Canvas]] "Draft v2" shape:x}}');
+    expect(parseDgCanvasEmbed(text)).toEqual({
+      title: "My Canvas",
+      frameName: "Draft v2",
+      frameShapeId: "shape:x",
+    });
   });
 
   it("collapses embedded double-quotes in the frame name so the token stays parseable", () => {

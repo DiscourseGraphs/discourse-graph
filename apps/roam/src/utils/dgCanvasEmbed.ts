@@ -26,11 +26,15 @@ export type DgCanvasEmbed = {
   frameShapeId?: string;
 };
 
-// Group 1: page title. Group 2: everything between the closing `]]` and `}}`,
-// parsed separately so a malformed frame argument degrades to a whole-canvas
-// embed instead of a dead button.
+// Group 1: page title. Group 2: everything between the closing `]]` and the
+// `}}` terminator, parsed separately so a malformed frame argument degrades to a
+// whole-canvas embed instead of a dead button. The tail is lazy (`[\s\S]*?`, not
+// `[^}]*`) on purpose: a lone `}` inside a frame name must not stop the match at
+// the wrong place and make the whole embed fail to parse (which would blank the
+// block rather than degrade) — the tail runs to the first `}}` and a stray `}`
+// in the name is then handled by FRAME_ARGS_REGEX.
 export const DG_CANVAS_EMBED_REGEX =
-  /\{\{dg-canvas:\s*\[\[(.+?)\]\]([^}]*)\}\}/i;
+  /\{\{dg-canvas:\s*\[\[(.+?)\]\]([\s\S]*?)\}\}/i;
 
 // The tail only counts as a frame reference if it is exactly an optional
 // quoted frame name followed by an optional shape-id token.
@@ -61,8 +65,11 @@ export const serializeDgCanvasEmbed = ({
 }: DgCanvasEmbed): string => {
   let inner = `dg-canvas: [[${title}]]`;
   // The name is only ever a readability/fallback hint (the id is authoritative),
-  // so collapse any embedded double-quote to keep the token unambiguous.
-  if (frameName) inner += ` "${frameName.replace(/"/g, "'")}"`;
+  // so collapse characters that would break the token: double-quotes (which
+  // delimit the name) and curly braces (which would collide with Roam's
+  // `{{ }}` component syntax and the parser's `}}` terminator).
+  const safeName = frameName?.replace(/"/g, "'").replace(/[{}]/g, "");
+  if (safeName) inner += ` "${safeName}"`;
   if (frameShapeId) inner += ` ${frameShapeId}`;
   return `{{${inner}}}`;
 };
