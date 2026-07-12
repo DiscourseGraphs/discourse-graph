@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Editor, TLFrameShape, TLShape, TLShapeId } from "tldraw";
 import { TldrawCanvas, type CanvasEmbedOptions } from "./Tldraw";
 import { getRoamCanvasSnapshot } from "./useRoamStore";
@@ -108,22 +108,36 @@ export const CanvasFrameEmbed = ({
   frame: FrameRef;
 }) => {
   const editorRef = useRef<Editor | null>(null);
+  const rafRef = useRef<number | null>(null);
   const [frameMissing, setFrameMissing] = useState(false);
 
   const handleEditorMount = useCallback(
     (editor: Editor) => {
       editorRef.current = editor;
       // Defer one frame so tldraw has measured the embed's viewport before we
-      // compute a viewport-relative zoom on first mount.
-      requestAnimationFrame(() => {
+      // compute a viewport-relative zoom on first mount. Track the handle so the
+      // cleanup effect can cancel it if the embed unmounts within the frame —
+      // otherwise the callback runs against a disposed editor.
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
         setFrameMissing(!zoomToFrame(editor, frame));
       });
     },
     [frame],
   );
 
+  useEffect(
+    () => () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    },
+    [],
+  );
+
   const handleRecenter = useCallback(() => {
-    if (editorRef.current) zoomToFrame(editorRef.current, frame);
+    // Re-resolve on click so a frame deleted/renamed since mount clears (or
+    // raises) the not-found notice instead of leaving stale state.
+    if (editorRef.current)
+      setFrameMissing(!zoomToFrame(editorRef.current, frame));
   }, [frame]);
 
   // Manage the camera ourselves (zoom-to-frame on every mount, no session
