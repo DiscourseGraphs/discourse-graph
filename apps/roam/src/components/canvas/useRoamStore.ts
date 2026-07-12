@@ -11,74 +11,28 @@ import {
   TLAnyBindingUtilConstructor,
   TLAnyShapeUtilConstructor,
 } from "@tldraw/editor";
-import { SerializedStore, StoreSnapshot } from "@tldraw/store";
+import { SerializedStore } from "@tldraw/store";
 import {
   defaultBindingUtils,
   defaultShapeUtils,
-  getIndices,
   loadSnapshot,
   MigrationSequence,
-  sortByIndex,
-  TLShape,
   TLStoreSnapshot,
   TLStore,
 } from "tldraw";
 import { AddPullWatch } from "roamjs-components/types";
 import { LEGACY_SCHEMA } from "~/data/legacyTldrawSchema";
 import internalError from "~/utils/internalError";
+import {
+  isTLStoreSnapshot,
+  filterUserRecords,
+  fixShapeIndices,
+  mergeRemoteCanvasState,
+} from "./canvasRemoteMerge";
 
 const THROTTLE = 350;
 
-export const isTLStoreSnapshot = (value: unknown): value is TLStoreSnapshot => {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "store" in value &&
-    "schema" in value
-  );
-};
-
-const fixShapeIndices = (
-  data: SerializedStore<TLRecord>,
-): SerializedStore<TLRecord> => {
-  const shapes = Object.values(data).filter(
-    (record): record is TLShape => record.typeName === "shape",
-  );
-
-  const sortedShapes = shapes.sort((a, b) => {
-    if (a.index !== undefined && b.index !== undefined) {
-      return sortByIndex(a, b);
-    }
-    return a.id.localeCompare(b.id);
-  });
-
-  const newIndices = getIndices(shapes.length);
-
-  const fixedShapes = sortedShapes.map((shape, i) => ({
-    ...shape,
-    index: newIndices[i],
-  }));
-
-  return Object.fromEntries(
-    Object.entries(data).map(([key, value]) => {
-      if (value.typeName === "shape") {
-        const updatedShape = fixedShapes.find((s) => s.id === value.id);
-        return [key, (updatedShape || value) as TLRecord];
-      }
-      return [key, value];
-    }),
-  );
-};
-
-const filterUserRecords = (data: SerializedStore<TLRecord>) => {
-  return Object.fromEntries(
-    Object.entries(data).filter(([key]) => {
-      return !/^(user_presence|camera|instance|instance_page_state|user|user_document):/.test(
-        key,
-      );
-    }),
-  );
-};
+export { isTLStoreSnapshot } from "./canvasRemoteMerge";
 
 const createCanvasStore = ({
   migrations,
@@ -349,12 +303,6 @@ export const useRoamStore = ({
     pageUid,
   ]);
 
-  const personalRecordTypes = new Set([
-    "camera",
-    "instance",
-    "instance_page_state",
-  ]);
-
   const performUpgrade = () => {
     if (!oldData) return;
     try {
@@ -404,84 +352,6 @@ export const useRoamStore = ({
     }
   };
 
-  const pruneState = (state: SerializedStore<TLRecord>) =>
-    Object.fromEntries(
-      Object.entries(state).filter(
-        ([_, record]) => !personalRecordTypes.has(record.typeName),
-      ),
-    );
-
-  const diffObjects = (
-    oldRecord: Record<string, any>,
-    newRecord: Record<string, any>,
-  ): Record<string, any> => {
-    const allKeys = Array.from(
-      new Set(Object.keys(oldRecord).concat(Object.keys(newRecord))),
-    );
-    return Object.fromEntries(
-      allKeys
-        .map((key) => {
-          const oldValue = oldRecord[key];
-          const newValue = newRecord[key];
-          if (typeof oldValue !== typeof newValue) {
-            return [key, newValue];
-          }
-          if (
-            typeof oldValue === "object" &&
-            oldValue !== null &&
-            newValue !== null
-          ) {
-            const diffed = diffObjects(oldValue, newValue);
-            if (Object.keys(diffed).length) {
-              return [key, diffed];
-            }
-            return null;
-          }
-          if (oldValue !== newValue) {
-            return [key, newValue];
-          }
-          return null;
-        })
-        .filter((e): e is [string, any] => !!e),
-    );
-  };
-  const calculateDiff = (
-    _newState: SerializedStore<TLRecord>,
-    _oldState: SerializedStore<TLRecord>,
-  ) => {
-    const newState = pruneState(_newState);
-    const oldState = pruneState(_oldState);
-    return {
-      added: Object.fromEntries(
-        Object.keys(newState)
-          .filter((id) => !oldState[id])
-          .map((id) => [id, newState[id]]),
-      ),
-      removed: Object.fromEntries(
-        Object.keys(oldState)
-          .filter((id) => !newState[id])
-          .map((key) => [key, oldState[key]]),
-      ),
-      updated: Object.fromEntries(
-        Object.keys(newState)
-          .map((id) => {
-            const oldRecord = oldState[id];
-            const newRecord = newState[id];
-            if (!oldRecord || !newRecord) {
-              return null;
-            }
-
-            const diffed = diffObjects(oldRecord, newRecord);
-            if (Object.keys(diffed).length) {
-              return [id, [oldRecord, newRecord]];
-            }
-            return null;
-          })
-          .filter((e): e is [string, any] => !!e),
-      ),
-    };
-  };
-
   // Remote Changes
   useEffect(() => {
     const pullWatchProps: Parameters<AddPullWatch> = [
@@ -492,18 +362,42 @@ export const useRoamStore = ({
           (after?.[":block/props"] || {}) as json,
         ) as Record<string, json>;
         const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
+        // Any pending merge was computed from an older props state than this
+        // invocation, so always cancel it — including when the newest state is
+        // our own save. (Returning early while a stale timer kept running used
+        // to let an outdated snapshot clobber just-saved local edits.)
+        clearTimeout(deserializeRef.current);
         const propsStateId = rjsqb?.stateId as string;
         if (localStateIds.current.some((s) => s === propsStateId)) return;
-        const newState = rjsqb?.tldraw as StoreSnapshot<TLRecord>;
+        const newState = rjsqb?.tldraw as
+          | TLStoreSnapshot
+          | SerializedStore<TLRecord>;
         if (!newState) return;
-        clearTimeout(deserializeRef.current);
         deserializeRef.current = window.setTimeout(() => {
           if (!store) return;
-          store.mergeRemoteChanges(() => {
-            const currentState = store.getSnapshot();
-            const diff = calculateDiff(newState.store, currentState.store);
-            store.applyDiff(diff);
+          const result = mergeRemoteCanvasState({
+            store,
+            remoteTldraw: newState,
           });
+          if (result.type === "applied") {
+            if (result.droppedRecordIds.length) {
+              console.warn(
+                "Canvas remote merge skipped records the current schema rejects:",
+                result.droppedRecordIds,
+              );
+            }
+          } else {
+            // Skipping a merge leaves the canvas slightly stale until the next
+            // save; that beats letting a ValidationError tear down the page.
+            internalError({
+              error:
+                result.type === "apply-failed"
+                  ? result.error
+                  : new Error("Failed to migrate remote canvas snapshot"),
+              type: "Failed to merge remote canvas changes",
+              context: { pageUid },
+            });
+          }
         }, THROTTLE);
       },
     ];

@@ -1,5 +1,7 @@
 import { updateBlock } from "roamjs-components/writes";
 import { renderCanvasEmbedDialog } from "~/components/canvas/CanvasEmbedDialog";
+import { renderCanvasFrameEmbedDialog } from "~/components/canvas/CanvasFrameEmbedDialog";
+import { serializeDgFrameEmbed } from "~/utils/dgFrameEmbed";
 
 type SlashCommandContext = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -32,6 +34,21 @@ const SLASH_COMMANDS: {
           void updateBlock({
             uid,
             text: `{{dg-canvas: [[${title}]]}}`,
+          }).then(() => document.body.click());
+        },
+      });
+    },
+  },
+  {
+    label: "DG: Embed canvas frame",
+    callback: (context) => {
+      const uid = context["block-uid"];
+      if (!uid) return;
+      renderCanvasFrameEmbedDialog({
+        onSelect: ({ title, frameName, frameShapeId }) => {
+          void updateBlock({
+            uid,
+            text: serializeDgFrameEmbed({ title, frameName, frameShapeId }),
           }).then(() => document.body.click());
         },
       });

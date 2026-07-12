@@ -78,6 +78,32 @@ describe("getCanvasSessionStorageKey", () => {
       }),
     ).toBe("dg:tldraw-session:v1:graph%2Fname:user%3A1:abc%20123");
   });
+
+  it("appends an instance key so embeds of the same page stay independent", () => {
+    expect(
+      getCanvasSessionStorageKey({
+        graphName: "graph/name",
+        userUid: "user:1",
+        pageUid: "abc 123",
+        instanceKey: "block-uid-1",
+      }),
+    ).toBe("dg:tldraw-session:v1:graph%2Fname:user%3A1:abc%20123:block-uid-1");
+  });
+
+  it("is unchanged from the base key when no instance key is given", () => {
+    const base = getCanvasSessionStorageKey({
+      graphName: "g",
+      userUid: "u",
+      pageUid: "p",
+    });
+    const withUndefined = getCanvasSessionStorageKey({
+      graphName: "g",
+      userUid: "u",
+      pageUid: "p",
+      instanceKey: undefined,
+    });
+    expect(withUndefined).toBe(base);
+  });
 });
 
 describe("readCanvasSessionState", () => {
