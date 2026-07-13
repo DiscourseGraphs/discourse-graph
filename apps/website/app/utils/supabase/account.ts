@@ -17,6 +17,7 @@ export const getAccountId = async (
     .eq("dg_account", id)
     .eq("agent_type", "person")
     .maybeSingle();
+  if (accountReq.error) throw accountReq.error;
   return accountReq.data?.id;
 };
 

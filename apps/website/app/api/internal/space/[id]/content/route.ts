@@ -39,7 +39,16 @@ export const POST = async (
     const body = (await request.json()) as StandaloneCrossAppContent[];
     // TODO: Zed validator
     const content = body
-      .map((c) => crossAppStandaloneContentToDbContent(c, spaceId))
+      .map((c) =>
+        crossAppStandaloneContentToDbContent(
+          {
+            ...c,
+            createdAt: new Date(c.createdAt),
+            modifiedAt: new Date(c.modifiedAt || c.createdAt),
+          },
+          spaceId,
+        ),
+      )
       .filter((c) => c !== undefined);
     if (content.length === 0) throw new Error("Could not translate content");
     const result = await supabase.rpc("upsert_content", {
