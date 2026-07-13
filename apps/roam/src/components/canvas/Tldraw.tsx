@@ -117,6 +117,7 @@ import posthog from "posthog-js";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { json, normalizeProps } from "~/utils/getBlockProps";
+import { onPageRefObserverChange } from "~/utils/pageRefObserverHandlers";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -175,8 +176,7 @@ const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`
 
 const ROAM_PAGE_DROP_MIME_TYPE = "application/x-roam-page";
 const ROAM_BLOCK_DROP_MIME_TYPE = "application/x-roam-uid";
-const TEMP_DRAG_ATTR = "data-roamjs-canvas-page-ref-draggable";
-const PAGE_REF_CLICK_SUPPRESSION_MS = 750;
+const PAGE_REF_DRAG_HANDLE_ATTR = "data-roamjs-canvas-page-ref-drag-handle";
 const PAGE_REF_REGEX = /^\[\[(.+?)\]\]$/;
 
 type PageRefDragSource = {
@@ -206,70 +206,137 @@ const getPageRefDragSource = (
   return title ? { element, title } : null;
 };
 
+const createPageRefDragHandle = (): HTMLElement => {
+  const dragHandle = document.createElement("span");
+  dragHandle.className =
+    "ml-1 inline-flex cursor-grab select-none items-center align-middle text-red-500 active:cursor-grabbing";
+  dragHandle.draggable = true;
+  dragHandle.textContent = "⠿";
+  dragHandle.title = "Drag page to canvas";
+  dragHandle.setAttribute("aria-label", "Drag page to canvas");
+  dragHandle.setAttribute(PAGE_REF_DRAG_HANDLE_ATTR, "true");
+  return dragHandle;
+};
+
 let pageRefDragSourceSubscriptionCount = 0;
 let cleanupRoamPageRefDragSources: (() => void) | undefined;
 
 const createRoamPageRefDragSourceCleanup = (): (() => void) => {
+  const dragHandle = createPageRefDragHandle();
+  const observedPageRefs = new WeakSet<HTMLSpanElement>();
   let activePageRef: HTMLElement | null = null;
-  let suppressPageRefClickUntil = 0;
+  let isDragHandlePointerDown = false;
+  let isPageRefDragInProgress = false;
 
   const clearActivePageRef = (): void => {
-    if (activePageRef?.hasAttribute(TEMP_DRAG_ATTR)) {
-      activePageRef.draggable = false;
-      activePageRef.removeAttribute(TEMP_DRAG_ATTR);
-    }
+    dragHandle.remove();
     activePageRef = null;
   };
 
-  const markHoveredPageRefDraggable = (e: PointerEvent): void => {
-    const source = getPageRefDragSource(e.target);
-    if (source?.element === activePageRef) return;
+  const renderPageRefDragHandle = (target: EventTarget | null): void => {
+    if (isDragHandlePointerDown || isPageRefDragInProgress) return;
 
-    clearActivePageRef();
-    if (!source) return;
+    const source = getPageRefDragSource(target);
+    if (!source) {
+      if (activePageRef) clearActivePageRef();
+      return;
+    }
+    if (source.element === activePageRef) return;
 
     activePageRef = source.element;
-    source.element.draggable = true;
-    source.element.setAttribute(TEMP_DRAG_ATTR, "true");
+    source.element.appendChild(dragHandle);
+  };
+
+  const handlePageRefPointerEnter = (e: PointerEvent): void => {
+    renderPageRefDragHandle(e.currentTarget);
+  };
+
+  const handlePageRefPointerLeave = (e: PointerEvent): void => {
+    if (e.currentTarget !== activePageRef) return;
+    renderPageRefDragHandle(e.relatedTarget);
+  };
+
+  const observePageRef = (pageRef: HTMLSpanElement): void => {
+    if (observedPageRefs.has(pageRef)) return;
+
+    observedPageRefs.add(pageRef);
+    pageRef.addEventListener("pointerenter", handlePageRefPointerEnter);
+    pageRef.addEventListener("pointerleave", handlePageRefPointerLeave);
+  };
+
+  const handleDragHandlePointerDown = (e: MouseEvent): void => {
+    if (e.button !== 0) return;
+
+    isDragHandlePointerDown = true;
+    e.stopPropagation();
+  };
+
+  const handlePointerUp = (e: PointerEvent): void => {
+    if (!isDragHandlePointerDown) return;
+
+    isDragHandlePointerDown = false;
+    if (
+      activePageRef &&
+      (!(e.target instanceof Node) || !activePageRef.contains(e.target))
+    ) {
+      clearActivePageRef();
+    }
+  };
+
+  const handlePointerCancel = (): void => {
+    if (!isDragHandlePointerDown) return;
+
+    isDragHandlePointerDown = false;
+    clearActivePageRef();
   };
 
   const handleDragStart = (e: DragEvent): void => {
-    const source = getPageRefDragSource(e.target);
-    if (source?.element === activePageRef) {
-      suppressPageRefClickUntil = Date.now() + PAGE_REF_CLICK_SUPPRESSION_MS;
-      if (e.dataTransfer) e.dataTransfer.effectAllowed = "copy";
-      e.dataTransfer?.setData(ROAM_PAGE_DROP_MIME_TYPE, source.title);
-    }
+    const source = getPageRefDragSource(dragHandle);
+    if (!source || !e.dataTransfer) return;
+
+    isDragHandlePointerDown = false;
+    isPageRefDragInProgress = true;
+    e.dataTransfer.effectAllowed = "copy";
+    e.dataTransfer.setData(ROAM_PAGE_DROP_MIME_TYPE, source.title);
   };
 
   const handleClick = (e: MouseEvent): void => {
-    if (
-      Date.now() > suppressPageRefClickUntil ||
-      !getPageRefDragSource(e.target)
-    ) {
-      return;
-    }
-
     e.preventDefault();
     e.stopPropagation();
-    suppressPageRefClickUntil = 0;
   };
 
-  document.addEventListener("pointerover", markHoveredPageRefDraggable, true);
-  document.addEventListener("dragstart", handleDragStart, true);
-  document.addEventListener("click", handleClick, true);
-  document.addEventListener("dragend", clearActivePageRef, true);
+  const handleDragEnd = (): void => {
+    if (!isPageRefDragInProgress) return;
+
+    isPageRefDragInProgress = false;
+    clearActivePageRef();
+  };
+
+  onPageRefObserverChange(observePageRef)(true);
+  dragHandle.addEventListener("pointerdown", handleDragHandlePointerDown);
+  dragHandle.addEventListener("mousedown", handleDragHandlePointerDown);
+  dragHandle.addEventListener("dragstart", handleDragStart);
+  dragHandle.addEventListener("click", handleClick);
+  dragHandle.addEventListener("dragend", handleDragEnd);
+  document.addEventListener("pointerup", handlePointerUp, true);
+  document.addEventListener("pointercancel", handlePointerCancel, true);
 
   return () => {
+    onPageRefObserverChange(observePageRef)(false);
+    document
+      .querySelectorAll<HTMLSpanElement>("span.rm-page-ref")
+      .forEach((pageRef) => {
+        pageRef.removeEventListener("pointerenter", handlePageRefPointerEnter);
+        pageRef.removeEventListener("pointerleave", handlePageRefPointerLeave);
+      });
     clearActivePageRef();
-    document.removeEventListener(
-      "pointerover",
-      markHoveredPageRefDraggable,
-      true,
-    );
-    document.removeEventListener("dragstart", handleDragStart, true);
-    document.removeEventListener("click", handleClick, true);
-    document.removeEventListener("dragend", clearActivePageRef, true);
+    dragHandle.removeEventListener("pointerdown", handleDragHandlePointerDown);
+    dragHandle.removeEventListener("mousedown", handleDragHandlePointerDown);
+    dragHandle.removeEventListener("dragstart", handleDragStart);
+    dragHandle.removeEventListener("click", handleClick);
+    dragHandle.removeEventListener("dragend", handleDragEnd);
+    document.removeEventListener("pointerup", handlePointerUp, true);
+    document.removeEventListener("pointercancel", handlePointerCancel, true);
   };
 };
 
