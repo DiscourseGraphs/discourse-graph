@@ -34,6 +34,10 @@ import type { PageGroup } from "~/components/settings/utils/zodSchema";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import posthog from "posthog-js";
+import {
+  notifyBlockSuggestionAdded,
+  notifyRelationSuggestionAdded,
+} from "~/utils/notifySuggestiveModeAdoption";
 
 export type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -314,7 +318,9 @@ const SuggestionsBody = ({
   };
 
   const handleCreateBlock = async (node: SuggestedNode) => {
-    if (getStoredRelationsEnabled()) {
+    const useReifiedRelations = getStoredRelationsEnabled();
+
+    if (useReifiedRelations) {
       if (discourseNode === false) {
         renderToast({
           id: "suggestions-create-block-error",
@@ -360,6 +366,11 @@ const SuggestionsBody = ({
           });
           return;
         }
+        try {
+          notifyRelationSuggestionAdded(tag, node.text);
+        } catch (error) {
+          console.error("Failed to show suggestion added notification:", error);
+        }
       } else {
         renderToast({
           id: "suggestions-create-block-error",
@@ -373,12 +384,18 @@ const SuggestionsBody = ({
         parentUid: blockUid,
         node: { text: `[[${node.text}]]` },
       });
+      try {
+        await notifyBlockSuggestionAdded(blockUid, tag);
+      } catch (error) {
+        console.error("Failed to show suggestion added notification:", error);
+      }
     }
+
     posthog.capture("Suggestive Mode: Suggestion Adopted", {
       tag,
       nodeType: node.type,
       nodeText: node.text,
-      useReifiedRelations: getStoredRelationsEnabled(),
+      useReifiedRelations: useReifiedRelations,
     });
     setHydeFilteredNodes((prev) => prev.filter((n) => n.uid !== node.uid));
   };
