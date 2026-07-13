@@ -545,6 +545,13 @@ BEGIN
   LOOP
     local_content := jsonb_populate_record(NULL::public.content_local_input, content_row);
     local_content.space_id := v_space_id;
+    IF content_type(local_content) IS NULL THEN
+        local_content.content_type := CASE
+          WHEN variant(local_content)!='full' THEN 'text/plain'
+          WHEN v_platform='Roam' THEN 'text/roam+markdown'
+          WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
+          ELSE 'text/plain' END;
+    END IF;
     db_content := public._local_content_to_db_content(local_content);
     IF account_local_id(author_inline(local_content)) IS NOT NULL THEN
       SELECT public.create_account_in_space(
