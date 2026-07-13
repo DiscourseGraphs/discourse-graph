@@ -5,6 +5,10 @@ import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import ResultsView from "./results-view/ResultsView";
 import posthog from "posthog-js";
 import { CreateRelationButton } from "./CreateRelationDialog";
+import {
+  DISCOURSE_CONTEXT_MUTATION_REFRESH_EVENT,
+  type DiscourseContextMutationRefreshDetail,
+} from "~/utils/discourseContextMutationRefresh";
 
 export type DiscourseContextResults = Awaited<
   ReturnType<typeof getDiscourseContextResults>
@@ -13,7 +17,7 @@ export type DiscourseContextResults = Awaited<
 type Props = {
   uid: string;
   results?: DiscourseContextResults;
-  overlayRefresh?: () => void;
+  overlayRefresh?: (ignoreCache?: boolean) => void;
 };
 
 const removeTargetFromResult = (
@@ -85,7 +89,8 @@ const ContextTab = ({
           <span style={{ display: "flex", alignItems: "center" }}>
             <CreateRelationButton
               sourceNodeUid={parentUid}
-              onClose={() => {
+              onClose={(created) => {
+                if (!created) return;
                 window.setTimeout(onRefresh, 150, true);
               }}
             />
@@ -158,7 +163,7 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
         onResult: addLabels,
         ignoreCache,
       }).finally(() => {
-        if (overlayRefresh) overlayRefresh();
+        if (overlayRefresh) overlayRefresh(ignoreCache);
         setLoading(false);
       });
     },
@@ -177,6 +182,27 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
       setLoading(false);
     }
   }, [onRefresh, results, setLoading, loading, addLabels]);
+
+  useEffect(() => {
+    const onMutationRefresh = (event: Event) => {
+      const detail = (
+        event as CustomEvent<DiscourseContextMutationRefreshDetail>
+      ).detail;
+      if (!detail?.uids.includes(uid)) return;
+      onRefresh(true);
+    };
+
+    document.body.addEventListener(
+      DISCOURSE_CONTEXT_MUTATION_REFRESH_EVENT,
+      onMutationRefresh,
+    );
+    return () => {
+      document.body.removeEventListener(
+        DISCOURSE_CONTEXT_MUTATION_REFRESH_EVENT,
+        onMutationRefresh,
+      );
+    };
+  }, [uid, onRefresh]);
   const [tabId, setTabId] = useState(0);
   const [groupByTarget, setGroupByTarget] = useState(false);
   return queryResults.length ? (
@@ -235,7 +261,13 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
   ) : (
     <div className="text-center">
       No discourse relations found.
-      <CreateRelationButton sourceNodeUid={uid} onClose={delayedRefresh} />
+      <CreateRelationButton
+        sourceNodeUid={uid}
+        onClose={(created) => {
+          if (!created) return;
+          delayedRefresh();
+        }}
+      />
     </div>
   );
 };
