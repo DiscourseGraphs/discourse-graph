@@ -6,6 +6,8 @@ import { Environment } from "./types";
 export { TldrawDurableObject } from "./TldrawDurableObject";
 
 const ALLOWED_ORIGINS = [
+  "https://discoursegraphs.com",
+  "https://www.discoursegraphs.com",
   "https://roamresearch.com",
   "http://localhost:3000",
   "app://obsidian.md",
