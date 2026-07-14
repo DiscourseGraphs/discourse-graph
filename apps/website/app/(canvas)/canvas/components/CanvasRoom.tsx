@@ -11,6 +11,7 @@ import {
   Share2,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import { useSync } from "@tldraw/sync";
 import {
@@ -193,7 +194,7 @@ const CanvasHeader = ({ roomId }: { roomId: string }): ReactElement => {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 shadow-sm sm:px-4">
       <div className="flex min-w-0 items-center gap-3">
-        <a
+        <Link
           href="/"
           className="flex shrink-0 items-center gap-2 text-sm font-semibold text-slate-900 no-underline"
         >
@@ -201,7 +202,7 @@ const CanvasHeader = ({ roomId }: { roomId: string }): ReactElement => {
             DG
           </span>
           <span className="hidden sm:inline">Discourse canvas</span>
-        </a>
+        </Link>
         <span className="hidden h-5 w-px bg-slate-200 sm:block" />
         <span className="truncate text-xs text-slate-500">
           Room {roomId.slice(0, 8)}
@@ -213,6 +214,8 @@ const CanvasHeader = ({ roomId }: { roomId: string }): ReactElement => {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
+        {/* A hard navigation requests a fresh server-generated room every time. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a
           href="/canvas/new"
           className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 no-underline shadow-sm transition-colors hover:bg-slate-50"
@@ -485,9 +488,10 @@ export const CanvasRoom = ({ roomId }: { roomId: string }): ReactElement => {
   const assets = useMemo<TLAssetStore>(
     () => ({
       resolve: (asset) => asset.props.src,
-      upload: async () => {
-        throw new Error("File uploads are not supported in this prototype.");
-      },
+      upload: () =>
+        Promise.reject(
+          new Error("File uploads are not supported in this prototype."),
+        ),
     }),
     [],
   );

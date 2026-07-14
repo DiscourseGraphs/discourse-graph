@@ -13,8 +13,19 @@ const ALLOWED_ORIGINS = [
   "app://obsidian.md",
 ];
 
-const isVercelPreviewUrl = (origin: string): boolean =>
-  /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin);
+const isVercelPreviewUrl = (origin: string): boolean => {
+  try {
+    const url = new URL(origin);
+    return (
+      url.protocol === "https:" &&
+      /^discourse-graph(?:-[a-z0-9-]+)?-discourse-graphs\.vercel\.app$/.test(
+        url.hostname,
+      )
+    );
+  } catch {
+    return false;
+  }
+};
 
 const isAllowedOrigin = (origin: string): boolean =>
   ALLOWED_ORIGINS.some((allowedOrigin) => origin === allowedOrigin) ||
