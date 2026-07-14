@@ -157,7 +157,6 @@ export const DiscourseRelationSchema = z.object({
 export const FeatureFlagsSchema = z.object({
   "Advanced node search enabled": z.boolean().default(false),
   "Enable left sidebar": z.boolean().default(false),
-  "Duplicate node alert enabled": z.boolean().default(false),
   "Suggestive mode overlay enabled": z.boolean().default(false),
   "Use new settings store": z.boolean().default(false),
 });
@@ -185,12 +184,6 @@ export const SuggestiveModeGlobalSettingsSchema = z.object({
 
 export const LeftSidebarGlobalSettingsSchema = z.object({
   Children: z.array(z.string()).default([]),
-  Settings: z
-    .object({
-      Collapsable: z.boolean().default(false),
-      Folded: z.boolean().default(false),
-    })
-    .default({}),
 });
 
 export const GlobalSettingsSchema = z.object({
@@ -242,6 +235,7 @@ export const QuerySettingsSchema = z.object({
 
 export const PersonalSettingsSchema = z.object({
   "Left sidebar": LeftSidebarPersonalSettingsSchema,
+  "Global section folded": z.boolean().default(false),
   "Personal node menu trigger": z
     .union([
       z.object({ modifiers: z.number(), key: z.string() }),
