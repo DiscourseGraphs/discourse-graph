@@ -11,13 +11,7 @@ import {
   Share2,
   X,
 } from "lucide-react";
-import {
-  type ReactElement,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import { useSync } from "@tldraw/sync";
 import {
   Tldraw,
@@ -25,6 +19,7 @@ import {
   type Editor,
   type TLArrowShape,
   type TLAssetStore,
+  type TLShapeId,
   type TLGeoShape,
   type TLShape,
   useEditor,
@@ -100,10 +95,10 @@ const getNodeType = (shape: TLShape): NodeType | null => {
     : null;
 };
 
-const getBoundShapeId = (endpoint: unknown): string | null => {
+const getBoundShapeId = (endpoint: unknown): TLShapeId | null => {
   if (!endpoint || typeof endpoint !== "object") return null;
   const candidate = (endpoint as { boundShapeId?: unknown }).boundShapeId;
-  return typeof candidate === "string" ? candidate : null;
+  return typeof candidate === "string" ? (candidate as TLShapeId) : null;
 };
 
 const getCanvasExport = ({ editor }: { editor: Editor }): CanvasExport => {
@@ -368,9 +363,8 @@ const CanvasChrome = (): ReactElement => {
   const shapeCount = useValue(
     "discourse shape count",
     () =>
-      editor
-        .getCurrentPageShapes()
-        .filter((shape) => getNodeType(shape)).length,
+      editor.getCurrentPageShapes().filter((shape) => getNodeType(shape))
+        .length,
     [editor],
   );
 
