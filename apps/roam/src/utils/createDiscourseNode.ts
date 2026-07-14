@@ -191,7 +191,10 @@ const createDiscourseNode = async ({
     text: text,
   });
   const handleOpenInSidebar = (uid: string) => {
-    if (getPersonalSetting<boolean>([PERSONAL_KEYS.disableSidebarOpen])) return;
+    const disableSidebarOpen = getPersonalSetting<boolean>([
+      PERSONAL_KEYS.disableSidebarOpen,
+    ]);
+    if (disableSidebarOpen === true) return;
     void openBlockInSidebar(uid);
     setTimeout(() => {
       const sidebarTitle = document.querySelector(
