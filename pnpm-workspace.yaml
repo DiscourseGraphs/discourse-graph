@@ -5,10 +5,10 @@ packages:
 allowUnusedPatches: false
 
 allowedDeprecatedVersions:
-  '@humanwhocodes/config-array': ^0.13
-  '@humanwhocodes/object-schema': ^2.0
-  '@playwright/test': ^1.29
-  '@types/minimatch': ^6.0
+  "@humanwhocodes/config-array": ^0.13
+  "@humanwhocodes/object-schema": ^2.0
+  "@playwright/test": ^1.29
+  "@types/minimatch": ^6.0
   abab: ^2.0
   domexception: 4.0.0
   eslint: ^8.57
