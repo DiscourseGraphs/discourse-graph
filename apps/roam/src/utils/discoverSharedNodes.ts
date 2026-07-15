@@ -8,7 +8,6 @@ import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
 const IMPORTED_FROM_PROP_KEY = "importedFrom";
 const PAGE_SIZE = 1000;
 const RESOURCE_ID_CHUNK_SIZE = 100;
-const TIMEZONE_SUFFIX = /(?:Z|[+-]\d{2}(?::?\d{2})?)$/i;
 
 type Platform = Enums<"Platform">;
 
@@ -66,11 +65,8 @@ const getResourceKey = ({
 }): string => `${spaceId}:${sourceLocalId}`;
 
 const normalizeUtcTimestamp = (timestamp: string | null): string | null => {
-  if (typeof timestamp !== "string") return null;
-  const timestampWithTimezone = TIMEZONE_SUFFIX.test(timestamp)
-    ? timestamp
-    : `${timestamp}Z`;
-  const date = new Date(timestampWithTimezone);
+  if (!timestamp) return null;
+  const date = new Date(`${timestamp}Z`);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
 
