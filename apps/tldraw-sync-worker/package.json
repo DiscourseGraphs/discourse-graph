@@ -21,5 +21,11 @@
     "@types/lodash.throttle": "^4",
     "typescript": "^5.0.2",
     "wrangler": "^3.64.0"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:"
   }
 }

@@ -5,10 +5,10 @@ packages:
 allowUnusedPatches: false
 
 allowedDeprecatedVersions:
-  "@humanwhocodes/config-array": ^0.13
-  "@humanwhocodes/object-schema": ^2.0
-  "@playwright/test": ^1.29
-  "@types/minimatch": ^6.0
+  '@humanwhocodes/config-array': ^0.13
+  '@humanwhocodes/object-schema': ^2.0
+  '@playwright/test': ^1.29
+  '@types/minimatch': ^6.0
   abab: ^2.0
   domexception: 4.0.0
   eslint: ^8.57
@@ -21,34 +21,21 @@ allowedDeprecatedVersions:
   popper.js: ^1.16
   rimraf: <4
 
-# The global versions. In the react case, applies to website in practice
 catalog:
-  "@types/node": ^22
-  "@types/eslint": 8.56.12
-  "@types/react": ^19.1.12
-  "@types/react-dom": ^19.1.9
-  eslint: 8.57.1
-  vitest: ^4.0.0
-  react: ^19.1.0
-  react-dom: ^19.1.0
-  posthog-js: 1.372.10
-  "@supabase/supabase-js": 2.105.4
-  "@supabase/functions-js": 2.105.4
-  "@supabase/storage-js": 2.105.4
   "@supabase/auth-js": 2.105.4
+  "@supabase/functions-js": 2.105.4
   "@supabase/ssr": 0.10.3
-
-catalogs:
-  obsidian:
-    "@types/react": ^19.0.12
-    "@types/react-dom": ^19.0.4
-    react: 18.2.0
-    react-dom: 18.2.0
-  roam:
-    "@types/react": 18.2.21
-    "@types/react-dom": 18.2.17
-    react: 18.2.0
-    react-dom: 18.2.0
+  "@supabase/storage-js": 2.105.4
+  "@supabase/supabase-js": 2.105.4
+  "@types/eslint": 8.56.12
+  "@types/node": ^22
+  "@types/react": 18.2.21
+  "@types/react-dom": 18.2.17
+  eslint: 8.57.1
+  posthog-js: 1.372.10
+  react: 18.2.0
+  react-dom: 18.2.0
+  vitest: ^4.0.0
 
 onlyBuiltDependencies:
   - core-js
@@ -75,6 +62,7 @@ patchedDependencies:
   "@blueprintjs/select@3.19.1": patches/@blueprintjs__select@3.19.1.patch
   "@tldraw/editor@2.4.6": patches/@tldraw__editor@2.4.6.patch
   "@tldraw/state@2.4.6": patches/@tldraw__state@2.4.6.patch
+  nextra-theme-docs: patches/nextra-theme-docs.patch
   tldraw@2.4.6: patches/tldraw@2.4.6.patch
 
 peerDependencyRules:
