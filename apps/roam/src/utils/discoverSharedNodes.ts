@@ -1,13 +1,16 @@
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import { getAllPages } from "@repo/database/lib/pagination";
-import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
-import type { Tables } from "@repo/database/dbTypes";
+import { isRid, spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
+import type { Enums, Tables } from "@repo/database/dbTypes";
 import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
 
 const IMPORTED_FROM_PROP_KEY = "importedFrom";
 const PAGE_SIZE = 1000;
 const RESOURCE_ID_CHUNK_SIZE = 100;
+const TIMEZONE_SUFFIX = /(?:Z|[+-]\d{2}(?::?\d{2})?)$/i;
+
+type Platform = Enums<"Platform">;
 
 type ResourceAccess = Pick<
   Tables<"ResourceAccess">,
@@ -17,14 +20,13 @@ type SharedConcept = Pick<
   Tables<"my_concepts">,
   "is_schema" | "last_modified" | "schema_id" | "source_local_id" | "space_id"
 >;
-type SharedContent = Pick<
+type SharedDirectContent = Pick<
   Tables<"my_contents">,
-  | "content_type"
-  | "last_modified"
-  | "source_local_id"
-  | "space_id"
-  | "text"
-  | "variant"
+  "last_modified" | "source_local_id" | "space_id" | "text"
+>;
+type SharedFullContentSummary = Pick<
+  Tables<"my_contents">,
+  "content_type" | "last_modified" | "source_local_id" | "space_id"
 >;
 type SharedSpace = Pick<
   Tables<"my_spaces">,
@@ -32,14 +34,14 @@ type SharedSpace = Pick<
 >;
 type ValidSharedSpace = {
   name: string;
-  platform: "Roam" | "Obsidian";
+  platform: Platform;
   url: string;
 };
 
 export type DiscoveredSharedNode = {
   alreadyImported: boolean;
   modifiedAt: string;
-  sourceApp: "Roam" | "Obsidian";
+  sourceApp: Platform;
   sourceNodeId?: string;
   sourceNodeRid: string;
   sourceSpaceId: string;
@@ -49,7 +51,8 @@ export type DiscoveredSharedNode = {
 
 type SharedNodeRows = {
   concepts: SharedConcept[];
-  contents: SharedContent[];
+  directContents: SharedDirectContent[];
+  fullContentSummaries: SharedFullContentSummary[];
   resources: ResourceAccess[];
   spaces: SharedSpace[];
 };
@@ -62,20 +65,53 @@ const getResourceKey = ({
   spaceId: number;
 }): string => `${spaceId}:${sourceLocalId}`;
 
+const normalizeUtcTimestamp = (timestamp: string | null): string | null => {
+  if (typeof timestamp !== "string") return null;
+  const timestampWithTimezone = TIMEZONE_SUFFIX.test(timestamp)
+    ? timestamp
+    : `${timestamp}Z`;
+  const date = new Date(timestampWithTimezone);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
 const getLatestTimestamp = (timestamps: (string | null)[]): string | null => {
-  const validTimestamps = timestamps.filter(
-    (timestamp): timestamp is string =>
-      typeof timestamp === "string" && !Number.isNaN(Date.parse(timestamp)),
-  );
+  const validTimestamps = timestamps
+    .map(normalizeUtcTimestamp)
+    .filter((timestamp): timestamp is string => typeof timestamp === "string");
   if (validTimestamps.length === 0) return null;
   return validTimestamps.reduce((latest, timestamp) =>
-    Date.parse(timestamp) > Date.parse(latest) ? timestamp : latest,
+    timestamp > latest ? timestamp : latest,
   );
 };
 
+const indexContentByResource = <
+  T extends { source_local_id: string | null; space_id: number | null },
+>(
+  contents: T[],
+): Map<string, T> =>
+  new Map(
+    contents.flatMap((content): [string, T][] => {
+      if (
+        typeof content.space_id !== "number" ||
+        typeof content.source_local_id !== "string"
+      )
+        return [];
+      return [
+        [
+          getResourceKey({
+            sourceLocalId: content.source_local_id,
+            spaceId: content.space_id,
+          }),
+          content,
+        ],
+      ];
+    }),
+  );
+
 export const buildDiscoveredSharedNodes = ({
   concepts,
-  contents,
+  directContents,
+  fullContentSummaries,
   currentSpaceId,
   importedSourceRids,
   resources,
@@ -115,26 +151,9 @@ export const buildDiscoveredSharedNodes = ({
       ];
     }),
   );
-  const contentByResource = new Map<
-    string,
-    Partial<Record<"direct" | "full", SharedContent>>
-  >();
-
-  contents.forEach((content) => {
-    if (
-      typeof content.space_id !== "number" ||
-      typeof content.source_local_id !== "string" ||
-      (content.variant !== "direct" && content.variant !== "full")
-    )
-      return;
-    const key = getResourceKey({
-      sourceLocalId: content.source_local_id,
-      spaceId: content.space_id,
-    });
-    const variants = contentByResource.get(key) ?? {};
-    variants[content.variant] = content;
-    contentByResource.set(key, variants);
-  });
+  const directContentByResource = indexContentByResource(directContents);
+  const fullContentSummaryByResource =
+    indexContentByResource(fullContentSummaries);
 
   return concepts
     .flatMap((concept): DiscoveredSharedNode[] => {
@@ -153,31 +172,31 @@ export const buildDiscoveredSharedNodes = ({
       if (!sharedResourceKeys.has(resourceKey)) return [];
 
       const space = spacesById.get(concept.space_id);
-      const variants = contentByResource.get(resourceKey);
-      const direct = variants?.direct;
-      const full = variants?.full;
+      const direct = directContentByResource.get(resourceKey);
+      const full = fullContentSummaryByResource.get(resourceKey);
       if (
         !space ||
         typeof direct?.text !== "string" ||
-        typeof full?.text !== "string" ||
-        typeof full.content_type !== "string"
+        (full !== undefined && typeof full.content_type !== "string")
       )
         return [];
 
       const modifiedAt = getLatestTimestamp([
         concept.last_modified,
         direct.last_modified,
-        full.last_modified,
+        full?.last_modified ?? null,
       ]);
       if (!modifiedAt) return [];
 
       let sourceNodeRid: string;
       try {
-        sourceNodeRid = spaceUriAndLocalIdToRid(
-          space.url,
-          concept.source_local_id,
-          space.platform === "Obsidian" ? "note" : undefined,
-        );
+        sourceNodeRid = isRid(concept.source_local_id)
+          ? concept.source_local_id
+          : spaceUriAndLocalIdToRid(
+              space.url,
+              concept.source_local_id,
+              space.platform === "Obsidian" ? "note" : undefined,
+            );
       } catch {
         return [];
       }
@@ -213,8 +232,9 @@ const getGroupSharedResources = async (
       .from("ResourceAccess")
       .select("space_id, source_local_id")
       .in("account_uid", groupIds)
-      .order("space_id")
-      .order("source_local_id"),
+      .order("account_uid")
+      .order("source_local_id")
+      .order("space_id"),
     PAGE_SIZE,
   );
   if (!Array.isArray(resources)) throw resources;
@@ -248,7 +268,13 @@ const getSharedNodeRows = async ({
     (resource) => resource.space_id !== currentSpaceId,
   );
   if (resources.length === 0)
-    return { concepts: [], contents: [], resources, spaces: [] };
+    return {
+      concepts: [],
+      directContents: [],
+      fullContentSummaries: [],
+      resources,
+      spaces: [],
+    };
 
   const spaceIds = [...new Set(resources.map((resource) => resource.space_id))];
   const spacesResponse = await client
@@ -258,40 +284,49 @@ const getSharedNodeRows = async ({
   if (spacesResponse.error) throw spacesResponse.error;
 
   const concepts: SharedConcept[] = [];
-  const contents: SharedContent[] = [];
+  const directContents: SharedDirectContent[] = [];
+  const fullContentSummaries: SharedFullContentSummary[] = [];
   for (const spaceId of spaceIds) {
     const sourceLocalIds = resources
       .filter((resource) => resource.space_id === spaceId)
       .map((resource) => resource.source_local_id);
     for (const ids of chunk(sourceLocalIds, RESOURCE_ID_CHUNK_SIZE)) {
-      const [conceptsResponse, contentsResponse] = await Promise.all([
-        client
-          .from("my_concepts")
-          .select(
-            "is_schema, last_modified, schema_id, source_local_id, space_id",
-          )
-          .eq("space_id", spaceId)
-          .eq("is_schema", false)
-          .in("source_local_id", ids),
-        client
-          .from("my_contents")
-          .select(
-            "content_type, last_modified, source_local_id, space_id, text, variant",
-          )
-          .eq("space_id", spaceId)
-          .in("source_local_id", ids)
-          .in("variant", ["direct", "full"]),
-      ]);
+      const [conceptsResponse, directContentsResponse, fullContentsResponse] =
+        await Promise.all([
+          client
+            .from("my_concepts")
+            .select(
+              "is_schema, last_modified, schema_id, source_local_id, space_id",
+            )
+            .eq("space_id", spaceId)
+            .eq("is_schema", false)
+            .in("source_local_id", ids),
+          client
+            .from("my_contents")
+            .select("last_modified, source_local_id, space_id, text")
+            .eq("space_id", spaceId)
+            .in("source_local_id", ids)
+            .eq("variant", "direct"),
+          client
+            .from("my_contents")
+            .select("content_type, last_modified, source_local_id, space_id")
+            .eq("space_id", spaceId)
+            .in("source_local_id", ids)
+            .eq("variant", "full"),
+        ]);
       if (conceptsResponse.error) throw conceptsResponse.error;
-      if (contentsResponse.error) throw contentsResponse.error;
+      if (directContentsResponse.error) throw directContentsResponse.error;
+      if (fullContentsResponse.error) throw fullContentsResponse.error;
       concepts.push(...conceptsResponse.data);
-      contents.push(...contentsResponse.data);
+      directContents.push(...directContentsResponse.data);
+      fullContentSummaries.push(...fullContentsResponse.data);
     }
   }
 
   return {
     concepts,
-    contents,
+    directContents,
+    fullContentSummaries,
     resources,
     spaces: spacesResponse.data,
   };

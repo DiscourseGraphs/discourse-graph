@@ -18,42 +18,42 @@ const spaces: BuildArgs["spaces"] = [
 const concepts: BuildArgs["concepts"] = [
   {
     is_schema: false,
-    last_modified: "2026-06-14T12:00:00.000Z",
+    last_modified: "2026-06-14T12:00:00",
     schema_id: 200,
     source_local_id: "node-1",
     space_id: 20,
   },
 ];
-const contents: BuildArgs["contents"] = [
+const directContents: BuildArgs["directContents"] = [
   {
-    content_type: "text/plain",
-    last_modified: "2026-06-14T13:00:00.000Z",
+    last_modified: "2026-06-14T13:00:00",
     source_local_id: "node-1",
     space_id: 20,
     text: "EVD - REM sleep and recall",
-    variant: "direct",
   },
+];
+const fullContentSummaries: BuildArgs["fullContentSummaries"] = [
   {
     content_type: "text/markdown",
-    last_modified: "2026-06-14T15:00:00.000Z",
+    last_modified: "2026-06-14T15:00:00",
     source_local_id: "node-1",
     space_id: 20,
-    text: "# EVD - REM sleep and recall",
-    variant: "full",
   },
 ];
 const sourceNodeRid = "orn:obsidian.note:vault-a/node-1";
 
 const build = ({
   conceptsOverride = concepts,
-  contentsOverride = contents,
+  directContentsOverride = directContents,
+  fullContentSummariesOverride = fullContentSummaries,
   currentSpaceId = 10,
   importedSourceRids = new Set<string>(),
   resourcesOverride = resources,
   spacesOverride = spaces,
 }: {
   conceptsOverride?: typeof concepts;
-  contentsOverride?: typeof contents;
+  directContentsOverride?: typeof directContents;
+  fullContentSummariesOverride?: typeof fullContentSummaries;
   currentSpaceId?: number;
   importedSourceRids?: ReadonlySet<string>;
   resourcesOverride?: typeof resources;
@@ -61,7 +61,8 @@ const build = ({
 } = {}) =>
   buildDiscoveredSharedNodes({
     concepts: conceptsOverride,
-    contents: contentsOverride,
+    directContents: directContentsOverride,
+    fullContentSummaries: fullContentSummariesOverride,
     currentSpaceId,
     importedSourceRids,
     resources: resourcesOverride,
@@ -100,30 +101,54 @@ describe("buildDiscoveredSharedNodes", () => {
     {
       name: "schema concept",
       conceptsOverride: [{ ...concepts[0], is_schema: true }],
-      contentsOverride: contents,
+      directContentsOverride: directContents,
+      fullContentSummariesOverride: fullContentSummaries,
     },
     {
       name: "missing node type",
       conceptsOverride: [{ ...concepts[0], schema_id: null }],
-      contentsOverride: contents,
+      directContentsOverride: directContents,
+      fullContentSummariesOverride: fullContentSummaries,
     },
     {
       name: "missing direct content",
       conceptsOverride: concepts,
-      contentsOverride: [contents[1]],
-    },
-    {
-      name: "missing full content",
-      conceptsOverride: concepts,
-      contentsOverride: [contents[0]],
+      directContentsOverride: [],
+      fullContentSummariesOverride: fullContentSummaries,
     },
     {
       name: "untyped full content",
       conceptsOverride: concepts,
-      contentsOverride: [contents[0], { ...contents[1], content_type: null }],
+      directContentsOverride: directContents,
+      fullContentSummariesOverride: [
+        { ...fullContentSummaries[0], content_type: null },
+      ],
     },
-  ])("filters a node with $name", ({ conceptsOverride, contentsOverride }) => {
-    expect(build({ conceptsOverride, contentsOverride })).toEqual([]);
+  ])(
+    "filters a node with $name",
+    ({
+      conceptsOverride,
+      directContentsOverride,
+      fullContentSummariesOverride,
+    }) => {
+      expect(
+        build({
+          conceptsOverride,
+          directContentsOverride,
+          fullContentSummariesOverride,
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  it("discovers a node without optional full content", () => {
+    expect(build({ fullContentSummariesOverride: [] })).toMatchObject([
+      {
+        modifiedAt: "2026-06-14T13:00:00.000Z",
+        sourceNodeRid,
+        title: "EVD - REM sleep and recall",
+      },
+    ]);
   });
 
   it("matches imports by RID rather than source-local ID alone", () => {
@@ -134,25 +159,49 @@ describe("buildDiscoveredSharedNodes", () => {
     ).toBe(false);
   });
 
+  it.each([
+    "orn:obsidian.note:vault-a/node-1",
+    "https://example.com/shared/node-1",
+  ])("preserves a RID-shaped source-local ID: %s", (rid) => {
+    expect(
+      build({
+        conceptsOverride: [{ ...concepts[0], source_local_id: rid }],
+        directContentsOverride: [
+          { ...directContents[0], source_local_id: rid },
+        ],
+        fullContentSummariesOverride: [
+          { ...fullContentSummaries[0], source_local_id: rid },
+        ],
+        resourcesOverride: [{ space_id: 20, source_local_id: rid }],
+      })[0]?.sourceNodeRid,
+    ).toBe(rid);
+  });
+
   it("sorts newest nodes first", () => {
     const olderConcept = {
       ...concepts[0],
-      last_modified: "2026-06-10T12:00:00.000Z",
+      last_modified: "2026-06-10T12:00:00",
       source_local_id: "node-2",
     };
-    const olderContents = contents.map((content) => ({
-      ...content,
-      last_modified: "2026-06-10T12:00:00.000Z",
+    const olderDirectContent = {
+      ...directContents[0],
+      last_modified: "2026-06-10T12:00:00",
       source_local_id: "node-2",
-      text:
-        content.variant === "direct"
-          ? "Older shared node"
-          : "# Older shared node",
-    }));
+      text: "Older shared node",
+    };
+    const olderFullContentSummary = {
+      ...fullContentSummaries[0],
+      last_modified: "2026-06-10T12:00:00",
+      source_local_id: "node-2",
+    };
     expect(
       build({
         conceptsOverride: [olderConcept, concepts[0]],
-        contentsOverride: [...olderContents, ...contents],
+        directContentsOverride: [olderDirectContent, ...directContents],
+        fullContentSummariesOverride: [
+          olderFullContentSummary,
+          ...fullContentSummaries,
+        ],
         resourcesOverride: [
           ...resources,
           { space_id: 20, source_local_id: "node-2" },
