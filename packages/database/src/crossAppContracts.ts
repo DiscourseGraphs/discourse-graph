@@ -1,5 +1,5 @@
 import type { ContentType } from "@repo/content-model";
-import { Enums } from "./dbTypes";
+import { Enums, type Json } from "./dbTypes";
 
 export type LocalRef = {
   // This localId is expected to be unique within the current space
@@ -20,6 +20,42 @@ export type CrossAppBase = LocalRef & {
   modifiedAt?: Date;
   author: Ref;
 };
+
+export type CrossAppSchemaBase = CrossAppBase & {
+  metadata?: Json;
+};
+
+// A node schema
+export type CrossAppNodeSchema = CrossAppSchemaBase & {
+  label: string;
+  template?: string;
+  templateTitle?: string;
+};
+
+// A relation type schema
+export type CrossAppRelationTypeSchema = CrossAppSchemaBase & {
+  label: string;
+  complement: string;
+  // should we add colour? format?
+};
+
+// A relation triple schema
+export type CrossAppRelationTripleSchema = CrossAppSchemaBase &
+  (
+    | {
+        label: string;
+        complement: string;
+        relation?: never;
+      }
+    | {
+        relation: Ref;
+        label?: never;
+        complement?: never;
+      }
+  ) & {
+    sourceType: Ref;
+    destinationType: Ref;
+  };
 
 // An inline vector semantic embedding
 export type CrossAppEmbedding = {
@@ -46,6 +82,6 @@ export type CrossAppNode = CrossAppBase & {
   nodeType: Ref;
   content: {
     direct: InlineCrossAppContent;
-    full: InlineCrossAppTypedContent;
+    full?: InlineCrossAppTypedContent;
   };
 };

@@ -43,6 +43,9 @@ Good first choices include:
 - Nextra `Steps` for ordered setup or workflow instructions
 - Nextra `Tabs` for compact platform or mode variants
 - Nextra `Table` and `FileTree` when structured data or file paths need clearer presentation
+- The global `NodeTag` MDX component for discourse candidate tag pills, such as `<NodeTag type="clm" />`, `<NodeTag type="evd" />`, or `<NodeTag type="que" />`. Allowed `type` values are `que`, `clm`, `evd`, `src`, `hyp`, `res`, and `iss`.
+
+Use `.mdx` when a page needs MDX components like `Callout`, `Image`, or `NodeTag`. `NodeTag` renders `#<type>-candidate` by default and uses the approved node colors. Do not import `NodeTag` in individual docs pages; it is registered globally through `mdx-components.tsx`.
 
 Do not change docs structural code, theme files, route shells, app layouts, shared components, or CSS as part of adding content.
 If the content needs a styling or presentation feature that existing Nextra features cannot support, stop and flag the author to create a separate Linear ticket for adding that Nextra functionality.

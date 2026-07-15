@@ -20,6 +20,7 @@ If no argument is provided, use the current branch's diff against main, commit m
 - Do not edit legacy docs route shells or deleted legacy docs paths such as `apps/website/app/(docs)/docs/*/pages`, `docMap.ts`, `navigation.ts`, or `sharedPages`.
 - Do not update runtime code, app routes, or package interfaces unless the dev explicitly asks for that separately.
 - Use existing Nextra Markdown, MDX, and `nextra/components` features before proposing custom styling or layout.
+- Use the existing global `NodeTag` MDX component for discourse candidate tag pills, such as `<NodeTag type="clm" />`. Allowed `type` values are `que`, `clm`, `evd`, `src`, `hyp`, `res`, and `iss`. Do not create one-off tag styling or CSS in docs content.
 - Do not add or change theme, layout, route, component, or CSS code while adding documentation content. If existing Nextra features are not enough, flag the author to create a separate Linear ticket for new Nextra functionality.
 
 ## When to Run

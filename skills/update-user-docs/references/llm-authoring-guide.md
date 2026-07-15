@@ -17,6 +17,8 @@ Use these paths:
 
 Use existing Nextra Markdown, MDX, and nextra/components features first for styling and layout, such as Callout, Cards, Steps, Tabs, Table, and FileTree when appropriate.
 
+For discourse candidate tag pills, use the existing global MDX component, such as `<NodeTag type="clm" />`, `<NodeTag type="evd" />`, or `<NodeTag type="que" />`. Allowed `type` values are `que`, `clm`, `evd`, `src`, `hyp`, `res`, and `iss`. It renders `#<type>-candidate` with approved node colors. Do not import it in individual pages and do not add custom tag CSS.
+
 Do not edit route shells, theme/layout code, shared components, CSS, or legacy docs paths. Do not use app/(docs)/docs/*/pages, docMap.ts, navigation.ts, or sharedPages.
 
 If adding a page, choose the right platform section, create a kebab-case .md or .mdx file, update the nearest _meta.ts, and update docsRouteMap.ts only when a flat /docs/<platform>/<slug> redirect should exist.
@@ -55,6 +57,8 @@ Before finishing, verify links, sidebar registration, route redirects, and stale
 5. Add the slug to the nearest `_meta.ts` file.
 6. Update `apps/website/docsRouteMap.ts` only if a flat legacy route should redirect to the sectioned route.
 
+Use `.mdx` instead of `.md` when a page needs MDX components such as `Callout`, `Image`, or `NodeTag`.
+
 ## Screenshot handling
 
 Use screenshots only when the file exists or the dev provides it.
@@ -70,7 +74,7 @@ If the screenshot is not available yet, add a comment like:
 - Docs edits are under `apps/website/content/**`.
 - New pages are registered in the nearest `_meta.ts`.
 - Needed flat redirects are in `apps/website/docsRouteMap.ts`.
-- Styling uses existing Nextra features and does not change structural code.
+- Styling uses existing Nextra features or the existing `NodeTag` MDX component and does not change structural code.
 - New links resolve to existing routes or files.
 - Screenshot TODOs are comments, not broken images.
 - No positive instructions point to legacy docs paths.

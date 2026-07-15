@@ -4,6 +4,14 @@
   --nextra-content-width: 90rem;
 }
 
+.docs-bordered-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid rgb(203 213 225);
+  margin-top: 1.25em;
+}
+
 .nextra-reset,
 .nextra-search-results {
   --nextra-primary-hue: 212deg;
