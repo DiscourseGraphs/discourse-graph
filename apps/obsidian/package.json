@@ -21,8 +21,8 @@
     "@repo/typescript-config": "workspace:*",
     "@types/mime-types": "3.0.1",
     "@types/node": "catalog:",
-    "@types/react": "catalog:obsidian",
-    "@types/react-dom": "catalog:obsidian",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "autoprefixer": "^10.4.21",
     "builtin-modules": "3.3.0",
     "dotenv": "^16.4.5",
@@ -46,8 +46,8 @@
     "gray-matter": "^4.0.3",
     "mime-types": "^3.0.1",
     "nanoid": "^4.0.2",
-    "react": "catalog:obsidian",
-    "react-dom": "catalog:obsidian",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "tailwindcss-animate": "^1.0.7",
     "tldraw": "3.14.2"
   }

@@ -24,8 +24,8 @@
     "@types/file-saver": "2.0.5",
     "@types/nanoid": "2.0.0",
     "@types/node": "catalog:",
-    "@types/react": "catalog:roam",
-    "@types/react-dom": "catalog:roam",
+    "@types/react": "catalog",
+    "@types/react-dom": "catalog",
     "@types/react-vertical-timeline-component": "^3.3.3",
     "axios": "^0.27.2",
     "dotenv": "^16.0.3",
@@ -89,7 +89,7 @@
     "zod": "^3.23.8"
   },
   "peerDependencies": {
-    "react": "catalog:roam",
-    "react-dom": "catalog:roam"
+    "react": "catalog",
+    "react-dom": "catalog"
   }
 }
