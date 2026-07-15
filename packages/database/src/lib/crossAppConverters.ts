@@ -82,6 +82,7 @@ export const crossAppNodeToDbContent = (
 ): LocalContentDataInput | undefined => {
   if (node === undefined) return undefined;
   const content = node.content[variant];
+  if (content === undefined) return undefined;
   return inlineCrossAppContentToDbContent(
     {
       ...content,
