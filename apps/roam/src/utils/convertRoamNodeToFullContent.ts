@@ -58,11 +58,11 @@ export const convertRoamNodeToFullContent = ({
       const blocks = getFullTreeByParentUid(node.source_local_id).children;
       const viewType = getPageViewType(title) || "bullet";
       const crossAppNode: CrossAppNode = {
-        author: { localId: node.author_local_id },
+        authorId: node.author_local_id,
         localId: node.source_local_id,
         createdAt: new Date(node.created || Date.now()),
         modifiedAt: new Date(node.last_modified || Date.now()),
-        nodeType: { localId: node.node_type_id },
+        nodeType: node.node_type_id,
         content: {
           direct: {
             localId: node.source_local_id,
