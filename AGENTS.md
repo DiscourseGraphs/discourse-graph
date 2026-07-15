@@ -8,7 +8,7 @@ This repository uses Turborepo.
 
 - apps/website: The public-facing website for Discourse Graphs, Uses Next.js.
 - apps/roam: The Roam Research extension that implements the Discourse Graph protocol.
-- apps/obsidian: The Obsidian plugin that implements the Discourse Graph protocol.
+- apps/obsidian: The Obsidian plugin that implements the Discourse Graph protocol. See `apps/obsidian/AGENTS.md` for Obsidian-specific lint workflow.
 
 `packages`
 
