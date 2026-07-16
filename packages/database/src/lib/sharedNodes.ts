@@ -18,7 +18,6 @@ type SharedConcept = Pick<
 type SharedContent = Pick<
   Tables<"my_contents">,
   | "author_id"
-  | "content_type"
   | "created"
   | "last_modified"
   | "metadata"
@@ -26,6 +25,10 @@ type SharedContent = Pick<
   | "space_id"
   | "text"
   | "variant"
+>;
+type SharedContentSummary = Pick<
+  Tables<"my_contents">,
+  "last_modified" | "source_local_id" | "space_id"
 >;
 type SharedSpace = Pick<
   Tables<"my_spaces">,
@@ -55,7 +58,8 @@ export type SharedNodeCandidate = {
 
 export type SharedNodeRows = {
   concepts: SharedConcept[];
-  contents: SharedContent[];
+  directContents: SharedContent[];
+  fullContentSummaries: SharedContentSummary[];
   resources: ResourceAccess[];
   spaces: SharedSpace[];
 };
@@ -86,8 +90,9 @@ const getLatestTimestamp = (timestamps: (string | null)[]): string | null => {
 
 export const buildSharedNodeCandidates = ({
   concepts,
-  contents,
   currentSpaceId,
+  directContents,
+  fullContentSummaries,
   resources,
   spaces,
 }: SharedNodeRows & {
@@ -124,25 +129,37 @@ export const buildSharedNodeCandidates = ({
       ];
     }),
   );
-  const contentByResource = new Map<
-    string,
-    Partial<Record<"direct" | "full", SharedContent>>
-  >();
-
-  contents.forEach((content) => {
+  const directByResource = new Map<string, SharedContent>();
+  directContents.forEach((content) => {
     if (
       typeof content.space_id !== "number" ||
       typeof content.source_local_id !== "string" ||
-      (content.variant !== "direct" && content.variant !== "full")
+      content.variant !== "direct"
     )
       return;
-    const key = getResourceKey({
-      sourceLocalId: content.source_local_id,
-      spaceId: content.space_id,
-    });
-    const variants = contentByResource.get(key) ?? {};
-    variants[content.variant] = content;
-    contentByResource.set(key, variants);
+    directByResource.set(
+      getResourceKey({
+        sourceLocalId: content.source_local_id,
+        spaceId: content.space_id,
+      }),
+      content,
+    );
+  });
+
+  const fullModifiedByResource = new Map<string, string | null>();
+  fullContentSummaries.forEach((summary) => {
+    if (
+      typeof summary.space_id !== "number" ||
+      typeof summary.source_local_id !== "string"
+    )
+      return;
+    fullModifiedByResource.set(
+      getResourceKey({
+        sourceLocalId: summary.source_local_id,
+        spaceId: summary.space_id,
+      }),
+      summary.last_modified,
+    );
   });
 
   return concepts
@@ -162,21 +179,13 @@ export const buildSharedNodeCandidates = ({
       if (!sharedResourceKeys.has(resourceKey)) return [];
 
       const space = spacesById.get(concept.space_id);
-      const variants = contentByResource.get(resourceKey);
-      const direct = variants?.direct;
-      const full = variants?.full;
-      if (
-        !space ||
-        typeof direct?.text !== "string" ||
-        typeof full?.text !== "string" ||
-        typeof full.content_type !== "string"
-      )
-        return [];
+      const direct = directByResource.get(resourceKey);
+      if (!space || typeof direct?.text !== "string") return [];
 
       const lastModified = getLatestTimestamp([
         concept.last_modified,
         direct.last_modified,
-        full.last_modified,
+        fullModifiedByResource.get(resourceKey) ?? null,
       ]);
       if (!lastModified) return [];
 
@@ -265,7 +274,13 @@ const getSharedNodeRows = async ({
     (resource) => resource.space_id !== currentSpaceId,
   );
   if (resources.length === 0)
-    return { concepts: [], contents: [], resources, spaces: [] };
+    return {
+      concepts: [],
+      directContents: [],
+      fullContentSummaries: [],
+      resources,
+      spaces: [],
+    };
 
   const spaceIds = [...new Set(resources.map((resource) => resource.space_id))];
   const spacesResponse = await client
@@ -275,41 +290,52 @@ const getSharedNodeRows = async ({
   if (spacesResponse.error) throw spacesResponse.error;
 
   const concepts: SharedConcept[] = [];
-  const contents: SharedContent[] = [];
+  const directContents: SharedContent[] = [];
+  const fullContentSummaries: SharedContentSummary[] = [];
   for (const spaceId of spaceIds) {
     const sourceLocalIds = resources
       .filter((resource) => resource.space_id === spaceId)
       .map((resource) => resource.source_local_id);
     for (const ids of chunk(sourceLocalIds, RESOURCE_ID_CHUNK_SIZE)) {
-      const [conceptsResponse, contentsResponse] = await Promise.all([
-        client
-          .from("my_concepts")
-          .select(
-            "is_schema, last_modified, schema_id, source_local_id, space_id",
-          )
-          .eq("space_id", spaceId)
-          .eq("is_schema", false)
-          .eq("arity", 0)
-          .in("source_local_id", ids),
-        client
-          .from("my_contents")
-          .select(
-            "author_id, content_type, created, last_modified, metadata, source_local_id, space_id, text, variant",
-          )
-          .eq("space_id", spaceId)
-          .in("source_local_id", ids)
-          .in("variant", ["direct", "full"]),
-      ]);
+      const [conceptsResponse, directResponse, fullResponse] =
+        await Promise.all([
+          client
+            .from("my_concepts")
+            .select(
+              "is_schema, last_modified, schema_id, source_local_id, space_id",
+            )
+            .eq("space_id", spaceId)
+            .eq("is_schema", false)
+            .eq("arity", 0)
+            .in("source_local_id", ids),
+          client
+            .from("my_contents")
+            .select(
+              "author_id, created, last_modified, metadata, source_local_id, space_id, text, variant",
+            )
+            .eq("space_id", spaceId)
+            .in("source_local_id", ids)
+            .eq("variant", "direct"),
+          client
+            .from("my_contents")
+            .select("last_modified, source_local_id, space_id")
+            .eq("space_id", spaceId)
+            .in("source_local_id", ids)
+            .eq("variant", "full"),
+        ]);
       if (conceptsResponse.error) throw conceptsResponse.error;
-      if (contentsResponse.error) throw contentsResponse.error;
+      if (directResponse.error) throw directResponse.error;
+      if (fullResponse.error) throw fullResponse.error;
       concepts.push(...conceptsResponse.data);
-      contents.push(...contentsResponse.data);
+      directContents.push(...directResponse.data);
+      fullContentSummaries.push(...fullResponse.data);
     }
   }
 
   return {
     concepts,
-    contents,
+    directContents,
+    fullContentSummaries,
     resources,
     spaces: spacesResponse.data,
   };
