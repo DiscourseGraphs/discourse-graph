@@ -279,6 +279,7 @@ const getSharedNodeRows = async ({
           )
           .eq("space_id", spaceId)
           .eq("is_schema", false)
+          .eq("arity", 0)
           .in("source_local_id", ids),
         client
           .from("my_contents")
