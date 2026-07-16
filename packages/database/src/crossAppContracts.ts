@@ -4,6 +4,9 @@ import { Enums, type Json } from "./dbTypes";
 // An identifier for objects in the platform. Expected to be unique within the platform.
 export type LocalId = string;
 
+// A composite identifier for objects in other spaces.
+export type Rid = string;
+
 // Common attributes for most types
 export type CrossAppBase = {
   localId: LocalId;
@@ -75,4 +78,13 @@ export type CrossAppNode = CrossAppBase & {
     direct: InlineCrossAppContent;
     full?: InlineCrossAppTypedContent;
   };
+};
+
+// A relation instance
+export type CrossAppRelation = CrossAppBase & {
+  relationType: LocalId;
+  /* eslint-disable @typescript-eslint/no-duplicate-type-constituents */
+  source: LocalId | Rid;
+  destination: LocalId | Rid;
+  /* eslint-enable @typescript-eslint/no-duplicate-type-constituents */
 };
