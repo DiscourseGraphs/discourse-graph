@@ -264,6 +264,7 @@ export type Database = {
           id: number
           last_modified: string
           metadata: Json
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"]
           source_local_id: string | null
@@ -280,6 +281,7 @@ export type Database = {
           id?: number
           last_modified: string
           metadata?: Json
+          original?: boolean | null
           part_of_id?: number | null
           scale: Database["public"]["Enums"]["Scale"]
           source_local_id?: string | null
@@ -296,6 +298,7 @@ export type Database = {
           id?: number
           last_modified?: string
           metadata?: Json
+          original?: boolean | null
           part_of_id?: number | null
           scale?: Database["public"]["Enums"]["Scale"]
           source_local_id?: string | null
@@ -587,31 +590,31 @@ export type Database = {
       }
       FileReference: {
         Row: {
-          content_type: string
           created: string
           filehash: string
           filepath: string
           last_modified: string
+          original: boolean | null
           source_local_id: string
           space_id: number
           variant: Database["public"]["Enums"]["ContentVariant"] | null
         }
         Insert: {
-          content_type?: string
           created: string
           filehash: string
           filepath: string
           last_modified: string
+          original?: boolean | null
           source_local_id: string
           space_id: number
           variant?: Database["public"]["Enums"]["ContentVariant"] | null
         }
         Update: {
-          content_type?: string
           created?: string
           filehash?: string
           filepath?: string
           last_modified?: string
+          original?: boolean | null
           source_local_id?: string
           space_id?: number
           variant?: Database["public"]["Enums"]["ContentVariant"] | null
@@ -619,38 +622,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant", "content_type"]
+            columns: ["space_id", "source_local_id", "variant", "original"]
             isOneToOne: false
             referencedRelation: "Content"
             referencedColumns: [
               "space_id",
               "source_local_id",
               "variant",
-              "content_type",
+              "original",
             ]
           },
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant", "content_type"]
+            columns: ["space_id", "source_local_id", "variant", "original"]
             isOneToOne: false
             referencedRelation: "my_contents"
             referencedColumns: [
               "space_id",
               "source_local_id",
               "variant",
-              "content_type",
+              "original",
             ]
           },
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant", "content_type"]
+            columns: ["space_id", "source_local_id", "variant", "original"]
             isOneToOne: false
             referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
             referencedColumns: [
               "space_id",
               "source_local_id",
               "variant",
-              "content_type",
+              "original",
             ]
           },
         ]
@@ -1064,6 +1067,7 @@ export type Database = {
           id: number | null
           last_modified: string | null
           metadata: Json | null
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"] | null
           source_local_id: string | null
@@ -1168,6 +1172,7 @@ export type Database = {
       my_contents_with_embedding_openai_text_embedding_3_small_1536: {
         Row: {
           author_id: number | null
+          content_type: string | null
           created: string | null
           creator_id: number | null
           document_id: number | null
@@ -1175,6 +1180,7 @@ export type Database = {
           last_modified: string | null
           metadata: Json | null
           model: Database["public"]["Enums"]["EmbeddingName"] | null
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"] | null
           source_local_id: string | null
@@ -1182,7 +1188,6 @@ export type Database = {
           text: string | null
           variant: Database["public"]["Enums"]["ContentVariant"] | null
           vector: string | null
-          content_type: string | null
         }
         Relationships: [
           {
@@ -1455,6 +1460,7 @@ export type Database = {
           id: number
           last_modified: string
           metadata: Json
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"]
           source_local_id: string | null
@@ -1628,6 +1634,7 @@ export type Database = {
           id: number | null
           last_modified: string | null
           metadata: Json | null
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"] | null
           source_local_id: string | null
@@ -2026,6 +2033,7 @@ export type Database = {
           | null
         variant: Database["public"]["Enums"]["ContentVariant"] | null
         content_type: string | null
+        original: boolean | null
       }
       document_local_input: {
         space_id: number | null

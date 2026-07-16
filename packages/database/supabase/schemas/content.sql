@@ -88,7 +88,9 @@ CREATE TABLE IF NOT EXISTS public."Content" (
     space_id bigint,
     last_modified timestamp without time zone NOT NULL,
     part_of_id bigint,
-    content_type character varying NOT NULL DEFAULT 'text/plain'
+    content_type character varying NOT NULL DEFAULT 'text/plain',
+    -- Use null, never false for the non-original rows.
+    original BOOLEAN DEFAULT true
 );
 
 ALTER TABLE ONLY public."Content"
@@ -134,6 +136,10 @@ CREATE INDEX "Content_space" ON public."Content" USING btree (space_id);
 CREATE UNIQUE INDEX content_space_local_id_variant_content_type_idx ON public."Content" USING btree (
     space_id, source_local_id, variant, content_type
 ) NULLS DISTINCT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS content_space_local_id_variant_content_type_originals_idx ON public."Content" USING btree (
+    space_id, source_local_id, variant, original
+);
 
 CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
 
@@ -265,7 +271,8 @@ SELECT
     space_id,
     last_modified,
     part_of_id,
-    content_type
+    content_type,
+    original
 FROM public."Content"
     LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (
@@ -332,6 +339,7 @@ CREATE TYPE public.content_local_input AS (
     last_modified timestamp without time zone,
     part_of_id bigint,
     content_type character varying,
+    original boolean,  -- this should be true or false, will be translated to true or null
     -- local values
     document_local_id character varying,
     creator_local_id character varying,
@@ -425,6 +433,7 @@ BEGIN
     SELECT id FROM public."Space"
     WHERE url = data.space_url INTO content.space_id;
   END IF;
+  content.original := CASE WHEN data.original IS false THEN NULL ELSE true END;
   -- now avoid null defaults
   IF content.metadata IS NULL then
     content.metadata := '{}';
@@ -631,7 +640,8 @@ BEGIN
         space_id,
         last_modified,
         part_of_id,
-        content_type
+        content_type,
+        original
     ) VALUES (
         db_content.document_id,
         db_content.source_local_id,
@@ -645,7 +655,8 @@ BEGIN
         db_content.space_id,
         db_content.last_modified,
         db_content.part_of_id,
-        db_content.content_type
+        db_content.content_type,
+        db_content.original
     )
     ON CONFLICT (space_id, source_local_id, variant, content_type) DO UPDATE SET
         document_id = COALESCE(db_content.document_id, EXCLUDED.document_id),
@@ -656,7 +667,8 @@ BEGIN
         metadata = COALESCE(db_content.metadata, EXCLUDED.metadata),
         scale = COALESCE(db_content.scale, EXCLUDED.scale),
         last_modified = COALESCE(db_content.last_modified, EXCLUDED.last_modified),
-        part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id)
+        part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id),
+        original = db_content.original
     RETURNING id INTO STRICT upsert_id;
     IF model(embedding_inline(local_content)) IS NOT NULL THEN
         PERFORM public.upsert_content_embedding(upsert_id, model(embedding_inline(local_content)),  vector(embedding_inline(local_content)));
