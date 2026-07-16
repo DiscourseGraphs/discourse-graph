@@ -34,11 +34,11 @@ type SharedSpace = Pick<
   Tables<"my_spaces">,
   "id" | "name" | "platform" | "url"
 >;
-export type SharedNodePlatform = Enums<"Platform">;
+type Platform = Enums<"Platform">;
 
 type ValidSharedSpace = {
   name: string;
-  platform: SharedNodePlatform;
+  platform: Platform;
   url: string;
 };
 
@@ -48,7 +48,7 @@ export type SharedNodeCandidate = {
   spaceId: number;
   spaceName: string;
   spaceUri: string;
-  platform: SharedNodePlatform;
+  platform: Platform;
   title: string;
   created: string | null;
   lastModified: string;

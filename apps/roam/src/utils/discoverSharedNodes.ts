@@ -2,8 +2,8 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
   listGroupSharedNodes,
   type SharedNodeCandidate,
-  type SharedNodePlatform,
 } from "@repo/database/lib/sharedNodes";
+import type { Enums } from "@repo/database/dbTypes";
 import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
 
 const IMPORTED_FROM_PROP_KEY = "importedFrom";
@@ -11,7 +11,7 @@ const IMPORTED_FROM_PROP_KEY = "importedFrom";
 export type DiscoveredSharedNode = {
   alreadyImported: boolean;
   modifiedAt: string;
-  sourceApp: SharedNodePlatform;
+  sourceApp: Enums<"Platform">;
   sourceNodeId?: string;
   sourceNodeRid: string;
   sourceSpaceId: string;
