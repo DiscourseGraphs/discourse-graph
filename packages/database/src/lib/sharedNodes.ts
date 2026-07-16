@@ -227,6 +227,7 @@ export const buildSharedNodeCandidates = ({
 
 const getGroupSharedResources = async (
   client: DGSupabaseClient,
+  currentSpaceId: number,
   groupIds?: string[],
 ): Promise<ResourceAccess[]> => {
   const availableGroupIds = groupIds ?? (await getAvailableGroupIds(client));
@@ -237,8 +238,10 @@ const getGroupSharedResources = async (
       .from("ResourceAccess")
       .select("space_id, source_local_id")
       .in("account_uid", availableGroupIds)
+      .neq("space_id", currentSpaceId)
       .order("space_id")
-      .order("source_local_id"),
+      .order("source_local_id")
+      .order("account_uid"),
     PAGE_SIZE,
   );
   if (!Array.isArray(resources)) throw resources;
@@ -270,8 +273,10 @@ const getSharedNodeRows = async ({
   currentSpaceId: number;
   groupIds?: string[];
 }): Promise<SharedNodeRows> => {
-  const resources = (await getGroupSharedResources(client, groupIds)).filter(
-    (resource) => resource.space_id !== currentSpaceId,
+  const resources = await getGroupSharedResources(
+    client,
+    currentSpaceId,
+    groupIds,
   );
   if (resources.length === 0)
     return {
