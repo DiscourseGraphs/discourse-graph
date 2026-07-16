@@ -2,6 +2,7 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
   listGroupSharedNodes,
   type SharedNodeCandidate,
+  type SharedNodePlatform,
 } from "@repo/database/lib/sharedNodes";
 import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
 
@@ -10,7 +11,7 @@ const IMPORTED_FROM_PROP_KEY = "importedFrom";
 export type DiscoveredSharedNode = {
   alreadyImported: boolean;
   modifiedAt: string;
-  sourceApp: "Roam" | "Obsidian";
+  sourceApp: SharedNodePlatform;
   sourceNodeId?: string;
   sourceNodeRid: string;
   sourceSpaceId: string;

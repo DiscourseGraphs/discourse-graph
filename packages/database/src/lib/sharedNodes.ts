@@ -2,7 +2,7 @@ import type { DGSupabaseClient } from "./client";
 import { getAvailableGroupIds } from "./groups";
 import { getAllPages } from "./pagination";
 import { isRid, spaceUriAndLocalIdToRid } from "./rid";
-import type { Json, Tables } from "../dbTypes";
+import type { Enums, Json, Tables } from "../dbTypes";
 
 const PAGE_SIZE = 1000;
 const RESOURCE_ID_CHUNK_SIZE = 100;
@@ -31,9 +31,11 @@ type SharedSpace = Pick<
   Tables<"my_spaces">,
   "id" | "name" | "platform" | "url"
 >;
+export type SharedNodePlatform = Enums<"Platform">;
+
 type ValidSharedSpace = {
   name: string;
-  platform: "Roam" | "Obsidian";
+  platform: SharedNodePlatform;
   url: string;
 };
 
@@ -43,7 +45,7 @@ export type SharedNodeCandidate = {
   spaceId: number;
   spaceName: string;
   spaceUri: string;
-  platform: "Roam" | "Obsidian";
+  platform: SharedNodePlatform;
   title: string;
   created: string | null;
   lastModified: string;
@@ -106,7 +108,7 @@ export const buildSharedNodeCandidates = ({
       if (
         typeof space.id !== "number" ||
         typeof space.name !== "string" ||
-        (space.platform !== "Roam" && space.platform !== "Obsidian") ||
+        space.platform === null ||
         typeof space.url !== "string"
       )
         return [];
