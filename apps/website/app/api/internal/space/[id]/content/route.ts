@@ -29,13 +29,13 @@ export const POST = async (
 
   const supabase = await createClient();
 
-  const userId = await getAccountId(supabase);
-  if (userId === undefined)
-    return createApiResponse(
-      request,
-      asPostgrestFailure("Please login", "invalid", 401),
-    );
   try {
+    const userId = await getAccountId(supabase);
+    if (userId === undefined)
+      return createApiResponse(
+        request,
+        asPostgrestFailure("Please login", "invalid", 401),
+      );
     const body = (await request.json()) as StandaloneCrossAppContent[];
     // TODO: Zed validator
     const content = body
