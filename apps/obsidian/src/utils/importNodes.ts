@@ -63,10 +63,8 @@ export const getPublishedNodesForGroups = async ({
       source_local_id: candidate.sourceLocalId,
       space_id: candidate.spaceId,
       text: candidate.title,
-      createdAt: candidate.created
-        ? new Date(candidate.created + "Z").valueOf()
-        : 0,
-      modifiedAt: new Date(candidate.lastModified + "Z").valueOf(),
+      createdAt: candidate.created ? new Date(candidate.created).valueOf() : 0,
+      modifiedAt: new Date(candidate.lastModified).valueOf(),
       filePath,
       authorId: candidate.authorId,
     };

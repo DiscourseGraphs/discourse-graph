@@ -17,6 +17,7 @@ import {
   discoverSharedNodes,
   type DiscoveredSharedNode,
 } from "~/utils/discoverSharedNodes";
+import internalError from "~/utils/internalError";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 
 const formatModifiedAt = (modifiedAt: string): string =>
@@ -80,18 +81,16 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
   const [nodes, setNodes] = useState<DiscoveredSharedNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const loadNodes = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError("");
     try {
-      const [client, context] = await Promise.all([
-        getLoggedInClient(),
-        getSupabaseContext(),
-      ]);
-      if (!client || !context)
-        throw new Error("Could not connect to shared persistence.");
+      const context = await getSupabaseContext();
+      if (!context) throw new Error("Could not connect to shared persistence.");
+      const client = await getLoggedInClient();
+      if (!client) throw new Error("Could not connect to shared persistence.");
       setNodes(
         await discoverSharedNodes({
           client,
@@ -99,7 +98,12 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         }),
       );
     } catch (loadError) {
-      console.error("Failed to discover shared nodes:", loadError);
+      internalError({
+        error: loadError,
+        type: "Shared node discovery failed",
+        context: { operation: "load-shared-nodes" },
+        sendEmail: false,
+      });
       setError(
         loadError instanceof Error
           ? loadError.message
@@ -115,7 +119,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
   }, [loadNodes]);
 
   const visibleNodes = useMemo(() => {
-    const normalizedSearch = search.trim().toLocaleLowerCase();
+    const normalizedSearch = searchTerm.trim().toLocaleLowerCase();
     if (!normalizedSearch) return nodes;
     return nodes.filter((node) =>
       [
@@ -126,7 +130,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         node.sourceNodeId,
       ].some((value) => value?.toLocaleLowerCase().includes(normalizedSearch)),
     );
-  }, [nodes, search]);
+  }, [nodes, searchTerm]);
 
   return (
     <Dialog
@@ -149,10 +153,10 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
             className="min-w-0 flex-1"
             leftIcon="search"
             onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              setSearch(event.target.value)
+              setSearchTerm(event.target.value)
             }
             placeholder="Search shared nodes"
-            value={search}
+            value={searchTerm}
           />
           <Tooltip content="Reload shared nodes">
             <Button
@@ -180,7 +184,9 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           <div className="flex min-h-52 items-center justify-center">
             <NonIdealState
               icon="search"
-              title={search ? "No matching shared nodes" : "No shared nodes"}
+              title={
+                searchTerm ? "No matching shared nodes" : "No shared nodes"
+              }
             />
           </div>
         ) : (

@@ -1,7 +1,7 @@
 import type { DGSupabaseClient } from "./client";
 import { getAvailableGroupIds } from "./groups";
 import { getAllPages } from "./pagination";
-import { spaceUriAndLocalIdToRid } from "./rid";
+import { isRid, spaceUriAndLocalIdToRid } from "./rid";
 import type { Json, Tables } from "../dbTypes";
 
 const PAGE_SIZE = 1000;
@@ -66,14 +66,19 @@ const getResourceKey = ({
   spaceId: number;
 }): string => `${spaceId}:${sourceLocalId}`;
 
+const normalizeUtcTimestamp = (timestamp: string | null): string | null => {
+  if (!timestamp) return null;
+  const date = new Date(`${timestamp}Z`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
 const getLatestTimestamp = (timestamps: (string | null)[]): string | null => {
-  const validTimestamps = timestamps.filter(
-    (timestamp): timestamp is string =>
-      typeof timestamp === "string" && !Number.isNaN(Date.parse(timestamp)),
-  );
+  const validTimestamps = timestamps
+    .map(normalizeUtcTimestamp)
+    .filter((timestamp): timestamp is string => typeof timestamp === "string");
   if (validTimestamps.length === 0) return null;
   return validTimestamps.reduce((latest, timestamp) =>
-    Date.parse(timestamp) > Date.parse(latest) ? timestamp : latest,
+    timestamp > latest ? timestamp : latest,
   );
 };
 
@@ -175,11 +180,13 @@ export const buildSharedNodeCandidates = ({
 
       let rid: string;
       try {
-        rid = spaceUriAndLocalIdToRid(
-          space.url,
-          concept.source_local_id,
-          space.platform === "Obsidian" ? "note" : undefined,
-        );
+        rid = isRid(concept.source_local_id)
+          ? concept.source_local_id
+          : spaceUriAndLocalIdToRid(
+              space.url,
+              concept.source_local_id,
+              space.platform === "Obsidian" ? "note" : undefined,
+            );
       } catch {
         return [];
       }
@@ -193,7 +200,7 @@ export const buildSharedNodeCandidates = ({
           spaceUri: space.url,
           platform: space.platform,
           title: direct.text,
-          created: direct.created,
+          created: normalizeUtcTimestamp(direct.created),
           lastModified,
           authorId: direct.author_id ?? undefined,
           directMetadata: direct.metadata,
@@ -280,6 +287,7 @@ const getSharedNodeRows = async ({
           )
           .eq("space_id", spaceId)
           .eq("is_schema", false)
+          .eq("arity", 0)
           .in("source_local_id", ids),
         client
           .from("my_contents")

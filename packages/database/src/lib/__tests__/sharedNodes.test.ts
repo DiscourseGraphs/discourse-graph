@@ -18,7 +18,7 @@ const spaces: BuildArgs["spaces"] = [
 const concepts: BuildArgs["concepts"] = [
   {
     is_schema: false,
-    last_modified: "2026-06-14T12:00:00.000Z",
+    last_modified: "2026-06-14T12:00:00",
     schema_id: 200,
     source_local_id: "node-1",
     space_id: 20,
@@ -28,8 +28,8 @@ const contents: BuildArgs["contents"] = [
   {
     author_id: 42,
     content_type: "text/plain",
-    created: "2026-06-14T11:00:00.000Z",
-    last_modified: "2026-06-14T13:00:00.000Z",
+    created: "2026-06-14T11:00:00",
+    last_modified: "2026-06-14T13:00:00",
     metadata: { source: "obsidian" },
     source_local_id: "node-1",
     space_id: 20,
@@ -40,7 +40,7 @@ const contents: BuildArgs["contents"] = [
     author_id: null,
     content_type: "text/markdown",
     created: null,
-    last_modified: "2026-06-14T15:00:00.000Z",
+    last_modified: "2026-06-14T15:00:00",
     metadata: null,
     source_local_id: "node-1",
     space_id: 20,
@@ -103,6 +103,22 @@ describe("buildSharedNodeCandidates", () => {
   });
 
   it.each([
+    "orn:obsidian.note:vault-a/node-1",
+    "https://example.com/shared/node-1",
+  ])("preserves a RID-shaped source-local ID: %s", (sourceLocalId) => {
+    expect(
+      build({
+        conceptsOverride: [{ ...concepts[0]!, source_local_id: sourceLocalId }],
+        contentsOverride: contents.map((content) => ({
+          ...content,
+          source_local_id: sourceLocalId,
+        })),
+        resourcesOverride: [{ space_id: 20, source_local_id: sourceLocalId }],
+      })[0]?.rid,
+    ).toBe(sourceLocalId);
+  });
+
+  it.each([
     {
       name: "schema concept",
       conceptsOverride: [{ ...concepts[0]!, is_schema: true }],
@@ -135,12 +151,12 @@ describe("buildSharedNodeCandidates", () => {
   it("sorts newest nodes first", () => {
     const olderConcept = {
       ...concepts[0]!,
-      last_modified: "2026-06-10T12:00:00.000Z",
+      last_modified: "2026-06-10T12:00:00",
       source_local_id: "node-2",
     };
     const olderContents = contents.map((content) => ({
       ...content,
-      last_modified: "2026-06-10T12:00:00.000Z",
+      last_modified: "2026-06-10T12:00:00",
       source_local_id: "node-2",
       text:
         content.variant === "direct"

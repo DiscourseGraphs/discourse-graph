@@ -133,9 +133,7 @@ export const initObservers = ({
             nodeType: node.type,
           });
         }
-        if (settings.personalSettings[PERSONAL_KEYS.discourseContextOverlay]) {
-          renderDiscourseContext({ h1, uid });
-        }
+        renderDiscourseContext({ h1, uid });
         const linkedReferencesDiv = document.querySelector(
           ".rm-reference-main",
         ) as HTMLDivElement;
