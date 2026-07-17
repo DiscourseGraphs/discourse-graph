@@ -5,6 +5,7 @@ import {
   CrossAppNodeSchema,
   CrossAppRelationTypeSchema,
   CrossAppRelationTripleSchema,
+  CrossAppRelation,
 } from "../crossAppContracts";
 import { LocalContentDataInput, LocalConceptDataInput } from "../inputTypes";
 import { Enums, CompositeTypes } from "../dbTypes";
@@ -150,6 +151,24 @@ export const crossAppRelationTripleSchemaToDbConcept = ({
       relation_type: node.relation,
       source: node.sourceType,
       destination: node.destinationType,
+    },
+    created: node.createdAt?.toISOString(),
+    last_modified: node.modifiedAt?.toISOString(),
+  });
+};
+
+export const crossAppRelationToDbConcept = (
+  node: CrossAppRelation,
+): LocalConceptDataInput => {
+  return filterUndefined<LocalConceptDataInput>({
+    // use LocalIds... not ideal
+    name: `${node.localId}: ${node.source} -${node.relationType}-> ${node.destination}`,
+    source_local_id: node.localId,
+    author_local_id: node.authorId,
+    schema_represented_by_local_id: node.relationType,
+    local_reference_content: {
+      source: node.source,
+      destination: node.destination,
     },
     created: node.createdAt?.toISOString(),
     last_modified: node.modifiedAt?.toISOString(),
