@@ -98,7 +98,7 @@ import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 import { HistoryEntry } from "@tldraw/store";
 import { TLRecord } from "@tldraw/tlschema";
 import { WHITE_LOGO_SVG } from "~/icons";
-import { BLOCK_REF_REGEX } from "roamjs-components/dom";
+import { BLOCK_REF_REGEX, createHTMLObserver } from "roamjs-components/dom";
 import { defaultHandleExternalTextContent } from "./defaultHandleExternalTextContent";
 import {
   CanvasSyncMode,
@@ -223,7 +223,7 @@ let cleanupRoamPageRefDragSources: (() => void) | undefined;
 
 const createRoamPageRefDragSourceCleanup = (): (() => void) => {
   const dragHandle = createPageRefDragHandle();
-  const observedPageRefs = new WeakSet<HTMLSpanElement>();
+  const observedPageRefs = new WeakSet<HTMLElement>();
   let activePageRef: HTMLElement | null = null;
   let isDragHandlePointerDown = false;
   let isPageRefDragInProgress = false;
@@ -256,7 +256,7 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     renderPageRefDragHandle(e.relatedTarget);
   };
 
-  const observePageRef = (pageRef: HTMLSpanElement): void => {
+  const observePageRef = (pageRef: HTMLElement): void => {
     if (observedPageRefs.has(pageRef)) return;
 
     observedPageRefs.add(pageRef);
@@ -313,6 +313,15 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
   };
 
   onPageRefObserverChange(observePageRef)(true);
+  // Query link/alias views render page refs as anchors, which the shared
+  // SPAN-only page-ref observer never sees. Observed locally so anchors are
+  // not fed to its other handlers (overlays, previews).
+  const pageRefAnchorObserver = createHTMLObserver({
+    useBody: true,
+    tag: "A",
+    className: "rm-page-ref",
+    callback: observePageRef,
+  });
   dragHandle.addEventListener("pointerdown", handleDragHandlePointerDown);
   dragHandle.addEventListener("mousedown", handleDragHandlePointerDown);
   dragHandle.addEventListener("dragstart", handleDragStart);
@@ -323,8 +332,9 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
 
   return () => {
     onPageRefObserverChange(observePageRef)(false);
+    pageRefAnchorObserver.disconnect();
     document
-      .querySelectorAll<HTMLSpanElement>("span.rm-page-ref")
+      .querySelectorAll<HTMLElement>("span.rm-page-ref, a.rm-page-ref")
       .forEach((pageRef) => {
         pageRef.removeEventListener("pointerenter", handlePageRefPointerEnter);
         pageRef.removeEventListener("pointerleave", handlePageRefPointerLeave);
