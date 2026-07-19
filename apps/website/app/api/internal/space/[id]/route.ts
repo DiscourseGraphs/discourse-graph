@@ -103,7 +103,7 @@ export const POST = async (
           nodeSchemasById[c.localId] = c;
         });
       schemaResult.data
-        .filter((d) => d.arity === 0)
+        .filter((d) => d.arity === 2)
         .map((d) => {
           const c = dbRelationTypeSchemaToCrossApp(d as Concept, authorMap);
           relationTypesById[c.localId] = c;

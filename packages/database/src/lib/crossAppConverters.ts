@@ -144,6 +144,7 @@ export const dbRelationTypeSchemaToCrossApp = (
   schema: Concept,
   authorMap: Record<number, string>,
 ): CrossAppRelationTypeSchema => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { roles, label, complement, ...other } =
     schema.literal_content as Record<string, Json>;
   return {
