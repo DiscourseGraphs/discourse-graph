@@ -209,7 +209,7 @@ const getPageRefDragSource = (
 const createPageRefDragHandle = (): HTMLElement => {
   const dragHandle = document.createElement("span");
   dragHandle.className =
-    "ml-1 inline-flex cursor-grab select-none items-center align-middle text-red-500 active:cursor-grabbing";
+    "absolute -top-0.5 left-full cursor-grab select-none text-gray-500 active:cursor-grabbing";
   dragHandle.draggable = true;
   dragHandle.textContent = "⠿";
   dragHandle.title = "Drag page to canvas";
@@ -225,11 +225,16 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
   const dragHandle = createPageRefDragHandle();
   const observedPageRefs = new WeakSet<HTMLElement>();
   let activePageRef: HTMLElement | null = null;
+  let didPositionActivePageRef = false;
   let isDragHandlePointerDown = false;
   let isPageRefDragInProgress = false;
 
   const clearActivePageRef = (): void => {
     dragHandle.remove();
+    if (activePageRef && didPositionActivePageRef) {
+      activePageRef.classList.remove("relative");
+    }
+    didPositionActivePageRef = false;
     activePageRef = null;
   };
 
@@ -244,6 +249,12 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     if (source.element === activePageRef) return;
 
     activePageRef = source.element;
+    // The handle is absolutely positioned so hovering never reflows text;
+    // the ref itself must be the positioned ancestor.
+    if (getComputedStyle(source.element).position === "static") {
+      source.element.classList.add("relative");
+      didPositionActivePageRef = true;
+    }
     source.element.appendChild(dragHandle);
   };
 
@@ -309,6 +320,15 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     if (!isPageRefDragInProgress) return;
 
     isPageRefDragInProgress = false;
+    // Roam arms invisible .dnd-drop-area overlays over every block when it
+    // sees dragstart, and only a dragleave disarms them. A drop consumed by
+    // the canvas never delivers one, leaving armed overlays that swallow
+    // every later page-ref hover - so deliver the dragleave here.
+    document
+      .querySelectorAll<HTMLElement>(".dnd-drop-area")
+      .forEach((area) =>
+        area.dispatchEvent(new DragEvent("dragleave", { bubbles: true })),
+      );
     clearActivePageRef();
   };
 
