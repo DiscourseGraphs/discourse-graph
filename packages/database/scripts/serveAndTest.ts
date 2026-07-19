@@ -1,5 +1,6 @@
-import { spawn, execSync } from "node:child_process";
+import { spawn, execSync, ChildProcessByStdio } from "node:child_process";
 import { join, dirname } from "path";
+import type { Readable } from "node:stream";
 
 const scriptDir = dirname(__filename);
 const projectRoot = join(scriptDir, "..");
@@ -16,58 +17,96 @@ if (process.env.SUPABASE_PROJECT_ID !== "test") {
   process.exit(2);
 }
 
-const serve = spawn("supabase", ["functions", "serve"], {
-  cwd: projectRoot,
-  detached: true,
-  stdio: ["ignore", "pipe", "inherit"],
-});
+process.env["SUPABASE_USE_DB"] = "local";
 
-let resolveCallback: ((value: unknown) => void) | undefined = undefined;
-let rejectCallback: ((reason: unknown) => void) | undefined = undefined;
-let serveSuccess = false;
-let timeoutClear: NodeJS.Timeout | undefined = undefined;
+class ParallelServer {
+  process: ChildProcessByStdio<null, Readable, null>;
+  promise: Promise<boolean>;
+  serveSuccess = false;
+  resolveCallback:
+    | ((value: boolean | PromiseLike<boolean>) => void)
+    | undefined;
+  rejectCallback: ((reason: unknown) => void) | undefined;
+  timeoutClear: NodeJS.Timeout | undefined;
+  constructor({
+    cmd,
+    args,
+    readySignal,
+    dir,
+  }: {
+    cmd: string;
+    args: string[];
+    readySignal: string;
+    dir?: string;
+  }) {
+    this.process = spawn(cmd, args, {
+      cwd: dir || projectRoot,
+      detached: true,
+      stdio: ["ignore", "pipe", "inherit"],
+    });
+    this.promise = new Promise((rsc, rjc) => {
+      this.resolveCallback = rsc;
+      this.rejectCallback = rjc;
 
-const servingReady = new Promise((rsc, rjc) => {
-  resolveCallback = rsc;
-  rejectCallback = rjc;
-
-  // Add timeout
-  timeoutClear = setTimeout(() => {
-    rjc(new Error("Timeout waiting for functions to serve"));
-  }, 30000); // 30 second timeout
-});
-
-serve.stdout.on("data", (data: Buffer) => {
-  const output = data.toString();
-  console.log(`stdout: ${output}`);
-  if (output.includes("Serving functions ")) {
-    console.log("Found serving functions");
-    serveSuccess = true;
-    clearTimeout(timeoutClear);
-    if (resolveCallback === undefined) throw new Error("did not get callback");
-    resolveCallback(null);
+      // Add timeout
+      this.timeoutClear = setTimeout(() => {
+        rjc(new Error("Timeout waiting for functions to serve"));
+      }, 30000); // 30 second timeout
+    });
+    this.process.stdout.on("data", (data: Buffer) => {
+      const output = data.toString();
+      console.log(`stdout: ${output}`);
+      if (output.includes(readySignal)) {
+        console.log("Found serving functions");
+        this.serveSuccess = true;
+        clearTimeout(this.timeoutClear);
+        if (this.resolveCallback === undefined)
+          throw new Error("did not get callback");
+        this.resolveCallback(true);
+      }
+    });
+    this.process.on("close", () => {
+      if (!this.serveSuccess && this.rejectCallback)
+        this.rejectCallback(new Error("serve closed without being ready"));
+    });
+    this.process.on("error", (err) => {
+      if (this.rejectCallback) this.rejectCallback(err);
+    });
   }
+}
+
+const supabaseServer = new ParallelServer({
+  cmd: "supabase",
+  args: ["functions", "serve"],
+  readySignal: "Serving functions ",
 });
-serve.on("close", () => {
-  if (!serveSuccess && rejectCallback)
-    rejectCallback(new Error("serve closed without being ready"));
-});
-serve.on("error", (err) => {
-  if (rejectCallback) rejectCallback(err);
+
+const nextServer = new ParallelServer({
+  cmd: "npm",
+  args: ["run", "dev"],
+  readySignal: "Ready in ",
+  dir: join(scriptDir, "../../../apps/website"),
 });
 
 const doTest = async () => {
   try {
-    await servingReady;
+    await Promise.all([supabaseServer.promise, nextServer.promise]);
     execSync("cucumber-js", {
       cwd: projectRoot,
       stdio: "inherit",
     });
     // will throw on failure
   } finally {
-    if (serve.pid)
+    if (supabaseServer.process.pid)
       try {
-        process.kill(-serve.pid);
+        process.kill(-supabaseServer.process.pid);
+      } catch (e) {
+        console.error("Could not kill the process");
+        // maybe it just ended on its own.
+      }
+    if (nextServer.process.pid)
+      try {
+        process.kill(-nextServer.process.pid);
       } catch (e) {
         console.error("Could not kill the process");
         // maybe it just ended on its own.
@@ -78,10 +117,12 @@ const doTest = async () => {
 doTest()
   .then(() => {
     console.log("success");
-    clearTimeout(timeoutClear);
+    clearTimeout(supabaseServer.timeoutClear);
+    clearTimeout(nextServer.timeoutClear);
   })
   .catch((err) => {
     console.error(err);
-    clearTimeout(timeoutClear);
+    clearTimeout(supabaseServer.timeoutClear);
+    clearTimeout(nextServer.timeoutClear);
     process.exit(1);
   });
