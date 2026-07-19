@@ -209,7 +209,7 @@ const getPageRefDragSource = (
 const createPageRefDragHandle = (): HTMLElement => {
   const dragHandle = document.createElement("span");
   dragHandle.className =
-    "absolute -top-0.5 left-full cursor-grab select-none text-gray-500 active:cursor-grabbing";
+    "absolute -top-0.5 left-full cursor-grab select-none rounded-sm bg-white px-0.5 text-gray-500 active:cursor-grabbing";
   dragHandle.draggable = true;
   dragHandle.textContent = "⠿";
   dragHandle.title = "Drag page to canvas";
