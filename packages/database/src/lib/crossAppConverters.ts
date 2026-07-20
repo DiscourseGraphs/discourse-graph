@@ -8,9 +8,10 @@ import {
   CrossAppRelation,
 } from "../crossAppContracts";
 import { LocalContentDataInput, LocalConceptDataInput } from "../inputTypes";
-import { Enums, CompositeTypes } from "../dbTypes";
+import { Enums, type CompositeTypes, type Tables, type Json } from "../dbTypes";
 
 type InlineEmbeddingInput = CompositeTypes<"inline_embedding_input">;
+type Concept = Tables<"Concept">;
 
 const crossAppEmbeddingToDbEmbedding = (
   embedding: CrossAppEmbedding | undefined,
@@ -103,6 +104,26 @@ export const crossAppNodeSchemaToDbConcept = (
   });
 };
 
+export const dbNodeSchemaToCrossApp = (
+  schema: Concept,
+  authorMap: Record<number, string>,
+): CrossAppNodeSchema => {
+  const { template, template_content, ...other } =
+    schema.literal_content as Record<string, Json>;
+  const authorId = authorMap[schema.author_id || 0];
+  if (authorId === undefined) throw new Error("Missing author");
+  return {
+    localId: schema.source_local_id!,
+    createdAt: new Date(schema.created + "Z"),
+    modifiedAt: new Date(schema.last_modified + "Z"),
+    label: schema.name,
+    metadata: other,
+    template: template_content as string | undefined,
+    templateTitle: template as string | undefined,
+    authorId,
+  };
+};
+
 export const crossAppRelationTypeSchemaToDbConcept = (
   node: CrossAppRelationTypeSchema,
 ): LocalConceptDataInput => {
@@ -119,6 +140,26 @@ export const crossAppRelationTypeSchemaToDbConcept = (
     created: node.createdAt?.toISOString(),
     last_modified: node.modifiedAt?.toISOString(),
   });
+};
+
+export const dbRelationTypeSchemaToCrossApp = (
+  schema: Concept,
+  authorMap: Record<number, string>,
+): CrossAppRelationTypeSchema => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { roles, label, complement, ...other } =
+    schema.literal_content as Record<string, Json>;
+  const authorId = authorMap[schema.author_id || 0];
+  if (authorId === undefined) throw new Error("Missing author");
+  return {
+    localId: schema.source_local_id!,
+    createdAt: new Date(schema.created + "Z"),
+    modifiedAt: new Date(schema.last_modified + "Z"),
+    metadata: other,
+    label: label as string,
+    complement: complement as string,
+    authorId,
+  };
 };
 
 export const crossAppRelationTripleSchemaToDbConcept = ({
