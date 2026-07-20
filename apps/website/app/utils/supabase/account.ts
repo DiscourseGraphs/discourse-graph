@@ -3,6 +3,24 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 
 type AgentType = Database["public"]["Enums"]["AgentType"] | "group";
 
+export const getAccountId = async (
+  client: DGSupabaseClient,
+): Promise<number | undefined> => {
+  const { data, error } = await client.auth.getUser();
+  if (error || !data?.user) return undefined;
+  const userData = data.user;
+  if (typeof userData.id !== "string") return undefined;
+  const id = userData.id;
+  const accountReq = await client
+    .from("PlatformAccount")
+    .select("id")
+    .eq("dg_account", id)
+    .eq("agent_type", "person")
+    .maybeSingle();
+  if (accountReq.error) throw accountReq.error;
+  return accountReq.data?.id;
+};
+
 export const getSessionBaseUserData = async (
   client: DGSupabaseClient,
 ): Promise<{

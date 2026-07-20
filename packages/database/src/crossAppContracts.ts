@@ -71,6 +71,11 @@ type InlineCrossAppTypedContent = InlineCrossAppContent & {
   contentType: ContentType;
 };
 
+export type StandaloneCrossAppContent = InlineCrossAppTypedContent &
+  CrossAppBase & {
+    variant: Enums<"ContentVariant">;
+  };
+
 // A node instance
 export type CrossAppNode = CrossAppBase & {
   nodeType: LocalId;
