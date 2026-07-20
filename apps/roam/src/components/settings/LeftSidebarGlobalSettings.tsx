@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
 import { Button, ButtonGroup, Collapse } from "@blueprintjs/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { GlobalFlagPanel } from "~/components/settings/components/BlockPropSettingPanels";
 import {
   setGlobalSetting,
   type SettingsSnapshot,
@@ -9,7 +8,6 @@ import {
 import {
   GLOBAL_KEYS,
   LEFT_SIDEBAR_KEYS,
-  LEFT_SIDEBAR_SETTINGS_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
@@ -118,11 +116,6 @@ const LeftSidebarGlobalSectionsContent = ({
             order: 0,
             node: { text: globalSectionText },
           });
-          const settingsUid = await createBlock({
-            parentUid: globalSectionUid,
-            order: 0,
-            node: { text: "Settings" },
-          });
           const childrenUid = await createBlock({
             parentUid: globalSectionUid,
             order: 0,
@@ -132,11 +125,6 @@ const LeftSidebarGlobalSectionsContent = ({
           setPages([]);
           setGlobalSection({
             uid: globalSectionUid,
-            settings: {
-              uid: settingsUid,
-              collapsable: { uid: undefined, value: false },
-              folded: { uid: undefined, value: false },
-            },
             childrenUid,
             children: [],
           });
@@ -289,27 +277,6 @@ const LeftSidebarGlobalSectionsContent = ({
 
   return (
     <div className="flex flex-col gap-4 p-1">
-      <div
-        className="global-section-settings rounded-md p-3 hover:bg-gray-50"
-        style={{
-          border: "1px solid rgba(51, 51, 51, 0.2)",
-        }}
-      >
-        <GlobalFlagPanel
-          title="Collapsable"
-          description="Make global section collapsable"
-          settingKeys={[
-            GLOBAL_KEYS.leftSidebar,
-            LEFT_SIDEBAR_KEYS.settings,
-            LEFT_SIDEBAR_SETTINGS_KEYS.collapsable,
-          ]}
-          initialValue={globalSection.settings?.collapsable?.value || false}
-          order={0}
-          uid={globalSection.settings?.collapsable?.uid || ""}
-          parentUid={globalSection.settings?.uid || ""}
-        />
-      </div>
-
       <div
         className="global-section-children rounded-md p-3 hover:bg-gray-50"
         style={{
