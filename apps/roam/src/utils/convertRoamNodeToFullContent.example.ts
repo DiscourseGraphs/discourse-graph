@@ -229,6 +229,6 @@ export const roamClaimFullMarkdownExample: {
   full: {
     contentType: contentTypes.markdown,
     value: buildFullMarkdown({ title, blocks }),
-    author: { localId: "someone" },
+    authorId: "someone",
   },
 };
