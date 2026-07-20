@@ -11,8 +11,10 @@ import {
   type Enums,
   type Json,
 } from "@repo/database/dbTypes";
+import type { DGSupabaseClient } from "~/lib/client";
 import { getVariant, config } from "@repo/database/dbDotEnv";
 import { getConcepts, initNodeSchemaCache } from "@repo/database/lib/queries";
+import axios from "axios";
 
 import {
   spaceAnonUserEmail,
@@ -268,6 +270,21 @@ const getLoggedinDatabase = async (spaceId: number) => {
   return client;
 };
 
+const getApiHeader = async (supabase: DGSupabaseClient) => {
+  const session = await supabase.auth.getSession();
+  const sessionData = session.data?.session;
+  assert(sessionData, "Cannot find session token");
+  const token = btoa(JSON.stringify(sessionData));
+  return {
+    Cookie: `sb-127-auth-token=base64-${token}`,
+  };
+};
+
+const getApiHeaderForSpace = async (spaceId: number) => {
+  const supabase = await getLoggedinDatabase(spaceId);
+  return await getApiHeader(supabase);
+};
+
 const getLoggedinDatabaseForUsername = async (userName: string) => {
   assert.notStrictEqual(userName, undefined);
   const localRefs = (world.localRefs || {}) as LocalRefsType;
@@ -418,6 +435,24 @@ Given(
       data,
     });
     assert.equal(response.error, null);
+  },
+);
+
+// invoke the vercel upsert function, expects json
+Given(
+  "user {word} upserts this cross-app data to space {word}:",
+  async (userName: string, spaceName: string, docString: string) => {
+    const data = JSON.parse(docString) as Record<string, unknown>;
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const headers = await getApiHeaderForSpace(spaceId);
+    const response = await axios.post(
+      `http://localhost:3000/api/internal/space/${spaceId}`,
+      data,
+      { headers },
+    );
+    assert.equal(response.status, 200);
   },
 );
 
