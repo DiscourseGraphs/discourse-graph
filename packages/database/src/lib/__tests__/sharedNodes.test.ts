@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildSharedNodeCandidates } from "../sharedNodes";
+import { buildSharedNodes } from "../sharedNodes";
 
-type BuildArgs = Parameters<typeof buildSharedNodeCandidates>[0];
+type BuildArgs = Parameters<typeof buildSharedNodes>[0];
 
 const resources: BuildArgs["resources"] = [
   { space_id: 20, source_local_id: "node-1" },
@@ -60,7 +60,7 @@ const build = ({
   resourcesOverride?: typeof resources;
   spacesOverride?: typeof spaces;
 } = {}) =>
-  buildSharedNodeCandidates({
+  buildSharedNodes({
     concepts: conceptsOverride,
     currentSpaceId,
     directContents: directOverride,
@@ -69,7 +69,7 @@ const build = ({
     spaces: spacesOverride,
   });
 
-describe("buildSharedNodeCandidates", () => {
+describe("buildSharedNodes", () => {
   it("builds a group-shared contract node with stable source identity", () => {
     expect(build()).toEqual([
       {
@@ -122,6 +122,16 @@ describe("buildSharedNodeCandidates", () => {
     expect(build({ fullOverride: [] })[0]?.lastModified).toBe(
       "2026-06-14T13:00:00.000Z",
     );
+  });
+
+  it("falls back to the direct created date when no last-modified exists", () => {
+    expect(
+      build({
+        conceptsOverride: [{ ...concepts[0]!, last_modified: null }],
+        directOverride: [{ ...directContents[0]!, last_modified: null }],
+        fullOverride: [],
+      })[0]?.lastModified,
+    ).toBe("2026-06-14T11:00:00.000Z");
   });
 
   it.each([

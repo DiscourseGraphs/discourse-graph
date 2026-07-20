@@ -42,7 +42,7 @@ type ValidSharedSpace = {
   url: string;
 };
 
-export type SharedNodeCandidate = {
+export type SharedNode = {
   rid: string;
   sourceLocalId: string;
   spaceId: number;
@@ -88,7 +88,7 @@ const getLatestTimestamp = (timestamps: (string | null)[]): string | null => {
   );
 };
 
-export const buildSharedNodeCandidates = ({
+export const buildSharedNodes = ({
   concepts,
   currentSpaceId,
   directContents,
@@ -97,7 +97,7 @@ export const buildSharedNodeCandidates = ({
   spaces,
 }: SharedNodeRows & {
   currentSpaceId: number;
-}): SharedNodeCandidate[] => {
+}): SharedNode[] => {
   const sharedResourceKeys = new Set(
     resources
       .filter((resource) => resource.space_id !== currentSpaceId)
@@ -163,7 +163,7 @@ export const buildSharedNodeCandidates = ({
   });
 
   return concepts
-    .flatMap((concept): SharedNodeCandidate[] => {
+    .flatMap((concept): SharedNode[] => {
       if (
         concept.is_schema !== false ||
         concept.schema_id === null ||
@@ -182,11 +182,13 @@ export const buildSharedNodeCandidates = ({
       const direct = directByResource.get(resourceKey);
       if (!space || typeof direct?.text !== "string") return [];
 
-      const lastModified = getLatestTimestamp([
-        concept.last_modified,
-        direct.last_modified,
-        fullModifiedByResource.get(resourceKey) ?? null,
-      ]);
+      const created = normalizeUtcTimestamp(direct.created);
+      const lastModified =
+        getLatestTimestamp([
+          concept.last_modified,
+          direct.last_modified,
+          fullModifiedByResource.get(resourceKey) ?? null,
+        ]) ?? created;
       if (!lastModified) return [];
 
       let rid: string;
@@ -211,7 +213,7 @@ export const buildSharedNodeCandidates = ({
           spaceUri: space.url,
           platform: space.platform,
           title: direct.text,
-          created: normalizeUtcTimestamp(direct.created),
+          created,
           lastModified,
           authorId: direct.author_id ?? undefined,
           directMetadata: direct.metadata,
@@ -228,9 +230,8 @@ export const buildSharedNodeCandidates = ({
 const getGroupSharedResources = async (
   client: DGSupabaseClient,
   currentSpaceId: number,
-  groupIds?: string[],
 ): Promise<ResourceAccess[]> => {
-  const availableGroupIds = groupIds ?? (await getAvailableGroupIds(client));
+  const availableGroupIds = await getAvailableGroupIds(client);
   if (availableGroupIds.length === 0) return [];
 
   const resources = await getAllPages(
@@ -267,17 +268,11 @@ const chunk = <T>(values: T[], size: number): T[][] =>
 const getSharedNodeRows = async ({
   client,
   currentSpaceId,
-  groupIds,
 }: {
   client: DGSupabaseClient;
   currentSpaceId: number;
-  groupIds?: string[];
 }): Promise<SharedNodeRows> => {
-  const resources = await getGroupSharedResources(
-    client,
-    currentSpaceId,
-    groupIds,
-  );
+  const resources = await getGroupSharedResources(client, currentSpaceId);
   if (resources.length === 0)
     return {
       concepts: [],
@@ -349,12 +344,10 @@ const getSharedNodeRows = async ({
 export const listGroupSharedNodes = async ({
   client,
   currentSpaceId,
-  groupIds,
 }: {
   client: DGSupabaseClient;
   currentSpaceId: number;
-  groupIds?: string[];
-}): Promise<SharedNodeCandidate[]> => {
-  const rows = await getSharedNodeRows({ client, currentSpaceId, groupIds });
-  return buildSharedNodeCandidates({ ...rows, currentSpaceId });
+}): Promise<SharedNode[]> => {
+  const rows = await getSharedNodeRows({ client, currentSpaceId });
+  return buildSharedNodes({ ...rows, currentSpaceId });
 };

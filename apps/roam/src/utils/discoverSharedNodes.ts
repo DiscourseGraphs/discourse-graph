@@ -1,7 +1,7 @@
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
   listGroupSharedNodes,
-  type SharedNodeCandidate,
+  type SharedNode,
 } from "@repo/database/lib/sharedNodes";
 import type { Enums } from "@repo/database/dbTypes";
 import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
@@ -20,21 +20,21 @@ export type DiscoveredSharedNode = {
 };
 
 export const toDiscoveredSharedNodes = ({
-  candidates,
+  sharedNodes,
   importedSourceRids,
 }: {
-  candidates: SharedNodeCandidate[];
+  sharedNodes: SharedNode[];
   importedSourceRids: ReadonlySet<string>;
 }): DiscoveredSharedNode[] =>
-  candidates.map((candidate) => ({
-    alreadyImported: importedSourceRids.has(candidate.rid),
-    modifiedAt: candidate.lastModified,
-    sourceApp: candidate.platform,
-    sourceNodeId: candidate.sourceLocalId || undefined,
-    sourceNodeRid: candidate.rid,
-    sourceSpaceId: candidate.spaceUri,
-    sourceSpaceName: candidate.spaceName,
-    title: candidate.title,
+  sharedNodes.map((sharedNode) => ({
+    alreadyImported: importedSourceRids.has(sharedNode.rid),
+    modifiedAt: sharedNode.lastModified,
+    sourceApp: sharedNode.platform,
+    sourceNodeId: sharedNode.sourceLocalId || undefined,
+    sourceNodeRid: sharedNode.rid,
+    sourceSpaceId: sharedNode.spaceUri,
+    sourceSpaceName: sharedNode.spaceName,
+    title: sharedNode.title,
   }));
 
 const getImportedSourceRids = async (): Promise<Set<string>> => {
@@ -57,9 +57,9 @@ export const discoverSharedNodes = async ({
   client: DGSupabaseClient;
   currentSpaceId: number;
 }): Promise<DiscoveredSharedNode[]> => {
-  const [candidates, importedSourceRids] = await Promise.all([
+  const [sharedNodes, importedSourceRids] = await Promise.all([
     listGroupSharedNodes({ client, currentSpaceId }),
     getImportedSourceRids(),
   ]);
-  return toDiscoveredSharedNodes({ candidates, importedSourceRids });
+  return toDiscoveredSharedNodes({ sharedNodes, importedSourceRids });
 };

@@ -34,24 +34,21 @@ type PublishedNode = {
 
 export const getPublishedNodesForGroups = async ({
   client,
-  groupIds,
   currentSpaceId,
 }: {
   client: DGSupabaseClient;
-  groupIds: string[];
   currentSpaceId: number;
 }): Promise<Array<PublishedNode>> => {
-  const candidates = await listGroupSharedNodes({
+  const sharedNodes = await listGroupSharedNodes({
     client,
     currentSpaceId,
-    groupIds,
   }).catch((error: { message?: string }) => {
     console.error("Error fetching published nodes:", error);
     throw new Error(`Failed to fetch published nodes: ${error.message}`);
   });
 
-  return candidates.map((candidate) => {
-    const metadata = candidate.directMetadata;
+  return sharedNodes.map((sharedNode) => {
+    const metadata = sharedNode.directMetadata;
     const filePath: string | undefined =
       metadata !== null &&
       typeof metadata === "object" &&
@@ -60,13 +57,15 @@ export const getPublishedNodesForGroups = async ({
         ? metadata.filePath
         : undefined;
     return {
-      source_local_id: candidate.sourceLocalId,
-      space_id: candidate.spaceId,
-      text: candidate.title,
-      createdAt: candidate.created ? new Date(candidate.created).valueOf() : 0,
-      modifiedAt: new Date(candidate.lastModified).valueOf(),
+      source_local_id: sharedNode.sourceLocalId,
+      space_id: sharedNode.spaceId,
+      text: sharedNode.title,
+      createdAt: sharedNode.created
+        ? new Date(sharedNode.created).valueOf()
+        : 0,
+      modifiedAt: new Date(sharedNode.lastModified).valueOf(),
       filePath,
-      authorId: candidate.authorId,
+      authorId: sharedNode.authorId,
     };
   });
 };

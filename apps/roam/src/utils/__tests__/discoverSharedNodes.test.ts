@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { toDiscoveredSharedNodes } from "~/utils/discoverSharedNodes";
-import type { SharedNodeCandidate } from "@repo/database/lib/sharedNodes";
+import type { SharedNode } from "@repo/database/lib/sharedNodes";
 
-const candidate: SharedNodeCandidate = {
+const sharedNode: SharedNode = {
   rid: "orn:obsidian.note:vault-a/node-1",
   sourceLocalId: "node-1",
   spaceId: 20,
@@ -17,11 +17,11 @@ const candidate: SharedNodeCandidate = {
 };
 
 describe("toDiscoveredSharedNodes", () => {
-  it("maps a candidate to the exact discovered shared node shape", () => {
+  it("maps a shared node to the exact discovered shared node shape", () => {
     expect(
       toDiscoveredSharedNodes({
-        candidates: [candidate],
-        importedSourceRids: new Set([candidate.rid]),
+        sharedNodes: [sharedNode],
+        importedSourceRids: new Set([sharedNode.rid]),
       }),
     ).toEqual([
       {
@@ -40,7 +40,7 @@ describe("toDiscoveredSharedNodes", () => {
   it("matches imports by RID rather than source-local ID alone", () => {
     expect(
       toDiscoveredSharedNodes({
-        candidates: [candidate],
+        sharedNodes: [sharedNode],
         importedSourceRids: new Set(["orn:obsidian.note:another-vault/node-1"]),
       })[0]?.alreadyImported,
     ).toBe(false);
