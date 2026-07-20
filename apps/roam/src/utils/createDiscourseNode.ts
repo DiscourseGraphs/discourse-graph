@@ -194,7 +194,15 @@ const createDiscourseNode = async ({
     const disableSidebarOpen = getPersonalSetting<boolean>([
       PERSONAL_KEYS.disableSidebarOpen,
     ]);
-    if (disableSidebarOpen === true) return;
+    if (disableSidebarOpen === true) {
+      renderToast({
+        id: "sidebar-open-disabled",
+        content: "Node created (sidebar open disabled in settings)",
+        intent: "primary",
+        timeout: 2000,
+      });
+      return;
+    }
     void openBlockInSidebar(uid);
     setTimeout(() => {
       const sidebarTitle = document.querySelector(
