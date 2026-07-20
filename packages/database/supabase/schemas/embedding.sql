@@ -43,9 +43,10 @@ ct.scale,
 ct.space_id,
 ct.last_modified,
 ct.part_of_id,
+ct.content_type,
+ct.original,
 emb.model,
-emb.vector,
-ct.content_type
+emb.vector
 FROM public."Content" AS ct
 JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS emb ON (ct.id = emb.target_id)
 LEFT OUTER JOIN public.my_accessible_resources () AS ra USING (space_id, source_local_id)

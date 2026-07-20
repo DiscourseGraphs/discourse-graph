@@ -175,7 +175,8 @@ Feature: Content access
           "created": "2000/01/01",
           "last_modified": "2001/01/02",
           "text": "{\"type\":\"root\",\"children\":[]}",
-          "content_type": "application/vnd.discourse-graph.atjson+json; version=1"
+          "content_type": "application/vnd.discourse-graph.atjson+json; version=1",
+          "original": false
         }
       ]
       """

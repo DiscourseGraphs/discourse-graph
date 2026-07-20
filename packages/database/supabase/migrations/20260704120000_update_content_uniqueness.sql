@@ -1,15 +1,13 @@
+ALTER TABLE ONLY public."Content"
+ADD COLUMN original BOOLEAN DEFAULT true;
+
+ALTER TYPE public."content_local_input" ADD ATTRIBUTE original BOOLEAN;
+
 ALTER TABLE ONLY public."FileReference"
 DROP CONSTRAINT IF EXISTS "FileReference_content_fkey";
 
 ALTER TABLE public."FileReference"
-ADD COLUMN IF NOT EXISTS content_type character varying NOT NULL DEFAULT 'text/obsidian+markdown';
-
-UPDATE public."FileReference" AS fr
-SET content_type = ct.content_type
-FROM public."Content" AS ct
-WHERE fr.space_id = ct.space_id
-  AND fr.source_local_id = ct.source_local_id
-  AND fr.variant = ct.variant;
+ADD COLUMN original BOOLEAN GENERATED ALWAYS AS (true) STORED;
 
 DROP INDEX IF EXISTS public.content_space_local_id_variant_idx;
 
@@ -17,10 +15,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS content_space_local_id_variant_content_type_id
     space_id, source_local_id, variant, content_type
 ) NULLS DISTINCT;
 
+CREATE UNIQUE INDEX IF NOT EXISTS content_space_local_id_variant_content_type_originals_idx ON public."Content" USING btree (
+    space_id, source_local_id, variant, original
+);
+
 ALTER TABLE ONLY public."FileReference"
 ADD CONSTRAINT "FileReference_content_fkey" FOREIGN KEY (
-    space_id, source_local_id, variant, content_type
-) REFERENCES public."Content" (space_id, source_local_id, variant, content_type) ON DELETE CASCADE;
+    space_id, source_local_id, variant, original
+) REFERENCES public."Content"(space_id, source_local_id, variant, original) ON DELETE CASCADE;
 
 CREATE OR REPLACE FUNCTION public._local_content_to_db_content(data public.content_local_input)
 RETURNS public."Content" STABLE
@@ -61,6 +63,7 @@ BEGIN
     SELECT id FROM public."Space"
     WHERE url = data.space_url INTO content.space_id;
   END IF;
+  content.original := CASE WHEN data.original IS false THEN NULL ELSE true END;
   -- now avoid null defaults
   IF content.metadata IS NULL then
     content.metadata := '{}';
@@ -74,7 +77,7 @@ $$;
 
 COMMENT ON FUNCTION public._local_content_to_db_content IS 'utility function so we have the option to use platform identifiers for content upsert';
 
-CREATE OR REPLACE FUNCTION public.upsert_content(v_space_id bigint, data jsonb, v_creator_id BIGINT, content_as_document boolean DEFAULT TRUE)
+CREATE OR REPLACE FUNCTION public.upsert_content(v_space_id bigint, data jsonb, v_creator_id BIGINT, content_as_document boolean DEFAULT true)
 RETURNS SETOF BIGINT
 SET search_path = ''
 LANGUAGE plpgsql
@@ -176,7 +179,8 @@ BEGIN
         space_id,
         last_modified,
         part_of_id,
-        content_type
+        content_type,
+        original
     ) VALUES (
         db_content.document_id,
         db_content.source_local_id,
@@ -190,7 +194,8 @@ BEGIN
         db_content.space_id,
         db_content.last_modified,
         db_content.part_of_id,
-        db_content.content_type
+        db_content.content_type,
+        db_content.original
     )
     ON CONFLICT (space_id, source_local_id, variant, content_type) DO UPDATE SET
         document_id = COALESCE(db_content.document_id, EXCLUDED.document_id),
@@ -201,7 +206,8 @@ BEGIN
         metadata = COALESCE(db_content.metadata, EXCLUDED.metadata),
         scale = COALESCE(db_content.scale, EXCLUDED.scale),
         last_modified = COALESCE(db_content.last_modified, EXCLUDED.last_modified),
-        part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id)
+        part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id),
+        original = db_content.original
     RETURNING id INTO STRICT upsert_id;
     IF model(embedding_inline(local_content)) IS NOT NULL THEN
         PERFORM public.upsert_content_embedding(upsert_id, model(embedding_inline(local_content)),  vector(embedding_inline(local_content)));
@@ -213,27 +219,56 @@ $$;
 
 COMMENT ON FUNCTION public.upsert_content IS 'batch content upsert';
 
-CREATE OR REPLACE VIEW public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS
+DROP VIEW public.my_contents_with_embedding_openai_text_embedding_3_small_1536;
+
+CREATE VIEW public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS
 SELECT
-ct.id,
-ct.document_id,
-ct.source_local_id,
-ct.variant,
-ct.author_id,
-ct.creator_id,
-ct.created,
-ct.text,
-ct.metadata,
-ct.scale,
-ct.space_id,
-ct.last_modified,
-ct.part_of_id,
-emb.model,
-emb.vector,
-ct.content_type
+    ct.id,
+    ct.document_id,
+    ct.source_local_id,
+    ct.variant,
+    ct.author_id,
+    ct.creator_id,
+    ct.created,
+    ct.text,
+    ct.metadata,
+    ct.scale,
+    ct.space_id,
+    ct.last_modified,
+    ct.part_of_id,
+    ct.content_type,
+    ct.original,
+    emb.model,
+    emb.vector
 FROM public."Content" AS ct
-JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS emb ON (ct.id = emb.target_id)
-LEFT OUTER JOIN public.my_accessible_resources () AS ra USING (space_id, source_local_id)
-WHERE (ct.space_id = any (public.my_space_ids ('reader'))
-OR (ct.space_id = any (public.my_space_ids ('partial')) AND ra.space_id IS NOT NULL))
+    JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS emb ON (ct.id = emb.target_id)
+    LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
+WHERE (
+    ct.space_id = any(public.my_space_ids('reader'))
+    OR (ct.space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT null)
+)
 AND NOT emb.obsolete;
+
+CREATE OR REPLACE VIEW public.my_contents AS
+SELECT
+    id,
+    document_id,
+    source_local_id,
+    variant,
+    author_id,
+    creator_id,
+    created,
+    text,
+    metadata,
+    scale,
+    space_id,
+    last_modified,
+    part_of_id,
+    content_type,
+    original
+FROM public."Content"
+    LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
+WHERE (
+    space_id = any(public.my_space_ids('reader'))
+    OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT null)
+);
