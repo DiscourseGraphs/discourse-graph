@@ -197,7 +197,7 @@ const createDiscourseNode = async ({
     if (disableSidebarOpen === true) {
       renderToast({
         id: "sidebar-open-disabled",
-        content: "Node created (sidebar open disabled in settings)",
+        content: "Node created",
         intent: "primary",
         timeout: 2000,
       });
