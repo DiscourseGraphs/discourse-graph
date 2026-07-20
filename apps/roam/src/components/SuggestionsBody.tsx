@@ -338,18 +338,26 @@ const SuggestionsBody = ({
         }
         const rel = relevantRelns[0];
         try {
+          let result: string | undefined;
           if (rel.destination === node.type)
-            await createReifiedRelation({
+            result = await createReifiedRelation({
               sourceUid: tagUid,
               destinationUid: node.uid,
               relationBlockUid: rel.id,
             });
           else
-            await createReifiedRelation({
+            result = await createReifiedRelation({
               sourceUid: node.uid,
               destinationUid: tagUid,
               relationBlockUid: rel.id,
             });
+          if (result !== undefined) {
+            posthog.capture("Discourse Relation Instance: Created", {
+              relationUid: rel.id,
+              relationLabel: rel.label,
+              source: "suggestive-mode",
+            });
+          }
         } catch (error) {
           console.error("Failed to create reified relation:", error);
           renderToast({
