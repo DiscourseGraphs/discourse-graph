@@ -5,6 +5,9 @@
 // With the assumption that the sourceUri has the form <platform>:<source identifier>
 // The subtype may be omitted.
 
+export const isRid = (value: string): boolean =>
+  value.startsWith("https://") || value.startsWith("orn:");
+
 export const spaceUriAndLocalIdToRid = (
   spaceUri: string,
   localId: string,

@@ -13,23 +13,21 @@ Multiple studies show that sleep after learning strengthens memory traces.
 
 export const roamOriginNodeExample: CrossAppNode = {
   localId: ROAM_SOURCE_NODE_ID,
-  nodeType: {
-    localId: "rCLM0schema",
-  },
+  nodeType: "rCLM0schema",
   content: {
     direct: {
       value: "Sleep improves memory consolidation",
-      author: { localId: "someone" },
+      authorId: "someone",
     },
     full: {
       contentType: contentTypes.markdown,
       value: roamFullMarkdown,
-      author: { localId: "someone" },
+      authorId: "someone",
     },
   },
   createdAt: new Date("2026-06-12T14:00:00.000Z"),
   modifiedAt: new Date("2026-06-12T15:00:00.000Z"),
-  author: { localId: "maparent" },
+  authorId: "maparent",
 };
 
 // const OBSIDIAN_SOURCE_SPACE_ID = "obsidian:9a8b7c6d5e4f3210";
@@ -48,21 +46,19 @@ Participants with more REM sleep showed better next-day recall.
 
 export const obsidianOriginNodeExample: CrossAppNode = {
   localId: OBSIDIAN_SOURCE_NODE_ID,
-  nodeType: {
-    localId: OBSIDIAN_SOURCE_NODE_TYPE_ID,
-  },
+  nodeType: OBSIDIAN_SOURCE_NODE_TYPE_ID,
   content: {
     direct: {
       value: "EVD - REM sleep and recall",
-      author: { localId: "someone" },
+      authorId: "someone",
     },
     full: {
       contentType: contentTypes.markdown,
       value: obsidianFullMarkdown,
-      author: { localId: "someone" },
+      authorId: "someone",
     },
   },
   createdAt: new Date("2026-06-14T10:30:00.000Z"),
   modifiedAt: new Date("2026-06-14T15:00:00.000Z"),
-  author: { localId: "maparent" },
+  authorId: "maparent",
 };

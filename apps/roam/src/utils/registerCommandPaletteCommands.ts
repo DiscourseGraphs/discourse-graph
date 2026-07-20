@@ -53,6 +53,7 @@ import {
   getBlockSelection,
   insertPageRefAtRange,
 } from "./advancedSearchFooterUtils";
+import { renderDiscoverSharedNodesDialog } from "~/components/DiscoverSharedNodesDialog";
 
 export const createDiscourseNodeFromCommand = (
   extensionAPI: OnloadArgs["extensionAPI"],
@@ -341,6 +342,11 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     renderSettings({ onloadArgs });
   };
 
+  const discoverSharedNodes = () => {
+    posthog.capture("Shared Nodes: Discover Command Triggered");
+    renderDiscoverSharedNodesDialog({});
+  };
+
   const toggleDiscourseContextOverlay = async () => {
     const currentValue = getPersonalSetting<boolean>([
       PERSONAL_KEYS.discourseContextOverlay,
@@ -415,6 +421,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
   if (isSyncEnabled()) {
+    void addCommand("DG: Discover shared nodes", discoverSharedNodes);
     void addCommand("DG: Share current node", shareCurrentNode);
   }
   if (getFeatureFlag("Advanced node search enabled")) {
