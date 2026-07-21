@@ -121,25 +121,18 @@ export const crossAppRelationTypeSchemaToDbConcept = (
   });
 };
 
-export const crossAppRelationTripleSchemaToDbConcept = ({
-  node,
-  sourceNodeSchema,
-  destinationNodeSchema,
-  relationType,
-}: {
-  node: CrossAppRelationTripleSchema;
-  sourceNodeSchema: CrossAppNodeSchema;
-  destinationNodeSchema: CrossAppNodeSchema;
+export const crossAppRelationTripleSchemaToDbConcept = (
+  node: CrossAppRelationTripleSchema,
   // used in Obsidian, not yet in Roam.
-  relationType?: CrossAppRelationTypeSchema;
-}): LocalConceptDataInput | undefined => {
+  relationType?: CrossAppRelationTypeSchema,
+): LocalConceptDataInput | undefined => {
   if (!("label" in node) && relationType === undefined) return undefined;
   const label = "label" in node ? node.label : relationType!.label;
   const complement =
     "complement" in node ? node.complement : relationType!.complement;
   return filterUndefined<LocalConceptDataInput>({
     source_local_id: node.localId,
-    name: `${sourceNodeSchema.label} -${label}-> ${destinationNodeSchema.label}`,
+    name: node.localId, // has to be unique within space. Not seen yet.
     author_local_id: node.authorId,
     is_schema: true,
     literal_content: filterUndefined({
