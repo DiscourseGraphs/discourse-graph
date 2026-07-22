@@ -3,9 +3,8 @@ import { type DiscourseNode } from "./getDiscourseNodes";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import type { TreeNode, ViewType } from "roamjs-components/types";
-import { contentTypes } from "@repo/content-model";
-import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import { crossAppNodeToDbContent } from "@repo/database/lib/crossAppConverters";
+import { fullContentNodeToCrossApp } from "./roamToCrossAppConverters";
 import type { LocalContentDataInput } from "@repo/database/inputTypes";
 
 export type RoamFullContentNode = {
@@ -16,6 +15,7 @@ export type RoamFullContentNode = {
   text: string;
   node_type_id: string;
   node_title?: string;
+  fullText?: string;
 };
 
 const FULL_MARKDOWN_OPTS = {
@@ -57,25 +57,8 @@ export const convertRoamNodeToFullContent = ({
       const title = node.node_title ?? node.text;
       const blocks = getFullTreeByParentUid(node.source_local_id).children;
       const viewType = getPageViewType(title) || "bullet";
-      const crossAppNode: CrossAppNode = {
-        authorId: node.author_local_id,
-        localId: node.source_local_id,
-        createdAt: new Date(node.created || Date.now()),
-        modifiedAt: new Date(node.last_modified || Date.now()),
-        nodeType: node.node_type_id,
-        content: {
-          direct: {
-            localId: node.source_local_id,
-            value: title,
-          },
-          full: {
-            localId: node.source_local_id,
-            value: buildFullMarkdown({ title, blocks, viewType }),
-            contentType: contentTypes.roamMarkdown,
-            scale: "document",
-          },
-        },
-      };
+      node.fullText = buildFullMarkdown({ title, blocks, viewType });
+      const crossAppNode = fullContentNodeToCrossApp(node);
       const fullContent = crossAppNodeToDbContent(crossAppNode, "full");
       return fullContent === undefined ? [] : [fullContent];
     } catch (error) {
