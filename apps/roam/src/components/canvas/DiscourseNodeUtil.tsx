@@ -38,7 +38,12 @@ import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { createTextJsxFromSpans } from "./DiscourseRelationShape/helpers";
 import { loadImage } from "~/utils/loadImage";
-import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
+import {
+  DISCOURSE_RELATION_SHAPE_TYPE,
+  getDiscourseRelationTypeId,
+  getRelationColor,
+  isDiscourseRelationShape,
+} from "./DiscourseRelationShape/DiscourseRelationUtil";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
@@ -217,7 +222,11 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     relationIds?: Set<string>;
   }) {
     const editor = this.editor;
-    const bindingsToThisShape = Array.from(relationIds).flatMap((r) =>
+    const relationBindingTypes = new Set([
+      DISCOURSE_RELATION_SHAPE_TYPE,
+      ...relationIds,
+    ]);
+    const bindingsToThisShape = Array.from(relationBindingTypes).flatMap((r) =>
       editor.getBindingsToShape(shape.id, r),
     );
     const relationIdsAndType = bindingsToThisShape.map((b) => {
@@ -269,24 +278,40 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
         )
         .filter((id) => id !== undefined),
     );
-    const currentShapeRelations = Array.from(
-      discourseContextRelationIds,
-    ).flatMap((relationId) => {
-      const bindingsToThisShape = editor.getBindingsToShape(
-        shape.id,
-        relationId,
-      );
-      return bindingsToThisShape.map((b) => {
-        const arrowId = b.fromId;
-        const bindingsFromArrow = editor.getBindingsFromShape(
-          arrowId,
-          relationId,
+    const relationBindingTypes = new Set([
+      DISCOURSE_RELATION_SHAPE_TYPE,
+      ...discourseContextRelationIds,
+    ]);
+    const currentShapeRelations = Array.from(relationBindingTypes).flatMap(
+      (bindingType) => {
+        const bindingsToThisShape = editor.getBindingsToShape(
+          shape.id,
+          bindingType,
         );
-        const endBinding = bindingsFromArrow.find((b) => b.toId !== shape.id);
-        if (!endBinding) return null;
-        return { startId: shape.id, endId: endBinding.toId };
-      });
-    });
+        return bindingsToThisShape.flatMap((bindingToThisShape) => {
+          const arrowId = bindingToThisShape.fromId;
+          const arrow = editor.getShape(arrowId);
+          if (!arrow || !isDiscourseRelationShape(arrow)) return [];
+
+          const bindingsFromArrow = editor.getBindingsFromShape(
+            arrowId,
+            bindingType,
+          );
+          const endBinding = bindingsFromArrow.find(
+            (bindingFromArrow) => bindingFromArrow.toId !== shape.id,
+          );
+          if (!endBinding) return [];
+
+          return [
+            {
+              startId: shape.id,
+              endId: endBinding.toId,
+              relationTypeId: getDiscourseRelationTypeId({ shape: arrow }),
+            },
+          ];
+        });
+      },
+    );
 
     const toCreate = discourseContextResults
       .flatMap((r) =>
@@ -301,13 +326,15 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
             };
           }),
       )
-      .filter(({ complement, nodeId }) => {
+      .filter(({ relationId, complement, nodeId }) => {
         const startId = complement ? nodesInCanvas[nodeId].id : shape.id;
         const endId = complement ? shape.id : nodesInCanvas[nodeId].id;
         const relationAlreadyExists = currentShapeRelations.some((r) => {
+          if (r.relationTypeId !== relationId) return false;
+
           return complement
-            ? r?.startId === endId && r?.endId === startId
-            : r?.startId === startId && r?.endId === endId;
+            ? r.startId === endId && r.endId === startId
+            : r.startId === startId && r.endId === endId;
         });
         return !relationAlreadyExists;
       })
@@ -319,13 +346,25 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     const shapesToCreate = toCreate.map(
       ({ relationId, arrowId, label }, index) => {
         const color = getRelationColor(label, index);
-        return { id: arrowId, type: relationId, props: { color } };
+        return {
+          id: arrowId,
+          type: DISCOURSE_RELATION_SHAPE_TYPE,
+          props: {
+            color,
+            labelColor: color,
+            text: label,
+            relationTypeId: relationId,
+          },
+        };
       },
     );
 
     const bindingsToCreate = toCreate.flatMap(
-      ({ relationId, complement, nodeId, arrowId }) => {
-        const staticRelationProps = { type: relationId, fromId: arrowId };
+      ({ complement, nodeId, arrowId }) => {
+        const staticRelationProps = {
+          type: DISCOURSE_RELATION_SHAPE_TYPE,
+          fromId: arrowId,
+        };
         return [
           {
             ...staticRelationProps,

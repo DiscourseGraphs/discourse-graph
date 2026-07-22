@@ -58,6 +58,7 @@ import {
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import {
+  DISCOURSE_RELATION_SHAPE_TYPE,
   DiscourseRelationShape,
   getRelationColor,
 } from "./DiscourseRelationShape/DiscourseRelationUtil";
@@ -316,7 +317,7 @@ const convertArrowToRelation = async ({
 
   editor.createShape<DiscourseRelationShape>({
     id: relationArrowId,
-    type: relationId,
+    type: DISCOURSE_RELATION_SHAPE_TYPE,
     parentId: arrow.parentId,
     x: arrow.x,
     y: arrow.y,
@@ -339,6 +340,7 @@ const convertArrowToRelation = async ({
       color: relationColor,
       labelColor: relationColor,
       text: label,
+      relationTypeId: relationId,
     },
   });
 

@@ -6,6 +6,7 @@ import {
 } from "tldraw";
 import {
   BaseDiscourseRelationUtil,
+  DISCOURSE_RELATION_SHAPE_TYPE,
   DiscourseRelationShape,
   getRelationColor,
 } from "~/components/canvas/DiscourseRelationShape/DiscourseRelationUtil";
@@ -150,15 +151,18 @@ export const createDefaultRelationBetweenNodes = async ({
   const sourceBounds = editor.getShapePageBounds(sourceId);
   if (!sourceBounds) return null;
 
+  const color = getRelationColor(selectedRelation.label);
   const arrowId = createShapeId();
   editor.createShape<DiscourseRelationShape>({
     id: arrowId,
-    type: relationId,
+    type: DISCOURSE_RELATION_SHAPE_TYPE,
     x: sourceBounds.midX,
     y: sourceBounds.midY,
     props: {
-      color: getRelationColor(selectedRelation.label),
+      color,
+      labelColor: color,
       text: label,
+      relationTypeId: relationId,
       dash: "draw",
       size: "m",
       fill: "none",
