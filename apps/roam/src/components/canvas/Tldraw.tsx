@@ -214,7 +214,7 @@ const getPageRefDragSource = (
 const createPageRefDragHandle = (): HTMLSpanElement => {
   const dragHandle = document.createElement("span");
   dragHandle.className =
-    "bp3-button bp3-minimal bp3-small absolute top-1/2 z-10 -translate-y-1/2 cursor-grab select-none active:cursor-grabbing";
+    "bp3-button bp3-minimal bp3-small fixed z-10 -translate-y-1/2 cursor-grab select-none active:cursor-grabbing";
   dragHandle.draggable = true;
   dragHandle.title = "Drag page to canvas";
   dragHandle.setAttribute("aria-label", "Drag page to canvas");
@@ -227,13 +227,15 @@ const createPageRefDragHandle = (): HTMLSpanElement => {
   return dragHandle;
 };
 
-const createPageRefDragHandleAnchor = (
-  dragHandle: HTMLSpanElement,
-): HTMLSpanElement => {
-  const anchor = document.createElement("span");
-  anchor.className = "relative inline-block h-[1em] w-0 align-middle";
-  anchor.appendChild(dragHandle);
-  return anchor;
+const getPageRefFinalLineRect = (pageRef: HTMLElement): DOMRect | null => {
+  const closingBrackets = pageRef.nextElementSibling;
+  const referenceElement = closingBrackets?.classList.contains(
+    "rm-page-ref__brackets",
+  )
+    ? pageRef.parentElement
+    : pageRef;
+  const rects = referenceElement?.getClientRects();
+  return rects?.length ? rects[rects.length - 1] : null;
 };
 
 let pageRefDragSourceSubscriptionCount = 0;
@@ -241,14 +243,13 @@ let cleanupRoamPageRefDragSources: (() => void) | undefined;
 
 const createRoamPageRefDragSourceCleanup = (): (() => void) => {
   const dragHandle = createPageRefDragHandle();
-  const dragHandleAnchor = createPageRefDragHandleAnchor(dragHandle);
   const observedPageRefs = new WeakSet<HTMLElement>();
   let activePageRef: HTMLElement | null = null;
   let isDragHandlePointerDown = false;
   let isPageRefDragInProgress = false;
 
   const clearActivePageRef = (): void => {
-    dragHandleAnchor.remove();
+    dragHandle.remove();
     activePageRef = null;
   };
 
@@ -263,16 +264,13 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     if (source.element === activePageRef) return;
 
     if (activePageRef) clearActivePageRef();
+    const finalLineRect = getPageRefFinalLineRect(source.element);
+    if (!finalLineRect) return;
+
     activePageRef = source.element;
-    const closingBrackets = source.element.nextElementSibling;
-    const closingBracketWidth = closingBrackets?.classList.contains(
-      "rm-page-ref__brackets",
-    )
-      ? closingBrackets.getBoundingClientRect().width
-      : 0;
-    dragHandle.style.left = `${closingBracketWidth + 4}px`;
-    // The zero-width anchor follows the final wrapped line without reflowing it.
-    source.element.appendChild(dragHandleAnchor);
+    dragHandle.style.left = `${finalLineRect.right + 4}px`;
+    dragHandle.style.top = `${finalLineRect.top + finalLineRect.height / 2}px`;
+    source.element.appendChild(dragHandle);
   };
 
   const handlePageRefPointerEnter = (e: PointerEvent): void => {
