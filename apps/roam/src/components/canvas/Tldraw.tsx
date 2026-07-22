@@ -177,6 +177,8 @@ const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`
 const ROAM_PAGE_DROP_MIME_TYPE = "application/x-roam-page";
 const ROAM_BLOCK_DROP_MIME_TYPE = "application/x-roam-uid";
 const PAGE_REF_DRAG_HANDLE_ATTR = "data-roamjs-canvas-page-ref-drag-handle";
+const PAGE_REF_TITLE_SELECTOR =
+  ".rm-title-display, .rm-title-display-container";
 const PAGE_REF_REGEX = /^\[\[(.+?)\]\]$/;
 
 type PageRefDragSource = {
@@ -190,20 +192,19 @@ const getPageRefDragSource = (
   if (!(target instanceof HTMLElement)) return null;
 
   const pageRef = target.closest<HTMLElement>(".rm-page-ref");
-  const pageRefContainer = target.closest<HTMLElement>("[data-link-title]");
-  const element = pageRef || pageRefContainer;
-  if (!element) return null;
+  if (!pageRef || pageRef.closest(PAGE_REF_TITLE_SELECTOR)) {
+    return null;
+  }
 
   const pageTitle =
-    pageRef?.getAttribute("data-tag") ||
-    pageRef?.getAttribute("data-link-title") ||
+    pageRef.getAttribute("data-tag") ||
+    pageRef.getAttribute("data-link-title") ||
     pageRef
-      ?.closest<HTMLElement>("[data-link-title]")
-      ?.getAttribute("data-link-title") ||
-    pageRefContainer?.getAttribute("data-link-title");
+      .closest<HTMLElement>("[data-link-title]")
+      ?.getAttribute("data-link-title");
 
   const title = pageTitle?.replace(/\\"/g, '"');
-  return title ? { element, title } : null;
+  return title ? { element: pageRef, title } : null;
 };
 
 const createPageRefDragHandle = (): HTMLElement => {
@@ -218,6 +219,13 @@ const createPageRefDragHandle = (): HTMLElement => {
   return dragHandle;
 };
 
+const getPageRefDragHandlePositioningElement = (
+  pageRef: HTMLElement,
+): HTMLElement =>
+  pageRef.nextElementSibling?.classList.contains("rm-page-ref__brackets")
+    ? pageRef.parentElement || pageRef
+    : pageRef;
+
 let pageRefDragSourceSubscriptionCount = 0;
 let cleanupRoamPageRefDragSources: (() => void) | undefined;
 
@@ -225,16 +233,18 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
   const dragHandle = createPageRefDragHandle();
   const observedPageRefs = new WeakSet<HTMLElement>();
   let activePageRef: HTMLElement | null = null;
-  let didPositionActivePageRef = false;
+  let activePositioningElement: HTMLElement | null = null;
+  let didPositionActiveElement = false;
   let isDragHandlePointerDown = false;
   let isPageRefDragInProgress = false;
 
   const clearActivePageRef = (): void => {
     dragHandle.remove();
-    if (activePageRef && didPositionActivePageRef) {
-      activePageRef.classList.remove("relative");
+    if (activePositioningElement && didPositionActiveElement) {
+      activePositioningElement.classList.remove("relative");
     }
-    didPositionActivePageRef = false;
+    didPositionActiveElement = false;
+    activePositioningElement = null;
     activePageRef = null;
   };
 
@@ -248,12 +258,16 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     }
     if (source.element === activePageRef) return;
 
+    if (activePageRef) clearActivePageRef();
     activePageRef = source.element;
+    activePositioningElement = getPageRefDragHandlePositioningElement(
+      source.element,
+    );
     // The handle is absolutely positioned so hovering never reflows text;
-    // the ref itself must be the positioned ancestor.
-    if (getComputedStyle(source.element).position === "static") {
-      source.element.classList.add("relative");
-      didPositionActivePageRef = true;
+    // when closing brackets exist, their wrapper must be the positioned ancestor.
+    if (getComputedStyle(activePositioningElement).position === "static") {
+      activePositioningElement.classList.add("relative");
+      didPositionActiveElement = true;
     }
     source.element.appendChild(dragHandle);
   };
@@ -342,6 +356,9 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     className: "rm-page-ref",
     callback: observePageRef,
   });
+  document
+    .querySelectorAll<HTMLAnchorElement>("a.rm-page-ref")
+    .forEach(observePageRef);
   dragHandle.addEventListener("pointerdown", handleDragHandlePointerDown);
   dragHandle.addEventListener("mousedown", handleDragHandlePointerDown);
   dragHandle.addEventListener("dragstart", handleDragStart);
