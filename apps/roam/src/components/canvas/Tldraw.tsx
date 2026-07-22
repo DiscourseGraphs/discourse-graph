@@ -192,7 +192,11 @@ const getPageRefDragSource = (
   if (!(target instanceof HTMLElement)) return null;
 
   const pageRef = target.closest<HTMLElement>(".rm-page-ref");
-  if (!pageRef || pageRef.closest(PAGE_REF_TITLE_SELECTOR)) {
+  if (
+    !pageRef ||
+    pageRef.closest(PAGE_REF_TITLE_SELECTOR) ||
+    pageRef.parentElement?.closest(".rm-page-ref")
+  ) {
     return null;
   }
 
@@ -207,44 +211,44 @@ const getPageRefDragSource = (
   return title ? { element: pageRef, title } : null;
 };
 
-const createPageRefDragHandle = (): HTMLElement => {
+const createPageRefDragHandle = (): HTMLSpanElement => {
   const dragHandle = document.createElement("span");
   dragHandle.className =
-    "absolute -top-0.5 left-full cursor-grab select-none rounded-sm bg-white px-0.5 text-gray-500 active:cursor-grabbing";
+    "bp3-button bp3-minimal bp3-small absolute top-1/2 z-10 -translate-y-1/2 cursor-grab select-none active:cursor-grabbing";
   dragHandle.draggable = true;
-  dragHandle.textContent = "⠿";
   dragHandle.title = "Drag page to canvas";
   dragHandle.setAttribute("aria-label", "Drag page to canvas");
   dragHandle.setAttribute(PAGE_REF_DRAG_HANDLE_ATTR, "true");
+
+  const icon = document.createElement("span");
+  icon.className = "bp3-icon bp3-icon-drag-handle-vertical";
+  icon.setAttribute("aria-hidden", "true");
+  dragHandle.appendChild(icon);
   return dragHandle;
 };
 
-const getPageRefDragHandlePositioningElement = (
-  pageRef: HTMLElement,
-): HTMLElement =>
-  pageRef.nextElementSibling?.classList.contains("rm-page-ref__brackets")
-    ? pageRef.parentElement || pageRef
-    : pageRef;
+const createPageRefDragHandleAnchor = (
+  dragHandle: HTMLSpanElement,
+): HTMLSpanElement => {
+  const anchor = document.createElement("span");
+  anchor.className = "relative inline-block h-[1em] w-0 align-middle";
+  anchor.appendChild(dragHandle);
+  return anchor;
+};
 
 let pageRefDragSourceSubscriptionCount = 0;
 let cleanupRoamPageRefDragSources: (() => void) | undefined;
 
 const createRoamPageRefDragSourceCleanup = (): (() => void) => {
   const dragHandle = createPageRefDragHandle();
+  const dragHandleAnchor = createPageRefDragHandleAnchor(dragHandle);
   const observedPageRefs = new WeakSet<HTMLElement>();
   let activePageRef: HTMLElement | null = null;
-  let activePositioningElement: HTMLElement | null = null;
-  let didPositionActiveElement = false;
   let isDragHandlePointerDown = false;
   let isPageRefDragInProgress = false;
 
   const clearActivePageRef = (): void => {
-    dragHandle.remove();
-    if (activePositioningElement && didPositionActiveElement) {
-      activePositioningElement.classList.remove("relative");
-    }
-    didPositionActiveElement = false;
-    activePositioningElement = null;
+    dragHandleAnchor.remove();
     activePageRef = null;
   };
 
@@ -260,16 +264,15 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
 
     if (activePageRef) clearActivePageRef();
     activePageRef = source.element;
-    activePositioningElement = getPageRefDragHandlePositioningElement(
-      source.element,
-    );
-    // The handle is absolutely positioned so hovering never reflows text;
-    // when closing brackets exist, their wrapper must be the positioned ancestor.
-    if (getComputedStyle(activePositioningElement).position === "static") {
-      activePositioningElement.classList.add("relative");
-      didPositionActiveElement = true;
-    }
-    source.element.appendChild(dragHandle);
+    const closingBrackets = source.element.nextElementSibling;
+    const closingBracketWidth = closingBrackets?.classList.contains(
+      "rm-page-ref__brackets",
+    )
+      ? closingBrackets.getBoundingClientRect().width
+      : 0;
+    dragHandle.style.left = `${closingBracketWidth + 4}px`;
+    // The zero-width anchor follows the final wrapped line without reflowing it.
+    source.element.appendChild(dragHandleAnchor);
   };
 
   const handlePageRefPointerEnter = (e: PointerEvent): void => {
@@ -282,7 +285,7 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
   };
 
   const observePageRef = (pageRef: HTMLElement): void => {
-    if (observedPageRefs.has(pageRef)) return;
+    if (observedPageRefs.has(pageRef) || !getPageRefDragSource(pageRef)) return;
 
     observedPageRefs.add(pageRef);
     pageRef.addEventListener("pointerenter", handlePageRefPointerEnter);
