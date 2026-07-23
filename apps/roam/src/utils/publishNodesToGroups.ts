@@ -2,6 +2,18 @@ import { CrossAppNode } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import { nodeUidsWithTypeToCrossApp } from "./roamToCrossAppConverters";
+import {
+  reifiedRelationToCrossApp,
+  relationTripleSchemaToCrossApp,
+} from "./roamToCrossAppConverters";
+import getDiscourseRelations from "./getDiscourseRelations";
+import { getReifiedRelations } from "./createReifiedBlock";
+import {
+  crossAppRelationToDbConcept,
+  crossAppRelationTripleSchemaToDbConcept,
+} from "@repo/database/lib/crossAppConverters";
+import type { LocalConceptDataInput } from "@repo/database/inputTypes";
+import type { TablesInsert } from "@repo/database/dbTypes";
 
 export type NodeUidWithType = {
   uid: string;
@@ -13,6 +25,196 @@ type PublishNodesResult = {
   skippedUnsyncedUids: string[];
   okGroupIds: string[];
   failedGroupIds: string[];
+};
+
+const getAllPublishedIdsByGroup = async (
+  client: DGSupabaseClient,
+  spaceId: number,
+  groupIds: string[],
+): Promise<Record<string, Set<string>>> => {
+  const response = await client
+    .from("ResourceAccess")
+    .select("account_uid, source_local_id")
+    .eq("space_id", spaceId)
+    .in("account_uid", groupIds);
+  if (response.error) throw response.error;
+  const publishedIdsByGroupId = Object.fromEntries(
+    groupIds.map((gid) => [gid, new Set<string>()]),
+  );
+  response.data.forEach(({ account_uid, source_local_id }) => {
+    publishedIdsByGroupId[account_uid].add(source_local_id);
+  });
+
+  return publishedIdsByGroupId;
+};
+
+const getSpaceIdAndUrlsByGroupId = async (
+  client: DGSupabaseClient,
+  groupIds: string[],
+): Promise<{
+  spaceUrlById: Record<number, string>;
+  spaceIdsByGroupId: Record<string, Set<number>>;
+}> => {
+  const response = await client
+    .from("SpaceAccess")
+    .select("account_uid, space_id")
+    .in("account_uid", groupIds);
+  if (response.error) throw response.error;
+  const spaceIds = response.data.map((r) => r.space_id);
+  const response2 = await client
+    .from("Space")
+    .select("id, url")
+    .in("id", spaceIds);
+  if (response2.error) throw response2.error;
+  const spaceUrlById = Object.fromEntries(
+    response2.data.map(({ id, url }) => [id, url]),
+  );
+  const spaceIdsByGroupId = Object.fromEntries(
+    groupIds.map((gid) => [gid, new Set<number>()]),
+  );
+  response.data.forEach(({ account_uid, space_id }) => {
+    spaceIdsByGroupId[account_uid].add(space_id);
+  });
+  return {
+    spaceUrlById,
+    spaceIdsByGroupId,
+  };
+};
+
+// Use readImportedSourceIdentity from eng-1859 when it's merged.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const importedFromSpaceId = (nodeId: string): number | undefined => undefined;
+
+export const publishCorrespondingRelations = async ({
+  client,
+  spaceId,
+  groupIds,
+  syncedUids,
+  forNodeIds,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  groupIds: string[];
+  syncedUids: Set<string>;
+  forNodeIds?: Set<string>;
+}): Promise<{
+  upsertConcepts: LocalConceptDataInput[];
+  publishInfo: TablesInsert<"ResourceAccess">[];
+}> => {
+  const allRelationsSchemas = getDiscourseRelations();
+  const allRelationSchemasById = Object.fromEntries(
+    allRelationsSchemas.map((s) => [s.id, s]),
+  );
+  // Should we even handle non-reified relations? Assuming not.
+  // I need a way to know if a relation is imported, see importedFromSpaceId
+  const allRelations = await getReifiedRelations();
+  const spaceIdOfNodes: Record<string, number> = {};
+  const isImportedFrom = (nodeLocalId: string): number => {
+    let cached = spaceIdOfNodes[nodeLocalId];
+    if (cached === undefined) {
+      cached = spaceIdOfNodes[nodeLocalId] =
+        importedFromSpaceId(nodeLocalId) || spaceId;
+    }
+    return cached === spaceId ? 0 : cached;
+  };
+  const relations =
+    forNodeIds !== undefined
+      ? allRelations.filter(
+          (r) =>
+            r.importedFromRid === undefined &&
+            (forNodeIds.has(r.sourceUid) || forNodeIds.has(r.destinationUid)),
+        )
+      : allRelations.filter((r) => r.importedFromRid === undefined);
+  const { spaceIdsByGroupId, spaceUrlById } = await getSpaceIdAndUrlsByGroupId(
+    client,
+    groupIds,
+  );
+  const isImportedFromSpaceUri = (uid: string) =>
+    spaceUrlById[isImportedFrom(uid) || 0];
+  const publishedIdsByGroup = await getAllPublishedIdsByGroup(
+    client,
+    spaceId,
+    groupIds,
+  );
+  // calculate separately to avoid case of a relation between nodes published to or from different groups
+  const relevantRelationIdsPerGroupId = Object.fromEntries(
+    groupIds.map((groupId) => {
+      const groupSpaceIds = spaceIdsByGroupId[groupId];
+      const publishedIds = publishedIdsByGroup[groupId];
+      return [
+        groupId,
+        relations
+          .filter(
+            (r) =>
+              (publishedIds.has(r.sourceUid) ||
+                groupSpaceIds.has(isImportedFrom(r.sourceUid) || 0)) &&
+              (publishedIds.has(r.destinationUid) ||
+                groupSpaceIds.has(isImportedFrom(r.destinationUid) || 0)),
+          )
+          .map((r) => r.relationId),
+      ];
+    }),
+  );
+  const allRelevantRelationIds = new Set(
+    Object.values(relevantRelationIdsPerGroupId).flat(),
+  );
+  let allRelevantRelations = relations.filter((r) =>
+    allRelevantRelationIds.has(r.relationId),
+  );
+  const relationSchemaIds = new Set(
+    allRelevantRelations
+      .map((r) => r.hasSchema)
+      // filter out deleted schemas
+      .filter((id) => id in allRelationSchemasById),
+  );
+  allRelevantRelations = allRelevantRelations.filter((r) =>
+    relationSchemaIds.has(r.hasSchema),
+  );
+  const missingRelationSchemaTriples = allRelationsSchemas.filter(
+    (r) => relationSchemaIds.has(r.id) && !syncedUids.has(r.id),
+  );
+  const missingRelations = allRelevantRelations.filter(
+    (r) => !syncedUids.has(r.relationId),
+  );
+  const upsertConcepts = [
+    ...missingRelationSchemaTriples
+      .map((rs3) => relationTripleSchemaToCrossApp(rs3))
+      .filter((rs3) => rs3 !== null)
+      .map((rs3) => crossAppRelationTripleSchemaToDbConcept(rs3)),
+    ...missingRelations
+      .map((r) => reifiedRelationToCrossApp(r, isImportedFromSpaceUri))
+      .filter((r) => r !== null)
+      .map((r) => crossAppRelationToDbConcept(r)),
+  ].filter((r) => r !== undefined);
+
+  const publishInfo = [];
+  for (const groupId of groupIds) {
+    const groupRelationIds = new Set(relevantRelationIdsPerGroupId[groupId]);
+    const groupMissingRelations = missingRelations.filter((r) =>
+      groupRelationIds.has(r.relationId),
+    );
+    const groupMissingRelationIds = groupMissingRelations.map(
+      (r) => r.relationId,
+    );
+    const groupSchemaIds = new Set(
+      groupMissingRelations.map((r) => r.hasSchema),
+    );
+    const groupMissingSchemaIds = missingRelationSchemaTriples
+      .filter((rs3) => groupSchemaIds.has(rs3.id))
+      .map((rs3) => rs3.id);
+    const groupMissingIds = [
+      ...groupMissingRelationIds,
+      ...groupMissingSchemaIds,
+    ];
+    publishInfo.push(
+      ...groupMissingIds.map((sourceLocalId) => ({
+        account_uid: groupId,
+        source_local_id: sourceLocalId,
+        space_id: spaceId,
+      })),
+    );
+  }
+  return { upsertConcepts, publishInfo };
 };
 
 // 23505 = unique_violation: the grant already exists, which counts as success.
@@ -65,7 +267,6 @@ export const publishNodesToGroups = async ({
     .from("my_concepts")
     .select("source_local_id")
     .eq("space_id", spaceId)
-    .eq("is_schema", false)
     .in("source_local_id", uids);
   if (syncedRes.error) throw syncedRes.error;
   const syncedUids = new Set(
@@ -125,6 +326,22 @@ export const publishNodesToGroups = async ({
 
     result.okGroupIds.push(groupId);
   }
+  const { upsertConcepts, publishInfo } = await publishCorrespondingRelations({
+    client,
+    spaceId,
+    groupIds: targetGroupIds,
+    syncedUids,
+    forNodeIds: new Set(syncedNodeUids),
+  });
+  const response = await client.rpc("upsert_concepts", {
+    v_space_id: spaceId,
+    data: upsertConcepts,
+  });
+  if (response.error) throw response.error;
+  const grantRes = await client
+    .from("ResourceAccess")
+    .upsert(publishInfo, { ignoreDuplicates: true });
+  if (!isIgnorableUpsertError(grantRes.error)) throw grantRes.error;
 
   result.publishedNodeUids = result.okGroupIds.length > 0 ? syncedNodeUids : [];
   return result;

@@ -102,6 +102,36 @@ export const countReifiedRelations = async (): Promise<number> => {
   return (r[0] || [0])[0] as number;
 };
 
+export type ReifiedRelationData = {
+  sourceUid: string;
+  destinationUid: string;
+  hasSchema: string;
+  importedFromRid?: string;
+};
+
+export type ReifiedRelationDataWithRelId = ReifiedRelationData & {
+  relationId: string;
+};
+
+export const getReifiedRelations = async (): Promise<
+  ReifiedRelationDataWithRelId[]
+> => {
+  const pageUid = getExistingRelationPageUid();
+  if (pageUid === undefined) return [];
+  const r = await window.roamAlphaAPI.data.async.q(
+    `[:find ?ruid ?rdata :where
+      [?p :block/uid "${pageUid}"]
+      [?p :block/children ?c]
+      [?c :block/uid ?ruid]
+      [?c :block/props ?pr]
+      [(get ?pr :${DISCOURSE_GRAPH_PROP_NAME}) ?rdata] ]`,
+  );
+  return r.map((x) => ({
+    relationId: x[0] as string,
+    ...(x[1] as ReifiedRelationData),
+  }));
+};
+
 export const createReifiedRelation = async ({
   sourceUid,
   relationBlockUid,
