@@ -2,7 +2,7 @@ import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import type { RoamFullContentNode } from "./convertRoamNodeToFullContent";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import type { TreeNode, ViewType } from "roamjs-components/types";
-import type { nodeUidWithType } from "~/utils/publishNodesToGroups";
+import type { NodeUidWithType } from "~/utils/publishNodesToGroups";
 import type { Json } from "@repo/database/dbTypes";
 import { toMarkdown } from "./pageToMarkdown";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
@@ -68,7 +68,7 @@ export const fullContentNodeToCrossApp = (
 };
 
 export const nodeUidsWithTypeToCrossApp = async (
-  nodes: nodeUidWithType[],
+  nodes: NodeUidWithType[],
 ): Promise<CrossAppNode[]> => {
   const typesByUid = Object.fromEntries(nodes.map((n) => [n.uid, n.type]));
   const nodeRows = (await window.roamAlphaAPI.data.async.pull_many(

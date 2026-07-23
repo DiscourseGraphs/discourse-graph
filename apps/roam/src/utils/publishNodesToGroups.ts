@@ -3,7 +3,7 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import { nodeUidsWithTypeToCrossApp } from "./roamToCrossAppConverters";
 
-export type nodeUidWithType = {
+export type NodeUidWithType = {
   uid: string;
   type: string;
 };
@@ -134,13 +134,13 @@ export const publishNodeUidsWithTypeToGroups = async ({
   client,
   spaceId,
   groupIds,
-  publishNodes,
+  nodeUids,
 }: {
   client: DGSupabaseClient;
   spaceId: number;
   groupIds: string[];
-  publishNodes: nodeUidWithType[];
+  nodeUids: NodeUidWithType[];
 }): Promise<PublishNodesResult> => {
-  const nodes = await nodeUidsWithTypeToCrossApp(publishNodes);
+  const nodes = await nodeUidsWithTypeToCrossApp(nodeUids);
   return await publishNodesToGroups({ client, spaceId, groupIds, nodes });
 };

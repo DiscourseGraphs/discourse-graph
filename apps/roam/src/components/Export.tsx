@@ -88,7 +88,7 @@ import posthog from "posthog-js";
 import { getMyGroups, type MyGroup } from "@repo/database/lib/groups";
 import {
   publishNodeUidsWithTypeToGroups,
-  type nodeUidWithType,
+  type NodeUidWithType,
 } from "~/utils/publishNodesToGroups";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 import { isSyncEnabled } from "~/components/settings/utils/accessors";
@@ -248,7 +248,7 @@ const ExportDialog: ExportDialogComponent = ({
                 ? { uid: r.uid, type: node.type }
                 : null;
             })
-            .filter((n): n is nodeUidWithType => n !== null)
+            .filter((n): n is NodeUidWithType => n !== null)
         : [],
     [results, syncEnabled],
   );
@@ -847,7 +847,7 @@ const ExportDialog: ExportDialogComponent = ({
         client,
         spaceId: context.spaceId,
         groupIds: selectedGroupIds,
-        publishNodes: publishableNodes,
+        nodeUids: publishableNodes,
       });
       posthog.capture("Export Dialog: Publish", {
         groupCount: okGroupIds.length,
