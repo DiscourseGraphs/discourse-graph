@@ -87,8 +87,8 @@ import { AddReferencedNodeType } from "./canvas/DiscourseRelationShape/Discourse
 import posthog from "posthog-js";
 import { getMyGroups, type MyGroup } from "@repo/database/lib/groups";
 import {
-  publishNodesToGroups,
-  type PublishNode,
+  publishNodeUidsWithTypeToGroups,
+  type NodeUidWithType,
 } from "~/utils/publishNodesToGroups";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 import { isSyncEnabled } from "~/components/settings/utils/accessors";
@@ -248,7 +248,7 @@ const ExportDialog: ExportDialogComponent = ({
                 ? { uid: r.uid, type: node.type }
                 : null;
             })
-            .filter((n): n is PublishNode => n !== null)
+            .filter((n): n is NodeUidWithType => n !== null)
         : [],
     [results, syncEnabled],
   );
@@ -843,11 +843,11 @@ const ExportDialog: ExportDialogComponent = ({
         skippedUnsyncedUids,
         okGroupIds,
         failedGroupIds,
-      } = await publishNodesToGroups({
+      } = await publishNodeUidsWithTypeToGroups({
         client,
         spaceId: context.spaceId,
         groupIds: selectedGroupIds,
-        nodes: publishableNodes,
+        nodeUids: publishableNodes,
       });
       posthog.capture("Export Dialog: Publish", {
         groupCount: okGroupIds.length,
