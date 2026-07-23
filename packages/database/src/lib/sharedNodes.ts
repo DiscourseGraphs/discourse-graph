@@ -1,16 +1,7 @@
 import type { DGSupabaseClient } from "./client";
-import { getAvailableGroupIds } from "./groups";
-import { getAllPages } from "./pagination";
 import { spaceUriAndLocalIdToRid } from "./rid";
 import type { Enums, Json, Tables } from "../dbTypes";
 
-const PAGE_SIZE = 1000;
-const RESOURCE_ID_CHUNK_SIZE = 100;
-
-type ResourceAccess = Pick<
-  Tables<"ResourceAccess">,
-  "space_id" | "source_local_id"
->;
 type SharedConcept = Pick<
   Tables<"my_concepts">,
   "is_schema" | "last_modified" | "schema_id" | "source_local_id" | "space_id"
@@ -60,7 +51,6 @@ export type SharedNodeRows = {
   concepts: SharedConcept[];
   directContents: SharedContent[];
   fullContentSummaries: SharedContentSummary[];
-  resources: ResourceAccess[];
   spaces: SharedSpace[];
 };
 
@@ -90,24 +80,10 @@ const getLatestTimestamp = (timestamps: (string | null)[]): string | null => {
 
 export const buildSharedNodes = ({
   concepts,
-  currentSpaceId,
   directContents,
   fullContentSummaries,
-  resources,
   spaces,
-}: SharedNodeRows & {
-  currentSpaceId: number;
-}): SharedNode[] => {
-  const sharedResourceKeys = new Set(
-    resources
-      .filter((resource) => resource.space_id !== currentSpaceId)
-      .map((resource) =>
-        getResourceKey({
-          sourceLocalId: resource.source_local_id,
-          spaceId: resource.space_id,
-        }),
-      ),
-  );
+}: SharedNodeRows): SharedNode[] => {
   const spacesById = new Map<number, ValidSharedSpace>(
     spaces.flatMap((space): [number, ValidSharedSpace][] => {
       if (
@@ -176,7 +152,6 @@ export const buildSharedNodes = ({
         sourceLocalId: concept.source_local_id,
         spaceId: concept.space_id,
       });
-      if (!sharedResourceKeys.has(resourceKey)) return [];
 
       const space = spacesById.get(concept.space_id);
       const direct = directByResource.get(resourceKey);
@@ -225,44 +200,6 @@ export const buildSharedNodes = ({
     );
 };
 
-const getGroupSharedResources = async (
-  client: DGSupabaseClient,
-  currentSpaceId: number,
-): Promise<ResourceAccess[]> => {
-  const availableGroupIds = await getAvailableGroupIds(client);
-  if (availableGroupIds.length === 0) return [];
-
-  const resources = await getAllPages(
-    client
-      .from("ResourceAccess")
-      .select("space_id, source_local_id")
-      .in("account_uid", availableGroupIds)
-      .neq("space_id", currentSpaceId)
-      .order("space_id")
-      .order("source_local_id")
-      .order("account_uid"),
-    PAGE_SIZE,
-  );
-  if (!Array.isArray(resources)) throw resources;
-
-  return [
-    ...new Map(
-      resources.map((resource) => [
-        getResourceKey({
-          sourceLocalId: resource.source_local_id,
-          spaceId: resource.space_id,
-        }),
-        resource,
-      ]),
-    ).values(),
-  ];
-};
-
-const chunk = <T>(values: T[], size: number): T[][] =>
-  Array.from({ length: Math.ceil(values.length / size) }, (_, index) =>
-    values.slice(index * size, (index + 1) * size),
-  );
-
 const getSharedNodeRows = async ({
   client,
   currentSpaceId,
@@ -270,65 +207,42 @@ const getSharedNodeRows = async ({
   client: DGSupabaseClient;
   currentSpaceId: number;
 }): Promise<SharedNodeRows> => {
-  const resources = await getGroupSharedResources(client, currentSpaceId);
-  if (resources.length === 0)
-    return {
-      concepts: [],
-      directContents: [],
-      fullContentSummaries: [],
-      resources,
-      spaces: [],
-    };
-
-  const spaceIds = [...new Set(resources.map((resource) => resource.space_id))];
-  const spacesResponse = await client
-    .from("my_spaces")
-    .select("id, name, platform, url")
-    .in("id", spaceIds);
-  if (spacesResponse.error) throw spacesResponse.error;
-
-  const sourceLocalIds = [
-    ...new Set(resources.map((resource) => resource.source_local_id)),
-  ];
-  const concepts: SharedConcept[] = [];
-  const directContents: SharedContent[] = [];
-  const fullContentSummaries: SharedContentSummary[] = [];
-  for (const ids of chunk(sourceLocalIds, RESOURCE_ID_CHUNK_SIZE)) {
-    const [conceptsResponse, directResponse, fullResponse] = await Promise.all([
+  const [conceptsResponse, directResponse, fullResponse, spacesResponse] =
+    await Promise.all([
       client
         .from("my_concepts")
         .select(
           "is_schema, last_modified, schema_id, source_local_id, space_id",
         )
+        .neq("space_id", currentSpaceId)
         .eq("is_schema", false)
-        .eq("arity", 0)
-        .in("source_local_id", ids),
+        .eq("arity", 0),
       client
         .from("my_contents")
         .select(
           "author_id, created, last_modified, metadata, source_local_id, space_id, text, variant",
         )
-        .in("source_local_id", ids)
+        .neq("space_id", currentSpaceId)
         .eq("variant", "direct"),
       client
         .from("my_contents")
         .select("last_modified, source_local_id, space_id")
-        .in("source_local_id", ids)
+        .neq("space_id", currentSpaceId)
         .eq("variant", "full"),
+      client
+        .from("my_spaces")
+        .select("id, name, platform, url")
+        .neq("id", currentSpaceId),
     ]);
-    if (conceptsResponse.error) throw conceptsResponse.error;
-    if (directResponse.error) throw directResponse.error;
-    if (fullResponse.error) throw fullResponse.error;
-    concepts.push(...conceptsResponse.data);
-    directContents.push(...directResponse.data);
-    fullContentSummaries.push(...fullResponse.data);
-  }
+  if (conceptsResponse.error) throw conceptsResponse.error;
+  if (directResponse.error) throw directResponse.error;
+  if (fullResponse.error) throw fullResponse.error;
+  if (spacesResponse.error) throw spacesResponse.error;
 
   return {
-    concepts,
-    directContents,
-    fullContentSummaries,
-    resources,
+    concepts: conceptsResponse.data,
+    directContents: directResponse.data,
+    fullContentSummaries: fullResponse.data,
     spaces: spacesResponse.data,
   };
 };
@@ -341,5 +255,5 @@ export const listGroupSharedNodes = async ({
   currentSpaceId: number;
 }): Promise<SharedNode[]> => {
   const rows = await getSharedNodeRows({ client, currentSpaceId });
-  return buildSharedNodes({ ...rows, currentSpaceId });
+  return buildSharedNodes(rows);
 };

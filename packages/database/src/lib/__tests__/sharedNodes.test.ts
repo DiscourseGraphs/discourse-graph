@@ -3,10 +3,6 @@ import { buildSharedNodes } from "../sharedNodes";
 
 type BuildArgs = Parameters<typeof buildSharedNodes>[0];
 
-const resources: BuildArgs["resources"] = [
-  { space_id: 20, source_local_id: "node-1" },
-  { space_id: 20, source_local_id: "schema-1" },
-];
 const spaces: BuildArgs["spaces"] = [
   {
     id: 20,
@@ -47,25 +43,19 @@ const rid = "orn:obsidian.note:vault-a/node-1";
 
 const build = ({
   conceptsOverride = concepts,
-  currentSpaceId = 10,
   directOverride = directContents,
   fullOverride = fullContentSummaries,
-  resourcesOverride = resources,
   spacesOverride = spaces,
 }: {
   conceptsOverride?: typeof concepts;
-  currentSpaceId?: number;
   directOverride?: typeof directContents;
   fullOverride?: typeof fullContentSummaries;
-  resourcesOverride?: typeof resources;
   spacesOverride?: typeof spaces;
 } = {}) =>
   buildSharedNodes({
     concepts: conceptsOverride,
-    currentSpaceId,
     directContents: directOverride,
     fullContentSummaries: fullOverride,
-    resources: resourcesOverride,
     spaces: spacesOverride,
   });
 
@@ -86,18 +76,6 @@ describe("buildSharedNodes", () => {
         directMetadata: { source: "obsidian" },
       },
     ]);
-  });
-
-  it("does not discover shared resources from the current space", () => {
-    expect(build({ currentSpaceId: 20 })).toEqual([]);
-  });
-
-  it("requires the exact shared resource identity", () => {
-    expect(
-      build({
-        resourcesOverride: [{ space_id: 21, source_local_id: "node-1" }],
-      }),
-    ).toEqual([]);
   });
 
   it("discovers a node without full content", () => {
@@ -153,10 +131,6 @@ describe("buildSharedNodes", () => {
         conceptsOverride: [olderConcept, concepts[0]!],
         directOverride: [olderDirect, ...directContents],
         fullOverride: fullContentSummaries,
-        resourcesOverride: [
-          ...resources,
-          { space_id: 20, source_local_id: "node-2" },
-        ],
       }).map((node) => node.sourceLocalId),
     ).toEqual(["node-1", "node-2"]);
   });
