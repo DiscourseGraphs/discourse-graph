@@ -1,6 +1,6 @@
 import type { TreeNode } from "roamjs-components/types";
 import type { CrossAppNode } from "@repo/database/crossAppContracts";
-import { buildFullMarkdown } from "./convertRoamNodeToFullContent";
+import { buildFullMarkdown } from "./roamToCrossAppConverters";
 import { contentTypes } from "@repo/content-model";
 
 const block = (text: string, children: TreeNode[] = []): TreeNode => ({
