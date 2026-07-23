@@ -1,0 +1,112 @@
+# Discourse Graphs
+
+> Discourse Graphs are an information
+> model that represents research as
+> questions, claims, and evidence
+> connected by typed relations
+> (supports, opposes, addresses,
+> interpreted-as), rather than as
+> documents. The project maintains an
+> open interoperability protocol plus
+> plugins for Roam Research and
+> Obsidian, so researchers can share
+> and reuse discourse units across
+> tools.
+
+The base schema defines four node
+types — Question, Claim, Evidence,
+Source — and four relation types —
+Supports, Opposes, Addresses,
+InterpretedAs. A tool has a discourse
+graph, and can interoperate on the
+protocol, if it contains data
+structures that map to these base
+nodes and relations.
+
+Two design commitments constrain
+implementations: local label
+variations (hypothesis, result,
+conclusion) should point to the
+nearest base schema node type; and
+relations are reified as separate
+assertions with their own metadata
+rather than attributes of a node.
+
+Maintained by Homeworld Collective.
+Licensed Apache 2.0. Supported by
+Protocol Labs Research, Chan
+Zuckerberg Initiative, Metagov,
+Schmidt Futures, and The Navigation
+Fund.
+
+## Core concepts
+
+- [What is a discourse graph?](https://discoursegraphs.com/docs/obsidian/fundamentals/what-is-a-discourse-graph):
+  Canonical definition of the
+  information model, the four node
+  types, and three worked examples
+  (understanding a problem,
+  formulating a contribution,
+  constructing a theory).
+- [Base grammar](https://discoursegraphs.com/docs/obsidian/fundamentals/base-grammar):
+  The fixed relational vocabulary —
+  question, claim, evidence, source,
+  and the relations between them.
+- [Conceptual schema draft](https://github.com/DiscourseGraphs/schemas/blob/main/conceptual-schema-draft.md):
+  Full specification of the base
+  schema, guiding principles,
+  documented local variations (lab,
+  HCI, UX research), and technical
+  instantiations.
+
+## Documentation
+
+- [Documentation home](https://discoursegraphs.com/docs):
+  Entry point; splits by client.
+- [Roam Research plugin docs](https://discoursegraphs.com/docs/roam):
+  Installation, graph building,
+  querying, advanced workflows.
+- [Obsidian plugin docs](https://discoursegraphs.com/docs/obsidian):
+  Setup, node and relation authoring,
+  sync, workspace configuration.
+
+## Schemas and technical specs
+
+- [Schemas repository](https://github.com/DiscourseGraphs/schemas):
+  All technical instantiations of the
+  conceptual schema.
+- [OWL ontology (dg_core.ttl)](https://github.com/DiscourseGraphs/schemas/blob/main/owl/dg_core.ttl):
+  Minimal shared set of nodes and
+  relations, mapped to SEPIO,
+  micropublications, and ScholOnto.
+- [ATProto Lexicon](https://github.com/DiscourseGraphs/schemas/blob/main/atproto-lexicon):
+  Prototype `org.discoursegraphs.*`
+  lexicon mapping the base schema to
+  federated ATProto records, with
+  reified relations carrying their own
+  authorship and provenance.
+- [MyST specification](https://github.com/DiscourseGraphs/schemas/blob/main/discourse-graphs-myst-spec.md):
+  Draft MyST Markdown directives and
+  roles embedding discourse graph
+  semantics into scientific documents.
+
+## Source code
+
+- [Main monorepo](https://github.com/DiscourseGraphs/discourse-graph):
+  Roam plugin and website.
+- [Obsidian plugin](https://github.com/DiscourseGraphs/discourse-graph-obsidian)
+- [GitHub organization](https://github.com/DiscourseGraphs)
+
+## Background reading
+
+- [Steps Towards an Infrastructure for Scholarly Synthesis](https://arxiv.org/html/2407.20666v2):
+  Preprint on discourse graph plugin
+  design and use cases.
+- [Knowledge synthesis: conceptual model and practical guide](https://oasislab.pubpub.org/pub/54t0y9mk/release/3)
+
+## Community
+
+- [Community Slack](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg)
+- [YouTube talks](https://www.youtube.com/@discoursegraphs)
+- [Bluesky](https://bsky.app/profile/discoursegraphs.bsky.social)
+- [Contact](mailto:discoursegraphs@homeworld.bio)
