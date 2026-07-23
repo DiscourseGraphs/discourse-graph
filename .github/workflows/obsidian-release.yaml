@@ -1,0 +1,88 @@
+name: Publish Obsidian Plugin
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Obsidian release version, for example 0.1.0 or 0.1.0-beta.1."
+        required: true
+        type: string
+      release_name:
+        description: "Optional custom GitHub release name."
+        required: false
+        type: string
+
+env:
+  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+  SUPABASE_USE_DB: production
+
+jobs:
+  publish-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve release inputs
+        id: resolve-release-inputs
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            version="${{ inputs.version }}"
+          else
+            base_version="$(node -p "require('./apps/obsidian/package.json').version")"
+            version="${base_version}-alpha-ci.${{ github.run_number }}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          if [ -n "${{ inputs.release_name }}" ]; then
+            release_name="${{ inputs.release_name }}"
+          else
+            release_name=""
+          fi
+          echo "release_name=$release_name" >> "$GITHUB_OUTPUT"
+
+      - name: Sync Linear release
+        id: sync-linear-release
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
+          name: Obsidian ${{ steps.resolve-release-inputs.outputs.version }}
+          version: ${{ steps.resolve-release-inputs.outputs.version }}
+          include_paths: "apps/obsidian/**,packages/tailwind-config/**,packages/utils/**,packages/database/**,packages/ui/**"
+
+      - name: Publish Obsidian extension
+        run: |
+          if [ -n "${{ steps.resolve-release-inputs.outputs.release_name }}" ]; then
+            pnpm --dir apps/obsidian run publish --version "${{ steps.resolve-release-inputs.outputs.version }}" --release-name "${{ steps.resolve-release-inputs.outputs.release_name }}"
+          else
+            pnpm --dir apps/obsidian run publish --version "${{ steps.resolve-release-inputs.outputs.version }}"
+          fi
+
+      - name: Mark Linear release Released
+        id: update-linear-release
+        if: ${{ steps.sync-linear-release.outputs.release != '' && steps.sync-linear-release.outputs.release != 'null' }}
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
+          command: update
+          version: ${{ steps.resolve-release-inputs.outputs.version }}
+          stage: Released
