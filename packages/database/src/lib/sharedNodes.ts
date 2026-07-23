@@ -1,7 +1,7 @@
 import type { DGSupabaseClient } from "./client";
 import { getAvailableGroupIds } from "./groups";
 import { getAllPages } from "./pagination";
-import { isRid, spaceUriAndLocalIdToRid } from "./rid";
+import { spaceUriAndLocalIdToRid } from "./rid";
 import type { Enums, Json, Tables } from "../dbTypes";
 
 const PAGE_SIZE = 1000;
@@ -193,13 +193,11 @@ export const buildSharedNodes = ({
 
       let rid: string;
       try {
-        rid = isRid(concept.source_local_id)
-          ? concept.source_local_id
-          : spaceUriAndLocalIdToRid(
-              space.url,
-              concept.source_local_id,
-              space.platform === "Obsidian" ? "note" : undefined,
-            );
+        rid = spaceUriAndLocalIdToRid(
+          space.url,
+          concept.source_local_id,
+          space.platform === "Obsidian" ? "note" : undefined,
+        );
       } catch {
         return [];
       }
@@ -289,47 +287,41 @@ const getSharedNodeRows = async ({
     .in("id", spaceIds);
   if (spacesResponse.error) throw spacesResponse.error;
 
+  const sourceLocalIds = [
+    ...new Set(resources.map((resource) => resource.source_local_id)),
+  ];
   const concepts: SharedConcept[] = [];
   const directContents: SharedContent[] = [];
   const fullContentSummaries: SharedContentSummary[] = [];
-  for (const spaceId of spaceIds) {
-    const sourceLocalIds = resources
-      .filter((resource) => resource.space_id === spaceId)
-      .map((resource) => resource.source_local_id);
-    for (const ids of chunk(sourceLocalIds, RESOURCE_ID_CHUNK_SIZE)) {
-      const [conceptsResponse, directResponse, fullResponse] =
-        await Promise.all([
-          client
-            .from("my_concepts")
-            .select(
-              "is_schema, last_modified, schema_id, source_local_id, space_id",
-            )
-            .eq("space_id", spaceId)
-            .eq("is_schema", false)
-            .eq("arity", 0)
-            .in("source_local_id", ids),
-          client
-            .from("my_contents")
-            .select(
-              "author_id, created, last_modified, metadata, source_local_id, space_id, text, variant",
-            )
-            .eq("space_id", spaceId)
-            .in("source_local_id", ids)
-            .eq("variant", "direct"),
-          client
-            .from("my_contents")
-            .select("last_modified, source_local_id, space_id")
-            .eq("space_id", spaceId)
-            .in("source_local_id", ids)
-            .eq("variant", "full"),
-        ]);
-      if (conceptsResponse.error) throw conceptsResponse.error;
-      if (directResponse.error) throw directResponse.error;
-      if (fullResponse.error) throw fullResponse.error;
-      concepts.push(...conceptsResponse.data);
-      directContents.push(...directResponse.data);
-      fullContentSummaries.push(...fullResponse.data);
-    }
+  for (const ids of chunk(sourceLocalIds, RESOURCE_ID_CHUNK_SIZE)) {
+    const [conceptsResponse, directResponse, fullResponse] = await Promise.all([
+      client
+        .from("my_concepts")
+        .select(
+          "is_schema, last_modified, schema_id, source_local_id, space_id",
+        )
+        .eq("is_schema", false)
+        .eq("arity", 0)
+        .in("source_local_id", ids),
+      client
+        .from("my_contents")
+        .select(
+          "author_id, created, last_modified, metadata, source_local_id, space_id, text, variant",
+        )
+        .in("source_local_id", ids)
+        .eq("variant", "direct"),
+      client
+        .from("my_contents")
+        .select("last_modified, source_local_id, space_id")
+        .in("source_local_id", ids)
+        .eq("variant", "full"),
+    ]);
+    if (conceptsResponse.error) throw conceptsResponse.error;
+    if (directResponse.error) throw directResponse.error;
+    if (fullResponse.error) throw fullResponse.error;
+    concepts.push(...conceptsResponse.data);
+    directContents.push(...directResponse.data);
+    fullContentSummaries.push(...fullResponse.data);
   }
 
   return {

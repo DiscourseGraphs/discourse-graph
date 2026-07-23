@@ -100,24 +100,6 @@ describe("buildSharedNodes", () => {
     ).toEqual([]);
   });
 
-  it.each([
-    "orn:obsidian.note:vault-a/node-1",
-    "https://example.com/shared/node-1",
-  ])("preserves a RID-shaped source-local ID: %s", (sourceLocalId) => {
-    expect(
-      build({
-        conceptsOverride: [{ ...concepts[0]!, source_local_id: sourceLocalId }],
-        directOverride: [
-          { ...directContents[0]!, source_local_id: sourceLocalId },
-        ],
-        fullOverride: [
-          { ...fullContentSummaries[0]!, source_local_id: sourceLocalId },
-        ],
-        resourcesOverride: [{ space_id: 20, source_local_id: sourceLocalId }],
-      })[0]?.rid,
-    ).toBe(sourceLocalId);
-  });
-
   it("discovers a node without full content", () => {
     expect(build({ fullOverride: [] })[0]?.lastModified).toBe(
       "2026-06-14T13:00:00.000Z",
