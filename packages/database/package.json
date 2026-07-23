@@ -34,6 +34,7 @@
     "lint:fix": "eslint --fix . && tsx scripts/lintSchemas.ts -f && tsx scripts/lintFunctions.ts",
     "migrate": "tsx scripts/migrate.ts",
     "test": "pnpm run build && cucumber-js",
+    "test:unit": "vitest run",
     "test:withserve": "pnpm run build && tsx scripts/serveAndTest.ts",
     "genenv": "tsx scripts/createEnv.mts",
     "gentypes": "tsx scripts/genTypes.ts",
@@ -65,7 +66,8 @@
     "ts-node-maintained": "^10.9.5",
     "tsx": "4.20.6",
     "typescript": "5.9.2",
-    "vercel": "53.1.0"
+    "vercel": "53.1.0",
+    "vitest": "catalog:"
   },
   "prettier": {
     "plugins": [

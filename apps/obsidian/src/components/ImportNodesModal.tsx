@@ -67,7 +67,6 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
 
       const publishedNodes = await getPublishedNodesForGroups({
         client,
-        groupIds,
         currentSpaceId: context.spaceId,
       });
 
