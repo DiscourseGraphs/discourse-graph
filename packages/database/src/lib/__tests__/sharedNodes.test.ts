@@ -11,7 +11,7 @@ const spaces: BuildArgs["spaces"] = [
     url: "obsidian:vault-a",
   },
 ];
-const concepts: BuildArgs["concepts"] = [
+const nodes: BuildArgs["nodes"] = [
   {
     is_schema: false,
     last_modified: "2026-06-14T12:00:00",
@@ -42,18 +42,18 @@ const fullContentSummaries: BuildArgs["fullContentSummaries"] = [
 const rid = "orn:obsidian.note:vault-a/node-1";
 
 const build = ({
-  conceptsOverride = concepts,
+  nodesOverride = nodes,
   directOverride = directContents,
   fullOverride = fullContentSummaries,
   spacesOverride = spaces,
 }: {
-  conceptsOverride?: typeof concepts;
+  nodesOverride?: typeof nodes;
   directOverride?: typeof directContents;
   fullOverride?: typeof fullContentSummaries;
   spacesOverride?: typeof spaces;
 } = {}) =>
   buildSharedNodes({
-    concepts: conceptsOverride,
+    nodes: nodesOverride,
     directContents: directOverride,
     fullContentSummaries: fullOverride,
     spaces: spacesOverride,
@@ -87,7 +87,7 @@ describe("buildSharedNodes", () => {
   it("falls back to the direct created date when no last-modified exists", () => {
     expect(
       build({
-        conceptsOverride: [{ ...concepts[0]!, last_modified: null }],
+        nodesOverride: [{ ...nodes[0]!, last_modified: null }],
         directOverride: [{ ...directContents[0]!, last_modified: null }],
         fullOverride: [],
       })[0]?.lastModified,
@@ -97,26 +97,26 @@ describe("buildSharedNodes", () => {
   it.each([
     {
       name: "schema concept",
-      conceptsOverride: [{ ...concepts[0]!, is_schema: true }],
+      nodesOverride: [{ ...nodes[0]!, is_schema: true }],
       directOverride: directContents,
     },
     {
       name: "missing node type",
-      conceptsOverride: [{ ...concepts[0]!, schema_id: null }],
+      nodesOverride: [{ ...nodes[0]!, schema_id: null }],
       directOverride: directContents,
     },
     {
       name: "missing direct content",
-      conceptsOverride: concepts,
+      nodesOverride: nodes,
       directOverride: [],
     },
-  ])("filters a node with $name", ({ conceptsOverride, directOverride }) => {
-    expect(build({ conceptsOverride, directOverride })).toEqual([]);
+  ])("filters a node with $name", ({ nodesOverride, directOverride }) => {
+    expect(build({ nodesOverride, directOverride })).toEqual([]);
   });
 
   it("sorts newest nodes first", () => {
-    const olderConcept = {
-      ...concepts[0]!,
+    const olderNode = {
+      ...nodes[0]!,
       last_modified: "2026-06-10T12:00:00",
       source_local_id: "node-2",
     };
@@ -128,7 +128,7 @@ describe("buildSharedNodes", () => {
     };
     expect(
       build({
-        conceptsOverride: [olderConcept, concepts[0]!],
+        nodesOverride: [olderNode, nodes[0]!],
         directOverride: [olderDirect, ...directContents],
         fullOverride: fullContentSummaries,
       }).map((node) => node.sourceLocalId),

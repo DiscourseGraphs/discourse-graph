@@ -48,7 +48,7 @@ export type SharedNode = {
 };
 
 export type SharedNodeRows = {
-  concepts: SharedConcept[];
+  nodes: SharedConcept[];
   directContents: SharedContent[];
   fullContentSummaries: SharedContentSummary[];
   spaces: SharedSpace[];
@@ -79,7 +79,7 @@ const getLatestTimestamp = (timestamps: (string | null)[]): string | null => {
 };
 
 export const buildSharedNodes = ({
-  concepts,
+  nodes,
   directContents,
   fullContentSummaries,
   spaces,
@@ -138,29 +138,29 @@ export const buildSharedNodes = ({
     );
   });
 
-  return concepts
-    .flatMap((concept): SharedNode[] => {
+  return nodes
+    .flatMap((node): SharedNode[] => {
       if (
-        concept.is_schema !== false ||
-        concept.schema_id === null ||
-        typeof concept.space_id !== "number" ||
-        typeof concept.source_local_id !== "string"
+        node.is_schema !== false ||
+        node.schema_id === null ||
+        typeof node.space_id !== "number" ||
+        typeof node.source_local_id !== "string"
       )
         return [];
 
       const resourceKey = getResourceKey({
-        sourceLocalId: concept.source_local_id,
-        spaceId: concept.space_id,
+        sourceLocalId: node.source_local_id,
+        spaceId: node.space_id,
       });
 
-      const space = spacesById.get(concept.space_id);
+      const space = spacesById.get(node.space_id);
       const direct = directByResource.get(resourceKey);
       if (!space || typeof direct?.text !== "string") return [];
 
       const created = normalizeUtcTimestamp(direct.created);
       const lastModified =
         getLatestTimestamp([
-          concept.last_modified,
+          node.last_modified,
           direct.last_modified,
           fullModifiedByResource.get(resourceKey) ?? null,
         ]) ?? created;
@@ -170,7 +170,7 @@ export const buildSharedNodes = ({
       try {
         rid = spaceUriAndLocalIdToRid(
           space.url,
-          concept.source_local_id,
+          node.source_local_id,
           space.platform === "Obsidian" ? "note" : undefined,
         );
       } catch {
@@ -180,8 +180,8 @@ export const buildSharedNodes = ({
       return [
         {
           rid,
-          sourceLocalId: concept.source_local_id,
-          spaceId: concept.space_id,
+          sourceLocalId: node.source_local_id,
+          spaceId: node.space_id,
           spaceName: space.name,
           spaceUri: space.url,
           platform: space.platform,
@@ -240,7 +240,7 @@ const getSharedNodeRows = async ({
   if (spacesResponse.error) throw spacesResponse.error;
 
   return {
-    concepts: conceptsResponse.data,
+    nodes: conceptsResponse.data,
     directContents: directResponse.data,
     fullContentSummaries: fullResponse.data,
     spaces: spacesResponse.data,
