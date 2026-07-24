@@ -16,7 +16,7 @@ In the image above, a single article provides two different pieces of evidence _
 
 Such a constellation of conflicting claims and evidence is relatively uncommon within a single article (excluding meta-analyses), where claims and evidence share a single author, but very common when sources are intermingled.
 
-The discourse graph breaks the interpretive frame imposed by the article. Working across analytical boundaries in this way makes the thoughtful use of _relations_ paramount: once freed from the inferential structure of their source material, claims and evidence require solid grounding to be fruitfully integrated into your graph. This includes accurately linking evidence to the relevant claim, evaluating the strength of the claim (independent of its valence), and often taking a closer look at the method that produced the evidence to assess whether a replication or different approach is warranted.
+The discourse graph breaks the interpretive frame imposed by the article. Working across analytical boundaries in this way makes the thoughtful use of _relations_ paramount: once freed from the inferential structure of their source material, claims and evidence require solid grounding to be fruitfully integrated into your graph. This includes accurately linking evidence to the relevant claim, evaluating the strength of the evidence (independent of its valence), and often taking a closer look at the method that produced the evidence to assess whether a replication or different approach is warranted.
 
 ![evaluating sources](/docs/obsidian/grounding-evd.png)
 _Linking evidence to claims, assigning weights to evidence, assessing sources_
