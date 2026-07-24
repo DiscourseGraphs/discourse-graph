@@ -24,6 +24,7 @@ Once Datacore is installed and enabled, add the Discourse Graphs plugin from the
 
 1. Open Obsidian Settings
 2. Go to "Community plugins" → "Browse"
-3. Search for "Discourse Graph", then install and enable it
+3. Search for "Discourse Graphs", then install and enable it
+
 
 Or install directly from the [community plugin page](https://community.obsidian.md/plugins/discourse-graphs).
