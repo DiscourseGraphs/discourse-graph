@@ -10,26 +10,17 @@ Break down the research process into atomic units to augment the knowledge synth
 
 # Installation
 
-Discourse Graphs depends on the Datacore plugin, which isn't yet in Obsidian's community plugin browser, so you install it through BRAT (Beta Reviewer's Auto-update Tester). Complete these steps in order: **BRAT → Datacore → Discourse Graphs**.
+Discourse Graphs depends on the Datacore plugin, so install Datacore first. Both plugins are available in Obsidian's community plugin browser.
 
-## 1. Install BRAT
+## 1. Install Datacore
 
-BRAT lets you install plugins that aren't yet published to Obsidian's community plugin browser.
+Datacore is required for Discourse Graphs to work, so install and enable it before the Discourse Graphs plugin.
 
 1. Open Obsidian settings
 2. Go to Community plugins and disable Restricted Mode
-3. Click "Browse", search for "BRAT", then install and enable it
+3. Click "Browse", search for "Datacore", then install and enable it
 
-## 2. Install Datacore via BRAT
-
-Datacore is required for Discourse Graphs to work, so install it before the Discourse Graphs plugin.
-
-1. Run the command "Add a beta plugin for testing", or open the BRAT settings menu and click `Add beta plugin`
-2. Enter the repository URL `https://github.com/blacksmithgu/datacore` and choose "Latest version"
-3. Check the box for "Enable after installing the plugin"
-4. Click `Add plugin`
-
-## 3. Install Discourse Graphs
+## 2. Install Discourse Graphs
 
 Once Datacore is installed and enabled, add the Discourse Graphs plugin from Obsidian's community plugin browser:
 
