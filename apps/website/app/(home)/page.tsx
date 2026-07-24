@@ -91,7 +91,7 @@ const RESOURCE_LINKS = [
 
 const EVENTS = [
   {
-    href: "https://discoursegraphs.github.io/panel-qa-site/#panelists",
+    href: "https://discoursegraphs.github.io/panel-qa-site/",
     linkText: "View panel notes",
     meta: "June 18, 2026 | Zoom",
     title: "Frontiers in Research: Open Science Catalyze Panel",

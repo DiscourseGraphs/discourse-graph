@@ -2,6 +2,10 @@ import {
   CrossAppEmbedding,
   InlineCrossAppContent,
   CrossAppNode,
+  CrossAppNodeSchema,
+  CrossAppRelationTypeSchema,
+  CrossAppRelationTripleSchema,
+  CrossAppRelation,
 } from "../crossAppContracts";
 import { LocalContentDataInput, LocalConceptDataInput } from "../inputTypes";
 import { Enums, CompositeTypes } from "../dbTypes";
@@ -75,6 +79,90 @@ export const crossAppNodeToDbConcept = (
       crossAppNodeToDbContent(node, "direct"),
       crossAppNodeToDbContent(node, "full"),
     ]),
+    created: node.createdAt?.toISOString(),
+    last_modified: node.modifiedAt?.toISOString(),
+  });
+};
+
+export const crossAppNodeSchemaToDbConcept = (
+  node: CrossAppNodeSchema,
+): LocalConceptDataInput => {
+  const literalInfo = filterUndefined({
+    template: node.templateTitle,
+    template_content: node.template,
+  });
+  return filterUndefined<LocalConceptDataInput>({
+    source_local_id: node.localId,
+    name: node.label,
+    author_local_id: node.authorId,
+    is_schema: true,
+    literal_content:
+      Object.keys(literalInfo).length > 0 ? literalInfo : undefined,
+    created: node.createdAt?.toISOString(),
+    last_modified: node.modifiedAt?.toISOString(),
+  });
+};
+
+export const crossAppRelationTypeSchemaToDbConcept = (
+  node: CrossAppRelationTypeSchema,
+): LocalConceptDataInput => {
+  return filterUndefined<LocalConceptDataInput>({
+    source_local_id: node.localId,
+    name: node.label,
+    author_local_id: node.authorId,
+    is_schema: true,
+    literal_content: {
+      roles: ["source", "destination"],
+      label: node.label,
+      complement: node.complement,
+    },
+    created: node.createdAt?.toISOString(),
+    last_modified: node.modifiedAt?.toISOString(),
+  });
+};
+
+export const crossAppRelationTripleSchemaToDbConcept = (
+  node: CrossAppRelationTripleSchema,
+  // used in Obsidian, not yet in Roam.
+  relationType?: CrossAppRelationTypeSchema,
+): LocalConceptDataInput | undefined => {
+  if (!("label" in node) && relationType === undefined) return undefined;
+  const label = "label" in node ? node.label : relationType!.label;
+  const complement =
+    "complement" in node ? node.complement : relationType!.complement;
+  return filterUndefined<LocalConceptDataInput>({
+    source_local_id: node.localId,
+    name: node.localId, // has to be unique within space. Not seen yet.
+    author_local_id: node.authorId,
+    is_schema: true,
+    literal_content: filterUndefined({
+      roles: ["source", "destination"],
+      label,
+      complement,
+    }),
+    local_reference_content: {
+      relation_type: node.relation,
+      source: node.sourceType,
+      destination: node.destinationType,
+    },
+    created: node.createdAt?.toISOString(),
+    last_modified: node.modifiedAt?.toISOString(),
+  });
+};
+
+export const crossAppRelationToDbConcept = (
+  node: CrossAppRelation,
+): LocalConceptDataInput => {
+  return filterUndefined<LocalConceptDataInput>({
+    // use LocalIds... not ideal
+    name: `${node.localId}: ${node.source} -${node.relationType}-> ${node.destination}`,
+    source_local_id: node.localId,
+    author_local_id: node.authorId,
+    schema_represented_by_local_id: node.relationType,
+    local_reference_content: {
+      source: node.source,
+      destination: node.destination,
+    },
     created: node.createdAt?.toISOString(),
     last_modified: node.modifiedAt?.toISOString(),
   });

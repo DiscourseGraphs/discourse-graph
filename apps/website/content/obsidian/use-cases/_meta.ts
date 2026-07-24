@@ -7,7 +7,6 @@ const meta: MetaRecord = {
     "Synthesize Insights from the Literature",
   "share-your-ideas-and-research": "Share your ideas & research",
   "track-your-projects-and-experiments": "Track your Projects and Experiments",
-  "experiment-tracking": "Experiment Tracking",
 };
 
 export default meta;
