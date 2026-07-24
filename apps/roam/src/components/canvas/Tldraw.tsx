@@ -177,6 +177,7 @@ const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`
 const ROAM_PAGE_DROP_MIME_TYPE = "application/x-roam-page";
 const ROAM_BLOCK_DROP_MIME_TYPE = "application/x-roam-uid";
 const PAGE_REF_DRAG_HANDLE_ATTR = "data-roamjs-canvas-page-ref-drag-handle";
+const PAGE_REF_DRAG_HANDLE_BRACKET_TRANSIT_DELAY_MS = 150;
 const PAGE_REF_TITLE_SELECTOR =
   ".rm-title-display, .rm-title-display-container";
 const PAGE_REF_REGEX = /^\[\[(.+?)\]\]$/;
@@ -213,8 +214,7 @@ const getPageRefDragSource = (
 
 const createPageRefDragHandle = (): HTMLSpanElement => {
   const dragHandle = document.createElement("span");
-  dragHandle.className =
-    "bp3-button bp3-minimal bp3-small fixed z-10 -translate-y-1/2 cursor-grab select-none active:cursor-grabbing";
+  dragHandle.className = "bp3-button bp3-minimal bp3-small";
   dragHandle.draggable = true;
   dragHandle.title = "Drag page to canvas";
   dragHandle.setAttribute("aria-label", "Drag page to canvas");
@@ -247,10 +247,35 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
   let activePageRef: HTMLElement | null = null;
   let isDragHandlePointerDown = false;
   let isPageRefDragInProgress = false;
+  let clearPageRefTimer: number | undefined;
+
+  const cancelScheduledClear = (): void => {
+    if (clearPageRefTimer === undefined) return;
+    window.clearTimeout(clearPageRefTimer);
+    clearPageRefTimer = undefined;
+  };
 
   const clearActivePageRef = (): void => {
+    cancelScheduledClear();
     dragHandle.remove();
     activePageRef = null;
+  };
+
+  const scheduleActivePageRefClear = (): void => {
+    cancelScheduledClear();
+    clearPageRefTimer = window.setTimeout(() => {
+      clearPageRefTimer = undefined;
+      if (!isDragHandlePointerDown && !isPageRefDragInProgress) {
+        clearActivePageRef();
+      }
+    }, PAGE_REF_DRAG_HANDLE_BRACKET_TRANSIT_DELAY_MS);
+  };
+
+  const handleViewportChange = (): void => {
+    if (!activePageRef || isDragHandlePointerDown || isPageRefDragInProgress)
+      return;
+
+    clearActivePageRef();
   };
 
   const renderPageRefDragHandle = (target: EventTarget | null): void => {
@@ -268,18 +293,33 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     if (!finalLineRect) return;
 
     activePageRef = source.element;
-    dragHandle.style.left = `${finalLineRect.right + 4}px`;
+    dragHandle.style.left = `${finalLineRect.right}px`;
     dragHandle.style.top = `${finalLineRect.top + finalLineRect.height / 2}px`;
     source.element.appendChild(dragHandle);
   };
 
   const handlePageRefPointerEnter = (e: PointerEvent): void => {
+    cancelScheduledClear();
     renderPageRefDragHandle(e.currentTarget);
   };
 
   const handlePageRefPointerLeave = (e: PointerEvent): void => {
     if (e.currentTarget !== activePageRef) return;
-    renderPageRefDragHandle(e.relatedTarget);
+    if (getPageRefDragSource(e.relatedTarget)) {
+      renderPageRefDragHandle(e.relatedTarget);
+    } else {
+      scheduleActivePageRefClear();
+    }
+  };
+
+  const handleDragHandlePointerEnter = (): void => {
+    cancelScheduledClear();
+  };
+
+  const handleDragHandlePointerLeave = (): void => {
+    if (!isDragHandlePointerDown && !isPageRefDragInProgress) {
+      scheduleActivePageRefClear();
+    }
   };
 
   const observePageRef = (pageRef: HTMLElement): void => {
@@ -294,6 +334,8 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     if (e.button !== 0) return;
 
     isDragHandlePointerDown = true;
+    cancelScheduledClear();
+    dragHandle.style.cursor = "grabbing";
     e.stopPropagation();
   };
 
@@ -301,6 +343,7 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     if (!isDragHandlePointerDown) return;
 
     isDragHandlePointerDown = false;
+    dragHandle.style.cursor = "grab";
     if (
       activePageRef &&
       (!(e.target instanceof Node) || !activePageRef.contains(e.target))
@@ -313,6 +356,7 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     if (!isDragHandlePointerDown) return;
 
     isDragHandlePointerDown = false;
+    dragHandle.style.cursor = "grab";
     clearActivePageRef();
   };
 
@@ -322,6 +366,7 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
 
     isDragHandlePointerDown = false;
     isPageRefDragInProgress = true;
+    dragHandle.style.cursor = "grabbing";
     e.dataTransfer.effectAllowed = "copy";
     e.dataTransfer.setData(ROAM_PAGE_DROP_MIME_TYPE, source.title);
   };
@@ -335,6 +380,7 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     if (!isPageRefDragInProgress) return;
 
     isPageRefDragInProgress = false;
+    dragHandle.style.cursor = "grab";
     // Roam arms invisible .dnd-drop-area overlays over every block when it
     // sees dragstart, and only a dragleave disarms them. A drop consumed by
     // the canvas never delivers one, leaving armed overlays that swallow
@@ -362,11 +408,15 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     .forEach(observePageRef);
   dragHandle.addEventListener("pointerdown", handleDragHandlePointerDown);
   dragHandle.addEventListener("mousedown", handleDragHandlePointerDown);
+  dragHandle.addEventListener("pointerenter", handleDragHandlePointerEnter);
+  dragHandle.addEventListener("pointerleave", handleDragHandlePointerLeave);
   dragHandle.addEventListener("dragstart", handleDragStart);
   dragHandle.addEventListener("click", handleClick);
   dragHandle.addEventListener("dragend", handleDragEnd);
   document.addEventListener("pointerup", handlePointerUp, true);
   document.addEventListener("pointercancel", handlePointerCancel, true);
+  document.addEventListener("scroll", handleViewportChange, true);
+  window.addEventListener("resize", handleViewportChange);
 
   return () => {
     onPageRefObserverChange(observePageRef)(false);
@@ -380,11 +430,21 @@ const createRoamPageRefDragSourceCleanup = (): (() => void) => {
     clearActivePageRef();
     dragHandle.removeEventListener("pointerdown", handleDragHandlePointerDown);
     dragHandle.removeEventListener("mousedown", handleDragHandlePointerDown);
+    dragHandle.removeEventListener(
+      "pointerenter",
+      handleDragHandlePointerEnter,
+    );
+    dragHandle.removeEventListener(
+      "pointerleave",
+      handleDragHandlePointerLeave,
+    );
     dragHandle.removeEventListener("dragstart", handleDragStart);
     dragHandle.removeEventListener("click", handleClick);
     dragHandle.removeEventListener("dragend", handleDragEnd);
     document.removeEventListener("pointerup", handlePointerUp, true);
     document.removeEventListener("pointercancel", handlePointerCancel, true);
+    document.removeEventListener("scroll", handleViewportChange, true);
+    window.removeEventListener("resize", handleViewportChange);
   };
 };
 
