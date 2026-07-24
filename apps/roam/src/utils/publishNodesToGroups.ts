@@ -1,7 +1,9 @@
+import { CrossAppNode } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
+import { nodeUidsWithTypeToCrossApp } from "./roamToCrossAppConverters";
 
-export type PublishNode = {
+export type NodeUidWithType = {
   uid: string;
   type: string;
 };
@@ -37,7 +39,7 @@ export const publishNodesToGroups = async ({
   client: DGSupabaseClient;
   spaceId: number;
   groupIds: string[];
-  nodes: PublishNode[];
+  nodes: CrossAppNode[];
 }): Promise<PublishNodesResult> => {
   const result: PublishNodesResult = {
     publishedNodeUids: [],
@@ -57,7 +59,7 @@ export const publishNodesToGroups = async ({
   );
   if (targetGroupIds.length === 0) return result;
 
-  const uids = [...new Set(nodes.map((node) => node.uid))];
+  const uids = [...new Set(nodes.map((node) => node.localId))];
 
   const syncedRes = await client
     .from("my_concepts")
@@ -77,7 +79,9 @@ export const publishNodesToGroups = async ({
   // Required dependency: the node-type schema concept, when it is synced too.
   const types = [
     ...new Set(
-      nodes.filter((node) => syncedUids.has(node.uid)).map((node) => node.type),
+      nodes
+        .filter((node) => syncedUids.has(node.localId))
+        .map((node) => node.nodeType),
     ),
   ];
   const schemaRes = await client
@@ -124,4 +128,19 @@ export const publishNodesToGroups = async ({
 
   result.publishedNodeUids = result.okGroupIds.length > 0 ? syncedNodeUids : [];
   return result;
+};
+
+export const publishNodeUidsWithTypeToGroups = async ({
+  client,
+  spaceId,
+  groupIds,
+  nodeUids,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  groupIds: string[];
+  nodeUids: NodeUidWithType[];
+}): Promise<PublishNodesResult> => {
+  const nodes = await nodeUidsWithTypeToCrossApp(nodeUids);
+  return await publishNodesToGroups({ client, spaceId, groupIds, nodes });
 };

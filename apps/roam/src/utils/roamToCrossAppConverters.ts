@@ -2,6 +2,8 @@ import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import type { RoamFullContentNode } from "./convertRoamNodeToFullContent";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import type { TreeNode, ViewType } from "roamjs-components/types";
+import type { NodeUidWithType } from "~/utils/publishNodesToGroups";
+import type { Json } from "@repo/database/dbTypes";
 import { toMarkdown } from "./pageToMarkdown";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
@@ -63,4 +65,54 @@ export const fullContentNodeToCrossApp = (
       },
     },
   };
+};
+
+export const nodeUidsWithTypeToCrossApp = async (
+  nodes: NodeUidWithType[],
+): Promise<CrossAppNode[]> => {
+  const typesByUid = Object.fromEntries(nodes.map((n) => [n.uid, n.type]));
+  const nodeRows = (await window.roamAlphaAPI.data.async.pull_many(
+    `[:block/uid :create/user :create/time :edit/time :page/edit-time :node/title]`,
+    nodes.map((n) => [":block/uid", n.uid]),
+  )) as Record<string, Json>[];
+  const userEids = [
+    ...new Set(
+      nodeRows.map(
+        (r) => (r[":create/user"] as Record<string, number>)[":db/id"],
+      ),
+    ),
+  ];
+  const userRows = await window.roamAlphaAPI.data.async.pull_many(
+    `[:db/id :user/uid]`,
+    // @ts-expect-error array of dbIds is valid
+    userEids,
+  );
+  const userUidByEid = Object.fromEntries(
+    userRows.map((r) => [r[":db/id"] as number, r[":user/uid"] as string]),
+  );
+  const results = nodeRows.map((row) => {
+    const uid = row[":block/uid"] as string;
+    const userUid =
+      userUidByEid[(row[":create/user"] as Record<string, number>)[":db/id"]];
+
+    return {
+      localId: uid,
+      nodeType: typesByUid[uid],
+      authorId: userUid,
+      createdAt: new Date((row[":create/time"] as number) || Date.now()),
+      modifiedAt: new Date(
+        Math.max(
+          row[":edit/time"] as number,
+          row[":page/edit-time"] as number,
+        ) || Date.now(),
+      ),
+      content: {
+        direct: {
+          localId: uid,
+          value: row[":node/title"] as string,
+        },
+      },
+    };
+  });
+  return results;
 };
