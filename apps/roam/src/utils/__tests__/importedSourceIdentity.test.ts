@@ -4,7 +4,6 @@ import {
   findImportedNodeUidBySourceRid,
   getImportedSourceRids,
   IMPORTED_FROM_PROP_KEY,
-  parseImportedSourceIdentity,
   readImportedSourceIdentity,
   writeImportedSourceIdentity,
 } from "~/utils/importedSourceIdentity";
@@ -49,7 +48,7 @@ beforeEach(() => {
 
 describe("imported source identity metadata", () => {
   it("reads the source RID without depending on display metadata", () => {
-    const props = {
+    propsByUid.set(PAGE_UID, {
       [DISCOURSE_GRAPH_PROP_NAME]: {
         [IMPORTED_FROM_PROP_KEY]: {
           sourceModifiedAt: SOURCE_MODIFIED_AT,
@@ -57,23 +56,23 @@ describe("imported source identity metadata", () => {
           sourceTitle: "Legacy title that may change",
         },
       },
-    };
+    });
 
-    expect(parseImportedSourceIdentity(props)).toEqual({
+    expect(readImportedSourceIdentity(PAGE_UID)).toEqual({
       sourceModifiedAt: SOURCE_MODIFIED_AT,
       sourceNodeRid: SOURCE_NODE_RID,
     });
   });
 
   it("returns undefined for missing or malformed source identity", () => {
-    expect(parseImportedSourceIdentity({})).toBeUndefined();
-    expect(
-      parseImportedSourceIdentity({
-        [DISCOURSE_GRAPH_PROP_NAME]: {
-          [IMPORTED_FROM_PROP_KEY]: { sourceNodeRid: 123 },
-        },
-      }),
-    ).toBeUndefined();
+    expect(readImportedSourceIdentity(PAGE_UID)).toBeUndefined();
+
+    propsByUid.set(PAGE_UID, {
+      [DISCOURSE_GRAPH_PROP_NAME]: {
+        [IMPORTED_FROM_PROP_KEY]: { sourceNodeRid: 123 },
+      },
+    });
+    expect(readImportedSourceIdentity(PAGE_UID)).toBeUndefined();
   });
 
   it("writes the source RID and modified time while preserving sibling metadata", () => {
