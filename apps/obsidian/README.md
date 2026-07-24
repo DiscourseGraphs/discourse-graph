@@ -10,30 +10,33 @@ Break down the research process into atomic units to augment the knowledge synth
 
 # Installation
 
-Follow the instructions below to install the plugin:
+Discourse Graphs depends on the Datacore plugin, which isn't yet in Obsidian's community plugin browser, so you install it through BRAT (Beta Reviewer's Auto-update Tester). Complete these steps in order: **BRAT → Datacore → Discourse Graphs**.
 
-## Install BRAT
+## 1. Install BRAT
 
-To use the plugin prior to its public release on Obsidian's community plugin browser, install BRAT (Beta Reviewer's Auto-update Tester).
+BRAT lets you install plugins that aren't yet published to Obsidian's community plugin browser.
 
-1. Open Obsidian Settings
-2. Go to Community Plugins and disable Restricted Mode
-3. Click "Browse" and search for "BRAT"
-4. Install BRAT and enable it
+1. Open Obsidian settings
+2. Go to Community plugins and disable Restricted Mode
+3. Click "Browse", search for "BRAT", then install and enable it
 
-## Install DataCore via BRAT
+## 2. Install Datacore via BRAT
 
-1. Add the DataCore plugin from the BRAT settings menu or run command "Add a beta plugin for testing"
-2. Enter the repository URL: `https://github.com/blacksmithgu/datacore` and choose "Latest version"
+Datacore is required for Discourse Graphs to work, so install it before the Discourse Graphs plugin.
+
+1. Run the command "Add a beta plugin for testing", or open the BRAT settings menu and click `Add beta plugin`
+2. Enter the repository URL `https://github.com/blacksmithgu/datacore` and choose "Latest version"
 3. Check the box for "Enable after installing the plugin"
 4. Click `Add plugin`
 
-## Install Discourse Graphs
+## 3. Install Discourse Graphs
 
-1. Add the Discourse Graphs plugin from the BRAT settings menu or run command `Add a beta plugin for testing`
-2. Enter the repository URL: `https://github.com/DiscourseGraphs/discourse-graph-obsidian` and choose "Latest version"
-3. Check the box for "Enable after installing the plugin"
-4. Click `Add plugin`
+Once Datacore is installed and enabled, add the Discourse Graphs plugin from Obsidian's community plugin browser:
+
+1. Open Obsidian → Settings → Community plugins → Browse
+2. Search for "Discourse Graph", then install and enable it
+
+Or install directly from the [community plugin page](https://community.obsidian.md/plugins/discourse-graphs).
 
 # Getting started
 
