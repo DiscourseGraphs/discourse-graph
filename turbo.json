@@ -75,6 +75,9 @@
     "test": {
       "outputs": []
     },
+    "test:unit": {
+      "outputs": []
+    },
     "dev": {
       "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH"],
       "cache": false,
