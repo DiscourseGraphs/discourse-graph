@@ -1,4 +1,7 @@
-import type { CrossAppNode } from "@repo/database/crossAppContracts";
+import type {
+  CrossAppNode,
+  CrossAppNodeSchema,
+} from "@repo/database/crossAppContracts";
 import type { RoamFullContentNode } from "./convertRoamNodeToFullContent";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import type { TreeNode, ViewType } from "roamjs-components/types";
@@ -115,4 +118,25 @@ export const nodeUidsWithTypeToCrossApp = async (
     };
   });
   return results;
+};
+
+export const nodeSchemaToCrossApp = (
+  s: DiscourseNode,
+): CrossAppNodeSchema | null => {
+  const relData = window.roamAlphaAPI.pull(
+    "[:create/time :edit/time {:create/user [:user/uid]}]",
+    `[:block/uid "${s.type}"]`,
+  ) as unknown as {
+    ":create/time": number;
+    ":edit/time": number;
+    ":create/user": { ":user/uid": string };
+  };
+  if (!relData) return null;
+  const userUid = relData[":create/user"][":user/uid"];
+  return {
+    localId: s.type,
+    label: s.text,
+    authorId: userUid,
+    createdAt: new Date(relData[":create/time"]),
+  };
 };

@@ -2,8 +2,11 @@ import { CrossAppNode } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import { nodeUidsWithTypeToCrossApp } from "./roamToCrossAppConverters";
+import { nodeSchemaToCrossApp } from "./roamToCrossAppConverters";
+import { crossAppNodeSchemaToDbConcept } from "@repo/database/lib/crossAppConverters";
 import { ensurePartialSpaceAccess } from "@repo/database/lib/groups";
 import { isIgnorableUpsertError } from "@repo/database/lib/contextFunctions";
+import getDiscourseNodes from "./getDiscourseNodes";
 import { difference, intersection } from "@repo/utils/setOperations";
 import internalError from "./internalError";
 
@@ -16,7 +19,9 @@ const onlyStrings = (values: (string | null)[]): string[] =>
   values.filter((value): value is string => typeof value === "string");
 
 type PublishNodesResult = {
+  publishedNodeSchemaUids: string[];
   publishedNodeUids: string[];
+  syncedNodeSchemaUids: string[];
   skippedUnsyncedUids: string[];
   okGroupIds: string[];
   failedGroupIds: string[];
@@ -42,7 +47,9 @@ export const publishNodesToGroups = async ({
   nodes: CrossAppNode[];
 }): Promise<PublishNodesResult> => {
   const result: PublishNodesResult = {
+    publishedNodeSchemaUids: [],
     publishedNodeUids: [],
+    syncedNodeSchemaUids: [],
     skippedUnsyncedUids: [],
     okGroupIds: [],
     failedGroupIds: [],
@@ -71,12 +78,19 @@ export const publishNodesToGroups = async ({
   if (groupIds.length === 0) return result;
 
   let nodeUids = [...new Set(nodes.map((node) => node.localId))];
+  const nodeSchemaUids = new Set(nodes.map((node) => node.nodeType));
+  const nodeSchemas = getDiscourseNodes()
+    .filter((s) => nodeSchemaUids.has(s.type))
+    .map((s) => nodeSchemaToCrossApp(s))
+    .filter((s) => s !== null);
+
+  const neededUids = [...nodeSchemaUids, ...nodeUids];
 
   const syncedRes = await client
     .from("my_concepts")
     .select("source_local_id")
     .eq("space_id", spaceId)
-    .in("source_local_id", nodeUids);
+    .in("source_local_id", neededUids);
   if (syncedRes.error) {
     internalError({ error: syncedRes.error });
     return result;
@@ -84,13 +98,20 @@ export const publishNodesToGroups = async ({
   const syncedUids = new Set(
     onlyStrings((syncedRes.data ?? []).map((row) => row.source_local_id)),
   );
-  result.skippedUnsyncedUids = nodeUids.filter((uid) => !syncedUids.has(uid));
   nodeUids = [...intersection(syncedUids, new Set(nodeUids))];
+  const missingNodeSchemas = nodeSchemas.filter(
+    (s) => !syncedUids.has(s.localId),
+  );
+  result.skippedUnsyncedUids = neededUids.filter((uid) => !syncedUids.has(uid));
+  const upsertConcepts = [
+    ...missingNodeSchemas.map((s) => crossAppNodeSchemaToDbConcept(s)),
+  ].filter((r) => r !== undefined);
 
   const resourceAccesses = [];
+  const resourceIds = [...nodeUids, ...nodeSchemaUids];
   for (const groupId of groupIds) {
     resourceAccesses.push(
-      ...nodeUids.map((sourceLocalId) => ({
+      ...resourceIds.map((sourceLocalId) => ({
         account_uid: groupId,
         source_local_id: sourceLocalId,
         space_id: spaceId,
@@ -98,6 +119,16 @@ export const publishNodesToGroups = async ({
     );
   }
 
+  const response = await client.rpc("upsert_concepts", {
+    v_space_id: spaceId,
+    data: upsertConcepts,
+  });
+  if (response.error) {
+    internalError({ error: response.error });
+    return result;
+  }
+
+  result.syncedNodeSchemaUids = missingNodeSchemas.map((s) => s.localId);
   const grantRes = await client
     .from("ResourceAccess")
     .upsert(resourceAccesses, { ignoreDuplicates: true });
@@ -108,6 +139,7 @@ export const publishNodesToGroups = async ({
   }
 
   result.okGroupIds = groupIds;
+  result.publishedNodeSchemaUids = [...nodeSchemaUids];
   result.publishedNodeUids = nodeUids;
 
   return result;
