@@ -5,6 +5,7 @@ import {
   TLStateNodeConstructor,
 } from "tldraw";
 import {
+  DISCOURSE_RELATION_SHAPE_TYPE,
   DiscourseRelationShape,
   getRelationColor,
 } from "./DiscourseRelationUtil";
@@ -483,11 +484,14 @@ export const createAllRelationShapeTools = (
 
           this.editor.createShape<DiscourseRelationShape>({
             id,
-            type: this.shapeType,
+            type: DISCOURSE_RELATION_SHAPE_TYPE,
             x: originPagePoint.x,
             y: originPagePoint.y,
             props: {
               color,
+              labelColor: color,
+              text: name,
+              relationTypeId: this.shapeType,
               scale: this.editor.user.getIsDynamicResizeMode()
                 ? 1 / this.editor.getZoomLevel()
                 : 1,
@@ -501,7 +505,7 @@ export const createAllRelationShapeTools = (
           if (!handles) throw Error(`expected handles for arrow`);
 
           const util = this.editor.getShapeUtil<DiscourseRelationShape>(
-            this.shapeType,
+            DISCOURSE_RELATION_SHAPE_TYPE,
           );
           const initial = this.shape;
           const startHandle = handles.find((h) => h.id === "start")!;
@@ -536,7 +540,7 @@ export const createAllRelationShapeTools = (
 
           {
             const util = this.editor.getShapeUtil<DiscourseRelationShape>(
-              this.shapeType,
+              DISCOURSE_RELATION_SHAPE_TYPE,
             );
             const initial = this.shape;
             const startHandle = handles.find((h) => h.id === "start")!;
@@ -554,7 +558,7 @@ export const createAllRelationShapeTools = (
           // end update
           {
             const util = this.editor.getShapeUtil<DiscourseRelationShape>(
-              this.shapeType,
+              DISCOURSE_RELATION_SHAPE_TYPE,
             );
             const initial = this.shape;
             const point = this.editor.getPointInShapeSpace(

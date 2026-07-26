@@ -72,6 +72,7 @@ import {
 import {
   BaseDiscourseRelationUtil,
   DiscourseRelationShape,
+  getDiscourseRelationBindingType,
 } from "./DiscourseRelationUtil";
 
 let defaultPixels: { white: string; black: string } | null = null;
@@ -143,7 +144,7 @@ export function getArrowBindings(
 ): RelationBindings {
   const bindings = editor.getBindingsFromShape<RelationBinding>(
     relation,
-    relation.type, // we expect relation.type to = binding.type
+    getDiscourseRelationBindingType({ shape: relation }),
   );
   return {
     start: bindings.find((b) => b.props.terminal === "start"),
@@ -376,7 +377,10 @@ function getBoundShapeInfoForTerminal(
   terminalName: "start" | "end",
 ): BoundShapeInfo | undefined {
   const binding = editor
-    .getBindingsFromShape<RelationBinding>(relation, relation.type) // we expect relation.type to = binding.type
+    .getBindingsFromShape<RelationBinding>(
+      relation,
+      getDiscourseRelationBindingType({ shape: relation }),
+    )
     .find((b) => b.props.terminal === terminalName);
   if (!binding) return;
 
@@ -1631,7 +1635,10 @@ export function removeArrowBinding(
   terminal: "start" | "end",
 ) {
   const existing = editor
-    .getBindingsFromShape<RelationBinding>(relation, relation.type) // we expect relation.type to = binding.type
+    .getBindingsFromShape<RelationBinding>(
+      relation,
+      getDiscourseRelationBindingType({ shape: relation }),
+    )
     .filter((b) => b.props.terminal === terminal);
 
   editor.deleteBindings(existing);
@@ -1643,14 +1650,12 @@ export function createOrUpdateArrowBinding(
   props: TLArrowBindingProps,
   shouldCreateRelation = false,
 ) {
-  const arrowId = typeof relation === "string" ? relation : relation.id;
+  const arrowId = relation.id;
   const targetId = typeof target === "string" ? target : target.id;
+  const bindingType = getDiscourseRelationBindingType({ shape: relation });
 
   const existingMany = editor
-    .getBindingsFromShape<RelationBinding>(
-      arrowId,
-      relation.type, // we expect relation.type to = binding.type
-    )
+    .getBindingsFromShape<RelationBinding>(arrowId, bindingType)
     .filter((b) => b.props.terminal === props.terminal);
 
   // if we've somehow ended up with too many bindings, delete the extras
@@ -1667,7 +1672,7 @@ export function createOrUpdateArrowBinding(
     });
   } else {
     editor.createBinding({
-      type: relation.type,
+      type: bindingType,
       fromId: arrowId,
       toId: targetId,
       props,

@@ -404,8 +404,7 @@ const ExportDialog: ExportDialogComponent = ({
 
       // UTILS
       const discourseNodeUtils = [DiscourseNodeUtil];
-      const discourseRelationUtils =
-        createAllRelationShapeUtils(allRelationIds);
+      const discourseRelationUtils = createAllRelationShapeUtils();
       const referencedNodeUtils = createAllReferencedNodeUtils(
         allAddReferencedNodeByAction,
       );
@@ -415,7 +414,7 @@ const ExportDialog: ExportDialogComponent = ({
         ...referencedNodeUtils,
       ];
       // BINDINGS
-      const relationBindings = createAllRelationBindings(allRelationIds);
+      const relationBindings = createAllRelationBindings();
       const referencedNodeBindings = createAllReferencedNodeBindings(
         allAddReferencedNodeByAction,
       );

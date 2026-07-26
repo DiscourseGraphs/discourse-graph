@@ -45,18 +45,12 @@ export const createAllReferencedNodeBindings = (
     };
   });
 };
-export const createAllRelationBindings = (relationIds: string[]) => {
-  const relationBindings = relationIds.map((id) => {
-    return class RelationBindingUtil extends BaseRelationBindingUtil {
-      static override type = id;
-    };
-  });
-
-  class DiscourseRelationFallbackBindingUtil extends BaseRelationBindingUtil {
-    static override type = DISCOURSE_RELATION_SHAPE_TYPE;
-  }
-
-  return [...relationBindings, DiscourseRelationFallbackBindingUtil];
+export const createAllRelationBindings = () => {
+  return [
+    class RelationBindingUtil extends BaseRelationBindingUtil {
+      static override type = DISCOURSE_RELATION_SHAPE_TYPE;
+    },
+  ];
 };
 
 export type RelationBindings = {
