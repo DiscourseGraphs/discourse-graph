@@ -1368,20 +1368,14 @@ export const createOrUpdateDiscourseEmbedding = async (
       reason,
       endSyncResult: failedEndResult?.rpcResult,
     });
-    const alreadyCaptured =
-      failedEndResult?.ok === false &&
-      failedEndResult.stale === false &&
-      failedEndResult.error === capturedError;
-    if (!alreadyCaptured) {
-      internalError({
-        error: capturedError,
-        type: "Sync Failed",
-        context: {
-          ...errorTelemetry,
-          ...syncErrorContext,
-        },
-      });
-    }
+    internalError({
+      error: capturedError,
+      type: "Sync Failed",
+      context: {
+        ...errorTelemetry,
+        ...syncErrorContext,
+      },
+    });
     posthog.capture("Sync error", errorTelemetry);
     if (isFatal) {
       doSync = false;
