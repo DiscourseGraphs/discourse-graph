@@ -537,13 +537,11 @@ export const CustomContextMenu = ({
 };
 export const createUiComponents = ({
   allNodes,
-  allAddReferencedNodeActions,
   allRelationNames,
   canvasSyncMode,
 }: {
   allNodes: DiscourseNode[];
   allRelationNames: string[];
-  allAddReferencedNodeActions: string[];
   canvasSyncMode: CanvasSyncMode;
 }): TLUiComponents => {
   return {
@@ -613,11 +611,9 @@ export const createUiComponents = ({
       );
     },
     SharePanel: () => {
-      const allRelations = [
-        ...allRelationNames,
-        ...allAddReferencedNodeActions,
-      ];
-      return <DiscourseGraphPanel nodes={allNodes} relations={allRelations} />;
+      return (
+        <DiscourseGraphPanel nodes={allNodes} relations={allRelationNames} />
+      );
     },
   };
 };

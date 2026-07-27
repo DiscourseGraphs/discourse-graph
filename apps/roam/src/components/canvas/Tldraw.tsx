@@ -525,15 +525,9 @@ const TldrawCanvasShared = ({
 
     return obj;
   }, [allNodes]);
-  const allAddReferencedNodeActions = useMemo(() => {
-    return Object.keys(allAddReferencedNodeByAction);
-  }, [allAddReferencedNodeByAction]);
 
   const isRelationTool = (toolId: string) => {
-    return (
-      allRelationNames.includes(toolId) ||
-      allAddReferencedNodeActions.includes(toolId)
-    );
+    return allRelationNames.includes(toolId);
   };
 
   // Add state for tracking relation creation
@@ -575,10 +569,8 @@ const TldrawCanvasShared = ({
       if (relationCreationRef.current.isCreating) {
         // Find the relation shape that was just created
         const selectedShapes = app.getSelectedShapes();
-        const relationShape = selectedShapes.find(
-          (shape) =>
-            allRelationIds.includes(shape.type) ||
-            allAddReferencedNodeActions.includes(shape.type),
+        const relationShape = selectedShapes.find((shape) =>
+          allRelationIds.includes(shape.type),
         );
 
         if (relationShape) {
@@ -695,7 +687,6 @@ const TldrawCanvasShared = ({
   const customUiComponents: TLUiComponents = createUiComponents({
     allNodes,
     allRelationNames,
-    allAddReferencedNodeActions,
     canvasSyncMode,
   });
 
@@ -1151,7 +1142,6 @@ const TldrawCanvasShared = ({
                   extensionAPI={extensionAPI}
                   allNodes={allNodes}
                   // allRelationIds={allRelationIds}
-                  // allAddReferencedNodeActions={allAddReferencedNodeActions}
                 />
                 <CanvasDrawerPanel />
                 <ClipboardPanel />
@@ -1170,12 +1160,10 @@ const InsideEditorAndUiContext = ({
   extensionAPI,
   allNodes,
   // allRelationIds,
-  // allAddReferencedNodeActions,
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
   allNodes: DiscourseNode[];
   // allRelationIds: string[];
-  // allAddReferencedNodeActions: string[];
 }) => {
   const editor = useEditor();
   const toasts = useToasts();
@@ -1186,11 +1174,9 @@ const InsideEditorAndUiContext = ({
   //   // possibly migrate to shape.type or shape.name
   //   // or add as meta
   //   const allRelationIdSet = new Set(allRelationIds);
-  //   const allAddReferencedNodeActionsSet = new Set(allAddReferencedNodeActions);
 
   //   return (
-  //     allRelationIdSet.has(shape.type) ||
-  //     allAddReferencedNodeActionsSet.has(shape.type)
+  //     allRelationIdSet.has(shape.type)
   //   );
   // };
 
