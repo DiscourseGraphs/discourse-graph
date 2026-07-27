@@ -9,7 +9,6 @@
     "build": "tsx scripts/build.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test:unit": "vitest run",
     "publish": "tsx scripts/publish.ts --version 0.1.0",
     "check-types": "tsc --noEmit --skipLibCheck"
   },
@@ -35,7 +34,6 @@
     "tslib": "2.5.1",
     "tsx": "^4.19.2",
     "typescript": "5.5.4",
-    "vitest": "catalog:",
     "uuidv7": "1.1.0",
     "zod": "^3.24.1"
   },
@@ -45,7 +43,6 @@
     "@repo/utils": "workspace:*",
     "@supabase/supabase-js": "catalog:",
     "date-fns": "^4.1.0",
-    "gray-matter": "^4.0.3",
     "mime-types": "^3.0.1",
     "nanoid": "^4.0.2",
     "react": "catalog:obsidian",

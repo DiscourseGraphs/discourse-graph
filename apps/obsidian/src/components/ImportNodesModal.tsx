@@ -8,12 +8,14 @@ import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import {
   fetchUserNames,
   getPublishedNodesForGroups,
-  getImportedNodeKeys,
   getSpaceNameFromIds,
   getSpaceUris,
   importSelectedNodes,
 } from "~/utils/importNodes";
-import { getImportedNodeKey } from "~/utils/sharedNodeImport";
+import {
+  getImportedNodeKey,
+  getImportedNodesInfo,
+} from "~/utils/relationsStore";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 import {
   computeImportPreview,
@@ -71,7 +73,10 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         currentSpaceId: context.spaceId,
       });
 
-      const importedNodeKeys = await getImportedNodeKeys({ plugin, client });
+      const { nodeKeys: importedNodeKeys } = await getImportedNodesInfo({
+        plugin,
+        client,
+      });
 
       // Filter out nodes that already exist locally
       const importableNodes = publishedNodes.filter(
@@ -226,6 +231,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
               keyToRid: previewData.keyToRid,
               keyToRelationEndpointId: previewData.keyToRelationEndpointId,
               relationInstancesBySpace: previewData.relationInstancesBySpace,
+              sourceNodeTypeIdByKey: previewData.sourceNodeTypeIdByKey,
             }
           : undefined,
       });

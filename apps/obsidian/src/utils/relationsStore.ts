@@ -434,8 +434,20 @@ export const buildEndpointToFileMap = (
 };
 
 /**
+ * The identity of a shared node is its source space plus its id in that space:
+ * two spaces can each have a node with the same local id.
+ */
+export const getImportedNodeKey = ({
+  spaceId,
+  sourceLocalId,
+}: {
+  spaceId: number;
+  sourceLocalId: string;
+}): string => `${spaceId}:${sourceLocalId}`;
+
+/**
  * Build key -> relation endpoint id (RID) for local nodes in this vault.
- * Key format: `${localSpaceId}:${nodeInstanceId}`. Value: constructed RID for storage.
+ * Keys come from getImportedNodeKey. Value: constructed RID for storage.
  * Uses DataCore when available; falls back to vault iteration otherwise.
  */
 export const getLocalNodeKeyToEndpointId = (
@@ -452,7 +464,10 @@ export const getLocalNodeKeyToEndpointId = (
     const fm = cache?.frontmatter as Record<string, unknown> | undefined;
     const nodeInstanceId = fm?.nodeInstanceId as string | undefined;
     if (nodeInstanceId && fm?.nodeTypeId) {
-      const key = `${localSpaceId}:${nodeInstanceId}`;
+      const key = getImportedNodeKey({
+        spaceId: localSpaceId,
+        sourceLocalId: nodeInstanceId,
+      });
       map.set(
         key,
         spaceUriAndLocalIdToRid(localSpaceUri, nodeInstanceId, "note"),
@@ -496,7 +511,7 @@ export const getImportedNodesInfo = async ({
     const spaceUri = ridToSpaceUriAndLocalId(importedFromRid).spaceUri;
     const spaceId = spaceIdsByUri.get(spaceUri) ?? -1;
     if (spaceId < 0) continue;
-    const key = `${spaceId}:${nodeInstanceId}`;
+    const key = getImportedNodeKey({ spaceId, sourceLocalId: nodeInstanceId });
     nodeKeys.add(key);
     keyToRid.set(key, importedFromRid);
   }

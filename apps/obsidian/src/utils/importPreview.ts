@@ -2,10 +2,11 @@ import type DiscourseGraphPlugin from "~/index";
 import type { ImportableNode } from "~/types";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import {
+  getImportedNodeKey,
   getImportedNodesInfo,
   getLocalNodeKeyToEndpointId,
 } from "./relationsStore";
-import { getSpaceUris } from "./importNodes";
+import { buildSourceNodeTypeIdMap, getSpaceUris } from "./importNodes";
 import { QueryEngine } from "~/services/QueryEngine";
 import {
   fetchRelationInstancesFromSpace,
@@ -39,6 +40,8 @@ export type ImportPreviewData = {
   keyToRelationEndpointId: Map<string, string>;
   /** Relation instances per spaceId, for reuse during import */
   relationInstancesBySpace: Map<number, RemoteRelationInstance[]>;
+  /** Key -> source node type's source_local_id, so import doesn't re-query the source space */
+  sourceNodeTypeIdByKey: Map<string, string>;
 };
 
 export const computeImportPreview = async ({
@@ -73,6 +76,8 @@ export const computeImportPreview = async ({
 
   const newNodeTypeSchemas: Array<{ id: string; name: string }> = [];
   const seenNodeTypeIds = new Set<string>();
+  // Key -> source node type id, handed to importSelectedNodes so it doesn't re-query
+  const sourceNodeTypeIdByKey = new Map<string, string>();
   // Maps source_local_id -> name for all node type schemas we encounter (for triplet resolution)
   const nodeTypeIdToName = new Map<string, string>();
 
@@ -89,20 +94,16 @@ export const computeImportPreview = async ({
       .select("source_local_id, schema_id")
       .eq("space_id", spaceId)
       .eq("is_schema", false)
+      .eq("arity", 0)
       .in("source_local_id", nodeInstanceIds);
 
     if (!conceptRows) continue;
 
     const schemaIds = [
       ...new Set(
-        (
-          conceptRows as Array<{
-            source_local_id: string;
-            schema_id: number | null;
-          }>
-        )
-          .map((r) => r.schema_id)
-          .filter((id): id is number => id != null),
+        conceptRows.flatMap((row) =>
+          row.schema_id === null ? [] : [row.schema_id],
+        ),
       ),
     ];
 
@@ -111,18 +112,25 @@ export const computeImportPreview = async ({
     // Resolve schema_ids to node type info
     const { data: schemaRows } = await client
       .from("my_concepts")
-      .select("source_local_id, name")
+      .select("id, source_local_id, name")
       .eq("space_id", spaceId)
       .eq("is_schema", true)
+      .eq("arity", 0)
       .in("id", schemaIds);
 
     if (!schemaRows) continue;
 
-    for (const schema of schemaRows as Array<{
-      source_local_id: string;
-      name: string;
-    }>) {
+    for (const [key, sourceNodeTypeId] of buildSourceNodeTypeIdMap({
+      spaceId,
+      concepts: conceptRows,
+      schemas: schemaRows,
+    })) {
+      sourceNodeTypeIdByKey.set(key, sourceNodeTypeId);
+    }
+
+    for (const schema of schemaRows) {
       const sourceNodeTypeId = schema.source_local_id;
+      if (sourceNodeTypeId === null || schema.name === null) continue;
 
       // Track name for triplet resolution
       if (!nodeTypeIdToName.has(sourceNodeTypeId)) {
@@ -161,7 +169,10 @@ export const computeImportPreview = async ({
     const spaceUri = spaceUris.get(spaceId);
     if (!spaceUri) continue;
     for (const node of nodes) {
-      const key = `${spaceId}:${node.nodeInstanceId}`;
+      const key = getImportedNodeKey({
+        spaceId,
+        sourceLocalId: node.nodeInstanceId,
+      });
       nodeKeys.add(key);
       if (!keyToRid.has(key)) {
         keyToRid.set(
@@ -206,8 +217,14 @@ export const computeImportPreview = async ({
       );
       if (!sourceData || !destData) continue;
 
-      const sourceKey = `${sourceData.space_id}:${sourceData.source_local_id}`;
-      const destKey = `${destData.space_id}:${destData.source_local_id}`;
+      const sourceKey = getImportedNodeKey({
+        spaceId: sourceData.space_id,
+        sourceLocalId: sourceData.source_local_id,
+      });
+      const destKey = getImportedNodeKey({
+        spaceId: destData.space_id,
+        sourceLocalId: destData.source_local_id,
+      });
 
       if (
         keyToRelationEndpointId.has(sourceKey) &&
@@ -471,5 +488,6 @@ export const computeImportPreview = async ({
     keyToRid,
     keyToRelationEndpointId,
     relationInstancesBySpace,
+    sourceNodeTypeIdByKey,
   };
 };

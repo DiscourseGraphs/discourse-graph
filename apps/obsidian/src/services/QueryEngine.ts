@@ -306,13 +306,15 @@ export class QueryEngine {
   }
 
   /**
-   * Return all markdown pages under import/ that have importedFromRid and nodeInstanceId.
+   * Return all markdown pages that have importedFromRid and nodeInstanceId,
+   * wherever they now live: the frontmatter pair identifies an imported node,
+   * and users move notes out of import/ after importing them.
    * Uses DataCore when available; falls back to vault iteration otherwise.
    */
   getImportedNodePages = (): TFile[] => {
     if (this.dc) {
       try {
-        const dcQuery = `@page and path("import") and exists(importedFromRid) and exists(nodeInstanceId)`;
+        const dcQuery = `@page and exists(importedFromRid) and exists(nodeInstanceId)`;
         const pages = this.dc.query(dcQuery);
         const files: TFile[] = [];
         for (const page of pages) {
@@ -498,7 +500,6 @@ export class QueryEngine {
     const files: TFile[] = [];
     const allFiles = this.app.vault.getMarkdownFiles();
     for (const f of allFiles) {
-      if (!f.path.startsWith("import/")) continue;
       const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
       if (
         (fm as Record<string, unknown> | undefined)?.importedFromRid &&
