@@ -1,10 +1,4 @@
-import {
-  createElement,
-  useEffect,
-  useReducer,
-  useState,
-  type ComponentType,
-} from "react";
+import { createElement, useEffect, useState, type ComponentType } from "react";
 import type { TFile } from "obsidian";
 import {
   DefaultStylePanel,
@@ -22,16 +16,13 @@ import {
 } from "~/constants";
 import type { DiscourseNodeShape } from "./shapes/DiscourseNodeShape";
 import { RelationsPanel } from "./overlays/RelationPanel";
-import {
-  nodeCardContextMenuReducer,
-  shouldShowNodeCardContextMenu,
-  type NodeCardContextMenuTab,
-} from "./nodeCardContextMenuModel";
 
 type NodeCardContextMenuProps = TLUiStylePanelProps & {
   plugin: DiscourseGraphPlugin;
   canvasFile: TFile;
 };
+
+type NodeCardContextMenuTab = "context" | "styling";
 
 const DefaultStylePanelComponent =
   DefaultStylePanel as unknown as ComponentType<TLUiStylePanelProps>;
@@ -53,16 +44,11 @@ export const NodeCardContextMenu = ({
     () => editor.getOnlySelectedShape(),
     [editor],
   );
-  const selectedNode = shouldShowNodeCardContextMenu(
-    isEnabled,
-    selectedShape?.type,
-  )
-    ? (selectedShape as DiscourseNodeShape)
-    : null;
-  const [menuState, dispatch] = useReducer(nodeCardContextMenuReducer, {
-    activeTab: "context",
-    selectedShapeId: selectedNode?.id ?? null,
-  });
+  const selectedNode =
+    isEnabled && selectedShape?.type === "discourse-node"
+      ? (selectedShape as DiscourseNodeShape)
+      : null;
+  const [activeTab, setActiveTab] = useState<NodeCardContextMenuTab>("context");
 
   useEffect(() => {
     const updateFlag = () =>
@@ -81,18 +67,12 @@ export const NodeCardContextMenu = ({
   }, [plugin]);
 
   useEffect(() => {
-    dispatch({
-      type: "select-node",
-      selectedShapeId: selectedNode?.id ?? null,
-    });
+    setActiveTab("context");
   }, [selectedNode?.id]);
 
   if (!selectedNode) {
     return createElement(DefaultStylePanelComponent, { isMobile });
   }
-
-  const selectTab = (tab: NodeCardContextMenuTab) =>
-    dispatch({ type: "select-tab", tab });
 
   return createElement(
     DefaultStylePanelComponent,
@@ -103,14 +83,14 @@ export const NodeCardContextMenu = ({
           <button
             key={tab}
             type="button"
-            aria-pressed={menuState.activeTab === tab}
+            aria-pressed={activeTab === tab}
             className={[
               "border-b-2 px-3 py-2 text-xs font-semibold capitalize",
-              menuState.activeTab === tab
+              activeTab === tab
                 ? "border-[var(--color-selected)] text-[var(--color-selected)]"
                 : "border-transparent text-[var(--color-text-2)]",
             ].join(" ")}
-            onClick={() => selectTab(tab)}
+            onClick={() => setActiveTab(tab)}
           >
             {tab}
           </button>
@@ -118,7 +98,7 @@ export const NodeCardContextMenu = ({
       </div>
 
       <div className="max-h-[min(32rem,calc(100vh-6rem))] overflow-y-auto">
-        {menuState.activeTab === "context" ? (
+        {activeTab === "context" ? (
           <RelationsPanel
             plugin={plugin}
             canvasFile={canvasFile}

@@ -10,8 +10,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "publish": "tsx scripts/publish.ts --version 0.1.0",
-    "check-types": "tsc --noEmit --skipLibCheck",
-    "test": "tsx --test src/components/canvas/__tests__/nodeCardContextMenuModel.test.ts"
+    "check-types": "tsc --noEmit --skipLibCheck"
   },
   "keywords": [],
   "author": "",

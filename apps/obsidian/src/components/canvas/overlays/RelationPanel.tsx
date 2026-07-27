@@ -26,10 +26,6 @@ import {
   getFileForNodeInstanceId,
   addRelation,
 } from "~/utils/relationsStore";
-import {
-  groupRelationsByType,
-  runRelationCanvasAction,
-} from "~/components/canvas/nodeCardContextMenuModel";
 
 type GroupedRelation = {
   key: string;
@@ -100,13 +96,17 @@ const RelationFileItem = ({
 
     setIsLoading(true);
     try {
-      await runRelationCanvasAction({
-        hasExistingRelation: Boolean(hasExistingRelation),
-        add: () =>
-          handleCreateRelationTo(file, group.relationTypeId, group.isSource),
-        remove: () => handleDeleteRelation(file, group.relationTypeId),
-      });
-      setHasExistingRelation(!hasExistingRelation);
+      if (hasExistingRelation) {
+        await handleDeleteRelation(file, group.relationTypeId);
+        setHasExistingRelation(false);
+      } else {
+        await handleCreateRelationTo(
+          file,
+          group.relationTypeId,
+          group.isSource,
+        );
+        setHasExistingRelation(true);
+      }
     } catch (e) {
       showToast({
         severity: "error",
@@ -543,19 +543,62 @@ const computeRelations = async (
   if (!nodeInstanceId) return [];
 
   const relations = await getRelationsForNodeInstanceId(plugin, nodeInstanceId);
+  const result = new Map<string, GroupedRelation>();
+
   const acceptedRelationTypes =
     plugin.settings.relationTypes.filter(isAcceptedSchema);
   const acceptedDiscourseRelations =
     plugin.settings.discourseRelations.filter(isAcceptedSchema);
 
-  return groupRelationsByType({
-    activeNodeTypeId,
-    nodeInstanceId,
-    relationTypes: acceptedRelationTypes,
-    discourseRelations: acceptedDiscourseRelations,
-    relations,
-    getLinkedFile: (linkedNodeInstanceId) =>
-      getFileForNodeInstanceId(plugin, linkedNodeInstanceId),
-    includeAllDirections,
-  });
+  for (const relationType of acceptedRelationTypes) {
+    const matchingRelations = acceptedDiscourseRelations.filter(
+      (relation) =>
+        (relation.sourceId === activeNodeTypeId ||
+          relation.destinationId === activeNodeTypeId) &&
+        relation.relationshipTypeId === relationType.id,
+    );
+    const typeLevelRelations = includeAllDirections
+      ? matchingRelations
+      : matchingRelations.slice(0, 1);
+
+    for (const typeLevelRelation of typeLevelRelations) {
+      const isSource = typeLevelRelation.sourceId === activeNodeTypeId;
+      const key = `${relationType.id}-${isSource}`;
+
+      if (!result.has(key)) {
+        result.set(key, {
+          key,
+          label: isSource ? relationType.label : relationType.complement,
+          isSource,
+          relationTypeId: relationType.id,
+          linkedFiles: [],
+        });
+      }
+
+      const group = result.get(key)!;
+      for (const relation of relations) {
+        if (relation.type !== relationType.id) continue;
+        const otherId = includeAllDirections
+          ? isSource && relation.source === nodeInstanceId
+            ? relation.destination
+            : !isSource && relation.destination === nodeInstanceId
+              ? relation.source
+              : null
+          : relation.source === nodeInstanceId
+            ? relation.destination
+            : relation.source;
+        if (!otherId) continue;
+
+        const linkedFile = getFileForNodeInstanceId(plugin, otherId);
+        if (
+          linkedFile &&
+          !group.linkedFiles.some(({ path }) => path === linkedFile.path)
+        ) {
+          group.linkedFiles.push(linkedFile);
+        }
+      }
+    }
+  }
+
+  return Array.from(result.values());
 };
