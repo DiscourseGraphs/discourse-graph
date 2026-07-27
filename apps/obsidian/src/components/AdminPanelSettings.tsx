@@ -5,6 +5,10 @@ import { updateUsername } from "~/utils/supabaseContext";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { nextRoot } from "@repo/utils/execContext";
 import { getLoggedInClient } from "~/utils/supabaseContext";
+import {
+  FEATURE_FLAGS,
+  NODE_CARD_CONTEXT_MENU_FLAG_CHANGED_EVENT,
+} from "~/constants";
 
 export const AdminPanelSettings = () => {
   const plugin = usePlugin();
@@ -14,6 +18,10 @@ export const AdminPanelSettings = () => {
   const [username, setUsername] = useState<string>(
     plugin.settings.username || "",
   );
+  const [nodeCardContextMenuEnabled, setNodeCardContextMenuEnabled] =
+    useState<boolean>(
+      plugin.settings[FEATURE_FLAGS.NODE_CARD_CONTEXT_MENU] ?? false,
+    );
 
   const handleSyncModeToggle = useCallback(
     async (newValue: boolean) => {
@@ -42,6 +50,18 @@ export const AdminPanelSettings = () => {
     await plugin.saveSettings();
     await updateUsername(plugin, newValue);
   };
+
+  const handleNodeCardContextMenuToggle = useCallback(
+    async (newValue: boolean) => {
+      setNodeCardContextMenuEnabled(newValue);
+      plugin.settings[FEATURE_FLAGS.NODE_CARD_CONTEXT_MENU] = newValue;
+      await plugin.saveSettings();
+      window.dispatchEvent(
+        new Event(NODE_CARD_CONTEXT_MENU_FLAG_CHANGED_EVENT),
+      );
+    },
+    [plugin],
+  );
 
   const handleLoginHandoff = async () => {
     const client = await getLoggedInClient(plugin);
@@ -72,6 +92,30 @@ export const AdminPanelSettings = () => {
 
   return (
     <div className="general-settings">
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">(BETA) Node card context menu</div>
+          <div className="setting-item-description">
+            Show discourse context and styling tabs when a node card is selected
+            on a canvas
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <div
+            className={`checkbox-container ${nodeCardContextMenuEnabled ? "is-enabled" : ""}`}
+            onClick={() =>
+              void handleNodeCardContextMenuToggle(!nodeCardContextMenuEnabled)
+            }
+          >
+            <input
+              type="checkbox"
+              checked={nodeCardContextMenuEnabled}
+              aria-label="Enable node card context menu"
+              readOnly
+            />
+          </div>
+        </div>
+      </div>
       <div className="setting-item">
         <div className="setting-item-info">
           <div className="setting-item-name">(BETA) Sync mode enable</div>

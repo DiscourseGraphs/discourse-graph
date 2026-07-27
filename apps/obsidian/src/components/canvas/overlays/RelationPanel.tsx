@@ -26,18 +26,19 @@ import {
   getFileForNodeInstanceId,
   addRelation,
 } from "~/utils/relationsStore";
+import {
+  getRelationCanvasAction,
+  groupRelationsByType,
+  runRelationCanvasAction,
+  type GroupedRelation,
+} from "~/components/canvas/nodeCardContextMenuModel";
 
-type GroupedRelation = {
-  key: string;
-  label: string;
-  isSource: boolean;
-  relationTypeId: string;
-  linkedFiles: TFile[];
-};
+type CanvasGroupedRelation = GroupedRelation<TFile>;
 
 type RelationFileItemProps = {
   file: TFile;
-  group: GroupedRelation;
+  group: CanvasGroupedRelation;
+  variant: RelationsPanelVariant;
   checkExistingRelation: (
     targetFile: TFile,
     relationTypeId: string,
@@ -57,16 +58,19 @@ export type RelationsPanelProps = {
   plugin: DiscourseGraphPlugin;
   canvasFile: TFile;
   nodeShape: DiscourseNodeShape;
-  onClose: () => void;
+  onClose?: () => void;
+  variant?: RelationsPanelVariant;
 };
 
 const RelationFileItem = ({
   file,
   group,
+  variant,
   checkExistingRelation,
   handleCreateRelationTo,
   handleDeleteRelation,
 }: RelationFileItemProps) => {
+  const isNodeCardContext = variant === "node-card-context";
   const [hasExistingRelation, setHasExistingRelation] = useState<
     boolean | null
   >(null);
@@ -91,21 +95,17 @@ const RelationFileItem = ({
 
   const handleButtonClick = async (e: React.MouseEvent) => {
     e.preventDefault();
-    if (isLoading) return;
+    if (isLoading || hasExistingRelation === null) return;
 
     setIsLoading(true);
     try {
-      if (hasExistingRelation) {
-        await handleDeleteRelation(file, group.relationTypeId);
-        setHasExistingRelation(false);
-      } else {
-        await handleCreateRelationTo(
-          file,
-          group.relationTypeId,
-          group.isSource,
-        );
-        setHasExistingRelation(true);
-      }
+      const action = await runRelationCanvasAction({
+        hasExistingRelation,
+        add: () =>
+          handleCreateRelationTo(file, group.relationTypeId, group.isSource),
+        remove: () => handleDeleteRelation(file, group.relationTypeId),
+      });
+      setHasExistingRelation(action === "add");
     } catch (e) {
       showToast({
         severity: "error",
@@ -121,28 +121,42 @@ const RelationFileItem = ({
   const getButtonProps = () => {
     if (hasExistingRelation === null) {
       return {
-        className:
-          "ml-2 rounded bg-gray-300 px-2 py-0.5 text-xs text-white cursor-not-allowed",
+        className: isNodeCardContext
+          ? "dg-relation-visibility-toggle dg-relation-visibility-toggle--checking ml-2 cursor-not-allowed rounded px-2 py-0.5 text-xs"
+          : "ml-2 rounded bg-gray-300 px-2 py-0.5 text-xs text-white cursor-not-allowed",
         title: "Checking relation status...",
+        "aria-label": `Checking whether ${file.basename} is on the canvas`,
+        "data-visibility-action": "checking",
         disabled: true,
         children: "?",
       };
     }
 
-    if (hasExistingRelation) {
+    const action = getRelationCanvasAction(hasExistingRelation);
+    if (action === "remove") {
       return {
-        className:
-          "ml-2 rounded bg-red-500 px-2 py-0.5 text-xs text-white hover:bg-red-600 disabled:bg-red-300",
-        title: "Remove this relation from canvas",
+        className: isNodeCardContext
+          ? "dg-relation-visibility-toggle dg-relation-visibility-toggle--remove ml-2 rounded px-2 py-0.5 text-xs"
+          : "ml-2 rounded bg-red-500 px-2 py-0.5 text-xs text-white hover:bg-red-600 disabled:bg-red-300",
+        title: isNodeCardContext
+          ? "Remove from canvas"
+          : "Remove this relation from canvas",
+        "aria-label": `Remove ${file.basename} from the canvas`,
+        "data-visibility-action": action,
         disabled: isLoading,
         children: "−",
       };
     }
 
     return {
-      className:
-        "ml-2 rounded bg-blue-500 px-2 py-0.5 text-xs text-white hover:bg-blue-600 disabled:bg-blue-300",
-      title: "Add this relation to canvas",
+      className: isNodeCardContext
+        ? "dg-relation-visibility-toggle dg-relation-visibility-toggle--add ml-2 rounded px-2 py-0.5 text-xs"
+        : "ml-2 rounded bg-blue-500 px-2 py-0.5 text-xs text-white hover:bg-blue-600 disabled:bg-blue-300",
+      title: isNodeCardContext
+        ? "Add to canvas"
+        : "Add this relation to canvas",
+      "aria-label": `Add ${file.basename} to the canvas`,
+      "data-visibility-action": action,
       disabled: isLoading,
       children: "+",
     };
@@ -155,21 +169,29 @@ const RelationFileItem = ({
       <a href="#" className="text-accent-text">
         {file.basename}
       </a>
-      <button {...buttonProps} onClick={(e) => void handleButtonClick(e)} />
+      <button
+        {...buttonProps}
+        type="button"
+        onClick={(e) => void handleButtonClick(e)}
+      />
     </li>
   );
 };
+
+export type RelationsPanelVariant = "legacy" | "node-card-context";
 
 export const RelationsPanel = ({
   plugin,
   canvasFile,
   nodeShape,
   onClose,
+  variant = "legacy",
 }: RelationsPanelProps) => {
   const editor = useEditor();
-  const [groups, setGroups] = useState<GroupedRelation[]>([]);
+  const [groups, setGroups] = useState<CanvasGroupedRelation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const isNodeCardContext = variant === "node-card-context";
 
   // Resolve the file from the shape's src
   useEffect(() => {
@@ -193,7 +215,7 @@ export const RelationsPanel = ({
           setError("Linked file not found.");
           return;
         }
-        const g = await computeRelations(plugin, file);
+        const g = await computeRelations(plugin, file, variant);
         setGroups(g);
       } catch (e) {
         showToast({
@@ -208,7 +230,7 @@ export const RelationsPanel = ({
       }
     };
     void load();
-  }, [plugin, canvasFile, nodeShape.id, nodeShape.props.src, editor]);
+  }, [plugin, canvasFile, nodeShape.id, nodeShape.props.src, editor, variant]);
 
   const headerTitle = useMemo(() => {
     return nodeShape.props.title || "Selected node";
@@ -460,21 +482,34 @@ export const RelationsPanel = ({
   };
 
   return (
-    <div className="min-w-80 max-w-md rounded-lg border bg-white p-4 shadow-lg">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Relations</h3>
-        <button
-          onClick={onClose}
-          className="text-gray-500 hover:text-gray-700"
-          aria-label="Close"
-        >
-          ✕
-        </button>
-      </div>
+    <div
+      className={
+        isNodeCardContext
+          ? "dg-node-card-menu__relations"
+          : "min-w-80 max-w-md rounded-lg border bg-white p-4 shadow-lg"
+      }
+    >
+      {!isNodeCardContext && (
+        <>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Relations</h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
 
-      <div className="mb-3">
-        <div className="text-sm font-medium text-gray-700">{headerTitle}</div>
-      </div>
+          <div className="mb-3">
+            <div className="text-sm font-medium text-gray-700">
+              {headerTitle}
+            </div>
+          </div>
+        </>
+      )}
 
       {loading ? (
         <div className="text-center text-gray-500">Loading relations...</div>
@@ -502,6 +537,7 @@ export const RelationsPanel = ({
                         key={f.path}
                         file={f}
                         group={group}
+                        variant={variant}
                         checkExistingRelation={checkExistingRelation}
                         handleCreateRelationTo={handleCreateRelationTo}
                         handleDeleteRelation={handleDeleteRelationShape}
@@ -521,7 +557,8 @@ export const RelationsPanel = ({
 const computeRelations = async (
   plugin: DiscourseGraphPlugin,
   file: TFile,
-): Promise<GroupedRelation[]> => {
+  variant: RelationsPanelVariant,
+): Promise<CanvasGroupedRelation[]> => {
   const fileCache = plugin.app.metadataCache.getFileCache(file);
   if (!fileCache?.frontmatter) return [];
 
@@ -532,31 +569,44 @@ const computeRelations = async (
   if (!nodeInstanceId) return [];
 
   const relations = await getRelationsForNodeInstanceId(plugin, nodeInstanceId);
-  const result = new Map<string, GroupedRelation>();
-
   const acceptedRelationTypes =
     plugin.settings.relationTypes.filter(isAcceptedSchema);
   const acceptedDiscourseRelations =
     plugin.settings.discourseRelations.filter(isAcceptedSchema);
 
+  if (variant === "node-card-context") {
+    return groupRelationsByType({
+      activeNodeTypeId,
+      nodeInstanceId,
+      relationTypes: acceptedRelationTypes,
+      discourseRelations: acceptedDiscourseRelations,
+      relations,
+      getLinkedFile: (linkedNodeInstanceId) =>
+        getFileForNodeInstanceId(plugin, linkedNodeInstanceId),
+    });
+  }
+
+  const result = new Map<string, CanvasGroupedRelation>();
+
   for (const relationType of acceptedRelationTypes) {
     const typeLevelRelation = acceptedDiscourseRelations.find(
-      (rel) =>
-        (rel.sourceId === activeNodeTypeId ||
-          rel.destinationId === activeNodeTypeId) &&
-        rel.relationshipTypeId === relationType.id,
+      (relation) =>
+        (relation.sourceId === activeNodeTypeId ||
+          relation.destinationId === activeNodeTypeId) &&
+        relation.relationshipTypeId === relationType.id,
     );
     if (!typeLevelRelation) continue;
 
-    const instanceRels = relations.filter((r) => r.type === relationType.id);
+    const instanceRelations = relations.filter(
+      (relation) => relation.type === relationType.id,
+    );
     const isSource = typeLevelRelation.sourceId === activeNodeTypeId;
-    const label = isSource ? relationType.label : relationType.complement;
     const key = `${relationType.id}-${isSource}`;
 
     if (!result.has(key)) {
       result.set(key, {
         key,
-        label,
+        label: isSource ? relationType.label : relationType.complement,
         isSource,
         relationTypeId: relationType.id,
         linkedFiles: [],
@@ -564,11 +614,17 @@ const computeRelations = async (
     }
 
     const group = result.get(key)!;
-    for (const r of instanceRels) {
-      const otherId = r.source === nodeInstanceId ? r.destination : r.source;
-      const linked = getFileForNodeInstanceId(plugin, otherId);
-      if (linked && !group.linkedFiles.some((f) => f.path === linked.path)) {
-        group.linkedFiles.push(linked);
+    for (const relation of instanceRelations) {
+      const otherId =
+        relation.source === nodeInstanceId
+          ? relation.destination
+          : relation.source;
+      const linkedFile = getFileForNodeInstanceId(plugin, otherId);
+      if (
+        linkedFile &&
+        !group.linkedFiles.some(({ path }) => path === linkedFile.path)
+      ) {
+        group.linkedFiles.push(linkedFile);
       }
     }
   }
