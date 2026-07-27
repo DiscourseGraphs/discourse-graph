@@ -62,14 +62,15 @@ export const publishNodesToGroups = async ({
       spaceId,
     });
   if (missingSpaceAccess && Object.keys(missingSpaceAccess).length) {
-    result.failedGroupIds = groupIds.filter(
-      (id) => !(id in existingSpaceAccess),
-    );
+    result.failedGroupIds = [
+      ...result.failedGroupIds,
+      ...groupIds.filter((id) => !(id in existingSpaceAccess)),
+    ];
     groupIds = Object.keys(existingSpaceAccess);
   }
   if (groupIds.length === 0) return result;
 
-  const nodeUids = [...new Set(nodes.map((node) => node.localId))];
+  let nodeUids = [...new Set(nodes.map((node) => node.localId))];
 
   const syncedRes = await client
     .from("my_concepts")
@@ -84,6 +85,7 @@ export const publishNodesToGroups = async ({
     onlyStrings((syncedRes.data ?? []).map((row) => row.source_local_id)),
   );
   result.skippedUnsyncedUids = nodeUids.filter((uid) => !syncedUids.has(uid));
+  nodeUids = [...intersection(syncedUids, new Set(nodeUids))];
 
   const resourceAccesses = [];
   for (const groupId of groupIds) {
@@ -104,6 +106,7 @@ export const publishNodesToGroups = async ({
     return result;
   }
 
+  result.okGroupIds = groupIds;
   result.publishedNodeUids = nodeUids;
 
   return result;

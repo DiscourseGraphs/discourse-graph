@@ -93,7 +93,7 @@ export const ensurePartialSpaceAccess = async ({
       return {
         existing: existingAccessByGroupId,
         missing: Object.fromEntries(
-          missingAccess.map((a) => [a.space_id, a.permissions]),
+          missingAccess.map((a) => [a.account_uid, a.permissions]),
         ),
       };
     }
