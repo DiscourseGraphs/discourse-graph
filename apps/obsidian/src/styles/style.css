@@ -3868,7 +3868,7 @@ kbd.tlui-kbd {
 
 .dg-image-convert-icon {
   top: var(--size-2-2);
-  inset-inline-end: calc(var(--size-2-2) + 38px);
+  inset-inline-end: calc(var(--size-2-2) + 36px);
   /* Hardcoded to match native .edit-block-button's measured 30x26 box; padding
      alone doesn't reproduce it since our icon's intrinsic size differs. */
   box-sizing: border-box;
@@ -3885,7 +3885,7 @@ kbd.tlui-kbd {
 .dg-image-embed-active .dg-image-convert-icon {
   background-color: var(--background-primary);
   opacity: 1;
-  inset-inline-end: calc(var(--size-2-2) + 38px + 3px);
+  inset-inline-end: calc(var(--size-2-2) + 36px + 3px);
   pointer-events: auto;
   z-index: 2;
 }
