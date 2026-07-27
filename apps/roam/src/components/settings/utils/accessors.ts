@@ -218,7 +218,6 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
   ],
   [pathKey([PERSONAL_KEYS.textSelectionPopup]), "text-selection-popup"],
   [pathKey([PERSONAL_KEYS.disableSidebarOpen]), "disable-sidebar-open"],
-  [pathKey([PERSONAL_KEYS.pagePreview]), "page-preview"],
   [pathKey([PERSONAL_KEYS.hideFeedbackButton]), "hide-feedback-button"],
   [pathKey([PERSONAL_KEYS.autoCanvasRelations]), "auto-canvas-relations"],
   [

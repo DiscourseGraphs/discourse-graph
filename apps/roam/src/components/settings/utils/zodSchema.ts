@@ -251,7 +251,6 @@ export const PersonalSettingsSchema = z.object({
   "Overlay in canvas": z.boolean().default(false),
   "Text selection popup": z.boolean().default(true),
   "Disable sidebar open": z.boolean().default(false),
-  "Page preview": z.boolean().default(false),
   "Hide feedback button": z.boolean().default(false),
   "Streamline styling": z.boolean().default(false),
   "Auto canvas relations": z.boolean().default(false),
