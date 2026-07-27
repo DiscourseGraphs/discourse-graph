@@ -132,11 +132,12 @@ export const nodeSchemaToCrossApp = (
     ":create/user": { ":user/uid": string };
   };
   if (!relData) return null;
-  const userUid = relData[":create/user"][":user/uid"];
+  const userUid = (relData[":create/user"] ?? {})[":user/uid"];
+  if (!userUid) return null;
   return {
     localId: s.type,
     label: s.text,
     authorId: userUid,
-    createdAt: new Date(relData[":create/time"]),
+    createdAt: new Date(relData[":create/time"] || Date.now()),
   };
 };

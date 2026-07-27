@@ -102,7 +102,7 @@ export const publishNodesToGroups = async ({
   const missingNodeSchemas = nodeSchemas.filter(
     (s) => !syncedUids.has(s.localId),
   );
-  result.skippedUnsyncedUids = neededUids.filter((uid) => !syncedUids.has(uid));
+  result.skippedUnsyncedUids = nodeUids.filter((uid) => !syncedUids.has(uid));
   const upsertConcepts = [
     ...missingNodeSchemas.map((s) => crossAppNodeSchemaToDbConcept(s)),
   ].filter((r) => r !== undefined);
@@ -119,13 +119,15 @@ export const publishNodesToGroups = async ({
     );
   }
 
-  const response = await client.rpc("upsert_concepts", {
-    v_space_id: spaceId,
-    data: upsertConcepts,
-  });
-  if (response.error) {
-    internalError({ error: response.error });
-    return result;
+  if (upsertConcepts.length > 0) {
+    const response = await client.rpc("upsert_concepts", {
+      v_space_id: spaceId,
+      data: upsertConcepts,
+    });
+    if (response.error) {
+      internalError({ error: response.error });
+      return result;
+    }
   }
 
   result.syncedNodeSchemaUids = missingNodeSchemas.map((s) => s.localId);
