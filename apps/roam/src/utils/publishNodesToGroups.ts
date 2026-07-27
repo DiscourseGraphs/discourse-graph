@@ -20,9 +20,11 @@ import {
 } from "@repo/database/lib/crossAppConverters";
 import { ensurePartialSpaceAccess } from "@repo/database/lib/groups";
 import { isIgnorableUpsertError } from "@repo/database/lib/contextFunctions";
+import { ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
 import getDiscourseNodes from "./getDiscourseNodes";
 import { difference, intersection } from "@repo/utils/setOperations";
 import internalError from "./internalError";
+import { readImportedSourceIdentity } from "./importedSourceIdentity";
 
 export type NodeUidWithType = {
   uid: string;
@@ -85,7 +87,13 @@ const getSpaceIdAndUrlsByGroupId = async (
 
 // Use readImportedSourceIdentity from eng-1859 when it's merged.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const importedFromSpaceId = (nodeId: string): number | undefined => undefined;
+const isImportedFromSpaceUri = (nodeId: string): string | undefined => {
+  const identity = readImportedSourceIdentity(nodeId);
+  if (identity === undefined) return undefined;
+  const { sourceNodeRid } = identity;
+  const { spaceUri } = ridToSpaceUriAndLocalId(sourceNodeRid);
+  return spaceUri;
+};
 
 export const gatherCorrespondingRelations = async ({
   client,
@@ -106,6 +114,13 @@ export const gatherCorrespondingRelations = async ({
   const allRelationSchemasById = Object.fromEntries(
     allRelationsSchemas.map((s) => [s.id, s]),
   );
+  const { spaceIdsByGroupId, spaceUrlById } = await getSpaceIdAndUrlsByGroupId(
+    client,
+    groupIds,
+  );
+  const spaceIdByUrl = Object.fromEntries(
+    Object.entries(spaceUrlById).map(([id, url]) => [url, Number.parseInt(id)]),
+  );
   // Should we even handle non-reified relations? Assuming not.
   // I need a way to know if a relation is imported, see importedFromSpaceId
   const allRelations = await getReifiedRelations();
@@ -114,7 +129,7 @@ export const gatherCorrespondingRelations = async ({
     let cached = spaceIdOfNodes[nodeLocalId];
     if (cached === undefined) {
       cached = spaceIdOfNodes[nodeLocalId] =
-        importedFromSpaceId(nodeLocalId) || spaceId;
+        spaceIdByUrl[isImportedFromSpaceUri(nodeLocalId) ?? ""] || spaceId;
     }
     return cached === spaceId ? 0 : cached;
   };
@@ -126,12 +141,6 @@ export const gatherCorrespondingRelations = async ({
             (forNodeIds.has(r.sourceUid) || forNodeIds.has(r.destinationUid)),
         )
       : allRelations.filter((r) => r.importedFromRid === undefined);
-  const { spaceIdsByGroupId, spaceUrlById } = await getSpaceIdAndUrlsByGroupId(
-    client,
-    groupIds,
-  );
-  const isImportedFromSpaceUri = (uid: string) =>
-    spaceUrlById[isImportedFrom(uid) || 0];
   const publishedIdsByGroup = await getAllPublishedIdsByGroup(
     client,
     spaceId,
