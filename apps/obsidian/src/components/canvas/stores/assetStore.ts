@@ -209,7 +209,6 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
   }
 
   storeAsset = async (
-    // eslint-disable-next-line
     _asset: TLAsset,
     file: File,
   ): Promise<BlockRefAssetId> => {
@@ -341,6 +340,7 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
 
   resolve = async (
     asset: TLAsset,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- feed to fit tldraw interface
     _ctx: TLAssetContext,
   ): Promise<string | null> => {
     try {
@@ -356,6 +356,7 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- feed to fit tldraw interface
   remove = async (_assetIds: TLAssetId[]): Promise<void> => {
     // No-op for now as we don't want to delete files from the vault
     // The files will remain in the vault and can be managed by the user

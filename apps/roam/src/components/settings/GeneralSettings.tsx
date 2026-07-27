@@ -15,6 +15,7 @@ import {
   getUidAndStringSetting,
 } from "~/utils/getExportSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
+import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const DiscourseGraphHome = ({
   globalSettings,
@@ -47,7 +48,10 @@ const DiscourseGraphHome = ({
           Update titles to Sentence case once read side is migrated to block props. */}
       <GlobalTextPanel
         title="trigger"
-        description="The trigger to create the node menu."
+        description={withDocsLink(
+          "The trigger to create the node menu.",
+          ROAM_DOCS.creatingNodes,
+        )}
         settingKeys={[GLOBAL_KEYS.trigger]}
         initialValue={globalSettings[GLOBAL_KEYS.trigger]}
         order={0}

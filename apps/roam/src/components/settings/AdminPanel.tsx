@@ -37,6 +37,7 @@ import SuggestiveModeSettings from "./SuggestiveModeSettings";
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 import type { FeatureFlags } from "./utils/zodSchema";
 import { nextRoot } from "@repo/utils/execContext";
+import SearchTestTab from "./SearchTestTab";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -263,16 +264,13 @@ const FeatureFlagsTab = (): React.ReactElement => {
   const [pendingFeatureKey, setPendingFeatureKey] = useState<
     keyof FeatureFlags | null
   >(null);
-  const [duplicateNodeAlertValue, setDuplicateNodeAlertValue] = useState(
-    getFeatureFlag("Duplicate node alert enabled"),
-  );
   const [suggestiveOverlayValue, setSuggestiveOverlayValue] = useState(
     getFeatureFlag("Suggestive mode overlay enabled"),
   );
   const [advancedNodeSearchValue, setAdvancedNodeSearchValue] = useState(
     getFeatureFlag("Advanced node search enabled"),
   );
-  const syncAlreadyEnabled = duplicateNodeAlertValue || suggestiveOverlayValue;
+  const syncAlreadyEnabled = suggestiveOverlayValue;
 
   const ensureSyncEnabled = (
     featureKey: keyof FeatureFlags,
@@ -338,17 +336,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
   return (
     <div className="flex flex-col gap-4 p-4">
       <FeatureFlagPanel
-        title="Duplicate node alert"
-        description="Show possible duplicate nodes when viewing a discourse node page."
-        featureKey="Duplicate node alert enabled"
-        value={duplicateNodeAlertValue}
-        onBeforeEnable={() => ensureSyncEnabled("Duplicate node alert enabled")}
-        onAfterChange={(checked) =>
-          handleFeatureToggled(checked, setDuplicateNodeAlertValue)
-        }
-      />
-
-      <FeatureFlagPanel
         title="Suggestive mode overlay"
         description="Overlay suggestive mode button over discourse node references."
         featureKey="Suggestive mode overlay enabled"
@@ -374,11 +361,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
         onConfirm={() => {
           if (pendingFeatureKey) {
             setFeatureFlag(pendingFeatureKey, true);
-            if (pendingFeatureKey === "Duplicate node alert enabled") {
-              setDuplicateNodeAlertValue(true);
-            } else if (
-              pendingFeatureKey === "Suggestive mode overlay enabled"
-            ) {
+            if (pendingFeatureKey === "Suggestive mode overlay enabled") {
               setSuggestiveOverlayValue(true);
             }
           }
@@ -498,6 +481,7 @@ const AdminPanel = ({
           </div>
         }
       />
+      <Tab id="search-test" title="Search test" panel={<SearchTestTab />} />
       {isSyncEnabled() && (
         <Tab
           id="sync-mode-settings"

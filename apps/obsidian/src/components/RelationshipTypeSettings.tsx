@@ -219,7 +219,7 @@ const RelationshipTypeSettings = () => {
       color: DEFAULT_TLDRAW_COLOR,
     };
     const modal = new ConfirmationModal(plugin.app, {
-      title: "Delete Relation Type",
+      title: "Delete relation type",
       message: `Are you sure you want to delete the relation type "${relationType.label}"?`,
       onConfirm: () => {
         void handleDeleteRelationType(index);
@@ -394,7 +394,7 @@ const RelationshipTypeSettings = () => {
       <div className="setting-item mt-4">
         <div className="flex gap-2">
           <button onClick={handleAddRelationType} className="p-2">
-            Add Relation Type
+            Add relation type
           </button>
         </div>
       </div>

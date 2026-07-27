@@ -1,86 +1,85 @@
 # Navigation Mapping
 
-When a **new page** is created, it must be registered in two places: `docMap.ts` (for shared pages) and `navigation.ts` (for all new pages).
+The live docs use Nextra content files under `apps/website/content/**`.
+Sidebar structure comes from `_meta.ts` files placed next to the Markdown and MDX files they describe.
 
-## docMap.ts — Slug-to-directory mapping
+## Content locations
 
-Maps page slugs to their content directories. Platform-specific pages use the `default` path automatically, so you only need to add entries here for **shared pages**.
+- Obsidian docs: `apps/website/content/obsidian/**`
+- Roam docs: `apps/website/content/roam/**`
+- Shared top-level docs: `apps/website/content/**` only when the page is intentionally site-wide, not plugin-specific
 
-### File locations
+## Sidebar registration with `_meta.ts`
 
-- Obsidian: `apps/website/app/(docs)/docs/obsidian/docMap.ts`
-- Roam: `apps/website/app/(docs)/docs/roam/docMap.ts`
-- Shared: `apps/website/app/(docs)/docs/shared/docMap.ts`
+Each directory can include a `_meta.ts` file that controls page titles, section labels, order, and hidden index pages.
 
-### How it works
-
-Each platform's `docMap.ts` spreads in `sharedDocMap` from the shared module. Platform-specific pages resolve via the `default` key.
-
-**Obsidian example:**
+Top-level example:
 
 ```ts
-import { DocMapType, sharedDocMap } from "~/(docs)/docs/shared/docMap";
+import type { MetaRecord } from "nextra";
 
-const OBSIDIAN_DOCS = "app/(docs)/docs/obsidian/pages";
-
-export const docMap: DocMapType = {
-  default: OBSIDIAN_DOCS,
-  ...sharedDocMap,
+const meta: MetaRecord = {
+  index: {
+    title: "Overview",
+    display: "hidden",
+  },
+  welcome: "Welcome",
+  "core-features": "Core features",
+  "use-cases": "Use cases",
 };
+
+export default meta;
 ```
 
-**Shared docMap (`apps/website/app/(docs)/docs/shared/docMap.ts`):**
+Section example:
 
 ```ts
-export const SHARED_DOCS = "app/(docs)/docs/sharedPages";
+import type { MetaRecord } from "nextra";
 
-export const sharedDocMap = {
-  "what-is-a-discourse-graph": SHARED_DOCS,
-  "base-grammar": SHARED_DOCS,
-  "literature-reviewing": SHARED_DOCS,
-  "research-roadmapping": SHARED_DOCS,
-  "reading-clubs": SHARED_DOCS,
-  "lab-notebooks": SHARED_DOCS,
+const meta: MetaRecord = {
+  "creating-discourse-nodes": "Creating nodes",
+  "creating-discourse-relationships": "Creating relationships",
+  "querying-discourse-graph": "Querying",
+};
+
+export default meta;
+```
+
+When adding a new page:
+
+1. Add the `.md` or `.mdx` file in the correct section directory.
+2. Add the file slug to that directory's `_meta.ts`.
+3. Add parent section entries in parent `_meta.ts` files only if you created a new directory.
+4. Keep titles short enough for the sidebar.
+
+## Redirects with `docsRouteMap.ts`
+
+The docs now use sectioned routes such as `/docs/obsidian/core-features/creating-discourse-nodes`.
+Some older flat routes, such as `/docs/obsidian/creating-discourse-nodes`, are preserved by redirects in `apps/website/docsRouteMap.ts`.
+
+Update `docsRouteMap.ts` when:
+
+- You add a new page that should keep or introduce a flat `/docs/<platform>/<slug>` redirect.
+- You move an existing page to a different section and need its old URL to resolve.
+- You add a nested page whose old URL had a custom location.
+
+Do not update `docsRouteMap.ts` when:
+
+- You only edit existing page content.
+- The new page does not need a legacy flat URL.
+- The route is already covered by the platform section maps or custom redirects.
+
+For most new pages, add the slug under the correct platform section map:
+
+```ts
+export const OBSIDIAN_DOC_SECTIONS = {
+  "core-features": ["creating-discourse-nodes", "new-page-slug"],
 } as const;
 ```
 
-**When to update:** Only when adding a shared page. Add the slug → `SHARED_DOCS` mapping in `sharedDocMap`.
+Use `createRedirect` for custom or nested redirects that cannot be represented by the section maps.
 
-## navigation.ts — Sidebar navigation
+## Legacy warning
 
-Controls what appears in the docs sidebar. **Must be updated for every new page.**
-
-### File locations
-
-- Obsidian: `apps/website/app/(docs)/docs/obsidian/navigation.ts`
-- Roam: `apps/website/app/(docs)/docs/roam/navigation.ts`
-
-### Structure
-
-Navigation is an array of sections, each with a title and links:
-
-```ts
-import { NavigationList } from "~/components/Navigation";
-
-const ROOT = "/docs/obsidian";
-
-export const navigation: NavigationList = [
-  {
-    title: "🏠 Getting started",
-    links: [
-      { title: "Getting started", href: `${ROOT}/getting-started` },
-      { title: "Installation", href: `${ROOT}/installation` },
-    ],
-  },
-  {
-    title: "⚙️ Configuration",
-    links: [
-      { title: "Node types & templates", href: `${ROOT}/node-types-templates` },
-      { title: "Relationship types", href: `${ROOT}/relationship-types` },
-    ],
-  },
-  // ...more sections
-];
-```
-
-**To add a new page:** Insert a ``{ title: "Page Title", href: `${ROOT}/slug` }`` entry in the appropriate section's `links` array.
+Do not use the deleted legacy docs mapping files: `docMap.ts`, `navigation.ts`, or `sharedPages`.
+They are no longer the source of truth for docs navigation.

@@ -1,7 +1,10 @@
 import React, { ReactElement } from "react";
 import {
+  TLArrowBinding,
+  TLArrowShape,
   TLImageShape,
   TLShape,
+  TLShapeId,
   TLTextShape,
   TLUiDialogProps,
   TLUiOverrides,
@@ -45,10 +48,26 @@ import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { OnloadArgs } from "roamjs-components/types";
 import { DiscourseContextType } from "./Tldraw";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
-import { COLOR_ARRAY } from "./DiscourseNodeUtil";
+import {
+  COLOR_ARRAY,
+  DISCOURSE_NODE_SHAPE_TYPE,
+  getDiscourseNodeTypeId,
+  isDiscourseNodeShape,
+  type DiscourseNodeShape,
+} from "./DiscourseNodeUtil";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
-import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
+import {
+  DiscourseRelationShape,
+  getRelationColor,
+} from "./DiscourseRelationShape/DiscourseRelationUtil";
+import {
+  getDirectionalRelationLabel,
+  getValidRelationTypesBetween,
+  persistRelationArrow,
+} from "./overlays/relationCreation";
+import { getAllRelations } from "./canvasUtils";
+import { createOrUpdateArrowBinding } from "./DiscourseRelationShape/helpers";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
@@ -57,6 +76,11 @@ import { CanvasSyncMode } from "./canvasSyncMode";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import posthog from "posthog-js";
+import { render as renderShareDataDialog } from "~/components/Export";
+import type { Result } from "roamjs-components/types/query-builder";
+import isLiveBlock from "roamjs-components/queries/isLiveBlock";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 
 const SyncModeMenuSwitchItem = ({
   checked,
@@ -179,7 +203,7 @@ export const getOnSelectForShape = ({
         });
         editor.createShapes([
           {
-            type: nodeType,
+            type: DISCOURSE_NODE_SHAPE_TYPE,
             id: createShapeId(),
             props: {
               uid,
@@ -189,6 +213,7 @@ export const getOnSelectForShape = ({
               imageUrl: nodeImageUrl,
               fontFamily: "sans",
               size: "s",
+              nodeTypeId: nodeType,
             },
             x,
             y,
@@ -224,6 +249,171 @@ export const getOnSelectForShape = ({
   return () => {};
 };
 
+type ArrowBoundNodeInfo = {
+  startId: TLShapeId;
+  endId: TLShapeId;
+  startBinding: TLArrowBinding;
+  endBinding: TLArrowBinding;
+};
+
+const getArrowBoundNodeInfo = (
+  editor: Editor,
+  arrow: TLShape,
+): ArrowBoundNodeInfo | null => {
+  const bindings = editor.getBindingsFromShape<TLArrowBinding>(arrow, "arrow");
+  const startBinding = bindings.find((b) => b.props.terminal === "start");
+  const endBinding = bindings.find((b) => b.props.terminal === "end");
+  if (!startBinding || !endBinding) return null;
+  if (startBinding.toId === endBinding.toId) return null;
+
+  const startShape = editor.getShape(startBinding.toId);
+  const endShape = editor.getShape(endBinding.toId);
+  if (!startShape || !endShape) return null;
+  if (!isDiscourseNodeShape(startShape) || !isDiscourseNodeShape(endShape))
+    return null;
+
+  return {
+    startId: startBinding.toId,
+    endId: endBinding.toId,
+    startBinding,
+    endBinding,
+  };
+};
+
+const copyArrowBindingProps = (
+  binding: TLArrowBinding,
+): TLArrowBinding["props"] => ({
+  ...binding.props,
+  normalizedAnchor: { ...binding.props.normalizedAnchor },
+});
+
+const convertArrowToRelation = async ({
+  editor,
+  arrow,
+  relationId,
+}: {
+  editor: Editor;
+  arrow: TLArrowShape;
+  relationId: string;
+}): Promise<TLShapeId | null> => {
+  const boundNodes = getArrowBoundNodeInfo(editor, arrow);
+  if (!boundNodes) return null;
+
+  const selectedRelation = getAllRelations().find((r) => r.id === relationId);
+  if (!selectedRelation) return null;
+
+  const sourceNode = editor.getShape(boundNodes.startId);
+  const targetNode = editor.getShape(boundNodes.endId);
+  if (!sourceNode || !targetNode) return null;
+
+  const label = getDirectionalRelationLabel({
+    relation: selectedRelation,
+    sourceNodeType: getDiscourseNodeTypeId({ shape: sourceNode }),
+    targetNodeType: getDiscourseNodeTypeId({ shape: targetNode }),
+  });
+  const relationColor = getRelationColor(selectedRelation.label);
+  const relationArrowId = createShapeId();
+
+  editor.createShape<DiscourseRelationShape>({
+    id: relationArrowId,
+    type: relationId,
+    parentId: arrow.parentId,
+    x: arrow.x,
+    y: arrow.y,
+    rotation: arrow.rotation,
+    opacity: arrow.opacity,
+    isLocked: arrow.isLocked,
+    meta: { ...arrow.meta },
+    props: {
+      bend: arrow.props.bend,
+      start: structuredClone(arrow.props.start),
+      end: structuredClone(arrow.props.end),
+      labelPosition: arrow.props.labelPosition,
+      dash: "draw",
+      size: "m",
+      fill: "none",
+      arrowheadStart: "none",
+      arrowheadEnd: "arrow",
+      font: "draw",
+      scale: 1,
+      color: relationColor,
+      labelColor: relationColor,
+      text: label,
+    },
+  });
+
+  const relationArrow =
+    editor.getShape<DiscourseRelationShape>(relationArrowId);
+  if (!relationArrow) return null;
+
+  createOrUpdateArrowBinding(
+    editor,
+    relationArrow,
+    boundNodes.startId,
+    copyArrowBindingProps(boundNodes.startBinding),
+  );
+  createOrUpdateArrowBinding(
+    editor,
+    relationArrow,
+    boundNodes.endId,
+    copyArrowBindingProps(boundNodes.endBinding),
+  );
+
+  await persistRelationArrow({
+    editor,
+    arrow: relationArrow,
+    targetId: boundNodes.endId,
+  });
+
+  const persistedArrow =
+    editor.getShape<DiscourseRelationShape>(relationArrowId);
+  if (!persistedArrow) {
+    editor.select(arrow.id);
+    return null;
+  }
+
+  editor.deleteShapes([arrow.id]);
+  editor.updateShapes([
+    { id: persistedArrow.id, type: persistedArrow.type, index: arrow.index },
+  ]);
+  editor.select(relationArrowId);
+
+  return relationArrowId;
+};
+
+type ShareableCanvasResult = Result & { type: string };
+
+const isCanvasDiscourseNodeShape = (
+  shape: TLShape,
+): shape is DiscourseNodeShape => isDiscourseNodeShape(shape);
+
+const getCanvasNodeText = (shape: DiscourseNodeShape): string =>
+  getPageTitleByPageUid(shape.props.uid) ||
+  getTextByBlockUid(shape.props.uid) ||
+  shape.props.title;
+
+export const getShareableCanvasSelectionResults = ({
+  shapes,
+}: {
+  shapes: TLShape[];
+}): ShareableCanvasResult[] => {
+  const seenUids = new Set<string>();
+
+  return shapes.reduce<ShareableCanvasResult[]>((results, shape) => {
+    if (!isCanvasDiscourseNodeShape(shape)) return results;
+
+    const { uid } = shape.props;
+    if (!uid || !isLiveBlock(uid) || seenUids.has(uid)) return results;
+
+    const text = getCanvasNodeText(shape);
+    if (!text) return results;
+
+    seenUids.add(uid);
+    results.push({ text, uid, type: getDiscourseNodeTypeId({ shape }) });
+    return results;
+  }, []);
+};
+
 export const CustomContextMenu = ({
   extensionAPI,
   allNodes,
@@ -237,12 +427,61 @@ export const CustomContextMenu = ({
     () => editor.getOnlySelectedShape(),
     [editor],
   );
+  const selectedShapes = useValue(
+    "selectedShapes",
+    () => editor.getSelectedShapes(),
+    [editor],
+  );
+  const shareableResults = getShareableCanvasSelectionResults({
+    shapes: selectedShapes,
+  });
   const isTextSelected = selectedShape?.type === "text";
   const isImageSelected = selectedShape?.type === "image";
+  const arrowRelationOptions = useValue(
+    "arrowRelationOptions",
+    () => {
+      if (!selectedShape || selectedShape.type !== "arrow") return null;
+      const boundNodes = getArrowBoundNodeInfo(editor, selectedShape);
+      if (!boundNodes) return null;
+      const relationTypes = getValidRelationTypesBetween(
+        editor,
+        boundNodes.startId,
+        boundNodes.endId,
+      );
+      if (relationTypes.length === 0) return null;
+      return { arrowId: selectedShape.id, ...boundNodes, relationTypes };
+    },
+    [editor, selectedShape],
+  );
 
   return (
     <DefaultContextMenu>
       <DefaultContextMenuContent />
+      {shareableResults.length > 0 && (
+        <TldrawUiMenuGroup id="share-data-group">
+          <TldrawUiMenuItem
+            id="share-data"
+            label="Share Data"
+            readonlyOk
+            onSelect={() => {
+              const currentSelectedShapes = editor.getSelectedShapes();
+              const currentResults = getShareableCanvasSelectionResults({
+                shapes: currentSelectedShapes,
+              });
+              if (!currentResults.length) return;
+
+              posthog.capture("Canvas: Share Data Clicked", {
+                resultCount: currentResults.length,
+                selectedShapeCount: currentSelectedShapes.length,
+              });
+              renderShareDataDialog({
+                results: currentResults,
+                isExportDiscourseGraph: true,
+              });
+            }}
+          />
+        </TldrawUiMenuGroup>
+      )}
       {(isTextSelected || isImageSelected) && (
         <TldrawUiMenuGroup id="convert-to-group">
           <TldrawUiMenuSubmenu id="convert-to-submenu" label="Convert To">
@@ -268,18 +507,41 @@ export const CustomContextMenu = ({
           </TldrawUiMenuSubmenu>
         </TldrawUiMenuGroup>
       )}
+      {arrowRelationOptions && (
+        <TldrawUiMenuGroup id="relation-group">
+          <TldrawUiMenuSubmenu id="relation-submenu" label="Relation">
+            {arrowRelationOptions.relationTypes.map((rt) => (
+              <TldrawUiMenuItem
+                key={rt.id}
+                id={`relation-${rt.id}`}
+                label={rt.label}
+                onSelect={async () => {
+                  const arrow = editor.getShape<TLArrowShape>(
+                    arrowRelationOptions.arrowId,
+                  );
+                  if (!arrow || arrow.type !== "arrow") return;
+
+                  await convertArrowToRelation({
+                    editor,
+                    arrow,
+                    relationId: rt.id,
+                  });
+                }}
+              />
+            ))}
+          </TldrawUiMenuSubmenu>
+        </TldrawUiMenuGroup>
+      )}
     </DefaultContextMenu>
   );
 };
 export const createUiComponents = ({
   allNodes,
-  allAddReferencedNodeActions,
   allRelationNames,
   canvasSyncMode,
 }: {
   allNodes: DiscourseNode[];
   allRelationNames: string[];
-  allAddReferencedNodeActions: string[];
   canvasSyncMode: CanvasSyncMode;
 }): TLUiComponents => {
   return {
@@ -349,11 +611,9 @@ export const createUiComponents = ({
       );
     },
     SharePanel: () => {
-      const allRelations = [
-        ...allRelationNames,
-        ...allAddReferencedNodeActions,
-      ];
-      return <DiscourseGraphPanel nodes={allNodes} relations={allRelations} />;
+      return (
+        <DiscourseGraphPanel nodes={allNodes} relations={allRelationNames} />
+      );
     },
   };
 };

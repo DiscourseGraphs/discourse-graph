@@ -65,9 +65,10 @@ import {
   createUiOverrides,
 } from "./uiOverrides";
 import {
-  BaseDiscourseNodeUtil,
+  DiscourseNodeUtil,
   DiscourseNodeShape,
   createNodeShapeTools,
+  DISCOURSE_NODE_SHAPE_TYPE,
 } from "./DiscourseNodeUtil";
 import { useRoamStore } from "./useRoamStore";
 import {
@@ -94,6 +95,7 @@ import { CanvasDrawerPanel } from "./CanvasDrawer";
 import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import internalError from "~/utils/internalError";
 import { syncCanvasNodeTitlesOnLoad } from "~/utils/syncCanvasNodeTitlesOnLoad";
+import { registerCanvasSessionStatePersistence } from "~/utils/canvasSessionState";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 import { HistoryEntry } from "@tldraw/store";
 import { TLRecord } from "@tldraw/tlschema";
@@ -113,6 +115,7 @@ import {
   CanvasStoreAdapterArgs,
   useCanvasStoreAdapterArgs,
 } from "./useCanvasStoreAdapterArgs";
+import { shouldCreateAutoCanvasRelations } from "./autoCanvasRelationsSuppression";
 import posthog from "posthog-js";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
@@ -778,12 +781,12 @@ const TldrawCanvasShared = ({
     return Object.keys(discourseContext.relations);
   }, []);
   const allNodes = useMemo(() => {
-    const allNodes = getDiscourseNodes(allRelations);
+    const allNodes = getDiscourseNodes();
     discourseContext.nodes = Object.fromEntries(
       allNodes.map((n, index) => [n.type, { ...n, index }]),
     );
     return allNodes;
-  }, [allRelations]);
+  }, []);
 
   const allAddReferencedNodeByAction = useMemo(() => {
     const obj: AddReferencedNodeType = {};
@@ -814,15 +817,9 @@ const TldrawCanvasShared = ({
 
     return obj;
   }, [allNodes]);
-  const allAddReferencedNodeActions = useMemo(() => {
-    return Object.keys(allAddReferencedNodeByAction);
-  }, [allAddReferencedNodeByAction]);
 
   const isRelationTool = (toolId: string) => {
-    return (
-      allRelationNames.includes(toolId) ||
-      allAddReferencedNodeActions.includes(toolId)
-    );
+    return allRelationNames.includes(toolId);
   };
 
   // Add state for tracking relation creation
@@ -864,10 +861,8 @@ const TldrawCanvasShared = ({
       if (relationCreationRef.current.isCreating) {
         // Find the relation shape that was just created
         const selectedShapes = app.getSelectedShapes();
-        const relationShape = selectedShapes.find(
-          (shape) =>
-            allRelationIds.includes(shape.type) ||
-            allAddReferencedNodeActions.includes(shape.type),
+        const relationShape = selectedShapes.find((shape) =>
+          allRelationIds.includes(shape.type),
         );
 
         if (relationShape) {
@@ -1005,7 +1000,6 @@ const TldrawCanvasShared = ({
   const customUiComponents: TLUiComponents = createUiComponents({
     allNodes,
     allRelationNames,
-    allAddReferencedNodeActions,
     canvasSyncMode,
   });
 
@@ -1158,13 +1152,14 @@ const TldrawCanvasShared = ({
       if (nodeType) {
         app.createShapes([
           {
-            type: nodeType.type,
+            type: DISCOURSE_NODE_SHAPE_TYPE,
             id: createShapeId(),
             props: {
               uid: e.detail.uid,
               title: e.detail.val,
               size: "s",
               fontFamily: "sans",
+              nodeTypeId: nodeType.type,
             },
             ...position,
           },
@@ -1350,6 +1345,14 @@ const TldrawCanvasShared = ({
             components={editorComponents}
             store={store}
             onMount={(app) => {
+              const unregisterCanvasSessionStatePersistence =
+                registerCanvasSessionStatePersistence({
+                  editor: app,
+                  graphName: window.roamAlphaAPI.graph.name,
+                  userUid: window.roamAlphaAPI.user.uid() || "",
+                  pageUid,
+                });
+
               if (process.env.NODE_ENV !== "production") {
                 if (!window.tldrawApps) window.tldrawApps = {};
                 const { tldrawApps } = window;
@@ -1394,10 +1397,8 @@ const TldrawCanvasShared = ({
                 // navigate / open in sidebar
                 const validModifier = e.shiftKey || e.ctrlKey; // || e.metaKey;
                 if (!(e.name === "pointer_up" && validModifier)) return;
-                const shape = app.getShapeAtPoint(
-                  app.inputs.currentPagePoint,
-                ) as DiscourseNodeShape;
-                if (!shape) return;
+                const shape = app.getShapeAtPoint(app.inputs.currentPagePoint);
+                if (!shape || !isDiscourseNodeShape(app, shape)) return;
                 const shapeUid = shape.props.uid;
 
                 if (!isLiveBlock(shapeUid)) {
@@ -1438,6 +1439,10 @@ const TldrawCanvasShared = ({
                   }
                 }
               });
+
+              return () => {
+                unregisterCanvasSessionStatePersistence();
+              };
             }}
           >
             <ClipboardProvider canvasPageTitle={title}>
@@ -1450,7 +1455,6 @@ const TldrawCanvasShared = ({
                   extensionAPI={extensionAPI}
                   allNodes={allNodes}
                   // allRelationIds={allRelationIds}
-                  // allAddReferencedNodeActions={allAddReferencedNodeActions}
                 />
                 <CanvasDrawerPanel />
                 <ClipboardPanel />
@@ -1469,12 +1473,10 @@ const InsideEditorAndUiContext = ({
   extensionAPI,
   allNodes,
   // allRelationIds,
-  // allAddReferencedNodeActions,
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
   allNodes: DiscourseNode[];
   // allRelationIds: string[];
-  // allAddReferencedNodeActions: string[];
 }) => {
   const editor = useEditor();
   const toasts = useToasts();
@@ -1485,11 +1487,9 @@ const InsideEditorAndUiContext = ({
   //   // possibly migrate to shape.type or shape.name
   //   // or add as meta
   //   const allRelationIdSet = new Set(allRelationIds);
-  //   const allAddReferencedNodeActionsSet = new Set(allAddReferencedNodeActions);
 
   //   return (
-  //     allRelationIdSet.has(shape.type) ||
-  //     allAddReferencedNodeActionsSet.has(shape.type)
+  //     allRelationIdSet.has(shape.type)
   //   );
   // };
 
@@ -1521,7 +1521,7 @@ const InsideEditorAndUiContext = ({
       editor.createShapes([
         {
           id: createShapeId(),
-          type: nodeType,
+          type: DISCOURSE_NODE_SHAPE_TYPE,
           x: position.x - w / 2,
           y: position.y - h / 2,
           props: {
@@ -1532,6 +1532,7 @@ const InsideEditorAndUiContext = ({
             ...(imageUrl && { imageUrl }),
             size: "s",
             fontFamily: "sans",
+            nodeTypeId: nodeType,
           },
         },
       ]);
@@ -1803,19 +1804,24 @@ const InsideEditorAndUiContext = ({
         );
 
       const removeAfterCreateHandler =
-        editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
-          const util = editor.getShapeUtil(shape);
-          if (util instanceof BaseDiscourseNodeUtil) {
-            const autoCanvasRelations = getPersonalSetting<boolean>([
-              PERSONAL_KEYS.autoCanvasRelations,
-            ]);
-            if (autoCanvasRelations) {
-              void util.createExistingRelations({
-                shape: shape as DiscourseNodeShape,
-              });
+        editor.sideEffects.registerAfterCreateHandler(
+          "shape",
+          (shape, source) => {
+            if (!shouldCreateAutoCanvasRelations({ source })) return;
+
+            const util = editor.getShapeUtil(shape);
+            if (util instanceof DiscourseNodeUtil) {
+              const autoCanvasRelations = getPersonalSetting<boolean>([
+                PERSONAL_KEYS.autoCanvasRelations,
+              ]);
+              if (autoCanvasRelations) {
+                void util.createExistingRelations({
+                  shape: shape as DiscourseNodeShape,
+                });
+              }
             }
-          }
-        });
+          },
+        );
 
       return () => {
         removeBeforeChangeHandler();

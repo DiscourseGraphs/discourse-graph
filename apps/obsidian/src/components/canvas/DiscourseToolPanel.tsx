@@ -121,7 +121,7 @@ export const DiscourseToolPanel = ({
           }
           dragState.set({ name: "idle" });
           // keep didDrag true through click phase; reset on next tick
-          setTimeout(() => {
+          window.setTimeout(() => {
             didDragRef.current = false;
           }, 0);
           break;
@@ -161,7 +161,7 @@ export const DiscourseToolPanel = ({
       switch (current.name) {
         case "idle":
         case "pointing_item": {
-          imageRef.style.display = "none";
+          imageRef.setAttribute("style", "display: none");
           break;
         }
         case "dragging": {

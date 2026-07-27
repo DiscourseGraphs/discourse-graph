@@ -23,7 +23,10 @@ import {
   approximately,
   BindingOnShapeDeleteOptions,
 } from "tldraw";
-import { DiscourseRelationShape } from "./DiscourseRelationUtil";
+import {
+  DISCOURSE_RELATION_SHAPE_TYPE,
+  DiscourseRelationShape,
+} from "./DiscourseRelationUtil";
 import {
   assert,
   getArrowBindings,
@@ -43,11 +46,17 @@ export const createAllReferencedNodeBindings = (
   });
 };
 export const createAllRelationBindings = (relationIds: string[]) => {
-  return relationIds.map((id) => {
+  const relationBindings = relationIds.map((id) => {
     return class RelationBindingUtil extends BaseRelationBindingUtil {
       static override type = id;
     };
   });
+
+  class DiscourseRelationFallbackBindingUtil extends BaseRelationBindingUtil {
+    static override type = DISCOURSE_RELATION_SHAPE_TYPE;
+  }
+
+  return [...relationBindings, DiscourseRelationFallbackBindingUtil];
 };
 
 export type RelationBindings = {
@@ -231,6 +240,7 @@ function reparentArrow(editor: Editor, arrowId: TLShapeId) {
   let finalIndex: IndexKey;
 
   const relationIds = new Set(getDiscourseRelations().map((r) => r.id));
+  relationIds.add(DISCOURSE_RELATION_SHAPE_TYPE);
   relationIds.add("arrow");
 
   // if the next sibling is also a bound arrow though, we can end up

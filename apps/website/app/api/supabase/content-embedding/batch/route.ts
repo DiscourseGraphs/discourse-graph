@@ -23,7 +23,7 @@ const batchInsertEmbeddingsProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
   embeddingItems: ContentEmbeddingVecTablesInsert[],
 ): Promise<PostgrestResponse<ContentEmbeddingVecTables>> => {
-  // groupBy is node21 only, we are using 20. Group by model, by hand.
+  // groupBy is node21 only, this was implemented in node20. Group by model, by hand.
   // Note: This means that later index values may be totally wrong.
   // Note2: The key is a ModelName, but I cannot use an enum as a key.
   const byModel: { [key: string]: ContentEmbeddingVecTablesInsert[] } = {};

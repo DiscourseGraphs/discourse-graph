@@ -42,7 +42,9 @@ export const getDiscourseNodeColors = ({
   return { backgroundColor, textColor };
 };
 
-export const getNodeTagStyles = (color: string): CSSProperties | undefined => {
+const getNodeTagColorProperties = (
+  color: string,
+): Pick<CSSProperties, "backgroundColor" | "color" | "border"> | undefined => {
   const formattedColor = formatHexColor(color);
   if (!formattedColor) return undefined;
   const { background, text, border } = getPleasingColors(
@@ -52,6 +54,19 @@ export const getNodeTagStyles = (color: string): CSSProperties | undefined => {
     backgroundColor: background,
     color: text,
     border: `1px solid ${border}`,
+  };
+};
+
+/** Color tokens for Blueprint `Tag` (layout handled by the component). */
+export const getNodeTagColorStyles = (
+  color: string,
+): CSSProperties | undefined => getNodeTagColorProperties(color);
+
+export const getNodeTagStyles = (color: string): CSSProperties | undefined => {
+  const colorStyles = getNodeTagColorProperties(color);
+  if (!colorStyles) return undefined;
+  return {
+    ...colorStyles,
     fontWeight: "500",
     padding: "2px 6px",
     borderRadius: "12px",

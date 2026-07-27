@@ -13,7 +13,7 @@ export type DiscourseNodeInVault = {
 /**
  * Collect all discourse nodes from the vault.
  * Uses DataCore when available; falls back to vault iteration otherwise.
- * When includeImported is false (default), excludes files with importedFromRid/importedFromSpaceUri.
+ * When includeImported is false (default), excludes files with importedFromRid.
  */
 export const collectDiscourseNodesFromVault = async (
   plugin: DiscourseGraphPlugin,

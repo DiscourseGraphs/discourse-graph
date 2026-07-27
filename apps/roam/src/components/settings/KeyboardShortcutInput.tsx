@@ -7,7 +7,7 @@ import {
   IKeyCombo,
   Label,
 } from "@blueprintjs/core";
-import Description from "roamjs-components/components/Description";
+import Description from "~/components/settings/SettingsDescription";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { comboToString } from "~/components/DiscourseNodeMenu";
@@ -18,7 +18,7 @@ type KeyboardShortcutInputProps = {
   settingKey: string;
   blockPropKey: keyof PersonalSettings;
   label: string;
-  description: string;
+  description: React.ReactNode;
   initialValue: IKeyCombo;
   placeholder?: string;
 };

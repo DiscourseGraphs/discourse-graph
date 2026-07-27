@@ -154,7 +154,7 @@ const AddRelationship = ({
   }, [availableRelationTypes, selectedRelationType]);
 
   const searchNodes = useCallback(
-    async (query: string): Promise<TFile[]> => {
+    (query: string): TFile[] => {
       if (!queryEngineRef.current) {
         setSearchError("Search engine not initialized");
         return [];
@@ -181,13 +181,12 @@ const AddRelationship = ({
 
         const nodeTypeIdsToSearch = compatibleNodeTypes.map((type) => type.id);
 
-        const results =
-          await queryEngineRef.current.searchCompatibleNodeByTitle({
-            query,
-            compatibleNodeTypeIds: nodeTypeIdsToSearch,
-            activeFile,
-            selectedRelationType: selectedRelationType?.id || "",
-          });
+        const results = queryEngineRef.current.searchCompatibleNodeByTitle({
+          query,
+          compatibleNodeTypeIds: nodeTypeIdsToSearch,
+          activeFile,
+          selectedRelationType: selectedRelationType?.id || "",
+        });
 
         if (results.length === 0 && query.length >= 2) {
           setSearchError(
@@ -331,7 +330,7 @@ const AddRelationship = ({
       <div className="mb-4">
         <label className="mb-2 block">Node to link with:</label>
         <SearchBar<TFile>
-          asyncSearch={searchNodes}
+          asyncSearch={async (query) => Promise.resolve(searchNodes(query))}
           onSelect={setSelectedNode}
           placeholder={
             selectedRelationType

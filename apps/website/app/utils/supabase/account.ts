@@ -85,14 +85,10 @@ export const createGroupInvitation = async ({
     .eq("member_id", userData.id)
     .maybeSingle();
   if (membershipReq.data?.admin !== true) return null;
-  /* eslint-disable @typescript-eslint/naming-convention */
   const { data, error } = await client.rpc("create_secret_token", {
-    /* eslint-disable @typescript-eslint/naming-convention */
     v_payload: { groupId, type: "groupInvitation", admin },
     expiry_interval: "60d",
-    /* eslint-enable @typescript-eslint/naming-convention */
   });
-  /* eslint-enable @typescript-eslint/naming-convention */
   if (error || !data) return null;
   return data;
 };
@@ -114,12 +110,27 @@ export const acceptGroupInvitation = async (
 export const createGroup = async (
   client: DGSupabaseClient,
   name: string,
-): Promise<string | null> => {
+): Promise<{ groupId: string | null; error: string | null }> => {
   const result = await client.functions.invoke<{ group_id: string }>(
     "create-group",
     { body: { name } },
   );
-  return result.data?.group_id || null;
+  if (result.error) {
+    let message =
+      typeof result.error === "string"
+        ? result.error
+        : (result.error as { message: string }).message;
+    try {
+      const body = (await (
+        result.error as { context?: Response }
+      ).context?.json()) as { msg?: string } | undefined;
+      if (body?.msg) message = body.msg;
+    } catch {
+      // ignore parse errors
+    }
+    return { groupId: null, error: message };
+  }
+  return { groupId: result.data?.group_id ?? null, error: null };
 };
 
 export const removeFromGroup = async ({

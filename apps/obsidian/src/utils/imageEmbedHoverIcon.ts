@@ -37,7 +37,7 @@ const createConvertIcon = (
   embedEl: HTMLElement,
   plugin: DiscourseGraphPlugin,
 ): HTMLButtonElement => {
-  const btn = document.createElement("button");
+  const btn = createEl("button");
   btn.className = `${ICON_CLASS} absolute z-[2] right-[42px] h-[28px] w-[28px] flex border-none opacity-0 pointer-events-none`;
   btn.title = "Convert to node";
   setIcon(btn, "file-input");
@@ -130,7 +130,7 @@ export const createImageEmbedHoverExtension = (
             .querySelectorAll<HTMLElement>(`.${EMBED_ACTIVE_CLASS}`)
             .forEach(hideButtonForEmbed);
         };
-        document.addEventListener("mousedown", this.handleOutsideClick);
+        activeDocument.addEventListener("mousedown", this.handleOutsideClick);
 
         // Obsidian renders embeds asynchronously after doc changes,
         // so we need a MutationObserver to catch newly added image embeds.
@@ -166,7 +166,10 @@ export const createImageEmbedHoverExtension = (
 
       destroy(): void {
         this.observer.disconnect();
-        document.removeEventListener("mousedown", this.handleOutsideClick);
+        activeDocument.removeEventListener(
+          "mousedown",
+          this.handleOutsideClick,
+        );
         // Abort removes all embed-level mousedown listeners added via processContainer
         this.abortController.abort();
         const icons = this.dom.querySelectorAll(`.${ICON_CLASS}`);

@@ -2,7 +2,7 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 import "@supabase/functions-js/edge-runtime";
-import { corsHeaders } from '@supabase/supabase-js/cors'
+import { corsHeaders } from "@supabase/supabase-js/cors";
 import {
   createClient,
   type User,
@@ -168,7 +168,7 @@ const processAndGetOrCreateSpace = async (
       {
         space_id,
         account_uid: anonymousUser.id,
-        permissions: 'editor',
+        permissions: "editor",
       },
       {
         onConflict: "account_uid,space_id",
@@ -183,7 +183,11 @@ const processAndGetOrCreateSpace = async (
 };
 
 // The following lines are duplicated from apps/website/app/utils/llm/cors.ts
-const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000", "app://obsidian.md"];
+const allowedOrigins = [
+  "https://roamresearch.com",
+  "http://localhost:3000",
+  "app://obsidian.md",
+];
 
 const isVercelPreviewUrl = (origin: string): boolean =>
   /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin);
@@ -196,7 +200,10 @@ const isAllowedOrigin = (origin: string): boolean =>
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   const originIsAllowed = origin && isAllowedOrigin(origin);
-  const myCorsHeaders = {...corsHeaders, "Access-Control-Allow-Origin": originIsAllowed? origin:''};
+  const myCorsHeaders = {
+    ...corsHeaders,
+    "Access-Control-Allow-Origin": originIsAllowed ? origin : "",
+  };
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -206,10 +213,16 @@ Deno.serve(async (req) => {
 
   // @ts-ignore Deno is not visible to the IDE
   const url = Deno.env.get("SUPABASE_URL") as string | undefined;
-  // @ts-ignore Deno is not visible to the IDE
-  const key = Deno.env.get("SB_SECRET_KEY") as string | undefined;
+  let key: string | undefined;
+  try {
+    // @ts-ignore Deno is not visible to the IDE
+    const secretKeysRaw = Deno.env.get("SUPABASE_SECRET_KEYS");
+    if (secretKeysRaw) key = JSON.parse(secretKeysRaw)["default"] as string;
+  } catch {
+    // fall through to the guard below
+  }
   if (!url || !key) {
-    return new Response("Missing SUPABASE_URL or SB_SECRET_KEY", {
+    return new Response("Missing SUPABASE_URL or SUPABASE_SECRET_KEYS", {
       status: 500,
       headers: myCorsHeaders,
     });
@@ -217,27 +230,34 @@ Deno.serve(async (req) => {
 
   // check that we have at least a valid anonymous token with a dummy query.
   // Unfortunately, this seems to be too permissive.
-  const authHeader = req.headers.get('Authorization') as string | undefined;
+  const authHeader = req.headers.get("Authorization") as string | undefined;
   if (!authHeader) {
     return Response.json(
-      { msg: 'Missing authorization headers' },
+      { msg: "Missing authorization headers" },
       {
         status: 401,
         headers: myCorsHeaders,
-      }
-    )
+      },
+    );
   }
-  const token = authHeader.replace('Bearer ', '');
-  const supabaseAnonClient: DGSupabaseClient = createClient(
-    url, token, { global: { headers: { Authorization: authHeader } } });
+  const token = authHeader.replace("Bearer ", "");
+  const supabaseAnonClient: DGSupabaseClient = createClient(url, token, {
+    global: { headers: { Authorization: authHeader } },
+  });
   {
-    const { error } = await supabaseAnonClient.from("Space").select("id").limit(1);
+    const { error } = await supabaseAnonClient
+      .from("Space")
+      .select("id")
+      .limit(1);
     if (error?.code) {
-      const {code, message, name} = error;
-      return Response.json({code, message, name}, {
-        status: 401,
-        headers: myCorsHeaders,
-      });
+      const { code, message, name } = error;
+      return Response.json(
+        { code, message, name },
+        {
+          status: 401,
+          headers: myCorsHeaders,
+        },
+      );
     }
   }
 
@@ -252,25 +272,32 @@ Deno.serve(async (req) => {
     // TODO: Validate input
     // For now, errors will be caught downstream
   } catch (error) {
-    return Response.json({
-      msg: 'Invalid JSON in request body', error: String(error?.message ?? error)
-    }, {
-      status: 400,
-      headers: myCorsHeaders,
-    });
+    return Response.json(
+      {
+        msg: "Invalid JSON in request body",
+        error: String(error?.message ?? error),
+      },
+      {
+        status: 400,
+        headers: myCorsHeaders,
+      },
+    );
   }
 
   const { data, error } = await processAndGetOrCreateSpace(supabase, input!);
   if (error) {
-    const {code, message, name} = error;
+    const { code, message, name } = error;
     const status = code === "invalid space" ? 400 : 500;
-    return Response.json({code, message, name}, {
-      status,
-      headers: myCorsHeaders,
-    });
+    return Response.json(
+      { code, message, name },
+      {
+        status,
+        headers: myCorsHeaders,
+      },
+    );
   }
 
-  return Response.json(data, {headers: myCorsHeaders });
+  return Response.json(data, { headers: myCorsHeaders });
 });
 
 /* To invoke locally:

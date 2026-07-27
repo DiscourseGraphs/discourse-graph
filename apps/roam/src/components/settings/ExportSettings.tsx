@@ -11,6 +11,7 @@ import {
   EXPORT_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import { type SettingsSnapshot } from "./utils/accessors";
+import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const DiscourseGraphExport = ({
   globalSettings,
@@ -27,7 +28,10 @@ const DiscourseGraphExport = ({
       <div>
         <GlobalFlagPanel
           title="remove special characters"
-          description="Whether or not to remove the special characters in a file name"
+          description={withDocsLink(
+            "Whether or not to remove the special characters in a file name.",
+            ROAM_DOCS.sharing,
+          )}
           settingKeys={[
             GLOBAL_KEYS.export,
             EXPORT_KEYS.removeSpecialCharacters,
@@ -40,7 +44,10 @@ const DiscourseGraphExport = ({
 
         <GlobalFlagPanel
           title="resolve block references"
-          description="Replaces block references in the markdown content with the block's content"
+          description={withDocsLink(
+            "Replaces block references in the markdown content with the block's content.",
+            ROAM_DOCS.sharing,
+          )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.resolveBlockReferences]}
           initialValue={exportBlockProps[EXPORT_KEYS.resolveBlockReferences]}
           order={3}
@@ -49,7 +56,10 @@ const DiscourseGraphExport = ({
         />
         <GlobalFlagPanel
           title="resolve block embeds"
-          description="Replaces block embeds in the markdown content with the block's content tree"
+          description={withDocsLink(
+            "Replaces block embeds in the markdown content with the block's content tree.",
+            ROAM_DOCS.sharing,
+          )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.resolveBlockEmbeds]}
           initialValue={exportBlockProps[EXPORT_KEYS.resolveBlockEmbeds]}
           order={4}
@@ -59,7 +69,10 @@ const DiscourseGraphExport = ({
 
         <GlobalFlagPanel
           title="append referenced node"
-          description="If a referenced node is defined in a node's format, it will be appended to the discourse context"
+          description={withDocsLink(
+            "If a referenced node is defined in a node's format, it will be appended to the discourse context.",
+            ROAM_DOCS.sharing,
+          )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.appendReferencedNode]}
           initialValue={exportBlockProps[EXPORT_KEYS.appendReferencedNode]}
           order={6}
@@ -70,7 +83,10 @@ const DiscourseGraphExport = ({
       <div className="link-type-select-wrapper">
         <GlobalSelectPanel
           title="link type"
-          description="How to format links that appear in your export."
+          description={withDocsLink(
+            "How to format links that appear in your export.",
+            ROAM_DOCS.sharing,
+          )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.linkType]}
           initialValue={exportBlockProps[EXPORT_KEYS.linkType]}
           order={5}
@@ -81,7 +97,10 @@ const DiscourseGraphExport = ({
       </div>
       <GlobalNumberPanel
         title="max filename length"
-        description="Set the maximum name length for markdown file exports"
+        description={withDocsLink(
+          "Set the maximum name length for markdown file exports.",
+          ROAM_DOCS.sharing,
+        )}
         settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.maxFilenameLength]}
         initialValue={exportBlockProps[EXPORT_KEYS.maxFilenameLength]}
         order={0}
@@ -90,7 +109,10 @@ const DiscourseGraphExport = ({
       />
       <GlobalMultiTextPanel
         title="frontmatter"
-        description="Specify all the lines that should go to the Frontmatter of the markdown file"
+        description={withDocsLink(
+          "Specify all the lines that should go to the Frontmatter of the markdown file.",
+          ROAM_DOCS.sharing,
+        )}
         settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.frontmatter]}
         initialValue={exportBlockProps[EXPORT_KEYS.frontmatter]}
         order={2}

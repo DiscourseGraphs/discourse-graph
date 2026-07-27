@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { usePlugin } from "./PluginContext";
 import { setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
-import { SLACK_LOGO, WHITE_LOGO_SVG } from "~/icons";
+import { DiscourseGraphLogoIcon, SlackLogoIcon } from "./Icons";
+import { FeedbackModal } from "./FeedbackModal";
 
 const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
 const COMMUNITY_URL =
@@ -10,17 +11,6 @@ const COMMUNITY_URL =
 
 const InfoSection = () => {
   const plugin = usePlugin();
-  const logoRef = useRef<HTMLDivElement>(null);
-  const communityIconRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (logoRef.current) {
-      logoRef.current.innerHTML = WHITE_LOGO_SVG;
-    }
-    if (communityIconRef.current) {
-      communityIconRef.current.innerHTML = SLACK_LOGO;
-    }
-  }, []);
 
   return (
     <div className="flex justify-center">
@@ -29,10 +19,11 @@ const InfoSection = () => {
         style={{ background: "var(--tag-background)" }}
       >
         <div
-          ref={logoRef}
           className="flex h-12 w-12 items-center justify-center"
           style={{ color: "var(--interactive-accent)" }}
-        />
+        >
+          <DiscourseGraphLogoIcon />
+        </div>
         <div
           className="font-semibold"
           style={{ color: "var(--interactive-accent)" }}
@@ -48,7 +39,9 @@ const InfoSection = () => {
           rel="noopener noreferrer"
           aria-label="Community"
         >
-          <div ref={communityIconRef} className="icon" />
+          <span className="icon flex items-center">
+            <SlackLogoIcon />
+          </span>
           <span>Community</span>
           <span
             className="icon"
@@ -73,6 +66,20 @@ const InfoSection = () => {
             ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
           />
         </a>
+
+        <button
+          onClick={() => new FeedbackModal(plugin.app, plugin).open()}
+          className="mt-2 flex cursor-pointer items-center gap-1 rounded border-none bg-transparent px-2 py-1 text-sm hover:opacity-80"
+          style={{ color: "var(--interactive-accent)" }}
+          aria-label="Send feedback"
+        >
+          <span
+            className="icon inline-flex items-center"
+            ref={(el) => (el && setIcon(el, "message-square")) || undefined}
+          />
+          <span>Send feedback</span>
+        </button>
+
         <span
           className="text-muted text-xs"
           style={{ color: "var(--interactive-accent)" }}
@@ -301,7 +308,7 @@ const GeneralSettings = () => {
                 handleNodeTagHotkeyChange("");
               }
             }}
-            placeholder="\\"
+            placeholder="\"
             maxLength={1}
           />
         </div>

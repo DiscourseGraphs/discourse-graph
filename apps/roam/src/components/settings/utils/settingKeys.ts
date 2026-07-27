@@ -1,4 +1,5 @@
 import type {
+  FeatureFlags,
   PersonalSettings,
   QuerySettings,
   GlobalSettings,
@@ -10,11 +11,16 @@ import type {
   SuggestiveRules,
 } from "./zodSchema";
 
+export const FEATURE_FLAG_KEYS = {
+  enableLeftSidebar: "Enable left sidebar",
+  suggestiveModeOverlayEnabled: "Suggestive mode overlay enabled",
+  useNewSettingsStore: "Use new settings store",
+} as const satisfies Record<string, keyof FeatureFlags>;
+
 export const PERSONAL_KEYS = {
   discourseContextOverlay: "Discourse context overlay",
   textSelectionPopup: "Text selection popup",
   disableSidebarOpen: "Disable sidebar open",
-  pagePreview: "Page preview",
   hideFeedbackButton: "Hide feedback button",
   autoCanvasRelations: "Auto canvas relations",
   overlayInCanvas: "Overlay in canvas",
@@ -24,6 +30,7 @@ export const PERSONAL_KEYS = {
   personalNodeMenuTrigger: "Personal node menu trigger",
   nodeSearchMenuTrigger: "Node search menu trigger",
   leftSidebar: "Left sidebar",
+  globalSectionFolded: "Global section folded",
   query: "Query",
   reifiedRelationTriples: "Reified relation triples",
   canvasNodeShortcuts: "Canvas node shortcuts",
@@ -53,7 +60,6 @@ export const SUGGESTIVE_MODE_KEYS = {
 
 export const LEFT_SIDEBAR_KEYS = {
   children: "Children",
-  settings: "Settings",
 } as const satisfies Record<string, keyof LeftSidebarGlobalSettings>;
 
 export const EXPORT_KEYS = {
@@ -65,14 +71,6 @@ export const EXPORT_KEYS = {
   maxFilenameLength: "Max filename length",
   frontmatter: "Frontmatter",
 } as const satisfies Record<string, keyof ExportSettings>;
-
-export const LEFT_SIDEBAR_SETTINGS_KEYS = {
-  collapsable: "Collapsable",
-  folded: "Folded",
-} as const satisfies Record<
-  string,
-  keyof LeftSidebarGlobalSettings["Settings"]
->;
 
 export const DISCOURSE_NODE_KEYS = {
   canvasSettings: "canvasSettings",

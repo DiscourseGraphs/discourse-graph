@@ -308,6 +308,6 @@ class Pointing extends StateNode {
     }, 320);
   }
   public clearPreciseTimeout() {
-    clearTimeout(this.preciseTimeout);
+    window.clearTimeout(this.preciseTimeout);
   }
 }

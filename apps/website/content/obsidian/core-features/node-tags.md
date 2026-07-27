@@ -61,7 +61,9 @@ When you hover over a tagged line, a button appears above the tag:
    ![On hover](/docs/obsidian/on-hover-node-tag.png)
 3. **Click** the button to open the node creation dialog
    ![Node creation dialog](/docs/obsidian/create-node-dialog-node-tag.png)
-4. Click "Confirm" to create node
+4. Click **Confirm** to create the node (or select an existing node if you want to insert one instead of creating a new file)
+
+This flow uses the same modal as the other entry points. For a full list of create-node options, see [Creating discourse nodes](/docs/obsidian/core-features/creating-discourse-nodes).
 
 You'll see that the candidate node is now replaced with a formalized node
 ![node created from tag](/docs/obsidian/node-tag-created.png)

@@ -1,6 +1,6 @@
 import { Editor, TLShape } from "tldraw";
 import {
-  BaseDiscourseNodeUtil,
+  DiscourseNodeUtil,
   DiscourseNodeShape,
 } from "~/components/canvas/DiscourseNodeUtil";
 import { discourseContext } from "~/components/canvas/Tldraw";
@@ -10,7 +10,7 @@ export const isDiscourseNodeShape = (
   shape: TLShape,
 ): shape is DiscourseNodeShape => {
   try {
-    return editor.getShapeUtil(shape) instanceof BaseDiscourseNodeUtil;
+    return editor.getShapeUtil(shape) instanceof DiscourseNodeUtil;
   } catch {
     return false;
   }

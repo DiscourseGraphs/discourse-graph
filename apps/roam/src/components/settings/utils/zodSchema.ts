@@ -57,7 +57,6 @@ export const IndexSchema = z.object({
 type RoamNode = {
   text: string;
   children?: RoamNode[];
-  uid?: string;
   heading?: 0 | 1 | 2 | 3;
   open?: boolean;
 };
@@ -66,7 +65,6 @@ export const RoamNodeSchema: z.ZodType<RoamNode> = z.lazy(() =>
   z.object({
     text: z.string(),
     children: RoamNodeSchema.array().optional(),
-    uid: z.string().optional(),
     heading: z
       .union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
       .optional(),
@@ -159,7 +157,6 @@ export const DiscourseRelationSchema = z.object({
 export const FeatureFlagsSchema = z.object({
   "Advanced node search enabled": z.boolean().default(false),
   "Enable left sidebar": z.boolean().default(false),
-  "Duplicate node alert enabled": z.boolean().default(false),
   "Suggestive mode overlay enabled": z.boolean().default(false),
   "Use new settings store": z.boolean().default(false),
 });
@@ -187,12 +184,6 @@ export const SuggestiveModeGlobalSettingsSchema = z.object({
 
 export const LeftSidebarGlobalSettingsSchema = z.object({
   Children: z.array(z.string()).default([]),
-  Settings: z
-    .object({
-      Collapsable: z.boolean().default(false),
-      Folded: z.boolean().default(false),
-    })
-    .default({}),
 });
 
 export const GlobalSettingsSchema = z.object({
@@ -220,6 +211,8 @@ export const PersonalSectionSchema = z.object({
     .object({
       "Truncate-result?": z.number().default(75),
       Folded: z.boolean().default(false),
+      Alias: z.string().default(""),
+      "Result-limit": z.number().int().min(0).default(10),
     })
     .default({}),
 });
@@ -242,6 +235,7 @@ export const QuerySettingsSchema = z.object({
 
 export const PersonalSettingsSchema = z.object({
   "Left sidebar": LeftSidebarPersonalSettingsSchema,
+  "Global section folded": z.boolean().default(false),
   "Personal node menu trigger": z
     .union([
       z.object({ modifiers: z.number(), key: z.string() }),
@@ -257,7 +251,6 @@ export const PersonalSettingsSchema = z.object({
   "Overlay in canvas": z.boolean().default(false),
   "Text selection popup": z.boolean().default(true),
   "Disable sidebar open": z.boolean().default(false),
-  "Page preview": z.boolean().default(false),
   "Hide feedback button": z.boolean().default(false),
   "Streamline styling": z.boolean().default(false),
   "Auto canvas relations": z.boolean().default(false),

@@ -27,8 +27,12 @@ dgb:Role
         [a owl:Restriction; owl:onProperty rdfs:range ; owl:allValuesFrom dgb:NodeSchema ];
     rdfs:comment "A role within a node schema"@en .
 
-dgb:RelationDef rdfs:subClassOf owl:ObjectProperty;
+
+dgb:AbstractRelationDef rdfs:comment "DiscourseGraph relation definitions"@en.
+
+dgb:RelationDef rdfs:subClassOf owl:ObjectProperty, dgb:AbstractRelationDef;
   rdfs:comment "DiscourseGraph relations"@en.
+
 
 dgb:RelationInstance rdfs:subClassOf rdf:Statement, dgb:NodeSchema,
   [a owl:Restriction; owl:onProperty rdfs:predicate ; owl:allValuesFrom dgb:RelationDef ].

@@ -23,6 +23,7 @@ import {
   getPersonalSettingsKey,
 } from "./zodSchema";
 import type { z } from "zod";
+import { invalidateDiscourseNodeTypeCaches } from "~/utils/discourseNodeTypeCache";
 
 const LOG_PREFIX = "[DG BlockProps Migration]";
 const GRAPH_MIGRATION_MARKER = "Block props migrated";
@@ -63,11 +64,13 @@ const migrateSection = ({
   blockUid,
   schema,
   legacyData,
+  onWrite,
 }: {
   label: string;
   blockUid: string;
   schema: z.ZodTypeAny;
   legacyData: Record<string, unknown>;
+  onWrite?: () => void;
 }): boolean => {
   const currentProps = getBlockProps(blockUid);
 
@@ -103,6 +106,7 @@ const migrateSection = ({
   }
 
   setBlockProps(blockUid, parsedLegacy, false);
+  onWrite?.();
   console.log(`${LOG_PREFIX} ${label}: migrated`);
   return true;
 };
@@ -156,6 +160,7 @@ const migrateDiscourseNodes = async (): Promise<boolean> => {
         blockUid: nodePageUid,
         schema: DiscourseNodeSchema,
         legacyData,
+        onWrite: invalidateDiscourseNodeTypeCaches,
       })
     ) {
       allOk = false;

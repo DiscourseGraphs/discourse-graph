@@ -32,7 +32,7 @@ BEGIN
 END;
 $$;
 
-ALTER TABLE secret_token OWNER TO "postgres";
+ALTER TABLE public.secret_token OWNER TO "postgres";
 
 REVOKE ALL ON TABLE public.secret_token FROM anon;
 GRANT ALL ON TABLE public.secret_token TO authenticated;

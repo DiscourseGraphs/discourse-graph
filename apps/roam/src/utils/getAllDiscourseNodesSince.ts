@@ -2,7 +2,7 @@ import { type DiscourseNode } from "./getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
 import extractRef from "roamjs-components/util/extractRef";
 
-type ISODateString = string;
+const DEFAULT_TIME = new Date("1970-01-01").getTime();
 
 export type RoamDiscourseNodeData = {
   author_local_id: string;
@@ -63,10 +63,10 @@ export const getDiscourseNodeTypeWithSettingsBlockNodes = async (
 };
 
 export const getAllDiscourseNodesSince = async (
-  since: ISODateString | undefined,
+  since: number | undefined,
   nodeTypes: DiscourseNode[],
 ): Promise<RoamDiscourseNodeData[]> => {
-  const sinceMs = since ? new Date(since).getTime() : 0;
+  const sinceMs = since ?? DEFAULT_TIME;
   if (!nodeTypes.length) {
     return [];
   }
@@ -144,10 +144,10 @@ export const getAllDiscourseNodesSince = async (
 };
 
 export const nodeTypeSince = async (
-  since: ISODateString,
+  since: number | undefined,
   nodeTypes: DiscourseNode[],
 ) => {
-  const sinceMs = new Date(since).getTime();
+  const sinceMs = since ?? DEFAULT_TIME;
   const filterMap = await Promise.all(
     nodeTypes.map((node) => {
       const query = `

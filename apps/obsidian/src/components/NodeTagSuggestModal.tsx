@@ -45,7 +45,7 @@ export class NodeTagSuggestPopover {
 
       // If the rect has no dimensions (collapsed cursor), try using a temporary span to get cursor position
       if (rect.width === 0 && rect.height === 0) {
-        const span = document.createElement("span");
+        const span = activeDocument.createElement("span");
         span.textContent = "\u200B";
         range.insertNode(span);
         const spanRect = span.getBoundingClientRect();
@@ -73,11 +73,11 @@ export class NodeTagSuggestPopover {
   }
 
   private createPopover(): HTMLElement {
-    const popover = document.createElement("div");
+    const popover = activeDocument.createElement("div");
     popover.className =
       "node-tag-suggest-popover fixed z-[10000] bg-primary border border-modifier-border rounded-md shadow-[0_4px_12px_rgba(0,0,0,0.15)] max-h-[300px] overflow-y-auto min-w-[200px] max-w-[400px]";
 
-    const itemsContainer = document.createElement("div");
+    const itemsContainer = activeDocument.createElement("div");
     itemsContainer.className = "node-tag-items-container";
     popover.appendChild(itemsContainer);
 
@@ -90,7 +90,7 @@ export class NodeTagSuggestPopover {
     container.innerHTML = "";
 
     if (this.items.length === 0) {
-      const noResults = document.createElement("div");
+      const noResults = activeDocument.createElement("div");
       noResults.className = "p-3 text-center text-muted text-sm";
       noResults.textContent = "No node tags available";
       container.appendChild(noResults);
@@ -98,27 +98,27 @@ export class NodeTagSuggestPopover {
     }
 
     this.items.forEach((item, index) => {
-      const itemEl = document.createElement("div");
+      const itemEl = activeDocument.createElement("div");
       itemEl.className = `node-tag-item px-3 py-2 cursor-pointer flex items-center gap-2 border-b border-[var(--background-modifier-border-hover)]${
         index === this.selectedIndex ? " bg-modifier-hover" : ""
       }`;
       itemEl.dataset.index = index.toString();
 
       if (item.nodeType.color) {
-        const colorDot = document.createElement("div");
+        const colorDot = activeDocument.createElement("div");
         colorDot.className = `w-3 h-3 rounded-full shrink-0`;
         colorDot.style.backgroundColor = item.nodeType.color;
         itemEl.appendChild(colorDot);
       }
 
-      const textContainer = document.createElement("div");
+      const textContainer = activeDocument.createElement("div");
       textContainer.className = "flex flex-col gap-0.5 flex-1";
 
-      const tagText = document.createElement("div");
+      const tagText = activeDocument.createElement("div");
       tagText.textContent = `#${item.tag}`;
       tagText.className = "font-medium text-normal text-sm";
 
-      const nodeTypeText = document.createElement("div");
+      const nodeTypeText = activeDocument.createElement("div");
       nodeTypeText.textContent = item.nodeType.name;
       nodeTypeText.className = "text-xs text-muted";
 
@@ -224,17 +224,25 @@ export class NodeTagSuggestPopover {
       }
     };
 
-    document.addEventListener("keydown", this.keydownHandler, true);
-    document.addEventListener("mousedown", this.clickOutsideHandler, true);
+    activeDocument.addEventListener("keydown", this.keydownHandler, true);
+    activeDocument.addEventListener(
+      "mousedown",
+      this.clickOutsideHandler,
+      true,
+    );
   }
 
   private removeEventHandlers() {
     if (this.keydownHandler) {
-      document.removeEventListener("keydown", this.keydownHandler, true);
+      activeDocument.removeEventListener("keydown", this.keydownHandler, true);
       this.keydownHandler = null;
     }
     if (this.clickOutsideHandler) {
-      document.removeEventListener("mousedown", this.clickOutsideHandler, true);
+      activeDocument.removeEventListener(
+        "mousedown",
+        this.clickOutsideHandler,
+        true,
+      );
       this.clickOutsideHandler = null;
     }
   }
@@ -251,7 +259,7 @@ export class NodeTagSuggestPopover {
     }
 
     this.popover = this.createPopover();
-    document.body.appendChild(this.popover);
+    activeDocument.body.appendChild(this.popover);
 
     const popoverRect = this.popover.getBoundingClientRect();
     const viewportWidth = window.innerWidth;

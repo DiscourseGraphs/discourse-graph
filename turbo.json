@@ -31,6 +31,7 @@
     "GITHUB_ACTIONS",
     "GITHUB_TEST",
     "HOME",
+    "LINEAR_API_KEY",
     "OPENAI_API_KEY",
     "POSTGRES_PASSWORD",
     "POSTGRES_USER",
@@ -45,10 +46,21 @@
   ],
   "tasks": {
     "build": {
-      "env": ["ROAM_BUILD_SCRIPT"],
+      "env": [
+        "ROAM_BUILD_SCRIPT",
+        "DISCOURSE_GRAPH_BUILD_BRANCH",
+        "DISCOURSE_GRAPH_BUILD_COMMIT",
+        "GITHUB_SHA"
+      ],
       "dependsOn": ["@repo/database#genenv"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "src/dbTypes.ts"]
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**",
+        "public/_pagefind/**",
+        "src/dbTypes.ts"
+      ]
     },
     "build-schema": {
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
@@ -59,6 +71,12 @@
     },
     "check-types": {
       "dependsOn": ["^check-types"]
+    },
+    "test": {
+      "outputs": []
+    },
+    "test:unit": {
+      "outputs": []
     },
     "dev": {
       "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH"],

@@ -15,7 +15,7 @@ import {
   Tag,
   TextArea,
 } from "@blueprintjs/core";
-import Description from "roamjs-components/components/Description";
+import Description from "~/components/settings/SettingsDescription";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
@@ -45,7 +45,7 @@ type NumberSetter = (keys: string[], value: number) => void;
 type MultiTextSetter = (keys: string[], value: string[]) => void;
 type BaseTextPanelProps = {
   title: string;
-  description: string;
+  description: React.ReactNode;
   settingKeys: string[];
   setter: TextSetter;
   initialValue: string;
@@ -58,7 +58,7 @@ type BaseTextPanelProps = {
 
 type BaseFlagPanelProps = {
   title: string;
-  description: string;
+  description: React.ReactNode;
   settingKeys: string[];
   setter: FlagSetter;
   initialValue: boolean;
@@ -70,7 +70,7 @@ type BaseFlagPanelProps = {
 
 type BaseNumberPanelProps = {
   title: string;
-  description: string;
+  description: React.ReactNode;
   settingKeys: string[];
   setter: NumberSetter;
   initialValue: number;
@@ -81,7 +81,7 @@ type BaseNumberPanelProps = {
 
 type BaseSelectPanelProps = {
   title: string;
-  description: string;
+  description: React.ReactNode;
   settingKeys: string[];
   setter: TextSetter;
   options: string[];
@@ -90,7 +90,7 @@ type BaseSelectPanelProps = {
 
 type BaseMultiTextPanelProps = {
   title: string;
-  description: string;
+  description: React.ReactNode;
   settingKeys: string[];
   setter: MultiTextSetter;
   initialValue: string[];
@@ -534,7 +534,7 @@ export const FeatureFlagPanel = ({
   order,
 }: {
   title: string;
-  description: string;
+  description: React.ReactNode;
   featureKey: keyof FeatureFlags;
   initialValue?: boolean;
   value?: boolean;
@@ -625,7 +625,7 @@ const createDiscourseNodeSetter =
 export type DiscourseNodeBaseProps = {
   nodeType: string;
   title: string;
-  description: string;
+  description: React.ReactNode;
   settingKeys: string[];
 };
 

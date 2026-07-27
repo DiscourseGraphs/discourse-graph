@@ -28,6 +28,8 @@ import {
 } from "./getDiscourseNodes";
 import { isAcceptedSchema } from "./typeUtils";
 import { getTemplatePluginInfo } from "./templates";
+import { difference } from "@repo/utils/setOperations";
+import { getAllPages } from "@repo/database/lib/pagination";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
@@ -226,6 +228,7 @@ type BuildChangedNodesOptions = {
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
   changeTypesByPath?: Map<string, ChangeType[]>;
+  fullSync?: boolean;
 };
 
 const mergeChangeTypes = (
@@ -322,6 +325,7 @@ const buildChangedNodesFromNodes = async ({
   supabaseClient,
   context,
   changeTypesByPath,
+  fullSync = false,
 }: BuildChangedNodesOptions): Promise<ObsidianDiscourseNodeData[]> => {
   if (nodes.length === 0) {
     return [];
@@ -339,6 +343,34 @@ const buildChangedNodesFromNodes = async ({
     context.spaceId,
   );
   const changedNodes: ObsidianDiscourseNodeData[] = [];
+  let missingConcepts: Set<string> | undefined;
+  if (fullSync) {
+    const existingConceptIds = await getAllPages(
+      supabaseClient
+        .from("my_concepts")
+        .select("source_local_id")
+        .eq("space_id", context.spaceId)
+        .eq("arity", 0)
+        .eq("is_schema", false)
+        .order("id"),
+      1000,
+    );
+    if (Array.isArray(existingConceptIds)) {
+      // Here, compensating for concepts that never got upserted
+      // Probably due to non-atomicity of upsert of concept and content
+      // TODO try to see if there are other cases
+      // In particular, using timing when concepts get reordered by dependency
+      // may be error-prone
+      // fail silently otherwise, there will be other opportunities
+      const nodeIds = new Set(nodes.map((n) => n.nodeInstanceId));
+      const dbConceptIds = new Set(
+        existingConceptIds
+          .map((d) => d.source_local_id)
+          .filter((id) => id !== null),
+      );
+      missingConcepts = difference(nodeIds, dbConceptIds);
+    }
+  }
 
   for (const node of nodes) {
     if (node.frontmatter.importedFromRid) continue;
@@ -355,7 +387,10 @@ const buildChangedNodesFromNodes = async ({
         : detectedChangeTypes;
     const finalChangeTypes = mergedChangeTypes;
 
-    if (finalChangeTypes.length === 0) {
+    if (
+      finalChangeTypes.length === 0 &&
+      !missingConcepts?.has(node.nodeInstanceId)
+    ) {
       continue;
     }
 
@@ -397,6 +432,7 @@ export const syncAllNodesAndRelations = async (
           nodes: allNodes,
           supabaseClient,
           context,
+          fullSync: true,
         });
 
     const accountLocalId = plugin.settings.accountLocalId;
@@ -475,9 +511,37 @@ const convertDgToSupabaseConcepts = async ({
   const { isEnabled: templatesEnabled, folderPath: templatesFolderPath } =
     getTemplatePluginInfo(plugin.app);
 
+  let missingTemplateLocalIds = new Set<string | null>();
+  if (fullSync && templatesEnabled && templatesFolderPath) {
+    const absentTemplates = await supabaseClient
+      .from("my_concepts")
+      .select("source_local_id,literal_content")
+      .eq("is_schema", true)
+      .eq("arity", 0)
+      .eq("space_id", context.spaceId)
+      .is("literal_content->>template_content", null);
+    // could not filter on only absent keys, this includes nulls
+
+    if (absentTemplates.data && absentTemplates.data.length > 0) {
+      missingTemplateLocalIds = new Set(
+        absentTemplates.data
+          .filter(
+            (x) =>
+              (x.literal_content as Record<string, Json>).template_content !==
+              null,
+          )
+          .map((x) => x["source_local_id"]),
+      );
+    }
+  }
+
   const nodesTypesToLocalConcepts = await Promise.all(
     nodeTypes
-      .filter((nodeType) => nodeType.modified > lastNodeSchemaSync)
+      .filter(
+        (nodeType) =>
+          nodeType.modified > lastNodeSchemaSync ||
+          missingTemplateLocalIds.has(nodeType.id),
+      )
       .map(async (nodeType) => {
         let templateContent: string | undefined;
         if (nodeType.template && templatesEnabled && templatesFolderPath) {

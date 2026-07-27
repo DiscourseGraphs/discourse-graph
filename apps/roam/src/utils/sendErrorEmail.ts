@@ -16,7 +16,8 @@ const sendErrorEmail = async ({
     getNodeEnv() === "development"
       ? "http://localhost:3000/api/errors"
       : "https://discoursegraphs.com/api/errors";
-  const { version, buildDate } = getVersionWithDate();
+  const { version, buildDate, buildCommit, buildBranch, versionStamp } =
+    getVersionWithDate();
   const username = getCurrentUserDisplayName();
 
   const payload: ErrorEmailProps = {
@@ -27,6 +28,9 @@ const sendErrorEmail = async ({
     graphName: window.roamAlphaAPI?.graph?.name || "unknown",
     version: version || "-",
     buildDate: buildDate || "-",
+    buildCommit: buildCommit || "-",
+    buildBranch: buildBranch || "-",
+    versionStamp: versionStamp || "-",
     username: username || "unknown",
     context,
   };

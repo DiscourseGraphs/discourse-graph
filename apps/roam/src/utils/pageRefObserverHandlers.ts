@@ -1,11 +1,14 @@
 import { createHTMLObserver } from "roamjs-components/dom";
-import { render as previewRender } from "~/components/LivePreview";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { render as discourseOverlayRender } from "~/components/DiscourseContextOverlay";
 import { OnloadArgs } from "roamjs-components/types";
 import { renderSuggestive as renderSuggestiveOverlay } from "~/components/SuggestiveModeOverlay";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import findDiscourseNode from "./findDiscourseNode";
+import {
+  bulkReadSettings,
+  type SettingsSnapshot,
+} from "~/components/settings/utils/accessors";
 
 const PAGE_REF_SELECTOR = "span.rm-page-ref";
 const DISCOURSE_OVERLAY_CLASS = "roamjs-discourse-context-overlay";
@@ -24,11 +27,13 @@ type PageRefDiscourseNodeStatus = {
 };
 
 let batchDiscourseNodes: DiscourseNode[] | null = null;
+let batchSettingsSnapshot: SettingsSnapshot | null = null;
 let clearBatchCacheQueued = false;
 const pageRefDiscourseNodeCache = new Map<string, PageRefDiscourseNodeStatus>();
 
 const clearBatchCache = (): void => {
   batchDiscourseNodes = null;
+  batchSettingsSnapshot = null;
   pageRefDiscourseNodeCache.clear();
   clearBatchCacheQueued = false;
 };
@@ -39,10 +44,18 @@ const queueBatchCacheClear = (): void => {
   queueMicrotask(clearBatchCache);
 };
 
+const getBatchSettingsSnapshot = (): SettingsSnapshot => {
+  if (batchSettingsSnapshot) return batchSettingsSnapshot;
+
+  batchSettingsSnapshot = bulkReadSettings();
+  queueBatchCacheClear();
+  return batchSettingsSnapshot;
+};
+
 const getBatchDiscourseNodes = (): DiscourseNode[] => {
   if (batchDiscourseNodes) return batchDiscourseNodes;
 
-  batchDiscourseNodes = getDiscourseNodes();
+  batchDiscourseNodes = getDiscourseNodes(getBatchSettingsSnapshot());
   queueBatchCacheClear();
   return batchDiscourseNodes;
 };
@@ -159,25 +172,6 @@ export const suggestiveOverlayPageRefHandler = (
         s.parentElement.appendChild(parent);
       }
     }
-  }
-};
-
-export const previewPageRefHandler = (s: HTMLSpanElement) => {
-  const tag =
-    s.getAttribute("data-tag") ||
-    s.parentElement?.getAttribute("data-link-title");
-  if (tag && !s.getAttribute("data-roamjs-discourse-augment-tag")) {
-    s.setAttribute("data-roamjs-discourse-augment-tag", "true");
-    const parent = document.createElement("span");
-    previewRender({
-      parent,
-      tag,
-      registerMouseEvents: ({ open, close }) => {
-        s.addEventListener("mouseenter", (e) => open(e.ctrlKey));
-        s.addEventListener("mouseleave", close);
-      },
-    });
-    s.appendChild(parent);
   }
 };
 

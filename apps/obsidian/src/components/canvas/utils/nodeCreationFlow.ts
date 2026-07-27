@@ -103,7 +103,7 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
         console.error("Error creating discourse node:", error);
         showToast({
           severity: "error",
-          title: "Failed to Create Node",
+          title: "Failed to create node",
           description: `Could not create discourse node: ${error instanceof Error ? error.message : "Unknown error"}`,
           targetCanvasId: canvasFile.path,
         });

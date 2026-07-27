@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Plugin,
   Editor,
@@ -39,13 +38,18 @@ import {
   mergeAllRelationsJsonToRoot,
 } from "~/utils/relationsStore";
 import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
+import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
-  private styleElement: HTMLStyleElement | null = null;
   private tagNodeHandler: TagNodeHandler | null = null;
   private fileChangeListener: FileChangeListener | null = null;
-  private currentViewActions: { leaf: WorkspaceLeaf; action: any }[] = [];
+  private activeNodePopover:
+    | NodeTagSuggestPopover
+    | InlineNodeTypePicker
+    | null = null;
+  private currentViewActions: { leaf: WorkspaceLeaf; action: HTMLElement }[] =
+    [];
   private pendingCanvasSwitches = new Set<string>();
 
   async onload() {
@@ -62,6 +66,8 @@ export default class DiscourseGraphPlugin extends Plugin {
     await migrateImportFolderMetadata(this).catch((error) => {
       console.error("Failed to migrate import folder metadata:", error);
     });
+
+    registerTemplateSettingsSync(this);
 
     if (this.settings.syncModeEnabled === true) {
       void initializeSupabaseSync(this).catch((error) => {
@@ -186,7 +192,9 @@ export default class DiscourseGraphPlugin extends Plugin {
         }
 
         const fileCache = this.app.metadataCache.getFileCache(file);
-        const fileNodeType = fileCache?.frontmatter?.nodeTypeId;
+        const fileNodeType = fileCache?.frontmatter?.nodeTypeId as
+          | string
+          | undefined;
 
         if (
           !fileNodeType ||
@@ -289,26 +297,29 @@ export default class DiscourseGraphPlugin extends Plugin {
         event.preventDefault();
         event.stopPropagation();
 
+        this.activeNodePopover?.close();
+        this.activeNodePopover = null;
+
         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (activeView?.editor) {
           const editor = activeView.editor;
           const selectedText = editor.getSelection();
 
           if (selectedText && selectedText.trim().length > 0) {
-            // Text is selected: open node type picker to create node from selection
             const picker = new InlineNodeTypePicker({
               editor,
               nodeTypes: this.settings.nodeTypes,
               plugin: this,
               selectedText: selectedText.trim(),
             });
+            this.activeNodePopover = picker;
             picker.open();
           } else {
-            // No selection: open the candidate node tag popover
             const popover = new NodeTagSuggestPopover(
               editor,
               this.settings.nodeTypes,
             );
+            this.activeNodePopover = popover;
             popover.open();
           }
         }
@@ -317,57 +328,18 @@ export default class DiscourseGraphPlugin extends Plugin {
       },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.registerEditorExtension(nodeTagHotkeyExtension);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.registerEditorExtension(createImageEmbedHoverExtension(this));
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.registerEditorExtension(createWikilinkDragExtension(this));
   }
 
-  private createStyleElement() {
-    if (!this.styleElement) {
-      this.styleElement = document.createElement("style");
-      this.styleElement.id = "discourse-graph-frontmatter-styles";
-      document.head.appendChild(this.styleElement);
-    }
-  }
-
-  updateFrontmatterStyles() {
-    try {
-      this.createStyleElement();
-
-      const keysToHide: string[] = [];
-
-      if (!this.settings.showIdsInFrontmatter) {
-        keysToHide.push(
-          ...[
-            "authorId",
-            "importedAssets",
-            "importedFromRid",
-            "lastModified",
-            "nodeInstanceId",
-            "nodeTypeId",
-            "publishedToGroups",
-          ],
-        );
-        keysToHide.push(...this.settings.relationTypes.map((rt) => rt.id));
-      }
-
-      if (keysToHide.length > 0) {
-        const selectors = keysToHide
-          .map((key) => `.metadata-property[data-property-key="${key}" i]`)
-          .join(", ");
-
-        this.styleElement!.textContent = `${selectors} { display: none !important; }`;
-      } else {
-        this.styleElement!.textContent = "";
-      }
-    } catch (error) {
-      console.error("Error updating frontmatter styles:", error);
-    }
+  updateFrontmatterStyles(): void {
+    activeDocument.body.classList.toggle(
+      "dg-hide-frontmatter-ids",
+      !this.settings.showIdsInFrontmatter,
+    );
   }
 
   toggleDiscourseContextView() {
@@ -392,17 +364,17 @@ export default class DiscourseGraphPlugin extends Plugin {
 
         workspace.on("layout-change", layoutChangeHandler);
 
-        leaf.setViewState({
+        void leaf.setViewState({
           type: VIEW_TYPE_DISCOURSE_CONTEXT,
           active: true,
         });
-        workspace.revealLeaf(leaf);
+        void workspace.revealLeaf(leaf);
       }
     }
   }
 
   async loadSettings() {
-    const loadedData = await this.loadData();
+    const loadedData = (await this.loadData()) as Record<string, unknown>;
     this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
     const changed = this.migrateSettings();
 
@@ -413,8 +385,10 @@ export default class DiscourseGraphPlugin extends Plugin {
     }
   }
 
-  private hasNewFields(loadedData: any): boolean {
-    return Object.keys(DEFAULT_SETTINGS).some((key) => !(key in loadedData));
+  private hasNewFields(loadedData: unknown): boolean {
+    return Object.keys(DEFAULT_SETTINGS).some(
+      (key) => !(key in (loadedData as Record<string, unknown>)),
+    );
   }
 
   async saveSettings() {
@@ -452,25 +426,21 @@ export default class DiscourseGraphPlugin extends Plugin {
   private cleanupViewActions() {
     this.currentViewActions.forEach(({ leaf, action }) => {
       try {
-        if (leaf?.view) {
-          if (action?.remove) {
-            action.remove();
-          } else if (action?.detach) {
-            action.detach();
-          }
+        if (leaf.view) {
+          action.remove();
         }
       } catch (e) {
         console.error("Failed to cleanup view action:", e);
       }
-    });
+    }, this);
     this.currentViewActions = [];
   }
 
-  async onunload() {
+  onunload() {
+    this.activeNodePopover?.close();
+    this.activeNodePopover = null;
     this.cleanupViewActions();
-    if (this.styleElement) {
-      this.styleElement.remove();
-    }
+    activeDocument.body.classList.remove("dg-hide-frontmatter-ids");
 
     if (this.tagNodeHandler) {
       this.tagNodeHandler.cleanup();
@@ -481,6 +451,5 @@ export default class DiscourseGraphPlugin extends Plugin {
       this.fileChangeListener.cleanup();
       this.fileChangeListener = null;
     }
-    this.app.workspace.detachLeavesOfType(VIEW_TYPE_DISCOURSE_CONTEXT);
   }
 }

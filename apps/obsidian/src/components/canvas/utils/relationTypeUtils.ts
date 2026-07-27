@@ -1,6 +1,11 @@
 import type { Editor, TLShape, TLShapeId, VecLike } from "tldraw";
+import type { DiscourseNodeShape } from "~/components/canvas/shapes/DiscourseNodeShape";
 import type { DiscourseRelation, DiscourseRelationType } from "~/types";
 import { COLOR_PALETTE } from "~/utils/tldrawColors";
+
+export const isDiscourseNodeShape = (
+  shape: TLShape | null | undefined,
+): shape is DiscourseNodeShape => shape?.type === "discourse-node";
 
 /**
  * Finds the discourse node shape at a given page point, excluding an optional
@@ -73,6 +78,31 @@ export const getRelationDirection = ({
   }
 
   return { direct, reverse };
+};
+
+export const getRelationLabelForDirection = ({
+  discourseRelations,
+  relationType,
+  sourceNodeTypeId,
+  targetNodeTypeId,
+}: {
+  discourseRelations: DiscourseRelation[];
+  relationType: DiscourseRelationType;
+  sourceNodeTypeId: string;
+  targetNodeTypeId: string;
+}): string => {
+  const { direct, reverse } = getRelationDirection({
+    discourseRelations,
+    relationTypeId: relationType.id,
+    sourceNodeTypeId,
+    targetNodeTypeId,
+  });
+
+  if (reverse && !direct) {
+    return relationType.complement;
+  }
+
+  return relationType.label;
 };
 
 /**

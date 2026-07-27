@@ -29,11 +29,14 @@ import {
   settingKeys,
 } from "~/components/settings/utils/settingsEmitter";
 import {
+  isQueryBlockRef,
   type LeftSidebarConfig,
   type LeftSidebarPersonalSectionConfig,
+  getGlobalSectionFoldedMarkerText,
   mergeGlobalSectionWithAccessor,
   mergePersonalSectionsWithAccessor,
 } from "~/utils/getLeftSidebarSettings";
+import runQuery from "~/utils/runQuery";
 import { sectionsToBlockProps } from "./settings/LeftSidebarPersonalSettings";
 import discourseConfigRef, { notify } from "~/utils/discourseConfigRef";
 import { getLeftSidebarSettings } from "~/utils/getLeftSidebarSettings";
@@ -49,7 +52,6 @@ import {
   PERSONAL_KEYS,
   GLOBAL_KEYS,
   LEFT_SIDEBAR_KEYS,
-  LEFT_SIDEBAR_SETTINGS_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import type { LeftSidebarGlobalSettings } from "~/components/settings/utils/zodSchema";
 import { createBlock } from "roamjs-components/writes";
@@ -132,15 +134,13 @@ const toggleFoldedState = async ({
   setIsOpen,
   folded,
   parentUid,
-  isGlobal,
   sectionIndex,
 }: {
   isOpen: boolean;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
   folded: { uid?: string; value: boolean };
   parentUid: string;
-  isGlobal?: boolean;
-  sectionIndex?: number;
+  sectionIndex: number;
 }) => {
   const newFolded = !isOpen;
   setIsOpen(newFolded);
@@ -166,31 +166,26 @@ const toggleFoldedState = async ({
 
   refreshConfigTree();
 
-  if (isGlobal) {
-    setGlobalSetting(
-      [
-        GLOBAL_KEYS.leftSidebar,
-        LEFT_SIDEBAR_KEYS.settings,
-        LEFT_SIDEBAR_SETTINGS_KEYS.folded,
-      ],
-      newFolded,
-    );
-  } else if (sectionIndex !== undefined) {
-    const sections = [...getPersonalSettings()[PERSONAL_KEYS.leftSidebar]];
-    if (sections[sectionIndex]) {
-      sections[sectionIndex] = {
-        ...sections[sectionIndex],
-        Settings: {
-          ...sections[sectionIndex].Settings,
-          Folded: newFolded,
-        },
-      };
-      setPersonalSetting([PERSONAL_KEYS.leftSidebar], sections);
-    }
+  const sections = [...getPersonalSettings()[PERSONAL_KEYS.leftSidebar]];
+  if (sections[sectionIndex]) {
+    sections[sectionIndex] = {
+      ...sections[sectionIndex],
+      Settings: {
+        ...sections[sectionIndex].Settings,
+        Folded: newFolded,
+      },
+    };
+    setPersonalSetting([PERSONAL_KEYS.leftSidebar], sections);
   }
 };
 
-const RoamRenderedBlock = ({ uid }: { uid: string }) => {
+const RoamRenderedBlock = ({
+  uid,
+  onNavigate,
+}: {
+  uid: string;
+  onNavigate: (e: React.MouseEvent) => void;
+}) => {
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
@@ -203,8 +198,14 @@ const RoamRenderedBlock = ({ uid }: { uid: string }) => {
     };
   }, [uid]);
 
+  const handleClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("button")) return;
+    onNavigate(e);
+  };
+
   return (
-    <div className="dg-sidebar-rendered-block">
+    <div className="dg-sidebar-rendered-block" onClick={handleClick}>
       <RenderRoamBlock key={version} uid={uid} open={false} />
     </div>
   );
@@ -226,8 +227,11 @@ const ChildRow = ({
   if (ref.type === "block" && isSmartBlockUid(ref.uid)) {
     return (
       <div className="pl-8 pr-2.5">
-        <div className="section-child-item rounded-sm leading-normal text-gray-600">
-          <RoamRenderedBlock uid={ref.uid} />
+        <div className="section-child-item cursor-pointer rounded-sm leading-normal text-gray-600">
+          <RoamRenderedBlock
+            uid={ref.uid}
+            onNavigate={(e) => void openTarget(e, child.text, onloadArgs)}
+          />
         </div>
       </div>
     );
@@ -360,6 +364,169 @@ const PersonalSectionItem = ({
   );
 };
 
+const QuerySectionItem = ({
+  section,
+  sectionIndex,
+  dragHandle,
+  onloadArgs,
+}: {
+  section: LeftSidebarPersonalSectionConfig;
+  sectionIndex: number;
+  dragHandle: SortableHandle;
+  onloadArgs: OnloadArgs;
+}) => {
+  const queryUid = extractRef(section.text);
+  const alias = section.settings?.alias?.value;
+  const queryLabel = useMemo(() => getTextByBlockUid(queryUid), [queryUid]);
+  const displayName = alias || queryLabel || section.text;
+  const truncateAt = section.settings?.truncateResult.value;
+  const resultLimit = Math.max(
+    0,
+    Math.trunc(section.settings?.resultLimit?.value ?? 10),
+  );
+
+  const [isOpen, setIsOpen] = useState<boolean>(
+    !!section.settings?.folded.value,
+  );
+  const [results, setResults] = useState<ChildNode[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasCompletedInitialLoad, setHasCompletedInitialLoad] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isTogglingRef = useRef(false);
+
+  const loadResults = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { allProcessedResults } = await runQuery({
+        parentUid: queryUid,
+        extensionAPI: onloadArgs.extensionAPI,
+      });
+      const children: ChildNode[] = allProcessedResults.map((r) => {
+        const isPage = !!getPageTitleByPageUid(r.uid);
+        return {
+          uid: r.uid,
+          text: isPage ? r.uid : `((${r.uid}))`,
+        };
+      });
+      setResults(children);
+    } catch (e) {
+      console.error(e);
+      setError("Query failed to run");
+    } finally {
+      setIsLoading(false);
+      setHasCompletedInitialLoad(true);
+    }
+  }, [queryUid, onloadArgs.extensionAPI]);
+
+  useEffect(() => {
+    if (isOpen && !hasCompletedInitialLoad) {
+      void loadResults();
+    }
+  }, [isOpen, hasCompletedInitialLoad, loadResults]);
+
+  const handleChevronClick = async () => {
+    if (!section.settings) return;
+    if (isTogglingRef.current) return;
+    isTogglingRef.current = true;
+    try {
+      await toggleFoldedState({
+        isOpen,
+        setIsOpen,
+        folded: section.settings.folded,
+        parentUid: section.settings.uid || "",
+        sectionIndex,
+      });
+    } finally {
+      isTogglingRef.current = false;
+    }
+  };
+
+  const limitedResults =
+    resultLimit > 0 ? results.slice(0, resultLimit) : results;
+
+  let body: React.ReactNode = null;
+  if (isLoading) {
+    body = <div className="pl-8 pr-2.5 text-sm text-gray-500">Loading…</div>;
+  } else if (error) {
+    body = <div className="pl-8 pr-2.5 text-sm text-red-500">{error}</div>;
+  } else if (limitedResults.length > 0) {
+    body = limitedResults.map((child) => (
+      <ChildRow
+        key={child.uid}
+        child={child}
+        truncateAt={truncateAt}
+        onloadArgs={onloadArgs}
+      />
+    ));
+  } else if (hasCompletedInitialLoad) {
+    body = <div className="pl-8 pr-2.5 text-sm text-gray-500">No results</div>;
+  }
+
+  return (
+    <>
+      <div
+        {...dragHandle.attributes}
+        {...dragHandle.listeners}
+        className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none"
+      >
+        <div className="flex w-full items-center justify-between">
+          <div
+            className="flex flex-1 items-center"
+            onClick={() => void handleChevronClick()}
+          >
+            {displayName.toUpperCase()}
+          </div>
+          <span
+            className="sidebar-title-button-chevron p-1"
+            onClick={() => void handleChevronClick()}
+          >
+            <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
+          </span>
+          <Popover
+            interactionKind={PopoverInteractionKind.CLICK}
+            position={Position.BOTTOM_RIGHT}
+            autoFocus={false}
+            enforceFocus={false}
+            captureDismiss
+            isOpen={isMenuOpen}
+            onInteraction={(next) => setIsMenuOpen(next)}
+            onClose={() => setIsMenuOpen(false)}
+            popoverClassName="dg-leftsidebar-popover"
+            minimal
+            content={
+              <Menu>
+                <MenuItem
+                  icon="refresh"
+                  text="Refresh"
+                  onClick={() => {
+                    void loadResults();
+                    setIsMenuOpen(false);
+                  }}
+                />
+                <MenuItem
+                  icon="document-open"
+                  text="Go to query block"
+                  onClick={(e) => {
+                    void openTarget(e, `((${queryUid}))`, onloadArgs);
+                    setIsMenuOpen(false);
+                  }}
+                />
+              </Menu>
+            }
+          >
+            <span className="sidebar-title-button-add p-1">
+              <Icon icon="more" size={14} />
+            </span>
+          </Popover>
+        </div>
+      </div>
+      <Collapse isOpen={isOpen}>{body}</Collapse>
+    </>
+  );
+};
+
 const PersonalSections = ({
   config,
   setConfig,
@@ -437,47 +604,74 @@ const PersonalSections = ({
       getId={(s) => s.uid}
       onReorder={reorderSections}
       className="personal-left-sidebar-sections"
-      renderItem={(section, handle) => (
-        <PersonalSectionItem
-          section={section}
-          sectionIndex={sections.findIndex((s) => s.uid === section.uid)}
-          dragHandle={handle}
-          onChildrenReorder={reorderChildren}
-          onloadArgs={onloadArgs}
-        />
-      )}
+      renderItem={(section, handle) => {
+        const sectionIndex = sections.findIndex((s) => s.uid === section.uid);
+        if (isQueryBlockRef(section.text) && section.settings?.uid) {
+          return (
+            <QuerySectionItem
+              section={section}
+              sectionIndex={sectionIndex}
+              dragHandle={handle}
+              onloadArgs={onloadArgs}
+            />
+          );
+        }
+        return (
+          <PersonalSectionItem
+            section={section}
+            sectionIndex={sectionIndex}
+            dragHandle={handle}
+            onChildrenReorder={reorderChildren}
+            onloadArgs={onloadArgs}
+          />
+        );
+      }}
     />
   );
 };
 
 const GlobalSection = ({
   config,
+  folded,
+  leftSidebarUid,
   onGlobalChildrenReorder,
   onloadArgs,
 }: {
   config: LeftSidebarConfig["global"];
+  folded: boolean;
+  leftSidebarUid: string;
   onGlobalChildrenReorder: (oldIndex: number, newIndex: number) => void;
   onloadArgs: OnloadArgs;
 }) => {
-  const [isOpen, setIsOpen] = useState<boolean>(
-    !!config.settings?.folded.value,
-  );
+  const [isOpen, setIsOpen] = useState<boolean>(!folded);
   const isTogglingRef = useRef(false);
   if (!config.children?.length) return null;
-  const isCollapsable = config.settings?.collapsable.value;
 
   const handleToggle = async () => {
-    if (!isCollapsable || !config.settings) return;
     if (isTogglingRef.current) return;
     isTogglingRef.current = true;
     try {
-      await toggleFoldedState({
-        isOpen,
-        setIsOpen,
-        folded: config.settings.folded,
-        parentUid: config.settings.uid,
-        isGlobal: true,
-      });
+      const nextIsOpen = !isOpen;
+      setIsOpen(nextIsOpen);
+      const userUid = window.roamAlphaAPI.user.uid();
+      if (userUid) {
+        const markerText = getGlobalSectionFoldedMarkerText(userUid);
+        if (nextIsOpen) {
+          const children = getBasicTreeByParentUid(leftSidebarUid);
+          await Promise.all(
+            children
+              .filter((c) => c.text === markerText)
+              .map((c) => deleteBlock(c.uid)),
+          );
+        } else {
+          await createBlock({
+            parentUid: leftSidebarUid,
+            node: { text: markerText },
+          });
+        }
+        refreshConfigTree();
+      }
+      setPersonalSetting([PERSONAL_KEYS.globalSectionFolded], !nextIsOpen);
     } finally {
       isTogglingRef.current = false;
     }
@@ -504,18 +698,12 @@ const GlobalSection = ({
       >
         <div className="flex w-full items-center justify-between">
           <span>GLOBAL</span>
-          {isCollapsable && (
-            <span className="sidebar-title-button-chevron p-1">
-              <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
-            </span>
-          )}
+          <span className="sidebar-title-button-chevron p-1">
+            <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
+          </span>
         </div>
       </div>
-      {isCollapsable ? (
-        <Collapse isOpen={isOpen}>{children}</Collapse>
-      ) : (
-        children
-      )}
+      <Collapse isOpen={isOpen}>{children}</Collapse>
     </>
   );
 };
@@ -532,6 +720,9 @@ const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
     : getPersonalSetting<
         ReturnType<typeof getPersonalSettings>[typeof PERSONAL_KEYS.leftSidebar]
       >([PERSONAL_KEYS.leftSidebar]);
+  const globalSectionFoldedValue = snapshot
+    ? snapshot.personalSettings[PERSONAL_KEYS.globalSectionFolded]
+    : getPersonalSetting<boolean>([PERSONAL_KEYS.globalSectionFolded]);
 
   // Read UIDs from old system (needed for fold CRUD during dual-write)
   const oldConfig = getCurrentLeftSidebarConfig();
@@ -541,6 +732,10 @@ const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
     favoritesMigrated: oldConfig.favoritesMigrated,
     sidebarMigrated: oldConfig.sidebarMigrated,
     global: mergeGlobalSectionWithAccessor(oldConfig.global, globalValues),
+    globalSectionFolded: {
+      uid: oldConfig.globalSectionFolded.uid,
+      value: globalSectionFoldedValue ?? oldConfig.globalSectionFolded.value,
+    },
     personal: {
       uid: oldConfig.personal.uid,
       sections: mergePersonalSectionsWithAccessor(
@@ -730,6 +925,8 @@ const LeftSidebarView = ({
       <FavoritesPopover onloadArgs={onloadArgs} />
       <GlobalSection
         config={config.global}
+        folded={config.globalSectionFolded.value}
+        leftSidebarUid={config.uid}
         onGlobalChildrenReorder={reorderGlobalChildren}
         onloadArgs={onloadArgs}
       />
@@ -859,6 +1056,9 @@ export const mountLeftSidebar = async ({
       .dg-sidebar-rendered-block .block-border-left { display: none; }
       .dg-sidebar-rendered-block .block-ref-count-button { display: none; }
       .dg-sidebar-rendered-block .rm-block-main { min-height: unset; padding: 0; }
+      .dg-sidebar-rendered-block * { pointer-events: none; }
+      .dg-sidebar-rendered-block button,
+      .dg-sidebar-rendered-block button * { pointer-events: auto; }
     `;
     document.head.appendChild(style);
   }

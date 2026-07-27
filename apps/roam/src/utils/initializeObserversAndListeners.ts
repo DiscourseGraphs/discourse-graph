@@ -20,7 +20,6 @@ import {
   enablePageRefObserver,
   addPageRefObserver,
   getPageRefObserversSize,
-  previewPageRefHandler,
   getOverlayHandler,
   onPageRefObserverChange,
   getSuggestiveOverlayHandler,
@@ -45,10 +44,9 @@ import {
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { renderImageToolsMenu } from "./renderImageToolsMenu";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
-import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
-import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
+import { renderPublishNodeTitleButton } from "~/components/PublishNodeTitleButton";
 import { renderCanvasEmbed } from "~/components/canvas/CanvasEmbed";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -62,6 +60,7 @@ import {
   settingKeys,
 } from "~/components/settings/utils/settingsEmitter";
 import {
+  FEATURE_FLAG_KEYS,
   PERSONAL_KEYS,
   GLOBAL_KEYS,
 } from "~/components/settings/utils/settingKeys";
@@ -123,10 +122,17 @@ export const initObservers = ({
 
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
-        renderDiscourseContext({ h1, uid });
-        if (getFeatureFlag("Duplicate node alert enabled")) {
-          renderPossibleDuplicates(h1, title, node);
+        const syncEnabled =
+          settings.featureFlags[FEATURE_FLAG_KEYS.suggestiveModeOverlayEnabled];
+        if (syncEnabled && node.backedBy === "user") {
+          renderPublishNodeTitleButton({
+            h1,
+            uid,
+            title,
+            nodeType: node.type,
+          });
         }
+        renderDiscourseContext({ h1, uid });
         const linkedReferencesDiv = document.querySelector(
           ".rm-reference-main",
         ) as HTMLDivElement;
@@ -158,7 +164,7 @@ export const initObservers = ({
   const getNodesForTagBatch = (): DiscourseNode[] => {
     if (batchedTagNodes === null) {
       const settings = bulkReadSettings();
-      batchedTagNodes = getDiscourseNodes(undefined, settings);
+      batchedTagNodes = getDiscourseNodes(settings);
       queueMicrotask(() => {
         batchedTagNodes = null;
       });
@@ -211,7 +217,7 @@ export const initObservers = ({
       });
   }) as EventListener;
 
-  if (getFeatureFlag("Suggestive mode overlay enabled")) {
+  if (settings.featureFlags[FEATURE_FLAG_KEYS.suggestiveModeOverlayEnabled]) {
     addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
   }
 
@@ -229,13 +235,10 @@ export const initObservers = ({
     className: "rm-inline-img",
     callback: (img: HTMLElement) => {
       if (img instanceof HTMLImageElement) {
-        renderImageToolsMenu(img, onloadArgs.extensionAPI);
+        renderImageToolsMenu(img, onloadArgs.extensionAPI, settings);
       }
     },
   });
-
-  if (settings.personalSettings[PERSONAL_KEYS.pagePreview])
-    addPageRefObserver(previewPageRefHandler);
 
   if (settings.personalSettings[PERSONAL_KEYS.discourseContextOverlay]) {
     const overlayHandler = getOverlayHandler(onloadArgs);
@@ -253,9 +256,7 @@ export const initObservers = ({
     // doesn't work if they update via sidebar
     if (
       (configPageUid && evt.oldURL.endsWith(configPageUid)) ||
-      getDiscourseNodes(undefined, settings).some(({ type }) =>
-        evt.oldURL.endsWith(type),
-      )
+      getDiscourseNodes(settings).some(({ type }) => evt.oldURL.endsWith(type))
     ) {
       refreshConfigTree(settings);
     }
@@ -443,6 +444,7 @@ export const initObservers = ({
         extensionAPI: onloadArgs.extensionAPI,
         blockElement,
         textarea,
+        settingsSnapshot: settings,
       });
     } else {
       removeTextSelectionPopup();

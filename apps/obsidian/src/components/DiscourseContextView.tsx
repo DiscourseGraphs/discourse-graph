@@ -3,7 +3,6 @@ import {
   TFile,
   WorkspaceLeaf,
   Notice,
-  FrontMatterCache,
   setIcon,
   setTooltip,
 } from "obsidian";
@@ -19,9 +18,9 @@ import {
   getUserNameById,
 } from "~/utils/typeUtils";
 import { refreshImportedFile } from "~/utils/importNodes";
-import { publishNode } from "~/utils/publishNode";
+import { PublishGroupDropdown } from "~/components/PublishGroupDropdown";
 import { createBaseForNodeType } from "~/utils/baseForNodeType";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 type DiscourseContextProps = {
   activeFile: TFile | null;
@@ -45,28 +44,6 @@ export const InfoTooltip = ({ content }: InfoTooltipProps) => (
 const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
   const plugin = usePlugin();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [isPublished, setIsPublished] = useState(false);
-
-  useEffect(() => {
-    if (!activeFile || !plugin) {
-      setIsPublished(false);
-      return;
-    }
-    const fileMetadata = plugin.app.metadataCache.getFileCache(activeFile);
-    const frontmatter = fileMetadata?.frontmatter;
-    if (!frontmatter) {
-      setIsPublished(false);
-      return;
-    }
-    const isImported = !!frontmatter.importedFromRid;
-    const publishedToGroups = frontmatter.publishedToGroups as unknown;
-    const published =
-      !isImported &&
-      Array.isArray(publishedToGroups) &&
-      publishedToGroups.length > 0;
-    setIsPublished(published);
-  }, [activeFile, plugin]);
 
   const extractContentFromTitle = (format: string, title: string): string => {
     if (!format) return "";
@@ -96,29 +73,6 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
       console.error("Refresh failed:", error);
     } finally {
       setIsRefreshing(false);
-    }
-  };
-
-  const handlePublish = async (frontmatter: FrontMatterCache) => {
-    if (!activeFile || isPublishing) return;
-
-    if (!frontmatter.nodeInstanceId) {
-      new Notice("Please sync the node first", 5000);
-      return;
-    }
-
-    setIsPublishing(true);
-    try {
-      await publishNode({ plugin, file: activeFile, frontmatter });
-      new Notice("Published successfully", 3000);
-      setIsPublished(true);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      new Notice(`Publish failed: ${errorMessage}`, 5000);
-      console.error("Publish failed:", error);
-    } finally {
-      setIsPublishing(false);
     }
   };
 
@@ -212,28 +166,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
               </button>
             )}
             {canPublish && (
-              <button
-                onClick={() => {
-                  void handlePublish(frontmatter);
-                }}
-                disabled={isPublishing}
-                className={`ml-auto rounded px-2 py-1 text-xs ${
-                  isPublished
-                    ? "border border-green-600 bg-green-200 text-green-800 dark:bg-green-900/60 dark:text-green-300"
-                    : "border border-gray-400 bg-gray-100 font-medium hover:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
-                }`}
-                title={
-                  isPublished
-                    ? "Re-publish to lab space"
-                    : "Publish to lab space"
-                }
-              >
-                {isPublishing
-                  ? "Publishing..."
-                  : isPublished
-                    ? "✅ Published"
-                    : "Publish"}
-              </button>
+              <PublishGroupDropdown plugin={plugin} file={activeFile} />
             )}
           </div>
 
@@ -315,6 +248,7 @@ export class DiscourseContextView extends ItemView {
     return "telescope";
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- required by obsidian
   async onOpen(): Promise<void> {
     const container = this.containerEl.children[1];
     if (container) {
@@ -346,6 +280,7 @@ export class DiscourseContextView extends ItemView {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- required by obsidian
   async onClose(): Promise<void> {
     if (this.root) {
       this.root.unmount();

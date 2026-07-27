@@ -1,4 +1,7 @@
 import { RoamBasicNode } from "roamjs-components/types";
+import { BLOCK_REF_REGEX } from "roamjs-components/dom/constants";
+import extractRef from "roamjs-components/util/extractRef";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import {
   BooleanSetting,
   getUidAndBooleanSetting,
@@ -13,10 +16,41 @@ import type {
   PersonalSection,
 } from "~/components/settings/utils/zodSchema";
 
+type StringSettingWithValueUid = StringSetting & { valueUid?: string };
+
 type LeftSidebarPersonalSectionSettings = {
   uid: string;
   truncateResult: IntSetting;
   folded: BooleanSetting;
+  alias?: StringSettingWithValueUid;
+  resultLimit?: IntSetting;
+};
+
+const BLOCK_REF_FULL_MATCH = new RegExp(`^${BLOCK_REF_REGEX.source}$`);
+export const QUERY_BLOCK_MARKER = /\{\{query block(?::[^}]*)?\}\}/;
+
+const getUidAndStringSettingWithValueUid = ({
+  tree,
+  text,
+}: {
+  tree: RoamBasicNode[];
+  text: string;
+}): StringSettingWithValueUid => {
+  const node = tree.find((node) => node.text === text);
+  const valueChild = node?.children?.[0];
+  return {
+    uid: node?.uid,
+    value: valueChild?.text ?? "",
+    valueUid: valueChild?.uid,
+  };
+};
+
+export const isQueryBlockRef = (text: string): boolean => {
+  if (!BLOCK_REF_FULL_MATCH.test(text)) return false;
+  const blockText = getTextByBlockUid(extractRef(text));
+  if (!blockText) return false;
+  if (blockText.includes(":SmartBlock:")) return false;
+  return QUERY_BLOCK_MARKER.test(blockText);
 };
 
 export type PersonalSectionChild = RoamBasicNode & {
@@ -31,15 +65,8 @@ export type LeftSidebarPersonalSectionConfig = {
   childrenUid?: string;
 };
 
-type LeftSidebarGlobalSectionSettings = {
-  uid: string;
-  collapsable: BooleanSetting;
-  folded: BooleanSetting;
-};
-
 export type LeftSidebarGlobalSectionConfig = {
   uid: string;
-  settings?: LeftSidebarGlobalSectionSettings;
   children: RoamBasicNode[];
   childrenUid: string;
 };
@@ -49,6 +76,7 @@ export type LeftSidebarConfig = {
   favoritesMigrated: BooleanSetting;
   sidebarMigrated: BooleanSetting;
   global: LeftSidebarGlobalSectionConfig;
+  globalSectionFolded: BooleanSetting;
   allPersonalSections: AllUsersPersonalSections;
   personal: {
     uid: string;
@@ -56,24 +84,8 @@ export type LeftSidebarConfig = {
   };
 };
 
-const getGlobalSectionSettings = (
-  settingsNode: RoamBasicNode,
-): LeftSidebarGlobalSectionSettings => {
-  const settingsTree = settingsNode?.children || [];
-  const collapsableSetting = getUidAndBooleanSetting({
-    tree: settingsTree,
-    text: "Collapsable",
-  });
-  const foldedSetting = getUidAndBooleanSetting({
-    tree: settingsTree,
-    text: "Folded",
-  });
-  return {
-    uid: settingsNode.uid,
-    collapsable: collapsableSetting,
-    folded: foldedSetting,
-  };
-};
+export const getGlobalSectionFoldedMarkerText = (userUid: string): string =>
+  `${userUid}/Global-Section-Folded`;
 
 export const getLeftSidebarGlobalSectionConfig = (
   leftSidebarChildren: RoamBasicNode[],
@@ -89,17 +101,8 @@ export const getLeftSidebarGlobalSectionConfig = (
     key: "Children",
   });
 
-  const settingsNode = getSubTree({
-    tree: globalChildren,
-    key: "Settings",
-  });
-  const settings = settingsNode
-    ? getGlobalSectionSettings(settingsNode)
-    : undefined;
-
   return {
     uid: globalSectionNode?.uid || "",
-    settings,
     children: childrenNode?.children || [],
     childrenUid: childrenNode?.uid || "",
   };
@@ -123,10 +126,23 @@ const getPersonalSectionSettings = (
     text: "Folded",
   });
 
+  const aliasSetting = getUidAndStringSettingWithValueUid({
+    tree: settingsTree,
+    text: "Alias",
+  });
+
+  const resultLimitSetting = getUidAndIntSetting({
+    tree: settingsTree,
+    text: "Result-limit",
+    defaultValue: 10,
+  });
+
   return {
     uid: settingsNode.uid,
     truncateResult: truncateResultSetting,
     folded: foldedSetting,
+    alias: aliasSetting,
+    resultLimit: resultLimitSetting,
   };
 };
 
@@ -224,23 +240,6 @@ export const mergeGlobalSectionWithAccessor = (
     uid: config.uid,
     childrenUid: config.childrenUid,
     children,
-    settings: {
-      uid: config.settings?.uid ?? "",
-      collapsable: {
-        uid: config.settings?.collapsable.uid ?? "",
-        value:
-          globalValues?.Settings.Collapsable ??
-          config.settings?.collapsable.value ??
-          false,
-      },
-      folded: {
-        uid: config.settings?.folded.uid ?? "",
-        value:
-          globalValues?.Settings.Folded ??
-          config.settings?.folded.value ??
-          false,
-      },
-    },
   };
 };
 
@@ -266,6 +265,15 @@ export const mergePersonalSectionsWithAccessor = (
         folded: {
           uid: legacy?.settings?.folded.uid ?? "",
           value: snap.Settings.Folded,
+        },
+        alias: {
+          uid: legacy?.settings?.alias?.uid,
+          valueUid: legacy?.settings?.alias?.valueUid,
+          value: snap.Settings.Alias,
+        },
+        resultLimit: {
+          uid: legacy?.settings?.resultLimit?.uid,
+          value: snap.Settings["Result-limit"],
         },
       },
       children:
@@ -309,11 +317,19 @@ export const getLeftSidebarSettings = (
     tree: leftSidebarChildren,
     text: "Sidebar Migrated",
   });
+  const currentUserUid = window.roamAlphaAPI.user.uid();
+  const globalSectionFolded: BooleanSetting = currentUserUid
+    ? getUidAndBooleanSetting({
+        tree: leftSidebarChildren,
+        text: getGlobalSectionFoldedMarkerText(currentUserUid),
+      })
+    : { uid: undefined, value: false };
   return {
     uid: leftSidebarUid,
     favoritesMigrated,
     sidebarMigrated,
     global,
+    globalSectionFolded,
     personal,
     allPersonalSections,
   };

@@ -16,6 +16,7 @@ export type AdvancedSearchFooterProps = {
   onInsert: () => void;
   onOpen: () => void;
   onOpenInSidebar: () => void;
+  onOpenSearchSidebar: () => void;
 };
 
 const footerKbdClassName =
@@ -99,6 +100,21 @@ const InsertFooterAction = ({
   />
 );
 
+const OpenSearchSidebarFooterAction = ({
+  disabled,
+  onOpenSearchSidebar,
+}: {
+  disabled: boolean;
+  onOpenSearchSidebar: () => void;
+}) => (
+  <FooterShortcutHint
+    disabled={disabled}
+    keyIcons={["key-option", "key-enter"]}
+    label="dock results"
+    onClick={() => void onOpenSearchSidebar()}
+  />
+);
+
 const CloseFooterHint = () => (
   <span className={footerLabelClassName}>
     <kbd className={footerKbdClassName}>
@@ -115,14 +131,20 @@ export const AdvancedSearchFooter = ({
   onInsert,
   onOpen,
   onOpenInSidebar,
+  onOpenSearchSidebar,
 }: AdvancedSearchFooterProps) => {
   const hasResults = contentState === "results";
   const canOpen = hasActiveResult && hasResults;
   const canInsert = !!insertTarget && hasActiveResult && hasResults;
+  const canOpenSearchSidebar = hasResults;
 
   return (
     <div className="flex w-full flex-none items-center justify-between border-t border-gray-200 bg-gray-50 px-3 py-2">
       <div className="inline-flex shrink-0 items-center gap-3">
+        <OpenSearchSidebarFooterAction
+          disabled={!canOpenSearchSidebar}
+          onOpenSearchSidebar={onOpenSearchSidebar}
+        />
         {insertTarget && (
           <InsertFooterAction disabled={!canInsert} onInsert={onInsert} />
         )}

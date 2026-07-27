@@ -1,8 +1,17 @@
 import { getVersionWithDate } from "./getVersion";
+import { buildExtensionTelemetryProperties } from "./extensionTelemetry";
 import posthog from "posthog-js";
 import type { CaptureResult } from "posthog-js";
 
 let initialized = false;
+
+const getLocalStorage = (): Storage | undefined => {
+  try {
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
+};
 
 export const initPostHog = (): void => {
   if (initialized) return;
@@ -38,16 +47,19 @@ export const initPostHog = (): void => {
       return result;
     },
     loaded: (posthog) => {
-      const { version, buildDate } = getVersionWithDate();
+      const extensionTelemetry = buildExtensionTelemetryProperties({
+        versionMetadata: getVersionWithDate(),
+        storage: getLocalStorage(),
+      });
       const userUid = window.roamAlphaAPI.user.uid() || "";
       const graphName = window.roamAlphaAPI.graph.name;
-      if (userUid) posthog.identify(userUid);
-      posthog.register_for_session({
-        version: version || "-",
-        buildDate: buildDate || "-",
+      const sessionTelemetry = {
+        ...extensionTelemetry,
         graphName,
-      });
-      posthog.capture("Extension Loaded");
+      };
+      if (userUid) posthog.identify(userUid);
+      posthog.register_for_session(sessionTelemetry);
+      posthog.capture("Extension Loaded", sessionTelemetry);
       initialized = true;
     },
   });

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
 import { Label } from "@blueprintjs/core";
-import Description from "roamjs-components/components/Description";
+import Description from "~/components/settings/SettingsDescription";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
@@ -14,7 +14,7 @@ import {
 import type { DiscourseNodeBaseProps } from "./BlockPropSettingPanels";
 
 const DEBOUNCE_MS = 250;
-const TEMPLATE_BUFFER_TEXT = "Template-Block-props";
+const TEMPLATE_BUFFER_TEXT = "Template";
 
 type DualWriteBlocksPanelProps = DiscourseNodeBaseProps & {
   uid: string;

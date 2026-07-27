@@ -35,42 +35,54 @@ Or click on the canvas icon at the top right corner
 
 ## Discourse nodes
 
-### Creating new discourse nodes
+You can add discourse nodes to a canvas in several ways. Most flows open the **Create discourse node** modal, where you can create a new node or search for and select an existing one.
 
-**Using the discourse node tool**
+### Add a discourse node to canvas
 
-- Click the discourse node icon in the toolbar
-- Select a node type from the right side panel
-- Click anywhere on the canvas to place a new node
-- Or drag the selected node type to the canvas
-- Enter the node title in the modal that appears
+1. Click the **Discourse Graph** icon in the bottom toolbar
+2. In the panel on the right, click a node type to select it (or drag a node type onto the canvas)
+3. Click on the canvas where you want the node
+4. In the **Create discourse node** modal, enter a title, confirm the node type, and click **Confirm**
+   The new node appears on the canvas as a discourse node card linked to the note that was created.
 
 ![Create discourse node](/docs/obsidian/create-discourse-node.gif)
 
-### Converting text and image shapes into discourse nodes
+- You can also search for existing node from this modal and insert it to the canvas
 
-You can convert a tldraw text or image shape into a discourse node directly from the canvas:
+### Add an existing node
 
-1. Right-click on a text or image shape
-2. Choose a node type from the "Convert to" submenu
-3. A modal opens pre-filled with the text content (or an empty title for images) — edit the title if needed
-4. Click "Confirm" to create the discourse node; the original shape is replaced
+**By dragging onto the canvas**
 
-### Adding existing nodes
+Only notes that are already discourse nodes (with a configured `nodeTypeId` in frontmatter) can be dropped. If the same node is already on the canvas, the existing card is selected instead of duplicating it.
 
-**Using node search**
+_From the file explorer_
 
-- Use the search bar in the top-right of the canvas
-- Type to search for existing discourse Nodes
-- Click on a node from the search results to add it to the canvas
+1. In the Obsidian file explorer, drag a discourse node note onto the canvas
+2. The node is added at the drop location
 
-![Node search](/docs/obsidian/node-search.gif)
+![drag-node](/docs/obsidian/file-explorer-drag.gif)
 
-**Search filtering**
+_From the editor_
 
-- When a specific node type is selected, search results are filtered to that type
+When a Discourse Graph canvas is open, internal links in **Live Preview** show a small drag handle (⠿) after the link.
 
-![Search filtering](/docs/obsidian/search-filtering.gif)
+1. In a note, find a wikilink or markdown link to a discourse node (for example `[[CLM - My claim]]`)
+2. Drag using the handle next to the link
+3. Drop onto the canvas
+
+The handle appears for `[[wikilinks]]` and `[markdown links](path.md)` that point to notes in your vault. It does not appear on image embeds (`![[...]]`).
+
+![drag-node](/docs/obsidian/editor-drag-node.gif)
+
+### Convert text or image shapes into a node
+
+Turn tldraw text or image shapes into discourse nodes without leaving the canvas:
+
+1. Select a **text** or **image** shape on the canvas
+2. Right-click the shape
+3. Choose a node type from the **Convert to** submenu
+4. In the modal, edit the title (text is pre-filled; images start with an empty title) or search for an existing node
+5. Click **Confirm** — the shape is replaced with a discourse node card
 
 ## Discourse relations
 
@@ -81,6 +93,10 @@ You can convert a tldraw text or image shape into a discourse node directly from
 - Click and drag the arrow from the source node to target node
 
 ![Create relations](/docs/obsidian/create-relations.gif)
+
+- Alternatively, you can select the dots that show up when you click a node, then start dragging to the destination node to create a new relation
+
+![drag-relation](/docs/obsidian/drag-relation.gif)
 
 _Note_: The relation type selected must be compatible between the source and target nodes. Otherwise, you will receive a relation tool error. To update the setting on what relation types are possible between two kinds of discourse nodes, you can change the setting [Relation types setting](/docs/obsidian/configuration/relationship-types#configuring-valid-relationships)
 

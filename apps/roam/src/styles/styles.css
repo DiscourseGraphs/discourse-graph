@@ -36,6 +36,12 @@
   background: #ffff00;
 }
 
+body.roamjs-query-column-resizing,
+body.roamjs-query-column-resizing * {
+  cursor: ew-resize !important;
+  user-select: none;
+}
+
 .roamjs-query-embed .rm-block-separator {
   display: none;
 }
@@ -214,27 +220,4 @@
 .bp3-dark
   .bp3-button.bp3-minimal[data-roamjs-canvas-page-ref-drag-handle="true"] {
   background-color: #394b59;
-}
-
-.dg-canvas-embed {
-  height: 400px;
-}
-
-.dg-canvas-embed > .roamjs-tldraw-canvas-container {
-  height: 100%;
-  width: 100%;
-}
-
-.dg-canvas-embed-placeholder {
-  height: 100px;
-}
-
-.dg-canvas-embed-dialog.bp3-dialog {
-  width: 400px;
-}
-
-.dg-canvas-embed-dialog .roamjs-autocomplete-input-target,
-.dg-canvas-embed-dialog .roamjs-autocomplete-input-target .bp3-input-group {
-  display: block;
-  width: 100%;
 }

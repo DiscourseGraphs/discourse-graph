@@ -11,7 +11,8 @@
       "default": "./src/dbDotEnv.mjs"
     },
     "./dbTypes": "./src/dbTypes.ts",
-    "./inputTypes": "./src/inputTypes.ts"
+    "./inputTypes": "./src/inputTypes.ts",
+    "./crossAppContracts": "./src/crossAppContracts.ts"
   },
   "typesVersions": {
     "*": {
@@ -33,6 +34,7 @@
     "lint:fix": "eslint --fix . && tsx scripts/lintSchemas.ts -f && tsx scripts/lintFunctions.ts",
     "migrate": "tsx scripts/migrate.ts",
     "test": "pnpm run build && cucumber-js",
+    "test:unit": "vitest run",
     "test:withserve": "pnpm run build && tsx scripts/serveAndTest.ts",
     "genenv": "tsx scripts/createEnv.mts",
     "gentypes": "tsx scripts/genTypes.ts",
@@ -43,6 +45,7 @@
     "deploy:functions": "tsx scripts/deploy.ts -f"
   },
   "dependencies": {
+    "@repo/content-model": "workspace:*",
     "@repo/utils": "workspace:*",
     "@supabase/auth-js": "catalog:",
     "@supabase/functions-js": "catalog:",
@@ -54,7 +57,7 @@
     "@cucumber/cucumber": "^12.7.0",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "^20",
+    "@types/node": "catalog:",
     "@vercel/sdk": "^1.19.40",
     "dotenv": "^16.6.1",
     "eslint": "catalog:",
@@ -63,7 +66,8 @@
     "ts-node-maintained": "^10.9.5",
     "tsx": "4.20.6",
     "typescript": "5.9.2",
-    "vercel": "53.1.0"
+    "vercel": "53.1.0",
+    "vitest": "catalog:"
   },
   "prettier": {
     "plugins": [

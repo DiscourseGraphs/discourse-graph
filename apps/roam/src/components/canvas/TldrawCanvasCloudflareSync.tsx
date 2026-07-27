@@ -9,6 +9,7 @@ import {
   MigrationSequence,
 } from "tldraw";
 import { useMemo } from "react";
+import { getCurrentRoamTldrawUserInfo } from "~/utils/roamTldrawUserInfo";
 
 /** Base URL for tldraw-sync-cloudflare worker. Use https (not wss) - useSync upgrades to WebSocket. */
 export const TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL =
@@ -74,6 +75,7 @@ export const useCloudflareSyncStore = ({
     () => [...defaultBindingUtils, ...customBindingUtils],
     [customBindingUtils],
   );
+  const userInfo = useMemo(() => getCurrentRoamTldrawUserInfo(), []);
 
   const uri = useMemo(() => {
     const roomId = getSyncRoomId({ pageUid });
@@ -93,6 +95,7 @@ export const useCloudflareSyncStore = ({
     migrations,
     shapeUtils,
     bindingUtils,
+    userInfo,
   });
 
   return {

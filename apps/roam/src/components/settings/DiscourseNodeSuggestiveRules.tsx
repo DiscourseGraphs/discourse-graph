@@ -17,6 +17,7 @@ import {
   TEMPLATE_SETTING_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import { RenderRoamBlock } from "~/utils/roamReactComponents";
+import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const DiscourseNodeSuggestiveRules = ({
   node,
@@ -47,10 +48,9 @@ const DiscourseNodeSuggestiveRules = ({
   const handleUpdateEmbeddings = async (): Promise<void> => {
     setIsUpdating(true);
     try {
-      const blockNodesSince = await getAllDiscourseNodesSince(
-        new Date(0).toISOString(),
-        [node],
-      );
+      const blockNodesSince = await getAllDiscourseNodesSince(undefined, [
+        node,
+      ]);
       const supabaseClient = await getLoggedInClient();
       if (!supabaseClient) return;
 
@@ -72,7 +72,10 @@ const DiscourseNodeSuggestiveRules = ({
       <DualWriteBlocksPanel
         nodeType={node.type}
         title="Template"
-        description={`The template that auto fills ${node.text} page when generated.`}
+        description={withDocsLink(
+          `The template that auto fills ${node.text} page when generated.`,
+          ROAM_DOCS.creatingNodes,
+        )}
         settingKeys={TEMPLATE_SETTING_KEYS}
         uid={templateUid}
         defaultValue={node.template}
