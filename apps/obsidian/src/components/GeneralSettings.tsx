@@ -70,20 +70,7 @@ const InfoSection = () => {
 
           <button
             onClick={() => new FeedbackModal(plugin.app, plugin).open()}
-            className="flex cursor-pointer items-center gap-1 text-sm no-underline hover:opacity-80"
-            style={{
-              color: "var(--interactive-accent)",
-              background: "transparent",
-              border: "none",
-              boxShadow: "none",
-              padding: 0,
-              margin: 0,
-              borderRadius: 0,
-              height: "auto",
-              minHeight: 0,
-              lineHeight: "inherit",
-              fontFamily: "inherit",
-            }}
+            className="!m-0 flex !h-auto !min-h-0 cursor-pointer items-center gap-1 !rounded-none !border-0 !bg-transparent !p-0 !font-[inherit] text-sm !leading-[inherit] !text-[var(--interactive-accent)] no-underline !shadow-none hover:opacity-80 focus-visible:!outline focus-visible:!outline-2 focus-visible:!outline-offset-2"
             aria-label="Send feedback"
           >
             <span
