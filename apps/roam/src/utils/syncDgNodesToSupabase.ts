@@ -54,6 +54,10 @@ type SyncTaskInfo = {
   lastUpdateTime?: Date;
   nextUpdateTime?: Date;
   shouldProceed: boolean;
+  failure?: {
+    cause: unknown;
+    context?: Properties;
+  };
 };
 
 type EndSyncTaskRpcResult = {
@@ -90,6 +94,29 @@ type EndSyncTaskResult =
       error: Error;
       rpcResult?: EndSyncTaskRpcResult;
     };
+
+const getSupabaseErrorTelemetry = ({
+  error,
+  prefix,
+}: {
+  error: {
+    message?: unknown;
+    code?: unknown;
+    details?: unknown;
+    hint?: unknown;
+  };
+  prefix: "proposeSyncError" | "syncError" | "endSyncError";
+}): Properties => {
+  const getSafeValue = (value: unknown): string | undefined =>
+    typeof value === "string" ? value : undefined;
+
+  return {
+    [`${prefix}Message`]: getSafeValue(error.message),
+    [`${prefix}Code`]: getSafeValue(error.code),
+    [`${prefix}Details`]: getSafeValue(error.details),
+    [`${prefix}Hint`]: getSafeValue(error.hint),
+  };
+};
 
 let syncWorkerId: string | null = null;
 
@@ -267,16 +294,20 @@ const upsertConceptBatches = async ({
 };
 
 const notifyEndSyncFailure = ({
+  error,
   status,
   showToast,
   reason,
   context,
+  rpcResult,
 }: {
+  error: Error;
   status: Enums<"task_status">;
   showToast: boolean;
   reason: string;
   context?: Properties;
-}): void => {
+  rpcResult?: EndSyncTaskRpcResult;
+}): EndSyncTaskResult => {
   if (showToast) {
     renderToast({
       id: "discourse-embedding-error",
@@ -287,10 +318,17 @@ const notifyEndSyncFailure = ({
   }
 
   internalError({
-    error: new Error(reason),
+    error,
     type: "Sync Failed",
-    context: { status, ...(context || {}) },
+    context: {
+      syncFunction: SYNC_FUNCTION,
+      status,
+      reason,
+      ...(context || {}),
+    },
   });
+
+  return { ok: false, stale: false, error, rpcResult };
 };
 
 export const endSyncTask = async ({
@@ -310,17 +348,38 @@ export const endSyncTask = async ({
   supabaseClient?: DGSupabaseClient;
   telemetryContext?: Properties;
 }): Promise<EndSyncTaskResult> => {
+  const getEndTelemetryContext = (
+    resolvedContext?: SupabaseContext,
+  ): Properties => ({
+    syncWorkerId: worker,
+    syncFunction: SYNC_FUNCTION,
+    spaceId: resolvedContext?.spaceId ?? context?.spaceId,
+    ...(telemetryContext || {}),
+  });
+
   try {
     const resolvedClient = supabaseClient || (await getLoggedInClient());
     if (!resolvedClient) {
       const error = new Error("Missing Supabase client while ending sync task");
-      return { ok: false, stale: false, error };
+      return notifyEndSyncFailure({
+        error,
+        status,
+        showToast: false,
+        reason: error.message,
+        context: getEndTelemetryContext(),
+      });
     }
     const resolvedContext = context || (await getSupabaseContext());
     if (!resolvedContext) {
       console.error("endSyncTask: Unable to obtain Supabase context.");
       const error = new Error("Unable to obtain Supabase context");
-      return { ok: false, stale: false, error };
+      return notifyEndSyncFailure({
+        error,
+        status,
+        showToast: false,
+        reason: error.message,
+        context: getEndTelemetryContext(),
+      });
     }
     const { data, error } = await resolvedClient.rpc("end_sync_task", {
       s_target: resolvedContext.spaceId,
@@ -332,23 +391,17 @@ export const endSyncTask = async ({
     if (error) {
       console.error("endSyncTask: Error calling end_sync_task:", error);
       const reason = `Supabase end_sync_task RPC failed: ${error.message ?? "Unknown error"}`;
-      notifyEndSyncFailure({
+      const capturedError = new Error(reason, { cause: error });
+      return notifyEndSyncFailure({
+        error: capturedError,
         status,
         showToast,
         reason,
         context: {
-          ...telemetryContext,
-          endSyncErrorCode: error.code,
-          endSyncErrorDetails: error.details,
-          endSyncErrorHint: error.hint,
+          ...getEndTelemetryContext(resolvedContext),
+          ...getSupabaseErrorTelemetry({ error, prefix: "endSyncError" }),
         },
       });
-
-      return {
-        ok: false,
-        stale: false,
-        error: new Error(reason),
-      };
     }
 
     if (!isEndSyncTaskRpcResult(data)) {
@@ -374,21 +427,17 @@ export const endSyncTask = async ({
       }
 
       const reason = "Supabase end_sync_task returned unexpected payload";
-      notifyEndSyncFailure({
+      const capturedError = new Error(reason);
+      return notifyEndSyncFailure({
+        error: capturedError,
         status,
         showToast,
         reason,
         context: {
-          ...telemetryContext,
+          ...getEndTelemetryContext(resolvedContext),
           endSyncPayload: data,
         },
       });
-
-      return {
-        ok: false,
-        stale: false,
-        error: new Error(reason),
-      };
     }
 
     const rpcResult = data;
@@ -408,22 +457,18 @@ export const endSyncTask = async ({
     if (rpcResult?.ok === false) {
       const reason =
         rpcResult.reason || "Supabase end_sync_task returned failure";
-      notifyEndSyncFailure({
+      const capturedError = new Error(reason);
+      return notifyEndSyncFailure({
+        error: capturedError,
         status,
         showToast,
         reason,
         context: {
-          ...telemetryContext,
+          ...getEndTelemetryContext(resolvedContext),
           endSyncResult: rpcResult,
         },
-      });
-
-      return {
-        ok: false,
-        stale: false,
-        error: new Error(reason),
         rpcResult,
-      };
+      });
     }
 
     if (showToast) {
@@ -444,18 +489,15 @@ export const endSyncTask = async ({
       error instanceof Error
         ? `Unexpected error ending sync task: ${error.message}`
         : "Unexpected non-error thrown while ending sync task";
-    notifyEndSyncFailure({
+    const capturedError =
+      error instanceof Error ? error : new Error(reason, { cause: error });
+    return notifyEndSyncFailure({
+      error: capturedError,
       status,
       showToast,
       reason,
-      context: telemetryContext,
+      context: getEndTelemetryContext(),
     });
-
-    return {
-      ok: false,
-      stale: false,
-      error: error instanceof Error ? error : new Error(reason),
-    };
   }
 };
 
@@ -478,7 +520,16 @@ export const proposeSyncTask = async (
       console.error(
         `proposeSyncTask: propose_sync_task failed - ${error.message}`,
       );
-      return { shouldProceed: false };
+      return {
+        shouldProceed: false,
+        failure: {
+          cause: error,
+          context: getSupabaseErrorTelemetry({
+            error,
+            prefix: "proposeSyncError",
+          }),
+        },
+      };
     }
 
     if (typeof data === "string") {
@@ -505,6 +556,16 @@ export const proposeSyncTask = async (
     );
     return {
       shouldProceed: false,
+      failure: {
+        cause: error,
+        context:
+          typeof error === "object" && error !== null
+            ? getSupabaseErrorTelemetry({
+                error,
+                prefix: "proposeSyncError",
+              })
+            : undefined,
+      },
     };
   }
 };
@@ -1000,6 +1061,8 @@ export const createOrUpdateDiscourseEmbedding = async (
   let context: SupabaseContext | null = null;
   let supabaseClient: DGSupabaseClient | null = null;
   let userUid = "";
+  let failureReason: string | undefined;
+  let failureContext: Properties | undefined;
   const worker = getSyncWorkerId();
 
   const buildTelemetry = ({
@@ -1057,7 +1120,7 @@ export const createOrUpdateDiscourseEmbedding = async (
     }
     const activeSupabaseClient = supabaseClient;
     const activeContext = context;
-    const { shouldProceed, lastUpdateTime, nextUpdateTime } =
+    const { shouldProceed, lastUpdateTime, nextUpdateTime, failure } =
       await measureSyncPhase({
         phase: "proposeSyncTask",
         phases,
@@ -1066,7 +1129,11 @@ export const createOrUpdateDiscourseEmbedding = async (
       });
     if (!shouldProceed) {
       if (nextUpdateTime === undefined) {
-        throw new Error("Can't obtain sync task");
+        failureReason = "Can't obtain sync task";
+        failureContext = failure?.context;
+        throw failure?.cause instanceof Error
+          ? failure.cause
+          : new Error(failureReason, { cause: failure?.cause });
       }
       console.debug("postponed to ", nextUpdateTime);
       posthog.capture(
@@ -1267,7 +1334,15 @@ export const createOrUpdateDiscourseEmbedding = async (
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
     success = false;
     const reason =
-      error instanceof Error ? error.message : "Unknown sync error";
+      failureReason ??
+      (error instanceof Error ? error.message : "Unknown sync error");
+    const capturedError =
+      error instanceof Error ? error : new Error(reason, { cause: error });
+    const syncErrorContext =
+      failureContext ??
+      (typeof error === "object" && error !== null
+        ? getSupabaseErrorTelemetry({ error, prefix: "syncError" })
+        : {});
     let failedEndResult: EndSyncTaskResult | undefined;
     const failedClaimedAt = claimedAt;
     if (failedClaimedAt !== null) {
@@ -1286,15 +1361,29 @@ export const createOrUpdateDiscourseEmbedding = async (
           }),
       });
     }
-    posthog.capture(
-      "Sync error",
-      buildTelemetry({
-        status: error instanceof FatalError ? "fatal" : "failed",
-        reason,
-        endSyncResult: failedEndResult?.rpcResult,
-      }),
-    );
-    if (error instanceof FatalError) {
+    const isFatal = failureReason === undefined && error instanceof FatalError;
+    const status = isFatal ? "fatal" : "failed";
+    const errorTelemetry = buildTelemetry({
+      status,
+      reason,
+      endSyncResult: failedEndResult?.rpcResult,
+    });
+    const alreadyCaptured =
+      failedEndResult?.ok === false &&
+      failedEndResult.stale === false &&
+      failedEndResult.error === capturedError;
+    if (!alreadyCaptured) {
+      internalError({
+        error: capturedError,
+        type: "Sync Failed",
+        context: {
+          ...errorTelemetry,
+          ...syncErrorContext,
+        },
+      });
+    }
+    posthog.capture("Sync error", errorTelemetry);
+    if (isFatal) {
       doSync = false;
       return;
     }
