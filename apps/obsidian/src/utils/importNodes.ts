@@ -1260,7 +1260,11 @@ export const importSelectedNodes = async ({
     relationInstancesBySpace: Map<number, RemoteRelationInstance[]>;
     sourceNodeTypeIdByKey: Map<string, string>;
   };
-}): Promise<{ success: number; failed: number }> => {
+}): Promise<{
+  success: number;
+  failed: number;
+  errors: Array<{ nodeTitle: string; nodeInstanceId: string; error: string }>;
+}> => {
   const client = await getLoggedInClient(plugin);
   if (!client) {
     throw new Error("Cannot get Supabase client");
@@ -1275,9 +1279,25 @@ export const importSelectedNodes = async ({
   const pathExists = (path: string) => plugin.app.vault.adapter.exists(path);
 
   let successCount = 0;
-  let failedCount = 0;
   let processedCount = 0;
   const totalNodes = selectedNodes.length;
+  // Collected per node so the caller can report why an import failed, the same
+  // way refreshAllImportedFiles does. Titles are not unique across source
+  // spaces, so each entry carries the instance id too.
+  const errors: Array<{
+    nodeTitle: string;
+    nodeInstanceId: string;
+    error: string;
+  }> = [];
+  const recordFailure = (node: ImportableNode, error: string) => {
+    errors.push({
+      nodeTitle: node.title,
+      nodeInstanceId: node.nodeInstanceId,
+      error,
+    });
+    processedCount++;
+    onProgress?.(processedCount, totalNodes);
+  };
 
   // Group nodes by space to create folders efficiently
   const nodesBySpace = new Map<number, ImportableNode[]>();
@@ -1297,10 +1317,8 @@ export const importSelectedNodes = async ({
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
     const spaceUri = spaceUris.get(spaceId);
     if (!spaceUri) {
-      for (const _node of nodes) {
-        failedCount++;
-        processedCount++;
-        onProgress?.(processedCount, totalNodes);
+      for (const node of nodes) {
+        recordFailure(node, `No space URL found for space ${spaceId}`);
       }
       continue;
     }
@@ -1314,10 +1332,13 @@ export const importSelectedNodes = async ({
         nodeInstanceIds: nodes.map((node) => node.nodeInstanceId),
       });
       if (fetched.error) {
-        console.error(
-          `Could not read node types from space ${spaceId}; its ${nodes.length} selected node(s) cannot be imported:`,
-          fetched.error,
-        );
+        for (const node of nodes) {
+          recordFailure(
+            node,
+            `Could not read node types from space ${spaceId}: ${fetched.error}`,
+          );
+        }
+        continue;
       }
       sourceNodeTypeIdByKey = fetched.sourceNodeTypeIdByKey;
     }
@@ -1337,12 +1358,7 @@ export const importSelectedNodes = async ({
           }),
         );
         if (!sourceNodeTypeId) {
-          console.error(
-            `Skipping node ${node.nodeInstanceId}: no node type schema for it in space ${spaceId}`,
-          );
-          failedCount++;
-          processedCount++;
-          onProgress?.(processedCount, totalNodes);
+          recordFailure(node, `No node type schema in space ${spaceId}`);
           continue;
         }
         const importedFromRid = spaceUriAndLocalIdToRid(
@@ -1363,12 +1379,10 @@ export const importSelectedNodes = async ({
         });
 
         if (!nodeContent) {
-          console.error(
-            `Skipping node ${node.nodeInstanceId}: source space ${spaceId} has no importable title/body content for it`,
+          recordFailure(
+            node,
+            `No importable title/body content in space ${spaceId}`,
           );
-          failedCount++;
-          processedCount++;
-          onProgress?.(processedCount, totalNodes);
           continue;
         }
 
@@ -1473,10 +1487,10 @@ export const importSelectedNodes = async ({
         processedCount++;
         onProgress?.(processedCount, totalNodes);
       } catch (error) {
-        console.error(`Error importing node ${node.nodeInstanceId}:`, error);
-        failedCount++;
-        processedCount++;
-        onProgress?.(processedCount, totalNodes);
+        recordFailure(
+          node,
+          error instanceof Error ? error.message : String(error),
+        );
       }
     }
 
@@ -1514,7 +1528,7 @@ export const importSelectedNodes = async ({
     }
   }
 
-  return { success: successCount, failed: failedCount };
+  return { success: successCount, failed: errors.length, errors };
 };
 
 /**
@@ -1588,7 +1602,7 @@ export const refreshImportedFile = async ({
   });
   return {
     success: result.success > 0,
-    error: result.failed > 0 ? "Failed to refresh imported file" : undefined,
+    error: result.errors[0]?.error,
   };
 };
 

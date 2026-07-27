@@ -241,6 +241,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
           `Import completed with some issues:\n${result.success} files imported successfully\n${result.failed} files failed`,
           5000,
         );
+        console.error("Import errors:", result.errors);
       } else {
         new Notice(`Successfully imported ${result.success} node(s)`, 3000);
       }
