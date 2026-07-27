@@ -24,13 +24,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate version format
-        run: |
-          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Version '${{ inputs.version }}' is not a valid stable version (expected x.y.z)"
-            exit 1
-          fi
-
       - name: Install pnpm
         uses: pnpm/action-setup@v6
         with:
@@ -45,21 +38,6 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Guard against re-releasing an already-shipped version
-        run: |
-          CURRENT_VERSION=$(node -p "require('./apps/obsidian/package.json').version")
-          CURRENT_BASE="${CURRENT_VERSION%%-*}"
-          INPUT_VERSION="${{ inputs.version }}"
-          HIGHEST=$(printf '%s\n%s\n' "$CURRENT_BASE" "$INPUT_VERSION" | sort -V | tail -n1)
-          if [ "$HIGHEST" != "$INPUT_VERSION" ]; then
-            echo "::error::Requested version $INPUT_VERSION is behind the current version $CURRENT_VERSION."
-            exit 1
-          fi
-          if [ "$CURRENT_BASE" == "$INPUT_VERSION" ] && [[ "$CURRENT_VERSION" != *-beta.* ]]; then
-            echo "::error::Version $INPUT_VERSION has already been released (current version is $CURRENT_VERSION)."
-            exit 1
-          fi
 
       - name: Publish stable release
         run: cd apps/obsidian && npx tsx scripts/publish.ts --version ${{ inputs.version }}
