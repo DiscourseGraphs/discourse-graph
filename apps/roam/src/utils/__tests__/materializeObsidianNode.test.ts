@@ -6,8 +6,13 @@ import { materializeObsidianNode } from "~/utils/materializeObsidianNode";
 const mocks = vi.hoisted(() => ({
   deleteBlock: vi.fn(),
   findImportedNodeUidBySourceRid: vi.fn(),
+  getPageUidByPageTitle: vi.fn(),
   getShallowTreeByParentUid: vi.fn(),
   writeImportedSourceIdentity: vi.fn(),
+}));
+
+vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
+  default: mocks.getPageUidByPageTitle,
 }));
 
 vi.mock("roamjs-components/queries/getShallowTreeByParentUid", () => ({
@@ -27,21 +32,44 @@ const SOURCE_NODE_RID = "orn:obsidian.note:vault-a/node-1";
 const SOURCE_MODIFIED_AT = "2026-06-14T15:00:00.000Z";
 const NEW_PAGE_UID = "new-page-uid";
 const EXISTING_PAGE_UID = "existing-page-uid";
-const MARKDOWN = "# REM sleep correlates with recall\n\nUpdated evidence.";
+const TITLE = "EVD - REM sleep and recall";
+
+const SOURCE_MARKDOWN = [
+  "---",
+  "nodeTypeId: evidence-type-id",
+  "nodeInstanceId: node-1",
+  "publishedToGroups:",
+  "  - group-a",
+  "---",
+  "",
+  "# REM sleep correlates with recall",
+  "",
+  "Updated evidence.",
+].join("\n");
+
+const MATERIALIZED_MARKDOWN =
+  "# REM sleep correlates with recall\n\nUpdated evidence.";
 
 const node: CrossAppNode = {
   localId: "node-1",
   nodeType: "evidence",
   content: {
-    direct: { value: "EVD - REM sleep and recall" },
+    direct: { value: TITLE },
     full: {
       contentType: contentTypes.obsidianMarkdown,
-      value: MARKDOWN,
+      value: SOURCE_MARKDOWN,
     },
   },
   createdAt: new Date("2026-06-14T10:30:00.000Z"),
   modifiedAt: new Date(SOURCE_MODIFIED_AT),
   authorId: "author",
+};
+
+const input = {
+  node,
+  sourceApp: "Obsidian" as const,
+  sourceModifiedAt: SOURCE_MODIFIED_AT,
+  sourceNodeRid: SOURCE_NODE_RID,
 };
 
 const pageFromMarkdown = vi.fn();
@@ -68,25 +96,20 @@ const setRoamAlphaApi = (): void => {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.deleteBlock.mockResolvedValue(undefined);
+  mocks.getPageUidByPageTitle.mockReturnValue("");
   mocks.getShallowTreeByParentUid.mockReturnValue([]);
-  pageFromMarkdown.mockResolvedValue({ uid: NEW_PAGE_UID });
-  blockFromMarkdown.mockResolvedValue({ uids: [] });
+  pageFromMarkdown.mockResolvedValue(undefined);
+  blockFromMarkdown.mockResolvedValue(undefined);
   deletePage.mockResolvedValue(undefined);
   updatePage.mockResolvedValue(undefined);
   setRoamAlphaApi();
 });
 
 describe("materializeObsidianNode", () => {
-  it("creates a Roam page from Obsidian markdown and stores source identity", async () => {
+  it("creates a Roam page from the markdown body and stores source identity", async () => {
     mocks.findImportedNodeUidBySourceRid.mockResolvedValue(null);
 
-    await expect(
-      materializeObsidianNode({
-        node,
-        sourceModifiedAt: SOURCE_MODIFIED_AT,
-        sourceNodeRid: SOURCE_NODE_RID,
-      }),
-    ).resolves.toEqual({
+    await expect(materializeObsidianNode(input)).resolves.toEqual({
       success: true,
       action: "created",
       pageUid: NEW_PAGE_UID,
@@ -96,14 +119,33 @@ describe("materializeObsidianNode", () => {
 
     expect(pageFromMarkdown).toHaveBeenCalledWith({
       page: {
-        title: "EVD - REM sleep and recall",
+        title: TITLE,
         uid: NEW_PAGE_UID,
       },
-      "markdown-string": MARKDOWN,
+      "markdown-string": MATERIALIZED_MARKDOWN,
     });
     expect(mocks.writeImportedSourceIdentity).toHaveBeenCalledWith({
       pageUid: NEW_PAGE_UID,
       sourceModifiedAt: SOURCE_MODIFIED_AT,
+      sourceNodeRid: SOURCE_NODE_RID,
+    });
+  });
+
+  it("stores the source modified time as canonical UTC", async () => {
+    mocks.findImportedNodeUidBySourceRid.mockResolvedValue(null);
+
+    await expect(
+      materializeObsidianNode({
+        ...input,
+        sourceModifiedAt: "2026-06-14T15:00:00+02:00",
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      sourceModifiedAt: "2026-06-14T13:00:00.000Z",
+    });
+    expect(mocks.writeImportedSourceIdentity).toHaveBeenCalledWith({
+      pageUid: NEW_PAGE_UID,
+      sourceModifiedAt: "2026-06-14T13:00:00.000Z",
       sourceNodeRid: SOURCE_NODE_RID,
     });
   });
@@ -115,32 +157,26 @@ describe("materializeObsidianNode", () => {
       { uid: "old-child-2", text: "More old content" },
     ]);
 
-    await expect(
-      materializeObsidianNode({
-        node,
-        sourceModifiedAt: SOURCE_MODIFIED_AT,
-        sourceNodeRid: SOURCE_NODE_RID,
-      }),
-    ).resolves.toMatchObject({
+    await expect(materializeObsidianNode(input)).resolves.toMatchObject({
       success: true,
       action: "updated",
       pageUid: EXISTING_PAGE_UID,
     });
 
     expect(pageFromMarkdown).not.toHaveBeenCalled();
-    expect(updatePage).toHaveBeenCalledWith({
-      page: {
-        title: "EVD - REM sleep and recall",
-        uid: EXISTING_PAGE_UID,
-      },
-      "merge-pages": false,
+    expect(blockFromMarkdown).toHaveBeenCalledWith({
+      location: { "parent-uid": EXISTING_PAGE_UID, order: "last" },
+      "markdown-string": MATERIALIZED_MARKDOWN,
     });
     expect(mocks.deleteBlock).toHaveBeenCalledTimes(2);
     expect(mocks.deleteBlock).toHaveBeenCalledWith("old-child-1");
     expect(mocks.deleteBlock).toHaveBeenCalledWith("old-child-2");
-    expect(blockFromMarkdown).toHaveBeenCalledWith({
-      location: { "parent-uid": EXISTING_PAGE_UID, order: "last" },
-      "markdown-string": MARKDOWN,
+    expect(updatePage).toHaveBeenCalledWith({
+      page: {
+        title: TITLE,
+        uid: EXISTING_PAGE_UID,
+      },
+      "merge-pages": false,
     });
     expect(mocks.writeImportedSourceIdentity).toHaveBeenCalledWith({
       pageUid: EXISTING_PAGE_UID,
@@ -149,17 +185,11 @@ describe("materializeObsidianNode", () => {
     });
   });
 
-  it("returns the source identity and failed stage when replacement fails", async () => {
+  it("leaves the existing page untouched when replacement fails", async () => {
     mocks.findImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
     blockFromMarkdown.mockRejectedValue(new Error("markdown parser failed"));
 
-    await expect(
-      materializeObsidianNode({
-        node,
-        sourceModifiedAt: SOURCE_MODIFIED_AT,
-        sourceNodeRid: SOURCE_NODE_RID,
-      }),
-    ).resolves.toEqual({
+    await expect(materializeObsidianNode(input)).resolves.toEqual({
       success: false,
       pageUid: EXISTING_PAGE_UID,
       sourceModifiedAt: SOURCE_MODIFIED_AT,
@@ -169,8 +199,9 @@ describe("materializeObsidianNode", () => {
         stage: "replace-page-content",
       },
     });
-    expect(mocks.writeImportedSourceIdentity).not.toHaveBeenCalled();
+    expect(updatePage).not.toHaveBeenCalled();
     expect(mocks.deleteBlock).not.toHaveBeenCalled();
+    expect(mocks.writeImportedSourceIdentity).not.toHaveBeenCalled();
   });
 
   it("removes a new page if its source identity cannot be stored", async () => {
@@ -179,11 +210,7 @@ describe("materializeObsidianNode", () => {
       new Error("props update failed"),
     );
 
-    const result = await materializeObsidianNode({
-      node,
-      sourceModifiedAt: SOURCE_MODIFIED_AT,
-      sourceNodeRid: SOURCE_NODE_RID,
-    });
+    const result = await materializeObsidianNode(input);
 
     expect(result).toMatchObject({
       success: false,
@@ -197,21 +224,48 @@ describe("materializeObsidianNode", () => {
     expect(deletePage).toHaveBeenCalledWith({ page: { uid: NEW_PAGE_UID } });
   });
 
-  it("rejects non-Obsidian payload identity before writing to Roam", async () => {
-    const sourceNodeRid = "orn:roam:graph-a/node-1";
+  it("reports the orphaned page uid when cleanup also fails", async () => {
+    mocks.findImportedNodeUidBySourceRid.mockResolvedValue(null);
+    mocks.writeImportedSourceIdentity.mockRejectedValue(
+      new Error("props update failed"),
+    );
+    deletePage.mockRejectedValue(new Error("delete refused"));
 
+    await expect(materializeObsidianNode(input)).resolves.toMatchObject({
+      success: false,
+      pageUid: NEW_PAGE_UID,
+      error: {
+        stage: "write-source-identity",
+      },
+    });
+  });
+
+  it("refuses to clobber a Roam page that was not imported from this source", async () => {
+    mocks.findImportedNodeUidBySourceRid.mockResolvedValue(null);
+    mocks.getPageUidByPageTitle.mockReturnValue("local-page-uid");
+
+    await expect(materializeObsidianNode(input)).resolves.toEqual({
+      success: false,
+      sourceModifiedAt: SOURCE_MODIFIED_AT,
+      sourceNodeRid: SOURCE_NODE_RID,
+      error: {
+        message: `A Roam page titled '${TITLE}' already exists and was not imported from '${SOURCE_NODE_RID}'`,
+        stage: "title-collision",
+      },
+    });
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
+    expect(mocks.writeImportedSourceIdentity).not.toHaveBeenCalled();
+  });
+
+  it("rejects a non-Obsidian source app before writing to Roam", async () => {
     await expect(
-      materializeObsidianNode({
-        node,
-        sourceModifiedAt: SOURCE_MODIFIED_AT,
-        sourceNodeRid,
-      }),
+      materializeObsidianNode({ ...input, sourceApp: "Roam" }),
     ).resolves.toEqual({
       success: false,
       sourceModifiedAt: SOURCE_MODIFIED_AT,
-      sourceNodeRid,
+      sourceNodeRid: SOURCE_NODE_RID,
       error: {
-        message: `Source node RID '${sourceNodeRid}' is not Obsidian-origin`,
+        message: "Source app 'Roam' is not Obsidian",
         stage: "validate-input",
       },
     });
@@ -219,12 +273,26 @@ describe("materializeObsidianNode", () => {
     expect(pageFromMarkdown).not.toHaveBeenCalled();
   });
 
+  it("rejects a source identifier that is not a RID", async () => {
+    await expect(
+      materializeObsidianNode({ ...input, sourceNodeRid: "node-1" }),
+    ).resolves.toEqual({
+      success: false,
+      sourceModifiedAt: SOURCE_MODIFIED_AT,
+      sourceNodeRid: "node-1",
+      error: {
+        message: "Source node RID 'node-1' is not a RID",
+        stage: "validate-input",
+      },
+    });
+    expect(mocks.findImportedNodeUidBySourceRid).not.toHaveBeenCalled();
+  });
+
   it("rejects a node without full content before writing to Roam", async () => {
     await expect(
       materializeObsidianNode({
+        ...input,
         node: { ...node, content: { direct: node.content.direct } },
-        sourceModifiedAt: SOURCE_MODIFIED_AT,
-        sourceNodeRid: SOURCE_NODE_RID,
       }),
     ).resolves.toEqual({
       success: false,
@@ -237,5 +305,56 @@ describe("materializeObsidianNode", () => {
     });
     expect(mocks.findImportedNodeUidBySourceRid).not.toHaveBeenCalled();
     expect(pageFromMarkdown).not.toHaveBeenCalled();
+  });
+
+  it("rejects a node whose markdown is only frontmatter", async () => {
+    await expect(
+      materializeObsidianNode({
+        ...input,
+        node: {
+          ...node,
+          content: {
+            ...node.content,
+            full: {
+              contentType: contentTypes.obsidianMarkdown,
+              value: "---\nnodeInstanceId: node-1\n---\n",
+            },
+          },
+        },
+      }),
+    ).resolves.toEqual({
+      success: false,
+      sourceModifiedAt: SOURCE_MODIFIED_AT,
+      sourceNodeRid: SOURCE_NODE_RID,
+      error: {
+        message: "Source node has no markdown body outside its frontmatter",
+        stage: "validate-input",
+      },
+    });
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
+  });
+
+  it("rejects a full content type Roam cannot materialize", async () => {
+    await expect(
+      materializeObsidianNode({
+        ...input,
+        node: {
+          ...node,
+          content: {
+            ...node.content,
+            full: {
+              contentType: contentTypes.roamJson,
+              value: "{}",
+            },
+          },
+        },
+      }),
+    ).resolves.toMatchObject({
+      success: false,
+      error: {
+        message: `Unsupported Obsidian full content type '${contentTypes.roamJson}'`,
+        stage: "validate-input",
+      },
+    });
   });
 });

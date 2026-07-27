@@ -105,7 +105,7 @@ const migrateSection = ({
     return true;
   }
 
-  setBlockProps(blockUid, parsedLegacy, false);
+  void setBlockProps(blockUid, parsedLegacy, false);
   onWrite?.();
   console.log(`${LOG_PREFIX} ${label}: migrated`);
   return true;

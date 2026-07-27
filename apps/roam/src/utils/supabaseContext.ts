@@ -38,7 +38,7 @@ const getOrCreateSpacePassword = () => {
   if (existing && typeof existing === "string") return existing;
   // use a uuid as password, at least cryptographically safe
   const password = crypto.randomUUID();
-  setBlockProps(settingsConfigPageUid, {
+  void setBlockProps(settingsConfigPageUid, {
     "space-user-password": password,
   });
   return password;

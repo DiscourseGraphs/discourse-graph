@@ -29,6 +29,7 @@ const setRoamAlphaApi = (): void => {
               block: { props: Record<string, json>; uid: string };
             }) => {
               propsByUid.set(block.uid, block.props);
+              return Promise.resolve();
             },
           ),
         },

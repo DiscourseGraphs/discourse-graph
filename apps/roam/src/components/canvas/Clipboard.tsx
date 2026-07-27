@@ -202,7 +202,7 @@ export const ClipboardProvider = ({
     if (!isInitialized || !clipboardBlockUid) return;
 
     try {
-      setBlockProps(clipboardBlockUid, {
+      void setBlockProps(clipboardBlockUid, {
         [CLIPBOARD_PROP_KEY]: pages,
         [CLIPBOARD_SHOW_NODES_ON_CANVAS_PROP_KEY]: showNodesOnCanvas,
       });
