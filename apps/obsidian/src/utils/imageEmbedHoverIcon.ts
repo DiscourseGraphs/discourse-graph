@@ -4,7 +4,7 @@ import {
   ViewPlugin,
   ViewUpdate,
 } from "@codemirror/view";
-import { setIcon, TFile } from "obsidian";
+import { setIcon, setTooltip, TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import {
   isImageFile,
@@ -12,7 +12,6 @@ import {
 } from "~/utils/editorMenuUtils";
 
 const ICON_CLASS = "dg-image-convert-icon";
-const EMBED_ACTIVE_CLASS = "dg-image-embed-active";
 
 const resolveImageFile = (
   embedEl: HTMLElement,
@@ -36,42 +35,50 @@ const resolveImageFile = (
 const createConvertIcon = (
   embedEl: HTMLElement,
   plugin: DiscourseGraphPlugin,
-): HTMLButtonElement => {
-  const btn = createEl("button");
-  btn.className = `${ICON_CLASS} absolute flex items-center justify-center border-none`;
-  btn.title = "Convert to node";
+): HTMLDivElement => {
+  // A plain div, matching how Obsidian itself builds native embed-action
+  // buttons (see the app's own `createDiv("embed-action")`). A real
+  // <button> would pick up Obsidian's global unscoped `button` reset
+  // (fixed input height/padding/background) on top of ".embed-action",
+  // inflating the shared pill and painting over the icon.
+  const btn = createEl("div");
+  btn.className = `${ICON_CLASS} embed-action flex items-center justify-center`;
+  btn.setAttribute("role", "button");
+  btn.tabIndex = 0;
   setIcon(btn, "file-input");
+  setTooltip(btn, "Convert to node");
 
-  // Prevent mousedown from bubbling to the embed's mousedown handler
+  // Prevent mousedown from bubbling to Obsidian's embed selection handler
   btn.addEventListener("mousedown", (e) => {
     e.stopPropagation();
   });
 
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-
+  const convert = () => {
     const imageFile = resolveImageFile(embedEl, plugin);
     if (!imageFile) return;
 
     openConvertImageToNodeModal({ plugin, imageFile });
+  };
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    convert();
+  });
+
+  btn.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.stopPropagation();
+    e.preventDefault();
+    convert();
   });
 
   return btn;
 };
 
-const showButtonForEmbed = (embedEl: HTMLElement): void => {
-  embedEl.classList.add(EMBED_ACTIVE_CLASS);
-};
-
-const hideButtonForEmbed = (embedEl: HTMLElement): void => {
-  embedEl.classList.remove(EMBED_ACTIVE_CLASS);
-};
-
 const processContainer = (
   container: HTMLElement,
   plugin: DiscourseGraphPlugin,
-  signal: AbortSignal,
 ): void => {
   const embeds = container.querySelectorAll<HTMLElement>(
     ".internal-embed.image-embed",
@@ -83,32 +90,27 @@ const processContainer = (
     const imageFile = resolveImageFile(embedEl, plugin);
     if (!imageFile) continue;
 
-    embedEl.classList.add("relative");
-    embedEl.appendChild(createConvertIcon(embedEl, plugin));
-
-    // Use mousedown to match the timing of Obsidian's native "edit this block" button.
-    // The AbortSignal ensures this listener is cleaned up when the plugin is destroyed.
-    embedEl.addEventListener(
-      "mousedown",
-      (e) => {
-        e.stopPropagation();
-
-        // Hide any other active embed in the container first
-        container
-          .querySelectorAll<HTMLElement>(`.${EMBED_ACTIVE_CLASS}`)
-          .forEach(hideButtonForEmbed);
-
-        showButtonForEmbed(embedEl);
-      },
-      { signal },
-    );
+    const btn = createConvertIcon(embedEl, plugin);
+    // Obsidian 1.13+ groups its own image-embed buttons in a shared
+    // ".embed-actions" pill that reveals on hover/selection. Join that
+    // group so ours lays out alongside native buttons and inherits the
+    // same reveal behavior, instead of overlapping a hardcoded pixel
+    // offset. Fall back to a plain sibling for older Obsidian versions
+    // without that wrapper.
+    const actionsEl = embedEl.querySelector<HTMLElement>(".embed-actions");
+    if (actionsEl) {
+      actionsEl.prepend(btn);
+    } else {
+      embedEl.classList.add("relative");
+      embedEl.appendChild(btn);
+    }
   }
 };
 
 /**
  * CodeMirror ViewPlugin that adds a "Convert to node" icon on embedded images
- * in the live-preview editor. The button appears on click (matching the behavior
- * of Obsidian's native "edit this block" button) rather than on hover.
+ * in the live-preview editor. Reveal timing (hover/selection) matches
+ * Obsidian's native embed action buttons via CSS.
  */
 export const createImageEmbedHoverExtension = (
   plugin: DiscourseGraphPlugin,
@@ -117,32 +119,10 @@ export const createImageEmbedHoverExtension = (
     class {
       private dom: HTMLElement;
       private observer: MutationObserver;
-      private handleOutsideClick: (e: MouseEvent) => void;
-      private abortController: AbortController;
 
       constructor(view: EditorView) {
         this.dom = view.dom;
-        this.abortController = new AbortController();
-        processContainer(view.dom, plugin, this.abortController.signal);
-
-        this.handleOutsideClick = (e: MouseEvent) => {
-          // Only dismiss when the click lands in the actual editor content
-          // (matching the native "edit this block" button), not the gutter
-          // or anywhere else outside the editor.
-          const content = this.dom.querySelector(".cm-content");
-          const target = e.target;
-          if (
-            !content ||
-            !(target instanceof Node) ||
-            !content.contains(target)
-          ) {
-            return;
-          }
-          this.dom
-            .querySelectorAll<HTMLElement>(`.${EMBED_ACTIVE_CLASS}`)
-            .forEach(hideButtonForEmbed);
-        };
-        activeDocument.addEventListener("mousedown", this.handleOutsideClick);
+        processContainer(view.dom, plugin);
 
         // Obsidian renders embeds asynchronously after doc changes,
         // so we need a MutationObserver to catch newly added image embeds.
@@ -157,7 +137,7 @@ export const createImageEmbedHoverExtension = (
             ),
           );
           if (hasRelevantMutation) {
-            processContainer(this.dom, plugin, this.abortController.signal);
+            processContainer(this.dom, plugin);
           }
         });
         this.observer.observe(this.dom, {
@@ -168,22 +148,12 @@ export const createImageEmbedHoverExtension = (
 
       update(update: ViewUpdate): void {
         if (update.docChanged || update.viewportChanged) {
-          processContainer(
-            update.view.dom,
-            plugin,
-            this.abortController.signal,
-          );
+          processContainer(update.view.dom, plugin);
         }
       }
 
       destroy(): void {
         this.observer.disconnect();
-        activeDocument.removeEventListener(
-          "mousedown",
-          this.handleOutsideClick,
-        );
-        // Abort removes all embed-level mousedown listeners added via processContainer
-        this.abortController.abort();
         const icons = this.dom.querySelectorAll(`.${ICON_CLASS}`);
         icons.forEach((icon) => icon.remove());
       }

@@ -3866,11 +3866,19 @@ kbd.tlui-kbd {
   }
 }
 
-.dg-image-convert-icon {
+/* When nested inside Obsidian's shared ".embed-actions" pill, no extra
+   rule is needed here: the pill's own opacity (hover/selection/resizing)
+   already governs ours along with the native buttons. */
+
+/* Fallback positioning + reveal for Obsidian versions that don't group
+   image-embed buttons in a shared ".embed-actions" element (see
+   imageEmbedHoverIcon.ts, which appends into that group when present and
+   falls back to this direct child otherwise). Mirrors the native
+   hover/selection reveal so behavior matches the nested case. */
+.internal-embed.image-embed > .dg-image-convert-icon {
+  position: absolute;
   top: var(--size-2-2);
-  inset-inline-end: calc(var(--size-2-2) + 36px);
-  /* Hardcoded to match native .edit-block-button's measured 30x26 box; padding
-     alone doesn't reproduce it since our icon's intrinsic size differs. */
+  inset-inline-start: var(--size-2-2);
   box-sizing: border-box;
   width: 30px;
   height: 26px;
@@ -3879,19 +3887,22 @@ kbd.tlui-kbd {
   border-radius: var(--radius-s);
   cursor: var(--cursor);
   opacity: 0;
-  pointer-events: none;
 }
 
-.dg-image-embed-active .dg-image-convert-icon {
-  background-color: var(--background-primary);
+.internal-embed.image-embed.is-selected > .dg-image-convert-icon {
   opacity: 1;
-  inset-inline-end: calc(var(--size-2-2) + 36px + 3px);
-  pointer-events: auto;
+  background-color: var(--background-primary);
   z-index: 2;
 }
 
 @media (hover: hover) {
-  .dg-image-embed-active .dg-image-convert-icon:hover {
+  .internal-embed.image-embed:hover > .dg-image-convert-icon {
+    opacity: 1;
+    background-color: var(--background-primary);
+    z-index: 2;
+  }
+
+  .internal-embed.image-embed:hover > .dg-image-convert-icon:hover {
     background-color: var(--background-secondary);
   }
 }
