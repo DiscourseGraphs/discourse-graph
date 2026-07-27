@@ -31,57 +31,71 @@ const InfoSection = () => {
           Discourse Graphs
         </div>
 
-        <a
-          href={COMMUNITY_URL}
-          className="flex items-center gap-1 text-sm no-underline hover:opacity-80"
-          style={{ color: "var(--interactive-accent)" }}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Community"
-        >
-          <span className="icon flex items-center">
-            <SlackLogoIcon />
-          </span>
-          <span>Community</span>
-          <span
-            className="icon"
-            ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
-          />
-        </a>
-        <a
-          href={DOCS_URL}
-          className="flex items-center gap-1 text-sm no-underline hover:opacity-80"
-          style={{ color: "var(--interactive-accent)" }}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Docs"
-        >
-          <div
-            className="icon"
-            ref={(el) => (el && setIcon(el, "book")) || undefined}
-          />
-          <span>Docs</span>
-          <span
-            className="icon"
-            ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
-          />
-        </a>
+        <div className="mt-2 flex flex-col items-start gap-1">
+          <a
+            href={COMMUNITY_URL}
+            className="flex items-center gap-1 text-sm no-underline hover:opacity-80"
+            style={{ color: "var(--interactive-accent)" }}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Community"
+          >
+            <span className="icon flex w-4 items-center justify-center">
+              <SlackLogoIcon />
+            </span>
+            <span>Community</span>
+            <span
+              className="icon"
+              ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
+            />
+          </a>
+          <a
+            href={DOCS_URL}
+            className="flex items-center gap-1 text-sm no-underline hover:opacity-80"
+            style={{ color: "var(--interactive-accent)" }}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Docs"
+          >
+            <div
+              className="icon flex w-4 items-center justify-center"
+              ref={(el) => (el && setIcon(el, "book")) || undefined}
+            />
+            <span>Docs</span>
+            <span
+              className="icon"
+              ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
+            />
+          </a>
 
-        <button
-          onClick={() => new FeedbackModal(plugin.app, plugin).open()}
-          className="mt-2 flex cursor-pointer items-center gap-1 rounded border-none bg-transparent px-2 py-1 text-sm hover:opacity-80"
-          style={{ color: "var(--interactive-accent)" }}
-          aria-label="Send feedback"
-        >
-          <span
-            className="icon inline-flex items-center"
-            ref={(el) => (el && setIcon(el, "message-square")) || undefined}
-          />
-          <span>Send feedback</span>
-        </button>
+          <button
+            onClick={() => new FeedbackModal(plugin.app, plugin).open()}
+            className="flex cursor-pointer items-center gap-1 text-sm no-underline hover:opacity-80"
+            style={{
+              color: "var(--interactive-accent)",
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+              padding: 0,
+              margin: 0,
+              borderRadius: 0,
+              height: "auto",
+              minHeight: 0,
+              lineHeight: "inherit",
+              fontFamily: "inherit",
+            }}
+            aria-label="Send feedback"
+          >
+            <span
+              className="icon flex w-4 items-center justify-center"
+              ref={(el) => (el && setIcon(el, "message-square")) || undefined}
+            />
+            <span>Send feedback</span>
+          </button>
+        </div>
 
         <span
-          className="text-muted text-xs"
+          className="text-muted mt-2 text-xs"
           style={{ color: "var(--interactive-accent)" }}
         >
           {plugin.manifest.version}
