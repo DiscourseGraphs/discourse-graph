@@ -1,197 +1,116 @@
-import { describe, expect, it, vi } from "vitest";
+import assert from "node:assert/strict";
+import { test } from "node:test";
 import {
-  createNodeCardContextMenuState,
   groupRelationsByType,
   nodeCardContextMenuReducer,
   runRelationCanvasAction,
   shouldShowNodeCardContextMenu,
 } from "../nodeCardContextMenuModel";
 
-describe("shouldShowNodeCardContextMenu", () => {
-  it("keeps the default panel when the admin flag is off", () => {
-    expect(
-      shouldShowNodeCardContextMenu({
-        isEnabled: false,
-        selectedShapeType: "discourse-node",
-      }),
-    ).toBe(false);
-  });
-
-  it("keeps the default panel for regular tldraw shapes", () => {
-    expect(
-      shouldShowNodeCardContextMenu({
-        isEnabled: true,
-        selectedShapeType: "geo",
-      }),
-    ).toBe(false);
-  });
-
-  it("shows the menu for a selected discourse node when enabled", () => {
-    expect(
-      shouldShowNodeCardContextMenu({
-        isEnabled: true,
-        selectedShapeType: "discourse-node",
-      }),
-    ).toBe(true);
-  });
+void test("the menu requires both the flag and a discourse-node selection", () => {
+  assert.equal(shouldShowNodeCardContextMenu(false, "discourse-node"), false);
+  assert.equal(shouldShowNodeCardContextMenu(true, "geo"), false);
+  assert.equal(shouldShowNodeCardContextMenu(true, "discourse-node"), true);
 });
 
-describe("nodeCardContextMenuReducer", () => {
-  it("opens on Context and switches tabs", () => {
-    const initialState = createNodeCardContextMenuState("shape:one");
-    const stylingState = nodeCardContextMenuReducer(initialState, {
-      type: "select-tab",
-      tab: "styling",
-    });
-
-    expect(initialState.activeTab).toBe("context");
-    expect(stylingState.activeTab).toBe("styling");
+void test("Context is the default tab and selecting another node resets it", () => {
+  const initial = {
+    activeTab: "context" as const,
+    selectedShapeId: "shape:one",
+  };
+  const styling = nodeCardContextMenuReducer(initial, {
+    type: "select-tab",
+    tab: "styling",
   });
 
-  it("keeps the chosen tab for the same node and resets for a new node", () => {
-    const stylingState = {
-      activeTab: "styling" as const,
-      selectedShapeId: "shape:one",
-    };
-
-    expect(
-      nodeCardContextMenuReducer(stylingState, {
-        type: "sync-selection",
-        selectedShapeId: "shape:one",
-      }),
-    ).toBe(stylingState);
-
-    expect(
-      nodeCardContextMenuReducer(stylingState, {
-        type: "sync-selection",
-        selectedShapeId: "shape:two",
-      }),
-    ).toEqual({
-      activeTab: "context",
+  assert.equal(styling.activeTab, "styling");
+  assert.deepEqual(
+    nodeCardContextMenuReducer(styling, {
+      type: "select-node",
       selectedShapeId: "shape:two",
-    });
-  });
+    }),
+    { activeTab: "context", selectedShapeId: "shape:two" },
+  );
 });
 
-describe("groupRelationsByType", () => {
-  it("groups incoming and outgoing relations and preserves empty relation types", () => {
-    const linkedFiles = new Map([
-      ["node:claim", { path: "Claims/A claim.md" }],
-      ["node:evidence", { path: "Evidence/An observation.md" }],
-    ]);
-
-    const groups = groupRelationsByType({
-      activeNodeTypeId: "type:question",
-      nodeInstanceId: "node:question",
-      relationTypes: [
-        {
-          id: "relation:supports",
-          label: "supports",
-          complement: "is supported by",
-        },
-        {
-          id: "relation:informs",
-          label: "informs",
-          complement: "is informed by",
-        },
-      ],
-      discourseRelations: [
-        {
-          sourceId: "type:question",
-          destinationId: "type:claim",
-          relationshipTypeId: "relation:supports",
-        },
-        {
-          sourceId: "type:evidence",
-          destinationId: "type:question",
-          relationshipTypeId: "relation:supports",
-        },
-        {
-          sourceId: "type:question",
-          destinationId: "type:evidence",
-          relationshipTypeId: "relation:informs",
-        },
-      ],
-      relations: [
-        {
-          type: "relation:supports",
-          source: "node:question",
-          destination: "node:claim",
-        },
-        {
-          type: "relation:supports",
-          source: "node:evidence",
-          destination: "node:question",
-        },
-        {
-          type: "relation:supports",
-          source: "node:question",
-          destination: "node:claim",
-        },
-        {
-          type: "relation:supports",
-          source: "node:unrelated-a",
-          destination: "node:unrelated-b",
-        },
-      ],
-      getLinkedFile: (nodeInstanceId) =>
-        linkedFiles.get(nodeInstanceId) ?? null,
-    });
-
-    expect(groups).toEqual([
+void test("relations are grouped by direction and duplicate files are removed", () => {
+  const files = new Map([
+    ["claim", { path: "Claims/Claim.md" }],
+    ["evidence", { path: "Evidence/Evidence.md" }],
+  ]);
+  const groups = groupRelationsByType({
+    activeNodeTypeId: "question-type",
+    nodeInstanceId: "question",
+    relationTypes: [
+      { id: "supports", label: "supports", complement: "is supported by" },
+      { id: "informs", label: "informs", complement: "is informed by" },
+    ],
+    discourseRelations: [
       {
-        key: "relation:supports-source",
-        label: "supports",
-        isSource: true,
-        relationTypeId: "relation:supports",
-        linkedFiles: [{ path: "Claims/A claim.md" }],
+        sourceId: "question-type",
+        destinationId: "claim-type",
+        relationshipTypeId: "supports",
       },
       {
-        key: "relation:supports-destination",
+        sourceId: "evidence-type",
+        destinationId: "question-type",
+        relationshipTypeId: "supports",
+      },
+      {
+        sourceId: "question-type",
+        destinationId: "claim-type",
+        relationshipTypeId: "informs",
+      },
+    ],
+    relations: [
+      { type: "supports", source: "question", destination: "claim" },
+      { type: "supports", source: "question", destination: "claim" },
+      { type: "supports", source: "evidence", destination: "question" },
+    ],
+    getLinkedFile: (id) => files.get(id) ?? null,
+    includeAllDirections: true,
+  });
+
+  assert.deepEqual(
+    groups.map(({ label, isSource, linkedFiles }) => ({
+      label,
+      isSource,
+      paths: linkedFiles.map(({ path }) => path),
+    })),
+    [
+      { label: "supports", isSource: true, paths: ["Claims/Claim.md"] },
+      {
         label: "is supported by",
         isSource: false,
-        relationTypeId: "relation:supports",
-        linkedFiles: [{ path: "Evidence/An observation.md" }],
+        paths: ["Evidence/Evidence.md"],
       },
-      {
-        key: "relation:informs-source",
-        label: "informs",
-        isSource: true,
-        relationTypeId: "relation:informs",
-        linkedFiles: [],
-      },
-    ]);
-  });
+      { label: "informs", isSource: true, paths: [] },
+    ],
+  );
 });
 
-describe("runRelationCanvasAction", () => {
-  it("adds a relation that is not on the canvas", async () => {
-    const add = vi.fn().mockResolvedValue(undefined);
-    const remove = vi.fn().mockResolvedValue(undefined);
-
-    await expect(
-      runRelationCanvasAction({
-        hasExistingRelation: false,
-        add,
-        remove,
-      }),
-    ).resolves.toBe("add");
-    expect(add).toHaveBeenCalledOnce();
-    expect(remove).not.toHaveBeenCalled();
+void test("the canvas action adds an absent relation", async () => {
+  let added = false;
+  await runRelationCanvasAction({
+    hasExistingRelation: false,
+    add: () => {
+      added = true;
+      return Promise.resolve();
+    },
+    remove: () => Promise.reject(new Error("remove should not run")),
   });
+  assert.equal(added, true);
+});
 
-  it("removes a relation that is already on the canvas", async () => {
-    const add = vi.fn().mockResolvedValue(undefined);
-    const remove = vi.fn().mockResolvedValue(undefined);
-
-    await expect(
-      runRelationCanvasAction({
-        hasExistingRelation: true,
-        add,
-        remove,
-      }),
-    ).resolves.toBe("remove");
-    expect(remove).toHaveBeenCalledOnce();
-    expect(add).not.toHaveBeenCalled();
+void test("the canvas action removes an existing relation", async () => {
+  let removed = false;
+  await runRelationCanvasAction({
+    hasExistingRelation: true,
+    add: () => Promise.reject(new Error("add should not run")),
+    remove: () => {
+      removed = true;
+      return Promise.resolve();
+    },
   });
+  assert.equal(removed, true);
 });

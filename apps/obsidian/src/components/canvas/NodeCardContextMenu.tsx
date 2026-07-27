@@ -1,21 +1,18 @@
 import {
   createElement,
-  useCallback,
   useEffect,
-  useId,
   useReducer,
-  useRef,
   useState,
-  type KeyboardEvent,
   type ComponentType,
-  type RefObject,
 } from "react";
 import type { TFile } from "obsidian";
 import {
   DefaultStylePanel,
+  DefaultStylePanelContent,
   useEditor,
-  usePassThroughWheelEvents,
+  useRelevantStyles,
   useValue,
+  type TLUiStylePanelContentProps,
   type TLUiStylePanelProps,
 } from "tldraw";
 import type DiscourseGraphPlugin from "~/index";
@@ -26,7 +23,6 @@ import {
 import type { DiscourseNodeShape } from "./shapes/DiscourseNodeShape";
 import { RelationsPanel } from "./overlays/RelationPanel";
 import {
-  createNodeCardContextMenuState,
   nodeCardContextMenuReducer,
   shouldShowNodeCardContextMenu,
   type NodeCardContextMenuTab,
@@ -37,9 +33,10 @@ type NodeCardContextMenuProps = TLUiStylePanelProps & {
   canvasFile: TFile;
 };
 
-const TABS: NodeCardContextMenuTab[] = ["context", "styling"];
 const DefaultStylePanelComponent =
   DefaultStylePanel as unknown as ComponentType<TLUiStylePanelProps>;
+const DefaultStylePanelContentComponent =
+  DefaultStylePanelContent as unknown as ComponentType<TLUiStylePanelContentProps>;
 
 export const NodeCardContextMenu = ({
   plugin,
@@ -47,158 +44,91 @@ export const NodeCardContextMenu = ({
   isMobile,
 }: NodeCardContextMenuProps) => {
   const editor = useEditor();
-  const panelRef = useRef<HTMLDivElement>(null);
-  const tabButtonRefs = useRef<
-    Partial<Record<NodeCardContextMenuTab, HTMLButtonElement>>
-  >({});
-  const tabIdPrefix = useId();
+  const styles = useRelevantStyles();
   const [isEnabled, setIsEnabled] = useState(
     plugin.settings[FEATURE_FLAGS.NODE_CARD_CONTEXT_MENU] ?? false,
   );
-
-  usePassThroughWheelEvents(panelRef as RefObject<HTMLElement>);
-
-  useEffect(() => {
-    const syncFlag = () => {
-      setIsEnabled(
-        plugin.settings[FEATURE_FLAGS.NODE_CARD_CONTEXT_MENU] ?? false,
-      );
-    };
-    window.addEventListener(
-      NODE_CARD_CONTEXT_MENU_FLAG_CHANGED_EVENT,
-      syncFlag,
-    );
-    return () => {
-      window.removeEventListener(
-        NODE_CARD_CONTEXT_MENU_FLAG_CHANGED_EVENT,
-        syncFlag,
-      );
-    };
-  }, [plugin]);
-
   const selectedShape = useValue(
     "selected shape for node card context menu",
     () => editor.getOnlySelectedShape(),
     [editor],
   );
-  const showNodeCardContextMenu = shouldShowNodeCardContextMenu({
+  const selectedNode = shouldShowNodeCardContextMenu(
     isEnabled,
-    selectedShapeType: selectedShape?.type,
-  });
-  const selectedNode = showNodeCardContextMenu
+    selectedShape?.type,
+  )
     ? (selectedShape as DiscourseNodeShape)
     : null;
+  const [menuState, dispatch] = useReducer(nodeCardContextMenuReducer, {
+    activeTab: "context",
+    selectedShapeId: selectedNode?.id ?? null,
+  });
 
-  const [state, dispatch] = useReducer(
-    nodeCardContextMenuReducer,
-    selectedNode?.id ?? null,
-    createNodeCardContextMenuState,
-  );
+  useEffect(() => {
+    const updateFlag = () =>
+      setIsEnabled(
+        plugin.settings[FEATURE_FLAGS.NODE_CARD_CONTEXT_MENU] ?? false,
+      );
+    window.addEventListener(
+      NODE_CARD_CONTEXT_MENU_FLAG_CHANGED_EVENT,
+      updateFlag,
+    );
+    return () =>
+      window.removeEventListener(
+        NODE_CARD_CONTEXT_MENU_FLAG_CHANGED_EVENT,
+        updateFlag,
+      );
+  }, [plugin]);
 
   useEffect(() => {
     dispatch({
-      type: "sync-selection",
+      type: "select-node",
       selectedShapeId: selectedNode?.id ?? null,
     });
   }, [selectedNode?.id]);
-
-  const selectTab = useCallback((tab: NodeCardContextMenuTab) => {
-    dispatch({ type: "select-tab", tab });
-  }, []);
-
-  const handleTabKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLButtonElement>) => {
-      const currentIndex = TABS.indexOf(state.activeTab);
-      let nextTab: NodeCardContextMenuTab | undefined;
-
-      if (event.key === "ArrowLeft") {
-        nextTab = TABS[(currentIndex - 1 + TABS.length) % TABS.length];
-      } else if (event.key === "ArrowRight") {
-        nextTab = TABS[(currentIndex + 1) % TABS.length];
-      } else if (event.key === "Home") {
-        nextTab = TABS[0];
-      } else if (event.key === "End") {
-        nextTab = TABS[TABS.length - 1];
-      }
-
-      if (!nextTab) return;
-      event.preventDefault();
-      selectTab(nextTab);
-      tabButtonRefs.current[nextTab]?.focus();
-    },
-    [selectTab, state.activeTab],
-  );
 
   if (!selectedNode) {
     return createElement(DefaultStylePanelComponent, { isMobile });
   }
 
-  return (
-    <div
-      ref={panelRef}
-      className={[
-        "dg-node-card-menu tlui-style-panel",
-        !isMobile && "tlui-style-panel__wrapper",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      data-ismobile={isMobile}
-      onPointerLeave={() => {
-        if (!isMobile) {
-          editor.updateInstanceState({ isChangingStyle: false });
-        }
-      }}
-    >
-      <div
-        className="dg-node-card-menu__tabs"
-        role="tablist"
-        aria-label="Node card menu"
-      >
-        {TABS.map((tab) => {
-          const isActive = state.activeTab === tab;
-          return (
-            <button
-              key={tab}
-              ref={(button) => {
-                tabButtonRefs.current[tab] = button ?? undefined;
-              }}
-              id={`${tabIdPrefix}-${tab}-tab`}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              aria-controls={`${tabIdPrefix}-${tab}-panel`}
-              tabIndex={isActive ? 0 : -1}
-              className={["dg-node-card-menu__tab", isActive && "is-active"]
-                .filter(Boolean)
-                .join(" ")}
-              onClick={() => selectTab(tab)}
-              onKeyDown={handleTabKeyDown}
-            >
-              {tab === "context" ? "Context" : "Styling"}
-            </button>
-          );
-        })}
+  const selectTab = (tab: NodeCardContextMenuTab) =>
+    dispatch({ type: "select-tab", tab });
+
+  return createElement(
+    DefaultStylePanelComponent,
+    { isMobile },
+    <>
+      <div className="grid grid-cols-2 border-b border-[var(--color-divider)] bg-[var(--color-panel)]">
+        {(["context", "styling"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            aria-pressed={menuState.activeTab === tab}
+            className={[
+              "border-b-2 px-3 py-2 text-xs font-semibold capitalize",
+              menuState.activeTab === tab
+                ? "border-[var(--color-selected)] text-[var(--color-selected)]"
+                : "border-transparent text-[var(--color-text-2)]",
+            ].join(" ")}
+            onClick={() => selectTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
-      <div
-        id={`${tabIdPrefix}-${state.activeTab}-panel`}
-        role="tabpanel"
-        aria-labelledby={`${tabIdPrefix}-${state.activeTab}-tab`}
-        className="dg-node-card-menu__panel"
-      >
-        {state.activeTab === "context" ? (
+      <div className="max-h-[min(32rem,calc(100vh-6rem))] overflow-y-auto">
+        {menuState.activeTab === "context" ? (
           <RelationsPanel
             plugin={plugin}
             canvasFile={canvasFile}
             nodeShape={selectedNode}
-            variant="node-card-context"
+            embedded
           />
         ) : (
-          <div className="dg-node-card-menu__styling">
-            {createElement(DefaultStylePanelComponent, { isMobile: true })}
-          </div>
+          createElement(DefaultStylePanelContentComponent, { styles })
         )}
       </div>
-    </div>
+    </>,
   );
 };
