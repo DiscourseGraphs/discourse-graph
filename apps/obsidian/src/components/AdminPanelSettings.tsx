@@ -5,10 +5,6 @@ import { updateUsername } from "~/utils/supabaseContext";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { nextRoot } from "@repo/utils/execContext";
 import { getLoggedInClient } from "~/utils/supabaseContext";
-import {
-  FEATURE_FLAGS,
-  NODE_CARD_CONTEXT_MENU_FLAG_CHANGED_EVENT,
-} from "~/constants";
 
 export const AdminPanelSettings = () => {
   const plugin = usePlugin();
@@ -19,9 +15,7 @@ export const AdminPanelSettings = () => {
     plugin.settings.username || "",
   );
   const [nodeCardContextMenuEnabled, setNodeCardContextMenuEnabled] =
-    useState<boolean>(
-      plugin.settings[FEATURE_FLAGS.NODE_CARD_CONTEXT_MENU] ?? false,
-    );
+    useState<boolean>(plugin.settings.nodeCardContextMenuEnabled ?? false);
 
   const handleSyncModeToggle = useCallback(
     async (newValue: boolean) => {
@@ -54,11 +48,8 @@ export const AdminPanelSettings = () => {
   const handleNodeCardContextMenuToggle = useCallback(
     async (newValue: boolean) => {
       setNodeCardContextMenuEnabled(newValue);
-      plugin.settings[FEATURE_FLAGS.NODE_CARD_CONTEXT_MENU] = newValue;
+      plugin.settings.nodeCardContextMenuEnabled = newValue;
       await plugin.saveSettings();
-      window.dispatchEvent(
-        new Event(NODE_CARD_CONTEXT_MENU_FLAG_CHANGED_EVENT),
-      );
     },
     [plugin],
   );

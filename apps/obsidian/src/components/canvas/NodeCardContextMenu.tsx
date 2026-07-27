@@ -10,10 +10,6 @@ import {
   type TLUiStylePanelProps,
 } from "tldraw";
 import type DiscourseGraphPlugin from "~/index";
-import {
-  FEATURE_FLAGS,
-  NODE_CARD_CONTEXT_MENU_FLAG_CHANGED_EVENT,
-} from "~/constants";
 import type { DiscourseNodeShape } from "./shapes/DiscourseNodeShape";
 import { RelationsPanel } from "./overlays/RelationPanel";
 
@@ -22,8 +18,16 @@ type NodeCardContextMenuProps = TLUiStylePanelProps & {
   canvasFile: TFile;
 };
 
-type NodeCardContextMenuTab = "context" | "styling";
+const NODE_CARD_CONTEXT_MENU_TABS = [
+  { id: "context", label: "Context" },
+  { id: "styling", label: "Styling" },
+] as const;
 
+type NodeCardContextMenuTab =
+  (typeof NODE_CARD_CONTEXT_MENU_TABS)[number]["id"];
+
+// tldraw is typed against React 19 while Obsidian runs React 18. The casts avoid
+// adding TS2786 errors to this file when rendering these components.
 const DefaultStylePanelComponent =
   DefaultStylePanel as unknown as ComponentType<TLUiStylePanelProps>;
 const DefaultStylePanelContentComponent =
@@ -36,9 +40,7 @@ export const NodeCardContextMenu = ({
 }: NodeCardContextMenuProps) => {
   const editor = useEditor();
   const styles = useRelevantStyles();
-  const [isEnabled, setIsEnabled] = useState(
-    plugin.settings[FEATURE_FLAGS.NODE_CARD_CONTEXT_MENU] ?? false,
-  );
+  const isEnabled = plugin.settings.nodeCardContextMenuEnabled ?? false;
   const selectedShape = useValue(
     "selected shape for node card context menu",
     () => editor.getOnlySelectedShape(),
@@ -51,22 +53,6 @@ export const NodeCardContextMenu = ({
   const [activeTab, setActiveTab] = useState<NodeCardContextMenuTab>("context");
 
   useEffect(() => {
-    const updateFlag = () =>
-      setIsEnabled(
-        plugin.settings[FEATURE_FLAGS.NODE_CARD_CONTEXT_MENU] ?? false,
-      );
-    window.addEventListener(
-      NODE_CARD_CONTEXT_MENU_FLAG_CHANGED_EVENT,
-      updateFlag,
-    );
-    return () =>
-      window.removeEventListener(
-        NODE_CARD_CONTEXT_MENU_FLAG_CHANGED_EVENT,
-        updateFlag,
-      );
-  }, [plugin]);
-
-  useEffect(() => {
     setActiveTab("context");
   }, [selectedNode?.id]);
 
@@ -77,38 +63,39 @@ export const NodeCardContextMenu = ({
   return createElement(
     DefaultStylePanelComponent,
     { isMobile },
-    <>
+    <div className="dg-node-card-menu">
       <div className="grid grid-cols-2 border-b border-[var(--color-divider)] bg-[var(--color-panel)]">
-        {(["context", "styling"] as const).map((tab) => (
+        {NODE_CARD_CONTEXT_MENU_TABS.map(({ id, label }) => (
           <button
-            key={tab}
+            key={id}
             type="button"
-            aria-pressed={activeTab === tab}
+            aria-pressed={activeTab === id}
             className={[
-              "border-b-2 px-3 py-2 text-xs font-semibold capitalize",
-              activeTab === tab
+              "border-b-2 px-3 py-2 text-xs font-semibold",
+              activeTab === id
                 ? "border-[var(--color-selected)] text-[var(--color-selected)]"
-                : "border-transparent text-[var(--color-text-2)]",
+                : "border-transparent text-[var(--color-text-3)]",
             ].join(" ")}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => setActiveTab(id)}
           >
-            {tab}
+            {label}
           </button>
         ))}
       </div>
 
-      <div className="max-h-[min(32rem,calc(100vh-6rem))] overflow-y-auto">
+      <div>
         {activeTab === "context" ? (
           <RelationsPanel
             plugin={plugin}
             canvasFile={canvasFile}
             nodeShape={selectedNode}
             embedded
+            includeAllDirections
           />
         ) : (
           createElement(DefaultStylePanelContentComponent, { styles })
         )}
       </div>
-    </>,
+    </div>,
   );
 };
