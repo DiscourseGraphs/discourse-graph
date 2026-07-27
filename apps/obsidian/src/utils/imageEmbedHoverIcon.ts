@@ -38,7 +38,7 @@ const createConvertIcon = (
   plugin: DiscourseGraphPlugin,
 ): HTMLButtonElement => {
   const btn = createEl("button");
-  btn.className = `${ICON_CLASS} absolute z-[2] right-[42px] h-[28px] w-[28px] flex border-none opacity-0 pointer-events-none`;
+  btn.className = `${ICON_CLASS} absolute flex items-center justify-center border-none`;
   btn.title = "Convert to node";
   setIcon(btn, "file-input");
 
@@ -117,7 +117,7 @@ export const createImageEmbedHoverExtension = (
     class {
       private dom: HTMLElement;
       private observer: MutationObserver;
-      private handleOutsideClick: () => void;
+      private handleOutsideClick: (e: MouseEvent) => void;
       private abortController: AbortController;
 
       constructor(view: EditorView) {
@@ -125,7 +125,19 @@ export const createImageEmbedHoverExtension = (
         this.abortController = new AbortController();
         processContainer(view.dom, plugin, this.abortController.signal);
 
-        this.handleOutsideClick = () => {
+        this.handleOutsideClick = (e: MouseEvent) => {
+          // Only dismiss when the click lands in the actual editor content
+          // (matching the native "edit this block" button), not the gutter
+          // or anywhere else outside the editor.
+          const content = this.dom.querySelector(".cm-content");
+          const target = e.target;
+          if (
+            !content ||
+            !(target instanceof Node) ||
+            !content.contains(target)
+          ) {
+            return;
+          }
           this.dom
             .querySelectorAll<HTMLElement>(`.${EMBED_ACTIVE_CLASS}`)
             .forEach(hideButtonForEmbed);

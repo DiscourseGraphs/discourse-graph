@@ -3868,14 +3868,30 @@ kbd.tlui-kbd {
 
 .dg-image-convert-icon {
   top: var(--size-2-2);
+  inset-inline-end: calc(var(--size-2-2) + 38px);
+  /* Hardcoded to match native .edit-block-button's measured 30x26 box; padding
+     alone doesn't reproduce it since our icon's intrinsic size differs. */
+  box-sizing: border-box;
+  width: 30px;
+  height: 26px;
   padding: var(--size-2-2) var(--size-2-3);
   color: var(--text-muted);
-  background-color: var(--background-primary);
+  border-radius: var(--radius-s);
+  cursor: var(--cursor);
   opacity: 0;
   pointer-events: none;
 }
 
 .dg-image-embed-active .dg-image-convert-icon {
+  background-color: var(--background-primary);
   opacity: 1;
+  inset-inline-end: calc(var(--size-2-2) + 38px + 3px);
   pointer-events: auto;
+  z-index: 2;
+}
+
+@media (hover: hover) {
+  .dg-image-embed-active .dg-image-convert-icon:hover {
+    background-color: var(--background-secondary);
+  }
 }
