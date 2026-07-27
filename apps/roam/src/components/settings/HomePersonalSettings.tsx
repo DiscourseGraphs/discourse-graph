@@ -8,7 +8,6 @@ import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
-  previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
 import {
   showDiscourseFloatingMenu,
@@ -211,16 +210,6 @@ const HomePersonalSettings = ({
         initialValue={personalSettings[PERSONAL_KEYS.disableSidebarOpen]}
         onChange={(checked) => {
           void setSetting("disable-sidebar-open", checked);
-        }}
-      />
-      <PersonalFlagPanel
-        title="Page preview"
-        description="Whether or not to display page previews when hovering over page refs"
-        settingKeys={[PERSONAL_KEYS.pagePreview]}
-        initialValue={personalSettings[PERSONAL_KEYS.pagePreview]}
-        onChange={(checked) => {
-          void setSetting("page-preview", checked);
-          onPageRefObserverChange(previewPageRefHandler)(checked);
         }}
       />
       <PersonalFlagPanel

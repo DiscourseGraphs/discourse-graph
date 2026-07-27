@@ -20,7 +20,6 @@ import {
   enablePageRefObserver,
   addPageRefObserver,
   getPageRefObserversSize,
-  previewPageRefHandler,
   getOverlayHandler,
   onPageRefObserverChange,
   getSuggestiveOverlayHandler,
@@ -240,9 +239,6 @@ export const initObservers = ({
       }
     },
   });
-
-  if (settings.personalSettings[PERSONAL_KEYS.pagePreview])
-    addPageRefObserver(previewPageRefHandler);
 
   if (settings.personalSettings[PERSONAL_KEYS.discourseContextOverlay]) {
     const overlayHandler = getOverlayHandler(onloadArgs);
