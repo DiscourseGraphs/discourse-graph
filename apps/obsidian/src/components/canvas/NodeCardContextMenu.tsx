@@ -26,8 +26,6 @@ const NODE_CARD_CONTEXT_MENU_TABS = [
 type NodeCardContextMenuTab =
   (typeof NODE_CARD_CONTEXT_MENU_TABS)[number]["id"];
 
-// tldraw is typed against React 19 while Obsidian runs React 18. The casts avoid
-// adding TS2786 errors to this file when rendering these components.
 const DefaultStylePanelComponent =
   DefaultStylePanel as unknown as ComponentType<TLUiStylePanelProps>;
 const DefaultStylePanelContentComponent =
@@ -83,19 +81,17 @@ export const NodeCardContextMenu = ({
         ))}
       </div>
 
-      <div>
-        {activeTab === "context" ? (
-          <RelationsPanel
-            plugin={plugin}
-            canvasFile={canvasFile}
-            nodeShape={selectedNode}
-            embedded
-            includeAllDirections
-          />
-        ) : (
-          createElement(DefaultStylePanelContentComponent, { styles })
-        )}
-      </div>
+      {activeTab === "context" ? (
+        <RelationsPanel
+          plugin={plugin}
+          canvasFile={canvasFile}
+          nodeShape={selectedNode}
+          embedded
+          includeAllDirections
+        />
+      ) : (
+        createElement(DefaultStylePanelContentComponent, { styles })
+      )}
     </div>,
   );
 };
