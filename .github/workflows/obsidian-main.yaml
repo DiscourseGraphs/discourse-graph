@@ -12,6 +12,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: obsidian-beta-release
+  cancel-in-progress: false
+
 env:
   OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
