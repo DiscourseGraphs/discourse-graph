@@ -4,6 +4,11 @@
   <img alt="Shows project promo image in light and dark mode">
 </picture>
 
+> [!IMPORTANT]
+> This repository is a generated distribution of the Discourse Graphs Obsidian plugin. Source code is maintained in the [Discourse Graphs monorepo](https://github.com/DiscourseGraphs/discourse-graph).
+>
+> Please submit issues and contributions to the monorepo. Changes made directly to this repository will be overwritten.
+
 # Overview
 
 Break down the research process into atomic units to augment the knowledge synthesis process. Create distinct objects for questions, claims, evidence, hypotheses or choose your own to suit your specific needs. These objects can then be related, resurfaced, and reused throughout your research journey to help you efficiently build arguments and create new knowledge.
@@ -134,4 +139,4 @@ For more information about Discourse Graphs, check out [our website](https://dis
 
 1. Join our growing community of academics, researchers, and thinkers on [Slack 💬](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg)
 2. Are you a lab or researcher interested in piloting the plugin with some guidance from the team? Send us [an email](mailto:discoursegraphs@homeworld.bio) or DM on Slack!
-3. Discourse Graphs is [open source](https://en.wikipedia.org/wiki/Open_source) and open to contributions. If you have an idea for an improvement or identify a bug open an issue here on the repo to start the conversation.
+3. Discourse Graphs is [open source](https://en.wikipedia.org/wiki/Open_source). See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to report bugs or propose changes.
