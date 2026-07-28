@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "publish": "tsx scripts/publish.ts --version 0.1.0",
+    "test": "vitest run --config vitest.config.mts",
     "check-types": "tsc --noEmit --skipLibCheck"
   },
   "keywords": [],
@@ -35,6 +36,7 @@
     "tsx": "^4.19.2",
     "typescript": "5.5.4",
     "uuidv7": "1.1.0",
+    "vitest": "catalog:",
     "zod": "^3.24.1"
   },
   "dependencies": {
