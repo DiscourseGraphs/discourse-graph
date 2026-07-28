@@ -42,6 +42,9 @@ const selectClass = `${fieldClass} appearance-none h-9 leading-none`;
 const accentButtonClass =
   "flex items-center justify-center gap-1.5 bg-accent text-on-accent rounded py-2.5 px-3 text-sm font-medium border-none cursor-pointer hover:opacity-90";
 
+const MAX_SCREENSHOT_SIZE_BYTES = 3 * 1024 * 1024; // 3 MB — stays under Vercel's 4.5 MB body limit after base64 encoding
+const MAX_SCREENSHOT_SIZE_LABEL = "3 MB";
+
 const isValidEmail = (value: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -58,6 +61,7 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [fileSizeError, setFileSizeError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -89,11 +93,20 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
   }, [screenshot]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setScreenshot(e.target.files?.[0] ?? null);
+    const file = e.target.files?.[0] ?? null;
+    if (file && file.size > MAX_SCREENSHOT_SIZE_BYTES) {
+      setFileSizeError(
+        `Image is too large. Please use an image under ${MAX_SCREENSHOT_SIZE_LABEL}.`,
+      );
+    } else {
+      setFileSizeError(null);
+    }
+    setScreenshot(file);
   };
 
   const removeScreenshot = () => {
     setScreenshot(null);
+    setFileSizeError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -101,7 +114,8 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
     title.trim().length > 0 &&
     email.trim().length > 0 &&
     isValidEmail(email.trim()) &&
-    !emailError;
+    !emailError &&
+    !fileSizeError;
 
   const handleSubmit = async () => {
     if (!isSubmittable) return;
@@ -178,7 +192,9 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
 
       {/* Screenshot preview */}
       {screenshot && previewUrl && (
-        <div className="bg-modifier-form-field border-modifier-border flex items-center gap-2 rounded border p-2">
+        <div
+          className={`bg-modifier-form-field flex items-center gap-2 rounded border p-2 ${fileSizeError ? "border-error" : "border-modifier-border"}`}
+        >
           <img
             src={previewUrl}
             alt="Screenshot preview"
@@ -201,6 +217,9 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
             />
           </button>
         </div>
+      )}
+      {fileSizeError && (
+        <span className="text-error text-xs">{fileSizeError}</span>
       )}
 
       {/* Email */}
