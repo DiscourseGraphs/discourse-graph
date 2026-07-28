@@ -61,6 +61,7 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [fileSizeError, setFileSizeError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,18 +93,22 @@ const FeedbackContent = ({ plugin, onClose }: FeedbackContentProps) => {
   }, [screenshot]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setScreenshot(e.target.files?.[0] ?? null);
+    const file = e.target.files?.[0] ?? null;
+    if (file && file.size > MAX_SCREENSHOT_SIZE_BYTES) {
+      setFileSizeError(
+        `Image is too large. Please use an image under ${MAX_SCREENSHOT_SIZE_MB} MB.`,
+      );
+    } else {
+      setFileSizeError(null);
+    }
+    setScreenshot(file);
   };
 
   const removeScreenshot = () => {
     setScreenshot(null);
+    setFileSizeError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
-
-  const fileSizeError =
-    screenshot && screenshot.size > MAX_SCREENSHOT_SIZE_BYTES
-      ? `Image is too large. Please use an image under ${MAX_SCREENSHOT_SIZE_MB} MB.`
-      : null;
 
   const isSubmittable =
     title.trim().length > 0 &&
