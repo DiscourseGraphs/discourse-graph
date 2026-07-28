@@ -1,6 +1,5 @@
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageUidByBlockUid from "roamjs-components/queries/getPageUidByBlockUid";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { isPageUid } from "~/utils/isPageUid";
@@ -30,15 +29,6 @@ type RoamSidebarWindow = {
   "block-uid"?: string;
 };
 
-const showSuggestionToast = (content: string): void => {
-  renderToast({
-    id: "suggestive-mode-added",
-    content,
-    intent: "success",
-    timeout: 4000,
-  });
-};
-
 type RightSidebarWithOrder = typeof window.roamAlphaAPI.ui.rightSidebar & {
   setWindowOrder?: (action: {
     windows: Array<{ window: RoamSidebarWindow }>;
@@ -52,7 +42,8 @@ const bringSidebarWindowToTop = async (windowId: string): Promise<void> => {
     // Sidebar may already be open.
   }
 
-  const windows = getSidebarWindows();
+  const windows: RoamSidebarWindow[] =
+    window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
   const targetIndex = windows.findIndex((w) => w["window-id"] === windowId);
   if (targetIndex <= 0) return;
 
@@ -87,15 +78,6 @@ const bringSidebarWindowToTop = async (windowId: string): Promise<void> => {
   );
 };
 
-const getSidebarWindows = (): RoamSidebarWindow[] => {
-  try {
-    return window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
-  } catch {
-    // Sidebar API can be unavailable during Roam teardown.
-    return [];
-  }
-};
-
 export const notifyBlockSuggestionAdded = async (
   targetBlockUid: string,
   sourceTitle: string,
@@ -114,28 +96,32 @@ export const notifyBlockSuggestionAdded = async (
       ? mainRawUid
       : getPageUidByBlockUid(mainRawUid) || mainRawUid
     : null;
-  const sourcePageUid = getPageUidByPageTitle(sourceTitle);
-
-  const isContentPageOpenInMain = isTargetOpenInMainWindow({
+  // Decide toast-only vs. opening the sidebar based on the insertion target
+  // (targetBlockUid / its page), not sourceTitle. sourceTitle is the tag page,
+  // which can differ from the page the child is actually inserted under; keying
+  // off it would suppress focusing the real insertion location.
+  const isOpenInMain = isTargetOpenInMainWindow({
     mainRawUid,
     mainPageUid,
     pageUid,
     targetBlockUid,
   });
-  const isSourcePageOpenInMain =
-    !!sourcePageUid &&
-    (mainPageUid === sourcePageUid || mainRawUid === sourcePageUid);
-  const isOpenInMain = isContentPageOpenInMain || isSourcePageOpenInMain;
   const disableSidebarOpen = getPersonalSetting<boolean>([
     PERSONAL_KEYS.disableSidebarOpen,
   ]);
 
   if (isOpenInMain || disableSidebarOpen) {
-    showSuggestionToast(`Added to [[${sourceTitle}]]`);
+    renderToast({
+      id: "suggestive-mode-added",
+      content: `Added to [[${sourceTitle}]]`,
+      intent: "success",
+      timeout: 4000,
+    });
     return;
   }
 
-  const sidebarWindowsBefore = getSidebarWindows();
+  const sidebarWindowsBefore: RoamSidebarWindow[] =
+    window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
   const existingWindow = sidebarWindowsBefore.find(
     (w) =>
       w.type === "outline" &&
@@ -163,7 +149,10 @@ export const notifyRelationSuggestionAdded = (
   sourceTitle: string,
   destinationTitle: string,
 ): void => {
-  showSuggestionToast(
-    `Added relation between [[${sourceTitle}]] and [[${destinationTitle}]]`,
-  );
+  renderToast({
+    id: "suggestive-mode-added",
+    content: `Added relation between [[${sourceTitle}]] and [[${destinationTitle}]]`,
+    intent: "success",
+    timeout: 4000,
+  });
 };

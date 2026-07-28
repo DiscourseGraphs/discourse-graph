@@ -33,6 +33,7 @@ import {
 import type { PageGroup } from "~/components/settings/utils/zodSchema";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
+import internalError from "~/utils/internalError";
 import posthog from "posthog-js";
 import {
   notifyBlockSuggestionAdded,
@@ -369,7 +370,12 @@ const SuggestionsBody = ({
         try {
           notifyRelationSuggestionAdded(tag, node.text);
         } catch (error) {
-          console.error("Failed to show suggestion added notification:", error);
+          internalError({
+            error,
+            type: "Suggestive Mode: Notification Failed",
+            context: { tag, nodeText: node.text, kind: "relation" },
+            sendEmail: false,
+          });
         }
       } else {
         renderToast({
@@ -387,7 +393,12 @@ const SuggestionsBody = ({
       try {
         await notifyBlockSuggestionAdded(blockUid, tag);
       } catch (error) {
-        console.error("Failed to show suggestion added notification:", error);
+        internalError({
+          error,
+          type: "Suggestive Mode: Notification Failed",
+          context: { tag, nodeText: node.text, kind: "block" },
+          sendEmail: false,
+        });
       }
     }
 
