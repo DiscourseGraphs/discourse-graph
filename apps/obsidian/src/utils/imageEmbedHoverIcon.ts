@@ -66,25 +66,13 @@ const createConvertIcon = (
     convert();
   });
 
-  btn.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter" && e.key !== " ") return;
-    e.stopPropagation();
-    e.preventDefault();
-    convert();
-  });
-
-  return btn;
-};
-
-const processContainer = (
-  container: HTMLElement,
-  plugin: DiscourseGraphPlugin,
-): void => {
   const embeds = container.querySelectorAll<HTMLElement>(
     ".internal-embed.image-embed",
   );
 
   for (const embedEl of embeds) {
+    // Skip if button already exists to prevent duplicates when processContainer
+    // is called multiple times (constructor, MutationObserver, update()).
     if (embedEl.querySelector(`.${ICON_CLASS}`)) continue;
 
     const imageFile = resolveImageFile(embedEl, plugin);
@@ -104,6 +92,7 @@ const processContainer = (
       embedEl.classList.add("relative");
       embedEl.appendChild(btn);
     }
+
   }
 };
 
