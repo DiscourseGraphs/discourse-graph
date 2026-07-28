@@ -36,11 +36,7 @@ const createConvertIcon = (
   embedEl: HTMLElement,
   plugin: DiscourseGraphPlugin,
 ): HTMLDivElement => {
-  // A plain div, matching how Obsidian itself builds native embed-action
-  // buttons (see the app's own `createDiv("embed-action")`). A real
-  // <button> would pick up Obsidian's global unscoped `button` reset
-  // (fixed input height/padding/background) on top of ".embed-action",
-  // inflating the shared pill and painting over the icon.
+  // A div, not a button, to match Obsidian's own embed-action markup.
   const btn = createEl("div");
   btn.className = `${ICON_CLASS} embed-action flex items-center justify-center`;
   btn.setAttribute("role", "button");
@@ -85,20 +81,15 @@ const processContainer = (
   );
 
   for (const embedEl of embeds) {
-    // Skip if button already exists to prevent duplicates when processContainer
-    // is called multiple times (constructor, MutationObserver, update()).
+    // Skip embeds that already have the button (processContainer runs repeatedly).
     if (embedEl.querySelector(`.${ICON_CLASS}`)) continue;
 
     const imageFile = resolveImageFile(embedEl, plugin);
     if (!imageFile) continue;
 
     const btn = createConvertIcon(embedEl, plugin);
-    // Obsidian 1.13+ groups its own image-embed buttons in a shared
-    // ".embed-actions" pill that reveals on hover/selection. Join that
-    // group so ours lays out alongside native buttons and inherits the
-    // same reveal behavior, instead of overlapping a hardcoded pixel
-    // offset. Fall back to a plain sibling for older Obsidian versions
-    // without that wrapper.
+    // Join Obsidian's native embed-actions group when present, so ours lays
+    // out alongside native buttons instead of a hardcoded pixel offset.
     const actionsEl = embedEl.querySelector<HTMLElement>(".embed-actions");
     if (actionsEl) {
       actionsEl.prepend(btn);

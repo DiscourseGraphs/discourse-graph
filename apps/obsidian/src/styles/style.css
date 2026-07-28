@@ -3866,15 +3866,7 @@ kbd.tlui-kbd {
   }
 }
 
-/* When nested inside Obsidian's shared ".embed-actions" pill, no extra
-   rule is needed here: the pill's own opacity (hover/selection/resizing)
-   already governs ours along with the native buttons. */
-
-/* Fallback positioning + reveal for Obsidian versions that don't group
-   image-embed buttons in a shared ".embed-actions" element (see
-   imageEmbedHoverIcon.ts, which appends into that group when present and
-   falls back to this direct child otherwise). Mirrors the native
-   hover/selection reveal so behavior matches the nested case. */
+/* Fallback for Obsidian versions without a shared ".embed-actions" wrapper. */
 .internal-embed.image-embed > .dg-image-convert-icon {
   position: absolute;
   top: var(--size-2-2);
