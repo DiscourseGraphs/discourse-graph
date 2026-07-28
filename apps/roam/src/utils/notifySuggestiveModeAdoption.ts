@@ -36,11 +36,7 @@ type RightSidebarWithOrder = typeof window.roamAlphaAPI.ui.rightSidebar & {
 };
 
 const bringSidebarWindowToTop = async (windowId: string): Promise<void> => {
-  try {
-    await window.roamAlphaAPI.ui.rightSidebar.open();
-  } catch {
-    // Sidebar may already be open.
-  }
+  await window.roamAlphaAPI.ui.rightSidebar.open();
 
   const windows: RoamSidebarWindow[] =
     window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
