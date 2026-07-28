@@ -66,6 +66,20 @@ const createConvertIcon = (
     convert();
   });
 
+  btn.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.stopPropagation();
+    e.preventDefault();
+    convert();
+  });
+
+  return btn;
+};
+
+const processContainer = (
+  container: HTMLElement,
+  plugin: DiscourseGraphPlugin,
+): void => {
   const embeds = container.querySelectorAll<HTMLElement>(
     ".internal-embed.image-embed",
   );
@@ -92,7 +106,6 @@ const createConvertIcon = (
       embedEl.classList.add("relative");
       embedEl.appendChild(btn);
     }
-
   }
 };
 
