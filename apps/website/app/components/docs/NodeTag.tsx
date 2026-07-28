@@ -4,7 +4,7 @@ const NODE_TAG_COLORS = {
   que: "#99890E", // Question
   clm: "#7DA13E", // Claim
   evd: "#DB134A", // Evidence
-  src: "#3B82F6", // Source
+  src: "#9E9E9E", // Source
   hyp: "#8CE99A", // Hypothesis
   res: "#4DABF7", // Result
   iss: "#E599F7", // Issue
