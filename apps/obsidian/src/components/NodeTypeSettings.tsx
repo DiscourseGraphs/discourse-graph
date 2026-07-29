@@ -1192,7 +1192,7 @@ const NodeTypeSettings = () => {
               ref={(el) => (el && setIcon(el, "arrow-left")) || undefined}
             />
           </button>
-          <h3 className="dg-h3">
+          <h3 className="dg-h3 !mb-0">
             {isEditingImported
               ? `[Read only] Imported from ${getAndFormatImportSource(editingNodeType.importedFromRid || "", plugin.settings.spaceNames)}`
               : "Edit node type"}

@@ -6,15 +6,16 @@ CREATE TABLE IF NOT EXISTS public."FileReference" (
     "created" timestamp without time zone NOT NULL,
     last_modified timestamp without time zone NOT NULL,
     -- not allowed virtual with user types
-    variant public."ContentVariant" GENERATED ALWAYS AS ('full') STORED
+    variant public."ContentVariant" GENERATED ALWAYS AS ('full') STORED,
+    original BOOLEAN GENERATED ALWAYS AS (true) STORED
 );
 ALTER TABLE ONLY public."FileReference"
 ADD CONSTRAINT "FileReference_pkey" PRIMARY KEY (source_local_id, space_id, filepath);
 
 ALTER TABLE ONLY public."FileReference"
 ADD CONSTRAINT "FileReference_content_fkey" FOREIGN KEY (
-    space_id, source_local_id, variant
-) REFERENCES public."Content" (space_id, source_local_id, variant) ON DELETE CASCADE;
+    space_id, source_local_id, variant, original
+) REFERENCES public."Content"(space_id, source_local_id, variant, original) ON DELETE CASCADE;
 -- note the absence of on update ; the generated column forbids cascade, so it will error
 -- However, update on those columns should never happen.
 

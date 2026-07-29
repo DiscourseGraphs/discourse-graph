@@ -1,0 +1,76 @@
+name: Stable Obsidian Release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Stable version to release, e.g. 1.6.0. Must match an existing Linear release version."
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  VERSION: ${{ inputs.version }}
+  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate version input
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: '$VERSION'. Expected semver like 1.6.0."
+            exit 1
+          fi
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Publish stable release
+        run: cd apps/obsidian && npx tsx scripts/publish.ts --version "$VERSION"
+
+      - name: Commit version bump
+        run: |
+          if ! git diff --quiet -- apps/obsidian/package.json apps/obsidian/manifest.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add apps/obsidian/package.json apps/obsidian/manifest.json
+            git commit -m "chore: release obsidian ${VERSION} [skip ci]"
+            git push
+          fi
+
+      - name: Sync Linear release
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.OBSIDIAN_LINEAR_RELEASE_KEY }}
+          command: sync
+          version: ${{ env.VERSION }}
+          include_paths: "apps/obsidian/**,packages/database/**,packages/utils/**"
+
+      - name: Complete Linear release
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.OBSIDIAN_LINEAR_RELEASE_KEY }}
+          command: complete
+          version: ${{ env.VERSION }}

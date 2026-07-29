@@ -20,7 +20,6 @@ import {
   enablePageRefObserver,
   addPageRefObserver,
   getPageRefObserversSize,
-  previewPageRefHandler,
   getOverlayHandler,
   onPageRefObserverChange,
   getSuggestiveOverlayHandler,
@@ -47,7 +46,6 @@ import { renderImageToolsMenu } from "./renderImageToolsMenu";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
-import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
 import { renderPublishNodeTitleButton } from "~/components/PublishNodeTitleButton";
 import { renderCanvasEmbed } from "~/components/canvas/CanvasEmbed";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -125,7 +123,6 @@ export const initObservers = ({
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
         const syncEnabled =
-          settings.featureFlags[FEATURE_FLAG_KEYS.duplicateNodeAlertEnabled] ||
           settings.featureFlags[FEATURE_FLAG_KEYS.suggestiveModeOverlayEnabled];
         if (syncEnabled && node.backedBy === "user") {
           renderPublishNodeTitleButton({
@@ -135,14 +132,7 @@ export const initObservers = ({
             nodeType: node.type,
           });
         }
-        if (settings.personalSettings[PERSONAL_KEYS.discourseContextOverlay]) {
-          renderDiscourseContext({ h1, uid });
-        }
-        if (
-          settings.featureFlags[FEATURE_FLAG_KEYS.duplicateNodeAlertEnabled]
-        ) {
-          renderPossibleDuplicates(h1, title, node);
-        }
+        renderDiscourseContext({ h1, uid });
         const linkedReferencesDiv = document.querySelector(
           ".rm-reference-main",
         ) as HTMLDivElement;
@@ -249,9 +239,6 @@ export const initObservers = ({
       }
     },
   });
-
-  if (settings.personalSettings[PERSONAL_KEYS.pagePreview])
-    addPageRefObserver(previewPageRefHandler);
 
   if (settings.personalSettings[PERSONAL_KEYS.discourseContextOverlay]) {
     const overlayHandler = getOverlayHandler(onloadArgs);

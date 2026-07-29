@@ -218,7 +218,6 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
   ],
   [pathKey([PERSONAL_KEYS.textSelectionPopup]), "text-selection-popup"],
   [pathKey([PERSONAL_KEYS.disableSidebarOpen]), "disable-sidebar-open"],
-  [pathKey([PERSONAL_KEYS.pagePreview]), "page-preview"],
   [pathKey([PERSONAL_KEYS.hideFeedbackButton]), "hide-feedback-button"],
   [pathKey([PERSONAL_KEYS.autoCanvasRelations]), "auto-canvas-relations"],
   [
@@ -305,6 +304,11 @@ const getLegacyPersonalSetting = (keys: string[]): unknown => {
     const leftSidebarSettings = getLegacyPersonalLeftSidebarSetting();
     if (keys.length === 1) return leftSidebarSettings;
     return readPathValue(leftSidebarSettings, keys.slice(1));
+  }
+
+  if (keys[0] === "Global section folded") {
+    return getLeftSidebarSettings(discourseConfigRef.tree).globalSectionFolded
+      .value;
   }
 
   return undefined;
@@ -403,14 +407,6 @@ const getLegacyGlobalSetting = (keys: string[]): unknown => {
     leftSidebarSettings["Children"] = sidebar.global.children.map(
       (c) => c.text,
     );
-    const sidebarSettingValues: Record<string, unknown> = {};
-    sidebarSettingValues["Collapsable"] =
-      sidebar.global.settings?.collapsable.value ??
-      DEFAULT_GLOBAL_SETTINGS["Left sidebar"].Settings.Collapsable;
-    sidebarSettingValues["Folded"] =
-      sidebar.global.settings?.folded.value ??
-      DEFAULT_GLOBAL_SETTINGS["Left sidebar"].Settings.Folded;
-    leftSidebarSettings["Settings"] = sidebarSettingValues;
     if (keys.length === 1) return leftSidebarSettings;
     return readPathValue(leftSidebarSettings, keys.slice(1));
   }
@@ -765,7 +761,6 @@ export const readAllLegacyDiscourseNodeSettings = (
 };
 
 export const isSyncEnabled = (): boolean =>
-  getFeatureFlag("Duplicate node alert enabled") ||
   getFeatureFlag("Suggestive mode overlay enabled");
 
 export const setFeatureFlag = (

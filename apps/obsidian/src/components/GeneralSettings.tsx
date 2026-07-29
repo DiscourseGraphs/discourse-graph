@@ -3,6 +3,7 @@ import { usePlugin } from "./PluginContext";
 import { setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
 import { DiscourseGraphLogoIcon, SlackLogoIcon } from "./Icons";
+import { FeedbackModal } from "./FeedbackModal";
 
 const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
 const COMMUNITY_URL =
@@ -10,6 +11,7 @@ const COMMUNITY_URL =
 
 const InfoSection = () => {
   const plugin = usePlugin();
+
   return (
     <div className="flex justify-center">
       <div
@@ -29,43 +31,58 @@ const InfoSection = () => {
           Discourse Graphs
         </div>
 
-        <a
-          href={COMMUNITY_URL}
-          className="flex items-center gap-1 text-sm no-underline hover:opacity-80"
-          style={{ color: "var(--interactive-accent)" }}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Community"
-        >
-          <span className="icon flex items-center">
-            <SlackLogoIcon />
-          </span>
-          <span>Community</span>
-          <span
-            className="icon"
-            ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
-          />
-        </a>
-        <a
-          href={DOCS_URL}
-          className="flex items-center gap-1 text-sm no-underline hover:opacity-80"
-          style={{ color: "var(--interactive-accent)" }}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Docs"
-        >
-          <div
-            className="icon"
-            ref={(el) => (el && setIcon(el, "book")) || undefined}
-          />
-          <span>Docs</span>
-          <span
-            className="icon"
-            ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
-          />
-        </a>
+        <div className="mt-2 flex flex-col items-start gap-1">
+          <a
+            href={COMMUNITY_URL}
+            className="flex items-center gap-1 text-sm no-underline hover:opacity-80"
+            style={{ color: "var(--interactive-accent)" }}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Community"
+          >
+            <span className="icon flex w-4 items-center justify-center">
+              <SlackLogoIcon />
+            </span>
+            <span>Community</span>
+            <span
+              className="icon"
+              ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
+            />
+          </a>
+          <a
+            href={DOCS_URL}
+            className="flex items-center gap-1 text-sm no-underline hover:opacity-80"
+            style={{ color: "var(--interactive-accent)" }}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Docs"
+          >
+            <div
+              className="icon flex w-4 items-center justify-center"
+              ref={(el) => (el && setIcon(el, "book")) || undefined}
+            />
+            <span>Docs</span>
+            <span
+              className="icon"
+              ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
+            />
+          </a>
+
+          <button
+            onClick={() => new FeedbackModal(plugin.app, plugin).open()}
+            className="!m-0 flex !h-auto !min-h-0 cursor-pointer items-center gap-1 !rounded-none !border-0 !bg-transparent !p-0 !font-[inherit] text-sm !leading-[inherit] !text-[var(--interactive-accent)] no-underline !shadow-none hover:opacity-80 focus-visible:!outline focus-visible:!outline-2 focus-visible:!outline-offset-2"
+            aria-label="Send feedback"
+          >
+            <span
+              className="icon flex w-4 items-center justify-center"
+              ref={(el) => (el && setIcon(el, "message-square")) || undefined}
+            />
+            <span>Send feedback</span>
+          </button>
+        </div>
+
         <span
-          className="text-muted text-xs"
+          className="text-muted mt-2 text-xs"
           style={{ color: "var(--interactive-accent)" }}
         >
           {plugin.manifest.version}

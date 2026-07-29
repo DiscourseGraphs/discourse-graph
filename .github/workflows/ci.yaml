@@ -37,6 +37,9 @@ jobs:
       - name: Run Tests
         run: npx turbo run test --filter=roam --ui stream
 
+      - name: Run Package Unit Tests
+        run: npx turbo run test:unit --ui stream
+
   lint-changed-files:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

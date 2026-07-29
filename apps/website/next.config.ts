@@ -13,6 +13,7 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.SUPABASE_URL;
 
 const withNextra = nextra({
   contentDirBasePath: "/docs",
+  defaultShowCopyCode: true,
 });
 
 const nextConfig: NextConfig = {

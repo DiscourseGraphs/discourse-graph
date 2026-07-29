@@ -44,6 +44,10 @@ export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
   private tagNodeHandler: TagNodeHandler | null = null;
   private fileChangeListener: FileChangeListener | null = null;
+  private activeNodePopover:
+    | NodeTagSuggestPopover
+    | InlineNodeTypePicker
+    | null = null;
   private currentViewActions: { leaf: WorkspaceLeaf; action: HTMLElement }[] =
     [];
   private pendingCanvasSwitches = new Set<string>();
@@ -293,26 +297,29 @@ export default class DiscourseGraphPlugin extends Plugin {
         event.preventDefault();
         event.stopPropagation();
 
+        this.activeNodePopover?.close();
+        this.activeNodePopover = null;
+
         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (activeView?.editor) {
           const editor = activeView.editor;
           const selectedText = editor.getSelection();
 
           if (selectedText && selectedText.trim().length > 0) {
-            // Text is selected: open node type picker to create node from selection
             const picker = new InlineNodeTypePicker({
               editor,
               nodeTypes: this.settings.nodeTypes,
               plugin: this,
               selectedText: selectedText.trim(),
             });
+            this.activeNodePopover = picker;
             picker.open();
           } else {
-            // No selection: open the candidate node tag popover
             const popover = new NodeTagSuggestPopover(
               editor,
               this.settings.nodeTypes,
             );
+            this.activeNodePopover = popover;
             popover.open();
           }
         }
@@ -430,6 +437,8 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   onunload() {
+    this.activeNodePopover?.close();
+    this.activeNodePopover = null;
     this.cleanupViewActions();
     activeDocument.body.classList.remove("dg-hide-frontmatter-ids");
 

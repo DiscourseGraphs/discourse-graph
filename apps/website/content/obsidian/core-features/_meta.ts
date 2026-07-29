@@ -6,6 +6,7 @@ const meta: MetaRecord = {
   "discourse-context": "Discourse context",
   canvas: "Canvas",
   "node-tags": "Node tags",
+  "querying-discourse-graph": "Querying",
 };
 
 export default meta;
