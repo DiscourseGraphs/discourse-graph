@@ -4,6 +4,7 @@ import { setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
 import { DiscourseGraphLogoIcon, SlackLogoIcon } from "./Icons";
 import { openExportSpecsModal } from "./ExportSpecsModal";
+import { openImportSpecsModal } from "./ImportSpecsModal";
 import { getDgSchemaFileName } from "~/utils/specValidation";
 
 const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
@@ -270,6 +271,26 @@ const GeneralSettings = () => {
             onChange={handleCanvasAttachmentsFolderPathChange}
             placeholder="Example: attachments"
           />
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">Import discourse graph schema</div>
+          <div className="setting-item-description">
+            Choose a schema JSON file from your computer and preview how it maps
+            to your existing node types, relation types, relation triples, and
+            templates.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <button
+            type="button"
+            className="rounded border px-3 py-1.5 text-sm"
+            onClick={() => openImportSpecsModal(plugin)}
+          >
+            Open import modal
+          </button>
         </div>
       </div>
 
