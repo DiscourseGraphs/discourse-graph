@@ -1184,7 +1184,21 @@ const processFileContent = async ({
 }): Promise<
   { file: TFile; error?: never } | { file?: never; error: string }
 > => {
-  // 1. Create or update the file with the fetched content first.
+  // 1. Parse frontmatter from rawContent (metadataCache is updated async and is
+  //    often empty immediately after create/modify) and resolve the node type
+  //    before any vault write, so a failed lookup leaves existing files untouched.
+  const { frontmatter } = parseFrontmatter(rawContent);
+  const sourceNodeTypeId =
+    typeof frontmatter.nodeTypeId === "string"
+      ? frontmatter.nodeTypeId
+      : nodeTypeIdFromConcept;
+  if (sourceNodeTypeId === undefined) {
+    return {
+      error: "importedNode missing sourceNodeTypeId",
+    };
+  }
+
+  // 2. Create or update the file with the fetched content.
   // On create, set file metadata (ctime/mtime) to original vault dates via vault adapter.
   let file: TFile | null = plugin.app.vault.getFileByPath(filePath);
   const stat =
@@ -1198,20 +1212,6 @@ const processFileContent = async ({
     file = await plugin.app.vault.create(filePath, rawContent, stat);
   } else {
     await plugin.app.vault.process(file, () => rawContent, stat);
-  }
-
-  // 2. Parse frontmatter from rawContent (metadataCache is updated async and is
-  //    often empty immediately after create/modify), then map nodeTypeId and update frontmatter.
-  const { frontmatter } = parseFrontmatter(rawContent);
-  const sourceNodeTypeId =
-    typeof frontmatter.nodeTypeId === "string"
-      ? frontmatter.nodeTypeId
-      : nodeTypeIdFromConcept;
-  if (sourceNodeTypeId === undefined) {
-    await plugin.app.vault.delete(file);
-    return {
-      error: "importedNode missing sourceNodeTypeId",
-    };
   }
 
   const mappedNodeTypeId = await mapNodeTypeIdToLocal({
