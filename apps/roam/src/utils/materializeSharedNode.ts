@@ -1,4 +1,8 @@
-import { contentTypes, stripFrontmatter } from "@repo/content-model";
+import {
+  contentTypes,
+  stripFrontmatter,
+  trimBlankLines,
+} from "@repo/content-model";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { isRid } from "@repo/database/lib/rid";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
@@ -132,7 +136,8 @@ const fetchFullMarkdown = async ({
     return {
       error: `Unsupported full content type "${data.content_type}" — expected "${contentTypes.obsidianMarkdown}"`,
     };
-  return { markdown: stripFrontmatter(data.text).trim() };
+  const markdown = trimBlankLines(stripFrontmatter(data.text));
+  return { markdown: markdown.trim() ? markdown : "" };
 };
 
 const createImportedPage = async ({

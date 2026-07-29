@@ -161,6 +161,36 @@ describe("materializeSharedNode", () => {
     );
   });
 
+  it("preserves the indentation of a leading indented code block", async () => {
+    const { client } = clientWithFullContent({
+      text: ["---", "nodeTypeId: evidence", "---", "", "    const a = 1;"].join(
+        "\n",
+      ),
+    });
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(result.success).toBe(true);
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: sharedNode.title, uid: GENERATED_PAGE_UID },
+      "markdown-string": "    const a = 1;",
+    });
+  });
+
+  it("creates a title-only page when the body is only whitespace", async () => {
+    const { client } = clientWithFullContent({
+      text: ["---", "nodeTypeId: evidence", "---", "", "  ", ""].join("\n"),
+    });
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(result.success).toBe(true);
+    expect(pageCreate).toHaveBeenCalledWith({
+      page: { title: sharedNode.title, uid: GENERATED_PAGE_UID },
+    });
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
+  });
+
   it("creates a title-only page when the node has no full content", async () => {
     const { client } = clientWithFullContent({});
 

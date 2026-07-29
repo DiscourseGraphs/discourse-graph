@@ -1,9 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { normalizeLineEndings, stripFrontmatter } from "../text/index.js";
+import {
+  normalizeLineEndings,
+  stripFrontmatter,
+  trimBlankLines,
+} from "../text/index.js";
 
 describe("normalizeLineEndings", () => {
   it("converts CRLF and lone CR to LF", () => {
     expect(normalizeLineEndings("a\r\nb\rc\n")).toBe("a\nb\nc\n");
+  });
+});
+
+describe("trimBlankLines", () => {
+  it("removes surrounding blank lines but keeps line indentation", () => {
+    expect(trimBlankLines("\n  \n    code\n  text\n\n  \n")).toBe(
+      "    code\n  text",
+    );
+  });
+
+  it("leaves a whitespace-only single line for the caller to judge", () => {
+    expect(trimBlankLines("   ")).toBe("   ");
   });
 });
 

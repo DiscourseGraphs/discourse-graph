@@ -1,6 +1,9 @@
 export const normalizeLineEndings = (text: string): string =>
   text.replace(/\r\n?/g, "\n");
 
+export const trimBlankLines = (text: string): string =>
+  text.replace(/^(?:[ \t]*\n)+/, "").replace(/(?:\n[ \t]*)+$/, "");
+
 const FRONTMATTER_DELIMITER = "---";
 
 export const stripFrontmatter = (markdown: string): string => {
