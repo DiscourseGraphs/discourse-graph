@@ -18,6 +18,7 @@ export type SchemaImportMatchPlan = {
   existingRelationTypeIds: Set<string>;
   existingDiscourseRelationIds: Set<string>;
   existingTemplateNames: Set<string>;
+  localTemplateNames: Set<string>;
 };
 
 export type LoadedSchemaFile = {
@@ -187,6 +188,7 @@ const buildSchemaImportMatchPlan = ({
     existingRelationTypeIds,
     existingDiscourseRelationIds,
     existingTemplateNames,
+    localTemplateNames,
   };
 };
 
@@ -333,7 +335,7 @@ export const applySchemaImportSelection = async ({
       template:
         importedNodeType.template &&
         (selectedTemplateNames.has(importedNodeType.template) ||
-          matchPlan.existingTemplateNames.has(importedNodeType.template))
+          matchPlan.localTemplateNames.has(importedNodeType.template))
           ? importedNodeType.template
           : undefined,
       modified: Date.now(),
