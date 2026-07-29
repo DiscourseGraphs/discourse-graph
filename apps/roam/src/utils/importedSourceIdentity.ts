@@ -37,7 +37,7 @@ export const readImportedSourceIdentity = (
 ): ImportedSourceIdentity | undefined =>
   parseImportedSourceIdentity(getBlockProps(pageUid));
 
-export const writeImportedSourceIdentity = ({
+export const writeImportedSourceIdentity = async ({
   pageUid,
   sourceModifiedAt,
   sourceNodeRid,
@@ -45,11 +45,11 @@ export const writeImportedSourceIdentity = ({
   pageUid: string;
   sourceModifiedAt: string;
   sourceNodeRid: string;
-}): void => {
+}): Promise<void> => {
   const existing = getBlockProps(pageUid)[DISCOURSE_GRAPH_PROP_NAME];
   const discourseGraphProps = isJsonObject(existing) ? existing : {};
 
-  setBlockProps(pageUid, {
+  await setBlockProps(pageUid, {
     [DISCOURSE_GRAPH_PROP_NAME]: {
       ...discourseGraphProps,
       [IMPORTED_FROM_PROP_KEY]: {

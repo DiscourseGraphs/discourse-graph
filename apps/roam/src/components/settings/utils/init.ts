@@ -163,7 +163,7 @@ const initializeSettingsBlockProps = (
         Object.keys(existingProps).length === 0 ||
         !schema.safeParse(existingProps).success
       ) {
-        setBlockProps(uid, defaults, false);
+        void setBlockProps(uid, defaults, false);
       }
 
       // Reconcile placeholder relation keys with real block UIDs.
@@ -261,7 +261,11 @@ const reconcileRelationKeys = (
   }
 
   if (changed) {
-    setBlockProps(globalBlockUid, { Relations: reconciledRelations }, false);
+    void setBlockProps(
+      globalBlockUid,
+      { Relations: reconciledRelations },
+      false,
+    );
   }
 };
 

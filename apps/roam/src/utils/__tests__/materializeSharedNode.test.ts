@@ -2,8 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
-import createBlock from "roamjs-components/writes/createBlock";
-import createPage from "roamjs-components/writes/createPage";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
@@ -22,8 +20,6 @@ vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
 vi.mock("roamjs-components/queries/getShallowTreeByParentUid", () => ({
   default: vi.fn(),
 }));
-vi.mock("roamjs-components/writes/createBlock", () => ({ default: vi.fn() }));
-vi.mock("roamjs-components/writes/createPage", () => ({ default: vi.fn() }));
 vi.mock("roamjs-components/writes/deleteBlock", () => ({ default: vi.fn() }));
 vi.mock("~/utils/importedSourceIdentity", () => ({
   findImportedNodeUidBySourceRid: vi.fn(),
@@ -33,8 +29,6 @@ vi.mock("~/utils/importedSourceIdentity", () => ({
 const mockedGetPageTitleByPageUid = vi.mocked(getPageTitleByPageUid);
 const mockedGetPageUidByPageTitle = vi.mocked(getPageUidByPageTitle);
 const mockedGetShallowTreeByParentUid = vi.mocked(getShallowTreeByParentUid);
-const mockedCreateBlock = vi.mocked(createBlock);
-const mockedCreatePage = vi.mocked(createPage);
 const mockedDeleteBlock = vi.mocked(deleteBlock);
 const mockedFindImportedNodeUidBySourceRid = vi.mocked(
   findImportedNodeUidBySourceRid,
@@ -44,7 +38,12 @@ const mockedWriteImportedSourceIdentity = vi.mocked(
 );
 
 const EXISTING_PAGE_UID = "existing-page-uid";
+const GENERATED_PAGE_UID = "generated-page-uid";
 
+const pageFromMarkdown = vi.fn();
+const blockFromMarkdown = vi.fn();
+const pageCreate = vi.fn();
+const pageDelete = vi.fn();
 const updatePage = vi.fn();
 
 const sharedNode: SharedNode = {
@@ -70,28 +69,25 @@ const FULL_MARKDOWN = [
   "REM sleep improves recall",
 ].join("\n");
 
-const FULL_TREE = [
-  {
-    text: "Findings",
-    heading: 1,
-    children: [{ text: "REM sleep improves recall", children: [] }],
-  },
-];
+const MATERIALIZED_MARKDOWN = "# Findings\nREM sleep improves recall";
 
 const clientWithFullContent = ({
   text,
+  contentType = "text/obsidian+markdown",
   error,
 }: {
   text?: string | null;
+  contentType?: string | null;
   error?: { message: string };
 }): { client: DGSupabaseClient; from: ReturnType<typeof vi.fn> } => {
-  const maybeSingle = vi
-    .fn()
-    .mockResolvedValue(
-      error
-        ? { data: null, error }
-        : { data: text === undefined ? null : { text }, error: null },
-    );
+  const maybeSingle = vi.fn().mockResolvedValue(
+    error
+      ? { data: null, error }
+      : {
+          data: text === undefined ? null : { text, content_type: contentType },
+          error: null,
+        },
+  );
   const eq = vi.fn();
   const chain = { eq, maybeSingle };
   eq.mockReturnValue(chain);
@@ -104,33 +100,75 @@ const clientWithFullContent = ({
 beforeEach(() => {
   vi.clearAllMocks();
   (globalThis as { window: unknown }).window = {
-    roamAlphaAPI: { updatePage },
+    roamAlphaAPI: {
+      updatePage,
+      util: { generateUID: vi.fn(() => GENERATED_PAGE_UID) },
+      data: {
+        block: { fromMarkdown: blockFromMarkdown },
+        page: {
+          fromMarkdown: pageFromMarkdown,
+          create: pageCreate,
+          delete: pageDelete,
+        },
+      },
+    },
   };
   mockedGetShallowTreeByParentUid.mockReturnValue([]);
+  mockedGetPageUidByPageTitle.mockReturnValue("");
+  mockedFindImportedNodeUidBySourceRid.mockResolvedValue(null);
 });
 
 describe("materializeSharedNode", () => {
-  it("creates a Roam page with the parsed markdown and stores source identity", async () => {
+  it("creates a Roam page from the markdown body and stores source identity", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
-    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(null);
-    mockedGetPageUidByPageTitle.mockReturnValue("");
-    mockedCreatePage.mockResolvedValue("new-page-uid");
 
     await expect(
       materializeSharedNode({ client, sharedNode }),
-    ).resolves.toEqual({ status: "created", pageUid: "new-page-uid" });
-    expect(mockedCreatePage).toHaveBeenCalledWith({
-      title: sharedNode.title,
-      tree: FULL_TREE,
+    ).resolves.toEqual({
+      success: true,
+      action: "created",
+      pageUid: GENERATED_PAGE_UID,
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: sharedNode.title, uid: GENERATED_PAGE_UID },
+      "markdown-string": MATERIALIZED_MARKDOWN,
     });
     expect(mockedWriteImportedSourceIdentity).toHaveBeenCalledWith({
-      pageUid: "new-page-uid",
+      pageUid: GENERATED_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
     });
   });
 
-  it("updates the existing imported page instead of creating a duplicate", async () => {
+  it("stores the source modified time as canonical UTC", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: { ...sharedNode, lastModified: "2026-06-14T17:00:00+02:00" },
+    });
+
+    expect(result.sourceModifiedAt).toBe("2026-06-14T15:00:00.000Z");
+    expect(mockedWriteImportedSourceIdentity).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceModifiedAt: "2026-06-14T15:00:00.000Z" }),
+    );
+  });
+
+  it("creates a title-only page when the node has no full content", async () => {
+    const { client } = clientWithFullContent({});
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(result.success).toBe(true);
+    expect(pageCreate).toHaveBeenCalledWith({
+      page: { title: sharedNode.title, uid: GENERATED_PAGE_UID },
+    });
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
+  });
+
+  it("replaces the existing imported page instead of creating a duplicate", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
     mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
     mockedGetPageTitleByPageUid.mockReturnValue(sharedNode.title);
@@ -140,52 +178,54 @@ describe("materializeSharedNode", () => {
 
     await expect(
       materializeSharedNode({ client, sharedNode }),
-    ).resolves.toEqual({ status: "updated", pageUid: EXISTING_PAGE_UID });
-    expect(mockedCreatePage).not.toHaveBeenCalled();
-    expect(updatePage).not.toHaveBeenCalled();
-    expect(mockedDeleteBlock).toHaveBeenCalledWith("old-block");
-    expect(mockedCreateBlock).toHaveBeenCalledWith({
-      parentUid: EXISTING_PAGE_UID,
-      order: 0,
-      node: FULL_TREE[0],
-    });
-    expect(mockedWriteImportedSourceIdentity).toHaveBeenCalledWith({
+    ).resolves.toEqual({
+      success: true,
+      action: "updated",
       pageUid: EXISTING_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
     });
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
+    expect(updatePage).not.toHaveBeenCalled();
+    expect(blockFromMarkdown).toHaveBeenCalledWith({
+      location: { "parent-uid": EXISTING_PAGE_UID, order: "last" },
+      "markdown-string": MATERIALIZED_MARKDOWN,
+    });
+    expect(mockedDeleteBlock).toHaveBeenCalledWith("old-block");
+    expect(blockFromMarkdown.mock.invocationCallOrder[0]).toBeLessThan(
+      mockedDeleteBlock.mock.invocationCallOrder[0],
+    );
   });
 
   it("renames the imported page when the source title changed", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
     mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
     mockedGetPageTitleByPageUid.mockReturnValue("EVD - old title");
-    mockedGetPageUidByPageTitle.mockReturnValue("");
 
-    await expect(
-      materializeSharedNode({ client, sharedNode }),
-    ).resolves.toEqual({ status: "updated", pageUid: EXISTING_PAGE_UID });
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(result.success).toBe(true);
     expect(updatePage).toHaveBeenCalledWith({
       page: { uid: EXISTING_PAGE_UID, title: sharedNode.title },
     });
   });
 
-  it("fails without writing when a local page already uses the title", async () => {
+  it("refuses to clobber a page that was not imported from this source", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
-    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(null);
     mockedGetPageUidByPageTitle.mockReturnValue("unrelated-page-uid");
 
     const result = await materializeSharedNode({ client, sharedNode });
 
-    expect(result.status).toBe("failed");
-    expect(result.status === "failed" && result.reason).toContain(
-      sharedNode.title,
-    );
-    expect(mockedCreatePage).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      success: false,
+      sourceNodeRid: sharedNode.rid,
+      error: { stage: "title-collision" },
+    });
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
     expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
   });
 
-  it("fails the rename without touching content when the new title collides", async () => {
+  it("fails the rename before touching content when the new title collides", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
     mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
     mockedGetPageTitleByPageUid.mockReturnValue("EVD - old title");
@@ -193,13 +233,18 @@ describe("materializeSharedNode", () => {
 
     const result = await materializeSharedNode({ client, sharedNode });
 
-    expect(result.status).toBe("failed");
-    expect(updatePage).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      success: false,
+      pageUid: EXISTING_PAGE_UID,
+      error: { stage: "title-collision" },
+    });
+    expect(blockFromMarkdown).not.toHaveBeenCalled();
     expect(mockedDeleteBlock).not.toHaveBeenCalled();
+    expect(updatePage).not.toHaveBeenCalled();
     expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
   });
 
-  it("rejects nodes that are not Obsidian-origin before fetching content", async () => {
+  it("rejects a non-Obsidian source before fetching content", async () => {
     const { client, from } = clientWithFullContent({ text: FULL_MARKDOWN });
 
     const result = await materializeSharedNode({
@@ -207,56 +252,143 @@ describe("materializeSharedNode", () => {
       sharedNode: { ...sharedNode, platform: "Roam" },
     });
 
-    expect(result.status).toBe("failed");
-    expect(result.status === "failed" && result.reason).toContain("Roam");
+    expect(result).toMatchObject({
+      success: false,
+      error: { stage: "validate-input" },
+    });
+    expect(result.success === false && result.error.message).toContain("Roam");
     expect(from).not.toHaveBeenCalled();
   });
 
-  it("fails with the fetch error and keeps identity untouched", async () => {
-    const { client } = clientWithFullContent({
-      error: { message: "permission denied" },
+  it("rejects a source identifier that is not a RID", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: { ...sharedNode, rid: "not-a-rid" },
     });
-    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
+
+    expect(result).toMatchObject({
+      success: false,
+      sourceNodeRid: "not-a-rid",
+      error: { stage: "validate-input" },
+    });
+  });
+
+  it("rejects an invalid source modified time", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: { ...sharedNode, lastModified: "not-a-date" },
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: { stage: "validate-input" },
+    });
+  });
+
+  it("rejects a full content type Roam cannot materialize", async () => {
+    const { client } = clientWithFullContent({
+      text: `# ${sharedNode.title}\n\nbody`,
+      contentType: "text/markdown",
+    });
 
     const result = await materializeSharedNode({ client, sharedNode });
 
-    expect(result.status).toBe("failed");
-    expect(result.status === "failed" && result.reason).toContain(
+    expect(result).toMatchObject({
+      success: false,
+      error: { stage: "fetch-content" },
+    });
+    expect(result.success === false && result.error.message).toContain(
+      "text/markdown",
+    );
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
+  });
+
+  it("fails with the fetch error and keeps identity in the result", async () => {
+    const { client } = clientWithFullContent({
+      error: { message: "permission denied" },
+    });
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(result).toMatchObject({
+      success: false,
+      sourceNodeRid: sharedNode.rid,
+      error: { stage: "fetch-content" },
+    });
+    expect(result.success === false && result.error.message).toContain(
       "permission denied",
     );
     expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
   });
 
-  it("materializes a title-only page when the node has no full content", async () => {
-    const { client } = clientWithFullContent({});
-    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(null);
-    mockedGetPageUidByPageTitle.mockReturnValue("");
-    mockedCreatePage.mockResolvedValue("new-page-uid");
-
-    await expect(
-      materializeSharedNode({ client, sharedNode }),
-    ).resolves.toEqual({ status: "created", pageUid: "new-page-uid" });
-    expect(mockedCreatePage).toHaveBeenCalledWith({
-      title: sharedNode.title,
-      tree: [],
-    });
-  });
-
-  it("reports the source RID when a write fails partway", async () => {
+  it("removes a new page when its source identity cannot be stored", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
-    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
-    mockedGetPageTitleByPageUid.mockReturnValue(sharedNode.title);
-    mockedCreateBlock.mockRejectedValue(new Error("block write failed"));
+    mockedWriteImportedSourceIdentity.mockRejectedValue(
+      new Error("props write failed"),
+    );
 
     const result = await materializeSharedNode({ client, sharedNode });
 
-    expect(result.status).toBe("failed");
-    expect(result.status === "failed" && result.reason).toContain(
-      sharedNode.rid,
+    expect(result).toMatchObject({
+      success: false,
+      error: { stage: "write-source-identity" },
+    });
+    expect(pageDelete).toHaveBeenCalledWith({
+      page: { uid: GENERATED_PAGE_UID },
+    });
+    expect(result.success === false && result.pageUid).toBeUndefined();
+  });
+
+  it("reports the orphaned page uid when cleanup also fails", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedWriteImportedSourceIdentity.mockRejectedValue(
+      new Error("props write failed"),
     );
-    expect(result.status === "failed" && result.reason).toContain(
-      "block write failed",
+    pageDelete.mockRejectedValue(new Error("delete failed"));
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(result).toMatchObject({
+      success: false,
+      pageUid: GENERATED_PAGE_UID,
+      error: { stage: "write-source-identity" },
+    });
+  });
+
+  it("keeps the updated page when refreshing identity fails on re-import", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
+    mockedGetPageTitleByPageUid.mockReturnValue(sharedNode.title);
+    mockedWriteImportedSourceIdentity.mockRejectedValue(
+      new Error("props write failed"),
     );
-    expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(result).toMatchObject({
+      success: false,
+      pageUid: EXISTING_PAGE_UID,
+      error: { stage: "write-source-identity" },
+    });
+    expect(pageDelete).not.toHaveBeenCalled();
+  });
+
+  it("reports a failed lookup of the existing import", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockRejectedValue(
+      new Error("datalog query failed"),
+    );
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: { stage: "find-imported-node" },
+    });
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
   });
 });

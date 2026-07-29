@@ -55,7 +55,7 @@ const migrateRelations = async (): Promise<number | false> => {
       );
       migrationData[uid] = new Date().valueOf();
       dgData[MIGRATION_PROP_NAME] = migrationData;
-      setBlockProps(rel.source, { [DISCOURSE_GRAPH_PROP_NAME]: dgData });
+      void setBlockProps(rel.source, { [DISCOURSE_GRAPH_PROP_NAME]: dgData });
       numProcessed++;
     }
   } catch (error) {
