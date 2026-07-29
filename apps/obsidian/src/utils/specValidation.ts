@@ -1,10 +1,16 @@
 import { z } from "zod";
-import type { DiscourseSchemaFile } from "~/types";
+import type {
+  DiscourseNode,
+  DiscourseRelation,
+  DiscourseRelationType,
+  DiscourseSchemaFile,
+  DiscourseSchemaTemplate,
+} from "~/types";
 import { TLDRAW_COLOR_NAMES } from "~/utils/tldrawColors";
 
 export const DG_SCHEMA_EXPORT_VERSION = 1;
 
-const discourseNodeSchema = z
+const discourseNodeSchema: z.ZodType<DiscourseNode> = z
   .object({
     id: z.string(),
     name: z.string(),
@@ -25,7 +31,7 @@ const discourseNodeSchema = z
 
 const relationImportStatusSchema = z.enum(["provisional", "accepted"]);
 
-const discourseRelationTypeSchema = z
+const discourseRelationTypeSchema: z.ZodType<DiscourseRelationType> = z
   .object({
     id: z.string(),
     label: z.string(),
@@ -39,7 +45,7 @@ const discourseRelationTypeSchema = z
   })
   .passthrough();
 
-const discourseRelationSchema = z
+const discourseRelationSchema: z.ZodType<DiscourseRelation> = z
   .object({
     id: z.string(),
     sourceId: z.string(),
@@ -53,11 +59,11 @@ const discourseRelationSchema = z
   })
   .passthrough();
 
-const templateExportSchema = z
+const templateExportSchema: z.ZodType<DiscourseSchemaTemplate> = z
   .object({ name: z.string(), content: z.string() })
   .passthrough();
 
-export const dgSchemaFileSchema = z
+export const dgSchemaFileSchema: z.ZodType<DiscourseSchemaFile> = z
   .object({
     version: z.literal(DG_SCHEMA_EXPORT_VERSION),
     exportedAt: z.string(),
@@ -87,5 +93,5 @@ export const getDgSchemaFileName = (vaultName?: string): string => {
 };
 
 export const parseDgSchemaFile = (value: unknown): DiscourseSchemaFile => {
-  return dgSchemaFileSchema.parse(value) as DiscourseSchemaFile;
+  return dgSchemaFileSchema.parse(value);
 };
