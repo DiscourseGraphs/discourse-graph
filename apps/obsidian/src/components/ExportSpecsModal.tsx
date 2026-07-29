@@ -1,5 +1,6 @@
-import { App, Notice } from "obsidian";
-import { useMemo, useState } from "react";
+import { App, Modal, Notice } from "obsidian";
+import { StrictMode, useMemo, useState } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
 import { exportSchemaSelection } from "~/utils/specExport";
 import { NativeFileDialogCancelledError } from "~/utils/nativeJsonFileDialogs";
@@ -11,7 +12,6 @@ import {
   type SchemaSelectionSource,
 } from "~/components/useSchemaSelection";
 import { SchemaSelectionModalBody } from "~/components/SchemaSelectionModalBody";
-import { ReactRootModal } from "~/components/ReactRootModal";
 
 type ExportSpecsModalProps = {
   plugin: DiscourseGraphPlugin;
@@ -118,17 +118,29 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
   );
 };
 
-export class ExportSpecsModal extends ReactRootModal {
+export class ExportSpecsModal extends Modal {
   private plugin: DiscourseGraphPlugin;
+  private root: Root | null = null;
 
   constructor(app: App, plugin: DiscourseGraphPlugin) {
     super(app);
     this.plugin = plugin;
   }
 
-  protected renderContent() {
-    return (
-      <ExportSpecsContent plugin={this.plugin} onClose={() => this.close()} />
+  onOpen(): void {
+    this.contentEl.empty();
+    this.root = createRoot(this.contentEl);
+    this.root.render(
+      <StrictMode>
+        <ExportSpecsContent plugin={this.plugin} onClose={() => this.close()} />
+      </StrictMode>,
     );
+  }
+
+  onClose(): void {
+    if (this.root) {
+      this.root.unmount();
+      this.root = null;
+    }
   }
 }
