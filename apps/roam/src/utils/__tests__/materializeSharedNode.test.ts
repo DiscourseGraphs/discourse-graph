@@ -79,7 +79,11 @@ const clientWithFullContent = ({
   text?: string | null;
   contentType?: string | null;
   error?: { message: string };
-}): { client: DGSupabaseClient; from: ReturnType<typeof vi.fn> } => {
+}): {
+  client: DGSupabaseClient;
+  eq: ReturnType<typeof vi.fn>;
+  from: ReturnType<typeof vi.fn>;
+} => {
   const maybeSingle = vi.fn().mockResolvedValue(
     error
       ? { data: null, error }
@@ -94,7 +98,7 @@ const clientWithFullContent = ({
   const from = vi
     .fn()
     .mockReturnValue({ select: vi.fn().mockReturnValue(chain) });
-  return { client: { from } as unknown as DGSupabaseClient, from };
+  return { client: { from } as unknown as DGSupabaseClient, eq, from };
 };
 
 beforeEach(() => {
@@ -120,7 +124,7 @@ beforeEach(() => {
 
 describe("materializeSharedNode", () => {
   it("creates a Roam page from the markdown body and stores source identity", async () => {
-    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    const { client, eq } = clientWithFullContent({ text: FULL_MARKDOWN });
 
     await expect(
       materializeSharedNode({ client, sharedNode }),
@@ -131,6 +135,7 @@ describe("materializeSharedNode", () => {
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
     });
+    expect(eq).toHaveBeenCalledWith("original", true);
     expect(pageFromMarkdown).toHaveBeenCalledWith({
       page: { title: sharedNode.title, uid: GENERATED_PAGE_UID },
       "markdown-string": MATERIALIZED_MARKDOWN,

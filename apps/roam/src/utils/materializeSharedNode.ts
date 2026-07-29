@@ -124,6 +124,7 @@ const fetchFullMarkdown = async ({
     .eq("space_id", sharedNode.spaceId)
     .eq("source_local_id", sharedNode.sourceLocalId)
     .eq("variant", "full")
+    .eq("original", true)
     .maybeSingle();
   if (error) return { error: error.message };
   if (!data?.text) return { markdown: "" };
