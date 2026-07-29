@@ -138,7 +138,7 @@ For more information about Discourse Graphs, check out [our website](https://dis
 
 # Release process
 
-Beta releases happen automatically: every PR merged to `main` that touches `apps/obsidian/**` builds the plugin, cuts a new `x.y.z-beta.n` GitHub release, and pushes the update to the [`discourse-graph-obsidian`](https://github.com/DiscourseGraphs/discourse-graph-obsidian) repo that BRAT installs from (`.github/workflows/obsidian-main.yaml`). It also syncs the merged PR/issue onto whichever Linear release is currently in progress.
+Beta releases happen automatically: every PR merged to `main` that touches `apps/obsidian/**` builds the plugin, cuts a new `x.y.z-beta.n` GitHub release (`.github/workflows/obsidian-main.yaml`), and syncs the merged PR/issue onto whichever Linear release is currently in progress.
 
 To ship an official stable release:
 
