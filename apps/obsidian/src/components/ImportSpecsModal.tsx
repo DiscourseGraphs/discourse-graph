@@ -1,5 +1,6 @@
-import { App, Notice } from "obsidian";
-import { useMemo, useState } from "react";
+import { App, Modal, Notice } from "obsidian";
+import { StrictMode, useMemo, useState } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
 import {
   applySchemaImportSelection,
@@ -15,7 +16,6 @@ import {
 } from "~/components/useSchemaSelection";
 import { SchemaSelectionModalBody } from "~/components/SchemaSelectionModalBody";
 import { ImportSchemaPreviewSummary } from "~/components/ImportSchemaPreviewSummary";
-import { ReactRootModal } from "~/components/ReactRootModal";
 
 type ImportSpecsModalProps = {
   plugin: DiscourseGraphPlugin;
@@ -197,17 +197,29 @@ const ImportSpecsContent = ({ plugin, onClose }: ImportSpecsModalProps) => {
   );
 };
 
-export class ImportSpecsModal extends ReactRootModal {
+export class ImportSpecsModal extends Modal {
   private plugin: DiscourseGraphPlugin;
+  private root: Root | null = null;
 
   constructor(app: App, plugin: DiscourseGraphPlugin) {
     super(app);
     this.plugin = plugin;
   }
 
-  protected renderContent() {
-    return (
-      <ImportSpecsContent plugin={this.plugin} onClose={() => this.close()} />
+  onOpen(): void {
+    this.contentEl.empty();
+    this.root = createRoot(this.contentEl);
+    this.root.render(
+      <StrictMode>
+        <ImportSpecsContent plugin={this.plugin} onClose={() => this.close()} />
+      </StrictMode>,
     );
+  }
+
+  onClose(): void {
+    if (this.root) {
+      this.root.unmount();
+      this.root = null;
+    }
   }
 }
