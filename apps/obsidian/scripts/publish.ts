@@ -630,6 +630,21 @@ const createGithubRelease = async ({
 
   const releaseTempDir = path.join(os.tmpdir(), "temp-obsidian-release-assets");
 
+  const existingRelease = await octokit
+    .request("GET /repos/{owner}/{repo}/releases/tags/{tag}", {
+      owner,
+      repo,
+      tag: tagName,
+    })
+    .catch((err: { status?: number }) =>
+      err.status === 404 ? null : Promise.reject(err),
+    );
+
+  if (existingRelease) {
+    log(`GitHub release for ${tagName} already exists, skipping creation.`);
+    return;
+  }
+
   try {
     if (fs.existsSync(releaseTempDir)) {
       fs.rmSync(releaseTempDir, { recursive: true });
