@@ -1,6 +1,7 @@
 import { App, Modal, Notice } from "obsidian";
 import { StrictMode, useMemo, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { ZodError } from "zod";
 import type DiscourseGraphPlugin from "~/index";
 import {
   applySchemaImportSelection,
@@ -143,10 +144,15 @@ const ImportSpecsContent = ({ plugin, onClose }: ImportSpecsModalProps) => {
       const nextPreview = await pickAndPreviewSchemaImport({ plugin });
       setPreview(nextPreview);
     } catch (error) {
-      if (error instanceof NativeFileDialogCancelledError) {
+      if (error instanceof NativeFileDialogCancelledError) return;
+      if (error instanceof ZodError) {
+        const fields = error.issues.map((i) => i.path.join(".")).join(", ");
+        new Notice(
+          `Schema file is incompatible with this version of the plugin. Invalid or missing fields: ${fields}`,
+          8000,
+        );
         return;
       }
-      console.error("Failed to load schema import file:", error);
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Failed to load schema file: ${message}`, 6000);
     } finally {
