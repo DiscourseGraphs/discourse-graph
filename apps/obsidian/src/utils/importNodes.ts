@@ -322,6 +322,76 @@ const fetchNodeContentForImport = async ({
   };
 };
 
+type NodeTypeSchemaForInstance = {
+  nodeTypeId: string;
+  name: string;
+};
+
+export const fetchNodeTypeSchemasForInstances = async ({
+  client,
+  spaceId,
+  nodeInstanceIds,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  nodeInstanceIds: string[];
+}): Promise<Map<string, NodeTypeSchemaForInstance>> => {
+  const result = new Map<string, NodeTypeSchemaForInstance>();
+
+  const { data: instanceRows, error: instanceError } = await client
+    .from("my_concepts")
+    .select("source_local_id, schema_id")
+    .eq("space_id", spaceId)
+    .eq("is_schema", false)
+    .eq("arity", 0)
+    .in("source_local_id", nodeInstanceIds);
+
+  if (instanceError || !instanceRows) {
+    console.error("Error fetching node instance concepts:", instanceError);
+    return result;
+  }
+
+  const schemaIds = [
+    ...new Set(
+      instanceRows
+        .map((row) => row.schema_id)
+        .filter((id): id is number => id !== null),
+    ),
+  ];
+  if (schemaIds.length === 0) return result;
+
+  const { data: schemaRows, error: schemaError } = await client
+    .from("my_concepts")
+    .select("id, source_local_id, name")
+    .eq("space_id", spaceId)
+    .eq("is_schema", true)
+    .eq("arity", 0)
+    .in("id", schemaIds);
+
+  if (schemaError || !schemaRows) {
+    console.error("Error fetching node type schemas:", schemaError);
+    return result;
+  }
+
+  const schemasById = new Map<number, NodeTypeSchemaForInstance>();
+  for (const row of schemaRows) {
+    if (row.id !== null && row.source_local_id !== null && row.name !== null) {
+      schemasById.set(row.id, {
+        nodeTypeId: row.source_local_id,
+        name: row.name,
+      });
+    }
+  }
+
+  for (const row of instanceRows) {
+    if (row.source_local_id === null || row.schema_id === null) continue;
+    const schema = schemasById.get(row.schema_id);
+    if (schema) result.set(row.source_local_id, schema);
+  }
+
+  return result;
+};
+
 /**
  * Fetches created/last_modified from the source space Content (my_contents) for an imported node.
  * Used by the discourse context view to show "last modified in original vault".
@@ -939,9 +1009,6 @@ const sanitizePathForImport = (path: string): string => {
 
 type ParsedFrontmatter = {
   nodeTypeId?: string;
-  nodeInstanceId?: string;
-  publishedToGroups?: string[];
-  authorId?: number;
   [key: string]: unknown;
 };
 
@@ -1096,22 +1163,24 @@ const processFileContent = async ({
   sourceSpaceId,
   sourceSpaceUri,
   rawContent,
-  originalFilePath,
   filePath,
   importedCreatedAt,
   importedModifiedAt,
   authorId,
+  nodeInstanceId,
+  nodeTypeIdFromConcept,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
   sourceSpaceId: number;
   sourceSpaceUri: string;
   rawContent: string;
-  originalFilePath?: string;
   filePath: string;
   importedCreatedAt?: number;
   importedModifiedAt?: number;
   authorId?: number;
+  nodeInstanceId: string;
+  nodeTypeIdFromConcept?: string;
 }): Promise<
   { file: TFile; error?: never } | { file?: never; error: string }
 > => {
@@ -1134,18 +1203,14 @@ const processFileContent = async ({
   // 2. Parse frontmatter from rawContent (metadataCache is updated async and is
   //    often empty immediately after create/modify), then map nodeTypeId and update frontmatter.
   const { frontmatter } = parseFrontmatter(rawContent);
-  const sourceNodeTypeId = frontmatter.nodeTypeId;
-  if (typeof sourceNodeTypeId !== "string") {
+  const sourceNodeTypeId =
+    typeof frontmatter.nodeTypeId === "string"
+      ? frontmatter.nodeTypeId
+      : nodeTypeIdFromConcept;
+  if (sourceNodeTypeId === undefined) {
     await plugin.app.vault.delete(file);
     return {
       error: "importedNode missing sourceNodeTypeId",
-    };
-  }
-  const sourceNodeId = frontmatter.nodeInstanceId;
-  if (typeof sourceNodeId !== "string") {
-    await plugin.app.vault.delete(file);
-    return {
-      error: "importedNode missing nodeInstanceId",
     };
   }
 
@@ -1161,12 +1226,11 @@ const processFileContent = async ({
     file,
     (fm) => {
       const record = fm as Record<string, unknown>;
-      if (mappedNodeTypeId !== undefined) {
-        record.nodeTypeId = mappedNodeTypeId;
-      }
+      record.nodeTypeId = mappedNodeTypeId;
+      record.nodeInstanceId = nodeInstanceId;
       record.importedFromRid = spaceUriAndLocalIdToRid(
         sourceSpaceUri,
-        sourceNodeId,
+        nodeInstanceId,
         "note",
       );
       record.lastModified = importedModifiedAt;
@@ -1244,6 +1308,12 @@ export const importSelectedNodes = async ({
       spaceName,
     });
 
+    const nodeTypeSchemasByInstance = await fetchNodeTypeSchemasForInstances({
+      client,
+      spaceId,
+      nodeInstanceIds: nodes.map((n) => n.nodeInstanceId),
+    });
+
     // Process each node in this space
     for (const node of nodes) {
       try {
@@ -1318,11 +1388,14 @@ export const importSelectedNodes = async ({
           sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
           rawContent: content,
-          originalFilePath: contentFilePath,
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
           authorId,
+          nodeInstanceId: node.nodeInstanceId,
+          nodeTypeIdFromConcept: nodeTypeSchemasByInstance.get(
+            node.nodeInstanceId,
+          )?.nodeTypeId,
         });
 
         if (result.error) {

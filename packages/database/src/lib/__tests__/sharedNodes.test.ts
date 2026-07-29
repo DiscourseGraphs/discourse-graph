@@ -78,6 +78,58 @@ describe("buildSharedNodes", () => {
     ]);
   });
 
+  it("builds a Roam-origin shared node with a URL-based rid", () => {
+    const roamSpaces: BuildArgs["spaces"] = [
+      {
+        id: 30,
+        name: "Research graph",
+        platform: "Roam",
+        url: "https://roamresearch.com/#/app/research-graph",
+      },
+    ];
+    const roamNodes: BuildArgs["nodes"] = [
+      { ...nodes[0]!, space_id: 30, source_local_id: "roam-uid-1" },
+    ];
+    const roamDirect: BuildArgs["directContents"] = [
+      {
+        ...directContents[0]!,
+        space_id: 30,
+        source_local_id: "roam-uid-1",
+        metadata: null,
+        text: "CLM - Sleep improves memory consolidation",
+      },
+    ];
+    const roamFull: BuildArgs["fullContentSummaries"] = [
+      {
+        last_modified: "2026-06-14T15:00:00",
+        source_local_id: "roam-uid-1",
+        space_id: 30,
+      },
+    ];
+    expect(
+      build({
+        nodesOverride: roamNodes,
+        directOverride: roamDirect,
+        fullOverride: roamFull,
+        spacesOverride: roamSpaces,
+      }),
+    ).toEqual([
+      {
+        rid: "https://roamresearch.com/#/app/research-graph/roam-uid-1",
+        sourceLocalId: "roam-uid-1",
+        spaceId: 30,
+        spaceName: "Research graph",
+        spaceUri: "https://roamresearch.com/#/app/research-graph",
+        platform: "Roam",
+        title: "CLM - Sleep improves memory consolidation",
+        created: "2026-06-14T11:00:00.000Z",
+        lastModified: "2026-06-14T15:00:00.000Z",
+        authorId: 42,
+        directMetadata: null,
+      },
+    ]);
+  });
+
   it("discovers a node without full content", () => {
     expect(build({ fullOverride: [] })[0]?.lastModified).toBe(
       "2026-06-14T13:00:00.000Z",
