@@ -26,7 +26,6 @@ import {
 import internalError from "~/utils/internalError";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 
-const CONNECTION_ERROR_MESSAGE = "Could not connect to shared persistence.";
 const IMPORT_ERROR_TYPE = "Shared node import failed";
 const IMPORT_ERROR_OPERATION = "import-shared-nodes";
 
@@ -34,7 +33,7 @@ const formatModifiedAt = (modifiedAt: string): string =>
   new Date(modifiedAt).toLocaleString();
 
 const isImportableSharedNode = (node: DiscoveredSharedNode): boolean =>
-  node.sharedNode.platform === "Obsidian";
+  node.sourceApp === "Obsidian";
 
 const SharedNodeRow = ({
   node,
@@ -46,72 +45,68 @@ const SharedNodeRow = ({
   selected: boolean;
   selectionDisabled: boolean;
   onToggleSelected: () => void;
-}) => {
-  const { sharedNode } = node;
-  return (
-    <tr>
-      <td>
-        <Checkbox
-          aria-label={`Select ${sharedNode.title}`}
-          checked={selected}
-          className="m-0"
-          disabled={selectionDisabled || !isImportableSharedNode(node)}
-          onChange={onToggleSelected}
-        />
-      </td>
-      <td>
-        <Tag minimal>{sharedNode.platform}</Tag>
-      </td>
-      <td>
-        <div className="max-w-52 font-medium [overflow-wrap:anywhere]">
-          {sharedNode.spaceName}
-        </div>
+}) => (
+  <tr>
+    <td>
+      <Checkbox
+        aria-label={`Select ${node.title}`}
+        checked={selected}
+        className="m-0"
+        disabled={selectionDisabled || !isImportableSharedNode(node)}
+        onChange={onToggleSelected}
+      />
+    </td>
+    <td>
+      <Tag minimal>{node.sourceApp}</Tag>
+    </td>
+    <td>
+      <div className="max-w-52 font-medium [overflow-wrap:anywhere]">
+        {node.sourceSpaceName}
+      </div>
+      <div
+        className={[
+          Classes.MONOSPACE_TEXT,
+          Classes.TEXT_MUTED,
+          "max-w-52 truncate text-xs",
+        ].join(" ")}
+        title={node.sourceSpaceId}
+      >
+        {node.sourceSpaceId}
+      </div>
+    </td>
+    <td>
+      <div className="max-w-72 font-medium [overflow-wrap:anywhere]">
+        {node.title}
+      </div>
+    </td>
+    <td>
+      {node.sourceNodeId ? (
         <div
-          className={[
-            Classes.MONOSPACE_TEXT,
-            Classes.TEXT_MUTED,
-            "max-w-52 truncate text-xs",
-          ].join(" ")}
-          title={sharedNode.spaceUri}
+          className={[Classes.MONOSPACE_TEXT, "max-w-44 truncate text-xs"].join(
+            " ",
+          )}
+          title={node.sourceNodeRid}
         >
-          {sharedNode.spaceUri}
+          {node.sourceNodeId}
         </div>
-      </td>
-      <td>
-        <div className="max-w-72 font-medium [overflow-wrap:anywhere]">
-          {sharedNode.title}
-        </div>
-      </td>
-      <td>
-        {sharedNode.sourceLocalId ? (
-          <div
-            className={[
-              Classes.MONOSPACE_TEXT,
-              "max-w-44 truncate text-xs",
-            ].join(" ")}
-            title={sharedNode.rid}
-          >
-            {sharedNode.sourceLocalId}
-          </div>
-        ) : (
-          <span className={Classes.TEXT_MUTED}>Not provided</span>
-        )}
-      </td>
-      <td className="whitespace-nowrap" title={sharedNode.lastModified}>
-        {formatModifiedAt(sharedNode.lastModified)}
-      </td>
-      <td>
-        {node.alreadyImported ? (
-          <Tag intent={Intent.SUCCESS} minimal>
-            Imported
-          </Tag>
-        ) : (
-          <Tag minimal>Available</Tag>
-        )}
-      </td>
-    </tr>
-  );
-};
+      ) : (
+        <span className={Classes.TEXT_MUTED}>Not provided</span>
+      )}
+    </td>
+    <td className="whitespace-nowrap" title={node.modifiedAt}>
+      {formatModifiedAt(node.modifiedAt)}
+    </td>
+    <td>
+      {node.alreadyImported ? (
+        <Tag intent={Intent.SUCCESS} minimal>
+          Imported
+        </Tag>
+      ) : (
+        <Tag minimal>Available</Tag>
+      )}
+    </td>
+  </tr>
+);
 
 const ImportResultsSummary = ({
   results,
@@ -169,9 +164,9 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     setImportResults(null);
     try {
       const context = await getSupabaseContext();
-      if (!context) throw new Error(CONNECTION_ERROR_MESSAGE);
+      if (!context) throw new Error("Could not connect to shared persistence.");
       const client = await getLoggedInClient();
-      if (!client) throw new Error(CONNECTION_ERROR_MESSAGE);
+      if (!client) throw new Error("Could not connect to shared persistence.");
       setNodes(
         await discoverSharedNodes({
           client,
@@ -204,18 +199,18 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     if (!normalizedSearch) return nodes;
     return nodes.filter((node) =>
       [
-        node.sharedNode.platform,
-        node.sharedNode.spaceName,
-        node.sharedNode.spaceUri,
-        node.sharedNode.title,
-        node.sharedNode.sourceLocalId,
-      ].some((value) => value.toLocaleLowerCase().includes(normalizedSearch)),
+        node.sourceApp,
+        node.sourceSpaceName,
+        node.sourceSpaceId,
+        node.title,
+        node.sourceNodeId,
+      ].some((value) => value?.toLocaleLowerCase().includes(normalizedSearch)),
     );
   }, [nodes, searchTerm]);
 
   const importableVisibleRids = visibleNodes
     .filter(isImportableSharedNode)
-    .map((node) => node.sharedNode.rid);
+    .map((node) => node.sourceNodeRid);
   const allVisibleSelected =
     importableVisibleRids.length > 0 &&
     importableVisibleRids.every((rid) => selectedRids.has(rid));
@@ -244,14 +239,14 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
 
   const importSelectedNodes = async (): Promise<void> => {
     const selectedNodes = nodes
-      .filter((node) => selectedRids.has(node.sharedNode.rid))
+      .filter((node) => selectedRids.has(node.sourceNodeRid))
       .map((node) => node.sharedNode);
 
     setImportResults(null);
     setImportProgress({ current: 0, total: selectedNodes.length });
     try {
       const client = await getLoggedInClient();
-      if (!client) throw new Error(CONNECTION_ERROR_MESSAGE);
+      if (!client) throw new Error("Could not connect to shared persistence.");
       const results = await importSharedNodes({
         client,
         sharedNodes: selectedNodes,
@@ -265,7 +260,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
       );
       setNodes((previous) =>
         previous.map((node) =>
-          importedRids.has(node.sharedNode.rid)
+          importedRids.has(node.sourceNodeRid)
             ? { ...node, alreadyImported: true }
             : node,
         ),
@@ -389,12 +384,12 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
               <tbody>
                 {visibleNodes.map((node) => (
                   <SharedNodeRow
-                    key={node.sharedNode.rid}
+                    key={node.sourceNodeRid}
                     node={node}
                     onToggleSelected={() =>
-                      toggleNodeSelected(node.sharedNode.rid)
+                      toggleNodeSelected(node.sourceNodeRid)
                     }
-                    selected={selectedRids.has(node.sharedNode.rid)}
+                    selected={selectedRids.has(node.sourceNodeRid)}
                     selectionDisabled={importing}
                   />
                 ))}
