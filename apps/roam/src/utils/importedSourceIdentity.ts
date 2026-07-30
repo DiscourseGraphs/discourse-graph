@@ -1,7 +1,7 @@
 import type { Rid } from "@repo/database/crossAppContracts";
 import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
 import getBlockProps, { type json } from "./getBlockProps";
-import setBlockProps from "./setBlockProps";
+import { setBlockPropsAsync } from "./setBlockProps";
 
 export type ImportedSourceIdentity = {
   sourceModifiedAt: string;
@@ -49,7 +49,7 @@ export const writeImportedSourceIdentity = async ({
   const existing = getBlockProps(pageUid)[DISCOURSE_GRAPH_PROP_NAME];
   const discourseGraphProps = isJsonObject(existing) ? existing : {};
 
-  await setBlockProps(pageUid, {
+  await setBlockPropsAsync(pageUid, {
     [DISCOURSE_GRAPH_PROP_NAME]: {
       ...discourseGraphProps,
       [IMPORTED_FROM_PROP_KEY]: {

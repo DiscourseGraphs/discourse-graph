@@ -42,7 +42,7 @@ const setRoamJsQueryBuilderProps = ({
   pageUid: string;
   nextRjsqb: Record<string, json>;
 }): void => {
-  void setBlockProps(pageUid, {
+  setBlockProps(pageUid, {
     [QUERY_BUILDER_PROP_KEY]: nextRjsqb,
   });
 };

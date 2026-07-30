@@ -19,7 +19,7 @@ export const deNormalizeProps = (props: json): json =>
           )
     : props;
 
-const setBlockProps = (
+export const setBlockPropsAsync = (
   uid: string,
   newProps: Record<string, json>,
   denormalize: boolean = false,
@@ -40,12 +40,20 @@ const setBlockProps = (
   return Promise.resolve(baseProps);
 };
 
+const setBlockProps = (
+  uid: string,
+  newProps: Record<string, json>,
+  denormalize: boolean = false,
+): void => {
+  void setBlockPropsAsync(uid, newProps, denormalize);
+};
+
 export const testSetBlockProps = (
   title: string,
   newProps: Record<string, json>,
 ) => {
   const uid = getPageUidByPageTitle(title);
-  return uid ? setBlockProps(uid, newProps) : null;
+  return uid ? setBlockPropsAsync(uid, newProps) : null;
 };
 
 export default setBlockProps;

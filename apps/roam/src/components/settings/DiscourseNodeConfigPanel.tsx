@@ -110,7 +110,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                 },
               ],
             }).then((valueUid) => {
-              void setBlockProps(
+              setBlockProps(
                 valueUid,
                 DiscourseNodeSchema.parse({
                   text: label,

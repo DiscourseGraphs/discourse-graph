@@ -657,7 +657,7 @@ const setBlockPropAtPath = (
     return currentContext[currentKey];
   }, updatedProps);
 
-  void setBlockProps(blockUid, updatedProps, false);
+  setBlockProps(blockUid, updatedProps, false);
 };
 
 const setBlockPropBasedSettings = ({
@@ -1193,7 +1193,7 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
       );
       const retryResult = DiscourseNodeSchema.safeParse(migrated);
       if (retryResult.success) {
-        void setBlockProps(pageUid, retryResult.data, false);
+        setBlockProps(pageUid, retryResult.data, false);
         nodes.push(
           toDiscourseNode({
             ...retryResult.data,
