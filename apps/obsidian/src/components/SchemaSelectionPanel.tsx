@@ -292,8 +292,7 @@ export const SchemaSelectionPanel = ({
                       used by{" "}
                       {(templateToNodeTypeNames.get(templateName) ?? []).join(
                         ", ",
-                      )}{" "}
-                      type
+                      )}
                     </span>
                   )}
                 </label>
