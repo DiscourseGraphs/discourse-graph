@@ -1,9 +1,6 @@
 import { TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import type {
-  DiscourseNode,
-  DiscourseRelation,
-  DiscourseRelationType,
   DiscourseSchemaFile,
   DiscourseSchemaTemplate,
   SchemaSelection,
@@ -18,10 +15,6 @@ import { saveJsonToUserLocation } from "~/utils/nativeJsonFileDialogs";
 export type SpecExportResult = {
   filePath: string;
   warnings: string[];
-};
-
-const asMap = <T extends { id: string }>(items: T[]): Map<string, T> => {
-  return new Map(items.map((item) => [item.id, item]));
 };
 
 const getTemplateContents = async ({
@@ -67,25 +60,19 @@ const buildSchemaExportPayload = async ({
   plugin: DiscourseGraphPlugin;
   selection: SchemaSelection;
 }): Promise<{ payload: DiscourseSchemaFile; warnings: string[] }> => {
-  const nodeTypeMap = asMap(plugin.settings.nodeTypes);
-  const relationTypeMap = asMap(plugin.settings.relationTypes);
-  const discourseRelationMap = asMap(plugin.settings.discourseRelations);
+  const selectedNodeTypeIds = new Set(selection.nodeTypeIds);
+  const selectedRelationTypeIds = new Set(selection.relationTypeIds);
+  const selectedDiscourseRelationIds = new Set(selection.discourseRelationIds);
 
-  const selectedNodeTypes: DiscourseNode[] = selection.nodeTypeIds
-    .map((id) => nodeTypeMap.get(id))
-    .filter((nodeType): nodeType is DiscourseNode => !!nodeType);
-
-  const selectedRelationTypes: DiscourseRelationType[] =
-    selection.relationTypeIds
-      .map((id) => relationTypeMap.get(id))
-      .filter(
-        (relationType): relationType is DiscourseRelationType => !!relationType,
-      );
-
-  const selectedDiscourseRelations: DiscourseRelation[] =
-    selection.discourseRelationIds
-      .map((id) => discourseRelationMap.get(id))
-      .filter((relation): relation is DiscourseRelation => !!relation);
+  const selectedNodeTypes = plugin.settings.nodeTypes.filter((nt) =>
+    selectedNodeTypeIds.has(nt.id),
+  );
+  const selectedRelationTypes = plugin.settings.relationTypes.filter((rt) =>
+    selectedRelationTypeIds.has(rt.id),
+  );
+  const selectedDiscourseRelations = plugin.settings.discourseRelations.filter(
+    (dr) => selectedDiscourseRelationIds.has(dr.id),
+  );
 
   const { templates, warnings } = await getTemplateContents({
     plugin,
