@@ -101,7 +101,6 @@ const ImportPreviewSelection = ({
       }
       onClose();
     } catch (error) {
-      console.error("Failed to apply schema import:", error);
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Failed to import schema: ${message}`, 6000);
     } finally {
