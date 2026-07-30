@@ -16,6 +16,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import createOverlayRender from "roamjs-components/util/createOverlayRender";
 import {
   discoverSharedNodes,
+  toSharedNode,
   type DiscoveredSharedNode,
 } from "~/utils/discoverSharedNodes";
 import {
@@ -240,7 +241,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
   const importSelectedNodes = async (): Promise<void> => {
     const selectedNodes = nodes
       .filter((node) => selectedRids.has(node.sourceNodeRid))
-      .map((node) => node.sharedNode);
+      .map(toSharedNode);
 
     setImportResults(null);
     setImportProgress({ current: 0, total: selectedNodes.length });

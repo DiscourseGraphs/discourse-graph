@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { toDiscoveredSharedNodes } from "~/utils/discoverSharedNodes";
+import {
+  toDiscoveredSharedNodes,
+  toSharedNode,
+} from "~/utils/discoverSharedNodes";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
 
 const sharedNode: SharedNode = {
@@ -27,15 +30,29 @@ describe("toDiscoveredSharedNodes", () => {
       {
         alreadyImported: true,
         modifiedAt: "2026-06-14T15:00:00.000Z",
-        sharedNode,
         sourceApp: "Obsidian",
         sourceNodeId: "node-1",
         sourceNodeRid: "orn:obsidian.note:vault-a/node-1",
+        sourceSpaceDbId: 20,
         sourceSpaceId: "obsidian:vault-a",
         sourceSpaceName: "Research vault",
         title: "EVD - REM sleep and recall",
       },
     ]);
+  });
+
+  it("toSharedNode rebuilds every field the materializer reads", () => {
+    const [discovered] = toDiscoveredSharedNodes({
+      sharedNodes: [sharedNode],
+      importedSourceRids: new Set(),
+    });
+
+    expect(toSharedNode(discovered)).toEqual({
+      ...sharedNode,
+      authorId: undefined,
+      created: null,
+      directMetadata: null,
+    });
   });
 
   it("matches imports by RID rather than source-local ID alone", () => {

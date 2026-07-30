@@ -9,10 +9,10 @@ import { getImportedSourceRids } from "./importedSourceIdentity";
 export type DiscoveredSharedNode = {
   alreadyImported: boolean;
   modifiedAt: string;
-  sharedNode: SharedNode;
   sourceApp: Enums<"Platform">;
   sourceNodeId?: string;
   sourceNodeRid: string;
+  sourceSpaceDbId: number;
   sourceSpaceId: string;
   sourceSpaceName: string;
   title: string;
@@ -28,14 +28,28 @@ export const toDiscoveredSharedNodes = ({
   sharedNodes.map((sharedNode) => ({
     alreadyImported: importedSourceRids.has(sharedNode.rid),
     modifiedAt: sharedNode.lastModified,
-    sharedNode,
     sourceApp: sharedNode.platform,
     sourceNodeId: sharedNode.sourceLocalId || undefined,
     sourceNodeRid: sharedNode.rid,
+    sourceSpaceDbId: sharedNode.spaceId,
     sourceSpaceId: sharedNode.spaceUri,
     sourceSpaceName: sharedNode.spaceName,
     title: sharedNode.title,
   }));
+
+export const toSharedNode = (node: DiscoveredSharedNode): SharedNode => ({
+  rid: node.sourceNodeRid,
+  sourceLocalId: node.sourceNodeId ?? "",
+  spaceId: node.sourceSpaceDbId,
+  spaceName: node.sourceSpaceName,
+  spaceUri: node.sourceSpaceId,
+  platform: node.sourceApp,
+  title: node.title,
+  lastModified: node.modifiedAt,
+  // materializer never reads these
+  created: null,
+  directMetadata: null,
+});
 
 export const discoverSharedNodes = async ({
   client,
