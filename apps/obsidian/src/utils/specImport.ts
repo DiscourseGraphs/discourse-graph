@@ -8,6 +8,7 @@ import type {
   DiscourseRelation,
   DiscourseRelationType,
   DiscourseSchemaFile,
+  SchemaSelection,
 } from "~/types";
 import { toTldrawColor } from "~/utils/tldrawColors";
 
@@ -39,12 +40,6 @@ export type SpecImportPreview = {
   previewStats: ImportPreviewStats;
 };
 
-export type SpecImportSelection = {
-  nodeTypeIds: string[];
-  relationTypeIds: string[];
-  discourseRelationIds: string[];
-  templateNames: string[];
-};
 
 export type SpecImportApplyResult = {
   created: {
@@ -264,7 +259,7 @@ export const applySchemaImportSelection = async ({
 }: {
   plugin: DiscourseGraphPlugin;
   loadedSchemaFile: LoadedSchemaFile;
-  selection: SpecImportSelection;
+  selection: SchemaSelection;
 }): Promise<SpecImportApplyResult> => {
   const warnings: string[] = [];
   const { schemaFile, matchPlan } = loadedSchemaFile;
