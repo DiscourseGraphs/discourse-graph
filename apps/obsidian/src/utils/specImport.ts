@@ -11,6 +11,13 @@ import type {
   SchemaSelection,
 } from "~/types";
 import { toTldrawColor } from "~/utils/tldrawColors";
+import { canonicalObsidianUrl } from "~/utils/supabaseContext";
+import {
+  buildSchemaRid,
+  findExistingTriple,
+  findLocalNodeTypeMatch,
+  findLocalRelationTypeMatch,
+} from "~/utils/schemaMatching";
 
 export type SchemaImportMatchPlan = {
   nodeTypeIdMapping: Map<string, string>;
@@ -40,7 +47,6 @@ export type SpecImportPreview = {
   previewStats: ImportPreviewStats;
 };
 
-
 export type SpecImportApplyResult = {
   created: {
     nodeTypes: number;
@@ -48,22 +54,6 @@ export type SpecImportApplyResult = {
     discourseRelations: number;
     templates: number;
   };
-};
-
-const normalizeLabel = (value: string): string => {
-  return value.trim().toLowerCase();
-};
-
-const buildTripleKey = ({
-  sourceId,
-  relationshipTypeId,
-  destinationId,
-}: {
-  sourceId: string;
-  relationshipTypeId: string;
-  destinationId: string;
-}): string => {
-  return `${sourceId}::${relationshipTypeId}::${destinationId}`;
 };
 
 const buildSchemaImportMatchPlan = ({
@@ -79,36 +69,17 @@ const buildSchemaImportMatchPlan = ({
   localDiscourseRelations: DiscourseRelation[];
   localTemplateNames: Set<string>;
 }): SchemaImportMatchPlan => {
-  const localNodeTypeById = new Map(
-    localNodeTypes.map((nodeType) => [nodeType.id, nodeType]),
-  );
-  const localNodeTypeByName = new Map(
-    localNodeTypes.map((nodeType) => [normalizeLabel(nodeType.name), nodeType]),
-  );
-  const localRelationTypeById = new Map(
-    localRelationTypes.map((relationType) => [relationType.id, relationType]),
-  );
-  const localRelationTypeByLabel = new Map(
-    localRelationTypes.map((relationType) => [
-      normalizeLabel(relationType.label),
-      relationType,
-    ]),
-  );
-
   const nodeTypeIdMapping = new Map<string, string>();
   const existingNodeTypeIds = new Set<string>();
 
   for (const nodeType of schemaFile.nodeTypes) {
-    const matchById = localNodeTypeById.get(nodeType.id);
-    if (matchById) {
-      nodeTypeIdMapping.set(nodeType.id, matchById.id);
-      existingNodeTypeIds.add(nodeType.id);
-      continue;
-    }
-
-    const matchByName = localNodeTypeByName.get(normalizeLabel(nodeType.name));
-    if (matchByName) {
-      nodeTypeIdMapping.set(nodeType.id, matchByName.id);
+    const localMatch = findLocalNodeTypeMatch({
+      localNodeTypes,
+      id: nodeType.id,
+      name: nodeType.name,
+    });
+    if (localMatch) {
+      nodeTypeIdMapping.set(nodeType.id, localMatch.id);
       existingNodeTypeIds.add(nodeType.id);
       continue;
     }
@@ -120,18 +91,13 @@ const buildSchemaImportMatchPlan = ({
   const existingRelationTypeIds = new Set<string>();
 
   for (const relationType of schemaFile.relationTypes) {
-    const matchById = localRelationTypeById.get(relationType.id);
-    if (matchById) {
-      relationTypeIdMapping.set(relationType.id, matchById.id);
-      existingRelationTypeIds.add(relationType.id);
-      continue;
-    }
-
-    const matchByLabel = localRelationTypeByLabel.get(
-      normalizeLabel(relationType.label),
-    );
-    if (matchByLabel) {
-      relationTypeIdMapping.set(relationType.id, matchByLabel.id);
+    const localMatch = findLocalRelationTypeMatch({
+      localRelationTypes,
+      id: relationType.id,
+      label: relationType.label,
+    });
+    if (localMatch) {
+      relationTypeIdMapping.set(relationType.id, localMatch.id);
       existingRelationTypeIds.add(relationType.id);
       continue;
     }
@@ -139,31 +105,18 @@ const buildSchemaImportMatchPlan = ({
     relationTypeIdMapping.set(relationType.id, relationType.id);
   }
 
-  const localTripleKeys = new Set(
-    localDiscourseRelations.map((relation) =>
-      buildTripleKey({
-        sourceId: relation.sourceId,
-        relationshipTypeId: relation.relationshipTypeId,
-        destinationId: relation.destinationId,
-      }),
-    ),
-  );
-
   const existingDiscourseRelationIds = new Set<string>();
   for (const relation of schemaFile.discourseRelations) {
-    const mappedSourceId =
-      nodeTypeIdMapping.get(relation.sourceId) ?? relation.sourceId;
-    const mappedDestinationId =
-      nodeTypeIdMapping.get(relation.destinationId) ?? relation.destinationId;
-    const mappedRelationTypeId =
-      relationTypeIdMapping.get(relation.relationshipTypeId) ??
-      relation.relationshipTypeId;
-    const key = buildTripleKey({
-      sourceId: mappedSourceId,
-      relationshipTypeId: mappedRelationTypeId,
-      destinationId: mappedDestinationId,
+    const existing = findExistingTriple({
+      discourseRelations: localDiscourseRelations,
+      sourceId: nodeTypeIdMapping.get(relation.sourceId) ?? relation.sourceId,
+      destinationId:
+        nodeTypeIdMapping.get(relation.destinationId) ?? relation.destinationId,
+      relationshipTypeId:
+        relationTypeIdMapping.get(relation.relationshipTypeId) ??
+        relation.relationshipTypeId,
     });
-    if (localTripleKeys.has(key)) {
+    if (existing) {
       existingDiscourseRelationIds.add(relation.id);
     }
   }
@@ -263,6 +216,7 @@ export const applySchemaImportSelection = async ({
   onWarning?: (message: string) => void;
 }): Promise<SpecImportApplyResult> => {
   const { schemaFile, matchPlan } = loadedSchemaFile;
+  const sourceSpaceUri = canonicalObsidianUrl(schemaFile.vaultId);
   const selectedTemplateNames = new Set(selection.templateNames);
   const selectedNodeTypeIds = new Set(selection.nodeTypeIds);
   const selectedRelationTypeIds = new Set(selection.relationTypeIds);
@@ -333,6 +287,10 @@ export const applySchemaImportSelection = async ({
           matchPlan.localTemplateNames.has(importedNodeType.template))
           ? importedNodeType.template
           : undefined,
+      importedFromRid: buildSchemaRid({
+        spaceUri: sourceSpaceUri,
+        localId: importedNodeType.id,
+      }),
       modified: Date.now(),
     };
     plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];
@@ -356,6 +314,10 @@ export const applySchemaImportSelection = async ({
     const newRelationType: DiscourseRelationType = {
       ...importedRelationType,
       color: toTldrawColor(importedRelationType.color),
+      importedFromRid: buildSchemaRid({
+        spaceUri: sourceSpaceUri,
+        localId: importedRelationType.id,
+      }),
       status: "provisional",
       modified: Date.now(),
     };
@@ -371,9 +333,6 @@ export const applySchemaImportSelection = async ({
     if (!selectedRelationIds.has(relation.id)) {
       continue;
     }
-    if (matchPlan.existingDiscourseRelationIds.has(relation.id)) {
-      continue;
-    }
 
     const mappedSourceId =
       matchPlan.nodeTypeIdMapping.get(relation.sourceId) ?? relation.sourceId;
@@ -384,12 +343,28 @@ export const applySchemaImportSelection = async ({
       matchPlan.relationTypeIdMapping.get(relation.relationshipTypeId) ??
       relation.relationshipTypeId;
 
+    // Checked against live settings, not the plan: distinct schema node types can
+    // collapse onto one local type, so two file relations can map to one triple.
+    const alreadyPresent = findExistingTriple({
+      discourseRelations: plugin.settings.discourseRelations,
+      sourceId: mappedSourceId,
+      destinationId: mappedDestinationId,
+      relationshipTypeId: mappedRelationTypeId,
+    });
+    if (alreadyPresent) {
+      continue;
+    }
+
     const newRelation: DiscourseRelation = {
       ...relation,
       id: uuidv7(),
       sourceId: mappedSourceId,
       destinationId: mappedDestinationId,
       relationshipTypeId: mappedRelationTypeId,
+      importedFromRid: buildSchemaRid({
+        spaceUri: sourceSpaceUri,
+        localId: relation.id,
+      }),
       status: "provisional",
       modified: Date.now(),
     };

@@ -11,6 +11,11 @@ import {
 } from "./relationsStore";
 import { DEFAULT_TLDRAW_COLOR } from "./tldrawColors";
 import { mapNodeTypeIdToLocal } from "./importNodes";
+import {
+  buildSchemaRid,
+  findExistingTriple,
+  findLocalRelationTypeMatch,
+} from "./schemaMatching";
 
 type ConceptInRelation = {
   id: number;
@@ -66,29 +71,22 @@ const mapRelationTypeToLocal = async ({
   const label = (obj.label as string) || schemaData.name;
   const complement = (obj.complement as string) || "";
 
-  // Match by id first; if id exists locally with different label/complement, use local
-  const matchById = plugin.settings.relationTypes.find(
-    (rt) => rt.id === sourceRelationTypeId,
-  );
-  if (matchById) {
-    return matchById.id;
-  }
-
-  // Match by label
-  const matchByLabel = plugin.settings.relationTypes.find(
-    (rt) => rt.label === label,
-  );
-  if (matchByLabel) {
-    return matchByLabel.id;
+  // A local match wins even when label/complement differ — local wording is authoritative
+  const localMatch = findLocalRelationTypeMatch({
+    localRelationTypes: plugin.settings.relationTypes,
+    id: sourceRelationTypeId,
+    label,
+  });
+  if (localMatch) {
+    return localMatch.id;
   }
 
   // Create new relation type
   const now = new Date().getTime();
-  const importedFromRid = spaceUriAndLocalIdToRid(
-    sourceSpaceUri,
-    sourceRelationTypeId,
-    "schema",
-  );
+  const importedFromRid = buildSchemaRid({
+    spaceUri: sourceSpaceUri,
+    localId: sourceRelationTypeId,
+  });
 
   const newRelationType: DiscourseRelationType = {
     id: sourceRelationTypeId,
@@ -133,12 +131,12 @@ const findOrCreateTriple = async ({
   importedFromRid?: string;
   authorId?: number;
 }): Promise<DiscourseRelation> => {
-  const existing = plugin.settings.discourseRelations?.find(
-    (dr) =>
-      dr.sourceId === sourceNodeTypeId &&
-      dr.destinationId === destNodeTypeId &&
-      dr.relationshipTypeId === relationTypeId,
-  );
+  const existing = findExistingTriple({
+    discourseRelations: plugin.settings.discourseRelations ?? [],
+    sourceId: sourceNodeTypeId,
+    destinationId: destNodeTypeId,
+    relationshipTypeId: relationTypeId,
+  });
   if (existing) return existing;
 
   const now = Date.now();
