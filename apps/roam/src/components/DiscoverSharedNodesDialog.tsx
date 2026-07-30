@@ -14,11 +14,8 @@ import {
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import createOverlayRender from "roamjs-components/util/createOverlayRender";
-import {
-  discoverSharedNodes,
-  toSharedNode,
-  type DiscoveredSharedNode,
-} from "~/utils/discoverSharedNodes";
+import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import { discoverSharedNodes } from "~/utils/discoverSharedNodes";
 import {
   importSharedNodes,
   isFailedSharedNodeImport,
@@ -33,16 +30,18 @@ const IMPORT_ERROR_OPERATION = "import-shared-nodes";
 const formatModifiedAt = (modifiedAt: string): string =>
   new Date(modifiedAt).toLocaleString();
 
-const isImportableSharedNode = (node: DiscoveredSharedNode): boolean =>
-  node.sourceApp === "Obsidian";
+const isImportableSharedNode = (node: SharedNode): boolean =>
+  node.platform === "Obsidian";
 
 const SharedNodeRow = ({
   node,
+  alreadyImported,
   selected,
   selectionDisabled,
   onToggleSelected,
 }: {
-  node: DiscoveredSharedNode;
+  node: SharedNode;
+  alreadyImported: boolean;
   selected: boolean;
   selectionDisabled: boolean;
   onToggleSelected: () => void;
@@ -58,11 +57,11 @@ const SharedNodeRow = ({
       />
     </td>
     <td>
-      <Tag minimal>{node.sourceApp}</Tag>
+      <Tag minimal>{node.platform}</Tag>
     </td>
     <td>
       <div className="max-w-52 font-medium [overflow-wrap:anywhere]">
-        {node.sourceSpaceName}
+        {node.spaceName}
       </div>
       <div
         className={[
@@ -70,9 +69,9 @@ const SharedNodeRow = ({
           Classes.TEXT_MUTED,
           "max-w-52 truncate text-xs",
         ].join(" ")}
-        title={node.sourceSpaceId}
+        title={node.spaceUri}
       >
-        {node.sourceSpaceId}
+        {node.spaceUri}
       </div>
     </td>
     <td>
@@ -81,24 +80,24 @@ const SharedNodeRow = ({
       </div>
     </td>
     <td>
-      {node.sourceNodeId ? (
+      {node.sourceLocalId ? (
         <div
           className={[Classes.MONOSPACE_TEXT, "max-w-44 truncate text-xs"].join(
             " ",
           )}
-          title={node.sourceNodeRid}
+          title={node.rid}
         >
-          {node.sourceNodeId}
+          {node.sourceLocalId}
         </div>
       ) : (
         <span className={Classes.TEXT_MUTED}>Not provided</span>
       )}
     </td>
-    <td className="whitespace-nowrap" title={node.modifiedAt}>
-      {formatModifiedAt(node.modifiedAt)}
+    <td className="whitespace-nowrap" title={node.lastModified}>
+      {formatModifiedAt(node.lastModified)}
     </td>
     <td>
-      {node.alreadyImported ? (
+      {alreadyImported ? (
         <Tag intent={Intent.SUCCESS} minimal>
           Imported
         </Tag>
@@ -144,7 +143,8 @@ const ImportResultsSummary = ({
 };
 
 const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
-  const [nodes, setNodes] = useState<DiscoveredSharedNode[]>([]);
+  const [nodes, setNodes] = useState<SharedNode[]>([]);
+  const [importedRids, setImportedRids] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -168,12 +168,12 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
       if (!context) throw new Error("Could not connect to shared persistence.");
       const client = await getLoggedInClient();
       if (!client) throw new Error("Could not connect to shared persistence.");
-      setNodes(
-        await discoverSharedNodes({
-          client,
-          currentSpaceId: context.spaceId,
-        }),
-      );
+      const { sharedNodes, importedSourceRids } = await discoverSharedNodes({
+        client,
+        currentSpaceId: context.spaceId,
+      });
+      setNodes(sharedNodes);
+      setImportedRids(importedSourceRids);
     } catch (loadError) {
       internalError({
         error: loadError,
@@ -200,18 +200,18 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     if (!normalizedSearch) return nodes;
     return nodes.filter((node) =>
       [
-        node.sourceApp,
-        node.sourceSpaceName,
-        node.sourceSpaceId,
+        node.platform,
+        node.spaceName,
+        node.spaceUri,
         node.title,
-        node.sourceNodeId,
-      ].some((value) => value?.toLocaleLowerCase().includes(normalizedSearch)),
+        node.sourceLocalId,
+      ].some((value) => value.toLocaleLowerCase().includes(normalizedSearch)),
     );
   }, [nodes, searchTerm]);
 
   const importableVisibleRids = visibleNodes
     .filter(isImportableSharedNode)
-    .map((node) => node.sourceNodeRid);
+    .map((node) => node.rid);
   const allVisibleSelected =
     importableVisibleRids.length > 0 &&
     importableVisibleRids.every((rid) => selectedRids.has(rid));
@@ -239,9 +239,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
   };
 
   const importSelectedNodes = async (): Promise<void> => {
-    const selectedNodes = nodes
-      .filter((node) => selectedRids.has(node.sourceNodeRid))
-      .map(toSharedNode);
+    const selectedNodes = nodes.filter((node) => selectedRids.has(node.rid));
 
     setImportResults(null);
     setImportProgress({ current: 0, total: selectedNodes.length });
@@ -254,18 +252,14 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         onProgress: (current, total) => setImportProgress({ current, total }),
       });
       setImportResults(results);
-      const importedRids = new Set(
-        results
-          .filter((item) => item.status !== "failed")
-          .map((item) => item.sharedNode.rid),
-      );
-      setNodes((previous) =>
-        previous.map((node) =>
-          importedRids.has(node.sourceNodeRid)
-            ? { ...node, alreadyImported: true }
-            : node,
-        ),
-      );
+      const newlyImportedRids = results
+        .filter((item) => item.status !== "failed")
+        .map((item) => item.sharedNode.rid);
+      setImportedRids((previous) => {
+        const next = new Set(previous);
+        newlyImportedRids.forEach((rid) => next.add(rid));
+        return next;
+      });
       const failedImports = results.filter(isFailedSharedNodeImport);
       setSelectedRids(
         new Set(failedImports.map((item) => item.sharedNode.rid)),
@@ -385,12 +379,11 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
               <tbody>
                 {visibleNodes.map((node) => (
                   <SharedNodeRow
-                    key={node.sourceNodeRid}
+                    key={node.rid}
                     node={node}
-                    onToggleSelected={() =>
-                      toggleNodeSelected(node.sourceNodeRid)
-                    }
-                    selected={selectedRids.has(node.sourceNodeRid)}
+                    alreadyImported={importedRids.has(node.rid)}
+                    onToggleSelected={() => toggleNodeSelected(node.rid)}
+                    selected={selectedRids.has(node.rid)}
                     selectionDisabled={importing}
                   />
                 ))}
