@@ -7,6 +7,7 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
 import {
   findImportedNodeUidBySourceRid,
+  readImportedSourceIdentity,
   writeImportedSourceIdentity,
 } from "~/utils/importedSourceIdentity";
 import { materializeSharedNode } from "~/utils/materializeSharedNode";
@@ -23,6 +24,7 @@ vi.mock("roamjs-components/queries/getShallowTreeByParentUid", () => ({
 vi.mock("roamjs-components/writes/deleteBlock", () => ({ default: vi.fn() }));
 vi.mock("~/utils/importedSourceIdentity", () => ({
   findImportedNodeUidBySourceRid: vi.fn(),
+  readImportedSourceIdentity: vi.fn(),
   writeImportedSourceIdentity: vi.fn(),
 }));
 
@@ -33,6 +35,7 @@ const mockedDeleteBlock = vi.mocked(deleteBlock);
 const mockedFindImportedNodeUidBySourceRid = vi.mocked(
   findImportedNodeUidBySourceRid,
 );
+const mockedReadImportedSourceIdentity = vi.mocked(readImportedSourceIdentity);
 const mockedWriteImportedSourceIdentity = vi.mocked(
   writeImportedSourceIdentity,
 );
@@ -120,6 +123,7 @@ beforeEach(() => {
   mockedGetShallowTreeByParentUid.mockReturnValue([]);
   mockedGetPageUidByPageTitle.mockReturnValue("");
   mockedFindImportedNodeUidBySourceRid.mockResolvedValue(null);
+  mockedReadImportedSourceIdentity.mockReturnValue(undefined);
 });
 
 describe("materializeSharedNode", () => {
@@ -230,6 +234,58 @@ describe("materializeSharedNode", () => {
     expect(blockFromMarkdown.mock.invocationCallOrder[0]).toBeLessThan(
       mockedDeleteBlock.mock.invocationCallOrder[0],
     );
+  });
+
+  it("skips an imported page whose source has not changed", async () => {
+    const { client, from } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+
+    await expect(
+      materializeSharedNode({ client, sharedNode }),
+    ).resolves.toEqual({
+      success: true,
+      action: "skipped",
+      pageUid: EXISTING_PAGE_UID,
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+    expect(from).not.toHaveBeenCalled();
+    expect(blockFromMarkdown).not.toHaveBeenCalled();
+    expect(mockedDeleteBlock).not.toHaveBeenCalled();
+    expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
+  });
+
+  it("updates an imported page whose source changed since the import", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
+    mockedGetPageTitleByPageUid.mockReturnValue(sharedNode.title);
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: "2026-06-14T14:00:00.000Z",
+      sourceNodeRid: sharedNode.rid,
+    });
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(result).toMatchObject({ success: true, action: "updated" });
+    expect(blockFromMarkdown).toHaveBeenCalled();
+  });
+
+  it("updates an imported page whose stored modified time is invalid", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
+    mockedGetPageTitleByPageUid.mockReturnValue(sharedNode.title);
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: "not-a-date",
+      sourceNodeRid: sharedNode.rid,
+    });
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(result).toMatchObject({ success: true, action: "updated" });
   });
 
   it("renames the imported page when the source title changed", async () => {

@@ -17,24 +17,13 @@ const sharedNode: SharedNode = {
 };
 
 describe("toDiscoveredSharedNodes", () => {
-  it("maps a shared node to the exact discovered shared node shape", () => {
+  it("wraps each shared node with its imported status", () => {
     expect(
       toDiscoveredSharedNodes({
         sharedNodes: [sharedNode],
         importedSourceRids: new Set([sharedNode.rid]),
       }),
-    ).toEqual([
-      {
-        alreadyImported: true,
-        modifiedAt: "2026-06-14T15:00:00.000Z",
-        sourceApp: "Obsidian",
-        sourceNodeId: "node-1",
-        sourceNodeRid: "orn:obsidian.note:vault-a/node-1",
-        sourceSpaceId: "obsidian:vault-a",
-        sourceSpaceName: "Research vault",
-        title: "EVD - REM sleep and recall",
-      },
-    ]);
+    ).toEqual([{ alreadyImported: true, sharedNode }]);
   });
 
   it("matches imports by RID rather than source-local ID alone", () => {
