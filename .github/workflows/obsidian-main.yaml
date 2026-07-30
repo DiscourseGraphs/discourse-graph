@@ -20,6 +20,7 @@ env:
   OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
   beta-release:
@@ -48,36 +49,21 @@ jobs:
       - name: Compute next beta version
         id: version
         run: |
-          CURRENT_VERSION=$(node -p "require('./apps/obsidian/package.json').version")
-          if [[ "$CURRENT_VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-beta\.([0-9]+)$ ]]; then
-            BASE="${BASH_REMATCH[1]}"
-            N="${BASH_REMATCH[2]}"
-            NEXT_BETA="${BASE}-beta.$((N + 1))"
+          STABLE_VERSION=$(node -p "require('./apps/obsidian/package.json').version" | sed 's/-beta\.[0-9]*//')
+          LATEST_N=$(gh release list --limit 50 --json tagName --jq '.[].tagName' \
+            | grep "^${STABLE_VERSION}-beta\." \
+            | sed "s/^${STABLE_VERSION}-beta\.//" \
+            | sort -n | tail -1)
+          if [ -n "$LATEST_N" ]; then
+            NEXT_BETA="${STABLE_VERSION}-beta.$((LATEST_N + 1))"
           else
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-            NEXT_BETA="${MAJOR}.${MINOR}.$((PATCH + 1))-beta.1"
+            NEXT_BETA="${STABLE_VERSION}-beta.1"
           fi
-          echo "Current version: $CURRENT_VERSION -> next beta: $NEXT_BETA"
+          echo "Stable version: $STABLE_VERSION, next beta: $NEXT_BETA"
           echo "version=$NEXT_BETA" >> "$GITHUB_OUTPUT"
 
       - name: Publish beta release
         run: cd apps/obsidian && npx tsx scripts/publish.ts --version ${{ steps.version.outputs.version }}
-
-      - name: Commit version bump
-        run: |
-          if ! git diff --quiet -- apps/obsidian/package.json apps/obsidian/manifest.json; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add apps/obsidian/package.json apps/obsidian/manifest.json
-            git commit -m "chore: bump obsidian version to ${{ steps.version.outputs.version }} [skip ci]"
-            git fetch origin main
-            if git rebase origin/main; then
-              git push
-            else
-              git rebase --abort
-              echo "Skipping version bump push: conflict with concurrent changes to version files"
-            fi
-          fi
 
       - name: Sync Linear release
         uses: linear/linear-release-action@v0
