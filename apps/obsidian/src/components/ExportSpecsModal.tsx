@@ -1,4 +1,4 @@
-import { App, Modal, Notice } from "obsidian";
+import { Modal, Notice } from "obsidian";
 import { StrictMode, useMemo, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
@@ -19,7 +19,7 @@ type ExportSpecsModalProps = {
 };
 
 export const openExportSpecsModal = (plugin: DiscourseGraphPlugin): void => {
-  new ExportSpecsModal(plugin.app, plugin).open();
+  new ExportSpecsModal(plugin).open();
 };
 
 const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
@@ -34,7 +34,6 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
       templateNames: getTemplateFiles(plugin.app),
     };
   }, [
-    plugin.app,
     plugin.settings.discourseRelations,
     plugin.settings.nodeTypes,
     plugin.settings.relationTypes,
@@ -53,7 +52,7 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
     const hasSelection =
       payload.nodeTypeIds.length > 0 ||
       payload.relationTypeIds.length > 0 ||
-      payload.relationIds.length > 0 ||
+      payload.discourseRelationIds.length > 0 ||
       payload.templateNames.length > 0;
     if (!hasSelection) {
       new Notice("Select at least one schema item or template to export.");
@@ -64,12 +63,7 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
     try {
       const result = await exportSchemaSelection({
         plugin,
-        selection: {
-          nodeTypeIds: payload.nodeTypeIds,
-          relationTypeIds: payload.relationTypeIds,
-          discourseRelationIds: payload.relationIds,
-          templateNames: payload.templateNames,
-        },
+        selection: payload,
       });
 
       const warningSuffix =
@@ -83,9 +77,7 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
       );
 
       if (result.warnings.length > 0) {
-        for (const warning of result.warnings) {
-          new Notice(warning, 6000);
-        }
+        new Notice(`Export warnings:\n${result.warnings.join("\n")}`, 6000);
       }
 
       onClose();
@@ -120,8 +112,8 @@ export class ExportSpecsModal extends Modal {
   private plugin: DiscourseGraphPlugin;
   private root: Root | null = null;
 
-  constructor(app: App, plugin: DiscourseGraphPlugin) {
-    super(app);
+  constructor(plugin: DiscourseGraphPlugin) {
+    super(plugin.app);
     this.plugin = plugin;
   }
 

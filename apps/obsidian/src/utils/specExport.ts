@@ -3,8 +3,10 @@ import type DiscourseGraphPlugin from "~/index";
 import type {
   DiscourseNode,
   DiscourseRelation,
+  DiscourseRelationType,
   DiscourseSchemaFile,
   DiscourseSchemaTemplate,
+  SchemaSelection,
 } from "~/types";
 import {
   DG_SCHEMA_EXPORT_VERSION,
@@ -12,13 +14,6 @@ import {
 } from "~/utils/specValidation";
 import { getTemplatePluginInfo } from "~/utils/templates";
 import { saveJsonToUserLocation } from "~/utils/nativeJsonFileDialogs";
-
-export type SpecExportSelection = {
-  nodeTypeIds: string[];
-  relationTypeIds: string[];
-  discourseRelationIds: string[];
-  templateNames: string[];
-};
 
 export type SpecExportResult = {
   filePath: string;
@@ -70,7 +65,7 @@ const buildSchemaExportPayload = async ({
   selection,
 }: {
   plugin: DiscourseGraphPlugin;
-  selection: SpecExportSelection;
+  selection: SchemaSelection;
 }): Promise<{ payload: DiscourseSchemaFile; warnings: string[] }> => {
   const nodeTypeMap = asMap(plugin.settings.nodeTypes);
   const relationTypeMap = asMap(plugin.settings.relationTypes);
@@ -80,9 +75,12 @@ const buildSchemaExportPayload = async ({
     .map((id) => nodeTypeMap.get(id))
     .filter((nodeType): nodeType is DiscourseNode => !!nodeType);
 
-  const selectedRelationTypes = selection.relationTypeIds
-    .map((id) => relationTypeMap.get(id))
-    .filter((relationType) => !!relationType);
+  const selectedRelationTypes: DiscourseRelationType[] =
+    selection.relationTypeIds
+      .map((id) => relationTypeMap.get(id))
+      .filter(
+        (relationType): relationType is DiscourseRelationType => !!relationType,
+      );
 
   const selectedDiscourseRelations: DiscourseRelation[] =
     selection.discourseRelationIds
@@ -113,7 +111,7 @@ export const exportSchemaSelection = async ({
   selection,
 }: {
   plugin: DiscourseGraphPlugin;
-  selection: SpecExportSelection;
+  selection: SchemaSelection;
 }): Promise<SpecExportResult> => {
   const { payload, warnings } = await buildSchemaExportPayload({
     plugin,

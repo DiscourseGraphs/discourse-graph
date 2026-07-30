@@ -198,9 +198,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
     id: "export-dg-schema",
     name: "Export discourse graph schema",
-    callback: () => {
-      openExportSpecsModal(plugin);
-    },
+    callback: () => openExportSpecsModal(plugin),
   });
 
   plugin.addCommand({
