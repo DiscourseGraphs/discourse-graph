@@ -3,6 +3,15 @@ import type DiscourseGraphPlugin from "~/index";
 import type { ImportFolderMetadata } from "~/types";
 
 const DG_METADATA_FILE = ".dg.metadata";
+
+/**
+ * Folder identity is carried by DG_METADATA_FILE, so renaming an individual import
+ * folder is safe — the next import finds it again by spaceUri.
+ *
+ * Known limitation: this root path is fixed and only its immediate children are
+ * scanned. Renaming or moving the root, or nesting import folders deeper inside it,
+ * makes existing imports invisible and the next import recreates them here.
+ */
 const IMPORT_ROOT = "import";
 
 const sanitizeImportFolderName = (fileName: string): string => {
