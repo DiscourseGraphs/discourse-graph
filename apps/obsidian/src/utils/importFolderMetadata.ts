@@ -12,11 +12,22 @@ const sanitizeImportFolderName = (fileName: string): string => {
     .trim();
 };
 
+/**
+ * Obsidian falls back to the vault name for the account name, and the vault name is
+ * also the space name, so the two are identical unless the user set a username in
+ * settings. Prefixing then produces folders like "my-vault-my-vault", so the owner
+ * name is only prepended when it actually adds information.
+ */
 const buildImportFolderBasename = (
   userName: string,
   spaceName: string,
 ): string => {
-  return sanitizeImportFolderName(`${userName}-${spaceName}`);
+  const sanitizedUserName = sanitizeImportFolderName(userName);
+  const sanitizedSpaceName = sanitizeImportFolderName(spaceName);
+  if (!sanitizedUserName || sanitizedUserName === sanitizedSpaceName) {
+    return sanitizedSpaceName;
+  }
+  return `${sanitizedUserName}-${sanitizedSpaceName}`;
 };
 
 const generateShortId = (): string => Math.random().toString(36).slice(2, 8);
