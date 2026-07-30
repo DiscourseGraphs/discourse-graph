@@ -87,7 +87,7 @@ const ImportPreviewSelection = ({
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Failed to import schema: ${message}`, 6000);
-    } finally {
+      // Only the failure path stays mounted; the success path unmounted at onClose()
       setIsApplyingImport(false);
     }
   };
