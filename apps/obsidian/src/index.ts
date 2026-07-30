@@ -39,6 +39,10 @@ import {
 } from "~/utils/relationsStore";
 import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
+import {
+  registerNodeTypeIdPropertyWidget,
+  unregisterNodeTypeIdPropertyWidget,
+} from "~/utils/nodeTypeIdPropertyWidget";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -68,6 +72,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     });
 
     registerTemplateSettingsSync(this);
+    registerNodeTypeIdPropertyWidget(this);
 
     if (this.settings.syncModeEnabled === true) {
       void initializeSupabaseSync(this).catch((error) => {
@@ -437,6 +442,7 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   onunload() {
+    unregisterNodeTypeIdPropertyWidget(this);
     this.activeNodePopover?.close();
     this.activeNodePopover = null;
     this.cleanupViewActions();
