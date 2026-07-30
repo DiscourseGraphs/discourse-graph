@@ -1,5 +1,5 @@
 import { Modal, Notice } from "obsidian";
-import { StrictMode, useMemo, useState } from "react";
+import { StrictMode, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
 import { exportSchemaSelection } from "~/utils/specExport";
@@ -9,7 +9,6 @@ import { getTemplateFiles } from "~/utils/templates";
 import {
   getReferencedTemplateNames,
   useSchemaSelection,
-  type SchemaSelectionSource,
 } from "~/components/useSchemaSelection";
 import { SchemaSelectionModalBody } from "~/components/SchemaSelectionModalBody";
 
@@ -26,18 +25,12 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
   const [isExporting, setIsExporting] = useState(false);
   const outputFileName = getDgSchemaFileName(plugin.app.vault.getName());
 
-  const source = useMemo<SchemaSelectionSource>(() => {
-    return {
-      nodeTypes: plugin.settings.nodeTypes,
-      relationTypes: plugin.settings.relationTypes,
-      relationTriples: plugin.settings.discourseRelations,
-      templateNames: getTemplateFiles(plugin.app),
-    };
-  }, [
-    plugin.settings.discourseRelations,
-    plugin.settings.nodeTypes,
-    plugin.settings.relationTypes,
-  ]);
+  const source = {
+    nodeTypes: plugin.settings.nodeTypes,
+    relationTypes: plugin.settings.relationTypes,
+    relationTriples: plugin.settings.discourseRelations,
+    templateNames: getTemplateFiles(plugin.app),
+  };
 
   const selection = useSchemaSelection({
     source,
