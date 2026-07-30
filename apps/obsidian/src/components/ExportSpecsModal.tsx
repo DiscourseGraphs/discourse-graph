@@ -93,7 +93,6 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
       if (error instanceof NativeFileDialogCancelledError) {
         return;
       }
-      console.error("Failed to export schema:", error);
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Schema export failed: ${message}`, 6000);
     } finally {
