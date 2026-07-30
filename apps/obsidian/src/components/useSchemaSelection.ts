@@ -3,6 +3,7 @@ import type {
   DiscourseNode,
   DiscourseRelation,
   DiscourseRelationType,
+  SchemaSelection,
 } from "~/types";
 
 export type SchemaSelectionSource = {
@@ -45,12 +46,7 @@ export type SchemaSelectionState = {
   selectAllTemplates: () => void;
   deselectAllTemplates: () => void;
   toggleTemplate: (templateName: string, shouldSelect: boolean) => void;
-  asSelectionPayload: () => {
-    nodeTypeIds: string[];
-    relationTypeIds: string[];
-    relationIds: string[];
-    templateNames: string[];
-  };
+  asSelectionPayload: () => SchemaSelection;
 };
 
 const updateSet = (
@@ -235,7 +231,7 @@ export const useSchemaSelection = ({
     asSelectionPayload: () => ({
       nodeTypeIds: [...selectedNodeTypeIds],
       relationTypeIds: [...selectedRelationTypeIds],
-      relationIds: [...selectedRelationIds],
+      discourseRelationIds: [...selectedRelationIds],
       templateNames: [...selectedTemplateNames],
     }),
   };
