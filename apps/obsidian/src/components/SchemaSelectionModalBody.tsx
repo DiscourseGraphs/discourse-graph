@@ -1,5 +1,4 @@
 import { SchemaSelectionPanel } from "~/components/SchemaSelectionPanel";
-import type { ReactNode } from "react";
 import type {
   SchemaSelectionSource,
   SchemaSelectionState,
@@ -10,10 +9,7 @@ type SchemaSelectionModalBodyProps = {
   description: string;
   source: SchemaSelectionSource;
   selection: SchemaSelectionState;
-  emptyTemplateText: string;
   onDependencyViolation?: (message: string) => void;
-  beforePanel?: ReactNode;
-  afterPanel?: ReactNode;
   footerSecondaryLabel: string;
   onFooterSecondaryClick: () => void;
   footerPrimaryLabel: string;
@@ -27,10 +23,7 @@ export const SchemaSelectionModalBody = ({
   description,
   source,
   selection,
-  emptyTemplateText,
   onDependencyViolation,
-  beforePanel,
-  afterPanel,
   footerSecondaryLabel,
   onFooterSecondaryClick,
   footerPrimaryLabel,
@@ -43,16 +36,11 @@ export const SchemaSelectionModalBody = ({
       <h3 className="mb-2">{title}</h3>
       <p className="text-muted mb-4 text-sm">{description}</p>
 
-      {beforePanel}
-
       <SchemaSelectionPanel
         source={source}
         selection={selection}
-        emptyTemplateText={emptyTemplateText}
         onDependencyViolation={onDependencyViolation}
       />
-
-      {afterPanel}
 
       <div className="mt-6 flex justify-between">
         <button

@@ -6,14 +6,12 @@ import type {
 type SchemaSelectionPanelProps = {
   source: SchemaSelectionSource;
   selection: SchemaSelectionState;
-  emptyTemplateText: string;
   onDependencyViolation?: (message: string) => void;
 };
 
 export const SchemaSelectionPanel = ({
   source,
   selection,
-  emptyTemplateText,
   onDependencyViolation,
 }: SchemaSelectionPanelProps) => {
   const {
@@ -43,23 +41,15 @@ export const SchemaSelectionPanel = ({
   const relationTypeById = new Map(
     source.relationTypes.map((relationType) => [relationType.id, relationType]),
   );
+  const sortedNodeTypes = [...source.nodeTypes].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
   const templateToNodeTypeNames = new Map<string, string[]>();
-  for (const nodeType of source.nodeTypes) {
+  for (const nodeType of sortedNodeTypes) {
     if (!nodeType.template) continue;
-    const current = templateToNodeTypeNames.get(nodeType.template) ?? [];
-    current.push(nodeType.name);
-    templateToNodeTypeNames.set(nodeType.template, current);
-  }
-  for (const [
-    templateName,
-    nodeTypeNames,
-  ] of templateToNodeTypeNames.entries()) {
-    templateToNodeTypeNames.set(
-      templateName,
-      [...new Set(nodeTypeNames)].sort((left, right) =>
-        left.localeCompare(right),
-      ),
-    );
+    const names = templateToNodeTypeNames.get(nodeType.template) ?? [];
+    names.push(nodeType.name);
+    templateToNodeTypeNames.set(nodeType.template, names);
   }
   const referencedTemplateNames = new Set(templateToNodeTypeNames.keys());
 
@@ -271,7 +261,7 @@ export const SchemaSelectionPanel = ({
             </div>
           </div>
           {source.templateNames.length === 0 ? (
-            <p className="text-muted text-sm">{emptyTemplateText}</p>
+            <p className="text-muted text-sm">No template files found.</p>
           ) : (
             <div className="space-y-1">
               {source.templateNames.map((templateName) => (
