@@ -27,7 +27,10 @@ import posthog from "posthog-js";
 import { refreshDiscourseContextsForMutatedUids } from "~/utils/discourseContextMutationRefresh";
 
 export type CreateRelationDialogProps = {
-  onClose: (created?: boolean) => void;
+  // `renderOverlay` replaces `onClose` with its own zero-argument wrapper, so a
+  // create result can only reach callers through a separate prop.
+  onClose?: () => void;
+  onCreated?: () => void;
   sourceNodeUid: string;
 };
 
@@ -43,6 +46,7 @@ type ExtendedCreateRelationDialogProps = CreateRelationDialogProps & {
 
 const CreateRelationDialog = ({
   onClose,
+  onCreated,
   sourceNodeUid,
   relData,
   sourceNodeTitle,
@@ -188,6 +192,7 @@ const CreateRelationDialog = ({
             timeout: 10000,
             content: <span>Created relation</span>,
           });
+          onCreated?.();
         } else {
           renderToast({
             id: `discourse-relation-error-${Date.now()}`,
@@ -195,7 +200,7 @@ const CreateRelationDialog = ({
             content: <span>Failed to create relation</span>,
           });
         }
-        onClose(created);
+        onClose?.();
       })
       .catch(() => {
         renderToast({
@@ -203,7 +208,7 @@ const CreateRelationDialog = ({
           intent: "danger",
           content: <span>Failed to create relation</span>,
         });
-        onClose(false);
+        onClose?.();
       });
   };
 
@@ -234,7 +239,7 @@ const CreateRelationDialog = ({
   return (
     <Dialog
       isOpen={true}
-      onClose={() => onClose(false)}
+      onClose={onClose}
       autoFocus={false}
       className="roamjs-canvas-dialog"
     >
@@ -271,7 +276,7 @@ const CreateRelationDialog = ({
       </div>
       <div className={Classes.DIALOG_FOOTER}>
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-          <Button minimal onClick={() => onClose(false)}>
+          <Button minimal onClick={onClose}>
             Cancel
           </Button>
           <Button
@@ -330,6 +335,7 @@ const prepareRelData = (
 const extendProps = ({
   sourceNodeUid,
   onClose,
+  onCreated,
 }: CreateRelationDialogProps): ExtendedCreateRelationDialogProps | null => {
   const nodeTitle = getPageTitleByPageUid(sourceNodeUid).trim();
   const relData = prepareRelData(sourceNodeUid, nodeTitle);
@@ -347,6 +353,7 @@ const extendProps = ({
   return {
     sourceNodeUid,
     onClose,
+    onCreated,
     relData,
     sourceNodeTitle: nodeTitle,
     selectedSourceType,

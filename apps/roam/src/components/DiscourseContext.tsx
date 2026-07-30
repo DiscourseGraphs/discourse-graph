@@ -89,8 +89,7 @@ const ContextTab = ({
           <span style={{ display: "flex", alignItems: "center" }}>
             <CreateRelationButton
               sourceNodeUid={parentUid}
-              onClose={(created) => {
-                if (!created) return;
+              onCreated={() => {
                 window.setTimeout(onRefresh, 150, true);
               }}
             />
@@ -261,13 +260,7 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
   ) : (
     <div className="text-center">
       No discourse relations found.
-      <CreateRelationButton
-        sourceNodeUid={uid}
-        onClose={(created) => {
-          if (!created) return;
-          delayedRefresh();
-        }}
-      />
+      <CreateRelationButton sourceNodeUid={uid} onCreated={delayedRefresh} />
     </div>
   );
 };
