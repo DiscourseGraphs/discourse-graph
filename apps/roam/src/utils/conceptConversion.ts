@@ -78,17 +78,21 @@ export const discourseNodeSchemaToLocalConcept = (
   node: DiscourseNode,
 ): LocalConceptDataInput => {
   const titleParts = node.text.split("/");
+  const label = titleParts[titleParts.length - 1] ?? node.text;
   const result: LocalConceptDataInput = {
     space_id: context.spaceId,
     name: node.text,
     source_local_id: node.type,
     is_schema: true,
+    literal_content: {
+      label,
+    },
     /* eslint-enable @typescript-eslint/naming-convention */
     ...getNodeExtraData(node.type),
   };
   if (node.template !== undefined)
     result.literal_content = {
-      label: titleParts[titleParts.length - 1],
+      label,
       template: templateToText(node.template),
     };
   return result;

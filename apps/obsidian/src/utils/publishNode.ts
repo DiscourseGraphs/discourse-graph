@@ -11,7 +11,7 @@ import {
   type RelationsFile,
 } from "./relationsStore";
 import type { RelationInstance } from "~/types";
-import { getAvailableGroupIds } from "./importNodes";
+import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import {
   syncAllNodesAndRelations,
   syncPublishedNodeAssets,

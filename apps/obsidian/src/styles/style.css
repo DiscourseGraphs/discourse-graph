@@ -3866,16 +3866,35 @@ kbd.tlui-kbd {
   }
 }
 
-.dg-image-convert-icon {
+/* Fallback for Obsidian versions without a shared ".embed-actions" wrapper. */
+.internal-embed.image-embed > .dg-image-convert-icon {
+  position: absolute;
   top: var(--size-2-2);
+  inset-inline-start: var(--size-2-2);
+  box-sizing: border-box;
+  width: 30px;
+  height: 26px;
   padding: var(--size-2-2) var(--size-2-3);
   color: var(--text-muted);
-  background-color: var(--background-primary);
+  border-radius: var(--radius-s);
+  cursor: var(--cursor);
   opacity: 0;
-  pointer-events: none;
 }
 
-.dg-image-embed-active .dg-image-convert-icon {
+.internal-embed.image-embed.is-selected > .dg-image-convert-icon {
   opacity: 1;
-  pointer-events: auto;
+  background-color: var(--background-primary);
+  z-index: 2;
+}
+
+@media (hover: hover) {
+  .internal-embed.image-embed:hover > .dg-image-convert-icon {
+    opacity: 1;
+    background-color: var(--background-primary);
+    z-index: 2;
+  }
+
+  .internal-embed.image-embed:hover > .dg-image-convert-icon:hover {
+    background-color: var(--background-secondary);
+  }
 }

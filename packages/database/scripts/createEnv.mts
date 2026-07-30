@@ -31,7 +31,6 @@ const makeFnEnv = (envTxt: string): string => {
   return envTxt
     .split("\n")
     .filter((l) => l.match(/^SUPABASE_\w+_KEY/))
-    .map((l) => l.replace("SUPABASE_", "SB_"))
     .join("\n");
 };
 

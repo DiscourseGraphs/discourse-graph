@@ -110,7 +110,7 @@ export const SettingsDialog = ({
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
-  const { version, buildDate } = getVersionWithDate();
+  const { versionStamp } = getVersionWithDate();
   const openAdminPanel = (): void => {
     setShowAdminPanel(true);
     setActiveTabId(ADMIN_TAB_ID);
@@ -349,9 +349,7 @@ export const SettingsDialog = ({
             Admin
           </Button>
         )}
-        <span className="text-xs text-gray-500">
-          v{version}-{buildDate}
-        </span>
+        <span className="text-xs text-gray-500">v{versionStamp}</span>
       </div>
       {/* <Button
         icon="cross"

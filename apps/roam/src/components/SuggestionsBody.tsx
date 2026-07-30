@@ -33,7 +33,12 @@ import {
 import type { PageGroup } from "~/components/settings/utils/zodSchema";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
+import internalError from "~/utils/internalError";
 import posthog from "posthog-js";
+import {
+  notifyBlockSuggestionAdded,
+  notifyRelationSuggestionAdded,
+} from "~/utils/notifySuggestiveModeAdoption";
 
 export type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -51,7 +56,7 @@ const getOverlayInfo = async (
   try {
     if (cache[tag]) return cache[tag];
 
-    const nodes = getDiscourseNodes(relations);
+    const nodes = getDiscourseNodes();
 
     const [results, refs] = await Promise.all([
       getDiscourseContextResults({
@@ -314,7 +319,9 @@ const SuggestionsBody = ({
   };
 
   const handleCreateBlock = async (node: SuggestedNode) => {
-    if (getStoredRelationsEnabled()) {
+    const useReifiedRelations = getStoredRelationsEnabled();
+
+    if (useReifiedRelations) {
       if (discourseNode === false) {
         renderToast({
           id: "suggestions-create-block-error",
@@ -360,6 +367,16 @@ const SuggestionsBody = ({
           });
           return;
         }
+        try {
+          notifyRelationSuggestionAdded(tag, node.text);
+        } catch (error) {
+          internalError({
+            error,
+            type: "Suggestive Mode: Notification Failed",
+            context: { tag, nodeText: node.text, kind: "relation" },
+            sendEmail: false,
+          });
+        }
       } else {
         renderToast({
           id: "suggestions-create-block-error",
@@ -373,12 +390,23 @@ const SuggestionsBody = ({
         parentUid: blockUid,
         node: { text: `[[${node.text}]]` },
       });
+      try {
+        await notifyBlockSuggestionAdded(blockUid, tag);
+      } catch (error) {
+        internalError({
+          error,
+          type: "Suggestive Mode: Notification Failed",
+          context: { tag, nodeText: node.text, kind: "block" },
+          sendEmail: false,
+        });
+      }
     }
+
     posthog.capture("Suggestive Mode: Suggestion Adopted", {
       tag,
       nodeType: node.type,
       nodeText: node.text,
-      useReifiedRelations: getStoredRelationsEnabled(),
+      useReifiedRelations: useReifiedRelations,
     });
     setHydeFilteredNodes((prev) => prev.filter((n) => n.uid !== node.uid));
   };

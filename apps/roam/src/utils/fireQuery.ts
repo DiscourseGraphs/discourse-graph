@@ -21,6 +21,10 @@ export type QueryArgs = {
   conditions: Condition[];
   selections: Selection[];
   inputs?: Record<string, string | number>;
+  findVariables?: {
+    label: string;
+    variable: string;
+  }[];
 };
 type RelationInQuery = {
   id: string;
@@ -39,6 +43,12 @@ export type FireQueryArgs = QueryArgs & {
 };
 
 type FireQuery = (query: FireQueryArgs) => Promise<QueryResult[]>;
+type DefinedSelection = {
+  mapper?: PredefinedSelection["mapper"];
+  pull: string;
+  label: string;
+  key: string;
+};
 
 const firstVariable = (
   clause: DatalogClause | DatalogAndClause,
@@ -200,6 +210,7 @@ export const getDatalogQuery = ({
   selections,
   returnNode = DEFAULT_RETURN_NODE,
   inputs = {},
+  findVariables = [],
 }: FireQueryArgs) => {
   const expectedInputs = getConditionTargets(conditions)
     .filter((c) => /^:in /.test(c))
@@ -211,12 +222,7 @@ export const getDatalogQuery = ({
     new Set([]),
   );
 
-  const defaultSelections: {
-    mapper: PredefinedSelection["mapper"];
-    pull: string;
-    label: string;
-    key: string;
-  }[] = [
+  const defaultSelections: DefinedSelection[] = [
     {
       mapper: (r) => {
         return {
@@ -237,26 +243,35 @@ export const getDatalogQuery = ({
       key: "",
     },
   ];
+  const userSelections: DefinedSelection[] = selections
+    .map((s) => ({
+      defined: predefinedSelections.find((p) => p.test.test(s.text)),
+      s,
+    }))
+    .filter(
+      (p): p is { defined: PredefinedSelection; s: Selection } => !!p.defined,
+    )
+    .map((p) => ({
+      mapper: p.defined.mapper,
+      pull: p.defined.pull({
+        where: whereClauses,
+        returnNode,
+        match: p.defined.test.exec(p.s.text),
+      }),
+      label: p.s.label || p.s.text,
+      key: p.s.text,
+    }))
+    .filter((p) => !!p.pull);
+  const internalFindVariables: DefinedSelection[] = findVariables.map(
+    ({ label, variable }) => ({
+      pull: variable.startsWith("?") ? variable : `?${variable}`,
+      label,
+      key: variable,
+    }),
+  );
   const definedSelections = defaultSelections.concat(
-    selections
-      .map((s) => ({
-        defined: predefinedSelections.find((p) => p.test.test(s.text)),
-        s,
-      }))
-      .filter(
-        (p): p is { defined: PredefinedSelection; s: Selection } => !!p.defined,
-      )
-      .map((p) => ({
-        mapper: p.defined.mapper,
-        pull: p.defined.pull({
-          where: whereClauses,
-          returnNode,
-          match: p.defined.test.exec(p.s.text),
-        }),
-        label: p.s.label || p.s.text,
-        key: p.s.text,
-      }))
-      .filter((p) => !!p.pull),
+    userSelections,
+    internalFindVariables,
   );
   const find = definedSelections.map((p) => p.pull).join("\n  ");
   const where = whereClauses.map((c) => compileDatalog(c, 1)).join("\n");
@@ -274,7 +289,9 @@ export const getDatalogQuery = ({
       definedSelections
         .map((c, i) => (prev: QueryResult) => {
           const pullResult = result[i];
-          return typeof pullResult === "object" && pullResult !== null
+          return c.mapper &&
+            typeof pullResult === "object" &&
+            pullResult !== null
             ? Promise.resolve(
                 c.mapper(pullResult as PullBlock, c.key, prev),
               ).then((output) => ({

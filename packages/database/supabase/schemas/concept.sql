@@ -133,6 +133,14 @@ WHERE (
     OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT null)
 );
 
+CREATE OR REPLACE FUNCTION public.can_view_concept(concept_id BIGINT) RETURNS BOOLEAN
+STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT public.can_view_specific_resource(space_id, source_local_id) FROM public."Concept" WHERE id=concept_id;
+$$;
+
 -- following https://docs.postgrest.org/en/v13/references/api/resource_embedding.html#recursive-relationships
 CREATE OR REPLACE FUNCTION public.schema_of_concept(concept public."Concept")
 RETURNS SETOF public."Concept" STRICT STABLE
@@ -448,6 +456,12 @@ BEGIN
                 IF last_modified(document_inline(local_concept)) IS NULL THEN
                     local_concept.document_inline.last_modified := last_modified(local_concept);
                 END IF;
+                IF content_type(document_inline(local_concept)) IS NULL THEN
+                  local_concept.document_inline.content_type := CASE
+                    WHEN v_platform='Roam' THEN 'text/roam+markdown'
+                    WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
+                    ELSE 'text/plain' END;
+                END IF;
             END IF;
             FOREACH content_inline IN ARRAY contents_inline(local_concept)
             LOOP
@@ -457,6 +471,9 @@ BEGIN
                     content_inline.author_local_id := local_concept.author_local_id;
                 ELSIF author_inline(content_inline) IS NULL AND NOT author_inline(local_concept) IS NULL THEN
                     content_inline.author_inline := local_concept.author_inline;
+                END IF;
+                IF content_type(content_inline) IS NULL THEN
+                    content_inline.content_type := 'text/plain';
                 END IF;
                 IF creator_id(content_inline) IS NULL THEN
                     IF creator_local_id(content_inline) IS NULL AND creator_local_id(local_concept) IS NOT NULL THEN
@@ -470,6 +487,12 @@ BEGIN
                         content_inline.document_local_id := local_concept.document_local_id;
                     ELSIF document_inline(content_inline) IS NULL AND NOT document_inline(local_concept) IS NULL THEN
                         content_inline.document_inline := local_concept.document_inline;
+                    END IF;
+                    IF content_type(document_inline(content_inline)) IS NULL THEN
+                      content_inline.document_inline.content_type := CASE
+                        WHEN v_platform='Roam' THEN 'text/roam+markdown'
+                        WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
+                        ELSE 'text/plain' END;
                     END IF;
                 END IF;
                 IF source_local_id(content_inline) IS NULL AND source_local_id(local_concept) IS NOT NULL THEN
@@ -521,11 +544,11 @@ DROP POLICY IF EXISTS concept_policy ON public."Concept";
 DROP POLICY IF EXISTS concept_select_policy ON public."Concept";
 CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 DROP POLICY IF EXISTS concept_delete_policy ON public."Concept";
-CREATE POLICY concept_delete_policy ON public."Concept" FOR DELETE USING (public.in_space(space_id));
+CREATE POLICY concept_delete_policy ON public."Concept" FOR DELETE USING (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS concept_insert_policy ON public."Concept";
-CREATE POLICY concept_insert_policy ON public."Concept" FOR INSERT WITH CHECK (public.in_space(space_id));
+CREATE POLICY concept_insert_policy ON public."Concept" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS concept_update_policy ON public."Concept";
-CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE USING (public.in_space(space_id));
+CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE USING (public.in_space(space_id, 'editor'));
 
 -- since ResourceAccess is used for both Content and Concepts,
 -- we cannot count on the usual foreign key delete cascades.

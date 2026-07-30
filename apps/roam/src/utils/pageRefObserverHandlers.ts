@@ -1,5 +1,4 @@
 import { createHTMLObserver } from "roamjs-components/dom";
-import { render as previewRender } from "~/components/LivePreview";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { render as discourseOverlayRender } from "~/components/DiscourseContextOverlay";
 import { OnloadArgs } from "roamjs-components/types";
@@ -56,10 +55,7 @@ const getBatchSettingsSnapshot = (): SettingsSnapshot => {
 const getBatchDiscourseNodes = (): DiscourseNode[] => {
   if (batchDiscourseNodes) return batchDiscourseNodes;
 
-  batchDiscourseNodes = getDiscourseNodes(
-    undefined,
-    getBatchSettingsSnapshot(),
-  );
+  batchDiscourseNodes = getDiscourseNodes(getBatchSettingsSnapshot());
   queueBatchCacheClear();
   return batchDiscourseNodes;
 };
@@ -176,25 +172,6 @@ export const suggestiveOverlayPageRefHandler = (
         s.parentElement.appendChild(parent);
       }
     }
-  }
-};
-
-export const previewPageRefHandler = (s: HTMLSpanElement) => {
-  const tag =
-    s.getAttribute("data-tag") ||
-    s.parentElement?.getAttribute("data-link-title");
-  if (tag && !s.getAttribute("data-roamjs-discourse-augment-tag")) {
-    s.setAttribute("data-roamjs-discourse-augment-tag", "true");
-    const parent = document.createElement("span");
-    previewRender({
-      parent,
-      tag,
-      registerMouseEvents: ({ open, close }) => {
-        s.addEventListener("mouseenter", (e) => open(e.ctrlKey));
-        s.addEventListener("mouseleave", close);
-      },
-    });
-    s.appendChild(parent);
   }
 };
 

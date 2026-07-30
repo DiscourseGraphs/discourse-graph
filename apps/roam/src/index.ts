@@ -47,6 +47,7 @@ import {
 } from "./components/settings/utils/settingsEmitter";
 import { mountLeftSidebar } from "./components/LeftSidebarView";
 import { initDockedSearchSidebarPersistence } from "~/components/AdvancedNodeSearchDialog/mountAdvancedSearchInSidebar";
+import { getVersionWithDate } from "./utils/getVersion";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -74,9 +75,10 @@ export default runExtension(async (onloadArgs) => {
   }
 
   if (process.env.NODE_ENV === "development") {
+    const { version } = getVersionWithDate();
     renderToast({
       id: "discourse-graph-loaded",
-      content: "Successfully loaded",
+      content: `Successfully loaded v${version}`,
       intent: "success",
       timeout: 500,
     });

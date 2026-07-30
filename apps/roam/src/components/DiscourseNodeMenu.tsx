@@ -62,9 +62,7 @@ const NodeMenu = ({
   );
   const userDiscourseNodes = useMemo(
     () =>
-      getDiscourseNodes(undefined, settingsSnapshot).filter(
-        (n) => n.backedBy === "user",
-      ),
+      getDiscourseNodes(settingsSnapshot).filter((n) => n.backedBy === "user"),
     [settingsSnapshot],
   );
   const discourseNodes = userDiscourseNodes.filter(

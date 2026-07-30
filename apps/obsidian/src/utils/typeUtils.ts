@@ -1,6 +1,6 @@
 import type DiscourseGraphPlugin from "~/index";
 import { DiscourseNode, DiscourseRelationType, ImportStatus } from "~/types";
-import { ridToSpaceUriAndLocalId } from "./rid";
+import { ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
 
 export const getNodeTypeById = (
   plugin: DiscourseGraphPlugin,

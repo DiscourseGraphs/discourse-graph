@@ -65,14 +65,24 @@ Deno.serve(async (req) => {
   }
   // @ts-ignore Deno is not visible to the IDE
   const url = Deno.env.get("SUPABASE_URL");
-  // @ts-ignore Deno is not visible to the IDE
-  const service_key = Deno.env.get("SB_SECRET_KEY");
-  // @ts-ignore Deno is not visible to the IDE
-  const anon_key = Deno.env.get("SB_PUBLISHABLE_KEY");
+  let service_key: string | undefined;
+  let anon_key: string | undefined;
+  try {
+    // @ts-ignore Deno is not visible to the IDE
+    const secretKeysRaw = Deno.env.get("SUPABASE_SECRET_KEYS");
+    // @ts-ignore Deno is not visible to the IDE
+    const publishableKeysRaw = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+    if (secretKeysRaw)
+      service_key = JSON.parse(secretKeysRaw)["default"] as string;
+    if (publishableKeysRaw)
+      anon_key = JSON.parse(publishableKeysRaw)["default"] as string;
+  } catch {
+    // fall through to the guard below
+  }
 
   if (!url || !anon_key || !service_key) {
     return new Response(
-      "Missing SUPABASE_URL or SB_SECRET_KEY or SB_PUBLISHABLE_KEY",
+      "Missing SUPABASE_URL or SUPABASE_SECRET_KEYS or SUPABASE_PUBLISHABLE_KEYS",
       {
         status: 500,
         headers: myCorsHeaders,

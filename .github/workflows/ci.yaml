@@ -25,7 +25,7 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: "22"
           cache: "pnpm"
 
       - name: Install Dependencies
@@ -33,6 +33,12 @@ jobs:
 
       - name: Check TypeScript Types
         run: npx turbo check-types
+
+      - name: Run Tests
+        run: npx turbo run test --filter=roam --ui stream
+
+      - name: Run Package Unit Tests
+        run: npx turbo run test:unit --ui stream
 
   lint-changed-files:
     if: github.event_name == 'pull_request'
@@ -52,7 +58,7 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: "22"
           cache: "pnpm"
 
       - name: Install Dependencies
@@ -187,7 +193,7 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: "22"
           cache: "pnpm"
 
       - name: Install Dependencies

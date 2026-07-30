@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS public."Document" (
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     last_modified timestamp without time zone NOT NULL,
     author_id bigint NOT NULL,
-    contents oid
+    contents oid,
+    content_type character varying NOT NULL DEFAULT 'text/plain'
 );
 
 ALTER TABLE ONLY public."Document"
@@ -86,7 +87,10 @@ CREATE TABLE IF NOT EXISTS public."Content" (
     scale public."Scale" NOT NULL,
     space_id bigint,
     last_modified timestamp without time zone NOT NULL,
-    part_of_id bigint
+    part_of_id bigint,
+    content_type character varying NOT NULL DEFAULT 'text/plain',
+    -- Use null, never false for the non-original rows.
+    original BOOLEAN DEFAULT true
 );
 
 ALTER TABLE ONLY public."Content"
@@ -129,9 +133,13 @@ CREATE INDEX "Content_part_of" ON public."Content" USING btree (
 
 CREATE INDEX "Content_space" ON public."Content" USING btree (space_id);
 
-CREATE UNIQUE INDEX content_space_local_id_variant_idx ON public."Content" USING btree (
-    space_id, source_local_id, variant
+CREATE UNIQUE INDEX content_space_local_id_variant_content_type_idx ON public."Content" USING btree (
+    space_id, source_local_id, variant, content_type
 ) NULLS DISTINCT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS content_space_local_id_variant_content_type_originals_idx ON public."Content" USING btree (
+    space_id, source_local_id, variant, original
+);
 
 CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
 
@@ -178,7 +186,7 @@ ADD CONSTRAINT "ResourceAccess_account_uid_fkey" FOREIGN KEY (
 
 CREATE INDEX resource_access_content_local_id_idx ON public."ResourceAccess" (source_local_id, space_id);
 
--- note that I cannot have a foreign key for Content because the variant is part of the unique key.
+-- note that I cannot have a foreign key for Content because variant and content_type are part of the unique key.
 
 GRANT ALL ON TABLE public."ResourceAccess" TO authenticated;
 GRANT ALL ON TABLE public."ResourceAccess" TO service_role;
@@ -238,7 +246,8 @@ SELECT
     metadata,
     last_modified,
     author_id,
-    contents
+    contents,
+    content_type
 FROM
     public."Document"
     LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
@@ -261,7 +270,9 @@ SELECT
     scale,
     space_id,
     last_modified,
-    part_of_id
+    part_of_id,
+    content_type,
+    original
 FROM public."Content"
     LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (
@@ -301,6 +312,7 @@ CREATE TYPE public.document_local_input AS (
     last_modified timestamp without time zone,
     author_id bigint,
     contents oid,
+    content_type character varying,
     -- local values
     author_local_id character varying,
     space_url character varying,
@@ -326,6 +338,8 @@ CREATE TYPE public.content_local_input AS (
     space_id bigint,
     last_modified timestamp without time zone,
     part_of_id bigint,
+    content_type character varying,
+    original boolean,  -- this should be true or false, will be translated to true or null
     -- local values
     document_local_id character varying,
     creator_local_id character varying,
@@ -369,6 +383,9 @@ BEGIN
   -- now avoid null defaults
   IF document.metadata IS NULL then
     document.metadata := '{}';
+  END IF;
+  IF document.content_type IS NULL THEN
+    document.content_type = 'text/plain';
   END IF;
   RETURN document;
 END;
@@ -416,9 +433,13 @@ BEGIN
     SELECT id FROM public."Space"
     WHERE url = data.space_url INTO content.space_id;
   END IF;
+  content.original := CASE WHEN data.original IS false THEN NULL ELSE true END;
   -- now avoid null defaults
   IF content.metadata IS NULL then
     content.metadata := '{}';
+  END IF;
+  IF content.content_type IS NULL THEN
+    content.content_type := 'text/plain';
   END IF;
   RETURN content;
 END;
@@ -465,7 +486,8 @@ BEGIN
         metadata,
         last_modified,
         author_id,
-        contents
+        contents,
+        content_type
     ) VALUES (
         db_document.space_id,
         db_document.source_local_id,
@@ -474,14 +496,16 @@ BEGIN
         db_document.metadata,
         db_document.last_modified,
         db_document.author_id,
-        db_document.contents
+        db_document.contents,
+        db_document.content_type
     )
     ON CONFLICT (space_id, source_local_id) DO UPDATE SET
         author_id = COALESCE(db_document.author_id, EXCLUDED.author_id),
         created = COALESCE(db_document.created, EXCLUDED.created),
         last_modified = COALESCE(db_document.last_modified, EXCLUDED.last_modified),
         url = COALESCE(db_document.url, EXCLUDED.url),
-        metadata = COALESCE(db_document.metadata, EXCLUDED.metadata)
+        metadata = COALESCE(db_document.metadata, EXCLUDED.metadata),
+        content_type = COALESCE(db_document.content_type, EXCLUDED.content_type)
     RETURNING id INTO STRICT upsert_id;
     RETURN NEXT upsert_id;
   END LOOP;
@@ -533,6 +557,13 @@ BEGIN
   LOOP
     local_content := jsonb_populate_record(NULL::public.content_local_input, content_row);
     local_content.space_id := v_space_id;
+    IF content_type(local_content) IS NULL THEN
+        local_content.content_type := CASE
+          WHEN variant(local_content)!='full' THEN 'text/plain'
+          WHEN v_platform='Roam' THEN 'text/roam+markdown'
+          WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
+          ELSE 'text/plain' END;
+    END IF;
     db_content := public._local_content_to_db_content(local_content);
     IF account_local_id(author_inline(local_content)) IS NOT NULL THEN
       SELECT public.create_account_in_space(
@@ -561,6 +592,12 @@ BEGIN
       local_content.document_inline.author_id := db_content.author_id;
     END IF;
     IF source_local_id(document_inline(local_content)) IS NOT NULL THEN
+      IF content_type(document_inline(local_content)) IS NULL THEN
+        local_content.document_inline.content_type := CASE
+          WHEN v_platform='Roam' THEN 'text/roam+markdown'
+          WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
+          ELSE 'text/plain' END;
+      END IF;
       db_document := public._local_document_to_db_document(document_inline(local_content));
       IF (db_document.author_id IS NULL AND author_inline(local_content) IS NOT NULL) THEN
         db_document.author_id := upsert_account_in_space(v_space_id, author_inline(local_content));
@@ -573,7 +610,8 @@ BEGIN
         metadata,
         last_modified,
         author_id,
-        contents
+        contents,
+        content_type
       ) VALUES (
         COALESCE(db_document.space_id, v_space_id),
         db_document.source_local_id,
@@ -582,7 +620,8 @@ BEGIN
         COALESCE(db_document.metadata, '{}'::jsonb),
         db_document.last_modified,
         db_document.author_id,
-        db_document.contents
+        db_document.contents,
+        db_document.content_type
       )
       ON CONFLICT (space_id, source_local_id) DO UPDATE SET
           url = COALESCE(db_document.url, EXCLUDED.url),
@@ -590,7 +629,8 @@ BEGIN
           metadata = COALESCE(db_document.metadata, EXCLUDED.metadata),
           last_modified = COALESCE(db_document.last_modified, EXCLUDED.last_modified),
           author_id = COALESCE(db_document.author_id, EXCLUDED.author_id),
-          contents = COALESCE(db_document.contents, EXCLUDED.contents)
+          contents = COALESCE(db_document.contents, EXCLUDED.contents),
+          content_type = COALESCE(db_document.content_type, EXCLUDED.content_type)
       RETURNING id INTO STRICT document_id;
       db_content.document_id := document_id;
     END IF;
@@ -606,7 +646,9 @@ BEGIN
         scale,
         space_id,
         last_modified,
-        part_of_id
+        part_of_id,
+        content_type,
+        original
     ) VALUES (
         db_content.document_id,
         db_content.source_local_id,
@@ -619,9 +661,11 @@ BEGIN
         db_content.scale,
         db_content.space_id,
         db_content.last_modified,
-        db_content.part_of_id
+        db_content.part_of_id,
+        db_content.content_type,
+        db_content.original
     )
-    ON CONFLICT (space_id, source_local_id, variant) DO UPDATE SET
+    ON CONFLICT (space_id, source_local_id, variant, content_type) DO UPDATE SET
         document_id = COALESCE(db_content.document_id, EXCLUDED.document_id),
         author_id = COALESCE(db_content.author_id, EXCLUDED.author_id),
         creator_id = COALESCE(db_content.creator_id, EXCLUDED.creator_id),
@@ -630,7 +674,8 @@ BEGIN
         metadata = COALESCE(db_content.metadata, EXCLUDED.metadata),
         scale = COALESCE(db_content.scale, EXCLUDED.scale),
         last_modified = COALESCE(db_content.last_modified, EXCLUDED.last_modified),
-        part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id)
+        part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id),
+        original = db_content.original
     RETURNING id INTO STRICT upsert_id;
     IF model(embedding_inline(local_content)) IS NOT NULL THEN
         PERFORM public.upsert_content_embedding(upsert_id, model(embedding_inline(local_content)),  vector(embedding_inline(local_content)));
@@ -652,12 +697,12 @@ $$;
 
 COMMENT ON FUNCTION public.content_in_space IS 'security utility: does current user have access to this content''s space?';
 
-CREATE OR REPLACE FUNCTION public.document_in_space(document_id BIGINT) RETURNS boolean
+CREATE OR REPLACE FUNCTION public.document_in_space(document_id BIGINT, access_level public."SpaceAccessPermissions" = 'reader') RETURNS boolean
 STABLE
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT public.in_space(space_id) FROM public."Document" WHERE id=document_id
+    SELECT public.in_space(space_id, access_level) FROM public."Document" WHERE id=document_id
 $$;
 
 COMMENT ON FUNCTION public.document_in_space IS 'security utility: does current user have access to this document''s space?';
@@ -668,11 +713,11 @@ DROP POLICY IF EXISTS document_policy ON public."Document";
 DROP POLICY IF EXISTS document_select_policy ON public."Document";
 CREATE POLICY document_select_policy ON public."Document" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 DROP POLICY IF EXISTS document_delete_policy ON public."Document";
-CREATE POLICY document_delete_policy ON public."Document" FOR DELETE USING (public.in_space(space_id));
+CREATE POLICY document_delete_policy ON public."Document" FOR DELETE USING (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS document_insert_policy ON public."Document";
-CREATE POLICY document_insert_policy ON public."Document" FOR INSERT WITH CHECK (public.in_space(space_id));
+CREATE POLICY document_insert_policy ON public."Document" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS document_update_policy ON public."Document";
-CREATE POLICY document_update_policy ON public."Document" FOR UPDATE USING (public.in_space(space_id));
+CREATE POLICY document_update_policy ON public."Document" FOR UPDATE USING (public.in_space(space_id, 'editor'));
 
 ALTER TABLE public."Content" ENABLE ROW LEVEL SECURITY;
 
@@ -680,11 +725,11 @@ DROP POLICY IF EXISTS content_policy ON public."Content";
 DROP POLICY IF EXISTS content_select_policy ON public."Content";
 CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 DROP POLICY IF EXISTS content_delete_policy ON public."Content";
-CREATE POLICY content_delete_policy ON public."Content" FOR DELETE USING (public.in_space(space_id));
+CREATE POLICY content_delete_policy ON public."Content" FOR DELETE USING (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS content_insert_policy ON public."Content";
-CREATE POLICY content_insert_policy ON public."Content" FOR INSERT WITH CHECK (public.in_space(space_id));
+CREATE POLICY content_insert_policy ON public."Content" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS content_update_policy ON public."Content";
-CREATE POLICY content_update_policy ON public."Content" FOR UPDATE USING (public.in_space(space_id));
+CREATE POLICY content_update_policy ON public."Content" FOR UPDATE USING (public.in_space(space_id, 'editor'));
 
 ALTER TABLE public."ResourceAccess" ENABLE ROW LEVEL SECURITY;
 

@@ -20,7 +20,7 @@ For more information about Discourse Graphs, check out our website at [https://d
 ## What's Next?
 
 - Learn about [what makes a discourse graph](/docs/obsidian/fundamentals/what-is-a-discourse-graph)
-- Explore [use cases](/docs/obsidian/use-cases/literature-reviewing) for discourse graphs
+- Explore [use cases](/docs/obsidian/use-cases/synthesize-insights-from-literature) for discourse graphs
 - Join our community to share your experience and get help
 
 ## Guides: Jump right in

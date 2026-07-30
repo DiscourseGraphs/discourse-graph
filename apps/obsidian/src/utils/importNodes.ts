@@ -2,6 +2,7 @@ import type { Json } from "@repo/database/dbTypes";
 import matter from "gray-matter";
 import { App, Notice, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import { listGroupSharedNodes } from "@repo/database/lib/sharedNodes";
 import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
@@ -10,7 +11,7 @@ import {
   getImportedNodesInfo,
   getLocalNodeKeyToEndpointId,
 } from "~/utils/relationsStore";
-import { spaceUriAndLocalIdToRid } from "./rid";
+import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Tables } from "@repo/database/dbTypes";
 import { getSpaceNameIdFromRid } from "./spaceFromRid";
@@ -20,54 +21,6 @@ import {
 } from "./importRelations";
 import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
-
-export type MyGroup = {
-  id: string;
-  name: string;
-};
-
-export const getAvailableGroupIds = async (
-  client: DGSupabaseClient,
-): Promise<string[]> => {
-  const { data, error } = await client
-    .from("group_membership")
-    .select("group_id")
-    .eq("member_id", (await client.auth.getUser()).data.user?.id || "");
-
-  if (error) {
-    console.error("Error fetching groups:", error);
-    throw new Error(`Failed to fetch groups: ${error.message}`);
-  }
-
-  return (data || []).map((g) => g.group_id);
-};
-
-export const getMyGroups = async (
-  client: DGSupabaseClient,
-): Promise<MyGroup[]> => {
-  const userId = (await client.auth.getUser()).data.user?.id ?? "";
-  const { data, error } = await client
-    .from("group_membership")
-    .select("group_id, my_groups!group_id(name)")
-    .eq("member_id", userId);
-
-  if (error) {
-    console.error("Error fetching groups:", error);
-    throw new Error(`Failed to fetch groups: ${error.message}`);
-  }
-
-  return (data ?? [])
-    .filter(
-      (row): row is { group_id: string; my_groups: { name: string | null } } =>
-        typeof row.group_id === "string" &&
-        row.my_groups !== null &&
-        typeof row.my_groups === "object",
-    )
-    .map((row) => ({
-      id: row.group_id,
-      name: row.my_groups.name ?? row.group_id,
-    }));
-};
 
 type PublishedNode = {
   source_local_id: string;
@@ -81,91 +34,40 @@ type PublishedNode = {
 
 export const getPublishedNodesForGroups = async ({
   client,
-  groupIds,
   currentSpaceId,
 }: {
   client: DGSupabaseClient;
-  groupIds: string[];
   currentSpaceId: number;
 }): Promise<Array<PublishedNode>> => {
-  if (groupIds.length === 0) {
-    return [];
-  }
-
-  // Query my_contents (RLS applied); exclude current space. Get both variants so we can use
-  // the latest last_modified per node and prefer "direct" for text (title).
-  const { data, error } = await client
-    .from("my_contents")
-    .select(
-      "source_local_id, space_id, text, created, last_modified, variant, metadata, author_id",
-    )
-    .neq("space_id", currentSpaceId);
-
-  if (error) {
+  const sharedNodes = await listGroupSharedNodes({
+    client,
+    currentSpaceId,
+  }).catch((error: { message?: string }) => {
     console.error("Error fetching published nodes:", error);
     throw new Error(`Failed to fetch published nodes: ${error.message}`);
-  }
+  });
 
-  if (!data || data.length === 0) {
-    return [];
-  }
-
-  type Row = {
-    source_local_id: string | null;
-    space_id: number | null;
-    text: string | null;
-    created: string | null;
-    last_modified: string | null;
-    variant: string | null;
-    author_id: number | null;
-    metadata: Json;
-  };
-
-  const key = (r: Row) => `${r.space_id ?? ""}\t${r.source_local_id ?? ""}`;
-  const groups = new Map<string, Row[]>();
-  for (const row of data as Row[]) {
-    if (row.source_local_id == null || row.space_id == null) continue;
-    const k = key(row);
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k)!.push(row);
-  }
-
-  const nodes: Array<PublishedNode> = [];
-
-  for (const rows of groups.values()) {
-    const withDate = rows.filter(
-      (r) => r.last_modified != null && r.text != null,
-    );
-    if (withDate.length === 0) continue;
-    const latest = withDate.reduce((a, b) =>
-      (a.last_modified ?? "") >= (b.last_modified ?? "") ? a : b,
-    );
-    const direct = rows.find((r) => r.variant === "direct");
-    const text = direct?.text ?? latest.text ?? "";
-    const createdAt = latest.created
-      ? new Date(latest.created + "Z").valueOf()
-      : 0;
-    const modifiedAt = latest.last_modified
-      ? new Date(latest.last_modified + "Z").valueOf()
-      : 0;
+  return sharedNodes.map((sharedNode) => {
+    const metadata = sharedNode.directMetadata;
     const filePath: string | undefined =
-      direct &&
-      typeof direct.metadata === "object" &&
-      typeof (direct.metadata as Record<string, any>).filePath === "string"
-        ? (direct.metadata as Record<string, any>).filePath
+      metadata !== null &&
+      typeof metadata === "object" &&
+      !Array.isArray(metadata) &&
+      typeof metadata.filePath === "string"
+        ? metadata.filePath
         : undefined;
-    nodes.push({
-      source_local_id: latest.source_local_id!,
-      space_id: latest.space_id!,
-      text,
-      createdAt,
-      modifiedAt,
+    return {
+      source_local_id: sharedNode.sourceLocalId,
+      space_id: sharedNode.spaceId,
+      text: sharedNode.title,
+      createdAt: sharedNode.created
+        ? new Date(sharedNode.created).valueOf()
+        : 0,
+      modifiedAt: new Date(sharedNode.lastModified).valueOf(),
       filePath,
-      authorId: latest.author_id ?? undefined,
-    });
-  }
-
-  return nodes;
+      authorId: sharedNode.authorId,
+    };
+  });
 };
 
 export const getLocalNodeInstanceIds = (

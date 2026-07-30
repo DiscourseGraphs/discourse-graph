@@ -257,12 +257,14 @@ export type Database = {
       Content: {
         Row: {
           author_id: number | null
+          content_type: string
           created: string
           creator_id: number | null
           document_id: number
           id: number
           last_modified: string
           metadata: Json
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"]
           source_local_id: string | null
@@ -272,12 +274,14 @@ export type Database = {
         }
         Insert: {
           author_id?: number | null
+          content_type?: string
           created: string
           creator_id?: number | null
           document_id: number
           id?: number
           last_modified: string
           metadata?: Json
+          original?: boolean | null
           part_of_id?: number | null
           scale: Database["public"]["Enums"]["Scale"]
           source_local_id?: string | null
@@ -287,12 +291,14 @@ export type Database = {
         }
         Update: {
           author_id?: number | null
+          content_type?: string
           created?: string
           creator_id?: number | null
           document_id?: number
           id?: number
           last_modified?: string
           metadata?: Json
+          original?: boolean | null
           part_of_id?: number | null
           scale?: Database["public"]["Enums"]["Scale"]
           source_local_id?: string | null
@@ -498,6 +504,7 @@ export type Database = {
       Document: {
         Row: {
           author_id: number
+          content_type: string
           contents: unknown
           created: string
           id: number
@@ -509,6 +516,7 @@ export type Database = {
         }
         Insert: {
           author_id: number
+          content_type?: string
           contents?: unknown
           created: string
           id?: number
@@ -520,6 +528,7 @@ export type Database = {
         }
         Update: {
           author_id?: number
+          content_type?: string
           contents?: unknown
           created?: string
           id?: number
@@ -585,6 +594,7 @@ export type Database = {
           filehash: string
           filepath: string
           last_modified: string
+          original: boolean | null
           source_local_id: string
           space_id: number
           variant: Database["public"]["Enums"]["ContentVariant"] | null
@@ -594,6 +604,7 @@ export type Database = {
           filehash: string
           filepath: string
           last_modified: string
+          original?: boolean | null
           source_local_id: string
           space_id: number
           variant?: Database["public"]["Enums"]["ContentVariant"] | null
@@ -603,6 +614,7 @@ export type Database = {
           filehash?: string
           filepath?: string
           last_modified?: string
+          original?: boolean | null
           source_local_id?: string
           space_id?: number
           variant?: Database["public"]["Enums"]["ContentVariant"] | null
@@ -610,24 +622,39 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant"]
+            columns: ["space_id", "source_local_id", "variant", "original"]
             isOneToOne: false
             referencedRelation: "Content"
-            referencedColumns: ["space_id", "source_local_id", "variant"]
+            referencedColumns: [
+              "space_id",
+              "source_local_id",
+              "variant",
+              "original",
+            ]
           },
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant"]
+            columns: ["space_id", "source_local_id", "variant", "original"]
             isOneToOne: false
             referencedRelation: "my_contents"
-            referencedColumns: ["space_id", "source_local_id", "variant"]
+            referencedColumns: [
+              "space_id",
+              "source_local_id",
+              "variant",
+              "original",
+            ]
           },
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant"]
+            columns: ["space_id", "source_local_id", "variant", "original"]
             isOneToOne: false
             referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
-            referencedColumns: ["space_id", "source_local_id", "variant"]
+            referencedColumns: [
+              "space_id",
+              "source_local_id",
+              "variant",
+              "original",
+            ]
           },
         ]
       }
@@ -1033,12 +1060,14 @@ export type Database = {
       my_contents: {
         Row: {
           author_id: number | null
+          content_type: string | null
           created: string | null
           creator_id: number | null
           document_id: number | null
           id: number | null
           last_modified: string | null
           metadata: Json | null
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"] | null
           source_local_id: string | null
@@ -1143,6 +1172,7 @@ export type Database = {
       my_contents_with_embedding_openai_text_embedding_3_small_1536: {
         Row: {
           author_id: number | null
+          content_type: string | null
           created: string | null
           creator_id: number | null
           document_id: number | null
@@ -1150,6 +1180,7 @@ export type Database = {
           last_modified: string | null
           metadata: Json | null
           model: Database["public"]["Enums"]["EmbeddingName"] | null
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"] | null
           source_local_id: string | null
@@ -1255,6 +1286,7 @@ export type Database = {
       my_documents: {
         Row: {
           author_id: number | null
+          content_type: string | null
           contents: unknown
           created: string | null
           id: number | null
@@ -1421,12 +1453,14 @@ export type Database = {
         }
         Returns: {
           author_id: number | null
+          content_type: string
           created: string
           creator_id: number | null
           document_id: number
           id: number
           last_modified: string
           metadata: Json
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"]
           source_local_id: string | null
@@ -1447,6 +1481,7 @@ export type Database = {
         }
         Returns: {
           author_id: number
+          content_type: string
           contents: unknown
           created: string
           id: number
@@ -1512,6 +1547,7 @@ export type Database = {
         }
       }
       can_access_account: { Args: { account_uid: string }; Returns: boolean }
+      can_view_concept: { Args: { concept_id: number }; Returns: boolean }
       can_view_content: { Args: { content_id: number }; Returns: boolean }
       can_view_specific_resource: {
         Args: { source_local_id_: string; space_id_: number }
@@ -1591,12 +1627,14 @@ export type Database = {
         Args: { concept: Database["public"]["Views"]["my_concepts"]["Row"] }
         Returns: {
           author_id: number | null
+          content_type: string | null
           created: string | null
           creator_id: number | null
           document_id: number | null
           id: number | null
           last_modified: string | null
           metadata: Json | null
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"] | null
           source_local_id: string | null
@@ -1630,11 +1668,18 @@ export type Database = {
         }
         Returns: string
       }
-      document_in_space: { Args: { document_id: number }; Returns: boolean }
+      document_in_space: {
+        Args: {
+          access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"]
+          document_id: number
+        }
+        Returns: boolean
+      }
       document_of_content: {
         Args: { content: Database["public"]["Views"]["my_contents"]["Row"] }
         Returns: {
           author_id: number | null
+          content_type: string | null
           contents: unknown
           created: string | null
           id: number | null
@@ -1722,7 +1767,6 @@ export type Database = {
       match_content_embeddings: {
         Args: {
           current_document_id?: number
-          match_count: number
           match_threshold: number
           query_embedding: string
         }
@@ -1813,7 +1857,10 @@ export type Database = {
             }
           }
       unowned_account_in_shared_space: {
-        Args: { p_account_id: number }
+        Args: {
+          access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"]
+          p_account_id: number
+        }
         Returns: boolean
       }
       upsert_account_in_space: {
@@ -1985,6 +2032,8 @@ export type Database = {
           | Database["public"]["CompositeTypes"]["inline_embedding_input"]
           | null
         variant: Database["public"]["Enums"]["ContentVariant"] | null
+        content_type: string | null
+        original: boolean | null
       }
       document_local_input: {
         space_id: number | null
@@ -2000,6 +2049,7 @@ export type Database = {
         author_inline:
           | Database["public"]["CompositeTypes"]["account_local_input"]
           | null
+        content_type: string | null
       }
       inline_embedding_input: {
         model: string | null

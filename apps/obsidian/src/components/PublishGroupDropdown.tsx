@@ -11,7 +11,7 @@ import {
   publishToSelectedGroupWithNotice,
   withPublishedState,
 } from "~/utils/publishGroupSelection";
-import type { MyGroup } from "~/utils/importNodes";
+import type { MyGroup } from "@repo/database/lib/groups";
 
 type PublishGroupDropdownProps = {
   plugin: DiscourseGraphPlugin;

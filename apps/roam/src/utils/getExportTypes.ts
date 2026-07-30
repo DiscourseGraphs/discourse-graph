@@ -75,7 +75,7 @@ const getExportTypes = ({
 }: getExportTypesProps): ExportTypes => {
   const settings = settingsSnapshot ?? bulkReadSettings();
   const allRelations = getDiscourseRelations(settings);
-  const allNodes = getDiscourseNodes(allRelations, settings);
+  const allNodes = getDiscourseNodes(settings);
   const nodeLabelByType = Object.fromEntries(
     allNodes.map((a) => [a.type, a.text]),
   );

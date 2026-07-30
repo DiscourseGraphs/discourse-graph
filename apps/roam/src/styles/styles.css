@@ -36,6 +36,12 @@
   background: #ffff00;
 }
 
+body.roamjs-query-column-resizing,
+body.roamjs-query-column-resizing * {
+  cursor: ew-resize !important;
+  user-select: none;
+}
+
 .roamjs-query-embed .rm-block-separator {
   display: none;
 }

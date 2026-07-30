@@ -35,7 +35,7 @@ export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
     id: generateUid("node"),
     name: "Source",
     format: "SRC - {content}",
-    color: "#3B82F6",
+    color: "#9E9E9E",
     tag: "src-candidate",
     created: now,
     modified: now,

@@ -5,7 +5,10 @@ import {
   TLAnyShapeUtilConstructor,
 } from "tldraw";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-import { createNodeShapeUtils } from "./DiscourseNodeUtil";
+import {
+  createLegacyDiscourseNodeShapeUtils,
+  DiscourseNodeUtil,
+} from "./DiscourseNodeUtil";
 import {
   createAllReferencedNodeUtils,
   createAllRelationShapeUtils,
@@ -59,13 +62,18 @@ const createShapeUtils = ({
   allNodes,
   allRelationIds,
   allAddReferencedNodeByAction,
+  includeLegacyNodeTypes = false,
 }: {
   allNodes: DiscourseNode[];
   allRelationIds: string[];
   allAddReferencedNodeByAction: AddReferencedNodeType;
+  includeLegacyNodeTypes?: boolean;
 }): TLAnyShapeUtilConstructor[] => {
   return [
-    ...createNodeShapeUtils(allNodes),
+    DiscourseNodeUtil,
+    ...(includeLegacyNodeTypes
+      ? createLegacyDiscourseNodeShapeUtils(allNodes)
+      : []),
     ...createAllRelationShapeUtils(allRelationIds),
     ...createAllReferencedNodeUtils(allAddReferencedNodeByAction),
   ];
@@ -130,6 +138,8 @@ export const useCanvasStoreAdapterArgs = ({
         allNodes,
         allRelationIds,
         allAddReferencedNodeByAction,
+        // Cloudflare rooms may still stream pre-migration node-id shape records.
+        includeLegacyNodeTypes: true,
       }),
     }),
     [pageUid, allNodes, allRelationIds, allAddReferencedNodeByAction],
