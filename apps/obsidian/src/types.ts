@@ -127,6 +127,8 @@ export type DiscourseSchemaFile = {
   exportedAt: string;
   pluginVersion: string;
   vaultName: string;
+  /** Obsidian appId of the exporting vault; lets importers rebuild the source RID. */
+  vaultId: string;
   nodeTypes: DiscourseNode[];
   relationTypes: DiscourseRelationType[];
   discourseRelations: DiscourseRelation[];

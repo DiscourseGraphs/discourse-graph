@@ -69,6 +69,7 @@ export const dgSchemaFileSchema: z.ZodType<DiscourseSchemaFile> = z
     exportedAt: z.string(),
     pluginVersion: z.string(),
     vaultName: z.string(),
+    vaultId: z.string(),
     nodeTypes: z.array(discourseNodeSchema),
     relationTypes: z.array(discourseRelationTypeSchema),
     discourseRelations: z.array(discourseRelationSchema),
