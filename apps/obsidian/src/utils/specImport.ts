@@ -48,7 +48,6 @@ export type SpecImportApplyResult = {
     discourseRelations: number;
     templates: number;
   };
-  warnings: string[];
 };
 
 const normalizeLabel = (value: string): string => {
@@ -256,12 +255,13 @@ export const applySchemaImportSelection = async ({
   plugin,
   loadedSchemaFile,
   selection,
+  onWarning = () => {},
 }: {
   plugin: DiscourseGraphPlugin;
   loadedSchemaFile: LoadedSchemaFile;
   selection: SchemaSelection;
+  onWarning?: (message: string) => void;
 }): Promise<SpecImportApplyResult> => {
-  const warnings: string[] = [];
   const { schemaFile, matchPlan } = loadedSchemaFile;
   const selectedTemplateNames = new Set(selection.templateNames);
   const selectedNodeTypeIds = new Set(selection.nodeTypeIds);
@@ -279,7 +279,7 @@ export const applySchemaImportSelection = async ({
 
     const template = templatesByName.get(templateName);
     if (!template) {
-      warnings.push(
+      onWarning(
         `Template "${templateName}" was selected but not found in schema file.`,
       );
       continue;
@@ -297,7 +297,7 @@ export const applySchemaImportSelection = async ({
     }
 
     if (result.reason !== "template already exists") {
-      warnings.push(`Template "${template.name}" skipped: ${result.reason}.`);
+      onWarning(`Template "${template.name}" skipped: ${result.reason}.`);
     }
   }
 
@@ -319,7 +319,7 @@ export const applySchemaImportSelection = async ({
 
     const importedNodeType = schemaNodeTypesById.get(nodeTypeId);
     if (!importedNodeType) {
-      warnings.push(
+      onWarning(
         `Node type "${nodeTypeId}" was selected but missing from schema file.`,
       );
       continue;
@@ -347,7 +347,7 @@ export const applySchemaImportSelection = async ({
 
     const importedRelationType = schemaRelationTypesById.get(relationTypeId);
     if (!importedRelationType) {
-      warnings.push(
+      onWarning(
         `Relation type "${relationTypeId}" was selected but missing from schema file.`,
       );
       continue;
@@ -409,6 +409,5 @@ export const applySchemaImportSelection = async ({
       discourseRelations: discourseRelationsCreated,
       templates: templatesCreated,
     },
-    warnings,
   };
 };
