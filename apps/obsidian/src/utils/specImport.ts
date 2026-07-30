@@ -19,6 +19,13 @@ import {
   findLocalRelationTypeMatch,
 } from "~/utils/schemaMatching";
 
+/**
+ * Maps every id in the schema file to the local id it resolves to. The
+ * `existing*` sets are schema-file ids that will NOT be created — either
+ * because they already exist in the vault, or because they collapsed onto an
+ * earlier item in the same file. Callers should resolve references through the
+ * id mappings rather than assuming a schema id survives the import.
+ */
 export type SchemaImportMatchPlan = {
   nodeTypeIdMapping: Map<string, string>;
   relationTypeIdMapping: Map<string, string>;
@@ -71,10 +78,14 @@ const buildSchemaImportMatchPlan = ({
 }): SchemaImportMatchPlan => {
   const nodeTypeIdMapping = new Map<string, string>();
   const existingNodeTypeIds = new Set<string>();
+  // Grows as types are planned for creation, so a schema file holding both
+  // "Event" and "event" collapses the second onto the first instead of creating
+  // two types that matching would treat as one.
+  const knownNodeTypes = [...localNodeTypes];
 
   for (const nodeType of schemaFile.nodeTypes) {
     const localMatch = findLocalNodeTypeMatch({
-      localNodeTypes,
+      localNodeTypes: knownNodeTypes,
       id: nodeType.id,
       name: nodeType.name,
     });
@@ -85,14 +96,16 @@ const buildSchemaImportMatchPlan = ({
     }
 
     nodeTypeIdMapping.set(nodeType.id, nodeType.id);
+    knownNodeTypes.push(nodeType);
   }
 
   const relationTypeIdMapping = new Map<string, string>();
   const existingRelationTypeIds = new Set<string>();
+  const knownRelationTypes = [...localRelationTypes];
 
   for (const relationType of schemaFile.relationTypes) {
     const localMatch = findLocalRelationTypeMatch({
-      localRelationTypes,
+      localRelationTypes: knownRelationTypes,
       id: relationType.id,
       label: relationType.label,
     });
@@ -103,6 +116,7 @@ const buildSchemaImportMatchPlan = ({
     }
 
     relationTypeIdMapping.set(relationType.id, relationType.id);
+    knownRelationTypes.push(relationType);
   }
 
   const existingDiscourseRelationIds = new Set<string>();
