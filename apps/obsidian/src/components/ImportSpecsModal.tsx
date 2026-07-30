@@ -1,5 +1,5 @@
 import { Modal, Notice } from "obsidian";
-import { StrictMode, useMemo, useState } from "react";
+import { StrictMode, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ZodError } from "zod";
 import type DiscourseGraphPlugin from "~/index";
@@ -11,10 +11,7 @@ import {
   type SpecImportPreview,
 } from "~/utils/specImport";
 import { NativeFileDialogCancelledError } from "~/utils/nativeJsonFileDialogs";
-import {
-  useSchemaSelection,
-  type SchemaSelectionSource,
-} from "~/components/useSchemaSelection";
+import { useSchemaSelection } from "~/components/useSchemaSelection";
 import { SchemaSelectionModalBody } from "~/components/SchemaSelectionModalBody";
 import { ImportSchemaPreviewSummary } from "~/components/ImportSchemaPreviewSummary";
 
@@ -44,15 +41,13 @@ const ImportPreviewSelection = ({
   onResetPreview: () => void;
   onClose: () => void;
 }) => {
-  const source = useMemo<SchemaSelectionSource>(() => {
-    const schemaFile = loadedSchemaFile.schemaFile;
-    return {
-      nodeTypes: schemaFile.nodeTypes,
-      relationTypes: schemaFile.relationTypes,
-      relationTriples: schemaFile.discourseRelations,
-      templateNames: schemaFile.templates.map((template) => template.name),
-    };
-  }, [loadedSchemaFile]);
+  const schemaFile = loadedSchemaFile.schemaFile;
+  const source = {
+    nodeTypes: schemaFile.nodeTypes,
+    relationTypes: schemaFile.relationTypes,
+    relationTriples: schemaFile.discourseRelations,
+    templateNames: schemaFile.templates.map((template) => template.name),
+  };
 
   const selection = useSchemaSelection({
     source,
