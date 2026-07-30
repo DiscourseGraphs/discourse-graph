@@ -1,4 +1,4 @@
-import { App, Modal, Notice } from "obsidian";
+import { Modal, Notice } from "obsidian";
 import { StrictMode, useMemo, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ZodError } from "zod";
@@ -24,7 +24,7 @@ type ImportSpecsModalProps = {
 };
 
 export const openImportSpecsModal = (plugin: DiscourseGraphPlugin): void => {
-  new ImportSpecsModal(plugin.app, plugin).open();
+  new ImportSpecsModal(plugin).open();
 };
 
 const ImportPreviewSelection = ({
@@ -64,7 +64,7 @@ const ImportPreviewSelection = ({
     const hasAnySelection =
       selected.nodeTypeIds.length > 0 ||
       selected.relationTypeIds.length > 0 ||
-      selected.relationIds.length > 0 ||
+      selected.discourseRelationIds.length > 0 ||
       selected.templateNames.length > 0;
     if (!hasAnySelection) {
       new Notice("Select at least one item to import.");
@@ -76,12 +76,7 @@ const ImportPreviewSelection = ({
       const result = await applySchemaImportSelection({
         plugin,
         loadedSchemaFile,
-        selection: {
-          nodeTypeIds: selected.nodeTypeIds,
-          relationTypeIds: selected.relationTypeIds,
-          discourseRelationIds: selected.relationIds,
-          templateNames: selected.templateNames,
-        },
+        selection: selected,
       });
 
       const { created } = result;
@@ -92,12 +87,9 @@ const ImportPreviewSelection = ({
 
       if (result.warnings.length > 0) {
         new Notice(
-          `Import completed with ${result.warnings.length} warning(s).`,
+          `Import warnings:\n${result.warnings.join("\n")}`,
           6000,
         );
-        for (const warning of result.warnings) {
-          new Notice(warning, 6000);
-        }
       }
       onClose();
     } catch (error) {
@@ -207,8 +199,8 @@ export class ImportSpecsModal extends Modal {
   private plugin: DiscourseGraphPlugin;
   private root: Root | null = null;
 
-  constructor(app: App, plugin: DiscourseGraphPlugin) {
-    super(app);
+  constructor(plugin: DiscourseGraphPlugin) {
+    super(plugin.app);
     this.plugin = plugin;
   }
 
