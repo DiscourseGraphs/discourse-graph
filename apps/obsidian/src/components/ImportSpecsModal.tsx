@@ -109,26 +109,27 @@ const ImportPreviewSelection = ({
   };
 
   return (
-    <SchemaSelectionModalBody
-      title="Import schema preview"
-      description={`Source file: ${loadedSchemaFile.sourcePath}`}
-      source={source}
-      selection={selection}
-      emptyTemplateText="No templates found in this schema file."
-      onDependencyViolation={(message) => new Notice(message)}
-      beforePanel={
-        <ImportSchemaPreviewSummary
-          loadedSchemaFile={loadedSchemaFile}
-          previewStats={previewStats}
-        />
-      }
-      footerSecondaryLabel="Choose another file"
-      onFooterSecondaryClick={onResetPreview}
-      footerPrimaryLabel={isApplyingImport ? "Importing..." : "Import selected"}
-      onFooterPrimaryClick={() => void handleApplyImport()}
-      isFooterSecondaryDisabled={isApplyingImport}
-      isFooterPrimaryDisabled={isApplyingImport}
-    />
+    <>
+      <ImportSchemaPreviewSummary
+        loadedSchemaFile={loadedSchemaFile}
+        previewStats={previewStats}
+      />
+      <SchemaSelectionModalBody
+        title="Import schema preview"
+        description={`Source file: ${loadedSchemaFile.sourcePath}`}
+        source={source}
+        selection={selection}
+        onDependencyViolation={(message) => new Notice(message)}
+        footerSecondaryLabel="Choose another file"
+        onFooterSecondaryClick={onResetPreview}
+        footerPrimaryLabel={
+          isApplyingImport ? "Importing..." : "Import selected"
+        }
+        onFooterPrimaryClick={() => void handleApplyImport()}
+        isFooterSecondaryDisabled={isApplyingImport}
+        isFooterPrimaryDisabled={isApplyingImport}
+      />
+    </>
   );
 };
 
