@@ -12,37 +12,33 @@ import {
 import { getTemplatePluginInfo } from "~/utils/templates";
 import { saveJsonToUserLocation } from "~/utils/nativeJsonFileDialogs";
 
-export type SpecExportResult = {
-  filePath: string;
-  warnings: string[];
-};
-
 const getTemplateContents = async ({
   plugin,
   templateNames,
+  onWarning,
 }: {
   plugin: DiscourseGraphPlugin;
   templateNames: string[];
-}): Promise<{ templates: DiscourseSchemaTemplate[]; warnings: string[] }> => {
-  const warnings: string[] = [];
-  const templates: DiscourseSchemaTemplate[] = [];
+  onWarning: (message: string) => void;
+}): Promise<DiscourseSchemaTemplate[]> => {
   const { isEnabled, folderPath } = getTemplatePluginInfo(plugin.app);
 
   if (!isEnabled || !folderPath) {
     if (templateNames.length > 0) {
-      warnings.push(
+      onWarning(
         "Templates plugin is not enabled or folder is not configured; template content was skipped.",
       );
     }
-    return { templates, warnings };
+    return [];
   }
 
+  const templates: DiscourseSchemaTemplate[] = [];
   for (const templateName of templateNames) {
     const templatePath = `${folderPath}/${templateName}.md`;
     const templateFile = plugin.app.vault.getAbstractFileByPath(templatePath);
 
     if (!(templateFile instanceof TFile)) {
-      warnings.push(`Template file not found: ${templateName}.md`);
+      onWarning(`Template file not found: ${templateName}.md`);
       continue;
     }
 
@@ -50,33 +46,26 @@ const getTemplateContents = async ({
     templates.push({ name: templateName, content });
   }
 
-  return { templates, warnings };
+  return templates;
 };
 
-const buildSchemaExportPayload = async ({
+export const exportSchemaSelection = async ({
   plugin,
   selection,
+  onWarning = () => {},
 }: {
   plugin: DiscourseGraphPlugin;
   selection: SchemaSelection;
-}): Promise<{ payload: DiscourseSchemaFile; warnings: string[] }> => {
+  onWarning?: (message: string) => void;
+}): Promise<string> => {
   const selectedNodeTypeIds = new Set(selection.nodeTypeIds);
   const selectedRelationTypeIds = new Set(selection.relationTypeIds);
   const selectedDiscourseRelationIds = new Set(selection.discourseRelationIds);
 
-  const selectedNodeTypes = plugin.settings.nodeTypes.filter((nt) =>
-    selectedNodeTypeIds.has(nt.id),
-  );
-  const selectedRelationTypes = plugin.settings.relationTypes.filter((rt) =>
-    selectedRelationTypeIds.has(rt.id),
-  );
-  const selectedDiscourseRelations = plugin.settings.discourseRelations.filter(
-    (dr) => selectedDiscourseRelationIds.has(dr.id),
-  );
-
-  const { templates, warnings } = await getTemplateContents({
+  const templates = await getTemplateContents({
     plugin,
     templateNames: selection.templateNames,
+    onWarning,
   });
 
   const payload: DiscourseSchemaFile = {
@@ -84,33 +73,23 @@ const buildSchemaExportPayload = async ({
     exportedAt: new Date().toISOString(),
     pluginVersion: plugin.manifest.version,
     vaultName: plugin.app.vault.getName(),
-    nodeTypes: selectedNodeTypes,
-    relationTypes: selectedRelationTypes,
-    discourseRelations: selectedDiscourseRelations,
+    nodeTypes: plugin.settings.nodeTypes.filter((nt) =>
+      selectedNodeTypeIds.has(nt.id),
+    ),
+    relationTypes: plugin.settings.relationTypes.filter((rt) =>
+      selectedRelationTypeIds.has(rt.id),
+    ),
+    discourseRelations: plugin.settings.discourseRelations.filter((dr) =>
+      selectedDiscourseRelationIds.has(dr.id),
+    ),
     templates,
   };
 
-  return { payload, warnings };
-};
-
-export const exportSchemaSelection = async ({
-  plugin,
-  selection,
-}: {
-  plugin: DiscourseGraphPlugin;
-  selection: SchemaSelection;
-}): Promise<SpecExportResult> => {
-  const { payload, warnings } = await buildSchemaExportPayload({
-    plugin,
-    selection,
-  });
   const serializedPayload = JSON.stringify(payload, null, 2);
   const fileName = getDgSchemaFileName(plugin.app.vault.getName());
-  const filePath = await saveJsonToUserLocation({
+  return saveJsonToUserLocation({
     title: "Export discourse graph schema",
     fileName,
     content: serializedPayload,
   });
-
-  return { filePath, warnings };
 };

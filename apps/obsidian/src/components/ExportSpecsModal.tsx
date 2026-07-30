@@ -53,24 +53,17 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
     }
 
     setIsExporting(true);
+    const warnings: string[] = [];
     try {
-      const result = await exportSchemaSelection({
+      const filePath = await exportSchemaSelection({
         plugin,
         selection: payload,
+        onWarning: (message) => warnings.push(message),
       });
 
-      const warningSuffix =
-        result.warnings.length > 0
-          ? ` (${result.warnings.length} warning${result.warnings.length === 1 ? "" : "s"})`
-          : "";
-
-      new Notice(
-        `Exported schema to ${result.filePath}${warningSuffix}.`,
-        6000,
-      );
-
-      if (result.warnings.length > 0) {
-        new Notice(`Export warnings:\n${result.warnings.join("\n")}`, 6000);
+      new Notice(`Exported schema to ${filePath}.`, 6000);
+      if (warnings.length > 0) {
+        new Notice(`Export warnings:\n${warnings.join("\n")}`, 6000);
       }
 
       onClose();
