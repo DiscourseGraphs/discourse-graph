@@ -67,24 +67,21 @@ const ImportPreviewSelection = ({
     }
 
     setIsApplyingImport(true);
+    const warnings: string[] = [];
     try {
-      const result = await applySchemaImportSelection({
+      const { created } = await applySchemaImportSelection({
         plugin,
         loadedSchemaFile,
         selection: selected,
+        onWarning: (message) => warnings.push(message),
       });
 
-      const { created } = result;
       new Notice(
         `Import complete: ${created.nodeTypes} node type(s), ${created.relationTypes} relation type(s), ${created.discourseRelations} relation triple(s), and ${created.templates} template(s) created.`,
         7000,
       );
-
-      if (result.warnings.length > 0) {
-        new Notice(
-          `Import warnings:\n${result.warnings.join("\n")}`,
-          6000,
-        );
+      if (warnings.length > 0) {
+        new Notice(`Import warnings:\n${warnings.join("\n")}`, 6000);
       }
       onClose();
     } catch (error) {
