@@ -11,6 +11,7 @@ import {
 } from "~/utils/specValidation";
 import { getTemplatePluginInfo } from "~/utils/templates";
 import { saveJsonToUserLocation } from "~/utils/nativeJsonFileDialogs";
+import { getVaultId } from "~/utils/supabaseContext";
 
 const getTemplateContents = async ({
   plugin,
@@ -73,6 +74,7 @@ export const exportSchemaSelection = async ({
     exportedAt: new Date().toISOString(),
     pluginVersion: plugin.manifest.version,
     vaultName: plugin.app.vault.getName(),
+    vaultId: getVaultId(plugin.app),
     nodeTypes: plugin.settings.nodeTypes.filter((nt) =>
       selectedNodeTypeIds.has(nt.id),
     ),
