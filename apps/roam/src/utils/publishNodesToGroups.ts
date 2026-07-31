@@ -22,6 +22,7 @@ type PublishNodesResult = {
   publishedNodeSchemaUids: string[];
   publishedNodeUids: string[];
   syncedNodeSchemaUids: string[];
+  failedSyncedUids: string[];
   skippedUnsyncedUids: string[];
   okGroupIds: string[];
   failedGroupIds: string[];
@@ -50,6 +51,7 @@ export const publishNodesToGroups = async ({
     publishedNodeSchemaUids: [],
     publishedNodeUids: [],
     syncedNodeSchemaUids: [],
+    failedSyncedUids: [],
     skippedUnsyncedUids: [],
     okGroupIds: [],
     failedGroupIds: [],
@@ -98,11 +100,11 @@ export const publishNodesToGroups = async ({
   const syncedUids = new Set(
     onlyStrings((syncedRes.data ?? []).map((row) => row.source_local_id)),
   );
+  result.skippedUnsyncedUids = nodeUids.filter((uid) => !syncedUids.has(uid));
   nodeUids = [...intersection(syncedUids, new Set(nodeUids))];
   const missingNodeSchemas = nodeSchemas.filter(
     (s) => !syncedUids.has(s.localId),
   );
-  result.skippedUnsyncedUids = nodeUids.filter((uid) => !syncedUids.has(uid));
   const upsertConcepts = [
     ...missingNodeSchemas.map((s) => crossAppNodeSchemaToDbConcept(s)),
   ].filter((r) => r !== undefined);
@@ -128,9 +130,19 @@ export const publishNodesToGroups = async ({
       internalError({ error: response.error });
       return result;
     }
+    const syncedSchemaUids = new Set(missingNodeSchemas.map((s) => s.localId));
+    response.data.forEach((v, i) => {
+      if (v === -1) {
+        const localId = upsertConcepts[i].source_local_id;
+        if (localId) {
+          if (syncedSchemaUids.has(localId)) syncedSchemaUids.delete(localId);
+          result.failedSyncedUids.push(localId);
+        }
+      }
+    });
+    result.syncedNodeSchemaUids = [...syncedSchemaUids];
   }
 
-  result.syncedNodeSchemaUids = missingNodeSchemas.map((s) => s.localId);
   const grantRes = await client
     .from("ResourceAccess")
     .upsert(resourceAccesses, { ignoreDuplicates: true });
