@@ -6,7 +6,7 @@ export type LocalAccountDataInput = Partial<
 export type LocalDocumentDataInput = Partial<
   Omit<
     Database["public"]["CompositeTypes"]["document_local_input"],
-    "author_inline"
+    "author_inline" | "contents"
   > & { author_inline: LocalAccountDataInput }
 >;
 export type LocalContentDataInput = Partial<
