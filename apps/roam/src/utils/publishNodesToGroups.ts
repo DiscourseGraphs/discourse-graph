@@ -103,6 +103,7 @@ export const publishNodesToGroups = async ({
     .upsert(resourceAccesses, { ignoreDuplicates: true });
   if (!isIgnorableUpsertError(grantRes.error)) {
     internalError({ error: grantRes.error });
+    result.failedGroupIds.push(...groupIds);
     return result;
   }
 
