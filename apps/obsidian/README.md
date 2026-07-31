@@ -138,6 +138,8 @@ For more information about Discourse Graphs, check out [our website](https://dis
 
 # Release process
 
+Beta releases happen automatically: every PR merged to `main` that touches `apps/obsidian/**` builds the plugin, cuts a new `x.y.z-beta.n` GitHub release (`.github/workflows/obsidian-main.yaml`), and syncs the merged PR/issue onto whichever Linear release is currently in progress.
+
 To ship an official stable release:
 
 1. Make sure a Linear release with the target version exists (e.g. `1.6.0`).
