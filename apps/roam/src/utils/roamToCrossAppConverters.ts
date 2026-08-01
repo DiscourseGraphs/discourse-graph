@@ -15,7 +15,6 @@ import { toMarkdown } from "./pageToMarkdown";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { contentTypes } from "@repo/content-model";
-import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
