@@ -156,12 +156,12 @@ export const gatherCorrespondingRelations = async ({
         relations
           .filter(
             (r) =>
-              (publishedIds.has(r.sourceUid) ||
-                (forNodeIds ? forNodeIds.has(r.sourceUid) : false) ||
-                groupSpaceIds.has(isImportedFrom(r.sourceUid) || 0)) &&
-              (publishedIds.has(r.destinationUid) ||
-                (forNodeIds ? forNodeIds.has(r.destinationUid) : false) ||
-                groupSpaceIds.has(isImportedFrom(r.destinationUid) || 0)),
+              (publishedIds.has(r.sourceUid) || // source already published
+                (forNodeIds ? forNodeIds.has(r.sourceUid) : false) || // source will be published
+                groupSpaceIds.has(isImportedFrom(r.sourceUid) || 0)) && // source imported from known space
+              (publishedIds.has(r.destinationUid) || // destination already published
+                (forNodeIds ? forNodeIds.has(r.destinationUid) : false) || // destination will be published
+                groupSpaceIds.has(isImportedFrom(r.destinationUid) || 0)), // destination imported from known space
           )
           .map((r) => r.relationId),
       ];
@@ -185,7 +185,7 @@ export const gatherCorrespondingRelations = async ({
 
   return {
     relations: allRelevantRelations
-      .map((r) => reifiedRelationToCrossApp(r, isImportedFromSpaceUri))
+      .map((r) => reifiedRelationToCrossApp(r))
       .filter((r) => r !== null),
     relationTripleSchemas: allRelationsSchemas
       .filter((rs3) => relationSchemaIds.has(rs3.id))
@@ -311,7 +311,14 @@ export const publishNodesToGroups = async ({
   const missingRelationTripleSchemas = relationTripleSchemas.filter(
     (s) => !syncedUids.has(s.localId),
   );
-  const missingRelations = relations.filter((s) => !syncedUids.has(s.localId));
+  const missingNodeUids = new Set(nodeUids.filter((id) => !syncedUids.has(id)));
+  const relationsWithSyncedNodes = relations.filter(
+    (r) =>
+      !missingNodeUids.has(r.source) && !missingNodeUids.has(r.destination),
+  );
+  const missingRelations = relationsWithSyncedNodes.filter(
+    (r) => !syncedUids.has(r.localId),
+  );
 
   result.skippedUnsyncedUids = nodeUids.filter((uid) => !syncedUids.has(uid));
   const upsertConcepts = [
@@ -365,10 +372,11 @@ export const publishNodesToGroups = async ({
   const resourceAccesses = [];
   const resourceIds = [...nodeUids, ...nodeSchemaUids];
   for (const groupId of groupIds) {
-    const groupRelationIds = new Set(relevantRelationIdsPerGroupId[groupId]);
-    const groupRelations = relations.filter(
+    let groupRelationIds = new Set(relevantRelationIdsPerGroupId[groupId]);
+    const groupRelations = relationsWithSyncedNodes.filter(
       (r) => groupRelationIds.has(r.localId) && !failedSyncIds.has(r.localId),
     );
+    groupRelationIds = new Set(groupRelations.map((r) => r.localId));
     const groupRelationTripleSchemaIds = new Set(
       groupRelations
         .map((r) => r.relationType)

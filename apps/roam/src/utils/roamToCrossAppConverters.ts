@@ -127,18 +127,7 @@ export const nodeUidsWithTypeToCrossApp = async (
 
 export const reifiedRelationToCrossApp = (
   r: ReifiedRelationDataWithRelId,
-  isImportedFromSpaceUri: (nodeUid: string) => string | undefined,
 ): CrossAppRelation | null => {
-  const sourceSpaceUri = isImportedFromSpaceUri(r.sourceUid);
-  const destinationSpaceUri = isImportedFromSpaceUri(r.destinationUid);
-  const sourceId =
-    sourceSpaceUri === undefined
-      ? r.sourceUid
-      : spaceUriAndLocalIdToRid(sourceSpaceUri, r.sourceUid);
-  const destinationId =
-    destinationSpaceUri === undefined
-      ? r.destinationUid
-      : spaceUriAndLocalIdToRid(destinationSpaceUri, r.destinationUid);
   const relData = window.roamAlphaAPI.pull(
     "[:create/time :edit/time {:create/user [:user/uid]}]",
     `[:block/uid "${r.relationId}"]`,
@@ -151,8 +140,8 @@ export const reifiedRelationToCrossApp = (
   return {
     localId: r.relationId,
     relationType: r.hasSchema,
-    source: sourceId,
-    destination: destinationId,
+    source: r.sourceUid,
+    destination: r.destinationUid,
     authorId: userUid,
     createdAt: new Date(relData[":create/time"] as number),
     modifiedAt: new Date(relData[":edit/time"] as number),
