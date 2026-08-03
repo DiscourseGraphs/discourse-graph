@@ -356,6 +356,12 @@ const FeatureFlagsTab = (): React.ReactElement => {
         onAfterChange={(checked) => setAdvancedNodeSearchValue(checked)}
       />
 
+      <FeatureFlagPanel
+        title="Node sharing"
+        description="This enables a user to share nodes to other discourse spaces. Reload the graph after toggling."
+        featureKey="Enable node sharing"
+      />
+
       <Alert
         isOpen={isConsentAlertOpen}
         onConfirm={() => {
