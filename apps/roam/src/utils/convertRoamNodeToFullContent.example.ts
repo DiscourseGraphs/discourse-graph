@@ -1,7 +1,7 @@
 import { contentTypes } from "@repo/content-model";
 import type { TreeNode } from "roamjs-components/types";
 import type { CrossAppNode } from "@repo/database/crossAppContracts";
-import { buildFullMarkdown } from "./convertRoamNodeToFullContent";
+import { buildFullMarkdown } from "./roamToCrossAppConverters";
 
 /**
  * Example Roam page tree used to show the markdown emitted for a `full` content

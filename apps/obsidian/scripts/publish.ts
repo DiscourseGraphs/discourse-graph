@@ -402,6 +402,23 @@ const sanitizePackageJsonForMirror = (tempDir: string): void => {
   }
 };
 
+const updateLocalVersion = (obsidianDir: string, version: string): void => {
+  const packageJsonPath = path.join(obsidianDir, "package.json");
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+  packageJson.version = version;
+  fs.writeFileSync(
+    packageJsonPath,
+    JSON.stringify(packageJson, null, 2) + "\n",
+  );
+
+  const manifestPath = path.join(obsidianDir, "manifest.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  manifest.version = version;
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+
+  log(`Updated local package.json and manifest.json to version ${version}`);
+};
+
 const updateMainBranch = async (
   tempDir: string,
   version: string,
@@ -613,6 +630,21 @@ const createGithubRelease = async ({
 
   const releaseTempDir = path.join(os.tmpdir(), "temp-obsidian-release-assets");
 
+  const existingRelease = await octokit
+    .request("GET /repos/{owner}/{repo}/releases/tags/{tag}", {
+      owner,
+      repo,
+      tag: tagName,
+    })
+    .catch((err: { status?: number }) =>
+      err.status === 404 ? null : Promise.reject(err),
+    );
+
+  if (existingRelease) {
+    log(`GitHub release for ${tagName} already exists, skipping creation.`);
+    return;
+  }
+
   try {
     if (fs.existsSync(releaseTempDir)) {
       fs.rmSync(releaseTempDir, { recursive: true });
@@ -710,6 +742,7 @@ const publish = async (config: PublishConfig): Promise<void> => {
     if (isExternal) {
       updateManifest(tempDir, version);
       await updateMainBranch(tempDir, version);
+      updateLocalVersion(obsidianDir, version);
     } else {
       log("Skipping main branch update for internal or pre-release");
     }

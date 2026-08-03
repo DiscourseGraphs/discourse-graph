@@ -47,6 +47,11 @@ export const asPostgrestFailure = (
 
 export class FatalError extends Error {}
 
+// 23505 = unique_violation: the grant already exists, which counts as success.
+export const isIgnorableUpsertError = (
+  error: { code?: string } | null,
+): boolean => !error || error.code === "23505";
+
 export const spaceValidator = (space: SpaceCreationInput): string | null => {
   if (!space || typeof space !== "object")
     return "Invalid request body: expected a JSON object.";

@@ -21,7 +21,6 @@ export const PERSONAL_KEYS = {
   discourseContextOverlay: "Discourse context overlay",
   textSelectionPopup: "Text selection popup",
   disableSidebarOpen: "Disable sidebar open",
-  pagePreview: "Page preview",
   hideFeedbackButton: "Hide feedback button",
   autoCanvasRelations: "Auto canvas relations",
   overlayInCanvas: "Overlay in canvas",

@@ -200,6 +200,21 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       ) as NextResponse;
     }
 
+    const MAX_SCREENSHOT_BYTES = 3 * 1024 * 1024;
+    if (payload.screenshot) {
+      // base64 string length * 0.75 approximates the decoded byte size
+      const approxBytes = Math.ceil(payload.screenshot.data.length * 0.75);
+      if (approxBytes > MAX_SCREENSHOT_BYTES) {
+        return cors(
+          request,
+          NextResponse.json(
+            { error: "Screenshot exceeds the 3 MB limit" },
+            { status: 413 },
+          ),
+        ) as NextResponse;
+      }
+    }
+
     const description = buildDescription(payload);
     const issue = await createIssue(apiKey, payload.title.trim(), description);
 

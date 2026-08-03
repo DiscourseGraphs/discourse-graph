@@ -2,6 +2,7 @@ import type { Json } from "@repo/database/dbTypes";
 import matter from "gray-matter";
 import { App, Notice, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import { listGroupSharedNodes } from "@repo/database/lib/sharedNodes";
 import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
@@ -33,91 +34,40 @@ type PublishedNode = {
 
 export const getPublishedNodesForGroups = async ({
   client,
-  groupIds,
   currentSpaceId,
 }: {
   client: DGSupabaseClient;
-  groupIds: string[];
   currentSpaceId: number;
 }): Promise<Array<PublishedNode>> => {
-  if (groupIds.length === 0) {
-    return [];
-  }
-
-  // Query my_contents (RLS applied); exclude current space. Get both variants so we can use
-  // the latest last_modified per node and prefer "direct" for text (title).
-  const { data, error } = await client
-    .from("my_contents")
-    .select(
-      "source_local_id, space_id, text, created, last_modified, variant, metadata, author_id",
-    )
-    .neq("space_id", currentSpaceId);
-
-  if (error) {
+  const sharedNodes = await listGroupSharedNodes({
+    client,
+    currentSpaceId,
+  }).catch((error: { message?: string }) => {
     console.error("Error fetching published nodes:", error);
     throw new Error(`Failed to fetch published nodes: ${error.message}`);
-  }
+  });
 
-  if (!data || data.length === 0) {
-    return [];
-  }
-
-  type Row = {
-    source_local_id: string | null;
-    space_id: number | null;
-    text: string | null;
-    created: string | null;
-    last_modified: string | null;
-    variant: string | null;
-    author_id: number | null;
-    metadata: Json;
-  };
-
-  const key = (r: Row) => `${r.space_id ?? ""}\t${r.source_local_id ?? ""}`;
-  const groups = new Map<string, Row[]>();
-  for (const row of data as Row[]) {
-    if (row.source_local_id == null || row.space_id == null) continue;
-    const k = key(row);
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k)!.push(row);
-  }
-
-  const nodes: Array<PublishedNode> = [];
-
-  for (const rows of groups.values()) {
-    const withDate = rows.filter(
-      (r) => r.last_modified != null && r.text != null,
-    );
-    if (withDate.length === 0) continue;
-    const latest = withDate.reduce((a, b) =>
-      (a.last_modified ?? "") >= (b.last_modified ?? "") ? a : b,
-    );
-    const direct = rows.find((r) => r.variant === "direct");
-    const text = direct?.text ?? latest.text ?? "";
-    const createdAt = latest.created
-      ? new Date(latest.created + "Z").valueOf()
-      : 0;
-    const modifiedAt = latest.last_modified
-      ? new Date(latest.last_modified + "Z").valueOf()
-      : 0;
+  return sharedNodes.map((sharedNode) => {
+    const metadata = sharedNode.directMetadata;
     const filePath: string | undefined =
-      direct &&
-      typeof direct.metadata === "object" &&
-      typeof (direct.metadata as Record<string, any>).filePath === "string"
-        ? (direct.metadata as Record<string, any>).filePath
+      metadata !== null &&
+      typeof metadata === "object" &&
+      !Array.isArray(metadata) &&
+      typeof metadata.filePath === "string"
+        ? metadata.filePath
         : undefined;
-    nodes.push({
-      source_local_id: latest.source_local_id!,
-      space_id: latest.space_id!,
-      text,
-      createdAt,
-      modifiedAt,
+    return {
+      source_local_id: sharedNode.sourceLocalId,
+      space_id: sharedNode.spaceId,
+      text: sharedNode.title,
+      createdAt: sharedNode.created
+        ? new Date(sharedNode.created).valueOf()
+        : 0,
+      modifiedAt: new Date(sharedNode.lastModified).valueOf(),
       filePath,
-      authorId: latest.author_id ?? undefined,
-    });
-  }
-
-  return nodes;
+      authorId: sharedNode.authorId,
+    };
+  });
 };
 
 export const getLocalNodeInstanceIds = (
@@ -370,6 +320,76 @@ const fetchNodeContentForImport = async ({
     filePath,
     authorId,
   };
+};
+
+type NodeTypeSchemaForInstance = {
+  nodeTypeId: string;
+  name: string;
+};
+
+export const fetchNodeTypeSchemasForInstances = async ({
+  client,
+  spaceId,
+  nodeInstanceIds,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  nodeInstanceIds: string[];
+}): Promise<Map<string, NodeTypeSchemaForInstance>> => {
+  const result = new Map<string, NodeTypeSchemaForInstance>();
+
+  const { data: instanceRows, error: instanceError } = await client
+    .from("my_concepts")
+    .select("source_local_id, schema_id")
+    .eq("space_id", spaceId)
+    .eq("is_schema", false)
+    .eq("arity", 0)
+    .in("source_local_id", nodeInstanceIds);
+
+  if (instanceError || !instanceRows) {
+    console.error("Error fetching node instance concepts:", instanceError);
+    return result;
+  }
+
+  const schemaIds = [
+    ...new Set(
+      instanceRows
+        .map((row) => row.schema_id)
+        .filter((id): id is number => id !== null),
+    ),
+  ];
+  if (schemaIds.length === 0) return result;
+
+  const { data: schemaRows, error: schemaError } = await client
+    .from("my_concepts")
+    .select("id, source_local_id, name")
+    .eq("space_id", spaceId)
+    .eq("is_schema", true)
+    .eq("arity", 0)
+    .in("id", schemaIds);
+
+  if (schemaError || !schemaRows) {
+    console.error("Error fetching node type schemas:", schemaError);
+    return result;
+  }
+
+  const schemasById = new Map<number, NodeTypeSchemaForInstance>();
+  for (const row of schemaRows) {
+    if (row.id !== null && row.source_local_id !== null && row.name !== null) {
+      schemasById.set(row.id, {
+        nodeTypeId: row.source_local_id,
+        name: row.name,
+      });
+    }
+  }
+
+  for (const row of instanceRows) {
+    if (row.source_local_id === null || row.schema_id === null) continue;
+    const schema = schemasById.get(row.schema_id);
+    if (schema) result.set(row.source_local_id, schema);
+  }
+
+  return result;
 };
 
 /**
@@ -989,9 +1009,6 @@ const sanitizePathForImport = (path: string): string => {
 
 type ParsedFrontmatter = {
   nodeTypeId?: string;
-  nodeInstanceId?: string;
-  publishedToGroups?: string[];
-  authorId?: number;
   [key: string]: unknown;
 };
 
@@ -1146,26 +1163,42 @@ const processFileContent = async ({
   sourceSpaceId,
   sourceSpaceUri,
   rawContent,
-  originalFilePath,
   filePath,
   importedCreatedAt,
   importedModifiedAt,
   authorId,
+  nodeInstanceId,
+  nodeTypeIdFromConcept,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
   sourceSpaceId: number;
   sourceSpaceUri: string;
   rawContent: string;
-  originalFilePath?: string;
   filePath: string;
   importedCreatedAt?: number;
   importedModifiedAt?: number;
   authorId?: number;
+  nodeInstanceId: string;
+  nodeTypeIdFromConcept?: string;
 }): Promise<
   { file: TFile; error?: never } | { file?: never; error: string }
 > => {
-  // 1. Create or update the file with the fetched content first.
+  // 1. Parse frontmatter from rawContent (metadataCache is updated async and is
+  //    often empty immediately after create/modify) and resolve the node type
+  //    before any vault write, so a failed lookup leaves existing files untouched.
+  const { frontmatter } = parseFrontmatter(rawContent);
+  const sourceNodeTypeId =
+    typeof frontmatter.nodeTypeId === "string"
+      ? frontmatter.nodeTypeId
+      : nodeTypeIdFromConcept;
+  if (sourceNodeTypeId === undefined) {
+    return {
+      error: "importedNode missing sourceNodeTypeId",
+    };
+  }
+
+  // 2. Create or update the file with the fetched content.
   // On create, set file metadata (ctime/mtime) to original vault dates via vault adapter.
   let file: TFile | null = plugin.app.vault.getFileByPath(filePath);
   const stat =
@@ -1181,24 +1214,6 @@ const processFileContent = async ({
     await plugin.app.vault.process(file, () => rawContent, stat);
   }
 
-  // 2. Parse frontmatter from rawContent (metadataCache is updated async and is
-  //    often empty immediately after create/modify), then map nodeTypeId and update frontmatter.
-  const { frontmatter } = parseFrontmatter(rawContent);
-  const sourceNodeTypeId = frontmatter.nodeTypeId;
-  if (typeof sourceNodeTypeId !== "string") {
-    await plugin.app.vault.delete(file);
-    return {
-      error: "importedNode missing sourceNodeTypeId",
-    };
-  }
-  const sourceNodeId = frontmatter.nodeInstanceId;
-  if (typeof sourceNodeId !== "string") {
-    await plugin.app.vault.delete(file);
-    return {
-      error: "importedNode missing nodeInstanceId",
-    };
-  }
-
   const mappedNodeTypeId = await mapNodeTypeIdToLocal({
     plugin,
     client,
@@ -1211,12 +1226,11 @@ const processFileContent = async ({
     file,
     (fm) => {
       const record = fm as Record<string, unknown>;
-      if (mappedNodeTypeId !== undefined) {
-        record.nodeTypeId = mappedNodeTypeId;
-      }
+      record.nodeTypeId = mappedNodeTypeId;
+      record.nodeInstanceId = nodeInstanceId;
       record.importedFromRid = spaceUriAndLocalIdToRid(
         sourceSpaceUri,
-        sourceNodeId,
+        nodeInstanceId,
         "note",
       );
       record.lastModified = importedModifiedAt;
@@ -1294,6 +1308,12 @@ export const importSelectedNodes = async ({
       spaceName,
     });
 
+    const nodeTypeSchemasByInstance = await fetchNodeTypeSchemasForInstances({
+      client,
+      spaceId,
+      nodeInstanceIds: nodes.map((n) => n.nodeInstanceId),
+    });
+
     // Process each node in this space
     for (const node of nodes) {
       try {
@@ -1368,11 +1388,14 @@ export const importSelectedNodes = async ({
           sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
           rawContent: content,
-          originalFilePath: contentFilePath,
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
           authorId,
+          nodeInstanceId: node.nodeInstanceId,
+          nodeTypeIdFromConcept: nodeTypeSchemasByInstance.get(
+            node.nodeInstanceId,
+          )?.nodeTypeId,
         });
 
         if (result.error) {

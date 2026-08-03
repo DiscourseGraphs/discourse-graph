@@ -1,0 +1,72 @@
+name: Main - Obsidian Beta Release
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/obsidian/**"
+      - "packages/database/**"
+      - "packages/utils/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: obsidian-beta-release
+  cancel-in-progress: false
+
+env:
+  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  beta-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Compute next beta version
+        id: version
+        run: |
+          STABLE_VERSION=$(node -p "require('./apps/obsidian/package.json').version" | sed 's/-beta\.[0-9]*//')
+          LATEST_N=$(gh release list --limit 50 --json tagName --jq '.[].tagName' \
+            | grep "^${STABLE_VERSION}-beta\." \
+            | sed "s/^${STABLE_VERSION}-beta\.//" \
+            | sort -n | tail -1)
+          if [ -n "$LATEST_N" ]; then
+            NEXT_BETA="${STABLE_VERSION}-beta.$((LATEST_N + 1))"
+          else
+            NEXT_BETA="${STABLE_VERSION}-beta.1"
+          fi
+          echo "Stable version: $STABLE_VERSION, next beta: $NEXT_BETA"
+          echo "version=$NEXT_BETA" >> "$GITHUB_OUTPUT"
+
+      - name: Publish beta release
+        run: cd apps/obsidian && npx tsx scripts/publish.ts --version ${{ steps.version.outputs.version }}
+
+      - name: Sync Linear release
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.OBSIDIAN_LINEAR_RELEASE_KEY }}
+          include_paths: "apps/obsidian/**,packages/database/**,packages/utils/**"
