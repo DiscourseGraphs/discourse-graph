@@ -45,13 +45,27 @@ export const buildFullMarkdown = ({
   return body ? `# ${title}\n\n${body}\n` : `# ${title}\n`;
 };
 
+const buildFullInlineContent = ({
+  uid,
+  title,
+}: {
+  uid: string;
+  title: string;
+}): NonNullable<CrossAppNode["content"]["full"]> => {
+  const blocks = getFullTreeByParentUid(uid).children;
+  const viewType = getPageViewType(title) || "bullet";
+  return {
+    localId: uid,
+    value: buildFullMarkdown({ title, blocks, viewType }),
+    contentType: contentTypes.roamMarkdown,
+    scale: "document",
+  };
+};
+
 export const fullContentNodeToCrossApp = (
   node: RoamFullContentNode,
 ): CrossAppNode => {
   const title = node.node_title ?? node.text;
-  const blocks = getFullTreeByParentUid(node.source_local_id).children;
-  const viewType = getPageViewType(title) || "bullet";
-  const fullText = buildFullMarkdown({ title, blocks, viewType });
 
   return {
     authorId: node.author_local_id,
@@ -62,14 +76,9 @@ export const fullContentNodeToCrossApp = (
     content: {
       direct: {
         localId: node.source_local_id,
-        value: node.node_title ?? node.text,
+        value: title,
       },
-      full: {
-        localId: node.source_local_id,
-        value: fullText,
-        contentType: contentTypes.roamMarkdown,
-        scale: "document",
-      },
+      full: buildFullInlineContent({ uid: node.source_local_id, title }),
     },
   };
 };
@@ -99,6 +108,7 @@ export const nodeUidsWithTypeToCrossApp = async (
   );
   const results = nodeRows.map((row) => {
     const uid = row[":block/uid"] as string;
+    const title = row[":node/title"] as string;
     const userUid =
       userUidByEid[(row[":create/user"] as Record<string, number>)[":db/id"]];
 
@@ -116,8 +126,9 @@ export const nodeUidsWithTypeToCrossApp = async (
       content: {
         direct: {
           localId: uid,
-          value: row[":node/title"] as string,
+          value: title,
         },
+        full: buildFullInlineContent({ uid, title }),
       },
     };
   });

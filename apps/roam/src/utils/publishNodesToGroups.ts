@@ -15,6 +15,7 @@ import getDiscourseRelations from "./getDiscourseRelations";
 import { getReifiedRelations } from "./createReifiedBlock";
 import {
   crossAppNodeSchemaToDbConcept,
+  crossAppNodeToDbConcept,
   crossAppRelationToDbConcept,
   crossAppRelationTripleSchemaToDbConcept,
 } from "@repo/database/lib/crossAppConverters";
@@ -207,19 +208,19 @@ type PublishNodesResult = {
   syncedRelationTripleSchemaUids: string[];
   syncedRelationUids: string[];
   failedSyncedUids: string[];
-  skippedUnsyncedUids: string[];
   okGroupIds: string[];
   failedGroupIds: string[];
 };
 
-// Grants a group access to already-synced discourse nodes by mirroring the
-// Obsidian publish-to-group access model (SpaceAccess + ResourceAccess),
-// without its file/frontmatter/relation/asset coupling.
+// Grants a group access to discourse nodes by mirroring the Obsidian
+// publish-to-group access model (SpaceAccess + ResourceAccess), without its
+// file/frontmatter/asset coupling.
 //
-// ResourceAccess has no foreign key on source_local_id, so granting access to a
-// node that has not synced yet would create an orphaned row. We therefore only
-// publish nodes confirmed present as instance concepts in this space, and
-// report the rest as not-yet-synced (they self-heal on the next sync).
+// ResourceAccess has no foreign key on source_local_id, so granting access to
+// a node absent from this space would create an orphaned row. We therefore
+// upsert every selected node as a complete concept (direct title + full
+// content) before granting access, and withhold grants for anything whose
+// upsert failed.
 export const publishNodesToGroups = async ({
   client,
   spaceId,
@@ -240,7 +241,6 @@ export const publishNodesToGroups = async ({
     syncedRelationUids: [],
     syncedRelationTripleSchemaUids: [],
     failedSyncedUids: [],
-    skippedUnsyncedUids: [],
     okGroupIds: [],
     failedGroupIds: [],
   };
@@ -267,7 +267,8 @@ export const publishNodesToGroups = async ({
   }
   if (groupIds.length === 0) return result;
 
-  let nodeUids = [...new Set(nodes.map((node) => node.localId))];
+  const nodesByUid = new Map(nodes.map((node) => [node.localId, node]));
+  let nodeUids = [...nodesByUid.keys()];
   const nodeSchemaUids = new Set(nodes.map((node) => node.nodeType));
   const nodeSchemas = getDiscourseNodes()
     .filter((s) => nodeSchemaUids.has(s.type))
@@ -286,7 +287,6 @@ export const publishNodesToGroups = async ({
 
   const neededUids = [
     ...nodeSchemaUids,
-    ...nodeUids,
     ...relationTripleSchemaUids,
     ...relationUids,
   ];
@@ -303,32 +303,24 @@ export const publishNodesToGroups = async ({
   const syncedUids = new Set(
     onlyStrings((syncedRes.data ?? []).map((row) => row.source_local_id)),
   );
-  result.skippedUnsyncedUids = nodeUids.filter((uid) => !syncedUids.has(uid));
-  nodeUids = [...intersection(syncedUids, new Set(nodeUids))];
   const missingNodeSchemas = nodeSchemas.filter(
     (s) => !syncedUids.has(s.localId),
   );
   const missingRelationTripleSchemas = relationTripleSchemas.filter(
     (s) => !syncedUids.has(s.localId),
   );
-  const missingNodeUids = new Set(nodeUids.filter((id) => !syncedUids.has(id)));
-  const relationsWithSyncedNodes = relations.filter(
-    (r) =>
-      !missingNodeUids.has(r.source) && !missingNodeUids.has(r.destination),
-  );
-  const missingRelations = relationsWithSyncedNodes.filter(
-    (r) => !syncedUids.has(r.localId),
-  );
+  const missingRelations = relations.filter((r) => !syncedUids.has(r.localId));
 
-  result.skippedUnsyncedUids = nodeUids.filter((uid) => !syncedUids.has(uid));
   const upsertConcepts = [
     ...missingNodeSchemas.map((s) => crossAppNodeSchemaToDbConcept(s)),
+    ...[...nodesByUid.values()].map((node) => crossAppNodeToDbConcept(node)),
     ...missingRelationTripleSchemas.map((rs3) =>
       crossAppRelationTripleSchemaToDbConcept(rs3),
     ),
     ...missingRelations.map((r) => crossAppRelationToDbConcept(r)),
   ].filter((r) => r !== undefined);
 
+  const upsertedNodeUids = new Set(nodeUids);
   const syncedRelationUids = new Set(missingRelations.map((s) => s.localId));
   const syncedRelationTripleSchemaUids = new Set(
     missingRelationTripleSchemas.map((s) => s.localId),
@@ -337,44 +329,49 @@ export const publishNodesToGroups = async ({
     missingNodeSchemas.map((s) => s.localId),
   );
 
-  if (upsertConcepts.length > 0) {
-    const response = await client.rpc("upsert_concepts", {
-      v_space_id: spaceId,
-      data: upsertConcepts,
-    });
-    if (response.error) {
-      internalError({ error: response.error });
-      return result;
-    }
-
-    response.data.forEach((v, i) => {
-      if (v === -1) {
-        const localId = upsertConcepts[i].source_local_id;
-        if (localId) {
-          if (syncedNodeSchemaUids.has(localId)) {
-            syncedNodeSchemaUids.delete(localId);
-            nodeSchemaUids.delete(localId);
-          } else if (syncedRelationTripleSchemaUids.has(localId)) {
-            syncedRelationTripleSchemaUids.delete(localId);
-          } else if (syncedRelationUids.has(localId)) {
-            syncedRelationUids.delete(localId);
-          }
-          result.failedSyncedUids.push(localId);
-        }
-      }
-    });
-    result.syncedNodeSchemaUids = [...syncedNodeSchemaUids];
-    result.syncedRelationTripleSchemaUids = [...syncedRelationTripleSchemaUids];
-    result.syncedRelationUids = [...syncedRelationUids];
+  const response = await client.rpc("upsert_concepts", {
+    v_space_id: spaceId,
+    data: upsertConcepts,
+  });
+  if (response.error) {
+    internalError({ error: response.error });
+    return result;
   }
+
+  response.data.forEach((v, i) => {
+    if (v === -1) {
+      const localId = upsertConcepts[i].source_local_id;
+      if (localId) {
+        if (syncedNodeSchemaUids.has(localId)) {
+          syncedNodeSchemaUids.delete(localId);
+          nodeSchemaUids.delete(localId);
+        } else if (upsertedNodeUids.has(localId)) {
+          upsertedNodeUids.delete(localId);
+        } else if (syncedRelationTripleSchemaUids.has(localId)) {
+          syncedRelationTripleSchemaUids.delete(localId);
+        } else if (syncedRelationUids.has(localId)) {
+          syncedRelationUids.delete(localId);
+        }
+        result.failedSyncedUids.push(localId);
+      }
+    }
+  });
+  result.syncedNodeSchemaUids = [...syncedNodeSchemaUids];
+  result.syncedRelationTripleSchemaUids = [...syncedRelationTripleSchemaUids];
+  result.syncedRelationUids = [...syncedRelationUids];
+  nodeUids = [...upsertedNodeUids];
   const failedSyncIds = new Set(result.failedSyncedUids);
 
   const resourceAccesses = [];
   const resourceIds = [...nodeUids, ...nodeSchemaUids];
   for (const groupId of groupIds) {
     let groupRelationIds = new Set(relevantRelationIdsPerGroupId[groupId]);
-    const groupRelations = relationsWithSyncedNodes.filter(
-      (r) => groupRelationIds.has(r.localId) && !failedSyncIds.has(r.localId),
+    const groupRelations = relations.filter(
+      (r) =>
+        groupRelationIds.has(r.localId) &&
+        !failedSyncIds.has(r.localId) &&
+        !failedSyncIds.has(r.source) &&
+        !failedSyncIds.has(r.destination),
     );
     groupRelationIds = new Set(groupRelations.map((r) => r.localId));
     const groupRelationTripleSchemaIds = new Set(
