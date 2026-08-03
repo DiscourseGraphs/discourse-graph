@@ -87,6 +87,7 @@ import { AddReferencedNodeType } from "./canvas/DiscourseRelationShape/Discourse
 import posthog from "posthog-js";
 import { getMyGroups, type MyGroup } from "@repo/database/lib/groups";
 import {
+  getPublishedIdsByGroup,
   publishNodeUidsWithTypeToGroups,
   type NodeUidWithType,
 } from "~/utils/publishNodesToGroups";
@@ -235,6 +236,9 @@ const ExportDialog: ExportDialogComponent = ({
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupsLoaded, setGroupsLoaded] = useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [publishedCountByGroupId, setPublishedCountByGroupId] = useState<
+    Record<string, number>
+  >({});
   const [groupsError, setGroupsError] = useState("");
   const [publishError, setPublishError] = useState("");
 
@@ -821,6 +825,24 @@ const ExportDialog: ExportDialogComponent = ({
         const client = await getLoggedInClient();
         if (!client) throw new Error("Could not connect to sync.");
         const groups = await getMyGroups(client);
+        if (groups.length && publishableNodes.length) {
+          const context = await getSupabaseContext();
+          if (!context) throw new Error("Could not connect to sync.");
+          const publishedIdsByGroupId = await getPublishedIdsByGroup({
+            client,
+            spaceId: context.spaceId,
+            groupIds: groups.map((group) => group.id),
+            sourceLocalIds: publishableNodes.map((node) => node.uid),
+          });
+          setPublishedCountByGroupId(
+            Object.fromEntries(
+              Object.entries(publishedIdsByGroupId).map(([groupId, uids]) => [
+                groupId,
+                uids.size,
+              ]),
+            ),
+          );
+        }
         setMyGroups(groups);
       } catch (e) {
         setGroupsError((e as Error).message || "Failed to load groups.");
@@ -829,7 +851,14 @@ const ExportDialog: ExportDialogComponent = ({
         setGroupsLoaded(true);
       }
     })();
-  }, [syncEnabled, isOpen, selectedTabId, groupsLoaded, groupsLoading]);
+  }, [
+    syncEnabled,
+    isOpen,
+    selectedTabId,
+    groupsLoaded,
+    groupsLoading,
+    publishableNodes,
+  ]);
 
   const handlePublish = async () => {
     setPublishError("");
@@ -1190,21 +1219,33 @@ const ExportDialog: ExportDialogComponent = ({
         ) : (
           <>
             <Label>Publish to group(s)</Label>
-            {myGroups.map((group) => (
-              <Checkbox
-                key={group.id}
-                checked={selectedGroupIds.includes(group.id)}
-                label={group.name}
-                onChange={(e) => {
-                  const { checked } = e.target as HTMLInputElement;
-                  setSelectedGroupIds((prev) =>
-                    checked
-                      ? [...prev, group.id]
-                      : prev.filter((id) => id !== group.id),
-                  );
-                }}
-              />
-            ))}
+            {myGroups.map((group) => {
+              const publishedCount = publishedCountByGroupId[group.id] ?? 0;
+              const isFullyShared =
+                publishableNodes.length > 0 &&
+                publishedCount === publishableNodes.length;
+              const label = isFullyShared
+                ? `${group.name} (already shared)`
+                : publishedCount > 0
+                  ? `${group.name} (${publishedCount} of ${publishableNodes.length} already shared)`
+                  : group.name;
+              return (
+                <Checkbox
+                  key={group.id}
+                  checked={isFullyShared || selectedGroupIds.includes(group.id)}
+                  disabled={isFullyShared}
+                  label={label}
+                  onChange={(e) => {
+                    const { checked } = e.target as HTMLInputElement;
+                    setSelectedGroupIds((prev) =>
+                      checked
+                        ? [...prev, group.id]
+                        : prev.filter((id) => id !== group.id),
+                    );
+                  }}
+                />
+              );
+            })}
             <div className="mt-2.5">
               {`Publishing ${publishableNodes.length} discourse node${
                 publishableNodes.length === 1 ? "" : "s"

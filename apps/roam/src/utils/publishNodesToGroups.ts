@@ -31,16 +31,24 @@ export type NodeUidWithType = {
   type: string;
 };
 
-const getAllPublishedIdsByGroup = async (
-  client: DGSupabaseClient,
-  spaceId: number,
-  groupIds: string[],
-): Promise<Record<string, Set<string>>> => {
-  const response = await client
+export const getPublishedIdsByGroup = async ({
+  client,
+  spaceId,
+  groupIds,
+  sourceLocalIds,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  groupIds: string[];
+  sourceLocalIds?: string[];
+}): Promise<Record<string, Set<string>>> => {
+  let query = client
     .from("ResourceAccess")
     .select("account_uid, source_local_id")
     .eq("space_id", spaceId)
     .in("account_uid", groupIds);
+  if (sourceLocalIds) query = query.in("source_local_id", sourceLocalIds);
+  const response = await query;
   if (response.error) throw response.error;
   const publishedIdsByGroupId = Object.fromEntries(
     groupIds.map((gid) => [gid, new Set<string>()]),
@@ -141,11 +149,11 @@ export const gatherCorrespondingRelations = async ({
             (forNodeIds.has(r.sourceUid) || forNodeIds.has(r.destinationUid)),
         )
       : allRelations.filter((r) => r.importedFromRid === undefined);
-  const publishedIdsByGroup = await getAllPublishedIdsByGroup(
+  const publishedIdsByGroup = await getPublishedIdsByGroup({
     client,
     spaceId,
     groupIds,
-  );
+  });
   // calculate separately to avoid case of a relation between nodes published to or from different groups
   const relevantRelationIdsPerGroupId = Object.fromEntries(
     groupIds.map((groupId) => {
