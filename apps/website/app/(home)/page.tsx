@@ -285,13 +285,13 @@ const Home = async (): Promise<ReactElement> => {
           sizes="100vw"
         />
         <div className="absolute inset-0 bg-neutral-dark/70" />
-        <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
+        <div className="relative z-10 mx-auto w-full max-w-7xl">
           <div className="max-w-3xl">
             <p className="inline-flex rounded-md border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white/85">
               Open infrastructure for collaborative knowledge synthesis
             </p>
             <h1 className="mt-6 text-5xl font-semibold tracking-tight text-white sm:text-6xl lg:text-7xl">
-              Discourse Graphs
+              Create knowledge. Make connections.
             </h1>
             <p className="text-white/82 mt-6 max-w-2xl text-xl leading-8">
               A tool and ecosystem for turning research claims, evidence, and
@@ -323,24 +323,6 @@ const Home = async (): Promise<ReactElement> => {
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />
               </Link>
             </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-            {[
-              ["Protocol", "Client-agnostic model for structured research"],
-              ["Plugins", "Roam Research and Obsidian workflows"],
-              ["Community", "Researchers building shared graph practices"],
-            ].map(([title, description]) => (
-              <div
-                key={title}
-                className="rounded-lg border border-white/15 bg-white/10 p-4 backdrop-blur"
-              >
-                <p className="text-sm font-semibold text-primary">{title}</p>
-                <p className="text-white/78 mt-2 text-sm leading-6">
-                  {description}
-                </p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
