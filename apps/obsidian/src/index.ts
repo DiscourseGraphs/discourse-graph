@@ -47,7 +47,7 @@ import { DISCOURSE_GRAPH_LOGO_ICON_ID, WHITE_LOGO_SVG } from "~/icons";
 import {
   registerNodeTypeIdPropertyWidget,
   unregisterNodeTypeIdPropertyWidget,
-} from "~/utils/nodeTypeIdPropertyWidget";
+} from "~/components/nodeTypeIdPropertyWidget";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
