@@ -24,6 +24,7 @@ import {
 import { dispatchToastEvent } from "./ToastListener";
 
 const NEW_NODE_OFFSET_PX = 80;
+const NEW_NODE_GAP_PX = 24;
 
 const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
   const editor = useEditor();
@@ -94,14 +95,23 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
       nodeType: node.type,
       extensionAPI,
     });
+    const x = shape.x + shape.props.w + NEW_NODE_OFFSET_PX;
+    const columnBottoms = editor
+      .getCurrentPageShapes()
+      .filter((s): s is DiscourseNodeShape => isDiscourseNodeShape(editor, s))
+      .filter((s) => s.x < x + w && s.x + s.props.w > x)
+      .map((s) => s.y + s.props.h);
+    const y = columnBottoms.length
+      ? Math.max(...columnBottoms) + NEW_NODE_GAP_PX
+      : shape.y;
     const id = createShapeId();
     withAutoCanvasRelationsSuppressed(() =>
       editor.createShapes([
         {
           id,
           type: DISCOURSE_NODE_SHAPE_TYPE,
-          x: shape.x + shape.props.w + NEW_NODE_OFFSET_PX,
-          y: shape.y,
+          x,
+          y,
           props: {
             uid: relatedUid,
             title: text,
@@ -138,6 +148,12 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
       } else {
         await addToCanvas({ relatedUid, text });
       }
+    } catch {
+      dispatchToastEvent({
+        id: "dg-context-tab-toggle-failed",
+        title: "Failed to update the canvas for this result.",
+        severity: "error",
+      });
     } finally {
       setPendingUids((prev) => prev.filter((u) => u !== relatedUid));
     }
