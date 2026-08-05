@@ -45,17 +45,17 @@ const createWidget = (
 export const registerNodeTypeIdPropertyWidget = (
   plugin: DiscourseGraphPlugin,
 ): void => {
-  const metadataTypeManager = (
-    plugin.app as unknown as { metadataTypeManager: MetadataTypeManager }
-  ).metadataTypeManager;
+  const metadataTypeManager = (plugin.app as AppWithUnofficialApis)
+    .metadataTypeManager;
 
-  try {
-    metadataTypeManager.registeredTypeWidgets[WIDGET_TYPE] =
-      createWidget(plugin);
-    void metadataTypeManager.setType(NODE_TYPE_ID_PROPERTY_KEY, WIDGET_TYPE);
-  } catch (error) {
-    console.error(error);
-  }
+  if (metadataTypeManager)
+    try {
+      metadataTypeManager.registeredTypeWidgets[WIDGET_TYPE] =
+        createWidget(plugin);
+      void metadataTypeManager.setType(NODE_TYPE_ID_PROPERTY_KEY, WIDGET_TYPE);
+    } catch (error) {
+      console.error(error);
+    }
 };
 
 export const unregisterNodeTypeIdPropertyWidget = (
