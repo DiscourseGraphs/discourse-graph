@@ -1,8 +1,9 @@
-import { TFile, App, prepareFuzzySearch, type SearchResult } from "obsidian";
+import { TFile, App, Plugin, prepareFuzzySearch, type SearchResult } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { BulkImportPattern, BulkImportCandidate, DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import { extractContentFromTitle } from "~/utils/extractContentFromTitle";
+import { AppWithUnofficialApis } from "~/utils/obsidianUnofficialTypes";
 
 // This is a workaround to get the datacore API.
 // TODO: Remove once we can use datacore npm package
@@ -47,10 +48,15 @@ export class QueryEngine {
   private readonly MIN_QUERY_LENGTH = 2;
 
   constructor(app: App) {
-    const appWithPlugins = app as AppWithPlugins;
-    this.dc = appWithPlugins.plugins?.plugins?.["datacore"]?.api as
-      | { query: (query: string) => DatacorePage[] }
+    const appWithPlugins = app as AppWithUnofficialApis;
+    const datacorePlugin = appWithPlugins.plugins?.plugins?.["datacore"] as
+      | (Plugin & {
+          api: {
+            query: (query: string) => DatacorePage[];
+          };
+        })
       | undefined;
+    this.dc = datacorePlugin?.api;
     this.app = app;
   }
 
