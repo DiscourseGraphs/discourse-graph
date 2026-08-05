@@ -1,8 +1,9 @@
 import type {
-  MetadataTypeManager,
+  AppWithUnofficialApis,
   PropertyWidget,
   PropertyWidgetComponentBase,
-} from "obsidian-typings";
+  MetadataTypeManager,
+} from "./obsidianUnofficialTypes";
 import type DiscourseGraphPlugin from "~/index";
 import { getNodeTypeById } from "~/utils/typeUtils";
 
@@ -60,19 +61,19 @@ export const registerNodeTypeIdPropertyWidget = (
 export const unregisterNodeTypeIdPropertyWidget = (
   plugin: DiscourseGraphPlugin,
 ): void => {
-  const metadataTypeManager = (
-    plugin.app as unknown as { metadataTypeManager: MetadataTypeManager }
-  ).metadataTypeManager;
+  const metadataTypeManager = (plugin.app as AppWithUnofficialApis)
+    .metadataTypeManager;
 
-  try {
-    if (
-      metadataTypeManager.getAssignedWidget(NODE_TYPE_ID_PROPERTY_KEY) ===
-      WIDGET_TYPE
-    ) {
-      void metadataTypeManager.unsetType(NODE_TYPE_ID_PROPERTY_KEY);
+  if (metadataTypeManager)
+    try {
+      if (
+        metadataTypeManager.getAssignedWidget(NODE_TYPE_ID_PROPERTY_KEY) ===
+        WIDGET_TYPE
+      ) {
+        void metadataTypeManager.unsetType(NODE_TYPE_ID_PROPERTY_KEY);
+      }
+      delete metadataTypeManager.registeredTypeWidgets[WIDGET_TYPE];
+    } catch (error) {
+      console.error(error);
     }
-    delete metadataTypeManager.registeredTypeWidgets[WIDGET_TYPE];
-  } catch (error) {
-    console.error(error);
-  }
 };

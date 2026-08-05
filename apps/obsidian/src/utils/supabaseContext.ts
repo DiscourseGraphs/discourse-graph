@@ -7,7 +7,7 @@ import {
   FatalError,
 } from "@repo/database/lib/contextFunctions";
 import type DiscourseGraphPlugin from "~/index";
-
+import type { AppWithUnofficialApis } from "./obsidianUnofficialTypes";
 type Platform = Enums<"Platform">;
 
 export type SupabaseContext = {
@@ -58,7 +58,7 @@ const getOrCreateAccountLocalId = async (
  * @see https://help.obsidian.md/Extending+Obsidian/Obsidian+URI
  */
 export const getVaultId = (app: DiscourseGraphPlugin["app"]): string => {
-  return (app as unknown as { appId: string }).appId;
+  return (app as AppWithUnofficialApis).appId;
 };
 
 /** Canonical space URL for an Obsidian vault; stored as Space.url in the DB. */
