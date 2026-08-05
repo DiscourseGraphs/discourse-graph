@@ -30,9 +30,6 @@ const IMPORT_ERROR_OPERATION = "import-shared-nodes";
 const formatModifiedAt = (modifiedAt: string): string =>
   new Date(modifiedAt).toLocaleString();
 
-const isImportableSharedNode = (node: SharedNode): boolean =>
-  node.platform === "Obsidian";
-
 const SharedNodeRow = ({
   node,
   alreadyImported,
@@ -52,7 +49,7 @@ const SharedNodeRow = ({
         aria-label={`Select ${node.title}`}
         checked={selected}
         className="m-0"
-        disabled={selectionDisabled || !isImportableSharedNode(node)}
+        disabled={selectionDisabled}
         onChange={onToggleSelected}
       />
     </td>
@@ -209,15 +206,10 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     );
   }, [nodes, searchTerm]);
 
-  const importableVisibleRids = visibleNodes
-    .filter(isImportableSharedNode)
-    .map((node) => node.rid);
+  const visibleRids = visibleNodes.map((node) => node.rid);
   const allVisibleSelected =
-    importableVisibleRids.length > 0 &&
-    importableVisibleRids.every((rid) => selectedRids.has(rid));
-  const someVisibleSelected = importableVisibleRids.some((rid) =>
-    selectedRids.has(rid),
-  );
+    visibleRids.length > 0 && visibleRids.every((rid) => selectedRids.has(rid));
+  const someVisibleSelected = visibleRids.some((rid) => selectedRids.has(rid));
 
   const toggleNodeSelected = (rid: string): void => {
     setSelectedRids((previous) => {
@@ -231,9 +223,8 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
   const toggleAllVisibleSelected = (): void => {
     setSelectedRids((previous) => {
       const next = new Set(previous);
-      if (allVisibleSelected)
-        importableVisibleRids.forEach((rid) => next.delete(rid));
-      else importableVisibleRids.forEach((rid) => next.add(rid));
+      if (allVisibleSelected) visibleRids.forEach((rid) => next.delete(rid));
+      else visibleRids.forEach((rid) => next.add(rid));
       return next;
     });
   };
@@ -360,10 +351,10 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
                 <tr>
                   <th>
                     <Checkbox
-                      aria-label="Select all importable nodes"
+                      aria-label="Select all nodes"
                       checked={allVisibleSelected}
                       className="m-0"
-                      disabled={importing || importableVisibleRids.length === 0}
+                      disabled={importing || visibleRids.length === 0}
                       indeterminate={!allVisibleSelected && someVisibleSelected}
                       onChange={toggleAllVisibleSelected}
                     />

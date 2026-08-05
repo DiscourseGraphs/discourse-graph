@@ -1,6 +1,7 @@
 import {
   contentTypes,
   stripFrontmatter,
+  stripTitleHeading,
   trimBlankLines,
 } from "@repo/content-model";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
@@ -110,11 +111,6 @@ const failure = ({
 const validateSharedNode = (
   sharedNode: SharedNode,
 ): { error: string } | { sourceModifiedAt: string; title: string } => {
-  if (sharedNode.platform !== "Obsidian")
-    return {
-      error: `Materialization only supports Obsidian-origin nodes, and this node comes from ${sharedNode.platform}`,
-    };
-
   if (!isRid(sharedNode.rid))
     return { error: `Source node RID "${sharedNode.rid}" is not a RID` };
 
@@ -147,11 +143,19 @@ const fetchFullMarkdown = async ({
     .maybeSingle();
   if (error) return { error: error.message };
   if (!data?.text) return { markdown: "" };
-  if (data.content_type !== contentTypes.obsidianMarkdown)
+  const expectedContentType =
+    sharedNode.platform === "Roam"
+      ? contentTypes.roamMarkdown
+      : contentTypes.obsidianMarkdown;
+  if (data.content_type !== expectedContentType)
     return {
-      error: `Unsupported full content type "${data.content_type}" — expected "${contentTypes.obsidianMarkdown}"`,
+      error: `Unsupported full content type "${data.content_type}" — expected "${expectedContentType}"`,
     };
-  const markdown = trimBlankLines(stripFrontmatter(data.text));
+  const withoutPreamble =
+    sharedNode.platform === "Roam"
+      ? stripTitleHeading({ markdown: data.text, title: sharedNode.title })
+      : stripFrontmatter(data.text);
+  const markdown = trimBlankLines(withoutPreamble);
   return { markdown: markdown.trim() ? markdown : "" };
 };
 

@@ -63,6 +63,16 @@ const sharedNode: SharedNode = {
   directMetadata: null,
 };
 
+const roamSharedNode: SharedNode = {
+  ...sharedNode,
+  rid: "https://roamresearch.com/#/app/source-graph/node-2",
+  sourceLocalId: "node-2",
+  spaceId: 21,
+  spaceName: "Source graph",
+  spaceUri: "https://roamresearch.com/#/app/source-graph",
+  platform: "Roam",
+};
+
 const FULL_MARKDOWN = [
   "---",
   "nodeTypeId: evidence",
@@ -335,20 +345,82 @@ describe("materializeSharedNode", () => {
     expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
   });
 
-  it("rejects a non-Obsidian source before fetching content", async () => {
-    const { client, from } = clientWithFullContent({ text: FULL_MARKDOWN });
+  it("imports a Roam-origin node and strips the duplicated title heading", async () => {
+    const { client } = clientWithFullContent({
+      text: `# ${roamSharedNode.title}\n\n- REM sleep improves recall\n`,
+      contentType: "text/roam+markdown",
+    });
+
+    await expect(
+      materializeSharedNode({ client, sharedNode: roamSharedNode }),
+    ).resolves.toEqual({
+      success: true,
+      action: "created",
+      pageUid: GENERATED_PAGE_UID,
+      sourceModifiedAt: roamSharedNode.lastModified,
+      sourceNodeRid: roamSharedNode.rid,
+    });
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: roamSharedNode.title, uid: GENERATED_PAGE_UID },
+      "markdown-string": "- REM sleep improves recall",
+    });
+  });
+
+  it("keeps a first line that does not match the shared title exactly", async () => {
+    const { client } = clientWithFullContent({
+      text: "# Some other heading\n\n- body",
+      contentType: "text/roam+markdown",
+    });
 
     const result = await materializeSharedNode({
       client,
-      sharedNode: { ...sharedNode, platform: "Roam" },
+      sharedNode: roamSharedNode,
+    });
+
+    expect(result.success).toBe(true);
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: roamSharedNode.title, uid: GENERATED_PAGE_UID },
+      "markdown-string": "# Some other heading\n\n- body",
+    });
+  });
+
+  it("creates a title-only page when Roam full content is only the heading", async () => {
+    const { client } = clientWithFullContent({
+      text: `# ${roamSharedNode.title}\n`,
+      contentType: "text/roam+markdown",
+    });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: roamSharedNode,
+    });
+
+    expect(result.success).toBe(true);
+    expect(pageCreate).toHaveBeenCalledWith({
+      page: { title: roamSharedNode.title, uid: GENERATED_PAGE_UID },
+    });
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
+  });
+
+  it("rejects Obsidian markdown on a Roam-origin node", async () => {
+    const { client } = clientWithFullContent({
+      text: `# ${roamSharedNode.title}\n\n- body`,
+      contentType: "text/obsidian+markdown",
+    });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: roamSharedNode,
     });
 
     expect(result).toMatchObject({
       success: false,
-      error: { stage: "validate-input" },
+      error: { stage: "fetch-content" },
     });
-    expect(result.success === false && result.error.message).toContain("Roam");
-    expect(from).not.toHaveBeenCalled();
+    expect(result.success === false && result.error.message).toContain(
+      "text/roam+markdown",
+    );
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
   });
 
   it("rejects a source identifier that is not a RID", async () => {
