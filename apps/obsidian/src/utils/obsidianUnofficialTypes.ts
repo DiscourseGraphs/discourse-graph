@@ -87,7 +87,7 @@ export type PropertyWidget<
   validate(value: unknown): boolean;
 };
 
-export type PropertyWidgetEntry = {
+type PropertyWidgetEntry = {
   /**
    * Display name of the property widget.
    */
@@ -126,7 +126,7 @@ type TypeInfo = {
 
 type PropertyWidgetType = string;
 
-export type MetadataTypeManager = {
+type MetadataTypeManager = {
   /**
    * Reference to the {@link obsidian#App}.
    */

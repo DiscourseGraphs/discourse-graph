@@ -42,7 +42,7 @@ import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
 import {
   registerNodeTypeIdPropertyWidget,
   unregisterNodeTypeIdPropertyWidget,
-} from "~/utils/nodeTypeIdPropertyWidget";
+} from "~/components/nodeTypeIdPropertyWidget";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };

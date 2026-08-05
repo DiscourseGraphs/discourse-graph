@@ -2,13 +2,17 @@ import type {
   AppWithUnofficialApis,
   PropertyWidget,
   PropertyWidgetComponentBase,
-  MetadataTypeManager,
-} from "./obsidianUnofficialTypes";
+} from "~/utils/obsidianUnofficialTypes";
 import type DiscourseGraphPlugin from "~/index";
 import { getNodeTypeById } from "~/utils/typeUtils";
 
 export const NODE_TYPE_ID_PROPERTY_KEY = "nodeTypeId";
 const WIDGET_TYPE = "dg-node-type-id";
+
+type NodeTypeIdPropertyWidgetComponent = PropertyWidgetComponentBase;
+
+type NodeTypeIdPropertyWidget =
+  PropertyWidget<NodeTypeIdPropertyWidgetComponent>;
 
 /**
  * Obsidian's frontmatter Properties UI (reading view + live preview) renders each
@@ -19,7 +23,7 @@ const WIDGET_TYPE = "dg-node-type-id";
  */
 const createWidget = (
   plugin: DiscourseGraphPlugin,
-): PropertyWidget<PropertyWidgetComponentBase> => ({
+): NodeTypeIdPropertyWidget => ({
   type: WIDGET_TYPE,
   icon: "shapes",
   name: () => "Discourse node type",
