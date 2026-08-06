@@ -299,7 +299,12 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     if (this.helpMenuStatusBarItem) return;
     const item = this.addStatusBarItem();
-    item.addClass("dg-help-menu-status-bar-item");
+    item.addClass(
+      "dg-help-menu-status-bar-item",
+      "clickable-icon",
+      "text-muted",
+      "hover:text-normal",
+    );
     setTooltip(item, "Discourse Graph help menu");
     item.innerHTML = WHITE_LOGO_SVG;
     item.querySelector("svg")?.addClass("svg-icon");
