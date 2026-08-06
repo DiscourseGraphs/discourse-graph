@@ -305,7 +305,7 @@ export default class DiscourseGraphPlugin extends Plugin {
       "text-muted",
       "hover:text-normal",
     );
-    setTooltip(item, "Discourse Graph help menu");
+    setTooltip(item, "Discourse Graph help menu", { placement: "top" });
     item.innerHTML = WHITE_LOGO_SVG;
     item.querySelector("svg")?.addClass("svg-icon");
     item.addEventListener("click", (event) => {
