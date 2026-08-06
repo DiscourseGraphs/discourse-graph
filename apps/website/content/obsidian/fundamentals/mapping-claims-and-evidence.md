@@ -10,7 +10,7 @@ published: true
 **Discourse Relations** (_i.e._ supports, informs, opposes) are a means of illustrating the relationships between different discourse nodes related to your animating Question. We can use discourse relations to wire together claims and evidence from a single source, or (perhaps more interestingly) to connect evidence from multiple sources that is relevant to a claim or group of claims.
 
 ![Mapping claims and evidence](/docs/obsidian/claim-mapping01.png)
-_Different claims my be supported or opposed by evidence from different sources_
+_Different claims may be supported or opposed by evidence from different sources_
 
 In the image above, a single article provides two different pieces of evidence _supporting_ a particular claim, while an experiment and a simulation result both _oppose_ a second claim. A third source provides both supporting and opposing evidence for a third claim.
 
