@@ -1,0 +1,215 @@
+import { Modal, Notice } from "obsidian";
+import { StrictMode, useState } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { ZodError } from "zod";
+import type DiscourseGraphPlugin from "~/index";
+import {
+  applySchemaImportSelection,
+  pickAndPreviewSchemaImport,
+  type ImportPreviewStats,
+  type LoadedSchemaFile,
+  type SpecImportPreview,
+} from "~/utils/specImport";
+import { NativeFileDialogCancelledError } from "~/utils/nativeJsonFileDialogs";
+import { useSchemaSelection } from "~/components/useSchemaSelection";
+import { SchemaSelectionModalBody } from "~/components/SchemaSelectionModalBody";
+import { ImportSchemaPreviewSummary } from "~/components/ImportSchemaPreviewSummary";
+
+type ImportSpecsModalProps = {
+  plugin: DiscourseGraphPlugin;
+  onClose: () => void;
+};
+
+export const openImportSpecsModal = (plugin: DiscourseGraphPlugin): void => {
+  new ImportSpecsModal(plugin).open();
+};
+
+const ImportPreviewSelection = ({
+  plugin,
+  loadedSchemaFile,
+  previewStats,
+  isApplyingImport,
+  setIsApplyingImport,
+  onResetPreview,
+  onClose,
+}: {
+  plugin: DiscourseGraphPlugin;
+  loadedSchemaFile: LoadedSchemaFile;
+  previewStats: ImportPreviewStats;
+  isApplyingImport: boolean;
+  setIsApplyingImport: (value: boolean) => void;
+  onResetPreview: () => void;
+  onClose: () => void;
+}) => {
+  const schemaFile = loadedSchemaFile.schemaFile;
+  const source = {
+    nodeTypes: schemaFile.nodeTypes,
+    relationTypes: schemaFile.relationTypes,
+    relationTriples: schemaFile.discourseRelations,
+    templateNames: schemaFile.templates.map((template) => template.name),
+  };
+
+  const selection = useSchemaSelection({
+    source,
+    resetKey: loadedSchemaFile.sourcePath,
+  });
+
+  const handleApplyImport = async (): Promise<void> => {
+    const selected = selection.asSelectionPayload();
+    const hasAnySelection =
+      selected.nodeTypeIds.length > 0 ||
+      selected.relationTypeIds.length > 0 ||
+      selected.discourseRelationIds.length > 0 ||
+      selected.templateNames.length > 0;
+    if (!hasAnySelection) {
+      new Notice("Select at least one item to import.");
+      return;
+    }
+
+    setIsApplyingImport(true);
+    const warnings: string[] = [];
+    try {
+      const { created } = await applySchemaImportSelection({
+        plugin,
+        loadedSchemaFile,
+        selection: selected,
+        onWarning: (message) => warnings.push(message),
+      });
+
+      new Notice(
+        `Import complete: ${created.nodeTypes} node type(s), ${created.relationTypes} relation type(s), ${created.discourseRelations} relation triple(s), and ${created.templates} template(s) created.`,
+        7000,
+      );
+      if (warnings.length > 0) {
+        new Notice(`Import warnings:\n${warnings.join("\n")}`, 6000);
+      }
+      onClose();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(`Failed to import schema: ${message}`, 6000);
+      // Only the failure path stays mounted; the success path unmounted at onClose()
+      setIsApplyingImport(false);
+    }
+  };
+
+  return (
+    <>
+      <ImportSchemaPreviewSummary
+        loadedSchemaFile={loadedSchemaFile}
+        previewStats={previewStats}
+      />
+      <SchemaSelectionModalBody
+        title="Import schema preview"
+        description={`Source file: ${loadedSchemaFile.sourcePath}`}
+        source={source}
+        selection={selection}
+        onDependencyViolation={(message) => new Notice(message)}
+        footerSecondaryLabel="Choose another file"
+        onFooterSecondaryClick={onResetPreview}
+        footerPrimaryLabel={
+          isApplyingImport ? "Importing..." : "Import selected"
+        }
+        onFooterPrimaryClick={() => void handleApplyImport()}
+        isFooterSecondaryDisabled={isApplyingImport}
+        isFooterPrimaryDisabled={isApplyingImport}
+      />
+    </>
+  );
+};
+
+const ImportSpecsContent = ({ plugin, onClose }: ImportSpecsModalProps) => {
+  const [preview, setPreview] = useState<SpecImportPreview | null>(null);
+  const [isSelectingFile, setIsSelectingFile] = useState(false);
+  const [isApplyingImport, setIsApplyingImport] = useState(false);
+
+  const handleSelectSchemaFile = async (): Promise<void> => {
+    setIsSelectingFile(true);
+    try {
+      const nextPreview = await pickAndPreviewSchemaImport({ plugin });
+      setPreview(nextPreview);
+    } catch (error) {
+      if (error instanceof NativeFileDialogCancelledError) return;
+      if (error instanceof ZodError) {
+        const fields = error.issues.map((i) => i.path.join(".")).join(", ");
+        new Notice(
+          `Schema file is incompatible with this version of the plugin. Invalid or missing fields: ${fields}`,
+          8000,
+        );
+        return;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(`Failed to load schema file: ${message}`, 6000);
+    } finally {
+      setIsSelectingFile(false);
+    }
+  };
+
+  if (!preview) {
+    return (
+      <div>
+        <h3 className="mb-2">Import discourse graph schema</h3>
+        <p className="text-muted mb-4 text-sm">
+          Pick a <code>dg-schema-*.json</code> file from your computer to
+          preview and choose exactly what to import.
+        </p>
+
+        <div className="mb-4 rounded border p-3 text-sm">
+          Same dependency rules as export apply here during selection.
+        </div>
+
+        <div className="flex justify-between">
+          <button type="button" className="px-4 py-2" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="!bg-accent !text-on-accent rounded px-4 py-2"
+            onClick={() => void handleSelectSchemaFile()}
+            disabled={isSelectingFile}
+          >
+            {isSelectingFile ? "Opening..." : "Choose schema file"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ImportPreviewSelection
+      plugin={plugin}
+      loadedSchemaFile={preview.loadedSchemaFile}
+      previewStats={preview.previewStats}
+      isApplyingImport={isApplyingImport}
+      setIsApplyingImport={setIsApplyingImport}
+      onResetPreview={() => setPreview(null)}
+      onClose={onClose}
+    />
+  );
+};
+
+export class ImportSpecsModal extends Modal {
+  private plugin: DiscourseGraphPlugin;
+  private root: Root | null = null;
+
+  constructor(plugin: DiscourseGraphPlugin) {
+    super(plugin.app);
+    this.plugin = plugin;
+  }
+
+  onOpen(): void {
+    this.contentEl.empty();
+    this.root = createRoot(this.contentEl);
+    this.root.render(
+      <StrictMode>
+        <ImportSpecsContent plugin={this.plugin} onClose={() => this.close()} />
+      </StrictMode>,
+    );
+  }
+
+  onClose(): void {
+    if (this.root) {
+      this.root.unmount();
+      this.root = null;
+    }
+  }
+}
