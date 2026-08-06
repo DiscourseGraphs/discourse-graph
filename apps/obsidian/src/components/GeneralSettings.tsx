@@ -23,7 +23,10 @@ const ToggleSetting = ({
       <div className="setting-item-description">{description}</div>
     </div>
     <div className="setting-item-control">
-      <div className={`checkbox-container ${checked ? "is-enabled" : ""}`}>
+      <div
+        className={`checkbox-container ${checked ? "is-enabled" : ""}`}
+        onClick={() => onChange(!checked)}
+      >
         <input
           type="checkbox"
           checked={checked}
