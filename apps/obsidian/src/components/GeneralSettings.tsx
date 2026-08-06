@@ -4,10 +4,7 @@ import { setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
 import { DiscourseGraphLogoIcon, SlackLogoIcon } from "./Icons";
 import { FeedbackModal } from "./FeedbackModal";
-
-const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
-const COMMUNITY_URL =
-  "https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg";
+import { DOCS_URL, COMMUNITY_URL } from "~/constants";
 
 const InfoSection = () => {
   const plugin = usePlugin();
@@ -165,10 +162,20 @@ const GeneralSettings = () => {
   const [nodeTagHotkey, setNodeTagHotkey] = useState<string>(
     plugin.settings.nodeTagHotkey,
   );
+  const [showHelpMenuStatusBarIcon, setShowHelpMenuStatusBarIcon] = useState(
+    plugin.settings.showHelpMenuStatusBarIcon,
+  );
 
   const handleToggleChange = (newValue: boolean) => {
     setShowIdsInFrontmatter(newValue);
     plugin.settings.showIdsInFrontmatter = newValue;
+    void plugin.saveSettings();
+  };
+
+  const handleHelpMenuStatusBarIconToggleChange = (newValue: boolean) => {
+    setShowHelpMenuStatusBarIcon(newValue);
+    plugin.settings.showHelpMenuStatusBarIcon = newValue;
+    plugin.setHelpMenuStatusBarItemVisibility(newValue);
     void plugin.saveSettings();
   };
 
@@ -312,6 +319,30 @@ const GeneralSettings = () => {
             placeholder="\"
             maxLength={1}
           />
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">
+            Show help menu icon in status bar
+          </div>
+          <div className="setting-item-description">
+            Adds a Discourse Graph icon to the status bar that opens a menu with
+            feedback, docs, community, and settings links.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <div
+            className={`checkbox-container ${showHelpMenuStatusBarIcon ? "is-enabled" : ""}`}
+            onClick={() =>
+              handleHelpMenuStatusBarIconToggleChange(
+                !showHelpMenuStatusBarIcon,
+              )
+            }
+          >
+            <input type="checkbox" checked={showHelpMenuStatusBarIcon} />
+          </div>
         </div>
       </div>
 

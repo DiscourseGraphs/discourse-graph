@@ -39,6 +39,8 @@ import {
 } from "~/utils/relationsStore";
 import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
+import { showHelpMenu } from "~/utils/helpMenu";
+import { WHITE_LOGO_SVG } from "~/icons";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -51,6 +53,7 @@ export default class DiscourseGraphPlugin extends Plugin {
   private currentViewActions: { leaf: WorkspaceLeaf; action: HTMLElement }[] =
     [];
   private pendingCanvasSwitches = new Set<string>();
+  private helpMenuStatusBarItem: HTMLElement | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -89,6 +92,9 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
+    this.setHelpMenuStatusBarItemVisibility(
+      this.settings.showHelpMenuStatusBarIcon,
+    );
 
     this.registerEvent(
       this.app.workspace.on(
@@ -283,6 +289,24 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     // Register editor keydown listener for node tag hotkey
     this.setupNodeTagHotkey();
+  }
+
+  setHelpMenuStatusBarItemVisibility(visible: boolean): void {
+    if (visible) {
+      if (this.helpMenuStatusBarItem) return;
+      const item = this.addStatusBarItem();
+      item.addClass("dg-help-menu-status-bar-item");
+      item.setAttribute("aria-label", "Discourse Graph help menu");
+      item.innerHTML = WHITE_LOGO_SVG;
+      item.querySelector("svg")?.classList.add("svg-icon");
+      item.addEventListener("click", (event) => {
+        showHelpMenu({ plugin: this, event });
+      });
+      this.helpMenuStatusBarItem = item;
+    } else {
+      this.helpMenuStatusBarItem?.remove();
+      this.helpMenuStatusBarItem = null;
+    }
   }
 
   private setupNodeTagHotkey() {
