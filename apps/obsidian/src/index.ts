@@ -43,10 +43,7 @@ import {
 import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
 import { showHelpMenu } from "~/utils/helpMenu";
-import {
-  DISCOURSE_GRAPH_LOGO_ICON_ID,
-  DISCOURSE_GRAPH_LOGO_ICON_SVG,
-} from "~/icons";
+import { DISCOURSE_GRAPH_LOGO_ICON_ID, WHITE_LOGO_SVG } from "~/icons";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -98,7 +95,7 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
-    addIcon(DISCOURSE_GRAPH_LOGO_ICON_ID, DISCOURSE_GRAPH_LOGO_ICON_SVG);
+    addIcon(DISCOURSE_GRAPH_LOGO_ICON_ID, WHITE_LOGO_SVG);
     this.setHelpMenuStatusBarItemVisibility();
 
     this.registerEvent(
