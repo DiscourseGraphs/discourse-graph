@@ -1,7 +1,12 @@
 import type DiscourseGraphPlugin from "~/index";
 import { uuidv7 } from "uuidv7";
 import { parseDgSchemaFile } from "~/utils/specValidation";
-import { createTemplateFile, getTemplateFiles } from "~/utils/templates";
+import {
+  createTemplateFile,
+  getTemplateFiles,
+  overwriteTemplateFile,
+  readTemplateContent,
+} from "~/utils/templates";
 import { openJsonFromUserLocation } from "~/utils/nativeJsonFileDialogs";
 import type {
   DiscourseNode,
@@ -17,23 +22,30 @@ import {
   findExistingTriple,
   findLocalNodeTypeMatch,
   findLocalRelationTypeMatch,
+  type SchemaImportMatchPlan,
 } from "~/utils/schemaMatching";
+import {
+  buildSchemaConflicts,
+  MERGEABLE_NODE_TYPE_FIELDS,
+  MERGEABLE_RELATION_TYPE_FIELDS,
+  type SchemaConflict,
+} from "~/utils/schemaFieldDiff";
+
+export type { SchemaImportMatchPlan };
 
 /**
- * Maps every id in the schema file to the local id it resolves to. The
- * `existing*` sets are schema-file ids that will NOT be created — either
- * because they already exist in the vault, or because they collapsed onto an
- * earlier item in the same file. Callers should resolve references through the
- * id mappings rather than assuming a schema id survives the import.
+ * Which fields the user opted to take from the imported file, for items that
+ * already exist locally. Keyed by schema-file id — template entries by name —
+ * because the match plan collapses schema types that collide by normalized
+ * name, so two schema ids can share one local id.
+ *
+ * An absent or empty entry means keep the local value: import is
+ * non-destructive unless the user explicitly ticked a field.
  */
-export type SchemaImportMatchPlan = {
-  nodeTypeIdMapping: Map<string, string>;
-  relationTypeIdMapping: Map<string, string>;
-  existingNodeTypeIds: Set<string>;
-  existingRelationTypeIds: Set<string>;
-  existingDiscourseRelationIds: Set<string>;
-  existingTemplateNames: Set<string>;
-  localTemplateNames: Set<string>;
+export type SchemaMergePlan = {
+  nodeTypeFields: ReadonlyMap<string, ReadonlySet<string>>;
+  relationTypeFields: ReadonlyMap<string, ReadonlySet<string>>;
+  templateNames: ReadonlySet<string>;
 };
 
 export type LoadedSchemaFile = {
@@ -52,13 +64,20 @@ export type ImportPreviewStats = {
 export type SpecImportPreview = {
   loadedSchemaFile: LoadedSchemaFile;
   previewStats: ImportPreviewStats;
+  conflicts: SchemaConflict[];
 };
 
+/** Relation triples are absent from `merged` because endpoints are their identity. */
 export type SpecImportApplyResult = {
   created: {
     nodeTypes: number;
     relationTypes: number;
     discourseRelations: number;
+    templates: number;
+  };
+  merged: {
+    nodeTypes: number;
+    relationTypes: number;
     templates: number;
   };
 };
@@ -188,6 +207,29 @@ const buildPreviewStats = ({
   };
 };
 
+/**
+ * Reads only the templates the file and the vault have in common — the rest
+ * cannot conflict, so their contents are never needed.
+ */
+const readOverlappingTemplateContents = async ({
+  plugin,
+  matchPlan,
+}: {
+  plugin: DiscourseGraphPlugin;
+  matchPlan: SchemaImportMatchPlan;
+}): Promise<Map<string, string>> => {
+  const entries = await Promise.all(
+    [...matchPlan.existingTemplateNames].map(async (templateName) => {
+      const content = await readTemplateContent({
+        app: plugin.app,
+        templateName,
+      });
+      return content === null ? [] : [[templateName, content] as const];
+    }),
+  );
+  return new Map(entries.flat());
+};
+
 export const pickAndPreviewSchemaImport = async ({
   plugin,
 }: {
@@ -212,21 +254,75 @@ export const pickAndPreviewSchemaImport = async ({
     matchPlan,
   };
 
+  const localTemplateContents = await readOverlappingTemplateContents({
+    plugin,
+    matchPlan,
+  });
+
   return {
     loadedSchemaFile,
     previewStats: buildPreviewStats({ schemaFile, matchPlan }),
+    conflicts: buildSchemaConflicts({
+      schemaFile,
+      matchPlan,
+      localNodeTypes: plugin.settings.nodeTypes,
+      localRelationTypes: plugin.settings.relationTypes,
+      localTemplateContents,
+    }),
   };
+};
+
+const mergeNodeTypeFields = ({
+  local,
+  imported,
+  fields,
+}: {
+  local: DiscourseNode;
+  imported: DiscourseNode;
+  fields: ReadonlySet<string>;
+}): DiscourseNode => {
+  const merged: DiscourseNode = { ...local, modified: Date.now() };
+  for (const field of MERGEABLE_NODE_TYPE_FIELDS) {
+    if (!fields.has(field)) continue;
+    // TypeScript cannot correlate merged[field] with imported[field] across a
+    // key union. MERGEABLE_NODE_TYPE_FIELDS is pinned to DiscourseNode by a
+    // `satisfies` clause, so field is always a real key and the write is sound.
+    (merged as Record<string, unknown>)[field] = imported[field];
+  }
+  return merged;
+};
+
+const mergeRelationTypeFields = ({
+  local,
+  imported,
+  fields,
+}: {
+  local: DiscourseRelationType;
+  imported: DiscourseRelationType;
+  fields: ReadonlySet<string>;
+}): DiscourseRelationType => {
+  const merged: DiscourseRelationType = { ...local, modified: Date.now() };
+  for (const field of MERGEABLE_RELATION_TYPE_FIELDS) {
+    if (!fields.has(field)) continue;
+    (merged as Record<string, unknown>)[field] = imported[field];
+  }
+  if (fields.has("color")) {
+    merged.color = toTldrawColor(merged.color);
+  }
+  return merged;
 };
 
 export const applySchemaImportSelection = async ({
   plugin,
   loadedSchemaFile,
   selection,
+  mergePlan,
   onWarning = () => {},
 }: {
   plugin: DiscourseGraphPlugin;
   loadedSchemaFile: LoadedSchemaFile;
   selection: SchemaSelection;
+  mergePlan?: SchemaMergePlan;
   onWarning?: (message: string) => void;
 }): Promise<SpecImportApplyResult> => {
   const { schemaFile, matchPlan } = loadedSchemaFile;
@@ -237,19 +333,36 @@ export const applySchemaImportSelection = async ({
   const selectedRelationIds = new Set(selection.discourseRelationIds);
 
   let templatesCreated = 0;
+  let templatesMerged = 0;
   const templatesByName = new Map(
     schemaFile.templates.map((template) => [template.name, template]),
   );
   for (const templateName of selectedTemplateNames) {
-    if (matchPlan.existingTemplateNames.has(templateName)) {
-      continue;
-    }
-
     const template = templatesByName.get(templateName);
     if (!template) {
       onWarning(
         `Template "${templateName}" was selected but not found in schema file.`,
       );
+      continue;
+    }
+
+    if (matchPlan.existingTemplateNames.has(templateName)) {
+      if (!mergePlan?.templateNames.has(templateName)) {
+        continue;
+      }
+
+      const overwriteResult = await overwriteTemplateFile({
+        app: plugin.app,
+        templateName: template.name,
+        content: template.content,
+      });
+      if (overwriteResult.overwritten) {
+        templatesMerged += 1;
+      } else {
+        onWarning(
+          `Template "${template.name}" not overwritten: ${overwriteResult.reason}.`,
+        );
+      }
       continue;
     }
 
@@ -280,16 +393,41 @@ export const applySchemaImportSelection = async ({
   );
 
   let nodeTypesCreated = 0;
+  let nodeTypesMerged = 0;
   for (const nodeTypeId of selectedNodeTypeIds) {
-    if (matchPlan.existingNodeTypeIds.has(nodeTypeId)) {
-      continue;
-    }
-
     const importedNodeType = schemaNodeTypesById.get(nodeTypeId);
     if (!importedNodeType) {
       onWarning(
         `Node type "${nodeTypeId}" was selected but missing from schema file.`,
       );
+      continue;
+    }
+
+    if (matchPlan.existingNodeTypeIds.has(nodeTypeId)) {
+      const mergedFields = mergePlan?.nodeTypeFields.get(nodeTypeId);
+      if (!mergedFields?.size) {
+        continue;
+      }
+
+      const localId = matchPlan.nodeTypeIdMapping.get(nodeTypeId);
+      const localIndex = plugin.settings.nodeTypes.findIndex(
+        (nodeType) => nodeType.id === localId,
+      );
+      if (localIndex === -1) {
+        onWarning(
+          `Node type "${importedNodeType.name}" matched an existing type that is no longer present.`,
+        );
+        continue;
+      }
+
+      const nextNodeTypes = [...plugin.settings.nodeTypes];
+      nextNodeTypes[localIndex] = mergeNodeTypeFields({
+        local: nextNodeTypes[localIndex]!,
+        imported: importedNodeType,
+        fields: mergedFields,
+      });
+      plugin.settings.nodeTypes = nextNodeTypes;
+      nodeTypesMerged += 1;
       continue;
     }
 
@@ -312,16 +450,41 @@ export const applySchemaImportSelection = async ({
   }
 
   let relationTypesCreated = 0;
+  let relationTypesMerged = 0;
   for (const relationTypeId of selectedRelationTypeIds) {
-    if (matchPlan.existingRelationTypeIds.has(relationTypeId)) {
-      continue;
-    }
-
     const importedRelationType = schemaRelationTypesById.get(relationTypeId);
     if (!importedRelationType) {
       onWarning(
         `Relation type "${relationTypeId}" was selected but missing from schema file.`,
       );
+      continue;
+    }
+
+    if (matchPlan.existingRelationTypeIds.has(relationTypeId)) {
+      const mergedFields = mergePlan?.relationTypeFields.get(relationTypeId);
+      if (!mergedFields?.size) {
+        continue;
+      }
+
+      const localId = matchPlan.relationTypeIdMapping.get(relationTypeId);
+      const localIndex = plugin.settings.relationTypes.findIndex(
+        (relationType) => relationType.id === localId,
+      );
+      if (localIndex === -1) {
+        onWarning(
+          `Relation type "${importedRelationType.label}" matched an existing type that is no longer present.`,
+        );
+        continue;
+      }
+
+      const nextRelationTypes = [...plugin.settings.relationTypes];
+      nextRelationTypes[localIndex] = mergeRelationTypeFields({
+        local: nextRelationTypes[localIndex]!,
+        imported: importedRelationType,
+        fields: mergedFields,
+      });
+      plugin.settings.relationTypes = nextRelationTypes;
+      relationTypesMerged += 1;
       continue;
     }
 
@@ -400,6 +563,11 @@ export const applySchemaImportSelection = async ({
       relationTypes: relationTypesCreated,
       discourseRelations: discourseRelationsCreated,
       templates: templatesCreated,
+    },
+    merged: {
+      nodeTypes: nodeTypesMerged,
+      relationTypes: relationTypesMerged,
+      templates: templatesMerged,
     },
   };
 };

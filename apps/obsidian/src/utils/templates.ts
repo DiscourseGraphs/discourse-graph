@@ -272,6 +272,64 @@ export const createTemplateFile = async ({
   return { created: true };
 };
 
+export const readTemplateContent = async ({
+  app,
+  templateName,
+}: {
+  app: App;
+  templateName: string;
+}): Promise<string | null> => {
+  const { isEnabled, folderPath } = getTemplatePluginInfo(app);
+  if (!isEnabled || !folderPath) {
+    return null;
+  }
+
+  const sanitizedName = sanitizeTemplateName(templateName);
+  const templateFile = app.vault.getAbstractFileByPath(
+    `${folderPath}/${sanitizedName}.md`,
+  );
+  if (!(templateFile instanceof TFile)) {
+    return null;
+  }
+
+  return app.vault.read(templateFile);
+};
+
+/**
+ * The deliberate opt-in counterpart to createTemplateFile, which refuses to
+ * clobber a local template. Only reachable when the user ticked this template's
+ * content in the import conflict step.
+ */
+export const overwriteTemplateFile = async ({
+  app,
+  templateName,
+  content,
+}: CreateTemplateFileInput): Promise<
+  { overwritten: true } | { overwritten: false; reason: string }
+> => {
+  const { isEnabled, folderPath } = getTemplatePluginInfo(app);
+  if (!isEnabled) {
+    return { overwritten: false, reason: "Templates plugin is not enabled" };
+  }
+  if (!folderPath) {
+    return {
+      overwritten: false,
+      reason: "Templates folder path is not configured",
+    };
+  }
+
+  const sanitizedName = sanitizeTemplateName(templateName);
+  const templateFile = app.vault.getAbstractFileByPath(
+    `${folderPath}/${sanitizedName}.md`,
+  );
+  if (!(templateFile instanceof TFile)) {
+    return { overwritten: false, reason: "template not found" };
+  }
+
+  await app.vault.modify(templateFile, content);
+  return { overwritten: true };
+};
+
 export const createTemplateFileWithUniqueName = async ({
   app,
   templateName,
