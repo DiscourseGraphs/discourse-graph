@@ -272,6 +272,29 @@ export const createTemplateFile = async ({
   return { created: true };
 };
 
+export const readTemplateContent = async ({
+  app,
+  templateName,
+}: {
+  app: App;
+  templateName: string;
+}): Promise<string | null> => {
+  const { isEnabled, folderPath } = getTemplatePluginInfo(app);
+  if (!isEnabled || !folderPath) {
+    return null;
+  }
+
+  const sanitizedName = sanitizeTemplateName(templateName);
+  const templateFile = app.vault.getAbstractFileByPath(
+    `${folderPath}/${sanitizedName}.md`,
+  );
+  if (!(templateFile instanceof TFile)) {
+    return null;
+  }
+
+  return app.vault.read(templateFile);
+};
+
 export const createTemplateFileWithUniqueName = async ({
   app,
   templateName,
