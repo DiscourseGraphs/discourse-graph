@@ -202,7 +202,7 @@ const GeneralSettings = () => {
   const handleHelpMenuStatusBarIconToggleChange = (newValue: boolean) => {
     setShowHelpMenuStatusBarIcon(newValue);
     plugin.settings.showHelpMenuStatusBarIcon = newValue;
-    plugin.setHelpMenuStatusBarItemVisibility(newValue);
+    plugin.setHelpMenuStatusBarItemVisibility();
     void plugin.saveSettings();
   };
 

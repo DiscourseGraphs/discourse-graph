@@ -96,9 +96,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
     addIcon(DISCOURSE_GRAPH_LOGO_ICON_ID, WHITE_LOGO_SVG);
-    this.setHelpMenuStatusBarItemVisibility(
-      this.settings.showHelpMenuStatusBarIcon,
-    );
+    this.setHelpMenuStatusBarItemVisibility();
 
     this.registerEvent(
       this.app.workspace.on(
@@ -295,8 +293,8 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.setupNodeTagHotkey();
   }
 
-  setHelpMenuStatusBarItemVisibility(visible: boolean): void {
-    if (visible) {
+  setHelpMenuStatusBarItemVisibility(): void {
+    if (this.settings.showHelpMenuStatusBarIcon) {
       if (this.helpMenuStatusBarItem) return;
       const item = this.addStatusBarItem();
       item.addClass("dg-help-menu-status-bar-item");
