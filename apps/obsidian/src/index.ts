@@ -6,6 +6,7 @@ import {
   MarkdownView,
   WorkspaceLeaf,
   Notice,
+  setTooltip,
 } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { SettingsTab } from "~/components/Settings";
@@ -296,7 +297,7 @@ export default class DiscourseGraphPlugin extends Plugin {
       if (this.helpMenuStatusBarItem) return;
       const item = this.addStatusBarItem();
       item.addClass("dg-help-menu-status-bar-item");
-      item.setAttribute("aria-label", "Discourse Graph help menu");
+      setTooltip(item, "Discourse Graph help menu");
       item.innerHTML = WHITE_LOGO_SVG;
       item.querySelector("svg")?.classList.add("svg-icon");
       item.addEventListener("click", (event) => {
