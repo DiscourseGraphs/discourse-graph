@@ -7,6 +7,8 @@ import {
   WorkspaceLeaf,
   Notice,
   setTooltip,
+  addIcon,
+  setIcon,
 } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { SettingsTab } from "~/components/Settings";
@@ -41,7 +43,10 @@ import {
 import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
 import { showHelpMenu } from "~/utils/helpMenu";
-import { WHITE_LOGO_SVG } from "~/icons";
+import {
+  DISCOURSE_GRAPH_LOGO_ICON_ID,
+  DISCOURSE_GRAPH_LOGO_ICON_SVG,
+} from "~/icons";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -93,6 +98,7 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
+    addIcon(DISCOURSE_GRAPH_LOGO_ICON_ID, DISCOURSE_GRAPH_LOGO_ICON_SVG);
     this.setHelpMenuStatusBarItemVisibility();
 
     this.registerEvent(
@@ -306,8 +312,7 @@ export default class DiscourseGraphPlugin extends Plugin {
       "hover:text-normal",
     );
     setTooltip(item, "Discourse Graph help menu", { placement: "top" });
-    item.innerHTML = WHITE_LOGO_SVG;
-    item.querySelector("svg")?.addClass("svg-icon");
+    setIcon(item, DISCOURSE_GRAPH_LOGO_ICON_ID);
     item.addEventListener("click", (event) => {
       showHelpMenu({ plugin: this, event });
     });
