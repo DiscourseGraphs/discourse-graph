@@ -23,18 +23,18 @@ _Linking evidence to claims, assigning weights to evidence, assessing sources_
 
 ## Orienting your map
 
-Relations carry semantic information about the relationship of different nodes to each other, but they also help to orient your graph in conceptual space.
+In addition to carrying semantic information about the relationship of different nodes to each other, relations help to orient your graph in conceptual space.
 
 ### Spotting gaps in methodology
 
 A researcher clustering sources by methodology, for instance, might find that conflicting support for a particular claim could potentially be resolved by using a method from a more distant conceptual space.
 
 ![evidence clustering suggests novel method](<../../../public/docs/obsidian/evidence gap-selection02.png>)
-_Mind the gap: there are ideas for different experiments to be found within_
+_Mind the gap: there are ideas for different experiments to be found within!_
 
 ### Finding unsynthesized claims
 
-Similarly, a researcher performing a literature synthesis might find that certain extracted claims require more substantiation -- either by revisiting the literature to make sure all of the authors' evidence has been captured, or designing a new study.
+Similarly, a researcher performing a literature synthesis might find that certain extracted claims require more substantiation -- either by revisiting the literature to make sure all of the authors' evidence has been captured, or by designing a new study.
 
 ![spotting gaps in your evidence map](/docs/obsidian/gap-spotting.png)
 _Gap spotting in a literature synthesis_
