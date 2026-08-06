@@ -4,8 +4,6 @@ interface:
   default_prompt: "Use $discourse-engineering-writing-style to draft a concise engineering team message."
 policy:
   products:
-    - "chatgpt"
-    - "codex"
-    - "api"
-    - "atlas"
+    - "CHAT"
+    - "CODEX"
   allow_implicit_invocation: true
