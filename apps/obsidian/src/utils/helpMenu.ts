@@ -26,7 +26,7 @@ export const showHelpMenu = ({
       .setTitle("Docs")
       .setIcon("book")
       .onClick(() => {
-        window.open(DOCS_URL, "_blank");
+        window.open(DOCS_URL, "_blank", "noopener,noreferrer");
       }),
   );
 
@@ -35,7 +35,7 @@ export const showHelpMenu = ({
       .setTitle("Community")
       .setIcon("users")
       .onClick(() => {
-        window.open(COMMUNITY_URL, "_blank");
+        window.open(COMMUNITY_URL, "_blank", "noopener,noreferrer");
       }),
   );
 
