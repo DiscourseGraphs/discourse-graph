@@ -332,7 +332,10 @@ export const applySchemaImportSelection = async ({
         spaceUri: sourceSpaceUri,
         localId: importedRelationType.id,
       }),
-      status: "provisional",
+      // Accepted rather than provisional: unlike the Supabase space import, the
+      // user chose this file and hand-picked these items, so there is nothing
+      // left to review. The rid is kept for provenance only.
+      status: "accepted",
       modified: Date.now(),
     };
     plugin.settings.relationTypes = [
@@ -379,7 +382,7 @@ export const applySchemaImportSelection = async ({
         spaceUri: sourceSpaceUri,
         localId: relation.id,
       }),
-      status: "provisional",
+      status: "accepted",
       modified: Date.now(),
     };
     plugin.settings.discourseRelations = [
