@@ -12,7 +12,9 @@ import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeB
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import {
   findImportedNodeUidBySourceRid,
+  readImportedSourceIdentity,
   writeImportedSourceIdentity,
+  type ImportedSourceIdentity,
 } from "./importedSourceIdentity";
 
 type MaterializationStage =
@@ -41,7 +43,7 @@ type MaterializationFailure = SourceIdentity & {
 
 type MaterializationSuccess = SourceIdentity & {
   success: true;
-  action: "created" | "updated";
+  action: "created" | "updated" | "skipped";
   pageUid: string;
 };
 
@@ -67,8 +69,21 @@ type RoamMarkdownApi = {
 const getRoamMarkdownApi = (): RoamMarkdownApi =>
   window.roamAlphaAPI.data as unknown as RoamMarkdownApi;
 
-const getErrorMessage = (error: unknown): string =>
+export const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
+
+const isImportUpToDate = ({
+  sourceModifiedAt,
+  storedModifiedAt,
+}: {
+  sourceModifiedAt: string;
+  storedModifiedAt: string;
+}): boolean => {
+  const storedTime = Date.parse(storedModifiedAt);
+  return (
+    !Number.isNaN(storedTime) && storedTime >= Date.parse(sourceModifiedAt)
+  );
+};
 
 const failure = ({
   error,
@@ -295,6 +310,37 @@ export const materializeSharedNode = async ({
     sourceNodeRid: sharedNode.rid,
   };
 
+  let importedPageUid: string | null;
+  let storedIdentity: ImportedSourceIdentity | undefined;
+  try {
+    importedPageUid = await findImportedNodeUidBySourceRid(sharedNode.rid);
+    storedIdentity = importedPageUid
+      ? readImportedSourceIdentity(importedPageUid)
+      : undefined;
+  } catch (error) {
+    return failure({
+      error,
+      identity,
+      message: `Failed to look up an existing import of "${sharedNode.title}"`,
+      stage: "find-imported-node",
+    });
+  }
+
+  if (
+    importedPageUid &&
+    storedIdentity &&
+    isImportUpToDate({
+      sourceModifiedAt: identity.sourceModifiedAt,
+      storedModifiedAt: storedIdentity.sourceModifiedAt,
+    })
+  )
+    return {
+      ...identity,
+      success: true,
+      action: "skipped",
+      pageUid: importedPageUid,
+    };
+
   const content = await fetchFullMarkdown({ client, sharedNode }).catch(
     (error: unknown) => ({ error: getErrorMessage(error) }),
   );
@@ -304,18 +350,6 @@ export const materializeSharedNode = async ({
       message: `Could not fetch the content of "${sharedNode.title}" from "${sharedNode.spaceName}": ${content.error}`,
       stage: "fetch-content",
     });
-
-  let importedPageUid: string | null;
-  try {
-    importedPageUid = await findImportedNodeUidBySourceRid(sharedNode.rid);
-  } catch (error) {
-    return failure({
-      error,
-      identity,
-      message: `Failed to look up an existing import of "${sharedNode.title}"`,
-      stage: "find-imported-node",
-    });
-  }
 
   return importedPageUid
     ? updateImportedPage({
