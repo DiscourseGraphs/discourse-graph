@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   normalizeLineEndings,
   stripFrontmatter,
+  stripTitleHeading,
   trimBlankLines,
 } from "../text/index.js";
 
@@ -20,6 +21,36 @@ describe("trimBlankLines", () => {
 
   it("leaves a whitespace-only single line for the caller to judge", () => {
     expect(trimBlankLines("   ")).toBe("   ");
+  });
+});
+
+describe("stripTitleHeading", () => {
+  it("strips a title heading first line and following blank lines", () => {
+    expect(
+      stripTitleHeading({ markdown: "# Title\n\nbody", title: "Title" }),
+    ).toBe("body");
+  });
+
+  it("leaves markdown whose first line differs from the title", () => {
+    expect(
+      stripTitleHeading({ markdown: "# Other\n\nbody", title: "Title" }),
+    ).toBe("# Other\n\nbody");
+  });
+
+  it("requires an exact match, not a prefix", () => {
+    expect(
+      stripTitleHeading({ markdown: "# Title extra\nbody", title: "Title" }),
+    ).toBe("# Title extra\nbody");
+  });
+
+  it("returns an empty string for heading-only markdown", () => {
+    expect(stripTitleHeading({ markdown: "# Title", title: "Title" })).toBe("");
+  });
+
+  it("handles CRLF line endings", () => {
+    expect(
+      stripTitleHeading({ markdown: "# Title\r\nbody", title: "Title" }),
+    ).toBe("body");
   });
 });
 
