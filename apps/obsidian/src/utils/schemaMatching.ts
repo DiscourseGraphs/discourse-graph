@@ -12,6 +12,26 @@ import type {
  * the same vault reached through the two paths would dedupe differently.
  */
 
+/**
+ * Maps every id in the schema file to the local id it resolves to. The
+ * `existing*` sets are schema-file ids that will NOT be created — either
+ * because they already exist in the vault, or because they collapsed onto an
+ * earlier item in the same file. Callers should resolve references through the
+ * id mappings rather than assuming a schema id survives the import.
+ *
+ * Lives here rather than beside the import apply logic so that both the apply
+ * path and the field-diff path can depend on it without a circular import.
+ */
+export type SchemaImportMatchPlan = {
+  nodeTypeIdMapping: Map<string, string>;
+  relationTypeIdMapping: Map<string, string>;
+  existingNodeTypeIds: Set<string>;
+  existingRelationTypeIds: Set<string>;
+  existingDiscourseRelationIds: Set<string>;
+  existingTemplateNames: Set<string>;
+  localTemplateNames: Set<string>;
+};
+
 export const normalizeSchemaLabel = (value: string): string => {
   return value.trim().toLowerCase();
 };
