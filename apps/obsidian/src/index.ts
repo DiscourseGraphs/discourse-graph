@@ -313,7 +313,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     );
     setTooltip(item, "Discourse Graph help menu", { placement: "top" });
     setIcon(item, DISCOURSE_GRAPH_LOGO_ICON_ID);
-    item.addEventListener("click", (event) => {
+    this.registerDomEvent(item, "click", (event) => {
       showHelpMenu({ plugin: this, event });
     });
     this.helpMenuStatusBarItem = item;
