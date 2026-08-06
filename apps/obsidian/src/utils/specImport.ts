@@ -272,14 +272,38 @@ export const pickAndPreviewSchemaImport = async ({
   };
 };
 
+/**
+ * A template reference only survives if the file will actually be there: either
+ * this run imports it, or the vault already has it. Otherwise the node type
+ * would point at a template that does not exist.
+ */
+const resolveTemplateReference = ({
+  template,
+  selectedTemplateNames,
+  localTemplateNames,
+}: {
+  template: string | undefined;
+  selectedTemplateNames: ReadonlySet<string>;
+  localTemplateNames: ReadonlySet<string>;
+}): string | undefined => {
+  if (!template) return undefined;
+  const willExist =
+    selectedTemplateNames.has(template) || localTemplateNames.has(template);
+  return willExist ? template : undefined;
+};
+
 const mergeNodeTypeFields = ({
   local,
   imported,
   fields,
+  selectedTemplateNames,
+  localTemplateNames,
 }: {
   local: DiscourseNode;
   imported: DiscourseNode;
   fields: ReadonlySet<string>;
+  selectedTemplateNames: ReadonlySet<string>;
+  localTemplateNames: ReadonlySet<string>;
 }): DiscourseNode => {
   const merged: DiscourseNode = { ...local, modified: Date.now() };
   for (const field of MERGEABLE_NODE_TYPE_FIELDS) {
@@ -288,6 +312,14 @@ const mergeNodeTypeFields = ({
     // key union. MERGEABLE_NODE_TYPE_FIELDS is pinned to DiscourseNode by a
     // `satisfies` clause, so field is always a real key and the write is sound.
     (merged as Record<string, unknown>)[field] = imported[field];
+  }
+  // Same guard the create path applies, so a merged reference cannot dangle.
+  if (fields.has("template")) {
+    merged.template = resolveTemplateReference({
+      template: merged.template,
+      selectedTemplateNames,
+      localTemplateNames,
+    });
   }
   return merged;
 };
@@ -421,11 +453,23 @@ export const applySchemaImportSelection = async ({
       }
 
       const nextNodeTypes = [...plugin.settings.nodeTypes];
-      nextNodeTypes[localIndex] = mergeNodeTypeFields({
+      const mergedNodeType = mergeNodeTypeFields({
         local: nextNodeTypes[localIndex]!,
         imported: importedNodeType,
         fields: mergedFields,
+        selectedTemplateNames,
+        localTemplateNames: matchPlan.localTemplateNames,
       });
+      if (
+        mergedFields.has("template") &&
+        importedNodeType.template &&
+        !mergedNodeType.template
+      ) {
+        onWarning(
+          `Template "${importedNodeType.template}" is not in this vault and was not selected, so "${mergedNodeType.name}" was merged without a template reference.`,
+        );
+      }
+      nextNodeTypes[localIndex] = mergedNodeType;
       plugin.settings.nodeTypes = nextNodeTypes;
       nodeTypesMerged += 1;
       continue;
@@ -433,12 +477,11 @@ export const applySchemaImportSelection = async ({
 
     const newNodeType: DiscourseNode = {
       ...importedNodeType,
-      template:
-        importedNodeType.template &&
-        (selectedTemplateNames.has(importedNodeType.template) ||
-          matchPlan.localTemplateNames.has(importedNodeType.template))
-          ? importedNodeType.template
-          : undefined,
+      template: resolveTemplateReference({
+        template: importedNodeType.template,
+        selectedTemplateNames,
+        localTemplateNames: matchPlan.localTemplateNames,
+      }),
       importedFromRid: buildSchemaRid({
         spaceUri: sourceSpaceUri,
         localId: importedNodeType.id,
