@@ -5,10 +5,7 @@ import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import ResultsView from "./results-view/ResultsView";
 import posthog from "posthog-js";
 import { CreateRelationButton } from "./CreateRelationDialog";
-import {
-  DISCOURSE_CONTEXT_MUTATION_REFRESH_EVENT,
-  type DiscourseContextMutationRefreshDetail,
-} from "~/utils/discourseContextMutationRefresh";
+import { useDiscourseContextMutationRefresh } from "~/utils/discourseContextMutationRefresh";
 
 export type DiscourseContextResults = Awaited<
   ReturnType<typeof getDiscourseContextResults>
@@ -155,14 +152,17 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
   }, []);
 
   const onRefresh = useCallback(
-    (ignoreCache = true) => {
+    (
+      ignoreCache = true,
+      { skipOverlayRefresh = false }: { skipOverlayRefresh?: boolean } = {},
+    ) => {
       setRawQueryResults({});
       void getDiscourseContextResults({
         uid,
         onResult: addLabels,
         ignoreCache,
       }).finally(() => {
-        if (overlayRefresh) overlayRefresh(ignoreCache);
+        if (overlayRefresh && !skipOverlayRefresh) overlayRefresh(ignoreCache);
         setLoading(false);
       });
     },
@@ -182,26 +182,16 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
     }
   }, [onRefresh, results, setLoading, loading, addLabels]);
 
-  useEffect(() => {
-    const onMutationRefresh = (event: Event) => {
-      const detail = (
-        event as CustomEvent<DiscourseContextMutationRefreshDetail>
-      ).detail;
-      if (!detail?.uids.includes(uid)) return;
-      onRefresh(true);
-    };
-
-    document.body.addEventListener(
-      DISCOURSE_CONTEXT_MUTATION_REFRESH_EVENT,
-      onMutationRefresh,
-    );
-    return () => {
-      document.body.removeEventListener(
-        DISCOURSE_CONTEXT_MUTATION_REFRESH_EVENT,
-        onMutationRefresh,
-      );
-    };
-  }, [uid, onRefresh]);
+  // Any enclosing overlay subscribes to the same event, so let it refresh itself
+  // rather than triggering a second overlay query from here.
+  const refreshForMutation = useCallback(
+    () => onRefresh(true, { skipOverlayRefresh: true }),
+    [onRefresh],
+  );
+  useDiscourseContextMutationRefresh({
+    uid,
+    onMutationRefresh: refreshForMutation,
+  });
   const [tabId, setTabId] = useState(0);
   const [groupByTarget, setGroupByTarget] = useState(false);
   return queryResults.length ? (

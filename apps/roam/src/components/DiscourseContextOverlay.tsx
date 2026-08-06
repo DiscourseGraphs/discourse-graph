@@ -15,6 +15,7 @@ import deriveDiscourseNodeAttribute from "~/utils/deriveDiscourseNodeAttribute";
 import { getDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 import { DISCOURSE_NODE_KEYS } from "~/components/settings/utils/settingKeys";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
+import { useDiscourseContextMutationRefresh } from "~/utils/discourseContextMutationRefresh";
 import nanoid from "nanoid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
@@ -231,6 +232,10 @@ const useDiscourseContext = (uid: string, tag: string) => {
   useEffect(() => {
     void getInfo();
   }, [getInfo]);
+
+  // The popover unmounts `ContextContent` while closed, so the overlay button's
+  // score/refs would otherwise stay stale after a relation mutation.
+  useDiscourseContextMutationRefresh({ uid, onMutationRefresh: refresh });
 
   return { loading, results, refs, score, refresh };
 };
