@@ -3,8 +3,8 @@ import { uuidv7 } from "uuidv7";
 import { parseDgSchemaFile } from "~/utils/specValidation";
 import {
   createTemplateFile,
+  createTemplateFileWithUniqueName,
   getTemplateFiles,
-  overwriteTemplateFile,
   readTemplateContent,
 } from "~/utils/templates";
 import { openJsonFromUserLocation } from "~/utils/nativeJsonFileDialogs";
@@ -273,36 +273,39 @@ export const pickAndPreviewSchemaImport = async ({
 };
 
 /**
- * A template reference only survives if the file will actually be there: either
- * this run imports it, or the vault already has it. Otherwise the node type
- * would point at a template that does not exist.
+ * Resolves what a node type's template field should point at once templates have
+ * been written. Keyed off what actually landed rather than what was selected, so
+ * a template whose creation failed leaves no dangling reference behind.
+ *
+ * An imported copy wins over a same-named local template: the user only gets a
+ * copy when they explicitly chose the imported version.
  */
 const resolveTemplateReference = ({
   template,
-  selectedTemplateNames,
+  importedTemplateNames,
   localTemplateNames,
 }: {
   template: string | undefined;
-  selectedTemplateNames: ReadonlySet<string>;
+  importedTemplateNames: ReadonlyMap<string, string>;
   localTemplateNames: ReadonlySet<string>;
 }): string | undefined => {
   if (!template) return undefined;
-  const willExist =
-    selectedTemplateNames.has(template) || localTemplateNames.has(template);
-  return willExist ? template : undefined;
+  const importedName = importedTemplateNames.get(template);
+  if (importedName) return importedName;
+  return localTemplateNames.has(template) ? template : undefined;
 };
 
 const mergeNodeTypeFields = ({
   local,
   imported,
   fields,
-  selectedTemplateNames,
+  importedTemplateNames,
   localTemplateNames,
 }: {
   local: DiscourseNode;
   imported: DiscourseNode;
   fields: ReadonlySet<string>;
-  selectedTemplateNames: ReadonlySet<string>;
+  importedTemplateNames: ReadonlyMap<string, string>;
   localTemplateNames: ReadonlySet<string>;
 }): DiscourseNode => {
   const merged: DiscourseNode = { ...local, modified: Date.now() };
@@ -317,7 +320,7 @@ const mergeNodeTypeFields = ({
   if (fields.has("template")) {
     merged.template = resolveTemplateReference({
       template: merged.template,
-      selectedTemplateNames,
+      importedTemplateNames,
       localTemplateNames,
     });
   }
@@ -366,6 +369,12 @@ export const applySchemaImportSelection = async ({
 
   let templatesCreated = 0;
   let templatesMerged = 0;
+  /**
+   * Schema-file template name to the file name it actually landed under. An
+   * imported copy keeps the local template intact, so the two names differ
+   * whenever the user chose the imported version of a template they already had.
+   */
+  const importedTemplateNames = new Map<string, string>();
   const templatesByName = new Map(
     schemaFile.templates.map((template) => [template.name, template]),
   );
@@ -383,16 +392,21 @@ export const applySchemaImportSelection = async ({
         continue;
       }
 
-      const overwriteResult = await overwriteTemplateFile({
+      // Never clobber the local template. The imported version lands beside it
+      // under its own name and the node type is repointed at that copy, so the
+      // user keeps both and can fall back by editing the node type.
+      const copyResult = await createTemplateFileWithUniqueName({
         app: plugin.app,
         templateName: template.name,
+        sourceName: schemaFile.vaultName,
         content: template.content,
       });
-      if (overwriteResult.overwritten) {
+      if (copyResult.created) {
+        importedTemplateNames.set(template.name, copyResult.templateName);
         templatesMerged += 1;
       } else {
         onWarning(
-          `Template "${template.name}" not overwritten: ${overwriteResult.reason}.`,
+          `Template "${template.name}" not imported: ${copyResult.reason}.`,
         );
       }
       continue;
@@ -405,6 +419,7 @@ export const applySchemaImportSelection = async ({
     });
 
     if (result.created) {
+      importedTemplateNames.set(template.name, template.name);
       templatesCreated += 1;
       continue;
     }
@@ -457,7 +472,7 @@ export const applySchemaImportSelection = async ({
         local: nextNodeTypes[localIndex]!,
         imported: importedNodeType,
         fields: mergedFields,
-        selectedTemplateNames,
+        importedTemplateNames,
         localTemplateNames: matchPlan.localTemplateNames,
       });
       if (
@@ -466,7 +481,7 @@ export const applySchemaImportSelection = async ({
         !mergedNodeType.template
       ) {
         onWarning(
-          `Template "${importedNodeType.template}" is not in this vault and was not selected, so "${mergedNodeType.name}" was merged without a template reference.`,
+          `Template "${importedNodeType.template}" was not imported and is not in this vault, so "${mergedNodeType.name}" was merged without a template reference.`,
         );
       }
       nextNodeTypes[localIndex] = mergedNodeType;
@@ -479,7 +494,7 @@ export const applySchemaImportSelection = async ({
       ...importedNodeType,
       template: resolveTemplateReference({
         template: importedNodeType.template,
-        selectedTemplateNames,
+        importedTemplateNames,
         localTemplateNames: matchPlan.localTemplateNames,
       }),
       importedFromRid: buildSchemaRid({

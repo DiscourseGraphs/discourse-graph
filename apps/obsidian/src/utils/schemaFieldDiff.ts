@@ -68,6 +68,11 @@ const buildNodeTypeFieldChanges = ({
   return MERGEABLE_NODE_TYPE_FIELDS.flatMap((field) => {
     const localValue = local[field];
     const importedValue = imported[field];
+    // A field the file has no value for is not an instruction to clear the local
+    // one. An export from an older plugin simply lacks fields it never knew
+    // about, and offering those as "changes" would turn version skew into
+    // silent deletion. Merge only ever adds or overwrites.
+    if (importedValue === undefined) return [];
     if (localValue === importedValue) return [];
     return [{ field, localValue, importedValue }];
   });
