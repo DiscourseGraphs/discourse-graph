@@ -1,4 +1,4 @@
-import { App, Events, Debouncer, Plugin, Component } from "obsidian";
+import { App, Events, Plugin, Component } from "obsidian";
 
 // extracted the MetaadataTypeManager from "obsidian-types",
 // and parts of internalPlugins, plugins.
@@ -85,43 +85,6 @@ export type PropertyWidget<
    * @returns Whether the value is valid.
    */
   validate(value: unknown): boolean;
-};
-
-type PropertyWidgetEntry = {
-  /**
-   * Display name of the property widget.
-   */
-  name: string;
-  /**
-   * The property widget type.
-   */
-  widget: string;
-};
-
-type PropertyInfo = {
-  /**
-   * Name of property.
-   */
-  name: string;
-  /**
-   * Usage count of property.
-   */
-  occurrences: number;
-  /**
-   * Type of property.
-   */
-  widget: string;
-};
-
-type TypeInfo = {
-  /**
-   * The explicitly assigned property widget type.
-   */
-  expected: PropertyWidget;
-  /**
-   * The property widget type inferred from the value.
-   */
-  inferred: PropertyWidget;
 };
 
 type PropertyWidgetType = string;
