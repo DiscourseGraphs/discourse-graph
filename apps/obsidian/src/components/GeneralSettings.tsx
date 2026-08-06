@@ -6,6 +6,33 @@ import { DiscourseGraphLogoIcon, SlackLogoIcon } from "./Icons";
 import { FeedbackModal } from "./FeedbackModal";
 import { DOCS_URL, COMMUNITY_URL } from "~/constants";
 
+const ToggleSetting = ({
+  name,
+  description,
+  checked,
+  onChange,
+}: {
+  name: string;
+  description: string;
+  checked: boolean;
+  onChange: (newValue: boolean) => void;
+}) => (
+  <div className="setting-item">
+    <div className="setting-item-info">
+      <div className="setting-item-name">{name}</div>
+      <div className="setting-item-description">{description}</div>
+    </div>
+    <div className="setting-item-control">
+      <div
+        className={`checkbox-container ${checked ? "is-enabled" : ""}`}
+        onClick={() => onChange(!checked)}
+      >
+        <input type="checkbox" checked={checked} />
+      </div>
+    </div>
+  </div>
+);
+
 const InfoSection = () => {
   const plugin = usePlugin();
 
@@ -220,23 +247,12 @@ const GeneralSettings = () => {
 
   return (
     <div className="general-settings">
-      <div className="setting-item">
-        <div className="setting-item-info">
-          <div className="setting-item-name">Show IDs in frontmatter</div>
-          <div className="setting-item-description">
-            Choose if you want IDs to show in the frontmatter. Controls
-            visibility of node type IDs and relation type IDs.
-          </div>
-        </div>
-        <div className="setting-item-control">
-          <div
-            className={`checkbox-container ${showIdsInFrontmatter ? "is-enabled" : ""}`}
-            onClick={() => handleToggleChange(!showIdsInFrontmatter)}
-          >
-            <input type="checkbox" checked={showIdsInFrontmatter} />
-          </div>
-        </div>
-      </div>
+      <ToggleSetting
+        name="Show IDs in frontmatter"
+        description="Choose if you want IDs to show in the frontmatter. Controls visibility of node type IDs and relation type IDs."
+        checked={showIdsInFrontmatter}
+        onChange={handleToggleChange}
+      />
 
       <div className="setting-item">
         <div className="setting-item-info">
@@ -322,29 +338,12 @@ const GeneralSettings = () => {
         </div>
       </div>
 
-      <div className="setting-item">
-        <div className="setting-item-info">
-          <div className="setting-item-name">
-            Show help menu icon in status bar
-          </div>
-          <div className="setting-item-description">
-            Adds a Discourse Graph icon to the status bar that opens a menu with
-            feedback, docs, community, and settings links.
-          </div>
-        </div>
-        <div className="setting-item-control">
-          <div
-            className={`checkbox-container ${showHelpMenuStatusBarIcon ? "is-enabled" : ""}`}
-            onClick={() =>
-              handleHelpMenuStatusBarIconToggleChange(
-                !showHelpMenuStatusBarIcon,
-              )
-            }
-          >
-            <input type="checkbox" checked={showHelpMenuStatusBarIcon} />
-          </div>
-        </div>
-      </div>
+      <ToggleSetting
+        name="Show help menu icon in status bar"
+        description="Adds a Discourse Graph icon to the status bar that opens a menu with feedback, docs, community, and settings links."
+        checked={showHelpMenuStatusBarIcon}
+        onChange={handleHelpMenuStatusBarIconToggleChange}
+      />
 
       <InfoSection />
     </div>
