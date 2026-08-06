@@ -294,20 +294,21 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   setHelpMenuStatusBarItemVisibility(): void {
-    if (this.settings.showHelpMenuStatusBarIcon) {
-      if (this.helpMenuStatusBarItem) return;
-      const item = this.addStatusBarItem();
-      item.addClass("dg-help-menu-status-bar-item");
-      setTooltip(item, "Discourse Graph help menu");
-      setIcon(item, DISCOURSE_GRAPH_LOGO_ICON_ID);
-      item.addEventListener("click", (event) => {
-        showHelpMenu({ plugin: this, event });
-      });
-      this.helpMenuStatusBarItem = item;
-    } else {
+    if (!this.settings.showHelpMenuStatusBarIcon) {
       this.helpMenuStatusBarItem?.remove();
       this.helpMenuStatusBarItem = null;
+      return;
     }
+
+    if (this.helpMenuStatusBarItem) return;
+    const item = this.addStatusBarItem();
+    item.addClass("dg-help-menu-status-bar-item");
+    setTooltip(item, "Discourse Graph help menu");
+    setIcon(item, DISCOURSE_GRAPH_LOGO_ICON_ID);
+    item.addEventListener("click", (event) => {
+      showHelpMenu({ plugin: this, event });
+    });
+    this.helpMenuStatusBarItem = item;
   }
 
   private setupNodeTagHotkey() {
