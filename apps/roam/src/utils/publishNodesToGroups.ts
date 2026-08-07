@@ -356,6 +356,15 @@ export const publishNodesToGroups = async ({
       }
     }
   });
+  for (const node of nodesByUid.values()) {
+    if (
+      !nodeSchemaUids.has(node.nodeType) &&
+      upsertedNodeUids.has(node.localId)
+    ) {
+      upsertedNodeUids.delete(node.localId);
+      result.failedUpsertUids.push(node.localId);
+    }
+  }
   result.syncedNodeSchemaUids = [...syncedNodeSchemaUids];
   result.syncedRelationTripleSchemaUids = [...syncedRelationTripleSchemaUids];
   result.syncedRelationUids = [...syncedRelationUids];
