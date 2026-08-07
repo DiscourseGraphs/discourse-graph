@@ -1034,7 +1034,7 @@ const DiscourseRelationConfigPanel = ({
       ]);
       setNewRelation("");
       setEditingRelation(relationUid);
-      posthog.capture("Discourse Relation: Created", {
+      posthog.capture("Discourse Relation Type: Created", {
         relationUid: relationUid,
       });
     });

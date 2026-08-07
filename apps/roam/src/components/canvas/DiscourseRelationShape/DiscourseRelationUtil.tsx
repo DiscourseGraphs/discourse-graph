@@ -68,6 +68,7 @@ import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import { discourseContext, isPageUid } from "~/components/canvas/Tldraw";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import posthog from "posthog-js";
 
 /**
  * Get the canvas page UID from the DOM by finding the canvas container
@@ -702,7 +703,7 @@ export const createAllRelationShapeUtils = (
 
           if (sourceAsDNS && targetAsDNS) {
             const isOriginal = isDirect;
-            await createReifiedRelation({
+            const result = await createReifiedRelation({
               sourceUid: isOriginal
                 ? sourceAsDNS.props.uid
                 : targetAsDNS.props.uid,
@@ -711,6 +712,13 @@ export const createAllRelationShapeUtils = (
                 : sourceAsDNS.props.uid,
               relationBlockUid: matchingRelation.id,
             });
+            if (result !== undefined) {
+              posthog.capture("Discourse Relation Instance: Created", {
+                relationUid: matchingRelation.id,
+                relationLabel: matchingRelation.label,
+                source: "canvas",
+              });
+            }
           } else {
             void internalError({
               error: "attempt to create a relation between non discourse nodes",

@@ -164,6 +164,13 @@ const CreateRelationDialog = ({
       sourceUid: relation.forward ? sourceNodeUid : selectedTargetUid,
       destinationUid: relation.forward ? selectedTargetUid : sourceNodeUid,
     });
+    if (result !== undefined) {
+      posthog.capture("Discourse Relation Instance: Created", {
+        relationUid: relation.id,
+        relationLabel: relation.label,
+        source: "create-relation-dialog",
+      });
+    }
     return result !== undefined;
   };
 

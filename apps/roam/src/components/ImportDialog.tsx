@@ -57,21 +57,46 @@ const ImportDialog = ({ onClose }: { onClose: () => void }) => {
               setTimeout(() => {
                 const reader = new FileReader();
                 reader.onload = (event) => {
-                  importDiscourseGraph({
-                    ...JSON.parse(event.target?.result as string),
-                    title,
-                  })
-                    .then(() => {
-                      const parentUid = window.roamAlphaAPI.util.dateToPageUid(
-                        new Date(),
-                      );
-                      return createBlock({
-                        node: { text: `[[${title}]]` },
-                        parentUid,
-                        order: getChildrenLengthByPageUid(parentUid),
-                      });
+                  try {
+                    const parsedData = JSON.parse(
+                      event.target?.result as string,
+                    );
+                    const nodeCount = parsedData.nodes?.length || 0;
+                    const relationCount = parsedData.relations?.length || 0;
+                    importDiscourseGraph({
+                      ...parsedData,
+                      title,
                     })
-                    .then(onClose);
+                      .then(() => {
+                        posthog.capture("Import Dialog: Import Completed", {
+                          title,
+                          nodeCount,
+                          relationCount,
+                        });
+                        const parentUid = window.roamAlphaAPI.util.dateToPageUid(
+                          new Date(),
+                        );
+                        return createBlock({
+                          node: { text: `[[${title}]]` },
+                          parentUid,
+                          order: getChildrenLengthByPageUid(parentUid),
+                        });
+                      })
+                      .then(onClose)
+                      .catch((error) => {
+                        posthog.capture("Import Dialog: Import Failed", {
+                          title,
+                          error: error.message || String(error),
+                        });
+                        setLoading(false);
+                      });
+                  } catch (error) {
+                    posthog.capture("Import Dialog: Import Failed", {
+                      title,
+                      error: error instanceof Error ? error.message : String(error),
+                    });
+                    setLoading(false);
+                  }
                 };
                 if (file) reader.readAsText(file);
               }, 1);
