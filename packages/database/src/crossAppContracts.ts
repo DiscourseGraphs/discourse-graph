@@ -10,6 +10,7 @@ export type Rid = string;
 // Common attributes for most types
 export type CrossAppBase = {
   localId: LocalId;
+  spaceUrl?: string;
   createdAt: Date;
   modifiedAt?: Date;
   authorId: LocalId;

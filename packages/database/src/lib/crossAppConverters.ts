@@ -71,6 +71,7 @@ export const crossAppNodeToDbConcept = (
   node: CrossAppNode,
 ): LocalConceptDataInput => {
   return filterUndefined<LocalConceptDataInput>({
+    space_url: node.spaceUrl,
     source_local_id: node.localId,
     name: node.content.direct.value,
     author_local_id: node.authorId,
@@ -92,6 +93,7 @@ export const crossAppNodeSchemaToDbConcept = (
     template_content: node.template,
   });
   return filterUndefined<LocalConceptDataInput>({
+    space_url: node.spaceUrl,
     source_local_id: node.localId,
     name: node.label,
     author_local_id: node.authorId,
@@ -107,6 +109,7 @@ export const crossAppRelationTypeSchemaToDbConcept = (
   node: CrossAppRelationTypeSchema,
 ): LocalConceptDataInput => {
   return filterUndefined<LocalConceptDataInput>({
+    space_url: node.spaceUrl,
     source_local_id: node.localId,
     name: node.label,
     author_local_id: node.authorId,
@@ -131,6 +134,7 @@ export const crossAppRelationTripleSchemaToDbConcept = (
   const complement =
     "complement" in node ? node.complement : relationType!.complement;
   return filterUndefined<LocalConceptDataInput>({
+    space_url: node.spaceUrl,
     source_local_id: node.localId,
     name: node.localId, // has to be unique within space. Not seen yet.
     author_local_id: node.authorId,
@@ -156,6 +160,7 @@ export const crossAppRelationToDbConcept = (
   return filterUndefined<LocalConceptDataInput>({
     // use LocalIds... not ideal
     name: `${node.localId}: ${node.source} -${node.relationType}-> ${node.destination}`,
+    space_url: node.spaceUrl,
     source_local_id: node.localId,
     author_local_id: node.authorId,
     schema_represented_by_local_id: node.relationType,
