@@ -1,0 +1,9 @@
+interface:
+  display_name: "Discourse Engineering Writing Style"
+  short_description: "Draft concise, direct engineering team messages"
+  default_prompt: "Use $discourse-engineering-writing-style to draft a concise engineering team message."
+policy:
+  products:
+    - "CHAT"
+    - "CODEX"
+  allow_implicit_invocation: true
