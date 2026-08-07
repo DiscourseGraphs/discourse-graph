@@ -111,18 +111,17 @@ export const nodeUidsWithTypeToCrossApp = async (
     const title = row[":node/title"] as string;
     const userUid =
       userUidByEid[(row[":create/user"] as Record<string, number>)[":db/id"]];
+    const createdTime = row[":create/time"] as number;
+    const editTime = (row[":edit/time"] as number | undefined) ?? createdTime;
+    const pageEditTime =
+      (row[":page/edit-time"] as number | undefined) ?? editTime;
 
     return {
       localId: uid,
       nodeType: typesByUid[uid],
       authorId: userUid,
-      createdAt: new Date((row[":create/time"] as number) || Date.now()),
-      modifiedAt: new Date(
-        Math.max(
-          row[":edit/time"] as number,
-          row[":page/edit-time"] as number,
-        ) || Date.now(),
-      ),
+      createdAt: new Date(createdTime),
+      modifiedAt: new Date(Math.max(editTime, pageEditTime)),
       content: {
         direct: {
           localId: uid,
