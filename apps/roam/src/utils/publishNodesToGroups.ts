@@ -207,7 +207,7 @@ type PublishNodesResult = {
   syncedNodeSchemaUids: string[];
   syncedRelationTripleSchemaUids: string[];
   syncedRelationUids: string[];
-  failedSyncedUids: string[];
+  failedUpsertUids: string[];
   okGroupIds: string[];
   failedGroupIds: string[];
 };
@@ -240,7 +240,7 @@ export const publishNodesToGroups = async ({
     syncedNodeSchemaUids: [],
     syncedRelationUids: [],
     syncedRelationTripleSchemaUids: [],
-    failedSyncedUids: [],
+    failedUpsertUids: [],
     okGroupIds: [],
     failedGroupIds: [],
   };
@@ -339,7 +339,7 @@ export const publishNodesToGroups = async ({
   }
 
   response.data.forEach((v, i) => {
-    if (v === -1) {
+    if (v < 0) {
       const localId = upsertConcepts[i].source_local_id;
       if (localId) {
         if (syncedNodeSchemaUids.has(localId)) {
@@ -352,7 +352,7 @@ export const publishNodesToGroups = async ({
         } else if (syncedRelationUids.has(localId)) {
           syncedRelationUids.delete(localId);
         }
-        result.failedSyncedUids.push(localId);
+        result.failedUpsertUids.push(localId);
       }
     }
   });
@@ -360,7 +360,7 @@ export const publishNodesToGroups = async ({
   result.syncedRelationTripleSchemaUids = [...syncedRelationTripleSchemaUids];
   result.syncedRelationUids = [...syncedRelationUids];
   nodeUids = [...upsertedNodeUids];
-  const failedSyncIds = new Set(result.failedSyncedUids);
+  const failedUpsertIds = new Set(result.failedUpsertUids);
 
   const resourceAccesses = [];
   const resourceIds = [...nodeUids, ...nodeSchemaUids];
@@ -369,15 +369,15 @@ export const publishNodesToGroups = async ({
     const groupRelations = relations.filter(
       (r) =>
         groupRelationIds.has(r.localId) &&
-        !failedSyncIds.has(r.localId) &&
-        !failedSyncIds.has(r.source) &&
-        !failedSyncIds.has(r.destination),
+        !failedUpsertIds.has(r.localId) &&
+        !failedUpsertIds.has(r.source) &&
+        !failedUpsertIds.has(r.destination),
     );
     groupRelationIds = new Set(groupRelations.map((r) => r.localId));
     const groupRelationTripleSchemaIds = new Set(
       groupRelations
         .map((r) => r.relationType)
-        .filter((r) => !failedSyncIds.has(r)),
+        .filter((r) => !failedUpsertIds.has(r)),
     );
     const groupResourceIds = [
       ...resourceIds,
