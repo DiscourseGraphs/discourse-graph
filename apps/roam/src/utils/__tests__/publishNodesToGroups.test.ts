@@ -292,4 +292,25 @@ describe("publishNodesToGroups", () => {
       expect(grantedIds).not.toContain("node-2");
     },
   );
+
+  it("withholds dependent nodes when their schema upsert fails", async () => {
+    const { client, upsertCalls } = makeFakeClient({
+      rpcResponse: { data: [-1, 2, 3], error: null },
+    });
+
+    const result = await publishNodesToGroups({
+      client,
+      spaceId: SPACE_ID,
+      groupIds: [GROUP_ID],
+      nodes: [
+        makeCrossAppNode({ uid: "node-1", title: "CLM - first" }),
+        makeCrossAppNode({ uid: "node-2", title: "CLM - second" }),
+      ],
+    });
+
+    expect(result.failedUpsertUids).toEqual([SCHEMA_UID, "node-1", "node-2"]);
+    expect(result.publishedNodeUids).toEqual([]);
+    expect(result.publishedNodeSchemaUids).toEqual([]);
+    expect(upsertCalls[0].rows).toEqual([]);
+  });
 });
