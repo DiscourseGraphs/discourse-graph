@@ -28,6 +28,7 @@ import { intersection } from "@repo/utils/setOperations";
 import type { Json, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
+import { isSyncEnabled } from "~/components/settings/utils/accessors";
 import { FatalError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
 import type {
@@ -759,6 +760,18 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   });
 };
 
+const upsertNodesToSupabaseAsContent = async (
+  roamNodes: RoamDiscourseNodeData[],
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
+): Promise<void> => {
+  if (roamNodes.length === 0) {
+    return;
+  }
+  const content = convertRoamNodeToLocalContent({ nodes: roamNodes });
+  await uploadContentBatches({ content, supabaseClient, context });
+};
+
 const upsertRoamNodesToSupabaseAsFullContent = async ({
   nodes,
   supabaseClient,
@@ -1193,6 +1206,12 @@ export const createOrUpdateDiscourseEmbedding = async (
           spaceId: activeContext.spaceId,
         }),
     });
+    const sharedNodesOnlySync = !isSyncEnabled();
+    const nodeInstancesToSync = sharedNodesOnlySync
+      ? changedNodeInstances.filter((node) =>
+          sharedSourceLocalIds.has(node.source_local_id),
+        )
+      : changedNodeInstances;
     const sharedSourceLocalIdsToBackfill = await measureSyncPhase({
       phase: "getSharedSourceLocalIdsMissingFullContent",
       phases,
@@ -1244,11 +1263,17 @@ export const createOrUpdateDiscourseEmbedding = async (
       phase: "upsertNodes",
       phases,
       operation: () =>
-        upsertNodesToSupabaseAsContentWithEmbeddings(
-          changedNodeInstances,
-          activeSupabaseClient,
-          activeContext,
-        ),
+        sharedNodesOnlySync
+          ? upsertNodesToSupabaseAsContent(
+              nodeInstancesToSync,
+              activeSupabaseClient,
+              activeContext,
+            )
+          : upsertNodesToSupabaseAsContentWithEmbeddings(
+              nodeInstancesToSync,
+              activeSupabaseClient,
+              activeContext,
+            ),
     });
     await measureSyncPhase({
       phase: "upsertFullContent",
@@ -1265,7 +1290,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       phases,
       operation: () =>
         convertDgToSupabaseConcepts({
-          nodesSince: changedNodeInstances,
+          nodesSince: nodeInstancesToSync,
           since: sinceTime,
           allNodeTypes: allDgNodeTypes,
           sharedNodeTypeIds,
