@@ -47,6 +47,7 @@ import {
 import ToastListener from "./ToastListener";
 import { RelationsOverlay } from "./overlays/RelationOverlay";
 import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
+import { NodeCardContextMenu } from "./NodeCardContextMenu";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { CustomContextMenu } from "./CustomContextMenu";
 import {
@@ -430,6 +431,13 @@ export const TldrawPreviewComponent = ({
             components={{
               ContextMenu: (props) => (
                 <CustomContextMenu canvasFile={file} props={props} />
+              ),
+              StylePanel: (props) => (
+                <NodeCardContextMenu
+                  plugin={plugin}
+                  canvasFile={file}
+                  {...props}
+                />
               ),
               SharePanel: () => {
                 const tools = useTools();

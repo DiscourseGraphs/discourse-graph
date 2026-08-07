@@ -121,6 +121,7 @@ export const DEFAULT_SETTINGS: Settings = {
   spacePassword: undefined,
   accountLocalId: undefined,
   syncModeEnabled: false,
+  nodeCardContextMenuEnabled: false,
   spaceNames: {},
 };
 

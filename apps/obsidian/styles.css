@@ -1,6 +1,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* tldraw otherwise caps the style panel at 148px. */
+.tlui-style-panel:has(.dg-node-card-menu) {
+  width: min(20rem, calc(100vw - 1rem));
+  max-width: min(20rem, calc(100vw - 1rem));
+}
+
 .accent-border-bottom {
   border-bottom: 2px solid var(--interactive-accent) !important;
 }

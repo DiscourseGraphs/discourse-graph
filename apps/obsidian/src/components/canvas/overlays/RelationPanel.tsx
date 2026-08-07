@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import {
@@ -57,7 +57,9 @@ export type RelationsPanelProps = {
   plugin: DiscourseGraphPlugin;
   canvasFile: TFile;
   nodeShape: DiscourseNodeShape;
-  onClose: () => void;
+  onClose?: () => void;
+  embedded?: boolean;
+  includeAllDirections?: boolean;
 };
 
 const RelationFileItem = ({
@@ -165,6 +167,8 @@ export const RelationsPanel = ({
   canvasFile,
   nodeShape,
   onClose,
+  embedded = false,
+  includeAllDirections = false,
 }: RelationsPanelProps) => {
   const editor = useEditor();
   const [groups, setGroups] = useState<GroupedRelation[]>([]);
@@ -193,7 +197,7 @@ export const RelationsPanel = ({
           setError("Linked file not found.");
           return;
         }
-        const g = await computeRelations(plugin, file);
+        const g = await computeRelations(plugin, file, includeAllDirections);
         setGroups(g);
       } catch (e) {
         showToast({
@@ -208,11 +212,14 @@ export const RelationsPanel = ({
       }
     };
     void load();
-  }, [plugin, canvasFile, nodeShape.id, nodeShape.props.src, editor]);
-
-  const headerTitle = useMemo(() => {
-    return nodeShape.props.title || "Selected node";
-  }, [nodeShape.props.title]);
+  }, [
+    plugin,
+    canvasFile,
+    nodeShape.id,
+    nodeShape.props.src,
+    editor,
+    includeAllDirections,
+  ]);
 
   const ensureNodeShapeForFile = async (
     file: TFile,
@@ -460,21 +467,33 @@ export const RelationsPanel = ({
   };
 
   return (
-    <div className="min-w-80 max-w-md rounded-lg border bg-white p-4 shadow-lg">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Relations</h3>
-        <button
-          onClick={onClose}
-          className="text-gray-500 hover:text-gray-700"
-          aria-label="Close"
-        >
-          ✕
-        </button>
-      </div>
+    <div
+      className={
+        embedded
+          ? "p-3"
+          : "min-w-80 max-w-md rounded-lg border bg-white p-4 shadow-lg"
+      }
+    >
+      {!embedded && (
+        <>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Relations</h3>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
 
-      <div className="mb-3">
-        <div className="text-sm font-medium text-gray-700">{headerTitle}</div>
-      </div>
+          <div className="mb-3">
+            <div className="text-sm font-medium text-gray-700">
+              {nodeShape.props.title || "Selected node"}
+            </div>
+          </div>
+        </>
+      )}
 
       {loading ? (
         <div className="text-center text-gray-500">Loading relations...</div>
@@ -521,6 +540,7 @@ export const RelationsPanel = ({
 const computeRelations = async (
   plugin: DiscourseGraphPlugin,
   file: TFile,
+  includeAllDirections: boolean,
 ): Promise<GroupedRelation[]> => {
   const fileCache = plugin.app.metadataCache.getFileCache(file);
   if (!fileCache?.frontmatter) return [];
@@ -540,38 +560,76 @@ const computeRelations = async (
     plugin.settings.discourseRelations.filter(isAcceptedSchema);
 
   for (const relationType of acceptedRelationTypes) {
-    const typeLevelRelation = acceptedDiscourseRelations.find(
-      (rel) =>
-        (rel.sourceId === activeNodeTypeId ||
-          rel.destinationId === activeNodeTypeId) &&
-        rel.relationshipTypeId === relationType.id,
+    const matchingRelations = acceptedDiscourseRelations.filter(
+      (relation) =>
+        (relation.sourceId === activeNodeTypeId ||
+          relation.destinationId === activeNodeTypeId) &&
+        relation.relationshipTypeId === relationType.id,
     );
-    if (!typeLevelRelation) continue;
+    // Preserve the legacy panel's previous first-match behavior.
+    const typeLevelRelations = includeAllDirections
+      ? matchingRelations
+      : matchingRelations.slice(0, 1);
 
-    const instanceRels = relations.filter((r) => r.type === relationType.id);
-    const isSource = typeLevelRelation.sourceId === activeNodeTypeId;
-    const label = isSource ? relationType.label : relationType.complement;
-    const key = `${relationType.id}-${isSource}`;
+    for (const typeLevelRelation of typeLevelRelations) {
+      const isSource = typeLevelRelation.sourceId === activeNodeTypeId;
+      const key = `${relationType.id}-${isSource}`;
 
-    if (!result.has(key)) {
-      result.set(key, {
-        key,
-        label,
-        isSource,
-        relationTypeId: relationType.id,
-        linkedFiles: [],
-      });
-    }
+      if (!result.has(key)) {
+        result.set(key, {
+          key,
+          label: isSource ? relationType.label : relationType.complement,
+          isSource,
+          relationTypeId: relationType.id,
+          linkedFiles: [],
+        });
+      }
 
-    const group = result.get(key)!;
-    for (const r of instanceRels) {
-      const otherId = r.source === nodeInstanceId ? r.destination : r.source;
-      const linked = getFileForNodeInstanceId(plugin, otherId);
-      if (linked && !group.linkedFiles.some((f) => f.path === linked.path)) {
-        group.linkedFiles.push(linked);
+      const group = result.get(key)!;
+      for (const relation of relations) {
+        if (relation.type !== relationType.id) continue;
+        const otherId = getRelationCounterpartId({
+          relation,
+          nodeInstanceId,
+          isSource,
+          includeAllDirections,
+        });
+        if (!otherId) continue;
+
+        const linkedFile = getFileForNodeInstanceId(plugin, otherId);
+        if (
+          linkedFile &&
+          !group.linkedFiles.some(({ path }) => path === linkedFile.path)
+        ) {
+          group.linkedFiles.push(linkedFile);
+        }
       }
     }
   }
 
   return Array.from(result.values());
+};
+
+const getRelationCounterpartId = ({
+  relation,
+  nodeInstanceId,
+  isSource,
+  includeAllDirections,
+}: {
+  relation: { source: string; destination: string };
+  nodeInstanceId: string;
+  isSource: boolean;
+  includeAllDirections: boolean;
+}): string | null => {
+  if (!includeAllDirections) {
+    return relation.source === nodeInstanceId
+      ? relation.destination
+      : relation.source;
+  }
+
+  if (isSource) {
+    return relation.source === nodeInstanceId ? relation.destination : null;
+  }
+
+  return relation.destination === nodeInstanceId ? relation.source : null;
 };
