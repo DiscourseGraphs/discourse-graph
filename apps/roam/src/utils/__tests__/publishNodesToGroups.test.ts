@@ -213,7 +213,7 @@ describe("publishNodesToGroups", () => {
     expect(result.publishedNodeSchemaUids).toEqual([SCHEMA_UID]);
     expect(result.syncedNodeSchemaUids).toEqual([SCHEMA_UID]);
     expect(result.okGroupIds).toEqual([GROUP_ID]);
-    expect(result.failedSyncedUids).toEqual([]);
+    expect(result.failedUpsertUids).toEqual([]);
   });
 
   it("still upserts title and full content when republishing an already-synced node", async () => {
@@ -263,27 +263,33 @@ describe("publishNodesToGroups", () => {
     expect(result.okGroupIds).toEqual([]);
   });
 
-  it("withholds grants for nodes whose upsert failed", async () => {
-    const { client, upsertCalls } = makeFakeClient({
-      syncedUids: [SCHEMA_UID],
-      rpcResponse: { data: [7, -1], error: null },
-    });
+  it.each([
+    { code: -1, label: "unique-violation" },
+    { code: -2, label: "generic-error" },
+  ])(
+    "withholds grants for nodes whose upsert failed with $label",
+    async ({ code }) => {
+      const { client, upsertCalls } = makeFakeClient({
+        syncedUids: [SCHEMA_UID],
+        rpcResponse: { data: [7, code], error: null },
+      });
 
-    const result = await publishNodesToGroups({
-      client,
-      spaceId: SPACE_ID,
-      groupIds: [GROUP_ID],
-      nodes: [
-        makeCrossAppNode({ uid: "node-1", title: "CLM - publishes" }),
-        makeCrossAppNode({ uid: "node-2", title: "CLM - fails" }),
-      ],
-    });
+      const result = await publishNodesToGroups({
+        client,
+        spaceId: SPACE_ID,
+        groupIds: [GROUP_ID],
+        nodes: [
+          makeCrossAppNode({ uid: "node-1", title: "CLM - publishes" }),
+          makeCrossAppNode({ uid: "node-2", title: "CLM - fails" }),
+        ],
+      });
 
-    expect(result.failedSyncedUids).toEqual(["node-2"]);
-    expect(result.publishedNodeUids).toEqual(["node-1"]);
-    const grantedIds = upsertCalls[0].rows.map((r) => r.source_local_id);
-    expect(grantedIds).toContain("node-1");
-    expect(grantedIds).toContain(SCHEMA_UID);
-    expect(grantedIds).not.toContain("node-2");
-  });
+      expect(result.failedUpsertUids).toEqual(["node-2"]);
+      expect(result.publishedNodeUids).toEqual(["node-1"]);
+      const grantedIds = upsertCalls[0].rows.map((r) => r.source_local_id);
+      expect(grantedIds).toContain("node-1");
+      expect(grantedIds).toContain(SCHEMA_UID);
+      expect(grantedIds).not.toContain("node-2");
+    },
+  );
 });

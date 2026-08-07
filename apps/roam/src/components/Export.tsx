@@ -840,7 +840,7 @@ const ExportDialog: ExportDialogComponent = ({
       if (!client || !context) throw new Error("Could not connect to sync.");
       const {
         publishedNodeUids,
-        failedSyncedUids,
+        failedUpsertUids,
         okGroupIds,
         failedGroupIds,
       } = await publishNodeUidsWithTypeToGroups({
@@ -849,10 +849,14 @@ const ExportDialog: ExportDialogComponent = ({
         groupIds: selectedGroupIds,
         nodeUids: publishableNodes,
       });
+      const selectedNodeUids = new Set(publishableNodes.map((n) => n.uid));
+      const failedNodeCount = failedUpsertUids.filter((uid) =>
+        selectedNodeUids.has(uid),
+      ).length;
       posthog.capture("Export Dialog: Publish", {
         groupCount: okGroupIds.length,
         publishedNodeCount: publishedNodeUids.length,
-        failedSyncedCount: failedSyncedUids.length,
+        failedUpsertCount: failedUpsertUids.length,
         nonDiscourseCount,
         failedGroupCount: failedGroupIds.length,
       });
@@ -866,8 +870,8 @@ const ExportDialog: ExportDialogComponent = ({
             }.`,
           ]
         : ["No nodes were published."];
-      if (failedSyncedUids.length)
-        messages.push(`${failedSyncedUids.length} failed to publish.`);
+      if (failedNodeCount)
+        messages.push(`${failedNodeCount} failed to publish.`);
       if (nonDiscourseCount)
         messages.push(`${nonDiscourseCount} skipped (not discourse nodes).`);
       if (failedGroupIds.length)
@@ -879,7 +883,7 @@ const ExportDialog: ExportDialogComponent = ({
       renderToast({
         content: messages.join(" "),
         intent:
-          failedGroupIds.length || failedSyncedUids.length || !hasPublishedNodes
+          failedGroupIds.length || failedNodeCount || !hasPublishedNodes
             ? "warning"
             : "success",
         id: "query-builder-publish-success",
