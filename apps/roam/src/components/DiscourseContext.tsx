@@ -5,6 +5,7 @@ import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import ResultsView from "./results-view/ResultsView";
 import posthog from "posthog-js";
 import { CreateRelationButton } from "./CreateRelationDialog";
+import { useDiscourseContextMutationRefresh } from "~/utils/discourseContextMutationRefresh";
 
 export type DiscourseContextResults = Awaited<
   ReturnType<typeof getDiscourseContextResults>
@@ -13,7 +14,7 @@ export type DiscourseContextResults = Awaited<
 type Props = {
   uid: string;
   results?: DiscourseContextResults;
-  overlayRefresh?: () => void;
+  overlayRefresh?: (ignoreCache?: boolean) => void;
 };
 
 const removeTargetFromResult = (
@@ -85,7 +86,7 @@ const ContextTab = ({
           <span style={{ display: "flex", alignItems: "center" }}>
             <CreateRelationButton
               sourceNodeUid={parentUid}
-              onClose={() => {
+              onCreated={() => {
                 window.setTimeout(onRefresh, 150, true);
               }}
             />
@@ -151,14 +152,17 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
   }, []);
 
   const onRefresh = useCallback(
-    (ignoreCache = true) => {
+    (
+      ignoreCache = true,
+      { skipOverlayRefresh = false }: { skipOverlayRefresh?: boolean } = {},
+    ) => {
       setRawQueryResults({});
       void getDiscourseContextResults({
         uid,
         onResult: addLabels,
         ignoreCache,
       }).finally(() => {
-        if (overlayRefresh) overlayRefresh();
+        if (overlayRefresh && !skipOverlayRefresh) overlayRefresh(ignoreCache);
         setLoading(false);
       });
     },
@@ -177,6 +181,17 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
       setLoading(false);
     }
   }, [onRefresh, results, setLoading, loading, addLabels]);
+
+  // Any enclosing overlay subscribes to the same event, so let it refresh itself
+  // rather than triggering a second overlay query from here.
+  const refreshForMutation = useCallback(
+    () => onRefresh(true, { skipOverlayRefresh: true }),
+    [onRefresh],
+  );
+  useDiscourseContextMutationRefresh({
+    uid,
+    onMutationRefresh: refreshForMutation,
+  });
   const [tabId, setTabId] = useState(0);
   const [groupByTarget, setGroupByTarget] = useState(false);
   return queryResults.length ? (
@@ -235,7 +250,7 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
   ) : (
     <div className="text-center">
       No discourse relations found.
-      <CreateRelationButton sourceNodeUid={uid} onClose={delayedRefresh} />
+      <CreateRelationButton sourceNodeUid={uid} onCreated={delayedRefresh} />
     </div>
   );
 };
