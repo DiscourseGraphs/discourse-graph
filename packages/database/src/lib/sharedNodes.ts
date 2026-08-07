@@ -1,5 +1,5 @@
 import type { DGSupabaseClient } from "./client";
-import { spaceUriAndLocalIdToRid } from "./rid";
+import { ridToSpaceUriAndLocalId, spaceUriAndLocalIdToRid } from "./rid";
 import type { Enums, Json, Tables } from "../dbTypes";
 
 type SharedConcept = Pick<
@@ -53,6 +53,13 @@ export type SharedNodeRows = {
   fullContentSummaries: SharedContentSummary[];
   spaces: SharedSpace[];
 };
+
+const CONCEPT_COLUMNS =
+  "is_schema, last_modified, schema_id, source_local_id, space_id";
+const DIRECT_CONTENT_COLUMNS =
+  "author_id, created, last_modified, metadata, source_local_id, space_id, text, variant";
+const FULL_CONTENT_SUMMARY_COLUMNS = "last_modified, source_local_id, space_id";
+const SPACE_COLUMNS = "id, name, platform, url";
 
 const getResourceKey = ({
   sourceLocalId,
@@ -211,28 +218,21 @@ const getSharedNodeRows = async ({
     await Promise.all([
       client
         .from("my_concepts")
-        .select(
-          "is_schema, last_modified, schema_id, source_local_id, space_id",
-        )
+        .select(CONCEPT_COLUMNS)
         .neq("space_id", currentSpaceId)
         .eq("is_schema", false)
         .eq("arity", 0),
       client
         .from("my_contents")
-        .select(
-          "author_id, created, last_modified, metadata, source_local_id, space_id, text, variant",
-        )
+        .select(DIRECT_CONTENT_COLUMNS)
         .neq("space_id", currentSpaceId)
         .eq("variant", "direct"),
       client
         .from("my_contents")
-        .select("last_modified, source_local_id, space_id")
+        .select(FULL_CONTENT_SUMMARY_COLUMNS)
         .neq("space_id", currentSpaceId)
         .eq("variant", "full"),
-      client
-        .from("my_spaces")
-        .select("id, name, platform, url")
-        .neq("id", currentSpaceId),
+      client.from("my_spaces").select(SPACE_COLUMNS).neq("id", currentSpaceId),
     ]);
   if (conceptsResponse.error) throw conceptsResponse.error;
   if (directResponse.error) throw directResponse.error;
@@ -256,4 +256,55 @@ export const listGroupSharedNodes = async ({
 }): Promise<SharedNode[]> => {
   const rows = await getSharedNodeRows({ client, currentSpaceId });
   return buildSharedNodes(rows);
+};
+
+export const getSharedNodeByRid = async ({
+  client,
+  rid,
+}: {
+  client: DGSupabaseClient;
+  rid: string;
+}): Promise<SharedNode | null> => {
+  const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(rid);
+  const spaceResponse = await client
+    .from("my_spaces")
+    .select(SPACE_COLUMNS)
+    .eq("url", spaceUri)
+    .maybeSingle();
+  if (spaceResponse.error) throw spaceResponse.error;
+  const space = spaceResponse.data;
+  if (!space || typeof space.id !== "number") return null;
+
+  const [conceptsResponse, directResponse, fullResponse] = await Promise.all([
+    client
+      .from("my_concepts")
+      .select(CONCEPT_COLUMNS)
+      .eq("space_id", space.id)
+      .eq("source_local_id", sourceLocalId)
+      .eq("is_schema", false)
+      .eq("arity", 0),
+    client
+      .from("my_contents")
+      .select(DIRECT_CONTENT_COLUMNS)
+      .eq("space_id", space.id)
+      .eq("source_local_id", sourceLocalId)
+      .eq("variant", "direct"),
+    client
+      .from("my_contents")
+      .select(FULL_CONTENT_SUMMARY_COLUMNS)
+      .eq("space_id", space.id)
+      .eq("source_local_id", sourceLocalId)
+      .eq("variant", "full"),
+  ]);
+  if (conceptsResponse.error) throw conceptsResponse.error;
+  if (directResponse.error) throw directResponse.error;
+  if (fullResponse.error) throw fullResponse.error;
+
+  const [sharedNode] = buildSharedNodes({
+    nodes: conceptsResponse.data,
+    directContents: directResponse.data,
+    fullContentSummaries: fullResponse.data,
+    spaces: [space],
+  });
+  return sharedNode ?? null;
 };

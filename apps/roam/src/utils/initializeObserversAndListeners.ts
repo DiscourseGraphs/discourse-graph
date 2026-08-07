@@ -47,6 +47,8 @@ import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
 import { renderPublishNodeTitleButton } from "~/components/PublishNodeTitleButton";
+import { renderRefreshImportedNodeTitleButton } from "~/components/RefreshImportedNodeTitleButton";
+import { readImportedSourceIdentity } from "~/utils/importedSourceIdentity";
 import { renderCanvasEmbed } from "~/components/canvas/CanvasEmbed";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -120,6 +122,11 @@ export const initObservers = ({
         snapshot: settings,
       });
 
+      const syncEnabled =
+        settings.featureFlags[FEATURE_FLAG_KEYS.suggestiveModeOverlayEnabled];
+      if (syncEnabled && uid && readImportedSourceIdentity(uid)) {
+        renderRefreshImportedNodeTitleButton({ h1, uid });
+      }
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
         const sharingEnabled =

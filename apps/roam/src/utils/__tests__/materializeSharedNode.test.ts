@@ -269,6 +269,32 @@ describe("materializeSharedNode", () => {
     expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
   });
 
+  it("force-updates an imported page whose source has not changed", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
+    mockedGetPageTitleByPageUid.mockReturnValue(sharedNode.title);
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+
+    await expect(
+      materializeSharedNode({ client, sharedNode, force: true }),
+    ).resolves.toEqual({
+      success: true,
+      action: "updated",
+      pageUid: EXISTING_PAGE_UID,
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+    expect(blockFromMarkdown).toHaveBeenCalled();
+    expect(mockedWriteImportedSourceIdentity).toHaveBeenCalledWith({
+      pageUid: EXISTING_PAGE_UID,
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+  });
+
   it("updates an imported page whose source changed since the import", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
     mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
