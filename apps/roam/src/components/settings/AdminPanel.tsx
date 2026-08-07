@@ -358,7 +358,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
       <FeatureFlagPanel
         title="Node sharing"
-        description="This enables a user to share nodes to other discourse spaces. Reload the graph after toggling."
+        description="This enables a user to share nodes to other discourse spaces and keeps shared nodes synced in the background. Reload the graph after toggling."
         featureKey="Enable node sharing"
       />
 
