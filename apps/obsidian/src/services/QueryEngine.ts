@@ -1,4 +1,4 @@
-import { TFile, App } from "obsidian";
+import { TFile, App, prepareFuzzySearch, type SearchResult } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { BulkImportPattern, BulkImportCandidate, DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
@@ -21,6 +21,17 @@ type DatacorePage = {
   $path?: string;
 };
 
+export type DiscourseNodeCandidate = {
+  file: TFile;
+  /** Scored and rendered as-is: `renderResults` re-slices whatever was scored. */
+  title: string;
+  nodeTypeId: string;
+};
+
+export type RankedDiscourseNode = DiscourseNodeCandidate & {
+  match: SearchResult;
+};
+
 export class QueryEngine {
   private app: App;
   private dc:
@@ -39,6 +50,26 @@ export class QueryEngine {
   }
 
   functional = () => !!this.dc;
+
+  /**
+   * Datacore when installed, vault iteration otherwise — `getFilesWithNodeTypeId`
+   * owns that fallback. Call once per open, not per keystroke: the scan is the
+   * pipeline's most expensive step, and staying unfiltered keeps filter changes free.
+   */
+  getDiscourseNodeCandidates = (): DiscourseNodeCandidate[] => {
+    const candidates: DiscourseNodeCandidate[] = [];
+
+    for (const file of this.getFilesWithNodeTypeId()) {
+      const frontmatter = this.app.metadataCache.getFileCache(file)
+        ?.frontmatter as Record<string, unknown> | undefined;
+      const nodeTypeId = frontmatter?.nodeTypeId;
+      if (typeof nodeTypeId !== "string" || !nodeTypeId) continue;
+
+      candidates.push({ file, title: file.basename, nodeTypeId });
+    }
+
+    return candidates;
+  };
 
   /**
    * Search across all discourse nodes (files that have frontmatter nodeTypeId)
@@ -601,6 +632,54 @@ export class QueryEngine {
     return candidates;
   }
 }
+
+/** Exported so callers can memoise the filtered array against their selected ids. */
+export const filterCandidatesByNodeTypeIds = (
+  candidates: DiscourseNodeCandidate[],
+  nodeTypeIds?: string[],
+): DiscourseNodeCandidate[] => {
+  if (!nodeTypeIds?.length) return candidates;
+  const selected = new Set(nodeTypeIds);
+  return candidates.filter((candidate) => selected.has(candidate.nodeTypeId));
+};
+
+/**
+ * Best match first, uncapped — capping is the caller's, so a later re-sort orders the
+ * whole set rather than a top slice. Filters before scoring: same results, less work.
+ */
+export const rankDiscourseNodesByTitle = ({
+  candidates,
+  query,
+  nodeTypeIds,
+}: {
+  candidates: DiscourseNodeCandidate[];
+  query: string;
+  nodeTypeIds?: string[];
+}): RankedDiscourseNode[] => {
+  const filtered = filterCandidatesByNodeTypeIds(candidates, nodeTypeIds);
+  const trimmedQuery = query.trim();
+
+  // Filter-only searches still need a list, so an empty query is not an empty result.
+  if (!trimmedQuery) {
+    return [...filtered]
+      .sort((a, b) => a.title.localeCompare(b.title))
+      .map((candidate) => ({
+        ...candidate,
+        match: { score: 0, matches: [] },
+      }));
+  }
+
+  const score = prepareFuzzySearch(trimmedQuery);
+  const ranked: RankedDiscourseNode[] = [];
+
+  for (const candidate of filtered) {
+    const match = score(candidate.title);
+    if (match) ranked.push({ ...candidate, match });
+  }
+
+  // Sort is stable, so equal scores keep candidate order.
+  return ranked.sort((a, b) => b.match.score - a.match.score);
+};
 
 /**
  * Returns raw imported node entries from import/ folder (no DB).
