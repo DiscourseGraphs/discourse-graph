@@ -122,9 +122,9 @@ export const initObservers = ({
 
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
-        const syncEnabled =
-          settings.featureFlags[FEATURE_FLAG_KEYS.suggestiveModeOverlayEnabled];
-        if (syncEnabled && node.backedBy === "user") {
+        const sharingEnabled =
+          settings.featureFlags[FEATURE_FLAG_KEYS.enableNodeSharing];
+        if (sharingEnabled && node.backedBy === "user") {
           renderPublishNodeTitleButton({
             h1,
             uid,
