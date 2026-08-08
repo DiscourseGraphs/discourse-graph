@@ -156,7 +156,12 @@ const HighlightedTitle = ({
     return () => container.empty();
   }, [title, match]);
 
-  return <div ref={titleRef} className="text-normal truncate" />;
+  return (
+    <div
+      ref={titleRef}
+      className="dg-search-result-title text-normal truncate"
+    />
+  );
 };
 
 const ResultList = ({
