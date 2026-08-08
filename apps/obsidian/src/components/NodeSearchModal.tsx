@@ -25,6 +25,14 @@ import {
   type DiscourseNodeCandidate,
   type RankedDiscourseNode,
 } from "~/services/QueryEngine";
+import {
+  getNodeTypeBadge,
+  UNKNOWN_NODE_TYPE_BADGE,
+  type NodeTypeBadge,
+} from "~/utils/nodeTypeBadge";
+import { fetchUserNames } from "~/utils/importNodes";
+import { getLoggedInClient } from "~/utils/supabaseContext";
+import { formatUserName } from "~/utils/typeUtils";
 
 const MAX_VISIBLE_RESULTS = 50;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -40,20 +48,89 @@ type CandidateState =
   | { status: "ready"; candidates: DiscourseNodeCandidate[] }
   | { status: "error"; message: string };
 
+type NodeTypeDisplay = {
+  name: string;
+  badge: NodeTypeBadge;
+};
+
+const UNKNOWN_NODE_TYPE: NodeTypeDisplay = {
+  name: "Unknown type",
+  badge: UNKNOWN_NODE_TYPE_BADGE,
+};
+
 type SearchResultRow = RankedDiscourseNode & {
-  nodeTypeName: string;
-  authorName: string;
+  nodeType: NodeTypeDisplay;
+};
+
+const getFrontmatterAuthorId = (app: App, file: TFile): number | undefined => {
+  const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter as
+    | Record<string, unknown>
+    | undefined;
+  const authorId = frontmatter?.authorId;
+  return typeof authorId === "number" ? authorId : undefined;
 };
 
 /**
  * A local note is authored by whoever is using the vault; only imported nodes
- * carry an `authorId`, and resolving that to a display name is deferred to v1+.
+ * carry an `authorId`. The lookup is synchronous because `useAuthorNames` has
+ * already fetched every name; an id with no cached name degrades to `user <id>`
+ * rather than blocking the preview on a request.
  */
-const resolveAuthorName = (app: App, file: TFile): string => {
-  const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter as
-    | Record<string, unknown>
-    | undefined;
-  return frontmatter?.authorId === undefined ? "You" : "Unknown";
+const resolveAuthorName = ({
+  app,
+  file,
+  userNames,
+}: {
+  app: App;
+  file: TFile;
+  userNames: Record<number, string>;
+}): string => {
+  const authorId = getFrontmatterAuthorId(app, file);
+  if (authorId === undefined) return "You";
+  return formatUserName(userNames, authorId);
+};
+
+/**
+ * `fetchUserNames` returns every person in the vault's spaces in a single query
+ * and persists them, so names resolve during render with a map lookup. It runs
+ * at most once per modal open, and only when an imported node is actually
+ * missing a name — resolving per result or per selection would fire a request
+ * per author for data this one request already covers.
+ */
+const useAuthorNames = ({
+  app,
+  plugin,
+  candidateState,
+}: {
+  app: App;
+  plugin: DiscourseGraphPlugin;
+  candidateState: CandidateState;
+}): Record<number, string> => {
+  const [userNames, setUserNames] = useState(plugin.settings.userNames ?? {});
+
+  useEffect(() => {
+    if (candidateState.status !== "ready") return;
+    if (!plugin.settings.syncModeEnabled) return;
+
+    const isMissingName = (candidate: DiscourseNodeCandidate): boolean => {
+      const authorId = getFrontmatterAuthorId(app, candidate.file);
+      return authorId !== undefined && !plugin.settings.userNames?.[authorId];
+    };
+    if (!candidateState.candidates.some(isMissingName)) return;
+
+    let cancelled = false;
+    void (async () => {
+      const client = await getLoggedInClient(plugin);
+      if (!client || cancelled) return;
+      await fetchUserNames(plugin, client);
+      if (!cancelled) setUserNames(plugin.settings.userNames ?? {});
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [app, plugin, candidateState]);
+
+  return userNames;
 };
 
 const formatTimestamp = (epochMs: number): string =>
@@ -65,9 +142,11 @@ const formatTimestamp = (epochMs: number): string =>
 const PreviewPane = ({
   app,
   result,
+  authorName,
 }: {
   app: App;
   result: SearchResultRow | undefined;
+  authorName: string;
 }): ReactElement => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   // The text is kept with the file it came from so the pane never renders one
@@ -127,7 +206,7 @@ const PreviewPane = ({
         <div className="text-muted mt-1 text-xs">
           {`Created ${formatTimestamp(file.stat.ctime)} · Modified ${formatTimestamp(
             file.stat.mtime,
-          )} · ${result.authorName}`}
+          )} · ${authorName}`}
         </div>
       </div>
       <div
@@ -163,7 +242,7 @@ const HighlightedTitle = ({
   return (
     <div
       ref={titleRef}
-      className="dg-search-result-title text-normal truncate"
+      className="dg-search-result-title text-normal min-w-0 flex-1 truncate"
     />
   );
 };
@@ -197,12 +276,22 @@ const ResultList = ({
           role="option"
           aria-selected={index === activeIndex}
           onClick={() => onActivate(index)}
-          className={`border-modifier-border cursor-pointer border-b px-3 py-2 ${
+          className={`border-modifier-border flex cursor-pointer items-center gap-2 border-b px-3 py-2 ${
             index === activeIndex ? "bg-modifier-hover" : ""
           }`}
         >
+          <span
+            title={result.nodeType.name}
+            aria-label={result.nodeType.name}
+            style={{
+              backgroundColor: result.nodeType.badge.backgroundColor,
+              color: result.nodeType.badge.textColor,
+            }}
+            className="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
+          >
+            {result.nodeType.badge.text}
+          </span>
           <HighlightedTitle title={result.title} match={result.match} />
-          <div className="text-muted mt-0.5 text-xs">{result.nodeTypeName}</div>
         </div>
       ))}
     </div>
@@ -222,13 +311,17 @@ const NodeSearch = ({
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const userNames = useAuthorNames({ app, plugin, candidateState });
 
-  const nodeTypeNames = useMemo(() => {
-    const names = new Map<string, string>();
-    for (const nodeType of plugin.settings.nodeTypes) {
-      names.set(nodeType.id, nodeType.name);
-    }
-    return names;
+  const nodeTypesById = useMemo(() => {
+    const byId = new Map<string, NodeTypeDisplay>();
+    plugin.settings.nodeTypes.forEach((nodeType, nodeIndex) => {
+      byId.set(nodeType.id, {
+        name: nodeType.name,
+        badge: getNodeTypeBadge({ nodeType, nodeIndex }),
+      });
+    });
+    return byId;
   }, [plugin.settings.nodeTypes]);
 
   useEffect(() => {
@@ -267,10 +360,21 @@ const NodeSearch = ({
       .slice(0, MAX_VISIBLE_RESULTS)
       .map((result) => ({
         ...result,
-        nodeTypeName: nodeTypeNames.get(result.nodeTypeId) ?? "Unknown type",
-        authorName: resolveAuthorName(app, result.file),
+        nodeType: nodeTypesById.get(result.nodeTypeId) ?? UNKNOWN_NODE_TYPE,
       }));
-  }, [app, candidateState, debouncedQuery, nodeTypeNames]);
+  }, [candidateState, debouncedQuery, nodeTypesById]);
+
+  const activeResult = results[activeIndex];
+
+  // Only the preview shows an author, so resolving the active result costs one
+  // lookup per selection instead of one per row on every keystroke.
+  const authorName = useMemo(
+    () =>
+      activeResult
+        ? resolveAuthorName({ app, file: activeResult.file, userNames })
+        : "",
+    [app, activeResult, userNames],
+  );
 
   useEffect(() => {
     setActiveIndex(0);
@@ -325,7 +429,7 @@ const NodeSearch = ({
             />
           )}
         </div>
-        <PreviewPane app={app} result={results[activeIndex]} />
+        <PreviewPane app={app} result={activeResult} authorName={authorName} />
       </div>
     </div>
   );
