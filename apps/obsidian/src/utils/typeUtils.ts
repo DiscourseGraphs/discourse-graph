@@ -89,9 +89,12 @@ export const getAndFormatImportSource = (
   return formatImportSource(importInfo.spaceUri || "", spaceNames);
 };
 
+export const formatUserName = (
+  userNames: Record<number, string> | undefined,
+  id: number,
+): string => (userNames || {})[id] || `user ${id}`;
+
 export const getUserNameById = (
   plugin: DiscourseGraphPlugin,
   id: number,
-): string => {
-  return (plugin.settings.userNames || {})[id] || `user ${id}`;
-};
+): string => formatUserName(plugin.settings.userNames, id);
