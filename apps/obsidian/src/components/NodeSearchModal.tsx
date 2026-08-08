@@ -70,18 +70,22 @@ const PreviewPane = ({
   result: SearchResultRow | undefined;
 }): ReactElement => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [content, setContent] = useState<string | null>(null);
+  // The text is kept with the file it came from so the pane never renders one
+  // note's body under another note's title while the next read is in flight.
+  const [loaded, setLoaded] = useState<{ file: TFile; text: string } | null>(
+    null,
+  );
 
   const file = result?.file;
 
   useEffect(() => {
     if (!file) {
-      setContent(null);
+      setLoaded(null);
       return;
     }
     let cancelled = false;
     void app.vault.cachedRead(file).then((text) => {
-      if (!cancelled) setContent(text);
+      if (!cancelled) setLoaded({ file, text });
     });
     return () => {
       cancelled = true;
@@ -90,13 +94,13 @@ const PreviewPane = ({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !file || content === null) return;
+    if (!container || !file || loaded?.file !== file) return;
 
     container.empty();
     const component = new Component();
     void MarkdownRenderer.render(
       app,
-      content.trim() || "This note is empty.",
+      loaded.text.trim() || "This note is empty.",
       container,
       file.path,
       component,
@@ -106,7 +110,7 @@ const PreviewPane = ({
       component.unload();
       container.empty();
     };
-  }, [app, file, content]);
+  }, [app, file, loaded]);
 
   if (!result || !file) {
     return (
