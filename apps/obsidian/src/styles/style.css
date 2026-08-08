@@ -3914,3 +3914,17 @@ kbd.tlui-kbd {
   height: 100%;
   overflow: hidden;
 }
+
+/* renderResults wraps matched ranges in spans and leaves unmatched text as bare
+   text nodes, so every span in here is a match. Targeting the element rather
+   than Obsidian's internal class keeps this working if that class is renamed.
+
+   Obsidian styles these with the suggestion highlight, which is not the yellow
+   used by its own search view; --text-highlight-bg is that yellow, and stays
+   theme-aware rather than hardcoding a colour. */
+.dg-node-search-modal .dg-search-result-title span {
+  background-color: var(--text-highlight-bg);
+  color: inherit;
+  border-radius: var(--radius-s);
+  padding: 0 1px;
+}
