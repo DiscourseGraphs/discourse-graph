@@ -27,7 +27,7 @@ import {
 } from "~/services/QueryEngine";
 import {
   getNodeTypeBadge,
-  UNKNOWN_NODE_TYPE_BADGE,
+  getFallbackNodeTypeBadge,
   type NodeTypeBadge,
 } from "~/utils/nodeTypeBadge";
 import { fetchUserNames } from "~/utils/importNodes";
@@ -49,12 +49,8 @@ type CandidateState =
 
 type NodeTypeDisplay = {
   name: string;
-  badge: NodeTypeBadge;
-};
-
-const UNKNOWN_NODE_TYPE: NodeTypeDisplay = {
-  name: "Unknown type",
-  badge: UNKNOWN_NODE_TYPE_BADGE,
+  /** Null when neither the config nor the title says what type this is. */
+  badge: NodeTypeBadge | null;
 };
 
 type SearchResultRow = RankedDiscourseNode & {
@@ -292,17 +288,19 @@ const ResultList = ({
             index === activeIndex ? "bg-modifier-hover" : ""
           }`}
         >
-          <span
-            title={result.nodeType.name}
-            aria-label={result.nodeType.name}
-            style={{
-              backgroundColor: result.nodeType.badge.backgroundColor,
-              color: result.nodeType.badge.textColor,
-            }}
-            className="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
-          >
-            {result.nodeType.badge.text}
-          </span>
+          {result.nodeType.badge && (
+            <span
+              title={result.nodeType.name}
+              aria-label={result.nodeType.name}
+              style={{
+                backgroundColor: result.nodeType.badge.backgroundColor,
+                color: result.nodeType.badge.textColor,
+              }}
+              className="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
+            >
+              {result.nodeType.badge.text}
+            </span>
+          )}
           <HighlightedTitle title={result.title} match={result.match} />
         </div>
       ))}
@@ -372,7 +370,10 @@ const NodeSearch = ({
       .slice(0, MAX_VISIBLE_RESULTS)
       .map((result) => ({
         ...result,
-        nodeType: nodeTypesById.get(result.nodeTypeId) ?? UNKNOWN_NODE_TYPE,
+        nodeType: nodeTypesById.get(result.nodeTypeId) ?? {
+          name: "Unknown type",
+          badge: getFallbackNodeTypeBadge(result.title),
+        },
       }));
   }, [candidateState, debouncedQuery, nodeTypesById]);
 
