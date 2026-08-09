@@ -67,7 +67,7 @@ type RoamMarkdownApi = {
   };
 };
 
-const getRoamMarkdownApi = (): RoamMarkdownApi =>
+export const getRoamMarkdownApi = (): RoamMarkdownApi =>
   window.roamAlphaAPI.data as unknown as RoamMarkdownApi;
 
 export const getErrorMessage = (error: unknown): string =>
