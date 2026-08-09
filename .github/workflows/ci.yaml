@@ -141,36 +141,70 @@ jobs:
             exit 0
           fi
 
+          # Run one ESLint config over the changed files and report it as its own check.
+          # Capture ESLint output and let reviewdog decide pass/fail after diff filtering.
+          # This avoids failing a PR for pre-existing issues elsewhere in touched files.
+          run_eslint_lane() {
+            local workspace="$1" lane_config="$2" check_name="$3" fail_level="$4"
+            shift 4
+
+            local config_args=()
+            if [ -n "$lane_config" ]; then
+              config_args=(--config "$lane_config")
+            fi
+
+            local eslint_output eslint_exit_code=0
+            eslint_output="$(mktemp)"
+            pnpm --dir "$workspace" exec eslint --no-color --format stylish \
+              "${config_args[@]}" "$@" >"$eslint_output" 2>&1 || eslint_exit_code=$?
+
+            # Exit codes of 2 or higher mean ESLint itself failed (bad config, parse crash).
+            if [ "$eslint_exit_code" -ge 2 ]; then
+              cat "$eslint_output"
+              rm -f "$eslint_output"
+              return 1
+            fi
+
+            local lane_failed=0
+            reviewdog \
+              -f=eslint \
+              -name="$check_name" \
+              -reporter=github-pr-check \
+              -filter-mode=added \
+              -level=warning \
+              -fail-level="$fail_level" < "$eslint_output" || lane_failed=1
+
+            rm -f "$eslint_output"
+            return $lane_failed
+          }
+
           # Lint every touched workspace and fail once at the end so all findings are reported.
           lint_failed=0
           for workspace in "${!workspace_to_files[@]}"; do
             echo "Linting changed files in ${workspace}"
             mapfile -t files < <(printf '%s' "${workspace_to_files[$workspace]}" | sed '/^$/d')
-            eslint_output="$(mktemp)"
-            eslint_exit_code=0
 
-            # Capture ESLint output and let reviewdog decide pass/fail after diff filtering.
-            # This avoids failing a PR for pre-existing issues elsewhere in touched files.
-            pnpm --dir "$workspace" exec eslint --no-color --format stylish "${files[@]}" >"$eslint_output" 2>&1 || eslint_exit_code=$?
-
-            if [ "$eslint_exit_code" -ge 2 ]; then
-              cat "$eslint_output"
-              rm -f "$eslint_output"
-              lint_failed=1
-              continue
+            # A workspace can split its ESLint setup into two lanes. eslint.config.blocking.mjs
+            # holds the rules that gate the merge; eslint.config.advisory.mjs holds rules that
+            # are annotated on the PR for visibility but must not block it. Workspaces without
+            # these files lint against their default config, unchanged.
+            blocking_config=""
+            if [ -f "${workspace}/eslint.config.blocking.mjs" ]; then
+              blocking_config="eslint.config.blocking.mjs"
             fi
 
-            if ! reviewdog \
-              -f=eslint \
-              -name="eslint (${workspace})" \
-              -reporter=github-pr-check \
-              -filter-mode=added \
-              -level=warning \
-              -fail-level=warning < "$eslint_output"; then
+            if ! run_eslint_lane "$workspace" "$blocking_config" \
+              "eslint (${workspace})" warning "${files[@]}"; then
               lint_failed=1
             fi
 
-            rm -f "$eslint_output"
+            # Advisory warnings are informational, so only a hard ESLint error fails here.
+            if [ -f "${workspace}/eslint.config.advisory.mjs" ]; then
+              if ! run_eslint_lane "$workspace" "eslint.config.advisory.mjs" \
+                "eslint advisory (${workspace})" error "${files[@]}"; then
+                lint_failed=1
+              fi
+            fi
           done
           exit $lint_failed
 

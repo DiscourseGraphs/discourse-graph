@@ -8,11 +8,18 @@ After editing any Obsidian plugin code, run lint before finishing:
 pnpm --dir apps/obsidian lint
 ```
 
-Fix all reported warnings and errors. Pay special attention to `obsidianmd/*` rule violations — these indicate Obsidian plugin store review risks. The obsidianmd rules fire as warnings (due to the shared `eslint-plugin-only-warn` preset), but they still fail lint and block commits via lint-staged.
+That command runs both lint lanes, so fix everything it reports. Pay attention to `obsidianmd/*` violations in particular — they indicate Obsidian plugin store review risks, and clearing them is the only way they get cleared.
 
-For manifest and store checks that ESLint does not cover (description wording, funding URL, etc.), use the `obsidian-plugin-guidelines` skill.
+The two lanes differ in how CI treats them:
 
-Note: `apps/obsidian` uses ESLint 9 with `eslint-plugin-obsidianmd` layered on top of the monorepo's shared React/TS rules. Other apps (roam, website) use ESLint 8 and are unaffected.
+- **Blocking** (`eslint.config.blocking.mjs`) — the shared monorepo React/TS rules. On changed files, any violation on an added line fails the PR check.
+- **Advisory** (`eslint.config.advisory.mjs`) — the `obsidianmd/*` rules. CI annotates violations on changed lines but never fails the check over them, because the plugin carries a backlog of pre-existing violations that unrelated changes should not have to clear.
+
+Nothing blocks commits locally: `eslint-plugin-only-warn` in the shared preset downgrades every rule to a warning, so ESLint always exits 0. The lint-staged hook applies `--fix` and moves on. Enforcement happens in CI, on added lines only.
+
+For manifest and store checks that ESLint does not cover (description wording, funding URL, etc.), use the `obsidian-plugin-guidelines` skill in `skills/`.
+
+Note: `apps/obsidian` runs ESLint 9, required by `eslint-plugin-obsidianmd`, while the other apps (roam, website) run ESLint 8. pnpm gives each workspace its own copy, but the shared `@repo/eslint-config` preset is written against ESLint 8 and typescript-eslint 7 — so a change to that preset can break `apps/obsidian` alone. Run this app's lint after touching it.
 
 ## Dependencies
 
