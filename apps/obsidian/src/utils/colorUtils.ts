@@ -42,8 +42,9 @@ export const getNodeTagColors = (
 ): { backgroundColor: string; textColor: string } => {
   const customColor = nodeType.color || "";
 
-  const safeIndex =
-    nodeIndex >= 0 && nodeIndex < COLOR_ARRAY.length ? nodeIndex : 0;
+  // Cycling keeps the 13th node type onwards spread across the palette; clamping
+  // them to index 0 made every type past the twelfth share one color.
+  const safeIndex = nodeIndex >= 0 ? nodeIndex % COLOR_ARRAY.length : 0;
   const paletteColorKey = COLOR_ARRAY[safeIndex];
   const paletteColor = paletteColorKey
     ? COLOR_PALETTE[paletteColorKey]
@@ -54,7 +55,6 @@ export const getNodeTagColors = (
 
   return { backgroundColor, textColor };
 };
-
 
 export const getAllDiscourseNodeColors = (
   nodeTypes: DiscourseNode[],
