@@ -10,17 +10,13 @@ export type NodeTypeBadge = {
 };
 
 /**
- * Mirrors Roam's `formatBadgeText` so a node type abbreviates to the same three
- * letters in both apps. The tag wins over the name because it is the string
- * users already see on the node itself.
+ * Mirrors Roam's `formatBadgeText`. The tag wins over the name because it is
+ * the string users already see on the node.
  */
 export const formatNodeTypeBadgeText = (source: string): string =>
   source.replace(/^#+/, "").trim().slice(0, BADGE_TEXT_LENGTH).toUpperCase();
 
-/**
- * Reuses the colors the editor already paints discourse tags with, so the same
- * node type reads identically in a tag and in a search result.
- */
+/** Reuses the editor's tag colors so a node type reads the same everywhere. */
 export const getNodeTypeBadge = ({
   nodeType,
   nodeIndex,
@@ -32,10 +28,7 @@ export const getNodeTypeBadge = ({
   ...getNodeTagColors(nodeType, nodeIndex),
 });
 
-/**
- * `nodeTypeId` comes from file frontmatter, so it can outlive the node type it
- * names — deleted types and notes imported from another vault both land here.
- */
+/** `nodeTypeId` comes from frontmatter, so it can outlive the type it names. */
 export const UNKNOWN_NODE_TYPE_BADGE: NodeTypeBadge = {
   text: "?",
   backgroundColor: "var(--background-modifier-hover)",
