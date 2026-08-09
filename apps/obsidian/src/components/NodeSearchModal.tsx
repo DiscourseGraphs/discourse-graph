@@ -71,10 +71,8 @@ const getFrontmatterAuthorId = (app: App, file: TFile): number | undefined => {
 };
 
 /**
- * A local note is authored by whoever is using the vault; only imported nodes
- * carry an `authorId`. The lookup is synchronous because `useAuthorNames` has
- * already fetched every name; an id with no cached name degrades to `user <id>`
- * rather than blocking the preview on a request.
+ * Only imported nodes carry an `authorId`; a local note is the vault owner's.
+ * `useAuthorNames` has already cached the names, so this stays synchronous.
  */
 const resolveAuthorName = ({
   app,
@@ -91,11 +89,9 @@ const resolveAuthorName = ({
 };
 
 /**
- * `fetchUserNames` returns every person in the vault's spaces in a single query
- * and persists them, so names resolve during render with a map lookup. It runs
- * at most once per modal open, and only when an imported node is actually
- * missing a name — resolving per result or per selection would fire a request
- * per author for data this one request already covers.
+ * `fetchUserNames` returns every person in the vault's spaces in one query, so
+ * this refreshes once per open when a name is missing rather than querying per
+ * author.
  */
 const useAuthorNames = ({
   app,
@@ -149,8 +145,8 @@ const PreviewPane = ({
   authorName: string;
 }): ReactElement => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  // The text is kept with the file it came from so the pane never renders one
-  // note's body under another note's title while the next read is in flight.
+  // Paired with its file so an in-flight read can't put one note's body under
+  // another note's title.
   const [loaded, setLoaded] = useState<{ file: TFile; text: string } | null>(
     null,
   );
@@ -366,8 +362,7 @@ const NodeSearch = ({
 
   const activeResult = results[activeIndex];
 
-  // Only the preview shows an author, so resolving the active result costs one
-  // lookup per selection instead of one per row on every keystroke.
+  // Only the preview shows an author, so resolve the selection, not all 50 rows.
   const authorName = useMemo(
     () =>
       activeResult
