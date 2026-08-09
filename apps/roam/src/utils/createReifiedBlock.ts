@@ -140,7 +140,7 @@ export const createReifiedRelation = async ({
   sourceUid: string;
   relationBlockUid: string;
   destinationUid: string;
-}): Promise<string | undefined> => {
+}): Promise<string> => {
   return await createReifiedBlock({
     destinationBlockUid: await getOrCreateRelationPageUid(),
     schemaUid: relationBlockUid,

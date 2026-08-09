@@ -10,12 +10,15 @@ import { getSubTree } from "roamjs-components/util";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
+import { getRoamMarkdownApi } from "~/utils/materializeSharedNode";
 
 import type { RoamBasicNode } from "roamjs-components/types";
 import discourseConfigRef from "~/utils/discourseConfigRef";
 import { roamNodeToCondition } from "~/utils/parseQuery";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
-import type { DiscourseNode } from "~/utils/getDiscourseNodes";
+import getDiscourseNodes, {
+  type DiscourseNode,
+} from "~/utils/getDiscourseNodes";
 import type { Condition } from "~/utils/types";
 import { z } from "zod";
 import {
@@ -266,7 +269,6 @@ const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
       "Result-limit": section.settings?.resultLimit?.value ?? 0,
     },
   }));
-  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 const getLegacyPersonalSetting = (keys: string[]): unknown => {
@@ -533,7 +535,7 @@ const getLegacyDiscourseNodeSetting = (
     "key-image-option": rawCanvas["key-image-option"] || "first-image",
     "query-builder-alias": rawCanvas["query-builder-alias"] || "",
   };
-  /* eslint-enable @typescript-eslint/naming-convention */
+
   const attributes = Object.fromEntries(
     getSubTree({ tree, key: "Attributes" }).children.map((c) => [
       c.text,
@@ -717,7 +719,6 @@ const FEATURE_FLAG_LEGACY_MAP: Record<
       text: "(BETA) Left Sidebar",
     }).value,
 };
-/* eslint-enable @typescript-eslint/naming-convention */
 
 export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
   return bulkReadSettings().featureFlags[key];
@@ -954,7 +955,7 @@ const getRawDiscourseNodeBlockProps = (
   }
 
   return isRecord(blockProps) && Object.keys(blockProps).length > 0
-    ? (blockProps as Record<string, json>)
+    ? blockProps
     : undefined;
 };
 
@@ -1058,7 +1059,7 @@ const addConditionUids = (conditions: SchemaCondition[]): Condition[] =>
       target: c.target,
       not: c.not,
     };
-  }) as Condition[];
+  });
 
 const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
   text: settings.text,
@@ -1085,34 +1086,74 @@ const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
     : undefined,
 });
 
+const getUnusedShortcut = (label: string): string => {
+  const candidateShortcut = label.slice(0, 1).toUpperCase();
+  const existingShortcuts = new Set(
+    getDiscourseNodes()
+      .map((n) => n.shortcut.toUpperCase())
+      .filter(Boolean),
+  );
+  return existingShortcuts.has(candidateShortcut) ? "" : candidateShortcut;
+};
+
 // getAllDiscourseNodes skips prop-less pages, so invalidate only after the props write settles.
 export const createDiscourseNodeType = async ({
-  text,
+  label,
   shortcut,
   format,
+  template,
 }: {
-  text: string;
-  shortcut: string;
-  format: string;
+  label: string;
+  shortcut?: string;
+  format?: string;
+  template?: string;
 }): Promise<DiscourseNode> => {
+  if (shortcut === undefined) shortcut = getUnusedShortcut(label);
+  format = format ?? `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
+  const tree = [
+    {
+      text: "Shortcut",
+      children: [{ text: shortcut }],
+    },
+    {
+      text: "Tag",
+      children: [{ text: "" }],
+    },
+    {
+      text: "Format",
+      children: [{ text: format }],
+    },
+  ];
+  if (template !== undefined) {
+    tree.push({
+      text: "Template",
+      children: [],
+    });
+  }
   const pageUid = await createPage({
-    title: `${DISCOURSE_NODE_PAGE_PREFIX}${text}`,
-    tree: [
-      { text: "Shortcut", children: [{ text: shortcut }] },
-      { text: "Tag", children: [{ text: "" }] },
-      { text: "Format", children: [{ text: format }] },
-    ],
+    title: `discourse-graph/nodes/${label}`,
+    tree,
   });
-
+  let templateTree: RoamBasicNode[] | undefined;
+  if (template !== undefined) {
+    const tree = getBasicTreeByParentUid(pageUid);
+    const templateUid = tree[3].uid;
+    await getRoamMarkdownApi().block.fromMarkdown({
+      location: { "parent-uid": templateUid, order: "last" },
+      "markdown-string": template,
+    });
+    templateTree = getBasicTreeByParentUid(templateUid);
+  }
   const settings = DiscourseNodeSchema.parse({
-    text,
+    text: label,
     type: pageUid,
     shortcut,
     format,
+    template: templateTree,
   });
+  setBlockProps(pageUid, settings);
   await setBlockPropsAsync(pageUid, settings);
   invalidateDiscourseNodeTypeCaches();
-
   return toDiscourseNode(settings);
 };
 
@@ -1224,9 +1265,7 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
       );
     } else {
       // Try migrating legacy field shapes before dropping the node.
-      const migrated = migrateNodeBlockProps(
-        blockProps as Record<string, json>,
-      );
+      const migrated = migrateNodeBlockProps(blockProps);
       const retryResult = DiscourseNodeSchema.safeParse(migrated);
       if (retryResult.success) {
         setBlockProps(pageUid, retryResult.data, false);

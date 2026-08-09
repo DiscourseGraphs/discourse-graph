@@ -59,28 +59,12 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
     }
   };
 
-  const getUnusedShortcut = (): string => {
-    const candidateShortcut = label.slice(0, 1).toUpperCase();
-    const existingShortcuts = new Set(
-      getDiscourseNodes()
-        .map((n) => n.shortcut.toUpperCase())
-        .filter(Boolean),
-    );
-    return existingShortcuts.has(candidateShortcut) ? "" : candidateShortcut;
-  };
-
   const createNodeType = async (): Promise<void> => {
     setIsCreating(true);
     try {
-      const shortcut = getUnusedShortcut();
-      const format = `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
       posthog.capture("Discourse Node: Type Created", { label });
 
-      const node = await createDiscourseNodeType({
-        text: label,
-        shortcut,
-        format,
-      });
+      const node = await createDiscourseNodeType({ label });
 
       setNodes((prevNodes) => [...prevNodes, node]);
       refreshConfigTree();
