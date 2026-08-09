@@ -141,8 +141,6 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
     id: "open-node-search",
     name: "Open node search",
-    // No default hotkey: users bind their own, and we avoid colliding with core
-    // or community bindings.
     hotkeys: [],
     callback: () => {
       new NodeSearchModal(plugin.app, plugin).open();
