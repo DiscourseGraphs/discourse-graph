@@ -10,7 +10,6 @@ import {
 import React, { useState } from "react";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import refreshConfigTree from "~/utils/refreshConfigTree";
-import createPage from "roamjs-components/writes/createPage";
 import type { CustomField } from "roamjs-components/components/ConfigPanels/types";
 import posthog from "posthog-js";
 import getDiscourseRelations, {
@@ -18,11 +17,10 @@ import getDiscourseRelations, {
 } from "~/utils/getDiscourseRelations";
 import { deleteBlock } from "roamjs-components/writes";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
-import setBlockProps from "~/utils/setBlockProps";
-import { DiscourseNodeSchema } from "./utils/zodSchema";
 import { getGlobalSettings, setGlobalSetting } from "./utils/accessors";
 import { GLOBAL_KEYS } from "./utils/settingKeys";
 import { invalidateDiscourseNodeTypeCaches } from "~/utils/discourseNodeTypeCache";
+import { createDiscourseNodeSchema } from "~/utils/createDiscourseNodeSchema";
 
 type DiscourseNodeConfigPanelProps = React.ComponentProps<
   CustomField["options"]["component"]
@@ -82,44 +80,8 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
           className="select-none"
           disabled={!label}
           onClick={() => {
-            const candidateShortcut = label.slice(0, 1).toUpperCase();
-            const existingShortcuts = new Set(
-              getDiscourseNodes()
-                .map((n) => n.shortcut.toUpperCase())
-                .filter(Boolean),
-            );
-            const shortcut = existingShortcuts.has(candidateShortcut)
-              ? ""
-              : candidateShortcut;
-            const format = `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
             posthog.capture("Discourse Node: Type Created", { label: label });
-            void createPage({
-              title: `discourse-graph/nodes/${label}`,
-              tree: [
-                {
-                  text: "Shortcut",
-                  children: [{ text: shortcut }],
-                },
-                {
-                  text: "Tag",
-                  children: [{ text: "" }],
-                },
-                {
-                  text: "Format",
-                  children: [{ text: format }],
-                },
-              ],
-            }).then((valueUid) => {
-              setBlockProps(
-                valueUid,
-                DiscourseNodeSchema.parse({
-                  text: label,
-                  type: valueUid,
-                  shortcut,
-                  format,
-                }),
-              );
-              invalidateDiscourseNodeTypeCaches();
+            void createDiscourseNodeSchema(label).then((valueUid) => {
               setNodes([
                 ...nodes,
                 {
