@@ -28,9 +28,28 @@ export const getNodeTypeBadge = ({
   ...getNodeTagColors(nodeType, nodeIndex),
 });
 
-/** `nodeTypeId` comes from frontmatter, so it can outlive the type it names. */
-export const UNKNOWN_NODE_TYPE_BADGE: NodeTypeBadge = {
-  text: "?",
-  backgroundColor: "var(--background-modifier-hover)",
-  textColor: "var(--text-muted)",
+/**
+ * `nodeTypeId` comes from frontmatter, so it can outlive the type it names —
+ * a deleted type, or a note imported from a vault configured differently.
+ *
+ * Roam covers this by storing the type's label on the result when it indexes, and
+ * falling back to that. We have no such label, but node formats are
+ * `PREFIX - {content}`, so the title still carries the prefix the badge would have
+ * shown. Returns null when the title has no prefix either: an abbreviation of the
+ * note's own words would say nothing about its type.
+ */
+export const getFallbackNodeTypeBadge = (
+  title: string,
+): NodeTypeBadge | null => {
+  const [prefix, ...rest] = title.split(" - ");
+  if (!rest.length || !prefix) return null;
+
+  const text = formatNodeTypeBadgeText(prefix);
+  if (!text) return null;
+
+  return {
+    text,
+    backgroundColor: "var(--background-modifier-hover)",
+    textColor: "var(--text-muted)",
+  };
 };
