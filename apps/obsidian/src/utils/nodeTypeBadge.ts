@@ -23,13 +23,6 @@ export const getNodeTypeBadge = ({
   ...getNodeTagColors(nodeType, nodeIndex),
 });
 
-/**
- * Mirrors Roam, which stores each node type's label on the search result at index
- * time and falls back to it when the type can no longer be resolved. We have no
- * stored label, but node formats are `PREFIX - {content}`, so the title still
- * carries the prefix the badge would have shown. Null when it does not: an
- * abbreviation of the note's own words would say nothing about its type.
- */
 export const getFallbackNodeTypeBadge = (
   title: string,
 ): NodeTypeBadge | null => {

@@ -36,12 +36,6 @@ import { getLoggedInClient } from "~/utils/supabaseContext";
 const MAX_VISIBLE_RESULTS = 50;
 const SEARCH_DEBOUNCE_MS = 250;
 
-/**
- * Loading and error are unreachable today, since `getDiscourseNodeCandidates` is
- * synchronous and swallows Datacore failures. They exist because semantic search
- * (F12) queries Supabase over the network, and threading those states through
- * every render branch later costs far more than carrying them now.
- */
 type CandidateState =
   | { status: "loading" }
   | { status: "ready"; candidates: DiscourseNodeCandidate[] }
@@ -216,11 +210,6 @@ const PreviewPane = ({
   );
 };
 
-/**
- * `renderResults` slices `title` using the offsets in `match`, so it must be
- * handed the exact string that was scored. It also applies the theme's own
- * highlight styling, which is why matches are not marked up by hand.
- */
 const HighlightedTitle = ({
   title,
   match,
