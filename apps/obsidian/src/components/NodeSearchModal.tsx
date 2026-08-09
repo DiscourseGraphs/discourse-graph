@@ -260,10 +260,14 @@ const ResultList = ({
   onActivate: (index: number) => void;
 }): ReactElement => {
   const listRef = useRef<HTMLDivElement | null>(null);
+  const pointerMovedRef = useRef(false);
 
   useEffect(() => {
     const active = listRef.current?.children[activeIndex];
     active?.scrollIntoView({ block: "nearest" });
+    // Scrolling drags rows under a stationary cursor, and the mouseenter that
+    // fires is not a choice. Ignore hover until the pointer actually moves.
+    pointerMovedRef.current = false;
   }, [activeIndex]);
 
   return (
@@ -271,6 +275,7 @@ const ResultList = ({
       ref={listRef}
       role="listbox"
       aria-label="Discourse node search results"
+      onMouseMove={() => (pointerMovedRef.current = true)}
       className="flex-1 overflow-y-auto"
     >
       {results.map((result, index) => (
@@ -278,7 +283,11 @@ const ResultList = ({
           key={result.file.path}
           role="option"
           aria-selected={index === activeIndex}
+          onMouseEnter={() => pointerMovedRef.current && onActivate(index)}
           onClick={() => onActivate(index)}
+          // Keeps focus in the search input, so the keyboard path stays live
+          // after a click.
+          onMouseDown={(event) => event.preventDefault()}
           className={`border-modifier-border flex cursor-pointer items-center gap-2 border-b px-3 py-2 ${
             index === activeIndex ? "bg-modifier-hover" : ""
           }`}
@@ -392,7 +401,7 @@ const NodeSearch = ({
     });
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
     // Otherwise the caret jumps to the start or end of the query.
     event.preventDefault();
@@ -400,14 +409,15 @@ const NodeSearch = ({
   };
 
   return (
-    <div className="flex h-full flex-col">
+    // Bound here rather than on the input so navigation survives focus moving
+    // elsewhere in the modal, and so result actions have one place to live.
+    <div className="flex h-full flex-col" onKeyDown={handleKeyDown}>
       <input
         ref={inputRef}
         type="text"
         value={query}
         placeholder="Search discourse nodes by title"
         onChange={(event) => setQuery(event.target.value)}
-        onKeyDown={handleKeyDown}
         className="w-full"
       />
       <div className="border-modifier-border mt-3 flex flex-1 overflow-hidden rounded border">
