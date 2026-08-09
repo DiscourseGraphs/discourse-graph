@@ -32,7 +32,6 @@ import {
 } from "~/utils/nodeTypeBadge";
 import { fetchUserNames } from "~/utils/importNodes";
 import { getLoggedInClient } from "~/utils/supabaseContext";
-import { formatUserName } from "~/utils/typeUtils";
 
 const MAX_VISIBLE_RESULTS = 50;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -62,17 +61,22 @@ type SearchResultRow = RankedDiscourseNode & {
   nodeType: NodeTypeDisplay;
 };
 
-const getFrontmatterAuthorId = (app: App, file: TFile): number | undefined => {
+const LOCAL_AUTHOR_NAME = "You";
+const UNRESOLVED_AUTHOR_NAME = "Unknown";
+
+/** Frontmatter is untyped, so the raw value is narrowed by each caller. */
+const getFrontmatterAuthorId = (app: App, file: TFile): unknown => {
   const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter as
     | Record<string, unknown>
     | undefined;
-  const authorId = frontmatter?.authorId;
-  return typeof authorId === "number" ? authorId : undefined;
+  return frontmatter?.authorId;
 };
 
 /**
- * Only imported nodes carry an `authorId`; a local note is the vault owner's.
- * `useAuthorNames` has already cached the names, so this stays synchronous.
+ * "You" belongs only to a note with no `authorId` at all — every note in an
+ * unsynced vault. An id that is present but unresolvable stays "Unknown" rather
+ * than claiming local authorship. `useAuthorNames` has already cached the
+ * names, so this stays synchronous.
  */
 const resolveAuthorName = ({
   app,
@@ -84,8 +88,9 @@ const resolveAuthorName = ({
   userNames: Record<number, string>;
 }): string => {
   const authorId = getFrontmatterAuthorId(app, file);
-  if (authorId === undefined) return "You";
-  return formatUserName(userNames, authorId);
+  if (authorId === undefined || authorId === null) return LOCAL_AUTHOR_NAME;
+  if (typeof authorId !== "number") return UNRESOLVED_AUTHOR_NAME;
+  return userNames[authorId] ?? UNRESOLVED_AUTHOR_NAME;
 };
 
 /**
@@ -110,7 +115,9 @@ const useAuthorNames = ({
 
     const isMissingName = (candidate: DiscourseNodeCandidate): boolean => {
       const authorId = getFrontmatterAuthorId(app, candidate.file);
-      return authorId !== undefined && !plugin.settings.userNames?.[authorId];
+      return (
+        typeof authorId === "number" && !plugin.settings.userNames?.[authorId]
+      );
     };
     if (!candidateState.candidates.some(isMissingName)) return;
 
