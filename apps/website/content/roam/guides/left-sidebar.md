@@ -1,0 +1,81 @@
+---
+title: "Left Sidebar"
+date: "2026-08-10"
+author: ""
+published: true
+---
+
+The Left Sidebar is a navigation tool that allows you to select your most commonly-used nodes as entry points to your Discourse Graph.
+
+The default Roam Left Sidebar can be used to surface items in a shared graph to everyone's attention or to promulgate a group workflow. The Discourse Graph extension allows users of a shared graph to supplement these global shortcuts with personal shortcuts visible only to that user.
+
+Left Sidebar shortcuts aren't limited to just pages: you can add **page**, a **block**, a **SmartBlock button**, a **command** (e.g. _Create node_), or a **live query** as a shortcut on your sidebar.
+
+[!INFO] See "**[Beyond page shortcuts](<((NKso0GRBz))>)**" and "**[Query sections](<((STvy52HfI))>)**" below to find out how to add queries, smartblocks, and commands to your left sidebar.
+
+## Installing the Left Sidebar
+
+Open the Discourse Graph Plugin settings and go to `Global Settings`. Select `Home` and check `Left Sidebar` (note that this is a global setting and activating it will enable it for all users in the graph. If it is already checked ☑️, someone in your graph has already enabled the plugin)
+
+N.B. Enabling the sidebar requires a **graph reload** to take effect. A prompt will appear offering to **Reload Graph** now or **Later**.
+
+[!TIP] When you first enable the feature, your existing Roam shortcuts are **automatically migrated** into the Global section — you won't lose anything.
+
+![enabling the left sidebar](/docs/roam/left-sidebar01.png)
+
+### Additions to the basic Roam sidebar
+
+The standard left sidebar that ships with the Roam app has a space for shortcuts. However, these cannot be personalized for individual users of a shared graph.
+
+![shortcuts](/docs/roam/left-sidebar02.png)
+
+The Discourse Graph left sidebar allows users to set both Global and Personal shortcuts for team and individual use. Choose shortcuts for your team under `Global Settings` ➡️ `Left Sidebar`, and choose personal shortcuts visible only to you under `Personal Settings` ➡️ `Left Sidebar`.
+
+![global settings](/docs/roam/left-sidebar03.png)
+
+![personal settings](/docs/roam/left-sidebar04.png)
+
+### Opening the Left Sidebar Settings
+
+Click the ** settings icon** to the right of the **FAVORITES** heading. A small menu appears with two options: 1. **Global Section** — edit shortcuts visible to everyone in the graph. 2. **Personal Section** — edit shortcuts visible only to you.
+
+You can also reach these under `Global Settings → Left Sidebar` and `Personal Settings → Left Sidebar`.
+
+![adding global shortcuts](/docs/roam/left-sidebar05.png)
+
+![adding personal shortcuts](/docs/roam/left-sidebar06.png)
+
+(N.B. If your new shortcuts do not immediately appear on the Left Sidebar, please refresh the Discourse Graph plugin as shown below.)
+
+![refreshing the plugin](/docs/roam/left-sidebar07.png)
+
+### Sidebar Features
+
+This is an example of a personalized Left Sidebar: **FAVORITES** with a **GLOBAL** section for all users of the shared graph — here an Updates Dashboard and a focal project — and beneath it are a few personal sections, e.g one of them called "MEETINGS". Users can create multiple named personal shortcut sections.
+
+![sidebar overview](/docs/roam/left-sidebar08.png)
+
+#### The GLOBAL section\*\*
+
+Add pages (or blocks, commands, and queries — see below) under `Global Settings → Left Sidebar → Children`. Anything here is visible to **all** users of the graph, so add with care.
+
+**Folding is now personal.** Click the chevron next to **GLOBAL** to collapse it — this only affects **your** view, not other users'. This lets you tuck away team shortcuts you don't use often without hiding them for everyone. (This replaces the old graph-wide "Collapsable" / "Folded" settings.)
+
+#### Personal sections
+
+Open `Personal Settings → Left Sidebar` (or the Settings icon → **Personal Section**). Use the **"Add section …"** box to add items.
+
+Click the **➕ (Add children)** icon on that item to convert it into a **named section** that groups several child pages under one collapsible heading. Sections with children get a chevron to expand/collapse. - **Add children** to a section with the "Add child page…" box; remove them with the trash icon. - **Aliases (display names).** Click the Settings icon next to any item to set an **Alias** — a custom label shown in place of the page/block title (the real title appears in grey beside it in settings). - **Section settings** : - **Section title** — rename the section. - **Truncate-result?** — maximum characters to display per item before it's cut off (default **75**). - **Result-limit** — maximum number of children to display (default **10**).
+
+#### Query sections — live results in the sidebar
+
+You can pin a **query** and have its results appear as shortcuts that stay up to date.
+
+In `Personal Settings → Left Sidebar`, paste a **block reference** `((block-uid))` pointing to a block that contains a `{{query block}}` into the "Add section …" box. It becomes a **query section**.
+
+In the sidebar, the query section renders its results as child shortcuts. Its **⋯ (more) menu** offers: - **Refresh** — re-run the query. - **Go to query block** — jump to the source query.
+
+Query section settings: **Alias** (the section's display name), **Result-limit** (how many results to show, default 10), and **Truncate-result?** (character cap per result). - **Beyond page shortcuts — blocks, SmartBlock buttons, and commands** - **Blocks** — add a block reference `((block-uid))` as a shortcut; clicking it opens that block. - **SmartBlock buttons** — add a SmartBlock button and it renders **and runs** directly in the sidebar. - **Commands** — use the **⚙️ / cog popover** in the Global or Personal settings input to add a built-in command. Currently available: **`{create node}`** (opens the Create-node flow). It appears in the sidebar as a button. - **Navigation tips** - **Click** a shortcut to open it in the main window. - **Shift + click** to open it in the **right sidebar** instead. - Shortcuts are tracked by page id, so **renaming a page keeps its shortcut working** — the label updates automatically. - **Rearranging shortcuts (drag-and-drop)** - Reorder sections, child pages, and Global items by **dragging** them — both in the sidebar itself and in the settings panels. (The previous up/down arrow buttons have been replaced by drag-and-drop.)
+
+[https://www.loom.com/share/92934298770542979623c73f0c55e3fd](https://www.loom.com/share/92934298770542979623c73f0c55e3fd)
+![rearranging shortcuts](/docs/roam/left-sidebar09.png)
