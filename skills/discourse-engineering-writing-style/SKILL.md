@@ -11,11 +11,11 @@ Write in a direct, concise, plainspoken style that preserves important context a
 
 - Lead with the relevant point and move quickly to the concrete question, request, or action.
 - Prefer the shortest version that remains clear and preserves necessary nuance.
+- Identify wording or missing context that is ambiguous or could be misconstrued. Resolve it when the intended meaning is clear; otherwise, flag it and ask for clarification.
 - Use natural contractions and everyday wording. Avoid corporate jargon, inflated phrasing, and generic professional filler.
 - Avoid em dashes as sentence-level punctuation. Use a period, comma, colon, semicolon, or parentheses to separate thoughts instead. Preserve em dashes only when they appear in exact quotations, titles, source text, or technical content supplied by the requester.
-- Keep warmth light: use a brief greeting, thanks, or friendly closing when appropriate, without extended pleasantries.
 - When identifying a problem or disagreement, state it plainly and pivot toward clarification, resolution, criteria, or next steps.
-- Use short paragraphs. Use bullets only when several distinct items genuinely scan better as a list.
+- Prefer bullets for distinct points. When prose reads more naturally, keep paragraphs and sentences short; avoid run-on sentences.
 - Ask one clear question when one will do. Combine related questions only when separating them would add needless length.
 
 ## Adapt to the channel
