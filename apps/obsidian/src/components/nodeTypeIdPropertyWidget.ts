@@ -46,6 +46,8 @@ const createWidget = (
   },
 });
 
+let previouslyAssignedWidgetType: string | null = null;
+
 export const registerNodeTypeIdPropertyWidget = (
   plugin: DiscourseGraphPlugin,
 ): void => {
@@ -54,6 +56,13 @@ export const registerNodeTypeIdPropertyWidget = (
 
   if (metadataTypeManager)
     try {
+      const assignedWidget = metadataTypeManager.getAssignedWidget(
+        NODE_TYPE_ID_PROPERTY_KEY,
+      );
+      if (assignedWidget !== WIDGET_TYPE) {
+        previouslyAssignedWidgetType = assignedWidget;
+      }
+
       metadataTypeManager.registeredTypeWidgets[WIDGET_TYPE] =
         createWidget(plugin);
       metadataTypeManager
@@ -76,9 +85,15 @@ export const unregisterNodeTypeIdPropertyWidget = (
         metadataTypeManager.getAssignedWidget(NODE_TYPE_ID_PROPERTY_KEY) ===
         WIDGET_TYPE
       ) {
-        metadataTypeManager
-          .unsetType(NODE_TYPE_ID_PROPERTY_KEY)
-          .catch((error) => console.error(error));
+        if (previouslyAssignedWidgetType) {
+          metadataTypeManager
+            .setType(NODE_TYPE_ID_PROPERTY_KEY, previouslyAssignedWidgetType)
+            .catch((error) => console.error(error));
+        } else {
+          metadataTypeManager
+            .unsetType(NODE_TYPE_ID_PROPERTY_KEY)
+            .catch((error) => console.error(error));
+        }
       }
       delete metadataTypeManager.registeredTypeWidgets[WIDGET_TYPE];
     } catch (error) {
