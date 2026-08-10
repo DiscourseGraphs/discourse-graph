@@ -122,15 +122,13 @@ export const initObservers = ({
         snapshot: settings,
       });
 
-      const syncEnabled =
-        settings.featureFlags[FEATURE_FLAG_KEYS.suggestiveModeOverlayEnabled];
-      if (syncEnabled && uid && readImportedSourceIdentity(uid)) {
+      const sharingEnabled =
+        settings.featureFlags[FEATURE_FLAG_KEYS.enableNodeSharing];
+      if (sharingEnabled && uid && readImportedSourceIdentity(uid)) {
         renderRefreshImportedNodeTitleButton({ h1, uid });
       }
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
-        const sharingEnabled =
-          settings.featureFlags[FEATURE_FLAG_KEYS.enableNodeSharing];
         if (sharingEnabled && node.backedBy === "user") {
           renderPublishNodeTitleButton({
             h1,
