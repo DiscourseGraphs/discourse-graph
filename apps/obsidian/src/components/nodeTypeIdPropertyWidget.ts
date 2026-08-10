@@ -28,15 +28,14 @@ const createWidget = (
   icon: "shapes",
   name: () => "Discourse node type",
   validate: (value: unknown) => typeof value === "string",
-  render: (containerEl: HTMLElement, data: unknown) => {
-    const nodeTypeId = typeof data === "string" ? data : String(data ?? "");
-    const nodeType = getNodeTypeById(plugin, nodeTypeId);
+  render: (containerEl: HTMLElement, data: string) => {
+    const nodeType = getNodeTypeById(plugin, data);
 
     const el = containerEl.createSpan({
       cls: "dg-node-type-id-value",
-      text: nodeType?.name ?? nodeTypeId,
+      text: nodeType?.name ?? data,
     });
-    el.setAttr("title", nodeTypeId);
+    el.setAttr("title", data);
     el.tabIndex = 0;
 
     return {
