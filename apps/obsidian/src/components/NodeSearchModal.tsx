@@ -366,7 +366,11 @@ const NodeSearch = ({
       }));
   }, [candidateState, debouncedQuery, nodeTypesById]);
 
-  const activeResult = results[activeIndex];
+  // A narrowing query rebuilds `results` before the effect below can reset the
+  // state, so the old index can point past the new list for one render. Clamping
+  // here keeps the preview and the highlighted row from blanking for that frame.
+  const activeIndexInRange = activeIndex < results.length ? activeIndex : 0;
+  const activeResult = results[activeIndexInRange];
 
   // Only the preview shows an author, so resolve the selection, not all 50 rows.
   const authorName = useMemo(
@@ -426,7 +430,7 @@ const NodeSearch = ({
           {candidateState.status === "ready" && results.length > 0 && (
             <ResultList
               results={results}
-              activeIndex={activeIndex}
+              activeIndex={activeIndexInRange}
               onActivate={setActiveIndex}
             />
           )}
