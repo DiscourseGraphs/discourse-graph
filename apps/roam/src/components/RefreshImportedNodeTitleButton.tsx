@@ -18,7 +18,7 @@ const RefreshImportedNodeTitleButton = ({
   const refresh = async (): Promise<void> => {
     setRefreshing(true);
     try {
-      const result = await refreshImportedNode({ pageUid: uid });
+      const result = await refreshImportedNode({ pageUid: uid, force: true });
       const failed = result.status === "failed";
       renderToast({
         id: failed

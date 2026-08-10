@@ -56,7 +56,10 @@ import {
 } from "./advancedSearchFooterUtils";
 import { renderDiscoverSharedNodesDialog } from "~/components/DiscoverSharedNodesDialog";
 import { refreshAllImportedNodes } from "~/utils/refreshAllImportedNodes";
+import { REFRESH_ERROR_TYPE } from "~/utils/refreshImportedNode";
 import internalError from "~/utils/internalError";
+
+const REFRESH_ALL_TOAST_ID = "refresh-imported-nodes";
 
 export const createDiscourseNodeFromCommand = (
   extensionAPI: OnloadArgs["extensionAPI"],
@@ -359,34 +362,35 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
       return;
     }
 
-    posthog.capture("Refresh Imported Nodes: Refresh All Command Triggered");
+    posthog.capture("Refresh Imported Node: Refresh All Command Triggered");
     renderToast({
-      id: "refresh-imported-nodes",
+      id: REFRESH_ALL_TOAST_ID,
       content: "Refreshing imported nodes…",
+      timeout: 0,
     });
     try {
       const { refreshed, skipped, failed } = await refreshAllImportedNodes();
       if (refreshed + skipped + failed === 0) {
         renderToast({
-          id: "refresh-imported-nodes",
+          id: REFRESH_ALL_TOAST_ID,
           content: "No imported nodes to refresh.",
         });
         return;
       }
       renderToast({
-        id: "refresh-imported-nodes",
+        id: REFRESH_ALL_TOAST_ID,
         intent: failed > 0 ? "warning" : "success",
         content: `${refreshed} refreshed, ${skipped} skipped, ${failed} failed.`,
       });
     } catch (error) {
       internalError({
         error,
-        type: "Imported node refresh failed",
+        type: REFRESH_ERROR_TYPE,
         context: { operation: "refresh-all-imported-nodes" },
         sendEmail: false,
       });
       renderToast({
-        id: "refresh-imported-nodes",
+        id: REFRESH_ALL_TOAST_ID,
         intent: "danger",
         content: "Could not refresh imported nodes.",
       });

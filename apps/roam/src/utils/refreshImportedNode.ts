@@ -8,7 +8,7 @@ import {
 } from "./materializeSharedNode";
 import { getLoggedInClient } from "./supabaseContext";
 
-const REFRESH_ERROR_TYPE = "Imported node refresh failed";
+export const REFRESH_ERROR_TYPE = "Imported node refresh failed";
 const REFRESH_ERROR_OPERATION = "refresh-imported-node";
 
 type RefreshImportedNodeResult = {
@@ -18,10 +18,10 @@ type RefreshImportedNodeResult = {
 
 export const refreshImportedNode = async ({
   pageUid,
-  force = true,
+  force,
 }: {
   pageUid: string;
-  force?: boolean;
+  force: boolean;
 }): Promise<RefreshImportedNodeResult> => {
   try {
     const title = getPageTitleByPageUid(pageUid);

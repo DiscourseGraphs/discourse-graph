@@ -1227,7 +1227,11 @@ export const createOrUpdateDiscourseEmbedding = async (
           spaceId: activeContext.spaceId,
         }),
     });
-    const importedNodeUids = await getImportedNodeUids();
+    const importedNodeUids = await measureSyncPhase({
+      phase: "getImportedNodeUids",
+      phases,
+      operation: () => getImportedNodeUids(),
+    });
     const localNodeInstances = changedNodeInstances.filter(
       (node) => !importedNodeUids.has(node.source_local_id),
     );
