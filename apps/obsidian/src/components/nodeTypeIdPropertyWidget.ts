@@ -56,7 +56,9 @@ export const registerNodeTypeIdPropertyWidget = (
     try {
       metadataTypeManager.registeredTypeWidgets[WIDGET_TYPE] =
         createWidget(plugin);
-      void metadataTypeManager.setType(NODE_TYPE_ID_PROPERTY_KEY, WIDGET_TYPE);
+      metadataTypeManager
+        .setType(NODE_TYPE_ID_PROPERTY_KEY, WIDGET_TYPE)
+        .catch((error) => console.error(error));
     } catch (error) {
       console.error(error);
     }
@@ -74,7 +76,9 @@ export const unregisterNodeTypeIdPropertyWidget = (
         metadataTypeManager.getAssignedWidget(NODE_TYPE_ID_PROPERTY_KEY) ===
         WIDGET_TYPE
       ) {
-        void metadataTypeManager.unsetType(NODE_TYPE_ID_PROPERTY_KEY);
+        metadataTypeManager
+          .unsetType(NODE_TYPE_ID_PROPERTY_KEY)
+          .catch((error) => console.error(error));
       }
       delete metadataTypeManager.registeredTypeWidgets[WIDGET_TYPE];
     } catch (error) {
