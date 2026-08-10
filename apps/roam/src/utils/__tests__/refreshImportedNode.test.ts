@@ -81,7 +81,7 @@ beforeEach(() => {
 describe("refreshImportedNode", () => {
   it("refreshes the page from its stored source identity", async () => {
     await expect(refreshImportedNode({ pageUid: PAGE_UID })).resolves.toEqual({
-      success: true,
+      status: "refreshed",
       message: 'Refreshed "EVD - REM sleep and recall" from Research vault.',
     });
     expect(mockedGetSharedNodeByRid).toHaveBeenCalledWith({
@@ -96,11 +96,34 @@ describe("refreshImportedNode", () => {
     expect(mockedInternalError).not.toHaveBeenCalled();
   });
 
+  it("skips an up-to-date import when not forced", async () => {
+    mockedMaterializeSharedNode.mockResolvedValue({
+      success: true,
+      action: "skipped",
+      pageUid: PAGE_UID,
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+
+    await expect(
+      refreshImportedNode({ pageUid: PAGE_UID, force: false }),
+    ).resolves.toEqual({
+      status: "skipped",
+      message: '"EVD - REM sleep and recall" is already up to date.',
+    });
+    expect(mockedMaterializeSharedNode).toHaveBeenCalledWith({
+      client,
+      sharedNode,
+      force: false,
+    });
+    expect(mockedInternalError).not.toHaveBeenCalled();
+  });
+
   it("fails when the page has no stored source identity", async () => {
     mockedReadImportedSourceIdentity.mockReturnValue(undefined);
 
     await expect(refreshImportedNode({ pageUid: PAGE_UID })).resolves.toEqual({
-      success: false,
+      status: "failed",
       message: `"${LOCAL_TITLE}" has no stored source identity, so it cannot be refreshed.`,
     });
     expect(mockedGetLoggedInClient).not.toHaveBeenCalled();
@@ -112,7 +135,7 @@ describe("refreshImportedNode", () => {
     mockedGetLoggedInClient.mockResolvedValue(null);
 
     await expect(refreshImportedNode({ pageUid: PAGE_UID })).resolves.toEqual({
-      success: false,
+      status: "failed",
       message: "Could not connect to shared persistence.",
     });
     expect(mockedGetSharedNodeByRid).not.toHaveBeenCalled();
@@ -123,7 +146,7 @@ describe("refreshImportedNode", () => {
     mockedGetSharedNodeByRid.mockResolvedValue(null);
 
     await expect(refreshImportedNode({ pageUid: PAGE_UID })).resolves.toEqual({
-      success: false,
+      status: "failed",
       message: `The source of "${LOCAL_TITLE}" is no longer shared with your groups, so it cannot be refreshed.`,
     });
     expect(mockedMaterializeSharedNode).not.toHaveBeenCalled();
@@ -142,7 +165,7 @@ describe("refreshImportedNode", () => {
     });
 
     await expect(refreshImportedNode({ pageUid: PAGE_UID })).resolves.toEqual({
-      success: false,
+      status: "failed",
       message: 'Failed to replace the content of "EVD - old local title"',
     });
     expect(mockedInternalError).toHaveBeenCalledTimes(1);
@@ -166,7 +189,7 @@ describe("refreshImportedNode", () => {
     });
 
     await expect(refreshImportedNode({ pageUid: PAGE_UID })).resolves.toEqual({
-      success: false,
+      status: "failed",
       message: `A different page ("${OTHER_PAGE_TITLE}") is linked to the same source and was refreshed instead.`,
     });
   });
@@ -176,7 +199,7 @@ describe("refreshImportedNode", () => {
     mockedGetSharedNodeByRid.mockRejectedValue(thrown);
 
     await expect(refreshImportedNode({ pageUid: PAGE_UID })).resolves.toEqual({
-      success: false,
+      status: "failed",
       message: "Could not refresh this page: network down",
     });
     expect(mockedInternalError).toHaveBeenCalledTimes(1);

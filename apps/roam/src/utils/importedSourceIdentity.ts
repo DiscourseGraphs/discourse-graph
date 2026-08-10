@@ -74,6 +74,19 @@ export const getImportedSourceRids = async (): Promise<Set<string>> => {
   );
 };
 
+export const getImportedNodeUids = async (): Promise<string[]> => {
+  const query = `[:find [?uid ...]
+    :where
+      [?page :block/uid ?uid]
+      [?page :block/props ?props]
+      [(get ?props :${DISCOURSE_GRAPH_PROP_NAME}) ?dgData]
+      [(get ?dgData :${IMPORTED_FROM_PROP_KEY}) ?importedFrom]
+      [(get ?importedFrom :${SOURCE_NODE_RID_KEY}) ?rid]]`;
+  const result = (await window.roamAlphaAPI.data.async.q(query)) as unknown[];
+
+  return result.filter((uid): uid is string => typeof uid === "string");
+};
+
 export const findImportedNodeUidBySourceRid = async (
   sourceNodeRid: string,
 ): Promise<string | null> => {
