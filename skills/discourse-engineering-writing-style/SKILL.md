@@ -1,6 +1,6 @@
 ---
 name: discourse-engineering-writing-style
-description: Draft and revise engineering emails, chat messages, requests, follow-ups, status updates, PR comments, issue reports, release notes, and other short-form team writing in the shared Discourse Graphs style. Use whenever a Discourse Graphs engineer asks to write, rewrite, phrase, shorten, clarify, or polish a message, unless they request a different style.
+description: Draft and revise engineering emails, chat messages, requests, follow-ups, status updates, engineering tickets, PR comments, issue reports, release notes, technical documentation, and other team writing in the shared Discourse Graphs style. Use whenever a Discourse Graphs engineer asks to write, rewrite, phrase, shorten, clarify, or polish team communication or documentation, unless they request a different style.
 ---
 
 # Discourse Engineering Writing Style
