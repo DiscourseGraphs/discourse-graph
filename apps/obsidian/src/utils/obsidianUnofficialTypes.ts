@@ -1,6 +1,6 @@
 import { App, Events, Plugin, Component } from "obsidian";
 
-// extracted the MetaadataTypeManager from "obsidian-types",
+// extracted the MetadataTypeManager from "obsidian-types",
 // and parts of internalPlugins, plugins.
 
 type FocusMode = "both" | "end" | "start";
