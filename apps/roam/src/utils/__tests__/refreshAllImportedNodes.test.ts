@@ -19,12 +19,9 @@ beforeEach(() => {
 
 describe("refreshAllImportedNodes", () => {
   it("refreshes every imported node without forcing and tallies the outcomes", async () => {
-    mockedGetImportedNodeUids.mockResolvedValue([
-      "uid-1",
-      "uid-2",
-      "uid-3",
-      "uid-4",
-    ]);
+    mockedGetImportedNodeUids.mockResolvedValue(
+      new Set(["uid-1", "uid-2", "uid-3", "uid-4"]),
+    );
     mockedRefreshImportedNode
       .mockResolvedValueOnce({ status: "refreshed", message: "Refreshed." })
       .mockResolvedValueOnce({ status: "skipped", message: "Up to date." })
@@ -45,7 +42,7 @@ describe("refreshAllImportedNodes", () => {
   });
 
   it("returns zero counts when the graph has no imported nodes", async () => {
-    mockedGetImportedNodeUids.mockResolvedValue([]);
+    mockedGetImportedNodeUids.mockResolvedValue(new Set());
 
     await expect(refreshAllImportedNodes()).resolves.toEqual({
       refreshed: 0,

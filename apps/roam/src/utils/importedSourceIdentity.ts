@@ -74,7 +74,7 @@ export const getImportedSourceRids = async (): Promise<Set<string>> => {
   );
 };
 
-export const getImportedNodeUids = async (): Promise<string[]> => {
+export const getImportedNodeUids = async (): Promise<Set<string>> => {
   const query = `[:find [?uid ...]
     :where
       [?page :block/uid ?uid]
@@ -84,7 +84,9 @@ export const getImportedNodeUids = async (): Promise<string[]> => {
       [(get ?importedFrom :${SOURCE_NODE_RID_KEY}) ?rid]]`;
   const result = (await window.roamAlphaAPI.data.async.q(query)) as unknown[];
 
-  return result.filter((uid): uid is string => typeof uid === "string");
+  return new Set(
+    result.filter((uid): uid is string => typeof uid === "string"),
+  );
 };
 
 export const findImportedNodeUidBySourceRid = async (
