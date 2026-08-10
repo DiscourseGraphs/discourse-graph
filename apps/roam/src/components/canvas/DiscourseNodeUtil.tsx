@@ -750,20 +750,22 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
               fontSize: FONT_SIZES[shape.props.size],
             }}
           >
-            {overlayMounted && isOverlayEnabled && (
-              <div
-                className="roamjs-discourse-context-overlay-container absolute right-1 top-1"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <DiscourseContextOverlay
-                  uid={shape.props.uid}
-                  id={`${shape.id}-overlay`}
-                  opacity="50"
-                  textColor={textColor}
-                  iconColor={textColor}
-                />
-              </div>
-            )}
+            {overlayMounted &&
+              isOverlayEnabled &&
+              getDiscourseNodeTypeId({ shape }) !== "blck-node" && (
+                <div
+                  className="roamjs-discourse-context-overlay-container absolute right-1 top-1"
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <DiscourseContextOverlay
+                    uid={shape.props.uid}
+                    id={`${shape.id}-overlay`}
+                    opacity="50"
+                    textColor={textColor}
+                    iconColor={textColor}
+                  />
+                </div>
+              )}
             {showEmbeddedRoamBlock ? (
               <div className="w-full min-w-0">
                 <RenderRoamBlockString
