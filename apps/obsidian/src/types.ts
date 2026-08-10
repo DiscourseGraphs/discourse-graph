@@ -67,6 +67,7 @@ export type Settings = {
   canvasFolderPath: string;
   canvasAttachmentsFolderPath: string;
   nodeTagHotkey: string;
+  showHelpMenuStatusBarIcon: boolean;
   spacePassword?: string;
   accountLocalId?: string;
   syncModeEnabled?: boolean;
