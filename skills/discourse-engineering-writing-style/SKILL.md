@@ -22,6 +22,11 @@ Write in a direct, concise, plainspoken style that preserves important context a
 
 - For a quick reply or chat message, omit the greeting and sign-off when they add no value.
 - For technical issues, describe the observed behavior, the relevant contrast or expectation, and the requested clarification or next step.
+- For engineering tickets and technical documentation, apply these ASD-STE100-inspired principles:
+  - Use one term consistently for each concept. Do not alternate between synonyms.
+  - Put one primary action or idea in each sentence.
+  - Prefer active voice when the actor is important.
+  - Replace vague verbs such as "handle," "support," or "improve" with the specific behavior or result.
 
 ## Drafting rules
 
