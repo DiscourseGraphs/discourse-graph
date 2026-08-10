@@ -248,7 +248,6 @@ export const PersonalSettingsSchema = z.object({
     .default({ modifiers: 0, key: "" }),
   "Discourse context overlay": z.boolean().default(false),
   "Reified relation triples": z.boolean().default(true),
-  "Overlay in canvas": z.boolean().default(false),
   "Text selection popup": z.boolean().default(true),
   "Disable sidebar open": z.boolean().default(false),
   "Hide feedback button": z.boolean().default(false),

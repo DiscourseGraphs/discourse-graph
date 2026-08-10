@@ -23,7 +23,6 @@ export const PERSONAL_KEYS = {
   disableSidebarOpen: "Disable sidebar open",
   hideFeedbackButton: "Hide feedback button",
   autoCanvasRelations: "Auto canvas relations",
-  overlayInCanvas: "Overlay in canvas",
   streamlineStyling: "Streamline styling",
   disableProductDiagnostics: "Disable product diagnostics",
   discourseToolShortcut: "Discourse tool shortcut",
