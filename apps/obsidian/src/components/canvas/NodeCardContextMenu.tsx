@@ -71,10 +71,8 @@ export const NodeCardContextMenu = ({
             key={id}
             type="button"
             aria-pressed={activeTab === id}
-            className={`cursor-pointer border-0 px-3 py-2 text-xs font-semibold ${
-              activeTab === id
-                ? "!bg-modifier-hover accent-border-bottom"
-                : "!bg-transparent"
+            className={`cursor-pointer px-3 py-2 text-xs font-semibold ${
+              activeTab === id ? "accent-border-bottom" : ""
             }`}
             onClick={() => setActiveTab(id)}
           >

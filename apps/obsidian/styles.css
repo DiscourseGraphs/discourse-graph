@@ -106,3 +106,9 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   border: none !important;
   box-shadow: none !important;
 }
+
+/* The reset above outranks utility classes; re-assert the node card menu's active tab styling. */
+.tldraw__editor .dg-node-card-menu button.accent-border-bottom {
+  border-bottom: 2px solid var(--interactive-accent) !important;
+  background: var(--background-modifier-hover) !important;
+}
