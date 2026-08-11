@@ -11,7 +11,7 @@ import {
 } from "tldraw";
 import type DiscourseGraphPlugin from "~/index";
 import type { DiscourseNodeShape } from "./shapes/DiscourseNodeShape";
-import { RelationsPanel } from "./overlays/RelationPanel";
+import { RelationsPanelContent } from "./overlays/RelationPanel";
 
 type NodeCardContextMenuProps = TLUiStylePanelProps & {
   plugin: DiscourseGraphPlugin;
@@ -41,7 +41,10 @@ export const NodeCardContextMenu = ({
   const isEnabled = plugin.settings.nodeCardContextMenuEnabled ?? false;
   const selectedShape = useValue(
     "selected shape for node card context menu",
-    () => editor.getOnlySelectedShape(),
+    () =>
+      editor.getCurrentToolId() === "select"
+        ? editor.getOnlySelectedShape()
+        : null,
     [editor],
   );
   const selectedNode =
@@ -62,18 +65,17 @@ export const NodeCardContextMenu = ({
     DefaultStylePanelComponent,
     { isMobile },
     <div className="dg-node-card-menu">
-      <div className="grid grid-cols-2 border-b border-[var(--color-divider)] bg-[var(--color-panel)]">
+      <div className="border-modifier-border grid grid-cols-2 border-b">
         {NODE_CARD_CONTEXT_MENU_TABS.map(({ id, label }) => (
           <button
             key={id}
             type="button"
             aria-pressed={activeTab === id}
-            className={[
-              "border-b-2 px-3 py-2 text-xs font-semibold",
+            className={`cursor-pointer border-0 px-3 py-2 text-xs font-semibold ${
               activeTab === id
-                ? "border-[var(--color-selected)] text-[var(--color-selected)]"
-                : "border-transparent text-[var(--color-text-3)]",
-            ].join(" ")}
+                ? "!bg-modifier-hover accent-border-bottom"
+                : "!bg-transparent"
+            }`}
             onClick={() => setActiveTab(id)}
           >
             {label}
@@ -82,13 +84,13 @@ export const NodeCardContextMenu = ({
       </div>
 
       {activeTab === "context" ? (
-        <RelationsPanel
-          plugin={plugin}
-          canvasFile={canvasFile}
-          nodeShape={selectedNode}
-          embedded
-          includeAllDirections
-        />
+        <div className="p-3">
+          <RelationsPanelContent
+            plugin={plugin}
+            canvasFile={canvasFile}
+            nodeShape={selectedNode}
+          />
+        </div>
       ) : (
         createElement(DefaultStylePanelContentComponent, { styles })
       )}

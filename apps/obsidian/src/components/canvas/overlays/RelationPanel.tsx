@@ -57,10 +57,10 @@ export type RelationsPanelProps = {
   plugin: DiscourseGraphPlugin;
   canvasFile: TFile;
   nodeShape: DiscourseNodeShape;
-  onClose?: () => void;
-  embedded?: boolean;
-  includeAllDirections?: boolean;
+  onClose: () => void;
 };
+
+type RelationsPanelContentProps = Omit<RelationsPanelProps, "onClose">;
 
 const RelationFileItem = ({
   file,
@@ -162,14 +162,11 @@ const RelationFileItem = ({
   );
 };
 
-export const RelationsPanel = ({
+export const RelationsPanelContent = ({
   plugin,
   canvasFile,
   nodeShape,
-  onClose,
-  embedded = false,
-  includeAllDirections = false,
-}: RelationsPanelProps) => {
+}: RelationsPanelContentProps) => {
   const editor = useEditor();
   const [groups, setGroups] = useState<GroupedRelation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -197,7 +194,7 @@ export const RelationsPanel = ({
           setError("Linked file not found.");
           return;
         }
-        const g = await computeRelations(plugin, file, includeAllDirections);
+        const g = await computeRelations(plugin, file);
         setGroups(g);
       } catch (e) {
         showToast({
@@ -212,14 +209,7 @@ export const RelationsPanel = ({
       }
     };
     void load();
-  }, [
-    plugin,
-    canvasFile,
-    nodeShape.id,
-    nodeShape.props.src,
-    editor,
-    includeAllDirections,
-  ]);
+  }, [plugin, canvasFile, nodeShape.id, nodeShape.props.src, editor]);
 
   const ensureNodeShapeForFile = async (
     file: TFile,
@@ -466,73 +456,76 @@ export const RelationsPanel = ({
     }
   };
 
+  return loading ? (
+    <div className="text-center text-gray-500">Loading relations...</div>
+  ) : error ? (
+    <div className="text-center text-red-600">{error}</div>
+  ) : groups.length === 0 ? (
+    <div className="text-center text-gray-500">No relations found.</div>
+  ) : (
+    <ul className="m-0 list-none space-y-2 p-0">
+      {groups.map((group) => (
+        <li key={group.key} className="rounded border p-2">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="text-xs text-gray-500">
+              {group.isSource ? "→" : "←"}
+            </span>
+            <span className="text-sm font-medium">{group.label}</span>
+          </div>
+          {group.linkedFiles.length === 0 ? (
+            <div className="text-xs text-gray-500">None</div>
+          ) : (
+            <ul className="m-0 list-none space-y-1 p-0 pl-5">
+              {group.linkedFiles.map((f) => {
+                return (
+                  <RelationFileItem
+                    key={f.path}
+                    file={f}
+                    group={group}
+                    checkExistingRelation={checkExistingRelation}
+                    handleCreateRelationTo={handleCreateRelationTo}
+                    handleDeleteRelation={handleDeleteRelationShape}
+                  />
+                );
+              })}
+            </ul>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+export const RelationsPanel = ({
+  plugin,
+  canvasFile,
+  nodeShape,
+  onClose,
+}: RelationsPanelProps) => {
   return (
-    <div
-      className={
-        embedded
-          ? "p-3"
-          : "min-w-80 max-w-md rounded-lg border bg-white p-4 shadow-lg"
-      }
-    >
-      {!embedded && (
-        <>
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Relations</h3>
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
+    <div className="min-w-80 max-w-md rounded-lg border bg-white p-4 shadow-lg">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Relations</h3>
+        <button
+          onClick={onClose}
+          className="text-gray-500 hover:text-gray-700"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+      </div>
 
-          <div className="mb-3">
-            <div className="text-sm font-medium text-gray-700">
-              {nodeShape.props.title || "Selected node"}
-            </div>
-          </div>
-        </>
-      )}
+      <div className="mb-3">
+        <div className="text-sm font-medium text-gray-700">
+          {nodeShape.props.title || "Selected node"}
+        </div>
+      </div>
 
-      {loading ? (
-        <div className="text-center text-gray-500">Loading relations...</div>
-      ) : error ? (
-        <div className="text-center text-red-600">{error}</div>
-      ) : groups.length === 0 ? (
-        <div className="text-center text-gray-500">No relations found.</div>
-      ) : (
-        <ul className="m-0 list-none space-y-2 p-0">
-          {groups.map((group) => (
-            <li key={group.key} className="rounded border p-2">
-              <div className="mb-1 flex items-center gap-2">
-                <span className="text-xs text-gray-500">
-                  {group.isSource ? "→" : "←"}
-                </span>
-                <span className="text-sm font-medium">{group.label}</span>
-              </div>
-              {group.linkedFiles.length === 0 ? (
-                <div className="text-xs text-gray-500">None</div>
-              ) : (
-                <ul className="m-0 list-none space-y-1 p-0 pl-5">
-                  {group.linkedFiles.map((f) => {
-                    return (
-                      <RelationFileItem
-                        key={f.path}
-                        file={f}
-                        group={group}
-                        checkExistingRelation={checkExistingRelation}
-                        handleCreateRelationTo={handleCreateRelationTo}
-                        handleDeleteRelation={handleDeleteRelationShape}
-                      />
-                    );
-                  })}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <RelationsPanelContent
+        plugin={plugin}
+        canvasFile={canvasFile}
+        nodeShape={nodeShape}
+      />
     </div>
   );
 };
@@ -540,7 +533,6 @@ export const RelationsPanel = ({
 const computeRelations = async (
   plugin: DiscourseGraphPlugin,
   file: TFile,
-  includeAllDirections: boolean,
 ): Promise<GroupedRelation[]> => {
   const fileCache = plugin.app.metadataCache.getFileCache(file);
   if (!fileCache?.frontmatter) return [];
@@ -566,12 +558,7 @@ const computeRelations = async (
           relation.destinationId === activeNodeTypeId) &&
         relation.relationshipTypeId === relationType.id,
     );
-    // Preserve the legacy panel's previous first-match behavior.
-    const typeLevelRelations = includeAllDirections
-      ? matchingRelations
-      : matchingRelations.slice(0, 1);
-
-    for (const typeLevelRelation of typeLevelRelations) {
+    for (const typeLevelRelation of matchingRelations) {
       const isSource = typeLevelRelation.sourceId === activeNodeTypeId;
       const key = `${relationType.id}-${isSource}`;
 
@@ -592,7 +579,6 @@ const computeRelations = async (
           relation,
           nodeInstanceId,
           isSource,
-          includeAllDirections,
         });
         if (!otherId) continue;
 
@@ -614,19 +600,11 @@ const getRelationCounterpartId = ({
   relation,
   nodeInstanceId,
   isSource,
-  includeAllDirections,
 }: {
   relation: { source: string; destination: string };
   nodeInstanceId: string;
   isSource: boolean;
-  includeAllDirections: boolean;
 }): string | null => {
-  if (!includeAllDirections) {
-    return relation.source === nodeInstanceId
-      ? relation.destination
-      : relation.source;
-  }
-
   if (isSource) {
     return relation.source === nodeInstanceId ? relation.destination : null;
   }
