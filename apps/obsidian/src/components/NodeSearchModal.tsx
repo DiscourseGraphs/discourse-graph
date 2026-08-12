@@ -21,8 +21,8 @@ import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeSearchFooter } from "~/components/NodeSearchFooter";
 import {
-  openFileInActivePane,
   openFileInNewLeaf,
+  openFileInNewTab,
 } from "~/components/canvas/utils/openFileUtils";
 import {
   QueryEngine,
@@ -431,7 +431,7 @@ const NodeSearch = ({
     if (event.metaKey || event.ctrlKey || event.altKey) return;
 
     event.preventDefault();
-    openActiveResult(event.shiftKey ? openFileInNewLeaf : openFileInActivePane);
+    openActiveResult(event.shiftKey ? openFileInNewLeaf : openFileInNewTab);
   };
 
   return (
@@ -471,7 +471,7 @@ const NodeSearch = ({
       </div>
       <NodeSearchFooter
         canAct={candidateState.status === "ready" && !!activeResult}
-        onOpenInActivePane={() => openActiveResult(openFileInActivePane)}
+        onOpenInNewTab={() => openActiveResult(openFileInNewTab)}
         onOpenInSplit={() => openActiveResult(openFileInNewLeaf)}
       />
     </div>

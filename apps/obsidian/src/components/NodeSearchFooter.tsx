@@ -3,7 +3,7 @@ import { getHintKeys, type HintKey } from "~/utils/keyboardHints";
 
 type NodeSearchFooterProps = {
   canAct: boolean;
-  onOpenInActivePane: () => void;
+  onOpenInNewTab: () => void;
   onOpenInSplit: () => void;
 };
 
@@ -49,15 +49,15 @@ const FooterAction = ({
 // quick switcher. This modal extends plain `Modal`, so that API is unavailable.
 export const NodeSearchFooter = ({
   canAct,
-  onOpenInActivePane,
+  onOpenInNewTab,
   onOpenInSplit,
 }: NodeSearchFooterProps): ReactElement => (
   <div className="prompt-instructions dg-search-footer">
     <FooterAction
       disabled={!canAct}
       keys={["Enter"]}
-      label="open"
-      onClick={onOpenInActivePane}
+      label="open in new tab"
+      onClick={onOpenInNewTab}
     />
     <FooterAction
       disabled={!canAct}
