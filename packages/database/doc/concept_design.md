@@ -178,7 +178,7 @@ Query filter: `.eq("arity",2).eq("is_schema", true).not("reference_content->rela
 | `sourceType`                 | `reference_content->source`      | ref to Node schema          |
 | `destinationType`            | `reference_content->destination` | ref to Node schema          |
 
-Note that putting the relationType in `reference_content->relation_type` without a corresponding role was a hackish shortcut, and should be revisited (in a separate document.)
+Note that putting the relationType in `reference_content->relation_type` without a corresponding role was a hackish shortcut, and should be revisited (see below.)
 
 Query filter: `.eq("arity",2).eq("is_schema", true).not("reference_content->source", "is", "null").is("reference_content->relation_type", "null")`
 
@@ -212,3 +212,5 @@ As a first approximation, we distinguished relations from nodes using `arity==2`
 To remedy this, we propose adding a computed column `is_relation`, which would check whether (source, destination) are both in the schema's roles. The query filters using `arity` would be redefined to use `is_relation`.
 
 Internal node references such as the Evidence's Source can then be expressed using roles and internal relations.
+
+In RelationTripleInstance, we refer to the RelationTypeInstance with a `relation_type` entry in the `reference_content` column. This, unusually, is not backed by an entry in the `roles`. This is a deviation from the mental model, but in the current situation, adding that role would break the "arity=2" checks. Introducing the `is_relation` column will also allow this to be part of the roles. Note that we probably won't add a range constraint in that case; the constraint should require the relation_type to be any RelationTypeSchema, but there is no row materializing this meta-class.
