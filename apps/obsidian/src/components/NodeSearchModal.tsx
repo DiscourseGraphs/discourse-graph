@@ -261,10 +261,11 @@ const ResultList = ({
   }, [activeIndex]);
 
   return (
+    // No `aria-label` here: Obsidian renders one as a hover tooltip, which
+    // covers the results the moment the pointer enters the list.
     <div
       ref={listRef}
       role="listbox"
-      aria-label="Discourse node search results"
       onMouseMove={() => (pointerMovedRef.current = true)}
       className="flex-1 overflow-y-auto"
     >
