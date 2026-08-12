@@ -3937,8 +3937,7 @@ kbd.tlui-kbd {
 
 /* Obsidian styles every `button` with its own chrome, so an action that should
    read as a shortcut hint has to opt out of it. */
-.dg-node-search-modal .dg-search-footer-action,
-.dg-node-search-modal .dg-search-footer-hint {
+.dg-node-search-modal .dg-search-footer-action {
   display: inline-flex;
   align-items: center;
   gap: var(--size-2-1);
@@ -3950,9 +3949,6 @@ kbd.tlui-kbd {
   height: auto;
   font-size: inherit;
   color: inherit;
-}
-
-.dg-node-search-modal .dg-search-footer-action {
   cursor: pointer;
 }
 

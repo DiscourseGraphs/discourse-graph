@@ -3,12 +3,13 @@ import { getHintKeys, type HintKey } from "~/utils/keyboardHints";
 
 type NodeSearchFooterProps = {
   canAct: boolean;
+  onClose: () => void;
   onOpenInNewTab: () => void;
   onOpenInSplit: () => void;
 };
 
 type FooterActionProps = {
-  disabled: boolean;
+  disabled?: boolean;
   keys: HintKey[];
   label: string;
   onClick: () => void;
@@ -28,7 +29,7 @@ const KeyHints = ({ keys }: { keys: HintKey[] }): ReactElement => (
 );
 
 const FooterAction = ({
-  disabled,
+  disabled = false,
   keys,
   label,
   onClick,
@@ -51,6 +52,7 @@ const FooterAction = ({
 // but styles the keys as Roam's search footer does.
 export const NodeSearchFooter = ({
   canAct,
+  onClose,
   onOpenInNewTab,
   onOpenInSplit,
 }: NodeSearchFooterProps): ReactElement => (
@@ -67,10 +69,8 @@ export const NodeSearchFooter = ({
       label="open in split"
       onClick={onOpenInSplit}
     />
-    {/* Escape is handled by Obsidian's modal scope, so this is a hint only. */}
-    <span className="prompt-instruction dg-search-footer-hint">
-      <KeyHints keys={["Escape"]} />
-      <span className="dg-search-footer-label">close</span>
-    </span>
+    {/* The Escape key itself is handled by Obsidian's modal scope; this button
+        is the pointer equivalent, so every footer item responds to a click. */}
+    <FooterAction keys={["Escape"]} label="close" onClick={onClose} />
   </div>
 );

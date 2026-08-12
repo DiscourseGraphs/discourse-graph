@@ -285,7 +285,6 @@ const ResultList = ({
         >
           {result.nodeType.badge && (
             <span
-              title={result.nodeType.name}
               aria-label={result.nodeType.name}
               style={{
                 backgroundColor: result.nodeType.badge.backgroundColor,
@@ -472,6 +471,7 @@ const NodeSearch = ({
       </div>
       <NodeSearchFooter
         canAct={candidateState.status === "ready" && !!activeResult}
+        onClose={onClose}
         onOpenInNewTab={() => openActiveResult(openFileInNewTab)}
         onOpenInSplit={() => openActiveResult(openFileInNewLeaf)}
       />
