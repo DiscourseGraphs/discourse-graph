@@ -14,12 +14,15 @@ type FooterActionProps = {
   onClick: () => void;
 };
 
+// Roam's footer renders each key as a bordered cap rather than bold text, which
+// keeps `esc` reading as one of the set instead of standing out. Deliberately
+// not `prompt-instruction-command`, whose weight is what makes it stand out.
 const KeyHints = ({ keys }: { keys: HintKey[] }): ReactElement => (
   <>
     {getHintKeys(keys).map((symbol) => (
-      <span className="prompt-instruction-command" key={symbol}>
+      <kbd className="dg-search-footer-key" key={symbol}>
         {symbol}
-      </span>
+      </kbd>
     ))}
   </>
 );
@@ -40,13 +43,12 @@ const FooterAction = ({
     onMouseDown={(event) => event.preventDefault()}
   >
     <KeyHints keys={keys} />
-    <span>{label}</span>
+    <span className="dg-search-footer-label">{label}</span>
   </button>
 );
 
-// Reuses Obsidian's own `prompt-instruction` markup, the same classes
-// `SuggestModal.setInstructions()` emits, so the footer matches the native
-// quick switcher. This modal extends plain `Modal`, so that API is unavailable.
+// Sits in Obsidian's `prompt-instructions` container for its type and spacing,
+// but styles the keys as Roam's search footer does.
 export const NodeSearchFooter = ({
   canAct,
   onOpenInNewTab,
@@ -66,9 +68,9 @@ export const NodeSearchFooter = ({
       onClick={onOpenInSplit}
     />
     {/* Escape is handled by Obsidian's modal scope, so this is a hint only. */}
-    <span className="prompt-instruction">
+    <span className="prompt-instruction dg-search-footer-hint">
       <KeyHints keys={["Escape"]} />
-      <span>close</span>
+      <span className="dg-search-footer-label">close</span>
     </span>
   </div>
 );

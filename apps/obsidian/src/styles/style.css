@@ -3937,7 +3937,11 @@ kbd.tlui-kbd {
 
 /* Obsidian styles every `button` with its own chrome, so an action that should
    read as a shortcut hint has to opt out of it. */
-.dg-node-search-modal .dg-search-footer-action {
+.dg-node-search-modal .dg-search-footer-action,
+.dg-node-search-modal .dg-search-footer-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-2-1);
   background-color: transparent;
   border: none;
   border-radius: 0;
@@ -3946,7 +3950,32 @@ kbd.tlui-kbd {
   height: auto;
   font-size: inherit;
   color: inherit;
+}
+
+.dg-node-search-modal .dg-search-footer-action {
   cursor: pointer;
+}
+
+.dg-node-search-modal .dg-search-footer-label {
+  margin-inline-start: var(--size-2-1);
+}
+
+/* Matches Roam's search footer: each key is a bordered cap, so `esc` reads as
+   one of the set rather than as emphasised text. */
+.dg-node-search-modal .dg-search-footer-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  padding: 0 var(--size-2-1);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background-color: var(--background-primary);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1.6;
 }
 
 .dg-node-search-modal .dg-search-footer-action:hover:not(:disabled) {
