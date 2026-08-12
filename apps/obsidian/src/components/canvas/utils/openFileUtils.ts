@@ -102,3 +102,13 @@ export const openFileInNewLeaf = async (
   await leaf.openFile(file);
   app.workspace.setActiveLeaf(leaf);
 };
+
+/** `getLeaf(false)` reuses the active leaf rather than creating one. */
+export const openFileInActivePane = async (
+  app: App,
+  file: TFile,
+): Promise<void> => {
+  const leaf = app.workspace.getLeaf(false);
+  await leaf.openFile(file);
+  app.workspace.setActiveLeaf(leaf);
+};

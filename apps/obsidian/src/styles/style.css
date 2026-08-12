@@ -3921,3 +3921,39 @@ kbd.tlui-kbd {
   border-radius: var(--radius-s);
   padding: 0 1px;
 }
+
+/* Obsidian's own `.prompt-instructions` rules supply the type and colour. They
+   centre the row for the quick switcher, which is too narrow to need alignment;
+   this footer sits under a full-width result list, so the actions line up with
+   its left edge instead. `flex-shrink` keeps the footer from collapsing inside
+   the fixed-height flex column above it. */
+.dg-node-search-modal .dg-search-footer {
+  flex-shrink: 0;
+  justify-content: flex-start;
+  text-align: left;
+  padding-inline: 0;
+  padding-bottom: 0;
+}
+
+/* Obsidian styles every `button` with its own chrome, so an action that should
+   read as a shortcut hint has to opt out of it. */
+.dg-node-search-modal .dg-search-footer-action {
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+  font-size: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.dg-node-search-modal .dg-search-footer-action:hover:not(:disabled) {
+  color: var(--text-normal);
+}
+
+.dg-node-search-modal .dg-search-footer-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

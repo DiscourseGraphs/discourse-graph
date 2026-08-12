@@ -19,6 +19,11 @@ import {
 } from "react";
 import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
+import { NodeSearchFooter } from "~/components/NodeSearchFooter";
+import {
+  openFileInActivePane,
+  openFileInNewLeaf,
+} from "~/components/canvas/utils/openFileUtils";
 import {
   QueryEngine,
   rankDiscourseNodesByTitle,
@@ -299,8 +304,10 @@ const ResultList = ({
 
 const NodeSearch = ({
   plugin,
+  onClose,
 }: {
   plugin: DiscourseGraphPlugin;
+  onClose: () => void;
 }): ReactElement => {
   const { app } = plugin;
   const [candidateState, setCandidateState] = useState<CandidateState>({
@@ -395,11 +402,36 @@ const NodeSearch = ({
     });
   };
 
+  // Closes before opening: `close()` unmounts this React root, so the file and
+  // app are read first and nothing touches state afterwards.
+  const openActiveResult = (
+    open: (app: App, file: TFile) => Promise<void>,
+  ): void => {
+    if (!activeResult) return;
+    const { file } = activeResult;
+    onClose();
+    void open(app, file).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(`Could not open ${file.basename}: ${message}`);
+    });
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
-    // Otherwise the caret jumps to the start or end of the query.
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      // Otherwise the caret jumps to the start or end of the query.
+      event.preventDefault();
+      moveActiveIndex(event.key === "ArrowDown" ? 1 : -1);
+      return;
+    }
+
+    if (event.key !== "Enter") return;
+    // Enter also commits an IME candidate, which must not open a file.
+    if (event.nativeEvent.isComposing) return;
+    // Mod+Enter and Alt+Enter are left alone for the insert and dock actions.
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+
     event.preventDefault();
-    moveActiveIndex(event.key === "ArrowDown" ? 1 : -1);
+    openActiveResult(event.shiftKey ? openFileInNewLeaf : openFileInActivePane);
   };
 
   return (
@@ -437,6 +469,11 @@ const NodeSearch = ({
         </div>
         <PreviewPane app={app} result={activeResult} authorName={authorName} />
       </div>
+      <NodeSearchFooter
+        canAct={candidateState.status === "ready" && !!activeResult}
+        onOpenInActivePane={() => openActiveResult(openFileInActivePane)}
+        onOpenInSplit={() => openActiveResult(openFileInNewLeaf)}
+      />
     </div>
   );
 };
@@ -457,7 +494,7 @@ export class NodeSearchModal extends Modal {
     this.root = createRoot(contentEl);
     this.root.render(
       <StrictMode>
-        <NodeSearch plugin={this.plugin} />
+        <NodeSearch plugin={this.plugin} onClose={() => this.close()} />
       </StrictMode>,
     );
   }
