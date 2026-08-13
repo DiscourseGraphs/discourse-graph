@@ -42,11 +42,11 @@ The modal opens on **Configure Identification Patterns**, listing every node typ
 - Patterns match a note's **title only**. Note content is never scanned.
 - The pattern must match the **whole title**, from start to end. `CLM - {content}` matches `CLM - Coral bleaching is accelerating`, but not `Draft: CLM - Coral bleaching is accelerating`.
 - `{content}` stands in for any text.
-- Everything outside `{content}` is matched literally, so spacing and punctuation must line up exactly.
-- Notes that already carry one of your configured node types are skipped, so re-running the scan will not produce duplicates.
+- Text outside `{content}` is matched as written, so spacing and punctuation must line up exactly — with the exception of the characters described in the warning below.
+- Notes that already carry one of your **currently configured** node types are skipped, so re-running the scan will not produce duplicates.
 - If a title matches more than one enabled pattern, the first match wins, following the order your node types appear in settings.
 
-> **Note:** Patterns are plain title formats, not regular expressions. Formats containing characters such as `(`, `)`, `*`, or `|` may not match as expected. Prefer simple prefixes and separators like `CLM - {content}`.
+> **Warning:** Patterns are not fully escaped before being turned into a matcher. The characters `(`, `)`, `*`, `|`, `^`, and `$` are interpreted as regular-expression syntax rather than as literal text. A pattern containing them can silently fail to match the notes you intended, or match far more notes than you intended — for example, `CLM|{content}` matches every note in the vault. Prefer simple prefixes and separators like `CLM - {content}`, and always review the candidate list before confirming.
 
 ### Step 3: Review candidates
 
@@ -71,12 +71,14 @@ Identifying a note adds a `nodeTypeId` field to its frontmatter. That is the onl
 
 Notes keep their existing titles and stay in their current folders. They are **not** renamed to your node type format, **not** moved into the node folder set in [General settings](/docs/obsidian/configuration/general-settings), and **not** given the [node template](/docs/obsidian/configuration/node-types-templates#working-with-templates) for their type. No other frontmatter is touched.
 
+> **Warning:** If a note already has a `nodeTypeId` that is **not** one of your currently configured node types — for example, one left behind by a node type you since deleted or renamed — the scan still treats that note as a candidate, and identifying it **overwrites** the existing value. Only notes carrying a currently configured node type are excluded.
+
 > **Warning:** There is no bulk undo. To reverse an identification, remove the `nodeTypeId` field from the affected notes yourself, or restore them from a backup or version control. Consider running the scan on a small selection first to confirm your patterns behave the way you expect.
 
 ## Troubleshooting
 
 - **No candidates found** — Check that the pattern matches the full title, including spacing around separators. A pattern of `CLM -{content}` will not match a note titled `CLM - Coral bleaching is accelerating`.
-- **Notes you expected are missing from the list** — They may already be identified as discourse nodes. Notes with a node type already set are excluded from the scan.
+- **Notes you expected are missing from the list** — They may already be identified as discourse nodes. Notes carrying one of your currently configured node types are excluded from the scan. Notes with a `nodeTypeId` that no longer matches a configured node type are still included, and identifying them replaces that value.
 - **A note was matched as the wrong type** — Two enabled patterns overlapped. Disable the competing node type and scan again, or make the patterns more specific.
 - **"Problem processing [note]'s frontmatter. Preserved original content."** — The plugin could not update the note's existing frontmatter, so it added a new frontmatter block instead and kept the note's content intact. Open the note to check the result.
 - **"Failed to process [note]. Skipping..."** — The note could not be written to and was left unchanged. Identify it individually using the **Convert into** flow described in [Creating discourse nodes](/docs/obsidian/core-features/creating-discourse-nodes#convert-an-existing-page-into-a-discourse-node).
