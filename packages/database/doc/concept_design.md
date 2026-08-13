@@ -111,7 +111,7 @@ Residual (not otherwise accounted for) keys in Obsidian frontmatter are mapped t
 
 | CrossAppNodeSchema | Concept                             | value |
 | ------------------ | ----------------------------------- | ----- |
-| `label`            | `name`, `literal_content->label`    | {}    |
+| `label`            | `name`                              | {}    |
 | `template`         | `literal_content->template_content` |       |
 | `templateTitle`    | `literal_content->template`         |       |
 | -                  | `is_schema`                         | true  |
@@ -121,16 +121,19 @@ Residual (not otherwise accounted for) keys in Obsidian frontmatter are mapped t
 
 Note that this does not yet allow for ObjectProperties to be defined; this would require to define `literal_content->roles`, corresponding `reference_content`s, and change the `arity`. See below.
 
+Also note: In Obsidian, where we do not go through CrossAppNodeSchema, the label is also assigned to `literal_content->label`.
+
 Query filter: `.eq("arity",0).eq("is_schema", true)`
 
 #### Matching of CrossAppNode and Concept
 
-| CrossAppNode | Concept                                         | value              |
-| ------------ | ----------------------------------------------- | ------------------ |
-| -            | `is_schema`                                     | false              |
-| -            | `arity`                                         | 0                  |
-| -            | `reference_content`                             | {}                 |
-| `nodeType`   | `schema_represented_by_local_id` => `schema_id` | ref to Node schema |
+| CrossAppNode            | Concept                                         | value              |
+| ----------------------- | ----------------------------------------------- | ------------------ |
+| `content->direct->text` | `name`                                          | false              |
+| -                       | `is_schema`                                     | false              |
+| -                       | `arity`                                         | 0                  |
+| -                       | `reference_content`                             | {}                 |
+| `nodeType`              | `schema_represented_by_local_id` => `schema_id` | ref to Node schema |
 
 Query filter: `.eq("arity",0).eq("is_schema", false)`
 
@@ -171,7 +174,7 @@ Query filter: `.eq("arity",2).eq("is_schema", true).not("reference_content->rela
 
 | CrossAppRelationTripleSchema | Concept                          | value                       |
 | ---------------------------- | -------------------------------- | --------------------------- |
-| -                            | `name`                           | composite                   |
+| `id`                         | `name`                           |                             |
 | -                            | `literal_content->roles`         | `["source", "destination"]` |
 | -                            | `is_schema`                      | true                        |
 | -                            | `schema_id`                      | null                        |
