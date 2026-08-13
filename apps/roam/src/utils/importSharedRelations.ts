@@ -10,7 +10,8 @@ import {
   ridToSpaceUriAndLocalId,
 } from "@repo/database/lib/rid";
 import {
-  findImportedNodeUidBySourceRid,
+  addImportedSchemaSourceIdentity,
+  getImportedSourceSchemaRids,
   getImportedSourceRids,
   writeImportedSourceIdentity,
 } from "./importedSourceIdentity";
@@ -32,7 +33,7 @@ const matchImportedNodeSchemas = async (
   const nodeSchemasByRid = Object.fromEntries(
     nodeSchemas.map((s) => [s.rid!, s]),
   );
-  const existing = await getImportedSourceRids();
+  const existing = await getImportedSourceSchemaRids();
   const localNodeSchemas = getDiscourseNodes();
   const localNodeSchemasByLabel = Object.fromEntries(
     localNodeSchemas.map((s) => [s.text.toLowerCase(), s]),
@@ -42,11 +43,8 @@ const matchImportedNodeSchemas = async (
   );
 
   for (const [rid, schema] of Object.entries(nodeSchemasByRid)) {
-    let blockUid: string | undefined | null;
-    if (existing.has(rid)) {
-      blockUid = await findImportedNodeUidBySourceRid(rid);
-    }
-    if (blockUid) {
+    let blockUid = existing[rid];
+    if (blockUid !== undefined) {
       result[rid] = blockUid;
       continue;
     } else if (schema.localId in localNodeSchemasByLocalId) {
@@ -61,8 +59,8 @@ const matchImportedNodeSchemas = async (
       });
     }
     result[rid] = blockUid;
-    await writeImportedSourceIdentity({
-      pageUid: blockUid,
+    await addImportedSchemaSourceIdentity({
+      blockUid,
       sourceNodeRid: rid,
       sourceModifiedAt: (schema.modifiedAt ?? new Date()).toISOString(),
     });
@@ -77,7 +75,7 @@ const matchImportedRelationSchemas = async (
 ): Promise<Record<string, string>> => {
   const result: Record<string, string> = {};
   const relationSchemas = getDiscourseRelations();
-  const existing = await getImportedSourceRids();
+  const existing = await getImportedSourceSchemaRids();
   const relationTypeSchemasByRid = Object.fromEntries(
     relationTypeSchemas.map((s) => [s.rid!, s]),
   );
@@ -87,11 +85,8 @@ const matchImportedRelationSchemas = async (
 
   for (const tripleSchema of relationTripleSchemas) {
     const rid = tripleSchema.rid!;
-    let blockUid: string | undefined | null;
-    if (existing.has(rid)) {
-      blockUid = await findImportedNodeUidBySourceRid(rid);
-    }
-    if (blockUid) {
+    let blockUid = existing[rid];
+    if (blockUid !== undefined) {
       result[rid] = blockUid;
       continue;
     }
@@ -131,8 +126,8 @@ const matchImportedRelationSchemas = async (
       }
     }
     result[rid] = blockUid;
-    await writeImportedSourceIdentity({
-      pageUid: blockUid,
+    await addImportedSchemaSourceIdentity({
+      blockUid,
       sourceNodeRid: rid,
       sourceModifiedAt: (tripleSchema.modifiedAt ?? new Date()).toISOString(),
     });
