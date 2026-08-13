@@ -1,6 +1,6 @@
 # Concept design
 
-This document aims to explain the rationale of the Concept table, and how it relates to DiscourseGraph data structures.
+This document aims to explain the rationale of the Concept table, and how it relates to Discourse Graph data structures.
 
 ## DiscourseGraph structures
 
@@ -8,10 +8,10 @@ DiscourseGraph assumes a basic graph data model: All knowledge objects are Nodes
 
 Both Nodes and Relations are typed, and thus we have Node schemas describing node types.
 Relations schemas allow for constraints on source and destination node types.
-The Roam implementation of relation schemas contains a specific pair of constraints, forming the triple: (source node type, relation label, destination node type).
+The [Roam Research implementation](https://github.com/DiscourseGraphs/discourse-graph/tree/main/apps/roam) of relation schemas contains a specific pair of constraints, forming the triple: (source node type, relation label, destination node type).
 Many triples with a common label are implicitly connected.
 
-The Obsidian implementation made that connection explicit, and further defined a RelationType schema, with the label information, while the RelationTriple schema refers to the type constraint triple. Both this schema (with triple and type) and the roam-style schema that combines triple and type information are modeled with the RelationTripleSchema type.
+The [Obsidian implementation](https://github.com/DiscourseGraphs/discourse-graph/tree/main/apps/obsidian) made that connection explicit, and further defined a RelationType schema, with the label information, while the RelationTriple schema refers to the type constraint triple. Both this schema (with triple and type) and the roam-style schema that combines triple and type information are modeled with the RelationTripleSchema type.
 
 ## Generalization
 
@@ -42,7 +42,7 @@ The five object kinds are not represented directly in the database, the mapping 
 ```yaml
 Base:
   localId: LocalId
-  spaceUrl?: string ## OR Rid
+  rid?: string
   createdAt: Date
   modifiedAt?: Date
   authorId: LocalId
@@ -88,27 +88,28 @@ CrossAppRelation:
   destination: LocalId | Rid
 ```
 
-#### Matching of common fields between CrossApp and Content
+#### Matching of common fields between CrossApp and Concept
 
-| CrossApp field | Content column                   |
-| -------------- | -------------------------------- |
-| -              | `id`                             |
-| -              | `epistemic_status`               |
-| -              | `description`                    |
-| `localId`      | `source_local_id`                |
-| `spaceUrl`     | ~`space_id`                      |
-| `createdAt`    | `created`                        |
-| `modifiedAt`   | `last_modified`                  |
-| `authorId`     | `author_local_id` => `author_id` |
-| `metadata`     | `literal_content`                |
+| CrossApp field |     | Concept column                   |
+| -------------- | --- | -------------------------------- |
+| -              |     | `id`                             |
+| -              |     | `epistemic_status`               |
+| -              |     | `description`                    |
+| `localId`      | <-> | `source_local_id`                |
+| `rid`          | <~> | `space_id`                       |
+| `createdAt`    | <-> | `created`                        |
+| `modifiedAt`   | <-> | `last_modified`                  |
+| `authorId`     | <-> | `author_local_id` => `author_id` |
+| `metadata`     | <-  | `literal_content`                |
 
-Note: When fields below are mapped to keys of `literal_content`, those key-value pairs are not mapped back to `metadata`. Thus `metadata` is a grab-bag for residual data. (Eg color for now.)
+Note on metadata: It is read from the database, but currently not written.
+When some specific keys of `literal_content` are mapped to a CrossApp field, those key-value pairs are not included again in the `metadata`. Thus `metadata` is a grab-bag for residual data. (Eg color for now.)
 
-Also, residual (not otherwise accounted for) keys in Obsidian frontmatter are mapped to `literal_content->source_data`.
+Residual (not otherwise accounted for) keys in Obsidian frontmatter are mapped to `literal_content->source_data`. (Not through CrossApp.)
 
-#### Matching of CrossAppNodeSchema and Content (currently)
+#### Matching of CrossAppNodeSchema and Concept
 
-| CrossAppNodeSchema | Content                             | value |
+| CrossAppNodeSchema | Concept                             | value |
 | ------------------ | ----------------------------------- | ----- |
 | `label`            | `name`, `literal_content->label`    | {}    |
 | `template`         | `literal_content->template_content` |       |
@@ -122,20 +123,20 @@ Note that this does not yet allow for ObjectProperties to be defined; this would
 
 Query filter: `.eq("arity",0).eq("is_schema", true)`
 
-#### Matching of CrossAppNode and Content
+#### Matching of CrossAppNode and Concept
 
-| CrossAppNode | Content                          | value              |
-| ------------ | -------------------------------- | ------------------ |
-| -            | `is_schema`                      | false              |
-| -            | `arity`                          | 0                  |
-| -            | `reference_content`              | {}                 |
-| `nodeType`   | `schema_local_id` => `schema_id` | ref to Node schema |
+| CrossAppNode | Concept                                         | value              |
+| ------------ | ----------------------------------------------- | ------------------ |
+| -            | `is_schema`                                     | false              |
+| -            | `arity`                                         | 0                  |
+| -            | `reference_content`                             | {}                 |
+| `nodeType`   | `schema_represented_by_local_id` => `schema_id` | ref to Node schema |
 
 Query filter: `.eq("arity",0).eq("is_schema", false)`
 
-#### Matching of CrossAppRelationTypeSchema and Content (Obsidian only)
+#### Matching of CrossAppRelationTypeSchema and Concept (Obsidian only)
 
-| CrossAppRelationTypeSchema | Content                          | value                       |
+| CrossAppRelationTypeSchema | Concept                          | value                       |
 | -------------------------- | -------------------------------- | --------------------------- |
 | -                          | `literal_content->roles`         | `["source", "destination"]` |
 | -                          | `is_schema`                      | true                        |
@@ -147,9 +148,9 @@ Query filter: `.eq("arity",0).eq("is_schema", false)`
 
 Query filter: `.eq("arity",2).eq("is_schema", true).is("reference_content->source", "null")`
 
-#### Matching of Obsidian CrossAppRelationTripleSchema and Content
+#### Matching of Obsidian CrossAppRelationTripleSchema and Concept
 
-| CrossAppRelationTripleSchema | Content                            | value                          |
+| CrossAppRelationTripleSchema | Concept                            | value                          |
 | ---------------------------- | ---------------------------------- | ------------------------------ |
 | -                            | `name`                             | composite                      |
 | -                            | `literal_content->label`           | taken from RelationType schema |
@@ -162,11 +163,13 @@ Query filter: `.eq("arity",2).eq("is_schema", true).is("reference_content->sourc
 | `destinationType`            | `reference_content->destination`   | ref to Node schema             |
 | `relation`                   | `reference_content->relation_type` | ref to RelationType schema     |
 
+Note that putting the relationType in `reference_content->relation_type` without a corresponding role was a hackish shortcut, and should be revisited (see below.)
+
 Query filter: `.eq("arity",2).eq("is_schema", true).not("reference_content->relation_type", "is", "null")`
 
-#### Matching of Roam CrossAppRelationTripleSchema and Content
+#### Matching of Roam CrossAppRelationTripleSchema and Concept
 
-| CrossAppRelationTripleSchema | Content                          | value                       |
+| CrossAppRelationTripleSchema | Concept                          | value                       |
 | ---------------------------- | -------------------------------- | --------------------------- |
 | -                            | `name`                           | composite                   |
 | -                            | `literal_content->roles`         | `["source", "destination"]` |
@@ -178,17 +181,15 @@ Query filter: `.eq("arity",2).eq("is_schema", true).not("reference_content->rela
 | `sourceType`                 | `reference_content->source`      | ref to Node schema          |
 | `destinationType`            | `reference_content->destination` | ref to Node schema          |
 
-Note that putting the relationType in `reference_content->relation_type` without a corresponding role was a hackish shortcut, and should be revisited (see below.)
-
 Query filter: `.eq("arity",2).eq("is_schema", true).not("reference_content->source", "is", "null").is("reference_content->relation_type", "null")`
 
 In most cases, you would want both Roam and Obsidian RelationTripleSchemas, hence you would simply use:
 
 Combined query filter: `.eq("arity",2).eq("is_schema", true).not("reference_content->source", "is", "null")`
 
-#### Matching of Obsidian CrossAppRelation and Content
+#### Matching of Obsidian CrossAppRelation and Concept
 
-| CrossAppRelation | Content                          | value                        |
+| CrossAppRelation | Concept                          | value                        |
 | ---------------- | -------------------------------- | ---------------------------- |
 | -                | `name`                           | composite                    |
 | -                | `is_schema`                      | false                        |
@@ -204,7 +205,7 @@ Query filter: `.eq("arity",2).eq("is_schema", false)`
 
 #### Arity and ObjectProperties
 
-The arity on either a schema or instance is based on the size of the `literal_content->role` array in the schema.
+The arity on either a schema or instance is based on the size of the `literal_content->roles` array in the schema.
 The `reference_content` allows either single or multiple values (`Record<string, number|number[]>`). The `reference_content` values are collated in a computed column `refs`, whose index allows for efficient filters on sql queries before digging into the `reference_content` jsonb.
 
 As a first approximation, we distinguished relations from nodes using `arity==2`, but this precludes using ObjectProperties.
@@ -213,4 +214,6 @@ To remedy this, we propose adding a computed column `is_relation`, which would c
 
 Internal node references such as the Evidence's Source can then be expressed using roles and internal relations.
 
-In RelationTripleInstance, we refer to the RelationTypeInstance with a `relation_type` entry in the `reference_content` column. This, unusually, is not backed by an entry in the `roles`. This is a deviation from the mental model, but in the current situation, adding that role would break the "arity=2" checks. Introducing the `is_relation` column will also allow this to be part of the roles. Note that we probably won't add a range constraint in that case; the constraint should require the relation_type to be any RelationTypeSchema, but there is no row materializing this meta-class.
+In `RelationTripleSchema`, we refer to the `RelationTypeSchema` with a `relation_type` entry in the `reference_content` column. This, unusually, is not backed by an entry in the `roles`. This is a deviation from the mental model, but in the current situation, adding that role would break the `arity=2` checks. Introducing the `is_relation` column will also allow this to be part of the roles.
+
+Note that we probably won't add a range constraint in that case; the constraint should require the `relation_type` to be any `RelationTypeSchema`, but there is no row materializing this meta-class.
