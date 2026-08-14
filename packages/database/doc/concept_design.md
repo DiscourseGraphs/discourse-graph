@@ -2,9 +2,9 @@
 
 This document aims to explain the rationale of the Concept table, and how it relates to Discourse Graph data structures.
 
-## DiscourseGraph structures
+## Discourse Graph structures
 
-DiscourseGraph assumes a basic graph data model: All knowledge objects are Nodes (with literal properties and a text description) or Relations between Nodes (without attributes other than its source or destination.)
+Discourse Graph assumes a basic graph data model: All knowledge objects are Nodes (with literal properties and a text description) or Relations between Nodes (without attributes other than its source or destination.)
 
 Both Nodes and Relations are typed, and thus we have Node schemas describing node types.
 Relations schemas allow for constraints on source and destination node types.
@@ -27,7 +27,7 @@ Unifying relations and nodes in particular allows relations to both have extra a
 
 ### Use cases
 
-Having ObjectProperties makes it possible to represent certain special cases of DiscourseGraphs, such as the necessary relation between Evidence and Source.
+Having ObjectProperties makes it possible to represent certain special cases of Discourse Graph, such as the necessary relation between Evidence and Source.
 
 Having referenceable relations allows arguments to be made about relations.
 
@@ -129,7 +129,7 @@ Query filter: `.eq("arity",0).eq("is_schema", true)`
 
 | CrossAppNode            | Concept                                         | value              |
 | ----------------------- | ----------------------------------------------- | ------------------ |
-| `content->direct->text` | `name`                                          | false              |
+| `content->direct->text` | `name`                                          |                    |
 | -                       | `is_schema`                                     | false              |
 | -                       | `arity`                                         | 0                  |
 | -                       | `reference_content`                             | {}                 |
