@@ -136,17 +136,21 @@ export const createReifiedRelation = async ({
   sourceUid,
   relationBlockUid,
   destinationUid,
+  tentative,
 }: {
   sourceUid: string;
   relationBlockUid: string;
   destinationUid: string;
+  tentative?: boolean;
 }): Promise<string> => {
+  const parameterUids: Record<string, string> = {
+    sourceUid,
+    destinationUid,
+    ...(tentative !== undefined && { tentative: String(tentative) }),
+  };
   return await createReifiedBlock({
     destinationBlockUid: await getOrCreateRelationPageUid(),
     schemaUid: relationBlockUid,
-    parameterUids: {
-      sourceUid,
-      destinationUid,
-    },
+    parameterUids,
   });
 };

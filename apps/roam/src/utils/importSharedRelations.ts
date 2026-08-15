@@ -219,6 +219,7 @@ const importRelations = async (
         sourceUid,
         destinationUid,
         relationBlockUid,
+        tentative: true,
       });
       await writeImportedSourceIdentity({
         pageUid: uid,
