@@ -280,7 +280,7 @@ const ResultsView: ResultsViewComponent = ({
   results,
   hideResults = false,
   hideMenu = false,
-  simplified = false,
+  simplified = false, // eslint-disable-line react/prop-types
   preventSavingSettings = false,
   onEdit,
   onDeleteQuery,

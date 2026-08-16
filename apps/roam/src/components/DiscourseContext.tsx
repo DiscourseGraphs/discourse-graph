@@ -174,13 +174,15 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
   const [groupByTarget, setGroupByTarget] = useState(false);
   return queryResults.length ? (
     <>
-      <style>{`.roamjs-discourse-result-panel .roamjs-query-results-delete-relation {
-  visibility: hidden;
-}
+      <style>{`@media (hover: hover) and (pointer: fine) {
+  .roamjs-discourse-result-panel .roamjs-query-results-delete-relation {
+    visibility: hidden;
+  }
 
-.roamjs-discourse-result-panel tr:hover .roamjs-query-results-delete-relation,
-.roamjs-discourse-result-panel tr:focus-within .roamjs-query-results-delete-relation {
-  visibility: visible;
+  .roamjs-discourse-result-panel tr:hover .roamjs-query-results-delete-relation,
+  .roamjs-discourse-result-panel tr:focus-within .roamjs-query-results-delete-relation {
+    visibility: visible;
+  }
 }
 
 .roamjs-discourse-context-tabs > .bp3-tab-list {
@@ -219,8 +221,7 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
           <Switch
             label="Group By Target"
             checked={groupByTarget}
-            className="mb-1"
-            style={{ fontSize: 8 }}
+            className="mb-1 text-xs"
             onChange={(e) =>
               setGroupByTarget((e.target as HTMLInputElement).checked)
             }
