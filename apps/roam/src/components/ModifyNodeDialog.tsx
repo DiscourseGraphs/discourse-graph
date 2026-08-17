@@ -45,7 +45,9 @@ export type ModifyNodeDialogProps = {
   nodeType?: string;
   initialValue: { text: string; uid: string };
   initialReferencedNode?: { text: string; uid: string };
-  sourceBlockUid?: string; //the block that we started modifying from
+  sourceBlockUid?: string;
+  // Provides format resolution context without allowing the dialog to mutate the block.
+  contextBlockUid?: string;
   extensionAPI?: OnloadArgs["extensionAPI"];
   includeDefaultNodes?: boolean; // Include default nodes (Page, Block) in node type selector
   imageUrl?: string; // For image conversion from canvas
@@ -69,6 +71,7 @@ const ModifyNodeDialog = ({
   initialValue,
   initialReferencedNode,
   sourceBlockUid,
+  contextBlockUid,
   extensionAPI,
   includeDefaultNodes = false,
   imageUrl,
@@ -77,6 +80,7 @@ const ModifyNodeDialog = ({
   onSuccess,
   onClose,
 }: RoamOverlayProps<ModifyNodeDialogProps>) => {
+  const formatContextBlockUid = contextBlockUid ?? sourceBlockUid;
   const [content, setContent] = useState<Result>({
     text: initialValue.text,
     uid: initialValue.uid,
@@ -386,7 +390,7 @@ const ModifyNodeDialog = ({
             const formattedRefNode = await getNewDiscourseNodeText({
               text: referencedNodeValue.text.trim(),
               nodeType: referencedNode.nodeType,
-              blockUid: sourceBlockUid,
+              blockUid: formatContextBlockUid,
             });
             if (!formattedRefNode) {
               return;
@@ -409,7 +413,7 @@ const ModifyNodeDialog = ({
           formattedTitle = await getNewDiscourseNodeText({
             text: content.text.trim(),
             nodeType: selectedNodeType.type,
-            blockUid: sourceBlockUid,
+            blockUid: formatContextBlockUid,
           });
         }
         if (!formattedTitle) {

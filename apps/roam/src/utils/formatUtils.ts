@@ -47,6 +47,7 @@ export const getNewDiscourseNodeText = async ({
           resolvedText = result.text;
           return Promise.resolve();
         },
+        contextBlockUid: blockUid,
         sourceBlockUid: skipBlockUpdate ? undefined : blockUid,
         extensionAPI: getExtensionAPI(),
         onClose: () => {

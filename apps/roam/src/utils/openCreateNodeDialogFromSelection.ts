@@ -27,6 +27,7 @@ export const openCreateNodeDialogFromSelection = ({
     mode: "create",
     nodeType,
     initialValue: { text: selectedText, uid: "" },
+    contextBlockUid: blockUid,
     extensionAPI,
     onSuccess: async (result) => {
       await insertPageRefAtRange({
