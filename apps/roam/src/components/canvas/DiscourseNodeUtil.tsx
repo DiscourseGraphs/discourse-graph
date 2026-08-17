@@ -752,7 +752,9 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
           >
             {overlayMounted &&
               isOverlayEnabled &&
-              getDiscourseNodeTypeId({ shape }) !== "blck-node" && (
+              !["blck-node", "page-node"].includes(
+                getDiscourseNodeTypeId({ shape }),
+              ) && (
                 <div
                   className="roamjs-discourse-context-overlay-container absolute right-1 top-1"
                   onPointerDown={(e) => e.stopPropagation()}
