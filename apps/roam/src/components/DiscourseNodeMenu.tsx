@@ -33,6 +33,7 @@ import {
 } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import type { PersonalSettings } from "~/components/settings/utils/zodSchema";
+import { openCreateNodeDialogFromSelection } from "~/utils/openCreateNodeDialogFromSelection";
 
 type Props = {
   textarea?: HTMLTextAreaElement;
@@ -124,6 +125,27 @@ const NodeMenu = ({
         // Remove focus from the block to ensure updateBlock works properly
         // https://github.com/RoamJS/query-builder/issues/286
         if (document.activeElement === textarea) document.body.click();
+
+        if (textarea && selectionStart !== selectionEnd) {
+          const { windowId } = getUids(textarea);
+          onClose();
+          openCreateNodeDialogFromSelection({
+            blockUid: targetBlockUid,
+            extensionAPI,
+            nodeType: nodeUid,
+            onInserted: (pageTitle) => {
+              posthog.capture("Discourse Node: Created via Node Menu", {
+                nodeType: nodeUid,
+                text: pageTitle,
+              });
+            },
+            selectedText: highlighted,
+            selectionEnd,
+            selectionStart,
+            windowId: windowId || "main-window",
+          });
+          return;
+        }
 
         const createNodeAndUpdateBlock = async () => {
           const pageName = await getNewDiscourseNodeText({
