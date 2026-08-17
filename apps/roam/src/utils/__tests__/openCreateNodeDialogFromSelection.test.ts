@@ -32,7 +32,7 @@ describe("openCreateNodeDialogFromSelection", () => {
     mocks.insertPageRefAtRange.mockResolvedValue(undefined);
   });
 
-  it("prefills the dialog with format context and replaces the selected text", async () => {
+  it("prefills the dialog and replaces the selected text after creation", async () => {
     const extensionAPI = {} as OnloadArgs["extensionAPI"];
     const onInserted = vi.fn();
 
@@ -49,7 +49,6 @@ describe("openCreateNodeDialogFromSelection", () => {
 
     expect(mocks.renderModifyNodeDialog).toHaveBeenCalledWith(
       expect.objectContaining({
-        contextBlockUid: "block-uid",
         extensionAPI,
         initialValue: { text: "highlighted text", uid: "" },
         mode: "create",
@@ -58,7 +57,6 @@ describe("openCreateNodeDialogFromSelection", () => {
     );
 
     const dialogProps = mocks.renderModifyNodeDialog.mock.calls[0][0];
-    expect(dialogProps.sourceBlockUid).toBeUndefined();
     await dialogProps.onSuccess({
       action: "create",
       text: "CLM - highlighted text",
