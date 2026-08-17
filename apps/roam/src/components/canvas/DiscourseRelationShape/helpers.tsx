@@ -150,6 +150,83 @@ export function getArrowBindings(
     end: bindings.find((b) => b.props.terminal === "end"),
   };
 }
+const PARALLEL_ARROW_BEND_PX = 40;
+export function getRelationArrowsBetween({
+  editor,
+  shapeId,
+  otherShapeId,
+  relationIds,
+}: {
+  editor: Editor;
+  shapeId: TLShapeId;
+  otherShapeId: TLShapeId;
+  relationIds: Set<string>;
+}): DiscourseRelationShape[] {
+  return Array.from(relationIds).flatMap((relationId) =>
+    editor
+      .getBindingsToShape<RelationBinding>(shapeId, relationId)
+      .map((binding) => binding.fromId)
+      .filter((arrowId) =>
+        editor
+          .getBindingsFromShape<RelationBinding>(arrowId, relationId)
+          .some((binding) => binding.toId === otherShapeId),
+      )
+      .flatMap((arrowId) => {
+        const arrow = editor.getShape<DiscourseRelationShape>(arrowId);
+        return arrow ? [arrow] : [];
+      }),
+  );
+}
+export function getParallelArrowBend({
+  editor,
+  startShapeId,
+  endShapeId,
+  relationIds,
+  reservedCanonicalBends = [],
+}: {
+  editor: Editor;
+  startShapeId: TLShapeId;
+  endShapeId: TLShapeId;
+  relationIds: Set<string>;
+  reservedCanonicalBends?: number[];
+}): { bend: number; canonicalBend: number } {
+  // Canonical frame: bend as seen from the lexicographically lower shape id,
+  // so arrows in opposite directions still land on distinct visual arcs.
+  const lowerShapeId = startShapeId < endShapeId ? startShapeId : endShapeId;
+  const existingCanonicalBends = getRelationArrowsBetween({
+    editor,
+    shapeId: startShapeId,
+    otherShapeId: endShapeId,
+    relationIds,
+  }).map((arrow) => {
+    const startBinding = editor
+      .getBindingsFromShape<RelationBinding>(arrow.id, arrow.type)
+      .find((binding) => binding.props.terminal === "start");
+    return startBinding?.toId === lowerShapeId
+      ? arrow.props.bend
+      : -arrow.props.bend;
+  });
+  const occupied = [...existingCanonicalBends, ...reservedCanonicalBends];
+  const slotOffset = (slot: number) =>
+    slot === 0
+      ? 0
+      : Math.ceil(slot / 2) *
+        PARALLEL_ARROW_BEND_PX *
+        (slot % 2 === 1 ? 1 : -1);
+  let slot = 0;
+  while (
+    occupied.some(
+      (bend) => Math.abs(bend - slotOffset(slot)) < PARALLEL_ARROW_BEND_PX / 2,
+    )
+  ) {
+    slot += 1;
+  }
+  const canonicalBend = slotOffset(slot);
+  return {
+    bend: startShapeId === lowerShapeId ? canonicalBend : -canonicalBend,
+    canonicalBend,
+  };
+}
 function getStraightArrowInfo(
   editor: Editor,
   relation: DiscourseRelationShape,
