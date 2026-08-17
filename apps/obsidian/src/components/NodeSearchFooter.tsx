@@ -15,9 +15,6 @@ type FooterActionProps = {
   onClick: () => void;
 };
 
-// Roam's footer renders each key as a bordered cap rather than bold text, which
-// keeps `esc` reading as one of the set instead of standing out. Deliberately
-// not `prompt-instruction-command`, whose weight is what makes it stand out.
 const KeyHints = ({ keys }: { keys: HintKey[] }): ReactElement => (
   <>
     {getHintKeys(keys).map((symbol) => (
@@ -36,27 +33,28 @@ const FooterAction = ({
 }: FooterActionProps): ReactElement => (
   <button
     type="button"
-    className="prompt-instruction dg-search-footer-action"
+    className="prompt-instruction dg-search-footer-action inline-flex h-auto cursor-pointer items-center gap-1 rounded-none border-0 p-0 disabled:cursor-not-allowed disabled:opacity-50"
     disabled={disabled}
     onClick={onClick}
-    // Same reason as the result rows: keep focus in the query input so arrow-key
-    // navigation still works after a click.
+    // Clicking must not move focus out of the query input, or the arrow keys stop
+    // reaching the result list.
     onMouseDown={(event) => event.preventDefault()}
   >
     <KeyHints keys={keys} />
-    <span className="dg-search-footer-label">{label}</span>
+    <span className="ms-1">{label}</span>
   </button>
 );
 
-// Sits in Obsidian's `prompt-instructions` container for its type and spacing,
-// but styles the keys as Roam's search footer does.
+// Sits in Obsidian's `prompt-instructions` container for its type and spacing.
+// Obsidian centres that row for the narrow quick switcher; this footer spans a
+// full-width result list, so the actions start at its left edge instead.
 export const NodeSearchFooter = ({
   canAct,
   onClose,
   onOpenInNewTab,
   onOpenInSplit,
 }: NodeSearchFooterProps): ReactElement => (
-  <div className="prompt-instructions dg-search-footer">
+  <div className="prompt-instructions dg-search-footer shrink-0 justify-start px-0 pb-0 text-left">
     <FooterAction
       disabled={!canAct}
       keys={["Enter"]}

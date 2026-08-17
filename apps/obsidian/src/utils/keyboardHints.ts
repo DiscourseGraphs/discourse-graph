@@ -2,10 +2,7 @@ import { Platform } from "obsidian";
 
 export type HintKey = "Mod" | "Alt" | "Shift" | "Enter" | "Escape";
 
-// Obsidian shows glyphs on macOS and spelled-out words everywhere else, so the
-// same shortcut has to render two ways. Roam's search footer hardcoded the macOS
-// glyphs per action (ENG-2000) and showed the wrong hint on Windows; routing
-// every hint through these maps is what keeps that from repeating here.
+// Obsidian shows glyphs on macOS and spelled-out words everywhere else.
 const MAC_SYMBOLS: Record<HintKey, string> = {
   Mod: "⌘",
   Alt: "⌥",

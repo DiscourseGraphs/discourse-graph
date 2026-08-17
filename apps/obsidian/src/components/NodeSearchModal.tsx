@@ -429,6 +429,14 @@ const NodeSearch = ({
     if (event.nativeEvent.isComposing) return;
     // Mod+Enter and Alt+Enter are left alone for the insert and dock actions.
     if (event.metaKey || event.ctrlKey || event.altKey) return;
+    // A footer button reached by Tab runs its own action on Enter. Preventing the
+    // default here would suppress that click and open a new tab instead.
+    if (
+      event.target instanceof HTMLElement &&
+      event.target.closest("button") !== null
+    ) {
+      return;
+    }
 
     event.preventDefault();
     openActiveResult(event.shiftKey ? openFileInNewLeaf : openFileInNewTab);
