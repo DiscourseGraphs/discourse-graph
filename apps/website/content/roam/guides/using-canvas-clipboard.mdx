@@ -1,0 +1,88 @@
+---
+title: "Using the canvas clipboard"
+date: "2026-08-17"
+author: ""
+published: true
+---
+
+import { Callout } from "nextra/components";
+
+## Quickly bring discourse nodes from any page onto your canvas
+
+You can use the **Clipboard** to keep track of what's on the Canvas and what **should** be on the Canvas. It allows speedy bulk importation of all the nodes from a particular page or set of pages
+
+## Opening the Clipboard
+
+Open the Clipboard by clicking on the Discourse Graph icon in the bottom toolbar, which will cause the Clipboard icon to appear.
+
+![clipboard icon](/docs/roam/clipboard01.png)
+_The clipboard icon_
+
+## Finding and adding pages
+
+The Clipboard can be used to search for pages with content relevant to your Canvas.
+
+![page search](/docs/roam/clipboard02.png)
+_Searching for pages to add to the cliipboard_
+
+The Clipboard can be used to search for pages with content relevant to your Canvas: click the **+ Add page** button and search for any page in your graph. Once added, the Clipboard lists every discourse node referenced on that page — this includes nodes linked or embedded anywhere on the page, not just nodes titled after the page itself.
+
+You can add multiple pages to the Clipboard at once; each one gets its own collapsible section.
+
+If a node in the Clipboard is already on the Canvas, clicking on it will navigate to that node.
+
+![clipboard](/docs/roam/clipboard03.png)
+_Reviewing clipboard content_
+
+## Dragging nodes onto the canvas
+
+Click and drag a node from the Clipboard onto the canvas to create it there.
+
+If a node already exists on the canvas and you add it again, a new instance is created alongside the existing one. Nodes with more than one instance on the canvas are grouped under a single entry with a count badge — expand it to see each instance individually, and click the locate icon next to an instance to navigate to that instance.
+
+![node instances](/docs/roam/clipboard06.png)
+_Multiple discourse node instances_
+
+## Finding and adding nodes
+
+Clicking a node that's already on the canvas wil navigate to and select that node.
+
+For nodes not yet on the canvas, **Shift+Click** opens the node's page in the sidebar, and **Ctrl+Click** navigates to it directly (which entails leaving the Canvas page).
+
+<Callout type="info" emoji="💡">
+  If you enable the "**Key Image**" setting in the Discourse Graph Settings menu
+  for a particular node type, any nodes you drag to your graph will bring along
+  the first image from that page. You can also specify a particular image to use
+  by entering its block reference (right-click on the bullet next to the image
+  and select "copy block ref") in the "Query builder reference" field shown
+  below.
+</Callout>
+
+![key image](/docs/roam/clipboard-key-image.png)
+_Enabling "Key Image"_
+
+![](/docs/roam/clipboard05.png)
+_This graph has "Key Image" enabled for Evidence nodes_
+
+## Filtering and searching
+
+Once you've added at least one page, the Clipboard shows a search bar and a node-type filter:
+
+- Type in the search bar to filter nodes by title across all open pages.
+- Use the type dropdown to show only one discourse node type at a time. Each type is color-coded to match its canvas appearance.
+- Click **Clear filters** to reset both at once.
+
+![search nodes](/docs/roam/clipboard07.png)
+_Searching and filtering nodes in the clipboard_
+
+## Showing or hiding nodes already on the canvas
+
+Open the settings (gear) icon to toggle **Show nodes on canvas**. Turning this off hides any node that is already on the canvas, so the Clipboard only shows you what's left to add.
+
+## Removing a page
+
+Hover over a page's section header and click the minus icon to remove it from the Clipboard. This only removes the page from the Clipboard list — it doesn't affect any nodes already placed on the canvas.
+
+## Collapsing and closing
+
+Use the minus icon in the Clipboard's header to collapse the panel without losing your added pages, or the close icon to hide it entirely. Your added pages and settings are saved per-canvas, so your saved pages will remain in the Clipbioard the next time you open it.
