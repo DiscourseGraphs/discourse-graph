@@ -10,10 +10,14 @@ import {
 } from "tldraw";
 import { Button, Tab, Tabs } from "@blueprintjs/core";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import type { DiscourseContextResults } from "~/components/DiscourseContext";
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
+import { RenderRoamBlockString } from "~/utils/roamReactComponents";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { withAutoCanvasRelationsSuppressed } from "./autoCanvasRelationsSuppression";
 import { isDiscourseNodeShape } from "./canvasUtils";
 import {
@@ -127,9 +131,14 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
     );
     const created = editor.getShape<DiscourseNodeShape>(id);
     if (!created) return;
-    const util = editor.getShapeUtil(created);
-    if (util instanceof DiscourseNodeUtil) {
-      await util.createExistingRelations({ shape: created });
+    const autoCanvasRelations = getPersonalSetting<boolean>([
+      PERSONAL_KEYS.autoCanvasRelations,
+    ]);
+    if (autoCanvasRelations) {
+      const util = editor.getShapeUtil(created);
+      if (util instanceof DiscourseNodeUtil) {
+        await util.createExistingRelations({ shape: created });
+      }
     }
   };
 
@@ -189,7 +198,11 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
                     className="min-w-0 flex-1 truncate text-sm"
                     title={text}
                   >
-                    {text}
+                    <RenderRoamBlockString
+                      string={
+                        getPageTitleByPageUid(relatedUid) ? `[[${text}]]` : text
+                      }
+                    />
                   </span>
                   <Button
                     minimal

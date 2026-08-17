@@ -85,4 +85,8 @@ export default /* css */ `
   width: 280px;
   max-width: 280px;
 }
+
+.dg-node-style-panel .bp3-tab-list {
+  justify-content: center;
+}
 `;
