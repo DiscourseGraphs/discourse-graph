@@ -56,19 +56,11 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
     };
   }, [uid]);
 
-  const nodeShapesByUid = useValue(
-    "discourse-node-shapes-by-uid",
-    () =>
-      new Map(
-        editor
-          .getCurrentPageShapes()
-          .filter((s): s is DiscourseNodeShape =>
-            isDiscourseNodeShape(editor, s),
-          )
-          .map((s) => [s.props.uid, s]),
-      ),
-    [editor],
-  );
+  const getNodeShapeByUid = (relatedUid: string) =>
+    editor
+      .getCurrentPageShapes()
+      .filter((s): s is DiscourseNodeShape => isDiscourseNodeShape(editor, s))
+      .find((s) => s.props.uid === relatedUid);
 
   const relationIdsInResults = useMemo(
     () =>
@@ -126,6 +118,8 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
       nodeType: node.type,
       extensionAPI,
     });
+    const existing = getNodeShapeByUid(relatedUid);
+    if (existing) return existing;
     const x = shape.x + shape.props.w + NEW_NODE_OFFSET_PX;
     const columnBottoms = editor
       .getCurrentPageShapes()
@@ -159,25 +153,6 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
     return editor.getShape<DiscourseNodeShape>(id);
   };
 
-  const removeRelationFromCanvas = ({
-    relationId,
-    nodeShape,
-  }: {
-    relationId: string;
-    nodeShape: DiscourseNodeShape;
-  }) => {
-    const arrows = getRelationArrowsBetween({
-      editor,
-      shapeId: shape.id,
-      otherShapeId: nodeShape.id,
-      relationIds: new Set([relationId]),
-    });
-    const bindingIds = arrows
-      .flatMap((arrow) => editor.getBindingsFromShape(arrow.id, relationId))
-      .map((b) => b.id);
-    editor.deleteShapes(arrows.map((a) => a.id)).deleteBindings(bindingIds);
-  };
-
   const addRelationToCanvas = async ({
     relationId,
     complement,
@@ -192,9 +167,16 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
     label: string;
   }) => {
     const nodeShape =
-      nodeShapesByUid.get(relatedUid) ??
+      getNodeShapeByUid(relatedUid) ??
       (await addNodeToCanvas({ relatedUid, text }));
     if (!nodeShape) return;
+    const alreadyOnCanvas = getRelationArrowsBetween({
+      editor,
+      shapeId: shape.id,
+      otherShapeId: nodeShape.id,
+      relationIds: new Set([relationId]),
+    });
+    if (alreadyOnCanvas.length) return;
     const startId = complement ? nodeShape.id : shape.id;
     const endId = complement ? shape.id : nodeShape.id;
     const { bend } = getParallelArrowBend({
@@ -244,9 +226,22 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
     const key = `${relationId}:${relatedUid}`;
     setPendingKeys((prev) => [...prev, key]);
     try {
-      const nodeShape = nodeShapesByUid.get(relatedUid);
-      if (arrowKeysOnCanvas.has(key) && nodeShape) {
-        removeRelationFromCanvas({ relationId, nodeShape });
+      const nodeShape = getNodeShapeByUid(relatedUid);
+      const existingArrows = nodeShape
+        ? getRelationArrowsBetween({
+            editor,
+            shapeId: shape.id,
+            otherShapeId: nodeShape.id,
+            relationIds: new Set([relationId]),
+          })
+        : [];
+      if (existingArrows.length) {
+        const bindingIds = existingArrows
+          .flatMap((arrow) => editor.getBindingsFromShape(arrow.id, relationId))
+          .map((b) => b.id);
+        editor
+          .deleteShapes(existingArrows.map((a) => a.id))
+          .deleteBindings(bindingIds);
       } else {
         await addRelationToCanvas({
           relationId,
