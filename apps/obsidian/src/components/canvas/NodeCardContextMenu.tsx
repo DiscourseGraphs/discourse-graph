@@ -39,6 +39,11 @@ export const NodeCardContextMenu = ({
   const editor = useEditor();
   const styles = useRelevantStyles();
   const isEnabled = plugin.settings.nodeCardContextMenuEnabled ?? false;
+  const currentToolId = useValue(
+    "current tool for node card context menu",
+    () => editor.getCurrentToolId(),
+    [editor],
+  );
   const selectedShape = useValue(
     "selected shape for node card context menu",
     () =>
@@ -57,6 +62,16 @@ export const NodeCardContextMenu = ({
     setActiveTab("context");
   }, [selectedNode?.id]);
 
+  // The DiscourseToolPanel occupies the top-right corner while these tools
+  // are active; don't render a second panel next to it.
+  if (
+    isEnabled &&
+    (currentToolId === "discourse-node" ||
+      currentToolId === "discourse-relation")
+  ) {
+    return null;
+  }
+
   if (!selectedNode) {
     return createElement(DefaultStylePanelComponent, { isMobile });
   }
@@ -64,7 +79,11 @@ export const NodeCardContextMenu = ({
   return createElement(
     DefaultStylePanelComponent,
     { isMobile },
-    <div className="dg-node-card-menu">
+    <div
+      className={`dg-node-card-menu ${
+        activeTab === "context" ? "dg-node-card-menu--context" : ""
+      }`}
+    >
       <div className="border-modifier-border grid grid-cols-2 border-b">
         {NODE_CARD_CONTEXT_MENU_TABS.map(({ id, label }) => (
           <button

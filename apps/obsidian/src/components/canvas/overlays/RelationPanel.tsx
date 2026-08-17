@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import {
@@ -7,6 +7,7 @@ import {
 } from "~/components/canvas/shapes/DiscourseNodeShape";
 import {
   ensureBlockRefForFile,
+  findBlockRefForFile,
   resolveLinkedFileFromSrc,
   extractBlockRefId,
 } from "~/components/canvas/stores/assetStore";
@@ -162,6 +163,8 @@ const RelationFileItem = ({
   );
 };
 
+const LINKED_FILE_NOT_FOUND_ERROR = "Linked file not found.";
+
 export const RelationsPanelContent = ({
   plugin,
   canvasFile,
@@ -171,6 +174,7 @@ export const RelationsPanelContent = ({
   const [groups, setGroups] = useState<GroupedRelation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   // Resolve the file from the shape's src
   useEffect(() => {
@@ -191,7 +195,7 @@ export const RelationsPanelContent = ({
         });
         if (!file) {
           setGroups([]);
-          setError("Linked file not found.");
+          setError(LINKED_FILE_NOT_FOUND_ERROR);
           return;
         }
         const g = await computeRelations(plugin, file);
@@ -209,7 +213,26 @@ export const RelationsPanelContent = ({
       }
     };
     void load();
-  }, [plugin, canvasFile, nodeShape.id, nodeShape.props.src, editor]);
+  }, [
+    plugin,
+    canvasFile,
+    nodeShape.id,
+    nodeShape.props.src,
+    editor,
+    reloadToken,
+  ]);
+
+  // Right after node creation the canvas file's block refs may not be indexed
+  // yet; retry once Obsidian re-indexes the canvas file.
+  useEffect(() => {
+    if (error !== LINKED_FILE_NOT_FOUND_ERROR) return;
+    const eventRef = plugin.app.metadataCache.on("changed", (changedFile) => {
+      if (changedFile.path === canvasFile.path) {
+        setReloadToken((token) => token + 1);
+      }
+    });
+    return () => plugin.app.metadataCache.offref(eventRef);
+  }, [error, plugin, canvasFile]);
 
   const ensureNodeShapeForFile = async (
     file: TFile,
@@ -254,62 +277,67 @@ export const RelationsPanelContent = ({
   };
 
   // Check if a relation already exists between the selected node and a target file
-  const checkExistingRelation = async (
-    targetFile: TFile,
-    relationTypeId: string,
-  ): Promise<DiscourseRelationShape | null> => {
-    try {
-      // Get all shapes on the canvas
-      const allShapes = editor.getCurrentPageShapes();
+  const checkExistingRelation = useCallback(
+    async (
+      targetFile: TFile,
+      relationTypeId: string,
+    ): Promise<DiscourseRelationShape | null> => {
+      try {
+        // Get all shapes on the canvas
+        const allShapes = editor.getCurrentPageShapes();
 
-      // Find the target node shape that corresponds to the file
-      const targetBlockRef = await ensureBlockRefForFile({
-        app: plugin.app,
-        canvasFile,
-        targetFile,
-      });
-      const targetNodeShape = allShapes.find((shape) => {
-        if (shape.type !== "discourse-node") return false;
-        const src = (shape as DiscourseNodeShape).props.src ?? "";
-        return extractBlockRefId(src) === targetBlockRef;
-      }) as DiscourseNodeShape | undefined;
+        // Find the target node shape that corresponds to the file.
+        // Read-only lookup: rendering the panel must not write to the canvas file.
+        const targetBlockRef = await findBlockRefForFile({
+          app: plugin.app,
+          canvasFile,
+          targetFile,
+        });
+        if (!targetBlockRef) return null;
+        const targetNodeShape = allShapes.find((shape) => {
+          if (shape.type !== "discourse-node") return false;
+          const src = (shape as DiscourseNodeShape).props.src ?? "";
+          return extractBlockRefId(src) === targetBlockRef;
+        }) as DiscourseNodeShape | undefined;
 
-      if (!targetNodeShape) return null;
+        if (!targetNodeShape) return null;
 
-      // Find relation shapes that connect the selected node and target node
-      const relationShapes = allShapes.filter(
-        (shape) =>
-          shape.type === "discourse-relation" &&
-          (shape as DiscourseRelationShape).props.relationTypeId ===
-            relationTypeId,
-      ) as DiscourseRelationShape[];
+        // Find relation shapes that connect the selected node and target node
+        const relationShapes = allShapes.filter(
+          (shape) =>
+            shape.type === "discourse-relation" &&
+            (shape as DiscourseRelationShape).props.relationTypeId ===
+              relationTypeId,
+        ) as DiscourseRelationShape[];
 
-      for (const relationShape of relationShapes) {
-        const bindings = getArrowBindings(editor, relationShape);
+        for (const relationShape of relationShapes) {
+          const bindings = getArrowBindings(editor, relationShape);
 
-        // Check if this relation connects our two nodes in ANY direction
-        // The relation could exist as either:
-        // 1. selectedNode -> targetNode (forward direction)
-        // 2. targetNode -> selectedNode (reverse direction)
-        const isConnectedForward =
-          bindings.start?.toId === nodeShape.id &&
-          bindings.end?.toId === targetNodeShape.id;
+          // Check if this relation connects our two nodes in ANY direction
+          // The relation could exist as either:
+          // 1. selectedNode -> targetNode (forward direction)
+          // 2. targetNode -> selectedNode (reverse direction)
+          const isConnectedForward =
+            bindings.start?.toId === nodeShape.id &&
+            bindings.end?.toId === targetNodeShape.id;
 
-        const isConnectedReverse =
-          bindings.start?.toId === targetNodeShape.id &&
-          bindings.end?.toId === nodeShape.id;
+          const isConnectedReverse =
+            bindings.start?.toId === targetNodeShape.id &&
+            bindings.end?.toId === nodeShape.id;
 
-        if (isConnectedForward || isConnectedReverse) {
-          return relationShape;
+          if (isConnectedForward || isConnectedReverse) {
+            return relationShape;
+          }
         }
-      }
 
-      return null;
-    } catch (e) {
-      console.error("Failed to check existing relation", e);
-      return null;
-    }
-  };
+        return null;
+      } catch (e) {
+        console.error("Failed to check existing relation", e);
+        return null;
+      }
+    },
+    [editor, plugin, canvasFile, nodeShape.id],
+  );
 
   const handleDeleteRelationShape = async (
     targetFile: TFile,
@@ -472,24 +500,20 @@ export const RelationsPanelContent = ({
             </span>
             <span className="text-sm font-medium">{group.label}</span>
           </div>
-          {group.linkedFiles.length === 0 ? (
-            <div className="text-xs text-gray-500">None</div>
-          ) : (
-            <ul className="m-0 list-none space-y-1 p-0 pl-5">
-              {group.linkedFiles.map((f) => {
-                return (
-                  <RelationFileItem
-                    key={f.path}
-                    file={f}
-                    group={group}
-                    checkExistingRelation={checkExistingRelation}
-                    handleCreateRelationTo={handleCreateRelationTo}
-                    handleDeleteRelation={handleDeleteRelationShape}
-                  />
-                );
-              })}
-            </ul>
-          )}
+          <ul className="m-0 list-none space-y-1 p-0 pl-5">
+            {group.linkedFiles.map((f) => {
+              return (
+                <RelationFileItem
+                  key={f.path}
+                  file={f}
+                  group={group}
+                  checkExistingRelation={checkExistingRelation}
+                  handleCreateRelationTo={handleCreateRelationTo}
+                  handleDeleteRelation={handleDeleteRelationShape}
+                />
+              );
+            })}
+          </ul>
         </li>
       ))}
     </ul>
@@ -593,7 +617,10 @@ const computeRelations = async (
     }
   }
 
-  return Array.from(result.values());
+  // Only show relation types that have relation instances
+  return Array.from(result.values()).filter(
+    (group) => group.linkedFiles.length > 0,
+  );
 };
 
 const getRelationCounterpartId = ({

@@ -85,7 +85,7 @@ export const AdminPanelSettings = () => {
     <div className="general-settings">
       <div className="setting-item">
         <div className="setting-item-info">
-          <div className="setting-item-name">(BETA) Node card context menu</div>
+          <div className="setting-item-name">(BETA) Discourse context</div>
           <div className="setting-item-description">
             Show discourse context and styling tabs when a node card is selected
             on a canvas
@@ -101,7 +101,7 @@ export const AdminPanelSettings = () => {
             <input
               type="checkbox"
               checked={nodeCardContextMenuEnabled}
-              aria-label="Enable node card context menu"
+              aria-label="Enable discourse context"
               readOnly
             />
           </div>
