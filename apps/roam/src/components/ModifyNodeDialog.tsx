@@ -45,8 +45,8 @@ export type ModifyNodeDialogProps = {
   nodeType?: string;
   initialValue: { text: string; uid: string };
   initialReferencedNode?: { text: string; uid: string };
-  sourceBlockUid?: string;
-  // Provides format resolution context without allowing the dialog to mutate the block.
+  sourceBlockUid?: string; //the block that we started modifying from
+  // Resolves referenced-node placeholders from this block without allowing the dialog to mutate it.
   contextBlockUid?: string;
   extensionAPI?: OnloadArgs["extensionAPI"];
   includeDefaultNodes?: boolean; // Include default nodes (Page, Block) in node type selector
