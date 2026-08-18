@@ -22,7 +22,17 @@ If you're already using Obsidian or Roam Research or another PKM platform, your 
 
 For Roam Research users the answer is **yes**. Your discourse nodes can coexist with your existing graph. The Discourse Graph plugin can be considered an annotation layer that captures relevant extant content as discourse nodes nad integrates it into a graph structure that parallels your existing outline.
 
+The discourse graph practice of _progressive formalization_ can be used to gradually transform relevant notes, images, and snippets into discourse nodes that can be integrated into your graph.
+
+![daily notes](/docs/roam/merton-candidates01.png)
+\_
+
+![daily notes](/docs/roam/merton-candidates02.png)
+
 ### Newbies
+
+![daily notes](/docs/roam/canvas-view01.png)
+_So much room for activities!_
 
 ## Organization
 
