@@ -82,7 +82,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
         format,
       });
 
-      setNodes([...nodes, node]);
+      setNodes((prevNodes) => [...prevNodes, node]);
       refreshConfigTree();
       setLabel("");
     } finally {
