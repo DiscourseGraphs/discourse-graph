@@ -19,6 +19,11 @@ import {
 } from "react";
 import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
+import { NodeSearchFooter } from "~/components/NodeSearchFooter";
+import {
+  openFileInNewLeaf,
+  openFileInNewTab,
+} from "~/components/canvas/utils/openFileUtils";
 import {
   QueryEngine,
   rankDiscourseNodesByTitle,
@@ -256,10 +261,11 @@ const ResultList = ({
   }, [activeIndex]);
 
   return (
+    // No `aria-label` here: Obsidian renders one as a hover tooltip, which
+    // covers the results the moment the pointer enters the list.
     <div
       ref={listRef}
       role="listbox"
-      aria-label="Discourse node search results"
       onMouseMove={() => (pointerMovedRef.current = true)}
       className="flex-1 overflow-y-auto"
     >
@@ -279,7 +285,6 @@ const ResultList = ({
         >
           {result.nodeType.badge && (
             <span
-              title={result.nodeType.name}
               aria-label={result.nodeType.name}
               style={{
                 backgroundColor: result.nodeType.badge.backgroundColor,
@@ -299,8 +304,10 @@ const ResultList = ({
 
 const NodeSearch = ({
   plugin,
+  onClose,
 }: {
   plugin: DiscourseGraphPlugin;
+  onClose: () => void;
 }): ReactElement => {
   const { app } = plugin;
   const [candidateState, setCandidateState] = useState<CandidateState>({
@@ -395,11 +402,44 @@ const NodeSearch = ({
     });
   };
 
+  // Closes before opening: `close()` unmounts this React root, so the file and
+  // app are read first and nothing touches state afterwards.
+  const openActiveResult = (
+    open: (app: App, file: TFile) => Promise<void>,
+  ): void => {
+    if (!activeResult) return;
+    const { file } = activeResult;
+    onClose();
+    void open(app, file).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(`Could not open ${file.basename}: ${message}`);
+    });
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
-    // Otherwise the caret jumps to the start or end of the query.
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      // Otherwise the caret jumps to the start or end of the query.
+      event.preventDefault();
+      moveActiveIndex(event.key === "ArrowDown" ? 1 : -1);
+      return;
+    }
+
+    if (event.key !== "Enter") return;
+    // Enter also commits an IME candidate, which must not open a file.
+    if (event.nativeEvent.isComposing) return;
+    // Mod+Enter and Alt+Enter are left alone for the insert and dock actions.
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    // A footer button reached by Tab runs its own action on Enter. Preventing the
+    // default here would suppress that click and open a new tab instead.
+    if (
+      event.target instanceof HTMLElement &&
+      event.target.closest("button") !== null
+    ) {
+      return;
+    }
+
     event.preventDefault();
-    moveActiveIndex(event.key === "ArrowDown" ? 1 : -1);
+    openActiveResult(event.shiftKey ? openFileInNewLeaf : openFileInNewTab);
   };
 
   return (
@@ -437,6 +477,12 @@ const NodeSearch = ({
         </div>
         <PreviewPane app={app} result={activeResult} authorName={authorName} />
       </div>
+      <NodeSearchFooter
+        canAct={candidateState.status === "ready" && !!activeResult}
+        onClose={onClose}
+        onOpenInNewTab={() => openActiveResult(openFileInNewTab)}
+        onOpenInSplit={() => openActiveResult(openFileInNewLeaf)}
+      />
     </div>
   );
 };
@@ -457,7 +503,7 @@ export class NodeSearchModal extends Modal {
     this.root = createRoot(contentEl);
     this.root.render(
       <StrictMode>
-        <NodeSearch plugin={this.plugin} />
+        <NodeSearch plugin={this.plugin} onClose={() => this.close()} />
       </StrictMode>,
     );
   }
