@@ -14,11 +14,14 @@ import {
   Puzzle,
   Sparkles,
 } from "lucide-react";
-import { getLatestBlogs } from "~/(home)/blog/readBlogs";
+import { getAllBlogs } from "~/(home)/blog/readBlogs";
 import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { TeamPerson } from "~/components/TeamPerson";
 import { TEAM_MEMBERS } from "~/data/constants";
+import type { NewsItem } from "~/types/news";
+import { getButtondownNewsletterItems } from "~/utils/buttondown";
+import { formatDisplayDate } from "~/utils/formatDate";
 
 const SLACK_URL =
   "https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg";
@@ -89,26 +92,30 @@ const RESOURCE_LINKS = [
   },
 ] as const;
 
-const EVENTS = [
+const STATIC_NEWS_ITEMS: NewsItem[] = [
   {
+    date: "2026-06-18",
     href: "https://discoursegraphs.github.io/panel-qa-site/",
     linkText: "View panel notes",
     meta: "June 18, 2026 | Zoom",
     title: "Frontiers in Research: Open Science Catalyze Panel",
   },
   {
+    date: "2026-03-27",
     href: "https://bsky.app/profile/atproto.science/post/3mh6kak5agk2z",
     linkText: "View event post",
     meta: "March 27, 2026 | ATScience Conference, Vancouver",
     title: "Toward Modular Open Science",
   },
   {
+    date: "2026-03-24",
     href: "https://www.mcgill.ca/qls/channels/event/qls-seminar-series-matthew-akamatsu-371875",
     linkText: "View seminar details",
     meta: "March 24, 2026 | Montreal",
     title: "Seminar: McGill University Quantitative Life Sciences program",
   },
   {
+    date: "2025-11-19",
     href: "https://luma.com/jijn0d5k",
     linkText: "View talk page",
     meta: "November 19, 2025 | Zoom",
@@ -116,12 +123,16 @@ const EVENTS = [
       "Metagov x Future of Science Seminar: Interoperable LLM- and human-centered research with Discourse Graphs",
   },
   {
+    date: "2025-02-23",
     href: "https://iosp.io/schedule",
     linkText: "View full schedule",
     meta: "February 23-24, 2025 | Denver Museum of Nature and Science",
     title: "IOSP '25 Winter Workshop: Discourse Graphs",
   },
-] as const;
+];
+
+const sortNewsByDateDesc = (left: NewsItem, right: NewsItem): number =>
+  new Date(right.date).getTime() - new Date(left.date).getTime();
 
 type Talk =
   | {
@@ -270,7 +281,24 @@ const ArrowLink = ({
 );
 
 const Home = async (): Promise<ReactElement> => {
-  const blogs = await getLatestBlogs();
+  const [blogs, newsletterItems] = await Promise.all([
+    getAllBlogs(),
+    getButtondownNewsletterItems(),
+  ]);
+
+  const blogNewsItems: NewsItem[] = blogs.map((blog) => ({
+    date: blog.date,
+    href: `/blog/${blog.slug}`,
+    linkText: "View post",
+    meta: formatDisplayDate(blog.date),
+    title: blog.title,
+  }));
+
+  const news = [
+    ...STATIC_NEWS_ITEMS,
+    ...blogNewsItems,
+    ...newsletterItems,
+  ].sort(sortNewsByDateDesc);
 
   return (
     <div>
@@ -615,32 +643,37 @@ const Home = async (): Promise<ReactElement> => {
         </section>
 
         <section className="px-5 py-16 sm:px-6 lg:py-24">
-          <div id="events" className="mx-auto max-w-7xl scroll-mt-20">
-            <SectionHeader
-              eyebrow="Events"
-              isWide
-              title="Recent talks, panels, and workshops"
-              description="Places where the team and collaborators have presented the Discourse Graphs model and project."
-            />
+          <div id="news" className="mx-auto max-w-7xl scroll-mt-20">
+            <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+              <SectionHeader
+                eyebrow="News"
+                isWide
+                title="Talks, posts, and newsletters"
+                description="Recent updates from the Discourse Graphs team and places where the team and collaborators have presented the model and project."
+              />
+              {blogs.length > 0 && (
+                <ArrowLink href="/blog">See all posts</ArrowLink>
+              )}
+            </div>
             <div className="mt-10 divide-y divide-neutral-dark/10 border-y border-neutral-dark/10">
-              {EVENTS.map((event) => (
+              {news.map((item) => (
                 <article
-                  key={event.href}
+                  key={item.href}
                   className="grid gap-4 py-6 md:grid-cols-[1fr_auto] md:items-center"
                 >
                   <div>
                     <h3 className="text-xl font-semibold text-neutral-dark">
-                      {event.title}
+                      {item.title}
                     </h3>
                     <p className="mt-2 text-sm text-neutral-dark/65">
-                      {event.meta}
+                      {item.meta}
                     </p>
                   </div>
                   <Link
-                    href={event.href}
+                    href={item.href}
                     className="inline-flex items-center gap-2 text-sm font-semibold text-secondary transition-colors hover:text-secondary/70"
                   >
-                    {event.linkText}
+                    {item.linkText}
                     <ExternalLink className="h-4 w-4" aria-hidden="true" />
                   </Link>
                 </article>
@@ -648,45 +681,6 @@ const Home = async (): Promise<ReactElement> => {
             </div>
           </div>
         </section>
-
-        {blogs.length > 0 && (
-          <section className="bg-white px-5 py-16 sm:px-6 lg:py-24">
-            <div id="updates" className="mx-auto max-w-7xl scroll-mt-20">
-              <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-                <SectionHeader
-                  eyebrow="Updates"
-                  isWide
-                  title="Latest project updates"
-                  description="Recent posts from the Discourse Graphs team."
-                />
-                <ArrowLink href="/blog">See all updates</ArrowLink>
-              </div>
-              <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {blogs.map((blog) => (
-                  <Card
-                    key={blog.slug}
-                    className="rounded-lg border-neutral-dark/10 bg-neutral-light shadow-sm"
-                  >
-                    <CardContent className="flex h-full flex-col p-6">
-                      <p className="text-sm text-neutral-dark/60">
-                        {blog.date}
-                      </p>
-                      <Link
-                        href={`/blog/${blog.slug}`}
-                        className="mt-4 text-xl font-semibold text-neutral-dark transition-colors hover:text-secondary"
-                      >
-                        {blog.title}
-                      </Link>
-                      <p className="mt-6 text-sm text-neutral-dark/60">
-                        By {blog.author}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
 
         <section className="px-5 py-16 sm:px-6 lg:py-24">
           <div id="talks" className="mx-auto max-w-7xl scroll-mt-20">
