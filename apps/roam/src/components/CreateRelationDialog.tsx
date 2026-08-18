@@ -1,12 +1,5 @@
 import React, { useState, useMemo } from "react";
-import {
-  Dialog,
-  Classes,
-  Label,
-  Button,
-  Icon,
-  Callout,
-} from "@blueprintjs/core";
+import { Dialog, Classes, Label, Button, Callout } from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
@@ -392,26 +385,28 @@ export const renderCreateRelationDialog = (
 };
 
 export const CreateRelationButton = (
-  props: CreateRelationDialogProps,
+  props: CreateRelationDialogProps & { fill?: boolean },
 ): React.JSX.Element | null => {
+  const { fill = false, ...relationProps } = props;
   const storedRelationsEnabled = getStoredRelationsEnabled();
   if (!storedRelationsEnabled) return null;
   let extProps: ExtendedCreateRelationDialogProps | null = null;
   try {
-    extProps = extendProps(props);
+    extProps = extendProps(relationProps);
   } catch (e) {
     // the node's type was not identified. Swallow silently.
   }
   return (
     <Button
-      className="m-2"
+      className="m-0"
       minimal
+      outlined
+      fill={fill}
+      text="Add relation"
       disabled={extProps === null}
       onClick={() => {
         renderCreateRelationDialog(extProps);
       }}
-    >
-      <Icon icon="plus" />
-    </Button>
+    />
   );
 };

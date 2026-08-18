@@ -6,6 +6,9 @@ import {
   MarkdownView,
   WorkspaceLeaf,
   Notice,
+  setTooltip,
+  addIcon,
+  setIcon,
 } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { SettingsTab } from "~/components/Settings";
@@ -39,6 +42,8 @@ import {
 } from "~/utils/relationsStore";
 import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
+import { showHelpMenu } from "~/utils/helpMenu";
+import { DISCOURSE_GRAPH_LOGO_ICON_ID, WHITE_LOGO_SVG } from "~/icons";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -51,6 +56,7 @@ export default class DiscourseGraphPlugin extends Plugin {
   private currentViewActions: { leaf: WorkspaceLeaf; action: HTMLElement }[] =
     [];
   private pendingCanvasSwitches = new Set<string>();
+  private helpMenuStatusBarItem: HTMLElement | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -89,6 +95,8 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
+    addIcon(DISCOURSE_GRAPH_LOGO_ICON_ID, WHITE_LOGO_SVG);
+    this.setHelpMenuStatusBarItemVisibility();
 
     this.registerEvent(
       this.app.workspace.on(
@@ -283,6 +291,29 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     // Register editor keydown listener for node tag hotkey
     this.setupNodeTagHotkey();
+  }
+
+  setHelpMenuStatusBarItemVisibility(): void {
+    if (!this.settings.showHelpMenuStatusBarIcon) {
+      this.helpMenuStatusBarItem?.remove();
+      this.helpMenuStatusBarItem = null;
+      return;
+    }
+
+    if (this.helpMenuStatusBarItem) return;
+    const item = this.addStatusBarItem();
+    item.addClass(
+      "dg-help-menu-status-bar-item",
+      "clickable-icon",
+      "text-muted",
+      "hover:text-normal",
+    );
+    setTooltip(item, "Discourse Graph help menu", { placement: "top" });
+    setIcon(item, DISCOURSE_GRAPH_LOGO_ICON_ID);
+    this.registerDomEvent(item, "click", (event) => {
+      showHelpMenu({ plugin: this, event });
+    });
+    this.helpMenuStatusBarItem = item;
   }
 
   private setupNodeTagHotkey() {

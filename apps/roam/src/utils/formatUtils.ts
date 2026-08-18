@@ -20,23 +20,29 @@ const renderFormDialog = createOverlayRender<ModifyNodeDialogProps>(
   ModifyNodeDialog,
 );
 
-export const getNewDiscourseNodeText = async ({
-  text,
-  nodeType,
-  blockUid,
-  skipBlockUpdate = false,
-}: {
+export type ResolvedDiscourseNodeText = {
+  text: string;
+  handledByDialog: boolean;
+};
+
+type GetNewDiscourseNodeTextArgs = {
   text: string;
   nodeType: string;
   blockUid?: string;
   skipBlockUpdate?: boolean;
-}) => {
+};
+
+export const resolveNewDiscourseNodeText = async ({
+  text,
+  nodeType,
+  blockUid,
+  skipBlockUpdate = false,
+}: GetNewDiscourseNodeTextArgs): Promise<ResolvedDiscourseNodeText> => {
   const discourseNodes = getDiscourseNodes();
   let newText = text;
-  let textFromDialog = false;
+  const handledByDialog = !text;
 
-  if (!text) {
-    textFromDialog = true;
+  if (handledByDialog) {
     newText = await new Promise<string>((resolve) => {
       let resolvedText = "";
       renderFormDialog({
@@ -57,10 +63,10 @@ export const getNewDiscourseNodeText = async ({
   }
 
   if (!newText || !newText.trim()) {
-    return "";
+    return { text: "", handledByDialog };
   }
-  if (textFromDialog) {
-    return newText;
+  if (handledByDialog) {
+    return { text: newText, handledByDialog };
   }
 
   const indexedByType = Object.fromEntries(
@@ -90,7 +96,14 @@ export const getNewDiscourseNodeText = async ({
     }
     return "";
   });
-  return formattedText;
+  return { text: formattedText, handledByDialog };
+};
+
+export const getNewDiscourseNodeText = async (
+  args: GetNewDiscourseNodeTextArgs,
+): Promise<string> => {
+  const { text } = await resolveNewDiscourseNodeText(args);
+  return text;
 };
 
 export const getReferencedNodeInFormat = ({
