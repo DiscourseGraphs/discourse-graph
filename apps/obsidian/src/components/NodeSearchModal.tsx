@@ -15,6 +15,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type MouseEvent,
   type ReactElement,
 } from "react";
 import { createRoot, Root } from "react-dom/client";
@@ -250,15 +251,25 @@ const ResultList = ({
   onActivate: (index: number) => void;
 }): ReactElement => {
   const listRef = useRef<HTMLDivElement | null>(null);
-  const pointerMovedRef = useRef(false);
+  const pointerPositionRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const active = listRef.current?.children[activeIndex];
     active?.scrollIntoView({ block: "nearest" });
-    // Scrolling drags rows under a stationary cursor, and the mouseenter that
-    // fires is not a choice. Ignore hover until the pointer actually moves.
-    pointerMovedRef.current = false;
   }, [activeIndex]);
+
+  // Scrolling drags rows under a stationary cursor, and the mouseenter that
+  // fires is not a choice. Compare coordinates rather than resetting a flag on
+  // every activation, so hovering from row to row still counts as a choice.
+  const hasPointerMoved = (event: MouseEvent<HTMLDivElement>): boolean => {
+    const previous = pointerPositionRef.current;
+    pointerPositionRef.current = { x: event.clientX, y: event.clientY };
+    return (
+      previous === null ||
+      previous.x !== event.clientX ||
+      previous.y !== event.clientY
+    );
+  };
 
   return (
     // No `aria-label` here: Obsidian renders one as a hover tooltip, which
@@ -266,7 +277,9 @@ const ResultList = ({
     <div
       ref={listRef}
       role="listbox"
-      onMouseMove={() => (pointerMovedRef.current = true)}
+      onMouseMove={(event) => {
+        hasPointerMoved(event);
+      }}
       className="flex-1 overflow-y-auto"
     >
       {results.map((result, index) => (
@@ -274,7 +287,7 @@ const ResultList = ({
           key={result.file.path}
           role="option"
           aria-selected={index === activeIndex}
-          onMouseEnter={() => pointerMovedRef.current && onActivate(index)}
+          onMouseEnter={(event) => hasPointerMoved(event) && onActivate(index)}
           onClick={() => onActivate(index)}
           // Keeps focus in the search input, so the keyboard path stays live
           // after a click.
@@ -335,8 +348,8 @@ const NodeSearch = ({
   }, []);
 
   // The fetch is synchronous today, so there is nothing to await or cancel yet.
-  // Effects run after paint, so the loading state still renders for a frame; when
-  // F12 makes this a network call, only this body changes.
+  // Effects run after paint, so the loading state still renders for a frame; if
+  // this ever becomes a network call, only this body changes.
   useEffect(() => {
     try {
       const candidates = new QueryEngine(app).getDiscourseNodeCandidates();
@@ -498,7 +511,16 @@ export class NodeSearchModal extends Modal {
 
   onOpen() {
     const { contentEl, modalEl } = this;
-    modalEl.addClass("dg-node-search-modal");
+    // The default modal is too narrow for a result list beside a preview pane.
+    // Responsive layout is an explicit non-goal, so this is a desktop-only size.
+    modalEl.addClasses([
+      "dg-node-search-modal",
+      "h-[600px]",
+      "max-h-[80vh]",
+      "w-[900px]",
+      "max-w-[90vw]",
+    ]);
+    contentEl.addClasses(["flex", "h-full", "flex-col", "overflow-hidden"]);
     contentEl.empty();
     this.root = createRoot(contentEl);
     this.root.render(

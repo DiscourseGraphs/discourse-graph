@@ -3899,22 +3899,6 @@ kbd.tlui-kbd {
   }
 }
 
-/* The default modal is too narrow for a result list beside a preview pane.
-   Responsive layout is an explicit non-goal, so this is a desktop-only size. */
-.dg-node-search-modal {
-  width: 900px;
-  max-width: 90vw;
-  height: 600px;
-  max-height: 80vh;
-}
-
-.dg-node-search-modal .modal-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-}
-
 .dg-node-search-modal .dg-search-result-title span {
   background-color: var(--text-highlight-bg);
   color: inherit;
