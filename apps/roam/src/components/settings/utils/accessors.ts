@@ -763,6 +763,9 @@ export const readAllLegacyDiscourseNodeSettings = (
 export const isSyncEnabled = (): boolean =>
   getFeatureFlag("Suggestive mode overlay enabled");
 
+export const isNodeSharingEnabled = (): boolean =>
+  getFeatureFlag("Enable node sharing");
+
 export const setFeatureFlag = (
   key: keyof FeatureFlags,
   value: boolean,

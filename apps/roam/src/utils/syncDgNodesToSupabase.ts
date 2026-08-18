@@ -28,6 +28,7 @@ import { intersection } from "@repo/utils/setOperations";
 import type { Json, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
+import { isSyncEnabled } from "~/components/settings/utils/accessors";
 import { FatalError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
 import type {
@@ -38,6 +39,7 @@ import type {
 import type { Properties } from "posthog-js";
 
 const SYNC_FUNCTION = "embedding";
+const SHARED_CONTENT_SYNC_FUNCTION = "shared-content";
 // Minimal interval between syncs of all clients for this task.
 const SYNC_INTERVAL = "130s";
 // Interval between syncs for each client individually
@@ -191,6 +193,7 @@ const syncTelemetryContext = ({
   attemptId,
   worker,
   userUid,
+  syncFunction,
   context,
   startTime,
   claimed,
@@ -204,6 +207,7 @@ const syncTelemetryContext = ({
   attemptId: string;
   worker: string;
   userUid: string;
+  syncFunction: string;
   context: SupabaseContext | null;
   startTime: Date;
   claimed: boolean;
@@ -225,7 +229,7 @@ const syncTelemetryContext = ({
   return {
     syncAttemptId: attemptId,
     syncWorkerId: worker,
-    syncFunction: SYNC_FUNCTION,
+    syncFunction,
     syncUserUid: userUid,
     claimed,
     status,
@@ -321,7 +325,6 @@ const notifyEndSyncFailure = ({
     error,
     type: "Sync Failed",
     context: {
-      syncFunction: SYNC_FUNCTION,
       status,
       reason,
       ...(context || {}),
@@ -333,6 +336,7 @@ const notifyEndSyncFailure = ({
 
 export const endSyncTask = async ({
   worker,
+  syncFunction,
   status,
   showToast = false,
   taskStartedAt,
@@ -341,6 +345,7 @@ export const endSyncTask = async ({
   telemetryContext,
 }: {
   worker: string;
+  syncFunction: string;
   status: Enums<"task_status">;
   showToast: boolean;
   taskStartedAt: Date;
@@ -352,7 +357,7 @@ export const endSyncTask = async ({
     resolvedContext?: SupabaseContext,
   ): Properties => ({
     syncWorkerId: worker,
-    syncFunction: SYNC_FUNCTION,
+    syncFunction,
     spaceId: resolvedContext?.spaceId ?? context?.spaceId,
     ...(telemetryContext || {}),
   });
@@ -383,7 +388,7 @@ export const endSyncTask = async ({
     }
     const { data, error } = await resolvedClient.rpc("end_sync_task", {
       s_target: resolvedContext.spaceId,
-      s_function: SYNC_FUNCTION,
+      s_function: syncFunction,
       s_worker: worker,
       s_status: status,
       s_started_at: taskStartedAt.toISOString(),
@@ -501,16 +506,22 @@ export const endSyncTask = async ({
   }
 };
 
-export const proposeSyncTask = async (
-  worker: string,
-  supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
-): Promise<SyncTaskInfo> => {
+export const proposeSyncTask = async ({
+  worker,
+  syncFunction,
+  supabaseClient,
+  context,
+}: {
+  worker: string;
+  syncFunction: string;
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+}): Promise<SyncTaskInfo> => {
   try {
     const now = new Date();
     const { data, error } = await supabaseClient.rpc("propose_sync_task", {
       s_target: context.spaceId,
-      s_function: SYNC_FUNCTION,
+      s_function: syncFunction,
       s_worker: worker,
       task_interval: SYNC_INTERVAL,
       timeout: SYNC_TIMEOUT,
@@ -757,6 +768,18 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     supabaseClient,
     context,
   });
+};
+
+const upsertNodesToSupabaseAsContent = async (
+  roamNodes: RoamDiscourseNodeData[],
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
+): Promise<void> => {
+  if (roamNodes.length === 0) {
+    return;
+  }
+  const content = convertRoamNodeToLocalContent({ nodes: roamNodes });
+  await uploadContentBatches({ content, supabaseClient, context });
 };
 
 const upsertRoamNodesToSupabaseAsFullContent = async ({
@@ -1064,6 +1087,10 @@ export const createOrUpdateDiscourseEmbedding = async (
   let failureReason: string | undefined;
   let failureContext: Properties | undefined;
   const worker = getSyncWorkerId();
+  const sharedNodesOnlySync = !isSyncEnabled();
+  const syncFunction = sharedNodesOnlySync
+    ? SHARED_CONTENT_SYNC_FUNCTION
+    : SYNC_FUNCTION;
 
   const buildTelemetry = ({
     status,
@@ -1082,6 +1109,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       attemptId,
       worker,
       userUid,
+      syncFunction,
       context,
       startTime,
       claimed,
@@ -1125,7 +1153,12 @@ export const createOrUpdateDiscourseEmbedding = async (
         phase: "proposeSyncTask",
         phases,
         operation: () =>
-          proposeSyncTask(worker, activeSupabaseClient, activeContext),
+          proposeSyncTask({
+            worker,
+            syncFunction,
+            supabaseClient: activeSupabaseClient,
+            context: activeContext,
+          }),
       });
     if (!shouldProceed) {
       if (nextUpdateTime === undefined) {
@@ -1193,6 +1226,11 @@ export const createOrUpdateDiscourseEmbedding = async (
           spaceId: activeContext.spaceId,
         }),
     });
+    const nodeInstancesToSync = sharedNodesOnlySync
+      ? changedNodeInstances.filter((node) =>
+          sharedSourceLocalIds.has(node.source_local_id),
+        )
+      : changedNodeInstances;
     const sharedSourceLocalIdsToBackfill = await measureSyncPhase({
       phase: "getSharedSourceLocalIdsMissingFullContent",
       phases,
@@ -1244,11 +1282,17 @@ export const createOrUpdateDiscourseEmbedding = async (
       phase: "upsertNodes",
       phases,
       operation: () =>
-        upsertNodesToSupabaseAsContentWithEmbeddings(
-          changedNodeInstances,
-          activeSupabaseClient,
-          activeContext,
-        ),
+        sharedNodesOnlySync
+          ? upsertNodesToSupabaseAsContent(
+              nodeInstancesToSync,
+              activeSupabaseClient,
+              activeContext,
+            )
+          : upsertNodesToSupabaseAsContentWithEmbeddings(
+              nodeInstancesToSync,
+              activeSupabaseClient,
+              activeContext,
+            ),
     });
     await measureSyncPhase({
       phase: "upsertFullContent",
@@ -1265,7 +1309,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       phases,
       operation: () =>
         convertDgToSupabaseConcepts({
-          nodesSince: changedNodeInstances,
+          nodesSince: nodeInstancesToSync,
           since: sinceTime,
           allNodeTypes: allDgNodeTypes,
           sharedNodeTypeIds,
@@ -1285,6 +1329,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       operation: () =>
         endSyncTask({
           worker,
+          syncFunction,
           status: "complete",
           showToast,
           taskStartedAt: activeClaimedAt,
@@ -1352,6 +1397,7 @@ export const createOrUpdateDiscourseEmbedding = async (
         operation: () =>
           endSyncTask({
             worker,
+            syncFunction,
             status: "failed",
             showToast,
             taskStartedAt: failedClaimedAt,
