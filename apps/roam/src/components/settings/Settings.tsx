@@ -20,6 +20,7 @@ import AdminPanel from "./AdminPanel";
 import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
 import getDiscourseNodes, {
   excludeDefaultNodes,
+  type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
 import NodeConfig from "./NodeConfig";
 import HomePersonalSettings from "./HomePersonalSettings";
@@ -33,11 +34,40 @@ import posthog from "posthog-js";
 import { bulkReadSettings } from "./utils/accessors";
 import { onSettingChange, settingKeys } from "./utils/settingsEmitter";
 
-import {
+const settingsTabIds = {
+  homePersonal: "discourse-graph-home-personal",
+  leftSidebarPersonal: "left-sidebar-personal-settings",
+  leftSidebarGlobal: "left-sidebar-global-settings",
+} as const;
+
+const ADMIN_TAB_ID = "secret-admin-panel";
+
+// Every non-node Tab id rendered below must be listed here.
+const STATIC_TAB_IDS: readonly string[] = [
+  settingsTabIds.homePersonal,
+  settingsTabIds.leftSidebarPersonal,
+  settingsTabIds.leftSidebarGlobal,
   ADMIN_TAB_ID,
-  resolveVisibleTabId,
-  settingsTabIds,
-} from "~/utils/settingsTabIds";
+  "query-settings",
+  "canvas-shortcuts-personal-settings",
+  "discourse-graph-home",
+  "discourse-graph-export",
+  "discourse-relations",
+  "discourse-nodes",
+];
+
+// Blueprint renders no panel when selectedTabId matches no Tab, which reads as a blank dialog.
+const resolveVisibleTabId = ({
+  requestedTabId,
+  nodes,
+}: {
+  requestedTabId: TabId;
+  nodes: Pick<DiscourseNode, "type">[];
+}): TabId => {
+  if (STATIC_TAB_IDS.includes(String(requestedTabId))) return requestedTabId;
+  if (nodes.some((node) => node.type === requestedTabId)) return requestedTabId;
+  return settingsTabIds.homePersonal;
+};
 
 type SectionHeaderProps = {
   children: React.ReactNode;

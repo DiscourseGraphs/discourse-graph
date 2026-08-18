@@ -1082,14 +1082,7 @@ const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
     : undefined,
 });
 
-/**
- * Creates a discourse node type page and publishes it to readers.
- *
- * The three steps are only correct in this order: getAllDiscourseNodes skips pages that
- * have no block props, so invalidating the cache before the props write settles lets the
- * next reader cache a node list without this type until the graph is reloaded (ENG-2089).
- * Callers should use this rather than sequencing createPage/setBlockProps/invalidate.
- */
+// getAllDiscourseNodes skips prop-less pages, so invalidate only after the props write settles.
 export const createDiscourseNodeType = async ({
   text,
   shortcut,
