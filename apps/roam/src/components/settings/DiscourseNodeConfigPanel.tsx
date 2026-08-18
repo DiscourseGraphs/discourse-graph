@@ -10,7 +10,6 @@ import {
 import React, { useState } from "react";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import refreshConfigTree from "~/utils/refreshConfigTree";
-import createPage from "roamjs-components/writes/createPage";
 import type { CustomField } from "roamjs-components/components/ConfigPanels/types";
 import posthog from "posthog-js";
 import getDiscourseRelations, {
@@ -18,9 +17,11 @@ import getDiscourseRelations, {
 } from "~/utils/getDiscourseRelations";
 import { deleteBlock } from "roamjs-components/writes";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
-import setBlockProps from "~/utils/setBlockProps";
-import { DiscourseNodeSchema } from "./utils/zodSchema";
-import { getGlobalSettings, setGlobalSetting } from "./utils/accessors";
+import {
+  createDiscourseNodeType,
+  getGlobalSettings,
+  setGlobalSetting,
+} from "./utils/accessors";
 import { GLOBAL_KEYS } from "./utils/settingKeys";
 import { invalidateDiscourseNodeTypeCaches } from "~/utils/discourseNodeTypeCache";
 
@@ -39,6 +40,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
     getDiscourseNodes().filter((n) => n.backedBy === "user"),
   );
   const [label, setLabel] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
     null,
   );
@@ -54,6 +56,37 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
       setSelectedTabId(uid);
     } else {
       window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
+    }
+  };
+
+  const getUnusedShortcut = (): string => {
+    const candidateShortcut = label.slice(0, 1).toUpperCase();
+    const existingShortcuts = new Set(
+      getDiscourseNodes()
+        .map((n) => n.shortcut.toUpperCase())
+        .filter(Boolean),
+    );
+    return existingShortcuts.has(candidateShortcut) ? "" : candidateShortcut;
+  };
+
+  const createNodeType = async (): Promise<void> => {
+    setIsCreating(true);
+    try {
+      const shortcut = getUnusedShortcut();
+      const format = `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
+      posthog.capture("Discourse Node: Type Created", { label });
+
+      const node = await createDiscourseNodeType({
+        text: label,
+        shortcut,
+        format,
+      });
+
+      setNodes([...nodes, node]);
+      refreshConfigTree();
+      setLabel("");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -80,63 +113,9 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
           intent={Intent.PRIMARY}
           icon={"plus"}
           className="select-none"
-          disabled={!label}
-          onClick={() => {
-            const candidateShortcut = label.slice(0, 1).toUpperCase();
-            const existingShortcuts = new Set(
-              getDiscourseNodes()
-                .map((n) => n.shortcut.toUpperCase())
-                .filter(Boolean),
-            );
-            const shortcut = existingShortcuts.has(candidateShortcut)
-              ? ""
-              : candidateShortcut;
-            const format = `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
-            posthog.capture("Discourse Node: Type Created", { label: label });
-            void createPage({
-              title: `discourse-graph/nodes/${label}`,
-              tree: [
-                {
-                  text: "Shortcut",
-                  children: [{ text: shortcut }],
-                },
-                {
-                  text: "Tag",
-                  children: [{ text: "" }],
-                },
-                {
-                  text: "Format",
-                  children: [{ text: format }],
-                },
-              ],
-            }).then((valueUid) => {
-              setBlockProps(
-                valueUid,
-                DiscourseNodeSchema.parse({
-                  text: label,
-                  type: valueUid,
-                  shortcut,
-                  format,
-                }),
-              );
-              invalidateDiscourseNodeTypeCaches();
-              setNodes([
-                ...nodes,
-                {
-                  format: "",
-                  type: valueUid,
-                  text: label,
-                  shortcut: "",
-                  tag: "",
-                  specification: [],
-                  backedBy: "user",
-                  canvasSettings: {},
-                },
-              ]);
-              refreshConfigTree();
-              setLabel("");
-            });
-          }}
+          disabled={!label || isCreating}
+          loading={isCreating}
+          onClick={() => void createNodeType()}
         />
       </ControlGroup>
 

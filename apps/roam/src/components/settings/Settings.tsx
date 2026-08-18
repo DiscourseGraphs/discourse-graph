@@ -33,13 +33,11 @@ import posthog from "posthog-js";
 import { bulkReadSettings } from "./utils/accessors";
 import { onSettingChange, settingKeys } from "./utils/settingsEmitter";
 
-const settingsTabIds = {
-  homePersonal: "discourse-graph-home-personal",
-  leftSidebarPersonal: "left-sidebar-personal-settings",
-  leftSidebarGlobal: "left-sidebar-global-settings",
-} as const;
-
-const ADMIN_TAB_ID = "secret-admin-panel";
+import {
+  ADMIN_TAB_ID,
+  resolveVisibleTabId,
+  settingsTabIds,
+} from "~/utils/settingsTabIds";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -141,9 +139,13 @@ export const SettingsDialog = ({
     !leftSidebarEnabled &&
     (activeTabId === settingsTabIds.leftSidebarPersonal ||
       activeTabId === settingsTabIds.leftSidebarGlobal);
-  const visibleTabId = leftSidebarTabHidden
+  const requestedTabId = leftSidebarTabHidden
     ? settingsTabIds.homePersonal
     : activeTabId;
+  const visibleTabId = resolveVisibleTabId({
+    requestedTabId,
+    nodes,
+  });
   return (
     <Dialog
       isOpen={isOpen}
