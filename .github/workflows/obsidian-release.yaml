@@ -63,7 +63,7 @@ jobs:
       - name: Sync Linear release
         uses: linear/linear-release-action@v0
         with:
-          access_key: ${{ secrets.OBSIDIAN_LINEAR_RELEASE_KEY }}
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
           command: sync
           version: ${{ env.VERSION }}
           include_paths: "apps/obsidian/**,packages/database/**,packages/utils/**"
@@ -71,6 +71,6 @@ jobs:
       - name: Complete Linear release
         uses: linear/linear-release-action@v0
         with:
-          access_key: ${{ secrets.OBSIDIAN_LINEAR_RELEASE_KEY }}
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
           command: complete
           version: ${{ env.VERSION }}
