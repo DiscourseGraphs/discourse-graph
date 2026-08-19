@@ -3,7 +3,9 @@ import { getHintKeys, type HintKey } from "~/utils/keyboardHints";
 
 type NodeSearchFooterProps = {
   canAct: boolean;
+  canInsertLink: boolean;
   onClose: () => void;
+  onInsertLink: () => void;
   onOpenInNewTab: () => void;
   onOpenInSplit: () => void;
 };
@@ -50,11 +52,23 @@ const FooterAction = ({
 // full-width result list, so the actions start at its left edge instead.
 export const NodeSearchFooter = ({
   canAct,
+  canInsertLink,
   onClose,
+  onInsertLink,
   onOpenInNewTab,
   onOpenInSplit,
 }: NodeSearchFooterProps): ReactElement => (
   <div className="prompt-instructions dg-search-footer shrink-0 justify-start px-0 pb-0 text-left">
+    {/* Absent, not disabled, when nothing was being edited when the modal
+        opened: there is no cursor to explain the action against. */}
+    {canInsertLink && (
+      <FooterAction
+        disabled={!canAct}
+        keys={["Mod", "Enter"]}
+        label="insert link at cursor"
+        onClick={onInsertLink}
+      />
+    )}
     <FooterAction
       disabled={!canAct}
       keys={["Enter"]}
