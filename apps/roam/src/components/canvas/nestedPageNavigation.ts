@@ -1,10 +1,16 @@
 // Navigation + creation for nested sub-page portals. `enterPage` is the one
 // navigation gesture — the portal header, breadcrumb segments, and back button
 // all funnel through it so they cannot drift apart.
+//
+// A portal is a NATIVE geo rectangle whose meta.dgSubpage names the target
+// page (see DgSubpageUtil.tsx for why this is meta on a native shape and not a
+// custom shape type). The geo label text mirrors the page name so a plugin
+// version without this feature still shows a readable, movable rectangle.
 import {
   createShapeId,
   Editor,
   PageRecordType,
+  TLGeoShape,
   TLPageId,
   TLShape,
   TLShapeId,
@@ -12,14 +18,17 @@ import {
 import {
   assertCanCreateSubpage,
   getNestedPageMeta,
+  getSubpageMeta,
   LineagePage,
-  SUBPAGE_SHAPE_TYPE,
   walkLineage,
 } from "~/utils/nestedPages";
 
 export const DEFAULT_PORTAL_ACCENT = "#6d5ae0";
 const DEFAULT_PORTAL_WIDTH = 460;
 const DEFAULT_PORTAL_HEIGHT = 340;
+
+// The label old clients see on the portal rectangle.
+const portalLabel = (pageName: string): string => `⤵ ${pageName}`;
 
 export const enterPage = (editor: Editor, pageId: string) => {
   if (!pageId || !editor.getPage(pageId as TLPageId)) return;
@@ -100,21 +109,31 @@ export const createSubpagePortal = ({
     // createPage increments duplicate names ("Study A" → "Study A 1"); keep the
     // portal title in sync with what the page actually got.
     const finalName = editor.getPage(pageId)?.name ?? name;
-    editor.createShape({
+    editor.createShape<TLGeoShape>({
       id: portalId,
-      type: SUBPAGE_SHAPE_TYPE,
+      type: "geo",
       x,
       y,
       // explicit parentId: a portal created over a frame must not be
       // auto-parented into that frame
       parentId: here,
+      meta: {
+        dgSubpage: {
+          targetPageId: pageId,
+          accent,
+          title: finalName,
+          subtitle: "",
+        },
+      },
       props: {
+        geo: "rectangle",
         w: DEFAULT_PORTAL_WIDTH,
         h: DEFAULT_PORTAL_HEIGHT,
-        title: finalName,
-        subtitle: "",
-        targetPageId: pageId,
-        accent,
+        color: "violet",
+        fill: "semi",
+        font: "sans",
+        size: "m",
+        text: portalLabel(finalName),
       },
     });
     editor.select(portalId);
@@ -122,31 +141,40 @@ export const createSubpagePortal = ({
   return { pageId, portalId };
 };
 
-/** Point an existing dg-subpage portal at a page, recording lineage on the
- * target. The recorded parent is the page the portal LIVES ON, not whichever
- * page the session happens to be viewing. */
+/** Point an existing geo shape at a page, making it a portal and recording
+ * lineage on the target. The recorded parent is the page the portal LIVES ON,
+ * not whichever page the session happens to be viewing. */
 export const linkSubpagePortal = (
   editor: Editor,
   portalId: TLShapeId,
   targetPageId: TLPageId,
 ): boolean => {
   const portal = editor.getShape(portalId);
-  if (!portal || portal.type !== SUBPAGE_SHAPE_TYPE) return false;
-  if (!editor.getPage(targetPageId)) return false;
+  if (!portal || portal.type !== "geo") return false;
+  const targetPage = editor.getPage(targetPageId);
+  if (!targetPage) return false;
   const parentPageId =
     editor.getAncestorPageId(portal) ?? editor.getCurrentPageId();
+  const existing = getSubpageMeta(portal.meta);
   editor.batch(() => {
-    editor.updateShape({
+    editor.updateShape<TLGeoShape>({
       id: portalId,
-      type: SUBPAGE_SHAPE_TYPE,
-      props: { targetPageId },
+      type: "geo",
+      meta: {
+        ...portal.meta,
+        dgSubpage: {
+          targetPageId,
+          accent: existing?.accent ?? DEFAULT_PORTAL_ACCENT,
+          title: targetPage.name,
+          subtitle: existing?.subtitle ?? "",
+        },
+      },
+      props: { text: portalLabel(targetPage.name) },
     });
-    const page = editor.getPage(targetPageId);
-    if (!page) return;
     editor.updatePage({
       id: targetPageId,
       meta: {
-        ...page.meta,
+        ...targetPage.meta,
         dgNested: { parentPageId, ownerShapeId: portalId },
       },
     });

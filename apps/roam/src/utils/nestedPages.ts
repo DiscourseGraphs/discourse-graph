@@ -7,6 +7,10 @@
 // a target page records `meta.dgNested.parentPageId` (the page its portal lives
 // on) and the portal shape holds the forward pointer in `props.targetPageId`.
 
+// Classifier tag for portal boxes inside previews. NOT a persisted tldraw shape
+// type: portals persist as native `geo` shapes carrying `meta.dgSubpage`, so a
+// plugin version without this feature still loads the board (an unknown shape
+// type would make loadSnapshot throw and blank the whole canvas there).
 export const SUBPAGE_SHAPE_TYPE = "dg-subpage";
 
 export const SUBPAGE_HEADER_HEIGHT = 40;
@@ -38,6 +42,39 @@ export const getNestedPageMeta = (meta: unknown): NestedPageMeta | null => {
   return {
     parentPageId,
     ...(typeof ownerShapeId === "string" ? { ownerShapeId } : {}),
+  };
+};
+
+export type SubpageMeta = {
+  /** Forward pointer to the page this portal opens. */
+  targetPageId: string;
+  /** Header color (hex). */
+  accent?: string;
+  /** Title fallback for when the target page is missing; the live render
+   * prefers the current page name. Also mirrored into the geo label text so
+   * old clients see a named rectangle. */
+  title?: string;
+  subtitle?: string;
+};
+
+// A shape is a portal exactly when its meta carries dgSubpage. Kept meta-based
+// (not a custom shape type) for backward compatibility — see SUBPAGE_SHAPE_TYPE.
+export const getSubpageMeta = (meta: unknown): SubpageMeta | null => {
+  if (typeof meta !== "object" || meta === null) return null;
+  const dgSubpage = (meta as { dgSubpage?: unknown }).dgSubpage;
+  if (typeof dgSubpage !== "object" || dgSubpage === null) return null;
+  const { targetPageId, accent, title, subtitle } = dgSubpage as {
+    targetPageId?: unknown;
+    accent?: unknown;
+    title?: unknown;
+    subtitle?: unknown;
+  };
+  if (typeof targetPageId !== "string" || !targetPageId) return null;
+  return {
+    targetPageId,
+    ...(typeof accent === "string" ? { accent } : {}),
+    ...(typeof title === "string" ? { title } : {}),
+    ...(typeof subtitle === "string" ? { subtitle } : {}),
   };
 };
 

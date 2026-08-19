@@ -5,6 +5,7 @@ import {
   buildPrefixMatchers,
   getBoxLabel,
   getNestedPageMeta,
+  getSubpageMeta,
   layoutPreview,
   walkLineage,
   type PreviewShapeDescriptor,
@@ -129,6 +130,32 @@ describe("getNestedPageMeta", () => {
     expect(getNestedPageMeta(undefined)).toBeNull();
     expect(getNestedPageMeta({})).toBeNull();
     expect(getNestedPageMeta({ dgNested: { parentPageId: 7 } })).toBeNull();
+  });
+});
+
+describe("getSubpageMeta", () => {
+  it("reads dgSubpage from shape meta", () => {
+    expect(
+      getSubpageMeta({
+        dgSubpage: {
+          targetPageId: "page:x",
+          accent: "#6d5ae0",
+          title: "Study A",
+        },
+      }),
+    ).toEqual({ targetPageId: "page:x", accent: "#6d5ae0", title: "Study A" });
+  });
+
+  it("requires only targetPageId", () => {
+    expect(getSubpageMeta({ dgSubpage: { targetPageId: "page:x" } })).toEqual({
+      targetPageId: "page:x",
+    });
+  });
+
+  it("returns null for absent or malformed meta", () => {
+    expect(getSubpageMeta(undefined)).toBeNull();
+    expect(getSubpageMeta({})).toBeNull();
+    expect(getSubpageMeta({ dgSubpage: { targetPageId: 3 } })).toBeNull();
   });
 });
 
