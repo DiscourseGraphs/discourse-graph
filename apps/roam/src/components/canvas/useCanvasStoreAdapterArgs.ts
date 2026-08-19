@@ -19,6 +19,7 @@ import {
   createAllRelationBindings,
 } from "./DiscourseRelationShape/DiscourseRelationBindings";
 import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
+import { DgSubpageUtil, dgSubpageMigrations } from "./DgSubpageUtil";
 
 /**
  * Cloudflare sync needs stable adapter arg identities, but local Roam
@@ -71,6 +72,7 @@ const createShapeUtils = ({
 }): TLAnyShapeUtilConstructor[] => {
   return [
     DiscourseNodeUtil,
+    DgSubpageUtil,
     ...(includeLegacyNodeTypes
       ? createLegacyDiscourseNodeShapeUtils(allNodes)
       : []),
@@ -173,7 +175,7 @@ export const useCanvasStoreAdapterArgs = ({
     [pageUid, stableCustomBindingUtils],
   ).value;
   const stableMigrations = useMemo(
-    () => ({ pageUid, value: [arrowShapeMigrations] }),
+    () => ({ pageUid, value: [arrowShapeMigrations, dgSubpageMigrations] }),
     [pageUid, arrowShapeMigrations],
   ).value;
 
@@ -188,7 +190,7 @@ export const useCanvasStoreAdapterArgs = ({
       }
     : {
         pageUid,
-        migrations: [arrowShapeMigrations],
+        migrations: [arrowShapeMigrations, dgSubpageMigrations],
         customShapeUtils,
         customBindingUtils,
         customShapeTypes,
