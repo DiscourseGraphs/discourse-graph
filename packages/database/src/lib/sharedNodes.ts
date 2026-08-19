@@ -221,7 +221,7 @@ const getSharedNodeRows = async ({
         .select(CONCEPT_COLUMNS)
         .neq("space_id", currentSpaceId)
         .eq("is_schema", false)
-        .eq("arity", 0),
+        .eq("is_relation", false),
       client
         .from("my_contents")
         .select(DIRECT_CONTENT_COLUMNS)
@@ -282,7 +282,7 @@ export const getSharedNodeByRid = async ({
       .eq("space_id", space.id)
       .eq("source_local_id", sourceLocalId)
       .eq("is_schema", false)
-      .eq("arity", 0),
+      .eq("is_relation", false),
     client
       .from("my_contents")
       .select(DIRECT_CONTENT_COLUMNS)

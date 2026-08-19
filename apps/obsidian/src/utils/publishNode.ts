@@ -281,7 +281,7 @@ export const ensurePublishedRelationsAccuracy = async ({
     .select("source_local_id")
     .eq("space_id", context.spaceId)
     .eq("is_schema", false)
-    .gt("arity", 0);
+    .eq("is_relation", true);
   if (syncedRelationIdsResult.error) {
     console.error(
       "Could not get synced relation ids",
