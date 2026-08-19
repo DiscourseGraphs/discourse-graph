@@ -6,7 +6,6 @@ import {
   NODE_TYPE_FILTER_SEARCH_THRESHOLD,
   filterNodeTypesByQuery,
   fromPanelSelectedIds,
-  getSelectAllCheckState,
   hasActiveTypeFilter,
   toPanelSelectedIds,
 } from "~/utils/discourseNodeTypeFilter";
@@ -70,10 +69,12 @@ const NodeTypeFilterRow = ({
 );
 
 const NodeTypeFilterPanel = ({
+  isFilterActive,
   nodeTypes,
   onSelectedIdsChange,
   selectedIds,
 }: {
+  isFilterActive: boolean;
   nodeTypes: DiscourseNode[];
   onSelectedIdsChange: (ids: string[]) => void;
   selectedIds: string[];
@@ -98,22 +99,9 @@ const NodeTypeFilterPanel = ({
 
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
-  const selectAllState = getSelectAllCheckState({
-    selectedIds,
-    totalCount: nodeTypes.length,
-  });
-
   useEffect(() => {
     if (showTypeSearch) searchRef.current?.focus();
   }, [showTypeSearch]);
-
-  const handleSelectAll = (): void => {
-    if (selectAllState === "off") {
-      onSelectedIdsChange(nodeTypes.map((nodeType) => nodeType.id));
-      return;
-    }
-    onSelectedIdsChange([]);
-  };
 
   const toggleType = (id: string): void => {
     onSelectedIdsChange(
@@ -123,10 +111,24 @@ const NodeTypeFilterPanel = ({
     );
   };
 
-  const hasTypeSearchQuery = query.trim().length > 0;
-
   return (
     <div className="border-modifier-border absolute right-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-md border bg-primary shadow-[0_4px_12px_rgba(0,0,0,0.15)]">
+      {/* Clearing is the only thing this control ever does, so it says so and
+          appears only when there is a filter to clear. A "select all" checkbox
+          would sit checked-and-inert whenever no filter is active, since an empty
+          selection and a full one are the same state. */}
+      {isFilterActive && (
+        <div className="border-modifier-border border-b p-2">
+          <button
+            type="button"
+            onClick={() => onSelectedIdsChange([])}
+            onMouseDown={(event) => event.preventDefault()}
+            className="w-full text-sm"
+          >
+            {`Clear filter (${selectedIds.length})`}
+          </button>
+        </div>
+      )}
       {showTypeSearch && (
         <div className="border-modifier-border border-b p-2">
           <input
@@ -145,37 +147,16 @@ const NodeTypeFilterPanel = ({
             No matching node types
           </div>
         ) : (
-          <>
-            {/* A partial list has no "all" to speak of, so the row is dropped
-                while searching rather than acting on the hidden types too. */}
-            {!hasTypeSearchQuery && (
-              <label className="border-modifier-border hover:bg-modifier-hover flex cursor-pointer items-center gap-2 border-b px-3 py-1.5">
-                <input
-                  type="checkbox"
-                  checked={selectAllState !== "off"}
-                  ref={(el) => {
-                    if (el)
-                      el.indeterminate = selectAllState === "indeterminate";
-                  }}
-                  onChange={handleSelectAll}
-                  className="shrink-0"
-                />
-                <span className="text-normal text-sm font-semibold">
-                  Select all
-                </span>
-              </label>
-            )}
-            {filteredNodeTypes.map((nodeType) => (
-              <NodeTypeFilterRow
-                key={nodeType.id}
-                color={colorsById.get(nodeType.id)}
-                isChecked={selectedIdSet.has(nodeType.id)}
-                nodeType={nodeType}
-                onSelectOnly={() => onSelectedIdsChange([nodeType.id])}
-                onToggle={() => toggleType(nodeType.id)}
-              />
-            ))}
-          </>
+          filteredNodeTypes.map((nodeType) => (
+            <NodeTypeFilterRow
+              key={nodeType.id}
+              color={colorsById.get(nodeType.id)}
+              isChecked={selectedIdSet.has(nodeType.id)}
+              nodeType={nodeType}
+              onSelectOnly={() => onSelectedIdsChange([nodeType.id])}
+              onToggle={() => toggleType(nodeType.id)}
+            />
+          ))
         )}
       </div>
     </div>
@@ -233,14 +214,18 @@ export const NodeTypeFilterMenu = ({
       ref={containerRef}
       className="relative shrink-0"
       onKeyDown={(event) => {
-        if (event.key !== "Escape" || !isOpen) return;
-        // Obsidian's Modal closes on Escape from its own keymap scope, so the
-        // native event has to stop here or the whole modal goes with the panel.
+        if (!isOpen) return;
+        // Every keystroke stops here while the panel is open. The modal's handler
+        // is an ancestor and reads Enter as "open the highlighted result" and the
+        // arrows as "move the selection", so typing in the type search would
+        // otherwise open a note and close the whole modal.
+        event.stopPropagation();
+        if (event.key !== "Escape") return;
+        // Obsidian's Modal closes on Escape from its own keymap scope, which sits
+        // outside React, so the native event has to stop too or the modal goes
+        // with the panel.
         event.preventDefault();
         event.nativeEvent.stopImmediatePropagation();
-        // The modal's own Escape handler is an ancestor of this one; stopping the
-        // synthetic event too keeps it from closing the panel a second time.
-        event.stopPropagation();
         onOpenChange(false);
       }}
     >
@@ -278,6 +263,7 @@ export const NodeTypeFilterMenu = ({
       </button>
       {isOpen && (
         <NodeTypeFilterPanel
+          isFilterActive={isFilterActive}
           nodeTypes={nodeTypes}
           onSelectedIdsChange={(panelIds) =>
             onSelectedNodeTypeIdsChange(
