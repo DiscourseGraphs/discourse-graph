@@ -90,6 +90,7 @@ export const crossAppNodeSchemaToDbConcept = (
   const literalInfo = filterUndefined({
     template: node.templateTitle,
     template_content: node.template,
+    format: node.format,
   });
   return filterUndefined<LocalConceptDataInput>({
     source_local_id: node.localId,

@@ -79,22 +79,21 @@ export const discourseNodeSchemaToLocalConcept = (
 ): LocalConceptDataInput => {
   const titleParts = node.text.split("/");
   const label = titleParts[titleParts.length - 1] ?? node.text;
+  const literalContent: { [key: string]: Json } = {
+    label,
+    format: node.format,
+  };
+  if (node.template !== undefined)
+    literalContent.template = templateToText(node.template);
   const result: LocalConceptDataInput = {
     space_id: context.spaceId,
     name: node.text,
     source_local_id: node.type,
     is_schema: true,
-    literal_content: {
-      label,
-    },
+    literal_content: literalContent,
     /* eslint-enable @typescript-eslint/naming-convention */
     ...getNodeExtraData(node.type),
   };
-  if (node.template !== undefined)
-    result.literal_content = {
-      label,
-      template: templateToText(node.template),
-    };
   return result;
 };
 

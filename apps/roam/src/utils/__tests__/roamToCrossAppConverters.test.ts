@@ -9,7 +9,11 @@ vi.mock("roamjs-components/queries/getPageViewType", () => ({
 }));
 vi.mock("~/utils/pageToMarkdown", () => ({ toMarkdown: () => "" }));
 
-import { nodeUidsWithTypeToCrossApp } from "~/utils/roamToCrossAppConverters";
+import {
+  nodeSchemaToCrossApp,
+  nodeUidsWithTypeToCrossApp,
+} from "~/utils/roamToCrossAppConverters";
+import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 
 const USER_ROW = { ":db/id": 5, ":user/uid": "user-1" };
 
@@ -58,5 +62,37 @@ describe("nodeUidsWithTypeToCrossApp timestamps", () => {
   it("falls back to the create time when no edit time exists", async () => {
     const node = await convertRow(baseRow);
     expect(node.modifiedAt).toEqual(new Date(1000));
+  });
+});
+
+describe("nodeSchemaToCrossApp", () => {
+  const claimSchema: DiscourseNode = {
+    type: "schema-1",
+    text: "Claim",
+    shortcut: "C",
+    specification: [],
+    backedBy: "user",
+    canvasSettings: {},
+    format: "[[CLM]] - {content}",
+  };
+
+  it("carries the node type format", () => {
+    (globalThis as { window: unknown }).window = {
+      roamAlphaAPI: {
+        pull: vi.fn().mockReturnValue({
+          ":create/time": 1000,
+          ":edit/time": 2000,
+          ":create/user": { ":user/uid": "user-1" },
+        }),
+      },
+    };
+    const schema = nodeSchemaToCrossApp(claimSchema);
+    expect(schema).toEqual({
+      localId: "schema-1",
+      label: "Claim",
+      authorId: "user-1",
+      createdAt: new Date(1000),
+      format: "[[CLM]] - {content}",
+    });
   });
 });
