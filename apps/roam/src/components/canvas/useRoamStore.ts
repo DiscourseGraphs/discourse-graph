@@ -26,6 +26,8 @@ import {
 import { AddPullWatch } from "roamjs-components/types";
 import { LEGACY_SCHEMA } from "~/data/legacyTldrawSchema";
 import internalError from "~/utils/internalError";
+import { createRoamAssetStore } from "~/utils/roamCanvasAssetStore";
+import { captureCanvasAssetUploaded } from "./canvasAssetTelemetry";
 
 const THROTTLE = 350;
 
@@ -93,6 +95,9 @@ const createCanvasStore = ({
     migrations,
     shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
     bindingUtils: [...defaultBindingUtils, ...customBindingUtils],
+    // Without this, tldraw inlines dropped media as base64 into the shape's
+    // asset, which we then persist into the page's block props.
+    assets: createRoamAssetStore({ onUpload: captureCanvasAssetUploaded }),
   });
 
 const getPersistedRoamCanvasState = ({
