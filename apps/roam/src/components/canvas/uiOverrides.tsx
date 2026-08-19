@@ -71,6 +71,8 @@ import { createOrUpdateArrowBinding } from "./DiscourseRelationShape/helpers";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
+import { NestedPageHelperButtons } from "./DgSubpageBreadcrumb";
+import { createSubpagePortal } from "./nestedPageNavigation";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
@@ -422,6 +424,7 @@ export const CustomContextMenu = ({
   allNodes: DiscourseNode[];
 }) => {
   const editor = useEditor();
+  const actions = useActions();
   const selectedShape = useValue(
     "selectedShape",
     () => editor.getOnlySelectedShape(),
@@ -457,6 +460,9 @@ export const CustomContextMenu = ({
   return (
     <DefaultContextMenu>
       <DefaultContextMenuContent />
+      <TldrawUiMenuGroup id="subpage-group">
+        <TldrawUiMenuItem {...actions["create-subpage-portal"]} />
+      </TldrawUiMenuGroup>
       {shareableResults.length > 0 && (
         <TldrawUiMenuGroup id="share-data-group">
           <TldrawUiMenuItem
@@ -615,6 +621,8 @@ export const createUiComponents = ({
         <DiscourseGraphPanel nodes={allNodes} relations={allRelationNames} />
       );
     },
+    // Default helper buttons plus the nested sub-page breadcrumb/back bar.
+    HelperButtons: NestedPageHelperButtons,
   };
 };
 export const createUiOverrides = ({
@@ -724,8 +732,26 @@ export const createUiOverrides = ({
 
     return tools;
   },
-  actions: (_editor, actions, helpers) => {
+  actions: (editor, actions, helpers) => {
     const { addToast, addDialog } = helpers;
+    actions["create-subpage-portal"] = {
+      id: "create-subpage-portal",
+      label: "action.create-subpage-portal" as TLUiTranslationKey,
+      kbd: "",
+      onSelect: () => {
+        try {
+          createSubpagePortal({ editor });
+          posthog.capture("Canvas: Create Subpage Portal");
+        } catch (error) {
+          addToast({
+            title: "Cannot create sub-canvas",
+            description: error instanceof Error ? error.message : String(error),
+            severity: "error",
+          });
+        }
+      },
+      readonlyOk: false,
+    };
     actions["convert-to"] = {
       id: "convert-to",
       label: "action.convert-to" as TLUiTranslationKey,
@@ -797,6 +823,7 @@ export const createUiOverrides = ({
       ...Object.fromEntries(
         allNodes.map((node) => [`shape.node.${node.type}`, node.text]),
       ),
+      "action.create-subpage-portal": "Create sub-canvas portal",
       "action.toggle-cloud-sync": "Toggle cloud canvas sync",
       "action.toggle-full-screen": "Toggle Full Screen",
       "tool.discourse-tool": "Discourse Graph",
