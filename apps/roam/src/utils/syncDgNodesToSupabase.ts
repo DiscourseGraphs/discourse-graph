@@ -4,6 +4,7 @@ import {
   nodeTypeSince,
 } from "./getAllDiscourseNodesSince";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
+import extractContentFromTitle from "./extractContentFromTitle";
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import {
   getLoggedInClient,
@@ -667,11 +668,17 @@ export const convertDgToSupabaseConcepts = async ({
     return discourseNodeSchemaToLocalConcept(context, node);
   });
 
+  const formatByNodeTypeUid = new Map(
+    allNodeTypes.map((nodeType) => [nodeType.type, nodeType.format]),
+  );
   const nodeBlockToLocalConcepts = nodesSince.map((node) => {
     const localConcept = discourseNodeBlockToLocalConcept(context, {
       nodeUid: node.source_local_id,
       schemaUid: node.type,
       text: node.node_title ? `${node.node_title} ${node.text}` : node.text,
+      coreTitle: extractContentFromTitle(node.node_title ?? node.text, {
+        format: formatByNodeTypeUid.get(node.type) ?? "",
+      }),
     });
     return localConcept;
   });
