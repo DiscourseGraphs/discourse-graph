@@ -10,6 +10,7 @@ import type { DiscourseNodeInVault } from "./getDiscourseNodes";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { Json } from "@repo/database/dbTypes";
+import { extractContentFromTitle } from "./extractContentFromTitle";
 
 /**
  * Get extra data (author, timestamps) from file metadata
@@ -160,12 +161,17 @@ export const discourseRelationTripleSchemaToLocalConcept = ({
 export const discourseNodeInstanceToLocalConcept = (
   context: SupabaseContext,
   nodeData: ObsidianDiscourseNodeData,
+  nodeTypesById: Record<string, DiscourseNode>,
 ): LocalConceptDataInput => {
   const extraData = getNodeExtraData(nodeData.file, context.userId);
   const { nodeInstanceId, nodeTypeId, importedFromRid, ...otherData } =
     nodeData.frontmatter;
   const literal_content: Record<string, Json> = {
     label: nodeData.file.basename,
+    core_title: extractContentFromTitle(
+      nodeTypesById[nodeData.nodeTypeId]?.format ?? "",
+      nodeData.file.basename,
+    ),
     source_data: otherData as unknown as Json,
   };
   if (importedFromRid && typeof importedFromRid === "string")

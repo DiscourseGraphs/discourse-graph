@@ -594,7 +594,7 @@ const convertDgToSupabaseConcepts = async ({
     .filter((n) => !!n);
 
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
-    return discourseNodeInstanceToLocalConcept(context, node);
+    return discourseNodeInstanceToLocalConcept(context, node, nodeTypesById);
   });
 
   const relationInstancesData = await loadRelations(plugin);
