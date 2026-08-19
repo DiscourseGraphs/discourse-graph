@@ -54,9 +54,15 @@ const BLOB_UPLOAD_BATCH_SIZE = 10;
 const MAX_GITHUB_RETRIES = 5;
 const BASE_RETRY_DELAY_MS = 2_000;
 
-const TARGET_REPO = "DiscourseGraphs/discourse-graph-obsidian";
+// TODO(ENG-2099): REVERT BEFORE MERGE — restore discourse-graph-obsidian.
+// Temporarily pointed at the throwaway private test repo so the release
+// pipeline can be exercised end-to-end (GitHub release + Linear sync) without
+// writing to the real publish repo. Do not merge this branch while it points
+// here: the Obsidian community store reads manifest.json from the real repo's
+// main branch.
+const TARGET_REPO = "DiscourseGraphs/discourse-graph-obsidian-test";
 const OWNER = "DiscourseGraphs";
-const REPO = "discourse-graph-obsidian";
+const REPO = "discourse-graph-obsidian-test";
 
 const log = (message: string): void => {
   console.log(`[Obsidian Publisher] ${message}`);
