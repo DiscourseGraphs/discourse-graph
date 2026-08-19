@@ -17,7 +17,11 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
+  # TODO(ENG-2099): REVERT BEFORE MERGE — restore secrets.OBSIDIAN_PLUGIN_REPO_TOKEN.
+  # Paired with the temporary test-repo target in apps/obsidian/scripts/publish.ts.
+  # publish.ts reads the token from this env var, so pointing it at a token scoped
+  # only to discourse-graph-obsidian-test keeps the test run off the real repo.
+  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_TEST_REPO_TOKEN }}
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
   GH_TOKEN: ${{ github.token }}
