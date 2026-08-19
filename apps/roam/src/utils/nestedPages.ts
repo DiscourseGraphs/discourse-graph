@@ -71,12 +71,14 @@ export const buildPrefixMatchers = (
     // \b only makes sense when the prefix ends in a word character ("QUE" must
     // not match "QUESTIONS", but a prefix like "@" has no word boundary).
     const boundary = /\w$/.test(prefix) ? "\\b" : "";
+    // Roam titles literally contain the bracketed format ("[[EVD]] - …"), so
+    // the brackets are optional parts of the match and get stripped with it.
     return [
       {
         prefix,
         nodeType: node.type,
         regex: new RegExp(
-          `^\\s*${escapeRegExp(prefix)}${boundary}[\\s:\\-–—]*`,
+          `^\\s*(?:\\[\\[\\s*)?${escapeRegExp(prefix)}${boundary}(?:\\s*\\]\\])?[\\s:\\-–—]*`,
           "i",
         ),
       },
@@ -197,12 +199,17 @@ export const buildPreviewModel = (
 
     const base = { id: s.id, x, y, w, h, img: s.imageUrl };
     if (s.type === "discourse-node" && s.nodeTypeId) {
+      // The node's own title carries its format prefix ("[[EVD]] - …"); strip
+      // it — the label already shows the type code, and the pixels are better
+      // spent on the content (and the key image).
+      const raw = s.text ?? "";
+      const matcher = prefixMatchers.find((m) => m.regex.test(raw));
       boxes.push({
         ...base,
         kind: "node",
         z: Z.node,
         nodeType: s.nodeTypeId,
-        title: collapse(s.text ?? ""),
+        title: collapse(matcher ? raw.replace(matcher.regex, "") : raw),
       });
     } else if (s.type === SUBPAGE_SHAPE_TYPE) {
       boxes.push({
@@ -303,12 +310,16 @@ export type BoxLabel = {
   mode: "title" | "code" | "text";
   text: string;
   fontSize: number;
+  /** Line clamp for title mode; 2 when the box has an image so it stays visible. */
+  maxLines?: number;
 };
+
+export const MAX_LABEL_CHARS = 90;
 
 // Shared by the live (HTML) and export (SVG) renderers so their label
 // decisions cannot drift. `bw`/`bh` are the scaled box dimensions.
 export const getBoxLabel = (
-  box: Pick<PreviewBox, "kind" | "title" | "code">,
+  box: Pick<PreviewBox, "kind" | "title" | "code" | "img">,
   bw: number,
   bh: number,
 ): BoxLabel | null => {
@@ -321,10 +332,18 @@ export const getBoxLabel = (
     };
   }
   if (box.title && bw > TITLE_MIN_W && bh > TITLE_MIN_H) {
+    const fontSize = Math.max(6.5, Math.min(11, bh * 0.32));
+    const full = (box.code ? `${box.code}  ` : "") + box.title;
+    const text =
+      full.length > MAX_LABEL_CHARS
+        ? `${full.slice(0, MAX_LABEL_CHARS - 1)}…`
+        : full;
+    const fit = Math.max(1, Math.floor(bh / (fontSize * 1.3)));
     return {
       mode: "title",
-      text: (box.code ? `${box.code}  ` : "") + box.title,
-      fontSize: Math.max(6.5, Math.min(11, bh * 0.32)),
+      text,
+      fontSize,
+      maxLines: box.img ? Math.min(2, fit) : fit,
     };
   }
   if (box.code && bw > CODE_MIN_W && bh > CODE_MIN_H) {

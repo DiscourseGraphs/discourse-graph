@@ -216,6 +216,7 @@ export class DgSubpageUtil extends BaseBoxShapeUtil<DgSubpageShape> {
         assetId?: unknown;
         color?: unknown;
         accent?: unknown;
+        targetPageId?: unknown;
       };
       // Tier 1 covers both the modern discourse-node shape and legacy per-type
       // node shapes (whose type is itself a node type id).
@@ -250,7 +251,12 @@ export class DgSubpageUtil extends BaseBoxShapeUtil<DgSubpageShape> {
         nodeTypeId,
         imageUrl:
           typeof props.imageUrl === "string" ? props.imageUrl : assetSrc,
-        portalTitle: typeof props.title === "string" ? props.title : undefined,
+        // Nested portals preview under their live target-page name, matching
+        // the live header (stored title is only the missing-page fallback).
+        portalTitle:
+          (typeof props.targetPageId === "string" &&
+            editor.getPage(props.targetPageId as TLPageId)?.name) ||
+          (typeof props.title === "string" ? props.title : undefined),
         portalAccent:
           typeof props.accent === "string" ? props.accent : undefined,
         frameName: typeof props.name === "string" ? props.name : undefined,
@@ -275,6 +281,15 @@ export class DgSubpageUtil extends BaseBoxShapeUtil<DgSubpageShape> {
       () => this.readPreviewModel(targetPageId),
       [targetPageId],
     );
+    // The header shows the live page name, so renaming the target page is
+    // reflected immediately; props.title is only the missing-page fallback.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const livePageName = useValue(
+      `dg-subpage-title-${shape.id}`,
+      () => this.editor.getPage(targetPageId as TLPageId)?.name ?? null,
+      [targetPageId],
+    );
+    const headerTitle = livePageName ?? title;
 
     const boxes: JSX.Element[] = [];
     if (model?.bounds) {
@@ -315,7 +330,6 @@ export class DgSubpageUtil extends BaseBoxShapeUtil<DgSubpageShape> {
               ? "none"
               : `${paint.strokeWidth}px ${paint.dashed ? "dashed" : "solid"} ${paint.stroke}`,
         };
-        const splitForImage = !!box.img && box.kind === "node" && !!box.title;
         boxes.push(
           <div key={box.id ?? i} style={style}>
             {box.img ? (
@@ -326,7 +340,7 @@ export class DgSubpageUtil extends BaseBoxShapeUtil<DgSubpageShape> {
                   position: "absolute",
                   inset: 0,
                   width: "100%",
-                  height: splitForImage ? "58%" : "100%",
+                  height: "100%",
                   objectFit: "cover",
                 }}
               />
@@ -355,18 +369,17 @@ export class DgSubpageUtil extends BaseBoxShapeUtil<DgSubpageShape> {
                   position: "absolute",
                   left: 0,
                   right: 0,
-                  bottom: splitForImage ? 0 : "auto",
-                  top: splitForImage ? "auto" : 0,
+                  // Image boxes keep the full image visible and overlay a
+                  // short label strip at the bottom (maxLines is 2 there).
+                  bottom: box.img ? 0 : "auto",
+                  top: box.img ? "auto" : 0,
                   padding: "1px 3px",
                   fontSize: label.fontSize,
                   lineHeight: 1.15,
                   fontWeight: paint.labelWeight,
                   color: paint.labelColor,
                   display: "-webkit-box",
-                  WebkitLineClamp: Math.max(
-                    1,
-                    Math.floor(bh / (label.fontSize * 1.3)),
-                  ),
+                  WebkitLineClamp: label.maxLines ?? 1,
                   WebkitBoxOrient: "vertical",
                   overflow: "hidden",
                   background: box.img ? "rgba(255,255,255,.82)" : "transparent",
@@ -446,7 +459,7 @@ export class DgSubpageUtil extends BaseBoxShapeUtil<DgSubpageShape> {
               flex: 1,
             }}
           >
-            {title}
+            {headerTitle}
           </span>
           <span style={{ fontSize: 11, opacity: 0.85, whiteSpace: "nowrap" }}>
             {model?.count ?? 0} items
@@ -520,6 +533,9 @@ export class DgSubpageUtil extends BaseBoxShapeUtil<DgSubpageShape> {
   async toSvg(shape: DgSubpageShape): Promise<JSX.Element> {
     const { w, h, title, subtitle, targetPageId, accent } = shape.props;
     const model = this.readPreviewModel(targetPageId);
+    // Same live-name rule as component(): props.title only when the page is gone.
+    const headerTitle =
+      this.editor.getPage(targetPageId as TLPageId)?.name ?? title;
     const clipId = `dgm-${shape.id.replace(/[^a-zA-Z0-9]/g, "")}-h`;
 
     const children: JSX.Element[] = [];
@@ -569,7 +585,6 @@ export class DgSubpageUtil extends BaseBoxShapeUtil<DgSubpageShape> {
           );
         }
         const img = images[i];
-        const splitForImage = !!img && box.kind === "node" && !!box.title;
         if (img && bw > 8 && bh > 8) {
           children.push(
             <image
@@ -578,20 +593,32 @@ export class DgSubpageUtil extends BaseBoxShapeUtil<DgSubpageShape> {
               x={x}
               y={y}
               width={bw}
-              height={splitForImage ? bh * 0.58 : bh}
+              height={bh}
               preserveAspectRatio="xMidYMid slice"
             />,
           );
         }
         if (label) {
-          // Image+title nodes put the label UNDER the image (58% split), same
-          // as the live render.
+          // Image boxes keep the full image and put the label at the bottom,
+          // same as the live render.
           const textY =
             label.mode === "text"
               ? y + label.fontSize
-              : splitForImage
-                ? y + bh * 0.58 + label.fontSize + 1
+              : img
+                ? y + bh - 3
                 : y + label.fontSize + 2;
+          if (img && label.mode === "title") {
+            children.push(
+              <rect
+                key={`ls${i}`}
+                x={x}
+                y={y + bh - label.fontSize - 5}
+                width={bw}
+                height={label.fontSize + 5}
+                fill="rgba(255,255,255,.82)"
+              />,
+            );
+          }
           children.push(
             <text
               key={`t${i}`}
@@ -637,7 +664,7 @@ export class DgSubpageUtil extends BaseBoxShapeUtil<DgSubpageShape> {
           fill="#ffffff"
           fontWeight={600}
         >
-          {trunc(title, w - 90, 14)}
+          {trunc(headerTitle, w - 90, 14)}
         </text>
         <text
           x={w - 18}

@@ -55,6 +55,13 @@ describe("buildPrefixMatchers", () => {
     const m = matchers.find((x) => x.nodeType === "que-node");
     expect("QUE - How fast?".replace(m!.regex, "")).toBe("How fast?");
   });
+
+  it("matches and strips bracketed prefixes as Roam titles literally contain them", () => {
+    const matchers = buildPrefixMatchers(nodes);
+    const m = matchers.find((x) => x.regex.test("[[EVD]] - observed X"));
+    expect(m?.nodeType).toBe("evd-node");
+    expect("[[EVD]] - observed X".replace(m!.regex, "")).toBe("observed X");
+  });
 });
 
 describe("walkLineage", () => {
@@ -152,6 +159,27 @@ describe("buildPreviewModel", () => {
       nodeType: "que-node",
       title: "How fast?",
       img: "http://img",
+    });
+  });
+
+  it("strips the format prefix from discourse-node titles too", () => {
+    const evdMatchers = buildPrefixMatchers([
+      { type: "evd-node", format: "[[EVD]] - {content}" },
+    ]);
+    const model = buildPreviewModel(
+      [
+        geo({
+          type: "discourse-node",
+          nodeTypeId: "evd-node",
+          text: "[[EVD]] - Cortactin assembled with Arp3",
+        }),
+      ],
+      evdMatchers,
+    );
+    expect(model.boxes[0]).toMatchObject({
+      kind: "node",
+      nodeType: "evd-node",
+      title: "Cortactin assembled with Arp3",
     });
   });
 
@@ -289,6 +317,31 @@ describe("getBoxLabel", () => {
   it("labels bare text whenever it fits horizontally", () => {
     const label = getBoxLabel({ kind: "text", title: "a caption" }, 60, 10);
     expect(label).toMatchObject({ mode: "text", text: "a caption" });
+  });
+
+  it("caps long titles at 90 characters with an ellipsis", () => {
+    const label = getBoxLabel(
+      { kind: "node", title: "x".repeat(200), code: "EVD" },
+      200,
+      100,
+    );
+    expect(label?.text).toHaveLength(90);
+    expect(label?.text.endsWith("…")).toBe(true);
+  });
+
+  it("clamps the label to 2 lines when the box has an image, so the image stays visible", () => {
+    const withImage = getBoxLabel(
+      { kind: "node", title: "long title ".repeat(8), code: "EVD", img: "u" },
+      200,
+      200,
+    );
+    expect(withImage?.maxLines).toBe(2);
+    const withoutImage = getBoxLabel(
+      { kind: "node", title: "long title ".repeat(8), code: "EVD" },
+      200,
+      200,
+    );
+    expect(withoutImage?.maxLines).toBeGreaterThan(2);
   });
 });
 
