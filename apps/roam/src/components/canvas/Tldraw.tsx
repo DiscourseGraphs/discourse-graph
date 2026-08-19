@@ -31,7 +31,6 @@ import {
   createShapeId,
   TLPointerEventInfo,
   TLExternalContent,
-  MediaHelpers,
   AssetRecordType,
   TLAsset,
   TLAssetId,
@@ -117,6 +116,7 @@ import {
 } from "./useCanvasStoreAdapterArgs";
 import { shouldCreateAutoCanvasRelations } from "./autoCanvasRelationsSuppression";
 import posthog from "posthog-js";
+import { parseRoamUploadResponse } from "~/utils/roamCanvasAssetStore";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { json, normalizeProps } from "~/utils/getBlockProps";
@@ -1541,16 +1541,6 @@ const InsideEditorAndUiContext = ({
   );
 
   useEffect(() => {
-    // https://tldraw.dev/examples/data/assets/hosted-images
-    const ACCEPTED_IMG_TYPE = [
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/svg+xml",
-      "image/webp",
-    ];
-    const isImage = (ext: string) => ACCEPTED_IMG_TYPE.includes(ext);
-
     // Register default handlers for images and videos
     registerDefaultExternalContentHandlers(
       editor,
@@ -1638,62 +1628,6 @@ const InsideEditorAndUiContext = ({
     };
 
     editor.registerExternalContentHandler("text", textHandler);
-    editor.registerExternalContentHandler(
-      "files",
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      async (content: TLExternalContent) => {
-        if (content.type !== "files") {
-          console.error("Expected files, received:", content.type);
-          return;
-        }
-        const file = content.files[0];
-
-        const url = await window.roamAlphaAPI.file.upload({ file });
-        const dataUrl = url.replace(/^!\[\]\(/, "").replace(/\)$/, "");
-        // TODO add video support
-        const isImageType = isImage(file.type);
-        if (!isImageType) {
-          console.error("Unsupported file type:", file.type);
-          return;
-        }
-        const size = await MediaHelpers.getImageSize(file);
-        const isAnimated = await MediaHelpers.isAnimated(file);
-        const assetId: TLAssetId = AssetRecordType.createId(
-          getHashForString(dataUrl),
-        );
-        const shapeType = isImageType ? "image" : "video";
-        const asset: TLAsset = AssetRecordType.create({
-          id: assetId,
-          type: shapeType,
-          typeName: "asset",
-          props: {
-            name: file.name,
-            src: dataUrl,
-            w: size.w,
-            h: size.h,
-            ...fileSizeProps(getValidFileSize(file)),
-            mimeType: file.type,
-            isAnimated,
-          },
-        });
-        editor.createAssets([asset]);
-
-        const position = editor.getViewportPageBounds().center;
-
-        editor.createShape({
-          type: "image",
-          x: position.x - size.w / 2,
-          y: position.y - size.h / 2,
-          props: { assetId, w: size.w, h: size.h },
-        });
-        posthog.capture("Canvas: Asset Added", {
-          source: "file-drop",
-          mimeType: file.type,
-        });
-
-        return asset;
-      },
-    );
     //https://github.com/tldraw/tldraw/blob/v2.3.x/packages/tldraw/src/lib/defaultExternalContentHandlers.ts#L183
     editor.registerExternalContentHandler(
       "svg-text",
@@ -1732,7 +1666,7 @@ const InsideEditorAndUiContext = ({
         });
 
         const url = await window.roamAlphaAPI.file.upload({ file });
-        const dataUrl = url.replace(/^!\[\]\(/, "").replace(/\)$/, "");
+        const dataUrl = parseRoamUploadResponse(url);
 
         const assetId: TLAssetId = AssetRecordType.createId(
           getHashForString(dataUrl),

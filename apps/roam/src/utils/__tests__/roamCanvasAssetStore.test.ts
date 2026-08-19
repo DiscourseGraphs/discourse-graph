@@ -1,0 +1,115 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  createRoamAssetStore,
+  parseRoamUploadResponse,
+} from "~/utils/roamCanvasAssetStore";
+
+const setRoamAlphaAPI = (roamAlphaAPI: unknown): void => {
+  (globalThis as { window: unknown }).window = { roamAlphaAPI };
+};
+
+const createUploadSpy = (urls: string[]) => {
+  let call = 0;
+  return vi.fn(() => Promise.resolve(urls[call++] ?? urls[urls.length - 1]));
+};
+
+const fakeFile = (name: string, type = "image/png"): File =>
+  ({ name, type, size: 1024 }) as unknown as File;
+
+describe("parseRoamUploadResponse", () => {
+  it("unwraps the markdown image Roam returns from file.upload", () => {
+    expect(
+      parseRoamUploadResponse(
+        "![](https://firebasestorage.googleapis.com/v0/b/x/o/imgs%2Fapp%2Fg%2Fa.png?alt=media)",
+      ),
+    ).toBe(
+      "https://firebasestorage.googleapis.com/v0/b/x/o/imgs%2Fapp%2Fg%2Fa.png?alt=media",
+    );
+  });
+
+  it("leaves a bare url untouched", () => {
+    expect(parseRoamUploadResponse("https://example.com/a.png")).toBe(
+      "https://example.com/a.png",
+    );
+  });
+});
+
+describe("createRoamAssetStore", () => {
+  it("uploads a file to Roam and returns the bare url", async () => {
+    const upload = createUploadSpy(["![](https://example.com/a.png)"]);
+    setRoamAlphaAPI({ file: { upload } });
+
+    const store = createRoamAssetStore();
+    const file = fakeFile("a.png");
+
+    await expect(store.upload({} as never, file)).resolves.toBe(
+      "https://example.com/a.png",
+    );
+    expect(upload).toHaveBeenCalledWith({ file });
+  });
+
+  // ENG-2149: dropping several images at once must upload every one of them.
+  // tldraw's default "files" content handler calls the asset store once per
+  // file, so the store has to stay stateless and per-file.
+  it("uploads every file of a multi-file drop to its own url", async () => {
+    const upload = createUploadSpy([
+      "![](https://example.com/a.png)",
+      "![](https://example.com/b.png)",
+      "![](https://example.com/c.png)",
+    ]);
+    setRoamAlphaAPI({ file: { upload } });
+
+    const store = createRoamAssetStore();
+    const files = [fakeFile("a.png"), fakeFile("b.png"), fakeFile("c.png")];
+
+    const srcs = await Promise.all(
+      files.map((file) => store.upload({} as never, file)),
+    );
+
+    expect(srcs).toEqual([
+      "https://example.com/a.png",
+      "https://example.com/b.png",
+      "https://example.com/c.png",
+    ]);
+    expect(upload).toHaveBeenCalledTimes(3);
+  });
+
+  it("reports each upload to the onUpload callback", async () => {
+    const upload = createUploadSpy(["![](https://example.com/a.png)"]);
+    setRoamAlphaAPI({ file: { upload } });
+
+    const onUpload = vi.fn();
+    const store = createRoamAssetStore({ onUpload });
+    const file = fakeFile("a.gif", "image/gif");
+
+    await store.upload({} as never, file);
+
+    expect(onUpload).toHaveBeenCalledWith({ file });
+  });
+
+  it("does not fail the upload when the telemetry callback throws", async () => {
+    const upload = createUploadSpy(["![](https://example.com/a.png)"]);
+    setRoamAlphaAPI({ file: { upload } });
+
+    const store = createRoamAssetStore({
+      onUpload: () => {
+        throw new Error("posthog exploded");
+      },
+    });
+
+    await expect(store.upload({} as never, fakeFile("a.png"))).resolves.toBe(
+      "https://example.com/a.png",
+    );
+  });
+
+  it("resolves an asset to the url stored in its props", () => {
+    const store = createRoamAssetStore();
+    const asset = {
+      props: { src: "https://example.com/a.png" },
+    } as never;
+
+    expect(store.resolve?.(asset, {} as never)).toBe(
+      "https://example.com/a.png",
+    );
+  });
+});
