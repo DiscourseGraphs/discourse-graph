@@ -215,23 +215,15 @@ const validateVersion = (version: string): void => {
 };
 
 const isExternalRelease = (version: string): boolean => {
-  // External releases are:
-  // 1. Stable releases (x.y.z)
-  // 2. Beta releases (x.y.z-beta.n)
-
-  // Stable release pattern (x.y.z)
+  // Only stable releases (x.y.z) are external. Betas and alphas must stay
+  // pre-releases: the publish repo's main-branch manifest.json is what the
+  // Obsidian community store reads, so a beta landing there regresses the
+  // store to a pre-release (ENG-2106).
   const stablePattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
   if (stablePattern.test(version)) {
     return true;
   }
 
-  // Beta release pattern (x.y.z-beta.n)
-  const betaPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-beta(\.\d+)?$/;
-  if (betaPattern.test(version)) {
-    return true;
-  }
-
-  // Everything else (including alpha releases) is internal
   return false;
 };
 
