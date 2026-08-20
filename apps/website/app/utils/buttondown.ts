@@ -63,8 +63,7 @@ const fetchAllEmails = async (apiKey: string): Promise<ButtondownEmail[]> => {
     });
 
     if (!response.ok) {
-      console.error(`Buttondown API request failed: ${response.status}`);
-      break;
+      throw new Error(`Buttondown API request failed: ${response.status}`);
     }
 
     const page = (await response.json()) as ButtondownEmailsPage;
