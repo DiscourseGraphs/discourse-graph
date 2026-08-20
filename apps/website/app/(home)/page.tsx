@@ -317,9 +317,18 @@ const Home = async (): Promise<ReactElement> => {
     title: blog.title,
   }));
 
-  const news = [...STATIC_NEWS_ITEMS, ...blogNewsItems, ...newsletterItems]
-    .sort(sortByDateDesc)
-    .slice(0, MAX_NEWS_ITEMS);
+  const allNewsItems = [
+    ...STATIC_NEWS_ITEMS,
+    ...blogNewsItems,
+    ...newsletterItems,
+  ];
+  // Buttondown's pagination can occasionally return the same email twice
+  // (e.g. if one is sent mid-fetch); href is used as the React key, so
+  // dedupe before rendering.
+  const dedupedNewsItems = Array.from(
+    new Map(allNewsItems.map((item) => [item.href, item])).values(),
+  );
+  const news = dedupedNewsItems.sort(sortByDateDesc).slice(0, MAX_NEWS_ITEMS);
 
   return (
     <div>
