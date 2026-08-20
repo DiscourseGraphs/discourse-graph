@@ -275,8 +275,11 @@ export const NodeTypeChipsSearchInput = ({
       // `border-solid` is not redundant: this build omits `@tailwind base`, so there is
       // no preflight setting a default border style and `border` alone renders nothing.
       className="border-modifier-border bg-modifier-form-field min-h-[calc(var(--font-ui-medium)*var(--line-height-tight)_+_12px)] min-w-0 flex-1 cursor-text rounded-[var(--input-radius)] border border-solid px-2 py-1 text-[length:var(--font-ui-medium)] leading-[var(--line-height-tight)] focus-within:border-[color:var(--background-modifier-border-focus)] hover:border-[color:var(--background-modifier-border-hover)]"
-      onClick={() => {
-        if (focusedChipIndex === NO_FOCUSED_CHIP) focusQuery();
+      // Only for clicks on the field's own padding. A click on the text or a chip must
+      // keep the caret the browser just placed, or clicking into the middle of a query
+      // drags it to the end.
+      onClick={(event) => {
+        if (event.target === event.currentTarget) focusQuery();
       }}
     >
       {chips.map((chip, index) => (
