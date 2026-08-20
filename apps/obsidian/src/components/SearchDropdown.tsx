@@ -109,7 +109,7 @@ export const SearchDropdown = ({
         {badgeCount > 0 && (
           <span
             aria-hidden
-            className="bg-accent pointer-events-none absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-lg px-1 text-xs font-semibold leading-none text-white"
+            className="bg-accent text-on-accent pointer-events-none absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-lg px-1 text-xs font-semibold leading-none"
           >
             {badgeCount}
           </span>
@@ -117,7 +117,7 @@ export const SearchDropdown = ({
       </button>
       {isOpen && (
         <div
-          className={`border-modifier-border absolute right-0 top-full z-50 mt-1 overflow-hidden rounded-md border bg-primary shadow-[0_4px_12px_rgba(0,0,0,0.15)] ${panelClassName}`}
+          className={`border-modifier-border absolute right-0 top-full z-50 mt-1 overflow-hidden rounded-md border bg-primary shadow-[shadow:var(--shadow-s)] ${panelClassName}`}
         >
           {children}
         </div>
