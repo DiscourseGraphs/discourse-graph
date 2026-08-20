@@ -26,6 +26,11 @@ import {
   openFileInNewTab,
 } from "~/components/canvas/utils/openFileUtils";
 import {
+  insertLinkAtInsertTarget,
+  snapshotInsertTarget,
+  type EditorInsertTarget,
+} from "~/utils/editorInsertTarget";
+import {
   QueryEngine,
   rankDiscourseNodesByTitle,
   type DiscourseNodeCandidate,
@@ -317,9 +322,11 @@ const ResultList = ({
 
 const NodeSearch = ({
   plugin,
+  insertTarget,
   onClose,
 }: {
   plugin: DiscourseGraphPlugin;
+  insertTarget: EditorInsertTarget | null;
   onClose: () => void;
 }): ReactElement => {
   const { app } = plugin;
@@ -429,6 +436,19 @@ const NodeSearch = ({
     });
   };
 
+  // Closes before inserting, like `openActiveResult`.
+  const insertLinkToActiveResult = (): void => {
+    if (!activeResult || !insertTarget) return;
+    const { file } = activeResult;
+    onClose();
+    try {
+      insertLinkAtInsertTarget({ app, file, target: insertTarget });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(`Could not insert a link to ${file.basename}: ${message}`);
+    }
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       // Otherwise the caret jumps to the start or end of the query.
@@ -440,7 +460,12 @@ const NodeSearch = ({
     if (event.key !== "Enter") return;
     // Enter also commits an IME candidate, which must not open a file.
     if (event.nativeEvent.isComposing) return;
-    // Mod+Enter and Alt+Enter are left alone for the insert and dock actions.
+    if ((event.metaKey || event.ctrlKey) && !event.altKey && insertTarget) {
+      event.preventDefault();
+      insertLinkToActiveResult();
+      return;
+    }
+    // Alt+Enter is left alone for the dock action.
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     // A footer button reached by Tab runs its own action on Enter. Preventing the
     // default here would suppress that click and open a new tab instead.
@@ -492,7 +517,9 @@ const NodeSearch = ({
       </div>
       <NodeSearchFooter
         canAct={candidateState.status === "ready" && !!activeResult}
+        canInsertLink={!!insertTarget}
         onClose={onClose}
+        onInsertLink={insertLinkToActiveResult}
         onOpenInNewTab={() => openActiveResult(openFileInNewTab)}
         onOpenInSplit={() => openActiveResult(openFileInNewLeaf)}
       />
@@ -503,10 +530,13 @@ const NodeSearch = ({
 export class NodeSearchModal extends Modal {
   private plugin: DiscourseGraphPlugin;
   private root: Root | null = null;
+  /** Snapshotted in the constructor: `open()` has not taken focus yet. */
+  private insertTarget: EditorInsertTarget | null;
 
   constructor(app: App, plugin: DiscourseGraphPlugin) {
     super(app);
     this.plugin = plugin;
+    this.insertTarget = snapshotInsertTarget(app);
   }
 
   onOpen() {
@@ -525,7 +555,11 @@ export class NodeSearchModal extends Modal {
     this.root = createRoot(contentEl);
     this.root.render(
       <StrictMode>
-        <NodeSearch plugin={this.plugin} onClose={() => this.close()} />
+        <NodeSearch
+          plugin={this.plugin}
+          insertTarget={this.insertTarget}
+          onClose={() => this.close()}
+        />
       </StrictMode>,
     );
   }
