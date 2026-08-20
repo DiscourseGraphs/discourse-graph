@@ -28,7 +28,6 @@ export const SearchDropdown = ({
   onOpenChange,
   panelClassName = "w-64",
   title,
-  triggerLabel,
 }: {
   app: App;
   ariaLabel: string;
@@ -43,9 +42,6 @@ export const SearchDropdown = ({
   onOpenChange: (isOpen: boolean) => void;
   panelClassName?: string;
   title: string;
-  /** Optional text beside the icon, for controls whose current value is worth
-      showing without opening the panel. */
-  triggerLabel?: string;
 }): ReactElement => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -107,12 +103,9 @@ export const SearchDropdown = ({
         // Keeps focus in the search input, so arrow and Enter navigation stays
         // live while the panel is open.
         onMouseDown={(event) => event.preventDefault()}
-        className={`clickable-icon relative ${triggerLabel ? "gap-1" : ""} ${
-          isOpen || isActive ? "is-active" : ""
-        }`}
+        className={`clickable-icon relative ${isOpen || isActive ? "is-active" : ""}`}
       >
         <ObsidianIcon name={iconName} />
-        {triggerLabel && <span className="text-sm">{triggerLabel}</span>}
         {badgeCount > 0 && (
           <span
             aria-hidden

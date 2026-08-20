@@ -12,9 +12,20 @@ import {
   type SortKey,
 } from "~/utils/discourseNodeSort";
 
+const DIRECTIONS: { direction: SortDirection; label: string }[] = [
+  { direction: "asc", label: "Asc" },
+  { direction: "desc", label: "Desc" },
+];
+
 const getDirectionIconName = (direction: SortDirection): string =>
   direction === "asc" ? "arrow-up-narrow-wide" : "arrow-down-wide-narrow";
 
+/**
+ * Rows are divs rather than buttons: Obsidian's button chrome is a filled,
+ * padded control, which reads as five separate widgets stacked in a panel
+ * instead of a menu. Flat rows on the panel's own background, reacting only to
+ * hover, are what a menu looks like in both Obsidian and Roam.
+ */
 const SortOptionRow = ({
   isSelected,
   label,
@@ -24,22 +35,59 @@ const SortOptionRow = ({
   label: string;
   onSelect: () => void;
 }): ReactElement => (
-  <button
-    type="button"
+  <div
     role="menuitemradio"
     aria-checked={isSelected}
     onClick={onSelect}
     // Keeps focus in the search input, so the result list stays keyboard-driven
     // while the panel is open.
     onMouseDown={(event) => event.preventDefault()}
-    className="hover:bg-modifier-hover flex w-full items-center gap-2 bg-transparent px-3 py-1.5 text-left shadow-none"
+    className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm ${
+      isSelected
+        ? "bg-accent text-on-accent"
+        : "text-normal hover:bg-modifier-hover"
+    }`}
   >
     {/* Always occupies its slot, so selecting an option does not shift the labels. */}
     <span className="flex w-4 shrink-0 justify-center">
       {isSelected && <ObsidianIcon name="check" />}
     </span>
-    <span className="text-normal truncate text-sm">{label}</span>
-  </button>
+    <span className="truncate">{label}</span>
+  </div>
+);
+
+const DirectionToggle = ({
+  onSelect,
+  sortDirection,
+  sortKey,
+}: {
+  onSelect: (direction: SortDirection) => void;
+  sortDirection: SortDirection;
+  sortKey: SortKey;
+}): ReactElement => (
+  <div className="border-modifier-border flex gap-1 border-t p-2">
+    {DIRECTIONS.map(({ direction, label }) => (
+      <div
+        key={direction}
+        role="button"
+        aria-pressed={direction === sortDirection}
+        // The wording of a direction depends on the dimension — "newest first"
+        // and "A to Z" are the same direction — so the full phrase is the title
+        // rather than the label.
+        title={getSortDirectionLabel({ sortKey, direction })}
+        onClick={() => onSelect(direction)}
+        onMouseDown={(event) => event.preventDefault()}
+        className={`flex flex-1 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-sm ${
+          direction === sortDirection
+            ? "bg-accent text-on-accent"
+            : "text-normal hover:bg-modifier-hover"
+        }`}
+      >
+        <ObsidianIcon name={getDirectionIconName(direction)} />
+        {label}
+      </div>
+    ))}
+  </div>
 );
 
 export const NodeSortMenu = ({
@@ -62,25 +110,6 @@ export const NodeSortMenu = ({
     direction: sortDirection,
   });
 
-  const toggleDirection = (): void =>
-    onSortChange({
-      sortKey,
-      direction: sortDirection === "asc" ? "desc" : "asc",
-    });
-
-  // Re-picking the active dimension flips it, which is the gesture most sortable
-  // tables use; picking a different one starts from that dimension's default.
-  const selectSortKey = (nextKey: SortKey): void => {
-    if (nextKey === sortKey) {
-      toggleDirection();
-      return;
-    }
-    onSortChange({
-      sortKey: nextKey,
-      direction: getDefaultDirectionForKey(nextKey),
-    });
-  };
-
   return (
     <SearchDropdown
       app={app}
@@ -90,30 +119,34 @@ export const NodeSortMenu = ({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       panelClassName="w-56"
-      title="Sort results"
-      triggerLabel={getSortOptionLabel(sortKey)}
+      title={`Sort by ${getSortOptionLabel(sortKey)} — ${directionLabel}`}
     >
-      <div role="group" className="py-1">
+      <div role="group" className="pb-1">
+        <div className="text-muted px-3 pb-1 pt-2 text-xs">Sort by</div>
         {SORT_OPTIONS.map((option) => (
           <SortOptionRow
             key={option.key}
             isSelected={option.key === sortKey}
             label={option.label}
-            onSelect={() => selectSortKey(option.key)}
+            onSelect={() =>
+              onSortChange({
+                sortKey: option.key,
+                // Switching dimension starts from that dimension's own default;
+                // re-picking the active one leaves the direction alone.
+                direction:
+                  option.key === sortKey
+                    ? sortDirection
+                    : getDefaultDirectionForKey(option.key),
+              })
+            }
           />
         ))}
       </div>
-      <div className="border-modifier-border border-t p-2">
-        <button
-          type="button"
-          onClick={toggleDirection}
-          onMouseDown={(event) => event.preventDefault()}
-          className="flex w-full items-center justify-center gap-2 text-sm"
-        >
-          <ObsidianIcon name={getDirectionIconName(sortDirection)} />
-          {directionLabel}
-        </button>
-      </div>
+      <DirectionToggle
+        onSelect={(direction) => onSortChange({ sortKey, direction })}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
+      />
     </SearchDropdown>
   );
 };
