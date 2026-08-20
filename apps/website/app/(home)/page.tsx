@@ -295,7 +295,7 @@ const Home = async (): Promise<ReactElement> => {
     date: blog.date,
     href: `/blog/${blog.slug}`,
     linkText: "View post",
-    meta: formatDisplayDate(blog.date),
+    meta: `${formatDisplayDate(blog.date)} | By ${blog.author}`,
     title: blog.title,
   }));
 
