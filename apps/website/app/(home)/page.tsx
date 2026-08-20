@@ -19,6 +19,7 @@ import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { TeamPerson } from "~/components/TeamPerson";
 import { TEAM_MEMBERS } from "~/data/constants";
+import { STATIC_NEWS_ITEMS } from "~/data/news";
 import type { NewsItem } from "~/types/news";
 import { getButtondownNewsletterItems } from "~/utils/buttondown";
 import { formatDisplayDate } from "~/utils/formatDate";
@@ -92,65 +93,6 @@ const RESOURCE_LINKS = [
     title: "Sustainable authorship models for scholarly communication",
   },
 ] as const;
-
-type StaticEventSource = {
-  // Overrides the date shown in `meta`, for events spanning multiple days
-  // (e.g. "February 23-24, 2025") that a single `date` can't represent.
-  dateLabel?: string;
-  date: string;
-  href: string;
-  linkText: string;
-  location: string;
-  title: string;
-};
-
-const STATIC_EVENT_SOURCES: StaticEventSource[] = [
-  {
-    date: "2026-06-18",
-    href: "https://discoursegraphs.github.io/panel-qa-site/",
-    linkText: "View panel notes",
-    location: "Zoom",
-    title: "Frontiers in Research: Open Science Catalyze Panel",
-  },
-  {
-    date: "2026-03-27",
-    href: "https://bsky.app/profile/atproto.science/post/3mh6kak5agk2z",
-    linkText: "View event post",
-    location: "ATScience Conference, Vancouver",
-    title: "Toward Modular Open Science",
-  },
-  {
-    date: "2026-03-24",
-    href: "https://www.mcgill.ca/qls/channels/event/qls-seminar-series-matthew-akamatsu-371875",
-    linkText: "View seminar details",
-    location: "Montreal",
-    title: "Seminar: McGill University Quantitative Life Sciences program",
-  },
-  {
-    date: "2025-11-19",
-    href: "https://luma.com/jijn0d5k",
-    linkText: "View talk page",
-    location: "Zoom",
-    title:
-      "Metagov x Future of Science Seminar: Interoperable LLM- and human-centered research with Discourse Graphs",
-  },
-  {
-    date: "2025-02-23",
-    dateLabel: "February 23-24, 2025",
-    href: "https://iosp.io/schedule",
-    linkText: "View full schedule",
-    location: "Denver Museum of Nature and Science",
-    title: "IOSP '25 Winter Workshop: Discourse Graphs",
-  },
-];
-
-const STATIC_NEWS_ITEMS: NewsItem[] = STATIC_EVENT_SOURCES.map((event) => ({
-  date: event.date,
-  href: event.href,
-  linkText: event.linkText,
-  meta: `${event.dateLabel ?? formatDisplayDate(event.date)} | ${event.location}`,
-  title: event.title,
-}));
 
 // Keeps the homepage widget to a "recent news" size instead of growing
 // forever as blog posts and newsletters accumulate; the full blog archive
@@ -672,45 +614,47 @@ const Home = async (): Promise<ReactElement> => {
           </div>
         </section>
 
-        <section className="px-5 py-16 sm:px-6 lg:py-24">
-          <div id="news" className="mx-auto max-w-7xl scroll-mt-20">
-            <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-              <SectionHeader
-                eyebrow="News"
-                isWide
-                title="Talks, posts, and newsletters"
-                description="Recent updates from the Discourse Graphs team and places where the team and collaborators have presented the model and project."
-              />
-              {blogs.length > 0 && (
-                <ArrowLink href="/blog">See all posts</ArrowLink>
-              )}
-            </div>
-            <div className="mt-10 divide-y divide-neutral-dark/10 border-y border-neutral-dark/10">
-              {news.map((item) => (
-                <article
-                  key={item.href}
-                  className="grid gap-4 py-6 md:grid-cols-[1fr_auto] md:items-center"
-                >
-                  <div>
-                    <h3 className="text-xl font-semibold text-neutral-dark">
-                      {item.title}
-                    </h3>
-                    <p className="mt-2 text-sm text-neutral-dark/65">
-                      {item.meta}
-                    </p>
-                  </div>
-                  <Link
-                    href={item.href}
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-secondary transition-colors hover:text-secondary/70"
+        {news.length > 0 && (
+          <section className="px-5 py-16 sm:px-6 lg:py-24">
+            <div id="news" className="mx-auto max-w-7xl scroll-mt-20">
+              <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+                <SectionHeader
+                  eyebrow="News"
+                  isWide
+                  title="Talks, posts, and newsletters"
+                  description="Recent updates from the Discourse Graphs team and places where the team and collaborators have presented the model and project."
+                />
+                {blogs.length > 0 && (
+                  <ArrowLink href="/blog">See all posts</ArrowLink>
+                )}
+              </div>
+              <div className="mt-10 divide-y divide-neutral-dark/10 border-y border-neutral-dark/10">
+                {news.map((item) => (
+                  <article
+                    key={item.href}
+                    className="grid gap-4 py-6 md:grid-cols-[1fr_auto] md:items-center"
                   >
-                    {item.linkText}
-                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                  </Link>
-                </article>
-              ))}
+                    <div>
+                      <h3 className="text-xl font-semibold text-neutral-dark">
+                        {item.title}
+                      </h3>
+                      <p className="mt-2 text-sm text-neutral-dark/65">
+                        {item.meta}
+                      </p>
+                    </div>
+                    <Link
+                      href={item.href}
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-secondary transition-colors hover:text-secondary/70"
+                    >
+                      {item.linkText}
+                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </article>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         <section className="px-5 py-16 sm:px-6 lg:py-24">
           <div id="talks" className="mx-auto max-w-7xl scroll-mt-20">
