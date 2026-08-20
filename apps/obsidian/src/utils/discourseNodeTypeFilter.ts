@@ -10,8 +10,6 @@ import { DiscourseNode } from "~/types";
 /** Below this many types the list is short enough to scan without a search box. */
 export const NODE_TYPE_FILTER_SEARCH_THRESHOLD = 7;
 
-export type SelectAllCheckState = "off" | "indeterminate" | "on";
-
 export const hasActiveTypeFilter = ({
   selectedTypeIds,
   allTypeIds,
@@ -63,16 +61,4 @@ export const filterNodeTypesByQuery = (
   return nodeTypes.filter((nodeType) =>
     nodeType.name.toLowerCase().includes(trimmedQuery),
   );
-};
-
-export const getSelectAllCheckState = ({
-  selectedIds,
-  totalCount,
-}: {
-  selectedIds: string[];
-  totalCount: number;
-}): SelectAllCheckState => {
-  if (selectedIds.length === 0) return "off";
-  if (selectedIds.length === totalCount) return "on";
-  return "indeterminate";
 };
