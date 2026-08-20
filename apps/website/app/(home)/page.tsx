@@ -22,6 +22,7 @@ import { TEAM_MEMBERS } from "~/data/constants";
 import type { NewsItem } from "~/types/news";
 import { getButtondownNewsletterItems } from "~/utils/buttondown";
 import { formatDisplayDate } from "~/utils/formatDate";
+import { sortByDateDesc } from "~/utils/sortByDate";
 
 const SLACK_URL =
   "https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg";
@@ -130,9 +131,6 @@ const STATIC_NEWS_ITEMS: NewsItem[] = [
     title: "IOSP '25 Winter Workshop: Discourse Graphs",
   },
 ];
-
-const sortNewsByDateDesc = (left: NewsItem, right: NewsItem): number =>
-  new Date(right.date).getTime() - new Date(left.date).getTime();
 
 // Keeps the homepage widget to a "recent news" size instead of growing
 // forever as blog posts and newsletters accumulate; the full blog archive
@@ -300,7 +298,7 @@ const Home = async (): Promise<ReactElement> => {
   }));
 
   const news = [...STATIC_NEWS_ITEMS, ...blogNewsItems, ...newsletterItems]
-    .sort(sortNewsByDateDesc)
+    .sort(sortByDateDesc)
     .slice(0, MAX_NEWS_ITEMS);
 
   return (
