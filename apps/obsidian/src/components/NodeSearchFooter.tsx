@@ -59,8 +59,7 @@ export const NodeSearchFooter = ({
   onOpenInSplit,
 }: NodeSearchFooterProps): ReactElement => (
   <div className="prompt-instructions dg-search-footer shrink-0 justify-start px-0 pb-0 text-left">
-    {/* Absent, not disabled, when nothing was being edited when the modal
-        opened: there is no cursor to explain the action against. */}
+    {/* Absent, not disabled: with no cursor there is nothing to insert into. */}
     {canInsertLink && (
       <FooterAction
         disabled={!canAct}

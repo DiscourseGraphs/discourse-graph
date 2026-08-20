@@ -436,8 +436,7 @@ const NodeSearch = ({
     });
   };
 
-  // Same close-then-act ordering as `openActiveResult`, so nothing touches
-  // state after this root unmounts.
+  // Closes before inserting, like `openActiveResult`.
   const insertLinkToActiveResult = (): void => {
     if (!activeResult || !insertTarget) return;
     const { file } = activeResult;
@@ -531,11 +530,7 @@ const NodeSearch = ({
 export class NodeSearchModal extends Modal {
   private plugin: DiscourseGraphPlugin;
   private root: Root | null = null;
-  /**
-   * Snapshotted here rather than in `onOpen`: the constructor still runs while
-   * the editor owns the cursor, before `open()` mounts the modal and takes
-   * focus.
-   */
+  /** Snapshotted in the constructor: `open()` has not taken focus yet. */
   private insertTarget: EditorInsertTarget | null;
 
   constructor(app: App, plugin: DiscourseGraphPlugin) {
