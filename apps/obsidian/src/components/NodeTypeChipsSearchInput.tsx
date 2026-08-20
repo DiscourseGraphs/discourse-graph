@@ -18,7 +18,6 @@ import {
 /** `-1` means the caret is in the query rather than on a chip. */
 const NO_FOCUSED_CHIP = -1;
 
-const CHIP_LABEL_MAX_WIDTH = "10rem";
 const QUERY_PLACEHOLDER = "Search discourse nodes by title";
 
 type NodeTypeChip = {
@@ -80,9 +79,7 @@ const NodeTypeChipTag = ({
       isFocused ? "outline-accent outline outline-2 outline-offset-1" : ""
     }`}
   >
-    <span className="truncate" style={{ maxWidth: CHIP_LABEL_MAX_WIDTH }}>
-      {chip.name}
-    </span>
+    <span className="max-w-40 truncate">{chip.name}</span>
     {/* `clickable-icon`, because Obsidian's `button:not(.clickable-icon)` rule outranks a utility class and would paint its own box behind the ×. */}
     <button
       type="button"
@@ -166,14 +163,14 @@ export const NodeTypeChipsSearchInput = ({
 
   useEffect(() => {
     if (focusedChipIndex === NO_FOCUSED_CHIP) return;
-    if (focusedChipIndex < selectedNodeTypeIds.length) {
+    if (focusedChipIndex < chips.length) {
       chipRefs.current[focusedChipIndex]?.focus();
       return;
     }
     // The dropdown can clear the filter mid-focus, stranding focus on a removed node.
     setFocusedChipIndex(NO_FOCUSED_CHIP);
     inputRef.current?.focus();
-  }, [focusedChipIndex, inputRef, selectedNodeTypeIds]);
+  }, [chips, focusedChipIndex, inputRef]);
 
   const commitNodeType = (nodeType: DiscourseNode): void => {
     if (selectedNodeTypeIds.includes(nodeType.id)) return;
@@ -182,17 +179,19 @@ export const NodeTypeChipsSearchInput = ({
     writeQuery("");
   };
 
-  const removeChipAt = (chipIndex: number): string[] => {
-    const nextIds = selectedNodeTypeIds.filter(
-      (_, index) => index !== chipIndex,
+  // By id, not by position: `chips` is what the user sees and is the only list an
+  // index here refers to, so removing positionally from `selectedNodeTypeIds` would
+  // hit the wrong filter the moment the two ever differed.
+  const removeChip = (chipId: string): void => {
+    onSelectedNodeTypeIdsChange(
+      selectedNodeTypeIds.filter((id) => id !== chipId),
     );
-    onSelectedNodeTypeIdsChange(nextIds);
-    return nextIds;
   };
 
   const handleChipKeyDown = (
     event: KeyboardEvent<HTMLSpanElement>,
     chipIndex: number,
+    chipId: string,
   ): void => {
     if (event.key === "ArrowLeft") {
       event.preventDefault();
@@ -202,7 +201,7 @@ export const NodeTypeChipsSearchInput = ({
 
     if (event.key === "ArrowRight") {
       event.preventDefault();
-      if (chipIndex >= selectedNodeTypeIds.length - 1) {
+      if (chipIndex >= chips.length - 1) {
         focusQuery();
         return;
       }
@@ -212,8 +211,9 @@ export const NodeTypeChipsSearchInput = ({
 
     if (event.key === "Backspace" || event.key === "Delete") {
       event.preventDefault();
-      const nextIds = removeChipAt(chipIndex);
-      if (!nextIds.length) {
+      removeChip(chipId);
+      const remaining = chips.length - 1;
+      if (!remaining) {
         focusQuery();
         return;
       }
@@ -221,7 +221,7 @@ export const NodeTypeChipsSearchInput = ({
       const nextIndex =
         event.key === "Backspace"
           ? chipIndex - 1
-          : Math.min(chipIndex, nextIds.length - 1);
+          : Math.min(chipIndex, remaining - 1);
       if (nextIndex < 0) {
         focusQuery();
         return;
@@ -252,19 +252,19 @@ export const NodeTypeChipsSearchInput = ({
       return;
     }
 
-    if (!selectedNodeTypeIds.length) return;
+    if (!chips.length) return;
     if (!isCaretAtStart(inputRef.current)) return;
 
     // Highlight first, so an over-eager Backspace cannot silently drop a filter.
     if (event.key === "Backspace" && !query.length) {
       event.preventDefault();
-      setFocusedChipIndex(selectedNodeTypeIds.length - 1);
+      setFocusedChipIndex(chips.length - 1);
       return;
     }
 
     if (event.key === "ArrowLeft") {
       event.preventDefault();
-      setFocusedChipIndex(selectedNodeTypeIds.length - 1);
+      setFocusedChipIndex(chips.length - 1);
     }
   };
 
@@ -285,9 +285,9 @@ export const NodeTypeChipsSearchInput = ({
           chip={chip}
           isFocused={focusedChipIndex === index}
           onFocusChip={() => setFocusedChipIndex(index)}
-          onKeyDown={(event) => handleChipKeyDown(event, index)}
+          onKeyDown={(event) => handleChipKeyDown(event, index, chip.id)}
           onRemove={() => {
-            removeChipAt(index);
+            removeChip(chip.id);
             focusQuery();
           }}
           registerRef={(element) => {
