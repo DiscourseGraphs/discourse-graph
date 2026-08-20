@@ -134,6 +134,11 @@ const STATIC_NEWS_ITEMS: NewsItem[] = [
 const sortNewsByDateDesc = (left: NewsItem, right: NewsItem): number =>
   new Date(right.date).getTime() - new Date(left.date).getTime();
 
+// Keeps the homepage widget to a "recent news" size instead of growing
+// forever as blog posts and newsletters accumulate; the full blog archive
+// is still reachable via the "See all posts" link.
+const MAX_NEWS_ITEMS = 10;
+
 type Talk =
   | {
       embedUrl: string;
@@ -294,11 +299,9 @@ const Home = async (): Promise<ReactElement> => {
     title: blog.title,
   }));
 
-  const news = [
-    ...STATIC_NEWS_ITEMS,
-    ...blogNewsItems,
-    ...newsletterItems,
-  ].sort(sortNewsByDateDesc);
+  const news = [...STATIC_NEWS_ITEMS, ...blogNewsItems, ...newsletterItems]
+    .sort(sortNewsByDateDesc)
+    .slice(0, MAX_NEWS_ITEMS);
 
   return (
     <div>
