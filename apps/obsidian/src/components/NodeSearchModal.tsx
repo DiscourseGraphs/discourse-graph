@@ -271,9 +271,7 @@ const NodeSearch = ({
   // The single source of truth for active type filters: F6's chips will read and
   // write this same state, so either surface can manage them.
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
-  // One value rather than a boolean per control, so two toolbar panels can never
-  // be open at once. Each control still owns its own Escape, via the keymap
-  // scope it pushes while open.
+  // One value per toolbar, so two panels can never be open at once.
   const [openDropdown, setOpenDropdown] = useState<SearchDropdownId>(null);
   const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT_KEY);
   const [sortDirection, setSortDirection] = useState<SortDirection>(
@@ -326,9 +324,7 @@ const NodeSearch = ({
     return () => window.clearTimeout(timeout);
   }, [query]);
 
-  // Sorting runs on the whole ranked list and the truncation comes after, so a
-  // date or alphabetical sort covers every match rather than reordering the
-  // best-matching 50.
+  // Sort before truncating, so a date or alphabetical sort covers every match.
   const results = useMemo<SearchResultRow[]>(() => {
     if (candidateState.status !== "ready") return [];
     const ranked = rankDiscourseNodesByTitle({
@@ -336,8 +332,7 @@ const NodeSearch = ({
       query: debouncedQuery,
       nodeTypeIds: selectedNodeTypeIds,
     });
-    // Only the author sort needs a name per row, and resolving the full list is
-    // wasted work on every other keystroke.
+    // Only the author sort needs a name per row.
     const authorNameByPath =
       sortKey === "author"
         ? buildAuthorNameByPath({
@@ -456,8 +451,7 @@ const NodeSearch = ({
     // Bound here rather than on the input so navigation survives focus moving
     // elsewhere in the modal, and so result actions have one place to live.
     <div className="flex h-full flex-col" onKeyDown={handleKeyDown}>
-      {/* Padded so a trigger's count badge, which sits outside the button box,
-          is not clipped by the modal's overflow-hidden content. */}
+      {/* Padded so a trigger's count badge is not clipped by the modal's overflow-hidden content. */}
       {/* Top-aligned: the field grows downwards, so the triggers stay on its first line. */}
       <div className="flex items-start gap-2 px-1 pt-1">
         <NodeTypeChipsSearchInput

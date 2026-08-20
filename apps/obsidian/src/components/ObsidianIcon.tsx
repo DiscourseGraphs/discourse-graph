@@ -1,11 +1,7 @@
 import { setIcon } from "obsidian";
 import type { ReactElement } from "react";
 
-/**
- * Renders one of Obsidian's built-in icons. The host node is emptied first
- * because React reuses it across renders and `setIcon` appends rather than
- * replaces.
- */
+/** Obsidian icon; the node is emptied first because `setIcon` appends and React reuses it. */
 export const ObsidianIcon = ({
   name,
   className = "flex items-center",

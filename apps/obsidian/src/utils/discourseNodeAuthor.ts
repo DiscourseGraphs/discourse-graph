@@ -5,17 +5,7 @@ import type { DiscourseNodeCandidate } from "~/services/QueryEngine";
 import { fetchUserNames } from "~/utils/importNodes";
 import { getLoggedInClient } from "~/utils/supabaseContext";
 
-/**
- * Author resolution for discourse node search. This is the single place that
- * turns a note into a display name, so the preview header and the author sort
- * can never disagree about who wrote something.
- *
- * Known limitation: Obsidian Sync is not a source here. The 1.8.7 typings
- * expose no sync, user, or collaborator API, so per-file attribution from Sync
- * cannot be read by a plugin. Names therefore come from the `authorId`
- * frontmatter written by the importer, resolved against the ids cached in
- * settings.
- */
+/** Single source for a note's author name. Obsidian exposes no Sync user API, so names come from `authorId` frontmatter. */
 
 export const LOCAL_AUTHOR_NAME = "You";
 export const UNRESOLVED_AUTHOR_NAME = "Unknown";
@@ -28,12 +18,7 @@ const getFrontmatterAuthorId = (app: App, file: TFile): unknown => {
   return frontmatter?.authorId;
 };
 
-/**
- * "You" belongs only to a note with no `authorId` at all — every note in an
- * unsynced vault. An id that is present but unresolvable stays "Unknown" rather
- * than claiming local authorship. `useAuthorNames` has already cached the
- * names, so this stays synchronous.
- */
+/** "You" only when there is no `authorId`; a present but unresolvable id stays "Unknown". */
 export const resolveAuthorName = ({
   app,
   file,
@@ -49,17 +34,11 @@ export const resolveAuthorName = ({
   return userNames[authorId] ?? UNRESOLVED_AUTHOR_NAME;
 };
 
-/**
- * A name that identifies no one. Sorting keeps these out of the alphabetical
- * run so an unreadable id never lands between two real authors.
- */
+/** A name that identifies no one, kept out of the alphabetical run. */
 export const isUnattributedAuthorName = (authorName: string): boolean =>
   authorName === UNRESOLVED_AUTHOR_NAME;
 
-/**
- * Author sort needs a name for every candidate, not just the previewed one, so
- * the whole list is resolved up front and keyed by path.
- */
+/** Author sort needs a name for every candidate, not just the previewed one. */
 export const buildAuthorNameByPath = ({
   app,
   files,
@@ -76,11 +55,7 @@ export const buildAuthorNameByPath = ({
   return byPath;
 };
 
-/**
- * `fetchUserNames` returns every person in the vault's spaces in one query, so
- * this refreshes once per open when a name is missing rather than querying per
- * author.
- */
+/** One query returns every person, so this refreshes once per open when a name is missing. */
 export const useAuthorNames = ({
   app,
   plugin,

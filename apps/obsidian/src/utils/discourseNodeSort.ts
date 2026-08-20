@@ -1,13 +1,7 @@
 import { TFile } from "obsidian";
 import { isUnattributedAuthorName } from "~/utils/discourseNodeAuthor";
 
-/**
- * Client-side ordering for discourse node search results. Sorting runs over the
- * full ranked list before it is truncated for display — sorting a
- * relevance-truncated window would show the alphabetically-first 50 of the
- * best-matching 50, which is not what any of these options mean.
- * Ported from Roam's advanced search so both apps offer the same dimensions.
- */
+/** Client-side result ordering, over the full ranked list before display truncation. Mirrors Roam's advanced search. */
 
 export type SortKey =
   | "relevance"
@@ -30,10 +24,7 @@ export const DEFAULT_SORT_KEY: SortKey = "relevance";
 /** Descending reads as "best first" for scores and "newest first" for dates. */
 export const DEFAULT_SORT_DIRECTION: SortDirection = "desc";
 
-/**
- * Structural rather than tied to `RankedDiscourseNode`, so the sort can run on
- * the ranked list or on rows that have already been decorated for display.
- */
+/** Structural, so the sort runs on ranked results or decorated rows alike. */
 export type SortableSearchResult = {
   file: TFile;
   title: string;
@@ -56,11 +47,7 @@ export const getSortDirectionLabel = ({
   direction: SortDirection;
 }): string => DIRECTION_LABELS[sortKey][direction];
 
-/**
- * Switching dimension resets the direction, because "descending" means
- * something different per dimension: keeping it would turn a switch to
- * alphabetical into an unasked-for Z-to-A.
- */
+/** "Descending" means something different per dimension, so switching resets it. */
 export const getDefaultDirectionForKey = (sortKey: SortKey): SortDirection =>
   sortKey === "title" || sortKey === "author" ? "asc" : "desc";
 
@@ -84,12 +71,7 @@ const getAuthorName = ({
   authorNameByPath: Map<string, string> | undefined;
 }): string => authorNameByPath?.get(result.file.path) ?? "";
 
-/**
- * Unattributed notes sit after every named author in both directions, so
- * reversing the sort never buries the readable names under a block of
- * "Unknown". Returns 0 when the two sides agree, leaving the ordering to the
- * name comparison.
- */
+/** Unattributed notes sit after every named author, in both directions. */
 const compareUnattributedLast = ({
   a,
   b,
@@ -125,8 +107,7 @@ const compareAscending = ({
   if (sortKey === "dateCreated") return a.file.stat.ctime - b.file.stat.ctime;
   if (sortKey === "dateModified") return a.file.stat.mtime - b.file.stat.mtime;
 
-  // Same-author notes end up adjacent, and the title breaks the tie inside each
-  // group so the order is stable rather than left to vault iteration.
+  // Title breaks the tie inside an author group, so the order is not vault order.
   const authorDelta = getAuthorName({
     result: a,
     authorNameByPath,
@@ -134,10 +115,7 @@ const compareAscending = ({
   return authorDelta !== 0 ? authorDelta : a.title.localeCompare(b.title);
 };
 
-/**
- * `authorNameByPath` is only needed for the author sort; the other keys ignore
- * it so callers can skip resolving names for the whole list.
- */
+/** `authorNameByPath` is only needed for the author sort. */
 export const sortSearchResults = <T extends SortableSearchResult>({
   results,
   sortKey,

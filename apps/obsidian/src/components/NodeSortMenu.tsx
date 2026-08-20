@@ -20,12 +20,7 @@ const DIRECTIONS: { direction: SortDirection; label: string }[] = [
 const getDirectionIconName = (direction: SortDirection): string =>
   direction === "asc" ? "arrow-up-narrow-wide" : "arrow-down-wide-narrow";
 
-/**
- * Rows are divs rather than buttons: Obsidian's button chrome is a filled,
- * padded control, which reads as five separate widgets stacked in a panel
- * instead of a menu. Flat rows on the panel's own background, reacting only to
- * hover, are what a menu looks like in both Obsidian and Roam.
- */
+/** Rows are divs, not buttons: Obsidian's button chrome reads as separate widgets rather than a menu. */
 const SortOptionRow = ({
   isSelected,
   label,
@@ -39,8 +34,7 @@ const SortOptionRow = ({
     role="menuitemradio"
     aria-checked={isSelected}
     onClick={onSelect}
-    // Keeps focus in the search input, so the result list stays keyboard-driven
-    // while the panel is open.
+    // Keeps focus in the search input, so the result list stays keyboard-driven.
     onMouseDown={(event) => event.preventDefault()}
     className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm ${
       isSelected
@@ -71,9 +65,7 @@ const DirectionToggle = ({
         key={direction}
         role="button"
         aria-pressed={direction === sortDirection}
-        // The wording of a direction depends on the dimension — "newest first"
-        // and "A to Z" are the same direction — so the full phrase is the title
-        // rather than the label.
+        // A direction's wording depends on the dimension, so the full phrase is the title.
         title={getSortDirectionLabel({ sortKey, direction })}
         onClick={() => onSelect(direction)}
         onMouseDown={(event) => event.preventDefault()}
@@ -131,8 +123,7 @@ export const NodeSortMenu = ({
             onSelect={() =>
               onSortChange({
                 sortKey: option.key,
-                // Switching dimension starts from that dimension's own default;
-                // re-picking the active one leaves the direction alone.
+                // Switching dimension uses that dimension's default; re-picking keeps the direction.
                 direction:
                   option.key === sortKey
                     ? sortDirection
