@@ -1,4 +1,4 @@
-import { setIcon } from "obsidian";
+import { App, Scope, setIcon } from "obsidian";
 import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { DiscourseNode } from "~/types";
 import { getAllDiscourseNodeColors } from "~/utils/colorUtils";
@@ -164,12 +164,14 @@ const NodeTypeFilterPanel = ({
 };
 
 export const NodeTypeFilterMenu = ({
+  app,
   isOpen,
   nodeTypes,
   onOpenChange,
   onSelectedNodeTypeIdsChange,
   selectedNodeTypeIds,
 }: {
+  app: App;
   isOpen: boolean;
   nodeTypes: DiscourseNode[];
   onOpenChange: (isOpen: boolean) => void;
@@ -193,6 +195,23 @@ export const NodeTypeFilterMenu = ({
       toPanelSelectedIds({ selectedTypeIds: selectedNodeTypeIds, allTypeIds }),
     [allTypeIds, selectedNodeTypeIds],
   );
+
+  // Escape cannot be intercepted from the DOM. Obsidian registers the Modal's
+  // close-on-Escape before any plugin React tree exists, so a listener added
+  // later always runs second — preventDefault plus stopImmediatePropagation in a
+  // React handler, a capture-phase window listener, and registering on the
+  // Modal's own scope all fail, the last because Scope resolves in registration
+  // order. A pushed scope is the only thing that lands above the modal.
+  useEffect(() => {
+    if (!isOpen) return;
+    const scope = new Scope();
+    scope.register([], "Escape", () => {
+      onOpenChange(false);
+      return false;
+    });
+    app.keymap.pushScope(scope);
+    return () => app.keymap.popScope(scope);
+  }, [app, isOpen, onOpenChange]);
 
   // `activeDocument` rather than `document`, so the listener lands in whichever
   // window holds the modal when Obsidian is running a popout.
@@ -218,15 +237,9 @@ export const NodeTypeFilterMenu = ({
         // Every keystroke stops here while the panel is open. The modal's handler
         // is an ancestor and reads Enter as "open the highlighted result" and the
         // arrows as "move the selection", so typing in the type search would
-        // otherwise open a note and close the whole modal.
+        // otherwise open a note and close the whole modal. Escape is not handled
+        // here because it never reaches the DOM — see the pushed scope above.
         event.stopPropagation();
-        if (event.key !== "Escape") return;
-        // Obsidian's Modal closes on Escape from its own keymap scope, which sits
-        // outside React, so the native event has to stop too or the modal goes
-        // with the panel.
-        event.preventDefault();
-        event.nativeEvent.stopImmediatePropagation();
-        onOpenChange(false);
       }}
     >
       <button
@@ -255,7 +268,7 @@ export const NodeTypeFilterMenu = ({
         {activeFilterCount > 0 && (
           <span
             aria-hidden
-            className="bg-accent pointer-events-none absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-lg px-1 text-xs font-semibold leading-none text-white"
+            className="bg-accent text-on-accent pointer-events-none absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-lg px-1 text-xs font-semibold leading-none"
           >
             {activeFilterCount}
           </span>

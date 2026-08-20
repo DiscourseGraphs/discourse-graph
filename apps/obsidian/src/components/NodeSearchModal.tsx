@@ -434,18 +434,6 @@ const NodeSearch = ({
     });
   };
 
-  // Focus stays in the search input while the panel is open, so Escape arrives
-  // here rather than at the panel. Obsidian's Modal closes on Escape from its own
-  // keymap scope, so the native event has to stop or the modal goes too.
-  const closeTypeFilterOnEscape = (
-    event: KeyboardEvent<HTMLDivElement>,
-  ): void => {
-    event.preventDefault();
-    event.nativeEvent.stopImmediatePropagation();
-    setIsTypeFilterOpen(false);
-    inputRef.current?.focus();
-  };
-
   const handleTypeFilterOpenChange = (nextOpen: boolean): void => {
     setIsTypeFilterOpen(nextOpen);
     // Returns the keyboard path to the results the moment the panel closes.
@@ -453,11 +441,6 @@ const NodeSearch = ({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Escape" && isTypeFilterOpen) {
-      closeTypeFilterOnEscape(event);
-      return;
-    }
-
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       // Otherwise the caret jumps to the start or end of the query.
       event.preventDefault();
@@ -499,6 +482,7 @@ const NodeSearch = ({
           className="min-w-0 flex-1"
         />
         <NodeTypeFilterMenu
+          app={app}
           isOpen={isTypeFilterOpen}
           nodeTypes={plugin.settings.nodeTypes}
           onOpenChange={handleTypeFilterOpenChange}
