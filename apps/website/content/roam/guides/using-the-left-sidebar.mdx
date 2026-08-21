@@ -1,0 +1,174 @@
+---
+title: "Using the left sidebar"
+date: "2026-08-10"
+author: ""
+published: true
+---
+
+import { Callout } from "nextra/components";
+
+The Left Sidebar is a navigation tool that allows you to select your most commonly-used nodes as entry points to your Discourse Graph.
+
+The default left sidebar that ships with the Roam Research app can be used to surface items in a shared graph to everyone's attention or to promulgate a group workflow.
+
+The Discourse Graph extension allows users of a shared graph to supplement these global shortcuts with personal shortcuts visible only to that user, including pages, blocks, Smartblock buttons, and live queries.
+
+## Installing the Left Sidebar
+
+1. Open the Discourse Graph Plugin settings and go to `Global Settings`.
+2. Select `Home` and check `Left Sidebar`
+
+Note that this is a global setting and activating it will enable it for all users in the graph. If it is already checked ☑️, someone in your graph has already enabled the plugin
+
+<Callout type="info" emoji="💡">
+  N.B. Enabling the sidebar requires a **graph reload** to take effect. A prompt
+  will appear offering to **Reload Graph** now or **Later**.
+</Callout>
+
+![enabling the left sidebar](/docs/roam/left-sidebar01.png)
+_Enabling the left sidebar_
+
+<Callout type="info" emoji="💡">
+  When you first enable the feature, your existing Roam shortcuts are
+  **automatically migrated** into the Global section — you won't lose anything.
+</Callout>
+
+### Additions to the basic Roam sidebar
+
+The standard left sidebar that ships with the Roam app has a space for shortcuts. However, these cannot be personalized for individual users of a shared graph.
+
+![shortcuts](/docs/roam/left-sidebar02.png)
+_The standard Roam left sidebar_
+
+The Discourse Graph left sidebar allows users to set both Global and Personal shortcuts for team and individual use. Choose shortcuts for your team under `Global Settings` ➡️ `Left Sidebar`, and choose personal shortcuts visible only to you under `Personal Settings` ➡️ `Left Sidebar`.
+
+![global settings](/docs/roam/left-sidebar03.png)
+_Setting left sidebar shortcuts visible to everyone in a shared graph_
+
+![personal settings](/docs/roam/left-sidebar04.png)
+_Creating left sidebar shortcuts visible only to yourself_
+
+## Opening the left sidebar settings
+
+Click the **Settings** to the right of the **FAVORITES** heading. A small menu will appear with two options:
+
+1. **Global Section** — edit shortcuts visible to everyone in the graph.
+2. **Personal Section** — edit shortcuts visible only to you.
+
+<Callout type="info">
+  You can also reach these under `Global Settings → Left Sidebar` and `Personal
+  Settings → Left Sidebar`.
+</Callout>
+
+![adding global shortcuts](/docs/roam/left-sidebar05.png)
+_Adding Global shortcuts_
+
+![adding personal shortcuts](/docs/roam/left-sidebar06.png)
+_Adding Personal shortcuts_
+
+<Callout type="info" emoji="💡">
+  If your new shortcuts do not immediately appear on the Left Sidebar, please
+  refresh the Discourse Graph plugin as shown below.
+</Callout>
+
+![refreshing the plugin](/docs/roam/left-sidebar07.png)
+_Refreshing the plugin_
+
+## Sidebar Features
+
+### The Global section
+
+Add pages (or blocks, commands, and queries — see below) under `Global Settings → Left Sidebar → Children`. Anything here is visible to all users of the graph, so add with care.
+
+**Folding is now personal.** Click the chevron next to **GLOBAL** to collapse it — this only affects _your_ view, not other users'. This lets you tuck away team shortcuts you don't use often without hiding them for everyone.
+
+![hide shortcuts](/docs/roam/left-sidebar-fold.png)
+_Hiding unused shortcuts_
+
+### Personal sections
+
+1. Open `Personal Settings → Left Sidebar` (or the Settings icon → **Personal Section**). Use the **"Add section …"** box to add items.
+
+2. Click the **➕ (Add children)** icon on that item to convert it into a named section that groups several child pages under one collapsible heading. Sections with children get a chevron to expand/collapse.You can Add children to a section with the "Add child page…" box and remove them with the trash icon.
+
+![sidebar overview](/docs/roam/left-sidebar08.png)
+_This is an example of a personalized Left Sidebar: **FAVORITES** with a **GLOBAL** section for all users of the shared graph — here an Updates Dashboard and a focal project — and beneath it are a few personal sections, e.g one of them called "MEETINGS". Users can create multiple named personal shortcut sections_
+
+### Query sections
+
+You can pin a query to have its live results show up as shortcuts in the sidebar.
+
+In `Personal Settings → Left Sidebar`, paste a **block reference** `((block-uid))` pointing to a block that contains a `{{query block}}` into the "Add section …" box. That query will be added to your left sidebar, and the query results will be rendered as children of the query.
+
+![sidebar query](/docs/roam/left-sidebar-query01.png)
+_adding a query block to the left sidebar_
+
+You can use the Settings menu (highlighted in yellow above) to add an **Alias** (display title) for the query section, limit the number of results to display, and truncate the number of characters to display for each character result.
+
+![sidebar query children](/docs/roam/left-sidebar-query-02.png)
+_Viewing query results in the sidebar_
+
+![refreshing a query](/docs/roam/left-sidebar-query03.png)
+_You can use the three-dot menu to re-run the query or navigate to the query block in your graph_
+
+### Adding Blocks, SmartBlocks, & Commands
+
+Blocks, SmartBlocks, and Commands can be added to your sidebar as child blocks of sidebar shortcuts.
+
+#### Blocks
+
+Add a block reference `((block-uid))` as the child of a shortcut; clicking it opens that block.
+
+![adding a block](/docs/roam/left-sidebar-block01.png)
+_Here we've added a shortcut called "Left Sidebar Tips". The block is then added as a child of that shortcut_
+
+![sidebar block](/docs/roam/left-sidebar-block02.png)
+_Clicking on the left sidebar block shortcut navigates to that block_
+
+#### SmartBlock buttons
+
+SmartBlock buttons added to the left sidebar will render and runs directly in the sidebar.
+
+![add a smartblock button](/docs/roam/left-sidebar-smartblock01.png)
+_Here we added a link to the `Create Journal Club Session` button as a child of a personal "Journal Club" shortcut_
+
+![smartblock in left sidebar](/docs/roam/left-sidebar-smartblock02.png)
+_Clicking on the `Create Journal Club Session` SmartBlock button will open the Journal Club modal_
+
+#### Commands
+
+Use the **⚙️ / cog popover** in the Global or Personal settings menu to add a built-in command, which will appear in the sidebar as a button.
+
+![add command](/docs/roam/left-sidebar-create-node.png)
+_Here we are adding the `creat node` command, which opens the discourse node creation flow_
+
+![create node command](/docs/roam/left-sidebar-create-node02.png)
+_Clicking on the button (dimmed in the sidebar) opens the node creation modal_
+
+<Callout type="info" emoji="💡">
+  **Navigation tips**: Click a shortcut to open it in the main window. `Shift +
+  click` to open it in the right sidebar instead. Shortcuts are tracked by page
+  id, so renaming a page doesn't affect shortcut function — the label updates
+  automatically.
+</Callout>
+
+### Using the section settings
+
+Click the Settings icon next to any item to set an **Alias** — a custom label shown in place of the page/block title (the real title appears in grey beside it in **Settings**).
+
+![alias](/docs/roam/left-sidebar-alias.png)
+_The Settings icon_
+
+You can also use the Settings menu to rename the section, select the number of characters to display for each item (max 75), and select the maximum number of children to display.
+
+![sidebar settings](/docs/roam/left-sidebar-settings.png)
+_Additional Settings_
+
+### Rearranging shortcuts
+
+You can now use drag-and-drop actions to reorder sections, child pages, and Global items by **dragging** them — both in the sidebar itself and in the settings panels.
+
+![rearranging shortcuts](/docs/roam/left-sidebar09.png)
+_Rearrange your shortcuts using drag-and-drop_
+
+[https://www.loom.com/share/92934298770542979623c73f0c55e3fd](https://www.loom.com/share/92934298770542979623c73f0c55e3fd)

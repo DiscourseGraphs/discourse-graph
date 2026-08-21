@@ -10,6 +10,7 @@ const meta: MetaRecord = {
   "extending-personalizing-graph": "Extending",
   "sharing-discourse-graph": "Sharing",
   "experiment-tracking": "Experiment tracking",
+  "using-the-left-sidebar": "Using the left sidebar",
 };
 
 export default meta;
