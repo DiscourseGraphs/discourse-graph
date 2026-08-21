@@ -1,6 +1,6 @@
 ALTER TABLE public."Concept" ALTER COLUMN arity DROP EXPRESSION;
 ALTER TABLE public."Concept" ALTER COLUMN arity SET NOT NULL;
-ALTER TABLE public."Concept" ADD COLUMN is_relation boolean NOT NULL;
+ALTER TABLE public."Concept" ADD COLUMN is_relation boolean;
 
 CREATE OR REPLACE FUNCTION public.compute_arity_local(schema_id BIGINT, lit_content JSONB)
 RETURNS smallint STABLE
@@ -98,3 +98,8 @@ CREATE TRIGGER concept_propagate_derived_columns_trigger
     AFTER UPDATE ON public."Concept"
     FOR EACH ROW WHEN (NEW.is_schema AND OLD.literal_content IS DISTINCT FROM NEW.literal_content)
     EXECUTE FUNCTION public.concept_propagate_derived_columns();
+
+-- the trigger will propagate to instances
+UPDATE public."Concept" SET is_relation=public.compute_is_relation_local(null::BIGINT, literal_content) WHERE is_schema;
+
+ALTER TABLE public."Concept" ALTER COLUMN is_relation SET NOT NULL;
