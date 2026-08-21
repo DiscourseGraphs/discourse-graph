@@ -299,22 +299,22 @@ const Home = async (): Promise<ReactElement> => {
               build on.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/try"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 hover:text-white"
+              >
+                Try a Discourse Graph
+                <Network className="h-4 w-4" aria-hidden="true" />
+              </Link>
               {/* Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS. */}
               {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a
                 href="/docs"
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 hover:text-white"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/35 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10 hover:text-white"
               >
                 Open docs
                 <BookOpen className="h-4 w-4" aria-hidden="true" />
               </a>
-              <Link
-                href="/#plugins"
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/35 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10 hover:text-white"
-              >
-                Explore plugins
-                <Puzzle className="h-4 w-4" aria-hidden="true" />
-              </Link>
               <Link
                 href={SLACK_URL}
                 className="inline-flex items-center justify-center gap-2 rounded-md border border-white/20 px-5 py-3 text-sm font-semibold text-white/90 transition-colors hover:border-secondary hover:text-white"

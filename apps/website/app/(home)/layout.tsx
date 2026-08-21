@@ -41,6 +41,7 @@ const HomeLayout = async ({
 }): Promise<ReactElement> => {
   const hasUpdates = !!(await getAllBlogs()).length;
   const navigationItems = [
+    { href: "/try", label: "Try it" },
     { href: "/#about", label: "About" },
     { href: "/#plugins", label: "Plugins" },
     { href: "/#resources", label: "Resources" },
