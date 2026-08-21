@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
+import { sortByDateDesc } from "~/utils/sortByDate";
 import { BLOG_DIRECTORY } from "./blogDirectory";
 import { BlogFrontmatterSchema, type BlogData } from "./blogSchema";
 
@@ -40,9 +41,6 @@ const processBlogFile = async (filename: string): Promise<BlogData | null> => {
   }
 };
 
-const sortBlogsByDate = (left: BlogData, right: BlogData): number =>
-  new Date(right.date).getTime() - new Date(left.date).getTime();
-
 const listBlogFiles = async (): Promise<string[]> => {
   const directoryExists = await validateBlogDirectory();
 
@@ -61,7 +59,7 @@ export const getAllBlogs = async (): Promise<BlogData[]> => {
     const blogs = await Promise.all(files.map(processBlogFile));
     const validBlogs = blogs.filter((blog): blog is BlogData => blog !== null);
 
-    return validBlogs.filter((blog) => blog.published).sort(sortBlogsByDate);
+    return validBlogs.filter((blog) => blog.published).sort(sortByDateDesc);
   } catch (error) {
     console.error("Error reading blog directory:", error);
     return [];
