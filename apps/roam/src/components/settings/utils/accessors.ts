@@ -2,7 +2,8 @@ import getBlockProps, {
   normalizeProps,
   type json,
 } from "~/utils/getBlockProps";
-import setBlockProps from "~/utils/setBlockProps";
+import setBlockProps, { setBlockPropsAsync } from "~/utils/setBlockProps";
+import { createPage } from "roamjs-components/writes";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { getSubTree } from "roamjs-components/util";
@@ -1084,6 +1085,37 @@ const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
     : undefined,
 });
 
+// getAllDiscourseNodes skips prop-less pages, so invalidate only after the props write settles.
+export const createDiscourseNodeType = async ({
+  text,
+  shortcut,
+  format,
+}: {
+  text: string;
+  shortcut: string;
+  format: string;
+}): Promise<DiscourseNode> => {
+  const pageUid = await createPage({
+    title: `${DISCOURSE_NODE_PAGE_PREFIX}${text}`,
+    tree: [
+      { text: "Shortcut", children: [{ text: shortcut }] },
+      { text: "Tag", children: [{ text: "" }] },
+      { text: "Format", children: [{ text: format }] },
+    ],
+  });
+
+  const settings = DiscourseNodeSchema.parse({
+    text,
+    type: pageUid,
+    shortcut,
+    format,
+  });
+  await setBlockPropsAsync(pageUid, settings);
+  invalidateDiscourseNodeTypeCaches();
+
+  return toDiscourseNode(settings);
+};
+
 /**
  * Migrate known legacy block prop shapes to the current schema.
  *
@@ -1176,8 +1208,9 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
       !blockProps ||
       !isRecord(blockProps) ||
       Object.keys(blockProps).length === 0
-    )
+    ) {
       continue;
+    }
 
     const nodeText = title.replace(DISCOURSE_NODE_PAGE_PREFIX, "");
     const result = DiscourseNodeSchema.safeParse(blockProps);
