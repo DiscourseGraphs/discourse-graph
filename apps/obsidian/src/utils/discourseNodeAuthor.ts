@@ -12,9 +12,10 @@ export const UNRESOLVED_AUTHOR_NAME = "Unknown";
 
 /** Frontmatter is untyped, so the raw value is narrowed by each caller. */
 const getFrontmatterAuthorId = (app: App, file: TFile): unknown => {
-  const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter as
-    | Record<string, unknown>
-    | undefined;
+  // Annotated rather than asserted: `FrontMatterCache` indexes to `any`, so the
+  // cast was a no-op, and this keeps the read typed as `unknown`.
+  const frontmatter: Record<string, unknown> | undefined =
+    app.metadataCache.getFileCache(file)?.frontmatter;
   return frontmatter?.authorId;
 };
 
