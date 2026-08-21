@@ -99,7 +99,8 @@ CREATE TRIGGER concept_propagate_derived_columns_trigger
     FOR EACH ROW WHEN (NEW.is_schema AND OLD.literal_content IS DISTINCT FROM NEW.literal_content)
     EXECUTE FUNCTION public.concept_propagate_derived_columns();
 
--- the trigger will propagate to instances
-UPDATE public."Concept" SET is_relation=public.compute_is_relation_local(null::BIGINT, literal_content) WHERE is_schema;
+-- do schemas first, so their values are correct for next step
+UPDATE public."Concept" SET is_relation=public.compute_is_relation_local(null::BIGINT, literal_content) WHERE schema_id IS NULL;
+UPDATE public."Concept" SET is_relation=public.compute_is_relation_local(null::BIGINT, literal_content) WHERE schema_id IS NOT NULL;
 
 ALTER TABLE public."Concept" ALTER COLUMN is_relation SET NOT NULL;
