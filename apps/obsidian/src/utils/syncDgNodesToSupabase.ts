@@ -184,7 +184,7 @@ const getLastNodeSchemaSyncTime = async (
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", true)
-    .eq("arity", 0)
+    .eq("is_relation", false)
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -200,7 +200,7 @@ const getLastRelationSchemaSyncTime = async (
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", true)
-    .gt("arity", 0)
+    .eq("is_relation", true)
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -216,7 +216,7 @@ const getLastRelationSyncTime = async (
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", false)
-    .gt("arity", 0)
+    .eq("is_relation", true)
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -350,7 +350,7 @@ const buildChangedNodesFromNodes = async ({
         .from("my_concepts")
         .select("source_local_id")
         .eq("space_id", context.spaceId)
-        .eq("arity", 0)
+        .eq("is_relation", false)
         .eq("is_schema", false)
         .order("id"),
       1000,
@@ -517,7 +517,7 @@ const convertDgToSupabaseConcepts = async ({
       .from("my_concepts")
       .select("source_local_id,literal_content")
       .eq("is_schema", true)
-      .eq("arity", 0)
+      .eq("is_relation", false)
       .eq("space_id", context.spaceId)
       .is("literal_content->>template_content", null);
     // could not filter on only absent keys, this includes nulls

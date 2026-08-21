@@ -333,7 +333,7 @@ classes:
         range: integer
         required: true
         ifabsent: "0"
-        description: The number of roles in this relation; nodes have zero, binary relations have 2, etc.
+        description: The number of roles in this relation
       schema:
         range: ConceptSchema
         required: true
@@ -345,11 +345,16 @@ classes:
       literal_content:
         range: JSON
         required: true
-        description: "Aspects of the concept that have literal values. `{[key: string]: any}`"
+        description: "Aspects of the concept that have literal values. `{[key: string]: any}`. For schemas, may include a list of `roles` for instances."
         ifabsent: "{}"
       is_schema:
         range: boolean
         required: true
+        ifabsent: "false"
+      is_relation:
+        range: boolean
+        required: true
+        description: "Whether the concept acts as a relation, i.e. has `source` and `destination` among its roles or its schema's roles"
         ifabsent: "false"
       represented_by:
         description: This concept is explicitly represented by a given content unit
