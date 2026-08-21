@@ -19,6 +19,8 @@ const nodes: BuildArgs["nodes"] = [
     schema_id: 200,
     source_local_id: "node-1",
     space_id: 20,
+    reference_content: {},
+    concepts_of_relation: [],
   },
 ];
 const directContents: BuildArgs["directContents"] = [
