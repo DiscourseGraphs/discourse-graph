@@ -1,6 +1,5 @@
-import { App, Scope } from "obsidian";
+import { App, Scope, setIcon } from "obsidian";
 import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
-import { ObsidianIcon } from "~/components/ObsidianIcon";
 
 /** Trigger-plus-panel shell shared by the search modal's toolbar controls. */
 
@@ -81,7 +80,15 @@ export const SearchDropdown = ({
         onMouseDown={(event) => event.preventDefault()}
         className={`clickable-icon relative ${isOpen || isActive ? "is-active" : ""}`}
       >
-        <ObsidianIcon name={iconName} />
+        <span
+          className="flex items-center"
+          // Emptied first: this icon changes with the control's state and `setIcon` appends.
+          ref={(el) => {
+            if (!el) return;
+            el.empty();
+            setIcon(el, iconName);
+          }}
+        />
         {badgeCount > 0 && (
           <span
             aria-hidden

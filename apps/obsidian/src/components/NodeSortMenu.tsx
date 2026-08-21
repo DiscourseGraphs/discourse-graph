@@ -1,6 +1,5 @@
-import { App } from "obsidian";
+import { App, setIcon } from "obsidian";
 import type { ReactElement } from "react";
-import { ObsidianIcon } from "~/components/ObsidianIcon";
 import { SearchDropdown } from "~/components/SearchDropdown";
 import {
   SORT_OPTIONS,
@@ -44,7 +43,9 @@ const SortOptionRow = ({
   >
     {/* Always occupies its slot, so selecting an option does not shift the labels. */}
     <span className="flex w-4 shrink-0 justify-center">
-      {isSelected && <ObsidianIcon name="check" />}
+      {isSelected && (
+        <span ref={(el) => (el && setIcon(el, "check")) || undefined} />
+      )}
     </span>
     <span className="truncate">{label}</span>
   </div>
@@ -75,7 +76,12 @@ const DirectionToggle = ({
             : "text-normal hover:bg-modifier-hover"
         }`}
       >
-        <ObsidianIcon name={getDirectionIconName(direction)} />
+        <span
+          className="flex items-center"
+          ref={(el) =>
+            (el && setIcon(el, getDirectionIconName(direction))) || undefined
+          }
+        />
         {label}
       </div>
     ))}
