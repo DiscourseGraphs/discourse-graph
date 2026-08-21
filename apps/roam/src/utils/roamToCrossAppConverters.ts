@@ -200,5 +200,6 @@ export const nodeSchemaToCrossApp = (
     label: s.text,
     authorId: userUid,
     createdAt: new Date(relData[":create/time"] || Date.now()),
+    format: s.format,
   };
 };

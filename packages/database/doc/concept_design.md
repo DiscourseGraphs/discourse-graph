@@ -114,6 +114,7 @@ Residual (not otherwise accounted for) keys in Obsidian frontmatter are mapped t
 | `label`            | `name`                              | {}    |
 | `template`         | `literal_content->template_content` |       |
 | `templateTitle`    | `literal_content->template`         |       |
+| `format`           | `literal_content->format`           |       |
 | -                  | `is_schema`                         | true  |
 | -                  | `schema_id`                         | null  |
 | -                  | `arity`                             | 0     |

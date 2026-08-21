@@ -95,6 +95,7 @@ export const crossAppNodeSchemaToDbConcept = (
   const literalInfo = filterUndefined({
     template: node.templateTitle,
     template_content: node.template,
+    format: node.format,
   });
   const spaceUri = node.rid
     ? ridToSpaceUriAndLocalId(node.rid).spaceUri

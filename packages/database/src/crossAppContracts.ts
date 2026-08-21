@@ -25,6 +25,7 @@ export type CrossAppNodeSchema = CrossAppSchemaBase & {
   label: string;
   template?: string;
   templateTitle?: string;
+  format?: string;
 };
 
 // A relation type schema
