@@ -285,7 +285,7 @@ const composeConceptQuery = ({
   const inRelsToNodesOfAuthor = relations.author;
 
   let q = (fields.concepts || CONCEPT_FIELDS).join(",\n");
-  const innerContent = scope.schemas || baseNodeLocalIds.length > 0;
+  const innerContent = baseNodeLocalIds.length > 0;
   const ctArgs: string[] = (fields.content || []).slice();
   if (innerContent && !ctArgs.includes("source_local_id")) {
     ctArgs.push("source_local_id");
@@ -548,6 +548,7 @@ export const CONCEPT_FIELDS: (keyof Concept)[] = [
   "reference_content",
   "refs",
   "is_schema",
+  "is_relation",
   "schema_id",
   "source_local_id",
 ];
