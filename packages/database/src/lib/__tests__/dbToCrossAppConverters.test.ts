@@ -51,13 +51,16 @@ describe("dbNodeSchemaToCrossApp", () => {
         extra: "kept",
       },
     });
-    expect(dbNodeSchemaToCrossApp(schema, spaceMap, accountMap)).toEqual({
+    expect(
+      dbNodeSchemaToCrossApp({ schema, spaceMap, accountMap, schemaMap: {} }),
+    ).toEqual({
       rid: "orn:obsidian.schema:vault-a/concept-1",
       localId: "concept-1",
       createdAt: new Date("2026-06-14T11:00:00Z"),
       modifiedAt: new Date("2026-06-14T13:00:00Z"),
       label: "Some concept",
       metadata: { extra: "kept" },
+      slotDefinitions: {},
       template: "template body",
       templateTitle: "Template Title",
       authorId: "account-local-1",
@@ -66,16 +69,16 @@ describe("dbNodeSchemaToCrossApp", () => {
 
   it("throws when the author is unknown", () => {
     const schema = baseConcept({ author_id: 999 });
-    expect(() => dbNodeSchemaToCrossApp(schema, spaceMap, accountMap)).toThrow(
-      "Missing author",
-    );
+    expect(() =>
+      dbNodeSchemaToCrossApp({ schema, spaceMap, accountMap, schemaMap: {} }),
+    ).toThrow("Missing author");
   });
 
   it("throws when the space is unknown", () => {
     const schema = baseConcept({ space_id: 999 });
-    expect(() => dbNodeSchemaToCrossApp(schema, spaceMap, accountMap)).toThrow(
-      "Missing space",
-    );
+    expect(() =>
+      dbNodeSchemaToCrossApp({ schema, spaceMap, accountMap, schemaMap: {} }),
+    ).toThrow("Missing space");
   });
 });
 
