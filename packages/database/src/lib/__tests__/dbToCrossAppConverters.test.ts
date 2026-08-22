@@ -67,6 +67,59 @@ describe("dbNodeSchemaToCrossApp", () => {
     });
   });
 
+  it("resolves slot definitions from roles and reference content", () => {
+    const schema = baseConcept({
+      literal_content: { roles: ["evidence", "claim"], extra: "kept" },
+      reference_content: { evidence: 10, claim: 20 },
+    });
+    const result = dbNodeSchemaToCrossApp({
+      schema,
+      spaceMap,
+      accountMap,
+      schemaMap: {
+        10: "orn:obsidian.schema:vault-a/evidence-type",
+        20: "orn:obsidian.schema:vault-a/claim-type",
+      },
+    });
+    // schemas are always local, so slots hold plain source local ids
+    expect(result.slotDefinitions).toEqual({
+      evidence: "evidence-type",
+      claim: "claim-type",
+    });
+    // roles drive the slot definitions, they are not kept as plain metadata
+    expect(result.metadata).toEqual({ extra: "kept" });
+  });
+
+  it("throws when a slot points at a schema in another space", () => {
+    const schema = baseConcept({
+      literal_content: { roles: ["evidence"] },
+      reference_content: { evidence: 10 },
+    });
+    expect(() =>
+      dbNodeSchemaToCrossApp({
+        schema,
+        spaceMap,
+        accountMap,
+        schemaMap: { 10: "orn:obsidian.schema:vault-b/evidence-type" },
+      }),
+    ).toThrow("Unexpected spaceUri");
+  });
+
+  it("omits slots whose referenced schema cannot be resolved", () => {
+    const schema = baseConcept({
+      literal_content: { roles: ["evidence", "claim"] },
+      reference_content: { evidence: 10 },
+    });
+    expect(
+      dbNodeSchemaToCrossApp({
+        schema,
+        spaceMap,
+        accountMap,
+        schemaMap: { 10: "orn:obsidian.schema:vault-a/evidence-type" },
+      }).slotDefinitions,
+    ).toEqual({ evidence: "evidence-type" });
+  });
+
   it("throws when the author is unknown", () => {
     const schema = baseConcept({ author_id: 999 });
     expect(() =>

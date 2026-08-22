@@ -169,6 +169,36 @@ describe("buildSharedNodes", () => {
     expect(build({ nodesOverride, directOverride })).toEqual([]);
   });
 
+  it("resolves slots to local ids in the same space and rids elsewhere", () => {
+    const otherSpace: BuildArgs["spaces"][number] = {
+      id: 21,
+      name: "Other vault",
+      platform: "Obsidian",
+      url: "obsidian:vault-b",
+    };
+    const nodeWithSlots: BuildArgs["nodes"][number] = {
+      ...nodes[0]!,
+      reference_content: { evidence: 5, claim: 6, dangling: 7 },
+      concepts_of_relation: [
+        { id: 5, space_id: 20, source_local_id: "node-5" },
+        { id: 6, space_id: 21, source_local_id: "node-6" },
+      ],
+    };
+    expect(
+      build({
+        nodesOverride: [nodeWithSlots],
+        spacesOverride: [...spaces, otherSpace],
+      })[0]?.slots,
+    ).toEqual({
+      evidence: "node-5",
+      claim: "orn:obsidian:vault-b/node-6",
+    });
+  });
+
+  it("leaves slots undefined when the node references nothing", () => {
+    expect(build()[0]?.slots).toBeUndefined();
+  });
+
   it("sorts newest nodes first", () => {
     const olderNode = {
       ...nodes[0]!,
