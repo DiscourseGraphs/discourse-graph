@@ -4,8 +4,19 @@ import type { Enums, Json, Tables } from "../dbTypes";
 
 type SharedConcept = Pick<
   Tables<"my_concepts">,
-  "is_schema" | "last_modified" | "schema_id" | "source_local_id" | "space_id"
->;
+  | "is_schema"
+  | "last_modified"
+  | "schema_id"
+  | "source_local_id"
+  | "space_id"
+  | "reference_content"
+> & {
+  concepts_of_relation: {
+    id: number | null;
+    space_id: number | null;
+    source_local_id: string | null;
+  }[];
+};
 type SharedContent = Pick<
   Tables<"my_contents">,
   | "author_id"
@@ -45,6 +56,7 @@ export type SharedNode = {
   lastModified: string;
   authorId?: number;
   directMetadata: Json;
+  slots?: Record<string, string>;
 };
 
 export type SharedNodeRows = {
@@ -54,8 +66,8 @@ export type SharedNodeRows = {
   spaces: SharedSpace[];
 };
 
-const CONCEPT_COLUMNS =
-  "is_schema, last_modified, schema_id, source_local_id, space_id";
+const CONCEPT_COLUMNS_WITH_SLOTS =
+  "is_schema, last_modified, schema_id, source_local_id, space_id, reference_content, concepts_of_relation(id, space_id, source_local_id)";
 const DIRECT_CONTENT_COLUMNS =
   "author_id, created, last_modified, metadata, source_local_id, space_id, text, variant";
 const FULL_CONTENT_SUMMARY_COLUMNS = "last_modified, source_local_id, space_id";
@@ -184,6 +196,24 @@ export const buildSharedNodes = ({
         return [];
       }
 
+      const nodeRidById = Object.fromEntries(
+        node.concepts_of_relation.map((c) => {
+          if (c.space_id === node.space_id) return [c.id, c.source_local_id];
+          const space = spacesById.get(c.space_id || 0);
+          if (!space || !c.source_local_id || !c.id) return [c.id, undefined];
+          return [c.id, spaceUriAndLocalIdToRid(space.url, c.source_local_id)];
+        }) as [number, string | undefined][],
+      );
+      const referenceContent = (node.reference_content ?? {}) as Record<
+        string,
+        number
+      >;
+      const slots = Object.fromEntries(
+        Object.entries(referenceContent ?? {})
+          .map(([k, v]) => [k, nodeRidById[v]])
+          .filter(([, v]) => v !== undefined) as [string, string][],
+      );
+
       return [
         {
           rid,
@@ -197,6 +227,7 @@ export const buildSharedNodes = ({
           lastModified,
           authorId: direct.author_id ?? undefined,
           directMetadata: direct.metadata,
+          slots: Object.keys(slots).length > 0 ? slots : undefined,
         },
       ];
     })
@@ -218,7 +249,7 @@ const getSharedNodeRows = async ({
     await Promise.all([
       client
         .from("my_concepts")
-        .select(CONCEPT_COLUMNS)
+        .select(CONCEPT_COLUMNS_WITH_SLOTS)
         .neq("space_id", currentSpaceId)
         .eq("is_schema", false)
         .eq("is_relation", false),
@@ -278,7 +309,7 @@ export const getSharedNodeByRid = async ({
   const [conceptsResponse, directResponse, fullResponse] = await Promise.all([
     client
       .from("my_concepts")
-      .select(CONCEPT_COLUMNS)
+      .select(CONCEPT_COLUMNS_WITH_SLOTS)
       .eq("space_id", space.id)
       .eq("source_local_id", sourceLocalId)
       .eq("is_schema", false)
