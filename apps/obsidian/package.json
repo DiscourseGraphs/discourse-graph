@@ -9,6 +9,7 @@
     "build": "tsx scripts/build.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "lint:store": "eslint . --config eslint.config.store.mjs --no-config-lookup",
     "publish": "tsx scripts/publish.ts",
     "check-types": "tsc --noEmit --skipLibCheck"
   },
@@ -28,6 +29,7 @@
     "dotenv": "^16.4.5",
     "esbuild": "0.17.3",
     "eslint": "catalog:",
+    "eslint-plugin-obsidianmd": "0.4.1",
     "obsidian": "^1.7.2",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",

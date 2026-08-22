@@ -40,6 +40,31 @@ jobs:
       - name: Run Package Unit Tests
         run: npx turbo run test:unit --ui stream
 
+  obsidian-store-compliance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        name: Install pnpm
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Blocking on purpose: every rule in this gate can get the plugin pulled from the Obsidian store.
+      - name: Check Obsidian plugin store compliance
+        run: pnpm --dir apps/obsidian lint:store
+
   lint-changed-files:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

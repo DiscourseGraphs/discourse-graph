@@ -35,6 +35,24 @@ Example: ( ![[lucide-cog.svg#icon]] )
 
 ## Plugin Store Guidelines
 
+Run the store compliance gate before opening a PR:
+
+```
+pnpm --dir apps/obsidian lint:store
+```
+
+This runs `eslint-plugin-obsidianmd` with only its error-level rules — the ones
+that can get the plugin rejected from, or pulled off, the community store. It is
+a blocking CI job, so a failure here must be fixed rather than suppressed.
+
+It is deliberately separate from `pnpm lint`. The shared repo config loads
+`eslint-plugin-only-warn`, which forces every rule to "warn", so store blockers
+are indistinguishable from style advice in a normal lint run. `lint:store` runs
+in its own process with its own config to keep the error signal intact.
+`scripts/` is exempt — build tooling never ships in the plugin bundle.
+
+The rules below are what that gate enforces, plus guidance it cannot check.
+
 These rules must be followed for the plugin to be accepted into the Obsidian community plugin store.
 
 ### Security
