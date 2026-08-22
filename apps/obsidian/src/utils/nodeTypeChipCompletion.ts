@@ -29,7 +29,6 @@ export const getBestPrefixMatch = ({
   return exactMatch ?? matches[0] ?? null;
 };
 
-/** What is left to type; empty once the name is fully spelled, though still committable. */
 export const getCompletionSuffix = ({
   bestPrefixMatch,
   query,

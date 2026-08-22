@@ -15,7 +15,6 @@ import {
   getCompletionSuffix,
 } from "~/utils/nodeTypeChipCompletion";
 
-/** `-1` means the caret is in the query rather than on a chip. */
 const NO_FOCUSED_CHIP = -1;
 
 const QUERY_PLACEHOLDER = "Search discourse nodes by title";
@@ -63,8 +62,7 @@ const NodeTypeChipTag = ({
   onRemove: () => void;
   registerRef: (element: HTMLSpanElement | null) => void;
 }): ReactElement => (
-  // Inline-flex, so a chip shares its line box with the query and wraps alongside it.
-  // Out of the tab order: Tab is the commit key, so arrows and Backspace reach chips.
+  // Inline-flex so it shares the query's line box; out of the tab order because Tab commits.
   <span
     ref={registerRef}
     role="button"
@@ -97,7 +95,7 @@ const NodeTypeChipTag = ({
   </span>
 );
 
-/** Chips and the query caret in one field; `NodeSearch` owns the state and, as an ancestor, already handles the arrows, Enter and Escape that bubble out of here. */
+/** `NodeSearch` owns the filter state, and as an ancestor already handles the arrows, Enter and Escape that bubble out of here. */
 export const NodeTypeChipsSearchInput = ({
   inputRef,
   nodeTypes,
@@ -142,11 +140,7 @@ export const NodeTypeChipsSearchInput = ({
 
   const completionSuffix = getCompletionSuffix({ bestPrefixMatch, query });
 
-  /**
-   * The query text is uncontrolled: React owns the chips but never the editable's
-   * content, so re-rendering on each keystroke cannot move the caret. Programmatic
-   * changes therefore have to write the text themselves.
-   */
+  // Uncontrolled, so re-rendering cannot move the caret — hence writing the text by hand.
   const writeQuery = (value: string): void => {
     const field = inputRef.current;
     if (field) field.textContent = value;
@@ -179,9 +173,6 @@ export const NodeTypeChipsSearchInput = ({
     writeQuery("");
   };
 
-  // By id, not by position: `chips` is what the user sees and is the only list an
-  // index here refers to, so removing positionally from `selectedNodeTypeIds` would
-  // hit the wrong filter the moment the two ever differed.
   const removeChip = (chipId: string): void => {
     onSelectedNodeTypeIdsChange(
       selectedNodeTypeIds.filter((id) => id !== chipId),
@@ -230,7 +221,6 @@ export const NodeTypeChipsSearchInput = ({
       return;
     }
 
-    // Typing with a chip focused is a return to the query, not a lost keystroke.
     if (isPlainCharacterKey(event)) {
       event.preventDefault();
       writeQuery(event.key);
@@ -270,14 +260,10 @@ export const NodeTypeChipsSearchInput = ({
 
   return (
     <div
-      // A block box, not a flex row: chips and the query are inline siblings, so they
-      // share line boxes and flow together left to right, top to bottom.
-      // `border-solid` is not redundant: this build omits `@tailwind base`, so there is
-      // no preflight setting a default border style and `border` alone renders nothing.
+      // A block box, not flex: chips and the query are inline siblings, so they flow as one sentence.
+      // `border-solid` is required: with no `@tailwind base`, `border` sets width but no style.
       className="border-modifier-border bg-modifier-form-field min-h-[calc(var(--font-ui-medium)*var(--line-height-tight)_+_12px)] min-w-0 flex-1 cursor-text rounded-[var(--input-radius)] border border-solid px-2 py-1 text-[length:var(--font-ui-medium)] leading-[var(--line-height-tight)] focus-within:border-[color:var(--background-modifier-border-focus)] hover:border-[color:var(--background-modifier-border-hover)]"
-      // Only for clicks on the field's own padding. A click on the text or a chip must
-      // keep the caret the browser just placed, or clicking into the middle of a query
-      // drags it to the end.
+      // Padding clicks only: elsewhere the browser has already placed the caret.
       onClick={(event) => {
         if (event.target === event.currentTarget) focusQuery();
       }}
@@ -312,7 +298,6 @@ export const NodeTypeChipsSearchInput = ({
         onKeyDown={handleQueryKeyDown}
         className="dg-search-chip-input whitespace-pre-wrap break-words align-middle outline-none"
       />
-      {/* Inline rather than an overlay, so it follows the caret and wraps with the text. */}
       {!!bestPrefixMatch && (
         <span aria-hidden className="align-middle">
           <span className="text-muted">{completionSuffix}</span>
