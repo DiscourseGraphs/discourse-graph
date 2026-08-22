@@ -34,6 +34,61 @@ jobs:
       - name: Validate
         run: pnpm ci:validate
 
+  obsidian-store-compliance:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+        name: Install pnpm
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Reviewdog
+        uses: reviewdog/action-setup@v1
+
+      # Fails on store blockers added by this PR; pre-existing ones are reported but tolerated.
+      - name: Check Obsidian plugin store compliance
+        shell: bash
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          eslint_output="$(mktemp)"
+          eslint_exit_code=0
+          pnpm --dir apps/obsidian exec eslint . \
+            --config eslint.config.store.mjs --no-config-lookup \
+            --no-color --format stylish >"$eslint_output" 2>&1 || eslint_exit_code=$?
+
+          # Exit >= 2 means ESLint itself failed, which reviewdog cannot interpret.
+          if [ "$eslint_exit_code" -ge 2 ]; then
+            cat "$eslint_output"
+            exit 1
+          fi
+
+          reviewdog \
+            -f=eslint \
+            -name="obsidian-store-compliance" \
+            -reporter=github-pr-check \
+            -filter-mode=added \
+            -level=error \
+            -fail-level=error < "$eslint_output"
+
   lint-changed-files:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
