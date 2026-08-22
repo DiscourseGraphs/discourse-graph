@@ -9,7 +9,6 @@ type SchemaSelectionModalBodyProps = {
   description: string;
   source: SchemaSelectionSource;
   selection: SchemaSelectionState;
-  onDependencyViolation?: (message: string) => void;
   footerSecondaryLabel: string;
   onFooterSecondaryClick: () => void;
   footerPrimaryLabel: string;
@@ -23,7 +22,6 @@ export const SchemaSelectionModalBody = ({
   description,
   source,
   selection,
-  onDependencyViolation,
   footerSecondaryLabel,
   onFooterSecondaryClick,
   footerPrimaryLabel,
@@ -36,11 +34,7 @@ export const SchemaSelectionModalBody = ({
       <h3 className="mb-2">{title}</h3>
       <p className="text-muted mb-4 text-sm">{description}</p>
 
-      <SchemaSelectionPanel
-        source={source}
-        selection={selection}
-        onDependencyViolation={onDependencyViolation}
-      />
+      <SchemaSelectionPanel source={source} selection={selection} />
 
       <div className="mt-6 flex justify-between">
         <button
