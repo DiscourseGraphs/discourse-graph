@@ -15,6 +15,13 @@ import { toMarkdown } from "./pageToMarkdown";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { contentTypes } from "@repo/content-model";
+import getDiscourseNodes from "./getDiscourseNodes";
+import {
+  SOURCE_SLOT,
+  schemaHasSourceSlot,
+  sourceSlotSchemaId,
+  sourceUidOfNode,
+} from "./sourceSlot";
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
@@ -87,6 +94,9 @@ export const nodeUidsWithTypeToCrossApp = async (
   nodes: NodeUidWithType[],
 ): Promise<CrossAppNode[]> => {
   const typesByUid = Object.fromEntries(nodes.map((n) => [n.uid, n.type]));
+  const schemasById = Object.fromEntries(
+    getDiscourseNodes().map((s) => [s.type, s]),
+  );
   const nodeRows = (await window.roamAlphaAPI.data.async.pull_many(
     `[:block/uid :create/user :create/time :edit/time :page/edit-time :node/title]`,
     nodes.map((n) => [":block/uid", n.uid]),
@@ -115,10 +125,12 @@ export const nodeUidsWithTypeToCrossApp = async (
     const editTime = (row[":edit/time"] as number | undefined) ?? createdTime;
     const pageEditTime =
       (row[":page/edit-time"] as number | undefined) ?? editTime;
+    const nodeType = typesByUid[uid];
+    const sourceUid = sourceUidOfNode(title, schemasById[nodeType]);
 
     return {
       localId: uid,
-      nodeType: typesByUid[uid],
+      nodeType,
       authorId: userUid,
       createdAt: new Date(createdTime),
       modifiedAt: new Date(Math.max(editTime, pageEditTime)),
@@ -129,6 +141,7 @@ export const nodeUidsWithTypeToCrossApp = async (
         },
         full: buildFullInlineContent({ uid, title }),
       },
+      ...(sourceUid ? { slots: { [SOURCE_SLOT]: sourceUid } } : {}),
     };
   });
   return results;
@@ -199,11 +212,16 @@ export const nodeSchemaToCrossApp = (
   // A node type's settings live either in the page's props or in blocks below it,
   // but :page/edit-time reflects both.
   const pageEditTime = relData[":page/edit-time"] || createdTime;
+  const hasSourceSlot = schemaHasSourceSlot(s);
+
   return {
     localId: s.type,
     label: s.text,
     authorId: userUid,
     createdAt: new Date(createdTime),
     modifiedAt: new Date(Math.max(pageEditTime, createdTime)),
+    ...(hasSourceSlot
+      ? { slotDefinitions: { [SOURCE_SLOT]: sourceSlotSchemaId() } }
+      : {}),
   };
 };
