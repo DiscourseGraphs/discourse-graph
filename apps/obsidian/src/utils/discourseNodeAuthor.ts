@@ -12,8 +12,7 @@ export const UNRESOLVED_AUTHOR_NAME = "Unknown";
 
 /** Frontmatter is untyped, so the raw value is narrowed by each caller. */
 const getFrontmatterAuthorId = (app: App, file: TFile): unknown => {
-  // Annotated rather than asserted: `FrontMatterCache` indexes to `any`, so the
-  // cast was a no-op, and this keeps the read typed as `unknown`.
+  // Annotated rather than asserted: `FrontMatterCache` indexes to `any`, so a cast is a no-op.
   const frontmatter: Record<string, unknown> | undefined =
     app.metadataCache.getFileCache(file)?.frontmatter;
   return frontmatter?.authorId;
@@ -35,11 +34,9 @@ export const resolveAuthorName = ({
   return userNames[authorId] ?? UNRESOLVED_AUTHOR_NAME;
 };
 
-/** A name that identifies no one, kept out of the alphabetical run. */
 export const isUnattributedAuthorName = (authorName: string): boolean =>
   authorName === UNRESOLVED_AUTHOR_NAME;
 
-/** Author sort needs a name for every candidate, not just the previewed one. */
 export const buildAuthorNameByPath = ({
   app,
   files,
@@ -64,7 +61,6 @@ export const useAuthorNames = ({
 }: {
   app: App;
   plugin: DiscourseGraphPlugin;
-  /** Null until the candidate load finishes; nothing to resolve before then. */
   candidates: DiscourseNodeCandidate[] | null;
 }): Record<number, string> => {
   const [userNames, setUserNames] = useState(plugin.settings.userNames ?? {});

@@ -1,8 +1,6 @@
 import { App, Scope, setIcon } from "obsidian";
 import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
 
-/** Trigger-plus-panel shell shared by the search modal's toolbar controls. */
-
 /** Which toolbar panel is open, so two can never be open at once. */
 export type SearchDropdownId = "type-filter" | "sort" | null;
 
@@ -21,11 +19,9 @@ export const SearchDropdown = ({
 }: {
   app: App;
   ariaLabel: string;
-  /** Rendered as a superscript count on the trigger when above zero. */
   badgeCount?: number;
   children: ReactNode;
   iconName: string;
-  /** Highlights the trigger to show the control is doing something. */
   isActive: boolean;
   isDisabled?: boolean;
   isOpen: boolean;

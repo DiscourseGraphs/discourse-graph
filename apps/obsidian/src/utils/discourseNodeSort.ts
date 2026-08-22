@@ -21,7 +21,6 @@ export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ];
 
 export const DEFAULT_SORT_KEY: SortKey = "relevance";
-/** Descending reads as "best first" for scores and "newest first" for dates. */
 export const DEFAULT_SORT_DIRECTION: SortDirection = "desc";
 
 /** Structural, so the sort runs on ranked results or decorated rows alike. */
@@ -107,7 +106,6 @@ const compareAscending = ({
   if (sortKey === "dateCreated") return a.file.stat.ctime - b.file.stat.ctime;
   if (sortKey === "dateModified") return a.file.stat.mtime - b.file.stat.mtime;
 
-  // Title breaks the tie inside an author group, so the order is not vault order.
   const authorDelta = getAuthorName({
     result: a,
     authorNameByPath,

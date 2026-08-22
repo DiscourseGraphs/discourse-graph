@@ -332,7 +332,6 @@ const NodeSearch = ({
       query: debouncedQuery,
       nodeTypeIds: selectedNodeTypeIds,
     });
-    // Only the author sort needs a name per row.
     const authorNameByPath =
       sortKey === "author"
         ? buildAuthorNameByPath({

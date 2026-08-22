@@ -33,7 +33,6 @@ const SortOptionRow = ({
     role="menuitemradio"
     aria-checked={isSelected}
     onClick={onSelect}
-    // Keeps focus in the search input, so the result list stays keyboard-driven.
     onMouseDown={(event) => event.preventDefault()}
     className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm ${
       isSelected
@@ -66,7 +65,6 @@ const DirectionToggle = ({
         key={direction}
         role="button"
         aria-pressed={direction === sortDirection}
-        // A direction's wording depends on the dimension, so the full phrase is the title.
         title={getSortDirectionLabel({ sortKey, direction })}
         onClick={() => onSelect(direction)}
         onMouseDown={(event) => event.preventDefault()}
@@ -129,7 +127,6 @@ export const NodeSortMenu = ({
             onSelect={() =>
               onSortChange({
                 sortKey: option.key,
-                // Switching dimension uses that dimension's default; re-picking keeps the direction.
                 direction:
                   option.key === sortKey
                     ? sortDirection
