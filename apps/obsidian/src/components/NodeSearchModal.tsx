@@ -21,6 +21,7 @@ import {
 import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeSearchFooter } from "~/components/NodeSearchFooter";
+import { NodeTypeChipsSearchInput } from "~/components/NodeTypeChipsSearchInput";
 import { NodeTypeFilterMenu } from "~/components/NodeTypeFilterMenu";
 import {
   openFileInNewLeaf,
@@ -334,7 +335,8 @@ const NodeSearch = ({
   // write this same state, so either surface can manage them.
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
   const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  // An editable span, so the query shares its line boxes with the filter chips.
+  const inputRef = useRef<HTMLSpanElement | null>(null);
   const userNames = useAuthorNames({ app, plugin, candidateState });
 
   const nodeTypesById = useMemo(() => {
@@ -473,14 +475,15 @@ const NodeSearch = ({
     <div className="flex h-full flex-col" onKeyDown={handleKeyDown}>
       {/* Padded so the filter trigger's count badge, which sits outside the
           button box, is not clipped by the modal's overflow-hidden content. */}
-      <div className="flex items-center gap-2 px-1 pt-1">
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          placeholder="Search discourse nodes by title"
-          onChange={(event) => setQuery(event.target.value)}
-          className="min-w-0 flex-1"
+      {/* Top-aligned: the field grows downwards, so the trigger stays on its first line. */}
+      <div className="flex items-start gap-2 px-1 pt-1">
+        <NodeTypeChipsSearchInput
+          inputRef={inputRef}
+          nodeTypes={plugin.settings.nodeTypes}
+          onQueryChange={setQuery}
+          onSelectedNodeTypeIdsChange={setSelectedNodeTypeIds}
+          query={query}
+          selectedNodeTypeIds={selectedNodeTypeIds}
         />
         <NodeTypeFilterMenu
           app={app}
