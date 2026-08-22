@@ -86,7 +86,7 @@ export const SchemaSelectionPanel = ({
             </div>
           </div>
           <div className="space-y-1">
-            {source.nodeTypes.map((nodeType) => {
+            {sortedNodeTypes.map((nodeType) => {
               const isRequired = requiredNodeTypeIds.has(nodeType.id);
               return (
                 <label
