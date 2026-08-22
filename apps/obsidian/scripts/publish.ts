@@ -408,6 +408,18 @@ const sanitizePackageJsonForMirror = (tempDir: string): void => {
   }
 };
 
+// updateLocalVersion runs after the mirror push, so the staged copy would
+// otherwise carry the previous release's version forever.
+const updateStagedPackageVersion = (tempDir: string, version: string): void => {
+  const packageJsonPath = path.join(tempDir, "package.json");
+  if (!fs.existsSync(packageJsonPath)) return;
+
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+  packageJson.version = version;
+  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  log(`Updated staged package.json version to ${version}`);
+};
+
 const updateLocalVersion = (obsidianDir: string, version: string): void => {
   const packageJsonPath = path.join(obsidianDir, "package.json");
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
@@ -747,6 +759,7 @@ const publish = async (config: PublishConfig): Promise<void> => {
 
     if (isExternal) {
       updateManifest(tempDir, version);
+      updateStagedPackageVersion(tempDir, version);
       await updateMainBranch(tempDir, version);
       updateLocalVersion(obsidianDir, version);
     } else {
