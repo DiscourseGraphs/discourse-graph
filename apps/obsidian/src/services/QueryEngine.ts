@@ -23,7 +23,12 @@ type DatacorePage = {
 
 export type DiscourseNodeCandidate = {
   file: TFile;
-  /** Scored and rendered as-is: `renderResults` re-slices whatever was scored. */
+  /**
+   * The exact string the fuzzy scorer sees, so the offsets in
+   * `RankedDiscourseNode.match.matches` index into it. Callers must hand this same
+   * value to Obsidian's `renderResults`, or the highlights land on the wrong
+   * characters.
+   */
   title: string;
   nodeTypeId: string;
 };
@@ -633,8 +638,7 @@ export class QueryEngine {
   }
 }
 
-/** Exported so callers can memoise the filtered array against their selected ids. */
-export const filterCandidatesByNodeTypeIds = (
+const filterCandidatesByNodeTypeIds = (
   candidates: DiscourseNodeCandidate[],
   nodeTypeIds?: string[],
 ): DiscourseNodeCandidate[] => {
