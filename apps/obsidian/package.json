@@ -9,6 +9,7 @@
     "build": "tsx scripts/build.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "lint:scanner": "eslint . --config eslint.config.scanner.mjs --no-config-lookup",
     "publish": "tsx scripts/publish.ts",
     "check-types": "tsc --noEmit --skipLibCheck",
     "test": "pnpm test:unit",

@@ -35,6 +35,36 @@ Example: ( ![[lucide-cog.svg#icon]] )
 
 ## Plugin Store Guidelines
 
+The Obsidian community directory scans every release with
+`eslint-plugin-obsidianmd`. Errors block your submission; warnings do not. Run
+the same rules before opening a PR:
+
+```
+pnpm --dir apps/obsidian lint:scanner
+```
+
+`lint:scanner` runs in its own process and applies the scanner's own severity
+mapping: everything downgraded to a warning except the security rules, the
+`eslint-comments` rules, and the subset obsidianmd re-escalates. It needs its
+own process because the shared repo config loads `eslint-plugin-only-warn`,
+which forces every rule to "warn".
+
+`pnpm lint` also reports the blocking rules so editors can show them. ESLint
+reports them as warnings there; `.vscode/settings.json` displays them as errors.
+Warn-level scanner findings don't appear in the editor at all, so use
+`lint:scanner` for the full set. `lint-changed-files` fails on warnings for lines
+a PR adds, so the blocking rules gate new code through both jobs.
+
+The authoritative check is the directory itself: use **Review branch** on the
+entry's management page at community.obsidian.md to scan any branch without
+cutting a release. Obsidian also publishes `obsidianmd/obsidian-workflows` as a
+GitHub Action that mirrors the scanner.
+
+CI runs `lint:scanner` through reviewdog, so a finding on a line your PR adds
+fails the build; pre-existing ones are reported but tolerated.
+
+The rules below are what that gate enforces, plus guidance it cannot check.
+
 These rules must be followed for the plugin to be accepted into the Obsidian community plugin store.
 
 ### Security
