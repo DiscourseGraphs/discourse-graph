@@ -54,12 +54,7 @@ const BLOB_UPLOAD_BATCH_SIZE = 10;
 const MAX_GITHUB_RETRIES = 5;
 const BASE_RETRY_DELAY_MS = 2_000;
 
-// TODO(ENG-2099): REVERT BEFORE MERGE — restore discourse-graph-obsidian.
-// Temporarily pointed at the throwaway private test repo so the release
-// pipeline can be exercised end-to-end (GitHub release + Linear sync) without
-// writing to the real publish repo. Do not merge this branch while it points
-// here: the Obsidian community store reads manifest.json from the real repo's
-// main branch.
+// TODO(ENG-2099): REVERT BEFORE MERGE, restore discourse-graph-obsidian.
 const TARGET_REPO = "DiscourseGraphs/discourse-graph-obsidian-test";
 const OWNER = "DiscourseGraphs";
 const REPO = "discourse-graph-obsidian-test";
@@ -221,10 +216,9 @@ const validateVersion = (version: string): void => {
 };
 
 const isExternalRelease = (version: string): boolean => {
-  // Only stable releases (x.y.z) are external. Betas and alphas must stay
-  // pre-releases: the publish repo's main-branch manifest.json is what the
-  // Obsidian community store reads, so a beta landing there regresses the
-  // store to a pre-release (ENG-2106).
+  // The Obsidian community store reads manifest.json from the publish repo's
+  // main branch, so only a finished release may be external. Everything else
+  // ships as a GitHub pre-release and leaves that branch untouched.
   const stablePattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
   if (stablePattern.test(version)) {
     return true;
@@ -300,10 +294,8 @@ const execCommand = async (
   }
 };
 
-// Patterns match a whole path segment, never a substring of one. Substring
-// matching silently dropped real source files whose names merely contained an
-// excluded word — "out" ate DatacoreCallout.tsx, and the unanchored "*.log"
-// regex ate nativeJsonFileDialogs.ts via "diaLOGs".
+// Patterns match a whole path segment, never a substring of one, and globs are
+// anchored to a single segment.
 const segmentMatchesPattern = (segment: string, pattern: string): boolean => {
   if (!pattern.includes("*")) return segment === pattern;
 
@@ -408,8 +400,8 @@ const sanitizePackageJsonForMirror = (tempDir: string): void => {
   }
 };
 
-// updateLocalVersion runs after the mirror push, so the staged copy would
-// otherwise carry the previous release's version forever.
+// updateLocalVersion runs after the publish-repo push, so the release version
+// has to be written into the staged copy here as well.
 const updateStagedPackageVersion = (tempDir: string, version: string): void => {
   const packageJsonPath = path.join(tempDir, "package.json");
   if (!fs.existsSync(packageJsonPath)) return;

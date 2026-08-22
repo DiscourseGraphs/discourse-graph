@@ -12,8 +12,7 @@ permissions:
 
 env:
   VERSION: ${{ inputs.version }}
-  # TODO(ENG-2099): REVERT BEFORE MERGE — restore secrets.OBSIDIAN_PLUGIN_REPO_TOKEN.
-  # Paired with the temporary test-repo target in apps/obsidian/scripts/publish.ts.
+  # TODO(ENG-2099): REVERT BEFORE MERGE, restore secrets.OBSIDIAN_PLUGIN_REPO_TOKEN.
   OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_TEST_REPO_TOKEN }}
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
@@ -52,19 +51,10 @@ jobs:
       - name: Publish stable release
         run: cd apps/obsidian && npx tsx scripts/publish.ts --version "$VERSION"
 
-      # Disabled: this step can never succeed on main. The "Main Branch Protection"
-      # ruleset requires a pull request on the default branch and does not list
-      # github-actions[bot] as a bypass actor, so the push is rejected. Because the
-      # step sits after publishing, a stable release would ship and then fail here,
-      # never reaching the Linear steps below — and every retry fails identically,
-      # so the Linear half of the pipeline was unreachable for that version.
-      #
-      # Instead, bump apps/obsidian/package.json and manifest.json by hand in the
-      # release PR before dispatching this workflow. publish.ts then writes values
-      # that already match, and nothing needs to be pushed from CI.
-      #
-      # To re-enable, add github-actions[bot] as a ruleset bypass actor, or change
-      # this to open a PR rather than pushing directly. See ENG-2099.
+      # Disabled: the default-branch ruleset requires a pull request and does not
+      # grant github-actions[bot] a bypass, so this push is always rejected on main.
+      # Bump apps/obsidian/package.json and manifest.json in the release PR instead.
+      # To re-enable, add github-actions[bot] as a ruleset bypass actor.
       #
       # - name: Commit version bump
       #   run: |

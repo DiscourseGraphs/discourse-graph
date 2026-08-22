@@ -17,12 +17,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # TODO(ENG-2099): REVERT BEFORE MERGE — restore secrets.OBSIDIAN_PLUGIN_REPO_TOKEN.
-  # Paired with the temporary test-repo target in apps/obsidian/scripts/publish.ts.
-  # publish.ts reads the token from this env var, so pointing it at a token scoped
-  # only to discourse-graph-obsidian-test keeps the test run off the real repo.
+  # TODO(ENG-2099): REVERT BEFORE MERGE, restore secrets.OBSIDIAN_PLUGIN_REPO_TOKEN.
   OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_TEST_REPO_TOKEN }}
-  # TODO(ENG-2099): REVERT BEFORE MERGE — restore DiscourseGraphs/discourse-graph-obsidian.
+  # TODO(ENG-2099): REVERT BEFORE MERGE, restore DiscourseGraphs/discourse-graph-obsidian.
   PUBLISH_REPO: DiscourseGraphs/discourse-graph-obsidian-test
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
@@ -55,9 +52,8 @@ jobs:
       - name: Compute next beta version
         id: version
         env:
-          # Releases live in the publish repo, not the monorepo, so the lookup has
-          # to be pointed there explicitly. github.token cannot read a private
-          # target, so reuse whichever credential publish.ts is configured with.
+          # Releases exist only in the publish repo, never in the monorepo, so the
+          # lookup needs an explicit --repo and a token that can read that repo.
           GH_TOKEN: ${{ env.OBSIDIAN_PLUGIN_REPO_TOKEN }}
         run: |
           STABLE_VERSION=$(node -p "require('./apps/obsidian/package.json').version")
