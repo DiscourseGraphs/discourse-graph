@@ -428,7 +428,9 @@ BEGIN
         data.schema_represented_by_local_id, concept.space_id) INTO concept.schema_id;
   END IF;
   concept.source_local_id = COALESCE(concept.source_local_id, data.represented_by_local_id); -- legacy input field
-  concept.reference_content := coalesce(data.reference_content, '{}'::jsonb);
+  -- NULL means "the input said nothing about references"; upsert_concepts preserves
+  -- the stored value in that case. An explicit '{}' still clears the references.
+  concept.reference_content := data.reference_content;
   IF data.local_reference_content IS NOT NULL THEN
     FOR key, value IN SELECT * FROM jsonb_each(data.local_reference_content) LOOP
       IF jsonb_typeof(value) = 'array' THEN
@@ -444,7 +446,7 @@ BEGIN
         RAISE EXCEPTION 'Invalid value in local_reference_content % %', value, jsonb_typeof(value);
       END IF;
     END LOOP;
-    concept.reference_content := concept.reference_content || reference_content;
+    concept.reference_content := coalesce(concept.reference_content, '{}'::jsonb) || reference_content;
   END IF;
   RETURN concept;
 END;
@@ -472,7 +474,9 @@ BEGIN
   FOR concept_row IN SELECT * FROM jsonb_array_elements(data)
   LOOP
     -- first set defaults
-    local_concept := jsonb_populate_record(NULL::public.concept_local_input, '{"epistemic_status": "unknown", "literal_content":{},"reference_content":{},"is_schema":false}');
+    -- literal_content and reference_content are deliberately left out of the defaults:
+    -- absent means "leave the stored value alone" on update (see the ON CONFLICT clause below).
+    local_concept := jsonb_populate_record(NULL::public.concept_local_input, '{"epistemic_status": "unknown", "is_schema":false}');
     -- then input values
     local_concept := jsonb_populate_record(local_concept, concept_row);
     local_concept.space_id := v_space_id;
@@ -489,7 +493,7 @@ BEGIN
         INSERT INTO public."Concept" (
         epistemic_status, name, description, author_id, created, last_modified, space_id, schema_id, literal_content, is_schema, source_local_id, reference_content
         ) VALUES (
-        db_concept.epistemic_status, db_concept.name, db_concept.description, db_concept.author_id, db_concept.created, db_concept.last_modified, db_concept.space_id, db_concept.schema_id, db_concept.literal_content, db_concept.is_schema, db_concept.source_local_id, db_concept.reference_content
+        db_concept.epistemic_status, db_concept.name, db_concept.description, db_concept.author_id, db_concept.created, db_concept.last_modified, db_concept.space_id, db_concept.schema_id, coalesce(db_concept.literal_content, '{}'::jsonb), db_concept.is_schema, db_concept.source_local_id, coalesce(db_concept.reference_content, '{}'::jsonb)
         )
         ON CONFLICT (space_id, source_local_id) DO UPDATE SET
             epistemic_status = db_concept.epistemic_status,
@@ -499,9 +503,10 @@ BEGIN
             created = db_concept.created,
             last_modified = db_concept.last_modified,
             schema_id = db_concept.schema_id,
-            literal_content = db_concept.literal_content,
+            -- absent (NULL) content leaves the stored value alone; an explicit '{}' clears it
+            literal_content = coalesce(db_concept.literal_content, "Concept".literal_content),
             is_schema = db_concept.is_schema,
-            reference_content = db_concept.reference_content
+            reference_content = coalesce(db_concept.reference_content, "Concept".reference_content)
         -- If the syntax allowed two conflict clauses, I would add
         -- ON CONFLICT (space_id, name) DO NOTHING
         -- but since not, I have to handle it as an exception.
