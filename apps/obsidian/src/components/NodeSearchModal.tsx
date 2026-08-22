@@ -329,8 +329,7 @@ const NodeSearch = ({
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
-  // The single source of truth for active type filters: F6's chips will read and
-  // write this same state, so either surface can manage them.
+  // Single source of truth: ENG-2111's tag chips will read and write this too.
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
   const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);

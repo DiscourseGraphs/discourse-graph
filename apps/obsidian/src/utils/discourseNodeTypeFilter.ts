@@ -7,7 +7,7 @@ import { DiscourseNode } from "~/types";
  * Ported from Roam's advanced search so both apps filter alike.
  */
 
-/** Below this many types the list is short enough to scan without a search box. */
+/** Type count above which the panel adds a search box; the modal is desktop-only. */
 export const NODE_TYPE_FILTER_SEARCH_THRESHOLD = 7;
 
 export const hasActiveTypeFilter = ({
@@ -19,10 +19,7 @@ export const hasActiveTypeFilter = ({
 }): boolean =>
   selectedTypeIds.length > 0 && selectedTypeIds.length < allTypeIds.length;
 
-/**
- * The stored empty set means "no filter", which the panel shows as every row
- * checked — otherwise an unfiltered search would render as an empty checklist.
- */
+/** Shows no-filter as every row checked, so the panel is never an empty checklist. */
 export const toPanelSelectedIds = ({
   selectedTypeIds,
   allTypeIds,
@@ -31,10 +28,7 @@ export const toPanelSelectedIds = ({
   allTypeIds: string[];
 }): string[] => (selectedTypeIds.length === 0 ? allTypeIds : selectedTypeIds);
 
-/**
- * Collapses both "all checked" and "none checked" back to the empty set, so the
- * count badge and the search agree that neither is a filter.
- */
+/** Collapses both "all checked" and "none checked" back to no filter. */
 export const fromPanelSelectedIds = ({
   panelSelectedIds,
   allTypeIds,
