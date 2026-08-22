@@ -12,7 +12,8 @@ permissions:
 
 env:
   VERSION: ${{ inputs.version }}
-  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
+  # TODO(ENG-2099): REVERT BEFORE MERGE, restore secrets.OBSIDIAN_PLUGIN_REPO_TOKEN.
+  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_TEST_REPO_TOKEN }}
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
 
@@ -50,20 +51,25 @@ jobs:
       - name: Publish stable release
         run: cd apps/obsidian && npx tsx scripts/publish.ts --version "$VERSION"
 
-      - name: Commit version bump
-        run: |
-          if ! git diff --quiet -- apps/obsidian/package.json apps/obsidian/manifest.json; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add apps/obsidian/package.json apps/obsidian/manifest.json
-            git commit -m "chore: release obsidian ${VERSION} [skip ci]"
-            git push
-          fi
+      # Disabled: the default-branch ruleset requires a pull request and does not
+      # grant github-actions[bot] a bypass, so this push is always rejected on main.
+      # Bump apps/obsidian/package.json and manifest.json in the release PR instead.
+      # To re-enable, add github-actions[bot] as a ruleset bypass actor.
+      #
+      # - name: Commit version bump
+      #   run: |
+      #     if ! git diff --quiet -- apps/obsidian/package.json apps/obsidian/manifest.json; then
+      #       git config user.name "github-actions[bot]"
+      #       git config user.email "github-actions[bot]@users.noreply.github.com"
+      #       git add apps/obsidian/package.json apps/obsidian/manifest.json
+      #       git commit -m "chore: release obsidian ${VERSION} [skip ci]"
+      #       git push
+      #     fi
 
       - name: Sync Linear release
         uses: linear/linear-release-action@v0
         with:
-          access_key: ${{ secrets.OBSIDIAN_LINEAR_RELEASE_KEY }}
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
           command: sync
           version: ${{ env.VERSION }}
           include_paths: "apps/obsidian/**,packages/database/**,packages/utils/**"
@@ -71,6 +77,6 @@ jobs:
       - name: Complete Linear release
         uses: linear/linear-release-action@v0
         with:
-          access_key: ${{ secrets.OBSIDIAN_LINEAR_RELEASE_KEY }}
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
           command: complete
           version: ${{ env.VERSION }}

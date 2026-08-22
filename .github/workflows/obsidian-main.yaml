@@ -17,7 +17,10 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
+  # TODO(ENG-2099): REVERT BEFORE MERGE, restore secrets.OBSIDIAN_PLUGIN_REPO_TOKEN.
+  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_TEST_REPO_TOKEN }}
+  # TODO(ENG-2099): REVERT BEFORE MERGE, restore DiscourseGraphs/discourse-graph-obsidian.
+  PUBLISH_REPO: DiscourseGraphs/discourse-graph-obsidian-test
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
   GH_TOKEN: ${{ github.token }}
@@ -48,17 +51,17 @@ jobs:
 
       - name: Compute next beta version
         id: version
+        env:
+          # Releases exist only in the publish repo, never in the monorepo, so the
+          # lookup needs an explicit --repo and a token that can read that repo.
+          GH_TOKEN: ${{ env.OBSIDIAN_PLUGIN_REPO_TOKEN }}
         run: |
-          STABLE_VERSION=$(node -p "require('./apps/obsidian/package.json').version" | sed 's/-beta\.[0-9]*//')
-          LATEST_N=$(gh release list --limit 50 --json tagName --jq '.[].tagName' \
+          STABLE_VERSION=$(node -p "require('./apps/obsidian/package.json').version")
+          LATEST_N=$(gh release list --repo "$PUBLISH_REPO" --limit 100 --json tagName --jq '.[].tagName' \
             | grep "^${STABLE_VERSION}-beta\." \
             | sed "s/^${STABLE_VERSION}-beta\.//" \
             | sort -n | tail -1)
-          if [ -n "$LATEST_N" ]; then
-            NEXT_BETA="${STABLE_VERSION}-beta.$((LATEST_N + 1))"
-          else
-            NEXT_BETA="${STABLE_VERSION}-beta.1"
-          fi
+          NEXT_BETA="${STABLE_VERSION}-beta.$(( ${LATEST_N:-0} + 1 ))"
           echo "Stable version: $STABLE_VERSION, next beta: $NEXT_BETA"
           echo "version=$NEXT_BETA" >> "$GITHUB_OUTPUT"
 
@@ -68,5 +71,5 @@ jobs:
       - name: Sync Linear release
         uses: linear/linear-release-action@v0
         with:
-          access_key: ${{ secrets.OBSIDIAN_LINEAR_RELEASE_KEY }}
+          access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
           include_paths: "apps/obsidian/**,packages/database/**,packages/utils/**"
