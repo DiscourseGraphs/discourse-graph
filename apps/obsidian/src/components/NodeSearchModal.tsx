@@ -62,9 +62,8 @@ const UNRESOLVED_AUTHOR_NAME = "Unknown";
 
 /** Frontmatter is untyped, so the raw value is narrowed by each caller. */
 const getFrontmatterAuthorId = (app: App, file: TFile): unknown => {
-  const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter as
-    | Record<string, unknown>
-    | undefined;
+  const frontmatter: Record<string, unknown> | undefined =
+    app.metadataCache.getFileCache(file)?.frontmatter;
   return frontmatter?.authorId;
 };
 
