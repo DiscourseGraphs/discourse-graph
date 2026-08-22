@@ -1,5 +1,7 @@
 import discourseConfigRef from "~/utils/discourseConfigRef";
 import createBlock from "roamjs-components/writes/createBlock";
+import { setGlobalSetting } from "~/components/settings/utils/accessors";
+import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
 
 export const createRelationSchema = async ({
   label,
@@ -19,7 +21,7 @@ export const createRelationSchema = async ({
     (node) => node.text === "relations",
   );
   if (!relationsNode) throw new Error("Cannot find the relation grammar");
-  return await createBlock({
+  const blockUid = await createBlock({
     parentUid: relationsNode.uid,
     order: "last",
     node: {
@@ -40,4 +42,12 @@ export const createRelationSchema = async ({
       ],
     },
   });
+  setGlobalSetting([GLOBAL_KEYS.relations, blockUid], {
+    label,
+    source,
+    destination,
+    complement,
+    ifConditions: [],
+  });
+  return blockUid;
 };
