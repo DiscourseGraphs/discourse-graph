@@ -55,6 +55,11 @@ import {
   insertPageRefAtRange,
 } from "./advancedSearchFooterUtils";
 import { renderDiscoverSharedNodesDialog } from "~/components/DiscoverSharedNodesDialog";
+import { refreshAllImportedNodes } from "~/utils/refreshAllImportedNodes";
+import { REFRESH_ERROR_TYPE } from "~/utils/refreshImportedNode";
+import internalError from "~/utils/internalError";
+
+const REFRESH_ALL_TOAST_ID = "refresh-imported-nodes";
 
 export const createDiscourseNodeFromCommand = (
   extensionAPI: OnloadArgs["extensionAPI"],
@@ -348,6 +353,50 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     renderDiscoverSharedNodesDialog({});
   };
 
+  const refreshAllImportedNodesFromCommand = async () => {
+    if (!isNodeSharingEnabled()) {
+      renderToast({
+        id: "refresh-imported-nodes-sharing-disabled",
+        content: "Node sharing must be enabled to refresh imported nodes.",
+      });
+      return;
+    }
+
+    posthog.capture("Refresh Imported Node: Refresh All Command Triggered");
+    renderToast({
+      id: REFRESH_ALL_TOAST_ID,
+      content: "Refreshing imported nodes…",
+      timeout: 0,
+    });
+    try {
+      const { refreshed, skipped, failed } = await refreshAllImportedNodes();
+      if (refreshed + skipped + failed === 0) {
+        renderToast({
+          id: REFRESH_ALL_TOAST_ID,
+          content: "No imported nodes to refresh.",
+        });
+        return;
+      }
+      renderToast({
+        id: REFRESH_ALL_TOAST_ID,
+        intent: failed > 0 ? "warning" : "success",
+        content: `${refreshed} refreshed, ${skipped} skipped, ${failed} failed.`,
+      });
+    } catch (error) {
+      internalError({
+        error,
+        type: REFRESH_ERROR_TYPE,
+        context: { operation: "refresh-all-imported-nodes" },
+        sendEmail: false,
+      });
+      renderToast({
+        id: REFRESH_ALL_TOAST_ID,
+        intent: "danger",
+        content: "Could not refresh imported nodes.",
+      });
+    }
+  };
+
   const toggleDiscourseContextOverlay = async () => {
     const currentValue = getPersonalSetting<boolean>([
       PERSONAL_KEYS.discourseContextOverlay,
@@ -425,6 +474,10 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     void addCommand("DG: Discover shared nodes", discoverSharedNodes);
   }
   if (isNodeSharingEnabled()) {
+    void addCommand(
+      "DG: Refresh all imported nodes",
+      () => void refreshAllImportedNodesFromCommand(),
+    );
     void addCommand("DG: Share current node", shareCurrentNode);
   }
   if (getFeatureFlag("Advanced node search enabled")) {
