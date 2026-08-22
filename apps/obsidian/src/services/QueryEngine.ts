@@ -65,8 +65,8 @@ export class QueryEngine {
     const candidates: DiscourseNodeCandidate[] = [];
 
     for (const file of this.getFilesWithNodeTypeId()) {
-      const frontmatter = this.app.metadataCache.getFileCache(file)
-        ?.frontmatter as Record<string, unknown> | undefined;
+      const frontmatter: Record<string, unknown> | undefined =
+        this.app.metadataCache.getFileCache(file)?.frontmatter;
       const nodeTypeId = frontmatter?.nodeTypeId;
       if (typeof nodeTypeId !== "string" || !nodeTypeId) continue;
 
