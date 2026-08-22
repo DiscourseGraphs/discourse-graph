@@ -52,15 +52,29 @@ jobs:
       - name: Publish stable release
         run: cd apps/obsidian && npx tsx scripts/publish.ts --version "$VERSION"
 
-      - name: Commit version bump
-        run: |
-          if ! git diff --quiet -- apps/obsidian/package.json apps/obsidian/manifest.json; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add apps/obsidian/package.json apps/obsidian/manifest.json
-            git commit -m "chore: release obsidian ${VERSION} [skip ci]"
-            git push
-          fi
+      # Disabled: this step can never succeed on main. The "Main Branch Protection"
+      # ruleset requires a pull request on the default branch and does not list
+      # github-actions[bot] as a bypass actor, so the push is rejected. Because the
+      # step sits after publishing, a stable release would ship and then fail here,
+      # never reaching the Linear steps below — and every retry fails identically,
+      # so the Linear half of the pipeline was unreachable for that version.
+      #
+      # Instead, bump apps/obsidian/package.json and manifest.json by hand in the
+      # release PR before dispatching this workflow. publish.ts then writes values
+      # that already match, and nothing needs to be pushed from CI.
+      #
+      # To re-enable, add github-actions[bot] as a ruleset bypass actor, or change
+      # this to open a PR rather than pushing directly. See ENG-2099.
+      #
+      # - name: Commit version bump
+      #   run: |
+      #     if ! git diff --quiet -- apps/obsidian/package.json apps/obsidian/manifest.json; then
+      #       git config user.name "github-actions[bot]"
+      #       git config user.email "github-actions[bot]@users.noreply.github.com"
+      #       git add apps/obsidian/package.json apps/obsidian/manifest.json
+      #       git commit -m "chore: release obsidian ${VERSION} [skip ci]"
+      #       git push
+      #     fi
 
       - name: Sync Linear release
         uses: linear/linear-release-action@v0
