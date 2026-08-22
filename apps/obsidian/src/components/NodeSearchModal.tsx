@@ -21,6 +21,7 @@ import {
 import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeSearchFooter } from "~/components/NodeSearchFooter";
+import { NodeTypeFilterMenu } from "~/components/NodeTypeFilterMenu";
 import {
   openFileInNewLeaf,
   openFileInNewTab,
@@ -328,6 +329,9 @@ const NodeSearch = ({
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  // Single source of truth: ENG-2111's tag chips will read and write this too.
+  const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
+  const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const userNames = useAuthorNames({ app, plugin, candidateState });
 
@@ -374,6 +378,7 @@ const NodeSearch = ({
     return rankDiscourseNodesByTitle({
       candidates: candidateState.candidates,
       query: debouncedQuery,
+      nodeTypeIds: selectedNodeTypeIds,
     })
       .slice(0, MAX_VISIBLE_RESULTS)
       .map((result) => ({
@@ -383,7 +388,7 @@ const NodeSearch = ({
           badge: getFallbackNodeTypeBadge(result.title),
         },
       }));
-  }, [candidateState, debouncedQuery, nodeTypesById]);
+  }, [candidateState, debouncedQuery, nodeTypesById, selectedNodeTypeIds]);
 
   // A narrowing query rebuilds `results` before the effect below can reset the
   // state, so the old index can point past the new list for one render. Clamping
@@ -428,6 +433,12 @@ const NodeSearch = ({
     });
   };
 
+  const handleTypeFilterOpenChange = (nextOpen: boolean): void => {
+    setIsTypeFilterOpen(nextOpen);
+    // Returns the keyboard path to the results the moment the panel closes.
+    if (!nextOpen) inputRef.current?.focus();
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       // Otherwise the caret jumps to the start or end of the query.
@@ -458,14 +469,26 @@ const NodeSearch = ({
     // Bound here rather than on the input so navigation survives focus moving
     // elsewhere in the modal, and so result actions have one place to live.
     <div className="flex h-full flex-col" onKeyDown={handleKeyDown}>
-      <input
-        ref={inputRef}
-        type="text"
-        value={query}
-        placeholder="Search discourse nodes by title"
-        onChange={(event) => setQuery(event.target.value)}
-        className="w-full"
-      />
+      {/* Padded so the filter trigger's count badge, which sits outside the
+          button box, is not clipped by the modal's overflow-hidden content. */}
+      <div className="flex items-center gap-2 px-1 pt-1">
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          placeholder="Search discourse nodes by title"
+          onChange={(event) => setQuery(event.target.value)}
+          className="min-w-0 flex-1"
+        />
+        <NodeTypeFilterMenu
+          app={app}
+          isOpen={isTypeFilterOpen}
+          nodeTypes={plugin.settings.nodeTypes}
+          onOpenChange={handleTypeFilterOpenChange}
+          onSelectedNodeTypeIdsChange={setSelectedNodeTypeIds}
+          selectedNodeTypeIds={selectedNodeTypeIds}
+        />
+      </div>
       <div className="border-modifier-border mt-3 flex flex-1 overflow-hidden rounded border">
         <div className="border-modifier-border flex w-2/5 flex-col border-r">
           {candidateState.status === "loading" && (
