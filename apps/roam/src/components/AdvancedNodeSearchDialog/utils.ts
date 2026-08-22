@@ -9,6 +9,15 @@ import {
   getPulledDiscourseNodeUid,
   queryDiscourseNodesByFormat,
 } from "~/utils/discourseNodeSearch";
+import type {
+  ScoredSearchResult,
+  SearchResult,
+} from "~/utils/discourseNodeSearchTypes";
+
+export type {
+  ScoredSearchResult,
+  SearchResult,
+} from "~/utils/discourseNodeSearchTypes";
 
 export const DEBOUNCE_MS = 250;
 export const MAX_RESULTS = 50;
@@ -36,17 +45,6 @@ export const SORT_FIELD_LABELS: Record<SortField, string> = {
   author: "Author",
 };
 
-export type SearchResult = {
-  uid: string;
-  title: string;
-  type: string;
-  nodeTypeLabel: string;
-  excerpt: string;
-  createdAt: string;
-  lastModified: string;
-  authorName: string;
-};
-
 export type DockedSearchState = {
   query: string;
   results: SearchResult[];
@@ -54,11 +52,6 @@ export type DockedSearchState = {
   sort: SortConfig;
   windowId?: string;
   dgSearchId?: string;
-};
-
-export type ScoredSearchHit = {
-  result: SearchResult;
-  score: number;
 };
 
 type MiniSearchDocument = SearchResult & {
@@ -214,22 +207,26 @@ export const isNonDefaultSort = (sort: SortConfig): boolean =>
   sort.direction !== DEFAULT_SORT_CONFIG.direction;
 
 export const sortSearchResults = ({
-  hits,
+  scoredResults,
   sort,
 }: {
-  hits: ScoredSearchHit[];
+  scoredResults: ScoredSearchResult[];
   sort: SortConfig;
 }): SearchResult[] => {
-  const sorted = [...hits];
+  const sorted = [...scoredResults];
 
-  sorted.sort((aHit, bHit) => {
-    const a = aHit.result;
-    const b = bHit.result;
+  sorted.sort((aEntry, bEntry) => {
+    const a = aEntry.result;
+    const b = bEntry.result;
     let comparison = 0;
 
     switch (sort.field) {
       case "relevance":
-        comparison = compareNumbers(aHit.score, bHit.score, sort.direction);
+        if (aEntry.source !== bEntry.source) {
+          comparison = aEntry.source === "semantic" ? -1 : 1;
+          break;
+        }
+        comparison = compareNumbers(aEntry.score, bEntry.score, sort.direction);
         break;
       case "alphabetical":
         comparison = compareStrings(
@@ -259,10 +256,10 @@ export const sortSearchResults = ({
     return comparison || a.uid.localeCompare(b.uid);
   });
 
-  return sorted.map((hit) => hit.result);
+  return sorted.map((entry) => entry.result);
 };
 
-export const searchIndexedNodes = ({
+export const searchDiscourseNodesWithMiniSearch = ({
   miniSearch,
   allResults,
   searchTerm,
@@ -272,7 +269,7 @@ export const searchIndexedNodes = ({
   allResults: SearchResult[];
   searchTerm: string;
   typeFilter?: string[];
-}): ScoredSearchHit[] => {
+}): ScoredSearchResult[] => {
   const resultsByUid = new Map(
     allResults.map((result) => [result.uid, result]),
   );
@@ -291,7 +288,11 @@ export const searchIndexedNodes = ({
     .map((result) => {
       const searchResult = resultsByUid.get(String(result.id));
       if (!searchResult) return null;
-      return { result: searchResult, score: result.score };
+      return {
+        result: searchResult,
+        score: result.score,
+        source: "miniSearch",
+      };
     })
-    .filter((hit): hit is ScoredSearchHit => !!hit);
+    .filter((entry): entry is ScoredSearchResult => !!entry);
 };
