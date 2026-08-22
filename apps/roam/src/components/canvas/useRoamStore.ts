@@ -14,7 +14,6 @@ import {
 import { SerializedStore, StoreSnapshot } from "@tldraw/store";
 import {
   defaultBindingUtils,
-  defaultShapeUtils,
   getIndices,
   loadSnapshot,
   MigrationSequence,
@@ -24,6 +23,7 @@ import {
   TLStore,
 } from "tldraw";
 import { AddPullWatch } from "roamjs-components/types";
+import { combineShapeUtilsWithDefaults } from "./useCanvasStoreAdapterArgs";
 import { LEGACY_SCHEMA } from "~/data/legacyTldrawSchema";
 import internalError from "~/utils/internalError";
 
@@ -91,7 +91,7 @@ const createCanvasStore = ({
 }): TLStore =>
   createTLStore({
     migrations,
-    shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
+    shapeUtils: combineShapeUtilsWithDefaults(customShapeUtils),
     bindingUtils: [...defaultBindingUtils, ...customBindingUtils],
   });
 

@@ -19,6 +19,28 @@ import {
   createAllRelationBindings,
 } from "./DiscourseRelationShape/DiscourseRelationBindings";
 import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
+import { DgSubpageGeoUtil } from "./DgSubpageUtil";
+import { defaultShapeUtils } from "tldraw";
+
+const DEFAULT_SHAPE_TYPES = new Set<string>(
+  defaultShapeUtils.map((u) => u.type),
+);
+
+/**
+ * Combine the default shape utils with ours, letting a custom util that
+ * declares a DEFAULT type (e.g. DgSubpageGeoUtil's "geo") REPLACE the stock
+ * util — registering the same type twice throws. Every store construction site
+ * must use this instead of spreading `[...defaultShapeUtils, ...custom]`.
+ */
+export const combineShapeUtilsWithDefaults = (
+  customShapeUtils: readonly TLAnyShapeUtilConstructor[],
+): TLAnyShapeUtilConstructor[] => {
+  const customTypes = new Set(customShapeUtils.map((u) => u.type));
+  return [
+    ...defaultShapeUtils.filter((d) => !customTypes.has(d.type)),
+    ...customShapeUtils,
+  ];
+};
 
 /**
  * Cloudflare sync needs stable adapter arg identities, but local Roam
@@ -71,6 +93,7 @@ const createShapeUtils = ({
 }): TLAnyShapeUtilConstructor[] => {
   return [
     DiscourseNodeUtil,
+    DgSubpageGeoUtil,
     ...(includeLegacyNodeTypes
       ? createLegacyDiscourseNodeShapeUtils(allNodes)
       : []),
@@ -114,9 +137,11 @@ export const useCanvasStoreAdapterArgs = ({
     allRelationIds,
     allAddReferencedNodeByAction,
   });
+  // Overridden DEFAULT types (geo) are not "custom" to the sync layer — the
+  // server already knows them; advertising them as custom would double-define.
   const customShapeTypes = getUtilTypes({
     utils: customShapeUtils,
-  });
+  }).filter((t) => !DEFAULT_SHAPE_TYPES.has(t));
   const customBindingTypes = getUtilTypes({
     utils: customBindingUtils,
   });
@@ -159,7 +184,7 @@ export const useCanvasStoreAdapterArgs = ({
       pageUid,
       value: getUtilTypes({
         utils: stableCustomShapeUtils,
-      }),
+      }).filter((t) => !DEFAULT_SHAPE_TYPES.has(t)),
     }),
     [pageUid, stableCustomShapeUtils],
   ).value;

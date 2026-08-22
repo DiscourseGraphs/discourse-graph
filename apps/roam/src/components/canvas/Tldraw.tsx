@@ -24,7 +24,6 @@ import {
   TldrawUi,
   defaultBindingUtils,
   defaultShapeTools,
-  defaultShapeUtils,
   defaultTools,
   useEditor,
   VecModel,
@@ -113,6 +112,7 @@ import {
 } from "./canvasSyncMode";
 import {
   CanvasStoreAdapterArgs,
+  combineShapeUtilsWithDefaults,
   useCanvasStoreAdapterArgs,
 } from "./useCanvasStoreAdapterArgs";
 import { shouldCreateAutoCanvasRelations } from "./autoCanvasRelationsSuppression";
@@ -1339,7 +1339,7 @@ const TldrawCanvasShared = ({
             // instanceId={initialState.instanceId}
             autoFocus={false}
             initialState="select"
-            shapeUtils={[...defaultShapeUtils, ...customShapeUtils]}
+            shapeUtils={combineShapeUtilsWithDefaults(customShapeUtils)}
             tools={[...defaultTools, ...defaultShapeTools, ...customTools]}
             bindingUtils={[...defaultBindingUtils, ...customBindingUtils]}
             components={editorComponents}
