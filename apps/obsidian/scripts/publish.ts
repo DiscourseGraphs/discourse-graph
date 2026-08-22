@@ -300,17 +300,25 @@ const execCommand = async (
   }
 };
 
+// Patterns match a whole path segment, never a substring of one. Substring
+// matching silently dropped real source files whose names merely contained an
+// excluded word — "out" ate DatacoreCallout.tsx, and the unanchored "*.log"
+// regex ate nativeJsonFileDialogs.ts via "diaLOGs".
+const segmentMatchesPattern = (segment: string, pattern: string): boolean => {
+  if (!pattern.includes("*")) return segment === pattern;
+
+  const escaped = pattern
+    .split("*")
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("[^/]*");
+  return new RegExp(`^${escaped}$`).test(segment);
+};
+
 const shouldExclude = (filePath: string, baseDir: string): boolean => {
-  const relativePath = path.relative(baseDir, filePath);
-  return EXCLUDE_PATTERNS.some((pattern) => {
-    if (pattern.includes("*")) {
-      const regex = new RegExp(pattern.replace(/\*/g, ".*"));
-      return regex.test(relativePath) || regex.test(path.basename(filePath));
-    }
-    return (
-      relativePath.includes(pattern) || path.basename(filePath) === pattern
-    );
-  });
+  const segments = path.relative(baseDir, filePath).split(path.sep);
+  return segments.some((segment) =>
+    EXCLUDE_PATTERNS.some((pattern) => segmentMatchesPattern(segment, pattern)),
+  );
 };
 
 const copyDirectory = ({
