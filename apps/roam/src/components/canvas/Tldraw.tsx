@@ -482,7 +482,29 @@ export const isPageUid = (uid: string) =>
     ":node/title"
   ];
 
-export const TldrawCanvas = ({ title }: { title: string }) => {
+// Options for mounting the canvas inside a block embed (`{{dg-canvas: ...}}`).
+// Left undefined for main-page and sidebar canvases, whose behavior is unchanged.
+export type CanvasEmbedOptions = {
+  // Frame-anchored embeds manage their own camera (zoom-to-frame on every mount)
+  // and intentionally do not persist panning across remounts, so they opt out of
+  // the per-page session persistence entirely.
+  disableSessionPersistence?: boolean;
+  // Start the editor in focus mode (what cmd+. toggles), hiding the tldraw
+  // menus/toolbar chrome — block embeds are for viewing first, so they default
+  // to a clean surface and the user can cmd+. the controls back.
+  defaultFocusMode?: boolean;
+  // Invoked once the embedded editor has mounted; frame resolution + zoom lives
+  // in the caller (CanvasFrameEmbed) so this component stays frame-agnostic.
+  onEditorMount?: (editor: Editor) => void;
+};
+
+export const TldrawCanvas = ({
+  title,
+  embedOptions,
+}: {
+  title: string;
+  embedOptions?: CanvasEmbedOptions;
+}) => {
   // In Roam, canvas identity is currently keyed by the page UID.
   // Room sync is graph/page encoded as an opaque base64url token.
   const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
@@ -547,6 +569,7 @@ export const TldrawCanvas = ({ title }: { title: string }) => {
         pageUid={pageUid}
         canvasSyncMode={canvasSyncMode}
         onCanvasSyncModeChange={onCanvasSyncModeChange}
+        embedOptions={embedOptions}
       />
     );
   }
@@ -557,6 +580,7 @@ export const TldrawCanvas = ({ title }: { title: string }) => {
       pageUid={pageUid}
       canvasSyncMode={canvasSyncMode}
       onCanvasSyncModeChange={onCanvasSyncModeChange}
+      embedOptions={embedOptions}
     />
   );
 };
@@ -621,11 +645,13 @@ const TldrawCanvasRoam = ({
   pageUid,
   canvasSyncMode,
   onCanvasSyncModeChange,
+  embedOptions,
 }: {
   title: string;
   pageUid: string;
   canvasSyncMode: CanvasSyncMode;
   onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
+  embedOptions?: CanvasEmbedOptions;
 }) => {
   return (
     <TldrawCanvasShared
@@ -635,6 +661,7 @@ const TldrawCanvasRoam = ({
       isCloudflareSync={false}
       canvasSyncMode={canvasSyncMode}
       onCanvasSyncModeChange={onCanvasSyncModeChange}
+      embedOptions={embedOptions}
     />
   );
 };
@@ -644,11 +671,13 @@ const TldrawCanvasCloudflare = ({
   pageUid,
   canvasSyncMode,
   onCanvasSyncModeChange,
+  embedOptions,
 }: {
   title: string;
   pageUid: string;
   canvasSyncMode: CanvasSyncMode;
   onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
+  embedOptions?: CanvasEmbedOptions;
 }) => {
   return (
     <TldrawCanvasShared
@@ -658,6 +687,7 @@ const TldrawCanvasCloudflare = ({
       isCloudflareSync={true}
       canvasSyncMode={canvasSyncMode}
       onCanvasSyncModeChange={onCanvasSyncModeChange}
+      embedOptions={embedOptions}
     />
   );
 };
@@ -669,6 +699,7 @@ const TldrawCanvasShared = ({
   isCloudflareSync,
   canvasSyncMode,
   onCanvasSyncModeChange,
+  embedOptions,
 }: {
   title: string;
   pageUid: string;
@@ -676,6 +707,7 @@ const TldrawCanvasShared = ({
   isCloudflareSync: boolean;
   canvasSyncMode: CanvasSyncMode;
   onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
+  embedOptions?: CanvasEmbedOptions;
 }) => {
   const appRef = useRef<Editor | null>(null);
   const lastInsertRef = useRef<VecModel>();
@@ -1345,13 +1377,17 @@ const TldrawCanvasShared = ({
             components={editorComponents}
             store={store}
             onMount={(app) => {
+              // Frame-anchored embeds re-zoom to their frame on every mount and
+              // do not persist panning, so they opt out of session persistence.
               const unregisterCanvasSessionStatePersistence =
-                registerCanvasSessionStatePersistence({
-                  editor: app,
-                  graphName: window.roamAlphaAPI.graph.name,
-                  userUid: window.roamAlphaAPI.user.uid() || "",
-                  pageUid,
-                });
+                embedOptions?.disableSessionPersistence
+                  ? () => {}
+                  : registerCanvasSessionStatePersistence({
+                      editor: app,
+                      graphName: window.roamAlphaAPI.graph.name,
+                      userUid: window.roamAlphaAPI.user.uid() || "",
+                      pageUid,
+                    });
 
               if (process.env.NODE_ENV !== "production") {
                 if (!window.tldrawApps) window.tldrawApps = {};
@@ -1439,6 +1475,18 @@ const TldrawCanvasShared = ({
                   }
                 }
               });
+
+              if (
+                embedOptions?.defaultFocusMode &&
+                !app.getInstanceState().isFocusMode
+              ) {
+                app.updateInstanceState({ isFocusMode: true });
+              }
+
+              // Hand the mounted editor back to an embed wrapper (frame
+              // resolution + zoom-to-frame). Runs after the store is loaded and
+              // shapes are present, so frame bounds are resolvable.
+              embedOptions?.onEditorMount?.(app);
 
               return () => {
                 unregisterCanvasSessionStatePersistence();
