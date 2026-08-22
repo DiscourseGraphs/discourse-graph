@@ -104,10 +104,12 @@ export const discourseNodeBlockToLocalConcept = (
     nodeUid,
     schemaUid,
     text,
+    coreTitle,
   }: {
     nodeUid: string;
     schemaUid: string;
     text: string;
+    coreTitle: string;
   },
 ): LocalConceptDataInput => {
   return {
@@ -116,6 +118,9 @@ export const discourseNodeBlockToLocalConcept = (
     source_local_id: nodeUid,
     schema_represented_by_local_id: schemaUid,
     is_schema: false,
+    literal_content: {
+      core_title: coreTitle,
+    },
     /* eslint-enable @typescript-eslint/naming-convention */
     ...getNodeExtraData(nodeUid),
   };

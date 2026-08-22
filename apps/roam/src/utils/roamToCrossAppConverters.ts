@@ -15,6 +15,14 @@ import { toMarkdown } from "./pageToMarkdown";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { contentTypes } from "@repo/content-model";
+import getDiscourseNodes from "./getDiscourseNodes";
+import extractContentFromTitle from "./extractContentFromTitle";
+
+const getCoreTitle = (title: string, nodeTypeUid: string): string => {
+  const format =
+    getDiscourseNodes().find((node) => node.type === nodeTypeUid)?.format ?? "";
+  return extractContentFromTitle(title, { format });
+};
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
@@ -73,6 +81,7 @@ export const fullContentNodeToCrossApp = (
     createdAt: new Date(node.created || Date.now()),
     modifiedAt: new Date(node.last_modified || Date.now()),
     nodeType: node.node_type_id,
+    coreTitle: getCoreTitle(title, node.node_type_id),
     content: {
       direct: {
         localId: node.source_local_id,
@@ -122,6 +131,7 @@ export const nodeUidsWithTypeToCrossApp = async (
       authorId: userUid,
       createdAt: new Date(createdTime),
       modifiedAt: new Date(Math.max(editTime, pageEditTime)),
+      coreTitle: getCoreTitle(title, typesByUid[uid]),
       content: {
         direct: {
           localId: uid,
