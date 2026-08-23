@@ -8,7 +8,7 @@ import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 export type CoreTitleBackfill = {
   nodesToBackfill: RoamDiscourseNodeData[];
   withCoreTitleCount: number;
-  orphanedIds: string[];
+  orphanedCount: number;
 };
 
 export const buildCoreTitleBackfill = ({
@@ -26,7 +26,7 @@ export const buildCoreTitleBackfill = ({
       missingCoreTitleIds.has(node.source_local_id),
     ),
     withCoreTitleCount,
-    orphanedIds: [...difference(missingCoreTitleIds, localIds)],
+    orphanedCount: difference(missingCoreTitleIds, localIds).size,
   };
 };
 

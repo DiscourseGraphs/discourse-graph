@@ -29,7 +29,7 @@ describe("buildCoreTitleBackfill", () => {
       "a",
     ]);
     expect(backfill.withCoreTitleCount).toBe(1);
-    expect(backfill.orphanedIds).toEqual([]);
+    expect(backfill.orphanedCount).toBe(0);
   });
 
   it("reports rows that are no longer in the graph as orphaned", () => {
@@ -44,7 +44,7 @@ describe("buildCoreTitleBackfill", () => {
     expect(backfill.nodesToBackfill.map((n) => n.source_local_id)).toEqual([
       "a",
     ]);
-    expect(backfill.orphanedIds).toEqual(["gone"]);
+    expect(backfill.orphanedCount).toBe(1);
   });
 
   it("skips rows without a source_local_id", () => {
@@ -55,7 +55,7 @@ describe("buildCoreTitleBackfill", () => {
 
     expect(backfill.nodesToBackfill).toEqual([]);
     expect(backfill.withCoreTitleCount).toBe(0);
-    expect(backfill.orphanedIds).toEqual([]);
+    expect(backfill.orphanedCount).toBe(0);
   });
 
   it("is a no-op once every row has a core_title", () => {
@@ -69,7 +69,7 @@ describe("buildCoreTitleBackfill", () => {
 
     expect(backfill.nodesToBackfill).toEqual([]);
     expect(backfill.withCoreTitleCount).toBe(2);
-    expect(backfill.orphanedIds).toEqual([]);
+    expect(backfill.orphanedCount).toBe(0);
   });
 });
 

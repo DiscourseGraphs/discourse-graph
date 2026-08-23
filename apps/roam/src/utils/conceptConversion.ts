@@ -13,7 +13,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 const getNodeExtraData = (
   node_uid: string,
 ): {
-  author_uid: string;
+  author_local_id: string;
   created: string;
   last_modified: string;
   page_uid: string;
@@ -50,7 +50,7 @@ const getNodeExtraData = (
   const created = new Date(created_t).toISOString();
   const last_modified = new Date(last_modified_t).toISOString();
   return {
-    author_uid,
+    author_local_id: author_uid,
     created,
     last_modified,
     page_uid,
@@ -202,7 +202,7 @@ export const discourseRelationDataToLocalConcept = (
   const created = new Date(
     Math.max(...nodeData.map((nd) => new Date(nd.created).getTime())),
   ).toISOString();
-  const author_local_id: string = nodeData[0].author_uid; // take any one; again until I get the relation object
+  const author_local_id: string = nodeData[0].author_local_id; // take any one; again until I get the relation object
   return {
     space_id: context.spaceId,
     source_local_id: relationUid,

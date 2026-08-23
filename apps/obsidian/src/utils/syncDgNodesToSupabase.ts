@@ -346,7 +346,9 @@ const noticeCoreTitleBackfill = ({
     `${skipped} already had one.`,
   ];
   if (orphaned > 0) {
-    messages.push(`${orphaned} not found in this vault.`);
+    messages.push(
+      `${orphaned} no longer match a discourse node in this vault.`,
+    );
   }
   new Notice(messages.join(" "), 5000);
 };
@@ -517,7 +519,10 @@ export const syncAllNodesAndRelations = async (
     }
 
     // When synced nodes are already published, ensure non-text assets are in storage.
-    await syncPublishedNodesAssets(plugin, changedNodeInstances);
+    await syncPublishedNodesAssets(
+      plugin,
+      changedNodeInstances.filter((node) => node.changeTypes.length > 0),
+    );
   } catch (error) {
     console.error("syncAllNodesAndRelations: Process failed:", error);
     throw error;

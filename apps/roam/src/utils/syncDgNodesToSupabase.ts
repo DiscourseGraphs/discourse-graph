@@ -878,30 +878,39 @@ export const setSyncActivity = (active: boolean) => {
 
 const reportCoreTitleBackfill = ({
   backfilled,
+  deferred,
   skipped,
   orphaned,
 }: {
   backfilled: number;
+  deferred: number;
   skipped: number;
   orphaned: number;
 }): void => {
   posthog.capture("Sync core_title backfill", {
     backfilled,
+    deferred,
     skipped,
     orphaned,
   });
-  if (backfilled === 0 && orphaned === 0) return;
+  if (backfilled === 0 && deferred === 0 && orphaned === 0) return;
   const messages = [
     `Backfilled core title for ${backfilled} node${backfilled === 1 ? "" : "s"}.`,
     `${skipped} already had one.`,
   ];
+  if (deferred > 0) {
+    messages.push(`${deferred} waiting for sync to be enabled.`);
+  }
   if (orphaned > 0) {
-    messages.push(`${orphaned} not found in this graph.`);
+    messages.push(
+      `${orphaned} no longer match a discourse node in this graph.`,
+    );
   }
   renderToast({
     id: "core-title-backfill",
     intent: orphaned > 0 ? "warning" : "success",
     content: messages.join(" "),
+    timeout: 5000,
   });
 };
 
@@ -1388,8 +1397,11 @@ export const createOrUpdateDiscourseEmbedding = async (
     if (coreTitleBackfill !== null) {
       reportCoreTitleBackfill({
         backfilled: nodesToBackfillCoreTitle.length,
+        deferred:
+          coreTitleBackfill.nodesToBackfill.length -
+          nodesToBackfillCoreTitle.length,
         skipped: coreTitleBackfill.withCoreTitleCount,
-        orphaned: coreTitleBackfill.orphanedIds.length,
+        orphaned: coreTitleBackfill.orphanedCount,
       });
     }
     await measureSyncPhase({
