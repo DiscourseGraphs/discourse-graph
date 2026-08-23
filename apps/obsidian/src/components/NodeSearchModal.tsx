@@ -471,7 +471,14 @@ const NodeSearch = ({
     if (event.key !== "Enter") return;
     // Enter also commits an IME candidate, which must not open a file.
     if (event.nativeEvent.isComposing) return;
-    if ((event.metaKey || event.ctrlKey) && !event.altKey && insertTarget) {
+    // activeResult is part of the gate so the chord is not claimed while the
+    // results are still loading, matching the footer button's disabled state.
+    if (
+      (event.metaKey || event.ctrlKey) &&
+      !event.altKey &&
+      insertTarget &&
+      activeResult
+    ) {
       event.preventDefault();
       insertLinkToActiveResult();
       return;
