@@ -30,6 +30,10 @@ import { isAcceptedSchema } from "./typeUtils";
 import { getTemplatePluginInfo } from "./templates";
 import { difference } from "@repo/utils/setOperations";
 import { getAllPages } from "@repo/database/lib/pagination";
+import {
+  CORE_TITLE_PROBE_SELECT,
+  partitionByCoreTitle,
+} from "@repo/database/lib/coreTitleBackfill";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
@@ -231,6 +235,17 @@ type BuildChangedNodesOptions = {
   fullSync?: boolean;
 };
 
+type CoreTitleBackfillCounts = {
+  backfilled: number;
+  skipped: number;
+  orphaned: number;
+};
+
+type BuildChangedNodesResult = {
+  changedNodes: ObsidianDiscourseNodeData[];
+  coreTitleBackfill: CoreTitleBackfillCounts | null;
+};
+
 const mergeChangeTypes = (
   base: ChangeType[],
   additional: ChangeType[],
@@ -320,15 +335,31 @@ const detectNodeChanges = (
   return changeTypes;
 };
 
+const noticeCoreTitleBackfill = ({
+  backfilled,
+  skipped,
+  orphaned,
+}: CoreTitleBackfillCounts): void => {
+  if (backfilled === 0 && orphaned === 0) return;
+  const messages = [
+    `Backfilled core title for ${backfilled} node${backfilled === 1 ? "" : "s"}.`,
+    `${skipped} already had one.`,
+  ];
+  if (orphaned > 0) {
+    messages.push(`${orphaned} not found in this vault.`);
+  }
+  new Notice(messages.join(" "), 5000);
+};
+
 const buildChangedNodesFromNodes = async ({
   nodes,
   supabaseClient,
   context,
   changeTypesByPath,
   fullSync = false,
-}: BuildChangedNodesOptions): Promise<ObsidianDiscourseNodeData[]> => {
+}: BuildChangedNodesOptions): Promise<BuildChangedNodesResult> => {
   if (nodes.length === 0) {
-    return [];
+    return { changedNodes: [], coreTitleBackfill: null };
   }
 
   const nodeInstanceIds = nodes.map((node) => node.nodeInstanceId);
@@ -344,11 +375,14 @@ const buildChangedNodesFromNodes = async ({
   );
   const changedNodes: ObsidianDiscourseNodeData[] = [];
   let missingConcepts: Set<string> | undefined;
+  let coreTitleProbe:
+    | { missingCoreTitleIds: Set<string>; skipped: number; orphaned: number }
+    | undefined;
   if (fullSync) {
     const existingConceptIds = await getAllPages(
       supabaseClient
         .from("my_concepts")
-        .select("source_local_id")
+        .select(CORE_TITLE_PROBE_SELECT)
         .eq("space_id", context.spaceId)
         .eq("is_relation", false)
         .eq("is_schema", false)
@@ -369,6 +403,13 @@ const buildChangedNodesFromNodes = async ({
           .filter((id) => id !== null),
       );
       missingConcepts = difference(nodeIds, dbConceptIds);
+      const { missingCoreTitleIds, withCoreTitleCount } =
+        partitionByCoreTitle(existingConceptIds);
+      coreTitleProbe = {
+        missingCoreTitleIds,
+        skipped: withCoreTitleCount,
+        orphaned: difference(missingCoreTitleIds, nodeIds).size,
+      };
     }
   }
 
@@ -389,7 +430,8 @@ const buildChangedNodesFromNodes = async ({
 
     if (
       finalChangeTypes.length === 0 &&
-      !missingConcepts?.has(node.nodeInstanceId)
+      !missingConcepts?.has(node.nodeInstanceId) &&
+      !coreTitleProbe?.missingCoreTitleIds.has(node.nodeInstanceId)
     ) {
       continue;
     }
@@ -405,7 +447,18 @@ const buildChangedNodesFromNodes = async ({
     });
   }
 
-  return changedNodes;
+  return {
+    changedNodes,
+    coreTitleBackfill: coreTitleProbe
+      ? {
+          backfilled: changedNodes.filter((node) =>
+            coreTitleProbe.missingCoreTitleIds.has(node.nodeInstanceId),
+          ).length,
+          skipped: coreTitleProbe.skipped,
+          orphaned: coreTitleProbe.orphaned,
+        }
+      : null,
+  };
 };
 
 export const syncAllNodesAndRelations = async (
@@ -426,14 +479,15 @@ export const syncAllNodesAndRelations = async (
 
     const allNodes = await collectDiscourseNodesFromVault(plugin, true);
 
-    const changedNodeInstances = relationsOnly
-      ? []
-      : await buildChangedNodesFromNodes({
-          nodes: allNodes,
-          supabaseClient,
-          context,
-          fullSync: true,
-        });
+    const { changedNodes: changedNodeInstances, coreTitleBackfill } =
+      relationsOnly
+        ? { changedNodes: [], coreTitleBackfill: null }
+        : await buildChangedNodesFromNodes({
+            nodes: allNodes,
+            supabaseClient,
+            context,
+            fullSync: true,
+          });
 
     const accountLocalId = plugin.settings.accountLocalId;
     if (!accountLocalId) {
@@ -457,6 +511,10 @@ export const syncAllNodesAndRelations = async (
       allNodes,
       fullSync: true,
     });
+
+    if (coreTitleBackfill !== null) {
+      noticeCoreTitleBackfill(coreTitleBackfill);
+    }
 
     // When synced nodes are already published, ensure non-text assets are in storage.
     await syncPublishedNodesAssets(plugin, changedNodeInstances);
@@ -935,7 +993,7 @@ export const syncDiscourseNodeChanges = async (
       return;
     }
 
-    const changedNodes = await buildChangedNodesFromNodes({
+    const { changedNodes } = await buildChangedNodesFromNodes({
       nodes: dgNodesInVault,
       supabaseClient,
       context,

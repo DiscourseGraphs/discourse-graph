@@ -26,6 +26,12 @@ import {
 } from "./convertRoamNodeToFullContent";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { intersection } from "@repo/utils/setOperations";
+import { CORE_TITLE_PROBE_SELECT } from "@repo/database/lib/coreTitleBackfill";
+import {
+  buildCoreTitleBackfill,
+  mergeNodesBySourceLocalId,
+  type CoreTitleBackfill,
+} from "./coreTitleBackfill";
 import type { Json, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
@@ -870,6 +876,35 @@ export const setSyncActivity = (active: boolean) => {
   }
 };
 
+const reportCoreTitleBackfill = ({
+  backfilled,
+  skipped,
+  orphaned,
+}: {
+  backfilled: number;
+  skipped: number;
+  orphaned: number;
+}): void => {
+  posthog.capture("Sync core_title backfill", {
+    backfilled,
+    skipped,
+    orphaned,
+  });
+  if (backfilled === 0 && orphaned === 0) return;
+  const messages = [
+    `Backfilled core title for ${backfilled} node${backfilled === 1 ? "" : "s"}.`,
+    `${skipped} already had one.`,
+  ];
+  if (orphaned > 0) {
+    messages.push(`${orphaned} not found in this graph.`);
+  }
+  renderToast({
+    id: "core-title-backfill",
+    intent: orphaned > 0 ? "warning" : "success",
+    content: messages.join(" "),
+  });
+};
+
 const getAllMissingOrNewDiscourseNodes = async ({
   supabaseClient,
   spaceId,
@@ -880,9 +915,12 @@ const getAllMissingOrNewDiscourseNodes = async ({
   spaceId: number;
   since: number | undefined;
   nodeTypes: DiscourseNode[];
-}): Promise<RoamDiscourseNodeData[]> => {
+}): Promise<{
+  nodes: RoamDiscourseNodeData[];
+  coreTitleBackfill: CoreTitleBackfill | null;
+}> => {
   const allNodes = await getAllDiscourseNodesSince(undefined, nodeTypes);
-  if (since === undefined) return allNodes;
+  if (since === undefined) return { nodes: allNodes, coreTitleBackfill: null };
   const newNodes = await getAllDiscourseNodesSince(since, nodeTypes);
   const existingContentIdsReq = await getAllPages(
     supabaseClient
@@ -896,7 +934,7 @@ const getAllMissingOrNewDiscourseNodes = async ({
   const existingConceptIdsReq = await getAllPages(
     supabaseClient
       .from("my_concepts")
-      .select("source_local_id")
+      .select(CORE_TITLE_PROBE_SELECT)
       .eq("space_id", spaceId)
       .eq("is_relation", false)
       .eq("is_schema", false)
@@ -911,10 +949,16 @@ const getAllMissingOrNewDiscourseNodes = async ({
     ),
     ...newNodes.map((n) => n.source_local_id),
   ]);
-  return [
-    ...newNodes,
-    ...allNodes.filter((n) => !existingIds.has(n.source_local_id)),
-  ];
+  return {
+    nodes: [
+      ...newNodes,
+      ...allNodes.filter((n) => !existingIds.has(n.source_local_id)),
+    ],
+    coreTitleBackfill: buildCoreTitleBackfill({
+      conceptRows: existingConceptIdsReq,
+      localNodes: allNodes,
+    }),
+  };
 };
 
 const getSharedNodeInstanceSourceLocalIds = async ({
@@ -1209,21 +1253,28 @@ export const createOrUpdateDiscourseEmbedding = async (
       (n) => n.backedBy === "user",
     );
 
-    const changedNodeInstances = await measureSyncPhase({
-      phase: isInitialSync
-        ? "getAllMissingOrNewDiscourseNodes"
-        : "getAllDiscourseNodesSince",
-      phases,
-      operation: () =>
-        isInitialSync
-          ? getAllMissingOrNewDiscourseNodes({
-              supabaseClient: activeSupabaseClient,
-              spaceId: activeContext.spaceId,
-              since: sinceTime,
-              nodeTypes: allDgNodeTypes,
-            })
-          : getAllDiscourseNodesSince(sinceTime, allDgNodeTypes),
-    });
+    const { nodes: changedNodeInstances, coreTitleBackfill } =
+      await measureSyncPhase({
+        phase: isInitialSync
+          ? "getAllMissingOrNewDiscourseNodes"
+          : "getAllDiscourseNodesSince",
+        phases,
+        operation: async () =>
+          isInitialSync
+            ? getAllMissingOrNewDiscourseNodes({
+                supabaseClient: activeSupabaseClient,
+                spaceId: activeContext.spaceId,
+                since: sinceTime,
+                nodeTypes: allDgNodeTypes,
+              })
+            : {
+                nodes: await getAllDiscourseNodesSince(
+                  sinceTime,
+                  allDgNodeTypes,
+                ),
+                coreTitleBackfill: null,
+              },
+      });
     const sharedSourceLocalIds = await measureSyncPhase({
       phase: "getSharedNodeInstanceSourceLocalIds",
       phases,
@@ -1238,6 +1289,16 @@ export const createOrUpdateDiscourseEmbedding = async (
           sharedSourceLocalIds.has(node.source_local_id),
         )
       : changedNodeInstances;
+    const nodesToBackfillCoreTitle = (
+      coreTitleBackfill?.nodesToBackfill ?? []
+    ).filter(
+      (node) =>
+        !sharedNodesOnlySync || sharedSourceLocalIds.has(node.source_local_id),
+    );
+    const conceptNodesToSync = mergeNodesBySourceLocalId(
+      nodeInstancesToSync,
+      nodesToBackfillCoreTitle,
+    );
     const sharedSourceLocalIdsToBackfill = await measureSyncPhase({
       phase: "getSharedSourceLocalIdsMissingFullContent",
       phases,
@@ -1316,7 +1377,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       phases,
       operation: () =>
         convertDgToSupabaseConcepts({
-          nodesSince: nodeInstancesToSync,
+          nodesSince: conceptNodesToSync,
           since: sinceTime,
           allNodeTypes: allDgNodeTypes,
           sharedNodeTypeIds,
@@ -1324,6 +1385,13 @@ export const createOrUpdateDiscourseEmbedding = async (
           context: activeContext,
         }),
     });
+    if (coreTitleBackfill !== null) {
+      reportCoreTitleBackfill({
+        backfilled: nodesToBackfillCoreTitle.length,
+        skipped: coreTitleBackfill.withCoreTitleCount,
+        orphaned: coreTitleBackfill.orphanedIds.length,
+      });
+    }
     await measureSyncPhase({
       phase: "cleanupOrphanedNodes",
       phases,
