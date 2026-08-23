@@ -36,6 +36,15 @@ type PublishDependencies = {
   getPackageVersion?: () => string;
 };
 
+type GitHubClientConstructor = new (options: {
+  authStrategy: unknown;
+  auth: {
+    appId: number;
+    privateKey: string;
+    installationId: number;
+  };
+}) => GitHubClient;
+
 const getVersion = (root = "."): string => {
   const filename = path.join(root, "package.json");
   const json = fs.existsSync(filename)
@@ -90,9 +99,15 @@ async function getCurrentCommitHash(): Promise<string> {
 }
 
 const createGitHubClient = (): GitHubClient => {
-  // Module configuration in Roam does not allow ESM imports for these packages.
-  const { Octokit } = require("@octokit/core");
-  const { createAppAuth } = require("@octokit/auth-app");
+  // Roam's script module configuration does not support ESM imports here.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Octokit } = require("@octokit/core") as {
+    Octokit: GitHubClientConstructor;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createAppAuth } = require("@octokit/auth-app") as {
+    createAppAuth: unknown;
+  };
 
   return new Octokit({
     authStrategy: createAppAuth,
