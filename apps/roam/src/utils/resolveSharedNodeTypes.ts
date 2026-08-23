@@ -3,11 +3,9 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Tables } from "@repo/database/dbTypes";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
 import { createDiscourseNodeType } from "~/components/settings/utils/accessors";
-import getDiscourseNodes, {
-  excludeDefaultNodes,
-  type DiscourseNode,
-} from "./getDiscourseNodes";
+import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import internalError from "./internalError";
+import refreshConfigTree from "./refreshConfigTree";
 
 const SCHEMA_COLUMNS =
   "format:literal_content->>format, id, name, source_data_format:literal_content->source_data->>format, source_local_id";
@@ -26,7 +24,7 @@ type SharedNodeSchema = Pick<
 const findOrCreateNodeType = async (
   schema: SharedNodeSchema,
 ): Promise<DiscourseNode | undefined> => {
-  const localNodeTypes = getDiscourseNodes().filter(excludeDefaultNodes);
+  const localNodeTypes = getDiscourseNodes();
   const matchedById = localNodeTypes.find(
     (nodeType) => nodeType.type === schema.source_local_id,
   );
@@ -37,15 +35,17 @@ const findOrCreateNodeType = async (
   if (matchedByName) return matchedByName;
   if (!schema.name || !schema.source_local_id) return undefined;
 
+  const nodeType = await createDiscourseNodeType({
+    text: schema.name,
+    shortcut: "",
+    format: schema.source_data_format || schema.format || "",
+    uid: schema.source_local_id,
+  });
+  refreshConfigTree();
   posthog.capture("Discourse Node: Type Created From Import", {
     label: schema.name,
   });
-  return createDiscourseNodeType({
-    text: schema.name,
-    shortcut: "",
-    format: schema.format ?? schema.source_data_format ?? "",
-    uid: schema.source_local_id,
-  });
+  return nodeType;
 };
 
 export const resolveSharedNodeTypes = async ({
@@ -54,7 +54,7 @@ export const resolveSharedNodeTypes = async ({
 }: {
   client: DGSupabaseClient;
   sharedNodes: SharedNode[];
-}): Promise<Map<string, DiscourseNode>> => {
+}): Promise<Map<number, DiscourseNode>> => {
   const schemaIds = [...new Set(sharedNodes.map(({ schemaId }) => schemaId))];
   const { data, error } = await client
     .from("my_concepts")
@@ -69,7 +69,7 @@ export const resolveSharedNodeTypes = async ({
       context: { operation: RESOLVE_ERROR_OPERATION, schemaIds },
       sendEmail: false,
     });
-    return new Map<string, DiscourseNode>();
+    return new Map<number, DiscourseNode>();
   }
 
   const nodeTypeBySchemaId = new Map<number, DiscourseNode>();
@@ -92,10 +92,5 @@ export const resolveSharedNodeTypes = async ({
     }
   }
 
-  return new Map(
-    sharedNodes.flatMap((sharedNode): [string, DiscourseNode][] => {
-      const nodeType = nodeTypeBySchemaId.get(sharedNode.schemaId);
-      return nodeType ? [[sharedNode.rid, nodeType]] : [];
-    }),
-  );
+  return nodeTypeBySchemaId;
 };

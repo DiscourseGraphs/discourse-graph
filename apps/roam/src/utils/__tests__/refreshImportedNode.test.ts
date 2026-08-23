@@ -121,7 +121,7 @@ describe("refreshImportedNode", () => {
 
   it("passes the resolved node type to the materializer", async () => {
     mockedResolveSharedNodeTypes.mockResolvedValue(
-      new Map([[sharedNode.rid, NODE_TYPE]]),
+      new Map([[sharedNode.schemaId, NODE_TYPE]]),
     );
 
     await refreshImportedNode({ pageUid: PAGE_UID });

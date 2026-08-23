@@ -320,9 +320,9 @@ export const materializeSharedNode = async ({
     sourceNodeRid: sharedNode.rid,
   };
   const pageTitle =
-    sharedNode.coreTitle && nodeType?.format
+    (sharedNode.coreTitle && nodeType
       ? decorateTitle(nodeType.format, sharedNode.coreTitle)
-      : validated.title;
+      : null) ?? validated.title;
 
   let importedPageUid: string | null;
   let storedIdentity: ImportedSourceIdentity | undefined;

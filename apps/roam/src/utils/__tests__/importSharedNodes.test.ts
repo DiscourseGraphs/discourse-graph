@@ -109,9 +109,12 @@ describe("importSharedNodes", () => {
   });
 
   it("resolves node types once and gives each node the one for its schema", async () => {
-    const sharedNodes = ["node-1", "node-2"].map(makeSharedNode);
+    const sharedNodes = [
+      makeSharedNode("node-1"),
+      { ...makeSharedNode("node-2"), schemaId: 300 },
+    ];
     mockedResolveSharedNodeTypes.mockResolvedValue(
-      new Map([[sharedNodes[0].rid, NODE_TYPE]]),
+      new Map([[sharedNodes[0].schemaId, NODE_TYPE]]),
     );
     mockedMaterializeSharedNode
       .mockResolvedValueOnce(successResult(sharedNodes[0], "created"))

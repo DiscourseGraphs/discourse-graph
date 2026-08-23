@@ -48,14 +48,14 @@ export const refreshImportedNode = async ({
         message: `The source of "${title}" is no longer shared with your groups, so it cannot be refreshed.`,
       };
 
-    const nodeTypesByRid = await resolveSharedNodeTypes({
+    const nodeTypesBySchemaId = await resolveSharedNodeTypes({
       client,
       sharedNodes: [sharedNode],
     });
     const result = await materializeSharedNode({
       client,
       sharedNode,
-      nodeType: nodeTypesByRid.get(sharedNode.rid),
+      nodeType: nodeTypesBySchemaId.get(sharedNode.schemaId),
       force: true,
     });
     if (!result.success) {

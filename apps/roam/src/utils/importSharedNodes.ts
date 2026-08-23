@@ -29,14 +29,17 @@ export const importSharedNodes = async ({
   sharedNodes: SharedNode[];
   onProgress: (current: number, total: number) => void;
 }): Promise<SharedNodeImportItem[]> => {
-  const nodeTypesByRid = await resolveSharedNodeTypes({ client, sharedNodes });
+  const nodeTypesBySchemaId = await resolveSharedNodeTypes({
+    client,
+    sharedNodes,
+  });
   const items: SharedNodeImportItem[] = [];
   for (const sharedNode of sharedNodes) {
     try {
       const result = await materializeSharedNode({
         client,
         sharedNode,
-        nodeType: nodeTypesByRid.get(sharedNode.rid),
+        nodeType: nodeTypesBySchemaId.get(sharedNode.schemaId),
       });
       items.push(
         result.success

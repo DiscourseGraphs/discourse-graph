@@ -395,7 +395,7 @@ describe("materializeSharedNode", () => {
     });
   });
 
-  it("decorates a format whose source placeholder has no value yet", async () => {
+  it("keeps the incoming title when the format has a placeholder core_title cannot fill", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
 
     const result = await materializeSharedNode({
@@ -406,7 +406,7 @@ describe("materializeSharedNode", () => {
 
     expect(result.success).toBe(true);
     expect(pageFromMarkdown).toHaveBeenCalledWith({
-      page: { title: `${DECORATED_TITLE} - `, uid: GENERATED_PAGE_UID },
+      page: { title: decoratedSharedNode.title, uid: GENERATED_PAGE_UID },
       "markdown-string": MATERIALIZED_MARKDOWN,
     });
   });

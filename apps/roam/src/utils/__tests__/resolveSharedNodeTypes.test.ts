@@ -6,21 +6,22 @@ import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
 import internalError from "~/utils/internalError";
+import refreshConfigTree from "~/utils/refreshConfigTree";
 import { resolveSharedNodeTypes } from "~/utils/resolveSharedNodeTypes";
 
-vi.mock("posthog-js", () => ({ default: { capture: vi.fn() } }));
+const mockedCapture = vi.hoisted(() => vi.fn());
+vi.mock("posthog-js", () => ({ default: { capture: mockedCapture } }));
 vi.mock("~/components/settings/utils/accessors", () => ({
   createDiscourseNodeType: vi.fn(),
 }));
-vi.mock("~/utils/getDiscourseNodes", () => ({
-  default: vi.fn(),
-  excludeDefaultNodes: (node: DiscourseNode) => node.backedBy !== "default",
-}));
+vi.mock("~/utils/getDiscourseNodes", () => ({ default: vi.fn() }));
 vi.mock("~/utils/internalError", () => ({ default: vi.fn() }));
+vi.mock("~/utils/refreshConfigTree", () => ({ default: vi.fn() }));
 
 const mockedCreateDiscourseNodeType = vi.mocked(createDiscourseNodeType);
 const mockedGetDiscourseNodes = vi.mocked(getDiscourseNodes);
 const mockedInternalError = vi.mocked(internalError);
+const mockedRefreshConfigTree = vi.mocked(refreshConfigTree);
 
 const SCHEMA_ID = 200;
 const REMOTE_TYPE_UID = "node_hs6r0kqxvbmc3l9ywtd2fp";
@@ -119,11 +120,12 @@ describe("resolveSharedNodeTypes", () => {
 
     await expect(
       resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
-    ).resolves.toEqual(new Map([[sharedNode.rid, importedType]]));
+    ).resolves.toEqual(new Map([[SCHEMA_ID, importedType]]));
     expect(builder.eq).toHaveBeenCalledWith("is_schema", true);
     expect(builder.eq).toHaveBeenCalledWith("is_relation", false);
     expect(builder.in).toHaveBeenCalledWith("id", [SCHEMA_ID]);
     expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
+    expect(mockedRefreshConfigTree).not.toHaveBeenCalled();
   });
 
   it("matches the local node type by name when no id matches", async () => {
@@ -132,7 +134,7 @@ describe("resolveSharedNodeTypes", () => {
 
     await expect(
       resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
-    ).resolves.toEqual(new Map([[sharedNode.rid, evidenceType]]));
+    ).resolves.toEqual(new Map([[SCHEMA_ID, evidenceType]]));
     expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
   });
 
@@ -143,20 +145,25 @@ describe("resolveSharedNodeTypes", () => {
 
     await expect(
       resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
-    ).resolves.toEqual(new Map([[sharedNode.rid, createdType]]));
+    ).resolves.toEqual(new Map([[SCHEMA_ID, createdType]]));
     expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith({
       text: "Evidence",
       shortcut: "",
       format: FORMAT,
       uid: REMOTE_TYPE_UID,
     });
+    expect(mockedRefreshConfigTree).toHaveBeenCalledTimes(1);
+    expect(mockedCapture).toHaveBeenCalledWith(
+      "Discourse Node: Type Created From Import",
+      { label: "Evidence" },
+    );
   });
 
-  it("reads the format Obsidian nests under source_data", async () => {
+  it("prefers the format Obsidian nests under source_data", async () => {
     const { client } = makeClient({
       rows: [
         schemaRow({
-          format: null,
+          format: "EVD - {content}",
           source_data_format: "[[EVD]] - {content} - {Source}",
         }),
       ],
@@ -181,18 +188,16 @@ describe("resolveSharedNodeTypes", () => {
     );
   });
 
-  it("never matches the default Page and Block types", async () => {
+  it("resolves a schema named like a built-in type to the built-in instead of shadowing it", async () => {
     const { client } = makeClient({
-      rows: [schemaRow({ name: "Page", source_local_id: "page-node" })],
+      rows: [schemaRow({ name: "Page", source_local_id: "remote-page-type" })],
     });
     mockedGetDiscourseNodes.mockReturnValue([pageType]);
-    mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
 
-    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
-
-    expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith(
-      expect.objectContaining({ text: "Page", uid: "page-node" }),
-    );
+    await expect(
+      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
+    ).resolves.toEqual(new Map([[SCHEMA_ID, pageType]]));
+    expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
   });
 
   it("leaves out a node whose schema row is not visible", async () => {
@@ -240,6 +245,8 @@ describe("resolveSharedNodeTypes", () => {
     expect(mockedInternalError).toHaveBeenCalledWith(
       expect.objectContaining({ sendEmail: false }),
     );
+    expect(mockedRefreshConfigTree).not.toHaveBeenCalled();
+    expect(mockedCapture).not.toHaveBeenCalled();
   });
 
   it("reports a failed schema query and leaves every node undecorated", async () => {
