@@ -3,9 +3,6 @@ import * as path from "path";
 import * as fs from "fs";
 import { exec } from "child_process";
 import util from "util";
-// Module configuration in roam does not allow ESM import, we need to use require here.
-const { Octokit } = require("@octokit/core");
-const { createAppAuth } = require("@octokit/auth-app");
 
 dotenv.config();
 
@@ -19,6 +16,24 @@ type ExtensionMetadata = {
   source_commit: string;
   source_subdir?: string;
   stripe_account?: string;
+};
+
+type GitHubResponse = {
+  data: unknown;
+  status: number;
+};
+
+export type GitHubClient = {
+  request: (
+    route: string,
+    parameters: Record<string, unknown>,
+  ) => Promise<GitHubResponse>;
+};
+
+type PublishDependencies = {
+  octokit?: GitHubClient;
+  getCommitHash?: () => Promise<string>;
+  getPackageVersion?: () => string;
 };
 
 const getVersion = (root = "."): string => {
@@ -74,7 +89,100 @@ async function getCurrentCommitHash(): Promise<string> {
   return await execGitCommand("git rev-parse HEAD");
 }
 
-const publish = async () => {
+const createGitHubClient = (): GitHubClient => {
+  // Module configuration in Roam does not allow ESM imports for these packages.
+  const { Octokit } = require("@octokit/core");
+  const { createAppAuth } = require("@octokit/auth-app");
+
+  return new Octokit({
+    authStrategy: createAppAuth,
+    auth: {
+      appId: parseInt(getRequiredEnvVar("APP_ID"), 10),
+      privateKey: getRequiredEnvVar("APP_PRIVATE_KEY"),
+      installationId: 59416220,
+    },
+  });
+};
+
+const getGitHubApiErrorDetails = (error: unknown): string => {
+  if (!error || typeof error !== "object") return String(error);
+
+  const apiError = error as {
+    message?: string;
+    status?: number;
+    response?: { data?: { message?: string } };
+  };
+  const message = apiError.response?.data?.message || apiError.message;
+
+  if (apiError.status && message) return `${apiError.status}: ${message}`;
+  if (apiError.status) return String(apiError.status);
+  return message || "Unknown GitHub API error";
+};
+
+export const synchronizeFork = async ({
+  octokit,
+  owner,
+  repo,
+}: {
+  octokit: GitHubClient;
+  owner: string;
+  repo: string;
+}): Promise<void> => {
+  let defaultBranch: string;
+
+  try {
+    const response = await octokit.request("GET /repos/{owner}/{repo}", {
+      owner,
+      repo,
+    });
+    defaultBranch =
+      (response.data as { default_branch?: string }).default_branch || "";
+  } catch (error) {
+    throw new Error(
+      `Could not determine the default branch for ${owner}/${repo}: GitHub API returned ${getGitHubApiErrorDetails(error)}. Verify the GitHub App can read the fork, then rerun the publish workflow. Metadata was not updated.`,
+    );
+  }
+
+  if (!defaultBranch) {
+    throw new Error(
+      `Could not determine the default branch for ${owner}/${repo}: the GitHub API response did not include default_branch. Metadata was not updated.`,
+    );
+  }
+
+  console.log(`Synchronizing ${owner}/${repo}:${defaultBranch} with upstream`);
+  try {
+    await octokit.request("POST /repos/{owner}/{repo}/merge-upstream", {
+      owner,
+      repo,
+      branch: defaultBranch,
+    });
+  } catch (error) {
+    const status =
+      error && typeof error === "object" && "status" in error
+        ? (error as { status?: number }).status
+        : undefined;
+
+    if (status === 409) {
+      throw new Error(
+        `Could not synchronize ${owner}/${repo}:${defaultBranch} with upstream because the branches have conflicts. Resolve the fork conflicts in GitHub, then rerun the publish workflow. Metadata was not updated.`,
+      );
+    }
+
+    throw new Error(
+      `Could not synchronize ${owner}/${repo}:${defaultBranch} with upstream: GitHub API returned ${getGitHubApiErrorDetails(error)}. Verify the GitHub App permissions and fork state, then rerun the publish workflow. Metadata was not updated.`,
+    );
+  }
+
+  console.log(
+    `${owner}/${repo}:${defaultBranch} is synchronized with upstream`,
+  );
+};
+
+export const publish = async ({
+  octokit = createGitHubClient(),
+  getCommitHash = getCurrentCommitHash,
+  getPackageVersion = getVersion,
+}: PublishDependencies = {}): Promise<void> => {
   process.env = {
     ...process.env,
     NODE_ENV: "production",
@@ -83,16 +191,13 @@ const publish = async () => {
   const publishRepo = "roam-depot";
   const destPath = `extensions/${username}/discourse-graph.json`;
 
-  const octokit = new Octokit({
-    authStrategy: createAppAuth,
-    auth: {
-      appId: parseInt(getRequiredEnvVar("APP_ID"), 10),
-      privateKey: getRequiredEnvVar("APP_PRIVATE_KEY"),
-      installationId: 59416220,
-    },
+  await synchronizeFork({
+    octokit,
+    owner: username,
+    repo: publishRepo,
   });
 
-  const commitHash = await getCurrentCommitHash();
+  const commitHash = await getCommitHash();
   console.log(`Current commit hash: ${commitHash}`);
 
   const metadata: ExtensionMetadata = {
@@ -132,7 +237,7 @@ const publish = async () => {
 
   console.log("Publishing ...");
   try {
-    const version = getVersion();
+    const version = getPackageVersion();
     const message = "Release " + version;
 
     const response = await octokit.request(
