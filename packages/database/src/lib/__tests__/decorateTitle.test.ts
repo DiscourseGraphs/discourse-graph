@@ -15,17 +15,21 @@ describe("decorateTitle", () => {
     expect(decorateTitle("QUE - {Content}", "why")).toBe("QUE - why");
   });
 
-  it("substitutes the empty string for other placeholders", () => {
+  it("returns null for a format with placeholders the core title cannot fill", () => {
     expect(
       decorateTitle("[[EVD]] - {content} - {Source}", "REM sleep and recall"),
-    ).toBe("[[EVD]] - REM sleep and recall - ");
+    ).toBeNull();
   });
 
-  it("returns the empty string for an empty format", () => {
-    expect(decorateTitle("", "anything")).toBe("");
+  it("returns null for a format without a content placeholder", () => {
+    expect(decorateTitle("", "anything")).toBeNull();
+    expect(decorateTitle("CLM", "anything")).toBeNull();
   });
 
-  it("keeps a core title that contains the separator", () => {
+  it("keeps a core title that contains the separator or replacement patterns", () => {
     expect(decorateTitle("CLM - {content}", "a - b")).toBe("CLM - a - b");
+    expect(decorateTitle("CLM - {content}", "costs $& more")).toBe(
+      "CLM - costs $& more",
+    );
   });
 });

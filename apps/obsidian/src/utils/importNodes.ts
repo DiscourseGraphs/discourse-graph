@@ -1376,11 +1376,11 @@ export const importSelectedNodes = async ({
 
         const localNodeType = getNodeTypeById(plugin, mappedNodeTypeId);
         const coreTitle = nodeImportInfo?.coreTitle;
-        const titleForFileName =
-          coreTitle !== undefined && localNodeType?.format
+        const decoratedTitle =
+          coreTitle !== undefined && localNodeType
             ? decorateTitle(localNodeType.format, coreTitle)
-            : fileName;
-        const sanitizedFileName = sanitizeFileName(titleForFileName);
+            : null;
+        const sanitizedFileName = sanitizeFileName(decoratedTitle ?? fileName);
         let finalFilePath: string;
 
         if (existingFile) {
