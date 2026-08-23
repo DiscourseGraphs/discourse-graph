@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "publish": "tsx scripts/publish.ts",
+    "release:preflight": "tsx scripts/checkReleasePreflight.ts",
     "playwright:load-extension": "tsx scripts/playwright/loadExtension.ts",
     "playwright:open": "tsx scripts/playwright/openRoam.ts",
     "check-types": "tsc --noEmit --skipLibCheck",

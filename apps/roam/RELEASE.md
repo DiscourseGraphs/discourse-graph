@@ -55,14 +55,21 @@ When the version bump and changelog are merged:
 
 1. Run the `Update Roam Extension Metadata` GitHub Action
    (`.github/workflows/roam-release.yaml`) from `main`.
-2. Confirm the workflow succeeds.
-3. The workflow updates Roam Depot metadata and moves the Linear release to
+2. The workflow stops before changing Linear or Roam Depot if it is not running
+   from `main`, if `apps/roam/CHANGELOG.md` has no section matching the version in
+   `apps/roam/package.json`, or if that section has no release notes. Follow the
+   error annotation, merge the missing preparation to `main`, and rerun the
+   workflow from `main`.
+3. Confirm the workflow succeeds and review its job summary for the submitted
+   version, source commit, Linear release, Roam Depot comparison, and remaining
+   manual steps.
+4. The workflow updates Roam Depot metadata and moves the Linear release to
    `Sent to Roam for Review`.
-4. Treat the release as frozen in Linear.
-5. Create the next Roam Linear release, move it to `In Progress`, and bump
+5. Treat the release as frozen in Linear.
+6. Open the upstream Roam Depot PR from the comparison link in the job summary.
+7. Create the next Roam Linear release, move it to `In Progress`, and bump
    `apps/roam/package.json` to that next version in a follow-up PR. This keeps
    the alpha branch and release metadata aligned with the active release line.
-6. Cut the Roam Depot PR to Roam.
 
 At this point the release is submitted for Roam review, but it is not finished.
 
@@ -94,10 +101,14 @@ version.
 `roam-release.yaml`
 
 - Runs manually when publishing a prepared release.
+- Requires the workflow to run from `main` with a matching, non-empty changelog
+  section for the package version before any release mutation.
 - Builds Roam.
 - Reads the release version from `apps/roam/package.json`.
 - Updates Roam Depot metadata.
 - Moves the Linear release to `Sent to Roam for Review`.
+- Writes a successful job summary with release links and the remaining manual
+  steps.
 
 `roam-release-complete.yaml`
 
