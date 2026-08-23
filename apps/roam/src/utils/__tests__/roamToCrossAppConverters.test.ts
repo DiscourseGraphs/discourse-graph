@@ -169,6 +169,11 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
   const EVIDENCE_SCHEMA = nodeSchema({
     type: "schema-1",
   });
+  const SOURCE_SCHEMA = nodeSchema({
+    text: "Source",
+    type: "src-node",
+    format: "@{content}",
+  });
   // Roam-like lookup: only existing pages resolve to a uid.
   const PAGE_UIDS: Record<string, string> = {
     "@sun2019direct": "source-1",
@@ -183,7 +188,7 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
   });
 
   it("resolves the source page from the title into a sourceDocument slot", async () => {
-    mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA]);
+    mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
     const node = await convertRow({
       ...baseRow,
       ":node/title": "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
@@ -191,8 +196,33 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
     expect(node.slots).toEqual({ sourceDocument: "source-1" });
   });
 
+  // Leniency on the target type: see sourceSlot.ts
+  it("accepts a source that is a node of another type", async () => {
+    mockedGetDiscourseNodes.mockReturnValue([
+      EVIDENCE_SCHEMA,
+      SOURCE_SCHEMA,
+      nodeSchema({ text: "Claim", type: "clm", format: "[[CLM]] - {content}" }),
+    ]);
+    mockedGetPageUidByPageTitle.mockImplementation(() => "claim-1");
+    const node = await convertRow({
+      ...baseRow,
+      ":node/title": "[[EVD]] - REM sleep aids recall - [[CLM]] - a claim",
+    });
+    expect(node.slots).toEqual({ sourceDocument: "claim-1" });
+  });
+
+  it("omits slots when the source page is not a discourse node", async () => {
+    mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
+    mockedGetPageUidByPageTitle.mockImplementation(() => "some-page");
+    const node = await convertRow({
+      ...baseRow,
+      ":node/title": "[[EVD]] - REM sleep aids recall - [[a plain page]]",
+    });
+    expect(node.slots).toBeUndefined();
+  });
+
   it("omits slots when the source page does not exist", async () => {
-    mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA]);
+    mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
     const node = await convertRow({
       ...baseRow,
       ":node/title": "[[EVD]] - REM sleep aids recall - [[@unknownref]]",
@@ -201,7 +231,7 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
   });
 
   it("skips sources containing a slash, even when the page exists", async () => {
-    mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA]);
+    mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
     const node = await convertRow({
       ...baseRow,
       ":node/title":
@@ -214,6 +244,7 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
   it("omits slots when the schema format has no source placeholder", async () => {
     mockedGetDiscourseNodes.mockReturnValue([
       nodeSchema({ type: "schema-1", format: "[[CLM]] - {content}" }),
+      SOURCE_SCHEMA,
     ]);
     const node = await convertRow({
       ...baseRow,
