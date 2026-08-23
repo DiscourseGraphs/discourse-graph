@@ -1,5 +1,5 @@
 import { App, setIcon } from "obsidian";
-import type { ReactElement } from "react";
+import type { KeyboardEvent, ReactElement } from "react";
 import { SearchDropdown } from "~/components/SearchDropdown";
 import {
   SORT_OPTIONS,
@@ -15,6 +15,16 @@ const DIRECTIONS: { direction: SortDirection; label: string }[] = [
   { direction: "asc", label: "Asc" },
   { direction: "desc", label: "Desc" },
 ];
+
+// Rows are divs, so Enter and Space have to be wired up the way a button gets them free.
+const activateOnKey = (
+  event: KeyboardEvent<HTMLDivElement>,
+  activate: () => void,
+): void => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  activate();
+};
 
 const getDirectionIconName = (direction: SortDirection): string =>
   direction === "asc" ? "arrow-up-narrow-wide" : "arrow-down-wide-narrow";
@@ -32,7 +42,9 @@ const SortOptionRow = ({
   <div
     role="menuitemradio"
     aria-checked={isSelected}
+    tabIndex={0}
     onClick={onSelect}
+    onKeyDown={(event) => activateOnKey(event, onSelect)}
     onMouseDown={(event) => event.preventDefault()}
     className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm ${
       isSelected
@@ -65,8 +77,10 @@ const DirectionToggle = ({
         key={direction}
         role="button"
         aria-pressed={direction === sortDirection}
+        tabIndex={0}
         title={getSortDirectionLabel({ sortKey, direction })}
         onClick={() => onSelect(direction)}
+        onKeyDown={(event) => activateOnKey(event, () => onSelect(direction))}
         onMouseDown={(event) => event.preventDefault()}
         className={`flex flex-1 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-sm ${
           direction === sortDirection

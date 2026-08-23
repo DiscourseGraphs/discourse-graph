@@ -78,12 +78,7 @@ export const SearchDropdown = ({
       >
         <span
           className="flex items-center"
-          // Emptied first: this icon changes with the control's state and `setIcon` appends.
-          ref={(el) => {
-            if (!el) return;
-            el.empty();
-            setIcon(el, iconName);
-          }}
+          ref={(el) => (el && setIcon(el, iconName)) || undefined}
         />
         {badgeCount > 0 && (
           <span
