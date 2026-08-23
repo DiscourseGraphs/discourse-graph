@@ -3,6 +3,31 @@
 This document describes the current Roam release process with Linear Releases,
 GitHub Actions, and Roam Depot.
 
+## Operator Checklist
+
+This runbook is authoritative. Use a Linear release checklist issue to track
+ownership and completion of each step, while following the ordering here.
+
+- [ ] Prepare the current release: confirm its scope and version, and make sure
+      the Discourse Graphs Roam Depot fork is clean and current with upstream.
+- [ ] Generate user-facing release notes from the issues in the Linear release
+      with the Linear Agent, and publish a Linear Pulse/project update if needed.
+- [ ] Verify `apps/roam/package.json` has the current release version and
+      `apps/roam/CHANGELOG.md` has the final notes, with both changes merged to
+      `main`.
+- [ ] From `main`, run the `Update Roam Extension Metadata` GitHub Action and
+      confirm it submits the current version successfully and moves the Linear
+      release to `Sent to Roam for Review`.
+- [ ] Only after that submission succeeds, create the next Linear release, move
+      it to `In Progress`, and bump `apps/roam/package.json` to the next version in
+      a follow-up PR. Do not bump to the next version before submission.
+- [ ] Open the upstream Roam Depot PR for the submitted version.
+- [ ] After Roam accepts or publishes the extension, complete the Linear release
+      as `Released`; when using the manual workflow, run the
+      `Complete Roam Linear Release` GitHub Action with the submitted version.
+
+The detailed sections below provide the supporting instructions for each step.
+
 ## Release Tracking Model
 
 Roam uses a scheduled Linear release pipeline. At any time, there should be one
