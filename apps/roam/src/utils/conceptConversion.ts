@@ -1,6 +1,4 @@
-import { InputTextNode } from "roamjs-components/types";
 import getBlockProps from "./getBlockProps";
-import { DiscourseNode } from "./getDiscourseNodes";
 import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
 import type { SupabaseContext } from "~/utils/supabaseContext";
@@ -56,69 +54,6 @@ const getNodeExtraData = (
     page_uid,
   };
   /* eslint-enable @typescript-eslint/naming-convention */
-};
-
-const indent = (s: string): string =>
-  s
-    .split("\n")
-    .map((l) => "   " + l)
-    .join("\n") + "\n";
-
-const templateToText = (template: InputTextNode[]): string =>
-  template
-    .filter((itn) => !itn.text.startsWith("{{"))
-    .map(
-      (itn) =>
-        `* ${itn.text}\n${itn.children?.length ? indent(templateToText(itn.children)) : ""}`,
-    )
-    .join("");
-
-export const discourseNodeSchemaToLocalConcept = (
-  context: SupabaseContext,
-  node: DiscourseNode,
-): LocalConceptDataInput => {
-  const titleParts = node.text.split("/");
-  const label = titleParts[titleParts.length - 1] ?? node.text;
-  const result: LocalConceptDataInput = {
-    space_id: context.spaceId,
-    name: node.text,
-    source_local_id: node.type,
-    is_schema: true,
-    literal_content: {
-      label,
-    },
-    /* eslint-enable @typescript-eslint/naming-convention */
-    ...getNodeExtraData(node.type),
-  };
-  if (node.template !== undefined)
-    result.literal_content = {
-      label,
-      template: templateToText(node.template),
-    };
-  return result;
-};
-
-export const discourseNodeBlockToLocalConcept = (
-  context: SupabaseContext,
-  {
-    nodeUid,
-    schemaUid,
-    text,
-  }: {
-    nodeUid: string;
-    schemaUid: string;
-    text: string;
-  },
-): LocalConceptDataInput => {
-  return {
-    space_id: context.spaceId,
-    name: text,
-    source_local_id: nodeUid,
-    schema_represented_by_local_id: schemaUid,
-    is_schema: false,
-    /* eslint-enable @typescript-eslint/naming-convention */
-    ...getNodeExtraData(nodeUid),
-  };
 };
 
 const STANDARD_ROLES = ["source", "destination"];

@@ -34,7 +34,7 @@ const filterUndefinedArray = <T>(data: (T | undefined)[]): T[] =>
 
 const inlineCrossAppContentToDbContent = (
   content: InlineCrossAppContent | undefined,
-  variant: Enums<"ContentVariant">,
+  defaultVariant: Enums<"ContentVariant">,
 ): LocalContentDataInput | undefined => {
   if (content === undefined) return undefined;
   return filterUndefined<LocalContentDataInput>({
@@ -42,7 +42,7 @@ const inlineCrossAppContentToDbContent = (
     text: content.value,
     scale: content.scale || "document",
     content_type: content.contentType || "text/plain",
-    variant,
+    variant: content.variant || defaultVariant,
     created: content.createdAt?.toISOString(),
     last_modified: content.modifiedAt?.toISOString(),
     author_local_id: content.authorId,
@@ -52,10 +52,10 @@ const inlineCrossAppContentToDbContent = (
 
 export const crossAppNodeToDbContent = (
   node: CrossAppNode | undefined,
-  variant: "full" | "direct",
+  defaultVariant: "full" | "direct",
 ): LocalContentDataInput | undefined => {
   if (node === undefined) return undefined;
-  const content = node.content[variant];
+  const content = node.content[defaultVariant];
   if (content === undefined) return undefined;
   return inlineCrossAppContentToDbContent(
     {
@@ -64,7 +64,7 @@ export const crossAppNodeToDbContent = (
       modifiedAt: content.modifiedAt || node.modifiedAt,
       authorId: content.authorId || node.authorId,
     },
-    variant,
+    defaultVariant,
   );
 };
 
