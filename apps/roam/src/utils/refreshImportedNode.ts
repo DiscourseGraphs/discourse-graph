@@ -6,6 +6,7 @@ import {
   getErrorMessage,
   materializeSharedNode,
 } from "./materializeSharedNode";
+import { resolveSharedNodeTypes } from "./resolveSharedNodeTypes";
 import { getLoggedInClient } from "./supabaseContext";
 
 const REFRESH_ERROR_TYPE = "Imported node refresh failed";
@@ -47,9 +48,14 @@ export const refreshImportedNode = async ({
         message: `The source of "${title}" is no longer shared with your groups, so it cannot be refreshed.`,
       };
 
+    const nodeTypesByRid = await resolveSharedNodeTypes({
+      client,
+      sharedNodes: [sharedNode],
+    });
     const result = await materializeSharedNode({
       client,
       sharedNode,
+      nodeType: nodeTypesByRid.get(sharedNode.rid),
       force: true,
     });
     if (!result.success) {

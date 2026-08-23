@@ -4,6 +4,7 @@ import {
   getErrorMessage,
   materializeSharedNode,
 } from "./materializeSharedNode";
+import { resolveSharedNodeTypes } from "./resolveSharedNodeTypes";
 
 export type FailedSharedNodeImport = {
   sharedNode: SharedNode;
@@ -28,10 +29,15 @@ export const importSharedNodes = async ({
   sharedNodes: SharedNode[];
   onProgress: (current: number, total: number) => void;
 }): Promise<SharedNodeImportItem[]> => {
+  const nodeTypesByRid = await resolveSharedNodeTypes({ client, sharedNodes });
   const items: SharedNodeImportItem[] = [];
   for (const sharedNode of sharedNodes) {
     try {
-      const result = await materializeSharedNode({ client, sharedNode });
+      const result = await materializeSharedNode({
+        client,
+        sharedNode,
+        nodeType: nodeTypesByRid.get(sharedNode.rid),
+      });
       items.push(
         result.success
           ? {

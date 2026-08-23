@@ -14,6 +14,7 @@ const spaces: BuildArgs["spaces"] = [
 ];
 const nodes: BuildArgs["nodes"] = [
   {
+    core_title: "REM sleep and recall",
     is_schema: false,
     last_modified: "2026-06-14T12:00:00",
     schema_id: 200,
@@ -66,11 +67,13 @@ describe("buildSharedNodes", () => {
       {
         rid,
         sourceLocalId: "node-1",
+        schemaId: 200,
         spaceId: 20,
         spaceName: "Research vault",
         spaceUri: "obsidian:vault-a",
         platform: "Obsidian",
         title: "EVD - REM sleep and recall",
+        coreTitle: "REM sleep and recall",
         created: "2026-06-14T11:00:00.000Z",
         lastModified: "2026-06-14T15:00:00.000Z",
         authorId: 42,
@@ -89,7 +92,12 @@ describe("buildSharedNodes", () => {
       },
     ];
     const roamNodes: BuildArgs["nodes"] = [
-      { ...nodes[0]!, space_id: 30, source_local_id: "roam-uid-1" },
+      {
+        ...nodes[0]!,
+        core_title: "Sleep improves memory consolidation",
+        space_id: 30,
+        source_local_id: "roam-uid-1",
+      },
     ];
     const roamDirect: BuildArgs["directContents"] = [
       {
@@ -118,17 +126,26 @@ describe("buildSharedNodes", () => {
       {
         rid: "https://roamresearch.com/#/app/research-graph/roam-uid-1",
         sourceLocalId: "roam-uid-1",
+        schemaId: 200,
         spaceId: 30,
         spaceName: "Research graph",
         spaceUri: "https://roamresearch.com/#/app/research-graph",
         platform: "Roam",
         title: "CLM - Sleep improves memory consolidation",
+        coreTitle: "Sleep improves memory consolidation",
         created: "2026-06-14T11:00:00.000Z",
         lastModified: "2026-06-14T15:00:00.000Z",
         authorId: 42,
         directMetadata: null,
       },
     ]);
+  });
+
+  it("leaves the core title unset when the source published none", () => {
+    expect(
+      build({ nodesOverride: [{ ...nodes[0]!, core_title: null }] })[0]
+        ?.coreTitle,
+    ).toBeUndefined();
   });
 
   it("discovers a node without full content", () => {
@@ -263,11 +280,13 @@ describe("getSharedNodeByRid", () => {
     await expect(getSharedNodeByRid({ client, rid })).resolves.toEqual({
       rid,
       sourceLocalId: "node-1",
+      schemaId: 200,
       spaceId: 20,
       spaceName: "Research vault",
       spaceUri: "obsidian:vault-a",
       platform: "Obsidian",
       title: "EVD - REM sleep and recall",
+      coreTitle: "REM sleep and recall",
       created: "2026-06-14T11:00:00.000Z",
       lastModified: "2026-06-14T15:00:00.000Z",
       authorId: 42,

@@ -1090,13 +1090,16 @@ export const createDiscourseNodeType = async ({
   text,
   shortcut,
   format,
+  uid,
 }: {
   text: string;
   shortcut: string;
   format: string;
+  uid?: string;
 }): Promise<DiscourseNode> => {
   const pageUid = await createPage({
     title: `${DISCOURSE_NODE_PAGE_PREFIX}${text}`,
+    uid,
     tree: [
       { text: "Shortcut", children: [{ text: shortcut }] },
       { text: "Tag", children: [{ text: "" }] },

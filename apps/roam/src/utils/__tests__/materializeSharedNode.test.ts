@@ -49,9 +49,14 @@ const pageCreate = vi.fn();
 const pageDelete = vi.fn();
 const updatePage = vi.fn();
 
+const CORE_TITLE = "REM sleep and recall";
+const DECORATED_TITLE = "[[EVD]] - REM sleep and recall";
+const NODE_TYPE = { format: "[[EVD]] - {content}" };
+
 const sharedNode: SharedNode = {
   rid: "orn:obsidian.note:vault-a/node-1",
   sourceLocalId: "node-1",
+  schemaId: 200,
   spaceId: 20,
   spaceName: "Research vault",
   spaceUri: "obsidian:vault-a",
@@ -61,6 +66,11 @@ const sharedNode: SharedNode = {
   lastModified: "2026-06-14T15:00:00.000Z",
   authorId: 7,
   directMetadata: null,
+};
+
+const decoratedSharedNode: SharedNode = {
+  ...sharedNode,
+  coreTitle: CORE_TITLE,
 };
 
 const roamSharedNode: SharedNode = {
@@ -335,6 +345,126 @@ describe("materializeSharedNode", () => {
     expect(updatePage).toHaveBeenCalledWith({
       page: { uid: EXISTING_PAGE_UID, title: sharedNode.title },
     });
+  });
+
+  it("decorates the page title with the local node type format", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: decoratedSharedNode,
+      nodeType: NODE_TYPE,
+    });
+
+    expect(result.success).toBe(true);
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: DECORATED_TITLE, uid: GENERATED_PAGE_UID },
+      "markdown-string": MATERIALIZED_MARKDOWN,
+    });
+  });
+
+  it("keeps the incoming title when the source published no core title", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode,
+      nodeType: NODE_TYPE,
+    });
+
+    expect(result.success).toBe(true);
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: sharedNode.title, uid: GENERATED_PAGE_UID },
+      "markdown-string": MATERIALIZED_MARKDOWN,
+    });
+  });
+
+  it("keeps the incoming title when the local node type has no format", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: decoratedSharedNode,
+      nodeType: { format: "" },
+    });
+
+    expect(result.success).toBe(true);
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: sharedNode.title, uid: GENERATED_PAGE_UID },
+      "markdown-string": MATERIALIZED_MARKDOWN,
+    });
+  });
+
+  it("decorates a format whose source placeholder has no value yet", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: decoratedSharedNode,
+      nodeType: { format: "[[EVD]] - {content} - {Source}" },
+    });
+
+    expect(result.success).toBe(true);
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: `${DECORATED_TITLE} - `, uid: GENERATED_PAGE_UID },
+      "markdown-string": MATERIALIZED_MARKDOWN,
+    });
+  });
+
+  it("strips the Roam heading by the source title while decorating the page title", async () => {
+    const { client } = clientWithFullContent({
+      text: `# ${roamSharedNode.title}\n\n- REM sleep improves recall`,
+      contentType: "text/roam+markdown",
+    });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: { ...roamSharedNode, coreTitle: CORE_TITLE },
+      nodeType: NODE_TYPE,
+    });
+
+    expect(result.success).toBe(true);
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: DECORATED_TITLE, uid: GENERATED_PAGE_UID },
+      "markdown-string": "- REM sleep improves recall",
+    });
+  });
+
+  it("renames the imported page when decoration changes its title", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
+    mockedGetPageTitleByPageUid.mockReturnValue(sharedNode.title);
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: decoratedSharedNode,
+      nodeType: NODE_TYPE,
+    });
+
+    expect(result.success).toBe(true);
+    expect(updatePage).toHaveBeenCalledWith({
+      page: { uid: EXISTING_PAGE_UID, title: DECORATED_TITLE },
+    });
+  });
+
+  it("leaves an already decorated title untouched when refreshing", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
+    mockedGetPageTitleByPageUid.mockReturnValue(DECORATED_TITLE);
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: decoratedSharedNode,
+      nodeType: NODE_TYPE,
+      force: true,
+    });
+
+    expect(result).toMatchObject({ success: true, action: "updated" });
+    expect(updatePage).not.toHaveBeenCalled();
   });
 
   it("refuses to clobber a page that was not imported from this source", async () => {
