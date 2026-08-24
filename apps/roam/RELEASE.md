@@ -93,17 +93,17 @@ When the version bump and changelog are merged:
    manual steps.
 4. The workflow updates Roam Depot metadata and moves the Linear release to
    `Sent to Roam for Review`.
-4. Treat the release as frozen in Linear.
-5. Create the next Roam Linear release, move it to `In Progress`, and bump
+5. Treat the release as frozen in Linear.
+6. Create the next Roam Linear release, move it to `In Progress`, and bump
    `apps/roam/package.json` to that next version in a follow-up PR. Merge that PR
    to keep the alpha branch and release metadata aligned with the active release
    line.
-6. Cut the Roam Depot PR to Roam and link it in the Linear release checklist
+7. Cut the Roam Depot PR to Roam and link it in the Linear release checklist
    issue.
-7. Create a Linear Pulse in
+8. Create a Linear Pulse in
    [Roam Discourse Graph plugin assorted tasks](https://linear.app/discourse-graphs/project/roam-discourse-graph-plugin-assorted-tasks-d8f4006c02ed/overview)
    that links to the Linear release checklist issue.
-8. Subscribe to the Roam Depot PR.
+9. Subscribe to the Roam Depot PR.
 
 At this point the release is submitted for Roam review, but it is not finished.
 
