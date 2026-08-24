@@ -17,7 +17,7 @@
     "build": "tsc -p tsconfig.build.json",
     "check-types": "tsc --noEmit --skipLibCheck",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "pnpm test:unit",
     "test:unit": "vitest run"
   },
   "devDependencies": {
