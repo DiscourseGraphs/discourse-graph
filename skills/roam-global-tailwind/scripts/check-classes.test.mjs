@@ -66,6 +66,40 @@ test("returns one when a requested class is absent", () => {
   }
 });
 
+test("ignores class-like text outside selector preludes", () => {
+  const temporaryDirectory = fs.mkdtempSync(
+    path.join(os.tmpdir(), "roam-global-tailwind-"),
+  );
+  const cssPath = path.join(temporaryDirectory, "tailwind.css");
+  fs.writeFileSync(
+    cssPath,
+    '/* .aspect-square */@media (min-width:640px){.sm\\:flex{background-image:url(https://cdn.test/.asset.png);opacity:.5;content:".from-string"}}@keyframes pulse{50.5%{opacity:.5}}',
+  );
+
+  try {
+    const result = runChecker([
+      "--json",
+      "--file",
+      cssPath,
+      "sm:flex",
+      "aspect-square",
+      "asset",
+      "5",
+      "from-string",
+    ]);
+    assert.equal(result.status, 1, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout).checks, {
+      "sm:flex": true,
+      "aspect-square": false,
+      asset: false,
+      5: false,
+      "from-string": false,
+    });
+  } finally {
+    fs.rmSync(temporaryDirectory, { force: true, recursive: true });
+  }
+});
+
 test("rejects an incomplete file option", () => {
   const result = runChecker(["--file"]);
   assert.equal(result.status, 2);

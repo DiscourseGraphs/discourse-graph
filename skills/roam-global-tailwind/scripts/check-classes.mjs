@@ -67,6 +67,7 @@ const readCss = async ({ file, url }) => {
 };
 
 const isIdentifierCharacter = (character) => /[A-Za-z0-9_-]/.test(character);
+const isIdentifierStartCharacter = (character) => /[A-Za-z_-]/.test(character);
 
 const decodeClassIdentifier = (css, startIndex) => {
   let className = "";
@@ -100,17 +101,120 @@ const decodeClassIdentifier = (css, startIndex) => {
   return { className, endIndex: index };
 };
 
-const extractClassNames = (css) => {
-  const classNames = new Set();
+const maskCommentsAndStrings = (css) => {
+  const maskedCharacters = css.split("");
+
   for (let index = 0; index < css.length; index += 1) {
-    if (css[index] !== ".") continue;
+    if (css[index] === "/" && css[index + 1] === "*") {
+      maskedCharacters[index] = " ";
+      maskedCharacters[index + 1] = " ";
+      index += 2;
+      while (index < css.length) {
+        maskedCharacters[index] = " ";
+        if (css[index] === "*" && css[index + 1] === "/") {
+          maskedCharacters[index + 1] = " ";
+          index += 1;
+          break;
+        }
+        index += 1;
+      }
+      continue;
+    }
+
+    const quote = css[index];
+    if (quote !== '"' && quote !== "'") continue;
+
+    maskedCharacters[index] = " ";
+    index += 1;
+    while (index < css.length) {
+      maskedCharacters[index] = " ";
+      if (css[index] === "\\") {
+        if (index + 1 < css.length) {
+          maskedCharacters[index + 1] = " ";
+          index += 1;
+        }
+        index += 1;
+        continue;
+      }
+      if (css[index] === quote) break;
+      index += 1;
+    }
+  }
+
+  return maskedCharacters.join("");
+};
+
+const DECLARATION_AT_RULES = new Set([
+  "counter-style",
+  "font-face",
+  "font-feature-values",
+  "page",
+  "property",
+]);
+
+const getAtRuleContext = (prelude) => {
+  const atRuleName = prelude.match(/^@([\w-]+)/)?.[1]?.toLowerCase();
+  return atRuleName && DECLARATION_AT_RULES.has(atRuleName)
+    ? "declarations"
+    : "rules";
+};
+
+const addClassNamesFromSelector = ({
+  classNames,
+  css,
+  endIndex,
+  maskedCss,
+  startIndex,
+}) => {
+  for (let index = startIndex; index < endIndex; index += 1) {
+    if (maskedCss[index] !== ".") continue;
     const nextCharacter = css[index + 1] ?? "";
-    if (nextCharacter !== "\\" && !isIdentifierCharacter(nextCharacter))
+    if (nextCharacter !== "\\" && !isIdentifierStartCharacter(nextCharacter))
       continue;
     const decoded = decodeClassIdentifier(css, index + 1);
     if (decoded.className) classNames.add(decoded.className);
     index = decoded.endIndex - 1;
   }
+};
+
+const extractClassNames = (css) => {
+  const classNames = new Set();
+  const maskedCss = maskCommentsAndStrings(css);
+  const contexts = ["rules"];
+  let segmentStart = 0;
+
+  for (let index = 0; index < maskedCss.length; index += 1) {
+    const character = maskedCss[index];
+    if (character === ";") {
+      segmentStart = index + 1;
+      continue;
+    }
+    if (character === "}") {
+      if (contexts.length > 1) contexts.pop();
+      segmentStart = index + 1;
+      continue;
+    }
+    if (character !== "{") continue;
+
+    const prelude = maskedCss.slice(segmentStart, index).trim();
+    const context = contexts.at(-1);
+    if (context === "rules" && !prelude.startsWith("@")) {
+      addClassNamesFromSelector({
+        classNames,
+        css,
+        endIndex: index,
+        maskedCss,
+        startIndex: segmentStart,
+      });
+      contexts.push("declarations");
+    } else if (context === "rules") {
+      contexts.push(getAtRuleContext(prelude));
+    } else {
+      contexts.push("declarations");
+    }
+    segmentStart = index + 1;
+  }
+
   return classNames;
 };
 
