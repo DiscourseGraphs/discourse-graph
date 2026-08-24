@@ -45,7 +45,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import updateBlock from "roamjs-components/writes/updateBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getDiscourseNodes, {
-  excludeDefaultNodes,
+  getRelationEndpointNodeTypes,
 } from "~/utils/getDiscourseNodes";
 import { isRelationComplete } from "~/utils/isRelationComplete";
 import { getConditionLabels } from "~/utils/conditionToDatalog";
@@ -1005,9 +1005,7 @@ const DiscourseRelationConfigPanel = ({
     );
     // TypeError: Iterator value * is not an entry object
     nodes["*"] = { label: "Any", format: ".+", color: "#000" };
-    const configuredNodeTypes = discourseNodes
-      .filter(excludeDefaultNodes)
-      .map((n) => n.type);
+    const configuredNodeTypes = getRelationEndpointNodeTypes(discourseNodes);
     return { nodes, configuredNodeTypes };
   }, []);
   const previewUid = useSubTree({ parentUid, key: "preview" }).uid;

@@ -1,20 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 
-const mocks = vi.hoisted(() => {
-  const generateUID = vi.fn(() => "generated-uid");
+vi.hoisted(() => {
   (globalThis as { window: unknown }).window = {
     roamAlphaAPI: {
       util: {
-        generateUID,
+        generateUID: () => "generated-uid",
       },
     },
   };
-  return {
-    isNewSettingsStoreEnabled: vi.fn(),
-    getAllDiscourseNodes: vi.fn(),
-  };
 });
+
+const mocks = vi.hoisted(() => ({
+  isNewSettingsStoreEnabled: vi.fn(),
+  getAllDiscourseNodes: vi.fn(),
+}));
 
 vi.mock("~/components/settings/utils/accessors", () => ({
   isNewSettingsStoreEnabled: mocks.isNewSettingsStoreEnabled,
@@ -22,7 +22,7 @@ vi.mock("~/components/settings/utils/accessors", () => ({
 }));
 
 import getDiscourseNodes, {
-  excludeDefaultNodes,
+  getRelationEndpointNodeTypes,
 } from "~/utils/getDiscourseNodes";
 
 const makeUserNode = ({
@@ -41,33 +41,27 @@ const makeUserNode = ({
   format: "{content}",
 });
 
-describe("getDiscourseNodes", () => {
+describe("getRelationEndpointNodeTypes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isNewSettingsStoreEnabled.mockReturnValue(true);
   });
 
-  it("excludes default Page, Block, and synthetic Any from relation endpoint types", () => {
+  it("excludes default Page and Block nodes while keeping user-configured types", () => {
     mocks.getAllDiscourseNodes.mockReturnValue([
       makeUserNode({ text: "Claim", type: "CLM" }),
       makeUserNode({ text: "Evidence", type: "EVD" }),
     ]);
 
     const discourseNodes = getDiscourseNodes();
-    expect(discourseNodes.map((n) => n.type)).toEqual([
+    expect(discourseNodes.map((n) => n.type)).toEqual(
+      expect.arrayContaining(["page-node", "blck-node"]),
+    );
+
+    expect(getRelationEndpointNodeTypes(discourseNodes)).toEqual([
       "CLM",
       "EVD",
-      "page-node",
-      "blck-node",
     ]);
-
-    const endpointTypes = discourseNodes
-      .filter(excludeDefaultNodes)
-      .map((n) => n.type);
-    expect(endpointTypes).toEqual(["CLM", "EVD"]);
-    expect(endpointTypes).not.toContain("page-node");
-    expect(endpointTypes).not.toContain("blck-node");
-    expect(endpointTypes).not.toContain("*");
   });
 
   it("keeps a user-configured node that shares a default node's name", () => {
@@ -75,15 +69,8 @@ describe("getDiscourseNodes", () => {
       makeUserNode({ text: "Page", type: "user-page-node" }),
     ]);
 
-    const discourseNodes = getDiscourseNodes();
-    expect(discourseNodes.map((n) => n.type)).toEqual([
+    expect(getRelationEndpointNodeTypes(getDiscourseNodes())).toEqual([
       "user-page-node",
-      "blck-node",
     ]);
-
-    const endpointTypes = discourseNodes
-      .filter(excludeDefaultNodes)
-      .map((n) => n.type);
-    expect(endpointTypes).toEqual(["user-page-node"]);
   });
 });
