@@ -333,9 +333,9 @@ export const TldrawPreviewComponent = ({
         }
 
         // Handle Shift+Click (open in sidebar) or Cmd+Click (open in new tab)
-        if (e.shiftKey || e.metaKey || e.ctrlKey) {
+        if (e.shiftKey || e.accelKey) {
           const now = Date.now();
-          const openInNewTab = e.metaKey || e.ctrlKey; // Cmd on Mac, Ctrl on other platforms
+          const openInNewTab = e.accelKey; // Cmd on Mac, Ctrl on other platforms
 
           // Debounce to prevent double opening
           if (now - lastShiftClickRef.current < SHIFT_CLICK_DEBOUNCE_MS) {
