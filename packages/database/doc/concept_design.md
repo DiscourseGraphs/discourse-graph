@@ -23,7 +23,7 @@ Note: Implementors can skip this section.
 
 This generalization is rooted in prior experience with RDF, TopicMaps, semantic Frames, and David Spivak's [algebraic database](https://arxiv.org/abs/1602.03501) representation. In all cases, any type is defined by the attributes it can have. RDF calls them properties, Minsky's frames uses the term slots, etc. RDF/OWL distinguishes literal attributes (`owl: DatatypeProperty`, stored in the `literal_content` column) from attributes which are references to other objects (`owl:ObjectProperty` stored in the `reference_content` column). We adopted the term roles for ObjectProperties from TopicMaps. Spivak's work gives this distinction a categorical grounding.
 
-Unifying relations and nodes in particular allows relations to both have extra attributes (as in a PropertyGraph vs. a strict RDF graph) and be referred to (either as the source/destination of another Relation, or as a target of an `ObjectProperty`.) Cliff Joslyn described this recursive mathematical structure as a [übergraph](https://arxiv.org/abs/1704.05547v1). It can also be expressed as reified relations in RDF-\*.
+Unifying relations and nodes in particular allows non-intrinsic relations to both have extra attributes (as in a PropertyGraph vs. a strict RDF graph) and be referred to (either as the source/destination of another Relation, or as a target of an `ObjectProperty`.) Cliff Joslyn described this recursive mathematical structure as a [übergraph](https://arxiv.org/abs/1704.05547v1). It can also be expressed as reified relations in RDF-\*.
 
 ### Use cases
 
@@ -49,6 +49,7 @@ Base:
 
 CrossAppNodeSchema:
   # Base and...
+  slotDefinitions: Record<string, LocalId> # Forthcoming
   metadata?: Json
   label: string
   template?: string
@@ -80,6 +81,7 @@ CrossAppNode:
   nodeType: LocalId
   content.direct: InlineCrossAppContent
   content.full?: InlineCrossAppTypedContent
+  slots: Record<string, LocalId> # Forthcoming
 
 CrossAppRelation:
   # Base and...
@@ -102,29 +104,38 @@ CrossAppRelation:
 | `authorId`     | <-> | `author_local_id` => `author_id` |
 | `metadata`     | <-  | `literal_content`                |
 
-Note on metadata: It is read from the database, but currently not written.
+Note on metadata: It is read from the database, but currently not written. We will phase it out.
+
 When some specific keys of `literal_content` are mapped to a CrossApp field, those key-value pairs are not included again in the `metadata`. Thus `metadata` is a grab-bag for residual data. (Eg color for now.)
 
 Residual (not otherwise accounted for) keys in Obsidian frontmatter are mapped to `literal_content->source_data`. (Not through CrossApp.)
 
 #### Matching of CrossAppNodeSchema and Concept
 
-| CrossAppNodeSchema | Concept                             | value |
-| ------------------ | ----------------------------------- | ----- |
-| `label`            | `name`                              | {}    |
-| `template`         | `literal_content->template_content` |       |
-| `templateTitle`    | `literal_content->template`         |       |
-| `format`           | `literal_content->format`           |       |
-| -                  | `is_schema`                         | true  |
-| -                  | `schema_id`                         | null  |
-| -                  | `arity`                             | 0     |
-| -                  | `reference_content`                 | {}    |
+| CrossAppNodeSchema     | Concept                             | value |
+| ---------------------- | ----------------------------------- | ----- |
+| `label`                | `name`                              | {}    |
+| `template`             | `literal_content->template_content` |       |
+| `templateTitle`        | `literal_content->template`         |       |
+| `format`               | `literal_content->format`           |       |
+| -                      | `is_schema`                         | true  |
+| -                      | `schema_id`                         | null  |
+| -                      | `arity`                             | 0     |
+| -                      | `is_relation`                       | false |
+| `slotDefinition`       | `reference_content`                 |       |
+| `keys(slotDefinition)` | `literal_content->roles`            |       |
 
-Note that this does not yet allow for ObjectProperties to be defined; this would require to define `literal_content->roles`, corresponding `reference_content`s, and change the `arity`. See below.
+In the case of a node with ObjectRelations, such as Evidence, we would see something like:
+
+| CrossAppNode           | Concept                  | value                                 |
+| ---------------------- | ------------------------ | ------------------------------------- |
+| -                      | `arity`                  | 1                                     |
+| `slotDefinitions`      | `reference_content`      | {"sourceDocument": <id of Reference>} |
+| `keys(slotDefinition)` | `literal_content->roles` | {"roles":["sourceDocument"]}          |
 
 Also note: In Obsidian, where we do not go through CrossAppNodeSchema, the label is also assigned to `literal_content->label`.
 
-Query filter: `.eq("arity",0).eq("is_schema", true)`
+Query filter: `.eq("is_relation", false).eq("is_schema", true)`
 
 #### Matching of CrossAppNode and Concept
 
@@ -132,11 +143,21 @@ Query filter: `.eq("arity",0).eq("is_schema", true)`
 | ----------------------- | ----------------------------------------------- | ------------------ |
 | `content->direct->text` | `name`                                          |                    |
 | -                       | `is_schema`                                     | false              |
-| -                       | `arity`                                         | 0                  |
-| -                       | `reference_content`                             | {}                 |
+| -                       | `is_relation`                                   | false              |
 | `nodeType`              | `schema_represented_by_local_id` => `schema_id` | ref to Node schema |
+| -                       | `arity`                                         | 0                  |
+| `slots`                 | `reference_content`                             | {}                 |
 
-Query filter: `.eq("arity",0).eq("is_schema", false)`
+In the case of a node with ObjectRelations, such as Evidence, we would see:
+
+| CrossAppNode | Concept             | value                    |
+| ------------ | ------------------- | ------------------------ |
+| -            | `arity`             | 1                        |
+| `slots`      | `reference_content` | {"sourceDocument": <id>} |
+
+The keys of the slots (instance variables) should match those defined in the `literal_content->roles` of the corresponding schema, as shown above.
+
+Query filter: `.eq("is_relation", false).eq("is_schema", false)`
 
 #### Matching of CrossAppRelationTypeSchema and Concept (Obsidian only)
 
@@ -149,8 +170,9 @@ Query filter: `.eq("arity",0).eq("is_schema", false)`
 | -                          | `reference_content`              | {}                          |
 | `label`                    | `name`, `literal_content->label` |                             |
 | `complement`               | `literal_content->complement`    |                             |
+| -                          | `is_relation`                    | true                        |
 
-Query filter: `.eq("arity",2).eq("is_schema", true).is("reference_content->source", "null")`
+Query filter: `.eq("is_relation", true).eq("is_schema", true).is("reference_content->source", "null")`
 
 #### Matching of Obsidian CrossAppRelationTripleSchema and Concept
 
@@ -166,10 +188,13 @@ Query filter: `.eq("arity",2).eq("is_schema", true).is("reference_content->sourc
 | `sourceType`                 | `reference_content->source`        | ref to Node schema             |
 | `destinationType`            | `reference_content->destination`   | ref to Node schema             |
 | `relation`                   | `reference_content->relation_type` | ref to RelationType schema     |
+| -                            | `is_relation`                      | true                           |
 
-Note that putting the relationType in `reference_content->relation_type` without a corresponding role was a hackish shortcut, and should be revisited (see below.)
+Note that the relationType in `reference_content->relation_type` is not here playing the role of a slot definition, as it will not be defined in relation instances; so it does not belong in the roles. It can be thought of as an instance variable of the `CrossAppRelationTripleSchema` class itself.
 
-Query filter: `.eq("arity",2).eq("is_schema", true).not("reference_content->relation_type", "is", "null")`
+Theory: If we were materialize five metaclasses for the five kinds of objects, we would define the `relation_type` as a role (`slotDefinition`) of the `CrossAppRelationTripleSchema` metaclass, and its range constraint would have to point for a metaclass corresponding to `RelationTypeSchema`. It may help conceptually, but there is no reason to materialize those metaclasses in the database.
+
+Query filter: `.eq("is_relation", true).eq("is_schema", true).not("reference_content->relation_type", "is", "null")`
 
 #### Matching of Roam CrossAppRelationTripleSchema and Concept
 
@@ -184,12 +209,13 @@ Query filter: `.eq("arity",2).eq("is_schema", true).not("reference_content->rela
 | `complement`                 | `literal_content->complement`    |                             |
 | `sourceType`                 | `reference_content->source`      | ref to Node schema          |
 | `destinationType`            | `reference_content->destination` | ref to Node schema          |
+| -                            | `is_relation`                    | true                        |
 
-Query filter: `.eq("arity",2).eq("is_schema", true).not("reference_content->source", "is", "null").is("reference_content->relation_type", "null")`
+Query filter: `.eq("is_relation", true).eq("is_schema", true).not("reference_content->source", "is", "null").is("reference_content->relation_type", "null")`
 
 In most cases, you would want both Roam and Obsidian RelationTripleSchemas, hence you would simply use:
 
-Combined query filter: `.eq("arity",2).eq("is_schema", true).not("reference_content->source", "is", "null")`
+Combined query filter: `.eq("is_relation", true).eq("is_schema", true)`
 
 #### Matching of Obsidian CrossAppRelation and Concept
 
@@ -202,22 +228,20 @@ Combined query filter: `.eq("arity",2).eq("is_schema", true).not("reference_cont
 | `relationType`   | `schema_id` (in Roam)            | ref to RelationTriple schema |
 | `source`         | `reference_content->source`      | ref to Node                  |
 | `destination`    | `reference_content->destination` | ref to Node                  |
+| -                | `is_relation`                    | true                         |
 
-Query filter: `.eq("arity",2).eq("is_schema", false)`
+Again, the keys of the slots match those defined in the `literal_content->roles` of the corresponding schema. In the case of relations, those must include `source` and `destination`. Those slot definitions are implicit. We may allow extra slot definitions for relationTypeSchema some day, but those would be besides the implicit `source` and `destination`.
+
+Query filter: `.eq("is_relation", true).eq("is_schema", false)`
 
 ### Design considerations and future changes
 
-#### Arity and ObjectProperties
+#### Relations, arity and ObjectProperties
 
-The arity on either a schema or instance is based on the size of the `literal_content->roles` array in the schema.
-The `reference_content` allows either single or multiple values (`Record<string, number|number[]>`). The `reference_content` values are collated in a computed column `refs`, whose index allows for efficient filters on sql queries before digging into the `reference_content` jsonb.
+The arity on either a schema or instance is based on the size of the `literal_content->roles` array in the schema. Think of the `roles` literal as a class variable that defines which variables will exist in instances.
 
-As a first approximation, we distinguished relations from nodes using `arity==2`, but this precludes using ObjectProperties.
+The `reference_content` allows either single or multiple values (`Record<string, number|number[]>`). The `reference_content` values are collated in a computed column `refs`, whose index allows for efficient filters on sql queries before digging into the `reference_content` jsonb. Currently, the slots only accommodate single values.
 
-To remedy this, we propose adding a computed column `is_relation`, which would check whether (source, destination) are both in the schema's roles. The query filters using `arity` would be redefined to use `is_relation`.
+Relations are concepts (schemas or instances) whose schemas have the special roles `source` and `destination`. This is captured in a computed column `is_relation`.
 
-Internal node references such as the Evidence's Source can then be expressed using roles and internal relations.
-
-In `RelationTripleSchema`, we refer to the `RelationTypeSchema` with a `relation_type` entry in the `reference_content` column. This, unusually, is not backed by an entry in the `roles`. This is a deviation from the mental model, but in the current situation, adding that role would break the `arity=2` checks. Introducing the `is_relation` column will also allow this to be part of the roles.
-
-Note that we probably won't add a range constraint in that case; the constraint should require the `relation_type` to be any `RelationTypeSchema`, but there is no row materializing this meta-class.
+Internal node references such as the Evidence's Source can be expressed using a slotDefinition which will show up in the schema's roles and slots which will show up in the instances' `reference_content`.

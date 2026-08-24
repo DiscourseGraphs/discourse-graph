@@ -8,6 +8,7 @@ import {
   CrossAppRelation,
 } from "../crossAppContracts";
 import { LocalContentDataInput, LocalConceptDataInput } from "../inputTypes";
+import { ridToSpaceUriAndLocalId } from "./rid";
 import { Enums, CompositeTypes } from "../dbTypes";
 
 type InlineEmbeddingInput = CompositeTypes<"inline_embedding_input">;
@@ -70,7 +71,11 @@ export const crossAppNodeToDbContent = (
 export const crossAppNodeToDbConcept = (
   node: CrossAppNode,
 ): LocalConceptDataInput => {
+  const spaceUri = node.rid
+    ? ridToSpaceUriAndLocalId(node.rid).spaceUri
+    : undefined;
   return filterUndefined<LocalConceptDataInput>({
+    space_url: spaceUri,
     source_local_id: node.localId,
     name: node.content.direct.value,
     author_local_id: node.authorId,
@@ -92,7 +97,11 @@ export const crossAppNodeSchemaToDbConcept = (
     template_content: node.template,
     format: node.format,
   });
+  const spaceUri = node.rid
+    ? ridToSpaceUriAndLocalId(node.rid).spaceUri
+    : undefined;
   return filterUndefined<LocalConceptDataInput>({
+    space_url: spaceUri,
     source_local_id: node.localId,
     name: node.label,
     author_local_id: node.authorId,
@@ -107,7 +116,11 @@ export const crossAppNodeSchemaToDbConcept = (
 export const crossAppRelationTypeSchemaToDbConcept = (
   node: CrossAppRelationTypeSchema,
 ): LocalConceptDataInput => {
+  const spaceUri = node.rid
+    ? ridToSpaceUriAndLocalId(node.rid).spaceUri
+    : undefined;
   return filterUndefined<LocalConceptDataInput>({
+    space_url: spaceUri,
     source_local_id: node.localId,
     name: node.label,
     author_local_id: node.authorId,
@@ -131,7 +144,11 @@ export const crossAppRelationTripleSchemaToDbConcept = (
   const label = "label" in node ? node.label : relationType!.label;
   const complement =
     "complement" in node ? node.complement : relationType!.complement;
+  const spaceUri = node.rid
+    ? ridToSpaceUriAndLocalId(node.rid).spaceUri
+    : undefined;
   return filterUndefined<LocalConceptDataInput>({
+    space_url: spaceUri,
     source_local_id: node.localId,
     name: node.localId, // has to be unique within space. Not seen yet.
     author_local_id: node.authorId,
@@ -154,9 +171,13 @@ export const crossAppRelationTripleSchemaToDbConcept = (
 export const crossAppRelationToDbConcept = (
   node: CrossAppRelation,
 ): LocalConceptDataInput => {
+  const spaceUri = node.rid
+    ? ridToSpaceUriAndLocalId(node.rid).spaceUri
+    : undefined;
   return filterUndefined<LocalConceptDataInput>({
     // use LocalIds... not ideal
     name: `${node.localId}: ${node.source} -${node.relationType}-> ${node.destination}`,
+    space_url: spaceUri,
     source_local_id: node.localId,
     author_local_id: node.authorId,
     schema_represented_by_local_id: node.relationType,

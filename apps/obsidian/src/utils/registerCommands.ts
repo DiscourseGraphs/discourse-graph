@@ -3,6 +3,7 @@ import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
+import { NodeSearchModal } from "~/components/NodeSearchModal";
 import { ImportNodesModal } from "~/components/ImportNodesModal";
 import { FeedbackModal } from "~/components/FeedbackModal";
 import { convertPageToDiscourseNode, createDiscourseNode } from "./createNode";
@@ -134,6 +135,15 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Bulk identify discourse nodes",
     callback: () => {
       new BulkIdentifyDiscourseNodesModal(plugin.app, plugin).open();
+    },
+  });
+
+  plugin.addCommand({
+    id: "open-node-search",
+    name: "Open node search",
+    hotkeys: [],
+    callback: () => {
+      new NodeSearchModal(plugin.app, plugin).open();
     },
   });
 
