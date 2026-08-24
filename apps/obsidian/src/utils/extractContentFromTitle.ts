@@ -8,10 +8,9 @@ export const extractContentFromTitle = (
 
   const placeholderRegex = /{([a-zA-Z]+)}/g;
   const placeholders: string[] = [];
-  let placeholderMatch: RegExpExecArray | null = null;
+  let placeholderMatch: RegExpExecArray | null;
   while ((placeholderMatch = placeholderRegex.exec(format))) {
-    const name = placeholderMatch[1];
-    if (name !== undefined) placeholders.push(name);
+    placeholders.push(placeholderMatch[1] ?? "");
   }
   const regex = getDiscourseNodeFormatExpression(format);
   const match = regex.exec(title);
