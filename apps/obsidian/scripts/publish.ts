@@ -54,10 +54,9 @@ const BLOB_UPLOAD_BATCH_SIZE = 10;
 const MAX_GITHUB_RETRIES = 5;
 const BASE_RETRY_DELAY_MS = 2_000;
 
-// TODO(ENG-2099): REVERT BEFORE MERGE, restore discourse-graph-obsidian.
-const TARGET_REPO = "DiscourseGraphs/discourse-graph-obsidian-test";
+const TARGET_REPO = "DiscourseGraphs/discourse-graph-obsidian";
 const OWNER = "DiscourseGraphs";
-const REPO = "discourse-graph-obsidian-test";
+const REPO = "discourse-graph-obsidian";
 
 const log = (message: string): void => {
   console.log(`[Obsidian Publisher] ${message}`);

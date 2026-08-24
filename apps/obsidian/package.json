@@ -1,6 +1,6 @@
 {
   "name": "@discourse-graphs/obsidian",
-  "version": "9.9.10",
+  "version": "1.5.2",
   "description": "Discourse Graph Plugin for obsidian.md",
   "main": "dist/main.js",
   "private": true,

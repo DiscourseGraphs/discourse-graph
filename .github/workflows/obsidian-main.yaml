@@ -17,10 +17,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # TODO(ENG-2099): REVERT BEFORE MERGE, restore secrets.OBSIDIAN_PLUGIN_REPO_TOKEN.
-  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_TEST_REPO_TOKEN }}
-  # TODO(ENG-2099): REVERT BEFORE MERGE, restore DiscourseGraphs/discourse-graph-obsidian.
-  PUBLISH_REPO: DiscourseGraphs/discourse-graph-obsidian-test
+  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
+  PUBLISH_REPO: DiscourseGraphs/discourse-graph-obsidian
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
   GH_TOKEN: ${{ github.token }}
