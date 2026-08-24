@@ -29,7 +29,7 @@ links to the Linear release, changelog PR, and Roam Depot PR in that issue.
 - [ ] Subscribe to the Roam Depot PR so you know when Roam merges it.
 - [ ] After Roam publishes the extension, run `Complete Roam Linear Release` and
       confirm the Linear release is `Released`.
-- [ ] Confirm the Linear release checklist issue is `Released`.
+- [ ] Change the Linear release checklist issue to `Released`.
 
 The detailed sections below provide the supporting instructions for each step.
 
