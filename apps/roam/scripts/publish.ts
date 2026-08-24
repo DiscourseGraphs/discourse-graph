@@ -36,6 +36,10 @@ type PublishDependencies = {
   getPackageVersion?: () => string;
 };
 
+export type PublishResult = {
+  pullRequestUrl: string;
+};
+
 type GitHubClientConstructor = new (options: {
   authStrategy: unknown;
   auth: {
@@ -193,11 +197,66 @@ export const synchronizeFork = async ({
   );
 };
 
+export const createOrReuseUpstreamPullRequest = async ({
+  octokit,
+  version,
+}: {
+  octokit: GitHubClient;
+  version: string;
+}): Promise<string> => {
+  const owner = "Roam-Research";
+  const repo = "roam-depot";
+  const head = "DiscourseGraphs:main";
+  const base = "main";
+
+  try {
+    const existingResponse = await octokit.request(
+      "GET /repos/{owner}/{repo}/pulls",
+      { owner, repo, head, base, state: "open" },
+    );
+    const existingPullRequest = (
+      existingResponse.data as Array<{ html_url?: string }>
+    )[0];
+
+    if (existingPullRequest?.html_url) {
+      console.log(
+        `Reusing upstream pull request: ${existingPullRequest.html_url}`,
+      );
+      return existingPullRequest.html_url;
+    }
+
+    const createResponse = await octokit.request(
+      "POST /repos/{owner}/{repo}/pulls",
+      {
+        owner,
+        repo,
+        title: `Discourse Graphs - Release ${version}`,
+        head,
+        base,
+        body: `Updates Discourse Graphs to release ${version}.`,
+      },
+    );
+    const pullRequestUrl = (createResponse.data as { html_url?: string })
+      .html_url;
+
+    if (!pullRequestUrl) {
+      throw new Error("GitHub did not return a pull request URL");
+    }
+
+    console.log(`Created upstream pull request: ${pullRequestUrl}`);
+    return pullRequestUrl;
+  } catch (error) {
+    throw new Error(
+      `Could not submit the Roam Depot pull request: GitHub API returned ${getGitHubApiErrorDetails(error)}. Verify the GitHub App can create pull requests in Roam-Research/roam-depot, then rerun the publish workflow.`,
+    );
+  }
+};
+
 export const publish = async ({
   octokit = createGitHubClient(),
   getCommitHash = getCurrentCommitHash,
   getPackageVersion = getVersion,
-}: PublishDependencies = {}): Promise<void> => {
+}: PublishDependencies = {}): Promise<PublishResult> => {
   process.env = {
     ...process.env,
     NODE_ENV: "production",
@@ -251,8 +310,8 @@ export const publish = async ({
   }
 
   console.log("Publishing ...");
+  const version = getPackageVersion();
   try {
-    const version = getPackageVersion();
     const message = "Release " + version;
 
     const response = await octokit.request(
@@ -271,11 +330,24 @@ export const publish = async ({
   } catch (error: any) {
     throw new Error(`Failed to post to github: ${error}`);
   }
+
+  const pullRequestUrl = await createOrReuseUpstreamPullRequest({
+    octokit,
+    version,
+  });
+
+  return { pullRequestUrl };
 };
 
 const main = async () => {
   try {
-    await publish();
+    const { pullRequestUrl } = await publish();
+    if (process.env.GITHUB_OUTPUT) {
+      fs.appendFileSync(
+        process.env.GITHUB_OUTPUT,
+        `roam_depot_pr_url=${pullRequestUrl}\n`,
+      );
+    }
   } catch (error) {
     console.error(error);
     process.exit(1);

@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { publish, type GitHubClient } from "../../../scripts/publish";
+import {
+  publish,
+  type GitHubClient,
+  type PublishResult,
+} from "../../../scripts/publish";
 
 const createApiError = ({
   status,
@@ -9,7 +13,9 @@ const createApiError = ({
   message: string;
 }): Error & { status: number } => Object.assign(new Error(message), { status });
 
-const publishWithClient = async (octokit: GitHubClient): Promise<void> =>
+const publishWithClient = async (
+  octokit: GitHubClient,
+): Promise<PublishResult> =>
   publish({
     octokit,
     getCommitHash: () => Promise.resolve("abc123"),
@@ -40,6 +46,17 @@ describe("Roam Depot publishing", () => {
           status: 200,
         });
       }
+      if (route === "GET /repos/{owner}/{repo}/pulls") {
+        return Promise.resolve({ data: [], status: 200 });
+      }
+      if (route === "POST /repos/{owner}/{repo}/pulls") {
+        return Promise.resolve({
+          data: {
+            html_url: "https://github.com/Roam-Research/roam-depot/pull/1",
+          },
+          status: 201,
+        });
+      }
       return Promise.resolve({ data: {}, status: 200 });
     });
 
@@ -50,6 +67,8 @@ describe("Roam Depot publishing", () => {
       "POST /repos/{owner}/{repo}/merge-upstream",
       "GET /repos/{owner}/{repo}/contents/{path}",
       "PUT /repos/{owner}/{repo}/contents/{path}",
+      "GET /repos/{owner}/{repo}/pulls",
+      "POST /repos/{owner}/{repo}/pulls",
     ]);
     expect(request).toHaveBeenNthCalledWith(
       2,
@@ -59,6 +78,50 @@ describe("Roam Depot publishing", () => {
         repo: "roam-depot",
         branch: "main",
       },
+    );
+    expect(request).toHaveBeenLastCalledWith(
+      "POST /repos/{owner}/{repo}/pulls",
+      {
+        owner: "Roam-Research",
+        repo: "roam-depot",
+        title: "Discourse Graphs - Release 1.2.3",
+        head: "DiscourseGraphs:main",
+        base: "main",
+        body: "Updates Discourse Graphs to release 1.2.3.",
+      },
+    );
+  });
+
+  it("reuses an existing upstream pull request", async () => {
+    const request = vi.fn<GitHubClient["request"]>((route) => {
+      if (route === "GET /repos/{owner}/{repo}") {
+        return Promise.resolve({
+          data: { default_branch: "main" },
+          status: 200,
+        });
+      }
+      if (route === "GET /repos/{owner}/{repo}/contents/{path}") {
+        return Promise.resolve({ data: { sha: "metadata-sha" }, status: 200 });
+      }
+      if (route === "GET /repos/{owner}/{repo}/pulls") {
+        return Promise.resolve({
+          data: [
+            {
+              html_url: "https://github.com/Roam-Research/roam-depot/pull/123",
+            },
+          ],
+          status: 200,
+        });
+      }
+      return Promise.resolve({ data: {}, status: 200 });
+    });
+
+    await expect(publishWithClient({ request })).resolves.toEqual({
+      pullRequestUrl: "https://github.com/Roam-Research/roam-depot/pull/123",
+    });
+    expect(request).not.toHaveBeenCalledWith(
+      "POST /repos/{owner}/{repo}/pulls",
+      expect.anything(),
     );
   });
 
