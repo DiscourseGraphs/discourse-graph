@@ -158,11 +158,15 @@ export const discourseRelationTripleSchemaToLocalConcept = ({
 /**
  * Convert discourse node instance (file) to LocalConceptDataInput
  */
-export const discourseNodeInstanceToLocalConcept = (
-  context: SupabaseContext,
-  nodeData: ObsidianDiscourseNodeData,
-  nodeTypesById: Record<string, DiscourseNode>,
-): LocalConceptDataInput => {
+export const discourseNodeInstanceToLocalConcept = ({
+  context,
+  nodeData,
+  nodeTypesById,
+}: {
+  context: SupabaseContext;
+  nodeData: ObsidianDiscourseNodeData;
+  nodeTypesById: Record<string, DiscourseNode>;
+}): LocalConceptDataInput => {
   const extraData = getNodeExtraData(nodeData.file, context.userId);
   const { nodeInstanceId, nodeTypeId, importedFromRid, ...otherData } =
     nodeData.frontmatter;
