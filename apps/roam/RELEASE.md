@@ -3,6 +3,36 @@
 This document describes the current Roam release process with Linear Releases,
 GitHub Actions, and Roam Depot.
 
+## Operator Checklist
+
+This checklist is authoritative. Use a Linear release checklist issue to track
+ownership and completion of each step, while following the ordering here. Record
+links to the Linear release, changelog PR, and Roam Depot PR in that issue.
+
+- [ ] Add the Linear release checklist issue to the current release.
+- [ ] Review the Linear release contents and remove stale or incorrectly
+      included tasks.
+- [ ] Generate the release notes using Linear Agent.
+- [ ] Verify `apps/roam/package.json` matches the version being released.
+- [ ] Curate the notes, add the release entry to `apps/roam/CHANGELOG.md`, and
+      merge the changelog PR.
+- [ ] Run `Update Roam Extension Metadata` from `main` and confirm the Linear
+      release is `Sent to Roam for Review`.
+- [ ] After the workflow succeeds, create the next Linear release, move it to
+      `In Progress`, and merge the next-version package bump. Do not bump to the
+      next version before the workflow submits the current version.
+- [ ] Open the upstream Roam Depot PR and link it in the Linear release checklist
+      issue.
+- [ ] Create a Linear Pulse in
+      [Roam Discourse Graph plugin assorted tasks](https://linear.app/discourse-graphs/project/roam-discourse-graph-plugin-assorted-tasks-d8f4006c02ed/overview)
+      that links to the Linear release checklist issue.
+- [ ] Subscribe to the Roam Depot PR so you know when Roam merges it.
+- [ ] After Roam publishes the extension, run `Complete Roam Linear Release` and
+      confirm the Linear release is `Released`.
+- [ ] Confirm the Linear release checklist issue status is `Released`.
+
+The detailed sections below provide the supporting instructions for each step.
+
 ## Release Tracking Model
 
 Roam uses a scheduled Linear release pipeline. At any time, there should be one
@@ -33,11 +63,8 @@ Before publishing a Roam release:
 2. Create a PR for that version bump.
 3. Generate release notes from the Linear release. The Linear Agent can generate
    these from the issues included in the Linear release.
-4. Create or update a Linear Pulse/project update manually if the release notes
-   should appear in Pulse. Do not assume Linear Releases automatically publish to
-   Pulse.
-5. Add the final user-facing release notes to `apps/roam/CHANGELOG.md`.
-6. Create a PR for the changelog update, or include it with the version bump if
+4. Add the final user-facing release notes to `apps/roam/CHANGELOG.md`.
+5. Create a PR for the changelog update, or include it with the version bump if
    that is how the release is being prepared.
 
 Keep the changelog concise and user-facing. Internal chores, release-process
@@ -67,21 +94,28 @@ When the version bump and changelog are merged:
 4. The workflow updates Roam Depot metadata and moves the Linear release to
    `Sent to Roam for Review`.
 5. Treat the release as frozen in Linear.
-6. Open the upstream Roam Depot PR from the comparison link in the job summary.
-7. Create the next Roam Linear release, move it to `In Progress`, and bump
-   `apps/roam/package.json` to that next version in a follow-up PR. This keeps
-   the alpha branch and release metadata aligned with the active release line.
+6. Create the next Roam Linear release, move it to `In Progress`, and bump
+   `apps/roam/package.json` to that next version in a follow-up PR. Merge that PR
+   to keep the alpha branch and release metadata aligned with the active release
+   line.
+7. Cut the Roam Depot PR to Roam and link it in the Linear release checklist
+   issue.
+8. Create a Linear Pulse in
+   [Roam Discourse Graph plugin assorted tasks](https://linear.app/discourse-graphs/project/roam-discourse-graph-plugin-assorted-tasks-d8f4006c02ed/overview)
+   that links to the Linear release checklist issue.
+9. Subscribe to the Roam Depot PR.
 
 At this point the release is submitted for Roam review, but it is not finished.
 
 ## Completing the Release
 
-After the Roam Depot PR is merged by Roam:
+After Roam publishes the extension:
 
-1. Confirm the extension has been accepted or published by Roam.
-2. Change the Linear release from `Sent to Roam for Review` to `Released`.
-3. If using the manual completion workflow, run `Complete Roam Linear Release`
+1. Run `Complete Roam Linear Release`
    (`.github/workflows/roam-release-complete.yaml`) with the release version.
+2. Confirm the Linear release changed from `Sent to Roam for Review` to
+   `Released`.
+3. Confirm the Linear release checklist issue status is `Released`.
 4. Confirm the next Linear release is already `In Progress` and
    `apps/roam/package.json` is already bumped to that next version.
 
