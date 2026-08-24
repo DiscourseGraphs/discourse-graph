@@ -60,6 +60,7 @@ import { REFRESH_ERROR_TYPE } from "~/utils/refreshImportedNode";
 import internalError from "~/utils/internalError";
 
 const REFRESH_ALL_TOAST_ID = "refresh-imported-nodes";
+let isRefreshAllInFlight = false;
 
 export const createDiscourseNodeFromCommand = (
   extensionAPI: OnloadArgs["extensionAPI"],
@@ -353,7 +354,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     renderDiscoverSharedNodesDialog({});
   };
 
-  const refreshAllImportedNodesFromCommand = async () => {
+  const refreshAllImportedNodesFromCommand = async (): Promise<void> => {
     if (!isNodeSharingEnabled()) {
       renderToast({
         id: "refresh-imported-nodes-sharing-disabled",
@@ -361,6 +362,14 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
       });
       return;
     }
+    if (isRefreshAllInFlight) {
+      renderToast({
+        id: "refresh-imported-nodes-already-running",
+        content: "Imported nodes are already being refreshed.",
+      });
+      return;
+    }
+    isRefreshAllInFlight = true;
 
     posthog.capture("Refresh Imported Node: Refresh All Command Triggered");
     renderToast({
@@ -394,6 +403,8 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
         intent: "danger",
         content: "Could not refresh imported nodes.",
       });
+    } finally {
+      isRefreshAllInFlight = false;
     }
   };
 

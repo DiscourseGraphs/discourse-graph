@@ -1232,14 +1232,14 @@ export const createOrUpdateDiscourseEmbedding = async (
       phases,
       operation: () => getImportedNodeUids(),
     });
-    const localNodeInstances = changedNodeInstances.filter(
+    const nonImportedNodeInstances = changedNodeInstances.filter(
       (node) => !importedNodeUids.has(node.source_local_id),
     );
     const nodeInstancesToSync = sharedNodesOnlySync
-      ? localNodeInstances.filter((node) =>
+      ? nonImportedNodeInstances.filter((node) =>
           sharedSourceLocalIds.has(node.source_local_id),
         )
-      : localNodeInstances;
+      : nonImportedNodeInstances;
     const sharedSourceLocalIdsToBackfill = await measureSyncPhase({
       phase: "getSharedSourceLocalIdsMissingFullContent",
       phases,
