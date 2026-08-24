@@ -16,13 +16,12 @@ links to the Linear release, changelog PR, and Roam Depot PR in that issue.
 - [ ] Verify `apps/roam/package.json` matches the version being released.
 - [ ] Curate the notes, add the release entry to `apps/roam/CHANGELOG.md`, and
       merge the changelog PR.
-- [ ] Run `Update Roam Extension Metadata` from `main` and confirm the Linear
-      release is `Sent to Roam for Review`.
+- [ ] Run `Update Roam Extension Metadata` from `main`, confirm it opens the
+      upstream Roam Depot PR, and confirm the Linear release is
+      `Sent to Roam for Review`. Link the PR in the Linear release checklist issue.
 - [ ] After the workflow succeeds, create the next Linear release, move it to
       `In Progress`, and merge the next-version package bump. Do not bump to the
       next version before the workflow submits the current version.
-- [ ] Open the upstream Roam Depot PR and link it in the Linear release checklist
-      issue.
 - [ ] Create a Linear Pulse in
       [Roam Discourse Graph plugin assorted tasks](https://linear.app/discourse-graphs/project/roam-discourse-graph-plugin-assorted-tasks-d8f4006c02ed/overview)
       that links to the Linear release checklist issue.
@@ -79,6 +78,10 @@ If GitHub reports a sync conflict, resolve the fork conflict in GitHub and rerun
 the workflow. The workflow does not update extension metadata when synchronization
 fails.
 
+The workflow uses the GitHub App for writes to the Discourse Graphs fork and the
+`ROAM_RELEASE_TOKEN` organization secret to open or reuse the cross-fork pull
+request in `Roam-Research/roam-depot`.
+
 When the version bump and changelog are merged:
 
 1. Run the `Update Roam Extension Metadata` GitHub Action
@@ -89,21 +92,20 @@ When the version bump and changelog are merged:
    error annotation, merge the missing preparation to `main`, and rerun the
    workflow from `main`.
 3. Confirm the workflow succeeds and review its job summary for the submitted
-   version, source commit, Linear release, Roam Depot comparison, and remaining
+   version, source commit, Linear release, Roam Depot pull request, and remaining
    manual steps.
-4. The workflow updates Roam Depot metadata and moves the Linear release to
-   `Sent to Roam for Review`.
+4. The workflow updates Roam Depot metadata, opens or reuses the upstream Roam
+   Depot PR, and moves the Linear release to `Sent to Roam for Review`. Link the
+   PR from the workflow summary in the Linear release checklist issue.
 5. Treat the release as frozen in Linear.
 6. Create the next Roam Linear release, move it to `In Progress`, and bump
    `apps/roam/package.json` to that next version in a follow-up PR. Merge that PR
    to keep the alpha branch and release metadata aligned with the active release
    line.
-7. Cut the Roam Depot PR to Roam and link it in the Linear release checklist
-   issue.
-8. Create a Linear Pulse in
+7. Create a Linear Pulse in
    [Roam Discourse Graph plugin assorted tasks](https://linear.app/discourse-graphs/project/roam-discourse-graph-plugin-assorted-tasks-d8f4006c02ed/overview)
    that links to the Linear release checklist issue.
-9. Subscribe to the Roam Depot PR.
+8. Subscribe to the Roam Depot PR.
 
 At this point the release is submitted for Roam review, but it is not finished.
 
@@ -140,7 +142,8 @@ version.
   section for the package version before any release mutation.
 - Builds Roam.
 - Reads the release version from `apps/roam/package.json`.
-- Synchronizes the Roam Depot fork with upstream, then updates its metadata.
+- Synchronizes the Roam Depot fork with upstream, updates its metadata, and opens
+  or reuses the upstream Roam Depot PR.
 - Moves the Linear release to `Sent to Roam for Review`.
 - Writes a successful job summary with release links and the remaining manual
   steps.
