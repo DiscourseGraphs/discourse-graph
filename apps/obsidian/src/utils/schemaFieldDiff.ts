@@ -58,6 +58,22 @@ export type SchemaConflict = {
   changes: SchemaFieldChange[];
 };
 
+/**
+ * A field the file has no value for is not an instruction to clear the local
+ * one. An export from an older plugin simply lacks fields it never knew about,
+ * and offering those as "changes" would turn version skew into silent deletion.
+ * Merge only ever adds or overwrites.
+ *
+ * An empty string counts as "no value" alongside undefined: settings persist a
+ * cleared optional field as "" but omit one that was never set, so the two
+ * spellings of empty must not read as a difference. Without this, a node type
+ * identical to the local one is offered for merge with both sides rendering as
+ * "empty".
+ */
+const hasNoImportedValue = (
+  value: SchemaFieldChange["importedValue"],
+): boolean => value === undefined || value === "";
+
 const buildNodeTypeFieldChanges = ({
   local,
   imported,
@@ -68,11 +84,7 @@ const buildNodeTypeFieldChanges = ({
   return MERGEABLE_NODE_TYPE_FIELDS.flatMap((field) => {
     const localValue = local[field];
     const importedValue = imported[field];
-    // A field the file has no value for is not an instruction to clear the local
-    // one. An export from an older plugin simply lacks fields it never knew
-    // about, and offering those as "changes" would turn version skew into
-    // silent deletion. Merge only ever adds or overwrites.
-    if (importedValue === undefined) return [];
+    if (hasNoImportedValue(importedValue)) return [];
     if (localValue === importedValue) return [];
     return [{ field, localValue, importedValue }];
   });
@@ -88,6 +100,7 @@ const buildRelationTypeFieldChanges = ({
   return MERGEABLE_RELATION_TYPE_FIELDS.flatMap((field) => {
     const localValue = local[field];
     const importedValue = imported[field];
+    if (hasNoImportedValue(importedValue)) return [];
     if (localValue === importedValue) return [];
     return [{ field, localValue, importedValue }];
   });
