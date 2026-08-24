@@ -6,14 +6,16 @@ export type ChangelogPreflightResult =
 const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const hasReleaseNoteContent = (section: string): boolean =>
-  section.split("\n").some((line) => {
+const hasReleaseNoteContent = (section: string): boolean => {
+  const sectionWithoutComments = section.replace(/<!--[\s\S]*?(?:-->|$)/g, "");
+
+  return sectionWithoutComments.split("\n").some((line) => {
     const trimmedLine = line.trim();
     if (!trimmedLine) return false;
     if (/^#{3,6}\s+/.test(trimmedLine)) return false;
-    if (/^<!--.*-->$/.test(trimmedLine)) return false;
     return true;
   });
+};
 
 export const checkChangelogSection = ({
   changelog,
@@ -23,7 +25,7 @@ export const checkChangelogSection = ({
   version: string;
 }): ChangelogPreflightResult => {
   const headingPattern = new RegExp(
-    `^##\\s+\\[${escapeRegExp(version)}\\](?:\\s+-\\s+.*)?\\s*$`,
+    `^##[ \\t]+\\[${escapeRegExp(version)}\\](?:[ \\t]+-[ \\t]+.*)?[ \\t]*\\r?$`,
     "m",
   );
   const headingMatch = headingPattern.exec(changelog);
