@@ -79,7 +79,7 @@ the workflow. The workflow does not update extension metadata when synchronizati
 fails.
 
 The workflow uses the GitHub App for writes to the Discourse Graphs fork and the
-`ROAMJS_RELEASE_TOKEN` organization secret to open or reuse the cross-fork pull
+`ROAM_RELEASE_TOKEN` organization secret to open or reuse the cross-fork pull
 request in `Roam-Research/roam-depot`.
 
 When the version bump and changelog are merged:

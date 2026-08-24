@@ -135,7 +135,7 @@ const createUpstreamGitHubClient = (): GitHubClient => {
     Octokit: TokenAuthenticatedGitHubClientConstructor;
   };
 
-  return new Octokit({ auth: getRequiredEnvVar("ROAMJS_RELEASE_TOKEN") });
+  return new Octokit({ auth: getRequiredEnvVar("ROAM_RELEASE_TOKEN") });
 };
 
 const getGitHubApiErrorDetails = (error: unknown): string => {
@@ -212,6 +212,12 @@ export const synchronizeFork = async ({
   );
 };
 
+const getUpstreamPullRequestTitle = (version: string): string =>
+  `Discourse Graphs - Release ${version}`;
+
+const getUpstreamPullRequestBody = (version: string): string =>
+  `Updates Discourse Graphs to release ${version}.`;
+
 export const createOrReuseUpstreamPullRequest = async ({
   octokit,
   version,
@@ -230,12 +236,19 @@ export const createOrReuseUpstreamPullRequest = async ({
       { owner, repo, head, base, state: "open" },
     );
     const existingPullRequest = (
-      existingResponse.data as Array<{ html_url?: string }>
+      existingResponse.data as Array<{ html_url?: string; number?: number }>
     )[0];
 
-    if (existingPullRequest?.html_url) {
+    if (existingPullRequest?.html_url && existingPullRequest.number) {
+      await octokit.request("PATCH /repos/{owner}/{repo}/pulls/{pull_number}", {
+        owner,
+        repo,
+        pull_number: existingPullRequest.number,
+        title: getUpstreamPullRequestTitle(version),
+        body: getUpstreamPullRequestBody(version),
+      });
       console.log(
-        `Reusing upstream pull request: ${existingPullRequest.html_url}`,
+        `Updated and reused upstream pull request: ${existingPullRequest.html_url}`,
       );
       return existingPullRequest.html_url;
     }
@@ -245,10 +258,10 @@ export const createOrReuseUpstreamPullRequest = async ({
       {
         owner,
         repo,
-        title: `Discourse Graphs - Release ${version}`,
+        title: getUpstreamPullRequestTitle(version),
         head,
         base,
-        body: `Updates Discourse Graphs to release ${version}.`,
+        body: getUpstreamPullRequestBody(version),
       },
     );
     const pullRequestUrl = (createResponse.data as { html_url?: string })
@@ -262,7 +275,7 @@ export const createOrReuseUpstreamPullRequest = async ({
     return pullRequestUrl;
   } catch (error) {
     throw new Error(
-      `Could not submit the Roam Depot pull request: GitHub API returned ${getGitHubApiErrorDetails(error)}. Verify ROAMJS_RELEASE_TOKEN can create pull requests in Roam-Research/roam-depot, then rerun the publish workflow.`,
+      `Could not submit the Roam Depot pull request: GitHub API returned ${getGitHubApiErrorDetails(error)}. Verify ROAM_RELEASE_TOKEN can create pull requests in Roam-Research/roam-depot, then rerun the publish workflow.`,
     );
   }
 };

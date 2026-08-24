@@ -113,7 +113,7 @@
         "APP_PRIVATE_KEY",
         "GITHUB_OUTPUT",
         "GITHUB_TOKEN",
-        "ROAMJS_RELEASE_TOKEN"
+        "ROAM_RELEASE_TOKEN"
       ]
     }
   }

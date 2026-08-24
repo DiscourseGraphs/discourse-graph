@@ -106,7 +106,7 @@ describe("Roam Depot publishing", () => {
     );
   });
 
-  it("reuses an existing upstream pull request", async () => {
+  it("updates and reuses an existing upstream pull request", async () => {
     const request = vi.fn<GitHubClient["request"]>((route) => {
       if (route === "GET /repos/{owner}/{repo}") {
         return Promise.resolve({
@@ -122,6 +122,8 @@ describe("Roam Depot publishing", () => {
           data: [
             {
               html_url: "https://github.com/Roam-Research/roam-depot/pull/123",
+              number: 123,
+              title: "Discourse Graphs - Release 1.2.2",
             },
           ],
           status: 200,
@@ -136,6 +138,16 @@ describe("Roam Depot publishing", () => {
     expect(request).not.toHaveBeenCalledWith(
       "POST /repos/{owner}/{repo}/pulls",
       expect.anything(),
+    );
+    expect(request).toHaveBeenCalledWith(
+      "PATCH /repos/{owner}/{repo}/pulls/{pull_number}",
+      {
+        owner: "Roam-Research",
+        repo: "roam-depot",
+        pull_number: 123,
+        title: "Discourse Graphs - Release 1.2.3",
+        body: "Updates Discourse Graphs to release 1.2.3.",
+      },
     );
   });
 
