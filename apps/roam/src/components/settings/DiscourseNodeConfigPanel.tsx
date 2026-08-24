@@ -146,7 +146,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
               setNodes([
                 ...nodes,
                 {
-                  format: "",
+                  format,
                   type: valueUid,
                   text: label,
                   shortcut,
@@ -191,13 +191,13 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
               </td>
               <td
                 onClick={() => navigateToNode(n.type)}
-                style={{ verticalAlign: "middle" }}
+                className="align-middle"
               >
                 <div className="flex items-center gap-2">
                   <span className="font-mono">{n.shortcut}</span>
                   {duplicateShortcuts.has(n.shortcut.toUpperCase()) && (
                     <Tooltip
-                      content={`Multiple nodes share the shortcut "${n.shortcut.toUpperCase()}". Only one of them will respond in the node menu.`}
+                      content={`Multiple nodes share the shortcut "${n.shortcut.toUpperCase()}". Only one node can respond to it in the node menu.`}
                     >
                       <Icon icon="warning-sign" intent={Intent.WARNING} />
                     </Tooltip>
