@@ -46,10 +46,11 @@ public changelog. See `apps/roam/CHANGELOG.md` for the current changelog format.
 
 ## Submitting to Roam
 
-Before running the Roam release workflow, make sure the Discourse Graphs Roam
-Depot fork is clean and up to date with upstream Roam Depot. The workflow updates
-the Roam Depot metadata from the fork, so pending fork drift can complicate the
-review PR.
+The Roam release workflow synchronizes the Discourse Graphs Roam Depot fork's
+default branch with upstream before reading or updating the extension metadata.
+If GitHub reports a sync conflict, resolve the fork conflict in GitHub and rerun
+the workflow. The workflow does not update extension metadata when synchronization
+fails.
 
 When the version bump and changelog are merged:
 
@@ -96,7 +97,7 @@ version.
 - Runs manually when publishing a prepared release.
 - Builds Roam.
 - Reads the release version from `apps/roam/package.json`.
-- Updates Roam Depot metadata.
+- Synchronizes the Roam Depot fork with upstream, then updates its metadata.
 - Moves the Linear release to `Sent to Roam for Review`.
 
 `roam-release-complete.yaml`
