@@ -14,6 +14,7 @@
     "playwright:open": "tsx scripts/playwright/openRoam.ts",
     "check-types": "tsc --noEmit --skipLibCheck",
     "test": "vitest run --config vitest.config.mts",
+    "test:unit": "vitest run --config vitest.config.mts",
     "test:watch": "vitest --config vitest.config.mts"
   },
   "license": "Apache-2.0",
