@@ -32,6 +32,7 @@ export type GitHubClient = {
 
 type PublishDependencies = {
   octokit?: GitHubClient;
+  upstreamOctokit?: GitHubClient;
   getCommitHash?: () => Promise<string>;
   getPackageVersion?: () => string;
 };
@@ -47,6 +48,10 @@ type GitHubClientConstructor = new (options: {
     privateKey: string;
     installationId: number;
   };
+}) => GitHubClient;
+
+type TokenAuthenticatedGitHubClientConstructor = new (options: {
+  auth: string;
 }) => GitHubClient;
 
 const getVersion = (root = "."): string => {
@@ -121,6 +126,16 @@ const createGitHubClient = (): GitHubClient => {
       installationId: 59416220,
     },
   });
+};
+
+const createUpstreamGitHubClient = (): GitHubClient => {
+  // Roam's script module configuration does not support ESM imports here.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Octokit } = require("@octokit/core") as {
+    Octokit: TokenAuthenticatedGitHubClientConstructor;
+  };
+
+  return new Octokit({ auth: getRequiredEnvVar("ROAMJS_RELEASE_TOKEN") });
 };
 
 const getGitHubApiErrorDetails = (error: unknown): string => {
@@ -247,13 +262,14 @@ export const createOrReuseUpstreamPullRequest = async ({
     return pullRequestUrl;
   } catch (error) {
     throw new Error(
-      `Could not submit the Roam Depot pull request: GitHub API returned ${getGitHubApiErrorDetails(error)}. Verify the GitHub App can create pull requests in Roam-Research/roam-depot, then rerun the publish workflow.`,
+      `Could not submit the Roam Depot pull request: GitHub API returned ${getGitHubApiErrorDetails(error)}. Verify ROAMJS_RELEASE_TOKEN can create pull requests in Roam-Research/roam-depot, then rerun the publish workflow.`,
     );
   }
 };
 
 export const publish = async ({
   octokit = createGitHubClient(),
+  upstreamOctokit = createUpstreamGitHubClient(),
   getCommitHash = getCurrentCommitHash,
   getPackageVersion = getVersion,
 }: PublishDependencies = {}): Promise<PublishResult> => {
@@ -332,7 +348,7 @@ export const publish = async ({
   }
 
   const pullRequestUrl = await createOrReuseUpstreamPullRequest({
-    octokit,
+    octokit: upstreamOctokit,
     version,
   });
 

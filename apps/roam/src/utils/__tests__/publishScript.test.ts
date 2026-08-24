@@ -18,15 +18,16 @@ const publishWithClient = async (
 ): Promise<PublishResult> =>
   publish({
     octokit,
+    upstreamOctokit: octokit,
     getCommitHash: () => Promise.resolve("abc123"),
     getPackageVersion: () => "1.2.3",
   });
 
 describe("Roam Depot publishing", () => {
-  it("synchronizes the fork's default branch before reading and updating metadata", async () => {
-    const routes: string[] = [];
-    const request = vi.fn<GitHubClient["request"]>((route) => {
-      routes.push(route);
+  it("uses separate clients for fork publishing and the upstream pull request", async () => {
+    const forkRoutes: string[] = [];
+    const forkRequest = vi.fn<GitHubClient["request"]>((route) => {
+      forkRoutes.push(route);
 
       if (route === "GET /repos/{owner}/{repo}") {
         return Promise.resolve({
@@ -46,6 +47,12 @@ describe("Roam Depot publishing", () => {
           status: 200,
         });
       }
+      return Promise.resolve({ data: {}, status: 200 });
+    });
+    const upstreamRoutes: string[] = [];
+    const upstreamRequest = vi.fn<GitHubClient["request"]>((route) => {
+      upstreamRoutes.push(route);
+
       if (route === "GET /repos/{owner}/{repo}/pulls") {
         return Promise.resolve({ data: [], status: 200 });
       }
@@ -60,17 +67,24 @@ describe("Roam Depot publishing", () => {
       return Promise.resolve({ data: {}, status: 200 });
     });
 
-    await publishWithClient({ request });
+    await publish({
+      octokit: { request: forkRequest },
+      upstreamOctokit: { request: upstreamRequest },
+      getCommitHash: () => Promise.resolve("abc123"),
+      getPackageVersion: () => "1.2.3",
+    });
 
-    expect(routes).toEqual([
+    expect(forkRoutes).toEqual([
       "GET /repos/{owner}/{repo}",
       "POST /repos/{owner}/{repo}/merge-upstream",
       "GET /repos/{owner}/{repo}/contents/{path}",
       "PUT /repos/{owner}/{repo}/contents/{path}",
+    ]);
+    expect(upstreamRoutes).toEqual([
       "GET /repos/{owner}/{repo}/pulls",
       "POST /repos/{owner}/{repo}/pulls",
     ]);
-    expect(request).toHaveBeenNthCalledWith(
+    expect(forkRequest).toHaveBeenNthCalledWith(
       2,
       "POST /repos/{owner}/{repo}/merge-upstream",
       {
@@ -79,7 +93,7 @@ describe("Roam Depot publishing", () => {
         branch: "main",
       },
     );
-    expect(request).toHaveBeenLastCalledWith(
+    expect(upstreamRequest).toHaveBeenLastCalledWith(
       "POST /repos/{owner}/{repo}/pulls",
       {
         owner: "Roam-Research",

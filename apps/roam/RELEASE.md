@@ -78,6 +78,10 @@ If GitHub reports a sync conflict, resolve the fork conflict in GitHub and rerun
 the workflow. The workflow does not update extension metadata when synchronization
 fails.
 
+The workflow uses the GitHub App for writes to the Discourse Graphs fork and the
+`ROAMJS_RELEASE_TOKEN` organization secret to open or reuse the cross-fork pull
+request in `Roam-Research/roam-depot`.
+
 When the version bump and changelog are merged:
 
 1. Run the `Update Roam Extension Metadata` GitHub Action

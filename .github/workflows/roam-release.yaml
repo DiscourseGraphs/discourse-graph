@@ -86,6 +86,8 @@ jobs:
 
       - name: Update Roam Depot Extension
         id: publish
+        env:
+          ROAMJS_RELEASE_TOKEN: ${{ secrets.ROAMJS_RELEASE_TOKEN }}
         run: npx turbo run publish --filter=roam --ui stream -- --no-compile
 
       - name: Mark Linear release sent to Roam review
