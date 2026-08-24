@@ -42,6 +42,7 @@ type Props = {
   isShift?: boolean;
   menuMaxHeight?: number;
   settingsSnapshot?: SettingsSnapshot;
+  onTagAdded?: (newText: string) => void;
 };
 
 const NodeMenu = ({
@@ -53,6 +54,7 @@ const NodeMenu = ({
   isShift,
   menuMaxHeight,
   settingsSnapshot,
+  onTagAdded,
 }: { onClose: () => void } & Props) => {
   const isInitialTextSelected =
     !!textarea && textarea.selectionStart !== textarea.selectionEnd;
@@ -161,7 +163,7 @@ const NodeMenu = ({
         const tag = menuItem.getAttribute("data-tag") || "";
         if (!tag) return;
 
-        const addTagToBlock = () => {
+        const addTagToBlock = async () => {
           const textToInsert = `${
             selectionStart === 0 ? "" : " "
           }#${tag.replace(/^#/, "")}`;
@@ -171,10 +173,11 @@ const NodeMenu = ({
             selectionStart,
           )}${textToInsert}${currentText.substring(selectionStart)}`;
 
-          void updateBlock({ text: newText, uid: targetBlockUid });
+          await updateBlock({ text: newText, uid: targetBlockUid });
           posthog.capture("Discourse Tag: Created via Node Menu", {
             tag,
           });
+          onTagAdded?.(newText);
         };
         // timeout required to ensure the block is updated
         setTimeout(() => void addTagToBlock(), 100);
@@ -184,7 +187,15 @@ const NodeMenu = ({
       }
       onClose();
     },
-    [menuRef, targetBlockUid, onClose, textarea, extensionAPI, showNodeTypes],
+    [
+      menuRef,
+      targetBlockUid,
+      onClose,
+      textarea,
+      extensionAPI,
+      showNodeTypes,
+      onTagAdded,
+    ],
   );
 
   const keydownListener = useCallback(
