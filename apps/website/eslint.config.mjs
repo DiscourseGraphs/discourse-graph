@@ -4,9 +4,10 @@ export default [
   ...nextJsConfig,
   // additions
   {
+    files: ["**/*.{ts,tsx,mts,cts}"],
     languageOptions: {
       parserOptions: {
-        tsconfigRootDir: ".",
+        tsconfigRootDir: import.meta.dirname,
         project: true,
         ecmaFeatures: {
           jsx: true,

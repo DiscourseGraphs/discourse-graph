@@ -343,7 +343,7 @@ export const fetchNodeTypeSchemasForInstances = async ({
     .select("source_local_id, schema_id")
     .eq("space_id", spaceId)
     .eq("is_schema", false)
-    .eq("arity", 0)
+    .eq("is_relation", false)
     .in("source_local_id", nodeInstanceIds);
 
   if (instanceError || !instanceRows) {
@@ -365,7 +365,7 @@ export const fetchNodeTypeSchemasForInstances = async ({
     .select("id, source_local_id, name")
     .eq("space_id", spaceId)
     .eq("is_schema", true)
-    .eq("arity", 0)
+    .eq("is_relation", false)
     .in("id", schemaIds);
 
   if (schemaError || !schemaRows) {
