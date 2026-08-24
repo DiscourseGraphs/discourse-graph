@@ -73,17 +73,25 @@ public changelog. See `apps/roam/CHANGELOG.md` for the current changelog format.
 
 ## Submitting to Roam
 
-Before running the Roam release workflow, make sure the Discourse Graphs Roam
-Depot fork is clean and up to date with upstream Roam Depot. The workflow updates
-the Roam Depot metadata from the fork, so pending fork drift can complicate the
-review PR.
+The Roam release workflow synchronizes the Discourse Graphs Roam Depot fork's
+default branch with upstream before reading or updating the extension metadata.
+If GitHub reports a sync conflict, resolve the fork conflict in GitHub and rerun
+the workflow. The workflow does not update extension metadata when synchronization
+fails.
 
 When the version bump and changelog are merged:
 
 1. Run the `Update Roam Extension Metadata` GitHub Action
    (`.github/workflows/roam-release.yaml`) from `main`.
-2. Confirm the workflow succeeds.
-3. The workflow updates Roam Depot metadata and moves the Linear release to
+2. The workflow stops before changing Linear or Roam Depot if it is not running
+   from `main`, if `apps/roam/CHANGELOG.md` has no section matching the version in
+   `apps/roam/package.json`, or if that section has no release notes. Follow the
+   error annotation, merge the missing preparation to `main`, and rerun the
+   workflow from `main`.
+3. Confirm the workflow succeeds and review its job summary for the submitted
+   version, source commit, Linear release, Roam Depot comparison, and remaining
+   manual steps.
+4. The workflow updates Roam Depot metadata and moves the Linear release to
    `Sent to Roam for Review`.
 4. Treat the release as frozen in Linear.
 5. Create the next Roam Linear release, move it to `In Progress`, and bump
@@ -128,10 +136,14 @@ version.
 `roam-release.yaml`
 
 - Runs manually when publishing a prepared release.
+- Requires the workflow to run from `main` with a matching, non-empty changelog
+  section for the package version before any release mutation.
 - Builds Roam.
 - Reads the release version from `apps/roam/package.json`.
-- Updates Roam Depot metadata.
+- Synchronizes the Roam Depot fork with upstream, then updates its metadata.
 - Moves the Linear release to `Sent to Roam for Review`.
+- Writes a successful job summary with release links and the remaining manual
+  steps.
 
 `roam-release-complete.yaml`
 

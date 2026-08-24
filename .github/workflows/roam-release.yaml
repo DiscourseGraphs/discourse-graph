@@ -22,6 +22,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Confirm release runs from main
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "::error title=Roam release must run from main::Re-run this workflow with 'Use workflow from' set to main. Current ref: $GITHUB_REF"
+            exit 1
+          fi
+
       - name: Install pnpm
         uses: pnpm/action-setup@v6
         with:
@@ -37,20 +45,35 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./apps/roam/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Confirm changelog release notes
+        run: pnpm --filter roam release:preflight
+
       - name: Build
         run: npx turbo run build --filter=roam --ui stream
 
-      - name: Get version
-        id: version
-        run: echo "version=$(node -p "require('./apps/roam/package.json').version")" >> $GITHUB_OUTPUT
-
       - name: Sync Linear release
+        id: linear_release
         uses: linear/linear-release-action@v0
         with:
           access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY }}
           name: Roam ${{ steps.version.outputs.version }}
           version: ${{ steps.version.outputs.version }}
           include_paths: "apps/roam/**,packages/tailwind-config/**,packages/utils/**,packages/database/**,packages/ui/**"
+
+      - name: Confirm Linear release details
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.linear_release.outputs.release-version }}
+          RELEASE_URL: ${{ steps.linear_release.outputs.release-url }}
+        run: |
+          if [[ -z "$RELEASE_VERSION" || -z "$RELEASE_URL" ]]; then
+            echo "::error title=Linear release details unavailable::The Linear release sync did not return a release version and URL. Check the sync logs and Linear release pipeline, then rerun the workflow."
+            exit 1
+          fi
 
       - name: Inject & upload source maps to PostHog
         uses: PostHog/upload-source-maps@v0.5.7.0
@@ -71,3 +94,27 @@ jobs:
           command: update
           version: ${{ steps.version.outputs.version }}
           stage: Sent to Roam for Review
+
+      - name: Write release summary
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.linear_release.outputs.release-version }}
+          RELEASE_URL: ${{ steps.linear_release.outputs.release-url }}
+          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_URL: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
+          DEPOT_COMPARE_URL: https://github.com/Roam-Research/roam-depot/compare/main...DiscourseGraphs:roam-depot:main?expand=1
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          # Roam ${RELEASE_VERSION} submitted for review
+
+          - **Release version:** ${RELEASE_VERSION}
+          - **Source commit:** [\`${SOURCE_SHA}\`](${SOURCE_URL})
+          - **Linear release:** [Roam ${RELEASE_VERSION}](${RELEASE_URL})
+          - **Roam Depot comparison:** [Open comparison](${DEPOT_COMPARE_URL})
+
+          ## Remaining manual steps
+
+          1. Open the upstream Roam Depot PR from the comparison above.
+          2. Create the next Roam Linear release and bump \`apps/roam/package.json\` to its version.
+          3. After Roam publishes the submitted release, complete [Roam ${RELEASE_VERSION}](${RELEASE_URL}) in Linear.
+          EOF
