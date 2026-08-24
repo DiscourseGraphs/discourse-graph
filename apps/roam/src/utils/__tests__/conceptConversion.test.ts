@@ -216,4 +216,10 @@ describe("discourseNodeBlockToLocalConcept source slot", () => {
       sourceDocument: "source-1",
     });
   });
+
+  it("carries the type author as author_local_id", () => {
+    stubRoamQuery();
+    const concept = discourseNodeSchemaToLocalConcept(context, claimSchema);
+    expect(concept.author_local_id).toBe("author-1");
+  });
 });
