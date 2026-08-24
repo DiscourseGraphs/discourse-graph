@@ -19,10 +19,9 @@ const extractContentFromTitle = (
   const contentIndex = placeholders.findIndex(
     (name) => name.toLowerCase() === "content",
   );
-  if (contentIndex >= 0) {
-    return expressionMatch[contentIndex + 1]?.trim() || title;
-  }
-  return expressionMatch[1]?.trim() || title;
+  const capture =
+    contentIndex >= 0 ? expressionMatch[contentIndex + 1] : expressionMatch[1];
+  return capture === undefined ? title : capture.trim();
 };
 
 export default extractContentFromTitle;

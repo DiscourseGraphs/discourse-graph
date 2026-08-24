@@ -19,6 +19,7 @@ vi.mock("~/utils/getDiscourseNodes", () => ({
 
 import {
   fullContentNodeToCrossApp,
+  getFormatByNodeTypeUid,
   nodeUidsWithTypeToCrossApp,
 } from "~/utils/roamToCrossAppConverters";
 
@@ -110,24 +111,30 @@ describe("fullContentNodeToCrossApp coreTitle", () => {
   };
 
   it("extracts the content from the title", () => {
-    const node = fullContentNodeToCrossApp(baseNode);
+    const node = fullContentNodeToCrossApp(baseNode, getFormatByNodeTypeUid());
     expect(node.coreTitle).toBe("claim");
   });
 
   it("extracts from the page title when node_title is present", () => {
-    const node = fullContentNodeToCrossApp({
-      ...baseNode,
-      text: "some block text",
-      node_title: "CLM - claim",
-    });
+    const node = fullContentNodeToCrossApp(
+      {
+        ...baseNode,
+        text: "some block text",
+        node_title: "CLM - claim",
+      },
+      getFormatByNodeTypeUid(),
+    );
     expect(node.coreTitle).toBe("claim");
   });
 
   it("keeps the whole title when it does not match the format", () => {
-    const node = fullContentNodeToCrossApp({
-      ...baseNode,
-      text: "unrelated title",
-    });
+    const node = fullContentNodeToCrossApp(
+      {
+        ...baseNode,
+        text: "unrelated title",
+      },
+      getFormatByNodeTypeUid(),
+    );
     expect(node.coreTitle).toBe("unrelated title");
   });
 });
