@@ -892,7 +892,7 @@ const getAllMissingOrNewDiscourseNodes = async ({
       .from("my_concepts")
       .select("source_local_id")
       .eq("space_id", spaceId)
-      .eq("arity", 0)
+      .eq("is_relation", false)
       .eq("is_schema", false)
       .order("id"),
     1000,
@@ -939,7 +939,7 @@ const getSharedNodeInstanceSourceLocalIds = async ({
       .select("source_local_id")
       .eq("space_id", spaceId)
       .eq("is_schema", false)
-      .eq("arity", 0)
+      .eq("is_relation", false)
       .order("source_local_id"),
     1000,
   );

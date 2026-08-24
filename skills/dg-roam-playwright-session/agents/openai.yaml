@@ -1,0 +1,4 @@
+interface:
+  display_name: "DG Roam Playwright Session"
+  short_description: "Open DG Roam Playwright test sessions"
+  default_prompt: "Use $dg-roam-playwright-session to open a DG Roam Playwright test session."
