@@ -23,6 +23,7 @@ import {
   migrateGraphLevel,
   migratePersonalSettings,
 } from "./migrateLegacyToBlockProps";
+import { migratePropsStoreDefault } from "./migratePropsStoreDefault";
 import { getTopLevelBlockPropsConfig } from "~/components/settings/utils/zodSchema";
 import { DG_BLOCK_PROP_SETTINGS_PAGE_TITLE } from "./zodSchema";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
@@ -376,8 +377,11 @@ export const initSchema = async (): Promise<InitSchemaResult> => {
     refreshConfigTree();
   }
 
-  await migrateGraphLevel(blockUids);
-  await migratePersonalSettings(blockUids);
+  const graphSettingsMigrated = await migrateGraphLevel(blockUids);
+  const personalSettingsMigrated = await migratePersonalSettings(blockUids);
+  if (graphSettingsMigrated && personalSettingsMigrated) {
+    await migratePropsStoreDefault(blockUids);
+  }
   (window as unknown as Record<string, unknown>).dgDualReadLog =
     logDualReadComparison;
   return { blockUids, nodePageUids: {} };
