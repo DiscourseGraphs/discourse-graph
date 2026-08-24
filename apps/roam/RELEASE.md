@@ -29,7 +29,7 @@ links to the Linear release, changelog PR, and Roam Depot PR in that issue.
 - [ ] Subscribe to the Roam Depot PR so you know when Roam merges it.
 - [ ] After Roam publishes the extension, run `Complete Roam Linear Release` and
       confirm the Linear release is `Released`.
-- [ ] Change the Linear release checklist issue to `Released`.
+- [ ] Confirm the Linear release checklist issue status is `Released`.
 
 The detailed sections below provide the supporting instructions for each step.
 
@@ -115,7 +115,7 @@ After Roam publishes the extension:
    (`.github/workflows/roam-release-complete.yaml`) with the release version.
 2. Confirm the Linear release changed from `Sent to Roam for Review` to
    `Released`.
-3. Change the Linear release checklist issue to `Released`.
+3. Confirm the Linear release checklist issue status is `Released`.
 4. Confirm the next Linear release is already `In Progress` and
    `apps/roam/package.json` is already bumped to that next version.
 
