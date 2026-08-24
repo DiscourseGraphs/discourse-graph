@@ -5,7 +5,7 @@ GitHub Actions, and Roam Depot.
 
 ## Operator Checklist
 
-This runbook is authoritative. Use a Linear release checklist issue to track
+This checklist is authoritative. Use a Linear release checklist issue to track
 ownership and completion of each step, while following the ordering here. Record
 links to the Linear release, changelog PR, and Roam Depot PR in that issue.
 
