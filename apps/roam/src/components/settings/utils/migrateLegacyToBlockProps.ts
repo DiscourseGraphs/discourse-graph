@@ -26,8 +26,8 @@ import type { z } from "zod";
 import { invalidateDiscourseNodeTypeCaches } from "~/utils/discourseNodeTypeCache";
 
 const LOG_PREFIX = "[DG BlockProps Migration]";
-const GRAPH_MIGRATION_MARKER = "Block props migrated";
-const PERSONAL_MIGRATION_MARKER = "dg-personal-settings-migrated";
+const GRAPH_MIGRATION_MARKER = "Block props migrated v2";
+const PERSONAL_MIGRATION_MARKER = "dg-personal-settings-migrated-v2";
 const MAX_ERROR_CONTEXT_LENGTH = 5000;
 
 const hasGraphMigrationMarker = (blockMap: Record<string, string>): boolean =>
@@ -76,12 +76,6 @@ const migrateSection = async ({
 
   const parseResult = schema.safeParse(legacyData);
   if (!parseResult.success) {
-    if (isPropsValid(schema, currentProps)) {
-      console.log(
-        `${LOG_PREFIX} ${label}: legacy malformed but props already valid, skipping`,
-      );
-      return true;
-    }
     console.warn(`${LOG_PREFIX} ${label}: Zod validation failed, skipping`, {
       error: parseResult.error.message,
     });
