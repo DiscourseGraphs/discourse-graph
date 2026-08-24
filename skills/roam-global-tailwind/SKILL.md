@@ -12,7 +12,7 @@ Distinguish Roam's global stylesheet from CSS compiled by the current project. A
 1. Use the project's own Tailwind configuration and generated CSS when the project compiles the class itself.
 2. Otherwise, treat the class as dependent on Roam's global stylesheet.
 3. Read [references/compatibility.md](references/compatibility.md) before selecting or reviewing global classes.
-4. Run `node scripts/check-classes.mjs '<class>'...` for any class not explicitly confirmed in the reference, and whenever current live behavior matters. Shell-quote each complete class argument so parentheses, brackets, and embedded quotes reach the checker unchanged; for example, use `"content-['x']"` when the class itself contains single quotes.
+4. Resolve this skill's directory from the loaded `SKILL.md`, then run `node "<skill-directory>/scripts/check-classes.mjs" '<class>'...` for any class not explicitly confirmed in the reference, and whenever current live behavior matters. Do not resolve the script relative to the target repository's working directory. Shell-quote each complete class argument so parentheses, brackets, and embedded quotes reach the checker unchanged; for example, use `"content-['x']"` when the class itself contains single quotes.
 
 Do not infer that a whole variant family is available from one confirmed class. Check complete class names because Roam's generated variants are utility-specific.
 
