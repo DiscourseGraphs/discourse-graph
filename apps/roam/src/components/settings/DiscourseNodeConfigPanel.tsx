@@ -191,7 +191,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
               </td>
               <td
                 onClick={() => navigateToNode(n.type)}
-                className="align-middle"
+                style={{ verticalAlign: "middle" }}
               >
                 <div className="flex items-center gap-2">
                   <span className="font-mono">{n.shortcut}</span>
