@@ -4,8 +4,8 @@ import type {
   CrossAppRelation,
   CrossAppRelationTripleSchema,
 } from "@repo/database/crossAppContracts";
-import type { RoamFullContentNode } from "./convertRoamNodeToFullContent";
 import type { DiscourseNode } from "./getDiscourseNodes";
+import type { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import type { TreeNode, ViewType } from "roamjs-components/types";
 import type { NodeUidWithType } from "~/utils/publishNodesToGroups";
 import type { Json } from "@repo/database/dbTypes";
@@ -15,6 +15,7 @@ import { toMarkdown } from "./pageToMarkdown";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { contentTypes } from "@repo/content-model";
+import { templateToText } from "./templateToText";
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
@@ -62,25 +63,53 @@ const buildFullInlineContent = ({
   };
 };
 
-export const fullContentNodeToCrossApp = (
-  node: RoamFullContentNode,
-): CrossAppNode => {
-  const title = node.node_title ?? node.text;
-
-  return {
-    authorId: node.author_local_id,
-    localId: node.source_local_id,
-    createdAt: new Date(node.created || Date.now()),
-    modifiedAt: new Date(node.last_modified || Date.now()),
-    nodeType: node.node_type_id,
-    content: {
-      direct: {
+// A node whose text lives in a first child block below its page (the isFirstChild
+// node type setting) is known by its page title followed by that block's text, and
+// its direct content is a direct_and_description. A node that is a page holds a
+// plain direct: its title. When the first child block is missing, there is no
+// description to speak of, and the title alone is left: a plain direct again.
+// Known gap: a published isFirstChild node should arguably carry both, so that its
+// plain direct is kept up to date alongside the direct_and_description.
+const directContent = (
+  node: RoamDiscourseNodeData,
+): CrossAppNode["content"]["direct"] =>
+  node.node_title && node.text
+    ? {
         localId: node.source_local_id,
-        value: title,
-      },
-      full: buildFullInlineContent({ uid: node.source_local_id, title }),
-    },
-  };
+        value: `${node.node_title} ${node.text}`,
+        variant: "direct_and_description",
+      }
+    : {
+        localId: node.source_local_id,
+        value: node.node_title || node.text,
+        variant: "direct",
+      };
+
+// The node without its full content: building that content walks the whole page,
+// so callers that do not need it should not pay for it.
+export const contentNodeToCrossApp = (
+  node: RoamDiscourseNodeData,
+): CrossAppNode => ({
+  authorId: node.author_local_id,
+  localId: node.source_local_id,
+  createdAt: new Date(node.created || Date.now()),
+  modifiedAt: new Date(node.last_modified || Date.now()),
+  nodeType: node.type,
+  content: {
+    direct: directContent(node),
+  },
+});
+
+export const fullContentNodeToCrossApp = (
+  node: RoamDiscourseNodeData,
+): CrossAppNode => {
+  const crossAppNode = contentNodeToCrossApp(node);
+  // the full content is a rendering of the node's page, so it is titled by the page
+  crossAppNode.content.full = buildFullInlineContent({
+    uid: node.source_local_id,
+    title: node.node_title ?? node.text,
+  });
+  return crossAppNode;
 };
 
 export const nodeUidsWithTypeToCrossApp = async (
@@ -195,10 +224,13 @@ export const nodeSchemaToCrossApp = (
   if (!relData) return null;
   const userUid = (relData[":create/user"] ?? {})[":user/uid"];
   if (!userUid) return null;
+  const createdTime = relData[":create/time"] || Date.now();
   return {
     localId: s.type,
     label: s.text,
     authorId: userUid,
-    createdAt: new Date(relData[":create/time"] || Date.now()),
+    createdAt: new Date(createdTime),
+    modifiedAt: new Date(relData[":edit/time"] || createdTime),
+    ...(s.template?.length ? { template: templateToText(s.template) } : {}),
   };
 };

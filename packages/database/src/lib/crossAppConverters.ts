@@ -34,7 +34,7 @@ const filterUndefinedArray = <T>(data: (T | undefined)[]): T[] =>
 
 const inlineCrossAppContentToDbContent = (
   content: InlineCrossAppContent | undefined,
-  variant: Enums<"ContentVariant">,
+  defaultVariant: Enums<"ContentVariant">,
 ): LocalContentDataInput | undefined => {
   if (content === undefined) return undefined;
   return filterUndefined<LocalContentDataInput>({
@@ -42,7 +42,7 @@ const inlineCrossAppContentToDbContent = (
     text: content.value,
     scale: content.scale || "document",
     content_type: content.contentType || "text/plain",
-    variant,
+    variant: content.variant || defaultVariant,
     created: content.createdAt?.toISOString(),
     last_modified: content.modifiedAt?.toISOString(),
     author_local_id: content.authorId,
@@ -52,10 +52,10 @@ const inlineCrossAppContentToDbContent = (
 
 export const crossAppNodeToDbContent = (
   node: CrossAppNode | undefined,
-  variant: "full" | "direct",
+  defaultVariant: "full" | "direct",
 ): LocalContentDataInput | undefined => {
   if (node === undefined) return undefined;
-  const content = node.content[variant];
+  const content = node.content[defaultVariant];
   if (content === undefined) return undefined;
   return inlineCrossAppContentToDbContent(
     {
@@ -64,7 +64,7 @@ export const crossAppNodeToDbContent = (
       modifiedAt: content.modifiedAt || node.modifiedAt,
       authorId: content.authorId || node.authorId,
     },
-    variant,
+    defaultVariant,
   );
 };
 
@@ -86,16 +86,20 @@ export const crossAppNodeToDbConcept = (
     ]),
     created: node.createdAt?.toISOString(),
     last_modified: node.modifiedAt?.toISOString(),
+    local_reference_content: node.slots,
   });
 };
 
 export const crossAppNodeSchemaToDbConcept = (
   node: CrossAppNodeSchema,
 ): LocalConceptDataInput => {
+  const slots = Object.keys(node.slotDefinitions ?? {});
   const literalInfo = filterUndefined({
     template: node.templateTitle,
     template_content: node.template,
+    roles: slots.length > 0 ? slots : undefined,
   });
+  const referenceContent = slots.length ? node.slotDefinitions! : undefined;
   const spaceUri = node.rid
     ? ridToSpaceUriAndLocalId(node.rid).spaceUri
     : undefined;
@@ -107,6 +111,7 @@ export const crossAppNodeSchemaToDbConcept = (
     is_schema: true,
     literal_content:
       Object.keys(literalInfo).length > 0 ? literalInfo : undefined,
+    local_reference_content: referenceContent,
     created: node.createdAt?.toISOString(),
     last_modified: node.modifiedAt?.toISOString(),
   });

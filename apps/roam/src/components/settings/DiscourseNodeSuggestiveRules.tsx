@@ -5,7 +5,7 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import extractRef from "roamjs-components/util/extractRef";
 import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
-import { upsertNodesToSupabaseAsContentWithEmbeddings } from "~/utils/syncDgNodesToSupabase";
+import { upsertNodesWithEmbeddings } from "~/utils/syncDgNodesToSupabase";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 import {
   DiscourseNodeFlagPanel,
@@ -56,11 +56,12 @@ const DiscourseNodeSuggestiveRules = ({
 
       const context = await getSupabaseContext();
       if (context && blockNodesSince) {
-        await upsertNodesToSupabaseAsContentWithEmbeddings(
-          blockNodesSince,
+        await upsertNodesWithEmbeddings({
+          nodes: blockNodesSince,
+          nodeTypes: [node],
           supabaseClient,
           context,
-        );
+        });
       }
     } finally {
       setIsUpdating(false);

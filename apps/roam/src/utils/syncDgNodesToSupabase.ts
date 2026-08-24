@@ -12,17 +12,19 @@ import {
 } from "./supabaseContext";
 import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
+import { orderConceptsByDependency } from "./conceptConversion";
 import {
-  discourseNodeBlockToLocalConcept,
-  discourseNodeSchemaToLocalConcept,
-  orderConceptsByDependency,
-} from "./conceptConversion";
-import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
+  contentNodeToCrossApp,
+  fullContentNodeToCrossApp,
+  nodeSchemaToCrossApp,
+} from "./roamToCrossAppConverters";
+import type { CrossAppNode } from "@repo/database/crossAppContracts";
+import {
+  crossAppNodeSchemaToDbConcept,
+  crossAppNodeToDbConcept,
+} from "@repo/database/lib/crossAppConverters";
+import { attachEmbeddingsToNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
-import {
-  convertRoamNodeToFullContent,
-  type RoamFullContentNode,
-} from "./convertRoamNodeToFullContent";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { intersection } from "@repo/utils/setOperations";
 import type { Json, Enums } from "@repo/database/dbTypes";
@@ -45,8 +47,9 @@ const SYNC_INTERVAL = "130s";
 // Interval between syncs for each client individually
 const BASE_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const SYNC_TIMEOUT = "60s"; // must be less than half the SYNC_INTERVAL.
-const BATCH_SIZE = 200;
-const CONCEPT_BATCH_SIZE = 200;
+// Concepts carry their content, and a published node's full content is the markdown
+// of its whole page, so these batches are kept small.
+const CONCEPT_BATCH_SIZE = 50;
 const END_SYNC_TASK_RESULT_VERSION = 1;
 const DEFAULT_SYNC_TIME = new Date("1970-01-01").getTime();
 
@@ -592,6 +595,7 @@ const upsertNodeSchemaToContent = async ({
   userId: number;
   supabaseClient: DGSupabaseClient;
 }) => {
+  if (nodeTypesUids.length === 0) return;
   const query = `[
     :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title ?author-name
     :keys     source_local_id    created    last_modified    author_local_id    text author_name
@@ -629,8 +633,13 @@ const upsertNodeSchemaToContent = async ({
   }
 };
 
+// A node is sent as a single concept carrying its content: its direct content
+// (with an embedding, unless the caller opts out) and, for published nodes, the
+// full markdown of its page.
 export const convertDgToSupabaseConcepts = async ({
   nodesSince,
+  fullContentNodes = [],
+  withEmbeddings = true,
   since,
   allNodeTypes,
   sharedNodeTypeIds = new Set<string>(),
@@ -638,6 +647,8 @@ export const convertDgToSupabaseConcepts = async ({
   context,
 }: {
   nodesSince: RoamDiscourseNodeData[];
+  fullContentNodes?: CrossAppNode[];
+  withEmbeddings?: boolean;
   since: number | undefined;
   allNodeTypes: DiscourseNode[];
   sharedNodeTypeIds?: ReadonlySet<string>;
@@ -663,18 +674,50 @@ export const convertDgToSupabaseConcepts = async ({
     supabaseClient,
   });
 
-  const nodesTypesToLocalConcepts = nodeTypes.map((node) => {
-    return discourseNodeSchemaToLocalConcept(context, node);
+  const crossAppNodeSchemas = nodeTypes.map((node) => ({
+    node,
+    schema: nodeSchemaToCrossApp(node),
+  }));
+  const unconvertibleTypes = crossAppNodeSchemas
+    .filter(({ schema }) => schema === null)
+    .map(({ node }) => node.type);
+  if (unconvertibleTypes.length > 0) {
+    console.warn(
+      "Some node types have no author and were not synced:",
+      unconvertibleTypes,
+    );
+  }
+  const nodesTypesToLocalConcepts = crossAppNodeSchemas
+    .map(({ schema }) => schema)
+    .filter((schema) => schema !== null)
+    .map((schema) => crossAppNodeSchemaToDbConcept(schema));
+
+  const crossAppNodes = new Map<string, CrossAppNode>(
+    nodesSince.map((node) => [
+      node.source_local_id,
+      contentNodeToCrossApp(node),
+    ]),
+  );
+  // Nodes whose embedding is worth (re)computing: the ones that changed. A node
+  // present only for a full content backfill has not changed, and keeps its own.
+  const nodesToEmbed = [...crossAppNodes.values()];
+
+  fullContentNodes.forEach((withFullContent) => {
+    const changed = crossAppNodes.get(withFullContent.localId);
+    if (changed === undefined) {
+      crossAppNodes.set(withFullContent.localId, withFullContent);
+    } else {
+      changed.content.full = withFullContent.content.full;
+    }
   });
 
-  const nodeBlockToLocalConcepts = nodesSince.map((node) => {
-    const localConcept = discourseNodeBlockToLocalConcept(context, {
-      nodeUid: node.source_local_id,
-      schemaUid: node.type,
-      text: node.node_title ? `${node.node_title} ${node.text}` : node.text,
-    });
-    return localConcept;
-  });
+  if (withEmbeddings) {
+    await attachEmbeddingsToNodes(nodesToEmbed);
+  }
+
+  const nodeBlockToLocalConcepts = [...crossAppNodes.values()].map((node) =>
+    crossAppNodeToDbConcept(node),
+  );
 
   const conceptsToUpsert = [
     ...nodesTypesToLocalConcepts,
@@ -696,108 +739,24 @@ export const convertDgToSupabaseConcepts = async ({
   });
 };
 
-const uploadContentBatches = async ({
-  content,
-  supabaseClient,
-  context,
-}: {
-  content: LocalContentDataInput[];
-  supabaseClient: DGSupabaseClient;
-  context: SupabaseContext;
-}): Promise<void> => {
-  if (content.length === 0) {
-    return;
-  }
-
-  const batches = chunk(content, BATCH_SIZE);
-
-  for (let idx = 0; idx < batches.length; idx++) {
-    const batch = batches[idx];
-
-    const { error } = await supabaseClient.rpc("upsert_content", {
-      data: batch as Json,
-      v_space_id: context.spaceId,
-      v_creator_id: context.userId,
-      content_as_document: true,
-    });
-
-    if (error) {
-      throw new Error(`upsert_content failed for batch ${idx + 1}`, {
-        cause: error,
-      });
-    }
-  }
-};
-
-export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
-  roamNodes: RoamDiscourseNodeData[],
-  supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
-): Promise<void> => {
-  if (roamNodes.length === 0) {
-    return;
-  }
-  const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
-    nodes: roamNodes,
-  });
-
-  let nodesWithEmbeddings: LocalContentDataInput[];
-  try {
-    nodesWithEmbeddings = await fetchEmbeddingsForNodes(
-      allNodeInstancesAsLocalContent,
-    );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${message}`,
-    );
-    throw new Error(message);
-  }
-
-  if (nodesWithEmbeddings.length !== allNodeInstancesAsLocalContent.length) {
-    console.error(
-      "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
-    );
-    throw new Error(
-      "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
-    );
-  }
-
-  await uploadContentBatches({
-    content: nodesWithEmbeddings,
-    supabaseClient,
-    context,
-  });
-};
-
-const upsertNodesToSupabaseAsContent = async (
-  roamNodes: RoamDiscourseNodeData[],
-  supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
-): Promise<void> => {
-  if (roamNodes.length === 0) {
-    return;
-  }
-  const content = convertRoamNodeToLocalContent({ nodes: roamNodes });
-  await uploadContentBatches({ content, supabaseClient, context });
-};
-
-const upsertRoamNodesToSupabaseAsFullContent = async ({
+// Recomputes the embeddings of a node type's nodes, on demand from the settings panel.
+export const upsertNodesWithEmbeddings = async ({
   nodes,
+  nodeTypes,
   supabaseClient,
   context,
 }: {
-  nodes: RoamFullContentNode[];
+  nodes: RoamDiscourseNodeData[];
+  nodeTypes: DiscourseNode[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
 }): Promise<void> => {
-  if (nodes.length === 0) {
-    return;
-  }
-
-  const fullContent = convertRoamNodeToFullContent({ nodes });
-  await uploadContentBatches({
-    content: fullContent,
+  if (nodes.length === 0) return;
+  await convertDgToSupabaseConcepts({
+    nodesSince: nodes,
+    since: undefined,
+    allNodeTypes: nodeTypes,
+    sharedNodeTypeIds: new Set(nodeTypes.map((nodeType) => nodeType.type)),
     supabaseClient,
     context,
   });
@@ -998,7 +957,7 @@ type SharedFullContentUpdateRow = {
 };
 
 type SharedFullContentUpdate = {
-  fullContentNode: RoamFullContentNode;
+  node: CrossAppNode;
   nodeTypeId: string;
 };
 
@@ -1055,14 +1014,14 @@ const getSharedRoamNodesWithFullContentUpdatesSince = async ({
 
     return [
       {
-        fullContentNode: {
+        node: fullContentNodeToCrossApp({
           author_local_id: row.author_local_id,
           source_local_id: row.source_local_id,
           created: row.created,
           last_modified: Math.max(row.node_edit_time, row.page_edit_time),
           text: row.text,
-          node_type_id: matchingNodeType.type,
-        },
+          type: matchingNodeType.type,
+        }),
         nodeTypeId: matchingNodeType.type,
       },
     ];
@@ -1266,7 +1225,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       },
     });
     const sharedFullContentNodes = sharedFullContentUpdates.map(
-      (update) => update.fullContentNode,
+      (update) => update.node,
     );
     const sharedNodeTypeIds = new Set(
       sharedFullContentUpdates.map((update) => update.nodeTypeId),
@@ -1278,38 +1237,16 @@ export const createOrUpdateDiscourseEmbedding = async (
       operation: () =>
         upsertUsers(allUsers, activeSupabaseClient, activeContext),
     });
-    await measureSyncPhase({
-      phase: "upsertNodes",
-      phases,
-      operation: () =>
-        sharedNodesOnlySync
-          ? upsertNodesToSupabaseAsContent(
-              nodeInstancesToSync,
-              activeSupabaseClient,
-              activeContext,
-            )
-          : upsertNodesToSupabaseAsContentWithEmbeddings(
-              nodeInstancesToSync,
-              activeSupabaseClient,
-              activeContext,
-            ),
-    });
-    await measureSyncPhase({
-      phase: "upsertFullContent",
-      phases,
-      operation: () =>
-        upsertRoamNodesToSupabaseAsFullContent({
-          nodes: sharedFullContentNodes,
-          supabaseClient: activeSupabaseClient,
-          context: activeContext,
-        }),
-    });
+    // Nodes are upserted as concepts carrying their content: the direct content of
+    // every changed node, and the full page content of the published ones.
     await measureSyncPhase({
       phase: "convertConcepts",
       phases,
       operation: () =>
         convertDgToSupabaseConcepts({
           nodesSince: nodeInstancesToSync,
+          fullContentNodes: sharedFullContentNodes,
+          withEmbeddings: !sharedNodesOnlySync,
           since: sinceTime,
           allNodeTypes: allDgNodeTypes,
           sharedNodeTypeIds,

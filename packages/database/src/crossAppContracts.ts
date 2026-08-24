@@ -25,6 +25,7 @@ export type CrossAppNodeSchema = CrossAppSchemaBase & {
   label: string;
   template?: string;
   templateTitle?: string;
+  slotDefinitions?: Record<string, LocalId | undefined>;
 };
 
 // A relation type schema
@@ -65,6 +66,10 @@ export type InlineCrossAppContent = Partial<CrossAppBase> & {
   embedding?: CrossAppEmbedding;
   scale?: Enums<"Scale">;
   contentType?: ContentType;
+  // Which variant of the node's content this is. Defaults to the key it is held
+  // under: a node whose text lives in a block below its page holds a
+  // direct_and_description under direct, for instance.
+  variant?: Enums<"ContentVariant">;
 };
 
 // An inline Content with obligatory typing
@@ -75,6 +80,7 @@ type InlineCrossAppTypedContent = InlineCrossAppContent & {
 // A node instance
 export type CrossAppNode = CrossAppBase & {
   nodeType: LocalId;
+  slots?: Record<string, LocalId>;
   content: {
     direct: InlineCrossAppContent;
     full?: InlineCrossAppTypedContent;
