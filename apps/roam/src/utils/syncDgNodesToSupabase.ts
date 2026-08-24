@@ -1129,19 +1129,19 @@ const probeSchemaFormatBackfill = async ({
   spaceId: number;
   nodeTypes: DiscourseNode[];
 }): Promise<SchemaFormatBackfill> => {
-  const probeRes = await supabaseClient
-    .from("my_concepts")
-    .select(SCHEMA_FORMAT_PROBE_SELECT)
-    .eq("space_id", spaceId)
-    .eq("is_schema", true)
-    .eq("is_relation", false);
-  if (probeRes.error) {
-    throw new Error(
-      `Schema format probe failed: ${JSON.stringify(probeRes.error, null, 2)}`,
-    );
-  }
+  const probeRows = await getAllPages(
+    supabaseClient
+      .from("my_concepts")
+      .select(SCHEMA_FORMAT_PROBE_SELECT)
+      .eq("space_id", spaceId)
+      .eq("is_schema", true)
+      .eq("is_relation", false)
+      .order("id"),
+    1000,
+  );
+  if (!Array.isArray(probeRows)) throw probeRows;
   return buildSchemaFormatBackfill({
-    conceptRows: probeRes.data,
+    conceptRows: probeRows,
     nodeTypes,
   });
 };
