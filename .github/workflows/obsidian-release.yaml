@@ -53,20 +53,10 @@ jobs:
       - name: Publish stable release
         run: cd apps/obsidian && npx tsx scripts/publish.ts --version "$VERSION"
 
-      # Disabled: the default-branch ruleset requires a pull request and does not
-      # grant github-actions[bot] a bypass, so this push is always rejected on main.
-      # Bump apps/obsidian/package.json and manifest.json in the release PR instead.
-      # To re-enable, add github-actions[bot] as a ruleset bypass actor.
-      #
-      # - name: Commit version bump
-      #   run: |
-      #     if ! git diff --quiet -- apps/obsidian/package.json apps/obsidian/manifest.json; then
-      #       git config user.name "github-actions[bot]"
-      #       git config user.email "github-actions[bot]@users.noreply.github.com"
-      #       git add apps/obsidian/package.json apps/obsidian/manifest.json
-      #       git commit -m "chore: release obsidian ${VERSION} [skip ci]"
-      #       git push
-      #     fi
+      # There is deliberately no version-bump commit here. The default-branch
+      # ruleset requires a pull request and grants github-actions[bot] no bypass,
+      # so a push from CI is always rejected on main. Bump apps/obsidian/
+      # manifest.json and package.json in the release PR before dispatching.
 
       - name: Sync Linear release
         uses: linear/linear-release-action@v0

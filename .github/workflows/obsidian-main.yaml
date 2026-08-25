@@ -57,7 +57,10 @@ jobs:
           # lookup needs an explicit --repo and a token that can read that repo.
           GH_TOKEN: ${{ env.OBSIDIAN_PLUGIN_REPO_TOKEN }}
         run: |
-          STABLE_VERSION=$(node -p "require('./apps/obsidian/package.json').version")
+          # manifest.json is the plugin's canonical version: it is what Obsidian
+          # and the community store read. package.json is private and its version
+          # is incidental.
+          STABLE_VERSION=$(node -p "require('./apps/obsidian/manifest.json').version")
           LATEST_N=$(gh release list --repo "$PUBLISH_REPO" --limit 100 --json tagName --jq '.[].tagName' \
             | grep "^${STABLE_VERSION}-beta\." \
             | sed "s/^${STABLE_VERSION}-beta\.//" \
