@@ -5,18 +5,7 @@ import type {
 } from "~/types";
 import type { SchemaImportMatchPlan } from "~/utils/schemaMatching";
 
-/**
- * Fields a schema import may overwrite on an item that already exists locally.
- *
- * `name` and `label` are deliberately absent. Matching is id-first, so an id
- * match carrying a different name reads as a rename — but renaming a type does
- * not retag the pages already tagged with it, so the vault would silently split
- * into old-name and new-name halves. `id`, `created`, `authorId` and
- * `importedFromRid` are identity and provenance rather than editable content.
- *
- * The `satisfies` clause pins each list to its type: dropping or renaming a
- * field on DiscourseNode fails to compile here until the list is updated.
- */
+/** Fields an import may overwrite. `name`/`label` are excluded: renaming a type does not retag its pages, so the vault would silently split. */
 export const MERGEABLE_NODE_TYPE_FIELDS = [
   "format",
   "template",
@@ -44,13 +33,7 @@ export type SchemaFieldChange = {
 
 export type SchemaConflictCategory = "nodeType" | "relationType" | "template";
 
-/**
- * One locally-present item that the imported file also describes, plus the
- * fields whose values disagree. Keyed by schema-file id, not local id: the match
- * plan deliberately collapses schema types that collide by normalized name, so
- * two schema ids can share one local id and a local-keyed structure would drop
- * one of them.
- */
+/** Keyed by schema-file id, not local id: the match plan can collapse two schema ids onto one local id. */
 export type SchemaConflict = {
   category: SchemaConflictCategory;
   schemaId: string;
@@ -58,18 +41,7 @@ export type SchemaConflict = {
   changes: SchemaFieldChange[];
 };
 
-/**
- * A field the file has no value for is not an instruction to clear the local
- * one. An export from an older plugin simply lacks fields it never knew about,
- * and offering those as "changes" would turn version skew into silent deletion.
- * Merge only ever adds or overwrites.
- *
- * An empty string counts as "no value" alongside undefined: settings persist a
- * cleared optional field as "" but omit one that was never set, so the two
- * spellings of empty must not read as a difference. Without this, a node type
- * identical to the local one is offered for merge with both sides rendering as
- * "empty".
- */
+/** A file with no value for a field is not asking to clear it; "" counts as absent, since settings persist a cleared field as "" but omit an unset one. */
 const hasNoImportedValue = (
   value: SchemaFieldChange["importedValue"],
 ): boolean => value === undefined || value === "";
