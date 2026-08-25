@@ -221,3 +221,12 @@ body.roamjs-query-column-resizing * {
   .bp3-button.bp3-minimal[data-roamjs-canvas-page-ref-drag-handle="true"] {
   background-color: #394b59;
 }
+
+/* The extension has no Tailwind build of its own and borrows Roam's utilities,
+   so these two rules cannot be expressed as arbitrary-value classes. The width
+   keeps icon and text key hints the same size; the text-transform opts out of
+   the lowercasing applied to the surrounding footer label. */
+.roamjs-footer-kbd {
+  min-width: 1.25rem;
+  text-transform: none;
+}
