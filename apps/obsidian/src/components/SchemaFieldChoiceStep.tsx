@@ -6,7 +6,6 @@ import type { SchemaMergePlanState } from "~/components/useSchemaMergePlan";
 import { getImportedTemplateFileName } from "~/utils/templates";
 import { COLOR_PALETTE } from "~/utils/tldrawColors";
 
-/** Field names as they read in settings. Only mergeable fields reach this step. */
 const FIELD_LABELS: Record<string, string> = {
   format: "Format",
   template: "Template",
@@ -35,8 +34,7 @@ const CATEGORY_ORDER: SchemaConflict["category"][] = [
 const formatFieldValue = (value: SchemaFieldChange["localValue"]): string => {
   if (value === undefined || value === "") return "empty";
   if (typeof value === "boolean") return value ? "on" : "off";
-  // Collapsed rather than shortened: the cell wraps so the whole value stays
-  // readable, but embedded newlines would otherwise stretch the row.
+  // Collapse newlines so a multi-line value cannot stretch the row; the cell wraps rather than truncating.
   const collapsed = value.replace(/\s+/g, " ").trim();
   return collapsed.length === 0 ? "empty" : collapsed;
 };
@@ -47,11 +45,7 @@ const isEmptyValue = (value: SchemaFieldChange["localValue"]): boolean => {
   );
 };
 
-/**
- * Node types store a hex color, relation types a tldraw color name. Both render
- * as a swatch so the two sides can be compared at a glance rather than by
- * reading hex.
- */
+/** Node types store a hex color, relation types a tldraw color name; both resolve to a swatch. */
 const resolveSwatchColor = ({
   field,
   value,
@@ -63,7 +57,6 @@ const resolveSwatchColor = ({
   return COLOR_PALETTE[value] ?? (value.startsWith("#") ? value : undefined);
 };
 
-/** Templates are replaced whole, so size is the only useful summary of the body. */
 const describeTemplateBody = (
   value: SchemaFieldChange["localValue"],
 ): string => {

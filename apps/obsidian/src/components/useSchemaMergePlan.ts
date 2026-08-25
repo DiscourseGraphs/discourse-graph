@@ -5,19 +5,7 @@ import type {
 } from "~/utils/schemaFieldDiff";
 import type { SchemaMergePlan } from "~/utils/specImport";
 
-/**
- * Which values the user chose to take from the imported file for items that
- * already exist in the vault. Import-only: the export flow has nothing to
- * choose between.
- *
- * Deliberately separate from useSchemaSelection rather than folded into it.
- * The two have different lifecycles — a choice only means anything for an item
- * that is still selected, so this state resets whenever the set of selected
- * overlapping items changes, while the selection itself persists.
- *
- * Nothing is selected initially: every field starts on the local value, which
- * is what the apply path treats an absent entry as.
- */
+/** Kept out of useSchemaSelection: a choice only outlives the selection it belongs to, so it resets separately. */
 export type SchemaMergePlanState = {
   isFieldSelected: (args: {
     category: SchemaConflictCategory;
@@ -30,7 +18,6 @@ export type SchemaMergePlanState = {
     field: string;
     shouldSelect: boolean;
   }) => void;
-  /** Drives an item's header row: take every field from the file, or none of them. */
   setAllFields: (args: {
     conflict: SchemaConflict;
     shouldSelect: boolean;
@@ -41,10 +28,7 @@ export type SchemaMergePlanState = {
 
 type FieldSelections = ReadonlyMap<string, ReadonlySet<string>>;
 
-/**
- * An empty entry and an absent one mean the same thing to the apply path, so
- * emptying one removes it and the plan never carries entries selecting nothing.
- */
+/** An empty entry and an absent one mean the same to the apply path, so empties are dropped. */
 const withFields = ({
   selections,
   schemaId,

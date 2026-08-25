@@ -27,12 +27,7 @@ type ImportSpecsModalProps = {
   onClose: () => void;
 };
 
-/**
- * Choosing field values is a step of its own rather than part of the selection
- * list: it only concerns the subset of selected items that already exist, and
- * folding per-field choices into the selection list would bury the decision
- * that actually changes existing data.
- */
+/** A step of its own: per-field choices folded into the selection list would bury the decision that changes existing data. */
 type ImportStep = "select" | "choose";
 
 export const openImportSpecsModal = (plugin: DiscourseGraphPlugin): void => {
@@ -134,8 +129,6 @@ const ImportPreviewSelection = ({
     selection,
   });
 
-  // A merge choice only means anything while its item is still selected, so
-  // changing which conflicting items are imported discards the choices made.
   const mergePlan = useSchemaMergePlan({
     resetKey: `${loadedSchemaFile.sourcePath}|${selectedConflicts
       .map((conflict) => `${conflict.category}:${conflict.schemaId}`)

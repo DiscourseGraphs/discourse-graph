@@ -7,11 +7,7 @@ type SchemaSelectionPanelProps = {
   source: SchemaSelectionSource;
   selection: SchemaSelectionState;
   onDependencyViolation?: (message: string) => void;
-  /**
-   * Optional note rendered beside an item, keyed by id. The import flow uses
-   * these to mark what the vault already has; the export flow has nothing to
-   * compare against and passes neither.
-   */
+  /** Import-only: marks what the vault already has. Export has nothing to compare against and passes neither. */
   nodeTypeNotes?: ReadonlyMap<string, string>;
   relationTypeNotes?: ReadonlyMap<string, string>;
 };
