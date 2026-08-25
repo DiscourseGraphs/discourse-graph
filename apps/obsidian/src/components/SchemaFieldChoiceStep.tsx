@@ -194,7 +194,9 @@ const ItemChoiceTable = ({
                   mergePlan.setAllFields({ conflict, shouldSelect: true })
                 }
               >
-                <span className="uppercase tracking-wide">Use all from</span>{" "}
+                <span className="mr-1 uppercase tracking-wide">
+                  Use all from
+                </span>
                 {sourceVaultName}
               </button>
             </th>
