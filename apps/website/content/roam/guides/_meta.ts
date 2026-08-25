@@ -9,7 +9,7 @@ const meta: MetaRecord = {
   "querying-discourse-graph": "Querying",
   "extending-personalizing-graph": "Extending",
   "sharing-discourse-graph": "Sharing",
-  "experiment-tracking": "Experiment tracking",
+  "using-the-canvas": "Using the Canvas",
 };
 
 export default meta;
