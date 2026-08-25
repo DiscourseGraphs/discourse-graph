@@ -35,7 +35,9 @@ const DEFAULT_SHAPE_TYPES = new Set<string>(
 export const combineShapeUtilsWithDefaults = (
   customShapeUtils: readonly TLAnyShapeUtilConstructor[],
 ): TLAnyShapeUtilConstructor[] => {
-  const customTypes = new Set(customShapeUtils.map((u) => u.type));
+  const customTypes = new Set(
+    customShapeUtils.map((u): string => u.type as string),
+  );
   return [
     ...defaultShapeUtils.filter((d) => !customTypes.has(d.type)),
     ...customShapeUtils,
