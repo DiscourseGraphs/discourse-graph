@@ -1,0 +1,80 @@
+- 🏷️ **properties** #.properties
+  - Tutorial Version:: 1.0
+  - Last Reviewed:: [[June 1st, 2026]]
+  - Change Summary::
+- The **Canvas** allows you to lay out your work visually. It's great for synthesizing your work into a story.
+- You can create a Canvas layout of nodes you've already created as well as generate new nodes directly from the Canvas.
+- ## Creating a Canvas
+  - ^^Type `jj` followed by `canvas`^^ anywhere in your graph to create and title a canvas. The Canvas will be created as a separate page.
+  - You can also use this SmartBlock button: {{Create canvas:SmartBlock:Create New Canvas:RemoveButton=false,Icon=presentation}}.
+    - **(💡: copy and paste the SmartBlock button above to your Home Page for easy access)**
+  - You can also create a Canvas to represent your current Projects directly from the Project Page:
+    - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FCybrarian-Lab-test01%2FtwHdsE0qI5.png?alt=media&token=fd0602c8-45e1-432e-abb8-4828acdc8355)
+- This Canvas will automatically be named after the Project from which it was generated. You can also use the Project Canvas button to navigate to the Project Canvas, once created.
+- ## Creating a discourse node
+  - Create nodes on your Canvas by selecting the discourse graph symbol on the taskbar at the bottom of your Canvas (seen in blue in the image below): this will open the node selection menu. Select a node type and then click on your Canvas to place the node.
+    - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FCybrarian-Lab-test01%2FOS1D5huAN3.png?alt=media&token=79aeb41a-0c4f-4390-84b8-9a7a0f2e9876)
+  - Placing the node will open the node title menu. As you begin typing the name of the node, the form will autocomplete with nodes you've already created in your graph. You can select one of these extant nodes or create a new node.
+    - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FAICS-Lumenoids%2FMMIlUTDxHs.gif?alt=media&token=795d0073-876d-4fed-9848-ae7e2bc84135)
+      - **💡 You can choose the color of each discourse node type in the Settings menu.**
+        - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FCybrarian-Lab-test01%2FkC6BAPND2f.png?alt=media&token=f6438a35-0e6d-43d4-9acd-9f86642f5432)
+- ## Connecting discourse nodes with relations
+  - You can make the connections between your discourse nodes more informative and explicit by adding **[relations](https://roamresearch.com/#/app/template-lab/page/jLnrYx_LJ)**. For example, an Evidence node might **Inform** a Question node or **Support** a Claim.
+  - To create a relation, click on the Discourse Graph symbol in the lower toolbar and select the appropriate relation arrow. Then drag the arrow between nodes
+    - ## ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FAICS-Lumenoids%2FP92fGavQha.gif?alt=media&token=9e85bb47-dafa-42fc-aa84-c981f264f9d4)
+    - **💡 Additional **Relations** can be defined in the Settings Menu. To set or edit relation types, see [[Tutorial/Personalize your discourse graph]]**
+      - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FCybrarian-Lab-test01%2FEdOYyhlnRZ.png?alt=media&token=0df92523-4070-4bbf-a84c-1636adf941f9)
+- ## Managing Canvas content
+  - ### The Canvas Drawer
+    - As you add nodes to your Canvas, they will also be added to your **Canvas Drawer**. You can use this drawer to immediately navigate to particular nodes on your Canvas by clicking on the target icon next to each node title, a feature which becomes more important as your Canvas grows busier. The Canvas Drawer will also highlight any duplicate nodes in your Canvas.
+      - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FCybrarian-Lab-test01%2FxxorZY7OJN.png?alt=media&token=1c9abaad-ef97-4942-87df-de0ac0b2d263)
+  - ### The Clipboard
+    - You can use the **Clipboard** to keep track of what's on the Canvas and what **should** be on the Canvas. It allows speedy bulk importation of all the nodes from a particular page or set of pages
+      - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FCybrarian-Lab-test01%2FZkB97DjZMr.png?alt=media&token=c8ce83dd-fe3c-4e2d-9e02-86aad639c84e)
+    - Open the Clipboard by clicking on the Discourse Graph icon in the bottom toolbar, which will cause the Clipboard icon to appear.
+    - The Clipboard can be used to search for pages with content relevant to your Canvas.
+      - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FCybrarian-Lab-test01%2FihYkPhRosg.png?alt=media&token=68470d47-2fbb-4c7a-939f-a4be2fc15f21)
+    - All of the discourse nodes found on pages you import to your Clipboard will be listed as options to add to your Canvas. If a node in the Clipboard is already on the Canvas, clicking on it will navigate to that node.
+      - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FCybrarian-Lab-test01%2FhQDi4Z-kaL.png?alt=media&token=9d225f77-a34e-41e0-a0f0-78b91ba32efe)
+    - You can drag nodes not already on your Canvas onto your Canvas from the Clipboard.
+      - 💡 If you enable the "**Key Image**" setting in the Discourse Graph Settings menu for a particular node type, any nodes you drag to your graph will bring along the first image from that page.
+        - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Ftemplate-lab%2F5gN6VcDwFt.png?alt=media&token=d3e16b8b-8278-48cd-a480-cd01443e5e47)
+        - 💡 You can also specify a particular image to use by entering its block reference (right-click on the bullet next to the image and select "copy block ref") in the "Query builder reference" field shown above
+      - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FCybrarian-Lab-test01%2F1gaMbsBX0a.png?alt=media&token=0ac5ca32-caae-4047-9000-1954fb765943)
+  - ### The Sidebar
+    - Clicking on the **sidebar icon** on any particular node will open that node's page in your sidebar
+      - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FCybrarian-Lab-test01%2F9Z_c4glVKh.png?alt=media&token=9a2519bf-1bf6-4e80-a79d-a6d5c949b039)
+
+    - You can use this side-by-side view to move images or text from that node's page to your Canvas.
+      - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FCybrarian-Lab-test01%2FgVDKzkCQe3.png?alt=media&token=bd2c01b5-27b1-4b44-b468-9b5cddd333fa)
+- ### Sending query results to the Canvas
+  - To export multiple results from a query run in your graph to a Canvas
+    - Open the query table menu and select "Share Data --> "Send to Page"
+    - Then either select a Canvas or create a new Canvas to receive the results
+      - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FAICS-Lumenoids%2FtueeRdUXb7.gif?alt=media&token=32c7dbdd-62ec-482c-8bd4-814a9979d014)
+- ### Converting images or text into discourse nodes
+  - You can select images or text from your graph/document/file/webpage, copy them to your Canvas, and convert them into discourse nodes.
+    - Right click on the image -> Select "Convert to..."
+    - Modify the title as needed
+    - **💡 Remember to enable the **Key Image** feature in the Settings if you wish to convert images to discourse nodes.**
+      - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FAICS-Lumenoids%2F0y9Ow-JWgs.gif?alt=media&token=f6ae683f-e696-49ba-998b-c513146fab47)
+      - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FAICS-Lumenoids%2F1yilqGHnIA.gif?alt=media&token=b9e3cdbe-f8f2-4778-8e8d-70d7344e8d4c)
+- ## Synchronizing your Canvas and Graph
+  - Nodes created on the Canvas will be added to your graph.
+  - Edits made to node titles on your Canvas will be propagated to your graph. This can take a few moments, or until your next page refresh.
+  - 💡 Double-click on nodes on your Canvas to refresh them immediately
+  - **⚠️Edits made to node titles in your graph may not propagate to your Canvas. This is a known Roam issue.**
+- ## Annotating your Canvas
+  - The Canvas has additional features to assist you in visual sensemaking of your discourse graph.
+    - You can use freehand drawing tools to annotate images or the Canvas itself
+    - Text boxes and shapes to add additional context to discourse nodes and relations
+      - ## ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FAICS-Lumenoids%2Fm9b8koFILH.gif?alt=media&token=bc47a241-607b-4282-bb7d-e6ee4e06908a)
+        - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FAICS-Lumenoids%2FSiMhostCGX.gif?alt=media&token=db293f90-c890-4fd2-8df0-0f5e18ba8c0f)
+    - Stickers, arrows, GIFs, YouTube videos ... anything that enhances your understanding or presentation. These features can come in handy during a live or recorded Canvas walkthrough.
+- ## Exporting the Canvas
+  - The Canvas can be exported as an SVG, PNG, or JSON by right clicking on the Canvas or on the Menu in the top left corner and selecting --> "Export". You can also selectively copy and export specific Canvas elements.
+  - ## ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FAICS-Lumenoids%2F_FvuMobxcH.gif?alt=media&token=537c957c-fc07-45dd-bc1a-c3df9f475d63)
+- ## Show Full Screen
+- Type `Shift + 3` or click the Menu -> View -> "Toggle Full Screen"
+- ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FAICS-Lumenoids%2FBBYLoX1DPy.gif?alt=media&token=2db3b9e7-3759-4639-b054-14959f8e40a4)
+  -
