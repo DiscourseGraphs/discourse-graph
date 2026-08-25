@@ -5,7 +5,17 @@ author: ""
 published: true
 ---
 
-![alt text](/docs/roam/tabs02.jpg)
+import Image from "next/image";
+import { Callout } from "nextra/components";
+
+<Image
+  src="/docs/roam/tabs02.jpg"
+  alt="a wall of browser tabs"
+  width={1408}
+  height={768}
+  className="docs-bordered-image"
+/>
+
 _This is no way to live_
 
 ## Transforming data into knowledge with discourse graphs
@@ -26,28 +36,78 @@ The discourse graph practice of _progressive formalization_ can be used to gradu
 
 For example, the following image depicts a Roam user's notes on an article from his/her Zotero library, captured as notes on their Daily Notes Page.
 
-![daily notes](/docs/roam/merton-candidates01.png)
+<Image
+  src="/docs/roam/merton-candidates01.png"
+  alt="daily notes"
+  width={694}
+  height={638}
+  className="docs-bordered-image"
+/>
+
 _We love the Daily Notes Page, don't we, folks?_
 
 After installing the **Discourse Graph plugin**, the researcher returns to these notes and marks observations as _candidate claims_ (inferences made from evidence that address a research question), _candidate evidence_(singular observations made from data), and _candidate caveats_ (a candidate node unique to this researcher's graph that records observations which complicate a claim or piece of evidence without opposing it). He/she even identifies a _candidate question_ to guide his/her ongoing research.
 
 Some of these notes may have to be tweaked, pruned, or reformulated to fit the atomic discourse node format.
 
-#clm-candidate Extracting discourse nodes from existing notes allows you to bootstrap a discourse graph from existing work
+<NodeTag type="clm" /> Extracting discourse nodes from existing notes allows you
+to bootstrap a discourse graph from existing work
 
-#clm-candidate Extracting discourse nodes from existing notes will help you to become comfortable with the discourse graph syntax
+<NodeTag type="clm" /> Extracting discourse nodes from existing notes will help
+you to become comfortable with the discourse graph syntax
 
-![daily notes](/docs/roam/merton-candidates02.png)
+<Image
+  src="/docs/roam/merton-candidates02.png"
+  alt="daily notes"
+  width={649}
+  height={721}
+  className="docs-bordered-image"
+/>
+
 _Article notes annotated with candidate nodes_
 
-Finally, the researcher can promote some candidate nodes to full-fledged discourse nodes (see /docs/roam/guides/tagging-candidate-nodes). The page below shows a new Question page extracted from notes on Merton's seminal _Matthew Effect in Science_ paper. Now the reearcher orients his/her future reading toward answering this question, and seeks out additional relevant Sources (seen on the Question page below).
+<Callout type="info" emoji="💡">
+  See [Tagging candidate nodes](/docs/roam/guides/tagging-candidate-nodes) for
+  the full rundown on marking and promoting candidate nodes.
+</Callout>
 
-![a Question page](/docs/roam/pkm-que.png)
+Finally, the researcher can promote some candidate nodes to full-fledged discourse nodes. The page below shows a new Question page extracted from notes on Merton's seminal _Matthew Effect in Science_ paper. Now the reearcher orients his/her future reading toward answering this question, and seeks out additional relevant Sources (seen on the Question page below).
+
+<Image
+  src="/docs/roam/pkm-que.png"
+  alt="a Question page"
+  width={754}
+  height={936}
+  className="docs-bordered-image"
+/>
+
 _A research project is born._
 
 ### New Roam Research users
 
-![daily notes](/docs/roam/canvas-view01.png)
+Newcomers to Roam Research might experience some blue ocean anxiety: what do I write next to this bullet point? what should be wiki-linked?
+
+<Callout type="info" emoji="🍞">
+  Never fear! We have a template graph you can use as a sourdough starter  for your own discourse graph complete with examples and tutorials available for download [here](https://roamresearch.com/#/app/template-lab/page/ynSbRDCOC)
+
+Simply download the template and install the SmartBlocks, WorkBench, and Discourse Graph plugins from Roam Depot.
+
+</Callout>
+
+We recommend starting by creating a **Discourse Canvas**
+
+The point of creating a discourse graph is not to put stuff _into_ it, it's to get meaning _out_ of it.
+
+<Image
+  src="/docs/roam/canvas-view01.png"
+  alt="canvas view"
+  width={4000}
+  height={2600}
+  className="docs-bordered-image"
+  sizes="700px"
+  style={{ width: 700 }}
+/>
+
 _So much room for activities!_
 
 ## Organization
@@ -63,12 +123,6 @@ _So much room for activities!_
 ## Managing your graph
 
 ### Searching & querying
-
-## What else would you like to do?
-
-- [Synthesize Insights from the Literature](/docs/obsidian/use-cases/synthesize-insights-from-literature)
-- [Track your Projects and Experiments](/docs/obsidian/use-cases/track-your-projects-and-experiments)
-- [Share your ideas & research](/docs/obsidian/use-cases/share-your-ideas-and-research)
 
 ## What else would you like to do?
 
