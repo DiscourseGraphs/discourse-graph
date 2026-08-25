@@ -222,10 +222,9 @@ body.roamjs-query-column-resizing * {
   background-color: #394b59;
 }
 
-/* The extension has no Tailwind build of its own and borrows Roam's utilities,
-   so these two rules cannot be expressed as arbitrary-value classes. The width
-   keeps icon and text key hints the same size; the text-transform opts out of
-   the lowercasing applied to the surrounding footer label. */
+/* Not Tailwind classes: the extension borrows Roam's utilities and has no build
+   of its own, so arbitrary values never resolve. Keeps icon and text key hints
+   the same width, and opts out of the footer label's lowercasing. */
 .roamjs-footer-kbd {
   min-width: 1.25rem;
   text-transform: none;
