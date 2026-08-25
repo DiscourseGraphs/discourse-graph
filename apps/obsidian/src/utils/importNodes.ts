@@ -20,6 +20,7 @@ import {
 } from "./importRelations";
 import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
+import { buildSchemaRid, findLocalNodeTypeMatch } from "./schemaMatching";
 
 type PublishedNode = {
   source_local_id: string;
@@ -1067,20 +1068,13 @@ export const mapNodeTypeIdToLocal = async ({
 
   const schemaName = schemaData.name;
 
-  // Prefer match by node type ID (imported type may already exist locally with same id)
-  const matchById = plugin.settings.nodeTypes.find(
-    (nt) => nt.id === sourceNodeTypeId,
-  );
-  if (matchById) {
-    return matchById.id;
-  }
-
-  // Fall back to match by name
-  const matchingLocalNodeType = plugin.settings.nodeTypes.find(
-    (nt) => nt.name === schemaName,
-  );
-  if (matchingLocalNodeType) {
-    return matchingLocalNodeType.id;
+  const localMatch = findLocalNodeTypeMatch({
+    localNodeTypes: plugin.settings.nodeTypes,
+    id: sourceNodeTypeId,
+    name: schemaName,
+  });
+  if (localMatch) {
+    return localMatch.id;
   }
 
   // No matching local nodeType: create one from literal_content and add to settings
@@ -1090,11 +1084,10 @@ export const mapNodeTypeIdToLocal = async ({
   );
 
   const now = new Date().getTime();
-  const importedFromRid = spaceUriAndLocalIdToRid(
-    sourceSpaceUri,
-    sourceNodeTypeId,
-    "schema",
-  );
+  const importedFromRid = buildSchemaRid({
+    spaceUri: sourceSpaceUri,
+    localId: sourceNodeTypeId,
+  });
 
   const newNodeType: DiscourseNode = {
     id: sourceNodeTypeId,
