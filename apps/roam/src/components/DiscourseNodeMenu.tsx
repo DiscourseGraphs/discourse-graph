@@ -23,7 +23,7 @@ import updateBlock from "roamjs-components/writes/updateBlock";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import createDiscourseNode from "~/utils/createDiscourseNode";
-import { getNewDiscourseNodeText } from "~/utils/formatUtils";
+import { resolveNewDiscourseNodeText } from "~/utils/formatUtils";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
@@ -126,12 +126,13 @@ const NodeMenu = ({
         if (document.activeElement === textarea) document.body.click();
 
         const createNodeAndUpdateBlock = async () => {
-          const pageName = await getNewDiscourseNodeText({
-            text: highlighted,
-            nodeType: nodeUid,
-            blockUid: targetBlockUid,
-            skipBlockUpdate: true,
-          });
+          const { text: pageName, handledByDialog } =
+            await resolveNewDiscourseNodeText({
+              text: highlighted,
+              nodeType: nodeUid,
+              blockUid: targetBlockUid,
+              skipBlockUpdate: true,
+            });
           if (!pageName) return;
 
           const latestBlockText = getTextByBlockUid(targetBlockUid);
@@ -141,11 +142,13 @@ const NodeMenu = ({
             selectionStart,
           )}[[${pageName}]]${latestBlockText.substring(selectionEnd)}`;
 
-          await createDiscourseNode({
-            text: pageName,
-            configPageUid: nodeUid,
-            extensionAPI,
-          });
+          if (!handledByDialog) {
+            await createDiscourseNode({
+              text: pageName,
+              configPageUid: nodeUid,
+              extensionAPI,
+            });
+          }
           void updateBlock({ text: newText, uid: targetBlockUid });
           posthog.capture("Discourse Node: Created via Node Menu", {
             nodeType: nodeUid,

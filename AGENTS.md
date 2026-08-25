@@ -83,3 +83,6 @@ PR titles for Linear-backed work should follow this format:
 
 - Write unit tests for new functionality
 - Ensure tests are meaningful and maintainable
+- Expose workspace unit tests through a `test:unit` script so the root validation command includes them
+- Before opening a pull request or declaring work PR-ready, run `pnpm install --frozen-lockfile` followed by `pnpm ci:validate` from the repository root, and resolve any failures
+- After opening or updating an authorized pull request, wait for its required GitHub checks and report their final status

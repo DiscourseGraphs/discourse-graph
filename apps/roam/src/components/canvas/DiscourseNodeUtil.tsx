@@ -603,15 +603,20 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     return (
       <HTMLContainer
         id={shape.id}
-        className="roamjs-tldraw-node pointer-events-auto flex h-full w-full overflow-hidden rounded-2xl"
+        className="roamjs-tldraw-node pointer-events-auto flex h-full min-h-0 w-full min-w-0 overflow-hidden rounded-2xl"
         style={{
           background: backgroundColor,
           color: textColor,
+          width: shape.props.w,
+          height: shape.props.h,
+          maxWidth: shape.props.w,
+          maxHeight: shape.props.h,
+          boxSizing: "border-box",
         }}
         onPointerEnter={() => setOverlayMounted(true)}
       >
         <div
-          className="relative flex h-full w-full flex-col"
+          className="relative flex h-full min-h-0 w-full min-w-0 flex-col"
           style={{ pointerEvents: "all" }}
         >
           {/* Open in Sidebar Button */}
@@ -745,20 +750,24 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
               fontSize: FONT_SIZES[shape.props.size],
             }}
           >
-            {overlayMounted && isOverlayEnabled && (
-              <div
-                className="roamjs-discourse-context-overlay-container absolute right-1 top-1"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <DiscourseContextOverlay
-                  uid={shape.props.uid}
-                  id={`${shape.id}-overlay`}
-                  opacity="50"
-                  textColor={textColor}
-                  iconColor={textColor}
-                />
-              </div>
-            )}
+            {overlayMounted &&
+              isOverlayEnabled &&
+              !["blck-node", "page-node"].includes(
+                getDiscourseNodeTypeId({ shape }),
+              ) && (
+                <div
+                  className="roamjs-discourse-context-overlay-container absolute right-1 top-1"
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <DiscourseContextOverlay
+                    uid={shape.props.uid}
+                    id={`${shape.id}-overlay`}
+                    opacity="50"
+                    textColor={textColor}
+                    iconColor={textColor}
+                  />
+                </div>
+              )}
             {showEmbeddedRoamBlock ? (
               <div className="w-full min-w-0">
                 <RenderRoamBlockString
