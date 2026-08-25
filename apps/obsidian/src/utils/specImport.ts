@@ -535,6 +535,13 @@ export const applySchemaImportSelection = async ({
     relationTypesCreated += 1;
   }
 
+  const hasNodeType = (id: string): boolean =>
+    plugin.settings.nodeTypes.some((nodeType) => nodeType.id === id);
+  const hasRelationType = (id: string): boolean =>
+    plugin.settings.relationTypes.some(
+      (relationType) => relationType.id === id,
+    );
+
   let discourseRelationsCreated = 0;
   for (const relation of schemaFile.discourseRelations) {
     if (!selectedRelationIds.has(relation.id)) {
@@ -558,6 +565,26 @@ export const applySchemaImportSelection = async ({
       relationshipTypeId: mappedRelationTypeId,
     });
     if (alreadyPresent) {
+      continue;
+    }
+
+    // The selection UI keeps a triple's endpoints selected, but this layer owns settings integrity, so a dangling triple is refused rather than written.
+    if (
+      !hasNodeType(mappedSourceId) ||
+      !hasNodeType(mappedDestinationId) ||
+      !hasRelationType(mappedRelationTypeId)
+    ) {
+      const sourceName =
+        schemaNodeTypesById.get(relation.sourceId)?.name ?? relation.sourceId;
+      const destinationName =
+        schemaNodeTypesById.get(relation.destinationId)?.name ??
+        relation.destinationId;
+      const relationLabel =
+        schemaRelationTypesById.get(relation.relationshipTypeId)?.label ??
+        relation.relationshipTypeId;
+      onWarning(
+        `Relation "${sourceName} ${relationLabel} ${destinationName}" skipped: it references a type that is not in this vault.`,
+      );
       continue;
     }
 
