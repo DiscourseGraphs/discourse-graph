@@ -33,15 +33,7 @@ import {
 
 export type { SchemaImportMatchPlan };
 
-/**
- * Which fields the user opted to take from the imported file, for items that
- * already exist locally. Keyed by schema-file id — template entries by name —
- * because the match plan collapses schema types that collide by normalized
- * name, so two schema ids can share one local id.
- *
- * An absent or empty entry means keep the local value: import is
- * non-destructive unless the user explicitly ticked a field.
- */
+/** Keyed by schema-file id, templates by name, since two schema ids can share one local id. An absent entry keeps the local value. */
 export type SchemaMergePlan = {
   nodeTypeFields: ReadonlyMap<string, ReadonlySet<string>>;
   relationTypeFields: ReadonlyMap<string, ReadonlySet<string>>;
@@ -97,9 +89,7 @@ const buildSchemaImportMatchPlan = ({
 }): SchemaImportMatchPlan => {
   const nodeTypeIdMapping = new Map<string, string>();
   const existingNodeTypeIds = new Set<string>();
-  // Grows as types are planned for creation, so a schema file holding both
-  // "Event" and "event" collapses the second onto the first instead of creating
-  // two types that matching would treat as one.
+  // Grows as types are planned, so "Event" and "event" in one file collapse instead of creating two.
   const knownNodeTypes = [...localNodeTypes];
 
   for (const nodeType of schemaFile.nodeTypes) {
@@ -207,10 +197,6 @@ const buildPreviewStats = ({
   };
 };
 
-/**
- * Reads only the templates the file and the vault have in common — the rest
- * cannot conflict, so their contents are never needed.
- */
 const readOverlappingTemplateContents = async ({
   plugin,
   matchPlan,
@@ -272,14 +258,7 @@ export const pickAndPreviewSchemaImport = async ({
   };
 };
 
-/**
- * Resolves what a node type's template field should point at once templates have
- * been written. Keyed off what actually landed rather than what was selected, so
- * a template whose creation failed leaves no dangling reference behind.
- *
- * An imported copy wins over a same-named local template: the user only gets a
- * copy when they explicitly chose the imported version.
- */
+/** Keyed off what actually landed, so a failed creation leaves no dangling reference; an imported copy wins over a same-named local one. */
 const resolveTemplateReference = ({
   template,
   importedTemplateNames,
@@ -311,9 +290,7 @@ const mergeNodeTypeFields = ({
   const merged: DiscourseNode = { ...local, modified: Date.now() };
   for (const field of MERGEABLE_NODE_TYPE_FIELDS) {
     if (!fields.has(field)) continue;
-    // TypeScript cannot correlate merged[field] with imported[field] across a
-    // key union. MERGEABLE_NODE_TYPE_FIELDS is pinned to DiscourseNode by a
-    // `satisfies` clause, so field is always a real key and the write is sound.
+    // TS cannot correlate merged[field] with imported[field] across a key union; the `satisfies` clause makes the write sound.
     (merged as Record<string, unknown>)[field] = imported[field];
   }
   // Same guard the create path applies, so a merged reference cannot dangle.
@@ -369,11 +346,7 @@ export const applySchemaImportSelection = async ({
 
   let templatesCreated = 0;
   let templatesMerged = 0;
-  /**
-   * Schema-file template name to the file name it actually landed under. An
-   * imported copy keeps the local template intact, so the two names differ
-   * whenever the user chose the imported version of a template they already had.
-   */
+  /** Schema-file template name to the name it actually landed under; these differ when the copy sits beside a local template. */
   const importedTemplateNames = new Map<string, string>();
   const templatesByName = new Map(
     schemaFile.templates.map((template) => [template.name, template]),
@@ -392,9 +365,7 @@ export const applySchemaImportSelection = async ({
         continue;
       }
 
-      // Never clobber the local template. The imported version lands beside it
-      // under its own name and the node type is repointed at that copy, so the
-      // user keeps both and can fall back by editing the node type.
+      // Never clobber the local template: the copy lands beside it and the node type is repointed at the copy.
       const copyResult = await createTemplateFileWithUniqueName({
         app: plugin.app,
         templateName: template.name,
@@ -553,9 +524,7 @@ export const applySchemaImportSelection = async ({
         spaceUri: sourceSpaceUri,
         localId: importedRelationType.id,
       }),
-      // Accepted rather than provisional: unlike the Supabase space import, the
-      // user chose this file and hand-picked these items, so there is nothing
-      // left to review. The rid is kept for provenance only.
+      // Accepted, not provisional: the user chose this file and hand-picked these items, so nothing is left to review.
       status: "accepted",
       modified: Date.now(),
     };
@@ -581,8 +550,7 @@ export const applySchemaImportSelection = async ({
       matchPlan.relationTypeIdMapping.get(relation.relationshipTypeId) ??
       relation.relationshipTypeId;
 
-    // Checked against live settings, not the plan: distinct schema node types can
-    // collapse onto one local type, so two file relations can map to one triple.
+    // Checked against live settings, not the plan: two file relations can map to one triple after collapsing.
     const alreadyPresent = findExistingTriple({
       discourseRelations: plugin.settings.discourseRelations,
       sourceId: mappedSourceId,

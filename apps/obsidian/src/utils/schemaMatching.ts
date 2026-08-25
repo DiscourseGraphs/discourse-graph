@@ -1,3 +1,4 @@
+/** Shared by both import paths (Supabase space and schema file) so the same vault dedupes identically either way. */
 import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import type {
   DiscourseNode,
@@ -5,23 +6,7 @@ import type {
   DiscourseRelationType,
 } from "~/types";
 
-/**
- * Shared matching primitives for the two schema import paths: importing from a
- * remote Supabase space, and importing from an exported schema file. Both need
- * to answer "does this incoming type already exist locally?" the same way, or
- * the same vault reached through the two paths would dedupe differently.
- */
-
-/**
- * Maps every id in the schema file to the local id it resolves to. The
- * `existing*` sets are schema-file ids that will NOT be created — either
- * because they already exist in the vault, or because they collapsed onto an
- * earlier item in the same file. Callers should resolve references through the
- * id mappings rather than assuming a schema id survives the import.
- *
- * Lives here rather than beside the import apply logic so that both the apply
- * path and the field-diff path can depend on it without a circular import.
- */
+/** `existing*` hold schema-file ids that will not be created; resolve references through the id mappings, as a schema id may not survive the import. */
 export type SchemaImportMatchPlan = {
   nodeTypeIdMapping: Map<string, string>;
   relationTypeIdMapping: Map<string, string>;
@@ -36,10 +21,7 @@ export const normalizeSchemaLabel = (value: string): string => {
   return value.trim().toLowerCase();
 };
 
-/**
- * Match by id first: an id collision means the type came from the same origin,
- * which is stronger evidence than a name that two vaults happen to share.
- */
+/** Match by id first: an id collision is stronger evidence than a name two vaults happen to share. */
 export const findLocalNodeTypeMatch = ({
   localNodeTypes,
   id,
@@ -79,11 +61,7 @@ export const findLocalRelationTypeMatch = ({
   );
 };
 
-/**
- * A discourse relation is identified by its endpoints and relation type, not by
- * its own id — the id is regenerated per vault, so two vaults describing the
- * same triple hold different ids for it.
- */
+/** A triple is identified by its endpoints and relation type, not its id — ids are regenerated per vault. */
 export const findExistingTriple = ({
   discourseRelations,
   sourceId,
