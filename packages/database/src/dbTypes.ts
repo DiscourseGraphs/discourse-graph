@@ -101,12 +101,13 @@ export type Database = {
       }
       Concept: {
         Row: {
-          arity: number | null
+          arity: number
           author_id: number | null
           created: string
           description: string | null
           epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
           id: number
+          is_relation: boolean
           is_schema: boolean
           last_modified: string
           literal_content: Json
@@ -118,12 +119,13 @@ export type Database = {
           space_id: number
         }
         Insert: {
-          arity?: number | null
+          arity: number
           author_id?: number | null
           created: string
           description?: string | null
           epistemic_status?: Database["public"]["Enums"]["EpistemicStatus"]
           id?: number
+          is_relation: boolean
           is_schema?: boolean
           last_modified: string
           literal_content?: Json
@@ -135,12 +137,13 @@ export type Database = {
           space_id: number
         }
         Update: {
-          arity?: number | null
+          arity?: number
           author_id?: number | null
           created?: string
           description?: string | null
           epistemic_status?: Database["public"]["Enums"]["EpistemicStatus"]
           id?: number
+          is_relation?: boolean
           is_schema?: boolean
           last_modified?: string
           literal_content?: Json
@@ -264,6 +267,7 @@ export type Database = {
           id: number
           last_modified: string
           metadata: Json
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"]
           source_local_id: string | null
@@ -280,6 +284,7 @@ export type Database = {
           id?: number
           last_modified: string
           metadata?: Json
+          original?: boolean | null
           part_of_id?: number | null
           scale: Database["public"]["Enums"]["Scale"]
           source_local_id?: string | null
@@ -296,6 +301,7 @@ export type Database = {
           id?: number
           last_modified?: string
           metadata?: Json
+          original?: boolean | null
           part_of_id?: number | null
           scale?: Database["public"]["Enums"]["Scale"]
           source_local_id?: string | null
@@ -591,6 +597,7 @@ export type Database = {
           filehash: string
           filepath: string
           last_modified: string
+          original: boolean | null
           source_local_id: string
           space_id: number
           variant: Database["public"]["Enums"]["ContentVariant"] | null
@@ -600,6 +607,7 @@ export type Database = {
           filehash: string
           filepath: string
           last_modified: string
+          original?: boolean | null
           source_local_id: string
           space_id: number
           variant?: Database["public"]["Enums"]["ContentVariant"] | null
@@ -609,6 +617,7 @@ export type Database = {
           filehash?: string
           filepath?: string
           last_modified?: string
+          original?: boolean | null
           source_local_id?: string
           space_id?: number
           variant?: Database["public"]["Enums"]["ContentVariant"] | null
@@ -616,24 +625,39 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant"]
+            columns: ["space_id", "source_local_id", "variant", "original"]
             isOneToOne: false
             referencedRelation: "Content"
-            referencedColumns: ["space_id", "source_local_id", "variant"]
+            referencedColumns: [
+              "space_id",
+              "source_local_id",
+              "variant",
+              "original",
+            ]
           },
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant"]
+            columns: ["space_id", "source_local_id", "variant", "original"]
             isOneToOne: false
             referencedRelation: "my_contents"
-            referencedColumns: ["space_id", "source_local_id", "variant"]
+            referencedColumns: [
+              "space_id",
+              "source_local_id",
+              "variant",
+              "original",
+            ]
           },
           {
             foreignKeyName: "FileReference_content_fkey"
-            columns: ["space_id", "source_local_id", "variant"]
+            columns: ["space_id", "source_local_id", "variant", "original"]
             isOneToOne: false
             referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
-            referencedColumns: ["space_id", "source_local_id", "variant"]
+            referencedColumns: [
+              "space_id",
+              "source_local_id",
+              "variant",
+              "original",
+            ]
           },
         ]
       }
@@ -974,6 +998,7 @@ export type Database = {
             | Database["public"]["Enums"]["EpistemicStatus"]
             | null
           id: number | null
+          is_relation: boolean | null
           is_schema: boolean | null
           last_modified: string | null
           literal_content: Json | null
@@ -1046,6 +1071,7 @@ export type Database = {
           id: number | null
           last_modified: string | null
           metadata: Json | null
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"] | null
           source_local_id: string | null
@@ -1150,6 +1176,7 @@ export type Database = {
       my_contents_with_embedding_openai_text_embedding_3_small_1536: {
         Row: {
           author_id: number | null
+          content_type: string | null
           created: string | null
           creator_id: number | null
           document_id: number | null
@@ -1157,6 +1184,7 @@ export type Database = {
           last_modified: string | null
           metadata: Json | null
           model: Database["public"]["Enums"]["EmbeddingName"] | null
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"] | null
           source_local_id: string | null
@@ -1400,12 +1428,13 @@ export type Database = {
           data: Database["public"]["CompositeTypes"]["concept_local_input"]
         }
         Returns: {
-          arity: number | null
+          arity: number
           author_id: number | null
           created: string
           description: string | null
           epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
           id: number
+          is_relation: boolean
           is_schema: boolean
           last_modified: string
           literal_content: Json
@@ -1436,6 +1465,7 @@ export type Database = {
           id: number
           last_modified: string
           metadata: Json
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"]
           source_local_id: string | null
@@ -1532,6 +1562,10 @@ export type Database = {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
       }
+      compute_is_relation_local: {
+        Args: { lit_content: Json; schema_id: number }
+        Returns: boolean
+      }
       concept_in_relations:
         | {
             Args: { concept: Database["public"]["Tables"]["Concept"]["Row"] }
@@ -1609,6 +1643,7 @@ export type Database = {
           id: number | null
           last_modified: string | null
           metadata: Json | null
+          original: boolean | null
           part_of_id: number | null
           scale: Database["public"]["Enums"]["Scale"] | null
           source_local_id: string | null
@@ -2007,6 +2042,7 @@ export type Database = {
           | null
         variant: Database["public"]["Enums"]["ContentVariant"] | null
         content_type: string | null
+        original: boolean | null
       }
       document_local_input: {
         space_id: number | null

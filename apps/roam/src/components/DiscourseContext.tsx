@@ -5,6 +5,7 @@ import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import ResultsView from "./results-view/ResultsView";
 import posthog from "posthog-js";
 import { CreateRelationButton } from "./CreateRelationDialog";
+import { useDiscourseContextMutationRefresh } from "~/utils/discourseContextMutationRefresh";
 
 export type DiscourseContextResults = Awaited<
   ReturnType<typeof getDiscourseContextResults>
@@ -13,7 +14,7 @@ export type DiscourseContextResults = Awaited<
 type Props = {
   uid: string;
   results?: DiscourseContextResults;
-  overlayRefresh?: () => void;
+  overlayRefresh?: (ignoreCache?: boolean) => void;
 };
 
 const removeTargetFromResult = (
@@ -28,13 +29,11 @@ const ContextTab = ({
   parentUid,
   r,
   groupByTarget,
-  setGroupByTarget,
   onRefresh,
 }: {
   parentUid: string;
   r: DiscourseContextResults[number];
   groupByTarget: boolean;
-  setGroupByTarget: (b: boolean) => void;
   onRefresh: (ignoreCache?: boolean) => void;
 }) => {
   const [subTabId, setSubTabId] = useState(0);
@@ -79,27 +78,7 @@ const ContextTab = ({
       results={Object.values(results).map(removeTargetFromResult)}
       columns={columns}
       onRefresh={onRefresh}
-      header={
-        <h4 className="m-0 mb-2 flex items-center justify-between">
-          <span>{r.label}</span>
-          <span style={{ display: "flex", alignItems: "center" }}>
-            <CreateRelationButton
-              sourceNodeUid={parentUid}
-              onClose={() => {
-                window.setTimeout(onRefresh, 150, true);
-              }}
-            />
-            <Switch
-              label="Group By Target"
-              checked={groupByTarget}
-              style={{ fontSize: 8, marginLeft: 4, marginBottom: 0 }}
-              onChange={(e) =>
-                setGroupByTarget((e.target as HTMLInputElement).checked)
-              }
-            />
-          </span>
-        </h4>
-      }
+      simplified
     />
   );
   return subTabs.length ? (
@@ -151,14 +130,17 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
   }, []);
 
   const onRefresh = useCallback(
-    (ignoreCache = true) => {
+    (
+      ignoreCache = true,
+      { skipOverlayRefresh = false }: { skipOverlayRefresh?: boolean } = {},
+    ) => {
       setRawQueryResults({});
       void getDiscourseContextResults({
         uid,
         onResult: addLabels,
         ignoreCache,
       }).finally(() => {
-        if (overlayRefresh) overlayRefresh();
+        if (overlayRefresh && !skipOverlayRefresh) overlayRefresh(ignoreCache);
         setLoading(false);
       });
     },
@@ -177,18 +159,37 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
       setLoading(false);
     }
   }, [onRefresh, results, setLoading, loading, addLabels]);
+
+  // Any enclosing overlay subscribes to the same event, so let it refresh itself
+  // rather than triggering a second overlay query from here.
+  const refreshForMutation = useCallback(
+    () => onRefresh(true, { skipOverlayRefresh: true }),
+    [onRefresh],
+  );
+  useDiscourseContextMutationRefresh({
+    uid,
+    onMutationRefresh: refreshForMutation,
+  });
   const [tabId, setTabId] = useState(0);
   const [groupByTarget, setGroupByTarget] = useState(false);
   return queryResults.length ? (
     <>
-      <style>{`.roamjs-discourse-result-panel .roamjs-query-results-header {
-  padding-top: 0;
+      <style>{`@media (hover: hover) and (pointer: fine) {
+  .roamjs-discourse-result-panel .roamjs-query-results-delete-relation {
+    visibility: hidden;
+  }
+
+  .roamjs-discourse-result-panel tr:hover .roamjs-query-results-delete-relation,
+  .roamjs-discourse-result-panel tr:focus-within .roamjs-query-results-delete-relation {
+    visibility: visible;
+  }
 }
 
-.roamjs-discourse-result-panel .roamjs-query-results-metadata {
-  display: none;
+.roamjs-discourse-context-tabs > .bp3-tab-list {
+  align-self: stretch;
 }`}</style>
       <Tabs
+        className="roamjs-discourse-context-tabs"
         selectedTabId={tabId}
         onChange={(e) => setTabId(Number(e))}
         vertical
@@ -206,7 +207,6 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
                 parentUid={uid}
                 r={r}
                 groupByTarget={groupByTarget}
-                setGroupByTarget={setGroupByTarget}
                 onRefresh={onRefresh}
               />
             }
@@ -217,6 +217,21 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
             <Spinner />
           </div>
         )}
+        <div className="roamjs-discourse-context-controls mt-auto box-border flex w-full flex-none flex-col px-2 pt-2">
+          <Switch
+            label="Group By Target"
+            checked={groupByTarget}
+            className="mb-1 text-xs"
+            onChange={(e) =>
+              setGroupByTarget((e.target as HTMLInputElement).checked)
+            }
+          />
+          <CreateRelationButton
+            sourceNodeUid={uid}
+            onCreated={delayedRefresh}
+            fill
+          />
+        </div>
       </Tabs>
     </>
   ) : debouncedLoading && !results ? (
@@ -233,9 +248,9 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
       />
     </Tabs>
   ) : (
-    <div className="text-center">
-      No discourse relations found.
-      <CreateRelationButton sourceNodeUid={uid} onClose={delayedRefresh} />
+    <div className="flex flex-col items-start">
+      <span>No discourse relations found.</span>
+      <CreateRelationButton sourceNodeUid={uid} onCreated={delayedRefresh} />
     </div>
   );
 };

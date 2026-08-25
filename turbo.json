@@ -31,6 +31,7 @@
     "GITHUB_ACTIONS",
     "GITHUB_TEST",
     "HOME",
+    "LINEAR_API_KEY",
     "OPENAI_API_KEY",
     "POSTGRES_PASSWORD",
     "POSTGRES_USER",
@@ -74,6 +75,9 @@
     "test": {
       "outputs": []
     },
+    "test:unit": {
+      "outputs": []
+    },
     "dev": {
       "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH"],
       "cache": false,
@@ -105,7 +109,12 @@
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "env": ["APP_ID"],
-      "passThroughEnv": ["APP_PRIVATE_KEY", "GITHUB_TOKEN"]
+      "passThroughEnv": [
+        "APP_PRIVATE_KEY",
+        "GITHUB_OUTPUT",
+        "GITHUB_TOKEN",
+        "ROAM_RELEASE_TOKEN"
+      ]
     }
   }
 }

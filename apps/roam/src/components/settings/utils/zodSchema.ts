@@ -157,7 +157,7 @@ export const DiscourseRelationSchema = z.object({
 export const FeatureFlagsSchema = z.object({
   "Advanced node search enabled": z.boolean().default(false),
   "Enable left sidebar": z.boolean().default(false),
-  "Duplicate node alert enabled": z.boolean().default(false),
+  "Enable node sharing": z.boolean().default(false),
   "Suggestive mode overlay enabled": z.boolean().default(false),
   "Use new settings store": z.boolean().default(false),
 });
@@ -185,12 +185,6 @@ export const SuggestiveModeGlobalSettingsSchema = z.object({
 
 export const LeftSidebarGlobalSettingsSchema = z.object({
   Children: z.array(z.string()).default([]),
-  Settings: z
-    .object({
-      Collapsable: z.boolean().default(false),
-      Folded: z.boolean().default(false),
-    })
-    .default({}),
 });
 
 export const GlobalSettingsSchema = z.object({
@@ -242,6 +236,7 @@ export const QuerySettingsSchema = z.object({
 
 export const PersonalSettingsSchema = z.object({
   "Left sidebar": LeftSidebarPersonalSettingsSchema,
+  "Global section folded": z.boolean().default(false),
   "Personal node menu trigger": z
     .union([
       z.object({ modifiers: z.number(), key: z.string() }),
@@ -257,7 +252,6 @@ export const PersonalSettingsSchema = z.object({
   "Overlay in canvas": z.boolean().default(false),
   "Text selection popup": z.boolean().default(true),
   "Disable sidebar open": z.boolean().default(false),
-  "Page preview": z.boolean().default(false),
   "Hide feedback button": z.boolean().default(false),
   "Streamline styling": z.boolean().default(false),
   "Auto canvas relations": z.boolean().default(false),

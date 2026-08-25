@@ -1,3 +1,4 @@
+import { Notice } from "obsidian";
 import type {
   SchemaSelectionSource,
   SchemaSelectionState,
@@ -6,13 +7,11 @@ import type {
 type SchemaSelectionPanelProps = {
   source: SchemaSelectionSource;
   selection: SchemaSelectionState;
-  onDependencyViolation?: (message: string) => void;
 };
 
 export const SchemaSelectionPanel = ({
   source,
   selection,
-  onDependencyViolation,
 }: SchemaSelectionPanelProps) => {
   const {
     selectedNodeTypeIds,
@@ -87,7 +86,7 @@ export const SchemaSelectionPanel = ({
             </div>
           </div>
           <div className="space-y-1">
-            {source.nodeTypes.map((nodeType) => {
+            {sortedNodeTypes.map((nodeType) => {
               const isRequired = requiredNodeTypeIds.has(nodeType.id);
               return (
                 <label
@@ -102,13 +101,8 @@ export const SchemaSelectionPanel = ({
                         nodeType.id,
                         event.target.checked,
                       );
-                      if (
-                        !result.ok &&
-                        result.reason &&
-                        onDependencyViolation
-                      ) {
-                        onDependencyViolation(result.reason);
-                      }
+                      if (!result.ok && result.reason)
+                        new Notice(result.reason);
                     }}
                     disabled={isRequired}
                   />
@@ -160,13 +154,8 @@ export const SchemaSelectionPanel = ({
                         relationType.id,
                         event.target.checked,
                       );
-                      if (
-                        !result.ok &&
-                        result.reason &&
-                        onDependencyViolation
-                      ) {
-                        onDependencyViolation(result.reason);
-                      }
+                      if (!result.ok && result.reason)
+                        new Notice(result.reason);
                     }}
                     disabled={isRequired}
                   />

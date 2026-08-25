@@ -1,0 +1,154 @@
+import { render as renderToast } from "roamjs-components/components/Toast";
+import getPageUidByBlockUid from "roamjs-components/queries/getPageUidByBlockUid";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
+import { isPageUid } from "~/utils/isPageUid";
+
+const isTargetOpenInMainWindow = ({
+  mainRawUid,
+  mainPageUid,
+  pageUid,
+  targetBlockUid,
+}: {
+  mainRawUid: string | null;
+  mainPageUid: string | null;
+  pageUid: string;
+  targetBlockUid: string;
+}): boolean => {
+  if (!mainRawUid) return false;
+  return (
+    mainPageUid === pageUid ||
+    mainRawUid === targetBlockUid ||
+    mainRawUid === pageUid
+  );
+};
+
+type RoamSidebarWindow = {
+  type: string;
+  "window-id": string;
+  "block-uid"?: string;
+};
+
+type RightSidebarWithOrder = typeof window.roamAlphaAPI.ui.rightSidebar & {
+  setWindowOrder?: (action: {
+    windows: Array<{ window: RoamSidebarWindow }>;
+  }) => Promise<void>;
+};
+
+const bringSidebarWindowToTop = async (windowId: string): Promise<void> => {
+  await window.roamAlphaAPI.ui.rightSidebar.open();
+
+  const windows: RoamSidebarWindow[] =
+    window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
+  const targetIndex = windows.findIndex((w) => w["window-id"] === windowId);
+  if (targetIndex <= 0) return;
+
+  const reordered = [
+    windows[targetIndex],
+    ...windows.slice(0, targetIndex),
+    ...windows.slice(targetIndex + 1),
+  ];
+
+  const setWindowOrder = (
+    window.roamAlphaAPI.ui.rightSidebar as RightSidebarWithOrder
+  ).setWindowOrder;
+  if (setWindowOrder) {
+    try {
+      await setWindowOrder({
+        windows: reordered.map((sidebarWindow) => ({ window: sidebarWindow })),
+      });
+      return;
+    } catch (error) {
+      console.warn("Failed to reorder sidebar window:", error);
+    }
+  }
+
+  // Avoid clicking `.rm-title-display` — Roam shows a daily-note rename tip.
+  const container = document.querySelector<HTMLElement>(
+    `[data-sidebar-window-id="${windowId}"]`,
+  );
+  const focusTarget =
+    container?.querySelector<HTMLElement>(".roam-article") ?? container;
+  focusTarget?.dispatchEvent(
+    new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+  );
+};
+
+export const notifyBlockSuggestionAdded = async (
+  targetBlockUid: string,
+  sourceTitle: string,
+): Promise<void> => {
+  const pageUid = isPageUid(targetBlockUid)
+    ? targetBlockUid
+    : getPageUidByBlockUid(targetBlockUid) || targetBlockUid;
+
+  // getOpenPageOrBlockUid returns a page uid when a page is open, or a block uid
+  // when the user is zoomed into a block. Resolve either to a page uid for comparison.
+  const mainRawUid =
+    await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
+  const mainRawIsPage = mainRawUid ? isPageUid(mainRawUid) : false;
+  const mainPageUid = mainRawUid
+    ? mainRawIsPage
+      ? mainRawUid
+      : getPageUidByBlockUid(mainRawUid) || mainRawUid
+    : null;
+  // Decide toast-only vs. opening the sidebar based on the insertion target
+  // (targetBlockUid / its page), not sourceTitle. sourceTitle is the tag page,
+  // which can differ from the page the child is actually inserted under; keying
+  // off it would suppress focusing the real insertion location.
+  const isOpenInMain = isTargetOpenInMainWindow({
+    mainRawUid,
+    mainPageUid,
+    pageUid,
+    targetBlockUid,
+  });
+  const disableSidebarOpen = getPersonalSetting<boolean>([
+    PERSONAL_KEYS.disableSidebarOpen,
+  ]);
+
+  if (isOpenInMain || disableSidebarOpen) {
+    renderToast({
+      id: "suggestive-mode-added",
+      content: `Added to [[${sourceTitle}]]`,
+      intent: "success",
+      timeout: 4000,
+    });
+    return;
+  }
+
+  const sidebarWindowsBefore: RoamSidebarWindow[] =
+    window.roamAlphaAPI.ui.rightSidebar.getWindows() ?? [];
+  const existingWindow = sidebarWindowsBefore.find(
+    (w) =>
+      w.type === "outline" &&
+      (w["block-uid"] === targetBlockUid || w["block-uid"] === pageUid),
+  );
+
+  if (existingWindow) {
+    await bringSidebarWindowToTop(existingWindow["window-id"]);
+    return;
+  }
+
+  await window.roamAlphaAPI.ui.rightSidebar.addWindow({
+    window: {
+      type: "outline",
+      // @ts-expect-error - block-uid is valid for outline sidebar windows
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "block-uid": pageUid,
+    },
+  });
+
+  await window.roamAlphaAPI.ui.rightSidebar.open();
+};
+
+export const notifyRelationSuggestionAdded = (
+  sourceTitle: string,
+  destinationTitle: string,
+): void => {
+  renderToast({
+    id: "suggestive-mode-added",
+    content: `Added relation between [[${sourceTitle}]] and [[${destinationTitle}]]`,
+    intent: "success",
+    timeout: 4000,
+  });
+};

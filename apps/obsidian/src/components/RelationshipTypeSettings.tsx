@@ -16,8 +16,8 @@ import {
   getImportInfo,
   formatImportSource,
   isProvisionalSchema,
-  getUserNameById,
 } from "~/utils/typeUtils";
+import ImportedSchemaMeta from "./ImportedSchemaMeta";
 
 type ColorPickerProps = {
   value: string;
@@ -279,8 +279,8 @@ const RelationshipTypeSettings = () => {
 
     return (
       <div key={index} className="setting-item">
-        <div className="flex w-full flex-col gap-1">
-          <div className="flex gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="text"
               placeholder="Label (e.g., supports)"
@@ -289,7 +289,7 @@ const RelationshipTypeSettings = () => {
                 handleRelationTypeChange(index, "label", e.target.value)
               }
               onBlur={() => saveSettings(relationTypesRef.current)}
-              className={`flex-2 ${error ? "input-error" : ""}`}
+              className={`min-w-32 flex-1 ${error ? "input-error" : ""}`}
               disabled={isImported}
             />
             <input
@@ -300,7 +300,7 @@ const RelationshipTypeSettings = () => {
                 handleRelationTypeChange(index, "complement", e.target.value)
               }
               onBlur={() => saveSettings(relationTypesRef.current)}
-              className={`flex-1 ${error ? "input-error" : ""}`}
+              className={`min-w-48 flex-[2] ${error ? "input-error" : ""}`}
               disabled={isImported}
             />
             <ColorPicker
@@ -310,53 +310,31 @@ const RelationshipTypeSettings = () => {
               }
               disabled={isImported}
             />
-            {isImported ? (
-              <div className="flex gap-2">
-                {isProvisional && (
-                  <button
-                    onClick={() => void handleAcceptRelationType(index)}
-                    className="p-2"
-                    title={`Accept this relation type from ${spaceName} to create relations of this type`}
-                  >
-                    Accept
-                  </button>
-                )}
+            <div className="flex shrink-0 gap-2">
+              {isImported && isProvisional && (
                 <button
-                  onClick={() => confirmDeleteRelationType(index)}
-                  className="mod-warning p-2"
+                  onClick={() => void handleAcceptRelationType(index)}
+                  className="p-2"
+                  title={`Accept this relation type from ${spaceName} to create relations of this type`}
                 >
-                  Delete
+                  Accept
                 </button>
-              </div>
-            ) : (
+              )}
               <button
                 onClick={() => confirmDeleteRelationType(index)}
                 className="mod-warning p-2"
               >
                 Delete
               </button>
-            )}
+            </div>
           </div>
           {error && <div className="text-error text-xs">{error}</div>}
           {isImported && (
-            <div className="text-muted flex items-center gap-2 text-xs">
-              {isProvisional && (
-                <span className="rounded bg-yellow-100 px-1.5 py-0.5 text-xs font-medium text-yellow-800">
-                  Provisional
-                </span>
-              )}
-              {importInfo.spaceUri && (
-                <span>
-                  {relationType.authorId &&
-                    `by ${getUserNameById(plugin, relationType.authorId)} `}
-                  from{" "}
-                  {formatImportSource(
-                    importInfo.spaceUri,
-                    plugin.settings.spaceNames,
-                  )}
-                </span>
-              )}
-            </div>
+            <ImportedSchemaMeta
+              isProvisional={isProvisional}
+              spaceUri={importInfo.spaceUri}
+              authorId={relationType.authorId}
+            />
           )}
         </div>
       </div>
@@ -382,21 +360,17 @@ const RelationshipTypeSettings = () => {
           <h4 className="text-muted mb-2 text-sm font-semibold uppercase tracking-wide">
             Imported
           </h4>
-          <div className="border-modifier-border rounded border bg-secondary p-2">
-            {importedRelationTypes.map((relationType) => {
-              const index = relationTypes.indexOf(relationType);
-              return renderRelationTypeItem(relationType, index);
-            })}
-          </div>
+          {importedRelationTypes.map((relationType) => {
+            const index = relationTypes.indexOf(relationType);
+            return renderRelationTypeItem(relationType, index);
+          })}
         </div>
       )}
 
-      <div className="setting-item mt-4">
-        <div className="flex gap-2">
-          <button onClick={handleAddRelationType} className="p-2">
-            Add relation type
-          </button>
-        </div>
+      <div className="mt-4 flex gap-2">
+        <button onClick={handleAddRelationType} className="p-2">
+          Add relation type
+        </button>
       </div>
     </div>
   );

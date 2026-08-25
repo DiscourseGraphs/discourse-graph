@@ -6,6 +6,9 @@ import {
   MarkdownView,
   WorkspaceLeaf,
   Notice,
+  setTooltip,
+  addIcon,
+  setIcon,
 } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { SettingsTab } from "~/components/Settings";
@@ -39,14 +42,21 @@ import {
 } from "~/utils/relationsStore";
 import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
+import { showHelpMenu } from "~/utils/helpMenu";
+import { DISCOURSE_GRAPH_LOGO_ICON_ID, WHITE_LOGO_SVG } from "~/icons";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
   private tagNodeHandler: TagNodeHandler | null = null;
   private fileChangeListener: FileChangeListener | null = null;
+  private activeNodePopover:
+    | NodeTagSuggestPopover
+    | InlineNodeTypePicker
+    | null = null;
   private currentViewActions: { leaf: WorkspaceLeaf; action: HTMLElement }[] =
     [];
   private pendingCanvasSwitches = new Set<string>();
+  private helpMenuStatusBarItem: HTMLElement | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -85,6 +95,8 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
+    addIcon(DISCOURSE_GRAPH_LOGO_ICON_ID, WHITE_LOGO_SVG);
+    this.setHelpMenuStatusBarItemVisibility();
 
     this.registerEvent(
       this.app.workspace.on(
@@ -281,6 +293,29 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.setupNodeTagHotkey();
   }
 
+  setHelpMenuStatusBarItemVisibility(): void {
+    if (!this.settings.showHelpMenuStatusBarIcon) {
+      this.helpMenuStatusBarItem?.remove();
+      this.helpMenuStatusBarItem = null;
+      return;
+    }
+
+    if (this.helpMenuStatusBarItem) return;
+    const item = this.addStatusBarItem();
+    item.addClass(
+      "dg-help-menu-status-bar-item",
+      "clickable-icon",
+      "text-muted",
+      "hover:text-normal",
+    );
+    setTooltip(item, "Discourse Graph help menu", { placement: "top" });
+    setIcon(item, DISCOURSE_GRAPH_LOGO_ICON_ID);
+    this.registerDomEvent(item, "click", (event) => {
+      showHelpMenu({ plugin: this, event });
+    });
+    this.helpMenuStatusBarItem = item;
+  }
+
   private setupNodeTagHotkey() {
     const nodeTagHotkeyExtension = EditorView.domEventHandlers({
       keydown: (event: KeyboardEvent) => {
@@ -293,26 +328,29 @@ export default class DiscourseGraphPlugin extends Plugin {
         event.preventDefault();
         event.stopPropagation();
 
+        this.activeNodePopover?.close();
+        this.activeNodePopover = null;
+
         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (activeView?.editor) {
           const editor = activeView.editor;
           const selectedText = editor.getSelection();
 
           if (selectedText && selectedText.trim().length > 0) {
-            // Text is selected: open node type picker to create node from selection
             const picker = new InlineNodeTypePicker({
               editor,
               nodeTypes: this.settings.nodeTypes,
               plugin: this,
               selectedText: selectedText.trim(),
             });
+            this.activeNodePopover = picker;
             picker.open();
           } else {
-            // No selection: open the candidate node tag popover
             const popover = new NodeTagSuggestPopover(
               editor,
               this.settings.nodeTypes,
             );
+            this.activeNodePopover = popover;
             popover.open();
           }
         }
@@ -430,6 +468,8 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   onunload() {
+    this.activeNodePopover?.close();
+    this.activeNodePopover = null;
     this.cleanupViewActions();
     activeDocument.body.classList.remove("dg-hide-frontmatter-ids");
 

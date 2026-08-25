@@ -84,7 +84,6 @@ const ExportSpecsContent = ({ plugin, onClose }: ExportSpecsModalProps) => {
       description={`Select the node types, relation types, relation triples, and templates to include in ${outputFileName}.`}
       source={source}
       selection={selection}
-      onDependencyViolation={(message) => new Notice(message)}
       footerSecondaryLabel="Cancel"
       onFooterSecondaryClick={onClose}
       footerPrimaryLabel={isExporting ? "Exporting..." : "Export schema"}

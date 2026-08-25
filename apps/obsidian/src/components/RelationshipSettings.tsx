@@ -9,9 +9,9 @@ import {
   formatImportSource,
   isAcceptedSchema,
   isProvisionalSchema,
-  getUserNameById,
 } from "~/utils/typeUtils";
 import generateUid from "~/utils/generateUid";
+import ImportedSchemaMeta from "./ImportedSchemaMeta";
 
 const RelationshipSettings = () => {
   const plugin = usePlugin();
@@ -190,17 +190,30 @@ const RelationshipSettings = () => {
       : "imported space";
     const error = errors[index];
 
+    // Imported rows render disabled selects, which cannot be opened to reveal a
+    // truncated label, so expose the full value on hover instead.
+    const relationType = findRelationTypeById(relation.relationshipTypeId);
+    const relationTypeLabel = relationType
+      ? `${relationType.label} / ${relationType.complement}`
+      : undefined;
+    const sourceName = getNodeTypeById(plugin, relation.sourceId)?.name;
+    const destinationName = getNodeTypeById(
+      plugin,
+      relation.destinationId,
+    )?.name;
+
     return (
       <div key={index} className="setting-item">
-        <div className="flex w-full flex-col gap-1">
-          <div className="flex gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={relation.sourceId}
               onChange={(e) =>
                 handleRelationChange(index, "sourceId", e.target.value)
               }
-              className={`flex-1 pl-2 ${error ? "input-error" : ""}`}
+              className={`min-w-24 flex-1 pl-2 ${error ? "input-error" : ""}`}
               disabled={isImported}
+              title={sourceName}
             >
               <option value="">Source Node Type</option>
               {plugin.settings.nodeTypes.map((nodeType) => (
@@ -219,8 +232,9 @@ const RelationshipSettings = () => {
                   e.target.value,
                 )
               }
-              className={`flex-1 pl-2 ${error ? "input-error" : ""}`}
+              className={`min-w-56 flex-[3] pl-2 ${error ? "input-error" : ""}`}
               disabled={isImported}
+              title={relationTypeLabel}
             >
               <option value="">Relation Type</option>
               {(isImported
@@ -238,8 +252,9 @@ const RelationshipSettings = () => {
               onChange={(e) =>
                 handleRelationChange(index, "destinationId", e.target.value)
               }
-              className={`flex-1 pl-2 ${error ? "input-error" : ""}`}
+              className={`min-w-24 flex-1 pl-2 ${error ? "input-error" : ""}`}
               disabled={isImported}
+              title={destinationName}
             >
               <option value="">Target Node Type</option>
               {plugin.settings.nodeTypes.map((nodeType) => (
@@ -249,53 +264,31 @@ const RelationshipSettings = () => {
               ))}
             </select>
 
-            {isImported ? (
-              <div className="flex gap-2">
-                {isProvisional && (
-                  <button
-                    onClick={() => void handleAcceptRelation(index)}
-                    className="p-2"
-                    title={`Accept this relation triplet from ${spaceName} to create instances of this relation`}
-                  >
-                    Accept
-                  </button>
-                )}
+            <div className="flex shrink-0 gap-2">
+              {isImported && isProvisional && (
                 <button
-                  onClick={() => confirmDeleteRelation(index)}
-                  className="mod-warning p-2"
+                  onClick={() => void handleAcceptRelation(index)}
+                  className="p-2"
+                  title={`Accept this relation triplet from ${spaceName} to create instances of this relation`}
                 >
-                  Delete
+                  Accept
                 </button>
-              </div>
-            ) : (
+              )}
               <button
                 onClick={() => confirmDeleteRelation(index)}
                 className="mod-warning p-2"
               >
                 Delete
               </button>
-            )}
+            </div>
           </div>
           {error && <div className="text-error text-xs">{error}</div>}
           {isImported && (
-            <div className="text-muted flex items-center gap-2 text-xs">
-              {isProvisional && (
-                <span className="rounded bg-yellow-100 px-1.5 py-0.5 text-xs font-medium text-yellow-800">
-                  Provisional
-                </span>
-              )}
-              {importInfo.spaceUri && (
-                <span>
-                  {relation.authorId &&
-                    `by ${getUserNameById(plugin, relation.authorId)} `}
-                  from{" "}
-                  {formatImportSource(
-                    importInfo.spaceUri,
-                    plugin.settings.spaceNames,
-                  )}
-                </span>
-              )}
-            </div>
+            <ImportedSchemaMeta
+              isProvisional={isProvisional}
+              spaceUri={importInfo.spaceUri}
+              authorId={relation.authorId}
+            />
           )}
         </div>
       </div>
@@ -327,21 +320,17 @@ const RelationshipSettings = () => {
               <h4 className="text-muted mb-2 text-sm font-semibold uppercase tracking-wide">
                 Imported
               </h4>
-              <div className="border-modifier-border rounded border bg-secondary p-2">
-                {importedRelations.map((relation) => {
-                  const index = discourseRelations.indexOf(relation);
-                  return renderRelationItem(relation, index);
-                })}
-              </div>
+              {importedRelations.map((relation) => {
+                const index = discourseRelations.indexOf(relation);
+                return renderRelationItem(relation, index);
+              })}
             </div>
           )}
 
-          <div className="setting-item mt-4">
-            <div className="flex gap-2">
-              <button onClick={handleAddRelation} className="p-2">
-                Add relation
-              </button>
-            </div>
+          <div className="mt-4 flex gap-2">
+            <button onClick={handleAddRelation} className="p-2">
+              Add relation
+            </button>
           </div>
         </>
       )}
