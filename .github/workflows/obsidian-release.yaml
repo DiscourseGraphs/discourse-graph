@@ -13,6 +13,9 @@ permissions:
 env:
   VERSION: ${{ inputs.version }}
   OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
+  # Inlined into the bundle at build time by scripts/compile.ts. Without it the
+  # plugin falls back to a dev URL, so released builds call localhost.
+  NEXT_API_ROOT: https://discoursegraphs.com/api
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
 
