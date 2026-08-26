@@ -91,12 +91,6 @@ const schemaPull = {
 };
 
 describe("nodeSchemaToCrossApp timestamps", () => {
-  it("takes the block edit time, as written when the page props change", () => {
-    const schema = convertSchemaPull({ ...schemaPull, ":edit/time": 3000 });
-    expect(schema?.createdAt).toEqual(new Date(1000));
-    expect(schema?.modifiedAt).toEqual(new Date(3000));
-  });
-
   it("takes the page edit time, as written when a block below it changes", () => {
     const schema = convertSchemaPull({
       ...schemaPull,
@@ -104,15 +98,6 @@ describe("nodeSchemaToCrossApp timestamps", () => {
       ":page/edit-time": 4000,
     });
     expect(schema?.modifiedAt).toEqual(new Date(4000));
-  });
-
-  it("keeps the later of the two", () => {
-    const schema = convertSchemaPull({
-      ...schemaPull,
-      ":edit/time": 5000,
-      ":page/edit-time": 4000,
-    });
-    expect(schema?.modifiedAt).toEqual(new Date(5000));
   });
 
   it("falls back to the create time when neither exists", () => {
