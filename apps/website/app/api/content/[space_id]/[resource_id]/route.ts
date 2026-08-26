@@ -149,12 +149,17 @@ export const GET = async (
     const authorId = concept.author_id ?? (contents ?? [{}])[0]?.author_id;
     let author: PlatformAccount | undefined = undefined;
     if (authorId) {
-      const authorResponse = await supabase
-        .from("PlatformAccount")
-        .select()
-        .eq("id", authorId)
-        .maybeSingle();
-      if (authorResponse.data) author = authorResponse.data;
+      try {
+        const authorResponse = await supabase
+          .from("PlatformAccount")
+          .select()
+          .eq("id", authorId)
+          .maybeSingle();
+        if (authorResponse.data) author = authorResponse.data;
+      } catch (error) {
+        console.error(error);
+        // if anonymous, we do not have access.
+      }
     }
 
     const jsonLdData = asJsonLD({
