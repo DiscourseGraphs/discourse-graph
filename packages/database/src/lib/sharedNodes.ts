@@ -197,12 +197,17 @@ export const buildSharedNodes = ({
       }
 
       const nodeRidById = Object.fromEntries(
-        node.concepts_of_relation.map((c) => {
-          if (c.space_id === node.space_id) return [c.id, c.source_local_id];
-          const space = spacesById.get(c.space_id || 0);
-          if (!space || !c.source_local_id || !c.id) return [c.id, undefined];
-          return [c.id, spaceUriAndLocalIdToRid(space.url, c.source_local_id)];
-        }) as [number, string | undefined][],
+        node.concepts_of_relation
+          .filter((c) => c.id !== null)
+          .map((c) => {
+            if (c.space_id === node.space_id) return [c.id, c.source_local_id];
+            const space = spacesById.get(c.space_id || 0);
+            if (!space || !c.source_local_id || !c.id) return [c.id, undefined];
+            return [
+              c.id,
+              spaceUriAndLocalIdToRid(space.url, c.source_local_id),
+            ];
+          }) as [number, string | undefined][],
       );
       const referenceContent = (node.reference_content ?? {}) as Record<
         string,
@@ -238,6 +243,42 @@ export const buildSharedNodes = ({
     );
 };
 
+const getAssociatedSpaces = async ({
+  client,
+  concepts,
+  currentSpace,
+  currentSpaceId,
+}: {
+  client: DGSupabaseClient;
+  concepts: SharedConcept[];
+  currentSpace?: SharedSpace;
+  currentSpaceId?: number;
+}): Promise<SharedSpace[]> => {
+  const associatedSpaceIds = new Set(
+    concepts
+      .flatMap((cpt) => cpt.concepts_of_relation.map((cr) => cr.space_id))
+      .filter((id) => id !== null),
+  );
+  if (currentSpace !== undefined) {
+    currentSpaceId = currentSpace.id ?? currentSpaceId;
+  } else if (currentSpaceId !== undefined)
+    associatedSpaceIds.add(currentSpaceId);
+  const spaces: SharedSpace[] = [];
+  if (currentSpace !== undefined && currentSpaceId !== undefined) {
+    spaces.push(currentSpace);
+    associatedSpaceIds.delete(currentSpaceId);
+  }
+  if (associatedSpaceIds.size > 0) {
+    const { data, error } = await client
+      .from("my_spaces")
+      .select(SPACE_COLUMNS)
+      .in("space_id", [...associatedSpaceIds]);
+    if (error) throw error;
+    spaces.push(...data);
+  }
+  return spaces;
+};
+
 const getSharedNodeRows = async ({
   client,
   currentSpaceId,
@@ -245,36 +286,38 @@ const getSharedNodeRows = async ({
   client: DGSupabaseClient;
   currentSpaceId: number;
 }): Promise<SharedNodeRows> => {
-  const [conceptsResponse, directResponse, fullResponse, spacesResponse] =
-    await Promise.all([
-      client
-        .from("my_concepts")
-        .select(CONCEPT_COLUMNS_WITH_SLOTS)
-        .neq("space_id", currentSpaceId)
-        .eq("is_schema", false)
-        .eq("is_relation", false),
-      client
-        .from("my_contents")
-        .select(DIRECT_CONTENT_COLUMNS)
-        .neq("space_id", currentSpaceId)
-        .eq("variant", "direct"),
-      client
-        .from("my_contents")
-        .select(FULL_CONTENT_SUMMARY_COLUMNS)
-        .neq("space_id", currentSpaceId)
-        .eq("variant", "full"),
-      client.from("my_spaces").select(SPACE_COLUMNS).neq("id", currentSpaceId),
-    ]);
+  const [conceptsResponse, directResponse, fullResponse] = await Promise.all([
+    client
+      .from("my_concepts")
+      .select(CONCEPT_COLUMNS_WITH_SLOTS)
+      .neq("space_id", currentSpaceId)
+      .eq("is_schema", false)
+      .eq("is_relation", false),
+    client
+      .from("my_contents")
+      .select(DIRECT_CONTENT_COLUMNS)
+      .neq("space_id", currentSpaceId)
+      .eq("variant", "direct"),
+    client
+      .from("my_contents")
+      .select(FULL_CONTENT_SUMMARY_COLUMNS)
+      .neq("space_id", currentSpaceId)
+      .eq("variant", "full"),
+  ]);
   if (conceptsResponse.error) throw conceptsResponse.error;
   if (directResponse.error) throw directResponse.error;
   if (fullResponse.error) throw fullResponse.error;
-  if (spacesResponse.error) throw spacesResponse.error;
+  const spaces = await getAssociatedSpaces({
+    client,
+    concepts: conceptsResponse.data,
+    currentSpaceId,
+  });
 
   return {
     nodes: conceptsResponse.data,
     directContents: directResponse.data,
     fullContentSummaries: fullResponse.data,
-    spaces: spacesResponse.data,
+    spaces,
   };
 };
 
@@ -330,12 +373,17 @@ export const getSharedNodeByRid = async ({
   if (conceptsResponse.error) throw conceptsResponse.error;
   if (directResponse.error) throw directResponse.error;
   if (fullResponse.error) throw fullResponse.error;
+  const spaces = await getAssociatedSpaces({
+    client,
+    concepts: conceptsResponse.data,
+    currentSpace: space,
+  });
 
   const [sharedNode] = buildSharedNodes({
     nodes: conceptsResponse.data,
     directContents: directResponse.data,
     fullContentSummaries: fullResponse.data,
-    spaces: [space],
+    spaces,
   });
   return sharedNode ?? null;
 };

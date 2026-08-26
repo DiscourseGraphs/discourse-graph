@@ -99,7 +99,7 @@ export const crossAppNodeSchemaToDbConcept = (
     template_content: node.template,
     roles: slots.length > 0 ? slots : undefined,
   });
-  const referenceContent = slots.length ? node.slotDefinitions! : undefined;
+  const referenceContent = slots.length ? node.slotDefinitions : undefined;
   const spaceUri = node.rid
     ? ridToSpaceUriAndLocalId(node.rid).spaceUri
     : undefined;

@@ -106,13 +106,11 @@ export const dbNodeSchemaToCrossApp = ({
     schema.source_local_id!,
     "schema",
   );
-  const slotDefinitions: Record<string, string> = Object.fromEntries(
-    ((roles as string[] | undefined) ?? [])
-      .map((r) => [
-        r,
-        asSimpleLocalId(schemaMap[referenceContent[r] ?? 0], spaceUrl),
-      ])
-      .filter(([, s]) => s !== undefined) as [string, string][],
+  const slotDefinitions = Object.fromEntries(
+    ((roles as string[] | undefined) ?? []).map((r) => [
+      r,
+      asSimpleLocalId(schemaMap[referenceContent[r] ?? 0], spaceUrl),
+    ]),
   );
   return {
     rid,
