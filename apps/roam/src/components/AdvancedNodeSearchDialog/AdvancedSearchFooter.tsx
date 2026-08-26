@@ -21,7 +21,7 @@ export type AdvancedSearchFooterProps = {
 };
 
 const footerKbdClassName =
-  "roamjs-footer-kbd inline-flex items-center justify-center rounded border border-gray-300 bg-white px-1 py-0.5 text-gray-600";
+  "inline-flex min-w-5 items-center justify-center rounded border border-gray-300 bg-white px-1 py-0.5 normal-case text-gray-600";
 
 const footerLabelClassName =
   "inline-flex shrink-0 items-center gap-1 text-xs lowercase text-gray-500";
