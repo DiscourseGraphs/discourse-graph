@@ -143,10 +143,34 @@ export const CanvasDrawerContent = ({
     [visibleGroups],
   );
 
-  const isFiltered =
-    filterType !== "All" ||
-    activeTabId === "duplicates" ||
-    !!trimmedSearchQuery;
+  const hasTypeOrTabFilter =
+    filterType !== "All" || activeTabId === "duplicates";
+  const hasSearch = !!trimmedSearchQuery;
+  const isFiltered = hasTypeOrTabFilter || hasSearch;
+
+  const emptyStateCopy = useMemo(() => {
+    if (!isFiltered) {
+      return {
+        icon: "search" as const,
+        title: `No nodes found for ${pageTitle}`,
+        description:
+          "Add discourse nodes to this canvas to populate the drawer.",
+        actionLabel: undefined,
+      };
+    }
+    const description =
+      hasSearch && hasTypeOrTabFilter
+        ? "Try a different search term or filter."
+        : hasSearch
+          ? "Try a different search term."
+          : "Try a different node type or switch tabs.";
+    return {
+      icon: "filter" as const,
+      title: "No nodes match your filters",
+      description,
+      actionLabel: hasTypeOrTabFilter ? "Clear filters" : "Clear search",
+    };
+  }, [isFiltered, hasSearch, hasTypeOrTabFilter, pageTitle]);
 
   const handleTabChange = useCallback((tabId: TabId) => {
     setActiveTab(tabId);
@@ -381,7 +405,7 @@ export const CanvasDrawerContent = ({
               />
             </span>
           </Tooltip>
-          {isFiltered && !trimmedSearchQuery && (
+          {hasTypeOrTabFilter && (
             <Tag minimal icon="eye-open">
               {visibleNodeCount} visible
             </Tag>
@@ -391,23 +415,13 @@ export const CanvasDrawerContent = ({
 
       {!visibleGroups.length ? (
         <NonIdealState
-          icon={isFiltered ? "filter" : "search"}
-          title={
-            isFiltered
-              ? "No nodes match your filters"
-              : `No nodes found for ${pageTitle}`
-          }
-          description={
-            trimmedSearchQuery
-              ? "Try a different search term."
-              : isFiltered
-                ? "Try a different node type or switch tabs."
-                : "Add discourse nodes to this canvas to populate the drawer."
-          }
+          icon={emptyStateCopy.icon}
+          title={emptyStateCopy.title}
+          description={emptyStateCopy.description}
           action={
-            isFiltered ? (
+            emptyStateCopy.actionLabel ? (
               <Button minimal icon="filter-remove" onClick={handleResetFilters}>
-                Clear filters
+                {emptyStateCopy.actionLabel}
               </Button>
             ) : undefined
           }
