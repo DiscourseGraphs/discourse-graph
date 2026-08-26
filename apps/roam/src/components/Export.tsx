@@ -87,6 +87,7 @@ import { AddReferencedNodeType } from "./canvas/DiscourseRelationShape/Discourse
 import posthog from "posthog-js";
 import { getMyGroups, type MyGroup } from "@repo/database/lib/groups";
 import {
+  getAllPublishedIdsByGroup,
   publishNodeUidsWithTypeToGroups,
   type NodeUidWithType,
 } from "~/utils/publishNodesToGroups";
@@ -821,6 +822,23 @@ const ExportDialog: ExportDialogComponent = ({
         const client = await getLoggedInClient();
         if (!client) throw new Error("Could not connect to sync.");
         const groups = await getMyGroups(client);
+        const context = await getSupabaseContext();
+        if (context && groups.length && publishableNodes.length) {
+          const publishedIdsByGroup = await getAllPublishedIdsByGroup(
+            client,
+            context.spaceId,
+            groups.map((g) => g.id),
+          );
+          setSelectedGroupIds(
+            groups
+              .map((g) => g.id)
+              .filter((id) =>
+                publishableNodes.every(({ uid }) =>
+                  publishedIdsByGroup[id].has(uid),
+                ),
+              ),
+          );
+        }
         setMyGroups(groups);
       } catch (e) {
         setGroupsError((e as Error).message || "Failed to load groups.");
@@ -829,7 +847,14 @@ const ExportDialog: ExportDialogComponent = ({
         setGroupsLoaded(true);
       }
     })();
-  }, [syncEnabled, isOpen, selectedTabId, groupsLoaded, groupsLoading]);
+  }, [
+    syncEnabled,
+    isOpen,
+    selectedTabId,
+    groupsLoaded,
+    groupsLoading,
+    publishableNodes,
+  ]);
 
   const handlePublish = async () => {
     setPublishError("");

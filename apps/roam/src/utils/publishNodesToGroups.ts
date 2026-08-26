@@ -31,7 +31,7 @@ export type NodeUidWithType = {
   type: string;
 };
 
-const getAllPublishedIdsByGroup = async (
+export const getAllPublishedIdsByGroup = async (
   client: DGSupabaseClient,
   spaceId: number,
   groupIds: string[],
