@@ -145,20 +145,23 @@ export const GET = async (
   ]);
   if (concept.author_id) authorIds.add(concept.author_id);
   if (authorIds.size > 0) {
-    const authorsResponse = await supabase
-      .from("PlatformAccount")
-      .select()
-      .in("id", [...authorIds]);
-    if (authorsResponse.error) {
-      return createApiResponse(request, authorsResponse);
+    try {
+      const authorsResponse = await supabase
+        .from("PlatformAccount")
+        .select()
+        .in("id", [...authorIds]);
+      if (
+        !authorsResponse.error &&
+        authorsResponse.data &&
+        authorsResponse.data.length > 0
+      )
+        authors = Object.fromEntries(
+          authorsResponse.data.map((a) => [a.id, a]),
+        );
+    } catch (error) {
+      console.error(error);
+      // swallow error, we may be an anonymous user
     }
-    if (!authorsResponse.data) {
-      return createApiResponse(
-        request,
-        asPostgrestFailure("Resource schema not found", "401", 401),
-      );
-    }
-    authors = Object.fromEntries(authorsResponse.data.map((a) => [a.id, a]));
   }
 
   const relationsJLD = withContext
