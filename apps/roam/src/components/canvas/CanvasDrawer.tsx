@@ -3,6 +3,7 @@ import {
   Button,
   Collapse,
   Icon,
+  InputGroup,
   Menu,
   MenuItem,
   NonIdealState,
@@ -52,6 +53,7 @@ export const CanvasDrawerContent = ({
   const [activeShapeId, setActiveShapeId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState("All");
   const [activeTab, setActiveTab] = useState<TabId>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const pageTitle = useMemo(() => getPageTitleByPageUid(pageUid), [pageUid]);
   const discourseNodes = useMemo(() => getDiscourseNodes(), []);
@@ -120,15 +122,20 @@ export const CanvasDrawerContent = ({
 
   const activeTabId = activeTab as "all" | "duplicates";
 
+  const trimmedSearchQuery = searchQuery.trim().toLowerCase();
+
   const visibleGroups = useMemo(
     () =>
       groups.filter((group) => {
         const matchesType =
           filterType === "All" || group.typeLabel === filterType;
         const matchesTab = activeTabId === "all" ? true : group.isDuplicate;
-        return matchesType && matchesTab;
+        const matchesSearch =
+          !trimmedSearchQuery ||
+          group.title.toLowerCase().includes(trimmedSearchQuery);
+        return matchesType && matchesTab && matchesSearch;
       }),
-    [groups, filterType, activeTabId],
+    [groups, filterType, activeTabId, trimmedSearchQuery],
   );
 
   const visibleNodeCount = useMemo(
@@ -136,7 +143,10 @@ export const CanvasDrawerContent = ({
     [visibleGroups],
   );
 
-  const isFiltered = filterType !== "All" || activeTabId === "duplicates";
+  const isFiltered =
+    filterType !== "All" ||
+    activeTabId === "duplicates" ||
+    !!trimmedSearchQuery;
 
   const handleTabChange = useCallback((tabId: TabId) => {
     setActiveTab(tabId);
@@ -174,6 +184,7 @@ export const CanvasDrawerContent = ({
   const handleResetFilters = useCallback(() => {
     setFilterType("All");
     setActiveTab("all");
+    setSearchQuery("");
   }, []);
 
   const renderNodeTypeItem = useCallback(
@@ -322,6 +333,22 @@ export const CanvasDrawerContent = ({
           <Tab id="all" title={`All Nodes (${totalNodeCount})`} />
           <Tab id="duplicates" title={`Duplicates (${duplicateNodeCount})`} />
         </Tabs>
+        <InputGroup
+          leftIcon="search"
+          placeholder="Search nodes"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          rightElement={
+            searchQuery ? (
+              <Button
+                icon="cross"
+                minimal
+                small
+                onClick={() => setSearchQuery("")}
+              />
+            ) : undefined
+          }
+        />
         <div className="flex flex-wrap items-center gap-2">
           <Popover
             content={
@@ -354,7 +381,7 @@ export const CanvasDrawerContent = ({
               />
             </span>
           </Tooltip>
-          {isFiltered && (
+          {isFiltered && !trimmedSearchQuery && (
             <Tag minimal icon="eye-open">
               {visibleNodeCount} visible
             </Tag>
@@ -371,9 +398,11 @@ export const CanvasDrawerContent = ({
               : `No nodes found for ${pageTitle}`
           }
           description={
-            isFiltered
-              ? "Try a different node type or switch tabs."
-              : "Add discourse nodes to this canvas to populate the drawer."
+            trimmedSearchQuery
+              ? "Try a different search term."
+              : isFiltered
+                ? "Try a different node type or switch tabs."
+                : "Add discourse nodes to this canvas to populate the drawer."
           }
           action={
             isFiltered ? (
