@@ -1,4 +1,10 @@
-import { TFile, App, Plugin, prepareFuzzySearch, type SearchResult } from "obsidian";
+import {
+  TFile,
+  App,
+  Plugin,
+  prepareFuzzySearch,
+  type SearchResult,
+} from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { BulkImportPattern, BulkImportCandidate, DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
@@ -414,8 +420,7 @@ export class QueryEngine {
           const file = this.app.vault.getAbstractFileByPath(page.$path);
           if (!(file && file instanceof TFile)) continue;
           if (opts?.excludeImported) {
-            const fm = this.app.metadataCache.getFileCache(file)
-              ?.frontmatter as Record<string, unknown> | undefined;
+            const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
             if (fm?.importedFromRid) continue;
           }
           files.push(file);
@@ -455,10 +460,7 @@ export class QueryEngine {
     const allFiles = this.app.vault.getMarkdownFiles();
     for (const f of allFiles) {
       const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
-      if (
-        (fm as Record<string, unknown> | undefined)?.importedFromRid ===
-        importedFromRid
-      ) {
+      if (fm?.importedFromRid === importedFromRid) {
         return f;
       }
     }
@@ -479,9 +481,7 @@ export class QueryEngine {
     }
     const files = this.getFilesWithNodeInstanceId();
     for (const file of files) {
-      const fm = this.app.metadataCache.getFileCache(file)?.frontmatter as
-        | Record<string, unknown>
-        | undefined;
+      const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
       const id = fm?.nodeInstanceId as string | undefined;
       const rid = fm?.importedFromRid as string | undefined;
       if (id === endpointId || rid === endpointId) return file;
@@ -542,10 +542,7 @@ export class QueryEngine {
     for (const f of allFiles) {
       if (!f.path.startsWith("import/")) continue;
       const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
-      if (
-        (fm as Record<string, unknown> | undefined)?.importedFromRid &&
-        (fm as Record<string, unknown> | undefined)?.nodeInstanceId
-      ) {
+      if (fm?.importedFromRid && fm?.nodeInstanceId) {
         files.push(f);
       }
     }
@@ -557,7 +554,7 @@ export class QueryEngine {
     const allFiles = this.app.vault.getMarkdownFiles();
     for (const f of allFiles) {
       const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
-      if ((fm as Record<string, unknown> | undefined)?.nodeInstanceId) {
+      if (fm?.nodeInstanceId) {
         files.push(f);
       }
     }
@@ -570,9 +567,7 @@ export class QueryEngine {
     const files: TFile[] = [];
     const allFiles = this.app.vault.getMarkdownFiles();
     for (const f of allFiles) {
-      const fm = this.app.metadataCache.getFileCache(f)?.frontmatter as
-        | Record<string, unknown>
-        | undefined;
+      const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
       const nodeTypeId = fm?.nodeTypeId;
       if (!nodeTypeId) continue;
       if (
