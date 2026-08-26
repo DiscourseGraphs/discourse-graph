@@ -130,34 +130,6 @@ describe("createRoamAssetStore", () => {
     expect(upload).toHaveBeenCalledTimes(3);
   });
 
-  it("reports each upload to the onUpload callback", async () => {
-    const upload = createUploadSpy(["![](https://example.com/a.png)"]);
-    setRoamAlphaAPI({ file: { upload } });
-
-    const onUpload = vi.fn();
-    const store = createRoamAssetStore({ onUpload });
-    const file = fakeFile("a.gif", "image/gif");
-
-    await store.upload({} as never, file);
-
-    expect(onUpload).toHaveBeenCalledWith({ file });
-  });
-
-  it("does not fail the upload when the telemetry callback throws", async () => {
-    const upload = createUploadSpy(["![](https://example.com/a.png)"]);
-    setRoamAlphaAPI({ file: { upload } });
-
-    const store = createRoamAssetStore({
-      onUpload: () => {
-        throw new Error("posthog exploded");
-      },
-    });
-
-    await expect(store.upload({} as never, fakeFile("a.png"))).resolves.toBe(
-      "https://example.com/a.png",
-    );
-  });
-
   it("resolves an asset to the url stored in its props", () => {
     const store = createRoamAssetStore();
     const asset = {

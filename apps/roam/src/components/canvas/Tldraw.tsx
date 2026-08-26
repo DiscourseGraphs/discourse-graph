@@ -116,7 +116,7 @@ import {
 } from "./useCanvasStoreAdapterArgs";
 import { shouldCreateAutoCanvasRelations } from "./autoCanvasRelationsSuppression";
 import posthog from "posthog-js";
-import { parseRoamUploadResponse } from "~/utils/roamCanvasAssetStore";
+import { uploadCanvasFileToRoam } from "~/utils/roamCanvasAssetStore";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { json, normalizeProps } from "~/utils/getBlockProps";
@@ -1665,8 +1665,17 @@ const InsideEditorAndUiContext = ({
           type: "image/svg+xml",
         });
 
-        const url = await window.roamAlphaAPI.file.upload({ file });
-        const dataUrl = parseRoamUploadResponse(url);
+        let dataUrl: string;
+        try {
+          dataUrl = await uploadCanvasFileToRoam(file, "svg-paste");
+        } catch (error) {
+          toasts.addToast({
+            title: msg("assets.files.upload-failed"),
+            severity: "error",
+          });
+          console.error(error);
+          return;
+        }
 
         const assetId: TLAssetId = AssetRecordType.createId(
           getHashForString(dataUrl),
@@ -1700,11 +1709,6 @@ const InsideEditorAndUiContext = ({
           y: position.y - height / 2,
           props: { assetId, w: width, h: height },
         });
-        posthog.capture("Canvas: Asset Added", {
-          source: "svg-paste",
-          mimeType: "image/svg+xml",
-        });
-
         return asset;
       },
     );

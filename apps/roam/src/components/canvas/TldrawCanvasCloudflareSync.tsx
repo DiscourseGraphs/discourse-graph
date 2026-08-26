@@ -10,7 +10,6 @@ import {
 import { useMemo } from "react";
 import { getCurrentRoamTldrawUserInfo } from "~/utils/roamTldrawUserInfo";
 import { createRoamAssetStore } from "~/utils/roamCanvasAssetStore";
-import { captureCanvasAssetUploaded } from "./canvasAssetTelemetry";
 
 /** Base URL for tldraw-sync-cloudflare worker. Use https (not wss) - useSync upgrades to WebSocket. */
 export const TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL =
@@ -53,10 +52,7 @@ export const useCloudflareSyncStore = ({
   customShapeTypes: string[];
   customBindingTypes: string[];
 }): CloudflareCanvasStoreAdapterResult => {
-  const assets = useMemo(
-    () => createRoamAssetStore({ onUpload: captureCanvasAssetUploaded }),
-    [],
-  );
+  const assets = useMemo(() => createRoamAssetStore(), []);
   const shapeUtils = useMemo(
     () => [...defaultShapeUtils, ...customShapeUtils],
     [customShapeUtils],
