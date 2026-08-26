@@ -10,6 +10,7 @@ import { getSubTree } from "roamjs-components/util";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import { getRoamMarkdownApi } from "~/utils/materializeSharedNode";
 
 import type { RoamBasicNode } from "roamjs-components/types";
@@ -830,16 +831,19 @@ export const getAllRelations = (
     ? settings.globalSettings
     : getGlobalSettings();
 
-  return Object.entries(globalSettings.Relations).flatMap(([id, relation]) =>
-    relation.ifConditions.map((ifCondition) => ({
+  const storedRelationsEnabled = getStoredRelationsEnabled();
+  return Object.entries(globalSettings.Relations).flatMap(([id, relation]) => {
+    const base = {
       id,
       label: relation.label,
       source: relation.source,
       destination: relation.destination,
       complement: relation.complement,
-      triples: ifCondition.triples,
-    })),
-  );
+    };
+    if (relation.ifConditions.length === 0 && storedRelationsEnabled)
+      return [{ ...base, triples: [] }];
+    return relation.ifConditions.map((c) => ({ ...base, triples: c.triples }));
+  });
 };
 
 export const getPersonalSettings = (): PersonalSettings => {
@@ -1106,7 +1110,7 @@ export const createDiscourseNodeType = async ({
   label: string;
   shortcut?: string;
   format?: string;
-  template?: string;
+  template?: RoamBasicNode[] | string; // string would be markdown
 }): Promise<DiscourseNode> => {
   if (shortcut === undefined) shortcut = getUnusedShortcut(label);
   format = format ?? `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
@@ -1124,20 +1128,21 @@ export const createDiscourseNodeType = async ({
       children: [{ text: format }],
     },
   ];
+  let templateTree: RoamBasicNode[] | undefined;
   if (template !== undefined) {
+    templateTree = Array.isArray(template) ? template : [];
     tree.push({
       text: "Template",
-      children: [],
+      children: templateTree,
     });
   }
   const pageUid = await createPage({
     title: `discourse-graph/nodes/${label}`,
     tree,
   });
-  let templateTree: RoamBasicNode[] | undefined;
-  if (template !== undefined) {
+  if (typeof template === "string") {
     const tree = getBasicTreeByParentUid(pageUid);
-    const templateUid = tree[3].uid;
+    const templateUid = getSubTree({ tree, key: "Template" }).uid;
     await getRoamMarkdownApi().block.fromMarkdown({
       location: { "parent-uid": templateUid, order: "last" },
       "markdown-string": template,

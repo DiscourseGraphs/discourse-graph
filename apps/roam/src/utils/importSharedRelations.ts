@@ -14,7 +14,9 @@ import {
   getImportedSourceRids,
   writeImportedSourceIdentity,
 } from "./importedSourceIdentity";
-import getDiscourseRelations from "./getDiscourseRelations";
+import getDiscourseRelations, {
+  type DiscourseRelation,
+} from "./getDiscourseRelations";
 import getDiscourseNodes from "./getDiscourseNodes";
 import { createDiscourseNodeType } from "~/components/settings/utils/accessors";
 import { createRelationSchema } from "./createRelationSchema";
@@ -68,6 +70,8 @@ const matchImportedNodeSchemas = async (
         sourceNodeRid: rid,
         sourceModifiedAt: (schema.modifiedAt ?? new Date()).toISOString(),
       });
+      localNodeSchemasByLabel[node.text.toLowerCase()] = node;
+      localNodeSchemasByLocalId[blockUid] = node;
     }
     result[rid] = blockUid;
   }
@@ -154,6 +158,16 @@ const matchImportedRelationSchemas = async (
             tripleSchema.modifiedAt ?? new Date()
           ).toISOString(),
         });
+        const newRelation: DiscourseRelation = {
+          id: blockUid,
+          label,
+          complement,
+          source,
+          destination,
+          triples: [],
+        };
+        relationSchemas.push(newRelation);
+        localRelationTripleSchemasByLocalId[blockUid] = newRelation;
       }
       result[rid] = blockUid;
     }
