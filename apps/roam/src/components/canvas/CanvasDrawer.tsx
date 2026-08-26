@@ -360,6 +360,7 @@ export const CanvasDrawerContent = ({
         <InputGroup
           leftIcon="search"
           placeholder="Search nodes"
+          aria-label="Search nodes"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           rightElement={
@@ -368,6 +369,7 @@ export const CanvasDrawerContent = ({
                 icon="cross"
                 minimal
                 small
+                aria-label="Clear search"
                 onClick={() => setSearchQuery("")}
               />
             ) : undefined
