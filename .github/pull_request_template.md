@@ -10,7 +10,4 @@
 
 ## Delegated review
 
-- [ ] Ran `$delegated-review` against the final diff.
-- Findings:
-
-<!-- Add `None` when there are no findings. Otherwise summarize each finding and how it was resolved or deferred. -->
+- [ ] Ran `$delegated-review` against the final diff and resolved findings.
