@@ -7,6 +7,8 @@ description: Run a comprehensive, read-only code review in a separate subagent, 
 
 Use this skill only when the user invokes it directly. Do not select it automatically.
 
+Use `$dg-engineering-writing-style` when available. Look for it in the repository's `./skills` folder.
+
 Run the review outside the primary agent's context. Do not modify files, fix findings, or delegate from the review subagent.
 
 ## Resolve the target
