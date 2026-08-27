@@ -9,6 +9,7 @@
     "sioc": "http://rdfs.org/sioc/ns#",
     "dgc": "https://discoursegraphs.com/schema/dg_core#",
     "dgb": "https://discoursegraphs.com/schema/dg_base#",
+    "mira": "http://purl.org/mira-science/mira#",
     "predicate": { "@id": "rdf:predicate", "@type": "@id" },
     "subClassOf": { "@id": "rdfs:subClassOf", "@type": "@id" },
     "domain": { "@id": "rdfs:domain", "@type": "@id" },
