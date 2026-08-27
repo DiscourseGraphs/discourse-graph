@@ -1,0 +1,9 @@
+interface:
+  display_name: "Create DG Engineering Ticket"
+  short_description: "Create scoped Engineering tickets in Linear"
+  default_prompt: "Use $dg-create-engineering-ticket to create a concise Engineering ticket in Linear."
+policy:
+  products:
+    - "CHAT"
+    - "CODEX"
+  allow_implicit_invocation: true
