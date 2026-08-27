@@ -23,6 +23,8 @@ Follow our handy guides to get started on the basics as quickly as possible:
 - [Querying your Discourse Graph](/docs/roam/guides/querying-discourse-graph)
 - [Extending and Personalizing your Discourse Graph](/docs/roam/guides/extending-personalizing-graph)
 
+If you want to get started even faster, you can download our [template lab graph](https://roamresearch.com/#/app/template-lab/page/ynSbRDCOC), a starterpack containing templates and tutorials for essential discourse graph functions. [These instructions](/docs/roam/welcome/installing-template-lab-graph) explain how to download and install the template lab graph.
+
 ## Fundamentals: Dive a little deeper
 
 Learn the fundamentals of the Discourse Graph extension to get a deeper understanding of our main features:
