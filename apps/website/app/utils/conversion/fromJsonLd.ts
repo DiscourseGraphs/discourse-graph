@@ -326,11 +326,16 @@ const addExtraData = async <T extends LdoBase>(
 ): Promise<LocalConceptDataInput | null> => {
   if (concept === null) return null;
   const { literals, references } = await identifyExtraData(dataset, id, shape);
-  if (Object.keys(literals).length > 0)
+  if (Object.keys(literals).length > 0) {
+    const literal_content = (concept.literal_content || {}) as Record<
+      string,
+      Json
+    >;
     concept.literal_content = {
       extra: literals,
-      ...((concept.literal_content as Record<string, Json>) || {}),
+      ...(literal_content || {}),
     };
+  }
   // TODO check which iris are internal refs
   // if (Object.keys(references).length > 0)
   //   concept.reference_content = {
@@ -722,7 +727,7 @@ export const parseJsonLdAsInput = async (
   }
   const { error, data } = await supabase
     .from("Concept")
-    .select("name,source_local_id,arity,reference_content")
+    .select("name,source_local_id,is_relation,reference_content")
     .eq("space_id", spaceId)
     .eq("is_schema", true);
   if (error) throw error;
@@ -740,8 +745,8 @@ export const parseJsonLdAsInput = async (
   const knownSchemaTypes = Object.fromEntries(
     data
       .filter(({ source_local_id }) => source_local_id !== null)
-      .map(({ source_local_id, arity, reference_content }) => {
-        if (arity !== 2) return [source_local_id, nodeSchemaType];
+      .map(({ source_local_id, reference_content, is_relation }) => {
+        if (!is_relation) return [source_local_id, nodeSchemaType];
         if (
           (reference_content as Record<string, Json>).source &&
           (reference_content as Record<string, Json>).destination

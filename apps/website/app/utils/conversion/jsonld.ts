@@ -84,7 +84,7 @@ export const conceptName = (
   schema: Concept | undefined,
 ): string => {
   if (concept.is_schema) {
-    if (concept.arity !== 2)
+    if (!concept.is_relation)
       return "https://discoursegraphs.com/schema/dg_base#NodeSchema";
     const ref = (concept.reference_content || {}) as Record<
       string,
@@ -128,7 +128,7 @@ export const asJsonLD = ({
   }
   let schemaUrl: string | string[] = concept.schema_id
     ? "sdata:" + concept.schema_id
-    : concept.arity === 2
+    : concept.is_relation
       ? (concept.reference_content as Record<string, Json>).source !== undefined
         ? "RelationDef"
         : "AbstractRelationDef"
@@ -137,7 +137,7 @@ export const asJsonLD = ({
   let extraData: Record<string, string | Json> = {};
   if (
     schema &&
-    schema.arity &&
+    schema.arity > 0 &&
     schema.literal_content !== null &&
     typeof schema.literal_content === "object" &&
     !Array.isArray(schema.literal_content) &&
@@ -164,7 +164,7 @@ export const asJsonLD = ({
     if (knownSchemas !== undefined) {
       subClasses.push(...knownSchemas);
     }
-    if (concept.arity === 2) {
+    if (concept.is_relation) {
       // triple vs abstract def
       const abstractRelType = (
         concept.reference_content as Record<string, Json>
