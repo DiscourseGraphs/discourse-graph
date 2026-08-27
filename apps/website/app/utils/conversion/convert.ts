@@ -30,7 +30,6 @@ export const convert = (
 ): string => {
   if (source === dest) return text;
   // punt details
-  console.log(`source: ${source}, dest: ${dest}`);
   if (markdownTypes.has(source) && markdownTypes.has(dest)) return text;
   converter = init();
   if (markdownTypes.has(source) && dest === "html") {
