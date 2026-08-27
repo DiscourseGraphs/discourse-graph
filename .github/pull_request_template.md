@@ -8,6 +8,6 @@
 - What changed, why it is required now, whether anyone was affected or consulted, and links to the use case, ticket, or decision.
 -->
 
-## Delegated review
+## Full review
 
-- [ ] Ran `$delegated-review` against the final diff and resolved findings.
+- [ ] Ran a comprehensive review of the entire final diff in a subagent with a fresh context. Use `$delegated-review` when no other full-review workflow is available.
