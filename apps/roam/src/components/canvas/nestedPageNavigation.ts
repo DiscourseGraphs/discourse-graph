@@ -30,7 +30,7 @@ const DEFAULT_PORTAL_HEIGHT = 340;
 // The label old clients see on the portal rectangle.
 const portalLabel = (pageName: string): string => `⤵ ${pageName}`;
 
-export const enterPage = (editor: Editor, pageId: string) => {
+export const enterPage = (editor: Editor, pageId: string): void => {
   if (!pageId || !editor.getPage(pageId as TLPageId)) return;
   editor.setCurrentPage(pageId as TLPageId);
   const bounds = editor.getCurrentPageBounds();

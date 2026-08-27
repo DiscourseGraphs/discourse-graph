@@ -50,7 +50,6 @@ import {
   TLParentId,
   getIndexAbove,
   TLShape,
-  defaultShapeUtils,
   defaultBindingUtils,
 } from "tldraw";
 import {
@@ -70,6 +69,7 @@ import { discourseContext, MAX_WIDTH } from "~/components/canvas/Tldraw";
 import internalError from "~/utils/internalError";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import { isTLStoreSnapshot } from "./canvas/useRoamStore";
+import { combineShapeUtilsWithDefaults } from "./canvas/useCanvasStoreAdapterArgs";
 import { createMigrations } from "./canvas/DiscourseRelationShape/discourseRelationMigrations";
 import {
   createAllRelationBindings,
@@ -432,7 +432,7 @@ const ExportDialog: ExportDialogComponent = ({
 
       const tlStore = createTLStore({
         migrations,
-        shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
+        shapeUtils: combineShapeUtilsWithDefaults(customShapeUtils),
         bindingUtils: [...defaultBindingUtils, ...customBindingUtils],
       });
 

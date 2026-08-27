@@ -736,7 +736,7 @@ export const createUiOverrides = ({
     const { addToast, addDialog } = helpers;
     actions["create-subpage-portal"] = {
       id: "create-subpage-portal",
-      label: "action.create-subpage-portal" as TLUiTranslationKey,
+      label: "action.create-subpage-portal",
       kbd: "",
       onSelect: () => {
         try {

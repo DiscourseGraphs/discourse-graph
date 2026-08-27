@@ -325,11 +325,13 @@ export const layoutPreview = ({
 }): PreviewLayout => {
   const subH = hasSubtitle ? SUBPAGE_SUBTITLE_HEIGHT : 0;
   const pad = SUBPAGE_BODY_PADDING;
+  // A portal resized below its chrome would yield a negative body and a
+  // negative scale; clamp so the projection degrades to an empty area instead.
   const area = {
     x: pad,
     y: SUBPAGE_HEADER_HEIGHT + subH + pad,
-    w: shape.w - pad * 2,
-    h: shape.h - SUBPAGE_HEADER_HEIGHT - subH - pad * 2,
+    w: Math.max(0, shape.w - pad * 2),
+    h: Math.max(0, shape.h - SUBPAGE_HEADER_HEIGHT - subH - pad * 2),
   };
   const pw = Math.max(1, bounds.maxX - bounds.minX);
   const ph = Math.max(1, bounds.maxY - bounds.minY);

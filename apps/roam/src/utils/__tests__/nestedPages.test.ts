@@ -314,6 +314,19 @@ describe("layoutPreview", () => {
     });
     expect(layout.area.y).toBe(48 + 18);
   });
+
+  it("clamps to zero instead of going negative when the portal is smaller than its chrome", () => {
+    const layout = layoutPreview({
+      shape: { w: 10, h: 40 },
+      hasSubtitle: false,
+      bounds: { minX: 0, minY: 0, maxX: 1000, maxY: 500 },
+    });
+    expect(layout.area.w).toBeGreaterThanOrEqual(0);
+    expect(layout.area.h).toBeGreaterThanOrEqual(0);
+    expect(layout.scale).toBeGreaterThanOrEqual(0);
+    expect(Number.isFinite(layout.offX)).toBe(true);
+    expect(Number.isFinite(layout.offY)).toBe(true);
+  });
 });
 
 describe("getBoxLabel", () => {

@@ -49,6 +49,22 @@ import { DEFAULT_PORTAL_ACCENT, enterPage } from "./nestedPageNavigation";
 // node formats — never a hardcoded code list. Cached per nodes object (the
 // discourseContext.nodes record is replaced wholesale when settings load).
 const matcherCache = new WeakMap<object, PrefixMatcher[]>();
+// Bound export-time image fetches: a host that never responds must not hang
+// the export forever. Failures degrade to null and the box renders imageless.
+const PORTAL_IMAGE_FETCH_TIMEOUT_MS = 5000;
+
+const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
+  try {
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(PORTAL_IMAGE_FETCH_TIMEOUT_MS),
+    });
+    if (!response.ok) return null;
+    return await FileHelpers.blobToDataUrl(await response.blob());
+  } catch {
+    return null;
+  }
+};
+
 const getPrefixMatchers = (): PrefixMatcher[] => {
   const nodes = discourseContext.nodes;
   let matchers = matcherCache.get(nodes);
@@ -577,16 +593,9 @@ export class DgSubpageGeoUtil extends GeoShapeUtil {
         bounds: model.bounds,
       });
       const images = await Promise.all(
-        model.boxes.map(async (box) => {
-          if (!box.img) return null;
-          try {
-            const response = await fetch(box.img);
-            const blob = await response.blob();
-            return await FileHelpers.blobToDataUrl(blob);
-          } catch {
-            return null;
-          }
-        }),
+        model.boxes.map((box) =>
+          box.img ? fetchImageAsDataUrl(box.img) : Promise.resolve(null),
+        ),
       );
       model.boxes.forEach((box, i) => {
         const bw = Math.max(2, box.w * layout.scale);
