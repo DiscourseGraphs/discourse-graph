@@ -18,6 +18,9 @@ const withNextra = nextra({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: {
+    cpus: 2,
+  },
   async redirects() {
     return DOCS_REDIRECTS;
   },
