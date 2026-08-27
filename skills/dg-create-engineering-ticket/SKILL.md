@@ -7,7 +7,7 @@ description: Create concise Discourse Graphs Engineering tickets in Linear with 
 
 Create an Engineering ticket that another engineer can understand and implement without rediscovering its intent or scope.
 
-Use `$dg-engineering-writing-style` when available. Until that namespace migration is complete, fall back to `$discourse-engineering-writing-style` when available.
+Use `$dg-engineering-writing-style` when available. It is in the repository's `./skills` folder.
 
 ## Canonical template
 
