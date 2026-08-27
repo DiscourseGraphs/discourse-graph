@@ -1,7 +1,7 @@
 interface:
-  display_name: "Create DG Engineering Ticket"
-  short_description: "Create scoped Engineering tickets in Linear"
-  default_prompt: "Use $dg-create-engineering-ticket to create a concise Engineering ticket in Linear."
+  display_name: "Create Discourse Graph Engineering Ticket"
+  short_description: "Create scoped Discourse Graph tickets in Linear"
+  default_prompt: "Use $dg-create-engineering-ticket to create a concise Discourse Graph Engineering ticket in Linear."
 policy:
   products:
     - "CHAT"
