@@ -10,4 +10,4 @@
 
 ## Full review
 
-- [ ] Ran a comprehensive review of the entire final diff in a subagent with a fresh context. Use `$delegated-review` when no other full-review workflow is available.
+- [ ] Ran a comprehensive review of the entire final diff in a subagent with a fresh context. Use `$dg-delegated-review` when no other full-review workflow is available.

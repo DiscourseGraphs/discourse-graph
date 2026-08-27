@@ -1,9 +1,9 @@
 ---
-name: delegated-review
+name: dg-delegated-review
 description: Run a read-only code review in a separate subagent, return the findings to the primary agent, and close or archive the review task when supported. Use only when explicitly invoked for a pull request, branch, commit, diff, or current changes.
 ---
 
-# Delegated Review
+# DG Delegated Review
 
 Use this skill only when the user invokes it directly. Do not select it automatically.
 
