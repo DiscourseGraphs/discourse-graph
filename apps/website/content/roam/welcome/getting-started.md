@@ -13,20 +13,29 @@ Here is a relatively brief walkthrough of some of the main features of the exten
 
 [https://www.loom.com/share/2ec80422301c451b888b65ee1d283b40](https://www.loom.com/share/2ec80422301c451b888b65ee1d283b40)
 
-## Guides: Jump right in
+## Guides: jump right in
 
 Follow our handy guides to get started on the basics as quickly as possible:
 
 - [Creating discourse nodes](/docs/roam/guides/creating-discourse-nodes)
 - [Creating discourse relationships](/docs/roam/guides/creating-discourse-relationships)
-- [Exploring your Discourse Graph](/docs/roam/guides/exploring-discourse-graph)
-- [Querying your Discourse Graph](/docs/roam/guides/querying-discourse-graph)
-- [Extending and Personalizing your Discourse Graph](/docs/roam/guides/extending-personalizing-graph)
+- [Exploring your discourse graph](/docs/roam/guides/exploring-discourse-graph)
+- [Querying your discourse graph](/docs/roam/guides/querying-discourse-graph)
+- [Extending and personalizing your discourse graph](/docs/roam/guides/extending-personalizing-graph)
 
-## Fundamentals: Dive a little deeper
+## Fundamentals: dive a little deeper
 
 Learn the fundamentals of the Discourse Graph extension to get a deeper understanding of our main features:
 
-- [What is a Discourse Graph?](/docs/roam/fundamentals/what-is-a-discourse-graph)
-- [The Discourse Graph extension grammar](/docs/roam/fundamentals/grammar)
+- [What is a discourse graph?](/docs/roam/fundamentals/what-is-a-discourse-graph)
+- [The discourse graph extension grammar](/docs/roam/fundamentals/grammar)
 - [The base grammar: questions, claims, and evidence](/docs/roam/fundamentals/grammar/base-grammar)
+
+## Use cases: popular discourse graph workflows
+
+See how others are putting discourse graphs to work:
+
+- [Build and utilize a personal knowledge base](/docs/roam/use-cases/build-utilize-personal-knowledge-base)
+- [Synthesize insights from the literature](/docs/roam/use-cases/synthesize-insights-from-literature)
+- [Share your ideas & research](/docs/roam/use-cases/share-your-ideas-and-research)
+- [Track your projects and experiments](/docs/roam/use-cases/track-your-projects-and-experiments)
