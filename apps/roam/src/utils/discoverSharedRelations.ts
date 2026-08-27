@@ -54,6 +54,7 @@ export const discoverSharedRelations = async (
     .map((r) => r.concepts_of_relation)
     .flat();
   const spaceIds = new Set(relatedNodeInfo.map(({ space_id }) => space_id!));
+  spaceIds.add(spaceId);
   const spaceMap = await getSpaceMap(client, [...spaceIds]);
   const toRid = (spaceId: number, localId: string) =>
     spaceId in spaceMap
