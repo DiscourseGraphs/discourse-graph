@@ -14,7 +14,7 @@ const DEFAULT_SOURCE_SCHEMA_ID = "_SRC-node";
 
 type NodeFormat = Pick<DiscourseNode, "format">;
 
-export const schemaHasSourceSlot = (schema: NodeFormat | undefined): boolean =>
+export const schemaHasSourceSlot = (schema: NodeFormat): boolean =>
   (schema?.format ?? "").toLowerCase().includes("{source}");
 
 const sourceNodeType = (allNodes: DiscourseNode[]): DiscourseNode | undefined =>
@@ -46,7 +46,10 @@ const matcherFor = (format: string): RegExp => {
 const isDiscourseNodeTitle = (
   title: string,
   allNodes: DiscourseNode[],
-): boolean => allNodes.some((node) => matcherFor(node.format).test(title));
+): boolean =>
+  allNodes
+    .filter((n) => n.format !== "{content}") // exclude page and block
+    .some((node) => matcherFor(node.format).test(title));
 
 // The page a node's {source} placeholder resolves to, when there is one. The
 // placeholder is usually filled with a page reference, and a title holding a slash is
@@ -56,8 +59,9 @@ export const sourceUidOfNode = (
   schema: NodeFormat | undefined,
   allNodes?: DiscourseNode[],
 ): string | undefined => {
+  if (schema === undefined) return undefined;
   if (!schemaHasSourceSlot(schema)) return undefined;
-  const sourceTitle = extractFieldFromTitle(title, schema!, "source")
+  const sourceTitle = extractFieldFromTitle(title, schema, "source")
     ?.replace(/^\[\[(.*)\]\]$/s, "$1")
     .trim();
   if (!sourceTitle || sourceTitle.includes("/")) return undefined;
