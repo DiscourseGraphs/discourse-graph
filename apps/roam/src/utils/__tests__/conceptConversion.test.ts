@@ -113,7 +113,6 @@ describe("discourseNodeBlockToLocalConcept source slot", () => {
     discourseNodeBlockToLocalConcept(CONTEXT, {
       nodeUid: "node-1",
       schemaUid: schema.type,
-      text: title,
       title,
       schema,
     });
@@ -177,7 +176,6 @@ describe("discourseNodeBlockToLocalConcept source slot", () => {
     const concept = discourseNodeBlockToLocalConcept(CONTEXT, {
       nodeUid: "node-1",
       schemaUid: "_EVD-node",
-      text: "[[EVD]] - REM sleep aids recall - [[@sun2019direct]] the block text",
       title: "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
       schema: nodeType({}),
     });

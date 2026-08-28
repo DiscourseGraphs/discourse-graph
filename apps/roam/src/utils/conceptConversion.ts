@@ -109,15 +109,11 @@ export const discourseNodeBlockToLocalConcept = (
   {
     nodeUid,
     schemaUid,
-    text,
     title,
     schema,
   }: {
     nodeUid: string;
     schemaUid: string;
-    text: string;
-    // The node's title, which is where a {source} placeholder is filled in. It differs
-    // from text for a node whose text lives in a block below its page.
     title?: string;
     schema?: DiscourseNode;
   },
@@ -125,7 +121,7 @@ export const discourseNodeBlockToLocalConcept = (
   const sourceUid = title ? sourceUidOfNode(title, schema) : undefined;
   return {
     space_id: context.spaceId,
-    name: text,
+    name: title,
     source_local_id: nodeUid,
     schema_represented_by_local_id: schemaUid,
     is_schema: false,
