@@ -9,6 +9,32 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 - Minor version bumps are released on a regular cadence.
 - Patch version bumps are for bugfixes and hotfixes.
 
+## [0.22.0] - 2026-08-15
+
+### Added
+
+- **Page drag to canvas** - Pages can be dragged onto the canvas to create node shapes. ([ENG-1373](https://linear.app/discourse-graphs/issue/ENG-1373/drag-and-drop-pages-to-canvas))
+- **Cloud collaborator names** - Remote collaborator cursors now show Roam user display names on shared canvases. ([ENG-1959](https://linear.app/discourse-graphs/issue/ENG-1959/show-roam-user-names-on-cloud-canvas-collaborator-cursors))
+- **Suggestive-mode adoption notification** - Users are notified when a suggested node is added to the outline. ([ENG-1136](https://linear.app/discourse-graphs/issue/ENG-1136/notify-user-when-suggestive-mode-suggested-node-is-added-to-the))
+
+### Changed
+
+- **Canvas relation fallback** - Canvas files using the `discourse-relation` type can now open without crashing on older builds. ([ENG-1956](https://linear.app/discourse-graphs/issue/ENG-1956/add-discourse-relation-type-as-fallback-during-version-transition))
+- **Discourse context overlay** - The overlay UI was simplified, and the global left sidebar fold toggle is now personal. ([ENG-1140](https://linear.app/discourse-graphs/issue/ENG-1140/implement-simplified-discourse-context-overlay), [ENG-1819](https://linear.app/discourse-graphs/issue/ENG-1819/global-left-sidebar-fold-toggle))
+- **Page preview** - Roam page preview has been removed. ([FEE-862](https://linear.app/discourse-graphs/issue/FEE-862/retire-or-revamp-page-preview))
+
+### Fixed
+
+- **Canvas editing** - An edit button is available for rendered canvas blocks, page titles stay in sync while editing, and extra relation shapes no longer appear when converting to cloud canvas. ([ENG-1792](https://linear.app/discourse-graphs/issue/ENG-1792/add-edit-block-button-to-rendered-dg-canvas), [ENG-1928](https://linear.app/discourse-graphs/issue/ENG-1928/edit-node-title-in-canvas-doesnt-check-if-the-title-has-been-changed), [ENG-1929](https://linear.app/discourse-graphs/issue/ENG-1929/multiple-additional-relations-created-when-converting-to-cloud-canvas))
+- **Canvas layout** - Discourse nodes stay within bounds at browser zoom, the context overlay button no longer appears on blocks, and canvas viewport state is remembered when navigating back. ([ENG-2044](https://linear.app/discourse-graphs/issue/ENG-2044/fix-discourse-node-bounds-when-roam-loads-at-browser-zoom), [ENG-2060](https://linear.app/discourse-graphs/issue/ENG-2060/remove-discourse-context-overlay-button-from-blocks-on-canvas), [ENG-1950](https://linear.app/discourse-graphs/issue/ENG-1950/remember-zoomview-for-canvas-when-you-navigate-back-to-that-canvas))
+- **Discourse context panels** - The context panel no longer bleeds out of bounds, and the node title context now appears without needing overlay mode. ([ENG-2029](https://linear.app/discourse-graphs/issue/ENG-2029/discourse-context-bleeds-out-of-bounds-in-sidebar), [ENG-2030](https://linear.app/discourse-graphs/issue/ENG-2030/discourse-context-under-page-title-doesnt-show-up-unless-overlay-is-on))
+- **Sidebar navigation** - Clicking text for blocks that contain smartblocks now navigates correctly. ([ENG-1990](https://linear.app/discourse-graphs/issue/ENG-1990/left-sidebar-doesnt-let-you-navigate-to-a-block-containing-a))
+- **Sidebar opening** - New nodes now respect the “Disable sidebar open” setting. ([ENG-2032](https://linear.app/discourse-graphs/issue/ENG-2032/disable-sidebar-open-not-respected))
+- **Issue templates** - Creating a new issue node no longer inserts duplicate templates. ([ENG-2028](https://linear.app/discourse-graphs/issue/ENG-2028/prevent-duplicate-issue-templates-on-node-creation))
+- **Duplicate node alert** - The duplicate node alert feature has been removed from DG pages. ([ENG-1953](https://linear.app/discourse-graphs/issue/ENG-1953/remove-duplicate-node-alert-on-dg-pages))
+- **Relation handling** - A tldraw arrow can be converted into a DG relation, the Add Source arrow is gone, and reciprocal stored relations now update correctly. ([ENG-1477](https://linear.app/discourse-graphs/issue/ENG-1477/implement-ability-to-convert-a-tldraw-arrow-to-a-dg-relation), [ENG-1958](https://linear.app/discourse-graphs/issue/ENG-1958/remove-add-source-reference-arrow), [ENG-1711](https://linear.app/discourse-graphs/issue/ENG-1711/reciprocal-stored-relations-not-updating-after-being-added))
+- **Relations settings** - Source, Relation, and Destination columns in Roam relations settings are sortable. ([ENG-2132](https://linear.app/discourse-graphs/issue/ENG-2132/add-sortable-columns-to-roam-relations-settings))
+
 ## [0.21.0] - 2026-06-22
 
 ### Changed
