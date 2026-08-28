@@ -60,4 +60,4 @@ _Boo ..._
 ![plugin enabled](/docs/roam/template-lab-test02.png)
 _Yay!_
 
-N.B. while the template graph is updated regularly, once you export the graph your version is frozen -- check our [Slack channel](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg) for updates you can copy to your graph.
+N.B. The template graph is updated regularly, but once you export the graph, your version is frozen -- check our [Slack channel](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg) for updates you can copy to your graph.
