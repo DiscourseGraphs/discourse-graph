@@ -66,6 +66,7 @@ import {
   PERSONAL_KEYS,
   GLOBAL_KEYS,
 } from "~/components/settings/utils/settingKeys";
+import { createDeferredCanvasRenderer } from "~/utils/deferredCanvasRenderer";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -105,6 +106,7 @@ export const initObservers = ({
   };
   cleanups: Array<() => void>;
 } => {
+  const deferredCanvasRenderer = createDeferredCanvasRenderer();
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
@@ -148,9 +150,15 @@ export const initObservers = ({
       if (isQueryPage({ title, snapshot: settings })) {
         renderQueryPage(props);
       } else if (isCurrentPageCanvas({ title, h1, snapshot: settings })) {
-        renderTldrawCanvas(props);
+        deferredCanvasRenderer.schedule({
+          element: h1,
+          render: () => renderTldrawCanvas(props),
+        });
       } else if (isSidebarCanvas({ title, h1, snapshot: settings })) {
-        renderTldrawCanvasInSidebar(props);
+        deferredCanvasRenderer.schedule({
+          element: h1,
+          render: () => renderTldrawCanvasInSidebar(props),
+        });
       }
     },
   });
@@ -473,6 +481,11 @@ export const initObservers = ({
       discourseNodeSearchTriggerListener,
       nodeCreationPopoverListener,
     },
-    cleanups: [unsubGlobalTrigger, unsubPersonalTrigger, unsubSearchTrigger],
+    cleanups: [
+      unsubGlobalTrigger,
+      unsubPersonalTrigger,
+      unsubSearchTrigger,
+      deferredCanvasRenderer.cancelAll,
+    ],
   };
 };
