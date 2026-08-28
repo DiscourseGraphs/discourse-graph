@@ -255,9 +255,12 @@ const getAssociatedSpaces = async ({
   currentSpaceId?: number;
 }): Promise<SharedSpace[]> => {
   const associatedSpaceIds = new Set(
-    concepts
-      .flatMap((cpt) => cpt.concepts_of_relation.map((cr) => cr.space_id))
-      .filter((id) => id !== null),
+    [
+      ...concepts.map((cpt) => cpt.space_id),
+      ...concepts.flatMap((cpt) =>
+        cpt.concepts_of_relation.map((cr) => cr.space_id),
+      ),
+    ].filter((id) => id !== null),
   );
   if (currentSpace !== undefined) {
     currentSpaceId = currentSpace.id ?? currentSpaceId;
@@ -272,7 +275,7 @@ const getAssociatedSpaces = async ({
     const { data, error } = await client
       .from("my_spaces")
       .select(SPACE_COLUMNS)
-      .in("space_id", [...associatedSpaceIds]);
+      .in("id", [...associatedSpaceIds]);
     if (error) throw error;
     spaces.push(...data);
   }
