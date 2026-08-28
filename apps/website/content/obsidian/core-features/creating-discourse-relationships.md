@@ -27,6 +27,13 @@ To create a relationship between discourse nodes:
 6. Click "Confirm" to create the relationship
    ![relationship created](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FK8XAhCqrUL.png?alt=media&token=a559c477-c7f6-4b3e-8b00-ece7da5d4fec)
 
+## Relationships created automatically with a new node
+
+You do not always have to add relationships by hand. When you create a node from a note that is already a discourse node, the **Create discourse node** modal offers a **Relationship with “…”** dropdown, pre-filled with a relationship between the two node types. For example, creating an `EVD` node from inside a `SRC` note links the new evidence to that source on confirm.
+
+See [Relate a new node to the note you created it from](/docs/obsidian/core-features/creating-discourse-nodes#relate-a-new-node-to-the-note-you-created-it-from) for how the selector picks a relationship and how to opt out of it.
+
 ## Related
 
+- [Create discourse nodes](/docs/obsidian/core-features/creating-discourse-nodes)
 - [Learn how to explore your graph](/docs/obsidian/core-features/canvas)

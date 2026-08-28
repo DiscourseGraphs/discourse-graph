@@ -44,9 +44,10 @@ When you start from a selection, the plugin opens the **Create discourse node** 
 - **Search existing nodes**: In most create flows, typing shows matching existing
   nodes; selecting one inserts it instead of creating a new file.
   - The file explorer **Convert into** flow disables this search.
-- **Relationship with “…”** (optional): If you start from a note (selection, node
-  tag, or canvas), you may see a relationship selector to relate the created/selected
-  node to the current file.
+- **Relationship with “…”** (optional): If you start from a note that is itself a
+  discourse node (selection, node tag, or canvas), a relationship selector relates the
+  created or selected node to that note. See
+  [Relate a new node to the note you created it from](#relate-a-new-node-to-the-note-you-created-it-from).
 - **Insert backlink** (optional): In create mode, you can choose whether the plugin
   inserts a backlink in the current note when you confirm.
 
@@ -91,6 +92,24 @@ If you use [node tags](/docs/obsidian/core-features/node-tags), you can hover a 
 On a Discourse Graph canvas, creating a node opens the same modal, and then adds the node as a new canvas shape.
 
 More detailed instruction [here](/docs/obsidian/core-features/canvas#create-a-new-node)
+
+## Relate a new node to the note you created it from
+
+When you create a node from a note that is already a discourse node, the **Create discourse node** modal shows a **Relationship with “…”** dropdown naming the note you started from. The plugin pre-selects a relationship for you, so confirming the modal creates the node and the relationship in one step — you do not have to add the relation afterwards in the discourse context.
+
+For example, with the [base grammar](/docs/obsidian/fundamentals/base-grammar), Evidence is _derived from_ Source. If you select text inside a `SRC` note and turn it into an `EVD` node, the dropdown is pre-filled with the Source-to-Evidence relationship, and confirming links the new evidence node back to the source it came from.
+
+<!-- TODO: Add screenshot of the Create discourse node modal opened from a SRC note, showing the pre-filled "Relationship with ..." dropdown -->
+
+How the selector behaves:
+
+- The dropdown lists every relationship you have defined between the current note's node type and the type you are creating. Direction is handled for you, so the label reads from the current note's point of view.
+- The first available relationship is pre-selected. If more than one applies, pick the one you want from the dropdown.
+- Choose **No relation** to create the node without linking it.
+- The same relationship is applied when you use the modal's search to pick an existing node instead of creating a new one.
+- The dropdown does not appear if the current note is not a discourse node, or if no relationship type connects the two node types. Relationships from an imported schema you have not accepted yet are not offered.
+
+The new relationship shows up in the [discourse context](/docs/obsidian/core-features/discourse-context) of both notes, and on the [canvas](/docs/obsidian/core-features/canvas).
 
 ## Node templates
 
