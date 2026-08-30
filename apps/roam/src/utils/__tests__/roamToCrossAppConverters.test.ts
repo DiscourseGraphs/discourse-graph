@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Json } from "@repo/database/dbTypes";
+import { contentTypes } from "@repo/content-model";
 
 vi.mock("roamjs-components/queries/getFullTreeByParentUid", () => ({
   default: () => ({ children: [] }),
@@ -10,9 +11,11 @@ vi.mock("roamjs-components/queries/getPageViewType", () => ({
 vi.mock("~/utils/pageToMarkdown", () => ({ toMarkdown: () => "" }));
 
 import {
+  buildCanonicalRoamDocument,
   nodeSchemaToCrossApp,
   nodeUidsWithTypeToCrossApp,
 } from "~/utils/roamToCrossAppConverters";
+import { convertRoamNodeToFullContent } from "~/utils/convertRoamNodeToFullContent";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 
 const USER_ROW = { ":db/id": 5, ":user/uid": "user-1" };
@@ -107,5 +110,43 @@ describe("nodeSchemaToCrossApp timestamps", () => {
 
   it("is null without an author, rather than a concept that cannot be inserted", () => {
     expect(convertSchemaPull({ ":create/time": 1000 })).toBeNull();
+  });
+});
+
+describe("canonical Roam content", () => {
+  it("builds a versioned document from the native tree", () => {
+    const document = buildCanonicalRoamDocument({
+      uid: "node-1",
+      title: "Example",
+    });
+    expect(document).toMatchObject({
+      version: 1,
+      title: { text: "Example" },
+      body: { text: "" },
+    });
+  });
+
+  it("writes native full content beside canonical ATJSON", () => {
+    const rows = convertRoamNodeToFullContent({
+      nodes: [
+        {
+          author_local_id: "user-1",
+          source_local_id: "node-1",
+          created: 1000,
+          last_modified: 2000,
+          text: "Example",
+          node_type_id: "schema-1",
+        },
+      ],
+    });
+    expect(rows.map((row) => row.content_type)).toEqual([
+      contentTypes.roamMarkdown,
+      contentTypes.discourseGraphAtJson,
+    ]);
+    expect(rows[1]).toMatchObject({
+      text: "Example",
+      metadata: { content: { version: 1 } },
+      original: false,
+    });
   });
 });

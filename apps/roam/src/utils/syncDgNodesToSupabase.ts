@@ -18,7 +18,10 @@ import {
   orderConceptsByDependency,
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
-import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
+import {
+  convertRoamNodeToLocalContent,
+  convertRoamNodesToCanonicalContent,
+} from "./upsertNodesAsContentWithEmbeddings";
 import {
   convertRoamNodeToFullContent,
   type RoamFullContentNode,
@@ -616,10 +619,16 @@ const upsertNodeSchemaToContent = async ({
   const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
     nodes: result,
   });
+  const canonicalContentData = convertRoamNodesToCanonicalContent({
+    nodes: result,
+  });
   await upsertContentThroughApi({
     client: supabaseClient,
     spaceId,
-    request: { content: contentData, contentAsDocument: true },
+    request: {
+      content: [...contentData, ...canonicalContentData],
+      contentAsDocument: true,
+    },
   });
 };
 
@@ -756,7 +765,10 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   }
 
   await uploadContentBatches({
-    content: nodesWithEmbeddings,
+    content: [
+      ...nodesWithEmbeddings,
+      ...convertRoamNodesToCanonicalContent({ nodes: roamNodes }),
+    ],
     supabaseClient,
     context,
   });
@@ -771,7 +783,14 @@ const upsertNodesToSupabaseAsContent = async (
     return;
   }
   const content = convertRoamNodeToLocalContent({ nodes: roamNodes });
-  await uploadContentBatches({ content, supabaseClient, context });
+  const canonicalContent = convertRoamNodesToCanonicalContent({
+    nodes: roamNodes,
+  });
+  await uploadContentBatches({
+    content: [...content, ...canonicalContent],
+    supabaseClient,
+    context,
+  });
 };
 
 const upsertRoamNodesToSupabaseAsFullContent = async ({

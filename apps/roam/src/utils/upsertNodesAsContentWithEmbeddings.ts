@@ -4,6 +4,8 @@ import { nextApiRoot } from "@repo/utils/execContext";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { LocalContentDataInput } from "@repo/database/inputTypes";
 import { upsertContentThroughApi } from "@repo/database/lib/contentApiClient";
+import { contentTypes, dgDocumentToPlainText } from "@repo/content-model";
+import { buildCanonicalRoamDocument } from "./roamToCrossAppConverters";
 
 const EMBEDDING_BATCH_SIZE = 200;
 const EMBEDDING_MODEL = "openai_text_embedding_3_small_1536";
@@ -36,6 +38,42 @@ export const convertRoamNodeToLocalContent = ({
     };
   });
 };
+
+export const convertRoamNodesToCanonicalContent = ({
+  nodes,
+}: {
+  nodes: RoamDiscourseNodeData[];
+}): LocalContentDataInput[] =>
+  nodes.flatMap((node) => {
+    try {
+      const document = buildCanonicalRoamDocument({
+        uid: node.source_local_id,
+        title: node.node_title ?? node.text,
+      });
+      return [
+        {
+          author_local_id: node.author_local_id,
+          source_local_id: node.source_local_id,
+          created: new Date(node.created || Date.now()).toISOString(),
+          last_modified: new Date(
+            node.last_modified || Date.now(),
+          ).toISOString(),
+          text: dgDocumentToPlainText({ document }),
+          variant: "full",
+          content_type: contentTypes.discourseGraphAtJson,
+          scale: "document",
+          metadata: { content: document },
+          original: false,
+        },
+      ];
+    } catch (error) {
+      console.error(
+        `Failed to build canonical Roam content for ${node.source_local_id}:`,
+        error,
+      );
+      return [];
+    }
+  });
 
 export const fetchEmbeddingsForNodes = async (
   nodes: LocalContentDataInput[],
@@ -135,6 +173,9 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   const localContentNodes = convertRoamNodeToLocalContent({
     nodes: roamNodes,
   });
+  const canonicalContentNodes = convertRoamNodesToCanonicalContent({
+    nodes: roamNodes,
+  });
 
   let nodesWithEmbeddings: LocalContentDataInput[];
   try {
@@ -165,7 +206,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   };
 
   await uploadBatches(
-    chunk(nodesWithEmbeddings, batchSize),
+    chunk([...nodesWithEmbeddings, ...canonicalContentNodes], batchSize),
     supabaseClient,
     context,
   );
