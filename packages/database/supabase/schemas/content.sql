@@ -677,7 +677,7 @@ BEGIN
         part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id),
         original = db_content.original
     RETURNING id INTO STRICT upsert_id;
-    IF model(embedding_inline(local_content)) IS NOT NULL THEN
+    IF content_type(local_content) = 'text/plain' AND model(embedding_inline(local_content)) IS NOT NULL THEN
         PERFORM public.upsert_content_embedding(upsert_id, model(embedding_inline(local_content)),  vector(embedding_inline(local_content)));
     END IF;
     RETURN NEXT upsert_id;

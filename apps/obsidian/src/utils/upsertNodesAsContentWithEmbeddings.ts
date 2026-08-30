@@ -122,6 +122,9 @@ export const convertObsidianNodeToLocalContent = async ({
 export const fetchEmbeddingsForNodes = async (
   nodes: LocalContentDataInput[],
 ): Promise<LocalContentDataInput[]> => {
+  if (nodes.some((node) => node.content_type !== contentTypes.plainText)) {
+    throw new Error("Embeddings may only be requested for text/plain content.");
+  }
   const allEmbeddings: number[][] = [];
   const allNodesTexts = nodes.map((node) => node.text || "");
 

@@ -33,8 +33,8 @@ export const convertRoamNodeToLocalContent = ({
       last_modified: new Date(node.last_modified || Date.now()).toISOString(),
       text: text,
       variant: variant,
+      content_type: contentTypes.plainText,
       scale: "document",
-      // use the default text/plain content type
     };
   });
 };
@@ -78,6 +78,9 @@ export const convertRoamNodesToCanonicalContent = ({
 export const fetchEmbeddingsForNodes = async (
   nodes: LocalContentDataInput[],
 ): Promise<LocalContentDataInput[]> => {
+  if (nodes.some((node) => node.content_type !== contentTypes.plainText)) {
+    throw new Error("Embeddings may only be requested for text/plain content.");
+  }
   const allEmbeddings: number[][] = [];
   const allNodesTexts = nodes.map((node) => node.text || "");
 

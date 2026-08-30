@@ -10,6 +10,7 @@ import {
 import { LocalContentDataInput, LocalConceptDataInput } from "../inputTypes";
 import { ridToSpaceUriAndLocalId } from "./rid";
 import { Enums, CompositeTypes } from "../dbTypes";
+import { contentTypes } from "@repo/content-model";
 
 type InlineEmbeddingInput = CompositeTypes<"inline_embedding_input">;
 
@@ -37,16 +38,20 @@ const inlineCrossAppContentToDbContent = (
   variant: Enums<"ContentVariant">,
 ): LocalContentDataInput | undefined => {
   if (content === undefined) return undefined;
+  const contentType = content.contentType ?? contentTypes.plainText;
   return filterUndefined<LocalContentDataInput>({
     source_local_id: content.localId,
     text: content.value,
     scale: content.scale || "document",
-    content_type: content.contentType || "text/plain",
+    content_type: contentType,
     variant,
     created: content.createdAt?.toISOString(),
     last_modified: content.modifiedAt?.toISOString(),
     author_local_id: content.authorId,
-    embedding_inline: crossAppEmbeddingToDbEmbedding(content.embedding),
+    embedding_inline:
+      contentType === contentTypes.plainText
+        ? crossAppEmbeddingToDbEmbedding(content.embedding)
+        : undefined,
   });
 };
 
