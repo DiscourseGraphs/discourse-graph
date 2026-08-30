@@ -1,6 +1,7 @@
 import {
   CrossAppEmbedding,
   InlineCrossAppContent,
+  StandaloneCrossAppContent,
   CrossAppNode,
   CrossAppNodeSchema,
   CrossAppRelationTypeSchema,
@@ -11,6 +12,7 @@ import { LocalContentDataInput, LocalConceptDataInput } from "../inputTypes";
 import { ridToSpaceUriAndLocalId } from "./rid";
 import { Enums, CompositeTypes } from "../dbTypes";
 
+type ContentDataInput = CompositeTypes<"content_local_input">;
 type InlineEmbeddingInput = CompositeTypes<"inline_embedding_input">;
 
 const crossAppEmbeddingToDbEmbedding = (
@@ -48,6 +50,38 @@ const inlineCrossAppContentToDbContent = (
     author_local_id: content.authorId,
     embedding_inline: crossAppEmbeddingToDbEmbedding(content.embedding),
   });
+};
+
+export const crossAppStandaloneContentToDbContent = (
+  content: StandaloneCrossAppContent | undefined,
+  spaceId: number,
+): ContentDataInput | undefined => {
+  if (content === undefined) return undefined;
+  return {
+    source_local_id: content.localId,
+    author_local_id: content.authorId,
+    text: content.value,
+    scale: content.scale || "document",
+    content_type: content.contentType || "text/plain",
+    variant: content.variant,
+    created: content.createdAt.toISOString(),
+    last_modified: (content.modifiedAt || content.createdAt).toISOString(),
+    embedding_inline: crossAppEmbeddingToDbEmbedding(content.embedding) || null,
+    space_id: spaceId,
+    // provide other explicit null values for type completion
+    space_url: null,
+    author_inline: null,
+    author_id: null,
+    document_id: null,
+    creator_id: null,
+    creator_local_id: null,
+    creator_inline: null,
+    document_local_id: null,
+    document_inline: null,
+    part_of_id: null,
+    part_of_local_id: null,
+    metadata: null,
+  };
 };
 
 export const crossAppNodeToDbContent = (
