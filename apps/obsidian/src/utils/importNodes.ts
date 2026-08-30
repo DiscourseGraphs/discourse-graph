@@ -1,4 +1,3 @@
-import type { Json } from "@repo/database/dbTypes";
 import matter from "gray-matter";
 import { App, Notice, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
@@ -23,6 +22,11 @@ import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 import { getNodeTypeById } from "./typeUtils";
 import { decorateTitle } from "@repo/database/lib/decorateTitle";
+import { resolveContentThroughApi } from "@repo/database/lib/contentApiClient";
+import type {
+  ContentRepresentation,
+  ResolvedContent,
+} from "@repo/database/contentApi";
 
 type PublishedNode = {
   source_local_id: string;
@@ -185,6 +189,29 @@ export const fetchUserNames = async (
   await plugin.saveSettings();
 };
 
+const resolveNativeContent = async ({
+  client,
+  spaceId,
+  sourceLocalId,
+  representations,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  sourceLocalId: string;
+  representations: ContentRepresentation[];
+}): Promise<ResolvedContent[]> => {
+  try {
+    return await resolveContentThroughApi({
+      client,
+      spaceId,
+      request: { sourceLocalIds: [sourceLocalId], representations },
+    });
+  } catch (error) {
+    console.error("Error resolving native node content:", error);
+    return [];
+  }
+};
+
 export const fetchNodeContent = async ({
   client,
   spaceId,
@@ -196,23 +223,20 @@ export const fetchNodeContent = async ({
   nodeInstanceId: string;
   variant: "direct" | "full";
 }): Promise<string | null> => {
-  const { data, error } = await client
-    .from("my_contents")
-    .select("text")
-    .eq("source_local_id", nodeInstanceId)
-    .eq("space_id", spaceId)
-    .eq("variant", variant)
-    .maybeSingle();
-
-  if (error || !data || data.text == null) {
-    console.error(
-      `Error fetching node content (${variant}):`,
-      error || "No data",
-    );
+  const contentType =
+    variant === "direct" ? "text/plain" : "text/obsidian+markdown";
+  const rows = await resolveNativeContent({
+    client,
+    spaceId,
+    sourceLocalId: nodeInstanceId,
+    representations: [{ variant, contentType }],
+  });
+  const row = rows[0];
+  if (row?.text == null) {
+    console.error(`No native node content found (${variant}).`);
     return null;
   }
-
-  return data.text;
+  return row.text;
 };
 
 export const fetchNodeContentWithMetadata = async ({
@@ -230,27 +254,25 @@ export const fetchNodeContentWithMetadata = async ({
   createdAt: number;
   modifiedAt: number;
 } | null> => {
-  const { data, error } = await client
-    .from("my_contents")
-    .select("text, created, last_modified")
-    .eq("source_local_id", nodeInstanceId)
-    .eq("space_id", spaceId)
-    .eq("variant", variant)
-    .maybeSingle();
-
-  if (error || !data || data.text == null) {
-    console.error(
-      `Error fetching node content with metadata (${variant}):`,
-      error || "No data",
-    );
+  const contentType =
+    variant === "direct" ? "text/plain" : "text/obsidian+markdown";
+  const rows = await resolveNativeContent({
+    client,
+    spaceId,
+    sourceLocalId: nodeInstanceId,
+    representations: [{ variant, contentType }],
+  });
+  const row = rows[0];
+  if (row?.text == null) {
+    console.error(`No native node content with metadata found (${variant}).`);
     return null;
   }
 
   return {
-    content: data.text,
-    createdAt: data.created ? new Date(data.created + "Z").valueOf() : 0,
-    modifiedAt: data.last_modified
-      ? new Date(data.last_modified + "Z").valueOf()
+    content: row.text,
+    createdAt: row.created ? new Date(row.created + "Z").valueOf() : 0,
+    modifiedAt: row.lastModified
+      ? new Date(row.lastModified + "Z").valueOf()
       : 0,
   };
 };
@@ -275,35 +297,24 @@ const fetchNodeContentForImport = async ({
   authorId: number;
   filePath?: string;
 } | null> => {
-  const { data, error } = await client
-    .from("my_contents")
-    .select("text, created, last_modified, variant, metadata, author_id")
-    .eq("source_local_id", nodeInstanceId)
-    .eq("space_id", spaceId)
-    .in("variant", ["direct", "full"]);
-
-  if (error) {
-    console.error("Error fetching node content for import:", error);
-    return null;
-  }
-
-  const rows = (data ?? []) as Array<{
-    text: string | null;
-    created: string | null;
-    last_modified: string | null;
-    author_id: number | null;
-    variant: string | null;
-    metadata: Json;
-  }>;
+  const rows = await resolveNativeContent({
+    client,
+    spaceId,
+    sourceLocalId: nodeInstanceId,
+    representations: [
+      { variant: "direct", contentType: "text/plain" },
+      { variant: "full", contentType: "text/obsidian+markdown" },
+    ],
+  });
   const direct = rows.find((r) => r.variant === "direct");
   const full = rows.find((r) => r.variant === "full");
-  const authorId = full?.author_id ?? direct?.author_id ?? null;
+  const authorId = full?.authorId ?? direct?.authorId ?? null;
 
   if (
     !direct?.text ||
     !full?.text ||
     full.created === null ||
-    full.last_modified === null ||
+    full.lastModified === null ||
     authorId === null
   ) {
     return null;
@@ -311,14 +322,16 @@ const fetchNodeContentForImport = async ({
 
   const filePath: string | undefined =
     typeof direct.metadata === "object" &&
-    typeof (direct.metadata as Record<string, any>).filePath === "string"
-      ? (direct.metadata as Record<string, any>).filePath
+    direct.metadata !== null &&
+    !Array.isArray(direct.metadata) &&
+    typeof direct.metadata.filePath === "string"
+      ? direct.metadata.filePath
       : undefined;
   return {
     fileName: direct.text,
     content: full.text,
     createdAt: new Date(full.created + "Z").valueOf(),
-    modifiedAt: new Date(full.last_modified + "Z").valueOf(),
+    modifiedAt: new Date(full.lastModified + "Z").valueOf(),
     filePath,
     authorId,
   };

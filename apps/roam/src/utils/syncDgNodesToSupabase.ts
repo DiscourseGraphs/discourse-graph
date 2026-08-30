@@ -36,6 +36,7 @@ import type {
   LocalContentDataInput,
   LocalAccountDataInput,
 } from "@repo/database/inputTypes";
+import { upsertContentThroughApi } from "@repo/database/lib/contentApiClient";
 import type { Properties } from "posthog-js";
 
 const SYNC_FUNCTION = "embedding";
@@ -275,7 +276,7 @@ const upsertConceptBatches = async ({
   const batches = chunk(concepts, CONCEPT_BATCH_SIZE);
 
   for (let idx = 0; idx < batches.length; idx++) {
-    const batch = batches[idx];
+    const batch = batches[idx]!;
 
     const { data, error } = await supabaseClient.rpc("upsert_concepts", {
       data: batch as Json,
@@ -584,12 +585,10 @@ export const proposeSyncTask = async ({
 const upsertNodeSchemaToContent = async ({
   nodeTypesUids,
   spaceId,
-  userId,
   supabaseClient,
 }: {
   nodeTypesUids: string[];
   spaceId: number;
-  userId: number;
   supabaseClient: DGSupabaseClient;
 }) => {
   const query = `[
@@ -617,16 +616,11 @@ const upsertNodeSchemaToContent = async ({
   const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
     nodes: result,
   });
-  const { error } = await supabaseClient.rpc("upsert_content", {
-    data: contentData as Json,
-    v_space_id: spaceId,
-    v_creator_id: userId,
-    content_as_document: true,
+  await upsertContentThroughApi({
+    client: supabaseClient,
+    spaceId,
+    request: { content: contentData, contentAsDocument: true },
   });
-  if (error) {
-    console.error("upsert_content failed:", error);
-    throw new Error(error.message);
-  }
 };
 
 export const convertDgToSupabaseConcepts = async ({
@@ -659,7 +653,6 @@ export const convertDgToSupabaseConcepts = async ({
   await upsertNodeSchemaToContent({
     nodeTypesUids: nodeTypes.map((node) => node.type),
     spaceId: context.spaceId,
-    userId: context.userId,
     supabaseClient,
   });
 
@@ -714,14 +707,13 @@ const uploadContentBatches = async ({
   for (let idx = 0; idx < batches.length; idx++) {
     const batch = batches[idx];
 
-    const { error } = await supabaseClient.rpc("upsert_content", {
-      data: batch as Json,
-      v_space_id: context.spaceId,
-      v_creator_id: context.userId,
-      content_as_document: true,
-    });
-
-    if (error) {
+    try {
+      await upsertContentThroughApi({
+        client: supabaseClient,
+        spaceId: context.spaceId,
+        request: { content: batch, contentAsDocument: true },
+      });
+    } catch (error) {
       throw new Error(`upsert_content failed for batch ${idx + 1}`, {
         cause: error,
       });

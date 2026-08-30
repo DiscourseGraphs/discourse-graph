@@ -1,11 +1,11 @@
 import { nextApiRoot } from "@repo/utils/execContext";
 import { DGSupabaseClient } from "@repo/database/lib/client";
-import { Json, CompositeTypes } from "@repo/database/dbTypes";
+import { Json } from "@repo/database/dbTypes";
+import { upsertContentThroughApi } from "@repo/database/lib/contentApiClient";
+import type { LocalContentDataInput } from "@repo/database/inputTypes";
 import { SupabaseContext } from "./supabaseContext";
 import { ObsidianDiscourseNodeData, ChangeType } from "./syncDgNodesToSupabase";
 import { default as DiscourseGraphPlugin } from "~/index";
-
-type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
 
 type ContentVariant = "direct" | "full";
 
@@ -164,18 +164,17 @@ const uploadBatches = async (
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
 ): Promise<void> => {
-  const { spaceId, userId } = context;
+  const { spaceId } = context;
   for (let idx = 0; idx < batches.length; idx++) {
-    const batch = batches[idx];
-    const { error } = await supabaseClient.rpc("upsert_content", {
-      data: batch as unknown as Json,
-      v_space_id: spaceId,
-      v_creator_id: userId,
-      content_as_document: true,
-    });
-
-    if (error) {
-      console.error(`upsert_content failed for batch ${idx + 1}:`, error);
+    const batch = batches[idx]!;
+    try {
+      await upsertContentThroughApi({
+        client: supabaseClient,
+        spaceId,
+        request: { content: batch, contentAsDocument: true },
+      });
+    } catch (error) {
+      console.error(`Content API upsert failed for batch ${idx + 1}:`, error);
       throw error;
     }
   }
