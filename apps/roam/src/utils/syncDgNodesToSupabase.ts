@@ -41,6 +41,7 @@ import type {
 } from "@repo/database/inputTypes";
 import { upsertContentThroughApi } from "@repo/database/lib/contentApiClient";
 import type { Properties } from "posthog-js";
+import { contentTypes } from "@repo/content-model";
 
 const SYNC_FUNCTION = "embedding";
 const SHARED_CONTENT_SYNC_FUNCTION = "shared-content";
@@ -893,6 +894,7 @@ const getAllMissingOrNewDiscourseNodes = async ({
       .from("my_contents")
       .select("source_local_id")
       .eq("space_id", spaceId)
+      .eq("content_type", contentTypes.plainText)
       .order("id"),
     1000,
   );
@@ -980,6 +982,7 @@ const getSharedSourceLocalIdsMissingFullContent = async ({
       .select("source_local_id")
       .eq("space_id", spaceId)
       .eq("variant", "full")
+      .eq("content_type", contentTypes.roamMarkdown)
       .order("source_local_id"),
     1000,
   );

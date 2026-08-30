@@ -22,6 +22,7 @@ import { intersection, difference } from "@repo/utils/setOperations";
 import type { DiscourseNodeInVault } from "./getDiscourseNodes";
 import type { SupabaseContext } from "./supabaseContext";
 import type { TablesInsert } from "@repo/database/dbTypes";
+import { contentTypes } from "@repo/content-model";
 
 export const getPublishedToGroups = (
   frontmatter: FrontMatterCache | Record<string, unknown>,
@@ -428,6 +429,7 @@ export const publishNodeToGroup = async ({
     .eq("source_local_id", nodeId)
     .eq("space_id", spaceId)
     .eq("variant", "full")
+    .eq("content_type", contentTypes.markdown)
     .maybeSingle();
   if (idResponse.error || !idResponse.data) {
     throw idResponse.error || new Error("no data while fetching node");

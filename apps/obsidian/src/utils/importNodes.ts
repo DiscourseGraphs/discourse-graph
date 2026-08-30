@@ -27,6 +27,7 @@ import type {
   ContentRepresentation,
   ResolvedContent,
 } from "@repo/database/contentApi";
+import { contentTypes } from "@repo/content-model";
 
 type PublishedNode = {
   source_local_id: string;
@@ -224,7 +225,7 @@ export const fetchNodeContent = async ({
   variant: "direct" | "full";
 }): Promise<string | null> => {
   const contentType =
-    variant === "direct" ? "text/plain" : "text/obsidian+markdown";
+    variant === "direct" ? contentTypes.plainText : contentTypes.markdown;
   const rows = await resolveNativeContent({
     client,
     spaceId,
@@ -255,7 +256,7 @@ export const fetchNodeContentWithMetadata = async ({
   modifiedAt: number;
 } | null> => {
   const contentType =
-    variant === "direct" ? "text/plain" : "text/obsidian+markdown";
+    variant === "direct" ? contentTypes.plainText : contentTypes.markdown;
   const rows = await resolveNativeContent({
     client,
     spaceId,
@@ -302,8 +303,8 @@ const fetchNodeContentForImport = async ({
     spaceId,
     sourceLocalId: nodeInstanceId,
     representations: [
-      { variant: "direct", contentType: "text/plain" },
-      { variant: "full", contentType: "text/obsidian+markdown" },
+      { variant: "direct", contentType: contentTypes.plainText },
+      { variant: "full", contentType: contentTypes.markdown },
     ],
   });
   const direct = rows.find((r) => r.variant === "direct");
@@ -444,6 +445,7 @@ export const getSourceContentDates = async ({
     .eq("source_local_id", nodeInstanceId)
     .eq("space_id", spaceId)
     .eq("variant", "direct")
+    .eq("content_type", contentTypes.plainText)
     .maybeSingle();
   if (error || !data) return null;
   return {
@@ -1568,6 +1570,7 @@ export const refreshImportedFile = async ({
     .eq("space_id", spaceId)
     .eq("source_local_id", frontmatter.nodeInstanceId)
     .eq("variant", "direct")
+    .eq("content_type", contentTypes.plainText)
     .maybeSingle();
   const metadata = metadataResp.data?.metadata;
   const filePath: string | undefined =

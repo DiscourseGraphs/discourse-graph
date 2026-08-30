@@ -133,20 +133,21 @@ const fetchFullMarkdown = async ({
   client: DGSupabaseClient;
   sharedNode: SharedNode;
 }): Promise<{ markdown: string } | { error: string }> => {
+  const expectedContentType =
+    sharedNode.platform === "Roam"
+      ? contentTypes.roamMarkdown
+      : contentTypes.markdown;
   const { data, error } = await client
     .from("my_contents")
     .select("text, content_type")
     .eq("space_id", sharedNode.spaceId)
     .eq("source_local_id", sharedNode.sourceLocalId)
     .eq("variant", "full")
+    .eq("content_type", expectedContentType)
     .eq("original", true)
     .maybeSingle();
   if (error) return { error: error.message };
   if (!data?.text) return { markdown: "" };
-  const expectedContentType =
-    sharedNode.platform === "Roam"
-      ? contentTypes.roamMarkdown
-      : contentTypes.obsidianMarkdown;
   if (data.content_type !== expectedContentType)
     return {
       error: `Unsupported full content type "${data.content_type}" — expected "${expectedContentType}"`,
