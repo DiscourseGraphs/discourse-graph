@@ -12,6 +12,7 @@
     },
     "./dbTypes": "./src/dbTypes.ts",
     "./inputTypes": "./src/inputTypes.ts",
+    "./contentApi": "./src/contentApi.ts",
     "./crossAppContracts": "./src/crossAppContracts.ts"
   },
   "typesVersions": {

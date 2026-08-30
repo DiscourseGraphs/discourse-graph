@@ -451,6 +451,9 @@ importers:
 
   apps/website:
     dependencies:
+      '@repo/content-model':
+        specifier: workspace:*
+        version: link:../../packages/content-model
       '@repo/database':
         specifier: workspace:*
         version: link:../../packages/database

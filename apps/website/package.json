@@ -16,6 +16,7 @@
     "test:integration:nodb": "vitest run --config vitest.integration.config.ts --tags-filter '!database'"
   },
   "dependencies": {
+    "@repo/content-model": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/ui": "workspace:*",
     "@supabase/ssr": "catalog:",
