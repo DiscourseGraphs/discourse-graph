@@ -3,6 +3,11 @@ import { DGSupabaseClient } from "@repo/database/lib/client";
 import { Json } from "@repo/database/dbTypes";
 import { upsertContentThroughApi } from "@repo/database/lib/contentApiClient";
 import type { LocalContentDataInput } from "@repo/database/inputTypes";
+import {
+  contentTypes,
+  dgDocumentToPlainText,
+  obsidianMarkdownToDgDocument,
+} from "@repo/content-model";
 import { SupabaseContext } from "./supabaseContext";
 import { ObsidianDiscourseNodeData, ChangeType } from "./syncDgNodesToSupabase";
 import { default as DiscourseGraphPlugin } from "~/index";
@@ -72,12 +77,24 @@ const createNodeContentEntries = async (
   if (variantsToCreate.includes("full")) {
     try {
       const fullContent = await plugin.app.vault.read(node.file);
+      const document = obsidianMarkdownToDgDocument({
+        title: node.file.basename,
+        markdown: fullContent,
+      });
       entries.push({
         ...baseEntry,
         text: fullContent,
         variant: "full",
-        content_type: "text/obsidian+markdown",
+        content_type: contentTypes.markdown,
         metadata: node.frontmatter as Json,
+      });
+      entries.push({
+        ...baseEntry,
+        text: dgDocumentToPlainText({ document }),
+        variant: "full",
+        content_type: contentTypes.discourseGraphAtJson,
+        metadata: { content: document as unknown as Json },
+        original: false,
       });
     } catch (error) {
       console.error(`Error reading file content for ${node.file.path}:`, error);

@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@codemirror/view": "^6.38.8",
+    "@repo/content-model": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/utils": "workspace:*",
     "@supabase/supabase-js": "catalog:",

@@ -124,6 +124,9 @@ importers:
       '@codemirror/view':
         specifier: ^6.38.8
         version: 6.38.8
+      '@repo/content-model':
+        specifier: workspace:*
+        version: link:../../packages/content-model
       '@repo/database':
         specifier: workspace:*
         version: link:../../packages/database

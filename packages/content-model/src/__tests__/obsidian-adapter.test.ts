@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   dgDocumentToObsidianMarkdown,
+  dgDocumentToPlainText,
   obsidianMarkdownToDgDocument,
   type DgBlockAnnotation,
   type DgReferenceAnnotation,
@@ -76,12 +77,11 @@ describe("Obsidian adapter", () => {
   });
 
   it("renders the covered structures back to compatible Markdown", () => {
-    const rendered = dgDocumentToObsidianMarkdown({
-      document: obsidianMarkdownToDgDocument({
-        title: "Example",
-        markdown: fixture,
-      }),
+    const document = obsidianMarkdownToDgDocument({
+      title: "Example",
+      markdown: fixture,
     });
+    const rendered = dgDocumentToObsidianMarkdown({ document });
 
     expect(rendered).toContain("# Example");
     expect(rendered).toContain("**bold**");
@@ -90,5 +90,9 @@ describe("Obsidian adapter", () => {
     expect(rendered).toContain("![[diagram.png|a diagram]]");
     expect(rendered).toContain("  1. Nested item with `inline code`");
     expect(rendered).toContain("```ts\nconst answer = 42;\n```");
+    expect(dgDocumentToPlainText({ document })).toContain(
+      "Example\n\nParagraph with bold, a link, and a page.",
+    );
+    expect(dgDocumentToPlainText({ document })).not.toContain("[[");
   });
 });
