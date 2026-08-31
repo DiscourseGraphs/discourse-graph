@@ -16,8 +16,12 @@ export const isDiscourseNodeShape = (
   }
 };
 
+// Creation-facing list: provisional imported relation schemas are excluded so
+// they cannot be used to create new relations on the canvas.
 export const getAllRelations = () =>
-  Object.values(discourseContext.relations).flat();
+  Object.values(discourseContext.relations)
+    .flat()
+    .filter((r) => !discourseContext.provisionalRelationIds.has(r.id));
 
 export const checkConnectionType = (
   relation: { source: string; destination: string },

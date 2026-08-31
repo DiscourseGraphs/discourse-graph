@@ -21,6 +21,7 @@ import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
+import { excludeProvisionalRelationSchemas } from "~/utils/relationSchemaAcceptance";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import { type RelationDetails } from "~/utils/hyde";
@@ -232,7 +233,10 @@ const SuggestionsBody = ({
     () => findDiscourseNode({ uid: tagUid }),
     [tagUid],
   );
-  const allRelations = useMemo(() => getDiscourseRelations(), []);
+  const allRelations = useMemo(
+    () => excludeProvisionalRelationSchemas(getDiscourseRelations()),
+    [],
+  );
   const allNodes = useMemo(() => getDiscourseNodes(), []);
 
   const validRelations = useMemo(() => {
