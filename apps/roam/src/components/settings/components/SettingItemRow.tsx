@@ -2,8 +2,13 @@ import React, { useId } from "react";
 import { Icon, type IconName, Position, Tooltip } from "@blueprintjs/core";
 import { settingAnchor } from "~/components/settings/utils/settingAnchor";
 
-/** Who a setting applies to. Populating these is ENG-2187; the row only renders them. */
-export type SettingScope = "personal" | "global" | "nodeType";
+/**
+ * Who a setting applies to. Two values only, matching the agreed badge model:
+ * a setting either affects just you or everyone in the graph. Per-node settings
+ * are `global` — they are stored on the node type's own page, so the whole graph
+ * sees them.
+ */
+export type SettingScope = "personal" | "global";
 
 const SCOPE_INDICATORS = {
   personal: {
@@ -13,10 +18,6 @@ const SCOPE_INDICATORS = {
   global: {
     icon: "globe",
     tooltip: "Graph-wide — applies to everyone in this graph",
-  },
-  nodeType: {
-    icon: "diagram-tree",
-    tooltip: "Node type — applies to every node of this type",
   },
 } as const satisfies Record<SettingScope, { icon: IconName; tooltip: string }>;
 
