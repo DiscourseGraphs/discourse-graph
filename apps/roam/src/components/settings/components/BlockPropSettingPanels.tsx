@@ -6,17 +6,17 @@ import React, {
   useEffect,
 } from "react";
 import {
-  Checkbox,
   InputGroup,
-  Label,
   NumericInput,
   HTMLSelect,
   Button,
+  Switch,
   Tag,
   TextArea,
 } from "@blueprintjs/core";
-import Description from "~/components/settings/SettingsDescription";
-import { settingAnchor } from "~/components/settings/utils/settingAnchor";
+import SettingItemRow, {
+  type SettingScope,
+} from "~/components/settings/components/SettingItemRow";
 import getFirstChildUidByBlockUid from "roamjs-components/queries/getFirstChildUidByBlockUid";
 import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
@@ -54,6 +54,11 @@ type FlagSetter = (keys: string[], value: boolean) => void;
 type NumberSetter = (keys: string[], value: number) => void;
 
 type MultiTextSetter = (keys: string[], value: string[]) => void;
+
+type RowPresentationProps = {
+  scope?: SettingScope;
+};
+
 type BaseTextPanelProps = {
   title: string;
   description: React.ReactNode;
@@ -65,7 +70,8 @@ type BaseTextPanelProps = {
   error?: string;
   disabled?: boolean;
   onChange?: (value: string) => void;
-} & RoamBlockSyncProps;
+} & RoamBlockSyncProps &
+  RowPresentationProps;
 
 type BaseFlagPanelProps = {
   title: string;
@@ -77,7 +83,8 @@ type BaseFlagPanelProps = {
   disabled?: boolean;
   onBeforeChange?: (checked: boolean) => Promise<boolean>;
   onChange?: (checked: boolean) => void;
-} & RoamBlockSyncProps;
+} & RoamBlockSyncProps &
+  RowPresentationProps;
 
 type BaseNumberPanelProps = {
   title: string;
@@ -88,7 +95,8 @@ type BaseNumberPanelProps = {
   min?: number;
   max?: number;
   onChange?: (value: number) => void;
-} & RoamBlockSyncProps;
+} & RoamBlockSyncProps &
+  RowPresentationProps;
 
 type BaseSelectPanelProps = {
   title: string;
@@ -97,7 +105,8 @@ type BaseSelectPanelProps = {
   setter: TextSetter;
   options: string[];
   initialValue: string;
-} & RoamBlockSyncProps;
+} & RoamBlockSyncProps &
+  RowPresentationProps;
 
 type BaseMultiTextPanelProps = {
   title: string;
@@ -106,20 +115,8 @@ type BaseMultiTextPanelProps = {
   setter: MultiTextSetter;
   initialValue: string[];
   onChange?: (values: string[]) => void;
-} & RoamBlockSyncProps;
-
-const SettingTitle = ({
-  title,
-  description,
-}: {
-  title: React.ReactNode;
-  description?: React.ReactNode;
-}) => (
-  <>
-    {title}
-    {description ? <Description description={description} /> : null}
-  </>
-);
+} & RoamBlockSyncProps &
+  RowPresentationProps;
 
 const DEBOUNCE_MS = 250;
 const SHORT_DEBOUNCE_MS = 100;
@@ -220,6 +217,7 @@ const BaseTextPanel = ({
   uid,
   order,
   blockKey,
+  scope,
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? "");
   const errorRef = useRef(error);
@@ -248,11 +246,17 @@ const BaseTextPanel = ({
   };
 
   return (
-    <div className="flex flex-col" {...settingAnchor(settingKeys)}>
-      <Label>
-        <SettingTitle title={title} description={description} />
-        {multiline ? (
+    <SettingItemRow
+      label={title}
+      description={description}
+      scope={scope}
+      settingKeys={settingKeys}
+      error={error}
+      controlPlacement={multiline ? "below" : "trailing"}
+      control={(controlId) =>
+        multiline ? (
           <TextArea
+            id={controlId}
             value={value}
             onChange={handleChange}
             placeholder={placeholder || initialValue}
@@ -262,17 +266,16 @@ const BaseTextPanel = ({
           />
         ) : (
           <InputGroup
+            id={controlId}
             value={value}
             onChange={handleChange}
             placeholder={placeholder || initialValue}
             disabled={disabled}
+            className="w-56"
           />
-        )}
-      </Label>
-      {error && (
-        <div className="mt-1 text-sm font-medium text-red-600">{error}</div>
-      )}
-    </div>
+        )
+      }
+    />
   );
 };
 
@@ -290,6 +293,7 @@ const BaseFlagPanel = ({
   uid: initialBlockUid,
   order,
   blockKey,
+  scope,
 }: BaseFlagPanelProps) => {
   const [internalValue, setInternalValue] = useState(
     () => initialValue ?? false,
@@ -333,14 +337,21 @@ const BaseFlagPanel = ({
   };
 
   return (
-    <div {...settingAnchor(settingKeys)}>
-      <Checkbox
-        checked={value ?? internalValue}
-        onChange={(e) => void handleChange(e)}
-        disabled={disabled}
-        labelElement={<SettingTitle title={title} description={description} />}
-      />
-    </div>
+    <SettingItemRow
+      label={title}
+      description={description}
+      scope={scope}
+      settingKeys={settingKeys}
+      control={(controlId) => (
+        <Switch
+          id={controlId}
+          checked={value ?? internalValue}
+          onChange={(e) => void handleChange(e)}
+          disabled={disabled}
+          className="mb-0"
+        />
+      )}
+    />
   );
 };
 
@@ -357,6 +368,7 @@ const BaseNumberPanel = ({
   uid,
   order,
   blockKey,
+  scope,
 }: BaseNumberPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? 0);
   const syncToBlock = useLegacyBlockSync({
@@ -379,16 +391,22 @@ const BaseNumberPanel = ({
   };
 
   return (
-    <Label {...settingAnchor(settingKeys)}>
-      <SettingTitle title={title} description={description} />
-      <NumericInput
-        value={value}
-        onValueChange={handleChange}
-        min={min}
-        max={max}
-        fill
-      />
-    </Label>
+    <SettingItemRow
+      label={title}
+      description={description}
+      scope={scope}
+      settingKeys={settingKeys}
+      control={(controlId) => (
+        <NumericInput
+          id={controlId}
+          value={value}
+          onValueChange={handleChange}
+          min={min}
+          max={max}
+          className="w-24"
+        />
+      )}
+    />
   );
 };
 
@@ -403,6 +421,7 @@ const BaseSelectPanel = ({
   uid,
   order,
   blockKey,
+  scope,
 }: BaseSelectPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? options[0]);
   const syncToBlock = useLegacyBlockSync({
@@ -424,15 +443,20 @@ const BaseSelectPanel = ({
   };
 
   return (
-    <Label {...settingAnchor(settingKeys)}>
-      <SettingTitle title={title} description={description} />
-      <HTMLSelect
-        value={value}
-        onChange={handleChange}
-        fill
-        options={options}
-      />
-    </Label>
+    <SettingItemRow
+      label={title}
+      description={description}
+      scope={scope}
+      settingKeys={settingKeys}
+      control={(controlId) => (
+        <HTMLSelect
+          id={controlId}
+          value={value}
+          onChange={handleChange}
+          options={options}
+        />
+      )}
+    />
   );
 };
 
@@ -447,6 +471,7 @@ const BaseMultiTextPanel = ({
   uid: initialBlockUid,
   order,
   blockKey,
+  scope,
 }: BaseMultiTextPanelProps) => {
   const [values, setValues] = useState<string[]>(() => initialValue ?? []);
   const [inputValue, setInputValue] = useState("");
@@ -523,32 +548,41 @@ const BaseMultiTextPanel = ({
   };
 
   return (
-    <Label {...settingAnchor(settingKeys)}>
-      <SettingTitle title={title} description={description} />
-      <div className="flex gap-2">
-        <InputGroup
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Add new item"
-          className="flex-grow"
-        />
-        <Button
-          icon="plus"
-          onClick={() => void handleAdd()}
-          disabled={!inputValue.trim()}
-        />
-      </div>
-      {values.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {values.map((v, i) => (
-            <Tag key={i} onRemove={() => handleRemove(i)} minimal>
-              {v}
-            </Tag>
-          ))}
-        </div>
+    <SettingItemRow
+      label={title}
+      description={description}
+      scope={scope}
+      settingKeys={settingKeys}
+      controlPlacement="below"
+      control={(controlId) => (
+        <>
+          <div className="flex gap-2">
+            <InputGroup
+              id={controlId}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Add new item"
+              className="flex-grow"
+            />
+            <Button
+              icon="plus"
+              onClick={() => void handleAdd()}
+              disabled={!inputValue.trim()}
+            />
+          </div>
+          {values.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {values.map((v, i) => (
+                <Tag key={i} onRemove={() => handleRemove(i)} minimal>
+                  {v}
+                </Tag>
+              ))}
+            </div>
+          )}
+        </>
       )}
-    </Label>
+    />
   );
 };
 
@@ -604,6 +638,7 @@ export const FeatureFlagPanel = ({
   uid,
   order,
   blockKey,
+  scope = "global",
 }: {
   title: string;
   description: React.ReactNode;
@@ -613,7 +648,8 @@ export const FeatureFlagPanel = ({
   disabled?: boolean;
   onBeforeEnable?: () => Promise<boolean>;
   onAfterChange?: (checked: boolean) => void;
-} & RoamBlockSyncProps) => {
+} & RoamBlockSyncProps &
+  RowPresentationProps) => {
   const handleBeforeChange:
     | ((checked: boolean) => Promise<boolean>)
     | undefined = onBeforeEnable
@@ -629,6 +665,7 @@ export const FeatureFlagPanel = ({
     <BaseFlagPanel
       title={title}
       blockKey={blockKey}
+      scope={scope}
       description={description}
       settingKeys={[featureKey as string]}
       setter={featureFlagSetter}
@@ -644,50 +681,94 @@ export const FeatureFlagPanel = ({
   );
 };
 
-export const GlobalTextPanel = (props: TextWrapperProps) => (
-  <BaseTextPanel {...props} {...globalAccessors.text} />
+/**
+ * The scope indicator is derived from the wrapper rather than passed by each
+ * call site, because the wrapper already binds the setter that decides who a
+ * value is written for. A call site that overrides `setter` must therefore
+ * also pass `scope`, or the indicator will contradict where the value lands.
+ */
+export const GlobalTextPanel = ({
+  scope = "global",
+  ...props
+}: TextWrapperProps) => (
+  <BaseTextPanel {...props} scope={scope} {...globalAccessors.text} />
 );
 
-export const GlobalFlagPanel = (props: FlagWrapperProps) => (
-  <BaseFlagPanel {...props} {...globalAccessors.flag} />
+export const GlobalFlagPanel = ({
+  scope = "global",
+  ...props
+}: FlagWrapperProps) => (
+  <BaseFlagPanel {...props} scope={scope} {...globalAccessors.flag} />
 );
 
-export const GlobalNumberPanel = (props: NumberWrapperProps) => (
-  <BaseNumberPanel {...props} {...globalAccessors.number} />
+export const GlobalNumberPanel = ({
+  scope = "global",
+  ...props
+}: NumberWrapperProps) => (
+  <BaseNumberPanel {...props} scope={scope} {...globalAccessors.number} />
 );
 
-export const GlobalSelectPanel = (props: SelectWrapperProps) => (
-  <BaseSelectPanel {...props} {...globalAccessors.text} />
+export const GlobalSelectPanel = ({
+  scope = "global",
+  ...props
+}: SelectWrapperProps) => (
+  <BaseSelectPanel {...props} scope={scope} {...globalAccessors.text} />
 );
 
-export const GlobalMultiTextPanel = (props: MultiTextWrapperProps) => (
-  <BaseMultiTextPanel {...props} {...globalAccessors.multiText} />
+export const GlobalMultiTextPanel = ({
+  scope = "global",
+  ...props
+}: MultiTextWrapperProps) => (
+  <BaseMultiTextPanel {...props} scope={scope} {...globalAccessors.multiText} />
 );
 
-export const PersonalTextPanel = ({ setter, ...props }: TextWrapperProps) => (
-  <BaseTextPanel {...props} setter={setter ?? personalAccessors.text.setter} />
+export const PersonalTextPanel = ({
+  setter,
+  scope = "personal",
+  ...props
+}: TextWrapperProps) => (
+  <BaseTextPanel
+    {...props}
+    scope={scope}
+    setter={setter ?? personalAccessors.text.setter}
+  />
 );
 
-export const PersonalFlagPanel = (props: FlagWrapperProps) => (
-  <BaseFlagPanel {...props} {...personalAccessors.flag} />
+export const PersonalFlagPanel = ({
+  scope = "personal",
+  ...props
+}: FlagWrapperProps) => (
+  <BaseFlagPanel {...props} scope={scope} {...personalAccessors.flag} />
 );
 
 export const PersonalNumberPanel = ({
   setter,
+  scope = "personal",
   ...props
 }: NumberWrapperProps) => (
   <BaseNumberPanel
     {...props}
+    scope={scope}
     setter={setter ?? personalAccessors.number.setter}
   />
 );
 
-export const PersonalSelectPanel = (props: SelectWrapperProps) => (
-  <BaseSelectPanel {...props} {...personalAccessors.text} />
+export const PersonalSelectPanel = ({
+  scope = "personal",
+  ...props
+}: SelectWrapperProps) => (
+  <BaseSelectPanel {...props} scope={scope} {...personalAccessors.text} />
 );
 
-export const PersonalMultiTextPanel = (props: MultiTextWrapperProps) => (
-  <BaseMultiTextPanel {...props} {...personalAccessors.multiText} />
+export const PersonalMultiTextPanel = ({
+  scope = "personal",
+  ...props
+}: MultiTextWrapperProps) => (
+  <BaseMultiTextPanel
+    {...props}
+    scope={scope}
+    {...personalAccessors.multiText}
+  />
 );
 
 const createDiscourseNodeSetter =
@@ -715,6 +796,7 @@ export const DiscourseNodeTextPanel = ({
   }) => (
   <BaseTextPanel
     {...props}
+    scope="nodeType"
     initialValue={
       getDiscourseNodeSetting<string>(nodeType, props.settingKeys) ??
       props.initialValue ??
@@ -736,6 +818,7 @@ export const DiscourseNodeFlagPanel = ({
   }) => (
   <BaseFlagPanel
     {...props}
+    scope="nodeType"
     initialValue={
       getDiscourseNodeSetting<boolean>(nodeType, props.settingKeys) ??
       props.initialValue ??
@@ -752,6 +835,7 @@ export const DiscourseNodeSelectPanel = ({
   RoamBlockSyncProps & { options: string[]; initialValue?: string }) => (
   <BaseSelectPanel
     {...props}
+    scope="nodeType"
     initialValue={
       getDiscourseNodeSetting<string>(nodeType, props.settingKeys) ??
       props.initialValue ??
@@ -773,6 +857,7 @@ export const DiscourseNodeNumberPanel = ({
   }) => (
   <BaseNumberPanel
     {...props}
+    scope="nodeType"
     initialValue={
       getDiscourseNodeSetting<number>(nodeType, props.settingKeys) ??
       props.initialValue ??
