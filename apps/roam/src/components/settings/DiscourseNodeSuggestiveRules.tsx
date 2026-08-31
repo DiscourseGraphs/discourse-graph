@@ -1,7 +1,5 @@
 import React, { useState, useMemo } from "react";
 import { Button, Intent } from "@blueprintjs/core";
-import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
-import getSubTree from "roamjs-components/util/getSubTree";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import extractRef from "roamjs-components/util/extractRef";
 import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
@@ -14,10 +12,8 @@ import {
 import {
   DISCOURSE_NODE_KEYS,
   SUGGESTIVE_RULES_KEYS,
-  TEMPLATE_SETTING_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import { RenderRoamBlock } from "~/utils/roamReactComponents";
-import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const DiscourseNodeSuggestiveRules = ({
   node,
@@ -32,15 +28,6 @@ const DiscourseNodeSuggestiveRules = ({
   const blockUidToRender = useMemo(
     () => extractRef(embeddingRef),
     [embeddingRef],
-  );
-
-  const templateUid = useMemo(
-    () =>
-      getSubTree({
-        parentUid: nodeUid,
-        key: "Template",
-      }).uid || "",
-    [nodeUid],
   );
 
   const [isUpdating, setIsUpdating] = useState(false);
@@ -68,19 +55,7 @@ const DiscourseNodeSuggestiveRules = ({
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <DualWriteBlocksPanel
-        nodeType={node.type}
-        title="Template"
-        description={withDocsLink(
-          `The template that auto fills ${node.text} page when generated.`,
-          ROAM_DOCS.creatingNodes,
-        )}
-        settingKeys={TEMPLATE_SETTING_KEYS}
-        uid={templateUid}
-        defaultValue={node.template}
-      />
-
+    <div className="flex flex-col gap-4">
       <DiscourseNodeTextPanel
         nodeType={nodeUid}
         title="Embedding Block Ref"
