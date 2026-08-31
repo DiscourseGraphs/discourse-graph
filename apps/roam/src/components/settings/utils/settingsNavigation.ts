@@ -10,6 +10,7 @@ export type SettingsPath = readonly string[];
 
 export type SettingsNavAction =
   | { type: "select-tab"; tabId: string }
+  | { type: "navigate"; path: SettingsPath }
   | { type: "push"; segment: string }
   | { type: "pop" }
   | { type: "truncate"; depth: number };
@@ -30,6 +31,9 @@ export const depthOf = (path: SettingsPath): number =>
 export const segmentsOf = (path: SettingsPath): readonly string[] =>
   path.slice(1);
 
+export const isSamePath = (a: SettingsPath, b: SettingsPath): boolean =>
+  a.length === b.length && a.every((segment, index) => segment === b[index]);
+
 export const settingsNavReducer = (
   state: SettingsPath,
   action: SettingsNavAction,
@@ -39,6 +43,12 @@ export const settingsNavReducer = (
       return action.tabId === tabIdOf(state) && state.length === 1
         ? state
         : rootPath(action.tabId);
+    // Search jumps to a setting several segments deep in one go, which `push`
+    // cannot express. An empty path is ignored rather than emptying the route.
+    case "navigate":
+      return action.path.length === 0 || isSamePath(action.path, state)
+        ? state
+        : [...action.path];
     case "push":
       return [...state, action.segment];
     case "pop":
