@@ -1774,7 +1774,9 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     isReverse: boolean;
     matchingRelation: DiscourseRelation | null;
   } {
-    const relationsWithLabel = discourseContext.relations[label];
+    const relationsWithLabel = discourseContext.relations[label]?.filter(
+      (r) => !discourseContext.provisionalRelationIds.has(r.id),
+    );
     if (!relationsWithLabel) {
       return { isDirect: false, isReverse: false, matchingRelation: null };
     }
@@ -1794,7 +1796,9 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
   }
 
   getValidTargetTypes(label: string, sourceNodeType: string): string[] {
-    const relationsWithLabel = discourseContext.relations[label];
+    const relationsWithLabel = discourseContext.relations[label]?.filter(
+      (r) => !discourseContext.provisionalRelationIds.has(r.id),
+    );
     if (!relationsWithLabel) return [];
 
     const targets = new Set<string>();

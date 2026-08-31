@@ -8,6 +8,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import getDiscourseRelations, {
   type DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
+import { excludeProvisionalRelationSchemas } from "~/utils/relationSchemaAcceptance";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import findDiscourseNode from "~/utils/findDiscourseNode";
@@ -291,7 +292,7 @@ const prepareRelData = (
 ): RelWithDirection[] => {
   nodeTitle = nodeTitle || getPageTitleByPageUid(targetNodeUid).trim();
   const discourseNodeSchemas = getDiscourseNodes();
-  const relations = getDiscourseRelations();
+  const relations = excludeProvisionalRelationSchemas(getDiscourseRelations());
   const nodeSchema = findDiscourseNode({
     uid: targetNodeUid,
     title: nodeTitle,
