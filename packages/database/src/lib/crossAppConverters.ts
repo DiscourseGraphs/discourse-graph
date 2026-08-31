@@ -86,16 +86,20 @@ export const crossAppNodeToDbConcept = (
     ]),
     created: node.createdAt?.toISOString(),
     last_modified: node.modifiedAt?.toISOString(),
+    local_reference_content: node.slots,
   });
 };
 
 export const crossAppNodeSchemaToDbConcept = (
   node: CrossAppNodeSchema,
 ): LocalConceptDataInput => {
+  const slots = Object.keys(node.slotDefinitions ?? {});
   const literalInfo = filterUndefined({
     template: node.templateTitle,
     template_content: node.template,
+    roles: slots.length > 0 ? slots : undefined,
   });
+  const referenceContent = slots.length ? node.slotDefinitions : undefined;
   const spaceUri = node.rid
     ? ridToSpaceUriAndLocalId(node.rid).spaceUri
     : undefined;
@@ -107,6 +111,7 @@ export const crossAppNodeSchemaToDbConcept = (
     is_schema: true,
     literal_content:
       Object.keys(literalInfo).length > 0 ? literalInfo : undefined,
+    local_reference_content: referenceContent,
     created: node.createdAt?.toISOString(),
     last_modified: node.modifiedAt?.toISOString(),
   });

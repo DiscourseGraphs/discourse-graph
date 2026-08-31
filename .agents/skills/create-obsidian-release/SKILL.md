@@ -1,3 +1,8 @@
+---
+name: create-obsidian-release
+description: Create a release for the Discourse Graphs Obsidian plugin from a requested semantic version. Use when asked to create or prepare an Obsidian plugin release.
+---
+
 Create a release for the Discourse Graphs Obsidian plugin with version $ARGUMENTS.
 
 Follow these steps:

@@ -150,7 +150,7 @@ describe("resolveSharedNodeTypes", () => {
       resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
     ).resolves.toEqual(new Map([[SCHEMA_ID, createdType]]));
     expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith({
-      text: "Evidence",
+      label: "Evidence",
       shortcut: "",
       format: FORMAT,
       uid: REMOTE_TYPE_UID,

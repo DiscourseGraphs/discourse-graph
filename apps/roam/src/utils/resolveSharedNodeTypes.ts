@@ -42,7 +42,7 @@ const findOrCreateNodeType = async (
   if (RESERVED_NODE_TYPE_NAMES.has(schema.name)) return undefined;
 
   const nodeType = await createDiscourseNodeType({
-    text: schema.name,
+    label: schema.name,
     shortcut: "",
     format: schema.source_data_format || schema.format || "",
     uid: schema.source_local_id,

@@ -1,5 +1,6 @@
-import { App, Scope, setIcon } from "obsidian";
+import { App } from "obsidian";
 import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { SearchDropdown } from "~/components/SearchDropdown";
 import { DiscourseNode } from "~/types";
 import { getAllDiscourseNodeColors } from "~/utils/colorUtils";
 import {
@@ -9,19 +10,6 @@ import {
   hasActiveTypeFilter,
   toPanelSelectedIds,
 } from "~/utils/discourseNodeTypeFilter";
-
-const FilterIcon = ({ name }: { name: string }): ReactElement => (
-  // Emptied first because React reuses the node across renders and `setIcon`
-  // appends rather than replaces.
-  <span
-    className="flex items-center"
-    ref={(el) => {
-      if (!el) return;
-      el.empty();
-      setIcon(el, name);
-    }}
-  />
-);
 
 const NodeTypeFilterRow = ({
   color,
@@ -112,7 +100,7 @@ const NodeTypeFilterPanel = ({
   };
 
   return (
-    <div className="border-modifier-border absolute right-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-md border bg-primary shadow-[0_4px_12px_rgba(0,0,0,0.15)]">
+    <>
       {/* Clearing is the only thing this control ever does, so it says so and
           appears only when there is a filter to clear. A "select all" checkbox
           would sit checked-and-inert whenever no filter is active, since an empty
@@ -159,7 +147,7 @@ const NodeTypeFilterPanel = ({
           ))
         )}
       </div>
-    </div>
+    </>
   );
 };
 
@@ -178,8 +166,6 @@ export const NodeTypeFilterMenu = ({
   onSelectedNodeTypeIdsChange: (ids: string[]) => void;
   selectedNodeTypeIds: string[];
 }): ReactElement => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
   const allTypeIds = useMemo(
     () => nodeTypes.map((nodeType) => nodeType.id),
     [nodeTypes],
@@ -196,96 +182,39 @@ export const NodeTypeFilterMenu = ({
     [allTypeIds, selectedNodeTypeIds],
   );
 
-  // Escape cannot be intercepted from the DOM. Obsidian registers the Modal's
-  // close-on-Escape before any plugin React tree exists, so a listener added
-  // later always runs second — preventDefault plus stopImmediatePropagation in a
-  // React handler, a capture-phase window listener, and registering on the
-  // Modal's own scope all fail, the last because Scope resolves in registration
-  // order. A pushed scope is the only thing that lands above the modal.
-  useEffect(() => {
-    if (!isOpen) return;
-    const scope = new Scope();
-    scope.register([], "Escape", () => {
-      onOpenChange(false);
-      return false;
-    });
-    app.keymap.pushScope(scope);
-    return () => app.keymap.popScope(scope);
-  }, [app, isOpen, onOpenChange]);
-
-  // `activeDocument` rather than `document`, so the listener lands in whichever
-  // window holds the modal when Obsidian is running a popout.
-  useEffect(() => {
-    if (!isOpen) return;
-    const handlePointerDown = (event: MouseEvent) => {
-      if (containerRef.current?.contains(event.target as Node)) return;
-      onOpenChange(false);
-    };
-    activeDocument.addEventListener("mousedown", handlePointerDown, true);
-    return () =>
-      activeDocument.removeEventListener("mousedown", handlePointerDown, true);
-  }, [isOpen, onOpenChange]);
-
   const activeFilterCount = isFilterActive ? selectedNodeTypeIds.length : 0;
 
   return (
-    <div
-      ref={containerRef}
-      className="relative shrink-0"
-      onKeyDown={(event) => {
-        if (!isOpen) return;
-        // Every keystroke stops here while the panel is open. The modal's handler
-        // is an ancestor and reads Enter as "open the highlighted result" and the
-        // arrows as "move the selection", so typing in the type search would
-        // otherwise open a note and close the whole modal. Escape is not handled
-        // here because it never reaches the DOM — see the pushed scope above.
-        event.stopPropagation();
-      }}
+    <SearchDropdown
+      app={app}
+      ariaLabel={
+        activeFilterCount > 0
+          ? `Filter by type, ${activeFilterCount} selected`
+          : "Filter by type"
+      }
+      badgeCount={activeFilterCount}
+      iconName="filter"
+      isActive={isFilterActive}
+      isDisabled={nodeTypes.length === 0}
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      panelClassName="w-64"
+      title={
+        nodeTypes.length === 0
+          ? "No discourse node types configured"
+          : "Filter by type"
+      }
     >
-      <button
-        type="button"
-        aria-expanded={isOpen}
-        aria-label={
-          activeFilterCount > 0
-            ? `Filter by type, ${activeFilterCount} selected`
-            : "Filter by type"
+      <NodeTypeFilterPanel
+        isFilterActive={isFilterActive}
+        nodeTypes={nodeTypes}
+        onSelectedIdsChange={(panelIds) =>
+          onSelectedNodeTypeIdsChange(
+            fromPanelSelectedIds({ panelSelectedIds: panelIds, allTypeIds }),
+          )
         }
-        disabled={nodeTypes.length === 0}
-        title={
-          nodeTypes.length === 0
-            ? "No discourse node types configured"
-            : "Filter by type"
-        }
-        onClick={() => onOpenChange(!isOpen)}
-        // Keeps focus in the search input, so arrow and Enter navigation stays
-        // live while the panel is open.
-        onMouseDown={(event) => event.preventDefault()}
-        className={`clickable-icon relative ${
-          isOpen || isFilterActive ? "is-active" : ""
-        }`}
-      >
-        <FilterIcon name="filter" />
-        {activeFilterCount > 0 && (
-          <span
-            aria-hidden
-            className="bg-accent text-on-accent pointer-events-none absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-lg px-1 text-xs font-semibold leading-none"
-          >
-            {activeFilterCount}
-          </span>
-        )}
-      </button>
-      {isOpen && (
-        <NodeTypeFilterPanel
-          isFilterActive={isFilterActive}
-          nodeTypes={nodeTypes}
-          onSelectedIdsChange={(panelIds) =>
-            onSelectedNodeTypeIdsChange(
-              fromPanelSelectedIds({ panelSelectedIds: panelIds, allTypeIds }),
-            )
-          }
-          selectedIds={panelSelectedIds}
-        />
-      )}
-    </div>
+        selectedIds={panelSelectedIds}
+      />
+    </SearchDropdown>
   );
 };
