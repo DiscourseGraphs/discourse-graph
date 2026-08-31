@@ -742,7 +742,7 @@ export const DiscourseNodeTextPanel = ({
   }) => (
   <BaseTextPanel
     {...props}
-    scope="nodeType"
+    scope="global"
     initialValue={
       getDiscourseNodeSetting<string>(nodeType, props.settingKeys) ??
       props.initialValue ??
@@ -764,7 +764,7 @@ export const DiscourseNodeFlagPanel = ({
   }) => (
   <BaseFlagPanel
     {...props}
-    scope="nodeType"
+    scope="global"
     initialValue={
       getDiscourseNodeSetting<boolean>(nodeType, props.settingKeys) ??
       props.initialValue ??
@@ -781,7 +781,7 @@ export const DiscourseNodeSelectPanel = ({
   RoamBlockSyncProps & { options: string[]; initialValue?: string }) => (
   <BaseSelectPanel
     {...props}
-    scope="nodeType"
+    scope="global"
     initialValue={
       getDiscourseNodeSetting<string>(nodeType, props.settingKeys) ??
       props.initialValue ??
@@ -803,7 +803,7 @@ export const DiscourseNodeNumberPanel = ({
   }) => (
   <BaseNumberPanel
     {...props}
-    scope="nodeType"
+    scope="global"
     initialValue={
       getDiscourseNodeSetting<number>(nodeType, props.settingKeys) ??
       props.initialValue ??
