@@ -17,6 +17,7 @@ import {
   CANVAS_KEYS,
   DISCOURSE_NODE_KEYS,
   SPECIFICATION_KEYS,
+  TEMPLATE_SETTING_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
@@ -114,6 +115,7 @@ const DiscourseNodeColorSetting = ({
         label="Color"
         description="Changes the color of tags and canvas nodes"
         scope="global"
+        settingKeys={[DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.color]}
         control={
           <ControlGroup>
             <InputGroup
@@ -377,6 +379,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
             ROAM_DOCS.creatingNodes,
           )}
           scope="global"
+          settingKeys={TEMPLATE_SETTING_KEYS}
           control={
             <SettingDrillDownSummary
               summary="Edit template"
