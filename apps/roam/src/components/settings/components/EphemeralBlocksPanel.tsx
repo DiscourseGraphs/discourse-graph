@@ -236,6 +236,7 @@ const DualWriteBlocksPanel = ({
           label={title}
           description={description}
           scope="global"
+          settingKeys={settingKeys}
           controlPlacement="below"
           control={blocksContainer}
         />

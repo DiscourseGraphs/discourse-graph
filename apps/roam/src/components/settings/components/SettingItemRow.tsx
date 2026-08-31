@@ -1,6 +1,8 @@
 import React, { useId } from "react";
 import { Icon, type IconName, Position, Tooltip } from "@blueprintjs/core";
 import { settingAnchor } from "~/components/settings/utils/settingAnchor";
+import { describedSetting } from "~/components/settings/utils/settingsCatalog";
+import { withDocsLink } from "~/components/settings/utils/docs";
 
 /**
  * Who a setting applies to. Two values only, matching the agreed badge model:
@@ -73,6 +75,17 @@ const SettingItemRow = ({
 }: SettingItemRowProps): React.ReactElement => {
   const controlId = useId();
   const isAssociated = typeof control === "function";
+  // The catalog fallback lets a call site drop the prop, so the row and search
+  // read one string rather than two that can drift.
+  const authored =
+    description === undefined ? describedSetting(settingKeys) : undefined;
+  const resolvedDescription =
+    description ??
+    (authored
+      ? authored.docsLink
+        ? withDocsLink(authored.description, authored.docsLink)
+        : authored.description
+      : undefined);
   // A raw label keeps Blueprint's `.bp3-label` spacing out of the row, and
   // keeps the description a sibling rather than a descendant — a description
   // nested in the label makes its doc links toggle the control (ENG-2080).
@@ -97,8 +110,10 @@ const SettingItemRow = ({
           {scope && !compact ? <SettingScopeIndicator scope={scope} /> : null}
           <span>{label}</span>
         </LabelTag>
-        {description ? (
-          <div className="text-sm font-normal text-gray-500">{description}</div>
+        {resolvedDescription ? (
+          <div className="text-sm font-normal text-gray-500">
+            {resolvedDescription}
+          </div>
         ) : null}
         {error ? (
           <div className="text-sm font-medium text-red-600">{error}</div>
