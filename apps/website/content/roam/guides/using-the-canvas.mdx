@@ -1,0 +1,313 @@
+---
+title: "Using the canvas"
+date: "2026-08-25"
+author: ""
+published: true
+---
+
+import Image from "next/image";
+import { Callout } from "nextra/components";
+
+The Canvas lets you lay out your work visually. It's great for synthesizing your work into a story: you can arrange nodes you've already created into a canvas layout, or generate new nodes directly from the canvas itself.
+
+## Creating a canvas
+
+### From anywhere
+
+Type `jj` followed by `canvas` anywhere in your graph to create and title a canvas. The canvas is created as a separate page in your graph.
+
+<Callout type="info" emoji="💡">
+  You can also use this SmartBlock button for one-click canvas creation:
+  `{{Create canvas:SmartBlock:Create New Canvas:RemoveButton=false,Icon=presentation}}`.
+  Copy and paste it onto your home page for easy access.
+</Callout>
+
+### From a project page
+
+You can also create a canvas to represent your current projects directly from the Project page:
+
+<Image
+  src="/docs/roam/canvas-tut01.png"
+  alt="Project Canvas button"
+  width={480}
+  height={211}
+  className="docs-bordered-image"
+/>
+_Creating a canvas from a Project page_
+
+This canvas is automatically named after the project it was generated from. Once created, you can use the `Project Canvas` button to navigate to the Project canvas.
+
+## Adding nodes to your canvas
+
+Add nodes to your canvas by selecting the discourse graph symbol on the taskbar at the bottom of the canvas pane. This opens the node selection menu — select a node type, then click on your canvas to place the node.
+
+<Image
+  src="/docs/roam/canvas-tut02.png"
+  alt="The node selection menu"
+  width={480}
+  height={449}
+  className="docs-bordered-image"
+/>
+_Open the node selection menu by clicking on the discourse graph symbol in the
+lower toolbar_
+
+Placing a node on your canvas opens the node title menu. As you type the name of the node, the form autocompletes with the names of nodes already in your graph. You can select one of these existing nodes or create a new one.
+
+<Image
+  src="/docs/roam/canvas-tut03.gif"
+  alt="node title menu"
+  width={480}
+  height={350}
+  className="docs-bordered-image"
+  unoptimized
+/>
+_Selecting nodes to add to your graph_
+
+## Connecting discourse nodes with relations
+
+You can make the connections between your discourse nodes more informative and explicit by adding relations. For example, an Evidence node might _Inform_ a Question node, or _Support_ a Claim.
+
+To create a relation, click the discourse graph symbol in the lower toolbar and select the appropriate relation arrow, then drag the arrow between nodes.
+
+<Image
+  src="/docs/roam/canvas-tut05.gif"
+  alt="the relation menu"
+  width={480}
+  height={349}
+  className="docs-bordered-image"
+  unoptimized
+/>
+_Using the relation menu_
+
+
+You can also create a relation on your canvas by clicking on the origin node until the grey drag handles appear and dragging the relation arrow to the target node. You will be prompted to select from one of the available relation types for those nodes.
+
+
+<Image
+  src="/docs/roam/canvas-tut22.gif"
+  alt="dragging relations"
+  width={480}
+  height={286}
+  className="docs-bordered-image"
+  unoptimized
+/>
+_Creating a relation using the node drag handles_
+
+<Callout type="info" emoji="💡">
+  Additional node and relation types can be defined in the Settings menu.
+</Callout>
+
+## Managing canvas content
+
+### The canvas drawer
+
+As you add nodes to your canvas, they're also added to the **Canvas Drawer**. Use this drawer to jump straight to a particular node on your canvas by clicking the target icon next to its title — a feature that becomes more useful as your canvas gets busier. The canvas Drawer also highlights any duplicate nodes in your canvas.
+
+<Image
+  src="/docs/roam/canvas-tut07.png"
+  alt="the canvas drawer"
+  width={480}
+  height={294}
+  className="docs-bordered-image"
+/>
+_Rummaging through the canvas drawer_
+
+### The clipboard
+
+Use the Clipboard to keep track of what's on the canvas and what should be on the canvas. It allows speedy bulk importation of all the nodes from a particular page or set of pages.
+
+<Image
+  src="/docs/roam/canvas-tut08.png"
+  alt="The clipboard icon"
+  width={480}
+  height={468}
+  className="docs-bordered-image"
+/>
+_The clipboard icon_
+
+Open the Clipboard by clicking the discourse graph icon in the bottom toolbar, which causes the Clipboard icon to appear. You can use the Clipboard to search for pages with content relevant to your canvas.
+
+<Image
+  src="/docs/roam/canvas-tut09.png"
+  alt="Searching for pages to add to the clipboard"
+  width={480}
+  height={385}
+  className="docs-bordered-image"
+/>
+_Searching for pages to add to the clipboard_
+
+All the discourse nodes found on pages you import to your Clipboard are listed as options to add to your canvas. If a node in the Clipboard is already on the canvas, clicking it navigates to that node.
+
+<Image
+  src="/docs/roam/canvas-tut10.png"
+  alt="Viewing clipboard content"
+  width={423}
+  height={480}
+  className="docs-bordered-image"
+/>
+_Viewing clipboard content_
+
+You can drag nodes not already on your canvas onto your canvas from the Clipboard.
+
+<Callout type="info" emoji="💡">
+  If you enable the **Key Image** setting in the Discourse Graph Settings menu
+  for a particular node type, any nodes you drag to your graph will bring along
+  the first image from that page.
+
+  <Image
+    src="/docs/roam/canvas-tut11.png"
+    alt="The Key Image setting in Discourse Graph Settings"
+    width={660}
+    height={644}
+    className="docs-bordered-image"
+    sizes="300px"
+    style={{ width: 300 }}
+  />
+</Callout>
+
+<Callout type="info" emoji="💡">
+  You can also specify a particular image to use by entering its block reference
+  (right-click the bullet next to the image and select "Copy block ref") in the
+  "Query builder reference" field shown above.
+
+  <Image
+    src="/docs/roam/canvas-tut12.png"
+    alt="The Query builder reference field for specifying an image"
+    width={480}
+    height={313}
+    className="docs-bordered-image"
+  />
+</Callout>
+
+### The sidebar
+
+Clicking the sidebar icon on any node opens that node's page in your sidebar.
+
+<Image
+  src="/docs/roam/canvas-tut13.png"
+  alt="The sidebar icon"
+  width={285}
+  height={185}
+  className="docs-bordered-image"
+/>
+_The sidebar icon_
+
+You can use this side-by-side view to move images or text from that node's page onto your canvas.
+
+<Image
+  src="/docs/roam/canvas-tut14.png"
+  alt="Moving content from a node's page in the sidebar onto the canvas"
+  width={366}
+  height={480}
+  className="docs-bordered-image"
+/>
+_Viewing sidebar content next to your canvas_
+
+### Sending query results to the canvas
+
+To export multiple results from a query run in your graph to a canvas, open the query table menu and select **Share Data → Send to Page**, then either select an existing canvas or create a new one to receive the results.
+
+<Image
+  src="/docs/roam/canvas-tut15.gif"
+  alt="Sending query results to a canvas via Share Data → Send to Page"
+  width={480}
+  height={409}
+  className="docs-bordered-image"
+  unoptimized
+/>
+_sending query results to your canvas_
+
+### Converting images or text into discourse nodes
+
+You can select images or text from your graph, a document, a file, or a webpage, copy them to your canvas, and convert them into discourse nodes. Right-click the image, select "Convert to...", then modify the title as needed.
+
+<Callout type="info" emoji="💡">
+  Remember to enable the **Key Image** feature in Settings if you want to
+  convert images to discourse nodes.
+</Callout>
+
+<Image
+  src="/docs/roam/canvas-tut16.gif"
+  alt="Converting an image to a discourse node"
+  width={480}
+  height={353}
+  className="docs-bordered-image"
+  unoptimized
+/>
+_Converting an image to an evidence node_
+
+<Image
+  src="/docs/roam/canvas-tut17.gif"
+  alt="Setting the discourse node type and title when converting an image"
+  width={480}
+  height={359}
+  className="docs-bordered-image"
+  unoptimized
+/>
+_Converting text to a result node_
+
+## Synchronizing your canvas and graph
+
+Nodes created on the canvas are added to your graph. Edits made to node titles on your canvas are propagated to your graph — this can take a few moments, or until your next page refresh.
+
+<Callout type="info" emoji="💡">
+  Double-click a node on your canvas to refresh it immediately.
+</Callout>
+
+<Callout type="warning">
+  Edits made to node titles in your graph may not propagate to your canvas until
+  you refresh the page
+</Callout>
+
+## Annotating your canvas
+
+The canvas has additional features to help with visual sensemaking of your discourse graph. You can use freehand drawing tools to annotate images or the canvas itself, and add text boxes and shapes for additional context around discourse nodes and relations.
+
+<Image
+  src="/docs/roam/canvas-tut18.gif"
+  alt="Using freehand drawing tools to annotate the canvas"
+  width={480}
+  height={472}
+  className="docs-bordered-image"
+  unoptimized
+/>
+_Adding text boxes and shapes to a canvas_
+
+<Image
+  src="/docs/roam/canvas-tut19.gif"
+  alt="Adding text boxes and shapes to the canvas"
+  width={480}
+  height={422}
+  className="docs-bordered-image"
+  unoptimized
+/>
+_Adding video to a canvas_
+
+Stickers, arrows, GIFs, YouTube videos — anything that enhances understanding or presentation. These features can come in handy during a live or recorded canvas walkthrough.
+
+## Exporting your canvas
+
+The canvas can be exported as an SVG, PNG, or JSON by right-clicking the canvas, or from the menu in the top-left corner via **Export**. You can also selectively copy and export specific canvas elements.
+
+<Image
+  src="/docs/roam/canvas-tut20.gif"
+  alt="Exporting the canvas as SVG, PNG, or JSON"
+  width={480}
+  height={412}
+  className="docs-bordered-image"
+  unoptimized
+/>
+_Choosing a format for canvas export_
+
+## Viewing your canvas in full-screen mode
+
+Type `Shift + 3`, or click the menu icon → **View** → "Toggle Full Screen".
+
+<Image
+  src="/docs/roam/canvas-tut21.gif"
+  alt="Toggling full screen view of the canvas"
+  width={480}
+  height={335}
+  className="docs-bordered-image"
+  unoptimized
+/>
