@@ -10,7 +10,8 @@ const meta: MetaRecord = {
   "using-canvas-clipboard": "Using the canvas clipboard",
   "extending-personalizing-graph": "Extending",
   "sharing-discourse-graph": "Sharing",
-  "using-the-canvas": "Using the Canvas",
+  "using-the-left-sidebar": "Using the left sidebar",
+  "using-the-canvas": "Using the canvas",
 };
 
 export default meta;
