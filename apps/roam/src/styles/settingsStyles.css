@@ -40,7 +40,8 @@
 }
 
 :root {
-  /* Brand secondary, mirroring packages/tailwind-config. */
+  /* Brand colours, mirroring packages/tailwind-config. */
+  --dg-primary: #ff8c4b;
   --dg-secondary: #5f57c0;
   /* Neutrals, likewise mirrored: Roam ships Tailwind's own utilities but not
      this repo's theme extensions, so `neutral-dark`/`neutral-light` never
@@ -126,4 +127,46 @@
 .dg-setting-keycap .bp3-input {
   text-align: center;
   font-family: monospace;
+}
+
+/* Settings search results.
+   Portalled by Blueprint so the tab rail's `overflow: hidden` cannot clip it.
+   The surface is painted here rather than inherited: Roam ships its own
+   Blueprint build and themes `.bp3-popover`, so relying on the library default
+   leaves the panel transparent and the rail shows straight through it. */
+.dg-settings-search__results .bp3-popover-content {
+  width: 340px;
+  background-color: #fff;
+  border-radius: 3px;
+  box-shadow:
+    0 0 0 1px rgba(16, 22, 26, 0.1),
+    0 2px 4px rgba(16, 22, 26, 0.2),
+    0 8px 24px rgba(16, 22, 26, 0.2);
+}
+
+.dg-settings-search__results .bp3-menu {
+  background-color: transparent;
+}
+
+.dg-settings-search__scroll {
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+/* Marks the row a search result jumped to. The row is already scrolled into
+   view; this only answers "which one of these is it?". */
+.dg-setting-row--flash {
+  animation: dg-setting-row-flash 1.6s ease-out;
+}
+
+@keyframes dg-setting-row-flash {
+  0%,
+  40% {
+    background-color: var(--dg-neutral-light);
+    box-shadow: inset 3px 0 0 0 var(--dg-primary);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: inset 3px 0 0 0 transparent;
+  }
 }

@@ -40,6 +40,9 @@ import {
   tabIdOf,
 } from "./utils/settingsNavigation";
 import { SettingsNavProvider } from "./navigation/SettingsNavContext";
+import SettingsSearchField from "./navigation/SettingsSearchField";
+import { useSettingAnchorScroll } from "./navigation/useSettingAnchorScroll";
+import type { SearchableEntry } from "./utils/settingsCatalog";
 import GrammarNodesRoute from "./GrammarNodesRoute";
 
 const SectionHeader = ({ children }: { children: React.ReactNode }) => (
@@ -95,6 +98,18 @@ export const SettingsDialog = ({
     (tabId: string) => dispatch({ type: "select-tab", tabId }),
     [],
   );
+  // Cleared once the row is found or the lookup gives up, so a repeat jump to the
+  // same row still scrolls.
+  const [pendingAnchorId, setPendingAnchorId] = useState<string | null>(null);
+  const handleSearchSelect = useCallback((entry: SearchableEntry) => {
+    dispatch({ type: "navigate", path: entry.path });
+    setPendingAnchorId(entry.kind === "setting" ? entry.anchorId : null);
+  }, []);
+  const clearPendingAnchor = useCallback(() => setPendingAnchorId(null), []);
+  useSettingAnchorScroll({
+    anchorId: pendingAnchorId,
+    onSettled: clearPendingAnchor,
+  });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const settings = useMemo(() => bulkReadSettings(), [activeTabId]);
   const [leftSidebarEnabled, setLeftSidebarEnabled] = useState(
@@ -185,6 +200,7 @@ export const SettingsDialog = ({
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
+          <SettingsSearchField onSelect={handleSearchSelect} />
           <SectionHeader>Preferences</SectionHeader>
           <Tab
             id={SETTINGS_TAB_IDS.preferencesGeneral}
