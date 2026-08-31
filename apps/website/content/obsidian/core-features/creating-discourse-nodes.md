@@ -99,7 +99,7 @@ When you create a node from a note that is already a discourse node, the **Creat
 
 For example, with the [base grammar](/docs/obsidian/fundamentals/base-grammar), Evidence is _derived from_ Source. If you select text inside a `SRC` note and turn it into an `EVD` node, the dropdown is pre-filled with the Source-to-Evidence relationship, and confirming links the new evidence node back to the source it came from.
 
-<!-- TODO: Add screenshot of the Create discourse node modal opened from a SRC note, showing the pre-filled "Relationship with ..." dropdown -->
+![relationship pre-filled on create](/docs/obsidian/relationship-on-create.png)
 
 How the selector behaves:
 
