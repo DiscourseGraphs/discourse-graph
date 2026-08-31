@@ -436,13 +436,6 @@ export const dbNodeToCrossApp = ({
   const nodeType = asSimpleLocalId(conceptMap[node.schema_id || 0], spaceUrl);
   if (nodeType === undefined) throw new Error("Missing nodeType");
   const { core_title } = node.literal_content as Record<string, Json>;
-  const references = (node.reference_content ?? {}) as Record<string, number>;
-  const slots = Object.fromEntries(
-    Object.entries(references).flatMap(([role, refId]) => {
-      const slot = asSimpleLocalId(conceptMap[refId], spaceUrl, true);
-      return slot === undefined ? [] : [[role, slot] as [string, string]];
-    }),
-  );
   return {
     rid,
     localId: node.source_local_id!,
@@ -451,7 +444,6 @@ export const dbNodeToCrossApp = ({
     modifiedAt: new Date(node.last_modified + "Z"),
     nodeType,
     coreTitle: typeof core_title === "string" ? core_title : node.name,
-    slots,
     content: {
       direct: {
         localId: node.source_local_id!,
@@ -484,17 +476,8 @@ export const dbNodesToCrossApp = async ({
     spaceMap = await getSpaceMap(client);
   }
   if (conceptMap === undefined) {
-    const refIds = nodes
-      .map((n) =>
-        Object.values((n.reference_content ?? {}) as Record<string, number>),
-      )
-      .flat();
     const schemaIds = nodes.map((n) => n.schema_id).filter((id) => id !== null);
-    conceptMap = await getConceptMap(
-      client,
-      [...new Set([...schemaIds, ...refIds])],
-      spaceMap,
-    );
+    conceptMap = await getConceptMap(client, [...new Set(schemaIds)], spaceMap);
   }
   return nodes.map((node) =>
     dbNodeToCrossApp({ node, spaceMap, accountMap, conceptMap }),
