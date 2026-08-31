@@ -203,7 +203,9 @@ const QueryBuilder = ({
             results={results.map(({ id, ...a }) => a)}
             onRefresh={onRefresh}
             isEditBlock={isEditBlock}
-            onDeleteQuery={() => deleteQuery({ uid: pageUid, parentType })}
+            onDeleteQuery={() => {
+              void deleteQuery({ uid: pageUid, parentType });
+            }}
           />
         ) : (
           <></>
