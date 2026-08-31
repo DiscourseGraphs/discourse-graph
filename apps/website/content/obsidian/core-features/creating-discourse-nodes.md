@@ -45,8 +45,7 @@ When you start from a selection, the plugin opens the **Create discourse node** 
   nodes; selecting one inserts it instead of creating a new file.
   - The file explorer **Convert into** flow disables this search.
 - **Relationship with “…”** (optional): If you start from a note that is itself a
-  discourse node (selection, node tag, or canvas), a relationship selector relates the
-  created or selected node to that note. See
+  discourse node, you can relate the new node to it. See
   [Relate a new node to the note you created it from](#relate-a-new-node-to-the-note-you-created-it-from).
 - **Insert backlink** (optional): In create mode, you can choose whether the plugin
   inserts a backlink in the current note when you confirm.
@@ -95,21 +94,15 @@ More detailed instruction [here](/docs/obsidian/core-features/canvas#create-a-ne
 
 ## Relate a new node to the note you created it from
 
-When you create a node from a note that is already a discourse node, the **Create discourse node** modal shows a **Relationship with “…”** dropdown naming the note you started from. The plugin pre-selects a relationship for you, so confirming the modal creates the node and the relationship in one step — you do not have to add the relation afterwards in the discourse context.
+When you create a node from a note that is already a discourse node, the **Create discourse node** modal adds a **Relationship with “…”** dropdown. It is pre-filled with a relationship between the two node types, so you can create the node and the relationship in one step — but nothing is saved until you confirm, and you can pick **No relation** if you only want the node.
 
-For example, with the [base grammar](/docs/obsidian/fundamentals/base-grammar), Evidence is _derived from_ Source. If you select text inside a `SRC` note and turn it into an `EVD` node, the dropdown is pre-filled with the Source-to-Evidence relationship, and confirming links the new evidence node back to the source it came from.
+For example, with the [base grammar](/docs/obsidian/fundamentals/base-grammar), Evidence is _derived from_ Source, so turning a selection inside a `SRC` note into an `EVD` node offers that relationship by default.
 
 ![relationship pre-filled on create](/docs/obsidian/relationship-on-create.png)
 
-How the selector behaves:
-
-- The dropdown lists every relationship you have defined between the current note's node type and the type you are creating. Direction is handled for you, so the label reads from the current note's point of view.
-- The first available relationship is pre-selected. If more than one applies, pick the one you want from the dropdown.
-- Choose **No relation** to create the node without linking it.
-- The same relationship is applied when you use the modal's search to pick an existing node instead of creating a new one.
-- The dropdown does not appear if the current note is not a discourse node, or if no relationship type connects the two node types. Relationships from an imported schema you have not accepted yet are not offered.
-
-The new relationship shows up in the [discourse context](/docs/obsidian/core-features/discourse-context) of both notes, and on the [canvas](/docs/obsidian/core-features/canvas).
+- The dropdown lists the relationships you have defined between the two node types and pre-selects the first. Change it if more than one applies.
+- It also applies when you pick an existing node from the modal's search instead of creating one.
+- It does not appear if the current note is not a discourse node, or if no relationship connects the two node types.
 
 ## Node templates
 
