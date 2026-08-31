@@ -235,15 +235,8 @@ type BuildChangedNodesOptions = {
   fullSync?: boolean;
 };
 
-type CoreTitleBackfillCounts = {
-  backfilled: number;
-  skipped: number;
-  orphaned: number;
-};
-
 type BuildChangedNodesResult = {
   changedNodes: ObsidianDiscourseNodeData[];
-  coreTitleBackfill: CoreTitleBackfillCounts | null;
 };
 
 const mergeChangeTypes = (
@@ -335,24 +328,6 @@ const detectNodeChanges = (
   return changeTypes;
 };
 
-const noticeCoreTitleBackfill = ({
-  backfilled,
-  skipped,
-  orphaned,
-}: CoreTitleBackfillCounts): void => {
-  if (backfilled === 0 && orphaned === 0) return;
-  const messages = [
-    `Backfilled core title for ${backfilled} node${backfilled === 1 ? "" : "s"}.`,
-    `${skipped} already had one.`,
-  ];
-  if (orphaned > 0) {
-    messages.push(
-      `${orphaned} no longer match a discourse node in this vault.`,
-    );
-  }
-  new Notice(messages.join(" "), 5000);
-};
-
 const buildChangedNodesFromNodes = async ({
   nodes,
   supabaseClient,
@@ -361,7 +336,7 @@ const buildChangedNodesFromNodes = async ({
   fullSync = false,
 }: BuildChangedNodesOptions): Promise<BuildChangedNodesResult> => {
   if (nodes.length === 0) {
-    return { changedNodes: [], coreTitleBackfill: null };
+    return { changedNodes: [] };
   }
 
   const nodeInstanceIds = nodes.map((node) => node.nodeInstanceId);
@@ -377,9 +352,7 @@ const buildChangedNodesFromNodes = async ({
   );
   const changedNodes: ObsidianDiscourseNodeData[] = [];
   let missingConcepts: Set<string> | undefined;
-  let coreTitleProbe:
-    | { missingCoreTitleIds: Set<string>; skipped: number; orphaned: number }
-    | undefined;
+  let missingCoreTitleIds: Set<string> | undefined;
   if (fullSync) {
     const existingConceptIds = await getAllPages(
       supabaseClient
@@ -405,13 +378,8 @@ const buildChangedNodesFromNodes = async ({
           .filter((id) => id !== null),
       );
       missingConcepts = difference(nodeIds, dbConceptIds);
-      const { missingCoreTitleIds, withCoreTitleCount } =
-        partitionByCoreTitle(existingConceptIds);
-      coreTitleProbe = {
-        missingCoreTitleIds,
-        skipped: withCoreTitleCount,
-        orphaned: difference(missingCoreTitleIds, nodeIds).size,
-      };
+      missingCoreTitleIds =
+        partitionByCoreTitle(existingConceptIds).missingCoreTitleIds;
     }
   }
 
@@ -433,7 +401,7 @@ const buildChangedNodesFromNodes = async ({
     if (
       finalChangeTypes.length === 0 &&
       !missingConcepts?.has(node.nodeInstanceId) &&
-      !coreTitleProbe?.missingCoreTitleIds.has(node.nodeInstanceId)
+      !missingCoreTitleIds?.has(node.nodeInstanceId)
     ) {
       continue;
     }
@@ -449,18 +417,7 @@ const buildChangedNodesFromNodes = async ({
     });
   }
 
-  return {
-    changedNodes,
-    coreTitleBackfill: coreTitleProbe
-      ? {
-          backfilled: changedNodes.filter((node) =>
-            coreTitleProbe.missingCoreTitleIds.has(node.nodeInstanceId),
-          ).length,
-          skipped: coreTitleProbe.skipped,
-          orphaned: coreTitleProbe.orphaned,
-        }
-      : null,
-  };
+  return { changedNodes };
 };
 
 export const syncAllNodesAndRelations = async (
@@ -481,15 +438,14 @@ export const syncAllNodesAndRelations = async (
 
     const allNodes = await collectDiscourseNodesFromVault(plugin, true);
 
-    const { changedNodes: changedNodeInstances, coreTitleBackfill } =
-      relationsOnly
-        ? { changedNodes: [], coreTitleBackfill: null }
-        : await buildChangedNodesFromNodes({
-            nodes: allNodes,
-            supabaseClient,
-            context,
-            fullSync: true,
-          });
+    const { changedNodes: changedNodeInstances } = relationsOnly
+      ? { changedNodes: [] }
+      : await buildChangedNodesFromNodes({
+          nodes: allNodes,
+          supabaseClient,
+          context,
+          fullSync: true,
+        });
 
     const accountLocalId = plugin.settings.accountLocalId;
     if (!accountLocalId) {
@@ -513,10 +469,6 @@ export const syncAllNodesAndRelations = async (
       allNodes,
       fullSync: true,
     });
-
-    if (coreTitleBackfill !== null) {
-      noticeCoreTitleBackfill(coreTitleBackfill);
-    }
 
     // When synced nodes are already published, ensure non-text assets are in storage.
     await syncPublishedNodesAssets(

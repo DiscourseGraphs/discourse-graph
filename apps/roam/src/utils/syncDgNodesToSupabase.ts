@@ -893,25 +893,6 @@ const reportCoreTitleBackfill = ({
     skipped,
     orphaned,
   });
-  if (backfilled === 0 && deferred === 0 && orphaned === 0) return;
-  const messages = [
-    `Backfilled core title for ${backfilled} node${backfilled === 1 ? "" : "s"}.`,
-    `${skipped} already had one.`,
-  ];
-  if (deferred > 0) {
-    messages.push(`${deferred} waiting for sync to be enabled.`);
-  }
-  if (orphaned > 0) {
-    messages.push(
-      `${orphaned} no longer match a discourse node in this graph.`,
-    );
-  }
-  renderToast({
-    id: "core-title-backfill",
-    intent: orphaned > 0 ? "warning" : "success",
-    content: messages.join(" "),
-    timeout: 5000,
-  });
 };
 
 const getAllMissingOrNewDiscourseNodes = async ({
