@@ -4,7 +4,7 @@ import {
   stripFrontmatter,
   stripTitleHeading,
   trimBlankLines,
-} from "../text/index.js";
+} from "../text";
 
 describe("normalizeLineEndings", () => {
   it("converts CRLF and lone CR to LF", () => {

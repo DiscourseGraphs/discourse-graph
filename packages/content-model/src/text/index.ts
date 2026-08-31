@@ -37,3 +37,14 @@ export const stripFrontmatter = (markdown: string): string => {
     .join("\n")
     .replace(/^\n+/, "");
 };
+
+export const dgDocumentToPlainText = ({
+  document,
+}: {
+  document: DgDocument;
+}): string => {
+  const title = document.title.text.trim();
+  const body = document.body.text.trim();
+  return [title, body].filter((part) => part !== "").join("\n\n");
+};
+import type { DgDocument } from "../schema";

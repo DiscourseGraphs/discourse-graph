@@ -168,7 +168,14 @@ Feature: Content access
           "scale": "document",
           "created": "2000/01/01",
           "last_modified": "2001/01/02",
-          "text": "{\"type\":\"root\",\"children\":[]}",
+          "text": "Canonical plain text",
+          "metadata": {
+            "content": {
+              "version": 1,
+              "title": { "text": "Markdown", "annotations": [] },
+              "body": { "text": "Canonical plain text", "annotations": [] }
+            }
+          },
           "content_type": "application/vnd.discourse-graph.atjson+json; version=1",
           "original": false
         }
@@ -177,3 +184,58 @@ Feature: Content access
     Then a user logged in space s1 should see 2 Content in the database
     And a user logged in space s1 should see 1 content rows with variant "full" and content type "text/markdown"
     And a user logged in space s1 should see 1 content rows with variant "full" and content type "application/vnd.discourse-graph.atjson+json; version=1"
+    And content in space s1 with variant "full" and content type "application/vnd.discourse-graph.atjson+json; version=1" should have text "Canonical plain text"
+    And content in space s1 with variant "full" and content type "application/vnd.discourse-graph.atjson+json; version=1" should store ATJSON version 1
+    When FileReference are added to the database:
+      | _space_id | source_local_id | filepath    | filehash | created    | last_modified |
+      | s1        | page1_uid       | diagram.png | hash-1   | 2000/01/01 | 2001/01/02    |
+    Then a user logged in space s1 should see 1 FileReference in the database
+    When user user1 upserts this content to space s1:
+      """json
+      [
+        {
+          "author_local_id": "user1",
+          "document_local_id": "page1_uid",
+          "source_local_id": "page1_uid",
+          "variant": "full",
+          "scale": "document",
+          "created": "2000/01/01",
+          "last_modified": "2001/01/02",
+          "text": "# Updated Markdown",
+          "content_type": "text/markdown"
+        }
+      ]
+      """
+    Then a user logged in space s1 should see 2 Content in the database
+    And content in space s1 with variant "full" and content type "text/markdown" should have text "# Updated Markdown"
+    And a user logged in space s1 should see 1 FileReference in the database
+
+  Scenario: Legacy Obsidian Markdown is normalized to the native v0 type
+    When user user1 upserts this content to space s1:
+      """json
+      [
+        {
+          "source_local_id": "legacy-obsidian-node",
+          "document_inline": {
+            "source_local_id": "legacy-obsidian-node",
+            "created": "2000/01/01",
+            "last_modified": "2001/01/02",
+            "author_local_id": "user1"
+          },
+          "variant": "full",
+          "scale": "document",
+          "text": "# Legacy",
+          "created": "2000/01/01",
+          "last_modified": "2001/01/02",
+          "content_type": "text/obsidian+markdown"
+        }
+      ]
+      """
+    Then a user logged in space s1 should see 1 content rows with variant "full" and content type "text/markdown"
+    And a user logged in space s1 should see 0 content rows with variant "full" and content type "text/obsidian+markdown"
+
+  Scenario: Inline embeddings are ignored for non-plain representations
+    When user user1 upserts content type "text/plain" with an inline embedding to space s1
+    And user user1 upserts content type "application/vnd.discourse-graph.atjson+json; version=1" with an inline embedding to space s1
+    Then a user logged in space s1 should see 2 Content in the database
+    And a user logged in space s1 should see 1 ContentEmbedding_openai_text_embedding_3_small_1536 in the database

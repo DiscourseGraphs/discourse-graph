@@ -1,6 +1,11 @@
 import { crossAppNodeToDbContent } from "@repo/database/lib/crossAppConverters";
-import { fullContentNodeToCrossApp } from "./roamToCrossAppConverters";
+import {
+  buildCanonicalRoamDocument,
+  fullContentNodeToCrossApp,
+} from "./roamToCrossAppConverters";
 import type { LocalContentDataInput } from "@repo/database/inputTypes";
+import type { Json } from "@repo/database/dbTypes";
+import { contentTypes, dgDocumentToPlainText } from "@repo/content-model";
 
 export type RoamFullContentNode = {
   author_local_id: string;
@@ -21,7 +26,21 @@ export const convertRoamNodeToFullContent = ({
     try {
       const crossAppNode = fullContentNodeToCrossApp(node);
       const fullContent = crossAppNodeToDbContent(crossAppNode, "full");
-      return fullContent === undefined ? [] : [fullContent];
+      if (fullContent === undefined) return [];
+      const document = buildCanonicalRoamDocument({
+        uid: node.source_local_id,
+        title: node.node_title ?? node.text,
+      });
+      return [
+        fullContent,
+        {
+          ...fullContent,
+          text: dgDocumentToPlainText({ document }),
+          content_type: contentTypes.discourseGraphAtJson,
+          metadata: { content: document as unknown as Json },
+          original: false,
+        },
+      ];
     } catch (error) {
       console.error(
         `convertRoamNodeToFullContent: failed to build full markdown for ${node.source_local_id}:`,

@@ -1,6 +1,13 @@
 /* eslint @typescript-eslint/no-explicit-any : 0 */
 import assert from "assert";
-import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
+import {
+  Given,
+  When,
+  Then,
+  world,
+  setDefaultTimeout,
+  type DataTable,
+} from "@cucumber/cucumber";
 import {
   createClient,
   type PostgrestSingleResponse,
@@ -25,6 +32,8 @@ type ContentVariant = Enums<"ContentVariant">;
 type TableName = keyof Database["public"]["Tables"];
 type LocalRefsType = Record<string, number | string>;
 const PLATFORMS: readonly Platform[] = Constants.public.Enums.Platform;
+
+setDefaultTimeout(30_000);
 
 if (getVariant() === "production") {
   console.error("Tests are destructive, not running against production");
@@ -383,26 +392,131 @@ Given(
   },
 );
 
+const upsertContent = async ({
+  userName,
+  spaceName,
+  data,
+}: {
+  userName: string;
+  spaceName: string;
+  data: Json;
+}): Promise<void> => {
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const spaceId = localRefs[spaceName];
+  if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+  const userId = localRefs[userName];
+  if (typeof userId !== "number") assert.fail("userId not a number");
+  const client = await getLoggedinDatabaseForUsername(userName);
+  const response = await client.rpc("upsert_content", {
+    v_space_id: spaceId,
+    data,
+    v_creator_id: userId,
+    content_as_document: false,
+  });
+  assert.equal(response.error, null);
+};
+
 // invoke the upsert_content function, expects json
 Given(
   "user {word} upserts this content to space {word}:",
-  async (userName: string, spaceName: string, docString: string) => {
-    const data = JSON.parse(docString) as Json;
+  async (userName: string, spaceName: string, docString: string) =>
+    upsertContent({
+      userName,
+      spaceName,
+      data: JSON.parse(docString) as Json,
+    }),
+);
+
+When(
+  "user {word} upserts content type {string} with an inline embedding to space {word}",
+  async (userName: string, contentType: string, spaceName: string) =>
+    upsertContent({
+      userName,
+      spaceName,
+      data: [
+        {
+          source_local_id: "embedding-guard",
+          document_inline: {
+            source_local_id: "embedding-guard",
+            created: "2000/01/01",
+            last_modified: "2001/01/02",
+            author_local_id: userName,
+          },
+          variant: "full",
+          scale: "document",
+          content_type: contentType,
+          text: "Plain semantic text",
+          created: "2000/01/01",
+          last_modified: "2001/01/02",
+          original: contentType === "text/plain",
+          embedding_inline: {
+            model: "openai_text_embedding_3_small_1536",
+            vector: [1, ...Array<number>(1535).fill(0)],
+          },
+        },
+      ],
+    }),
+);
+
+/* eslint-disable max-params -- Cucumber inspects function.length for step arity. */
+Then(
+  "content in space {word} with variant {string} and content type {string} should have text {string}",
+  async (
+    spaceName: string,
+    variant: ContentVariant,
+    contentType: string,
+    expectedText: string,
+  ) => {
     const localRefs = (world.localRefs || {}) as LocalRefsType;
     const spaceId = localRefs[spaceName];
     if (typeof spaceId !== "number") assert.fail("spaceId not a number");
-    const userId = localRefs[userName];
-    if (typeof userId !== "number") assert.fail("userId not a number");
-    const client = await getLoggedinDatabaseForUsername(userName);
-    const response = await client.rpc("upsert_content", {
-      v_space_id: spaceId,
-      data,
-      v_creator_id: userId,
-      content_as_document: false,
-    });
+    const client = await getLoggedinDatabase(spaceId);
+    const response = await client
+      .from("my_contents")
+      .select("text")
+      .eq("variant", variant)
+      .eq("content_type", contentType)
+      .single();
     assert.equal(response.error, null);
+    assert.equal(response.data?.text, expectedText);
   },
 );
+
+Then(
+  "content in space {word} with variant {string} and content type {string} should store ATJSON version {int}",
+  async (
+    spaceName: string,
+    variant: ContentVariant,
+    contentType: string,
+    expectedVersion: number,
+  ) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const client = await getLoggedinDatabase(spaceId);
+    const response = await client
+      .from("my_contents")
+      .select("metadata")
+      .eq("variant", variant)
+      .eq("content_type", contentType)
+      .single();
+    assert.equal(response.error, null);
+    const metadata = response.data?.metadata;
+    assert(
+      metadata !== null &&
+        typeof metadata === "object" &&
+        !Array.isArray(metadata),
+    );
+    const content = metadata.content;
+    assert(
+      content !== null &&
+        typeof content === "object" &&
+        !Array.isArray(content),
+    );
+    assert.equal(content.version, expectedVersion);
+  },
+);
+/* eslint-enable max-params */
 
 // invoke the upsert_concepts function, expects json
 Given(

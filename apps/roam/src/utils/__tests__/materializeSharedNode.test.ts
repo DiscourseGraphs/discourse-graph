@@ -11,6 +11,7 @@ import {
   writeImportedSourceIdentity,
 } from "~/utils/importedSourceIdentity";
 import { materializeSharedNode } from "~/utils/materializeSharedNode";
+import { contentTypes } from "@repo/content-model";
 
 vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
   default: vi.fn(),
@@ -86,7 +87,7 @@ const MATERIALIZED_MARKDOWN = "# Findings\nREM sleep improves recall";
 
 const clientWithFullContent = ({
   text,
-  contentType = "text/obsidian+markdown",
+  contentType = contentTypes.markdown,
   error,
 }: {
   text?: string | null;
@@ -431,7 +432,7 @@ describe("materializeSharedNode", () => {
   it("rejects Obsidian markdown on a Roam-origin node", async () => {
     const { client } = clientWithFullContent({
       text: `# ${roamSharedNode.title}\n\n- body`,
-      contentType: "text/obsidian+markdown",
+      contentType: contentTypes.markdown,
     });
 
     const result = await materializeSharedNode({
@@ -481,7 +482,7 @@ describe("materializeSharedNode", () => {
   it("rejects a full content type Roam cannot materialize", async () => {
     const { client } = clientWithFullContent({
       text: `# ${sharedNode.title}\n\nbody`,
-      contentType: "text/markdown",
+      contentType: contentTypes.discourseGraphAtJson,
     });
 
     const result = await materializeSharedNode({ client, sharedNode });
@@ -491,7 +492,7 @@ describe("materializeSharedNode", () => {
       error: { stage: "fetch-content" },
     });
     expect(result.success === false && result.error.message).toContain(
-      "text/markdown",
+      contentTypes.discourseGraphAtJson,
     );
     expect(pageFromMarkdown).not.toHaveBeenCalled();
   });

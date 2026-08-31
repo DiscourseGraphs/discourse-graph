@@ -12,10 +12,13 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "check-types": "tsc --noEmit --skipLibCheck",
+    "test": "pnpm test:unit",
+    "test:unit": "vitest run --config vitest.unit.config.mts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:integration:nodb": "vitest run --config vitest.integration.config.ts --tags-filter '!database'"
   },
   "dependencies": {
+    "@repo/content-model": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/ui": "workspace:*",
     "@supabase/ssr": "catalog:",

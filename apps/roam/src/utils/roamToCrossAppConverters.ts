@@ -14,7 +14,13 @@ import type { DiscourseRelation } from "./getDiscourseRelations";
 import { toMarkdown } from "./pageToMarkdown";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
-import { contentTypes } from "@repo/content-model";
+import {
+  contentTypes,
+  roamTreeToDgDocument,
+  type DgDocument,
+  type RoamTreeNode,
+  type RoamViewType,
+} from "@repo/content-model";
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
@@ -24,6 +30,41 @@ const FULL_MARKDOWN_OPTS = {
   maxFilenameLength: 64,
   linkType: "alias",
   allNodes: [] as DiscourseNode[],
+};
+
+const toCanonicalViewType = (
+  viewType: ViewType | undefined,
+): RoamViewType | undefined => {
+  if (viewType === "numbered") return "number";
+  return viewType;
+};
+
+export const treeNodeToCanonicalRoamNode = (node: TreeNode): RoamTreeNode => ({
+  uid: node.uid,
+  text: node.text,
+  children: node.children.map(treeNodeToCanonicalRoamNode),
+  ...(node.heading > 0 ? { heading: node.heading } : {}),
+  ...(toCanonicalViewType(node.viewType) === undefined
+    ? {}
+    : { viewType: toCanonicalViewType(node.viewType) }),
+});
+
+export const buildCanonicalRoamDocument = ({
+  uid,
+  title,
+}: {
+  uid: string;
+  title: string;
+}): DgDocument => {
+  const tree = getFullTreeByParentUid(uid);
+  return roamTreeToDgDocument({
+    page: {
+      uid,
+      title,
+      children: tree.children.map(treeNodeToCanonicalRoamNode),
+      viewType: toCanonicalViewType(getPageViewType(title) || "bullet"),
+    },
+  });
 };
 
 export const buildFullMarkdown = ({

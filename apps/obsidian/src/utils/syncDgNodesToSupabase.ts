@@ -30,6 +30,7 @@ import { isAcceptedSchema } from "./typeUtils";
 import { getTemplatePluginInfo } from "./templates";
 import { difference } from "@repo/utils/setOperations";
 import { getAllPages } from "@repo/database/lib/pagination";
+import { contentTypes } from "@repo/content-model";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
@@ -169,6 +170,7 @@ const getLastContentSyncTime = async (
     .from("my_contents")
     .select("last_modified")
     .eq("space_id", spaceId)
+    .eq("content_type", contentTypes.plainText)
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -275,6 +277,7 @@ const getExistingTitlesFromDatabase = async (
       .select("source_local_id, text")
       .eq("space_id", spaceId)
       .eq("variant", "direct")
+      .eq("content_type", contentTypes.plainText)
       .in("source_local_id", nodeInstanceIds);
 
   if (directError) {

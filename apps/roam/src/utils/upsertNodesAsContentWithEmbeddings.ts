@@ -2,8 +2,10 @@ import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import { type SupabaseContext } from "./supabaseContext";
 import { nextApiRoot } from "@repo/utils/execContext";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { Json } from "@repo/database/dbTypes";
 import type { LocalContentDataInput } from "@repo/database/inputTypes";
+import { upsertContentThroughApi } from "@repo/database/lib/contentApiClient";
+import { contentTypes, dgDocumentToPlainText } from "@repo/content-model";
+import { buildCanonicalRoamDocument } from "./roamToCrossAppConverters";
 
 const EMBEDDING_BATCH_SIZE = 200;
 const EMBEDDING_MODEL = "openai_text_embedding_3_small_1536";
@@ -31,15 +33,54 @@ export const convertRoamNodeToLocalContent = ({
       last_modified: new Date(node.last_modified || Date.now()).toISOString(),
       text: text,
       variant: variant,
+      content_type: contentTypes.plainText,
       scale: "document",
-      // use the default text/plain content type
     };
   });
 };
 
+export const convertRoamNodesToCanonicalContent = ({
+  nodes,
+}: {
+  nodes: RoamDiscourseNodeData[];
+}): LocalContentDataInput[] =>
+  nodes.flatMap((node) => {
+    try {
+      const document = buildCanonicalRoamDocument({
+        uid: node.source_local_id,
+        title: node.node_title ?? node.text,
+      });
+      return [
+        {
+          author_local_id: node.author_local_id,
+          source_local_id: node.source_local_id,
+          created: new Date(node.created || Date.now()).toISOString(),
+          last_modified: new Date(
+            node.last_modified || Date.now(),
+          ).toISOString(),
+          text: dgDocumentToPlainText({ document }),
+          variant: "full",
+          content_type: contentTypes.discourseGraphAtJson,
+          scale: "document",
+          metadata: { content: document },
+          original: false,
+        },
+      ];
+    } catch (error) {
+      console.error(
+        `Failed to build canonical Roam content for ${node.source_local_id}:`,
+        error,
+      );
+      return [];
+    }
+  });
+
 export const fetchEmbeddingsForNodes = async (
   nodes: LocalContentDataInput[],
 ): Promise<LocalContentDataInput[]> => {
+  if (nodes.some((node) => node.content_type !== contentTypes.plainText)) {
+    throw new Error("Embeddings may only be requested for text/plain content.");
+  }
   const allEmbeddings: number[][] = [];
   const allNodesTexts = nodes.map((node) => node.text || "");
 
@@ -103,18 +144,17 @@ const uploadBatches = async (
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
 ) => {
-  const { spaceId, userId } = context;
+  const { spaceId } = context;
   for (let idx = 0; idx < batches.length; idx++) {
     const batch = batches[idx];
-    const { error } = await supabaseClient.rpc("upsert_content", {
-      data: batch as unknown as Json,
-      v_space_id: spaceId,
-      v_creator_id: userId,
-      content_as_document: true,
-    });
-
-    if (error) {
-      console.error(`upsert_content failed for batch ${idx + 1}:`, error);
+    try {
+      await upsertContentThroughApi({
+        client: supabaseClient,
+        spaceId,
+        request: { content: batch, contentAsDocument: true },
+      });
+    } catch (error) {
+      console.error(`Content API upsert failed for batch ${idx + 1}:`, error);
       throw error;
     }
   }
@@ -134,6 +174,9 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     return;
   }
   const localContentNodes = convertRoamNodeToLocalContent({
+    nodes: roamNodes,
+  });
+  const canonicalContentNodes = convertRoamNodesToCanonicalContent({
     nodes: roamNodes,
   });
 
@@ -166,7 +209,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   };
 
   await uploadBatches(
-    chunk(nodesWithEmbeddings, batchSize),
+    chunk([...nodesWithEmbeddings, ...canonicalContentNodes], batchSize),
     supabaseClient,
     context,
   );

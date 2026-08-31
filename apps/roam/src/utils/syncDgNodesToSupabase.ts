@@ -18,7 +18,10 @@ import {
   orderConceptsByDependency,
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
-import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
+import {
+  convertRoamNodeToLocalContent,
+  convertRoamNodesToCanonicalContent,
+} from "./upsertNodesAsContentWithEmbeddings";
 import {
   convertRoamNodeToFullContent,
   type RoamFullContentNode,
@@ -36,7 +39,9 @@ import type {
   LocalContentDataInput,
   LocalAccountDataInput,
 } from "@repo/database/inputTypes";
+import { upsertContentThroughApi } from "@repo/database/lib/contentApiClient";
 import type { Properties } from "posthog-js";
+import { contentTypes } from "@repo/content-model";
 
 const SYNC_FUNCTION = "embedding";
 const SHARED_CONTENT_SYNC_FUNCTION = "shared-content";
@@ -584,12 +589,10 @@ export const proposeSyncTask = async ({
 const upsertNodeSchemaToContent = async ({
   nodeTypesUids,
   spaceId,
-  userId,
   supabaseClient,
 }: {
   nodeTypesUids: string[];
   spaceId: number;
-  userId: number;
   supabaseClient: DGSupabaseClient;
 }) => {
   const query = `[
@@ -617,16 +620,17 @@ const upsertNodeSchemaToContent = async ({
   const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
     nodes: result,
   });
-  const { error } = await supabaseClient.rpc("upsert_content", {
-    data: contentData as Json,
-    v_space_id: spaceId,
-    v_creator_id: userId,
-    content_as_document: true,
+  const canonicalContentData = convertRoamNodesToCanonicalContent({
+    nodes: result,
   });
-  if (error) {
-    console.error("upsert_content failed:", error);
-    throw new Error(error.message);
-  }
+  await upsertContentThroughApi({
+    client: supabaseClient,
+    spaceId,
+    request: {
+      content: [...contentData, ...canonicalContentData],
+      contentAsDocument: true,
+    },
+  });
 };
 
 export const convertDgToSupabaseConcepts = async ({
@@ -659,7 +663,6 @@ export const convertDgToSupabaseConcepts = async ({
   await upsertNodeSchemaToContent({
     nodeTypesUids: nodeTypes.map((node) => node.type),
     spaceId: context.spaceId,
-    userId: context.userId,
     supabaseClient,
   });
 
@@ -714,14 +717,13 @@ const uploadContentBatches = async ({
   for (let idx = 0; idx < batches.length; idx++) {
     const batch = batches[idx];
 
-    const { error } = await supabaseClient.rpc("upsert_content", {
-      data: batch as Json,
-      v_space_id: context.spaceId,
-      v_creator_id: context.userId,
-      content_as_document: true,
-    });
-
-    if (error) {
+    try {
+      await upsertContentThroughApi({
+        client: supabaseClient,
+        spaceId: context.spaceId,
+        request: { content: batch, contentAsDocument: true },
+      });
+    } catch (error) {
       throw new Error(`upsert_content failed for batch ${idx + 1}`, {
         cause: error,
       });
@@ -764,7 +766,10 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   }
 
   await uploadContentBatches({
-    content: nodesWithEmbeddings,
+    content: [
+      ...nodesWithEmbeddings,
+      ...convertRoamNodesToCanonicalContent({ nodes: roamNodes }),
+    ],
     supabaseClient,
     context,
   });
@@ -779,7 +784,14 @@ const upsertNodesToSupabaseAsContent = async (
     return;
   }
   const content = convertRoamNodeToLocalContent({ nodes: roamNodes });
-  await uploadContentBatches({ content, supabaseClient, context });
+  const canonicalContent = convertRoamNodesToCanonicalContent({
+    nodes: roamNodes,
+  });
+  await uploadContentBatches({
+    content: [...content, ...canonicalContent],
+    supabaseClient,
+    context,
+  });
 };
 
 const upsertRoamNodesToSupabaseAsFullContent = async ({
@@ -882,6 +894,7 @@ const getAllMissingOrNewDiscourseNodes = async ({
       .from("my_contents")
       .select("source_local_id")
       .eq("space_id", spaceId)
+      .eq("content_type", contentTypes.plainText)
       .order("id"),
     1000,
   );
@@ -969,6 +982,7 @@ const getSharedSourceLocalIdsMissingFullContent = async ({
       .select("source_local_id")
       .eq("space_id", spaceId)
       .eq("variant", "full")
+      .eq("content_type", contentTypes.roamMarkdown)
       .order("source_local_id"),
     1000,
   );

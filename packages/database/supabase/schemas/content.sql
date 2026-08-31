@@ -143,6 +143,25 @@ CREATE UNIQUE INDEX IF NOT EXISTS content_space_local_id_variant_content_type_or
 
 CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
 
+CREATE OR REPLACE FUNCTION public.normalize_native_content_type() RETURNS TRIGGER
+SET search_path = ''
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.content_type = 'text/obsidian+markdown' THEN
+    NEW.content_type := 'text/markdown';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER normalize_content_native_type
+BEFORE INSERT OR UPDATE OF content_type ON public."Content"
+FOR EACH ROW EXECUTE FUNCTION public.normalize_native_content_type();
+
+CREATE TRIGGER normalize_document_native_type
+BEFORE INSERT OR UPDATE OF content_type ON public."Document"
+FOR EACH ROW EXECUTE FUNCTION public.normalize_native_content_type();
+
 ALTER TABLE public."Content" OWNER TO "postgres";
 
 COMMENT ON TABLE public."Content" IS 'A unit of content';
@@ -559,9 +578,9 @@ BEGIN
     local_content.space_id := v_space_id;
     IF content_type(local_content) IS NULL THEN
         local_content.content_type := CASE
-          WHEN variant(local_content)!='full' THEN 'text/plain'
+          WHEN variant(local_content) IS DISTINCT FROM 'full' THEN 'text/plain'
           WHEN v_platform='Roam' THEN 'text/roam+markdown'
-          WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
+          WHEN v_platform='Obsidian' THEN 'text/markdown'
           ELSE 'text/plain' END;
     END IF;
     db_content := public._local_content_to_db_content(local_content);
@@ -595,7 +614,7 @@ BEGIN
       IF content_type(document_inline(local_content)) IS NULL THEN
         local_content.document_inline.content_type := CASE
           WHEN v_platform='Roam' THEN 'text/roam+markdown'
-          WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
+          WHEN v_platform='Obsidian' THEN 'text/markdown'
           ELSE 'text/plain' END;
       END IF;
       db_document := public._local_document_to_db_document(document_inline(local_content));
@@ -677,7 +696,7 @@ BEGIN
         part_of_id = COALESCE(db_content.part_of_id, EXCLUDED.part_of_id),
         original = db_content.original
     RETURNING id INTO STRICT upsert_id;
-    IF model(embedding_inline(local_content)) IS NOT NULL THEN
+    IF content_type(local_content) = 'text/plain' AND model(embedding_inline(local_content)) IS NOT NULL THEN
         PERFORM public.upsert_content_embedding(upsert_id, model(embedding_inline(local_content)),  vector(embedding_inline(local_content)));
     END IF;
     RETURN NEXT upsert_id;

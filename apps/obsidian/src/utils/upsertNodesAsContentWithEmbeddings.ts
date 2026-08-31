@@ -1,11 +1,19 @@
 import { nextApiRoot } from "@repo/utils/execContext";
-import { DGSupabaseClient } from "@repo/database/lib/client";
-import { Json, CompositeTypes } from "@repo/database/dbTypes";
-import { SupabaseContext } from "./supabaseContext";
-import { ObsidianDiscourseNodeData, ChangeType } from "./syncDgNodesToSupabase";
-import { default as DiscourseGraphPlugin } from "~/index";
-
-type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
+import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { Json } from "@repo/database/dbTypes";
+import { upsertContentThroughApi } from "@repo/database/lib/contentApiClient";
+import type { LocalContentDataInput } from "@repo/database/inputTypes";
+import {
+  contentTypes,
+  dgDocumentToPlainText,
+  obsidianMarkdownToDgDocument,
+} from "@repo/content-model";
+import type { SupabaseContext } from "./supabaseContext";
+import type {
+  ChangeType,
+  ObsidianDiscourseNodeData,
+} from "./syncDgNodesToSupabase";
+import type DiscourseGraphPlugin from "~/index";
 
 type ContentVariant = "direct" | "full";
 
@@ -72,12 +80,24 @@ const createNodeContentEntries = async (
   if (variantsToCreate.includes("full")) {
     try {
       const fullContent = await plugin.app.vault.read(node.file);
+      const document = obsidianMarkdownToDgDocument({
+        title: node.file.basename,
+        markdown: fullContent,
+      });
       entries.push({
         ...baseEntry,
         text: fullContent,
         variant: "full",
-        content_type: "text/obsidian+markdown",
+        content_type: contentTypes.markdown,
         metadata: node.frontmatter as Json,
+      });
+      entries.push({
+        ...baseEntry,
+        text: dgDocumentToPlainText({ document }),
+        variant: "full",
+        content_type: contentTypes.discourseGraphAtJson,
+        metadata: { content: document as unknown as Json },
+        original: false,
       });
     } catch (error) {
       console.error(`Error reading file content for ${node.file.path}:`, error);
@@ -105,6 +125,9 @@ export const convertObsidianNodeToLocalContent = async ({
 export const fetchEmbeddingsForNodes = async (
   nodes: LocalContentDataInput[],
 ): Promise<LocalContentDataInput[]> => {
+  if (nodes.some((node) => node.content_type !== contentTypes.plainText)) {
+    throw new Error("Embeddings may only be requested for text/plain content.");
+  }
   const allEmbeddings: number[][] = [];
   const allNodesTexts = nodes.map((node) => node.text || "");
 
@@ -120,7 +143,7 @@ export const fetchEmbeddingsForNodes = async (
       let errorData;
       try {
         errorData = (await response.json()) as { error: string };
-      } catch (e) {
+      } catch {
         errorData = {
           error: `Server responded with ${response.status}: ${await response.text()}`,
         };
@@ -164,18 +187,17 @@ const uploadBatches = async (
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
 ): Promise<void> => {
-  const { spaceId, userId } = context;
+  const { spaceId } = context;
   for (let idx = 0; idx < batches.length; idx++) {
-    const batch = batches[idx];
-    const { error } = await supabaseClient.rpc("upsert_content", {
-      data: batch as unknown as Json,
-      v_space_id: spaceId,
-      v_creator_id: userId,
-      content_as_document: true,
-    });
-
-    if (error) {
-      console.error(`upsert_content failed for batch ${idx + 1}:`, error);
+    const batch = batches[idx]!;
+    try {
+      await upsertContentThroughApi({
+        client: supabaseClient,
+        spaceId,
+        request: { content: batch, contentAsDocument: true },
+      });
+    } catch (error) {
+      console.error(`Content API upsert failed for batch ${idx + 1}:`, error);
       throw error;
     }
   }

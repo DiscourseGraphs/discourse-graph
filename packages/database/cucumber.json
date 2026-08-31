@@ -1,6 +1,5 @@
 {
   "default": {
-    "requireModule": ["ts-node-maintained/register"],
-    "require": ["features/step-definitions/**/*.ts"]
+    "import": ["features/step-definitions/**/*.ts"]
   }
 }
