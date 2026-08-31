@@ -25,6 +25,7 @@ export type CrossAppNodeSchema = CrossAppSchemaBase & {
   label: string;
   template?: string;
   templateTitle?: string;
+  slotDefinitions?: Record<string, LocalId | undefined>;
 };
 
 // A relation type schema
@@ -79,6 +80,7 @@ export type CrossAppNode = CrossAppBase & {
   // -> the {content} part). Equals the title when the type has no format or
   // the title does not match it.
   coreTitle: string;
+  slots?: Record<string, LocalId>;
   content: {
     direct: InlineCrossAppContent;
     full?: InlineCrossAppTypedContent;

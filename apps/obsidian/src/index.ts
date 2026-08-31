@@ -44,6 +44,10 @@ import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
 import { showHelpMenu } from "~/utils/helpMenu";
 import { DISCOURSE_GRAPH_LOGO_ICON_ID, WHITE_LOGO_SVG } from "~/icons";
+import {
+  registerNodeTypeIdPropertyWidget,
+  unregisterNodeTypeIdPropertyWidget,
+} from "~/components/nodeTypeIdPropertyWidget";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -74,6 +78,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     });
 
     registerTemplateSettingsSync(this);
+    registerNodeTypeIdPropertyWidget(this);
 
     if (this.settings.syncModeEnabled === true) {
       void initializeSupabaseSync(this).catch((error) => {
@@ -468,6 +473,7 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   onunload() {
+    unregisterNodeTypeIdPropertyWidget(this);
     this.activeNodePopover?.close();
     this.activeNodePopover = null;
     this.cleanupViewActions();

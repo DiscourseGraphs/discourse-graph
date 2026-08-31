@@ -195,20 +195,25 @@ export const nodeSchemaToCrossApp = (
   s: DiscourseNode,
 ): CrossAppNodeSchema | null => {
   const relData = window.roamAlphaAPI.pull(
-    "[:create/time :edit/time {:create/user [:user/uid]}]",
+    "[:create/time :page/edit-time {:create/user [:user/uid]}]",
     `[:block/uid "${s.type}"]`,
   ) as unknown as {
     ":create/time": number;
-    ":edit/time": number;
+    ":page/edit-time"?: number;
     ":create/user": { ":user/uid": string };
   };
   if (!relData) return null;
   const userUid = (relData[":create/user"] ?? {})[":user/uid"];
   if (!userUid) return null;
+  const createdTime = relData[":create/time"] || Date.now();
+  // A node type's settings live either in the page's props or in blocks below it,
+  // but :page/edit-time reflects both.
+  const pageEditTime = relData[":page/edit-time"] || createdTime;
   return {
     localId: s.type,
     label: s.text,
     authorId: userUid,
-    createdAt: new Date(relData[":create/time"] || Date.now()),
+    createdAt: new Date(createdTime),
+    modifiedAt: new Date(Math.max(pageEditTime, createdTime)),
   };
 };

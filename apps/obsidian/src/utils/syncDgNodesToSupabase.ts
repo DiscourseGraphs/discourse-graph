@@ -464,7 +464,6 @@ export const syncAllNodesAndRelations = async (
       nodesSince: changedNodeInstances,
       supabaseClient,
       context,
-      accountLocalId,
       plugin,
       allNodes,
       fullSync: true,
@@ -485,7 +484,6 @@ const convertDgToSupabaseConcepts = async ({
   nodesSince,
   supabaseClient,
   context,
-  accountLocalId,
   plugin,
   allNodes,
   fullSync,
@@ -493,7 +491,6 @@ const convertDgToSupabaseConcepts = async ({
   nodesSince: ObsidianDiscourseNodeData[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
-  accountLocalId: string;
   plugin: DiscourseGraphPlugin;
   allNodes?: DiscourseNodeInVault[];
   fullSync?: boolean;
@@ -609,7 +606,11 @@ const convertDgToSupabaseConcepts = async ({
     .filter((n) => !!n);
 
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
-    return discourseNodeInstanceToLocalConcept(context, node, nodeTypesById);
+    return discourseNodeInstanceToLocalConcept({
+      context,
+      nodeData: node,
+      nodeTypesById,
+    });
   });
 
   const relationInstancesData = await loadRelations(plugin);
@@ -832,7 +833,6 @@ const syncChangedNodesToSupabase = async ({
     nodesSince: nodesNeedingConceptUpsert,
     supabaseClient,
     context,
-    accountLocalId,
     plugin,
   });
 

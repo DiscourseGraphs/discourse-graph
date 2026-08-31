@@ -36,6 +36,17 @@ PR titles for Linear-backed work should follow this format:
 - Follow the ticket ID with the exact Linear ticket title
 - Example: `ENG-1912 Scaffold @repo/content-model`
 
+### Pull Request Bodies
+
+When creating or updating a pull request body:
+
+- Start with `.github/pull_request_template.md`. Preserve its headings and guidance instead of adding substitute sections.
+- Treat the Linear ticket as the source of truth. Do not restate it in the pull request body.
+- Do not add a file-by-file summary, implementation diary, investigation log, full command output, or unrelated pre-existing issues.
+- Put line-specific implementation context in inline GitHub comments.
+- Put any non-obvious rules that future changes must preserve in code comments, tests, or documentation, not only in the pull request.
+- Remove empty optional sections and anything that does not help review the diff.
+
 ## Style Guide
 
 ### UI Guidelines
