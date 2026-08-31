@@ -13,6 +13,8 @@ export type SettingsNavValue = {
   push: (segment: string) => void;
   pop: () => void;
   goToDepth: (depth: number) => void;
+  /** Jumps straight to a full route; `push` only moves one segment at a time. */
+  navigate: (path: SettingsPath) => void;
 };
 
 const SettingsNavContext = createContext<SettingsNavValue | null>(null);
@@ -34,6 +36,7 @@ export const SettingsNavProvider = ({
       push: (segment) => dispatch({ type: "push", segment }),
       pop: () => dispatch({ type: "pop" }),
       goToDepth: (depth) => dispatch({ type: "truncate", depth }),
+      navigate: (target) => dispatch({ type: "navigate", path: target }),
     }),
     [path, dispatch],
   );
