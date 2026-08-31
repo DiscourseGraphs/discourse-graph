@@ -11,9 +11,9 @@ import {
   Popover,
   Position,
   Button,
-  InputGroup,
   Intent,
 } from "@blueprintjs/core";
+import SettingKeycapInput from "~/components/settings/components/SettingKeycapInput";
 import ReactDOM from "react-dom";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -712,7 +712,7 @@ export const NodeSearchMenuTriggerSetting = ({
     setPersonalSetting([PERSONAL_KEYS.nodeSearchMenuTrigger], trigger);
   };
   return (
-    <InputGroup
+    <SettingKeycapInput
       value={nodeSearchTrigger}
       onChange={handleNodeSearchTriggerChange}
       placeholder="Click to set trigger"
