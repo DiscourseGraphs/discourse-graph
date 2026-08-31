@@ -2,6 +2,7 @@ import posthog from "posthog-js";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Tables } from "@repo/database/dbTypes";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import { resolveSchemaFormat } from "@repo/utils/resolveSchemaFormat";
 import { createDiscourseNodeType } from "~/components/settings/utils/accessors";
 import getDiscourseNodes, {
   excludeDefaultNodes,
@@ -44,7 +45,10 @@ const findOrCreateNodeType = async (
   const nodeType = await createDiscourseNodeType({
     label: schema.name,
     shortcut: "",
-    format: schema.source_data_format || schema.format || "",
+    format: resolveSchemaFormat({
+      format: schema.format,
+      sourceDataFormat: schema.source_data_format,
+    }),
     uid: schema.source_local_id,
   });
   refreshConfigTree();

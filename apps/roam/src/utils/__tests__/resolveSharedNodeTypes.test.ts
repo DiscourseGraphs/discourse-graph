@@ -162,11 +162,29 @@ describe("resolveSharedNodeTypes", () => {
     );
   });
 
-  it("prefers the format Obsidian nests under source_data", async () => {
+  it("prefers the contract format over the one Obsidian nests under source_data", async () => {
     const { client } = makeClient({
       rows: [
         schemaRow({
           format: "EVD - {content}",
+          source_data_format: "[[EVD]] - {content} - {Source}",
+        }),
+      ],
+    });
+    mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
+
+    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
+
+    expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith(
+      expect.objectContaining({ format: "EVD - {content}" }),
+    );
+  });
+
+  it("falls back to the source_data format when the contract format is missing", async () => {
+    const { client } = makeClient({
+      rows: [
+        schemaRow({
+          format: null,
           source_data_format: "[[EVD]] - {content} - {Source}",
         }),
       ],
