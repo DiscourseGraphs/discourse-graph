@@ -21,12 +21,19 @@ import {
 import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeSearchFooter } from "~/components/NodeSearchFooter";
+import { NodeSortMenu } from "~/components/NodeSortMenu";
 import { NodeTypeChipsSearchInput } from "~/components/NodeTypeChipsSearchInput";
 import { NodeTypeFilterMenu } from "~/components/NodeTypeFilterMenu";
+import type { SearchDropdownId } from "~/components/SearchDropdown";
 import {
   openFileInNewLeaf,
   openFileInNewTab,
 } from "~/components/canvas/utils/openFileUtils";
+import {
+  insertLinkAtInsertTarget,
+  snapshotInsertTarget,
+  type EditorInsertTarget,
+} from "~/utils/editorInsertTarget";
 import {
   QueryEngine,
   rankDiscourseNodesByTitle,
@@ -38,8 +45,18 @@ import {
   getFallbackNodeTypeBadge,
   type NodeTypeBadge,
 } from "~/utils/nodeTypeBadge";
-import { fetchUserNames } from "~/utils/importNodes";
-import { getLoggedInClient } from "~/utils/supabaseContext";
+import {
+  buildAuthorNameByPath,
+  resolveAuthorName,
+  useAuthorNames,
+} from "~/utils/discourseNodeAuthor";
+import {
+  DEFAULT_SORT_DIRECTION,
+  DEFAULT_SORT_KEY,
+  sortSearchResults,
+  type SortDirection,
+  type SortKey,
+} from "~/utils/discourseNodeSort";
 
 const MAX_VISIBLE_RESULTS = 50;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -57,80 +74,6 @@ type NodeTypeDisplay = {
 
 type SearchResultRow = RankedDiscourseNode & {
   nodeType: NodeTypeDisplay;
-};
-
-const LOCAL_AUTHOR_NAME = "You";
-const UNRESOLVED_AUTHOR_NAME = "Unknown";
-
-/** Frontmatter is untyped, so the raw value is narrowed by each caller. */
-const getFrontmatterAuthorId = (app: App, file: TFile): unknown => {
-  const frontmatter: Record<string, unknown> | undefined =
-    app.metadataCache.getFileCache(file)?.frontmatter;
-  return frontmatter?.authorId;
-};
-
-/**
- * "You" belongs only to a note with no `authorId` at all — every note in an
- * unsynced vault. An id that is present but unresolvable stays "Unknown" rather
- * than claiming local authorship. `useAuthorNames` has already cached the
- * names, so this stays synchronous.
- */
-const resolveAuthorName = ({
-  app,
-  file,
-  userNames,
-}: {
-  app: App;
-  file: TFile;
-  userNames: Record<number, string>;
-}): string => {
-  const authorId = getFrontmatterAuthorId(app, file);
-  if (authorId === undefined || authorId === null) return LOCAL_AUTHOR_NAME;
-  if (typeof authorId !== "number") return UNRESOLVED_AUTHOR_NAME;
-  return userNames[authorId] ?? UNRESOLVED_AUTHOR_NAME;
-};
-
-/**
- * `fetchUserNames` returns every person in the vault's spaces in one query, so
- * this refreshes once per open when a name is missing rather than querying per
- * author.
- */
-const useAuthorNames = ({
-  app,
-  plugin,
-  candidateState,
-}: {
-  app: App;
-  plugin: DiscourseGraphPlugin;
-  candidateState: CandidateState;
-}): Record<number, string> => {
-  const [userNames, setUserNames] = useState(plugin.settings.userNames ?? {});
-
-  useEffect(() => {
-    if (candidateState.status !== "ready") return;
-    if (!plugin.settings.syncModeEnabled) return;
-
-    const isMissingName = (candidate: DiscourseNodeCandidate): boolean => {
-      const authorId = getFrontmatterAuthorId(app, candidate.file);
-      return (
-        typeof authorId === "number" && !plugin.settings.userNames?.[authorId]
-      );
-    };
-    if (!candidateState.candidates.some(isMissingName)) return;
-
-    let cancelled = false;
-    void (async () => {
-      const client = await getLoggedInClient(plugin);
-      if (!client || cancelled) return;
-      await fetchUserNames(plugin, client);
-      if (!cancelled) setUserNames(plugin.settings.userNames ?? {});
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [app, plugin, candidateState]);
-
-  return userNames;
 };
 
 const formatTimestamp = (epochMs: number): string =>
@@ -318,9 +261,11 @@ const ResultList = ({
 
 const NodeSearch = ({
   plugin,
+  insertTarget,
   onClose,
 }: {
   plugin: DiscourseGraphPlugin;
+  insertTarget: EditorInsertTarget | null;
   onClose: () => void;
 }): ReactElement => {
   const { app } = plugin;
@@ -332,9 +277,20 @@ const NodeSearch = ({
   const [activeIndex, setActiveIndex] = useState(0);
   // Single source of truth: ENG-2111's tag chips will read and write this too.
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
-  const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
+  // One value per toolbar, so two panels can never be open at once.
+  const [openDropdown, setOpenDropdown] = useState<SearchDropdownId>(null);
+  const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT_KEY);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(
+    DEFAULT_SORT_DIRECTION,
+  );
+  // An editable span, so the query shares its line boxes with the filter chips.
   const inputRef = useRef<HTMLSpanElement | null>(null);
-  const userNames = useAuthorNames({ app, plugin, candidateState });
+  const userNames = useAuthorNames({
+    app,
+    plugin,
+    candidates:
+      candidateState.status === "ready" ? candidateState.candidates : null,
+  });
 
   const nodeTypesById = useMemo(() => {
     const byId = new Map<string, NodeTypeDisplay>();
@@ -374,12 +330,27 @@ const NodeSearch = ({
     return () => window.clearTimeout(timeout);
   }, [query]);
 
+  // Sort before truncating, so a date or alphabetical sort covers every match.
   const results = useMemo<SearchResultRow[]>(() => {
     if (candidateState.status !== "ready") return [];
-    return rankDiscourseNodesByTitle({
+    const ranked = rankDiscourseNodesByTitle({
       candidates: candidateState.candidates,
       query: debouncedQuery,
       nodeTypeIds: selectedNodeTypeIds,
+    });
+    const authorNameByPath =
+      sortKey === "author"
+        ? buildAuthorNameByPath({
+            app,
+            files: ranked.map((result) => result.file),
+            userNames,
+          })
+        : undefined;
+    return sortSearchResults({
+      results: ranked,
+      sortKey,
+      direction: sortDirection,
+      authorNameByPath,
     })
       .slice(0, MAX_VISIBLE_RESULTS)
       .map((result) => ({
@@ -389,7 +360,16 @@ const NodeSearch = ({
           badge: getFallbackNodeTypeBadge(result.title),
         },
       }));
-  }, [candidateState, debouncedQuery, nodeTypesById, selectedNodeTypeIds]);
+  }, [
+    app,
+    candidateState,
+    debouncedQuery,
+    nodeTypesById,
+    selectedNodeTypeIds,
+    sortDirection,
+    sortKey,
+    userNames,
+  ]);
 
   // A narrowing query rebuilds `results` before the effect below can reset the
   // state, so the old index can point past the new list for one render. Clamping
@@ -434,10 +414,29 @@ const NodeSearch = ({
     });
   };
 
-  const handleTypeFilterOpenChange = (nextOpen: boolean): void => {
-    setIsTypeFilterOpen(nextOpen);
+  const handleDropdownOpenChange = ({
+    id,
+    isOpen,
+  }: {
+    id: NonNullable<SearchDropdownId>;
+    isOpen: boolean;
+  }): void => {
+    setOpenDropdown(isOpen ? id : null);
     // Returns the keyboard path to the results the moment the panel closes.
-    if (!nextOpen) inputRef.current?.focus();
+    if (!isOpen) inputRef.current?.focus();
+  };
+
+  // Closes before inserting, like `openActiveResult`.
+  const insertLinkToActiveResult = (): void => {
+    if (!activeResult || !insertTarget) return;
+    const { file } = activeResult;
+    onClose();
+    try {
+      insertLinkAtInsertTarget({ app, file, target: insertTarget });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(`Could not insert a link to ${file.basename}: ${message}`);
+    }
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -451,7 +450,19 @@ const NodeSearch = ({
     if (event.key !== "Enter") return;
     // Enter also commits an IME candidate, which must not open a file.
     if (event.nativeEvent.isComposing) return;
-    // Mod+Enter and Alt+Enter are left alone for the insert and dock actions.
+    // activeResult is part of the gate so the chord is not claimed while the
+    // results are still loading, matching the footer button's disabled state.
+    if (
+      (event.metaKey || event.ctrlKey) &&
+      !event.altKey &&
+      insertTarget &&
+      activeResult
+    ) {
+      event.preventDefault();
+      insertLinkToActiveResult();
+      return;
+    }
+    // Alt+Enter is left alone for the dock action.
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     // A footer button reached by Tab runs its own action on Enter. Preventing the
     // default here would suppress that click and open a new tab instead.
@@ -470,9 +481,8 @@ const NodeSearch = ({
     // Bound here rather than on the input so navigation survives focus moving
     // elsewhere in the modal, and so result actions have one place to live.
     <div className="flex h-full flex-col" onKeyDown={handleKeyDown}>
-      {/* Padded so the filter trigger's count badge, which sits outside the
-          button box, is not clipped by the modal's overflow-hidden content. */}
-      {/* Top-aligned: the field grows downwards, so the trigger stays on its first line. */}
+      {/* Padded so a trigger's count badge is not clipped by the modal's overflow-hidden content. */}
+      {/* Top-aligned: the field grows downwards, so the triggers stay on its first line. */}
       <div className="flex items-start gap-2 px-1 pt-1">
         <NodeTypeChipsSearchInput
           inputRef={inputRef}
@@ -484,11 +494,26 @@ const NodeSearch = ({
         />
         <NodeTypeFilterMenu
           app={app}
-          isOpen={isTypeFilterOpen}
+          isOpen={openDropdown === "type-filter"}
           nodeTypes={plugin.settings.nodeTypes}
-          onOpenChange={handleTypeFilterOpenChange}
+          onOpenChange={(isOpen) =>
+            handleDropdownOpenChange({ id: "type-filter", isOpen })
+          }
           onSelectedNodeTypeIdsChange={setSelectedNodeTypeIds}
           selectedNodeTypeIds={selectedNodeTypeIds}
+        />
+        <NodeSortMenu
+          app={app}
+          isOpen={openDropdown === "sort"}
+          onOpenChange={(isOpen) =>
+            handleDropdownOpenChange({ id: "sort", isOpen })
+          }
+          onSortChange={({ sortKey: nextKey, direction }) => {
+            setSortKey(nextKey);
+            setSortDirection(direction);
+          }}
+          sortDirection={sortDirection}
+          sortKey={sortKey}
         />
       </div>
       <div className="border-modifier-border mt-3 flex flex-1 overflow-hidden rounded border">
@@ -516,7 +541,9 @@ const NodeSearch = ({
       </div>
       <NodeSearchFooter
         canAct={candidateState.status === "ready" && !!activeResult}
+        canInsertLink={!!insertTarget}
         onClose={onClose}
+        onInsertLink={insertLinkToActiveResult}
         onOpenInNewTab={() => openActiveResult(openFileInNewTab)}
         onOpenInSplit={() => openActiveResult(openFileInNewLeaf)}
       />
@@ -527,10 +554,13 @@ const NodeSearch = ({
 export class NodeSearchModal extends Modal {
   private plugin: DiscourseGraphPlugin;
   private root: Root | null = null;
+  /** Snapshotted in the constructor: `open()` has not taken focus yet. */
+  private insertTarget: EditorInsertTarget | null;
 
   constructor(app: App, plugin: DiscourseGraphPlugin) {
     super(app);
     this.plugin = plugin;
+    this.insertTarget = snapshotInsertTarget(app);
   }
 
   onOpen() {
@@ -549,7 +579,11 @@ export class NodeSearchModal extends Modal {
     this.root = createRoot(contentEl);
     this.root.render(
       <StrictMode>
-        <NodeSearch plugin={this.plugin} onClose={() => this.close()} />
+        <NodeSearch
+          plugin={this.plugin}
+          insertTarget={this.insertTarget}
+          onClose={() => this.close()}
+        />
       </StrictMode>,
     );
   }
