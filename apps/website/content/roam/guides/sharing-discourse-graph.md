@@ -19,8 +19,6 @@ Demo:
 
 We have a range of options for customizing the markdown export. These can be found under `Export options` on the `Export` tab of the export dialog, alongside the export you are about to run.
 
-![](/docs/roam/settings-export.png)
-
 Here is a brief explanation of each option:
 
 `Max filename length`
