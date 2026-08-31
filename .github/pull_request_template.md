@@ -13,13 +13,14 @@ Include only the fields that help the reviewer:
 
 ## Loom video
 
-<!-- Include a short Loom video for every PR (any change—UI, backend, refactors, infra, etc.).
+<!-- Include a short Loom video for every PR (any change—UI, backend, refactors, infra, etc.). 
 This helps reviewers understand intent quickly and catches issues earlier
 - Keep it under 2–3 minutes
 - Show before/after for bug fixes
 - Narrate key design or dev decisions
 - Paste the Loom link in the PR body
 -->
+
 
 ## Scope check
 
