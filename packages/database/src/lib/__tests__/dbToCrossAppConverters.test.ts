@@ -64,6 +64,29 @@ describe("dbNodeSchemaToCrossApp", () => {
     });
   });
 
+  it("splits format out of metadata onto the result", () => {
+    const schema = baseConcept({
+      literal_content: {
+        template: "Template Title",
+        template_content: "template body",
+        format: "[[QUE]] - {content}",
+        extra: "kept",
+      },
+    });
+    const result = dbNodeSchemaToCrossApp(schema, spaceMap, accountMap);
+    expect(result.format).toBe("[[QUE]] - {content}");
+    expect(result.metadata).toEqual({ extra: "kept" });
+  });
+
+  it("keeps format undefined when literal_content has no format", () => {
+    const schema = baseConcept({
+      literal_content: { extra: "kept" },
+    });
+    const result = dbNodeSchemaToCrossApp(schema, spaceMap, accountMap);
+    expect(result.format).toBeUndefined();
+    expect(result.metadata).toEqual({ extra: "kept" });
+  });
+
   it("throws when the author is unknown", () => {
     const schema = baseConcept({ author_id: 999 });
     expect(() => dbNodeSchemaToCrossApp(schema, spaceMap, accountMap)).toThrow(
