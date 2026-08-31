@@ -41,6 +41,12 @@
 :root {
   /* Brand secondary, mirroring packages/tailwind-config. */
   --dg-secondary: #5f57c0;
+  /* Neutrals, likewise mirrored: Roam ships Tailwind's own utilities but not
+     this repo's theme extensions, so `neutral-dark`/`neutral-light` never
+     resolve in the extension. */
+  --dg-neutral-dark: #1f1f1f;
+  --dg-neutral-light: #f1f1f1;
+  --dg-border: rgb(229, 231, 235);
 }
 
 /* Hand-rolled, not Tailwind: apps/roam has no Tailwind build (tailwind.config.ts sets
@@ -99,4 +105,27 @@
   /* Wide enough that a group break is unmistakably more than a row break. */
   gap: 44px;
   padding: 2px;
+}
+
+/* Setting row. Layout is Tailwind (Roam ships Tailwind's utilities, so those
+   resolve), but anything depending on Tailwind's preflight is hand-rolled:
+   `border-b` and `border` only set a width, and preflight's
+   `* { border-style: solid }` is not present, so the border never paints. */
+.dg-setting-row + .dg-setting-row {
+  border-top: 1px solid var(--dg-border);
+}
+
+.dg-setting-row__label {
+  color: var(--dg-neutral-dark);
+}
+
+.dg-setting-row__scope {
+  background-color: var(--dg-neutral-light);
+  border: 1px solid var(--dg-border);
+}
+
+/* Trailing keycap control: a narrow box whose value reads as a single key. */
+.dg-setting-keycap .bp3-input {
+  text-align: center;
+  font-family: monospace;
 }

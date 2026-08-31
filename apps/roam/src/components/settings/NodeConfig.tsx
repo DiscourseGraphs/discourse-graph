@@ -1,14 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { getSubTree } from "roamjs-components/util";
-import Description from "~/components/settings/SettingsDescription";
-import {
-  Label,
-  InputGroup,
-  ControlGroup,
-  Tooltip,
-  Icon,
-} from "@blueprintjs/core";
+import { InputGroup, ControlGroup, Tooltip, Icon } from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings, {
@@ -34,7 +27,8 @@ import {
 } from "./components/BlockPropSettingPanels";
 import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 import { SettingsGroup } from "./components/SettingsHeadings";
-import SettingsDrillDownRow from "./components/SettingsDrillDownRow";
+import SettingItemRow from "./components/SettingItemRow";
+import SettingDrillDownSummary from "./components/SettingDrillDownSummary";
 import { useSettingsNav } from "./navigation/SettingsNavContext";
 import { nodeConfigSegmentIds } from "./utils/settingsNavigation";
 
@@ -116,38 +110,41 @@ const DiscourseNodeColorSetting = ({
           </span>
         </div>
       )}
-      <Label>
-        Color
-        <Description description="Changes the color of tags and canvas nodes" />
-        <ControlGroup>
-          <InputGroup
-            style={{ width: 120 }}
-            type={"color"}
-            value={color}
-            onChange={(e) => {
-              const nextColor = e.target.value;
-              const colorValue = nextColor.replace("#", ""); // remove hash to not create roam link
-              setColor(nextColor);
-              persistColorAfterPause(colorValue);
-            }}
-          />
-          <Tooltip content={color ? "Unset" : "Color not set"}>
-            <Icon
-              className={"ml-2 align-middle opacity-80"}
-              icon={color ? "delete" : "info-sign"}
-              onClick={() => {
-                if (colorWriteTimeoutRef.current) {
-                  window.clearTimeout(colorWriteTimeoutRef.current);
-                  colorWriteTimeoutRef.current = null;
-                }
-                pendingColorRef.current = null;
-                setColor("");
-                persistColorValue("");
+      <SettingItemRow
+        label="Color"
+        description="Changes the color of tags and canvas nodes"
+        scope="nodeType"
+        control={
+          <ControlGroup>
+            <InputGroup
+              style={{ width: 120 }}
+              type={"color"}
+              value={color}
+              onChange={(e) => {
+                const nextColor = e.target.value;
+                const colorValue = nextColor.replace("#", ""); // remove hash to not create roam link
+                setColor(nextColor);
+                persistColorAfterPause(colorValue);
               }}
             />
-          </Tooltip>
-        </ControlGroup>
-      </Label>
+            <Tooltip content={color ? "Unset" : "Color not set"}>
+              <Icon
+                className={"ml-2 align-middle opacity-80"}
+                icon={color ? "delete" : "info-sign"}
+                onClick={() => {
+                  if (colorWriteTimeoutRef.current) {
+                    window.clearTimeout(colorWriteTimeoutRef.current);
+                    colorWriteTimeoutRef.current = null;
+                  }
+                  pendingColorRef.current = null;
+                  setColor("");
+                  persistColorValue("");
+                }}
+              />
+            </Tooltip>
+          </ControlGroup>
+        }
+      />
     </>
   );
 };
@@ -293,11 +290,16 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
   return (
     <div className="dg-settings-node-page">
       <SettingsGroup title="Identity">
-        <SettingsDrillDownRow
-          title="Index"
+        <SettingItemRow
+          label="Index"
           description={`The saved list of all ${node.text} pages \u2014 which pages appear and which columns show.`}
-          buttonText={`See all ${node.text} nodes`}
-          onClick={() => nav.push(nodeConfigSegmentIds.index)}
+          scope="nodeType"
+          control={
+            <SettingDrillDownSummary
+              summary={`See all ${node.text} nodes`}
+              onClick={() => nav.push(nodeConfigSegmentIds.index)}
+            />
+          }
         />
         <DiscourseNodeTextPanel
           nodeType={node.type}
@@ -368,14 +370,19 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           parentUid={node.type}
           uid={shortcutUid}
         />
-        <SettingsDrillDownRow
-          title="Template"
+        <SettingItemRow
+          label="Template"
           description={withDocsLink(
             `The template that auto fills ${node.text} page when generated.`,
             ROAM_DOCS.creatingNodes,
           )}
-          buttonText="Edit template"
-          onClick={() => nav.push(nodeConfigSegmentIds.template)}
+          scope="nodeType"
+          control={
+            <SettingDrillDownSummary
+              summary="Edit template"
+              onClick={() => nav.push(nodeConfigSegmentIds.template)}
+            />
+          }
         />
       </SettingsGroup>
 
@@ -396,26 +403,28 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
       {/* Settings mid-migration live here until they either replace their
           predecessor or are removed. */}
       <SettingsGroup title="Legacy">
-        <Label>
-          Specification
-          <Description
-            description={withDocsLink(
-              `The conditions specified to identify a ${node.text} node.`,
-              ROAM_DOCS.grammarNodes,
-            )}
-          />
-          <DiscourseNodeSpecification
-            node={node}
-            parentUid={specificationUid}
-            parentSetEnabled={(isSpecificationEnabled) => {
-              validate({
-                tag: tagValue,
-                format: formatValue,
-                isSpecificationEnabled,
-              });
-            }}
-          />
-        </Label>
+        <SettingItemRow
+          label="Specification"
+          description={withDocsLink(
+            `The conditions specified to identify a ${node.text} node.`,
+            ROAM_DOCS.grammarNodes,
+          )}
+          scope="nodeType"
+          controlPlacement="below"
+          control={
+            <DiscourseNodeSpecification
+              node={node}
+              parentUid={specificationUid}
+              parentSetEnabled={(isSpecificationEnabled) => {
+                validate({
+                  tag: tagValue,
+                  format: formatValue,
+                  isSpecificationEnabled,
+                });
+              }}
+            />
+          }
+        />
       </SettingsGroup>
 
       {isSyncEnabled() && (

@@ -1,10 +1,7 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Label } from "@blueprintjs/core";
 import { DEFAULT_PAGE_SIZE_KEY, HIDE_METADATA_KEY } from "~/data/userSettings";
-import Description from "~/components/settings/SettingsDescription";
 import DefaultFilters from "./DefaultFilters";
-import { settingAnchor } from "./utils/settingAnchor";
 import {
   PersonalFlagPanel,
   PersonalNumberPanel,
@@ -17,6 +14,7 @@ import {
 import { type SettingsSnapshot } from "./utils/accessors";
 import posthog from "posthog-js";
 import { ROAM_DOCS, withDocsLink } from "./utils/docs";
+import SettingItemRow from "./components/SettingItemRow";
 
 const QuerySettings = ({
   extensionAPI,
@@ -70,21 +68,22 @@ const QuerySettings = ({
           void extensionAPI.settings.set("query-pages", values);
         }}
       />
-      <Label
-        {...settingAnchor([PERSONAL_KEYS.query, QUERY_KEYS.defaultFilters])}
-      >
-        Default filters
-        <Description
-          description={withDocsLink(
-            "Any filters that should be applied to your results by default",
-            ROAM_DOCS.querying,
-          )}
-        />
-        <DefaultFilters
-          extensionAPI={extensionAPI}
-          defaultFilters={querySettings[QUERY_KEYS.defaultFilters]}
-        />
-      </Label>
+      <SettingItemRow
+        label="Default filters"
+        description={withDocsLink(
+          "Any filters that should be applied to your results by default",
+          ROAM_DOCS.querying,
+        )}
+        scope="personal"
+        settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.defaultFilters]}
+        controlPlacement="below"
+        control={
+          <DefaultFilters
+            extensionAPI={extensionAPI}
+            defaultFilters={querySettings[QUERY_KEYS.defaultFilters]}
+          />
+        }
+      />
     </div>
   );
 };
