@@ -808,53 +808,56 @@ const ExportDialog: ExportDialogComponent = ({
     }
   };
   useEffect(() => {
-    if (
-      !syncEnabled ||
-      !isOpen ||
-      selectedTabId !== "publish" ||
-      groupsLoaded ||
-      groupsLoading
-    )
-      return;
+    if (isOpen) return;
+    setGroupsLoaded(false);
+    setSelectedGroupIds([]);
+    setGroupsError("");
+  }, [isOpen]);
+  useEffect(() => {
+    if (!syncEnabled || !isOpen || selectedTabId !== "publish") return;
+    let active = true;
     setGroupsLoading(true);
+    setGroupsLoaded(false);
+    setGroupsError("");
     void (async () => {
       try {
         const client = await getLoggedInClient();
         if (!client) throw new Error("Could not connect to sync.");
         const groups = await getMyGroups(client);
         const context = await getSupabaseContext();
+        let preselectedGroupIds: string[] = [];
         if (context && groups.length && publishableNodes.length) {
-          const publishedIdsByGroup = await getAllPublishedIdsByGroup(
+          const publishedIdsByGroup = await getAllPublishedIdsByGroup({
             client,
-            context.spaceId,
-            groups.map((g) => g.id),
-          );
-          setSelectedGroupIds(
-            groups
-              .map((g) => g.id)
-              .filter((id) =>
-                publishableNodes.every(({ uid }) =>
-                  publishedIdsByGroup[id].has(uid),
-                ),
+            spaceId: context.spaceId,
+            groupIds: groups.map((g) => g.id),
+            sourceLocalIds: publishableNodes.map(({ uid }) => uid),
+          });
+          preselectedGroupIds = groups
+            .map((g) => g.id)
+            .filter((id) =>
+              publishableNodes.every(({ uid }) =>
+                publishedIdsByGroup[id].has(uid),
               ),
-          );
+            );
         }
+        if (!active) return;
+        setSelectedGroupIds(preselectedGroupIds);
         setMyGroups(groups);
       } catch (e) {
-        setGroupsError((e as Error).message || "Failed to load groups.");
+        if (active)
+          setGroupsError((e as Error).message || "Failed to load groups.");
       } finally {
-        setGroupsLoading(false);
-        setGroupsLoaded(true);
+        if (active) {
+          setGroupsLoading(false);
+          setGroupsLoaded(true);
+        }
       }
     })();
-  }, [
-    syncEnabled,
-    isOpen,
-    selectedTabId,
-    groupsLoaded,
-    groupsLoading,
-    publishableNodes,
-  ]);
+    return () => {
+      active = false;
+    };
+  }, [syncEnabled, isOpen, selectedTabId, publishableNodes]);
 
   const handlePublish = async () => {
     setPublishError("");
