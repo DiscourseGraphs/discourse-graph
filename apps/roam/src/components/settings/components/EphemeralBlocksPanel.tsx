@@ -235,7 +235,7 @@ const DualWriteBlocksPanel = ({
         <SettingItemRow
           label={title}
           description={description}
-          scope="nodeType"
+          scope="global"
           controlPlacement="below"
           control={blocksContainer}
         />
