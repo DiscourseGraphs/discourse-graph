@@ -21,6 +21,7 @@ Follow our handy guides to get started on the basics as quickly as possible:
 - [Creating discourse relationships](/docs/roam/guides/creating-discourse-relationships)
 - [Exploring your discourse graph](/docs/roam/guides/exploring-discourse-graph)
 - [Querying your discourse graph](/docs/roam/guides/querying-discourse-graph)
+- [Using the canvas](/docs/roam/guides/using-the-canvas)
 - [Extending and personalizing your discourse graph](/docs/roam/guides/extending-personalizing-graph)
 
 ## Fundamentals: dive a little deeper

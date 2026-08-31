@@ -1,5 +1,4 @@
 import {
-  CrossAppNode,
   CrossAppNodeSchema,
   CrossAppRelationTypeSchema,
   CrossAppRelationTripleSchema,
@@ -414,72 +413,5 @@ export const dbRelationsToCrossApp = async ({
   }
   return relations.map((relation) =>
     dbRelationToCrossApp({ relation, spaceMap, accountMap, conceptMap }),
-  );
-};
-
-export const dbNodeToCrossApp = ({
-  node,
-  spaceMap,
-  accountMap,
-  conceptMap,
-}: {
-  node: Concept;
-  spaceMap: Record<number, string>;
-  accountMap: Record<number, string>;
-  conceptMap: Record<number, string>;
-}): CrossAppNode => {
-  const authorId = accountMap[node.author_id || 0];
-  if (authorId === undefined) throw new Error("Missing author");
-  const spaceUrl = spaceMap[node.space_id];
-  if (spaceUrl === undefined) throw new Error("Missing space");
-  const rid = spaceUriAndLocalIdToRid(spaceUrl, node.source_local_id!, "node");
-  const nodeType = asSimpleLocalId(conceptMap[node.schema_id || 0], spaceUrl);
-  if (nodeType === undefined) throw new Error("Missing nodeType");
-  const { core_title } = (node.literal_content ?? {}) as Record<string, Json>;
-  return {
-    rid,
-    localId: node.source_local_id!,
-    authorId,
-    createdAt: new Date(node.created + "Z"),
-    modifiedAt: new Date(node.last_modified + "Z"),
-    nodeType,
-    coreTitle: typeof core_title === "string" ? core_title : node.name,
-    content: {
-      direct: {
-        localId: node.source_local_id!,
-        value: node.name,
-      },
-    },
-  };
-};
-
-export const dbNodesToCrossApp = async ({
-  client,
-  nodes,
-  accountMap,
-  conceptMap,
-  spaceMap,
-}: {
-  client: DGSupabaseClient;
-  nodes: Concept[];
-  accountMap?: Record<number, string>;
-  conceptMap?: Record<number, string>;
-  spaceMap?: Record<number, string>;
-}): Promise<CrossAppNode[]> => {
-  if (accountMap === undefined) {
-    const authorIds = new Set<number>(
-      nodes.map((n) => n.author_id).filter((id) => typeof id === "number"),
-    );
-    accountMap = await getAccountMap(client, [...authorIds]);
-  }
-  if (spaceMap === undefined) {
-    spaceMap = await getSpaceMap(client);
-  }
-  if (conceptMap === undefined) {
-    const schemaIds = nodes.map((n) => n.schema_id).filter((id) => id !== null);
-    conceptMap = await getConceptMap(client, [...new Set(schemaIds)], spaceMap);
-  }
-  return nodes.map((node) =>
-    dbNodeToCrossApp({ node, spaceMap, accountMap, conceptMap }),
   );
 };
