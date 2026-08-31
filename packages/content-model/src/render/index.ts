@@ -1,11 +1,11 @@
-import { renderInlineText, type ParsedInlineText } from "../core/index.js";
+import { renderInlineText, type ParsedInlineText } from "../core";
 import type {
   DgBlockAnnotation,
   DgDocument,
   DgInlineAnnotation,
   DgText,
-} from "../schema/index.js";
-import { assertDgDocument } from "../validation/index.js";
+} from "../schema";
+import { assertDgDocument } from "../validation";
 
 export type RenderFormat = "html";
 

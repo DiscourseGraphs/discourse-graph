@@ -4,11 +4,8 @@ import {
   renderInlineText,
   type InlineParseRule,
   type ParsedInlineText,
-} from "../core/index.js";
-import type {
-  DgInlineAnnotation,
-  DgReferenceAnnotation,
-} from "../schema/index.js";
+} from "../core";
+import type { DgInlineAnnotation, DgReferenceAnnotation } from "../schema";
 
 const createRegexRule = ({
   pattern,

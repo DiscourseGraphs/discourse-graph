@@ -4,16 +4,16 @@ import type {
   DgDocument,
   DgInlineAnnotation,
   DgText,
-} from "../schema/index.js";
-import { dgDocumentSchemaVersion } from "../schema/index.js";
+} from "../schema";
+import { dgDocumentSchemaVersion } from "../schema";
 import {
   normalizeLineEndings,
   stripFrontmatter,
   stripTitleHeading,
   trimBlankLines,
-} from "../text/index.js";
-import { assertDgDocument } from "../validation/index.js";
-import { parseMarkdownInline, renderObsidianInline } from "./inline.js";
+} from "../text";
+import { assertDgDocument } from "../validation";
+import { parseMarkdownInline, renderObsidianInline } from "./inline";
 
 type ParsedBlock = {
   content: string;

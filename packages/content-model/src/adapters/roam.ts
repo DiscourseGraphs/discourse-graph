@@ -3,7 +3,7 @@ import {
   renderInlineText,
   type InlineParseRule,
   type ParsedInlineText,
-} from "../core/index.js";
+} from "../core";
 import {
   dgDocumentSchemaVersion,
   type DgAnnotation,
@@ -12,9 +12,9 @@ import {
   type DgInlineAnnotation,
   type DgListStyle,
   type DgText,
-} from "../schema/index.js";
-import { assertDgDocument } from "../validation/index.js";
-import { markdownInlineRules } from "./inline.js";
+} from "../schema";
+import { assertDgDocument } from "../validation";
+import { markdownInlineRules } from "./inline";
 
 export type RoamViewType = "bullet" | "number" | "document";
 

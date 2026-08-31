@@ -1,4 +1,4 @@
-export * from "./obsidian.js";
-export * from "./roam.js";
+export * from "./obsidian";
+export * from "./roam";
 
 export type ContentAdapterKind = "obsidian" | "roam";

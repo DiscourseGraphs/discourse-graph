@@ -4,7 +4,7 @@ import type {
   DgSpan,
   DgText,
   DgTextStyleAnnotation,
-} from "../schema/index.js";
+} from "../schema";
 
 export type TextRange = DgSpan;
 

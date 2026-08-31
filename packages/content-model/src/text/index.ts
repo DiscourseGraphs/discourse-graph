@@ -47,4 +47,4 @@ export const dgDocumentToPlainText = ({
   const body = document.body.text.trim();
   return [title, body].filter((part) => part !== "").join("\n\n");
 };
-import type { DgDocument } from "../schema/index.js";
+import type { DgDocument } from "../schema";

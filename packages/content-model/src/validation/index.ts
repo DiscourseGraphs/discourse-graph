@@ -3,7 +3,7 @@ import {
   type DgAnnotation,
   type DgBlockAnnotation,
   type DgDocument,
-} from "../schema/index.js";
+} from "../schema";
 
 export type ValidationIssue = {
   path: readonly string[];

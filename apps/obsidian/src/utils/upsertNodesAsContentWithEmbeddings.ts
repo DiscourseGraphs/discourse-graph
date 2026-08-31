@@ -1,6 +1,6 @@
 import { nextApiRoot } from "@repo/utils/execContext";
-import { DGSupabaseClient } from "@repo/database/lib/client";
-import { Json } from "@repo/database/dbTypes";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { Json } from "@repo/database/dbTypes";
 import { upsertContentThroughApi } from "@repo/database/lib/contentApiClient";
 import type { LocalContentDataInput } from "@repo/database/inputTypes";
 import {
@@ -8,9 +8,12 @@ import {
   dgDocumentToPlainText,
   obsidianMarkdownToDgDocument,
 } from "@repo/content-model";
-import { SupabaseContext } from "./supabaseContext";
-import { ObsidianDiscourseNodeData, ChangeType } from "./syncDgNodesToSupabase";
-import { default as DiscourseGraphPlugin } from "~/index";
+import type { SupabaseContext } from "./supabaseContext";
+import type {
+  ChangeType,
+  ObsidianDiscourseNodeData,
+} from "./syncDgNodesToSupabase";
+import type DiscourseGraphPlugin from "~/index";
 
 type ContentVariant = "direct" | "full";
 
@@ -140,7 +143,7 @@ export const fetchEmbeddingsForNodes = async (
       let errorData;
       try {
         errorData = (await response.json()) as { error: string };
-      } catch (e) {
+      } catch {
         errorData = {
           error: `Server responded with ${response.status}: ${await response.text()}`,
         };
