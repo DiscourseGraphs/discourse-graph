@@ -4,11 +4,11 @@ import {
   Popover,
   Position,
   Button,
-  InputGroup,
   getKeyCombo,
   IKeyCombo,
   Icon,
 } from "@blueprintjs/core";
+import SettingKeycapInput from "~/components/settings/components/SettingKeycapInput";
 import React, {
   useCallback,
   useEffect,
@@ -496,7 +496,8 @@ export const NodeMenuTriggerComponent = ({
   const shortcut = useMemo(() => comboToString(comboKey), [comboKey]);
 
   return (
-    <InputGroup
+    <SettingKeycapInput
+      wide
       inputRef={inputRef}
       placeholder={
         isActive ? "Press keys" : (placeholder ?? "Click to set trigger")
