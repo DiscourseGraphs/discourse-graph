@@ -5,15 +5,15 @@ import {
   GlobalNumberPanel,
   GlobalMultiTextPanel,
   GlobalSelectPanel,
-} from "./components/BlockPropSettingPanels";
+} from "~/components/settings/components/BlockPropSettingPanels";
 import {
   GLOBAL_KEYS,
   EXPORT_KEYS,
 } from "~/components/settings/utils/settingKeys";
-import { type SettingsSnapshot } from "./utils/accessors";
-import { ROAM_DOCS, withDocsLink } from "./utils/docs";
+import { type SettingsSnapshot } from "~/components/settings/utils/accessors";
+import { ROAM_DOCS, withDocsLink } from "~/components/settings/utils/docs";
 
-const DiscourseGraphExport = ({
+const ExportOptions = ({
   globalSettings,
 }: {
   globalSettings: SettingsSnapshot["globalSettings"];
@@ -123,4 +123,4 @@ const DiscourseGraphExport = ({
   );
 };
 
-export default DiscourseGraphExport;
+export default ExportOptions;
