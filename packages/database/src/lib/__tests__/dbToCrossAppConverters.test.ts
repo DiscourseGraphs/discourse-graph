@@ -321,17 +321,37 @@ describe("dbNodeToCrossApp", () => {
     expect(
       dbNodeToCrossApp({ node, spaceMap, accountMap, conceptMap }),
     ).toEqual({
-      rid: "orn:obsidian.node:vault-a/concept-1",
+      rid: "orn:obsidian:vault-a/concept-1",
       localId: "concept-1",
       authorId: "account-local-1",
       createdAt: new Date("2026-06-14T11:00:00Z"),
       modifiedAt: new Date("2026-06-14T13:00:00Z"),
       nodeType: "claim-type",
       coreTitle: "my claim",
+      slots: {},
       content: {
         direct: { localId: "concept-1", value: "CLM - my claim" },
       },
     });
+  });
+
+  it("resolves slots from reference_content, omitting unresolvable ones", () => {
+    const node = baseConcept({
+      is_schema: false,
+      schema_id: 10,
+      reference_content: { source: 20, destination: 30 },
+    });
+    expect(
+      dbNodeToCrossApp({
+        node,
+        spaceMap,
+        accountMap,
+        conceptMap: {
+          ...conceptMap,
+          20: "orn:obsidian:vault-a/source-node-1",
+        },
+      }).slots,
+    ).toEqual({ source: "source-node-1" });
   });
 
   it("preserves a matched-empty core_title", () => {

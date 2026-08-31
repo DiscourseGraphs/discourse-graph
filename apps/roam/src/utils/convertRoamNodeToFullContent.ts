@@ -17,8 +17,8 @@ export const convertRoamNodeToFullContent = ({
   nodes,
 }: {
   nodes: RoamFullContentNode[];
-}): LocalContentDataInput[] => {
-  return nodes.flatMap((node) => {
+}): LocalContentDataInput[] =>
+  nodes.flatMap((node) => {
     try {
       const crossAppNode = fullContentNodeToCrossApp(node);
       const fullContent = crossAppNodeToDbContent(crossAppNode, "full");
@@ -31,4 +31,3 @@ export const convertRoamNodeToFullContent = ({
       return [];
     }
   });
-};
