@@ -16,7 +16,9 @@ import type { DiscourseNodeBaseProps } from "./BlockPropSettingPanels";
 const DEBOUNCE_MS = 250;
 const TEMPLATE_BUFFER_TEXT = "Template";
 
-type DualWriteBlocksPanelProps = DiscourseNodeBaseProps & {
+type DualWriteBlocksPanelProps = Omit<DiscourseNodeBaseProps, "title"> & {
+  /** Omit when the caller already renders a header for this setting. */
+  title?: string;
   uid: string;
   defaultValue?: InputTextNode[];
 };
@@ -213,10 +215,12 @@ const DualWriteBlocksPanel = ({
 
   return (
     <>
-      <Label>
-        {title}
-        <Description description={description} />
-      </Label>
+      {title ? (
+        <Label>
+          {title}
+          <Description description={description} />
+        </Label>
+      ) : null}
       <style>{`.dg-dualwrite-blocks > div > .rm-block-main {
     display: none;
   }

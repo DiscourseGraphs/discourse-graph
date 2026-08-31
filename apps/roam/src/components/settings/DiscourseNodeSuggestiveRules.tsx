@@ -17,6 +17,7 @@ import {
   TEMPLATE_SETTING_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import { RenderRoamBlock } from "~/utils/roamReactComponents";
+import Description from "~/components/settings/SettingsDescription";
 import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const DiscourseNodeSuggestiveRules = ({
@@ -71,20 +72,28 @@ const DiscourseNodeSuggestiveRules = ({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <Button
-          minimal
-          small
-          icon={isTemplateOpen ? "chevron-down" : "chevron-right"}
-          text="Template"
-          onClick={() => setIsTemplateOpen((open) => !open)}
-        />
+        <div className="flex items-center">
+          <Button
+            minimal
+            small
+            icon={isTemplateOpen ? "chevron-down" : "chevron-right"}
+            text="Template"
+            onClick={() => setIsTemplateOpen((open) => !open)}
+          />
+          <Description
+            description={withDocsLink(
+              `The template that auto fills ${node.text} page when generated.`,
+              ROAM_DOCS.creatingNodes,
+            )}
+          />
+        </div>
         {/* Collapse unmounts its children, so the editor's ephemeral buffer block is only
             created while the template is actually open. */}
         <Collapse isOpen={isTemplateOpen}>
-          <div className="pt-2">
+          {/* The toggle above is this setting's header, so the panel omits its own. */}
+          <div className="pl-6 pt-2">
             <DualWriteBlocksPanel
               nodeType={node.type}
-              title="Template"
               description={withDocsLink(
                 `The template that auto fills ${node.text} page when generated.`,
                 ROAM_DOCS.creatingNodes,
