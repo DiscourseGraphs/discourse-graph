@@ -78,11 +78,18 @@ const DiscourseNodeColorSetting = ({
     [canvasUid, nodeType],
   );
 
+  // Navigating away unmounts mid-debounce, so the pending colour is written rather than dropped.
+  const pendingColorRef = useRef<string | null>(null);
+  const persistColorValueRef = useRef(persistColorValue);
+  persistColorValueRef.current = persistColorValue;
   useEffect(() => {
     return () => {
       if (!colorWriteTimeoutRef.current) return;
 
       window.clearTimeout(colorWriteTimeoutRef.current);
+      const pending = pendingColorRef.current;
+      pendingColorRef.current = null;
+      if (pending !== null) persistColorValueRef.current(pending);
     };
   }, []);
 
@@ -91,8 +98,10 @@ const DiscourseNodeColorSetting = ({
       window.clearTimeout(colorWriteTimeoutRef.current);
       colorWriteTimeoutRef.current = null;
     }
+    pendingColorRef.current = colorValue;
     colorWriteTimeoutRef.current = window.setTimeout(() => {
       persistColorValue(colorValue);
+      pendingColorRef.current = null;
       colorWriteTimeoutRef.current = null;
     }, COLOR_WRITE_DEBOUNCE_MS);
   };
@@ -131,6 +140,7 @@ const DiscourseNodeColorSetting = ({
                   window.clearTimeout(colorWriteTimeoutRef.current);
                   colorWriteTimeoutRef.current = null;
                 }
+                pendingColorRef.current = null;
                 setColor("");
                 persistColorValue("");
               }}

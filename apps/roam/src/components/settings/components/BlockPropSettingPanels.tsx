@@ -151,8 +151,15 @@ const BaseTextPanel = ({
   });
   const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
 
+  // Navigating away unmounts mid-debounce, so the pending write runs rather than being dropped.
+  const pendingWriteRef = useRef<(() => void) | null>(null);
   useEffect(() => {
-    return () => window.clearTimeout(debounceRef.current);
+    return () => {
+      window.clearTimeout(debounceRef.current);
+      const pending = pendingWriteRef.current;
+      pendingWriteRef.current = null;
+      pending?.();
+    };
   }, []);
 
   const handleChange = (
@@ -163,6 +170,12 @@ const BaseTextPanel = ({
     onChange?.(newValue);
 
     window.clearTimeout(debounceRef.current);
+    pendingWriteRef.current = () => {
+      if (errorRef.current) return;
+      syncToBlock?.(newValue);
+      refreshConfigTree();
+      setter(settingKeys, newValue);
+    };
     debounceRef.current = window.setTimeout(() => {
       if (errorRef.current) return;
       syncToBlock?.(newValue);
@@ -170,6 +183,7 @@ const BaseTextPanel = ({
         if (errorRef.current) return;
         refreshConfigTree();
         setter(settingKeys, newValue);
+        pendingWriteRef.current = null;
       }, 100);
     }, DEBOUNCE_MS);
   };
