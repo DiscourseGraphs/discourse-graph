@@ -67,7 +67,7 @@ type RoamMarkdownApi = {
   };
 };
 
-const getRoamMarkdownApi = (): RoamMarkdownApi =>
+export const getRoamMarkdownApi = (): RoamMarkdownApi =>
   window.roamAlphaAPI.data as unknown as RoamMarkdownApi;
 
 export const getErrorMessage = (error: unknown): string =>
@@ -292,9 +292,11 @@ const updateImportedPage = async ({
 export const materializeSharedNode = async ({
   client,
   sharedNode,
+  force = false,
 }: {
   client: DGSupabaseClient;
   sharedNode: SharedNode;
+  force?: boolean;
 }): Promise<MaterializeSharedNodeResult> => {
   const rawIdentity: SourceIdentity = {
     sourceModifiedAt: sharedNode.lastModified,
@@ -331,6 +333,7 @@ export const materializeSharedNode = async ({
   }
 
   if (
+    !force &&
     importedPageUid &&
     storedIdentity &&
     isImportUpToDate({

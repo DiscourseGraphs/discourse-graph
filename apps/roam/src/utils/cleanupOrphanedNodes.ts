@@ -108,7 +108,7 @@ const getAllNodeSchemasFromSupabase = async (
       .select("source_local_id")
       .eq("space_id", spaceId)
       .eq("is_schema", true)
-      .eq("arity", 0)
+      .eq("is_relation", false)
       .not("source_local_id", "is", null);
 
     if (error) {
