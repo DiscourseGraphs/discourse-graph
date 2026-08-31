@@ -2,38 +2,32 @@ import React, { useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { Label, Dialog, Button, Intent, Classes } from "@blueprintjs/core";
+import posthog from "posthog-js";
 import Description from "~/components/settings/SettingsDescription";
-import { addStyle } from "roamjs-components/dom";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
-import {
-  getOverlayHandler,
-  onPageRefObserverChange,
-} from "~/utils/pageRefObserverHandlers";
-import {
-  showDiscourseFloatingMenu,
-  hideDiscourseFloatingMenu,
-} from "~/components/DiscourseFloatingMenu";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 import {
-  DISCOURSE_TOOL_SHORTCUT_KEY,
-  AUTO_CANVAS_RELATIONS_KEY,
-  DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
-  STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
   USE_STORED_RELATIONS,
 } from "~/data/userSettings";
 import { setSetting } from "~/utils/extensionSettings";
 import { enablePostHog, disablePostHog } from "~/utils/posthog";
-import KeyboardShortcutInput from "./KeyboardShortcutInput";
-import streamlineStyling from "~/styles/streamlineStyling";
-import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
-import { PERSONAL_KEYS } from "./utils/settingKeys";
 import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
-import posthog from "posthog-js";
 import internalError from "~/utils/internalError";
-import { setPersonalSetting, type SettingsSnapshot } from "./utils/accessors";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
+import {
+  GlobalTextPanel,
+  PersonalFlagPanel,
+} from "./components/BlockPropSettingPanels";
+import { GLOBAL_KEYS, PERSONAL_KEYS } from "./utils/settingKeys";
+import { setPersonalSetting, type SettingsSnapshot } from "./utils/accessors";
+import {
+  LEGACY_CONFIG_ORDER,
+  useLegacyConfigUids,
+} from "./utils/useLegacyConfigUids";
+import { SettingsGroup } from "./components/SettingsHeadings";
+import { settingAnchor } from "./utils/settingAnchor";
 import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const enum RelationMigrationDialog {
@@ -43,15 +37,17 @@ const enum RelationMigrationDialog {
   "reactivate",
 }
 
-const HomePersonalSettings = ({
+const PreferencesGeneral = ({
   onloadArgs,
+  globalSettings,
   personalSettings,
 }: {
   onloadArgs: OnloadArgs;
+  globalSettings: SettingsSnapshot["globalSettings"];
   personalSettings: SettingsSnapshot["personalSettings"];
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
-  const overlayHandler = getOverlayHandler(onloadArgs);
+  const legacyUids = useLegacyConfigUids();
   const [activeRelationMigration, setActiveRelationMigration] =
     useState<RelationMigrationDialog>(RelationMigrationDialog.none);
   const [numExistingRelations, setNumExistingRelations] = useState<number>(0);
@@ -59,6 +55,13 @@ const HomePersonalSettings = ({
   const [storedRelations, setStoredRelationsState] = useState<boolean>(
     getStoredRelationsEnabled(),
   );
+
+  // The settings snapshot only refreshes on tab change, so the override row
+  // below would otherwise show a stale graph-wide value.
+  const [graphWideTrigger, setGraphWideTrigger] = useState<string>(
+    globalSettings[GLOBAL_KEYS.trigger],
+  );
+
   const setStoredRelations = (value: boolean) => {
     setSetting<boolean>(USE_STORED_RELATIONS, value)
       .then(() => {
@@ -115,22 +118,50 @@ const HomePersonalSettings = ({
       setActiveRelationMigration(RelationMigrationDialog.none);
     }
   };
+
   return (
     <div className="flex flex-col gap-4 p-1">
-      <Label>
-        Personal node menu trigger
-        <Description
+      <SettingsGroup title="Node trigger">
+        {/* `title` is the legacy block key; the visible label is set separately. */}
+        <GlobalTextPanel
+          title="trigger"
+          label={<span className="font-normal">Graph-wide default</span>}
           description={withDocsLink(
-            "Override the global trigger for the discourse node menu.",
+            "The trigger to create the node menu.",
             ROAM_DOCS.creatingNodes,
           )}
+          settingKeys={[GLOBAL_KEYS.trigger]}
+          initialValue={globalSettings[GLOBAL_KEYS.trigger]}
+          order={LEGACY_CONFIG_ORDER.trigger}
+          uid={legacyUids.triggerUid}
+          parentUid={legacyUids.settingsUid}
+          onChange={setGraphWideTrigger}
         />
-        <NodeMenuTriggerComponent
-          extensionAPI={extensionAPI}
-          initialValue={personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger]}
-        />
-      </Label>
-      <Label>
+        <Label {...settingAnchor([PERSONAL_KEYS.personalNodeMenuTrigger])}>
+          <span className="font-normal">
+            Personal override
+            <Description
+              description={withDocsLink(
+                "Override the global trigger for the discourse node menu.",
+                ROAM_DOCS.creatingNodes,
+              )}
+            />
+          </span>
+          <NodeMenuTriggerComponent
+            extensionAPI={extensionAPI}
+            initialValue={
+              personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger]
+            }
+            placeholder={
+              graphWideTrigger
+                ? `Click to set trigger (currently ${graphWideTrigger})`
+                : undefined
+            }
+          />
+        </Label>
+      </SettingsGroup>
+
+      <Label {...settingAnchor([PERSONAL_KEYS.nodeSearchMenuTrigger])}>
         Node search menu trigger
         <Description description="Set the trigger character for the node search menu." />
         <NodeSearchMenuTriggerSetting
@@ -138,32 +169,25 @@ const HomePersonalSettings = ({
           initialValue={personalSettings[PERSONAL_KEYS.nodeSearchMenuTrigger]}
         />
       </Label>
-      <KeyboardShortcutInput
-        onloadArgs={onloadArgs}
-        settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
-        blockPropKey={PERSONAL_KEYS.discourseToolShortcut}
-        label="Discourse tool keyboard shortcut"
+      <PersonalFlagPanel
+        title="Text selection popup"
         description={withDocsLink(
-          "Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut.",
+          "Whether or not to show the discourse node menu when selecting text.",
           ROAM_DOCS.creatingNodes,
         )}
-        placeholder="Click to set single key"
-        initialValue={personalSettings[PERSONAL_KEYS.discourseToolShortcut]}
+        settingKeys={[PERSONAL_KEYS.textSelectionPopup]}
+        initialValue={personalSettings[PERSONAL_KEYS.textSelectionPopup]}
+        onChange={(checked) => {
+          void setSetting("text-selection-popup", checked);
+        }}
       />
       <PersonalFlagPanel
-        title="Overlay"
-        description={withDocsLink(
-          "Whether or not to overlay discourse context information over discourse node references.",
-          ROAM_DOCS.discourseContextOverlay,
-        )}
-        settingKeys={[PERSONAL_KEYS.discourseContextOverlay]}
-        initialValue={personalSettings[PERSONAL_KEYS.discourseContextOverlay]}
+        title="Disable sidebar open"
+        description="Disable opening new nodes in the sidebar when created"
+        settingKeys={[PERSONAL_KEYS.disableSidebarOpen]}
+        initialValue={personalSettings[PERSONAL_KEYS.disableSidebarOpen]}
         onChange={(checked) => {
-          void setSetting("discourse-context-overlay", checked);
-          onPageRefObserverChange(overlayHandler)(checked);
-          posthog.capture("Personal Settings: Overlay Toggled", {
-            enabled: checked,
-          });
+          void setSetting("disable-sidebar-open", checked);
         }}
       />
       <PersonalFlagPanel
@@ -188,85 +212,6 @@ const HomePersonalSettings = ({
             setActiveRelationMigration(RelationMigrationDialog.deactivate);
           }
           return false;
-        }}
-      />
-
-      <PersonalFlagPanel
-        title="Text selection popup"
-        description={withDocsLink(
-          "Whether or not to show the discourse node menu when selecting text.",
-          ROAM_DOCS.creatingNodes,
-        )}
-        settingKeys={[PERSONAL_KEYS.textSelectionPopup]}
-        initialValue={personalSettings[PERSONAL_KEYS.textSelectionPopup]}
-        onChange={(checked) => {
-          void setSetting("text-selection-popup", checked);
-        }}
-      />
-      <PersonalFlagPanel
-        title="Disable sidebar open"
-        description="Disable opening new nodes in the sidebar when created"
-        settingKeys={[PERSONAL_KEYS.disableSidebarOpen]}
-        initialValue={personalSettings[PERSONAL_KEYS.disableSidebarOpen]}
-        onChange={(checked) => {
-          void setSetting("disable-sidebar-open", checked);
-        }}
-      />
-      <PersonalFlagPanel
-        title="Hide feedback button"
-        description="Hide the 'Send feedback' button at the bottom right of the screen."
-        settingKeys={[PERSONAL_KEYS.hideFeedbackButton]}
-        initialValue={personalSettings[PERSONAL_KEYS.hideFeedbackButton]}
-        onChange={(checked) => {
-          void setSetting("hide-feedback-button", checked);
-          if (checked) {
-            hideDiscourseFloatingMenu();
-          } else {
-            showDiscourseFloatingMenu();
-          }
-        }}
-      />
-      <PersonalFlagPanel
-        title="Auto canvas relations"
-        description={withDocsLink(
-          "Automatically add discourse relations to canvas when a node is added",
-          ROAM_DOCS.storedRelations,
-        )}
-        settingKeys={[PERSONAL_KEYS.autoCanvasRelations]}
-        initialValue={personalSettings[PERSONAL_KEYS.autoCanvasRelations]}
-        onChange={(checked) => {
-          void setSetting(AUTO_CANVAS_RELATIONS_KEY, checked);
-        }}
-      />
-
-      <PersonalFlagPanel
-        title="(BETA) Overlay in canvas"
-        description={withDocsLink(
-          "Whether or not to overlay discourse context information over canvas nodes.",
-          ROAM_DOCS.discourseContextOverlay,
-        )}
-        settingKeys={[PERSONAL_KEYS.overlayInCanvas]}
-        initialValue={personalSettings[PERSONAL_KEYS.overlayInCanvas]}
-        onChange={(checked) => {
-          void setSetting(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, checked);
-        }}
-      />
-      <PersonalFlagPanel
-        title="Streamline styling"
-        description="Apply streamlined styling to your personal graph for a cleaner appearance."
-        settingKeys={[PERSONAL_KEYS.streamlineStyling]}
-        initialValue={personalSettings[PERSONAL_KEYS.streamlineStyling]}
-        onChange={(checked) => {
-          void setSetting(STREAMLINE_STYLING_KEY, checked);
-          const existingStyleElement =
-            document.getElementById("streamline-styling");
-
-          if (checked && !existingStyleElement) {
-            const styleElement = addStyle(streamlineStyling);
-            styleElement.id = "streamline-styling";
-          } else if (!checked && existingStyleElement) {
-            existingStyleElement.remove();
-          }
         }}
       />
       <PersonalFlagPanel
@@ -400,4 +345,4 @@ const HomePersonalSettings = ({
   );
 };
 
-export default HomePersonalSettings;
+export default PreferencesGeneral;

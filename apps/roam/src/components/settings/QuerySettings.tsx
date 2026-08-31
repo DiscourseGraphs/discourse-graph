@@ -1,9 +1,10 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label } from "@blueprintjs/core";
-import Description from "~/components/settings/SettingsDescription";
 import { DEFAULT_PAGE_SIZE_KEY, HIDE_METADATA_KEY } from "~/data/userSettings";
+import Description from "~/components/settings/SettingsDescription";
 import DefaultFilters from "./DefaultFilters";
+import { settingAnchor } from "./utils/settingAnchor";
 import {
   PersonalFlagPanel,
   PersonalNumberPanel,
@@ -69,7 +70,9 @@ const QuerySettings = ({
           void extensionAPI.settings.set("query-pages", values);
         }}
       />
-      <Label>
+      <Label
+        {...settingAnchor([PERSONAL_KEYS.query, QUERY_KEYS.defaultFilters])}
+      >
         Default filters
         <Description
           description={withDocsLink(
