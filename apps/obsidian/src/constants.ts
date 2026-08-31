@@ -118,11 +118,16 @@ export const DEFAULT_SETTINGS: Settings = {
   canvasFolderPath: "Discourse Canvas",
   canvasAttachmentsFolderPath: "attachments",
   nodeTagHotkey: "\\",
+  showHelpMenuStatusBarIcon: false,
   spacePassword: undefined,
   accountLocalId: undefined,
   syncModeEnabled: false,
   spaceNames: {},
 };
+
+export const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
+export const COMMUNITY_URL =
+  "https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg";
 
 export const FEATURE_FLAGS = {
   // settings for these features are in the Admin Panel (hidden tab in Settings, toggle with Ctrl+Shift+A)

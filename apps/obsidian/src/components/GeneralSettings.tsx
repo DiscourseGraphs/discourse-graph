@@ -4,10 +4,39 @@ import { setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
 import { DiscourseGraphLogoIcon, SlackLogoIcon } from "./Icons";
 import { FeedbackModal } from "./FeedbackModal";
+import { DOCS_URL, COMMUNITY_URL } from "~/constants";
 
-const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
-const COMMUNITY_URL =
-  "https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg";
+const ToggleSetting = ({
+  name,
+  description,
+  checked,
+  onChange,
+}: {
+  name: string;
+  description: string;
+  checked: boolean;
+  onChange: (newValue: boolean) => void;
+}) => (
+  <div className="setting-item">
+    <div className="setting-item-info">
+      <div className="setting-item-name">{name}</div>
+      <div className="setting-item-description">{description}</div>
+    </div>
+    <div className="setting-item-control">
+      <div
+        className={`checkbox-container ${checked ? "is-enabled" : ""}`}
+        onClick={() => onChange(!checked)}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          aria-label={name}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+      </div>
+    </div>
+  </div>
+);
 
 const InfoSection = () => {
   const plugin = usePlugin();
@@ -165,10 +194,20 @@ const GeneralSettings = () => {
   const [nodeTagHotkey, setNodeTagHotkey] = useState<string>(
     plugin.settings.nodeTagHotkey,
   );
+  const [showHelpMenuStatusBarIcon, setShowHelpMenuStatusBarIcon] = useState(
+    plugin.settings.showHelpMenuStatusBarIcon,
+  );
 
   const handleToggleChange = (newValue: boolean) => {
     setShowIdsInFrontmatter(newValue);
     plugin.settings.showIdsInFrontmatter = newValue;
+    void plugin.saveSettings();
+  };
+
+  const handleHelpMenuStatusBarIconToggleChange = (newValue: boolean) => {
+    setShowHelpMenuStatusBarIcon(newValue);
+    plugin.settings.showHelpMenuStatusBarIcon = newValue;
+    plugin.setHelpMenuStatusBarItemVisibility();
     void plugin.saveSettings();
   };
 
@@ -213,23 +252,12 @@ const GeneralSettings = () => {
 
   return (
     <div className="general-settings">
-      <div className="setting-item">
-        <div className="setting-item-info">
-          <div className="setting-item-name">Show IDs in frontmatter</div>
-          <div className="setting-item-description">
-            Choose if you want IDs to show in the frontmatter. Controls
-            visibility of node type IDs and relation type IDs.
-          </div>
-        </div>
-        <div className="setting-item-control">
-          <div
-            className={`checkbox-container ${showIdsInFrontmatter ? "is-enabled" : ""}`}
-            onClick={() => handleToggleChange(!showIdsInFrontmatter)}
-          >
-            <input type="checkbox" checked={showIdsInFrontmatter} />
-          </div>
-        </div>
-      </div>
+      <ToggleSetting
+        name="Show IDs in frontmatter"
+        description="Choose if you want IDs to show in the frontmatter. Controls visibility of node type IDs and relation type IDs."
+        checked={showIdsInFrontmatter}
+        onChange={handleToggleChange}
+      />
 
       <div className="setting-item">
         <div className="setting-item-info">
@@ -314,6 +342,13 @@ const GeneralSettings = () => {
           />
         </div>
       </div>
+
+      <ToggleSetting
+        name="Show help menu icon in status bar"
+        description="Adds a Discourse Graph icon to the status bar that opens a menu with feedback, docs, community, and settings links."
+        checked={showHelpMenuStatusBarIcon}
+        onChange={handleHelpMenuStatusBarIconToggleChange}
+      />
 
       <InfoSection />
     </div>

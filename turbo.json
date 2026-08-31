@@ -109,7 +109,12 @@
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "env": ["APP_ID"],
-      "passThroughEnv": ["APP_PRIVATE_KEY", "GITHUB_TOKEN"]
+      "passThroughEnv": [
+        "APP_PRIVATE_KEY",
+        "GITHUB_OUTPUT",
+        "GITHUB_TOKEN",
+        "ROAM_RELEASE_TOKEN"
+      ]
     }
   }
 }

@@ -67,10 +67,10 @@ If the docs need a styling or presentation feature that Nextra does not currentl
 
 Preferred: Use the `$update-user-docs` skill to update plugin docs. Detailed guidance for plugin docs lives next to the `$update-user-docs` skill:
 
-- **[llm-authoring-guide.md](./skills/update-user-docs/references/llm-authoring-guide.md)** - a short guide non-devs can give to an LLM before asking it to write or update docs
-- **[navigation-mapping.md](./skills/update-user-docs/references/navigation-mapping.md)** - how `_meta.ts` controls sidebar registration and when `docsRouteMap.ts` needs a redirect
-- **[doc-conventions.md](./skills/update-user-docs/references/doc-conventions.md)** - filenames, frontmatter, screenshots, and cross-links
-- **[scope-detection.md](./skills/update-user-docs/references/scope-detection.md)** - how changed file paths map to Obsidian, Roam, both-platform, or docs-site updates
+- **[llm-authoring-guide.md](./.agents/skills/update-user-docs/references/llm-authoring-guide.md)** - a short guide non-devs can give to an LLM before asking it to write or update docs
+- **[navigation-mapping.md](./.agents/skills/update-user-docs/references/navigation-mapping.md)** - how `_meta.ts` controls sidebar registration and when `docsRouteMap.ts` needs a redirect
+- **[doc-conventions.md](./.agents/skills/update-user-docs/references/doc-conventions.md)** - filenames, frontmatter, screenshots, and cross-links
+- **[scope-detection.md](./.agents/skills/update-user-docs/references/scope-detection.md)** - how changed file paths map to Obsidian, Roam, both-platform, or docs-site updates
 
 ### Documentation Images
 

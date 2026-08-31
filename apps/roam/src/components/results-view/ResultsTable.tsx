@@ -56,6 +56,7 @@ const ResultHeader = React.forwardRef<
     setFilters: (f: FilterData) => void;
     initialFilter: Filters;
     columnWidth?: string;
+    simplified: boolean;
   }
 >(
   ({
@@ -67,6 +68,7 @@ const ResultHeader = React.forwardRef<
     setFilters,
     initialFilter,
     columnWidth,
+    simplified,
   }) => {
     const filterData = useMemo(
       () => ({
@@ -110,7 +112,13 @@ const ResultHeader = React.forwardRef<
         }}
       >
         <div className="flex items-center">
-          <span className="mr-4 inline-block">{c.key}</span>
+          <span
+            className={`roamjs-query-results-column-label ${
+              simplified ? "hidden" : "mr-4 inline-block"
+            }`}
+          >
+            {c.key}
+          </span>
           <span>
             <Filter
               data={filterData}
@@ -381,7 +389,7 @@ const ResultRow = ({
                   <Button
                     minimal
                     icon="delete"
-                    className="float-right"
+                    className="roamjs-query-results-delete-relation float-right"
                     title="Delete relation"
                     onClick={onDelete}
                   ></Button>
@@ -454,6 +462,7 @@ const ResultsTable = ({
   views,
   allResults,
   showInterface,
+  simplified,
 }: {
   columns: Column[];
   results: Result[];
@@ -469,6 +478,7 @@ const ResultsTable = ({
   onRefresh: (ignoreCache?: boolean) => void;
   allResults: Result[];
   showInterface?: boolean;
+  simplified?: boolean;
 }) => {
   const tableRef = useRef<HTMLTableElement | null>(null);
   const dragInfo = useRef<DragInfo>(getInitialDragInfo());
@@ -694,11 +704,12 @@ const ResultsTable = ({
     },
     [setFilters, preventSavingSettings, parentUid],
   );
-  const tableProps = useMemo(
-    () =>
-      layout.rowStyle !== "Bare" ? { striped: true, interactive: true } : {},
-    [layout.rowStyle],
-  );
+  const tableProps = useMemo(() => {
+    if (simplified) return { interactive: true };
+    return layout.rowStyle !== "Bare"
+      ? { striped: true, interactive: true }
+      : {};
+  }, [layout.rowStyle, simplified]);
 
   const [extraRowUid, setExtraRowUid] = useState<string | null>(null);
   const [extraRowType, setExtraRowType] = useState<ExtraRowType>(null);
@@ -749,7 +760,12 @@ const ResultsTable = ({
       data-parent-uid={parentUid}
       {...tableProps}
     >
-      <thead style={{ background: "#eeeeee80" }}>
+      <thead
+        className={`roamjs-query-results-header ${
+          simplified ? "bg-transparent pt-0" : ""
+        }`}
+        style={simplified ? undefined : { background: "#eeeeee80" }}
+      >
         <tr style={{ visibility: !showInterface ? "collapse" : "visible" }}>
           {visibleColumns.map((c) => (
             <ResultHeader
@@ -762,6 +778,7 @@ const ResultsTable = ({
               setFilters={resultHeaderSetFilters}
               initialFilter={filters[c.key]}
               columnWidth={columnWidths[c.uid]}
+              simplified={simplified ?? false}
             />
           ))}
         </tr>

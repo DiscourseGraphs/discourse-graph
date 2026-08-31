@@ -31,6 +31,7 @@ import {
   setPersonalSetting,
   setGlobalSetting,
   isSyncEnabled,
+  isNodeSharingEnabled,
 } from "~/components/settings/utils/accessors";
 import {
   DISCOURSE_NODE_KEYS,
@@ -248,10 +249,10 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   const shareCurrentNode = () => {
-    if (!isSyncEnabled()) {
+    if (!isNodeSharingEnabled()) {
       renderToast({
-        id: "share-node-sync-disabled",
-        content: "Sync must be enabled to publish discourse nodes.",
+        id: "share-node-sharing-disabled",
+        content: "Node sharing must be enabled to publish discourse nodes.",
       });
       return;
     }
@@ -422,6 +423,8 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
   if (isSyncEnabled()) {
     void addCommand("DG: Discover shared nodes", discoverSharedNodes);
+  }
+  if (isNodeSharingEnabled()) {
     void addCommand("DG: Share current node", shareCurrentNode);
   }
   if (getFeatureFlag("Advanced node search enabled")) {

@@ -23,7 +23,8 @@ import updateBlock from "roamjs-components/writes/updateBlock";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import createDiscourseNode from "~/utils/createDiscourseNode";
-import { getNewDiscourseNodeText } from "~/utils/formatUtils";
+import { resolveNewDiscourseNodeText } from "~/utils/formatUtils";
+import { isMacOS } from "~/utils/platform";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
@@ -126,12 +127,13 @@ const NodeMenu = ({
         if (document.activeElement === textarea) document.body.click();
 
         const createNodeAndUpdateBlock = async () => {
-          const pageName = await getNewDiscourseNodeText({
-            text: highlighted,
-            nodeType: nodeUid,
-            blockUid: targetBlockUid,
-            skipBlockUpdate: true,
-          });
+          const { text: pageName, handledByDialog } =
+            await resolveNewDiscourseNodeText({
+              text: highlighted,
+              nodeType: nodeUid,
+              blockUid: targetBlockUid,
+              skipBlockUpdate: true,
+            });
           if (!pageName) return;
 
           const latestBlockText = getTextByBlockUid(targetBlockUid);
@@ -141,11 +143,13 @@ const NodeMenu = ({
             selectionStart,
           )}[[${pageName}]]${latestBlockText.substring(selectionEnd)}`;
 
-          await createDiscourseNode({
-            text: pageName,
-            configPageUid: nodeUid,
-            extensionAPI,
-          });
+          if (!handledByDialog) {
+            await createDiscourseNode({
+              text: pageName,
+              configPageUid: nodeUid,
+              extensionAPI,
+            });
+          }
           void updateBlock({ text: newText, uid: targetBlockUid });
           posthog.capture("Discourse Node: Created via Node Menu", {
             nodeType: nodeUid,
@@ -416,12 +420,6 @@ export const TextSelectionNodeMenu = ({
   );
 };
 
-// node_modules\@blueprintjs\core\lib\esm\components\hotkeys\hotkeyParser.js
-const isMac = () => {
-  const platform =
-    typeof navigator !== "undefined" ? navigator.platform : undefined;
-  return platform == null ? false : /Mac|iPod|iPhone|iPad/.test(platform);
-};
 const MODIFIER_BIT_MASKS = {
   alt: 1,
   ctrl: 2,
@@ -433,7 +431,7 @@ const ALIASES: { [key: string]: string } = {
   command: "meta",
   escape: "esc",
   minus: "-",
-  mod: isMac() ? "meta" : "ctrl",
+  mod: isMacOS() ? "meta" : "ctrl",
   option: "alt",
   plus: "+",
   return: "enter",
@@ -443,7 +441,7 @@ const normalizeKeyCombo = (combo: string) => {
   const keys = combo.replace(/\s/g, "").split("+");
   return keys.map(function (key) {
     const keyName = ALIASES[key] != null ? ALIASES[key] : key;
-    return keyName === "meta" ? (isMac() ? "cmd" : "win") : keyName;
+    return keyName === "meta" ? (isMacOS() ? "cmd" : "win") : keyName;
   });
 };
 

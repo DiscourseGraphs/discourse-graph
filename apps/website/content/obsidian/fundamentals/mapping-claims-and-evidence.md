@@ -1,0 +1,47 @@
+---
+title: "Mapping claims and evidence"
+date: "2026-07-23"
+author: ""
+published: true
+---
+
+## Building an argument
+
+**Discourse Relations** (_i.e._ supports, informs, opposes) are a means of illustrating the relationships between different discourse nodes related to your animating Question. We can use discourse relations to wire together claims and evidence from a single source, or (perhaps more interestingly) to connect evidence from multiple sources that is relevant to a claim or group of claims.
+
+![Mapping claims and evidence](/docs/obsidian/claim-mapping01.png)
+_Different claims may be supported or opposed by evidence from different sources_
+
+In the image above, a single article provides two different pieces of evidence _supporting_ a particular claim, while an experiment and a simulation result both _oppose_ a second claim. A third source provides both supporting and opposing evidence for a third claim.
+
+Such a constellation of conflicting claims and evidence is relatively uncommon within a single article (excluding meta-analyses), where claims and evidence share a single author, but very common when sources are intermingled.
+
+The discourse graph breaks the interpretive frame imposed by the article. Working across analytical boundaries in this way makes the thoughtful use of _relations_ paramount: once freed from the inferential structure of their source material, claims and evidence require solid grounding to be fruitfully integrated into your graph. This includes accurately linking evidence to the relevant claim, evaluating the strength of the evidence (independent of its valence), and often taking a closer look at the method that produced the evidence to assess whether a replication or different approach is warranted.
+
+![evaluating sources](/docs/obsidian/grounding-evd.png)
+_Linking evidence to claims, assigning weights to evidence, assessing sources_
+
+## Orienting your map
+
+In addition to carrying semantic information about the relationship of different nodes to each other, relations help to orient your graph in conceptual space.
+
+### Spotting gaps in methodology
+
+A researcher clustering sources by methodology, for instance, might find that conflicting support for a particular claim could potentially be resolved by using a method from a more distant conceptual space.
+
+![evidence clustering suggests novel method](/docs/obsidian/evidence-gap-selection02.png)
+_Mind the gap: there are ideas for different experiments to be found within!_
+
+### Finding unsynthesized claims
+
+Similarly, a researcher performing a literature synthesis might find that certain extracted claims require more substantiation -- either by revisiting the literature to make sure all of the authors' evidence has been captured, or by designing a new study.
+
+![spotting gaps in your evidence map](/docs/obsidian/gap-spotting.png)
+_Gap spotting in a literature synthesis_
+
+## Gathering your party and venturing forth
+
+Just as a map without roads would lack important information about the best routes to places of interest, a discourse graph without relations leaves out important information about which scientific roads are well-traveled -- and which less-traveled paths might lead to treasure.
+
+![choose your own adventure](/docs/obsidian/quest-map.png)
+_There is no fast travel in science ..._
