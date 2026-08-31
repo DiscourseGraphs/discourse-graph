@@ -1,8 +1,5 @@
 import { crossAppNodeToDbContent } from "@repo/database/lib/crossAppConverters";
-import {
-  fullContentNodeToCrossApp,
-  getFormatByNodeTypeUid,
-} from "./roamToCrossAppConverters";
+import { fullContentNodeToCrossApp } from "./roamToCrossAppConverters";
 import type { LocalContentDataInput } from "@repo/database/inputTypes";
 
 export type RoamFullContentNode = {
@@ -12,6 +9,7 @@ export type RoamFullContentNode = {
   last_modified: string | number;
   text: string;
   node_type_id: string;
+  format: string;
   node_title?: string;
 };
 
@@ -20,10 +18,9 @@ export const convertRoamNodeToFullContent = ({
 }: {
   nodes: RoamFullContentNode[];
 }): LocalContentDataInput[] => {
-  const formatByNodeTypeUid = getFormatByNodeTypeUid();
   return nodes.flatMap((node) => {
     try {
-      const crossAppNode = fullContentNodeToCrossApp(node, formatByNodeTypeUid);
+      const crossAppNode = fullContentNodeToCrossApp(node);
       const fullContent = crossAppNodeToDbContent(crossAppNode, "full");
       return fullContent === undefined ? [] : [fullContent];
     } catch (error) {

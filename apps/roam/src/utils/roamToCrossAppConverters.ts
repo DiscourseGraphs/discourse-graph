@@ -18,7 +18,7 @@ import { contentTypes } from "@repo/content-model";
 import getDiscourseNodes from "./getDiscourseNodes";
 import extractContentFromTitle from "./extractContentFromTitle";
 
-export const getFormatByNodeTypeUid = (): Map<string, string> =>
+const getFormatByNodeTypeUid = (): Map<string, string> =>
   new Map(getDiscourseNodes().map((node) => [node.type, node.format]));
 
 const getCoreTitle = (
@@ -78,7 +78,6 @@ const buildFullInlineContent = ({
 
 export const fullContentNodeToCrossApp = (
   node: RoamFullContentNode,
-  formatByNodeTypeUid: Map<string, string>,
 ): CrossAppNode => {
   const title = node.node_title ?? node.text;
 
@@ -88,7 +87,7 @@ export const fullContentNodeToCrossApp = (
     createdAt: new Date(node.created || Date.now()),
     modifiedAt: new Date(node.last_modified || Date.now()),
     nodeType: node.node_type_id,
-    coreTitle: getCoreTitle(title, node.node_type_id, formatByNodeTypeUid),
+    coreTitle: extractContentFromTitle(title, { format: node.format }),
     content: {
       direct: {
         localId: node.source_local_id,
