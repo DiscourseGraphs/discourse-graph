@@ -25,7 +25,7 @@ The graph is designed to support multiple users in a collaborative lab group set
 
 ![template lab graph welcome page](/docs/roam/template-lab-welcome.png)
 
-3. Open the (`...`) menu, select, "Export All" and then choose the EDN export format.
+3. Open the (`...`) menu, select "Export All" and then choose the msgpack export format.
 
 ![export menu](/docs/roam/template-lab-export01.png)
 _The `...` menu_
@@ -47,17 +47,17 @@ Your graph may appear empty at first but if you open _All Pages_ in the sidebar 
 
 1. Open _Roam Depot_ from the _Settings_ Menu. Browse the _Community Extensions_
 
-2. Install and enable the **Discourse Graph** and **SmartBlock** extensions.You may also find the **Breadcrumbs** and **Color Highlighter** extension useful.
+2. Install and enable the **Discourse Graph** and **SmartBlock** extensions (you might also find the **Breadcrumbs** and **Color Highlighter** extensions useful, but they are not required).
 
 ![plugins](/docs/roam/template-lab-ext.png)
 _Extensions screen_
 
-3. Reload your browser window. Your graph should"come alive" with discourse graph content and a left sidebar populated with default links.
+3. Reload your browser window. Your graph should "come alive" with discourse graph content and a left sidebar populated with default links.
 
 ![empty graph](/docs/roam/template-lab-test01.png)
-_Boo ..._
+_Boo ... no discourse graph content!_
 
 ![plugin enabled](/docs/roam/template-lab-test02.png)
 _Yay!_
 
-N.B. The template graph is updated regularly, but once you export the graph, your version is frozen -- check our [Slack channel](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg) for updates you can copy to your graph.
+_**N.B.**_ The template graph is updated regularly, but once you export the graph, your version is frozen -- check our [Slack channel](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg) for updates you can copy to your graph.
