@@ -19,7 +19,7 @@ BEGIN
     local_content.space_id := v_space_id;
     IF content_type(local_content) IS NULL THEN
         local_content.content_type := CASE
-          WHEN variant(local_content)!='full' THEN 'text/plain'
+          WHEN variant(local_content) IS DISTINCT FROM 'full' THEN 'text/plain'
           WHEN v_platform='Roam' THEN 'text/roam+markdown'
           WHEN v_platform='Obsidian' THEN 'text/obsidian+markdown'
           ELSE 'text/plain' END;

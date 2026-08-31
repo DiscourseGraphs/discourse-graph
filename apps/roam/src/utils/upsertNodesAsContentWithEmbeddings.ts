@@ -146,7 +146,7 @@ const uploadBatches = async (
 ) => {
   const { spaceId } = context;
   for (let idx = 0; idx < batches.length; idx++) {
-    const batch = batches[idx]!;
+    const batch = batches[idx];
     try {
       await upsertContentThroughApi({
         client: supabaseClient,

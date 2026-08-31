@@ -280,7 +280,7 @@ const upsertConceptBatches = async ({
   const batches = chunk(concepts, CONCEPT_BATCH_SIZE);
 
   for (let idx = 0; idx < batches.length; idx++) {
-    const batch = batches[idx]!;
+    const batch = batches[idx];
 
     const { data, error } = await supabaseClient.rpc("upsert_concepts", {
       data: batch as Json,
