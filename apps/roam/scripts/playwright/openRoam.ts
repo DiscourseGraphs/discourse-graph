@@ -33,9 +33,7 @@ const main = async (): Promise<void> => {
   const slot =
     getStringArg(args, "slot") || getEnvValue("DG_ROAM_PLAYWRIGHT_SLOT") || "1";
   const timeout = Number(getStringArg(args, "timeout") || 30_000);
-  const headless = getBooleanArg(args, "headed")
-    ? false
-    : getEnvValue("HEADLESS") !== "false";
+  const headless = getBooleanArg(args, "headed") ? false : undefined;
   const outDir = path.resolve(
     getStringArg(args, "out") || DEFAULT_ARTIFACT_DIR,
   );
@@ -47,7 +45,7 @@ const main = async (): Promise<void> => {
 
   await fs.mkdir(outDir, { recursive: true });
 
-  const { context, page, slotConfig } = await openRoamSession({
+  const session = await openRoamSession({
     slot,
     graphUrl: getStringArg(args, "url"),
     profileDir: getStringArg(args, "profile-dir"),
@@ -55,6 +53,7 @@ const main = async (): Promise<void> => {
     timeout,
     allowInteractiveLogin: getBooleanArg(args, "allow-login"),
   });
+  const { page, slotConfig } = session;
 
   try {
     await page.screenshot({ path: screenshotPath, fullPage: false });
@@ -67,7 +66,7 @@ const main = async (): Promise<void> => {
       profileDir: slotConfig.profileDir,
       screenshotPath,
       resultPath,
-      headless,
+      headless: session.headless,
       capturedAt: new Date().toISOString(),
     };
 
@@ -78,7 +77,7 @@ const main = async (): Promise<void> => {
       console.log("Browser context left open. Press Ctrl+C to close it.");
       await waitForTermination();
     }
-    await context.close();
+    await session.close();
   }
 };
 
