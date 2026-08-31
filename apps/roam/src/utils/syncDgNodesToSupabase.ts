@@ -675,7 +675,7 @@ export const convertDgToSupabaseConcepts = async ({
     const localConcept = discourseNodeBlockToLocalConcept(context, {
       nodeUid: node.source_local_id,
       schemaUid: node.type,
-      title: node.node_title,
+      title: node.node_title ?? node.text,
       schema: schemasByUid.get(node.type),
     });
     return localConcept;
