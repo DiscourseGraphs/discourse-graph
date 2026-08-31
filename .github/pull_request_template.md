@@ -11,9 +11,16 @@ Include only the fields that help the reviewer:
 
 <!-- Optional checks and their results. Remove this section when it adds no value. -->
 
-## Loom video for verification
+## Loom video
 
-<!-- Add a Loom video link when it is useful for verification. -->
+<!-- Include a short Loom video for every PR (any change—UI, backend, refactors, infra, etc.). 
+This helps reviewers understand intent quickly and catches issues earlier
+- Keep it under 2–3 minutes
+- Show before/after for bug fixes
+- Narrate key design or dev decisions
+- Paste the Loom link in the PR body
+-->
+
 
 ## Scope check
 
