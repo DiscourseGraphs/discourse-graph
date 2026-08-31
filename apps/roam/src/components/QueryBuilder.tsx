@@ -26,9 +26,11 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import posthog from "posthog-js";
 import parseResultSettings from "~/utils/parseResultSettings";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
+import deleteQuery, { type QueryParentType } from "~/utils/deleteQuery";
 
 type QueryPageComponent = (props: {
   pageUid: string;
+  parentType?: QueryParentType;
   isEditBlock?: boolean;
   showAlias?: boolean;
   discourseNodeType?: string;
@@ -40,6 +42,7 @@ type Props = Parameters<QueryPageComponent>[0];
 
 const QueryBuilder = ({
   pageUid,
+  parentType = "block",
   isEditBlock,
   showAlias,
   discourseNodeType,
@@ -200,7 +203,7 @@ const QueryBuilder = ({
             results={results.map(({ id, ...a }) => a)}
             onRefresh={onRefresh}
             isEditBlock={isEditBlock}
-            onDeleteQuery={() => deleteBlock(pageUid)}
+            onDeleteQuery={() => deleteQuery({ uid: pageUid, parentType })}
           />
         ) : (
           <></>
@@ -246,7 +249,7 @@ export const renderQueryPage = ({
 
     ReactDOM.render(
       <ExtensionApiContextProvider {...onloadArgs}>
-        <QueryBuilder pageUid={uid} />
+        <QueryBuilder pageUid={uid} parentType="page" />
       </ExtensionApiContextProvider>,
       parent,
     );
