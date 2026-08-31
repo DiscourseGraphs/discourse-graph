@@ -26,6 +26,7 @@ import getDiscourseNodes from "./getDiscourseNodes";
 import { difference, intersection } from "@repo/utils/setOperations";
 import internalError from "./internalError";
 import { readImportedSourceIdentity } from "./importedSourceIdentity";
+import { excludeProvisionalRelationSchemas } from "./relationSchemaAcceptance";
 
 export type NodeUidWithType = {
   uid: string;
@@ -111,7 +112,11 @@ export const gatherCorrespondingRelations = async ({
   relationTripleSchemas: CrossAppRelationTripleSchema[];
   relevantRelationIdsPerGroupId: Record<string, string[]>;
 }> => {
-  const allRelationsSchemas = getDiscourseRelations();
+  // Excluding provisional schemas here also drops their relation instances:
+  // relationSchemaIds below only keeps instances whose schema is in this map.
+  const allRelationsSchemas = excludeProvisionalRelationSchemas(
+    getDiscourseRelations(),
+  );
   const allRelationSchemasById = Object.fromEntries(
     allRelationsSchemas.map((s) => [s.id, s]),
   );
