@@ -5,6 +5,7 @@ import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import ResultsView from "./results-view/ResultsView";
 import posthog from "posthog-js";
 import { CreateRelationButton } from "./CreateRelationDialog";
+import TentativeRelationInstances from "./TentativeRelationInstances";
 import { useDiscourseContextMutationRefresh } from "~/utils/discourseContextMutationRefresh";
 
 export type DiscourseContextResults = Awaited<
@@ -172,9 +173,11 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
   });
   const [tabId, setTabId] = useState(0);
   const [groupByTarget, setGroupByTarget] = useState(false);
-  return queryResults.length ? (
+  return (
     <>
-      <style>{`@media (hover: hover) and (pointer: fine) {
+      {queryResults.length ? (
+        <>
+          <style>{`@media (hover: hover) and (pointer: fine) {
   .roamjs-discourse-result-panel .roamjs-query-results-delete-relation {
     visibility: hidden;
   }
@@ -188,70 +191,76 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
 .roamjs-discourse-context-tabs > .bp3-tab-list {
   align-self: stretch;
 }`}</style>
-      <Tabs
-        className="roamjs-discourse-context-tabs"
-        selectedTabId={tabId}
-        onChange={(e) => setTabId(Number(e))}
-        vertical
-        renderActiveTabPanelOnly
-      >
-        {queryResults.map((r, i) => (
-          <Tab
-            id={i}
-            key={i}
-            title={`(${Object.values(r.results).length}) ${r.label}`}
-            panelClassName="roamjs-discourse-result-panel"
-            panel={
-              <ContextTab
+          <Tabs
+            className="roamjs-discourse-context-tabs"
+            selectedTabId={tabId}
+            onChange={(e) => setTabId(Number(e))}
+            vertical
+            renderActiveTabPanelOnly
+          >
+            {queryResults.map((r, i) => (
+              <Tab
+                id={i}
                 key={i}
-                parentUid={uid}
-                r={r}
-                groupByTarget={groupByTarget}
-                onRefresh={onRefresh}
+                title={`(${Object.values(r.results).length}) ${r.label}`}
+                panelClassName="roamjs-discourse-result-panel"
+                panel={
+                  <ContextTab
+                    key={i}
+                    parentUid={uid}
+                    r={r}
+                    groupByTarget={groupByTarget}
+                    onRefresh={onRefresh}
+                  />
+                }
               />
+            ))}
+            {debouncedLoading && (
+              <div className="text-muted-foreground m-auto flex items-center gap-2 text-sm">
+                <Spinner />
+              </div>
+            )}
+            <div className="roamjs-discourse-context-controls mt-auto box-border flex w-full flex-none flex-col px-2 pt-2">
+              <Switch
+                label="Group By Target"
+                checked={groupByTarget}
+                className="mb-1 text-xs"
+                onChange={(e) =>
+                  setGroupByTarget((e.target as HTMLInputElement).checked)
+                }
+              />
+              <CreateRelationButton
+                sourceNodeUid={uid}
+                onCreated={delayedRefresh}
+                fill
+              />
+            </div>
+          </Tabs>
+        </>
+      ) : debouncedLoading && !results ? (
+        <Tabs selectedTabId={0} onChange={() => {}} vertical>
+          <Tab
+            id={0}
+            title="Loading ..."
+            disabled
+            panel={
+              <div>
+                <div className="bp3-skeleton h-36" />
+              </div>
             }
           />
-        ))}
-        {debouncedLoading && (
-          <div className="text-muted-foreground m-auto flex items-center gap-2 text-sm">
-            <Spinner />
-          </div>
-        )}
-        <div className="roamjs-discourse-context-controls mt-auto box-border flex w-full flex-none flex-col px-2 pt-2">
-          <Switch
-            label="Group By Target"
-            checked={groupByTarget}
-            className="mb-1 text-xs"
-            onChange={(e) =>
-              setGroupByTarget((e.target as HTMLInputElement).checked)
-            }
-          />
+        </Tabs>
+      ) : (
+        <div className="flex flex-col items-start">
+          <span>No discourse relations found.</span>
           <CreateRelationButton
             sourceNodeUid={uid}
             onCreated={delayedRefresh}
-            fill
           />
         </div>
-      </Tabs>
+      )}
+      <TentativeRelationInstances uid={uid} />
     </>
-  ) : debouncedLoading && !results ? (
-    <Tabs selectedTabId={0} onChange={() => {}} vertical>
-      <Tab
-        id={0}
-        title="Loading ..."
-        disabled
-        panel={
-          <div>
-            <div className="bp3-skeleton h-36" />
-          </div>
-        }
-      />
-    </Tabs>
-  ) : (
-    <div className="flex flex-col items-start">
-      <span>No discourse relations found.</span>
-      <CreateRelationButton sourceNodeUid={uid} onCreated={delayedRefresh} />
-    </div>
   );
 };
 

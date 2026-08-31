@@ -12,6 +12,7 @@ import {
   ANY_RELATION_NAME,
   ANY_RELATION_REGEX,
 } from "./deriveDiscourseNodeAttribute";
+import { getTentativeRelationInstances } from "./tentativeRelations";
 
 const resultCache: Record<string, Awaited<ReturnType<typeof fireQuery>>> = {};
 const CACHE_TIMEOUT = 1000 * 60 * 5;
@@ -278,10 +279,23 @@ const getDiscourseContextResults = async ({
     resultsWithRelation.length > 0 &&
     resultsWithRelation[0].results.length > 0
   ) {
+    const tentativeKeys = new Set(
+      (await getTentativeRelationInstances()).map(
+        (t) => `${t.schemaUid}|${t.sourceUid}|${t.destinationUid}`,
+      ),
+    );
+    const isTentativeResult = (r: Result): boolean => {
+      const source = r.effectiveSource as string;
+      const destination = source === targetUid ? r.uid : targetUid;
+      return tentativeKeys.has(
+        `${r.relationUid as string}|${source}|${destination}`,
+      );
+    };
     const byRel: Record<string, Result[]> = {};
     const results = resultsWithRelation[0].results;
     resultsWithRelation = [];
     for (const r of results) {
+      if (isTentativeResult(r)) continue;
       const relKey = `${r.relationUid as string}-${r.effectiveSource !== targetUid}`;
       byRel[relKey] = byRel[relKey] || [];
       byRel[relKey].push(r);

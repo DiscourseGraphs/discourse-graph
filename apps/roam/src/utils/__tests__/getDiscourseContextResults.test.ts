@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   fireQuery: vi.fn(),
   generateUID: vi.fn(),
   getSetting: vi.fn(),
+  getTentativeRelationInstances: vi.fn(),
 }));
 
 vi.mock("~/utils/deriveDiscourseNodeAttribute", () => ({
@@ -32,6 +33,10 @@ vi.mock("~/utils/getDiscourseNodes", () => ({
 
 vi.mock("~/utils/getDiscourseRelations", () => ({
   default: () => [],
+}));
+
+vi.mock("~/utils/tentativeRelations", () => ({
+  getTentativeRelationInstances: mocks.getTentativeRelationInstances,
 }));
 
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
@@ -66,6 +71,7 @@ describe("getDiscourseContextResults", () => {
     mocks.generateUID.mockReturnValue("condition");
     mocks.getSetting.mockReturnValue(true);
     mocks.findDiscourseNode.mockReturnValue({ type: "CLM" });
+    mocks.getTentativeRelationInstances.mockResolvedValue([]);
   });
 
   it("regroups all-relation reified query results by schema order", async () => {
@@ -159,5 +165,67 @@ describe("getDiscourseContextResults", () => {
     });
     expect(onResult).toHaveBeenNthCalledWith(1, results[0]);
     expect(onResult).toHaveBeenNthCalledWith(2, results[1]);
+  });
+
+  it("excludes tentative imported relation instances from reified results", async () => {
+    const onResult = vi.fn();
+    const nodes: DiscourseNode[] = [
+      makeNode({ type: "CLM", text: "Claim" }),
+      makeNode({ type: "QUE", text: "Question" }),
+      makeNode({ type: "EVD", text: "Evidence" }),
+    ];
+    const relations: DiscourseRelation[] = [
+      {
+        id: "supports",
+        label: "Supports",
+        complement: "Supported By",
+        source: "CLM",
+        destination: "QUE",
+        triples: [],
+      },
+      {
+        id: "informs",
+        label: "Informs",
+        complement: "Informed By",
+        source: "EVD",
+        destination: "CLM",
+        triples: [],
+      },
+    ];
+
+    mocks.fireQuery.mockResolvedValue([
+      {
+        text: "Evidence A",
+        uid: "evidence-a",
+        relationUid: "informs",
+        effectiveSource: "evidence-a",
+      },
+      {
+        text: "Question A",
+        uid: "question-a",
+        relationUid: "supports",
+        effectiveSource: "claim-a",
+      },
+    ]);
+    mocks.getTentativeRelationInstances.mockResolvedValue([
+      {
+        relationUid: "rel-block-1",
+        schemaUid: "supports",
+        sourceUid: "claim-a",
+        destinationUid: "question-a",
+      },
+    ]);
+
+    const results = await getDiscourseContextResults({
+      uid: "claim-a",
+      nodes,
+      relations,
+      onResult,
+    });
+
+    expect(results).toHaveLength(1);
+    expect(results[0].label).toBe("Informed By");
+    expect(Object.keys(results[0].results)).toEqual(["evidence-a"]);
+    expect(onResult).toHaveBeenCalledTimes(1);
   });
 });

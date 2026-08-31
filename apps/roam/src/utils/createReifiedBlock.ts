@@ -3,8 +3,20 @@ import createPage from "roamjs-components/writes/createPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 export const DISCOURSE_GRAPH_PROP_NAME = "discourse-graph";
+export const TENTATIVE_PROP_KEY = "tentative";
+export const IMPORTED_FROM_PROP_KEY = "importedFrom";
 
-const SANE_ROLE_NAME_RE = new RegExp(/^[\w\-]*$/);
+// Annotations describe a relation's review/provenance state; they are not part
+// of its identity, so lookups by role parameters must ignore them.
+const RELATION_ANNOTATION_KEYS = new Set<string>([
+  TENTATIVE_PROP_KEY,
+  IMPORTED_FROM_PROP_KEY,
+]);
+
+const countRoleKeys = (params: Record<string, unknown>): number =>
+  Object.keys(params).filter((k) => !RELATION_ANNOTATION_KEYS.has(k)).length;
+
+const SANE_ROLE_NAME_RE = new RegExp(/^[\w-]*$/);
 
 export const strictQueryForReifiedBlocks = async (
   parameterUids: Record<string, string>,
@@ -26,9 +38,9 @@ export const strictQueryForReifiedBlocks = async (
     ...paramsAsSeq.map(([, v]) => v),
   )) as [string, Record<string, string>][];
   // post-filtering because cannot filter by number of keys in datascript
-  const numParams = Object.keys(parameterUids).length;
+  const numParams = countRoleKeys(parameterUids);
   const resultF = result
-    .filter(([, params]) => Object.keys(params).length === numParams)
+    .filter(([, params]) => countRoleKeys(params) === numParams)
     .map(([uid]) => uid);
   if (resultF.length > 1) {
     const paramsAsText = Object.entries(parameterUids)
@@ -106,6 +118,7 @@ export type ReifiedRelationData = {
   sourceUid: string;
   destinationUid: string;
   hasSchema: string;
+  tentative?: string;
   importedFromRid?: string;
 };
 
@@ -146,7 +159,9 @@ export const createReifiedRelation = async ({
   const parameterUids: Record<string, string> = {
     sourceUid,
     destinationUid,
-    ...(tentative !== undefined && { tentative: String(tentative) }),
+    ...(tentative !== undefined && {
+      [TENTATIVE_PROP_KEY]: String(tentative),
+    }),
   };
   return await createReifiedBlock({
     destinationBlockUid: await getOrCreateRelationPageUid(),
