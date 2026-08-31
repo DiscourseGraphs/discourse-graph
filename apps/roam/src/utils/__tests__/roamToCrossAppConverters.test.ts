@@ -107,6 +107,7 @@ describe("fullContentNodeToCrossApp coreTitle", () => {
     created: 1000,
     last_modified: 2000,
     node_type_id: "schema-1",
+    format: "CLM - {content}",
     text: "CLM - claim",
   };
 

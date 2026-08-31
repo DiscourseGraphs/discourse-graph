@@ -32,6 +32,14 @@ describe("extractContentFromTitle", () => {
     ).toBe("finding");
   });
 
+  it("preserves an empty content capture instead of falling back to the title", () => {
+    expect(
+      extractContentFromTitle("[[EVD]] -  - @smith2020", {
+        format: "[[EVD]] - {content} - {Source}",
+      }),
+    ).toBe("");
+  });
+
   it('keeps a trailing content containing " - " whole', () => {
     expect(
       extractContentFromTitle("[[CLM]] - a - b", {

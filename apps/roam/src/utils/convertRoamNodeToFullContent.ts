@@ -9,6 +9,7 @@ export type RoamFullContentNode = {
   last_modified: string | number;
   text: string;
   node_type_id: string;
+  format: string;
   node_title?: string;
 };
 
@@ -16,8 +17,8 @@ export const convertRoamNodeToFullContent = ({
   nodes,
 }: {
   nodes: RoamFullContentNode[];
-}): LocalContentDataInput[] =>
-  nodes.flatMap((node) => {
+}): LocalContentDataInput[] => {
+  return nodes.flatMap((node) => {
     try {
       const crossAppNode = fullContentNodeToCrossApp(node);
       const fullContent = crossAppNodeToDbContent(crossAppNode, "full");
@@ -30,3 +31,4 @@ export const convertRoamNodeToFullContent = ({
       return [];
     }
   });
+};

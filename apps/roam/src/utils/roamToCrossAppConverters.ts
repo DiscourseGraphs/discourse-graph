@@ -18,11 +18,17 @@ import { contentTypes } from "@repo/content-model";
 import getDiscourseNodes from "./getDiscourseNodes";
 import extractContentFromTitle from "./extractContentFromTitle";
 
-const getCoreTitle = (title: string, nodeTypeUid: string): string => {
-  const format =
-    getDiscourseNodes().find((node) => node.type === nodeTypeUid)?.format ?? "";
-  return extractContentFromTitle(title, { format });
-};
+const getFormatByNodeTypeUid = (): Map<string, string> =>
+  new Map(getDiscourseNodes().map((node) => [node.type, node.format]));
+
+const getCoreTitle = (
+  title: string,
+  nodeTypeUid: string,
+  formatByNodeTypeUid: Map<string, string>,
+): string =>
+  extractContentFromTitle(title, {
+    format: formatByNodeTypeUid.get(nodeTypeUid) ?? "",
+  });
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
@@ -81,7 +87,7 @@ export const fullContentNodeToCrossApp = (
     createdAt: new Date(node.created || Date.now()),
     modifiedAt: new Date(node.last_modified || Date.now()),
     nodeType: node.node_type_id,
-    coreTitle: getCoreTitle(title, node.node_type_id),
+    coreTitle: extractContentFromTitle(title, { format: node.format }),
     content: {
       direct: {
         localId: node.source_local_id,
@@ -115,6 +121,7 @@ export const nodeUidsWithTypeToCrossApp = async (
   const userUidByEid = Object.fromEntries(
     userRows.map((r) => [r[":db/id"] as number, r[":user/uid"] as string]),
   );
+  const formatByNodeTypeUid = getFormatByNodeTypeUid();
   const results = nodeRows.map((row) => {
     const uid = row[":block/uid"] as string;
     const title = row[":node/title"] as string;
@@ -131,7 +138,7 @@ export const nodeUidsWithTypeToCrossApp = async (
       authorId: userUid,
       createdAt: new Date(createdTime),
       modifiedAt: new Date(Math.max(editTime, pageEditTime)),
-      coreTitle: getCoreTitle(title, typesByUid[uid]),
+      coreTitle: getCoreTitle(title, typesByUid[uid], formatByNodeTypeUid),
       content: {
         direct: {
           localId: uid,

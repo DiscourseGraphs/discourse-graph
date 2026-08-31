@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   dbNodeSchemaToCrossApp,
+  dbNodeToCrossApp,
   dbRelationTypeSchemaToCrossApp,
   dbRelationTripleSchemaToCrossApp,
   dbRelationToCrossApp,
@@ -302,5 +303,59 @@ describe("dbRelationToCrossApp", () => {
     expect(() =>
       dbRelationToCrossApp({ relation, spaceMap, accountMap, conceptMap }),
     ).toThrow("Missing relationType");
+  });
+});
+
+describe("dbNodeToCrossApp", () => {
+  const conceptMap: Record<number, string> = {
+    10: "orn:obsidian.schema:vault-a/claim-type",
+  };
+
+  it("converts a node, reading core_title from literal_content", () => {
+    const node = baseConcept({
+      is_schema: false,
+      schema_id: 10,
+      name: "CLM - my claim",
+      literal_content: { core_title: "my claim" },
+    });
+    expect(
+      dbNodeToCrossApp({ node, spaceMap, accountMap, conceptMap }),
+    ).toEqual({
+      rid: "orn:obsidian.node:vault-a/concept-1",
+      localId: "concept-1",
+      authorId: "account-local-1",
+      createdAt: new Date("2026-06-14T11:00:00Z"),
+      modifiedAt: new Date("2026-06-14T13:00:00Z"),
+      nodeType: "claim-type",
+      coreTitle: "my claim",
+      content: {
+        direct: { localId: "concept-1", value: "CLM - my claim" },
+      },
+    });
+  });
+
+  it("preserves a matched-empty core_title", () => {
+    const node = baseConcept({
+      is_schema: false,
+      schema_id: 10,
+      literal_content: { core_title: "" },
+    });
+    expect(
+      dbNodeToCrossApp({ node, spaceMap, accountMap, conceptMap }).coreTitle,
+    ).toBe("");
+  });
+
+  it("falls back to the name when core_title is absent", () => {
+    const node = baseConcept({ is_schema: false, schema_id: 10 });
+    expect(
+      dbNodeToCrossApp({ node, spaceMap, accountMap, conceptMap }).coreTitle,
+    ).toBe("Some concept");
+  });
+
+  it("throws when the node type is missing", () => {
+    const node = baseConcept({ is_schema: false, schema_id: 999 });
+    expect(() =>
+      dbNodeToCrossApp({ node, spaceMap, accountMap, conceptMap }),
+    ).toThrow("Missing nodeType");
   });
 });
