@@ -16,6 +16,7 @@ import {
   TextArea,
 } from "@blueprintjs/core";
 import Description from "~/components/settings/SettingsDescription";
+import { settingAnchor } from "~/components/settings/utils/settingAnchor";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
@@ -54,7 +55,8 @@ type BaseTextPanelProps = {
   error?: string;
   disabled?: boolean;
   onChange?: (value: string) => void;
-} & RoamBlockSyncProps;
+} & RoamBlockSyncProps &
+  LabelProps;
 
 type BaseFlagPanelProps = {
   title: string;
@@ -66,7 +68,8 @@ type BaseFlagPanelProps = {
   disabled?: boolean;
   onBeforeChange?: (checked: boolean) => Promise<boolean>;
   onChange?: (checked: boolean) => void;
-} & RoamBlockSyncProps;
+} & RoamBlockSyncProps &
+  LabelProps;
 
 type BaseNumberPanelProps = {
   title: string;
@@ -97,6 +100,25 @@ type BaseMultiTextPanelProps = {
   onChange?: (values: string[]) => void;
 } & RoamBlockSyncProps;
 
+type LabelProps = {
+  /** Display text. `title` is the legacy block key, so it cannot be restyled. */
+  label?: React.ReactNode;
+};
+
+const SettingTitle = ({
+  title,
+  label,
+  description,
+}: {
+  title: React.ReactNode;
+  description?: React.ReactNode;
+} & LabelProps) => (
+  <>
+    {label ?? title}
+    {description ? <Description description={description} /> : null}
+  </>
+);
+
 const DEBOUNCE_MS = 250;
 
 const BaseTextPanel = ({
@@ -113,6 +135,7 @@ const BaseTextPanel = ({
   parentUid,
   uid,
   order,
+  label,
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? "");
   const errorRef = useRef(error);
@@ -154,10 +177,9 @@ const BaseTextPanel = ({
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col" {...settingAnchor(settingKeys)}>
       <Label>
-        {title}
-        {description && <Description description={description} />}
+        <SettingTitle title={title} label={label} description={description} />
         {multiline ? (
           <TextArea
             value={value}
@@ -196,6 +218,7 @@ const BaseFlagPanel = ({
   parentUid,
   uid: initialBlockUid,
   order,
+  label,
 }: BaseFlagPanelProps) => {
   const [internalValue, setInternalValue] = useState(
     () => initialValue ?? false,
@@ -239,17 +262,16 @@ const BaseFlagPanel = ({
   };
 
   return (
-    <Checkbox
-      checked={value ?? internalValue}
-      onChange={(e) => void handleChange(e)}
-      disabled={disabled}
-      labelElement={
-        <>
-          {title}
-          <Description description={description} />
-        </>
-      }
-    />
+    <div {...settingAnchor(settingKeys)}>
+      <Checkbox
+        checked={value ?? internalValue}
+        onChange={(e) => void handleChange(e)}
+        disabled={disabled}
+        labelElement={
+          <SettingTitle title={title} label={label} description={description} />
+        }
+      />
+    </div>
   );
 };
 
@@ -297,9 +319,8 @@ const BaseNumberPanel = ({
   };
 
   return (
-    <Label>
-      {title}
-      <Description description={description} />
+    <Label {...settingAnchor(settingKeys)}>
+      <SettingTitle title={title} description={description} />
       <NumericInput
         value={value}
         onValueChange={handleChange}
@@ -352,9 +373,8 @@ const BaseSelectPanel = ({
   };
 
   return (
-    <Label>
-      {title}
-      <Description description={description} />
+    <Label {...settingAnchor(settingKeys)}>
+      <SettingTitle title={title} description={description} />
       <HTMLSelect
         value={value}
         onChange={handleChange}
@@ -451,9 +471,8 @@ const BaseMultiTextPanel = ({
   };
 
   return (
-    <Label>
-      {title}
-      <Description description={description} />
+    <Label {...settingAnchor(settingKeys)}>
+      <SettingTitle title={title} description={description} />
       <div className="flex gap-2">
         <InputGroup
           value={inputValue}
@@ -522,6 +541,7 @@ const personalAccessors = {
 
 export const FeatureFlagPanel = ({
   title,
+  label,
   description,
   featureKey,
   initialValue,
@@ -541,7 +561,8 @@ export const FeatureFlagPanel = ({
   disabled?: boolean;
   onBeforeEnable?: () => Promise<boolean>;
   onAfterChange?: (checked: boolean) => void;
-} & RoamBlockSyncProps) => {
+} & RoamBlockSyncProps &
+  LabelProps) => {
   const handleBeforeChange:
     | ((checked: boolean) => Promise<boolean>)
     | undefined = onBeforeEnable
@@ -556,6 +577,7 @@ export const FeatureFlagPanel = ({
   return (
     <BaseFlagPanel
       title={title}
+      label={label}
       description={description}
       settingKeys={[featureKey as string]}
       setter={featureFlagSetter}
