@@ -104,7 +104,7 @@ const DiscourseNodeColorSetting = ({
       <SettingItemRow
         label="Color"
         description="Changes the color of tags and canvas nodes"
-        scope="nodeType"
+        scope="global"
         control={
           <ControlGroup>
             <InputGroup
@@ -283,7 +283,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
         <SettingItemRow
           label="Index"
           description={`The saved list of all ${node.text} pages \u2014 which pages appear and which columns show.`}
-          scope="nodeType"
+          scope="global"
           control={
             <SettingDrillDownSummary
               summary={`See all ${node.text} nodes`}
@@ -342,6 +342,39 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           parentUid={node.type}
           uid={formatUid}
         />
+        <SettingItemRow
+          label="Specification"
+          description={withDocsLink(
+            `The conditions specified to identify a ${node.text} node.`,
+            ROAM_DOCS.grammarNodes,
+          )}
+          scope="global"
+          controlPlacement="below"
+          control={
+            <DiscourseNodeSpecification
+              node={node}
+              parentUid={specificationUid}
+              parentSetEnabled={(isSpecificationEnabled) => {
+                validate({
+                  tag: tagValue,
+                  format: formatValue,
+                  isSpecificationEnabled,
+                });
+              }}
+            />
+          }
+        />
+        <SettingItemRow
+          label="Index"
+          description={`The saved list of all ${node.text} pages \u2014 which pages appear and which columns show.`}
+          scope="global"
+          control={
+            <SettingDrillDownSummary
+              summary={`See all ${node.text} nodes`}
+              onClick={() => nav.push(nodeConfigSegmentIds.index)}
+            />
+          }
+        />
       </SettingsGroup>
 
       <SettingsGroup title="Creation">
@@ -366,7 +399,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
             `The template that auto fills ${node.text} page when generated.`,
             ROAM_DOCS.creatingNodes,
           )}
-          scope="nodeType"
+          scope="global"
           control={
             <SettingDrillDownSummary
               summary="Edit template"
@@ -397,7 +430,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
             `The conditions specified to identify a ${node.text} node.`,
             ROAM_DOCS.grammarNodes,
           )}
-          scope="nodeType"
+          scope="global"
           controlPlacement="below"
           control={
             <DiscourseNodeSpecification
