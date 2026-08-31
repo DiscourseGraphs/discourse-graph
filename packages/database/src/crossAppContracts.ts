@@ -26,6 +26,7 @@ export type CrossAppNodeSchema = CrossAppSchemaBase & {
   template?: string;
   templateTitle?: string;
   format?: string;
+  slotDefinitions?: Record<string, LocalId | undefined>;
 };
 
 // A relation type schema
@@ -76,6 +77,7 @@ type InlineCrossAppTypedContent = InlineCrossAppContent & {
 // A node instance
 export type CrossAppNode = CrossAppBase & {
   nodeType: LocalId;
+  slots?: Record<string, LocalId>;
   content: {
     direct: InlineCrossAppContent;
     full?: InlineCrossAppTypedContent;

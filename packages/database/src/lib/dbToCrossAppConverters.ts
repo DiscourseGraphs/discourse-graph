@@ -15,6 +15,7 @@ const getConceptMap = async (
   conceptIds: number[],
   spaceMap: Record<number, string>,
 ): Promise<Record<number, string>> => {
+  if (conceptIds.length === 0) return {};
   const request = await client
     .from("my_concepts")
     .select("id, space_id, source_local_id")
@@ -79,12 +80,22 @@ const asSimpleLocalId = (
   return rid;
 };
 
-export const dbNodeSchemaToCrossApp = (
-  schema: Concept,
-  spaceMap: Record<number, string>,
-  accountMap: Record<number, string>,
-): CrossAppNodeSchema => {
-  const { template, template_content, format, ...other } =
+export const dbNodeSchemaToCrossApp = ({
+  schema,
+  spaceMap,
+  accountMap,
+  schemaMap,
+}: {
+  schema: Concept;
+  spaceMap: Record<number, string>;
+  accountMap: Record<number, string>;
+  schemaMap: Record<number, string>;
+}): CrossAppNodeSchema => {
+  const referenceContent = (schema.reference_content ?? {}) as Record<
+    string,
+    number
+  >;
+  const { template, template_content, roles, format, ...other } =
     schema.literal_content as Record<string, Json>;
   const authorId = accountMap[schema.author_id || 0];
   if (authorId === undefined) throw new Error("Missing author");
@@ -94,6 +105,12 @@ export const dbNodeSchemaToCrossApp = (
     spaceUrl,
     schema.source_local_id!,
     "schema",
+  );
+  const slotDefinitions = Object.fromEntries(
+    ((roles as string[] | undefined) ?? []).map((r) => [
+      r,
+      asSimpleLocalId(schemaMap[referenceContent[r] ?? 0], spaceUrl),
+    ]),
   );
   return {
     rid,
@@ -106,6 +123,7 @@ export const dbNodeSchemaToCrossApp = (
     templateTitle: template as string | undefined,
     format: format as string | undefined,
     authorId,
+    slotDefinitions,
   };
 };
 
@@ -127,7 +145,11 @@ export const dbNodeSchemasToCrossApp = async ({
     );
     accountMap = await getAccountMap(client, [...authorIds]);
   }
-  return schemas.map((r) => dbNodeSchemaToCrossApp(r, spaceMap, accountMap));
+  const referredSchemaIds = schemas.flatMap((schema) => schema.refs);
+  const schemaMap = await getConceptMap(client, referredSchemaIds, spaceMap);
+  return schemas.map((schema) =>
+    dbNodeSchemaToCrossApp({ schema, spaceMap, accountMap, schemaMap }),
+  );
 };
 
 export const dbRelationTypeSchemaToCrossApp = (

@@ -51,13 +51,16 @@ describe("dbNodeSchemaToCrossApp", () => {
         extra: "kept",
       },
     });
-    expect(dbNodeSchemaToCrossApp(schema, spaceMap, accountMap)).toEqual({
+    expect(
+      dbNodeSchemaToCrossApp({ schema, spaceMap, accountMap, schemaMap: {} }),
+    ).toEqual({
       rid: "orn:obsidian.schema:vault-a/concept-1",
       localId: "concept-1",
       createdAt: new Date("2026-06-14T11:00:00Z"),
       modifiedAt: new Date("2026-06-14T13:00:00Z"),
       label: "Some concept",
       metadata: { extra: "kept" },
+      slotDefinitions: {},
       template: "template body",
       templateTitle: "Template Title",
       authorId: "account-local-1",
@@ -73,7 +76,12 @@ describe("dbNodeSchemaToCrossApp", () => {
         extra: "kept",
       },
     });
-    const result = dbNodeSchemaToCrossApp(schema, spaceMap, accountMap);
+    const result = dbNodeSchemaToCrossApp({
+      schema,
+      spaceMap,
+      accountMap,
+      schemaMap: {},
+    });
     expect(result.format).toBe("[[QUE]] - {content}");
     expect(result.metadata).toEqual({ extra: "kept" });
   });
@@ -82,23 +90,81 @@ describe("dbNodeSchemaToCrossApp", () => {
     const schema = baseConcept({
       literal_content: { extra: "kept" },
     });
-    const result = dbNodeSchemaToCrossApp(schema, spaceMap, accountMap);
+    const result = dbNodeSchemaToCrossApp({
+      schema,
+      spaceMap,
+      accountMap,
+      schemaMap: {},
+    });
     expect(result.format).toBeUndefined();
     expect(result.metadata).toEqual({ extra: "kept" });
   });
 
+  it("resolves slot definitions from roles and reference content", () => {
+    const schema = baseConcept({
+      literal_content: { roles: ["evidence", "claim"], extra: "kept" },
+      reference_content: { evidence: 10, claim: 20 },
+    });
+    const result = dbNodeSchemaToCrossApp({
+      schema,
+      spaceMap,
+      accountMap,
+      schemaMap: {
+        10: "orn:obsidian.schema:vault-a/evidence-type",
+        20: "orn:obsidian.schema:vault-a/claim-type",
+      },
+    });
+    // schemas are always local, so slots hold plain source local ids
+    expect(result.slotDefinitions).toEqual({
+      evidence: "evidence-type",
+      claim: "claim-type",
+    });
+    // roles drive the slot definitions, they are not kept as plain metadata
+    expect(result.metadata).toEqual({ extra: "kept" });
+  });
+
+  it("throws when a slot points at a schema in another space", () => {
+    const schema = baseConcept({
+      literal_content: { roles: ["evidence"] },
+      reference_content: { evidence: 10 },
+    });
+    expect(() =>
+      dbNodeSchemaToCrossApp({
+        schema,
+        spaceMap,
+        accountMap,
+        schemaMap: { 10: "orn:obsidian.schema:vault-b/evidence-type" },
+      }),
+    ).toThrow("Unexpected spaceUri");
+  });
+
+  it("omits slots whose referenced schema cannot be resolved", () => {
+    const schema = baseConcept({
+      literal_content: { roles: ["evidence", "claim"] },
+      reference_content: { evidence: 10 },
+    });
+    expect(
+      dbNodeSchemaToCrossApp({
+        schema,
+        spaceMap,
+        accountMap,
+        schemaMap: { 10: "orn:obsidian.schema:vault-a/evidence-type" },
+      }).slotDefinitions,
+    ).toEqual({ evidence: "evidence-type" });
+  });
+
   it("throws when the author is unknown", () => {
     const schema = baseConcept({ author_id: 999 });
-    expect(() => dbNodeSchemaToCrossApp(schema, spaceMap, accountMap)).toThrow(
-      "Missing author",
-    );
+    expect(() =>
+      dbNodeSchemaToCrossApp({ schema, spaceMap, accountMap, schemaMap: {} }),
+    ).toThrow("Missing author");
   });
 
   it("throws when the space is unknown", () => {
     const schema = baseConcept({ space_id: 999 });
-    expect(() => dbNodeSchemaToCrossApp(schema, spaceMap, accountMap)).toThrow(
-      "Missing space",
-    );
+    expect(() =>
+      dbNodeSchemaToCrossApp({ schema, spaceMap, accountMap, schemaMap: {} }),
+    ).toThrow("Missing space");
   });
 });
 

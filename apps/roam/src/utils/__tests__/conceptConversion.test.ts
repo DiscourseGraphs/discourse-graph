@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+
+vi.mock("~/utils/getDiscourseRelations", () => ({ default: () => [] }));
+
 import type { SupabaseContext } from "~/utils/supabaseContext";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { discourseNodeSchemaToLocalConcept } from "~/utils/conceptConversion";
