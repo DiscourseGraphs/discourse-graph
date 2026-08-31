@@ -11,7 +11,7 @@ const meta: MetaRecord = {
   "extending-personalizing-graph": "Extending",
   "sharing-discourse-graph": "Sharing",
   "using-the-left-sidebar": "Using the left sidebar",
-  "using-the-canvas": "Using the Canvas",
+  "using-the-canvas": "Using the canvas",
 };
 
 export default meta;
