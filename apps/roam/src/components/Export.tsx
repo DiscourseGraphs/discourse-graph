@@ -15,8 +15,9 @@ import {
   RadioGroup,
   Radio,
   FormGroup,
+  Collapse,
 } from "@blueprintjs/core";
-import React, { useState, useEffect, useMemo, FormEvent } from "react";
+import React, { useState, useEffect, useMemo, useRef, FormEvent } from "react";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import { saveAs } from "file-saver";
 import { Result } from "roamjs-components/types/query-builder";
@@ -93,7 +94,12 @@ import {
 } from "~/utils/publishNodesToGroups";
 import { summarizeAssetResults } from "~/utils/publishNodeAssets";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
-import { isNodeSharingEnabled } from "~/components/settings/utils/accessors";
+import {
+  bulkReadSettings,
+  isNodeSharingEnabled,
+} from "~/components/settings/utils/accessors";
+import refreshConfigTree from "~/utils/refreshConfigTree";
+import ExportOptions from "./ExportOptions";
 
 const ExportProgress = ({ id }: { id: string }) => {
   const [progress, setProgress] = useState(0);
@@ -227,6 +233,22 @@ const ExportDialog: ExportDialogComponent = ({
     if (initialPanel) setSelectedTabId(INITIAL_PANEL_TO_TAB_ID[initialPanel]);
   }, [initialPanel, sharingEnabled]);
   const [includeDiscourseContext, setIncludeDiscourseContext] = useState(false);
+  const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
+  const exportOptionsOpened = useRef(false);
+  const exportGlobalSettings = useMemo(
+    () => bulkReadSettings().globalSettings,
+    [],
+  );
+
+  // The export option panels write legacy config blocks alongside block props, so
+  // the cached config tree has to be refreshed the way SettingsDialog does. Gated
+  // on the section having been opened because refreshConfigTree re-reads every
+  // node page and re-registers the datalog translators, which is too heavy to run
+  // on every close of a dialog that is opened for each export.
+  const closeDialog = (): void => {
+    if (exportOptionsOpened.current) refreshConfigTree();
+    onClose();
+  };
   const [gitHubAccessToken, setGitHubAccessToken] = useState<string | null>(
     getSetting<string | null>("oauth-github", null),
   );
@@ -758,7 +780,7 @@ const ExportDialog: ExportDialogComponent = ({
       });
     } finally {
       setLoading(false);
-      onClose();
+      closeDialog();
     }
   };
 
@@ -798,7 +820,7 @@ const ExportDialog: ExportDialogComponent = ({
           fileCount: files.length,
         });
       }
-      onClose();
+      closeDialog();
     } catch (e) {
       setError("Failed to export files.");
       posthog.capture("Export Dialog: Export Failed", {
@@ -941,7 +963,7 @@ const ExportDialog: ExportDialogComponent = ({
             : "success",
         id: "query-builder-publish-success",
       });
-      if (hasPublishedNodes) onClose();
+      if (hasPublishedNodes) closeDialog();
     } catch (e) {
       internalError({
         error: e as Error,
@@ -1034,11 +1056,33 @@ const ExportDialog: ExportDialogComponent = ({
             </FormGroup>
           </div>
         </div>
+
+        <div className="mt-2">
+          <Button
+            minimal={true}
+            small={true}
+            icon={exportOptionsOpen ? "chevron-down" : "chevron-right"}
+            text="Export options"
+            onClick={() => {
+              const nextOpen = !exportOptionsOpen;
+              setExportOptionsOpen(nextOpen);
+              if (nextOpen) exportOptionsOpened.current = true;
+              posthog.capture("Export Dialog: Options Toggled", {
+                open: nextOpen,
+              });
+            }}
+          />
+          <Collapse isOpen={exportOptionsOpen}>
+            <div className="max-h-64 overflow-y-auto">
+              <ExportOptions globalSettings={exportGlobalSettings} />
+            </div>
+          </Collapse>
+        </div>
       </div>
       <div className={Classes.DIALOG_FOOTER}>
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
           <span className="text-red-700">{error}</span>
-          <Button text={"Cancel"} intent={Intent.NONE} onClick={onClose} />
+          <Button text={"Cancel"} intent={Intent.NONE} onClick={closeDialog} />
           <Button
             text={"Export"}
             intent={Intent.PRIMARY}
@@ -1105,7 +1149,7 @@ const ExportDialog: ExportDialogComponent = ({
                             destination: activeExportDestination,
                             fileCount: files.length,
                           });
-                          onClose();
+                          closeDialog();
                         }
                       } catch (error) {
                         const e = error as Error;
@@ -1125,7 +1169,7 @@ const ExportDialog: ExportDialogComponent = ({
                         destination: activeExportDestination,
                         fileCount: files.length,
                       });
-                      onClose();
+                      closeDialog();
                       return;
                     }
 
@@ -1142,7 +1186,7 @@ const ExportDialog: ExportDialogComponent = ({
                         destination: activeExportDestination,
                         fileCount: files.length,
                       });
-                      onClose();
+                      closeDialog();
                     });
                   } else {
                     setError(`Unsupported export type: ${exportType}`);
@@ -1217,7 +1261,7 @@ const ExportDialog: ExportDialogComponent = ({
       </div>
       <div className={Classes.DIALOG_FOOTER}>
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-          <Button text={"Cancel"} intent={Intent.NONE} onClick={onClose} />
+          <Button text={"Cancel"} intent={Intent.NONE} onClick={closeDialog} />
           <Button
             text={`Send ${
               isSendToGraph ? livePages.length : results.length
@@ -1277,7 +1321,7 @@ const ExportDialog: ExportDialogComponent = ({
       <div className={Classes.DIALOG_FOOTER}>
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
           <span className="text-red-700">{publishError}</span>
-          <Button text={"Cancel"} intent={Intent.NONE} onClick={onClose} />
+          <Button text={"Cancel"} intent={Intent.NONE} onClick={closeDialog} />
           <Button
             text={"Publish"}
             intent={Intent.PRIMARY}
