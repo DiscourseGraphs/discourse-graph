@@ -11,7 +11,6 @@ allowedDeprecatedVersions:
   "@types/minimatch": ^6.0
   abab: ^2.0
   domexception: 4.0.0
-  eslint: ^8.57
   glob: ^7.2
   inflight: ^1.0
   lodash.get: ^4.4
@@ -24,10 +23,10 @@ allowedDeprecatedVersions:
 # The global versions. In the react case, applies to website in practice
 catalog:
   "@types/node": ^22
-  "@types/eslint": 8.56.12
+  "@types/eslint": ^9.6.1
   "@types/react": ^19.1.12
   "@types/react-dom": ^19.1.9
-  eslint: 8.57.1
+  eslint: ^9.39.5
   vitest: ^4.0.0
   react: ^19.1.0
   react-dom: ^19.1.0

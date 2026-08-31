@@ -78,6 +78,8 @@ Note: In this flow, the modal is **create-only** (it does not offer “search ex
 You can perform the same function from the file menu
 ![file-menu](/docs/obsidian/file-menu-convert-2.png)
 
+To convert many notes at once, see [Bulk identify discourse nodes](/docs/obsidian/advanced-features/bulk-identify-discourse-nodes).
+
 ## Create nodes from node tags
 
 If you use [node tags](/docs/obsidian/core-features/node-tags), you can hover a tag and click **Create [Node type]** to open the modal.

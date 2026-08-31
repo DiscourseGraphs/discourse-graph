@@ -4,6 +4,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "turbo build",
+    "ci:validate": "turbo check-types && turbo run test:unit --ui stream",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "deploy": "turbo deploy",

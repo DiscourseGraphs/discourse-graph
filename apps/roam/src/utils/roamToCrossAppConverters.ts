@@ -15,6 +15,13 @@ import { toMarkdown } from "./pageToMarkdown";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { contentTypes } from "@repo/content-model";
+import getDiscourseNodes from "./getDiscourseNodes";
+import {
+  SOURCE_SLOT,
+  schemaHasSourceSlot,
+  sourceSlotSchemaId,
+  sourceUidOfNode,
+} from "./sourceSlot";
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
@@ -45,13 +52,27 @@ export const buildFullMarkdown = ({
   return body ? `# ${title}\n\n${body}\n` : `# ${title}\n`;
 };
 
+const buildFullInlineContent = ({
+  uid,
+  title,
+}: {
+  uid: string;
+  title: string;
+}): NonNullable<CrossAppNode["content"]["full"]> => {
+  const blocks = getFullTreeByParentUid(uid).children;
+  const viewType = getPageViewType(title) || "bullet";
+  return {
+    localId: uid,
+    value: buildFullMarkdown({ title, blocks, viewType }),
+    contentType: contentTypes.roamMarkdown,
+    scale: "document",
+  };
+};
+
 export const fullContentNodeToCrossApp = (
   node: RoamFullContentNode,
 ): CrossAppNode => {
   const title = node.node_title ?? node.text;
-  const blocks = getFullTreeByParentUid(node.source_local_id).children;
-  const viewType = getPageViewType(title) || "bullet";
-  const fullText = buildFullMarkdown({ title, blocks, viewType });
 
   return {
     authorId: node.author_local_id,
@@ -62,14 +83,9 @@ export const fullContentNodeToCrossApp = (
     content: {
       direct: {
         localId: node.source_local_id,
-        value: node.node_title ?? node.text,
+        value: title,
       },
-      full: {
-        localId: node.source_local_id,
-        value: fullText,
-        contentType: contentTypes.roamMarkdown,
-        scale: "document",
-      },
+      full: buildFullInlineContent({ uid: node.source_local_id, title }),
     },
   };
 };
@@ -78,6 +94,9 @@ export const nodeUidsWithTypeToCrossApp = async (
   nodes: NodeUidWithType[],
 ): Promise<CrossAppNode[]> => {
   const typesByUid = Object.fromEntries(nodes.map((n) => [n.uid, n.type]));
+  const schemasById = Object.fromEntries(
+    getDiscourseNodes().map((s) => [s.type, s]),
+  );
   const nodeRows = (await window.roamAlphaAPI.data.async.pull_many(
     `[:block/uid :create/user :create/time :edit/time :page/edit-time :node/title]`,
     nodes.map((n) => [":block/uid", n.uid]),
@@ -99,26 +118,30 @@ export const nodeUidsWithTypeToCrossApp = async (
   );
   const results = nodeRows.map((row) => {
     const uid = row[":block/uid"] as string;
+    const title = row[":node/title"] as string;
     const userUid =
       userUidByEid[(row[":create/user"] as Record<string, number>)[":db/id"]];
+    const createdTime = row[":create/time"] as number;
+    const editTime = (row[":edit/time"] as number | undefined) ?? createdTime;
+    const pageEditTime =
+      (row[":page/edit-time"] as number | undefined) ?? editTime;
+    const nodeType = typesByUid[uid];
+    const sourceUid = sourceUidOfNode(title, schemasById[nodeType]);
 
     return {
       localId: uid,
-      nodeType: typesByUid[uid],
+      nodeType,
       authorId: userUid,
-      createdAt: new Date((row[":create/time"] as number) || Date.now()),
-      modifiedAt: new Date(
-        Math.max(
-          row[":edit/time"] as number,
-          row[":page/edit-time"] as number,
-        ) || Date.now(),
-      ),
+      createdAt: new Date(createdTime),
+      modifiedAt: new Date(Math.max(editTime, pageEditTime)),
       content: {
         direct: {
           localId: uid,
-          value: row[":node/title"] as string,
+          value: title,
         },
+        full: buildFullInlineContent({ uid, title }),
       },
+      ...(sourceUid ? { slots: { [SOURCE_SLOT]: sourceUid } } : {}),
     };
   });
   return results;
@@ -175,20 +198,30 @@ export const nodeSchemaToCrossApp = (
   s: DiscourseNode,
 ): CrossAppNodeSchema | null => {
   const relData = window.roamAlphaAPI.pull(
-    "[:create/time :edit/time {:create/user [:user/uid]}]",
+    "[:create/time :page/edit-time {:create/user [:user/uid]}]",
     `[:block/uid "${s.type}"]`,
   ) as unknown as {
     ":create/time": number;
-    ":edit/time": number;
+    ":page/edit-time"?: number;
     ":create/user": { ":user/uid": string };
   };
   if (!relData) return null;
   const userUid = (relData[":create/user"] ?? {})[":user/uid"];
   if (!userUid) return null;
+  const createdTime = relData[":create/time"] || Date.now();
+  // A node type's settings live either in the page's props or in blocks below it,
+  // but :page/edit-time reflects both.
+  const pageEditTime = relData[":page/edit-time"] || createdTime;
+  const hasSourceSlot = schemaHasSourceSlot(s);
+
   return {
     localId: s.type,
     label: s.text,
     authorId: userUid,
-    createdAt: new Date(relData[":create/time"] || Date.now()),
+    createdAt: new Date(createdTime),
+    modifiedAt: new Date(Math.max(pageEditTime, createdTime)),
+    ...(hasSourceSlot
+      ? { slotDefinitions: { [SOURCE_SLOT]: sourceSlotSchemaId() } }
+      : {}),
   };
 };
