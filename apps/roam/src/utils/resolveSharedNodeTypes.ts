@@ -3,12 +3,17 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Tables } from "@repo/database/dbTypes";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
 import { createDiscourseNodeType } from "~/components/settings/utils/accessors";
-import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
+import getDiscourseNodes, {
+  excludeDefaultNodes,
+  type DiscourseNode,
+} from "./getDiscourseNodes";
 import internalError from "./internalError";
 import refreshConfigTree from "./refreshConfigTree";
 
 const SCHEMA_COLUMNS =
   "format:literal_content->>format, id, name, source_data_format:literal_content->source_data->>format, source_local_id";
+
+const RESERVED_NODE_TYPE_NAMES = new Set(["Page", "Block", "Any"]);
 
 const RESOLVE_ERROR_TYPE = "Imported node type resolution failed";
 const RESOLVE_ERROR_OPERATION = "resolve-shared-node-types";
@@ -29,11 +34,12 @@ const findOrCreateNodeType = async (
     (nodeType) => nodeType.type === schema.source_local_id,
   );
   if (matchedById) return matchedById;
-  const matchedByName = localNodeTypes.find(
-    (nodeType) => nodeType.text === schema.name,
-  );
+  const matchedByName = localNodeTypes
+    .filter(excludeDefaultNodes)
+    .find((nodeType) => nodeType.text === schema.name);
   if (matchedByName) return matchedByName;
   if (!schema.name || !schema.source_local_id) return undefined;
+  if (RESERVED_NODE_TYPE_NAMES.has(schema.name)) return undefined;
 
   const nodeType = await createDiscourseNodeType({
     text: schema.name,

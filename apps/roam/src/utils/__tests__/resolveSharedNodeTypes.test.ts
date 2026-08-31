@@ -14,7 +14,10 @@ vi.mock("posthog-js", () => ({ default: { capture: mockedCapture } }));
 vi.mock("~/components/settings/utils/accessors", () => ({
   createDiscourseNodeType: vi.fn(),
 }));
-vi.mock("~/utils/getDiscourseNodes", () => ({ default: vi.fn() }));
+vi.mock("~/utils/getDiscourseNodes", () => ({
+  default: vi.fn(),
+  excludeDefaultNodes: (node: DiscourseNode) => node.backedBy !== "default",
+}));
 vi.mock("~/utils/internalError", () => ({ default: vi.fn() }));
 vi.mock("~/utils/refreshConfigTree", () => ({ default: vi.fn() }));
 
@@ -188,7 +191,7 @@ describe("resolveSharedNodeTypes", () => {
     );
   });
 
-  it("resolves a schema named like a built-in type to the built-in instead of shadowing it", async () => {
+  it("never resolves a schema named like a built-in type to the built-in by name", async () => {
     const { client } = makeClient({
       rows: [schemaRow({ name: "Page", source_local_id: "remote-page-type" })],
     });
@@ -196,7 +199,36 @@ describe("resolveSharedNodeTypes", () => {
 
     await expect(
       resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
-    ).resolves.toEqual(new Map([[SCHEMA_ID, pageType]]));
+    ).resolves.toEqual(new Map());
+    expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
+    expect(mockedInternalError).not.toHaveBeenCalled();
+  });
+
+  it.each(["Block", "Any"])(
+    "never creates a node type from a schema carrying the reserved name %s",
+    async (name) => {
+      const { client } = makeClient({
+        rows: [schemaRow({ name, source_local_id: "remote-reserved-type" })],
+      });
+
+      await expect(
+        resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
+      ).resolves.toEqual(new Map());
+      expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
+      expect(mockedInternalError).not.toHaveBeenCalled();
+    },
+  );
+
+  it("resolves a schema named like a built-in to the user-configured type carrying that name", async () => {
+    const { client } = makeClient({
+      rows: [schemaRow({ name: "Page", source_local_id: "remote-page-type" })],
+    });
+    const userPageType = { ...evidenceType, text: "Page" };
+    mockedGetDiscourseNodes.mockReturnValue([userPageType]);
+
+    await expect(
+      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
+    ).resolves.toEqual(new Map([[SCHEMA_ID, userPageType]]));
     expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
   });
 
