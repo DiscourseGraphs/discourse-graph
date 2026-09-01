@@ -629,6 +629,20 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       }
     }, [isEditing, shape, editor, extensionAPI]);
 
+    const addTagTrigger = (
+      <Button
+        minimal
+        small
+        icon={<Icon icon="label" color={textColor} className="opacity-50" />}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsAddTagMenuOpen(true);
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        title="Add tag"
+      />
+    );
+
     return (
       <HTMLContainer
         id={shape.id}
@@ -678,39 +692,10 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
                   defaultIsOpen
                   onClose={() => setIsAddTagMenuOpen(false)}
                   onTagAdded={handleTagAdded}
-                  trigger={
-                    <Button
-                      minimal
-                      small
-                      icon={
-                        <span
-                          className="opacity-50"
-                          style={{ color: textColor }}
-                        >
-                          #
-                        </span>
-                      }
-                      onPointerDown={(e) => e.stopPropagation()}
-                      title="Add tag"
-                    />
-                  }
+                  trigger={addTagTrigger}
                 />
               ) : (
-                <Button
-                  minimal
-                  small
-                  icon={
-                    <span className="opacity-50" style={{ color: textColor }}>
-                      #
-                    </span>
-                  }
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsAddTagMenuOpen(true);
-                  }}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  title="Add tag"
-                />
+                addTagTrigger
               ))}
 
             {/* Convert to Node Type Button */}
@@ -719,7 +704,11 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
                 minimal
                 small
                 icon={
-                  <Icon icon="plus" color={textColor} className="opacity-50" />
+                  <Icon
+                    icon="exchange"
+                    color={textColor}
+                    className="opacity-50"
+                  />
                 }
                 onClick={(e) => {
                   e.stopPropagation();

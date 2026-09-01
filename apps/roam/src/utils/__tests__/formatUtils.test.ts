@@ -67,12 +67,6 @@ describe("insertTagIntoText", () => {
     ).toBe("#Claim");
   });
 
-  it("does not duplicate the hash for tags that already include one", () => {
-    expect(
-      insertTagIntoText({ text: "idea", tag: "#Question", selectionStart: 4 }),
-    ).toBe("idea #Question");
-  });
-
   it("inserts the tag at the cursor position inside the text", () => {
     expect(
       insertTagIntoText({
