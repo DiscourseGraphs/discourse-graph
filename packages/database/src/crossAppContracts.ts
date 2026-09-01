@@ -10,6 +10,7 @@ export type Rid = string;
 // Common attributes for most types
 export type CrossAppBase = {
   localId: LocalId;
+  rid?: string;
   createdAt: Date;
   modifiedAt?: Date;
   authorId: LocalId;
@@ -24,6 +25,7 @@ export type CrossAppNodeSchema = CrossAppSchemaBase & {
   label: string;
   template?: string;
   templateTitle?: string;
+  slotDefinitions?: Record<string, LocalId | undefined>;
 };
 
 // A relation type schema
@@ -74,6 +76,7 @@ type InlineCrossAppTypedContent = InlineCrossAppContent & {
 // A node instance
 export type CrossAppNode = CrossAppBase & {
   nodeType: LocalId;
+  slots?: Record<string, LocalId>;
   content: {
     direct: InlineCrossAppContent;
     full?: InlineCrossAppTypedContent;

@@ -1,0 +1,28 @@
+[
+  {
+    "id": "shape:sanitized-relation-1",
+    "typeName": "shape",
+    "type": "RELTYPE01",
+    "x": 0,
+    "y": 0,
+    "rotation": 0,
+    "index": "a3",
+    "parentId": "page:fixture-page",
+    "isLocked": false,
+    "opacity": 1,
+    "props": {
+      "uid": "REL_UID01",
+      "title": "Sanitized relation",
+      "bend": 0,
+      "start": {
+        "x": 0,
+        "y": 0
+      },
+      "end": {
+        "x": 1,
+        "y": 1
+      }
+    },
+    "meta": {}
+  }
+]

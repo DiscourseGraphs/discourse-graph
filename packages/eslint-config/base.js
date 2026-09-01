@@ -130,6 +130,12 @@ export const config = [
     },
   },
   {
+    // Plain JS files are not part of the TypeScript projects, and typescript-eslint v8
+    // errors instead of silently skipping them.
+    files: ["**/*.js", "**/*.mjs", "**/*.cjs"],
+    ...tseslint.configs.disableTypeChecked,
+  },
+  {
     ignores: [
       "dist/**",
       // Addition: ignore dotfiles and config
