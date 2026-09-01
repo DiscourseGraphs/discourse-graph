@@ -315,12 +315,12 @@ const NodeMenu = ({
               <MenuItem
                 key={item.text}
                 data-node={item.type}
-                data-tag={item.tag?.replace(/^#/, "")}
+                data-tag={item.tag}
                 text={
                   showNodeTypes
                     ? item.text
                     : item.tag
-                      ? `#${item.tag.replace(/^#/, "")}`
+                      ? `#${item.tag.replace(/^#+/, "")}`
                       : ""
                 }
                 active={i === activeIndex}

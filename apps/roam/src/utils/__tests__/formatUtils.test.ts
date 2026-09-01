@@ -67,6 +67,15 @@ describe("insertTagIntoText", () => {
     ).toBe("#Claim");
   });
 
+  it("normalizes all leading hashes on configured tag values", () => {
+    expect(
+      insertTagIntoText({ text: "idea", tag: "##Claim", selectionStart: 4 }),
+    ).toBe("idea #Claim");
+    expect(
+      insertTagIntoText({ text: "idea", tag: "#Claim", selectionStart: 4 }),
+    ).toBe("idea #Claim");
+  });
+
   it("inserts the tag at the cursor position inside the text", () => {
     expect(
       insertTagIntoText({

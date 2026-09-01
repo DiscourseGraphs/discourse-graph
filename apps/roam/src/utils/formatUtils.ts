@@ -190,7 +190,10 @@ export const insertTagIntoText = ({
   tag: string;
   selectionStart: number;
 }) => {
-  const textToInsert = `${selectionStart === 0 ? "" : " "}#${tag}`;
+  const textToInsert = `${selectionStart === 0 ? "" : " "}#${tag.replace(
+    /^#+/,
+    "",
+  )}`;
   return `${text.substring(0, selectionStart)}${textToInsert}${text.substring(
     selectionStart,
   )}`;

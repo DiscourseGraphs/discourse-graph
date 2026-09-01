@@ -493,6 +493,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     const showAddTagButton =
       getDiscourseNodeTypeId({ shape }) === "blck-node" &&
       isLiveBlock(shape.props.uid) &&
+      !editor.isShapeOrAncestorLocked(shape) &&
       Object.values(discourseContext.nodes).some(
         (n) => n.backedBy === "user" && n.tag,
       );
