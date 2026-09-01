@@ -184,7 +184,7 @@ const getLastNodeSchemaSyncTime = async (
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", true)
-    .eq("arity", 0)
+    .eq("is_relation", false)
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -200,7 +200,7 @@ const getLastRelationSchemaSyncTime = async (
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", true)
-    .gt("arity", 0)
+    .eq("is_relation", true)
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -216,7 +216,7 @@ const getLastRelationSyncTime = async (
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", false)
-    .gt("arity", 0)
+    .eq("is_relation", true)
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -350,7 +350,7 @@ const buildChangedNodesFromNodes = async ({
         .from("my_concepts")
         .select("source_local_id")
         .eq("space_id", context.spaceId)
-        .eq("arity", 0)
+        .eq("is_relation", false)
         .eq("is_schema", false)
         .order("id"),
       1000,
@@ -452,7 +452,6 @@ export const syncAllNodesAndRelations = async (
       nodesSince: changedNodeInstances,
       supabaseClient,
       context,
-      accountLocalId,
       plugin,
       allNodes,
       fullSync: true,
@@ -470,7 +469,6 @@ const convertDgToSupabaseConcepts = async ({
   nodesSince,
   supabaseClient,
   context,
-  accountLocalId,
   plugin,
   allNodes,
   fullSync,
@@ -478,7 +476,6 @@ const convertDgToSupabaseConcepts = async ({
   nodesSince: ObsidianDiscourseNodeData[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
-  accountLocalId: string;
   plugin: DiscourseGraphPlugin;
   allNodes?: DiscourseNodeInVault[];
   fullSync?: boolean;
@@ -517,7 +514,7 @@ const convertDgToSupabaseConcepts = async ({
       .from("my_concepts")
       .select("source_local_id,literal_content")
       .eq("is_schema", true)
-      .eq("arity", 0)
+      .eq("is_relation", false)
       .eq("space_id", context.spaceId)
       .is("literal_content->>template_content", null);
     // could not filter on only absent keys, this includes nulls
@@ -594,7 +591,11 @@ const convertDgToSupabaseConcepts = async ({
     .filter((n) => !!n);
 
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
-    return discourseNodeInstanceToLocalConcept(context, node);
+    return discourseNodeInstanceToLocalConcept({
+      context,
+      nodeData: node,
+      nodeTypesById,
+    });
   });
 
   const relationInstancesData = await loadRelations(plugin);
@@ -817,7 +818,6 @@ const syncChangedNodesToSupabase = async ({
     nodesSince: nodesNeedingConceptUpsert,
     supabaseClient,
     context,
-    accountLocalId,
     plugin,
   });
 

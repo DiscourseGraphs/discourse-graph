@@ -1,5 +1,6 @@
 import React from "react";
-import { Icon, type IconName } from "@blueprintjs/core";
+import { Icon } from "@blueprintjs/core";
+import { getHintKeys, type HintKey } from "~/utils/keyboardHints";
 import type { InsertTarget } from "~/utils/advancedSearchFooterUtils";
 
 export type AdvancedSearchContentState =
@@ -20,21 +21,35 @@ export type AdvancedSearchFooterProps = {
 };
 
 const footerKbdClassName =
-  "inline-flex items-center justify-center rounded border border-gray-300 bg-white px-1 py-0.5 text-gray-600";
+  "inline-flex min-w-5 items-center justify-center rounded border border-gray-300 bg-white px-1 py-0.5 normal-case text-gray-600";
 
 const footerLabelClassName =
   "inline-flex shrink-0 items-center gap-1 text-xs lowercase text-gray-500";
 
+const HintKeyList = ({ keys }: { keys: HintKey[] }) => (
+  <>
+    {getHintKeys(keys).map((hint, index) => (
+      <kbd className={footerKbdClassName} key={keys[index]}>
+        {hint.type === "icon" ? (
+          <Icon icon={hint.icon} iconSize={12} />
+        ) : (
+          hint.label
+        )}
+      </kbd>
+    ))}
+  </>
+);
+
 type FooterShortcutHintProps = {
   disabled?: boolean;
-  keyIcons: IconName[];
+  keys: HintKey[];
   label: string;
   onClick?: () => void;
 };
 
 const FooterShortcutHint = ({
   disabled = false,
-  keyIcons,
+  keys,
   label,
   onClick,
 }: FooterShortcutHintProps) => (
@@ -45,11 +60,7 @@ const FooterShortcutHint = ({
     type="button"
   >
     <span className={footerLabelClassName}>
-      {keyIcons.map((icon) => (
-        <kbd className={footerKbdClassName} key={icon}>
-          <Icon icon={icon} iconSize={12} />
-        </kbd>
-      ))}
+      <HintKeyList keys={keys} />
       {label}
     </span>
   </button>
@@ -64,7 +75,7 @@ const OpenFooterAction = ({
 }) => (
   <FooterShortcutHint
     disabled={disabled}
-    keyIcons={["key-enter"]}
+    keys={["Enter"]}
     label="open"
     onClick={() => void onOpen()}
   />
@@ -79,7 +90,7 @@ const OpenInSidebarFooterAction = ({
 }) => (
   <FooterShortcutHint
     disabled={disabled}
-    keyIcons={["key-shift", "key-enter"]}
+    keys={["Shift", "Enter"]}
     label="sidebar"
     onClick={() => void onOpenInSidebar()}
   />
@@ -94,7 +105,7 @@ const InsertFooterAction = ({
 }) => (
   <FooterShortcutHint
     disabled={disabled}
-    keyIcons={["key-command", "key-enter"]}
+    keys={["Mod", "Enter"]}
     label="insert"
     onClick={() => void onInsert()}
   />
@@ -109,7 +120,7 @@ const OpenSearchSidebarFooterAction = ({
 }) => (
   <FooterShortcutHint
     disabled={disabled}
-    keyIcons={["key-option", "key-enter"]}
+    keys={["Alt", "Enter"]}
     label="dock results"
     onClick={() => void onOpenSearchSidebar()}
   />
@@ -117,9 +128,7 @@ const OpenSearchSidebarFooterAction = ({
 
 const CloseFooterHint = () => (
   <span className={footerLabelClassName}>
-    <kbd className={footerKbdClassName}>
-      <Icon icon="key-escape" iconSize={12} />
-    </kbd>
+    <HintKeyList keys={["Escape"]} />
     close
   </span>
 );
