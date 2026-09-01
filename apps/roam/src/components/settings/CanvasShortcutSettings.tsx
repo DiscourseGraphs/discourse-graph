@@ -5,6 +5,7 @@ import getDiscourseNodes, {
   excludeDefaultNodes,
 } from "~/utils/getDiscourseNodes";
 import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import { settingAnchor } from "~/components/settings/utils/settingAnchor";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { setSetting } from "~/utils/extensionSettings";
 import { CANVAS_NODE_SHORTCUTS_KEY } from "~/data/userSettings";
@@ -103,7 +104,10 @@ const CanvasShortcutSettings = ({
   };
 
   return (
-    <div className="inline-grid grid-cols-[auto_auto] items-center gap-x-4 gap-y-2 p-1">
+    <div
+      className="inline-grid grid-cols-[auto_auto] items-center gap-x-4 gap-y-2 p-1"
+      {...settingAnchor([PERSONAL_KEYS.canvasNodeShortcuts])}
+    >
       <div className="col-span-2 mb-2">
         <div className="text-base">Override the canvas keyboard shortcuts</div>
         <div className="text-sm italic text-gray-500">
