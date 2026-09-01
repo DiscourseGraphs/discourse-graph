@@ -19,6 +19,7 @@ const baseNode: CrossAppNode = {
   createdAt: new Date("2026-06-14T11:00:00Z"),
   authorId: "account-local-1",
   nodeType: "concept-1",
+  coreTitle: "REM sleep and recall",
   content: { direct: { value: "EVD - REM sleep and recall" } },
 };
 
