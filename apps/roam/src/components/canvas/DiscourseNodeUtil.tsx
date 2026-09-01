@@ -636,7 +636,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
         icon={<Icon icon="label" color={textColor} className="opacity-50" />}
         onClick={(e) => {
           e.stopPropagation();
-          setIsAddTagMenuOpen(true);
+          setIsAddTagMenuOpen((open) => !open);
         }}
         onPointerDown={(e) => e.stopPropagation()}
         title="Add tag"
