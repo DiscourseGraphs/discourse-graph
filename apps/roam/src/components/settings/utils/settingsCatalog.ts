@@ -64,9 +64,8 @@ type NonRowKeyId =
   | "DISCOURSE_NODE_KEYS.suggestiveRules"
   // Relations are configured by their own panel, not a settings row.
   | "GLOBAL_KEYS.relations"
-  // Persisted UI state and canvas-written values, not settings.
+  // Persisted UI state, not a setting.
   | "PERSONAL_KEYS.globalSectionFolded"
-  | "PERSONAL_KEYS.canvasNodeShortcuts"
   // Per-section rows rendered from a list; no stable address yet.
   | "LEFT_SIDEBAR_KEYS.children"
   // Edited as a set by DiscourseNodeAttributes.
@@ -235,6 +234,15 @@ const AUTHORED_SETTINGS = {
       "Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut.",
     docsLink: ROAM_DOCS.creatingNodes,
     keywords: ["personal", "tldraw", "hotkey"],
+    path: rootPath(SETTINGS_TAB_IDS.featuresCanvas),
+  },
+  // One row for the whole per-node grid: the overrides share a single stored
+  // value and a single anchor, so search lands on the grid rather than a node.
+  "PERSONAL_KEYS.canvasNodeShortcuts": {
+    label: "Override the canvas keyboard shortcuts",
+    description:
+      "Replace the per-node-type shortcut keys used on the canvas. Changes take effect next time a canvas is opened.",
+    keywords: ["personal", "tldraw", "hotkey", "node type"],
     path: rootPath(SETTINGS_TAB_IDS.featuresCanvas),
   },
   "PERSONAL_KEYS.autoCanvasRelations": {
