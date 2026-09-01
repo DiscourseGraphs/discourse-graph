@@ -16,6 +16,7 @@ import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParen
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { contentTypes } from "@repo/content-model";
 import getDiscourseNodes from "./getDiscourseNodes";
+import extractContentFromTitle from "./extractContentFromTitle";
 import {
   SOURCE_SLOT,
   schemaHasSourceSlot,
@@ -80,6 +81,7 @@ export const fullContentNodeToCrossApp = (
     createdAt: new Date(node.created || Date.now()),
     modifiedAt: new Date(node.last_modified || Date.now()),
     nodeType: node.node_type_id,
+    coreTitle: extractContentFromTitle(title, { format: node.format }),
     content: {
       direct: {
         localId: node.source_local_id,
@@ -134,6 +136,9 @@ export const nodeUidsWithTypeToCrossApp = async (
       authorId: userUid,
       createdAt: new Date(createdTime),
       modifiedAt: new Date(Math.max(editTime, pageEditTime)),
+      coreTitle: extractContentFromTitle(title, {
+        format: schemasById[nodeType]?.format ?? "",
+      }),
       content: {
         direct: {
           localId: uid,

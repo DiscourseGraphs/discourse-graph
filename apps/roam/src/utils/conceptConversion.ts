@@ -7,6 +7,7 @@ import {
   sourceSlotSchemaId,
   sourceUidOfNode,
 } from "./sourceSlot";
+import extractContentFromTitle from "./extractContentFromTitle";
 import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
 import type { SupabaseContext } from "~/utils/supabaseContext";
@@ -125,6 +126,11 @@ export const discourseNodeBlockToLocalConcept = (
     source_local_id: nodeUid,
     schema_represented_by_local_id: schemaUid,
     is_schema: false,
+    literal_content: {
+      core_title: extractContentFromTitle(title ?? "", {
+        format: schema?.format ?? "",
+      }),
+    },
     ...(sourceUid
       ? { local_reference_content: { [SOURCE_SLOT]: sourceUid } }
       : {}),

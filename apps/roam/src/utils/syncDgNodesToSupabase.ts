@@ -1067,6 +1067,7 @@ const getSharedRoamNodesWithFullContentUpdatesSince = async ({
           last_modified: Math.max(row.node_edit_time, row.page_edit_time),
           text: row.text,
           node_type_id: matchingNodeType.type,
+          format: matchingNodeType.format,
         },
         nodeTypeId: matchingNodeType.type,
       },

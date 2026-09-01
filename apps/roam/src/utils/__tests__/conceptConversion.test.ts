@@ -108,6 +108,35 @@ describe("discourseNodeSchemaToLocalConcept source slot", () => {
   });
 });
 
+describe("discourseNodeBlockToLocalConcept core title", () => {
+  it("writes the undecorated core title into literal_content", () => {
+    const concept = discourseNodeBlockToLocalConcept(CONTEXT, {
+      nodeUid: "node-1",
+      schemaUid: "clm",
+      title: "[[CLM]] - my claim",
+      schema: nodeType({
+        text: "Claim",
+        type: "clm",
+        format: "[[CLM]] - {content}",
+      }),
+    });
+    expect(concept.literal_content).toEqual({ core_title: "my claim" });
+    expect(concept.name).toBe("[[CLM]] - my claim");
+    expect(concept.source_local_id).toBe("node-1");
+  });
+
+  it("keeps the whole title when the schema is unknown", () => {
+    const concept = discourseNodeBlockToLocalConcept(CONTEXT, {
+      nodeUid: "node-1",
+      schemaUid: "clm",
+      title: "[[CLM]] - my claim",
+    });
+    expect(concept.literal_content).toEqual({
+      core_title: "[[CLM]] - my claim",
+    });
+  });
+});
+
 describe("discourseNodeBlockToLocalConcept source slot", () => {
   const convert = (title: string, schema: DiscourseNode = nodeType({})) =>
     discourseNodeBlockToLocalConcept(CONTEXT, {

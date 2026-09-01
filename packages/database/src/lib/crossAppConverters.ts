@@ -80,6 +80,9 @@ export const crossAppNodeToDbConcept = (
     name: node.content.direct.value,
     author_local_id: node.authorId,
     schema_represented_by_local_id: node.nodeType,
+    literal_content: {
+      core_title: node.coreTitle,
+    },
     contents_inline: filterUndefinedArray([
       crossAppNodeToDbContent(node, "direct"),
       crossAppNodeToDbContent(node, "full"),

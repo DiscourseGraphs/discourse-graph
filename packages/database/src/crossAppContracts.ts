@@ -76,6 +76,10 @@ type InlineCrossAppTypedContent = InlineCrossAppContent & {
 // A node instance
 export type CrossAppNode = CrossAppBase & {
   nodeType: LocalId;
+  // The title stripped of the node type's title format ("[[CLM]] - {content}"
+  // -> the {content} part). Equals the title when the type has no format or
+  // the title does not match it.
+  coreTitle: string;
   slots?: Record<string, LocalId>;
   content: {
     direct: InlineCrossAppContent;
