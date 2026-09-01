@@ -144,7 +144,7 @@ const getJsonObject = (
     return null;
   }
 
-  return data as Record<string, unknown>;
+  return data;
 };
 
 const getEndSyncTaskResultVersion = (data: Json | undefined): number => {
@@ -667,11 +667,16 @@ export const convertDgToSupabaseConcepts = async ({
     return discourseNodeSchemaToLocalConcept(context, node);
   });
 
+  const schemasByUid = new Map(
+    allNodeTypes.map((nodeType) => [nodeType.type, nodeType]),
+  );
+
   const nodeBlockToLocalConcepts = nodesSince.map((node) => {
     const localConcept = discourseNodeBlockToLocalConcept(context, {
       nodeUid: node.source_local_id,
       schemaUid: node.type,
-      text: node.node_title ? `${node.node_title} ${node.text}` : node.text,
+      title: node.node_title ?? node.text,
+      schema: schemasByUid.get(node.type),
     });
     return localConcept;
   });
@@ -1071,6 +1076,7 @@ const getSharedRoamNodesWithFullContentUpdatesSince = async ({
 
 export const createOrUpdateDiscourseEmbedding = async (
   showToast = false,
+  sendAll?: boolean,
 ): Promise<void> => {
   if (!doSync) return;
   console.debug("starting createOrUpdateDiscourseEmbedding");
@@ -1183,6 +1189,8 @@ export const createOrUpdateDiscourseEmbedding = async (
           Math.max(0, nextUpdateTime.valueOf() - Date.now()) +
             100 +
             Math.floor(Math.random() * 200), // avoid stampede
+          false,
+          sendAll,
         );
       }
       return;
@@ -1195,9 +1203,10 @@ export const createOrUpdateDiscourseEmbedding = async (
       phases,
       operation: getAllUsers,
     });
-    const sinceTime = lastUpdateTime
-      ? lastUpdateTime.valueOf() - 1000 // add a one-second buffer
-      : undefined;
+    const sinceTime =
+      lastUpdateTime && !sendAll
+        ? lastUpdateTime.valueOf() - 1000 // add a one-second buffer
+        : undefined;
     const allDgNodeTypes = getDiscourseNodes().filter(
       (n) => n.backedBy === "user",
     );
