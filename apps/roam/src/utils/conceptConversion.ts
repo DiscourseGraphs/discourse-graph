@@ -1,6 +1,13 @@
 import { InputTextNode } from "roamjs-components/types";
 import getBlockProps from "./getBlockProps";
 import { DiscourseNode } from "./getDiscourseNodes";
+import {
+  SOURCE_SLOT,
+  schemaHasSourceSlot,
+  sourceSlotSchemaId,
+  sourceUidOfNode,
+} from "./sourceSlot";
+import extractContentFromTitle from "./extractContentFromTitle";
 import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
 import type { SupabaseContext } from "~/utils/supabaseContext";
@@ -79,23 +86,23 @@ export const discourseNodeSchemaToLocalConcept = (
 ): LocalConceptDataInput => {
   const titleParts = node.text.split("/");
   const label = titleParts[titleParts.length - 1] ?? node.text;
-  const result: LocalConceptDataInput = {
+  const literalContent: Record<string, Json> = { label };
+  if (node.template !== undefined)
+    literalContent.template = templateToText(node.template);
+  const hasSourceSlot = schemaHasSourceSlot(node);
+  if (hasSourceSlot) literalContent.roles = [SOURCE_SLOT];
+  return {
     space_id: context.spaceId,
     name: node.text,
     source_local_id: node.type,
     is_schema: true,
-    literal_content: {
-      label,
-    },
+    literal_content: literalContent,
+    ...(hasSourceSlot
+      ? { local_reference_content: { [SOURCE_SLOT]: sourceSlotSchemaId() } }
+      : {}),
     /* eslint-enable @typescript-eslint/naming-convention */
     ...getNodeExtraData(node.type),
   };
-  if (node.template !== undefined)
-    result.literal_content = {
-      label,
-      template: templateToText(node.template),
-    };
-  return result;
 };
 
 export const discourseNodeBlockToLocalConcept = (
@@ -103,24 +110,30 @@ export const discourseNodeBlockToLocalConcept = (
   {
     nodeUid,
     schemaUid,
-    text,
-    coreTitle,
+    title,
+    schema,
   }: {
     nodeUid: string;
     schemaUid: string;
-    text: string;
-    coreTitle: string;
+    title?: string;
+    schema?: DiscourseNode;
   },
 ): LocalConceptDataInput => {
+  const sourceUid = title ? sourceUidOfNode(title, schema) : undefined;
   return {
     space_id: context.spaceId,
-    name: text,
+    name: title,
     source_local_id: nodeUid,
     schema_represented_by_local_id: schemaUid,
     is_schema: false,
     literal_content: {
-      core_title: coreTitle,
+      core_title: extractContentFromTitle(title ?? "", {
+        format: schema?.format ?? "",
+      }),
     },
+    ...(sourceUid
+      ? { local_reference_content: { [SOURCE_SLOT]: sourceUid } }
+      : {}),
     /* eslint-enable @typescript-eslint/naming-convention */
     ...getNodeExtraData(nodeUid),
   };
