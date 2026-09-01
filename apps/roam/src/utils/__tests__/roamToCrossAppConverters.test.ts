@@ -206,6 +206,13 @@ describe("nodeSchemaToCrossApp timestamps", () => {
   });
 });
 
+describe("nodeSchemaToCrossApp format", () => {
+  it("carries the node type format", () => {
+    const schema = convertSchemaPull(schemaPull);
+    expect(schema?.format).toBe("[[EVD]] - {content} - {Source}");
+  });
+});
+
 describe("nodeSchemaToCrossApp source slot", () => {
   it("adds a sourceDocument slot definition pointing at the Source node type", () => {
     mockedGetDiscourseNodes.mockReturnValue([

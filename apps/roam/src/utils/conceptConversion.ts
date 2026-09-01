@@ -86,7 +86,10 @@ export const discourseNodeSchemaToLocalConcept = (
 ): LocalConceptDataInput => {
   const titleParts = node.text.split("/");
   const label = titleParts[titleParts.length - 1] ?? node.text;
-  const literalContent: Record<string, Json> = { label };
+  const literalContent: Record<string, Json> = {
+    label,
+    format: node.format,
+  };
   if (node.template !== undefined)
     literalContent.template = templateToText(node.template);
   const hasSourceSlot = schemaHasSourceSlot(node);

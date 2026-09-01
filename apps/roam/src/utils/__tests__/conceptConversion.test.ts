@@ -92,7 +92,10 @@ describe("discourseNodeSchemaToLocalConcept source slot", () => {
       nodeType({ text: "Claim", type: "clm", format: "[[CLM]] - {content}" }),
     );
     expect(concept.local_reference_content).toBeUndefined();
-    expect(concept.literal_content).toEqual({ label: "Claim" });
+    expect(concept.literal_content).toEqual({
+      label: "Claim",
+      format: "[[CLM]] - {content}",
+    });
   });
 
   it("keeps the label and template it already carried", () => {
@@ -102,6 +105,7 @@ describe("discourseNodeSchemaToLocalConcept source slot", () => {
     );
     expect(concept.literal_content).toEqual({
       label: "Evidence",
+      format: "[[EVD]] - {content} - {Source}",
       template: "* Question:\n",
       roles: ["sourceDocument"],
     });

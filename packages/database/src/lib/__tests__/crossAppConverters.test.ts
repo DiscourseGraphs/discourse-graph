@@ -24,6 +24,35 @@ const baseNode: CrossAppNode = {
 };
 
 describe("crossAppNodeSchemaToDbConcept", () => {
+  it("maps format to literal_content.format", () => {
+    const concept = crossAppNodeSchemaToDbConcept({
+      ...baseSchema,
+      format: "[[CLM]] - {content}",
+    });
+    expect(concept.literal_content).toEqual({
+      format: "[[CLM]] - {content}",
+    });
+  });
+
+  it("keeps the template keys alongside format", () => {
+    const concept = crossAppNodeSchemaToDbConcept({
+      ...baseSchema,
+      format: "[[CLM]] - {content}",
+      template: "* Evidence\n",
+      templateTitle: "Claim template",
+    });
+    expect(concept.literal_content).toEqual({
+      format: "[[CLM]] - {content}",
+      template: "Claim template",
+      template_content: "* Evidence\n",
+    });
+  });
+
+  it("omits literal_content when no keys are set", () => {
+    const concept = crossAppNodeSchemaToDbConcept(baseSchema);
+    expect(concept.literal_content).toBeUndefined();
+  });
+
   it("stores slot definitions as roles plus local reference content", () => {
     const result = crossAppNodeSchemaToDbConcept({
       ...baseSchema,

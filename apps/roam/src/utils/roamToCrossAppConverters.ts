@@ -225,6 +225,7 @@ export const nodeSchemaToCrossApp = (
     authorId: userUid,
     createdAt: new Date(createdTime),
     modifiedAt: new Date(Math.max(pageEditTime, createdTime)),
+    format: s.format,
     ...(hasSourceSlot
       ? { slotDefinitions: { [SOURCE_SLOT]: sourceSlotSchemaId() } }
       : {}),
