@@ -1,10 +1,14 @@
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
 
-const extractContentFromTitle = (
+// The text a node's title holds in a given placeholder of its node type's format:
+// extractFieldFromTitle("[[EVD]] - a claim - [[@ref]]", evidence, "source") is
+// "[[@ref]]".
+export const extractFieldFromTitle = (
   title: string,
   node: { format: string },
-): string => {
-  if (!node.format) return title;
+  field: string,
+): string | undefined => {
+  if (!node.format) return undefined;
   const placeholderRegex = /{([\w\d-]+)}/g;
   const placeholders: string[] = [];
   let placeholderMatch: RegExpExecArray | null = null;
@@ -14,14 +18,23 @@ const extractContentFromTitle = (
   const expression = getDiscourseNodeFormatExpression(node.format);
   const expressionMatch = expression.exec(title);
   if (!expressionMatch || expressionMatch.length <= 1) {
-    return title;
+    return undefined;
   }
   const contentIndex = placeholders.findIndex(
-    (name) => name.toLowerCase() === "content",
+    (name) => name.toLowerCase() === field,
   );
-  const capture =
-    contentIndex >= 0 ? expressionMatch[contentIndex + 1] : expressionMatch[1];
-  return capture === undefined ? title : capture.trim();
+  if (contentIndex >= 0) return expressionMatch[contentIndex + 1]?.trim();
+};
+
+// A matched-but-empty {content} capture yields "" instead of falling back to
+// the decorated title, so the decorate/undecorate round trip holds for empty
+// content.
+const extractContentFromTitle = (
+  title: string,
+  node: { format: string },
+): string => {
+  const content = extractFieldFromTitle(title, node, "content");
+  return content === undefined ? title : content;
 };
 
 export default extractContentFromTitle;

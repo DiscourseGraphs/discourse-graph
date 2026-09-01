@@ -38,6 +38,7 @@ vi.mock("~/utils/roamToCrossAppConverters", () => ({
     label: s.text,
     authorId: "author-1",
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    format: s.format,
   }),
   reifiedRelationToCrossApp: vi.fn(),
   relationTripleSchemaToCrossApp: vi.fn(),
@@ -181,6 +182,7 @@ describe("publishNodesToGroups", () => {
       source_local_id: SCHEMA_UID,
       is_schema: true,
       name: "Claim",
+      literal_content: { format: "[[CLM]] - {content}" },
     });
     expect(data[1]).toMatchObject({
       source_local_id: "node-1",

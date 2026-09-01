@@ -100,6 +100,7 @@ export const crossAppNodeSchemaToDbConcept = (
   const literalInfo = filterUndefined({
     template: node.templateTitle,
     template_content: node.template,
+    format: node.format,
     roles: slots.length > 0 ? slots : undefined,
   });
   const referenceContent = slots.length ? node.slotDefinitions : undefined;
