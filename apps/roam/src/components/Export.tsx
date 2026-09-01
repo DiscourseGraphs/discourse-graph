@@ -97,6 +97,7 @@ import {
   isNodeSharingEnabled,
 } from "~/components/settings/utils/accessors";
 import refreshConfigTree from "~/utils/refreshConfigTree";
+import { flushPendingSettingWrites } from "~/utils/pendingSettingWrites";
 import ExportOptions from "./ExportOptions";
 
 const ExportProgress = ({ id }: { id: string }) => {
@@ -1053,6 +1054,12 @@ const ExportDialog: ExportDialogComponent = ({
               // eslint-disable-next-line @typescript-eslint/no-misused-promises
               setTimeout(async () => {
                 try {
+                  // The export reads settings inside its callback, and the number
+                  // and select panels defer their write behind a short timer. The
+                  // await matters as much as the flush: committing only starts the
+                  // Roam block update, so an option edited a moment ago would
+                  // otherwise still read as its previous value here.
+                  await flushPendingSettingWrites();
                   const exportType = exportTypes.find(
                     (e) => e.name === activeExportType,
                   );
