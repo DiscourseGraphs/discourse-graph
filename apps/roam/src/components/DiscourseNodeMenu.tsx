@@ -166,7 +166,10 @@ const NodeMenu = ({
         // timeout required to ensure the block is updated
         setTimeout(() => void createNodeAndUpdateBlock(), 100);
       } else {
-        const tag = menuItem.getAttribute("data-tag") || "";
+        const tag = (menuItem.getAttribute("data-tag") || "").replace(
+          /^#+/,
+          "",
+        );
         if (!tag) return;
 
         const addTagToBlock = async () => {
