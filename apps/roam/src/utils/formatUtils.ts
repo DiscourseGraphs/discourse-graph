@@ -180,3 +180,21 @@ export const findReferencedNodeInText = ({
 export const escapeCljString = (str: string) => {
   return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').toLowerCase();
 };
+
+export const insertTagIntoText = ({
+  text,
+  tag,
+  selectionStart,
+}: {
+  text: string;
+  tag: string;
+  selectionStart: number;
+}) => {
+  const textToInsert = `${selectionStart === 0 ? "" : " "}#${tag.replace(
+    /^#/,
+    "",
+  )}`;
+  return `${text.substring(0, selectionStart)}${textToInsert}${text.substring(
+    selectionStart,
+  )}`;
+};

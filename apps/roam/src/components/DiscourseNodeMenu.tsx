@@ -23,7 +23,10 @@ import updateBlock from "roamjs-components/writes/updateBlock";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import createDiscourseNode from "~/utils/createDiscourseNode";
-import { resolveNewDiscourseNodeText } from "~/utils/formatUtils";
+import {
+  insertTagIntoText,
+  resolveNewDiscourseNodeText,
+} from "~/utils/formatUtils";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
@@ -43,6 +46,7 @@ type Props = {
   menuMaxHeight?: number;
   settingsSnapshot?: SettingsSnapshot;
   onTagAdded?: (newText: string) => void;
+  defaultIsOpen?: boolean;
 };
 
 const NodeMenu = ({
@@ -55,6 +59,7 @@ const NodeMenu = ({
   menuMaxHeight,
   settingsSnapshot,
   onTagAdded,
+  defaultIsOpen,
 }: { onClose: () => void } & Props) => {
   const isInitialTextSelected =
     !!textarea && textarea.selectionStart !== textarea.selectionEnd;
@@ -81,7 +86,7 @@ const NodeMenu = ({
   );
   const menuRef = useRef<HTMLUListElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isOpen, setIsOpen] = useState(!trigger);
+  const [isOpen, setIsOpen] = useState(defaultIsOpen ?? !trigger);
 
   useEffect(() => {
     const container = menuRef.current;
@@ -164,14 +169,11 @@ const NodeMenu = ({
         if (!tag) return;
 
         const addTagToBlock = async () => {
-          const textToInsert = `${
-            selectionStart === 0 ? "" : " "
-          }#${tag.replace(/^#/, "")}`;
-
-          const newText = `${currentText.substring(
-            0,
+          const newText = insertTagIntoText({
+            text: currentText,
+            tag,
             selectionStart,
-          )}${textToInsert}${currentText.substring(selectionStart)}`;
+          });
 
           await updateBlock({ text: newText, uid: targetBlockUid });
           posthog.capture("Discourse Tag: Created via Node Menu", {

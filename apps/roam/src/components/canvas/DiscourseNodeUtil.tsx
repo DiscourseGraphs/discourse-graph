@@ -460,7 +460,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const [overlayMounted, setOverlayMounted] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [addTagMenuKey, setAddTagMenuKey] = useState(0);
+    const [isAddTagMenuOpen, setIsAddTagMenuOpen] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const dialogRenderedRef = useRef(false);
 
@@ -669,35 +669,49 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
             />
 
             {/* Add Tag to Block Button */}
-            {extensionAPI && showAddTagButton && (
-              <NodeMenu
-                key={addTagMenuKey}
-                blockUid={shape.props.uid}
-                extensionAPI={extensionAPI}
-                onClose={() => setAddTagMenuKey((k) => k + 1)}
-                onTagAdded={handleTagAdded}
-                trigger={
-                  <Button
-                    minimal
-                    small
-                    icon={
-                      <span className="opacity-50" style={{ color: textColor }}>
-                        #
-                      </span>
-                    }
-                    onPointerDown={(e) => e.stopPropagation()}
-                    title="Add tag"
-                  >
-                    <span
-                      className="opacity-70"
-                      style={{ color: textColor, fontSize: "11px" }}
-                    >
-                      Add tag
+            {extensionAPI &&
+              showAddTagButton &&
+              (isAddTagMenuOpen ? (
+                <NodeMenu
+                  blockUid={shape.props.uid}
+                  extensionAPI={extensionAPI}
+                  defaultIsOpen
+                  onClose={() => setIsAddTagMenuOpen(false)}
+                  onTagAdded={handleTagAdded}
+                  trigger={
+                    <Button
+                      minimal
+                      small
+                      icon={
+                        <span
+                          className="opacity-50"
+                          style={{ color: textColor }}
+                        >
+                          #
+                        </span>
+                      }
+                      onPointerDown={(e) => e.stopPropagation()}
+                      title="Add tag"
+                    />
+                  }
+                />
+              ) : (
+                <Button
+                  minimal
+                  small
+                  icon={
+                    <span className="opacity-50" style={{ color: textColor }}>
+                      #
                     </span>
-                  </Button>
-                }
-              />
-            )}
+                  }
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsAddTagMenuOpen(true);
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  title="Add tag"
+                />
+              ))}
 
             {/* Convert to Node Type Button */}
             {matchedNodeForConversion && (
@@ -777,14 +791,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
                 title={`Convert to ${matchedNodeForConversion.node.text}`}
-              >
-                <span
-                  className="opacity-70"
-                  style={{ color: textColor, fontSize: "11px" }}
-                >
-                  Convert to {matchedNodeForConversion.node.text}
-                </span>
-              </Button>
+              />
             )}
           </div>
 
