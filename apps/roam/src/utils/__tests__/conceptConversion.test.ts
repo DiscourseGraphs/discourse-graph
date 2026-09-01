@@ -98,6 +98,11 @@ describe("discourseNodeSchemaToLocalConcept source slot", () => {
     });
   });
 
+  it("carries the type author as author_local_id", () => {
+    const concept = discourseNodeSchemaToLocalConcept(CONTEXT, nodeType({}));
+    expect(concept.author_local_id).toBe("author-1");
+  });
+
   it("keeps the label and template it already carried", () => {
     const concept = discourseNodeSchemaToLocalConcept(
       CONTEXT,
@@ -215,11 +220,5 @@ describe("discourseNodeBlockToLocalConcept source slot", () => {
     expect(concept.local_reference_content).toEqual({
       sourceDocument: "source-1",
     });
-  });
-
-  it("carries the type author as author_local_id", () => {
-    stubRoamQuery();
-    const concept = discourseNodeSchemaToLocalConcept(context, claimSchema);
-    expect(concept.author_local_id).toBe("author-1");
   });
 });
