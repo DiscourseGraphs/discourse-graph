@@ -30,6 +30,10 @@ import {
 } from "~/components/settings/utils/accessors";
 import type { FeatureFlags } from "../utils/zodSchema";
 import type { json } from "~/utils/getBlockProps";
+import {
+  addPendingSettingWrite,
+  removePendingSettingWrite,
+} from "~/utils/pendingSettingWrites";
 
 type RoamBlockSyncProps = {
   parentUid?: string;
@@ -118,6 +122,47 @@ const SettingTitle = ({
 );
 
 const DEBOUNCE_MS = 250;
+// Lets a fire-and-forget Roam block write land before refreshConfigTree re-reads it.
+const REFRESH_DELAY_MS = 100;
+
+type DeferredWrite = {
+  schedule: (commit: () => void, delayMs: number) => void;
+};
+
+// Keeps the timer and the registry entry for a panel in step: scheduling a new
+// value replaces any pending one, and committing (by timer, by flush, or by
+// unmount) runs the write exactly once. Unmount commits rather than cancels --
+// navigating away or closing a dialog straight after an edit used to discard it.
+const useDeferredWrite = (): DeferredWrite => {
+  const timeoutRef = useRef(0);
+  const commitRef = useRef<(() => void) | null>(null);
+
+  const forget = useCallback(() => {
+    window.clearTimeout(timeoutRef.current);
+    if (commitRef.current) {
+      removePendingSettingWrite(commitRef.current);
+      commitRef.current = null;
+    }
+  }, []);
+
+  const schedule = useCallback(
+    (commit: () => void, delayMs: number) => {
+      forget();
+      const runOnce = () => {
+        forget();
+        commit();
+      };
+      commitRef.current = runOnce;
+      addPendingSettingWrite(runOnce);
+      timeoutRef.current = window.setTimeout(runOnce, delayMs);
+    },
+    [forget],
+  );
+
+  useEffect(() => () => commitRef.current?.(), []);
+
+  return { schedule };
+};
 
 const BaseTextPanel = ({
   title,
@@ -138,7 +183,7 @@ const BaseTextPanel = ({
   const [value, setValue] = useState(() => initialValue ?? "");
   const errorRef = useRef(error);
   errorRef.current = error;
-  const debounceRef = useRef(0);
+  const { schedule } = useDeferredWrite();
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
     title: blockKey ?? title,
@@ -151,17 +196,6 @@ const BaseTextPanel = ({
   });
   const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
 
-  // Navigating away unmounts mid-debounce, so the pending write runs rather than being dropped.
-  const pendingWriteRef = useRef<(() => void) | null>(null);
-  useEffect(() => {
-    return () => {
-      window.clearTimeout(debounceRef.current);
-      const pending = pendingWriteRef.current;
-      pendingWriteRef.current = null;
-      pending?.();
-    };
-  }, []);
-
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -169,22 +203,13 @@ const BaseTextPanel = ({
     setValue(newValue);
     onChange?.(newValue);
 
-    window.clearTimeout(debounceRef.current);
-    pendingWriteRef.current = () => {
+    schedule(() => {
       if (errorRef.current) return;
       syncToBlock?.(newValue);
-      refreshConfigTree();
       setter(settingKeys, newValue);
-    };
-    debounceRef.current = window.setTimeout(() => {
-      if (errorRef.current) return;
-      syncToBlock?.(newValue);
-      debounceRef.current = window.setTimeout(() => {
-        if (errorRef.current) return;
-        refreshConfigTree();
-        setter(settingKeys, newValue);
-        pendingWriteRef.current = null;
-      }, 100);
+      // Kept off the committed write so the block-prop value, which is what
+      // readers use, is never held back waiting on the tree re-read.
+      window.setTimeout(refreshConfigTree, REFRESH_DELAY_MS);
     }, DEBOUNCE_MS);
   };
 
@@ -311,22 +336,17 @@ const BaseNumberPanel = ({
     toStr: (v: number) => `${v}`,
   });
   const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
-  const refreshTimeoutRef = useRef(0);
-
-  useEffect(() => {
-    return () => window.clearTimeout(refreshTimeoutRef.current);
-  }, []);
+  const { schedule } = useDeferredWrite();
 
   const handleChange = (valueAsNumber: number) => {
     if (Number.isNaN(valueAsNumber)) return;
     setValue(valueAsNumber);
     syncToBlock?.(valueAsNumber);
-    window.clearTimeout(refreshTimeoutRef.current);
-    refreshTimeoutRef.current = window.setTimeout(() => {
-      refreshConfigTree();
+    schedule(() => {
       setter(settingKeys, valueAsNumber);
+      refreshConfigTree();
       onChange?.(valueAsNumber);
-    }, 100);
+    }, REFRESH_DELAY_MS);
   };
 
   return (
@@ -367,21 +387,16 @@ const BaseSelectPanel = ({
     toStr: (s: string) => s,
   });
   const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
-  const refreshTimeoutRef = useRef(0);
-
-  useEffect(() => {
-    return () => window.clearTimeout(refreshTimeoutRef.current);
-  }, []);
+  const { schedule } = useDeferredWrite();
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
     syncToBlock?.(newValue);
-    window.clearTimeout(refreshTimeoutRef.current);
-    refreshTimeoutRef.current = window.setTimeout(() => {
-      refreshConfigTree();
+    schedule(() => {
       setter(settingKeys, newValue);
-    }, 100);
+      refreshConfigTree();
+    }, REFRESH_DELAY_MS);
   };
 
   return (
