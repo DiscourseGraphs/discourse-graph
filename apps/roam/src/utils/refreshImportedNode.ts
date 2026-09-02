@@ -78,7 +78,7 @@ export const refreshImportedNode = async ({
       };
     return {
       success: true,
-      message: `Refreshed "${sharedNode.title}" from ${sharedNode.spaceName}.`,
+      message: `Refreshed "${sharedNode.title}" from ${sharedNode.spaceName}.${result.warning ? ` ${result.warning}` : ""}`,
     };
   } catch (error) {
     internalError({

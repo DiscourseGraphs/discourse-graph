@@ -1,3 +1,4 @@
+import { FORMAT_PLACEHOLDER } from "@repo/database/lib/decorateTitle";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
@@ -68,4 +69,33 @@ export const sourceUidOfNode = (
   if (!isDiscourseNodeTitle(sourceTitle, allNodes ?? getDiscourseNodes()))
     return undefined;
   return getPageUidByPageTitle(sourceTitle) || undefined;
+};
+
+const FILLABLE_PLACEHOLDERS = new Set(["{content}", "{source}"]);
+
+// Inverse of sourceUidOfNode, for the pull side: the local title of a node whose format
+// names a source, built from its core title and the Source page's title. Null when the
+// format has a placeholder neither fills, so the caller keeps the incoming title.
+export const titleWithSource = ({
+  format,
+  coreTitle,
+  sourceTitle,
+}: {
+  format: string;
+  coreTitle: string;
+  sourceTitle: string;
+}): string | null => {
+  const placeholders = (format.match(FORMAT_PLACEHOLDER) ?? []).map(
+    (placeholder) => placeholder.toLowerCase(),
+  );
+  if (
+    !placeholders.includes("{content}") ||
+    placeholders.some((placeholder) => !FILLABLE_PLACEHOLDERS.has(placeholder))
+  )
+    return null;
+  return format.replace(FORMAT_PLACEHOLDER, (placeholder) =>
+    placeholder.toLowerCase() === "{content}"
+      ? coreTitle
+      : `[[${sourceTitle}]]`,
+  );
 };

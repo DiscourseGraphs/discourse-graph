@@ -118,17 +118,23 @@ const ImportResultsSummary = ({
     (item) => item.status === "skipped",
   ).length;
   const failedImports = results.filter(isFailedSharedNodeImport);
+  const warnings = results.flatMap((item) =>
+    item.status !== "failed" && item.warning
+      ? [{ sharedNode: item.sharedNode, message: item.warning }]
+      : [],
+  );
+  const importNotices = [...failedImports, ...warnings];
   return (
     <Callout
-      intent={failedImports.length > 0 ? Intent.WARNING : Intent.SUCCESS}
+      intent={importNotices.length > 0 ? Intent.WARNING : Intent.SUCCESS}
       title={`${importedCount} imported, ${skippedCount} skipped, ${failedImports.length} failed`}
     >
       {skippedCount > 0 && (
         <div>Skipped nodes were already up to date in this graph.</div>
       )}
-      {failedImports.length > 0 && (
+      {importNotices.length > 0 && (
         <ul className="mb-0 mt-2 list-disc pl-5">
-          {failedImports.map((item) => (
+          {importNotices.map((item) => (
             <li key={item.sharedNode.rid}>
               <span className="font-medium">{item.sharedNode.title}</span>:{" "}
               {item.message}
