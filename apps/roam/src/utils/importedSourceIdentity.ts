@@ -15,7 +15,7 @@ const SOURCE_MODIFIED_AT_KEY = "sourceModifiedAt";
 export const isJsonObject = (value: json): value is Record<string, json> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const parseImportedSourceIdentity = (
+export const parseImportedSourceIdentity = (
   props: Record<string, json>,
 ): ImportedSourceIdentity | undefined => {
   const discourseGraphProps = props[DISCOURSE_GRAPH_PROP_NAME];

@@ -22,6 +22,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
 } from "react";
@@ -73,6 +74,9 @@ import {
 } from "~/utils/relationSchemaAcceptance";
 import { getReifiedRelations } from "~/utils/createReifiedBlock";
 import { ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
+import { ROAM_URL_PREFIX } from "~/utils/canonicalRoamUrl";
+import { discourseContext } from "~/components/canvas/Tldraw";
+import internalError from "~/utils/internalError";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",
@@ -986,12 +990,10 @@ type Relation = {
 };
 type ImportedRelation = Relation & { importMeta: RelationSchemaImportMeta };
 
-const ROAM_SPACE_URI_PREFIX = "https://roamresearch.com/#/app/";
-
 const formatImportedSource = (sourceNodeRid: string): string => {
   const { spaceUri } = ridToSpaceUriAndLocalId(sourceNodeRid);
-  return spaceUri.startsWith(ROAM_SPACE_URI_PREFIX)
-    ? spaceUri.slice(ROAM_SPACE_URI_PREFIX.length)
+  return spaceUri.startsWith(ROAM_URL_PREFIX)
+    ? spaceUri.slice(ROAM_URL_PREFIX.length)
     : spaceUri;
 };
 const DiscourseRelationConfigPanel = ({
@@ -1055,16 +1057,17 @@ const DiscourseRelationConfigPanel = ({
         : visibleRelations,
     [nodes, sort, visibleRelations],
   );
-  const { localRelations, importedRelations } = useMemo(() => {
-    const local: Relation[] = [];
-    const imported: ImportedRelation[] = [];
-    for (const rel of sortedRelations) {
-      const importMeta = readRelationSchemaImportMeta(rel.uid);
-      if (importMeta) imported.push({ ...rel, importMeta });
-      else local.push(rel);
-    }
-    return { localRelations: local, importedRelations: imported };
-  }, [sortedRelations]);
+  // Acceptance lives in block props, not in the relations state, so the split
+  // below is recomputed on every render and accepting bumps this reducer to
+  // trigger one.
+  const [, refreshImportMeta] = useReducer((version: number) => version + 1, 0);
+  const localRelations: Relation[] = [];
+  const importedRelations: ImportedRelation[] = [];
+  for (const rel of sortedRelations) {
+    const importMeta = readRelationSchemaImportMeta(rel.uid);
+    if (importMeta) importedRelations.push({ ...rel, importMeta });
+    else localRelations.push(rel);
+  }
   const editingRelationInfo = useMemo(
     () =>
       editingRelation ? getFullTreeByParentUid(editingRelation) : undefined,
@@ -1108,28 +1111,50 @@ const DiscourseRelationConfigPanel = ({
     });
   };
   const handleAcceptImported = (rel: Relation) => {
-    void acceptImportedRelationSchema(rel.uid).then(() => {
-      setRelations(refreshRelations());
-    });
+    void acceptImportedRelationSchema(rel.uid)
+      .then(() => {
+        // Make the acceptance visible to canvases that are already mounted.
+        discourseContext.provisionalRelationIds.delete(rel.uid);
+        posthog.capture("Discourse Relation: Accepted", {
+          relationUid: rel.uid,
+        });
+        refreshImportMeta();
+      })
+      .catch((error: unknown) => {
+        internalError({
+          error,
+          type: "Discourse Relation: Accept failed",
+          userMessage: "Could not accept the imported relation.",
+        });
+      });
   };
   const handleDeleteImported = (rel: Relation) => {
-    void getReifiedRelations().then((reifiedRelations) => {
-      const inUseCount = reifiedRelations.filter(
-        (r) => r.hasSchema === rel.uid,
-      ).length;
-      if (inUseCount > 0) {
-        renderToast({
-          id: "discourse-relation-delete-blocked",
-          intent: Intent.WARNING,
-          content: `Cannot delete this imported relation: ${inUseCount} relation ${
-            inUseCount === 1 ? "instance uses" : "instances use"
-          } it in this graph.`,
+    void getReifiedRelations()
+      .then((reifiedRelations) => {
+        const inUseCount = reifiedRelations.filter(
+          (r) => r.hasSchema === rel.uid,
+        ).length;
+        if (inUseCount > 0) {
+          renderToast({
+            id: "discourse-relation-delete-blocked",
+            intent: Intent.WARNING,
+            content: `Cannot delete this imported relation: ${inUseCount} relation ${
+              inUseCount === 1 ? "instance uses" : "instances use"
+            } it in this graph.`,
+          });
+          setDeleteConfirmation(null);
+          return;
+        }
+        handleDelete(rel);
+      })
+      .catch((error: unknown) => {
+        internalError({
+          error,
+          type: "Discourse Relation: Delete imported check failed",
+          userMessage:
+            "Could not check whether this imported relation is in use.",
         });
-        setDeleteConfirmation(null);
-        return;
-      }
-      handleDelete(rel);
-    });
+      });
   };
   const handleDuplicate = (rel: Relation) => {
     const text = rel.text;
@@ -1305,84 +1330,87 @@ const DiscourseRelationConfigPanel = ({
           <HTMLTable striped className="w-full">
             <thead>
               <tr>
-                <th>Source</th>
-                <th>Relation</th>
-                <th>Destination</th>
+                {renderSortableHeader("Source", "source")}
+                {renderSortableHeader("Relation", "relation")}
+                {renderSortableHeader("Destination", "destination")}
                 <th>From</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {importedRelations.map((rel) => (
-                <tr key={rel.uid}>
-                  <td style={{ verticalAlign: "middle" }}>
-                    {nodes[rel.source || ""]?.label}
-                  </td>
-                  <td style={{ verticalAlign: "middle" }}>{rel.text}</td>
-                  <td style={{ verticalAlign: "middle" }}>
-                    {nodes[rel.destination || ""]?.label}
-                  </td>
-                  <td style={{ verticalAlign: "middle" }}>
-                    {formatImportedSource(
-                      rel.importMeta.importedFrom.sourceNodeRid,
-                    )}
-                  </td>
-                  <td style={{ verticalAlign: "middle" }}>
-                    {rel.importMeta.status === "provisional" ? (
-                      <Tag minimal intent={Intent.WARNING}>
-                        Provisional
-                      </Tag>
-                    ) : (
-                      <Tag minimal intent={Intent.SUCCESS}>
-                        Accepted
-                      </Tag>
-                    )}
-                  </td>
-                  <td>
-                    {rel.importMeta.status === "provisional" && (
-                      <Tooltip
-                        content="Accepting enables this imported relation for local use and publishing"
-                        hoverOpenDelay={500}
-                      >
+              {importedRelations.map((rel) => {
+                const isProvisional = rel.importMeta.status === "provisional";
+                return (
+                  <tr key={rel.uid}>
+                    <td style={{ verticalAlign: "middle" }}>
+                      {nodes[rel.source || ""]?.label}
+                    </td>
+                    <td style={{ verticalAlign: "middle" }}>{rel.text}</td>
+                    <td style={{ verticalAlign: "middle" }}>
+                      {nodes[rel.destination || ""]?.label}
+                    </td>
+                    <td style={{ verticalAlign: "middle" }}>
+                      {formatImportedSource(
+                        rel.importMeta.importedFrom.sourceNodeRid,
+                      )}
+                    </td>
+                    <td style={{ verticalAlign: "middle" }}>
+                      {isProvisional ? (
+                        <Tag minimal intent={Intent.WARNING}>
+                          Provisional
+                        </Tag>
+                      ) : (
+                        <Tag minimal intent={Intent.SUCCESS}>
+                          Accepted
+                        </Tag>
+                      )}
+                    </td>
+                    <td>
+                      {isProvisional && (
+                        <Tooltip
+                          content="Accepting enables this imported relation for local use and publishing"
+                          hoverOpenDelay={500}
+                        >
+                          <Button
+                            text="Accept"
+                            intent={Intent.PRIMARY}
+                            minimal
+                            onClick={() => handleAcceptImported(rel)}
+                          />
+                        </Tooltip>
+                      )}
+                      <Tooltip content="Delete" hoverOpenDelay={500}>
                         <Button
-                          text="Accept"
-                          intent={Intent.PRIMARY}
+                          icon="trash"
                           minimal
-                          onClick={() => handleAcceptImported(rel)}
+                          onClick={() => {
+                            if (deleteConfirmation) setDeleteConfirmation(null);
+                            else setDeleteConfirmation(rel.uid);
+                          }}
                         />
                       </Tooltip>
-                    )}
-                    <Tooltip content="Delete" hoverOpenDelay={500}>
                       <Button
-                        icon="trash"
-                        minimal
-                        onClick={() => {
-                          if (deleteConfirmation) setDeleteConfirmation(null);
-                          else setDeleteConfirmation(rel.uid);
-                        }}
-                      />
-                    </Tooltip>
-                    <Button
-                      intent={Intent.DANGER}
-                      onClick={() => handleDeleteImported(rel)}
-                      className={`mx-1 ${
-                        deleteConfirmation !== rel.uid ? "opacity-0" : ""
-                      }`}
-                    >
-                      Confirm
-                    </Button>
-                    <Button
-                      onClick={() => setDeleteConfirmation(null)}
-                      className={`mx-1 ${
-                        deleteConfirmation !== rel.uid ? "opacity-0" : ""
-                      }`}
-                    >
-                      Cancel
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+                        intent={Intent.DANGER}
+                        onClick={() => handleDeleteImported(rel)}
+                        className={`mx-1 ${
+                          deleteConfirmation !== rel.uid ? "invisible" : ""
+                        }`}
+                      >
+                        Confirm
+                      </Button>
+                      <Button
+                        onClick={() => setDeleteConfirmation(null)}
+                        className={`mx-1 ${
+                          deleteConfirmation !== rel.uid ? "invisible" : ""
+                        }`}
+                      >
+                        Cancel
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </HTMLTable>
         </>

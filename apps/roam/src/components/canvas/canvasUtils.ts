@@ -3,7 +3,10 @@ import {
   DiscourseNodeUtil,
   DiscourseNodeShape,
 } from "~/components/canvas/DiscourseNodeUtil";
-import { discourseContext } from "~/components/canvas/Tldraw";
+import {
+  discourseContext,
+  isAcceptedRelationSchema,
+} from "~/components/canvas/Tldraw";
 
 export const isDiscourseNodeShape = (
   editor: Editor,
@@ -16,12 +19,10 @@ export const isDiscourseNodeShape = (
   }
 };
 
-// Creation-facing list: provisional imported relation schemas are excluded so
-// they cannot be used to create new relations on the canvas.
-export const getAllRelations = () =>
+export const getCreatableRelations = () =>
   Object.values(discourseContext.relations)
     .flat()
-    .filter((r) => !discourseContext.provisionalRelationIds.has(r.id));
+    .filter(isAcceptedRelationSchema);
 
 export const checkConnectionType = (
   relation: { source: string; destination: string },
@@ -40,7 +41,7 @@ export const hasValidRelationTypes = (
   sourceNodeType: string,
   targetNodeType: string,
 ): boolean =>
-  getAllRelations().some(
+  getCreatableRelations().some(
     (r) =>
       (r.source === sourceNodeType && r.destination === targetNodeType) ||
       (r.source === targetNodeType && r.destination === sourceNodeType),

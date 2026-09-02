@@ -8,7 +8,10 @@ import {
   DiscourseRelationShape,
   getRelationColor,
 } from "./DiscourseRelationUtil";
-import { discourseContext } from "~/components/canvas/Tldraw";
+import {
+  discourseContext,
+  isAcceptedRelationSchema,
+} from "~/components/canvas/Tldraw";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import { isRelationComplete } from "~/utils/isRelationComplete";
 import {
@@ -352,7 +355,7 @@ export const createAllRelationShapeTools = (
 
           const selectedRelations = (
             discourseContext.relations[name] || []
-          ).filter((r) => !discourseContext.provisionalRelationIds.has(r.id));
+          ).filter(isAcceptedRelationSchema);
           const hasIncompleteSelectedRelation = selectedRelations.some(
             (relation) => !isRelationComplete(relation),
           );

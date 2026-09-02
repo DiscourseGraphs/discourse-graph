@@ -149,6 +149,9 @@ export const discourseContext: DiscourseContextType = {
   lastActions: [],
 };
 
+export const isAcceptedRelationSchema = (relation: { id: string }): boolean =>
+  !discourseContext.provisionalRelationIds.has(relation.id);
+
 let activeCanvasPageUid: string | null = null;
 let activeCanvasEditor: Editor | null = null;
 
@@ -789,11 +792,7 @@ const TldrawCanvasShared = ({
   }, [allRelationsById]);
   const allRelationNames = useMemo(() => {
     return Object.entries(discourseContext.relations)
-      .filter(([, relations]) =>
-        relations.some(
-          (r) => !discourseContext.provisionalRelationIds.has(r.id),
-        ),
-      )
+      .filter(([, relations]) => relations.some(isAcceptedRelationSchema))
       .map(([name]) => name);
   }, []);
   const allNodes = useMemo(() => {

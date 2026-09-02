@@ -3,17 +3,18 @@ import getBlockProps from "./getBlockProps";
 import { setBlockPropsAsync } from "./setBlockProps";
 import {
   isJsonObject,
-  readImportedSourceIdentity,
+  parseImportedSourceIdentity,
   type ImportedSourceIdentity,
 } from "./importedSourceIdentity";
 
-export type RelationSchemaImportStatus = "provisional" | "accepted";
+type ImportStatus = "provisional" | "accepted";
 
 export const RELATION_SCHEMA_STATUS_PROP_KEY = "status";
+const ACCEPTED_STATUS: ImportStatus = "accepted";
 
 export type RelationSchemaImportMeta = {
   importedFrom: ImportedSourceIdentity;
-  status: RelationSchemaImportStatus;
+  status: ImportStatus;
 };
 
 // Origin (importedFrom) and acceptance (status) are stored as separate props so
@@ -23,14 +24,14 @@ export type RelationSchemaImportMeta = {
 export const readRelationSchemaImportMeta = (
   relationSchemaUid: string,
 ): RelationSchemaImportMeta | undefined => {
-  const importedFrom = readImportedSourceIdentity(relationSchemaUid);
+  const props = getBlockProps(relationSchemaUid);
+  const importedFrom = parseImportedSourceIdentity(props);
   if (importedFrom === undefined) return undefined;
-  const discourseGraphProps =
-    getBlockProps(relationSchemaUid)[DISCOURSE_GRAPH_PROP_NAME];
+  const discourseGraphProps = props[DISCOURSE_GRAPH_PROP_NAME];
   const status =
     isJsonObject(discourseGraphProps) &&
-    discourseGraphProps[RELATION_SCHEMA_STATUS_PROP_KEY] === "accepted"
-      ? "accepted"
+    discourseGraphProps[RELATION_SCHEMA_STATUS_PROP_KEY] === ACCEPTED_STATUS
+      ? ACCEPTED_STATUS
       : "provisional";
   return { importedFrom, status };
 };
@@ -53,7 +54,7 @@ export const acceptImportedRelationSchema = async (
   await setBlockPropsAsync(relationSchemaUid, {
     [DISCOURSE_GRAPH_PROP_NAME]: {
       ...discourseGraphProps,
-      [RELATION_SCHEMA_STATUS_PROP_KEY]: "accepted",
+      [RELATION_SCHEMA_STATUS_PROP_KEY]: ACCEPTED_STATUS,
     },
   });
 };
