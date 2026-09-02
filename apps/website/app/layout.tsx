@@ -1,3 +1,7 @@
+import { JsonLd } from "~/components/JsonLd";
+import { DESCRIPTION } from "~/data/constants";
+import { createSiteStructuredData } from "~/utils/structuredData";
+
 type RootLayoutProps = {
   children: React.ReactNode;
 };
@@ -5,7 +9,10 @@ type RootLayoutProps = {
 const RootLayout = ({ children }: RootLayoutProps): React.ReactElement => {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>{children}</body>
+      <body>
+        <JsonLd data={createSiteStructuredData({ description: DESCRIPTION })} />
+        {children}
+      </body>
     </html>
   );
 };
