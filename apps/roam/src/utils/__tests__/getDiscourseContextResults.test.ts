@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   fireQuery: vi.fn(),
   generateUID: vi.fn(),
   getSetting: vi.fn(),
-  getTentativeRelationInstances: vi.fn(),
+  getTentativeOnlyRelationKeys: vi.fn(),
 }));
 
 vi.mock("~/utils/deriveDiscourseNodeAttribute", () => ({
@@ -36,7 +36,7 @@ vi.mock("~/utils/getDiscourseRelations", () => ({
 }));
 
 vi.mock("~/utils/tentativeRelations", () => ({
-  getTentativeRelationInstances: mocks.getTentativeRelationInstances,
+  getTentativeOnlyRelationKeys: mocks.getTentativeOnlyRelationKeys,
 }));
 
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
@@ -71,7 +71,7 @@ describe("getDiscourseContextResults", () => {
     mocks.generateUID.mockReturnValue("condition");
     mocks.getSetting.mockReturnValue(true);
     mocks.findDiscourseNode.mockReturnValue({ type: "CLM" });
-    mocks.getTentativeRelationInstances.mockResolvedValue([]);
+    mocks.getTentativeOnlyRelationKeys.mockResolvedValue(new Set());
   });
 
   it("regroups all-relation reified query results by schema order", async () => {
@@ -207,14 +207,9 @@ describe("getDiscourseContextResults", () => {
         effectiveSource: "claim-a",
       },
     ]);
-    mocks.getTentativeRelationInstances.mockResolvedValue([
-      {
-        instanceUid: "rel-block-1",
-        schemaUid: "supports",
-        sourceUid: "claim-a",
-        destinationUid: "question-a",
-      },
-    ]);
+    mocks.getTentativeOnlyRelationKeys.mockResolvedValue(
+      new Set(["supports|claim-a|question-a"]),
+    );
 
     const results = await getDiscourseContextResults({
       uid: "claim-a",
@@ -268,14 +263,9 @@ describe("getDiscourseContextResults", () => {
         effectiveSource: "claim-a",
       },
     ]);
-    mocks.getTentativeRelationInstances.mockResolvedValue([
-      {
-        instanceUid: "rel-block-2",
-        schemaUid: "informs",
-        sourceUid: "evidence-a",
-        destinationUid: "claim-a",
-      },
-    ]);
+    mocks.getTentativeOnlyRelationKeys.mockResolvedValue(
+      new Set(["informs|evidence-a|claim-a"]),
+    );
 
     const results = await getDiscourseContextResults({
       uid: "claim-a",

@@ -11,6 +11,8 @@ import {
 } from "~/utils/importedSourceIdentity";
 import type { json } from "~/utils/getBlockProps";
 
+vi.mock("~/utils/internalError", () => ({ default: vi.fn() }));
+
 const SOURCE_NODE_RID = "orn:obsidian.note:vault-a/node-1";
 const SOURCE_MODIFIED_AT = "2026-06-14T15:00:00.000Z";
 const PAGE_UID = "page-uid";

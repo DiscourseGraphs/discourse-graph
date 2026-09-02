@@ -3,6 +3,7 @@ import createPage from "roamjs-components/writes/createPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getBlockProps, { isJsonObject, type json } from "./getBlockProps";
 import { setBlockPropsAsync } from "./setBlockProps";
+import internalError from "./internalError";
 
 export const DISCOURSE_GRAPH_PROP_NAME = "discourse-graph";
 export const TENTATIVE_PROP_KEY = "tentative";
@@ -55,9 +56,6 @@ export const strictQueryForReifiedBlocks = async (
   return resultF.length > 0 ? resultF[0] : null;
 };
 
-// Deliberate local creation of a relation counts as user acceptance, so a
-// dedupe hit on a tentative imported block promotes it instead of silently
-// returning a block the UI hides as pending review.
 export const acceptTentativeRelationInstance = async ({
   instanceUid,
 }: {
@@ -93,8 +91,20 @@ const createReifiedBlock = async ({
   };
   const existing = await strictQueryForReifiedBlocks(data);
   if (existing !== null) {
+    // Deliberate local creation counts as user acceptance, so a dedupe hit on
+    // a tentative imported block promotes it instead of returning a block the
+    // UI hides as pending review. Best-effort: the relation exists either way.
     if (parameterUids[TENTATIVE_PROP_KEY] === undefined) {
-      await acceptTentativeRelationInstance({ instanceUid: existing });
+      try {
+        await acceptTentativeRelationInstance({ instanceUid: existing });
+      } catch (error) {
+        internalError({
+          error,
+          type: "Promote Tentative Relation On Create Failed",
+          context: { instanceUid: existing },
+          sendEmail: false,
+        });
+      }
     }
     return existing;
   }

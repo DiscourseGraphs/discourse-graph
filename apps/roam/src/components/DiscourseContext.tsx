@@ -249,9 +249,9 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
         }
       />
     </Tabs>
-  ) : tentativeCount ? null : (
+  ) : (
     <div className="flex flex-col items-start">
-      <span>No discourse relations found.</span>
+      {!tentativeCount && <span>No discourse relations found.</span>}
       <CreateRelationButton sourceNodeUid={uid} onCreated={delayedRefresh} />
     </div>
   );

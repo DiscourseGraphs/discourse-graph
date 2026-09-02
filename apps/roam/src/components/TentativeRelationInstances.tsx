@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Button, Classes, Tag } from "@blueprintjs/core";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
@@ -13,8 +13,8 @@ import {
   refreshDiscourseContextsForMutatedUids,
   useDiscourseContextMutationRefresh,
 } from "~/utils/discourseContextMutationRefresh";
+import { acceptTentativeRelationInstance } from "~/utils/createReifiedBlock";
 import {
-  acceptTentativeRelationInstance,
   getTentativeRelationInstances,
   type TentativeRelationInstance,
 } from "~/utils/tentativeRelations";
@@ -43,9 +43,8 @@ const TentativeRelationInstances = ({
   onCountChange,
 }: {
   uid: string;
-  onCountChange?: (count: number) => void;
+  onCountChange: (count: number) => void;
 }): React.JSX.Element | null => {
-  const storedRelationsEnabled = useMemo(() => getStoredRelationsEnabled(), []);
   const [rows, setRows] = useState<TentativeRelationRow[]>([]);
   const [pending, setPending] = useState<{
     uid: string;
@@ -53,7 +52,7 @@ const TentativeRelationInstances = ({
   } | null>(null);
 
   const loadRows = useCallback(async () => {
-    if (!storedRelationsEnabled) return;
+    if (!getStoredRelationsEnabled()) return;
     const instances = await getTentativeRelationInstances();
     const relevant = instances.filter(
       (instance) =>
@@ -77,8 +76,8 @@ const TentativeRelationInstances = ({
       };
     });
     setRows(nextRows);
-    onCountChange?.(nextRows.length);
-  }, [uid, storedRelationsEnabled, onCountChange]);
+    onCountChange(nextRows.length);
+  }, [uid, onCountChange]);
 
   useEffect(() => {
     void loadRows();
@@ -145,7 +144,7 @@ const TentativeRelationInstances = ({
     }
   };
 
-  if (!storedRelationsEnabled || !rows.length) return null;
+  if (!rows.length) return null;
 
   return (
     <div className="roamjs-discourse-tentative-relations mt-2 px-2">

@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DISCOURSE_GRAPH_PROP_NAME,
+  acceptTentativeRelationInstance,
   createReifiedRelation,
   strictQueryForReifiedBlocks,
 } from "~/utils/createReifiedBlock";
 import {
-  acceptTentativeRelationInstance,
+  getTentativeOnlyRelationKeys,
   getTentativeRelationInstances,
 } from "~/utils/tentativeRelations";
 import type { json } from "~/utils/getBlockProps";
@@ -13,6 +14,8 @@ import type { json } from "~/utils/getBlockProps";
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
   default: () => "relations-page",
 }));
+
+vi.mock("~/utils/internalError", () => ({ default: vi.fn() }));
 
 const RELATION_UID = "rel-block-1";
 const SOURCE_NODE_RID = "orn:obsidian.note:vault-a/relation-1";
@@ -95,6 +98,35 @@ describe("getTentativeRelationInstances", () => {
         },
       },
     ]);
+  });
+});
+
+describe("getTentativeOnlyRelationKeys", () => {
+  it("keeps a triple visible when an accepted twin asserts it too", async () => {
+    query.mockResolvedValue([
+      [RELATION_UID, tentativeRelationProps()],
+      [
+        "rel-block-accepted-twin",
+        {
+          sourceUid: "claim-a",
+          destinationUid: "question-a",
+          hasSchema: "supports",
+        },
+      ],
+      [
+        "rel-block-3",
+        {
+          sourceUid: "evidence-a",
+          destinationUid: "claim-a",
+          hasSchema: "informs",
+          tentative: "true",
+        },
+      ],
+    ]);
+
+    expect(await getTentativeOnlyRelationKeys()).toEqual(
+      new Set(["informs|evidence-a|claim-a"]),
+    );
   });
 });
 
