@@ -2,6 +2,8 @@ import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
 import { extractFieldFromTitle } from "./extractContentFromTitle";
+import { readImportedSourceIdentity } from "./importedSourceIdentity";
+import { isRid } from "@repo/database/lib/rid";
 
 // Temporary hack, until slots are a first-class node type setting: a node type whose
 // format has a {source} placeholder (Evidence, among the default node types) is taken
@@ -51,10 +53,11 @@ const isDiscourseNodeTitle = (
     .filter((n) => n.format !== "{content}") // exclude page and block
     .some((node) => matcherFor(node.format).test(title));
 
-// The page a node's {source} placeholder resolves to, when there is one. The
+// The page a node's {source} placeholder resolves to, when there is one: its uid, or
+// the RID it is known by elsewhere when it was imported from another app. The
 // placeholder is usually filled with a page reference, and a title holding a slash is
 // a namespaced page rather than a source, so it is left alone.
-export const sourceUidOfNode = (
+export const sourceIdOfNode = (
   title: string,
   schema: NodeFormat | undefined,
   allNodes?: DiscourseNode[],
@@ -67,5 +70,8 @@ export const sourceUidOfNode = (
   if (!sourceTitle || sourceTitle.includes("/")) return undefined;
   if (!isDiscourseNodeTitle(sourceTitle, allNodes ?? getDiscourseNodes()))
     return undefined;
-  return getPageUidByPageTitle(sourceTitle) || undefined;
+  const sourceUid = getPageUidByPageTitle(sourceTitle);
+  if (!sourceUid) return undefined;
+  const sourceRid = readImportedSourceIdentity(sourceUid)?.sourceNodeRid;
+  return sourceRid !== undefined && isRid(sourceRid) ? sourceRid : sourceUid;
 };
