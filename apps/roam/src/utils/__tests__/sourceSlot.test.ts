@@ -30,6 +30,16 @@ describe("titleWithSource", () => {
     ).toBe("[[y]]: x");
   });
 
+  it("inserts titles that contain replacement patterns verbatim", () => {
+    expect(
+      titleWithSource({
+        format: "[[EVD]] - {content} - {Source}",
+        coreTitle: "costs $& more",
+        sourceTitle: "$1 paper",
+      }),
+    ).toBe("[[EVD]] - costs $& more - [[$1 paper]]");
+  });
+
   it("returns null when the format has a placeholder it cannot fill", () => {
     expect(
       titleWithSource({

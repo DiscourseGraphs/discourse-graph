@@ -135,9 +135,7 @@ const validateSharedNode = (
   return { sourceModifiedAt: modifiedAt.toISOString(), title };
 };
 
-// The Source page a node's sourceDocument slot names, when this graph has it. The
-// warning explains a title kept as published, which the user can fix by importing the
-// source and refreshing.
+// The Source page a node's sourceDocument slot names, when this graph has it.
 const resolveSourceTitle = async (
   sharedNode: SharedNode,
 ): Promise<{ sourceTitle: string } | { warning: string }> => {

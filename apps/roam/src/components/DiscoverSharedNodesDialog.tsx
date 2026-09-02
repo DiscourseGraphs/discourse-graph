@@ -127,7 +127,7 @@ const ImportResultsSummary = ({
   return (
     <Callout
       intent={importNotices.length > 0 ? Intent.WARNING : Intent.SUCCESS}
-      title={`${importedCount} imported, ${skippedCount} skipped, ${failedImports.length} failed`}
+      title={`${importedCount} imported, ${skippedCount} skipped, ${failedImports.length} failed${warnings.length > 0 ? `, ${warnings.length} with warnings` : ""}`}
     >
       {skippedCount > 0 && (
         <div>Skipped nodes were already up to date in this graph.</div>

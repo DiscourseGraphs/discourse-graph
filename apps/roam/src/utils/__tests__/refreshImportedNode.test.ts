@@ -126,7 +126,7 @@ describe("refreshImportedNode", () => {
     expect(mockedInternalError).not.toHaveBeenCalled();
   });
 
-  it("appends the materializer's warning to the message", async () => {
+  it("passes the materializer's warning through", async () => {
     mockedMaterializeSharedNode.mockResolvedValue({
       success: true,
       action: "updated",
@@ -138,8 +138,8 @@ describe("refreshImportedNode", () => {
 
     await expect(refreshImportedNode({ pageUid: PAGE_UID })).resolves.toEqual({
       success: true,
-      message:
-        'Refreshed "EVD - REM sleep and recall" from Research vault. No source was published with this node.',
+      message: 'Refreshed "EVD - REM sleep and recall" from Research vault.',
+      warning: "No source was published with this node.",
     });
   });
 

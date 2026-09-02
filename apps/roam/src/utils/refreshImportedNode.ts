@@ -15,6 +15,7 @@ const REFRESH_ERROR_OPERATION = "refresh-imported-node";
 type RefreshImportedNodeResult = {
   success: boolean;
   message: string;
+  warning?: string;
 };
 
 export const refreshImportedNode = async ({
@@ -78,7 +79,8 @@ export const refreshImportedNode = async ({
       };
     return {
       success: true,
-      message: `Refreshed "${sharedNode.title}" from ${sharedNode.spaceName}.${result.warning ? ` ${result.warning}` : ""}`,
+      message: `Refreshed "${sharedNode.title}" from ${sharedNode.spaceName}.`,
+      ...(result.warning ? { warning: result.warning } : {}),
     };
   } catch (error) {
     internalError({

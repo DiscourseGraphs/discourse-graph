@@ -23,7 +23,9 @@ export const isFailedSharedNodeImport = (
 ): item is FailedSharedNodeImport => item.status === "failed";
 
 // A node's title can only name its source once that source has a local page, so the
-// nodes other batch members refer to are materialized first.
+// nodes other batch members refer to are materialized first. One level only: a source
+// that itself names a source in the batch is not ordered after it, and its title is
+// filled on the next refresh instead.
 const orderSourcesFirst = (sharedNodes: SharedNode[]): SharedNode[] => {
   const referencedRids = new Set(
     sharedNodes.flatMap((node) => {

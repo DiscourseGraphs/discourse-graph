@@ -70,6 +70,15 @@ describe("findTargetUid", () => {
     expect(mockedFindImportedNodeUidBySourceRid).not.toHaveBeenCalled();
   });
 
+  it("treats a local id of this graph's space as a page uid", async () => {
+    roamQuery.mockReturnValue([[1]]);
+
+    await expect(findTargetUid("page-uid", LOCAL_SPACE_URI)).resolves.toBe(
+      "page-uid",
+    );
+    expect(mockedFindImportedNodeUidBySourceRid).not.toHaveBeenCalled();
+  });
+
   it("looks up a local id of the publisher's space as an imported note", async () => {
     mockedFindImportedNodeUidBySourceRid.mockResolvedValue("imported-uid");
 
