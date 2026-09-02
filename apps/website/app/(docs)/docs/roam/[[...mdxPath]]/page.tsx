@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { generateStaticParamsFor, importPage } from "nextra/pages";
 import DocsPageTemplate from "../../_components/DocsPageTemplate";
+import { JsonLd } from "~/components/JsonLd";
+import {
+  createDocsBreadcrumbStructuredData,
+  createStructuredDataDocument,
+} from "~/utils/structuredData";
 
 type DocsPageProps = {
   params: Promise<{
@@ -36,12 +41,25 @@ const Page = async ({ params }: DocsPageProps): Promise<React.ReactElement> => {
   try {
     const { mdxPath } = await params;
     const result = await loadPage(mdxPath);
-    const { default: MDXContent, ...wrapperProps } = result;
+    const { default: MDXContent, metadata, ...wrapperProps } = result;
+    const title =
+      typeof metadata.title === "string" ? metadata.title : "Roam docs";
 
     return (
-      <DocsPageTemplate {...wrapperProps}>
-        <MDXContent params={{ mdxPath: mdxPath ?? [] }} />
-      </DocsPageTemplate>
+      <>
+        <JsonLd
+          data={createStructuredDataDocument([
+            createDocsBreadcrumbStructuredData({
+              mdxPath,
+              platform: "roam",
+              title,
+            }),
+          ])}
+        />
+        <DocsPageTemplate metadata={metadata} {...wrapperProps}>
+          <MDXContent params={{ mdxPath: mdxPath ?? [] }} />
+        </DocsPageTemplate>
+      </>
     );
   } catch (error) {
     console.error("Error rendering Roam docs page:", error);
