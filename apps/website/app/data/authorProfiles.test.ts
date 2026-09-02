@@ -40,4 +40,16 @@ describe("author profiles", () => {
       }
     }
   });
+
+  it("uses the verified Topos Institute recording title", () => {
+    const mattProfile = getAuthorProfileBySlug("matthew-akamatsu");
+    const toposTalk = mattProfile?.talks.find(
+      ({ href }) =>
+        href === "https://www.youtube-nocookie.com/embed/Fm-lzNhVMKs",
+    );
+
+    expect(toposTalk?.title).toBe(
+      "Collective grassroots knowledge generation with lab discourse graphs",
+    );
+  });
 });
