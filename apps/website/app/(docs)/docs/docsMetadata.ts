@@ -7,10 +7,12 @@ export type DocsPlatform = "obsidian" | "roam";
 type DocsSourceMetadata = Metadata & {
   author?: unknown;
   date?: unknown;
+  updatedAt?: unknown;
 };
 
 type DocsPageDetails = {
   author: string;
+  publishedAt?: string;
   updatedAt?: string;
 };
 
@@ -27,7 +29,8 @@ export const getDocsPageDetails = (
   metadata: DocsSourceMetadata,
 ): DocsPageDetails => ({
   author: getNonEmptyString(metadata.author) ?? DOCS_AUTHOR,
-  updatedAt: getNonEmptyString(metadata.date),
+  publishedAt: getNonEmptyString(metadata.date),
+  updatedAt: getNonEmptyString(metadata.updatedAt),
 });
 
 export const buildDocsPageMetadata = ({
@@ -41,7 +44,7 @@ export const buildDocsPageMetadata = ({
   const description =
     getNonEmptyString(metadata.description) ??
     `${title} documentation for the Discourse Graph ${getPlatformLabel(platform)} plugin.`;
-  const { author, updatedAt } = getDocsPageDetails(metadata);
+  const { author, publishedAt, updatedAt } = getDocsPageDetails(metadata);
 
   return {
     ...metadata,
@@ -54,6 +57,7 @@ export const buildDocsPageMetadata = ({
       title,
       description,
       authors: [author],
+      publishedTime: publishedAt,
       modifiedTime: updatedAt,
     },
     twitter: {
