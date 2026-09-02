@@ -67,9 +67,11 @@ export type Settings = {
   canvasFolderPath: string;
   canvasAttachmentsFolderPath: string;
   nodeTagHotkey: string;
+  showHelpMenuStatusBarIcon: boolean;
   spacePassword?: string;
   accountLocalId?: string;
   syncModeEnabled?: boolean;
+  nodeCardContextMenuEnabled?: boolean;
   /** Maps spaceUri (e.g. "obsidian:abc123") to human-readable name (e.g. "My Vault") */
   spaceNames?: Record<string, string>;
   username?: string;
@@ -115,6 +117,31 @@ export type ImportFolderMetadata = {
   spaceUri: string;
   spaceName: string;
   userName?: string;
+};
+
+export type DiscourseSchemaTemplate = {
+  name: string;
+  content: string;
+};
+
+export type DiscourseSchemaFile = {
+  version: number;
+  exportedAt: string;
+  pluginVersion: string;
+  vaultName: string;
+  /** Obsidian appId of the exporting vault; lets importers rebuild the source RID. */
+  vaultId: string;
+  nodeTypes: DiscourseNode[];
+  relationTypes: DiscourseRelationType[];
+  discourseRelations: DiscourseRelation[];
+  templates: DiscourseSchemaTemplate[];
+};
+
+export type SchemaSelection = {
+  nodeTypeIds: string[];
+  relationTypeIds: string[];
+  discourseRelationIds: string[];
+  templateNames: string[];
 };
 
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";

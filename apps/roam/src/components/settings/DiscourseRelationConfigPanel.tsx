@@ -14,6 +14,7 @@ import {
   HTMLTable,
   ControlGroup,
   FocusStyleManager,
+  Icon,
 } from "@blueprintjs/core";
 import type cytoscape from "cytoscape";
 import React, {
@@ -43,7 +44,9 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import getDiscourseNodes, {
+  getRelationEndpointNodeTypes,
+} from "~/utils/getDiscourseNodes";
 import { isRelationComplete } from "~/utils/isRelationComplete";
 import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
@@ -56,6 +59,12 @@ import {
 } from "~/components/settings/utils/accessors";
 import { GLOBAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { RenderRoamBlock } from "~/utils/roamReactComponents";
+import {
+  getNextRelationSort,
+  sortRelations,
+  type RelationSort,
+  type RelationSortColumn,
+} from "~/utils/sortRelations";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",
@@ -74,6 +83,7 @@ const edgeDisplayByUid = (uid: string) =>
 export const RelationEditPanel = ({
   editingRelationInfo,
   nodes,
+  configuredNodeTypes,
   back,
   translatorKeys,
   previewUid,
@@ -81,6 +91,7 @@ export const RelationEditPanel = ({
   editingRelationInfo: TreeNode;
   back: () => void;
   nodes: Record<string, { label: string; format: string; color: string }>;
+  configuredNodeTypes: string[];
   translatorKeys: string[];
   previewUid: string;
 }) => {
@@ -741,7 +752,7 @@ export const RelationEditPanel = ({
                 );
               }
             }}
-            items={Object.keys(nodes)}
+            items={configuredNodeTypes}
             transformItem={transformItem}
           />
         </Label>
@@ -758,7 +769,7 @@ export const RelationEditPanel = ({
                 ).data("node", nodes[e]?.label);
               }
             }}
-            items={Object.keys(nodes)}
+            items={configuredNodeTypes}
             transformItem={transformItem}
           />
         </Label>
@@ -984,20 +995,23 @@ const DiscourseRelationConfigPanel = ({
       })),
     [],
   );
-  const nodes = useMemo(() => {
+  const { nodes, configuredNodeTypes } = useMemo(() => {
+    const discourseNodes = getDiscourseNodes();
     const nodes = Object.fromEntries(
-      getDiscourseNodes().map((n) => {
+      discourseNodes.map((n) => {
         const color = formatHexColor(n.canvasSettings.color);
         return [n.type, { label: n.text, format: n.format, color }];
       }),
     );
     // TypeError: Iterator value * is not an entry object
     nodes["*"] = { label: "Any", format: ".+", color: "#000" };
-    return nodes;
+    const configuredNodeTypes = getRelationEndpointNodeTypes(discourseNodes);
+    return { nodes, configuredNodeTypes };
   }, []);
   const previewUid = useSubTree({ parentUid, key: "preview" }).uid;
   const [translatorKeys, setTranslatorKeys] = useState(getConditionLabels);
   const [relations, setRelations] = useState(refreshRelations);
+  const [sort, setSort] = useState<RelationSort | null>(null);
   const [editingRelation, setEditingRelation] = useState("");
   const [newRelation, setNewRelation] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
@@ -1012,6 +1026,17 @@ const DiscourseRelationConfigPanel = ({
     // when the pattern -> stored relation migration is complete.
     return relations.filter((relation) => relation.text !== "canvas");
   }, [relations, shouldHideCanvasRelation]);
+  const sortedRelations = useMemo(
+    () =>
+      sort
+        ? sortRelations({
+            relations: visibleRelations,
+            sort,
+            labelsByType: nodes,
+          })
+        : visibleRelations,
+    [nodes, sort, visibleRelations],
+  );
   const editingRelationInfo = useMemo(
     () =>
       editingRelation ? getFullTreeByParentUid(editingRelation) : undefined,
@@ -1088,6 +1113,38 @@ const DiscourseRelationConfigPanel = ({
     setRelations(refreshRelations());
   };
 
+  const handleSort = (column: RelationSortColumn): void => {
+    setSort((currentSort) => getNextRelationSort({ currentSort, column }));
+  };
+
+  const renderSortableHeader = (
+    label: string,
+    column: RelationSortColumn,
+  ): React.ReactElement => {
+    const isActive = sort?.column === column;
+
+    return (
+      <th aria-sort={isActive ? sort.direction : "none"}>
+        <button
+          type="button"
+          className="flex w-full cursor-pointer items-center gap-1 border-0 bg-transparent p-0 font-[inherit] text-[inherit]"
+          onClick={() => handleSort(column)}
+        >
+          {label}
+          <Icon
+            icon={
+              isActive && sort.direction === "descending"
+                ? "sort-desc"
+                : "sort-asc"
+            }
+            iconSize={12}
+            className={isActive ? undefined : "invisible"}
+          />
+        </button>
+      </th>
+    );
+  };
+
   useEffect(() => {
     FocusStyleManager.onlyShowFocusOnTabs();
   }, []);
@@ -1097,6 +1154,7 @@ const DiscourseRelationConfigPanel = ({
       <div style={{ caretColor: "transparent" }}>
         <RelationEditPanel
           nodes={nodes}
+          configuredNodeTypes={configuredNodeTypes}
           editingRelationInfo={editingRelationInfo}
           back={handleBack}
           translatorKeys={translatorKeys}
@@ -1118,14 +1176,14 @@ const DiscourseRelationConfigPanel = ({
       <HTMLTable striped interactive className="w-full cursor-none">
         <thead>
           <tr>
-            <th>Source</th>
-            <th>Relation</th>
-            <th>Destination</th>
+            {renderSortableHeader("Source", "source")}
+            {renderSortableHeader("Relation", "relation")}
+            {renderSortableHeader("Destination", "destination")}
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {visibleRelations.map((rel) => (
+          {sortedRelations.map((rel) => (
             <tr key={rel.uid} onClick={() => handleEdit(rel)}>
               <td style={{ verticalAlign: "middle" }}>
                 {nodes[rel.source || ""]?.label}

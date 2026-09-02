@@ -29,6 +29,7 @@ const setRoamAlphaApi = (): void => {
               block: { props: Record<string, json>; uid: string };
             }) => {
               propsByUid.set(block.uid, block.props);
+              return Promise.resolve();
             },
           ),
         },
@@ -75,7 +76,7 @@ describe("imported source identity metadata", () => {
     expect(readImportedSourceIdentity(PAGE_UID)).toBeUndefined();
   });
 
-  it("writes the source RID and modified time while preserving sibling metadata", () => {
+  it("writes the source RID and modified time while preserving sibling metadata", async () => {
     propsByUid.set(PAGE_UID, {
       [DISCOURSE_GRAPH_PROP_NAME]: {
         "relation-migration": { relationUid: 1718000000000 },
@@ -83,7 +84,7 @@ describe("imported source identity metadata", () => {
       "other-extension": { enabled: true },
     });
 
-    writeImportedSourceIdentity({
+    await writeImportedSourceIdentity({
       pageUid: PAGE_UID,
       sourceModifiedAt: SOURCE_MODIFIED_AT,
       sourceNodeRid: SOURCE_NODE_RID,

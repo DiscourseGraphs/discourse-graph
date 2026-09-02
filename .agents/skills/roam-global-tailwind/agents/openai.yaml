@@ -1,0 +1,4 @@
+interface:
+  display_name: "Roam Global Tailwind"
+  short_description: "Use Roam-safe global Tailwind utilities"
+  default_prompt: "Use $roam-global-tailwind to verify that these Tailwind classes work in Roam."

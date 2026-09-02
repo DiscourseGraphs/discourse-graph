@@ -135,3 +135,14 @@ For more information about Discourse Graphs, check out [our website](https://dis
 1. Join our growing community of academics, researchers, and thinkers on [Slack 💬](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg)
 2. Are you a lab or researcher interested in piloting the plugin with some guidance from the team? Send us [an email](mailto:discoursegraphs@homeworld.bio) or DM on Slack!
 3. Discourse Graphs is [open source](https://en.wikipedia.org/wiki/Open_source). See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to report bugs or propose changes.
+
+# Release process
+
+Beta releases happen automatically: every PR merged to `main` that touches `apps/obsidian/**` builds the plugin, cuts a new `x.y.z-beta.n` GitHub release (`.github/workflows/obsidian-main.yaml`), and syncs the merged PR/issue onto whichever Linear release is currently in progress.
+
+To ship an official stable release:
+
+1. Make sure a Linear release with the target version exists (e.g. `1.6.0`).
+2. From the Actions tab, manually run **Stable Obsidian Release** (`.github/workflows/obsidian-release.yaml`) with the `version` input set to that version.
+
+That single run publishes the stable GitHub release, bumps `apps/obsidian/package.json` and `apps/obsidian/manifest.json`, pushes to the mirror repo, and syncs and completes the matching Linear release.

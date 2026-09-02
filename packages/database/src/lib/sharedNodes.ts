@@ -1,11 +1,22 @@
 import type { DGSupabaseClient } from "./client";
-import { spaceUriAndLocalIdToRid } from "./rid";
+import { ridToSpaceUriAndLocalId, spaceUriAndLocalIdToRid } from "./rid";
 import type { Enums, Json, Tables } from "../dbTypes";
 
 type SharedConcept = Pick<
   Tables<"my_concepts">,
-  "is_schema" | "last_modified" | "schema_id" | "source_local_id" | "space_id"
->;
+  | "is_schema"
+  | "last_modified"
+  | "schema_id"
+  | "source_local_id"
+  | "space_id"
+  | "reference_content"
+> & {
+  concepts_of_relation: {
+    id: number | null;
+    space_id: number | null;
+    source_local_id: string | null;
+  }[];
+};
 type SharedContent = Pick<
   Tables<"my_contents">,
   | "author_id"
@@ -45,6 +56,7 @@ export type SharedNode = {
   lastModified: string;
   authorId?: number;
   directMetadata: Json;
+  slots?: Record<string, string>;
 };
 
 export type SharedNodeRows = {
@@ -53,6 +65,13 @@ export type SharedNodeRows = {
   fullContentSummaries: SharedContentSummary[];
   spaces: SharedSpace[];
 };
+
+const CONCEPT_COLUMNS_WITH_SLOTS =
+  "is_schema, last_modified, schema_id, source_local_id, space_id, reference_content, concepts_of_relation(id, space_id, source_local_id)";
+const DIRECT_CONTENT_COLUMNS =
+  "author_id, created, last_modified, metadata, source_local_id, space_id, text, variant";
+const FULL_CONTENT_SUMMARY_COLUMNS = "last_modified, source_local_id, space_id";
+const SPACE_COLUMNS = "id, name, platform, url";
 
 const getResourceKey = ({
   sourceLocalId,
@@ -177,6 +196,29 @@ export const buildSharedNodes = ({
         return [];
       }
 
+      const nodeRidById = Object.fromEntries(
+        node.concepts_of_relation
+          .filter((c) => c.id !== null)
+          .map((c) => {
+            if (c.space_id === node.space_id) return [c.id, c.source_local_id];
+            const space = spacesById.get(c.space_id || 0);
+            if (!space || !c.source_local_id || !c.id) return [c.id, undefined];
+            return [
+              c.id,
+              spaceUriAndLocalIdToRid(space.url, c.source_local_id),
+            ];
+          }) as [number, string | undefined][],
+      );
+      const referenceContent = (node.reference_content ?? {}) as Record<
+        string,
+        number
+      >;
+      const slots = Object.fromEntries(
+        Object.entries(referenceContent ?? {})
+          .map(([k, v]) => [k, nodeRidById[v]])
+          .filter(([, v]) => v !== undefined) as [string, string][],
+      );
+
       return [
         {
           rid,
@@ -190,6 +232,7 @@ export const buildSharedNodes = ({
           lastModified,
           authorId: direct.author_id ?? undefined,
           directMetadata: direct.metadata,
+          slots: Object.keys(slots).length > 0 ? slots : undefined,
         },
       ];
     })
@@ -200,6 +243,45 @@ export const buildSharedNodes = ({
     );
 };
 
+const getAssociatedSpaces = async ({
+  client,
+  concepts,
+  currentSpace,
+  currentSpaceId,
+}: {
+  client: DGSupabaseClient;
+  concepts: SharedConcept[];
+  currentSpace?: SharedSpace;
+  currentSpaceId?: number;
+}): Promise<SharedSpace[]> => {
+  const associatedSpaceIds = new Set(
+    [
+      ...concepts.map((cpt) => cpt.space_id),
+      ...concepts.flatMap((cpt) =>
+        cpt.concepts_of_relation.map((cr) => cr.space_id),
+      ),
+    ].filter((id) => id !== null),
+  );
+  if (currentSpace !== undefined) {
+    currentSpaceId = currentSpace.id ?? currentSpaceId;
+  } else if (currentSpaceId !== undefined)
+    associatedSpaceIds.add(currentSpaceId);
+  const spaces: SharedSpace[] = [];
+  if (currentSpace !== undefined && currentSpaceId !== undefined) {
+    spaces.push(currentSpace);
+    associatedSpaceIds.delete(currentSpaceId);
+  }
+  if (associatedSpaceIds.size > 0) {
+    const { data, error } = await client
+      .from("my_spaces")
+      .select(SPACE_COLUMNS)
+      .in("id", [...associatedSpaceIds]);
+    if (error) throw error;
+    spaces.push(...data);
+  }
+  return spaces;
+};
+
 const getSharedNodeRows = async ({
   client,
   currentSpaceId,
@@ -207,43 +289,38 @@ const getSharedNodeRows = async ({
   client: DGSupabaseClient;
   currentSpaceId: number;
 }): Promise<SharedNodeRows> => {
-  const [conceptsResponse, directResponse, fullResponse, spacesResponse] =
-    await Promise.all([
-      client
-        .from("my_concepts")
-        .select(
-          "is_schema, last_modified, schema_id, source_local_id, space_id",
-        )
-        .neq("space_id", currentSpaceId)
-        .eq("is_schema", false)
-        .eq("arity", 0),
-      client
-        .from("my_contents")
-        .select(
-          "author_id, created, last_modified, metadata, source_local_id, space_id, text, variant",
-        )
-        .neq("space_id", currentSpaceId)
-        .eq("variant", "direct"),
-      client
-        .from("my_contents")
-        .select("last_modified, source_local_id, space_id")
-        .neq("space_id", currentSpaceId)
-        .eq("variant", "full"),
-      client
-        .from("my_spaces")
-        .select("id, name, platform, url")
-        .neq("id", currentSpaceId),
-    ]);
+  const [conceptsResponse, directResponse, fullResponse] = await Promise.all([
+    client
+      .from("my_concepts")
+      .select(CONCEPT_COLUMNS_WITH_SLOTS)
+      .neq("space_id", currentSpaceId)
+      .eq("is_schema", false)
+      .eq("is_relation", false),
+    client
+      .from("my_contents")
+      .select(DIRECT_CONTENT_COLUMNS)
+      .neq("space_id", currentSpaceId)
+      .eq("variant", "direct"),
+    client
+      .from("my_contents")
+      .select(FULL_CONTENT_SUMMARY_COLUMNS)
+      .neq("space_id", currentSpaceId)
+      .eq("variant", "full"),
+  ]);
   if (conceptsResponse.error) throw conceptsResponse.error;
   if (directResponse.error) throw directResponse.error;
   if (fullResponse.error) throw fullResponse.error;
-  if (spacesResponse.error) throw spacesResponse.error;
+  const spaces = await getAssociatedSpaces({
+    client,
+    concepts: conceptsResponse.data,
+    currentSpaceId,
+  });
 
   return {
     nodes: conceptsResponse.data,
     directContents: directResponse.data,
     fullContentSummaries: fullResponse.data,
-    spaces: spacesResponse.data,
+    spaces,
   };
 };
 
@@ -256,4 +333,60 @@ export const listGroupSharedNodes = async ({
 }): Promise<SharedNode[]> => {
   const rows = await getSharedNodeRows({ client, currentSpaceId });
   return buildSharedNodes(rows);
+};
+
+export const getSharedNodeByRid = async ({
+  client,
+  rid,
+}: {
+  client: DGSupabaseClient;
+  rid: string;
+}): Promise<SharedNode | null> => {
+  const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(rid);
+  const spaceResponse = await client
+    .from("my_spaces")
+    .select(SPACE_COLUMNS)
+    .eq("url", spaceUri)
+    .maybeSingle();
+  if (spaceResponse.error) throw spaceResponse.error;
+  const space = spaceResponse.data;
+  if (!space || typeof space.id !== "number") return null;
+
+  const [conceptsResponse, directResponse, fullResponse] = await Promise.all([
+    client
+      .from("my_concepts")
+      .select(CONCEPT_COLUMNS_WITH_SLOTS)
+      .eq("space_id", space.id)
+      .eq("source_local_id", sourceLocalId)
+      .eq("is_schema", false)
+      .eq("is_relation", false),
+    client
+      .from("my_contents")
+      .select(DIRECT_CONTENT_COLUMNS)
+      .eq("space_id", space.id)
+      .eq("source_local_id", sourceLocalId)
+      .eq("variant", "direct"),
+    client
+      .from("my_contents")
+      .select(FULL_CONTENT_SUMMARY_COLUMNS)
+      .eq("space_id", space.id)
+      .eq("source_local_id", sourceLocalId)
+      .eq("variant", "full"),
+  ]);
+  if (conceptsResponse.error) throw conceptsResponse.error;
+  if (directResponse.error) throw directResponse.error;
+  if (fullResponse.error) throw fullResponse.error;
+  const spaces = await getAssociatedSpaces({
+    client,
+    concepts: conceptsResponse.data,
+    currentSpace: space,
+  });
+
+  const [sharedNode] = buildSharedNodes({
+    nodes: conceptsResponse.data,
+    directContents: directResponse.data,
+    fullContentSummaries: fullResponse.data,
+    spaces,
+  });
+  return sharedNode ?? null;
 };

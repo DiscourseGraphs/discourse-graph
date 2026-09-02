@@ -14,6 +14,8 @@ export const AdminPanelSettings = () => {
   const [username, setUsername] = useState<string>(
     plugin.settings.username || "",
   );
+  const [nodeCardContextMenuEnabled, setNodeCardContextMenuEnabled] =
+    useState<boolean>(plugin.settings.nodeCardContextMenuEnabled ?? false);
 
   const handleSyncModeToggle = useCallback(
     async (newValue: boolean) => {
@@ -42,6 +44,15 @@ export const AdminPanelSettings = () => {
     await plugin.saveSettings();
     await updateUsername(plugin, newValue);
   };
+
+  const handleNodeCardContextMenuToggle = useCallback(
+    async (newValue: boolean) => {
+      setNodeCardContextMenuEnabled(newValue);
+      plugin.settings.nodeCardContextMenuEnabled = newValue;
+      await plugin.saveSettings();
+    },
+    [plugin],
+  );
 
   const handleLoginHandoff = async () => {
     const client = await getLoggedInClient(plugin);
@@ -72,6 +83,30 @@ export const AdminPanelSettings = () => {
 
   return (
     <div className="general-settings">
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">(BETA) Discourse context</div>
+          <div className="setting-item-description">
+            Show discourse context and styling tabs when a node card is selected
+            on a canvas
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <div
+            className={`checkbox-container ${nodeCardContextMenuEnabled ? "is-enabled" : ""}`}
+            onClick={() =>
+              void handleNodeCardContextMenuToggle(!nodeCardContextMenuEnabled)
+            }
+          >
+            <input
+              type="checkbox"
+              checked={nodeCardContextMenuEnabled}
+              aria-label="Enable discourse context"
+              readOnly
+            />
+          </div>
+        </div>
+      </div>
       <div className="setting-item">
         <div className="setting-item-info">
           <div className="setting-item-name">(BETA) Sync mode enable</div>

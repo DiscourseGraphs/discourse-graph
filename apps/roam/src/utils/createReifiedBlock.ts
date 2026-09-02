@@ -102,21 +102,55 @@ export const countReifiedRelations = async (): Promise<number> => {
   return (r[0] || [0])[0] as number;
 };
 
+export type ReifiedRelationData = {
+  sourceUid: string;
+  destinationUid: string;
+  hasSchema: string;
+  importedFromRid?: string;
+};
+
+export type ReifiedRelationDataWithRelId = ReifiedRelationData & {
+  relationId: string;
+};
+
+export const getReifiedRelations = async (): Promise<
+  ReifiedRelationDataWithRelId[]
+> => {
+  const pageUid = getExistingRelationPageUid();
+  if (pageUid === undefined) return [];
+  const r = await window.roamAlphaAPI.data.async.q(
+    `[:find ?ruid ?rdata :where
+      [?p :block/uid "${pageUid}"]
+      [?p :block/children ?c]
+      [?c :block/uid ?ruid]
+      [?c :block/props ?pr]
+      [(get ?pr :${DISCOURSE_GRAPH_PROP_NAME}) ?rdata] ]`,
+  );
+  return r.map((x) => ({
+    relationId: x[0] as string,
+    ...(x[1] as ReifiedRelationData),
+  }));
+};
+
 export const createReifiedRelation = async ({
   sourceUid,
   relationBlockUid,
   destinationUid,
+  tentative,
 }: {
   sourceUid: string;
   relationBlockUid: string;
   destinationUid: string;
-}): Promise<string | undefined> => {
+  tentative?: boolean;
+}): Promise<string> => {
+  const parameterUids: Record<string, string> = {
+    sourceUid,
+    destinationUid,
+    ...(tentative !== undefined && { tentative: String(tentative) }),
+  };
   return await createReifiedBlock({
     destinationBlockUid: await getOrCreateRelationPageUid(),
     schemaUid: relationBlockUid,
-    parameterUids: {
-      sourceUid,
-      destinationUid,
-    },
+    parameterUids,
   });
 };
