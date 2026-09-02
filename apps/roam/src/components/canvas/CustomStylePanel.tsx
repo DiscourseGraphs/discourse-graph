@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { ReactElement, useEffect, useMemo, useState } from "react";
 import {
   DefaultStylePanel,
   DefaultStylePanelContent,
@@ -21,6 +21,7 @@ import { getAllRelations, isDiscourseNodeShape } from "./canvasUtils";
 import {
   DISCOURSE_NODE_SHAPE_TYPE,
   DiscourseNodeShape,
+  getDiscourseNodeTypeId,
 } from "./DiscourseNodeUtil";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import {
@@ -32,7 +33,11 @@ import { dispatchToastEvent } from "./ToastListener";
 const NEW_NODE_OFFSET_PX = 80;
 const NEW_NODE_GAP_PX = 24;
 
-const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
+const ContextTabContent = ({
+  shape,
+}: {
+  shape: DiscourseNodeShape;
+}): ReactElement => {
   const editor = useEditor();
   const extensionAPI = useExtensionAPI();
   const [results, setResults] = useState<DiscourseContextResults | null>(null);
@@ -56,7 +61,9 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
     };
   }, [uid]);
 
-  const getNodeShapeByUid = (relatedUid: string) =>
+  const getNodeShapeByUid = (
+    relatedUid: string,
+  ): DiscourseNodeShape | undefined =>
     editor
       .getCurrentPageShapes()
       .filter((s): s is DiscourseNodeShape => isDiscourseNodeShape(editor, s))
@@ -120,15 +127,21 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
     });
     const existing = getNodeShapeByUid(relatedUid);
     if (existing) return existing;
-    const x = shape.x + shape.props.w + NEW_NODE_OFFSET_PX;
+    const anchorBounds = editor.getShapePageBounds(shape.id);
+    if (!anchorBounds) return undefined;
+    const x = anchorBounds.maxX + NEW_NODE_OFFSET_PX;
     const columnBottoms = editor
       .getCurrentPageShapes()
       .filter((s): s is DiscourseNodeShape => isDiscourseNodeShape(editor, s))
-      .filter((s) => s.x < x + w && s.x + s.props.w > x)
-      .map((s) => s.y + s.props.h);
+      .flatMap((s) => {
+        const bounds = editor.getShapePageBounds(s.id);
+        return bounds && bounds.minX < x + w && bounds.maxX > x
+          ? [bounds.maxY]
+          : [];
+      });
     const y = columnBottoms.length
       ? Math.max(...columnBottoms) + NEW_NODE_GAP_PX
-      : shape.y;
+      : anchorBounds.minY;
     const id = createShapeId();
     withAutoCanvasRelationsSuppressed(() =>
       editor.createShapes([
@@ -165,7 +178,7 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
     relatedUid: string;
     text: string;
     label: string;
-  }) => {
+  }): Promise<void> => {
     const nodeShape =
       getNodeShapeByUid(relatedUid) ??
       (await addNodeToCanvas({ relatedUid, text }));
@@ -222,7 +235,7 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
     relatedUid: string;
     text: string;
     label: string;
-  }) => {
+  }): Promise<void> => {
     const key = `${relationId}:${relatedUid}`;
     setPendingKeys((prev) => [...prev, key]);
     try {
@@ -332,7 +345,11 @@ const ContextTabContent = ({ shape }: { shape: DiscourseNodeShape }) => {
   );
 };
 
-const NodeCardPanelContent = ({ shape }: { shape: DiscourseNodeShape }) => {
+const NodeCardPanelContent = ({
+  shape,
+}: {
+  shape: DiscourseNodeShape;
+}): ReactElement => {
   const styles = useRelevantStyles();
   const [activeTab, setActiveTab] = useState<"context" | "styling">("context");
   return (
@@ -360,15 +377,18 @@ const NodeCardPanelContent = ({ shape }: { shape: DiscourseNodeShape }) => {
   );
 };
 
-export const CustomStylePanel = (props: TLUiStylePanelProps) => {
+export const CustomStylePanel = (props: TLUiStylePanelProps): ReactElement => {
   const editor = useEditor();
   const selectedNodeShape = useValue(
     "selected-discourse-node-shape",
     () => {
       const selected = editor.getOnlySelectedShape();
-      return selected && isDiscourseNodeShape(editor, selected)
-        ? selected
-        : null;
+      if (!selected || !isDiscourseNodeShape(editor, selected)) return null;
+      return ["blck-node", "page-node"].includes(
+        getDiscourseNodeTypeId({ shape: selected }),
+      )
+        ? null
+        : selected;
     },
     [editor],
   );
