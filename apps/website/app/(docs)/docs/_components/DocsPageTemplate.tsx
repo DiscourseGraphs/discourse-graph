@@ -36,7 +36,7 @@ const DocsPageTemplate = ({
       headingComponent: H1,
       headingProps,
       metadata,
-    }) as unknown as React.ReactElement;
+    });
 
   return (
     <Wrapper metadata={metadata} sourceCode={sourceCode} {...wrapperProps}>
