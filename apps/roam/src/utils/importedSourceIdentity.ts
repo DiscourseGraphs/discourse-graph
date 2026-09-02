@@ -3,7 +3,7 @@ import {
   DISCOURSE_GRAPH_PROP_NAME,
   IMPORTED_FROM_PROP_KEY,
 } from "./createReifiedBlock";
-import getBlockProps, { type json } from "./getBlockProps";
+import getBlockProps, { isJsonObject, type json } from "./getBlockProps";
 import { setBlockPropsAsync } from "./setBlockProps";
 
 export type ImportedSourceIdentity = {
@@ -11,21 +11,14 @@ export type ImportedSourceIdentity = {
   sourceNodeRid: Rid;
 };
 
-export { IMPORTED_FROM_PROP_KEY };
 const SOURCE_NODE_RID_KEY = "sourceNodeRid";
 const SOURCE_MODIFIED_AT_KEY = "sourceModifiedAt";
 
-export const isJsonObject = (value: json): value is Record<string, json> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const parseImportedSourceIdentity = (
-  props: Record<string, json>,
+export const parseSourceIdentity = (
+  importedFrom: json | undefined,
 ): ImportedSourceIdentity | undefined => {
-  const discourseGraphProps = props[DISCOURSE_GRAPH_PROP_NAME];
-  if (!isJsonObject(discourseGraphProps)) return undefined;
-
-  const importedFrom = discourseGraphProps[IMPORTED_FROM_PROP_KEY];
-  if (!isJsonObject(importedFrom)) return undefined;
+  if (importedFrom === undefined || !isJsonObject(importedFrom))
+    return undefined;
 
   const sourceModifiedAt = importedFrom[SOURCE_MODIFIED_AT_KEY];
   const sourceNodeRid = importedFrom[SOURCE_NODE_RID_KEY];
@@ -33,6 +26,15 @@ const parseImportedSourceIdentity = (
     return undefined;
 
   return { sourceModifiedAt, sourceNodeRid };
+};
+
+const parseImportedSourceIdentity = (
+  props: Record<string, json>,
+): ImportedSourceIdentity | undefined => {
+  const discourseGraphProps = props[DISCOURSE_GRAPH_PROP_NAME];
+  if (!isJsonObject(discourseGraphProps)) return undefined;
+
+  return parseSourceIdentity(discourseGraphProps[IMPORTED_FROM_PROP_KEY]);
 };
 
 export const readImportedSourceIdentity = (

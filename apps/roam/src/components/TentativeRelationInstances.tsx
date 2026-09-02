@@ -1,10 +1,14 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Classes, Tag } from "@blueprintjs/core";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import { ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
+import posthog from "posthog-js";
+import { isRid, ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
+import internalError from "~/utils/internalError";
+import { getErrorMessage } from "~/utils/materializeSharedNode";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import {
   refreshDiscourseContextsForMutatedUids,
   useDiscourseContextMutationRefresh,
@@ -23,30 +27,25 @@ type TentativeRelationRow = TentativeRelationInstance & {
 };
 
 const buildProvenance = (importedFrom?: ImportedSourceIdentity): string => {
-  if (!importedFrom) return "";
+  if (!importedFrom || !isRid(importedFrom.sourceNodeRid)) return "";
   const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(
     importedFrom.sourceNodeRid,
   );
-  const sourceApp = spaceUri.startsWith("http")
-    ? undefined
-    : spaceUri.split(":")[0];
   const modifiedAt = new Date(importedFrom.sourceModifiedAt);
   const modified = Number.isNaN(modifiedAt.getTime())
     ? undefined
     : modifiedAt.toLocaleString();
-  return [sourceApp, spaceUri, sourceLocalId, modified]
-    .filter(Boolean)
-    .join(" · ");
+  return `from ${[spaceUri, sourceLocalId, modified].filter(Boolean).join(" · ")}`;
 };
-
-const toErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
 
 const TentativeRelationInstances = ({
   uid,
+  onCountChange,
 }: {
   uid: string;
+  onCountChange?: (count: number) => void;
 }): React.JSX.Element | null => {
+  const storedRelationsEnabled = useMemo(() => getStoredRelationsEnabled(), []);
   const [rows, setRows] = useState<TentativeRelationRow[]>([]);
   const [pending, setPending] = useState<{
     uid: string;
@@ -54,32 +53,32 @@ const TentativeRelationInstances = ({
   } | null>(null);
 
   const loadRows = useCallback(async () => {
+    if (!storedRelationsEnabled) return;
     const instances = await getTentativeRelationInstances();
     const relevant = instances.filter(
       (instance) =>
         instance.sourceUid === uid || instance.destinationUid === uid,
     );
     const relationById = new Map(getDiscourseRelations().map((r) => [r.id, r]));
-    setRows(
-      relevant.map((instance) => {
-        const isOutgoing = instance.sourceUid === uid;
-        const otherUid = isOutgoing
-          ? instance.destinationUid
-          : instance.sourceUid;
-        const schema = relationById.get(instance.schemaUid);
-        const label =
-          (isOutgoing ? schema?.label : schema?.complement) ||
-          schema?.label ||
-          "Unknown relation";
-        return {
-          ...instance,
-          label,
-          otherText: getPageTitleByPageUid(otherUid) || otherUid,
-          provenance: buildProvenance(instance.importedFrom),
-        };
-      }),
-    );
-  }, [uid]);
+    const nextRows = relevant.map((instance) => {
+      const isOutgoing = instance.sourceUid === uid;
+      const otherUid = isOutgoing
+        ? instance.destinationUid
+        : instance.sourceUid;
+      const schema = relationById.get(instance.schemaUid);
+      const label =
+        (isOutgoing ? schema?.label : schema?.complement || schema?.label) ||
+        "Unknown relation";
+      return {
+        ...instance,
+        label,
+        otherText: getPageTitleByPageUid(otherUid) || otherUid,
+        provenance: buildProvenance(instance.importedFrom),
+      };
+    });
+    setRows(nextRows);
+    onCountChange?.(nextRows.length);
+  }, [uid, storedRelationsEnabled, onCountChange]);
 
   useEffect(() => {
     void loadRows();
@@ -89,9 +88,13 @@ const TentativeRelationInstances = ({
   useDiscourseContextMutationRefresh({ uid, onMutationRefresh });
 
   const onAccept = async (row: TentativeRelationRow): Promise<void> => {
-    setPending({ uid: row.relationUid, action: "accept" });
+    posthog.capture("Discourse Context: Accept Tentative Relation Triggered", {
+      instanceUid: row.instanceUid,
+      uid,
+    });
+    setPending({ uid: row.instanceUid, action: "accept" });
     try {
-      await acceptTentativeRelationInstance({ relationUid: row.relationUid });
+      await acceptTentativeRelationInstance({ instanceUid: row.instanceUid });
       renderToast({
         id: "accept-relation-success",
         content: "Relation accepted",
@@ -101,10 +104,12 @@ const TentativeRelationInstances = ({
         uids: [row.sourceUid, row.destinationUid],
       });
     } catch (error) {
-      renderToast({
-        id: "accept-relation-error",
-        content: `Could not accept relation: ${toErrorMessage(error)}`,
-        intent: "danger",
+      internalError({
+        error,
+        type: "Accept Tentative Relation Failed",
+        context: { instanceUid: row.instanceUid },
+        userMessage: `Could not accept relation: ${getErrorMessage(error)}`,
+        sendEmail: false,
       });
     } finally {
       setPending(null);
@@ -112,9 +117,13 @@ const TentativeRelationInstances = ({
   };
 
   const onRemove = async (row: TentativeRelationRow): Promise<void> => {
-    setPending({ uid: row.relationUid, action: "remove" });
+    posthog.capture("Discourse Context: Remove Tentative Relation Triggered", {
+      instanceUid: row.instanceUid,
+      uid,
+    });
+    setPending({ uid: row.instanceUid, action: "remove" });
     try {
-      await deleteBlock(row.relationUid);
+      await deleteBlock(row.instanceUid);
       renderToast({
         id: "remove-relation-success",
         content: "Relation removed",
@@ -124,17 +133,19 @@ const TentativeRelationInstances = ({
         uids: [row.sourceUid, row.destinationUid],
       });
     } catch (error) {
-      renderToast({
-        id: "remove-relation-error",
-        content: `Could not remove relation: ${toErrorMessage(error)}`,
-        intent: "danger",
+      internalError({
+        error,
+        type: "Remove Tentative Relation Failed",
+        context: { instanceUid: row.instanceUid },
+        userMessage: `Could not remove relation: ${getErrorMessage(error)}`,
+        sendEmail: false,
       });
     } finally {
       setPending(null);
     }
   };
 
-  if (!rows.length) return null;
+  if (!storedRelationsEnabled || !rows.length) return null;
 
   return (
     <div className="roamjs-discourse-tentative-relations mt-2 px-2">
@@ -142,7 +153,7 @@ const TentativeRelationInstances = ({
         Imported relations pending review ({rows.length})
       </div>
       {rows.map((row) => (
-        <div key={row.relationUid} className="flex items-center gap-2 py-1">
+        <div key={row.instanceUid} className="flex items-center gap-2 py-1">
           <div className="min-w-0 flex-1">
             <div className="truncate" title={row.otherText}>
               <Tag minimal>{row.label}</Tag> {row.otherText}
@@ -162,7 +173,7 @@ const TentativeRelationInstances = ({
             title="Accept relation"
             disabled={pending !== null}
             loading={
-              pending?.uid === row.relationUid && pending.action === "accept"
+              pending?.uid === row.instanceUid && pending.action === "accept"
             }
             onClick={() => void onAccept(row)}
           />
@@ -172,7 +183,7 @@ const TentativeRelationInstances = ({
             title="Remove relation"
             disabled={pending !== null}
             loading={
-              pending?.uid === row.relationUid && pending.action === "remove"
+              pending?.uid === row.instanceUid && pending.action === "remove"
             }
             onClick={() => void onRemove(row)}
           />

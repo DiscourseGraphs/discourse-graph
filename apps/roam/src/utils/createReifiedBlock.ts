@@ -1,6 +1,8 @@
 import createBlock from "roamjs-components/writes/createBlock";
 import createPage from "roamjs-components/writes/createPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import getBlockProps, { isJsonObject, type json } from "./getBlockProps";
+import { setBlockPropsAsync } from "./setBlockProps";
 
 export const DISCOURSE_GRAPH_PROP_NAME = "discourse-graph";
 export const TENTATIVE_PROP_KEY = "tentative";
@@ -53,6 +55,28 @@ export const strictQueryForReifiedBlocks = async (
   return resultF.length > 0 ? resultF[0] : null;
 };
 
+// Deliberate local creation of a relation counts as user acceptance, so a
+// dedupe hit on a tentative imported block promotes it instead of silently
+// returning a block the UI hides as pending review.
+export const acceptTentativeRelationInstance = async ({
+  instanceUid,
+}: {
+  instanceUid: string;
+}): Promise<void> => {
+  const existing = getBlockProps(instanceUid)[DISCOURSE_GRAPH_PROP_NAME];
+  if (!isJsonObject(existing) || typeof existing.sourceUid !== "string") {
+    throw new Error(
+      "The relation block could not be read. It may have been deleted; refresh and try again.",
+    );
+  }
+  if (existing[TENTATIVE_PROP_KEY] === undefined) return;
+  const accepted = { ...existing };
+  delete accepted[TENTATIVE_PROP_KEY];
+  await setBlockPropsAsync(instanceUid, {
+    [DISCOURSE_GRAPH_PROP_NAME]: accepted,
+  });
+};
+
 const createReifiedBlock = async ({
   destinationBlockUid,
   schemaUid,
@@ -68,7 +92,12 @@ const createReifiedBlock = async ({
     hasSchema: schemaUid,
   };
   const existing = await strictQueryForReifiedBlocks(data);
-  if (existing !== null) return existing;
+  if (existing !== null) {
+    if (parameterUids[TENTATIVE_PROP_KEY] === undefined) {
+      await acceptTentativeRelationInstance({ instanceUid: existing });
+    }
+    return existing;
+  }
   const newUid = window.roamAlphaAPI.util.generateUID();
   await createBlock({
     node: {
@@ -119,6 +148,7 @@ export type ReifiedRelationData = {
   destinationUid: string;
   hasSchema: string;
   tentative?: string;
+  importedFrom?: json;
   importedFromRid?: string;
 };
 

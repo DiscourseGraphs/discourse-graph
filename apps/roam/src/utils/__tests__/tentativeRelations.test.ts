@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DISCOURSE_GRAPH_PROP_NAME,
+  createReifiedRelation,
   strictQueryForReifiedBlocks,
 } from "~/utils/createReifiedBlock";
 import {
@@ -51,6 +52,16 @@ const tentativeRelationProps = (): Record<string, json> => ({
   },
 });
 
+const acceptedRelationProps = (): Record<string, json> => ({
+  sourceUid: "claim-a",
+  destinationUid: "question-a",
+  hasSchema: "supports",
+  importedFrom: {
+    sourceModifiedAt: SOURCE_MODIFIED_AT,
+    sourceNodeRid: SOURCE_NODE_RID,
+  },
+});
+
 beforeEach(() => {
   propsByUid.clear();
   query.mockReset();
@@ -60,12 +71,8 @@ beforeEach(() => {
 
 describe("getTentativeRelationInstances", () => {
   it("returns only tentative relations with their source identity", async () => {
-    const tentativeProps = tentativeRelationProps();
-    propsByUid.set(RELATION_UID, {
-      [DISCOURSE_GRAPH_PROP_NAME]: tentativeProps,
-    });
     query.mockResolvedValue([
-      [RELATION_UID, tentativeProps],
+      [RELATION_UID, tentativeRelationProps()],
       [
         "rel-block-2",
         {
@@ -78,7 +85,7 @@ describe("getTentativeRelationInstances", () => {
 
     expect(await getTentativeRelationInstances()).toEqual([
       {
-        relationUid: RELATION_UID,
+        instanceUid: RELATION_UID,
         schemaUid: "supports",
         sourceUid: "claim-a",
         destinationUid: "question-a",
@@ -97,39 +104,64 @@ describe("acceptTentativeRelationInstance", () => {
       [DISCOURSE_GRAPH_PROP_NAME]: tentativeRelationProps(),
     });
 
-    await acceptTentativeRelationInstance({ relationUid: RELATION_UID });
+    await acceptTentativeRelationInstance({ instanceUid: RELATION_UID });
 
     expect(propsByUid.get(RELATION_UID)).toEqual({
-      [DISCOURSE_GRAPH_PROP_NAME]: {
-        sourceUid: "claim-a",
-        destinationUid: "question-a",
-        hasSchema: "supports",
-        importedFrom: {
-          sourceModifiedAt: SOURCE_MODIFIED_AT,
-          sourceNodeRid: SOURCE_NODE_RID,
-        },
-      },
+      [DISCOURSE_GRAPH_PROP_NAME]: acceptedRelationProps(),
     });
   });
 
   it("is a no-op for a relation that is already accepted", async () => {
     propsByUid.set(RELATION_UID, {
-      [DISCOURSE_GRAPH_PROP_NAME]: {
-        sourceUid: "claim-a",
-        destinationUid: "question-a",
-        hasSchema: "supports",
-      },
+      [DISCOURSE_GRAPH_PROP_NAME]: acceptedRelationProps(),
     });
 
-    await acceptTentativeRelationInstance({ relationUid: RELATION_UID });
+    await acceptTentativeRelationInstance({ instanceUid: RELATION_UID });
 
     expect(update).not.toHaveBeenCalled();
   });
 
   it("throws when the relation block cannot be read", async () => {
     await expect(
-      acceptTentativeRelationInstance({ relationUid: "missing" }),
+      acceptTentativeRelationInstance({ instanceUid: "missing" }),
     ).rejects.toThrow(/could not be read/);
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe("createReifiedRelation", () => {
+  it("promotes a matching tentative import instead of returning it hidden", async () => {
+    query.mockResolvedValue([[RELATION_UID, tentativeRelationProps()]]);
+    propsByUid.set(RELATION_UID, {
+      [DISCOURSE_GRAPH_PROP_NAME]: tentativeRelationProps(),
+    });
+
+    const uid = await createReifiedRelation({
+      sourceUid: "claim-a",
+      destinationUid: "question-a",
+      relationBlockUid: "supports",
+    });
+
+    expect(uid).toBe(RELATION_UID);
+    expect(propsByUid.get(RELATION_UID)).toEqual({
+      [DISCOURSE_GRAPH_PROP_NAME]: acceptedRelationProps(),
+    });
+  });
+
+  it("leaves a matching tentative import untouched during re-import", async () => {
+    query.mockResolvedValue([[RELATION_UID, tentativeRelationProps()]]);
+    propsByUid.set(RELATION_UID, {
+      [DISCOURSE_GRAPH_PROP_NAME]: tentativeRelationProps(),
+    });
+
+    const uid = await createReifiedRelation({
+      sourceUid: "claim-a",
+      destinationUid: "question-a",
+      relationBlockUid: "supports",
+      tentative: true,
+    });
+
+    expect(uid).toBe(RELATION_UID);
     expect(update).not.toHaveBeenCalled();
   });
 });

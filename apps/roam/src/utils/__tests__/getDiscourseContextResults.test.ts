@@ -209,7 +209,7 @@ describe("getDiscourseContextResults", () => {
     ]);
     mocks.getTentativeRelationInstances.mockResolvedValue([
       {
-        relationUid: "rel-block-1",
+        instanceUid: "rel-block-1",
         schemaUid: "supports",
         sourceUid: "claim-a",
         destinationUid: "question-a",
@@ -227,5 +227,64 @@ describe("getDiscourseContextResults", () => {
     expect(results[0].label).toBe("Informed By");
     expect(Object.keys(results[0].results)).toEqual(["evidence-a"]);
     expect(onResult).toHaveBeenCalledTimes(1);
+  });
+
+  it("excludes tentative instances where the active node is the destination", async () => {
+    const nodes: DiscourseNode[] = [
+      makeNode({ type: "CLM", text: "Claim" }),
+      makeNode({ type: "QUE", text: "Question" }),
+      makeNode({ type: "EVD", text: "Evidence" }),
+    ];
+    const relations: DiscourseRelation[] = [
+      {
+        id: "supports",
+        label: "Supports",
+        complement: "Supported By",
+        source: "CLM",
+        destination: "QUE",
+        triples: [],
+      },
+      {
+        id: "informs",
+        label: "Informs",
+        complement: "Informed By",
+        source: "EVD",
+        destination: "CLM",
+        triples: [],
+      },
+    ];
+
+    mocks.fireQuery.mockResolvedValue([
+      {
+        text: "Evidence A",
+        uid: "evidence-a",
+        relationUid: "informs",
+        effectiveSource: "evidence-a",
+      },
+      {
+        text: "Question A",
+        uid: "question-a",
+        relationUid: "supports",
+        effectiveSource: "claim-a",
+      },
+    ]);
+    mocks.getTentativeRelationInstances.mockResolvedValue([
+      {
+        instanceUid: "rel-block-2",
+        schemaUid: "informs",
+        sourceUid: "evidence-a",
+        destinationUid: "claim-a",
+      },
+    ]);
+
+    const results = await getDiscourseContextResults({
+      uid: "claim-a",
+      nodes,
+      relations,
+    });
+
+    expect(results).toHaveLength(1);
+    expect(results[0].label).toBe("Supports");
+    expect(Object.keys(results[0].results)).toEqual(["question-a"]);
   });
 });
