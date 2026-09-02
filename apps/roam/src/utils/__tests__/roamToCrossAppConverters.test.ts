@@ -287,18 +287,21 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
     expect(mockedReadImportedSourceIdentity).toHaveBeenCalledWith("source-1");
   });
 
-  it("keeps the page uid when the imported identity is not a RID", async () => {
-    mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
-    mockedReadImportedSourceIdentity.mockReturnValue({
-      sourceModifiedAt: "2026-06-14T15:00:00.000Z",
-      sourceNodeRid: "not a rid",
-    });
-    const node = await convertRow({
-      ...baseRow,
-      ":node/title": "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
-    });
-    expect(node.slots).toEqual({ sourceDocument: "source-1" });
-  });
+  it.each(["not a rid", "orn:bad", "orn:obsidian.note:vault-a/"])(
+    "keeps the page uid when the imported identity %j is not a well-formed RID",
+    async (sourceNodeRid) => {
+      mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
+      mockedReadImportedSourceIdentity.mockReturnValue({
+        sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+        sourceNodeRid,
+      });
+      const node = await convertRow({
+        ...baseRow,
+        ":node/title": "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+      });
+      expect(node.slots).toEqual({ sourceDocument: "source-1" });
+    },
+  );
 
   // Leniency on the target type: see sourceSlot.ts
   it("accepts a source that is a node of another type", async () => {
