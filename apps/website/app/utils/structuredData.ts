@@ -162,7 +162,7 @@ export const createVideoStructuredData = ({
   VideoObjectSchema.parse({
     "@type": "VideoObject",
     name: title,
-    description: `${title}. Speakers: ${speakers}.`,
+    description: `${title}. Featuring: ${speakers}.`,
     embedUrl,
     thumbnailUrl,
   });
@@ -210,12 +210,6 @@ export const createBreadcrumbStructuredData = (
     })),
   });
 
-const getPathLabel = (segment: string): string =>
-  segment
-    .split("-")
-    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-    .join(" ");
-
 export const createDocsBreadcrumbStructuredData = ({
   mdxPath,
   platform,
@@ -227,18 +221,27 @@ export const createDocsBreadcrumbStructuredData = ({
 }): StructuredDataNode => {
   const platformPath = `/docs/${platform}`;
   const pathSegments = mdxPath ?? [];
-  const nestedItems = pathSegments.map((segment, index) => ({
-    name: index === pathSegments.length - 1 ? title : getPathLabel(segment),
-    path: `${platformPath}/${pathSegments.slice(0, index + 1).join("/")}`,
-  }));
+  const currentPage = pathSegments.length
+    ? [
+        {
+          name: title,
+          path: `${platformPath}/${pathSegments.join("/")}`,
+        },
+      ]
+    : [];
 
   return createBreadcrumbStructuredData([
     { name: "Home", path: "/" },
     { name: "Documentation", path: "/docs" },
     {
-      name: pathSegments.length ? getPathLabel(platform) : title,
+      name:
+        pathSegments.length > 0
+          ? platform === "obsidian"
+            ? "Obsidian"
+            : "Roam"
+          : title,
       path: platformPath,
     },
-    ...nestedItems,
+    ...currentPage,
   ]);
 };
