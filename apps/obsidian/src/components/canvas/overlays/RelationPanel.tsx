@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import {
@@ -7,6 +7,7 @@ import {
 } from "~/components/canvas/shapes/DiscourseNodeShape";
 import {
   ensureBlockRefForFile,
+  findBlockRefForFile,
   resolveLinkedFileFromSrc,
   extractBlockRefId,
 } from "~/components/canvas/stores/assetStore";
@@ -59,6 +60,8 @@ export type RelationsPanelProps = {
   nodeShape: DiscourseNodeShape;
   onClose: () => void;
 };
+
+type RelationsPanelContentProps = Omit<RelationsPanelProps, "onClose">;
 
 const RelationFileItem = ({
   file,
@@ -160,16 +163,18 @@ const RelationFileItem = ({
   );
 };
 
-export const RelationsPanel = ({
+const LINKED_FILE_NOT_FOUND_ERROR = "Linked file not found.";
+
+export const RelationsPanelContent = ({
   plugin,
   canvasFile,
   nodeShape,
-  onClose,
-}: RelationsPanelProps) => {
+}: RelationsPanelContentProps) => {
   const editor = useEditor();
   const [groups, setGroups] = useState<GroupedRelation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   // Resolve the file from the shape's src
   useEffect(() => {
@@ -190,7 +195,7 @@ export const RelationsPanel = ({
         });
         if (!file) {
           setGroups([]);
-          setError("Linked file not found.");
+          setError(LINKED_FILE_NOT_FOUND_ERROR);
           return;
         }
         const g = await computeRelations(plugin, file);
@@ -208,11 +213,26 @@ export const RelationsPanel = ({
       }
     };
     void load();
-  }, [plugin, canvasFile, nodeShape.id, nodeShape.props.src, editor]);
+  }, [
+    plugin,
+    canvasFile,
+    nodeShape.id,
+    nodeShape.props.src,
+    editor,
+    reloadToken,
+  ]);
 
-  const headerTitle = useMemo(() => {
-    return nodeShape.props.title || "Selected node";
-  }, [nodeShape.props.title]);
+  // Right after node creation the canvas file's block refs may not be indexed
+  // yet; retry once Obsidian re-indexes the canvas file.
+  useEffect(() => {
+    if (error !== LINKED_FILE_NOT_FOUND_ERROR) return;
+    const eventRef = plugin.app.metadataCache.on("changed", (changedFile) => {
+      if (changedFile.path === canvasFile.path) {
+        setReloadToken((token) => token + 1);
+      }
+    });
+    return () => plugin.app.metadataCache.offref(eventRef);
+  }, [error, plugin, canvasFile]);
 
   const ensureNodeShapeForFile = async (
     file: TFile,
@@ -257,62 +277,67 @@ export const RelationsPanel = ({
   };
 
   // Check if a relation already exists between the selected node and a target file
-  const checkExistingRelation = async (
-    targetFile: TFile,
-    relationTypeId: string,
-  ): Promise<DiscourseRelationShape | null> => {
-    try {
-      // Get all shapes on the canvas
-      const allShapes = editor.getCurrentPageShapes();
+  const checkExistingRelation = useCallback(
+    async (
+      targetFile: TFile,
+      relationTypeId: string,
+    ): Promise<DiscourseRelationShape | null> => {
+      try {
+        // Get all shapes on the canvas
+        const allShapes = editor.getCurrentPageShapes();
 
-      // Find the target node shape that corresponds to the file
-      const targetBlockRef = await ensureBlockRefForFile({
-        app: plugin.app,
-        canvasFile,
-        targetFile,
-      });
-      const targetNodeShape = allShapes.find((shape) => {
-        if (shape.type !== "discourse-node") return false;
-        const src = (shape as DiscourseNodeShape).props.src ?? "";
-        return extractBlockRefId(src) === targetBlockRef;
-      }) as DiscourseNodeShape | undefined;
+        // Find the target node shape that corresponds to the file.
+        // Read-only lookup: rendering the panel must not write to the canvas file.
+        const targetBlockRef = await findBlockRefForFile({
+          app: plugin.app,
+          canvasFile,
+          targetFile,
+        });
+        if (!targetBlockRef) return null;
+        const targetNodeShape = allShapes.find((shape) => {
+          if (shape.type !== "discourse-node") return false;
+          const src = (shape as DiscourseNodeShape).props.src ?? "";
+          return extractBlockRefId(src) === targetBlockRef;
+        }) as DiscourseNodeShape | undefined;
 
-      if (!targetNodeShape) return null;
+        if (!targetNodeShape) return null;
 
-      // Find relation shapes that connect the selected node and target node
-      const relationShapes = allShapes.filter(
-        (shape) =>
-          shape.type === "discourse-relation" &&
-          (shape as DiscourseRelationShape).props.relationTypeId ===
-            relationTypeId,
-      ) as DiscourseRelationShape[];
+        // Find relation shapes that connect the selected node and target node
+        const relationShapes = allShapes.filter(
+          (shape) =>
+            shape.type === "discourse-relation" &&
+            (shape as DiscourseRelationShape).props.relationTypeId ===
+              relationTypeId,
+        ) as DiscourseRelationShape[];
 
-      for (const relationShape of relationShapes) {
-        const bindings = getArrowBindings(editor, relationShape);
+        for (const relationShape of relationShapes) {
+          const bindings = getArrowBindings(editor, relationShape);
 
-        // Check if this relation connects our two nodes in ANY direction
-        // The relation could exist as either:
-        // 1. selectedNode -> targetNode (forward direction)
-        // 2. targetNode -> selectedNode (reverse direction)
-        const isConnectedForward =
-          bindings.start?.toId === nodeShape.id &&
-          bindings.end?.toId === targetNodeShape.id;
+          // Check if this relation connects our two nodes in ANY direction
+          // The relation could exist as either:
+          // 1. selectedNode -> targetNode (forward direction)
+          // 2. targetNode -> selectedNode (reverse direction)
+          const isConnectedForward =
+            bindings.start?.toId === nodeShape.id &&
+            bindings.end?.toId === targetNodeShape.id;
 
-        const isConnectedReverse =
-          bindings.start?.toId === targetNodeShape.id &&
-          bindings.end?.toId === nodeShape.id;
+          const isConnectedReverse =
+            bindings.start?.toId === targetNodeShape.id &&
+            bindings.end?.toId === nodeShape.id;
 
-        if (isConnectedForward || isConnectedReverse) {
-          return relationShape;
+          if (isConnectedForward || isConnectedReverse) {
+            return relationShape;
+          }
         }
-      }
 
-      return null;
-    } catch (e) {
-      console.error("Failed to check existing relation", e);
-      return null;
-    }
-  };
+        return null;
+      } catch (e) {
+        console.error("Failed to check existing relation", e);
+        return null;
+      }
+    },
+    [editor, plugin, canvasFile, nodeShape.id],
+  );
 
   const handleDeleteRelationShape = async (
     targetFile: TFile,
@@ -459,6 +484,48 @@ export const RelationsPanel = ({
     }
   };
 
+  return loading ? (
+    <div className="text-center text-gray-500">Loading relations...</div>
+  ) : error ? (
+    <div className="text-center text-red-600">{error}</div>
+  ) : groups.length === 0 ? (
+    <div className="text-center text-gray-500">No relations found.</div>
+  ) : (
+    <ul className="m-0 list-none space-y-2 p-0">
+      {groups.map((group) => (
+        <li key={group.key} className="rounded border p-2">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="text-xs text-gray-500">
+              {group.isSource ? "→" : "←"}
+            </span>
+            <span className="text-sm font-medium">{group.label}</span>
+          </div>
+          <ul className="m-0 list-none space-y-1 p-0 pl-5">
+            {group.linkedFiles.map((f) => {
+              return (
+                <RelationFileItem
+                  key={f.path}
+                  file={f}
+                  group={group}
+                  checkExistingRelation={checkExistingRelation}
+                  handleCreateRelationTo={handleCreateRelationTo}
+                  handleDeleteRelation={handleDeleteRelationShape}
+                />
+              );
+            })}
+          </ul>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+export const RelationsPanel = ({
+  plugin,
+  canvasFile,
+  nodeShape,
+  onClose,
+}: RelationsPanelProps) => {
   return (
     <div className="min-w-80 max-w-md rounded-lg border bg-white p-4 shadow-lg">
       <div className="mb-3 flex items-center justify-between">
@@ -473,47 +540,16 @@ export const RelationsPanel = ({
       </div>
 
       <div className="mb-3">
-        <div className="text-sm font-medium text-gray-700">{headerTitle}</div>
+        <div className="text-sm font-medium text-gray-700">
+          {nodeShape.props.title || "Selected node"}
+        </div>
       </div>
 
-      {loading ? (
-        <div className="text-center text-gray-500">Loading relations...</div>
-      ) : error ? (
-        <div className="text-center text-red-600">{error}</div>
-      ) : groups.length === 0 ? (
-        <div className="text-center text-gray-500">No relations found.</div>
-      ) : (
-        <ul className="m-0 list-none space-y-2 p-0">
-          {groups.map((group) => (
-            <li key={group.key} className="rounded border p-2">
-              <div className="mb-1 flex items-center gap-2">
-                <span className="text-xs text-gray-500">
-                  {group.isSource ? "→" : "←"}
-                </span>
-                <span className="text-sm font-medium">{group.label}</span>
-              </div>
-              {group.linkedFiles.length === 0 ? (
-                <div className="text-xs text-gray-500">None</div>
-              ) : (
-                <ul className="m-0 list-none space-y-1 p-0 pl-5">
-                  {group.linkedFiles.map((f) => {
-                    return (
-                      <RelationFileItem
-                        key={f.path}
-                        file={f}
-                        group={group}
-                        checkExistingRelation={checkExistingRelation}
-                        handleCreateRelationTo={handleCreateRelationTo}
-                        handleDeleteRelation={handleDeleteRelationShape}
-                      />
-                    );
-                  })}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <RelationsPanelContent
+        plugin={plugin}
+        canvasFile={canvasFile}
+        nodeShape={nodeShape}
+      />
     </div>
   );
 };
@@ -540,38 +576,65 @@ const computeRelations = async (
     plugin.settings.discourseRelations.filter(isAcceptedSchema);
 
   for (const relationType of acceptedRelationTypes) {
-    const typeLevelRelation = acceptedDiscourseRelations.find(
-      (rel) =>
-        (rel.sourceId === activeNodeTypeId ||
-          rel.destinationId === activeNodeTypeId) &&
-        rel.relationshipTypeId === relationType.id,
+    const matchingRelations = acceptedDiscourseRelations.filter(
+      (relation) =>
+        (relation.sourceId === activeNodeTypeId ||
+          relation.destinationId === activeNodeTypeId) &&
+        relation.relationshipTypeId === relationType.id,
     );
-    if (!typeLevelRelation) continue;
+    for (const typeLevelRelation of matchingRelations) {
+      const isSource = typeLevelRelation.sourceId === activeNodeTypeId;
+      const key = `${relationType.id}-${isSource}`;
 
-    const instanceRels = relations.filter((r) => r.type === relationType.id);
-    const isSource = typeLevelRelation.sourceId === activeNodeTypeId;
-    const label = isSource ? relationType.label : relationType.complement;
-    const key = `${relationType.id}-${isSource}`;
+      if (!result.has(key)) {
+        result.set(key, {
+          key,
+          label: isSource ? relationType.label : relationType.complement,
+          isSource,
+          relationTypeId: relationType.id,
+          linkedFiles: [],
+        });
+      }
 
-    if (!result.has(key)) {
-      result.set(key, {
-        key,
-        label,
-        isSource,
-        relationTypeId: relationType.id,
-        linkedFiles: [],
-      });
-    }
+      const group = result.get(key)!;
+      for (const relation of relations) {
+        if (relation.type !== relationType.id) continue;
+        const otherId = getRelationCounterpartId({
+          relation,
+          nodeInstanceId,
+          isSource,
+        });
+        if (!otherId) continue;
 
-    const group = result.get(key)!;
-    for (const r of instanceRels) {
-      const otherId = r.source === nodeInstanceId ? r.destination : r.source;
-      const linked = getFileForNodeInstanceId(plugin, otherId);
-      if (linked && !group.linkedFiles.some((f) => f.path === linked.path)) {
-        group.linkedFiles.push(linked);
+        const linkedFile = getFileForNodeInstanceId(plugin, otherId);
+        if (
+          linkedFile &&
+          !group.linkedFiles.some(({ path }) => path === linkedFile.path)
+        ) {
+          group.linkedFiles.push(linkedFile);
+        }
       }
     }
   }
 
-  return Array.from(result.values());
+  // Only show relation types that have relation instances
+  return Array.from(result.values()).filter(
+    (group) => group.linkedFiles.length > 0,
+  );
+};
+
+const getRelationCounterpartId = ({
+  relation,
+  nodeInstanceId,
+  isSource,
+}: {
+  relation: { source: string; destination: string };
+  nodeInstanceId: string;
+  isSource: boolean;
+}): string | null => {
+  if (isSource) {
+    return relation.source === nodeInstanceId ? relation.destination : null;
+  }
+
+  return relation.destination === nodeInstanceId ? relation.source : null;
 };

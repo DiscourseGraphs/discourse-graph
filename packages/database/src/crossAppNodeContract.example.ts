@@ -14,6 +14,7 @@ Multiple studies show that sleep after learning strengthens memory traces.
 export const roamOriginNodeExample: CrossAppNode = {
   localId: ROAM_SOURCE_NODE_ID,
   nodeType: "rCLM0schema",
+  coreTitle: "Sleep improves memory consolidation",
   content: {
     direct: {
       value: "Sleep improves memory consolidation",
@@ -47,6 +48,7 @@ Participants with more REM sleep showed better next-day recall.
 export const obsidianOriginNodeExample: CrossAppNode = {
   localId: OBSIDIAN_SOURCE_NODE_ID,
   nodeType: OBSIDIAN_SOURCE_NODE_TYPE_ID,
+  coreTitle: "REM sleep and recall",
   content: {
     direct: {
       value: "EVD - REM sleep and recall",
