@@ -7,6 +7,7 @@ import type { Json } from "@repo/database/dbTypes";
 import {
   getSupabaseContext,
   getLoggedInClient,
+  getLocalSpaceUri,
   type SupabaseContext,
 } from "./supabaseContext";
 import { default as DiscourseGraphPlugin } from "~/index";
@@ -21,6 +22,7 @@ import {
   relationInstanceToLocalConcept,
 } from "./conceptConversion";
 import { loadRelations } from "~/utils/relationsStore";
+import { indexSourceSlotValues } from "./sourceSlot";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import {
   type DiscourseNodeInVault,
@@ -605,18 +607,24 @@ const convertDgToSupabaseConcepts = async ({
     )
     .filter((n) => !!n);
 
+  const relationInstancesData = await loadRelations(plugin);
+  const relationInstances = Object.values(relationInstancesData.relations);
+  const sourceSlotByNodeId = indexSourceSlotValues({
+    relations: relationInstances,
+    nodes: allNodes,
+    localSpaceUri: getLocalSpaceUri(plugin.app),
+    nodeTypesById,
+  });
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
     return discourseNodeInstanceToLocalConcept({
       context,
       nodeData: node,
       nodeTypesById,
+      sourceSlotByNodeId,
     });
   });
 
-  const relationInstancesData = await loadRelations(plugin);
-  const relationInstanceToLocalConcepts = Object.values(
-    relationInstancesData.relations,
-  )
+  const relationInstanceToLocalConcepts = relationInstances
     .filter(
       (relationInstanceData) =>
         !relationInstanceData.importedFromRid &&
