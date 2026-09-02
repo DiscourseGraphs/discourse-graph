@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { importPage } from "nextra/pages";
+import { AuthorLink } from "~/components/AuthorLink";
 import { getAllBlogs } from "./readBlogs";
 
 type ImportedPage = Awaited<ReturnType<typeof importPage>>;
@@ -53,7 +54,11 @@ const BlogIndex = async (): Promise<React.ReactElement> => {
                       </p>
                     </div>
                     <div className="w-1/5 text-right text-gray-600">
-                      by {blog.author}
+                      by{" "}
+                      <AuthorLink
+                        authorName={blog.author}
+                        className="decoration-current/35 underline underline-offset-4 hover:text-blue-600"
+                      />
                     </div>
                   </li>
                 ))

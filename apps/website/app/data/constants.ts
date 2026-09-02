@@ -1,4 +1,4 @@
-import { TeamMember } from "~/components/TeamPerson";
+import type { TeamMember } from "~/components/TeamPerson";
 
 export const DESCRIPTION =
   "Discourse Graphs are a tool and ecosystem for collaborative knowledge synthesis, enabling researchers to map ideas and arguments in a modular, composable graph format.";
@@ -10,11 +10,13 @@ export const TEAM_MEMBERS: TeamMember[] = [
     name: "Joel Chan",
     title: "Research",
     image: "/team/joel.png",
+    profileHref: "/authors/joel-chan",
   },
   {
     name: "Matthew Akamatsu",
     title: "Research",
     image: "/team/matt.png",
+    profileHref: "/authors/matthew-akamatsu",
   },
   {
     name: "Michael Gartner",

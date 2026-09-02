@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { getLatestBlogs } from "~/(home)/blog/readBlogs";
+import { AuthorLink, LinkedAuthorText } from "~/components/AuthorLink";
 import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { TeamPerson } from "~/components/TeamPerson";
@@ -590,25 +591,32 @@ const Home = async (): Promise<ReactElement> => {
             </div>
             <div className="mt-10 grid gap-4 lg:grid-cols-2">
               {RESOURCE_LINKS.map((resource) => (
-                <Link
+                <article
                   key={resource.href}
-                  href={resource.href}
-                  className="group rounded-lg border border-neutral-dark/10 bg-neutral-light p-5 transition-colors hover:border-secondary"
+                  className="rounded-lg border border-neutral-dark/10 bg-neutral-light p-5 transition-colors hover:border-secondary"
                 >
                   <p className="text-sm font-semibold text-secondary">
-                    {resource.meta}
+                    <LinkedAuthorText text={resource.meta} />
                   </p>
-                  <h3 className="mt-2 text-xl font-semibold text-neutral-dark">
-                    {resource.title}
+                  <h3 className="mt-2 text-xl font-semibold">
+                    <Link
+                      href={resource.href}
+                      className="text-neutral-dark transition-colors hover:text-secondary"
+                    >
+                      {resource.title}
+                    </Link>
                   </h3>
-                  <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                  <Link
+                    href={resource.href}
+                    className="group mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary"
+                  >
                     Open resource
                     <ArrowRight
                       className="h-4 w-4 transition-transform group-hover:translate-x-1"
                       aria-hidden="true"
                     />
-                  </p>
-                </Link>
+                  </Link>
+                </article>
               ))}
             </div>
           </div>
@@ -678,7 +686,11 @@ const Home = async (): Promise<ReactElement> => {
                         {blog.title}
                       </Link>
                       <p className="mt-6 text-sm text-neutral-dark/60">
-                        By {blog.author}
+                        By{" "}
+                        <AuthorLink
+                          authorName={blog.author}
+                          className="decoration-current/35 underline underline-offset-4 transition-colors hover:text-secondary"
+                        />
                       </p>
                     </CardContent>
                   </Card>
@@ -725,7 +737,7 @@ const Home = async (): Promise<ReactElement> => {
                       {talk.title}
                     </h3>
                     <p className="mt-2 text-sm text-neutral-dark/65">
-                      {talk.speakers}
+                      <LinkedAuthorText text={talk.speakers} />
                     </p>
                   </div>
                 </article>
