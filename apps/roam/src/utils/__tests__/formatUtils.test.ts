@@ -76,6 +76,16 @@ describe("insertTagIntoText", () => {
     ).toBe("idea #Claim");
   });
 
+  it("does not add a second space when the cursor follows whitespace", () => {
+    expect(
+      insertTagIntoText({
+        text: "some block ",
+        tag: "Claim",
+        selectionStart: "some block ".length,
+      }),
+    ).toBe("some block #Claim");
+  });
+
   it("inserts the tag at the cursor position inside the text", () => {
     expect(
       insertTagIntoText({

@@ -189,11 +189,10 @@ export const insertTagIntoText = ({
   text: string;
   tag: string;
   selectionStart: number;
-}) => {
-  const textToInsert = `${selectionStart === 0 ? "" : " "}#${tag.replace(
-    /^#+/,
-    "",
-  )}`;
+}): string => {
+  const precededByWhitespace = /\s$/.test(text.substring(0, selectionStart));
+  const needsSpace = selectionStart > 0 && !precededByWhitespace;
+  const textToInsert = `${needsSpace ? " " : ""}#${tag.replace(/^#+/, "")}`;
   return `${text.substring(0, selectionStart)}${textToInsert}${text.substring(
     selectionStart,
   )}`;
