@@ -6,6 +6,7 @@ import {
   createBreadcrumbStructuredData,
   createStructuredDataDocument,
 } from "~/utils/structuredData";
+import { AuthorLink } from "~/components/AuthorLink";
 import { getAllBlogs } from "./readBlogs";
 import { getCanonicalMetadata, PUBLIC_STATIC_PATHS } from "~/seo";
 
@@ -67,7 +68,11 @@ const BlogIndex = async (): Promise<React.ReactElement> => {
                       </p>
                     </div>
                     <div className="w-1/5 text-right text-gray-600">
-                      by {blog.author}
+                      by{" "}
+                      <AuthorLink
+                        authorName={blog.author}
+                        className="decoration-current/35 underline underline-offset-4 hover:text-blue-600"
+                      />
                     </div>
                   </li>
                 ))
