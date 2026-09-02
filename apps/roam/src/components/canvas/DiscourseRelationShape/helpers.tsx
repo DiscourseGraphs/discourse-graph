@@ -207,7 +207,7 @@ export function getParallelArrowBend({
       : -arrow.props.bend;
   });
   const occupied = [...existingCanonicalBends, ...reservedCanonicalBends];
-  const slotOffset = (slot: number) =>
+  const slotOffset = (slot: number): number =>
     slot === 0
       ? 0
       : Math.ceil(slot / 2) *
