@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { generateStaticParamsFor, importPage } from "nextra/pages";
 import DocsPageTemplate from "../../_components/DocsPageTemplate";
 import { getCanonicalMetadata, getDocsPath } from "~/seo";
+import { buildDocsPageMetadata } from "../../docsMetadata";
 
 type DocsPageProps = {
   params: Promise<{
@@ -62,7 +63,7 @@ export const generateMetadata = async ({
     const { metadata } = await loadPage(mdxPath);
 
     return {
-      ...metadata,
+      ...buildDocsPageMetadata({ metadata, platform: "obsidian" }),
       ...canonicalMetadata,
     };
   } catch (error) {
