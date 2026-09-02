@@ -59,7 +59,8 @@ export const AUTHOR_PROFILES: AuthorProfile[] = [
       {
         href: "https://www.youtube-nocookie.com/embed/Fm-lzNhVMKs",
         label: "Topos Institute",
-        title: "Discourse Graphs: A New Model for Scientific Communication",
+        title:
+          "Collective grassroots knowledge generation with lab discourse graphs",
       },
       {
         href: "https://www.youtube-nocookie.com/embed/2xGQepp-f-8",
