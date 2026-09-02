@@ -13,6 +13,7 @@ describe("buildDocsPageMetadata", () => {
         description: "Build and organize a Discourse Graph on the canvas.",
         author: "Documentation team",
         date: "2026-08-25",
+        updatedAt: "2026-08-27",
       },
       platform: "roam",
     });
@@ -24,7 +25,8 @@ describe("buildDocsPageMetadata", () => {
       openGraph: {
         type: "article",
         authors: ["Documentation team"],
-        modifiedTime: "2026-08-25",
+        publishedTime: "2026-08-25",
+        modifiedTime: "2026-08-27",
       },
     });
   });
@@ -43,6 +45,10 @@ describe("buildDocsPageMetadata", () => {
       "Node search documentation for the Discourse Graph Obsidian plugin.",
     );
     expect(metadata.authors).toEqual([{ name: DOCS_AUTHOR }]);
+    expect(metadata.openGraph).toMatchObject({
+      publishedTime: "2026-08-23",
+      modifiedTime: undefined,
+    });
   });
 });
 
@@ -50,6 +56,20 @@ describe("getDocsPageDetails", () => {
   it("uses collective attribution without inventing an update date", () => {
     expect(getDocsPageDetails({ title: "Roam documentation" })).toEqual({
       author: DOCS_AUTHOR,
+      publishedAt: undefined,
+      updatedAt: undefined,
+    });
+  });
+
+  it("does not treat a generic page date as a modification date", () => {
+    expect(
+      getDocsPageDetails({
+        title: "Installation",
+        date: "2025-01-01",
+      }),
+    ).toEqual({
+      author: DOCS_AUTHOR,
+      publishedAt: "2025-01-01",
       updatedAt: undefined,
     });
   });

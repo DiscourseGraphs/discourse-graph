@@ -42,7 +42,9 @@ const Page = async ({ params }: DocsPageProps): Promise<React.ReactElement> => {
 
     return (
       <DocsPageTemplate {...wrapperProps}>
-        <MDXContent params={{ mdxPath: mdxPath ?? [] }} />
+        {({ h1 }) => (
+          <MDXContent components={{ h1 }} params={{ mdxPath: mdxPath ?? [] }} />
+        )}
       </DocsPageTemplate>
     );
   } catch (error) {

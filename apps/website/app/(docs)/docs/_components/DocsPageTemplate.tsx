@@ -1,8 +1,16 @@
 import type { EvaluateResult } from "nextra";
 import { useMDXComponents } from "mdx-components";
-import { getDocsPageDetails } from "../docsMetadata";
+import { DocsPageHeading } from "./DocsPageHeading";
 
 type DocsPageTemplateProps = Omit<EvaluateResult, "default"> & {
+  children: ({
+    h1,
+  }: {
+    h1: React.ComponentType<React.HTMLAttributes<HTMLHeadingElement>>;
+  }) => React.ReactNode;
+};
+
+type DocsPageWrapperProps = Omit<DocsPageTemplateProps, "children"> & {
   children: React.ReactNode;
 };
 
@@ -16,37 +24,24 @@ const DocsPageTemplate = ({
   ...wrapperProps
 }: DocsPageTemplateProps): React.ReactElement => {
   const { h1, wrapper } = useMDXComponents();
-  const Wrapper = wrapper as React.ComponentType<DocsPageTemplateProps>;
+  const Wrapper = wrapper as React.ComponentType<DocsPageWrapperProps>;
   const H1 = h1 as React.ComponentType<
-    React.HTMLAttributes<HTMLHeadingElement> & {
-      children: React.ReactNode;
-    }
+    React.HTMLAttributes<HTMLHeadingElement>
   >;
-  const { author, updatedAt } = getDocsPageDetails(metadata);
   const showsPrimaryHeading = hasPrimaryHeading(sourceCode);
+  const PageHeading = (
+    headingProps: React.HTMLAttributes<HTMLHeadingElement>,
+  ): React.ReactElement =>
+    DocsPageHeading({
+      headingComponent: H1,
+      headingProps,
+      metadata,
+    }) as unknown as React.ReactElement;
 
   return (
     <Wrapper metadata={metadata} sourceCode={sourceCode} {...wrapperProps}>
-      {!showsPrimaryHeading && (
-        <>
-          <H1>{metadata.title}</H1>
-          <p className="mt-2 text-sm text-gray-500">
-            By {author}
-            {updatedAt && (
-              <>
-                {" · Last updated "}
-                <time dateTime={updatedAt}>
-                  {new Intl.DateTimeFormat("en", {
-                    dateStyle: "long",
-                    timeZone: "UTC",
-                  }).format(new Date(updatedAt))}
-                </time>
-              </>
-            )}
-          </p>
-        </>
-      )}
-      {children}
+      {!showsPrimaryHeading && <PageHeading>{metadata.title}</PageHeading>}
+      {children({ h1: PageHeading })}
     </Wrapper>
   );
 };
