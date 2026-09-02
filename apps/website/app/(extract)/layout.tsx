@@ -3,11 +3,13 @@ import "~/globals.css";
 import Image from "next/image";
 import Link from "next/link";
 import { Inter } from "next/font/google";
+import { getCanonicalMetadata, PUBLIC_STATIC_PATHS } from "~/seo";
 
 export const metadata: Metadata = {
   title: "Extract Nodes | Discourse Graphs",
   description:
     "Extract structured discourse graph nodes from academic papers using AI.",
+  ...getCanonicalMetadata(PUBLIC_STATIC_PATHS.extractNodes),
 };
 
 const inter = Inter({

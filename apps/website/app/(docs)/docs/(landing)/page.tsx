@@ -3,11 +3,13 @@ import { ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { Logo } from "~/components/Logo";
+import { getCanonicalMetadata, PUBLIC_STATIC_PATHS } from "~/seo";
 
 export const metadata: Metadata = {
   title: "Documentation",
   description:
     "Choose the Discourse Graphs documentation for Roam Research or Obsidian.",
+  ...getCanonicalMetadata(PUBLIC_STATIC_PATHS.docs),
 };
 
 const DOCS_DESTINATIONS = [
