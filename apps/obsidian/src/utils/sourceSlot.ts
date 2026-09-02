@@ -85,54 +85,80 @@ export const indexSourceSlotValues = ({
   );
 };
 
+// Appended to a my_concepts select that already carries source_local_id.
 export const SOURCE_SLOT_PROBE_SELECT =
-  "reference_content, concepts_of_relation(id, source_local_id)";
+  "reference_content, concepts_of_relation(id, space_id, source_local_id)";
 
 export type SourceSlotProbeRow = {
-  source_local_id: string | null;
   reference_content: Json | null;
   concepts_of_relation: {
     id: number | null;
+    space_id: number | null;
     source_local_id: string | null;
   }[];
 };
 
-const storedSourceDocumentLocalId = (
+type StoredSourceDocument = {
+  spaceId: number | null;
+  localId: string | null;
+};
+
+const storedSourceDocumentOf = (
   row: SourceSlotProbeRow,
-): string | undefined => {
+): StoredSourceDocument | undefined => {
   const content = row.reference_content;
   if (typeof content !== "object" || content === null || Array.isArray(content))
     return undefined;
   const conceptId = content[SOURCE_SLOT];
   if (typeof conceptId !== "number") return undefined;
-  return (
-    row.concepts_of_relation.find((concept) => concept.id === conceptId)
-      ?.source_local_id ?? undefined
+  const concept = row.concepts_of_relation.find(
+    (candidate) => candidate.id === conceptId,
   );
+  if (!concept) return undefined;
+  return { spaceId: concept.space_id, localId: concept.source_local_id };
 };
 
-const localIdOf = (sourceDocumentId: string): string =>
-  isRid(sourceDocumentId)
-    ? ridToSpaceUriAndLocalId(sourceDocumentId).sourceLocalId
-    : sourceDocumentId;
+const storedMatchesWanted = ({
+  stored,
+  wanted,
+  spaceId,
+}: {
+  stored: StoredSourceDocument | undefined;
+  wanted: string | undefined;
+  spaceId: number;
+}): boolean => {
+  if (wanted === undefined) return stored === undefined;
+  if (stored === undefined) return false;
+  if (isRid(wanted))
+    return (
+      stored.spaceId !== spaceId &&
+      stored.localId === ridToSpaceUriAndLocalId(wanted).sourceLocalId
+    );
+  return stored.spaceId === spaceId && stored.localId === wanted;
+};
 
-// A relation added, accepted, or removed changes no note, so the stored slot is compared
-// with the wanted one on full sync. The comparison is by local id: the database stores
-// the Source's concept id, and an imported Source is wanted by its origin RID.
+// A relation added, accepted, or removed changes no file, so the mtime check never
+// fires; full sync compares the stored slot with the wanted one instead. The database
+// stores the Source's concept id: a local Source must resolve to a concept in this
+// space, an imported Source (wanted by its origin RID) to one in another space.
 export const findStaleSourceSlotNodeIds = ({
   rows,
   sourceSlotByNodeId,
+  spaceId,
 }: {
-  rows: SourceSlotProbeRow[];
+  rows: (SourceSlotProbeRow & { source_local_id: string | null })[];
   sourceSlotByNodeId: Record<string, string>;
+  spaceId: number;
 }): Set<string> => {
   const stale = new Set<string>();
   for (const row of rows) {
     if (row.source_local_id === null) continue;
-    const wanted = sourceSlotByNodeId[row.source_local_id];
-    const wantedLocalId = wanted === undefined ? undefined : localIdOf(wanted);
-    if (wantedLocalId !== storedSourceDocumentLocalId(row))
-      stale.add(row.source_local_id);
+    const matches = storedMatchesWanted({
+      stored: storedSourceDocumentOf(row),
+      wanted: sourceSlotByNodeId[row.source_local_id],
+      spaceId,
+    });
+    if (!matches) stale.add(row.source_local_id);
   }
   return stale;
 };

@@ -21,7 +21,8 @@ import {
   discourseRelationTypeToLocalConcept,
   relationInstanceToLocalConcept,
 } from "./conceptConversion";
-import { loadRelations } from "~/utils/relationsStore";
+import { loadRelations, type RelationsFile } from "~/utils/relationsStore";
+import type { RelationInstance } from "~/types";
 import {
   findStaleSourceSlotNodeIds,
   indexSourceSlotValues,
@@ -393,6 +394,7 @@ const buildChangedNodesFromNodes = async ({
         staleSourceSlotIds = findStaleSourceSlotNodeIds({
           rows: existingConceptIds,
           sourceSlotByNodeId,
+          spaceId: context.spaceId,
         });
     }
   }
@@ -435,16 +437,17 @@ const buildChangedNodesFromNodes = async ({
   return { changedNodes };
 };
 
-const indexSourceSlots = async ({
+const indexSourceSlots = ({
   plugin,
   nodes,
+  relations,
 }: {
   plugin: DiscourseGraphPlugin;
   nodes: DiscourseNodeInVault[];
-}): Promise<Record<string, string>> => {
-  const relationInstancesData = await loadRelations(plugin);
-  return indexSourceSlotValues({
-    relations: Object.values(relationInstancesData.relations),
+  relations: RelationInstance[];
+}): Record<string, string> =>
+  indexSourceSlotValues({
+    relations,
     nodes,
     localSpaceUri: getLocalSpaceUri(plugin.app),
     nodeTypesById: Object.fromEntries(
@@ -454,7 +457,6 @@ const indexSourceSlots = async ({
       ]),
     ),
   });
-};
 
 export const syncAllNodesAndRelations = async (
   plugin: DiscourseGraphPlugin,
@@ -473,10 +475,14 @@ export const syncAllNodesAndRelations = async (
     }
 
     const allNodes = await collectDiscourseNodesFromVault(plugin, true);
-    const sourceSlotByNodeId = await indexSourceSlots({
-      plugin,
-      nodes: allNodes,
-    });
+    const relationInstancesData = await loadRelations(plugin);
+    const sourceSlotByNodeId = relationsOnly
+      ? undefined
+      : indexSourceSlots({
+          plugin,
+          nodes: allNodes,
+          relations: Object.values(relationInstancesData.relations),
+        });
 
     const { changedNodes: changedNodeInstances } = relationsOnly
       ? { changedNodes: [] }
@@ -508,6 +514,7 @@ export const syncAllNodesAndRelations = async (
       plugin,
       allNodes,
       fullSync: true,
+      relationInstancesData,
       sourceSlotByNodeId,
     });
 
@@ -529,6 +536,7 @@ const convertDgToSupabaseConcepts = async ({
   plugin,
   allNodes,
   fullSync,
+  relationInstancesData,
   sourceSlotByNodeId,
 }: {
   nodesSince: ObsidianDiscourseNodeData[];
@@ -537,6 +545,7 @@ const convertDgToSupabaseConcepts = async ({
   plugin: DiscourseGraphPlugin;
   allNodes?: DiscourseNodeInVault[];
   fullSync?: boolean;
+  relationInstancesData?: RelationsFile;
   sourceSlotByNodeId?: Record<string, string>;
 }): Promise<void> => {
   const lastNodeSchemaSync = (
@@ -649,22 +658,18 @@ const convertDgToSupabaseConcepts = async ({
     )
     .filter((n) => !!n);
 
-  const relationInstancesData = await loadRelations(plugin);
+  relationInstancesData =
+    relationInstancesData ?? (await loadRelations(plugin));
   const relationInstances = Object.values(relationInstancesData.relations);
-  const sourceSlots =
+  sourceSlotByNodeId =
     sourceSlotByNodeId ??
-    indexSourceSlotValues({
-      relations: relationInstances,
-      nodes: allNodes,
-      localSpaceUri: getLocalSpaceUri(plugin.app),
-      nodeTypesById,
-    });
+    indexSourceSlots({ plugin, nodes: allNodes, relations: relationInstances });
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
     return discourseNodeInstanceToLocalConcept({
       context,
       nodeData: node,
       nodeTypesById,
-      sourceSlotByNodeId: sourceSlots,
+      sourceSlotByNodeId,
     });
   });
 
