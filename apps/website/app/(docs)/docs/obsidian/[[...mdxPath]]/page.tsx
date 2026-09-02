@@ -4,6 +4,11 @@ import { generateStaticParamsFor, importPage } from "nextra/pages";
 import DocsPageTemplate from "../../_components/DocsPageTemplate";
 import { getCanonicalMetadata, getDocsPath } from "~/seo";
 import { buildDocsPageMetadata } from "../../docsMetadata";
+import { JsonLd } from "~/components/JsonLd";
+import {
+  createDocsBreadcrumbStructuredData,
+  createStructuredDataDocument,
+} from "~/utils/structuredData";
 
 type DocsPageProps = {
   params: Promise<{
@@ -38,14 +43,27 @@ const Page = async ({ params }: DocsPageProps): Promise<React.ReactElement> => {
   try {
     const { mdxPath } = await params;
     const result = await loadPage(mdxPath);
-    const { default: MDXContent, ...wrapperProps } = result;
+    const { default: MDXContent, metadata, ...wrapperProps } = result;
+    const title =
+      typeof metadata.title === "string" ? metadata.title : "Obsidian docs";
 
     return (
-      <DocsPageTemplate {...wrapperProps}>
-        {({ h1 }) => (
-          <MDXContent components={{ h1 }} params={{ mdxPath: mdxPath ?? [] }} />
-        )}
-      </DocsPageTemplate>
+      <>
+        <JsonLd
+          data={createStructuredDataDocument([
+            createDocsBreadcrumbStructuredData({
+              mdxPath,
+              platform: "obsidian",
+              title,
+            }),
+          ])}
+        />
+        <DocsPageTemplate metadata={metadata} {...wrapperProps}>
+          {({ h1 }) => (
+            <MDXContent components={{ h1 }} params={{ mdxPath: mdxPath ?? [] }} />
+          )}
+        </DocsPageTemplate>
+      </>
     );
   } catch (error) {
     console.error("Error rendering Obsidian docs page:", error);
