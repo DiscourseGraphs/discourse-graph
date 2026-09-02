@@ -52,4 +52,13 @@ describe("author profiles", () => {
       "Collective grassroots knowledge generation with lab discourse graphs",
     );
   });
+
+  it("links Matt's University of Washington profile", () => {
+    const mattProfile = getAuthorProfileBySlug("matthew-akamatsu");
+
+    expect(mattProfile?.externalProfiles).toContainEqual({
+      href: "https://biology.washington.edu/people/matthew-akamatsu",
+      label: "University of Washington Biology profile",
+    });
+  });
 });

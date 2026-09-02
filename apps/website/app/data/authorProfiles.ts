@@ -33,7 +33,12 @@ export const AUTHOR_PROFILES: AuthorProfile[] = [
       },
     ],
     aliases: ["Matt Akamatsu"],
-    externalProfiles: [],
+    externalProfiles: [
+      {
+        href: "https://biology.washington.edu/people/matthew-akamatsu",
+        label: "University of Washington Biology profile",
+      },
+    ],
     image: "/team/matt.png",
     name: "Matthew Akamatsu",
     publications: [
