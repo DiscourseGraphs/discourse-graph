@@ -94,6 +94,19 @@ const makeCrossAppNode = ({
 
 type RpcArgs = { v_space_id: number; data: Record<string, unknown>[] };
 
+type SelectResponse = {
+  data: { source_local_id: string }[];
+  error: null;
+};
+
+type FakeSelectBuilder = PromiseLike<SelectResponse> & {
+  url: { search: string };
+  eq: () => FakeSelectBuilder;
+  in: () => FakeSelectBuilder;
+  order: (column: string) => FakeSelectBuilder;
+  range: () => Promise<SelectResponse>;
+};
+
 const makeFakeClient = ({
   syncedUids = [],
   rpcResponse,
@@ -107,7 +120,7 @@ const makeFakeClient = ({
     rows: Record<string, unknown>[];
     options: Record<string, unknown>;
   }[] = [];
-  const selectResult = (table: string) =>
+  const selectResult = (table: string): Promise<SelectResponse> =>
     Promise.resolve({
       data:
         table === "my_concepts"
@@ -115,12 +128,24 @@ const makeFakeClient = ({
           : [],
       error: null,
     });
+  const makeSelectBuilder = (table: string): FakeSelectBuilder => {
+    const builder: FakeSelectBuilder = {
+      url: { search: "" },
+      eq: () => builder,
+      in: () => builder,
+      order: (column) => {
+        builder.url.search += `&order=${column}`;
+        return builder;
+      },
+      range: () => selectResult(table),
+      then: (onfulfilled, onrejected) =>
+        selectResult(table).then(onfulfilled, onrejected),
+    };
+    return builder;
+  };
   const client = {
     from: (table: string) => ({
-      select: () => ({
-        eq: () => ({ in: () => selectResult(table) }),
-        in: () => selectResult(table),
-      }),
+      select: () => makeSelectBuilder(table),
       upsert: (
         rows: Record<string, unknown>[],
         options: Record<string, unknown>,
