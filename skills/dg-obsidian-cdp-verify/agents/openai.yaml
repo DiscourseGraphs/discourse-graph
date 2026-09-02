@@ -1,0 +1,4 @@
+interface:
+  display_name: "DG Obsidian CDP Verify"
+  short_description: "Verify apps/obsidian changes in the running app"
+  default_prompt: "Use $dg-obsidian-cdp-verify to verify my apps/obsidian change against the running app."
