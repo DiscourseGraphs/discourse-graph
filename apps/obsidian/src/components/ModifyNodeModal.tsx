@@ -167,7 +167,6 @@ export const ModifyNodeForm = ({
     if (isOpen && titleInputRef.current && popoverRef.current) {
       const inputRect = titleInputRef.current.getBoundingClientRect();
       const popover = popoverRef.current;
-      popover.style.position = "fixed";
       popover.style.top = `${inputRect.bottom + 4}px`;
       popover.style.left = `${inputRect.left}px`;
       popover.style.width = `${inputRect.width}px`;
@@ -201,8 +200,9 @@ export const ModifyNodeForm = ({
   useEffect(() => {
     const el = titleInputRef.current;
     if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    // Two steps, not one: collapsing to auto first is what makes scrollHeight report the shrunk size.
+    el.setCssProps({ height: "auto" });
+    el.setCssProps({ height: `${el.scrollHeight}px` });
   }, [query]);
 
   // Determine available relationships based on current file and selected node type

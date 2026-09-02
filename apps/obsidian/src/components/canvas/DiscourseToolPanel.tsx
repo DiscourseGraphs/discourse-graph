@@ -19,6 +19,12 @@ import {
 } from "./DiscourseRelationTool";
 import { TOOL_ARROW_ICON_SVG } from "~/icons";
 
+const DRAG_GHOST_HIDDEN_CLASSES = "hidden";
+const DRAG_GHOST_VISIBLE_CLASSES =
+  "pointer-events-none fixed left-0 top-0 flex h-[50px] w-[50px] items-center";
+// Centres the 50px ghost on the cursor.
+const DRAG_GHOST_CURSOR_OFFSET = 25;
+
 const TOOL_ARROW_ICON_DATA_URL = `data:image/svg+xml;base64,${btoa(TOOL_ARROW_ICON_SVG)}`;
 
 export const DiscourseToolPanel = ({
@@ -161,7 +167,7 @@ export const DiscourseToolPanel = ({
       switch (current.name) {
         case "idle":
         case "pointing_item": {
-          imageRef.setAttribute("style", "display: none");
+          imageRef.className = DRAG_GHOST_HIDDEN_CLASSES;
           break;
         }
         case "dragging": {
@@ -175,18 +181,12 @@ export const DiscourseToolPanel = ({
           const viewportScreenBounds = editor.getViewportScreenBounds();
           const isInside = Box.ContainsPoint(box, current.currentPosition);
           if (isInside) {
-            imageRef.style.display = "none";
+            imageRef.className = DRAG_GHOST_HIDDEN_CLASSES;
           } else {
-            imageRef.style.display = "block";
-            imageRef.style.position = "fixed";
-            imageRef.style.pointerEvents = "none";
-            imageRef.style.left = "0px";
-            imageRef.style.top = "0px";
-            imageRef.style.transform = `translate(${current.currentPosition.x - viewportScreenBounds.x - 25}px, ${current.currentPosition.y - viewportScreenBounds.y - 25}px)`;
-            imageRef.style.width = "50px";
-            imageRef.style.height = "50px";
-            imageRef.style.display = "flex";
-            imageRef.style.alignItems = "center";
+            imageRef.className = DRAG_GHOST_VISIBLE_CLASSES;
+            imageRef.setCssProps({
+              transform: `translate(${current.currentPosition.x - viewportScreenBounds.x - DRAG_GHOST_CURSOR_OFFSET}px, ${current.currentPosition.y - viewportScreenBounds.y - DRAG_GHOST_CURSOR_OFFSET}px)`,
+            });
           }
         }
       }
@@ -295,7 +295,8 @@ export const DiscourseToolPanel = ({
               />
             ))}
           </div>
-          <div ref={rDraggingImage}>
+          {/* className must stay constant: the drag reactor writes it imperatively, and React only clobbers props whose rendered value changed. */}
+          <div ref={rDraggingImage} className={DRAG_GHOST_HIDDEN_CLASSES}>
             {state.name === "dragging"
               ? (getNodeTypeById(plugin, state.nodeTypeId)?.name ?? "")
               : null}
