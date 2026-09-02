@@ -1,5 +1,6 @@
 import type { EvaluateResult } from "nextra";
 import { useMDXComponents } from "mdx-components";
+import { getDocsPageDetails } from "../docsMetadata";
 
 type DocsPageTemplateProps = Omit<EvaluateResult, "default"> & {
   children: React.ReactNode;
@@ -21,10 +22,30 @@ const DocsPageTemplate = ({
       children: React.ReactNode;
     }
   >;
+  const { author, updatedAt } = getDocsPageDetails(metadata);
+  const showsPrimaryHeading = hasPrimaryHeading(sourceCode);
 
   return (
     <Wrapper metadata={metadata} sourceCode={sourceCode} {...wrapperProps}>
-      {!hasPrimaryHeading(sourceCode) && <H1>{metadata.title}</H1>}
+      {!showsPrimaryHeading && (
+        <>
+          <H1>{metadata.title}</H1>
+          <p className="mt-2 text-sm text-gray-500">
+            By {author}
+            {updatedAt && (
+              <>
+                {" · Last updated "}
+                <time dateTime={updatedAt}>
+                  {new Intl.DateTimeFormat("en", {
+                    dateStyle: "long",
+                    timeZone: "UTC",
+                  }).format(new Date(updatedAt))}
+                </time>
+              </>
+            )}
+          </p>
+        </>
+      )}
       {children}
     </Wrapper>
   );
