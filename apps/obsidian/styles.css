@@ -1,6 +1,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* tldraw otherwise caps the style panel at 148px; only the context tab needs
+   the extra width, the styling tab keeps tldraw's default proportions. */
+.tlui-style-panel:has(.dg-node-card-menu--context) {
+  width: min(20rem, calc(100vw - 1rem));
+  max-width: min(20rem, calc(100vw - 1rem));
+}
+
 .accent-border-bottom {
   border-bottom: 2px solid var(--interactive-accent) !important;
 }
@@ -99,4 +106,12 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   color: inherit;
   border: none !important;
   box-shadow: none !important;
+}
+
+/* The reset above outranks utility classes; re-assert the node card menu's active tab styling.
+   border-radius 0 keeps the underline flat instead of bending around the button's rounded corners. */
+.tldraw__editor .dg-node-card-menu button.accent-border-bottom {
+  border-bottom: 2px solid var(--interactive-accent) !important;
+  border-radius: 0;
+  color: var(--interactive-accent);
 }
