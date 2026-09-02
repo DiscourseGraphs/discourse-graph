@@ -271,23 +271,34 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
     expect(node.slots).toEqual({ sourceDocument: "source-1" });
   });
 
-  it("writes the origin RID when the source page was imported from another app", async () => {
-    mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
-    mockedReadImportedSourceIdentity.mockReturnValue({
-      sourceModifiedAt: "2026-06-14T15:00:00.000Z",
-      sourceNodeRid: "orn:obsidian.note:vault-a/node-1",
-    });
-    const node = await convertRow({
-      ...baseRow,
-      ":node/title": "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
-    });
-    expect(node.slots).toEqual({
-      sourceDocument: "orn:obsidian.note:vault-a/node-1",
-    });
-    expect(mockedReadImportedSourceIdentity).toHaveBeenCalledWith("source-1");
-  });
+  it.each([
+    "orn:obsidian.note:vault-a/node-1",
+    "orn:obsidian:vault-a/node-1",
+    "https://roamresearch.com/#/app/graph-b/node-1",
+  ])(
+    "writes the origin RID %j when the source page was imported from another app",
+    async (sourceNodeRid) => {
+      mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
+      mockedReadImportedSourceIdentity.mockReturnValue({
+        sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+        sourceNodeRid,
+      });
+      const node = await convertRow({
+        ...baseRow,
+        ":node/title": "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+      });
+      expect(node.slots).toEqual({ sourceDocument: sourceNodeRid });
+      expect(mockedReadImportedSourceIdentity).toHaveBeenCalledWith("source-1");
+    },
+  );
 
-  it.each(["not a rid", "orn:bad", "orn:obsidian.note:vault-a/"])(
+  it.each([
+    "not a rid",
+    "orn:bad",
+    "orn:obsidian.note:vault-a/",
+    "orn:broken/node-1",
+    "https:///node-1",
+  ])(
     "keeps the page uid when the imported identity %j is not a well-formed RID",
     async (sourceNodeRid) => {
       mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);

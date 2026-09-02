@@ -3,7 +3,6 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
 import { extractFieldFromTitle } from "./extractContentFromTitle";
 import { readImportedSourceIdentity } from "./importedSourceIdentity";
-import { isRid, ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
 
 // Temporary hack, until slots are a first-class node type setting: a node type whose
 // format has a {source} placeholder (Evidence, among the default node types) is taken
@@ -53,11 +52,28 @@ const isDiscourseNodeTitle = (
     .filter((n) => n.format !== "{content}") // exclude page and block
     .some((node) => matcherFor(node.format).test(title));
 
-const isWellFormedRid = (value: string): boolean => {
-  if (!isRid(value)) return false;
-  const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(value);
-  return spaceUri !== "" && sourceLocalId !== "";
+// The two RID shapes the database resolves (see rid_to_space_id_and_local_id). The
+// shared parser is not used here: its fallback splits any string at its last slash, so
+// it accepts values the database will fail to resolve.
+const ORN_RID = /^orn:\w+(\.\w+)?:.+\/[^/]+$/;
+
+const isHttpsRid = (value: string): boolean => {
+  try {
+    const { protocol, host } = new URL(value);
+    const lastSlash = value.lastIndexOf("/");
+    return (
+      protocol === "https:" &&
+      host !== "" &&
+      lastSlash > "https://".length &&
+      lastSlash < value.length - 1
+    );
+  } catch {
+    return false;
+  }
 };
+
+const isWellFormedRid = (value: string): boolean =>
+  ORN_RID.test(value) || isHttpsRid(value);
 
 // The page a node's {source} placeholder resolves to, when there is one: its uid, or
 // the RID it is known by elsewhere when it was imported from another app. The
