@@ -72,7 +72,7 @@ describe("structured data", () => {
     });
   });
 
-  it("builds the full route hierarchy for nested docs pages", () => {
+  it("omits a non-routable category from nested docs breadcrumbs", () => {
     const breadcrumbs = createDocsBreadcrumbStructuredData({
       mdxPath: ["advanced-features", "command-palette"],
       platform: "obsidian",
@@ -91,15 +91,19 @@ describe("structured data", () => {
           item: "https://discoursegraphs.com/docs/obsidian",
         },
         {
-          name: "Advanced Features",
-          item: "https://discoursegraphs.com/docs/obsidian/advanced-features",
-        },
-        {
           name: "Use the command palette",
           item: "https://discoursegraphs.com/docs/obsidian/advanced-features/command-palette",
         },
       ],
     });
+
+    if (breadcrumbs["@type"] !== "BreadcrumbList") {
+      throw new Error("Expected BreadcrumbList structured data");
+    }
+
+    expect(breadcrumbs.itemListElement.map(({ item }) => item)).not.toContain(
+      "https://discoursegraphs.com/docs/obsidian/advanced-features",
+    );
   });
 
   it("builds Person and VideoObject nodes from visible homepage data", () => {
@@ -121,6 +125,8 @@ describe("structured data", () => {
     });
     expect(video).toMatchObject({
       "@type": "VideoObject",
+      description:
+        "Accelerating Scientific Discovery with Discourse Graphs. Featuring: Joel Chan, Protocol Labs Research Seminar.",
       embedUrl: "https://www.youtube-nocookie.com/embed/53kLyq7PceQ",
       thumbnailUrl: "https://i.ytimg.com/vi/53kLyq7PceQ/hqdefault.jpg",
     });
