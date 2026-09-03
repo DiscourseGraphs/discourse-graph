@@ -68,8 +68,6 @@ export const SETTINGS_TAB_META = {
   { section: string; label: string; searchable: boolean }
 >;
 
-export type SettingsTabId = keyof typeof SETTINGS_TAB_META;
-
 /** Tab ids from before the taxonomy. Saved deep links still carry these. */
 export const SETTINGS_TAB_ALIASES: Record<string, TabId> = {
   "discourse-graph-home-personal": SETTINGS_TAB_IDS.preferencesGeneral,
