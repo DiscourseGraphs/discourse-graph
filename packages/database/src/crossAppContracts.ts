@@ -74,6 +74,28 @@ type InlineCrossAppTypedContent = InlineCrossAppContent & {
   contentType: ContentType;
 };
 
+// An asset (an image or attachment) that a node's full content references.
+export type CrossAppAsset = {
+  // What the node's full content refers to, exactly as it wrote it: a path on a
+  // platform that addresses assets by path, a URL on one that addresses them by URL.
+  // Publication never rewrites it, so this is what a destination matches on, and it
+  // is unique within one node's `assets`: it maps to `FileReference.filepath`, which
+  // is part of that table's primary key.
+  sourceRef: string;
+  // The SHA-256 of the stored bytes as 64 lowercase hex characters, which is also
+  // their object name in shared storage. A destination looks the bytes up by this
+  // string exactly, so any other encoding fails as a not-found rather than a type error.
+  // Required: an asset whose bytes were not stored is represented by its absence
+  // from `assets`, not by an entry with nothing to resolve. Its `sourceRef` stays in
+  // the content, and the failure is reported by whichever transfer hit it.
+  contentHash: string;
+  // Where the source kept the asset: a name on a platform with a flat asset namespace,
+  // a path on one with folders. A destination derives the name and placement of its
+  // local copy by decomposing this as a path, and a bare name decomposes to itself.
+  // Absent when the source recorded nothing beyond `sourceRef`.
+  sourcePath?: string;
+};
+
 // A node instance
 export type CrossAppNode = CrossAppBase & {
   nodeType: LocalId;
@@ -86,6 +108,10 @@ export type CrossAppNode = CrossAppBase & {
     direct: InlineCrossAppContent;
     full?: InlineCrossAppTypedContent;
   };
+  // The assets referenced by `content.full` whose bytes are stored. An asset that
+  // could not be stored is not listed: a destination leaves its token untouched,
+  // which is the same thing it does for a link that was never an asset.
+  assets?: CrossAppAsset[];
 };
 
 // A relation instance
