@@ -13,10 +13,7 @@ import {
 } from "./components/BlockPropSettingPanels";
 import { GLOBAL_KEYS, PERSONAL_KEYS } from "./utils/settingKeys";
 import { type SettingsSnapshot } from "./utils/accessors";
-import {
-  LEGACY_CONFIG_ORDER,
-  useLegacyConfigUids,
-} from "./utils/useLegacyConfigUids";
+import { useLegacyConfigBlocks } from "./utils/useLegacyConfigBlocks";
 import { SettingsSectionHeading } from "./components/SettingsHeadings";
 import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
@@ -29,18 +26,15 @@ const CanvasSettings = ({
   globalSettings: SettingsSnapshot["globalSettings"];
   personalSettings: SettingsSnapshot["personalSettings"];
 }) => {
-  const legacyUids = useLegacyConfigUids();
+  const legacyBlocks = useLegacyConfigBlocks();
   return (
     <div className="flex flex-col gap-4 p-1">
-      {/* Legacy casing: discourseConfigRef.ts reads this block by title. */}
       <GlobalTextPanel
         title="Canvas Page Format"
         description="The page format for canvas pages"
         settingKeys={[GLOBAL_KEYS.canvasPageFormat]}
         initialValue={globalSettings[GLOBAL_KEYS.canvasPageFormat]}
-        order={LEGACY_CONFIG_ORDER.canvasPageFormat}
-        uid={legacyUids.canvasPageFormatUid}
-        parentUid={legacyUids.settingsUid}
+        {...legacyBlocks.canvasPageFormat}
       />
       <KeyboardShortcutInput
         onloadArgs={onloadArgs}

@@ -35,6 +35,12 @@ type RoamBlockSyncProps = {
   parentUid?: string;
   uid?: string;
   order?: number;
+  /**
+   * Text of the legacy block this panel mirrors into. Defaults to `title`.
+   * Set it when the visible title must differ from the exact text that
+   * discourseConfigRef.ts and friends look the block up by.
+   */
+  blockKey?: string;
 };
 
 type TextSetter = (keys: string[], value: string) => void;
@@ -55,8 +61,7 @@ type BaseTextPanelProps = {
   error?: string;
   disabled?: boolean;
   onChange?: (value: string) => void;
-} & RoamBlockSyncProps &
-  LabelProps;
+} & RoamBlockSyncProps;
 
 type BaseFlagPanelProps = {
   title: string;
@@ -68,8 +73,7 @@ type BaseFlagPanelProps = {
   disabled?: boolean;
   onBeforeChange?: (checked: boolean) => Promise<boolean>;
   onChange?: (checked: boolean) => void;
-} & RoamBlockSyncProps &
-  LabelProps;
+} & RoamBlockSyncProps;
 
 type BaseNumberPanelProps = {
   title: string;
@@ -100,21 +104,15 @@ type BaseMultiTextPanelProps = {
   onChange?: (values: string[]) => void;
 } & RoamBlockSyncProps;
 
-type LabelProps = {
-  /** Display text. `title` is the legacy block key, so it cannot be restyled. */
-  label?: React.ReactNode;
-};
-
 const SettingTitle = ({
   title,
-  label,
   description,
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
-} & LabelProps) => (
+}) => (
   <>
-    {label ?? title}
+    {title}
     {description ? <Description description={description} /> : null}
   </>
 );
@@ -135,7 +133,7 @@ const BaseTextPanel = ({
   parentUid,
   uid,
   order,
-  label,
+  blockKey,
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? "");
   const errorRef = useRef(error);
@@ -143,7 +141,7 @@ const BaseTextPanel = ({
   const debounceRef = useRef(0);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
-    title,
+    title: blockKey ?? title,
     parentUid: parentUid ?? "",
     order: order ?? 0,
     uid,
@@ -179,7 +177,7 @@ const BaseTextPanel = ({
   return (
     <div className="flex flex-col" {...settingAnchor(settingKeys)}>
       <Label>
-        <SettingTitle title={title} label={label} description={description} />
+        <SettingTitle title={title} description={description} />
         {multiline ? (
           <TextArea
             value={value}
@@ -218,7 +216,7 @@ const BaseFlagPanel = ({
   parentUid,
   uid: initialBlockUid,
   order,
-  label,
+  blockKey,
 }: BaseFlagPanelProps) => {
   const [internalValue, setInternalValue] = useState(
     () => initialValue ?? false,
@@ -232,7 +230,7 @@ const BaseFlagPanel = ({
         if (blockUidRef.current) return;
         const newUid = window.roamAlphaAPI.util.generateUID();
         await window.roamAlphaAPI.data.block.create({
-          block: { string: title, uid: newUid },
+          block: { string: blockKey ?? title, uid: newUid },
           location: { order, "parent-uid": parentUid },
         });
         blockUidRef.current = newUid;
@@ -243,7 +241,7 @@ const BaseFlagPanel = ({
         blockUidRef.current = undefined;
       }
     },
-    [title, parentUid, order],
+    [blockKey, title, parentUid, order],
   );
 
   const handleChange = async (e: React.FormEvent<HTMLInputElement>) => {
@@ -267,9 +265,7 @@ const BaseFlagPanel = ({
         checked={value ?? internalValue}
         onChange={(e) => void handleChange(e)}
         disabled={disabled}
-        labelElement={
-          <SettingTitle title={title} label={label} description={description} />
-        }
+        labelElement={<SettingTitle title={title} description={description} />}
       />
     </div>
   );
@@ -287,11 +283,12 @@ const BaseNumberPanel = ({
   parentUid,
   uid,
   order,
+  blockKey,
 }: BaseNumberPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? 0);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
-    title,
+    title: blockKey ?? title,
     parentUid: parentUid ?? "",
     order: order ?? 0,
     uid,
@@ -342,11 +339,12 @@ const BaseSelectPanel = ({
   parentUid,
   uid,
   order,
+  blockKey,
 }: BaseSelectPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? options[0]);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
-    title,
+    title: blockKey ?? title,
     parentUid: parentUid ?? "",
     order: order ?? 0,
     uid,
@@ -395,6 +393,7 @@ const BaseMultiTextPanel = ({
   parentUid,
   uid: initialBlockUid,
   order,
+  blockKey,
 }: BaseMultiTextPanelProps) => {
   const [values, setValues] = useState<string[]>(() => initialValue ?? []);
   const [inputValue, setInputValue] = useState("");
@@ -415,12 +414,12 @@ const BaseMultiTextPanel = ({
     if (parentUid === undefined || order === undefined) return undefined;
     const newUid = window.roamAlphaAPI.util.generateUID();
     await window.roamAlphaAPI.createBlock({
-      block: { string: title, uid: newUid },
+      block: { string: blockKey ?? title, uid: newUid },
       location: { order, "parent-uid": parentUid },
     });
     blockUidRef.current = newUid;
     return newUid;
-  }, [title, parentUid, order]);
+  }, [blockKey, title, parentUid, order]);
 
   const handleAdd = async () => {
     if (inputValue.trim() && !values.includes(inputValue.trim())) {
@@ -541,7 +540,6 @@ const personalAccessors = {
 
 export const FeatureFlagPanel = ({
   title,
-  label,
   description,
   featureKey,
   initialValue,
@@ -552,6 +550,7 @@ export const FeatureFlagPanel = ({
   parentUid,
   uid,
   order,
+  blockKey,
 }: {
   title: string;
   description: React.ReactNode;
@@ -561,8 +560,7 @@ export const FeatureFlagPanel = ({
   disabled?: boolean;
   onBeforeEnable?: () => Promise<boolean>;
   onAfterChange?: (checked: boolean) => void;
-} & RoamBlockSyncProps &
-  LabelProps) => {
+} & RoamBlockSyncProps) => {
   const handleBeforeChange:
     | ((checked: boolean) => Promise<boolean>)
     | undefined = onBeforeEnable
@@ -577,7 +575,7 @@ export const FeatureFlagPanel = ({
   return (
     <BaseFlagPanel
       title={title}
-      label={label}
+      blockKey={blockKey}
       description={description}
       settingKeys={[featureKey as string]}
       setter={featureFlagSetter}
