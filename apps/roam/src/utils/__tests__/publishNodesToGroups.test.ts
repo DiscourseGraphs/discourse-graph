@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
@@ -31,6 +31,10 @@ vi.mock("~/utils/importedSourceIdentity", () => ({
   readImportedSourceIdentity: () => undefined,
 }));
 
+vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
+  default: (uid: string) => (uid === SOURCE_UID ? SOURCE_TITLE : ""),
+}));
+
 vi.mock("~/utils/roamToCrossAppConverters", () => ({
   nodeUidsWithTypeToCrossApp: vi.fn(),
   nodeSchemaToCrossApp: (s: DiscourseNode) => ({
@@ -59,6 +63,9 @@ import { publishNodesToGroups } from "~/utils/publishNodesToGroups";
 const SPACE_ID = 42;
 const GROUP_ID = "group-1";
 const SCHEMA_UID = "schema-1";
+const SOURCE_UID = "source-1";
+const SOURCE_TITLE = "@sun2019direct";
+const SOURCE_RID = "orn:obsidian.note:vault-a/node-1";
 
 const claimSchema: DiscourseNode = {
   type: SCHEMA_UID,
@@ -74,10 +81,12 @@ const makeCrossAppNode = ({
   uid,
   title,
   coreTitle = title,
+  slots,
 }: {
   uid: string;
   title: string;
   coreTitle?: string;
+  slots?: CrossAppNode["slots"];
 }): CrossAppNode => ({
   localId: uid,
   nodeType: SCHEMA_UID,
@@ -94,6 +103,7 @@ const makeCrossAppNode = ({
       scale: "document",
     },
   },
+  ...(slots ? { slots } : {}),
 });
 
 type RpcArgs = { v_space_id: number; data: Record<string, unknown>[] };
@@ -106,6 +116,7 @@ const makeFakeClient = ({
   rpcResponse?: { data: number[] | null; error: { message: string } | null };
 }) => {
   const rpcCalls: { fn: string; args: RpcArgs }[] = [];
+  const conceptLookups: string[][] = [];
   const upsertCalls: {
     table: string;
     rows: Record<string, unknown>[];
@@ -122,7 +133,12 @@ const makeFakeClient = ({
   const client = {
     from: (table: string) => ({
       select: () => ({
-        eq: () => ({ in: () => selectResult(table) }),
+        eq: () => ({
+          in: (_column: string, values: string[]) => {
+            if (table === "my_concepts") conceptLookups.push(values);
+            return selectResult(table);
+          },
+        }),
         in: () => selectResult(table),
       }),
       upsert: (
@@ -140,7 +156,7 @@ const makeFakeClient = ({
       );
     },
   } as unknown as DGSupabaseClient;
-  return { client, rpcCalls, upsertCalls };
+  return { client, rpcCalls, conceptLookups, upsertCalls };
 };
 
 describe("publishNodesToGroups", () => {
@@ -324,5 +340,142 @@ describe("publishNodesToGroups", () => {
     expect(result.publishedNodeUids).toEqual([]);
     expect(result.publishedNodeSchemaUids).toEqual([]);
     expect(upsertCalls[0].rows).toEqual([]);
+  });
+
+  describe("source slot", () => {
+    const evidenceNode = (sourceId: string) =>
+      makeCrossAppNode({
+        uid: "node-1",
+        title: `[[EVD]] - finding - [[${SOURCE_TITLE}]]`,
+        slots: { sourceDocument: sourceId },
+      });
+    const publish = (
+      client: DGSupabaseClient,
+      nodes: CrossAppNode[] = [evidenceNode(SOURCE_UID)],
+    ) =>
+      publishNodesToGroups({
+        client,
+        spaceId: SPACE_ID,
+        groupIds: [GROUP_ID],
+        nodes,
+      });
+
+    beforeEach(() => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("keeps the source slot when the source is already a concept in the space", async () => {
+      const { client, rpcCalls, conceptLookups } = makeFakeClient({
+        syncedUids: [SCHEMA_UID, SOURCE_UID],
+      });
+
+      await publish(client);
+
+      expect(conceptLookups[0]).toContain(SOURCE_UID);
+      expect(rpcCalls[0].args.data).toHaveLength(1);
+      expect(rpcCalls[0].args.data[0]).toMatchObject({
+        source_local_id: "node-1",
+        local_reference_content: { sourceDocument: SOURCE_UID },
+      });
+      expect(console.warn).not.toHaveBeenCalled();
+    });
+
+    it("looks a source up once however many nodes reference it", async () => {
+      const { client, conceptLookups } = makeFakeClient({
+        syncedUids: [SCHEMA_UID, SOURCE_UID],
+      });
+
+      await publish(client, [
+        evidenceNode(SOURCE_UID),
+        makeCrossAppNode({
+          uid: "node-2",
+          title: `[[EVD]] - another finding - [[${SOURCE_TITLE}]]`,
+          slots: { sourceDocument: SOURCE_UID },
+        }),
+      ]);
+
+      expect(conceptLookups[0].filter((id) => id === SOURCE_UID)).toHaveLength(
+        1,
+      );
+    });
+
+    it("omits the source slot and warns when the source is not a concept in the space", async () => {
+      const { client, rpcCalls, upsertCalls } = makeFakeClient({
+        syncedUids: [SCHEMA_UID],
+      });
+
+      const result = await publish(client);
+
+      expect(rpcCalls[0].args.data).toHaveLength(1);
+      expect(rpcCalls[0].args.data[0]).toMatchObject({
+        source_local_id: "node-1",
+      });
+      expect(rpcCalls[0].args.data[0].local_reference_content).toBeUndefined();
+      expect(console.warn).toHaveBeenCalledTimes(1);
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining(`"${SOURCE_TITLE}" (${SOURCE_UID})`),
+      );
+      expect(result.publishedNodeUids).toEqual(["node-1"]);
+      expect(result.failedUpsertUids).toEqual([]);
+      expect(upsertCalls[0].rows.map((r) => r.source_local_id)).toContain(
+        "node-1",
+      );
+    });
+
+    it("upserts a source published in the same batch before the node referencing it", async () => {
+      const { client, rpcCalls } = makeFakeClient({
+        syncedUids: [SCHEMA_UID],
+      });
+
+      await publish(client, [
+        evidenceNode(SOURCE_UID),
+        makeCrossAppNode({ uid: SOURCE_UID, title: SOURCE_TITLE }),
+      ]);
+
+      const { data } = rpcCalls[0].args;
+      expect(data.map((row) => row.source_local_id)).toEqual([
+        SOURCE_UID,
+        "node-1",
+      ]);
+      expect(data[1].local_reference_content).toEqual({
+        sourceDocument: SOURCE_UID,
+      });
+      expect(console.warn).not.toHaveBeenCalled();
+    });
+
+    it("passes an imported source's RID through without looking it up in the space", async () => {
+      const { client, rpcCalls, conceptLookups } = makeFakeClient({
+        syncedUids: [SCHEMA_UID],
+      });
+
+      await publish(client, [evidenceNode(SOURCE_RID)]);
+
+      expect(conceptLookups[0]).not.toContain(SOURCE_RID);
+      expect(rpcCalls[0].args.data[0].local_reference_content).toEqual({
+        sourceDocument: SOURCE_RID,
+      });
+      expect(console.warn).not.toHaveBeenCalled();
+    });
+
+    it("writes the same sourceDocument value on repeated publishes", async () => {
+      const { client, rpcCalls } = makeFakeClient({
+        syncedUids: [SCHEMA_UID, SOURCE_UID],
+      });
+
+      await publish(client);
+      await publish(client);
+
+      expect(rpcCalls).toHaveLength(2);
+      expect(rpcCalls[1].args.data[0].local_reference_content).toEqual({
+        sourceDocument: SOURCE_UID,
+      });
+      expect(rpcCalls[1].args.data[0].local_reference_content).toEqual(
+        rpcCalls[0].args.data[0].local_reference_content,
+      );
+    });
   });
 });

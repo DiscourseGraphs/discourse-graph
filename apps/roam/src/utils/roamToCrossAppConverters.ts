@@ -21,7 +21,7 @@ import {
   SOURCE_SLOT,
   schemaHasSourceSlot,
   sourceSlotSchemaId,
-  sourceUidOfNode,
+  sourceIdOfNode,
 } from "./sourceSlot";
 
 const FULL_MARKDOWN_OPTS = {
@@ -128,7 +128,7 @@ export const nodeUidsWithTypeToCrossApp = async (
     const pageEditTime =
       (row[":page/edit-time"] as number | undefined) ?? editTime;
     const nodeType = typesByUid[uid];
-    const sourceUid = sourceUidOfNode(title, schemasById[nodeType]);
+    const sourceId = sourceIdOfNode(title, schemasById[nodeType]);
 
     return {
       localId: uid,
@@ -146,7 +146,7 @@ export const nodeUidsWithTypeToCrossApp = async (
         },
         full: buildFullInlineContent({ uid, title }),
       },
-      ...(sourceUid ? { slots: { [SOURCE_SLOT]: sourceUid } } : {}),
+      ...(sourceId ? { slots: { [SOURCE_SLOT]: sourceId } } : {}),
     };
   });
   return results;
