@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "publish": "tsx scripts/publish.ts",
-    "check-types": "tsc --noEmit --skipLibCheck"
+    "check-types": "tsc --noEmit --skipLibCheck",
+    "test": "pnpm test:unit",
+    "test:unit": "vitest run --config vitest.config.mts"
   },
   "keywords": [],
   "author": "",
@@ -19,12 +21,10 @@
     "@octokit/core": "^6.1.2",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/mime-types": "3.0.1",
     "@types/node": "catalog:",
     "@types/react": "catalog:obsidian",
     "@types/react-dom": "catalog:obsidian",
     "autoprefixer": "^10.4.21",
-    "builtin-modules": "3.3.0",
     "dotenv": "^16.4.5",
     "esbuild": "0.17.3",
     "eslint": "catalog:",
@@ -35,7 +35,8 @@
     "tsx": "^4.19.2",
     "typescript": "5.5.4",
     "uuidv7": "1.1.0",
-    "zod": "^3.24.1"
+    "zod": "^3.24.1",
+    "vitest": "catalog:"
   },
   "dependencies": {
     "@codemirror/view": "^6.38.8",
@@ -43,8 +44,6 @@
     "@repo/utils": "workspace:*",
     "@supabase/supabase-js": "catalog:",
     "date-fns": "^4.1.0",
-    "gray-matter": "^4.0.3",
-    "mime-types": "^3.0.1",
     "nanoid": "^4.0.2",
     "react": "catalog:obsidian",
     "react-dom": "catalog:obsidian",
