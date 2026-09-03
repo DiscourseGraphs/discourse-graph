@@ -599,6 +599,7 @@ export type Database = {
           last_modified: string
           original: boolean | null
           source_local_id: string
+          source_path: string | null
           space_id: number
           variant: Database["public"]["Enums"]["ContentVariant"] | null
         }
@@ -609,6 +610,7 @@ export type Database = {
           last_modified: string
           original?: boolean | null
           source_local_id: string
+          source_path?: string | null
           space_id: number
           variant?: Database["public"]["Enums"]["ContentVariant"] | null
         }
@@ -619,6 +621,7 @@ export type Database = {
           last_modified?: string
           original?: boolean | null
           source_local_id?: string
+          source_path?: string | null
           space_id?: number
           variant?: Database["public"]["Enums"]["ContentVariant"] | null
         }
@@ -1345,6 +1348,7 @@ export type Database = {
           filepath: string | null
           last_modified: string | null
           source_local_id: string | null
+          source_path: string | null
           space_id: number | null
         }
         Relationships: []
