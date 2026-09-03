@@ -68,8 +68,6 @@ export const SETTINGS_TAB_META = {
   { section: string; label: string; searchable: boolean }
 >;
 
-export type SettingsTabId = keyof typeof SETTINGS_TAB_META;
-
 /** Tab ids from before the taxonomy. `SettingsDialog` is exported, so callers
  *  outside this repo may still pass them; every in-repo call site is updated. */
 export const SETTINGS_TAB_ALIASES: Record<string, TabId> = {
