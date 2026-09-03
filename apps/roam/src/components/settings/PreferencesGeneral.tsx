@@ -22,10 +22,7 @@ import {
 } from "./components/BlockPropSettingPanels";
 import { GLOBAL_KEYS, PERSONAL_KEYS } from "./utils/settingKeys";
 import { setPersonalSetting, type SettingsSnapshot } from "./utils/accessors";
-import {
-  LEGACY_CONFIG_ORDER,
-  useLegacyConfigUids,
-} from "./utils/useLegacyConfigUids";
+import { useLegacyConfigBlocks } from "./utils/useLegacyConfigBlocks";
 import { SettingsGroup } from "./components/SettingsHeadings";
 import { settingAnchor } from "./utils/settingAnchor";
 import { ROAM_DOCS, withDocsLink } from "./utils/docs";
@@ -47,7 +44,7 @@ const PreferencesGeneral = ({
   personalSettings: SettingsSnapshot["personalSettings"];
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
-  const legacyUids = useLegacyConfigUids();
+  const legacyBlocks = useLegacyConfigBlocks();
   const [activeRelationMigration, setActiveRelationMigration] =
     useState<RelationMigrationDialog>(RelationMigrationDialog.none);
   const [numExistingRelations, setNumExistingRelations] = useState<number>(0);
@@ -122,31 +119,25 @@ const PreferencesGeneral = ({
   return (
     <div className="flex flex-col gap-4 p-1">
       <SettingsGroup title="Node trigger">
-        {/* `title` is the legacy block key; the visible label is set separately. */}
         <GlobalTextPanel
-          title="trigger"
-          label={<span className="font-normal">Graph-wide default</span>}
+          title="Graph-wide default"
           description={withDocsLink(
             "The trigger to create the node menu.",
             ROAM_DOCS.creatingNodes,
           )}
           settingKeys={[GLOBAL_KEYS.trigger]}
           initialValue={globalSettings[GLOBAL_KEYS.trigger]}
-          order={LEGACY_CONFIG_ORDER.trigger}
-          uid={legacyUids.triggerUid}
-          parentUid={legacyUids.settingsUid}
           onChange={setGraphWideTrigger}
+          {...legacyBlocks.trigger}
         />
         <Label {...settingAnchor([PERSONAL_KEYS.personalNodeMenuTrigger])}>
-          <span className="font-normal">
-            Personal override
-            <Description
-              description={withDocsLink(
-                "Override the global trigger for the discourse node menu.",
-                ROAM_DOCS.creatingNodes,
-              )}
-            />
-          </span>
+          Personal override
+          <Description
+            description={withDocsLink(
+              "Override the global trigger for the discourse node menu.",
+              ROAM_DOCS.creatingNodes,
+            )}
+          />
           <NodeMenuTriggerComponent
             extensionAPI={extensionAPI}
             initialValue={

@@ -34,21 +34,11 @@ import { bulkReadSettings } from "./utils/accessors";
 import { onSettingChange, settingKeys } from "./utils/settingsEmitter";
 import { SETTINGS_TAB_IDS, resolveSettingsTabId } from "./utils/settingsTabs";
 
-const ADMIN_TAB_ID = SETTINGS_TAB_IDS.admin;
-
-type SectionHeaderProps = {
-  children: React.ReactNode;
-  className?: string;
-};
-const SectionHeader = ({ children, className = "" }: SectionHeaderProps) => {
-  return (
-    <div
-      className={`bp3-tab-copy mt-4 cursor-default select-none font-bold ${className}`}
-    >
-      {children}
-    </div>
-  );
-};
+const SectionHeader = ({ children }: { children: React.ReactNode }) => (
+  <div className="bp3-tab-copy mt-4 cursor-default select-none text-lg font-semibold text-neutral-dark">
+    {children}
+  </div>
+);
 
 export const SettingsPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   return (
@@ -108,7 +98,7 @@ export const SettingsDialog = ({
   const { versionStamp } = getVersionWithDate();
   const openAdminPanel = (): void => {
     setShowAdminPanel(true);
-    setActiveTabId(ADMIN_TAB_ID);
+    setActiveTabId(SETTINGS_TAB_IDS.admin);
     posthog.capture("Settings: Admin Panel Opened from Footer");
   };
 
@@ -124,7 +114,7 @@ export const SettingsDialog = ({
         e.stopPropagation();
         e.preventDefault();
         setShowAdminPanel(true);
-        setActiveTabId(ADMIN_TAB_ID);
+        setActiveTabId(SETTINGS_TAB_IDS.admin);
         posthog.capture("Settings: Admin Panel Opened via Shortcut");
       }
     };
@@ -183,9 +173,7 @@ export const SettingsDialog = ({
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
-          <SectionHeader className="text-lg font-semibold text-neutral-dark">
-            Preferences
-          </SectionHeader>
+          <SectionHeader>Preferences</SectionHeader>
           <Tab
             id={SETTINGS_TAB_IDS.preferencesGeneral}
             title="General"
@@ -208,9 +196,7 @@ export const SettingsDialog = ({
               />
             }
           />
-          <SectionHeader className="text-lg font-semibold text-neutral-dark">
-            Features
-          </SectionHeader>
+          <SectionHeader>Features</SectionHeader>
           <Tab
             id={SETTINGS_TAB_IDS.featuresDiscourseContext}
             title="Discourse context"
@@ -248,9 +234,7 @@ export const SettingsDialog = ({
               />
             }
           />
-          <SectionHeader className="text-lg font-semibold text-neutral-dark">
-            Grammar
-          </SectionHeader>
+          <SectionHeader>Grammar</SectionHeader>
           <Tab
             id={SETTINGS_TAB_IDS.grammarNodes}
             title="Nodes"
@@ -280,9 +264,7 @@ export const SettingsDialog = ({
             }
           />
           {/* Per-node tabs stay in the rail until ENG-2186 adds the drill-down. */}
-          <SectionHeader className="text-lg font-semibold text-neutral-dark">
-            Node types
-          </SectionHeader>
+          <SectionHeader>Node types</SectionHeader>
           {nodes.map((n) => (
             <Tab
               key={n.type}
@@ -292,9 +274,7 @@ export const SettingsDialog = ({
               panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
             />
           ))}
-          <SectionHeader className="text-lg font-semibold text-neutral-dark">
-            Advanced
-          </SectionHeader>
+          <SectionHeader>Advanced</SectionHeader>
           <Tab
             id={SETTINGS_TAB_IDS.advancedQueries}
             title="Queries"
@@ -319,7 +299,7 @@ export const SettingsDialog = ({
           {/* Secret Admin Panel */}
           <Tab
             hidden={true}
-            id={ADMIN_TAB_ID}
+            id={SETTINGS_TAB_IDS.admin}
             title="Admin"
             className="overflow-y-auto"
             panel={<AdminPanel globalSettings={settings.globalSettings} />}

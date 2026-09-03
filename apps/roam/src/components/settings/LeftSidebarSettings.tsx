@@ -6,10 +6,7 @@ import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 import { SettingsSectionHeading } from "./components/SettingsHeadings";
 import { type SettingsSnapshot } from "./utils/accessors";
-import {
-  LEGACY_CONFIG_ORDER,
-  useLegacyConfigUids,
-} from "./utils/useLegacyConfigUids";
+import { useLegacyConfigBlocks } from "./utils/useLegacyConfigBlocks";
 
 /** The enable toggle lives here so the tab stays reachable when it is off. */
 const LeftSidebarSettings = ({
@@ -25,20 +22,16 @@ const LeftSidebarSettings = ({
   featureFlags: SettingsSnapshot["featureFlags"];
   expandedSectionUid?: string;
 }) => {
-  const legacyUids = useLegacyConfigUids();
+  const legacyBlocks = useLegacyConfigBlocks();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   return (
     <div className="flex flex-col gap-6 p-1">
-      {/* `title` is the legacy block key; the visible label is set separately. */}
       <FeatureFlagPanel
-        title="Left Sidebar"
-        label="Enable left sidebar"
+        title="Enable left sidebar"
         description="Whether or not to enable the left sidebar."
         featureKey="Enable left sidebar"
         initialValue={featureFlags["Enable left sidebar"]}
-        order={LEGACY_CONFIG_ORDER.leftSidebarFlag}
-        uid={legacyUids.leftSidebarEnabledUid}
-        parentUid={legacyUids.settingsUid}
+        {...legacyBlocks.leftSidebarFlag}
         onAfterChange={(checked: boolean) => {
           if (checked && !featureFlags["Use new settings store"]) {
             setIsAlertOpen(true);
