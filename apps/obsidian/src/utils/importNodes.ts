@@ -731,10 +731,12 @@ const updateMarkdownAssetLinks = ({
   const markdownLinkRegex = /(!?)\[([^\]]*)\]\(([^)]+)\)/g;
   updatedContent = updatedContent.replace(
     markdownLinkRegex,
-    (match, imagePrefix: string, linkText: string, linkPath: string) => {
+    (match, ...groups: string[]) => {
+      const [imagePrefix, linkText, rawLinkPath] = groups;
+      // An `!` prefix makes this an image embed, handled by the next pass
       if (imagePrefix) return match;
-      if (!linkPath) return match;
-      linkPath = linkPath
+      if (!rawLinkPath) return match;
+      const linkPath = rawLinkPath
         .split("/")
         .map((segment) => {
           try {
