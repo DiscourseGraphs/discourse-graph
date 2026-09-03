@@ -634,13 +634,15 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       <Button
         minimal
         small
-        icon={<Icon icon="label" color={textColor} className="opacity-50" />}
+        icon={<span className="px-1 font-semibold">#</span>}
+        text="Add tag"
+        className="opacity-50"
+        style={{ color: textColor }}
         onClick={(e) => {
           e.stopPropagation();
           setIsAddTagMenuOpen((open) => !open);
         }}
         onPointerDown={(e) => e.stopPropagation()}
-        title="Add tag"
       />
     );
 
