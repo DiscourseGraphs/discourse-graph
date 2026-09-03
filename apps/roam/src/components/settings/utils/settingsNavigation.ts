@@ -1,5 +1,9 @@
 import type { TabId } from "@blueprintjs/core";
-import { SETTINGS_TAB_IDS, resolveSettingsTabId } from "./settingsTabs";
+import {
+  SETTINGS_TAB_IDS,
+  isSettingsTabId,
+  resolveSettingsTabId,
+} from "./settingsTabs";
 
 /** Settings dialog route: `["grammar-nodes", nodeTypeUid, "template"]`, tab first. */
 export type SettingsPath = readonly string[];
@@ -46,8 +50,6 @@ export const settingsNavReducer = (
   }
 };
 
-const KNOWN_TAB_IDS: readonly string[] = Object.values(SETTINGS_TAB_IDS);
-
 /**
  * Resolves the tab a caller asked for, including the aliases in `settingsTabs`. An id that
  * is not a tab at all is a node type uid from when every node type had its own rail tab;
@@ -56,10 +58,10 @@ const KNOWN_TAB_IDS: readonly string[] = Object.values(SETTINGS_TAB_IDS);
 export const resolveInitialSettingsPath = (
   selectedTabId?: TabId,
 ): SettingsPath => {
-  const tabId = String(resolveSettingsTabId(selectedTabId));
-  return KNOWN_TAB_IDS.includes(tabId)
+  const tabId = resolveSettingsTabId(selectedTabId);
+  return isSettingsTabId(tabId)
     ? rootPath(tabId)
-    : [SETTINGS_TAB_IDS.grammarNodes, tabId];
+    : [SETTINGS_TAB_IDS.grammarNodes, String(tabId)];
 };
 
 export type SettingsCrumb = {

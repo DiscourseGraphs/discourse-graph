@@ -29,7 +29,18 @@ export const SETTINGS_TAB_ALIASES: Record<string, TabId> = {
   "discourse-relations": SETTINGS_TAB_IDS.grammarRelations,
 };
 
-/** Unknown ids pass through: per-node tabs are keyed by node page uid. */
+export type SettingsTabId =
+  (typeof SETTINGS_TAB_IDS)[keyof typeof SETTINGS_TAB_IDS];
+
+const SETTINGS_TAB_ID_SET: ReadonlySet<string> = new Set(
+  Object.values(SETTINGS_TAB_IDS),
+);
+
+/** Anything that is not a tab is a node type uid from the old per-node tabs. */
+export const isSettingsTabId = (id: TabId): id is SettingsTabId =>
+  SETTINGS_TAB_ID_SET.has(String(id));
+
+/** Unknown ids pass through: see `isSettingsTabId` for what they are. */
 export const resolveSettingsTabId = (id?: TabId): TabId => {
   if (id === undefined) return DEFAULT_SETTINGS_TAB_ID;
   return SETTINGS_TAB_ALIASES[String(id)] ?? id;
