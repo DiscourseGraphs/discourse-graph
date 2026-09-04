@@ -9,3 +9,10 @@ export const settingAnchor = (
 ): Record<string, string> => ({
   [SETTING_ANCHOR_ATTRIBUTE]: settingKeys.join("/"),
 });
+
+/** Setting keys are authored identifiers today; escaped anyway so a future key with a
+ *  quote or backslash cannot break out of the attribute selector. */
+export const settingAnchorSelector = (anchorId: string): string =>
+  `[${SETTING_ANCHOR_ATTRIBUTE}="${anchorId.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"]`;
+
+export const SETTING_ANCHOR_FLASH_CLASS = "dg-setting-row--flash";
