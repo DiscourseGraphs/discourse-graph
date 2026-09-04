@@ -44,11 +44,11 @@ const LeftSidebarSettings = ({
       {enabled && (
         <>
           <div className="flex flex-col gap-2">
-            <SettingsSectionHeading>Shared sections</SettingsSectionHeading>
+            <SettingsSectionHeading>Global</SettingsSectionHeading>
             <LeftSidebarGlobalSections globalSettings={globalSettings} />
           </div>
           <div className="flex flex-col gap-2">
-            <SettingsSectionHeading>Your sections</SettingsSectionHeading>
+            <SettingsSectionHeading>Personal</SettingsSectionHeading>
             <LeftSidebarPersonalSections
               personalSettings={personalSettings}
               expandedSectionUid={expandedSectionUid}
