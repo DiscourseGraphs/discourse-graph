@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { generateStaticParamsFor, importPage } from "nextra/pages";
 import DocsPageTemplate from "../../_components/DocsPageTemplate";
+import { buildDocsPageMetadata } from "../../docsMetadata";
 
 type DocsPageProps = {
   params: Promise<{
@@ -40,7 +41,9 @@ const Page = async ({ params }: DocsPageProps): Promise<React.ReactElement> => {
 
     return (
       <DocsPageTemplate {...wrapperProps}>
-        <MDXContent params={{ mdxPath: mdxPath ?? [] }} />
+        {({ h1 }) => (
+          <MDXContent components={{ h1 }} params={{ mdxPath: mdxPath ?? [] }} />
+        )}
       </DocsPageTemplate>
     );
   } catch (error) {
@@ -56,7 +59,7 @@ export const generateMetadata = async ({
     const { mdxPath } = await params;
     const { metadata } = await loadPage(mdxPath);
 
-    return metadata;
+    return buildDocsPageMetadata({ metadata, platform: "roam" });
   } catch (error) {
     console.error("Error generating Roam docs metadata:", error);
 
