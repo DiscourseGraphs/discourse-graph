@@ -150,6 +150,15 @@ describe("addFile", () => {
     ]);
   });
 
+  it("returns the content hash of the bytes it stored", async () => {
+    const hash = await publish({ client: harness.client, filename: "d.png" });
+
+    expect(hash).toMatch(/^[0-9a-f]{64}$/);
+    expect([...harness.rows.values()]).toEqual([
+      expect.objectContaining({ filehash: hash }),
+    ]);
+  });
+
   it("uploads the bytes once when two references share content", async () => {
     await publish({ client: harness.client, sourcePath: "diagram.png" });
     await publish({
