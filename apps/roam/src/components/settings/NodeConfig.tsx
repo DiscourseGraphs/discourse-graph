@@ -379,35 +379,6 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
         />
       </SettingsGroup>
 
-      <SettingsGroup title="Attributes">
-        <DiscourseNodeAttributes
-          uid={attributeNode.uid}
-          nodeType={node.type}
-          defaultValue={getDiscourseNodeSetting<Record<string, string>>(
-            node.type,
-            [DISCOURSE_NODE_KEYS.attributes],
-          )}
-        />
-        <DiscourseNodeSelectPanel
-          nodeType={node.type}
-          title="Overlay"
-          description={withDocsLink(
-            "Select which attribute is used for the discourse overlay",
-            ROAM_DOCS.discourseAttributes,
-          )}
-          settingKeys={[DISCOURSE_NODE_KEYS.overlay]}
-          options={attributeNode.children.map((c) => c.text)}
-          initialValue={
-            getDiscourseNodeSetting<string>(node.type, [
-              DISCOURSE_NODE_KEYS.overlay,
-            ]) ?? ""
-          }
-          order={0}
-          parentUid={node.type}
-          uid={overlayUid}
-        />
-      </SettingsGroup>
-
       <SettingsGroup title="Canvas">
         <DiscourseNodeCanvasSettings nodeType={node.type} uid={canvasUid} />
         <DiscourseNodeFlagPanel
@@ -455,6 +426,35 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           />
         </SettingsGroup>
       )}
+
+      <SettingsGroup title="Attributes">
+        <DiscourseNodeAttributes
+          uid={attributeNode.uid}
+          nodeType={node.type}
+          defaultValue={getDiscourseNodeSetting<Record<string, string>>(
+            node.type,
+            [DISCOURSE_NODE_KEYS.attributes],
+          )}
+        />
+        <DiscourseNodeSelectPanel
+          nodeType={node.type}
+          title="Overlay"
+          description={withDocsLink(
+            "Select which attribute is used for the discourse overlay",
+            ROAM_DOCS.discourseAttributes,
+          )}
+          settingKeys={[DISCOURSE_NODE_KEYS.overlay]}
+          options={attributeNode.children.map((c) => c.text)}
+          initialValue={
+            getDiscourseNodeSetting<string>(node.type, [
+              DISCOURSE_NODE_KEYS.overlay,
+            ]) ?? ""
+          }
+          order={0}
+          parentUid={node.type}
+          uid={overlayUid}
+        />
+      </SettingsGroup>
     </div>
   );
 };
