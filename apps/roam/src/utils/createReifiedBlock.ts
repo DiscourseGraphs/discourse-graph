@@ -1,10 +1,25 @@
 import createBlock from "roamjs-components/writes/createBlock";
 import createPage from "roamjs-components/writes/createPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import getBlockProps, { isJsonObject, type json } from "./getBlockProps";
+import { setBlockPropsAsync } from "./setBlockProps";
+import internalError from "./internalError";
 
 export const DISCOURSE_GRAPH_PROP_NAME = "discourse-graph";
+export const TENTATIVE_PROP_KEY = "tentative";
+export const IMPORTED_FROM_PROP_KEY = "importedFrom";
 
-const SANE_ROLE_NAME_RE = new RegExp(/^[\w\-]*$/);
+// Annotations describe a relation's review/provenance state; they are not part
+// of its identity, so lookups by role parameters must ignore them.
+const RELATION_ANNOTATION_KEYS = new Set<string>([
+  TENTATIVE_PROP_KEY,
+  IMPORTED_FROM_PROP_KEY,
+]);
+
+const countRoleKeys = (params: Record<string, unknown>): number =>
+  Object.keys(params).filter((k) => !RELATION_ANNOTATION_KEYS.has(k)).length;
+
+const SANE_ROLE_NAME_RE = new RegExp(/^[\w-]*$/);
 
 export const strictQueryForReifiedBlocks = async (
   parameterUids: Record<string, string>,
@@ -26,9 +41,9 @@ export const strictQueryForReifiedBlocks = async (
     ...paramsAsSeq.map(([, v]) => v),
   )) as [string, Record<string, string>][];
   // post-filtering because cannot filter by number of keys in datascript
-  const numParams = Object.keys(parameterUids).length;
+  const numParams = countRoleKeys(parameterUids);
   const resultF = result
-    .filter(([, params]) => Object.keys(params).length === numParams)
+    .filter(([, params]) => countRoleKeys(params) === numParams)
     .map(([uid]) => uid);
   if (resultF.length > 1) {
     const paramsAsText = Object.entries(parameterUids)
@@ -39,6 +54,25 @@ export const strictQueryForReifiedBlocks = async (
     );
   }
   return resultF.length > 0 ? resultF[0] : null;
+};
+
+export const acceptTentativeRelationInstance = async ({
+  instanceUid,
+}: {
+  instanceUid: string;
+}): Promise<void> => {
+  const existing = getBlockProps(instanceUid)[DISCOURSE_GRAPH_PROP_NAME];
+  if (!isJsonObject(existing) || typeof existing.sourceUid !== "string") {
+    throw new Error(
+      "The relation block could not be read. It may have been deleted; refresh and try again.",
+    );
+  }
+  if (existing[TENTATIVE_PROP_KEY] === undefined) return;
+  const accepted = { ...existing };
+  delete accepted[TENTATIVE_PROP_KEY];
+  await setBlockPropsAsync(instanceUid, {
+    [DISCOURSE_GRAPH_PROP_NAME]: accepted,
+  });
 };
 
 const createReifiedBlock = async ({
@@ -56,7 +90,24 @@ const createReifiedBlock = async ({
     hasSchema: schemaUid,
   };
   const existing = await strictQueryForReifiedBlocks(data);
-  if (existing !== null) return existing;
+  if (existing !== null) {
+    // Deliberate local creation counts as user acceptance, so a dedupe hit on
+    // a tentative imported block promotes it instead of returning a block the
+    // UI hides as pending review. Best-effort: the relation exists either way.
+    if (parameterUids[TENTATIVE_PROP_KEY] === undefined) {
+      try {
+        await acceptTentativeRelationInstance({ instanceUid: existing });
+      } catch (error) {
+        internalError({
+          error,
+          type: "Promote Tentative Relation On Create Failed",
+          context: { instanceUid: existing },
+          sendEmail: false,
+        });
+      }
+    }
+    return existing;
+  }
   const newUid = window.roamAlphaAPI.util.generateUID();
   await createBlock({
     node: {
@@ -106,6 +157,8 @@ export type ReifiedRelationData = {
   sourceUid: string;
   destinationUid: string;
   hasSchema: string;
+  tentative?: string;
+  importedFrom?: json;
   importedFromRid?: string;
 };
 
@@ -146,7 +199,9 @@ export const createReifiedRelation = async ({
   const parameterUids: Record<string, string> = {
     sourceUid,
     destinationUid,
-    ...(tentative !== undefined && { tentative: String(tentative) }),
+    ...(tentative !== undefined && {
+      [TENTATIVE_PROP_KEY]: String(tentative),
+    }),
   };
   return await createReifiedBlock({
     destinationBlockUid: await getOrCreateRelationPageUid(),

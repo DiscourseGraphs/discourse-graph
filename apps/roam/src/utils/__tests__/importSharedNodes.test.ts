@@ -14,6 +14,8 @@ vi.mock("~/utils/materializeSharedNode", async () => {
   return { ...actual, materializeSharedNode: vi.fn() };
 });
 
+vi.mock("~/utils/internalError", () => ({ default: vi.fn() }));
+
 const mockedMaterializeSharedNode = vi.mocked(materializeSharedNode);
 
 const client = {} as DGSupabaseClient;

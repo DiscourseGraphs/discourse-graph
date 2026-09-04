@@ -5,6 +5,7 @@ import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import ResultsView from "./results-view/ResultsView";
 import posthog from "posthog-js";
 import { CreateRelationButton } from "./CreateRelationDialog";
+import TentativeRelationInstances from "./TentativeRelationInstances";
 import { useDiscourseContextMutationRefresh } from "~/utils/discourseContextMutationRefresh";
 
 export type DiscourseContextResults = Awaited<
@@ -172,7 +173,8 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
   });
   const [tabId, setTabId] = useState(0);
   const [groupByTarget, setGroupByTarget] = useState(false);
-  return queryResults.length ? (
+  const [tentativeCount, setTentativeCount] = useState(0);
+  const body = queryResults.length ? (
     <>
       <style>{`@media (hover: hover) and (pointer: fine) {
   .roamjs-discourse-result-panel .roamjs-query-results-delete-relation {
@@ -249,9 +251,15 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
     </Tabs>
   ) : (
     <div className="flex flex-col items-start">
-      <span>No discourse relations found.</span>
+      {!tentativeCount && <span>No discourse relations found.</span>}
       <CreateRelationButton sourceNodeUid={uid} onCreated={delayedRefresh} />
     </div>
+  );
+  return (
+    <>
+      {body}
+      <TentativeRelationInstances uid={uid} onCountChange={setTentativeCount} />
+    </>
   );
 };
 
