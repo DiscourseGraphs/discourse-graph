@@ -116,6 +116,12 @@
   border-bottom: 1px solid var(--dg-border);
 }
 
+/* The group's own 2px heading rule already frames it; a hairline after the
+   last row would put two rules at one boundary. */
+.dg-settings-group__rows > .dg-setting-row:last-child {
+  border-bottom: 0;
+}
+
 .dg-setting-row__label {
   color: var(--dg-neutral-dark);
 }
