@@ -120,6 +120,7 @@ import posthog from "posthog-js";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { json, normalizeProps } from "~/utils/getBlockProps";
+import { isProvisionalRelationSchema } from "~/utils/relationSchemaAcceptance";
 import { onPageRefObserverChange } from "~/utils/pageRefObserverHandlers";
 
 declare global {
@@ -133,6 +134,9 @@ export type DiscourseContextType = {
   nodes: Record<string, DiscourseNode & { index: number }>;
   // { [Relation.Label] => DiscourseRelation[] }
   relations: Record<string, DiscourseRelation[]>;
+  // Imported, not-yet-accepted relation schemas; excluded from relation
+  // creation but kept in `relations` so existing shapes still render.
+  provisionalRelationIds: Set<string>;
   lastAppEvent: string;
   lastActions: HistoryEntry<TLRecord>[];
 };
@@ -140,9 +144,13 @@ export type DiscourseContextType = {
 export const discourseContext: DiscourseContextType = {
   nodes: {},
   relations: {},
+  provisionalRelationIds: new Set(),
   lastAppEvent: "",
   lastActions: [],
 };
+
+export const isAcceptedRelationSchema = (relation: { id: string }): boolean =>
+  !discourseContext.provisionalRelationIds.has(relation.id);
 
 let activeCanvasPageUid: string | null = null;
 let activeCanvasEditor: Editor | null = null;
@@ -766,6 +774,11 @@ const TldrawCanvasShared = ({
       },
       {} as Record<string, DiscourseRelation[]>,
     );
+    discourseContext.provisionalRelationIds = new Set(
+      relations
+        .filter((r) => isProvisionalRelationSchema(r.id))
+        .map((r) => r.id),
+    );
     return relations;
   }, []);
   const allRelationsById = useMemo(() => {
@@ -778,7 +791,9 @@ const TldrawCanvasShared = ({
     return Object.keys(allRelationsById);
   }, [allRelationsById]);
   const allRelationNames = useMemo(() => {
-    return Object.keys(discourseContext.relations);
+    return Object.entries(discourseContext.relations)
+      .filter(([, relations]) => relations.some(isAcceptedRelationSchema))
+      .map(([name]) => name);
   }, []);
   const allNodes = useMemo(() => {
     const allNodes = getDiscourseNodes();
