@@ -17,7 +17,6 @@ import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 import {
   DISCOURSE_TOOL_SHORTCUT_KEY,
   AUTO_CANVAS_RELATIONS_KEY,
-  DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
   STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
   USE_STORED_RELATIONS,
@@ -239,18 +238,6 @@ const HomePersonalSettings = ({
         }}
       />
 
-      <PersonalFlagPanel
-        title="(BETA) Overlay in canvas"
-        description={withDocsLink(
-          "Whether or not to overlay discourse context information over canvas nodes.",
-          ROAM_DOCS.discourseContextOverlay,
-        )}
-        settingKeys={[PERSONAL_KEYS.overlayInCanvas]}
-        initialValue={personalSettings[PERSONAL_KEYS.overlayInCanvas]}
-        onChange={(checked) => {
-          void setSetting(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, checked);
-        }}
-      />
       <PersonalFlagPanel
         title="Streamline styling"
         description="Apply streamlined styling to your personal graph for a cleaner appearance."

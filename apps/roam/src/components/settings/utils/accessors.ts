@@ -225,10 +225,6 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
   [pathKey([PERSONAL_KEYS.disableSidebarOpen]), "disable-sidebar-open"],
   [pathKey([PERSONAL_KEYS.hideFeedbackButton]), "hide-feedback-button"],
   [pathKey([PERSONAL_KEYS.autoCanvasRelations]), "auto-canvas-relations"],
-  [
-    pathKey([PERSONAL_KEYS.overlayInCanvas]),
-    "discourse-context-overlay-in-canvas",
-  ],
   [pathKey([PERSONAL_KEYS.streamlineStyling]), "streamline-styling"],
   [pathKey([PERSONAL_KEYS.disableProductDiagnostics]), "disallow-diagnostics"],
   [pathKey([PERSONAL_KEYS.discourseToolShortcut]), "discourse-tool-shortcut"],

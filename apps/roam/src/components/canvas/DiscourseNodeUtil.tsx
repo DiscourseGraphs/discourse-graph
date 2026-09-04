@@ -21,7 +21,7 @@ import {
   toDomPrecision,
   TLAnyShapeUtilConstructor,
 } from "tldraw";
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
@@ -44,7 +44,6 @@ import { loadImage } from "~/utils/loadImage";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
-import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { RenderRoamBlockString } from "~/utils/roamReactComponents";
@@ -469,15 +468,8 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     const {
       canvasSettings: { alias = "", "key-image": isKeyImage = "" } = {},
     } = discourseContext.nodes[getDiscourseNodeTypeId({ shape })] || {};
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isOverlayEnabled = useMemo(
-      () => getPersonalSetting<boolean>([PERSONAL_KEYS.overlayInCanvas]),
-      [],
-    );
 
     const isEditing = this.editor.getEditingShapeId() === shape.id;
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [overlayMounted, setOverlayMounted] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const dialogRenderedRef = useRef(false);
 
@@ -633,7 +625,6 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
           maxHeight: shape.props.h,
           boxSizing: "border-box",
         }}
-        onPointerEnter={() => setOverlayMounted(true)}
       >
         <div
           className="relative flex h-full min-h-0 w-full min-w-0 flex-col"
@@ -770,24 +761,6 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
               fontSize: FONT_SIZES[shape.props.size],
             }}
           >
-            {overlayMounted &&
-              isOverlayEnabled &&
-              !["blck-node", "page-node"].includes(
-                getDiscourseNodeTypeId({ shape }),
-              ) && (
-                <div
-                  className="roamjs-discourse-context-overlay-container absolute right-1 top-1"
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
-                  <DiscourseContextOverlay
-                    uid={shape.props.uid}
-                    id={`${shape.id}-overlay`}
-                    opacity="50"
-                    textColor={textColor}
-                    iconColor={textColor}
-                  />
-                </div>
-              )}
             {showEmbeddedRoamBlock ? (
               <div className="w-full min-w-0">
                 <RenderRoamBlockString
