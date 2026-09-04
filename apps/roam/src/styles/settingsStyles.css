@@ -137,6 +137,12 @@
   font-family: monospace;
 }
 
+/* Settings search field. Inset to the tab titles' left edge so the box does not
+   sit flush with the rail while everything under it is indented. */
+.dg-settings-search {
+  margin: 4px 10px 8px;
+}
+
 /* Settings search results.
    Portalled by Blueprint so the tab rail's `overflow: hidden` cannot clip it.
    The surface is painted here rather than inherited: Roam ships its own
