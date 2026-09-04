@@ -1,20 +1,17 @@
 import React from "react";
 
 /**
- * One heading style for every group of rows inside a tab. The rows themselves
- * carry a semibold label, so the heading is set apart by case and size rather
- * than by indenting what sits under it — indentation made whichever group used
- * it look like the odd one out.
+ * One heading style for every group of rows inside a tab, styled in
+ * settingsStyles.css: the rows carry 14px semibold labels, so the heading has
+ * to outrank them by size and by the weight of the rule under it, not by
+ * indenting what sits beneath — indentation made whichever group used it look
+ * like the odd one out.
  */
-const HEADING_CLASS =
-  "text-xs font-semibold uppercase tracking-wide text-neutral-dark";
-
-/** Names a group of related setting rows within one tab. */
 export const SettingsSectionHeading = ({
   children,
 }: {
   children: React.ReactNode;
-}) => <div className={HEADING_CLASS}>{children}</div>;
+}) => <div className="dg-settings-heading">{children}</div>;
 
 /** A heading with the rows it names, for a pair or set that reads as one setting. */
 export const SettingsGroup = ({
@@ -24,8 +21,10 @@ export const SettingsGroup = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <div className="flex flex-col gap-2">
-    <div className={HEADING_CLASS}>{title}</div>
-    <div className="flex flex-col gap-4">{children}</div>
+  <div className="dg-settings-group">
+    <div className="dg-settings-heading">{title}</div>
+    <div className="dg-settings-group__rows flex flex-col gap-4">
+      {children}
+    </div>
   </div>
 );

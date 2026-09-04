@@ -18,3 +18,23 @@
   padding: 0 10px;
   width: 100%;
 }
+
+/* Section heading inside a tab. Sized to Blueprint's h6 so it outranks the
+   14px row labels beneath it; the 2px rule is heavier than the 1px row
+   hairlines so a section break reads by weight as well as by size. Hand-rolled
+   because Roam ships no Tailwind preflight, so `border-b-2` would never paint. */
+.dg-settings-heading {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--dg-neutral-dark, #1f1f1f);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--dg-border, rgb(229, 231, 235));
+}
+
+.dg-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
