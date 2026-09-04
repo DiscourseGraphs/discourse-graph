@@ -53,12 +53,6 @@ const PreferencesGeneral = ({
     getStoredRelationsEnabled(),
   );
 
-  // The settings snapshot only refreshes on tab change, so the override row
-  // below would otherwise show a stale graph-wide value.
-  const [graphWideTrigger, setGraphWideTrigger] = useState<string>(
-    globalSettings[GLOBAL_KEYS.trigger],
-  );
-
   const setStoredRelations = (value: boolean) => {
     setSetting<boolean>(USE_STORED_RELATIONS, value)
       .then(() => {
@@ -118,40 +112,6 @@ const PreferencesGeneral = ({
 
   return (
     <div className="flex flex-col gap-4 p-1">
-      <SettingsGroup title="Node trigger">
-        <GlobalTextPanel
-          title="Graph-wide default"
-          description={withDocsLink(
-            "The trigger to create the node menu.",
-            ROAM_DOCS.creatingNodes,
-          )}
-          settingKeys={[GLOBAL_KEYS.trigger]}
-          initialValue={globalSettings[GLOBAL_KEYS.trigger]}
-          onChange={setGraphWideTrigger}
-          {...legacyBlocks.trigger}
-        />
-        <Label {...settingAnchor([PERSONAL_KEYS.personalNodeMenuTrigger])}>
-          Personal override
-          <Description
-            description={withDocsLink(
-              "Override the global trigger for the discourse node menu.",
-              ROAM_DOCS.creatingNodes,
-            )}
-          />
-          <NodeMenuTriggerComponent
-            extensionAPI={extensionAPI}
-            initialValue={
-              personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger]
-            }
-            placeholder={
-              graphWideTrigger
-                ? `Click to set trigger (currently ${graphWideTrigger})`
-                : undefined
-            }
-          />
-        </Label>
-      </SettingsGroup>
-
       <Label {...settingAnchor([PERSONAL_KEYS.nodeSearchMenuTrigger])}>
         Node search menu trigger
         <Description description="Set the trigger character for the node search menu." />
@@ -219,6 +179,34 @@ const PreferencesGeneral = ({
           }
         }}
       />
+      <SettingsGroup title="Node trigger">
+        <GlobalTextPanel
+          title="Graph-wide default"
+          description={withDocsLink(
+            "The trigger to create the node menu.",
+            ROAM_DOCS.creatingNodes,
+          )}
+          settingKeys={[GLOBAL_KEYS.trigger]}
+          initialValue={globalSettings[GLOBAL_KEYS.trigger]}
+          {...legacyBlocks.trigger}
+        />
+        <Label {...settingAnchor([PERSONAL_KEYS.personalNodeMenuTrigger])}>
+          Personal override
+          <Description
+            description={withDocsLink(
+              "Override the global trigger for the discourse node menu.",
+              ROAM_DOCS.creatingNodes,
+            )}
+          />
+          <NodeMenuTriggerComponent
+            extensionAPI={extensionAPI}
+            initialValue={
+              personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger]
+            }
+            placeholder=""
+          />
+        </Label>
+      </SettingsGroup>
       <Dialog
         isOpen={
           activeRelationMigration === RelationMigrationDialog.reactivate ||
