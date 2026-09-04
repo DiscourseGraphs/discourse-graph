@@ -5,10 +5,12 @@ import {
   getSharedNodeByRid,
   type SharedNode,
 } from "@repo/database/lib/sharedNodes";
+import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { readImportedSourceIdentity } from "~/utils/importedSourceIdentity";
 import internalError from "~/utils/internalError";
 import { materializeSharedNode } from "~/utils/materializeSharedNode";
 import { refreshImportedNode } from "~/utils/refreshImportedNode";
+import { resolveSharedNodeTypes } from "~/utils/resolveSharedNodeTypes";
 import { getLoggedInClient } from "~/utils/supabaseContext";
 
 vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
@@ -27,6 +29,9 @@ vi.mock("~/utils/materializeSharedNode", async (importOriginal) => ({
   ...(await importOriginal<typeof import("~/utils/materializeSharedNode")>()),
   materializeSharedNode: vi.fn(),
 }));
+vi.mock("~/utils/resolveSharedNodeTypes", () => ({
+  resolveSharedNodeTypes: vi.fn(),
+}));
 vi.mock("~/utils/supabaseContext", () => ({
   getLoggedInClient: vi.fn(),
 }));
@@ -37,6 +42,17 @@ const mockedReadImportedSourceIdentity = vi.mocked(readImportedSourceIdentity);
 const mockedInternalError = vi.mocked(internalError);
 const mockedMaterializeSharedNode = vi.mocked(materializeSharedNode);
 const mockedGetLoggedInClient = vi.mocked(getLoggedInClient);
+const mockedResolveSharedNodeTypes = vi.mocked(resolveSharedNodeTypes);
+
+const NODE_TYPE: DiscourseNode = {
+  text: "Evidence",
+  type: "evd-type-uid",
+  shortcut: "E",
+  format: "[[EVD]] - {content}",
+  specification: [],
+  backedBy: "user",
+  canvasSettings: {},
+};
 
 const PAGE_UID = "imported-page-uid";
 const LOCAL_TITLE = "EVD - old local title";
@@ -47,6 +63,7 @@ const client = {} as DGSupabaseClient;
 const sharedNode: SharedNode = {
   rid: "orn:obsidian.note:vault-a/node-1",
   sourceLocalId: "node-1",
+  schemaId: 200,
   spaceId: 20,
   spaceName: "Research vault",
   spaceUri: "obsidian:vault-a",
@@ -69,6 +86,7 @@ beforeEach(() => {
   });
   mockedGetLoggedInClient.mockResolvedValue(client);
   mockedGetSharedNodeByRid.mockResolvedValue(sharedNode);
+  mockedResolveSharedNodeTypes.mockResolvedValue(new Map());
   mockedMaterializeSharedNode.mockResolvedValue({
     success: true,
     action: "updated",
@@ -88,12 +106,32 @@ describe("refreshImportedNode", () => {
       client,
       rid: sharedNode.rid,
     });
+    expect(mockedResolveSharedNodeTypes).toHaveBeenCalledWith({
+      client,
+      sharedNodes: [sharedNode],
+    });
     expect(mockedMaterializeSharedNode).toHaveBeenCalledWith({
       client,
       sharedNode,
+      nodeType: undefined,
       force: true,
     });
     expect(mockedInternalError).not.toHaveBeenCalled();
+  });
+
+  it("passes the resolved node type to the materializer", async () => {
+    mockedResolveSharedNodeTypes.mockResolvedValue(
+      new Map([[sharedNode.schemaId, NODE_TYPE]]),
+    );
+
+    await refreshImportedNode({ pageUid: PAGE_UID });
+
+    expect(mockedMaterializeSharedNode).toHaveBeenCalledWith({
+      client,
+      sharedNode,
+      nodeType: NODE_TYPE,
+      force: true,
+    });
   });
 
   it("fails when the page has no stored source identity", async () => {
