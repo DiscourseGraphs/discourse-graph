@@ -91,6 +91,7 @@ import {
   publishNodeUidsWithTypeToGroups,
   type NodeUidWithType,
 } from "~/utils/publishNodesToGroups";
+import { summarizeAssetResults } from "~/utils/publishNodeAssets";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 import { isNodeSharingEnabled } from "~/components/settings/utils/accessors";
 
@@ -871,6 +872,7 @@ const ExportDialog: ExportDialogComponent = ({
         failedUpsertUids,
         okGroupIds,
         failedGroupIds,
+        assetResults,
       } = await publishNodeUidsWithTypeToGroups({
         client,
         spaceId: context.spaceId,
@@ -881,12 +883,18 @@ const ExportDialog: ExportDialogComponent = ({
       const failedNodeCount = failedUpsertUids.filter((uid) =>
         selectedNodeUids.has(uid),
       ).length;
+      const assets = summarizeAssetResults(assetResults);
       posthog.capture("Export Dialog: Publish", {
         groupCount: okGroupIds.length,
         publishedNodeCount: publishedNodeUids.length,
         failedUpsertCount: failedUpsertUids.length,
         nonDiscourseCount,
         failedGroupCount: failedGroupIds.length,
+        assetCopiedCount: assets.copied,
+        assetUnchangedCount: assets.unchanged,
+        assetDistinctBlobCount: assets.distinctBlobs,
+        assetTooLargeCount: assets.tooLarge.length,
+        assetFailedCount: assets.failed.length,
       });
       const hasPublishedNodes = publishedNodeUids.length > 0;
       const messages = hasPublishedNodes
@@ -908,10 +916,27 @@ const ExportDialog: ExportDialogComponent = ({
             failedGroupIds.length === 1 ? "" : "s"
           } failed.`,
         );
+      // The nodes themselves published either way; their links still point at Roam.
+      if (assets.tooLarge.length)
+        messages.push(
+          `${assets.tooLarge.length} file${
+            assets.tooLarge.length === 1 ? " was" : "s were"
+          } too large to copy.`,
+        );
+      if (assets.failed.length)
+        messages.push(
+          `${assets.failed.length} file${
+            assets.failed.length === 1 ? "" : "s"
+          } could not be copied.`,
+        );
       renderToast({
         content: messages.join(" "),
         intent:
-          failedGroupIds.length || failedNodeCount || !hasPublishedNodes
+          failedGroupIds.length ||
+          failedNodeCount ||
+          !hasPublishedNodes ||
+          assets.tooLarge.length ||
+          assets.failed.length
             ? "warning"
             : "success",
         id: "query-builder-publish-success",
