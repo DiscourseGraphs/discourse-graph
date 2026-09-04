@@ -3,7 +3,7 @@ import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { contentTypes } from "@repo/content-model";
 import { MAX_PUBLISHED_ASSET_BYTES } from "@repo/database/lib/assetLimits";
-import { publishNodeAssets } from "../publishNodeAssets";
+import { publishNodeAssets, summarizeAssetResults } from "../publishNodeAssets";
 
 const IMAGE =
   "https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FMAPLab%2FlqP2ioVNC3.png?alt=media&token=9f1c07a4";
@@ -456,5 +456,81 @@ describe("publishNodeAssets", () => {
 
     expect(results[0]).toMatchObject({ status: "failed", error: "offline" });
     expect(harness.filepaths()).toEqual([IMAGE]);
+  });
+});
+
+describe("summarizeAssetResults", () => {
+  it("counts copies and keeps skips and failures apart", () => {
+    const summary = summarizeAssetResults([
+      {
+        status: "copied",
+        sourceRef: "a",
+        sourceLocalId: "n",
+        contentHash: "h",
+        sourcePath: "a.png",
+      },
+      {
+        status: "skipped",
+        sourceRef: "b",
+        sourceLocalId: "n",
+        sourcePath: "b.png",
+        reason: "too-large",
+        size: 99,
+        limit: 10,
+      },
+      {
+        status: "failed",
+        sourceRef: "c",
+        sourceLocalId: "n",
+        error: "boom",
+      },
+    ]);
+
+    expect(summary.copied).toBe(1);
+    expect(summary.distinctBlobs).toBe(1);
+    expect(summary.tooLarge.map((a) => a.sourceRef)).toEqual(["b"]);
+    expect(summary.failed.map((a) => a.sourceRef)).toEqual(["c"]);
+  });
+
+  it("reports nothing outstanding when every asset copied", () => {
+    const summary = summarizeAssetResults([
+      {
+        status: "copied",
+        sourceRef: "a",
+        sourceLocalId: "n",
+        contentHash: "h",
+        sourcePath: "a.png",
+      },
+    ]);
+
+    expect(summary).toEqual({
+      copied: 1,
+      unchanged: 0,
+      distinctBlobs: 1,
+      tooLarge: [],
+      failed: [],
+    });
+  });
+
+  it("counts one blob when two nodes reference identical content", () => {
+    const summary = summarizeAssetResults([
+      {
+        status: "copied",
+        sourceRef: "a",
+        sourceLocalId: "n1",
+        contentHash: "h",
+        sourcePath: "a.png",
+      },
+      {
+        status: "copied",
+        sourceRef: "b",
+        sourceLocalId: "n2",
+        contentHash: "h",
+        sourcePath: "b.png",
+      },
+    ]);
+
+    expect(summary.copied).toBe(2);
+    expect(summary.distinctBlobs).toBe(1);
   });
 });
