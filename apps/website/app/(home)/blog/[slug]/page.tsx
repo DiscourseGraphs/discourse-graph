@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { importPage } from "nextra/pages";
+import { AuthorLink } from "~/components/AuthorLink";
+import { getAuthorProfileByName } from "~/data/authorProfiles";
 import type { BlogData } from "../blogSchema";
 import { getAllBlogs, getBlogBySlug } from "../readBlogs";
 
@@ -39,12 +41,18 @@ const buildBlogPostMetadata = ({
     description: blog.description,
     metadata: pageMetadata,
   });
+  const authorProfile = getAuthorProfileByName(blog.author);
 
   return {
     ...pageMetadata,
     title: blog.title,
     description,
-    authors: [{ name: blog.author }],
+    authors: [
+      {
+        name: blog.author,
+        url: authorProfile ? `/authors/${authorProfile.slug}` : undefined,
+      },
+    ],
     keywords: blog.tags.length ? blog.tags : pageMetadata.keywords,
     alternates: {
       ...pageMetadata.alternates,
@@ -90,7 +98,12 @@ const BlogPost = async ({ params }: Params): Promise<React.ReactElement> => {
           )}
           <div className={showsPrimaryHeading ? "mb-6" : "mb-8 mt-4"}>
             <p className="text-sm italic text-gray-500">
-              By {blog.author} | {blog.date}
+              By{" "}
+              <AuthorLink
+                authorName={blog.author}
+                className="decoration-current/35 underline underline-offset-4 hover:text-blue-600"
+              />{" "}
+              | {blog.date}
             </p>
             {blog.tags.length > 0 && (
               <ul className="mt-4 flex flex-wrap gap-2">
