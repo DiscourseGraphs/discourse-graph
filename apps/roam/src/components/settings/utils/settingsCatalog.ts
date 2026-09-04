@@ -374,16 +374,15 @@ const AUTHORED_SETTINGS = {
   },
   "DISCOURSE_NODE_KEYS.format": {
     label: "Format",
-    group: "Recognition",
-    description:
-      "DEPRECATED - Use specification instead. The format pages should have.",
+    group: "Identity",
+    description: "The format pages should have.",
     docsLink: ROAM_DOCS.grammarNodes,
     keywords: ["node type", "deprecated"],
     path: nodePath(),
   },
   "DISCOURSE_NODE_KEYS.specification": {
     label: "Specification",
-    group: "Recognition",
+    group: "Legacy",
     description: "The conditions specified to identify a node.",
     docsLink: ROAM_DOCS.grammarNodes,
     keywords: ["node type", "query", "conditions"],
@@ -391,7 +390,7 @@ const AUTHORED_SETTINGS = {
   },
   "DISCOURSE_NODE_KEYS.index": {
     label: "Index",
-    group: "Recognition",
+    group: "Identity",
     description:
       "The saved list of all pages — which pages appear and which columns show.",
     keywords: ["node type", "table", "columns"],
