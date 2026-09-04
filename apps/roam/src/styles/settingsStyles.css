@@ -37,4 +37,66 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+
+:root {
+  /* Brand secondary, mirroring packages/tailwind-config. */
+  --dg-secondary: #5f57c0;
+}
+
+/* Hand-rolled, not Tailwind: apps/roam has no Tailwind build (tailwind.config.ts sets
+   `content: []`), so a utility class only applies if Roam's own stylesheet ships it. */
+.dg-settings-route {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.dg-settings-route__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.dg-settings-page-header {
+  display: block;
+  /* Shrinkable by default: without this the header squashes and overlaps the scrolling body. */
+  flex-shrink: 0;
+  margin-bottom: 20px;
+}
+
+.dg-settings-page-header__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 2px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.dg-settings-page-header__dot {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  /* Node pages override this inline with the node's own colour. */
+  background-color: var(--dg-secondary);
+}
+
+.dg-settings-page-header__trail {
+  font-size: 14px;
+  line-height: 1.4;
+  opacity: 0.6;
+}
+
+.dg-settings-page-header__crumb {
+  cursor: pointer;
+}
+
+.dg-settings-node-page {
+  display: flex;
+  flex-direction: column;
+  /* Wide enough that a group break is unmistakably more than a row break. */
+  gap: 44px;
+  padding: 2px;
 }

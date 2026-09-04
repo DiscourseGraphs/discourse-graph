@@ -16,7 +16,9 @@ import type { DiscourseNodeBaseProps } from "./BlockPropSettingPanels";
 const DEBOUNCE_MS = 250;
 const TEMPLATE_BUFFER_TEXT = "Template";
 
-type DualWriteBlocksPanelProps = DiscourseNodeBaseProps & {
+type DualWriteBlocksPanelProps = Omit<DiscourseNodeBaseProps, "title"> & {
+  /** Omit when the caller already renders a header for this setting. */
+  title?: string;
   uid: string;
   defaultValue?: InputTextNode[];
 };
@@ -115,7 +117,7 @@ const DualWriteBlocksPanel = ({
     const newUid = window.roamAlphaAPI.util.generateUID();
     const dv = defaultValueRef.current;
     const seed: InputTextNode[] = dv && dv.length > 0 ? dv : [{ text: " " }];
-    void createBlock({
+    const created = createBlock({
       node: { text: TEMPLATE_BUFFER_TEXT, uid: newUid, children: seed },
       parentUid: nodeType,
       order: "last",
@@ -125,23 +127,44 @@ const DualWriteBlocksPanel = ({
     return () => {
       cancelled = true;
       setBufferUid(null);
-      void deleteBlock(newUid);
+      // Deleting a uid whose createBlock is still in flight orphans the buffer block.
+      void created.then(
+        () => deleteBlock(newUid),
+        () => undefined,
+      );
     };
   }, [isNewStore, nodeType]);
+
+  const writeChanges = useCallback(() => {
+    if (!renderUid) return;
+    const tree = getFullTreeByParentUid(renderUid);
+    const serialized = serializeBlockTree(tree.children);
+    setDiscourseNodeSetting(nodeType, settingKeys, serialized);
+    if (isNewStore && renderUid !== uid) {
+      const legacyTree = getFullTreeByParentUid(uid);
+      mirrorBufferToLegacyChildren(tree.children, legacyTree.children, uid);
+    }
+  }, [renderUid, uid, isNewStore, nodeType, settingKeys]);
+
+  // In a ref so unmount cleanup can flush without re-running on every identity change.
+  const writeChangesRef = useRef(writeChanges);
+  writeChangesRef.current = writeChanges;
+
+  const flushPendingChanges = useCallback(() => {
+    if (!debounceRef.current) return;
+    window.clearTimeout(debounceRef.current);
+    debounceRef.current = 0;
+    writeChangesRef.current();
+  }, []);
 
   const handleChange = useCallback(() => {
     if (!renderUid) return;
     window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
-      const tree = getFullTreeByParentUid(renderUid);
-      const serialized = serializeBlockTree(tree.children);
-      setDiscourseNodeSetting(nodeType, settingKeys, serialized);
-      if (isNewStore && renderUid !== uid) {
-        const legacyTree = getFullTreeByParentUid(uid);
-        mirrorBufferToLegacyChildren(tree.children, legacyTree.children, uid);
-      }
+      debounceRef.current = 0;
+      writeChangesRef.current();
     }, DEBOUNCE_MS);
-  }, [renderUid, uid, isNewStore, nodeType, settingKeys]);
+  }, [renderUid]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -181,20 +204,23 @@ const DualWriteBlocksPanel = ({
 
     return () => {
       cancelled = true;
-      window.clearTimeout(debounceRef.current);
+      // Navigating away lands right after a keystroke, and the buffer block is deleted next.
+      flushPendingChanges();
       if (pullWatchArgsRef.current) {
         window.roamAlphaAPI.data.removePullWatch(...pullWatchArgsRef.current);
         pullWatchArgsRef.current = null;
       }
     };
-  }, [renderUid, handleChange]);
+  }, [renderUid, handleChange, flushPendingChanges]);
 
   return (
     <>
-      <Label>
-        {title}
-        <Description description={description} />
-      </Label>
+      {title ? (
+        <Label>
+          {title}
+          <Description description={description} />
+        </Label>
+      ) : null}
       <style>{`.dg-dualwrite-blocks > div > .rm-block-main {
     display: none;
   }

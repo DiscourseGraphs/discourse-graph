@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Button, Intent } from "@blueprintjs/core";
+import { Button, Collapse, Intent } from "@blueprintjs/core";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import getSubTree from "roamjs-components/util/getSubTree";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
@@ -17,6 +17,7 @@ import {
   TEMPLATE_SETTING_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import { RenderRoamBlock } from "~/utils/roamReactComponents";
+import Description from "~/components/settings/SettingsDescription";
 import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const DiscourseNodeSuggestiveRules = ({
@@ -42,6 +43,7 @@ const DiscourseNodeSuggestiveRules = ({
       }).uid || "",
     [nodeUid],
   );
+  const [isTemplateOpen, setIsTemplateOpen] = useState(false);
 
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -68,18 +70,41 @@ const DiscourseNodeSuggestiveRules = ({
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <DualWriteBlocksPanel
-        nodeType={node.type}
-        title="Template"
-        description={withDocsLink(
-          `The template that auto fills ${node.text} page when generated.`,
-          ROAM_DOCS.creatingNodes,
-        )}
-        settingKeys={TEMPLATE_SETTING_KEYS}
-        uid={templateUid}
-        defaultValue={node.template}
-      />
+    <div className="flex flex-col gap-4">
+      <div>
+        <div className="flex items-center">
+          <Button
+            minimal
+            small
+            icon={isTemplateOpen ? "chevron-down" : "chevron-right"}
+            text="Template"
+            onClick={() => setIsTemplateOpen((open) => !open)}
+          />
+          <Description
+            description={withDocsLink(
+              `The template that auto fills ${node.text} page when generated.`,
+              ROAM_DOCS.creatingNodes,
+            )}
+          />
+        </div>
+        {/* Collapse unmounts its children, so the editor's ephemeral buffer block is only
+            created while the template is actually open. */}
+        <Collapse isOpen={isTemplateOpen}>
+          {/* The toggle above is this setting's header, so the panel omits its own. */}
+          <div className="pl-6 pt-2">
+            <DualWriteBlocksPanel
+              nodeType={node.type}
+              description={withDocsLink(
+                `The template that auto fills ${node.text} page when generated.`,
+                ROAM_DOCS.creatingNodes,
+              )}
+              settingKeys={TEMPLATE_SETTING_KEYS}
+              uid={templateUid}
+              defaultValue={node.template}
+            />
+          </div>
+        </Collapse>
+      </div>
 
       <DiscourseNodeTextPanel
         nodeType={nodeUid}

@@ -1,13 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
-import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "~/components/settings/SettingsDescription";
 import {
   Label,
-  Tabs,
-  Tab,
-  TabId,
   InputGroup,
   ControlGroup,
   Tooltip,
@@ -18,8 +14,6 @@ import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings, {
   formatHexColor,
 } from "./DiscourseNodeCanvasSettings";
-import DiscourseNodeIndex from "./DiscourseNodeIndex";
-import { OnloadArgs } from "roamjs-components/types";
 import setInputSetting from "roamjs-components/util/setInputSetting";
 import {
   getDiscourseNodeSetting,
@@ -30,7 +24,6 @@ import {
   CANVAS_KEYS,
   DISCOURSE_NODE_KEYS,
   SPECIFICATION_KEYS,
-  TEMPLATE_SETTING_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
@@ -40,6 +33,10 @@ import {
   DiscourseNodeSelectPanel,
 } from "./components/BlockPropSettingPanels";
 import { ROAM_DOCS, withDocsLink } from "./utils/docs";
+import { SettingsGroup } from "./components/SettingsHeadings";
+import SettingsDrillDownRow from "./components/SettingsDrillDownRow";
+import { useSettingsNav } from "./navigation/SettingsNavContext";
+import { nodeConfigSegmentIds } from "./utils/settingsNavigation";
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -81,11 +78,18 @@ const DiscourseNodeColorSetting = ({
     [canvasUid, nodeType],
   );
 
+  // Navigating away unmounts mid-debounce, so the pending colour is written rather than dropped.
+  const pendingColorRef = useRef<string | null>(null);
+  const persistColorValueRef = useRef(persistColorValue);
+  persistColorValueRef.current = persistColorValue;
   useEffect(() => {
     return () => {
       if (!colorWriteTimeoutRef.current) return;
 
       window.clearTimeout(colorWriteTimeoutRef.current);
+      const pending = pendingColorRef.current;
+      pendingColorRef.current = null;
+      if (pending !== null) persistColorValueRef.current(pending);
     };
   }, []);
 
@@ -94,8 +98,10 @@ const DiscourseNodeColorSetting = ({
       window.clearTimeout(colorWriteTimeoutRef.current);
       colorWriteTimeoutRef.current = null;
     }
+    pendingColorRef.current = colorValue;
     colorWriteTimeoutRef.current = window.setTimeout(() => {
       persistColorValue(colorValue);
+      pendingColorRef.current = null;
       colorWriteTimeoutRef.current = null;
     }, COLOR_WRITE_DEBOUNCE_MS);
   };
@@ -134,6 +140,7 @@ const DiscourseNodeColorSetting = ({
                   window.clearTimeout(colorWriteTimeoutRef.current);
                   colorWriteTimeoutRef.current = null;
                 }
+                pendingColorRef.current = null;
                 setColor("");
                 persistColorValue("");
               }}
@@ -158,13 +165,7 @@ const generateTagPlaceholder = (node: DiscourseNode): string => {
   return `#${nodeTextPrefix}-candidate`; // Evidence = #evi-candidate
 };
 
-const NodeConfig = ({
-  node,
-  onloadArgs,
-}: {
-  node: DiscourseNode;
-  onloadArgs: OnloadArgs;
-}) => {
+const NodeConfig = ({ node }: { node: DiscourseNode }) => {
   const getUid = (key: string) =>
     getSubTree({
       parentUid: node.type,
@@ -174,19 +175,17 @@ const NodeConfig = ({
   const descriptionUid = getUid("Description");
   const shortcutUid = getUid("Shortcut");
   const tagUid = getUid("Tag");
-  const templateUid = getUid("Template");
   const overlayUid = getUid("Overlay");
   const canvasUid = getUid("Canvas");
   const graphOverviewUid = getUid("Graph Overview");
   const specificationUid = getUid("Specification");
-  const indexUid = getUid("Index");
   const suggestiveRulesUid = getUid("Suggestive Rules");
   const attributeNode = getSubTree({
     parentUid: node.type,
     key: "Attributes",
   });
 
-  const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
+  const nav = useSettingsNav();
   const [tagError, setTagError] = useState("");
   const [formatError, setFormatError] = useState("");
   const [shortcutError, setShortcutError] = useState("");
@@ -292,220 +291,171 @@ const NodeConfig = ({
   );
 
   return (
-    <>
-      <Tabs
-        onChange={(id) => setSelectedTabId(id)}
-        selectedTabId={selectedTabId}
-        renderActiveTabPanelOnly={true}
-      >
-        <Tab
-          id="general"
-          title="General"
-          panel={
-            <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeTextPanel
-                nodeType={node.type}
-                title="Description"
-                description={withDocsLink(
-                  `Describing what the ${node.text} node represents in your graph.`,
-                  ROAM_DOCS.grammarNodes,
-                )}
-                settingKeys={[DISCOURSE_NODE_KEYS.description]}
-                initialValue={node.description}
-                multiline
-                order={1}
-                parentUid={node.type}
-                uid={descriptionUid}
-              />
-              <DiscourseNodeTextPanel
-                nodeType={node.type}
-                title="Shortcut"
-                description={withDocsLink(
-                  `The trigger to quickly create a ${node.text} page from the node menu.`,
-                  ROAM_DOCS.creatingNodes,
-                )}
-                settingKeys={[DISCOURSE_NODE_KEYS.shortcut]}
-                initialValue={node.shortcut}
-                error={shortcutError}
-                onChange={handleShortcutChange}
-                order={0}
-                parentUid={node.type}
-                uid={shortcutUid}
-              />
-              <div>
-                <DiscourseNodeTextPanel
-                  nodeType={node.type}
-                  title="Tag"
-                  description={withDocsLink(
-                    `Designate a hashtag for marking potential ${node.text}.`,
-                    ROAM_DOCS.taggingCandidateNodes,
-                  )}
-                  settingKeys={[DISCOURSE_NODE_KEYS.tag]}
-                  initialValue={node.tag}
-                  placeholder={generateTagPlaceholder(node)}
-                  error={tagError}
-                  onChange={setTagValue}
-                  order={2}
-                  parentUid={node.type}
-                  uid={tagUid}
-                />
-              </div>
-              <DiscourseNodeColorSetting
-                canvasUid={canvasUid}
-                nodeType={node.type}
-                initialColor={node.canvasSettings?.color}
-                tagValue={tagValue}
-              />
-            </div>
-          }
-        />
-        <Tab
-          id="index"
+    <div className="dg-settings-node-page">
+      <SettingsGroup title="Identity">
+        <SettingsDrillDownRow
           title="Index"
-          panel={
-            <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeIndex
-                node={node}
-                parentUid={indexUid}
-                onloadArgs={onloadArgs}
-              />
-            </div>
-          }
+          description={`The saved list of all ${node.text} pages \u2014 which pages appear and which columns show.`}
+          buttonText={`See all ${node.text} nodes`}
+          onClick={() => nav.push(nodeConfigSegmentIds.index)}
         />
-        <Tab
-          id="format"
+        <DiscourseNodeTextPanel
+          nodeType={node.type}
+          title="Description"
+          description={withDocsLink(
+            `Describing what the ${node.text} node represents in your graph.`,
+            ROAM_DOCS.grammarNodes,
+          )}
+          settingKeys={[DISCOURSE_NODE_KEYS.description]}
+          initialValue={node.description}
+          multiline
+          order={1}
+          parentUid={node.type}
+          uid={descriptionUid}
+        />
+        <DiscourseNodeTextPanel
+          nodeType={node.type}
+          title="Tag"
+          description={withDocsLink(
+            `Designate a hashtag for marking potential ${node.text}.`,
+            ROAM_DOCS.taggingCandidateNodes,
+          )}
+          settingKeys={[DISCOURSE_NODE_KEYS.tag]}
+          initialValue={node.tag}
+          placeholder={generateTagPlaceholder(node)}
+          error={tagError}
+          onChange={setTagValue}
+          order={2}
+          parentUid={node.type}
+          uid={tagUid}
+        />
+        <DiscourseNodeColorSetting
+          canvasUid={canvasUid}
+          nodeType={node.type}
+          initialColor={node.canvasSettings?.color}
+          tagValue={tagValue}
+        />
+        <DiscourseNodeTextPanel
+          nodeType={node.type}
           title="Format"
-          panel={
-            <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeTextPanel
-                nodeType={node.type}
-                title="Format"
-                description={withDocsLink(
-                  `DEPRECATED - Use specification instead. The format ${node.text} pages should have.`,
-                  ROAM_DOCS.grammarNodes,
-                )}
-                settingKeys={[DISCOURSE_NODE_KEYS.format]}
-                initialValue={node.format}
-                error={formatError}
-                onChange={setFormatValue}
-                order={3}
-                parentUid={node.type}
-                uid={formatUid}
-              />
-              <Label>
-                Specification
-                <Description
-                  description={withDocsLink(
-                    `The conditions specified to identify a ${node.text} node.`,
-                    ROAM_DOCS.grammarNodes,
-                  )}
-                />
-                <DiscourseNodeSpecification
-                  node={node}
-                  parentUid={specificationUid}
-                  parentSetEnabled={(isSpecificationEnabled) => {
-                    validate({
-                      tag: tagValue,
-                      format: formatValue,
-                      isSpecificationEnabled,
-                    });
-                  }}
-                />
-              </Label>
-            </div>
-          }
+          description={withDocsLink(
+            `The format ${node.text} pages should have.`,
+            ROAM_DOCS.grammarNodes,
+          )}
+          settingKeys={[DISCOURSE_NODE_KEYS.format]}
+          initialValue={node.format}
+          error={formatError}
+          onChange={setFormatValue}
+          order={3}
+          parentUid={node.type}
+          uid={formatUid}
         />
-        <Tab
-          id="template"
+      </SettingsGroup>
+
+      <SettingsGroup title="Creation">
+        <DiscourseNodeTextPanel
+          nodeType={node.type}
+          title="Shortcut"
+          description={withDocsLink(
+            `The trigger to quickly create a ${node.text} page from the node menu.`,
+            ROAM_DOCS.creatingNodes,
+          )}
+          settingKeys={[DISCOURSE_NODE_KEYS.shortcut]}
+          initialValue={node.shortcut}
+          error={shortcutError}
+          onChange={handleShortcutChange}
+          order={0}
+          parentUid={node.type}
+          uid={shortcutUid}
+        />
+        <SettingsDrillDownRow
           title="Template"
-          panel={
-            <div className="flex flex-col gap-4 p-1">
-              <DualWriteBlocksPanel
-                nodeType={node.type}
-                title="Template"
-                description={withDocsLink(
-                  `The template that auto fills ${node.text} page when generated.`,
-                  ROAM_DOCS.creatingNodes,
-                )}
-                settingKeys={TEMPLATE_SETTING_KEYS}
-                uid={templateUid}
-                defaultValue={node.template}
-              />
-            </div>
-          }
+          description={withDocsLink(
+            `The template that auto fills ${node.text} page when generated.`,
+            ROAM_DOCS.creatingNodes,
+          )}
+          buttonText="Edit template"
+          onClick={() => nav.push(nodeConfigSegmentIds.template)}
         />
-        <Tab
-          id="attributes"
-          title="Attributes"
-          panel={
-            <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeAttributes
-                uid={attributeNode.uid}
-                nodeType={node.type}
-                defaultValue={getDiscourseNodeSetting<Record<string, string>>(
-                  node.type,
-                  [DISCOURSE_NODE_KEYS.attributes],
-                )}
-              />
-              <DiscourseNodeSelectPanel
-                nodeType={node.type}
-                title="Overlay"
-                description={withDocsLink(
-                  "Select which attribute is used for the discourse overlay",
-                  ROAM_DOCS.discourseAttributes,
-                )}
-                settingKeys={[DISCOURSE_NODE_KEYS.overlay]}
-                options={attributeNode.children.map((c) => c.text)}
-                initialValue={
-                  getDiscourseNodeSetting<string>(node.type, [
-                    DISCOURSE_NODE_KEYS.overlay,
-                  ]) ?? ""
-                }
-                order={0}
-                parentUid={node.type}
-                uid={overlayUid}
-              />
-            </div>
-          }
+      </SettingsGroup>
+
+      <SettingsGroup title="Canvas">
+        <DiscourseNodeCanvasSettings nodeType={node.type} uid={canvasUid} />
+        <DiscourseNodeFlagPanel
+          nodeType={node.type}
+          title="Graph Overview"
+          description="Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification."
+          settingKeys={[DISCOURSE_NODE_KEYS.graphOverview]}
+          initialValue={node.graphOverview}
+          order={0}
+          parentUid={node.type}
+          uid={graphOverviewUid}
         />
-        <Tab
-          id="canvas"
-          title="Canvas"
-          panel={
-            <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeCanvasSettings
-                nodeType={node.type}
-                uid={canvasUid}
-              />
-              <DiscourseNodeFlagPanel
-                nodeType={node.type}
-                title="Graph Overview"
-                description="Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification."
-                settingKeys={[DISCOURSE_NODE_KEYS.graphOverview]}
-                initialValue={node.graphOverview}
-                order={0}
-                parentUid={node.type}
-                uid={graphOverviewUid}
-              />
-            </div>
-          }
-        />
-        {isSyncEnabled() && (
-          <Tab
-            id="suggestive-mode"
-            title="Suggestive mode"
-            panel={
-              <div className="flex flex-col gap-4 p-1">
-                <DiscourseNodeSuggestiveRules
-                  node={node}
-                  parentUid={suggestiveRulesUid}
-                />
-              </div>
-            }
+      </SettingsGroup>
+
+      {/* Settings mid-migration live here until they either replace their
+          predecessor or are removed. */}
+      <SettingsGroup title="Legacy">
+        <Label>
+          Specification
+          <Description
+            description={withDocsLink(
+              `The conditions specified to identify a ${node.text} node.`,
+              ROAM_DOCS.grammarNodes,
+            )}
           />
-        )}
-      </Tabs>
-    </>
+          <DiscourseNodeSpecification
+            node={node}
+            parentUid={specificationUid}
+            parentSetEnabled={(isSpecificationEnabled) => {
+              validate({
+                tag: tagValue,
+                format: formatValue,
+                isSpecificationEnabled,
+              });
+            }}
+          />
+        </Label>
+      </SettingsGroup>
+
+      {isSyncEnabled() && (
+        <SettingsGroup title="Suggestive mode">
+          <DiscourseNodeSuggestiveRules
+            node={node}
+            parentUid={suggestiveRulesUid}
+          />
+        </SettingsGroup>
+      )}
+
+      <SettingsGroup title="Attributes">
+        <DiscourseNodeAttributes
+          uid={attributeNode.uid}
+          nodeType={node.type}
+          defaultValue={getDiscourseNodeSetting<Record<string, string>>(
+            node.type,
+            [DISCOURSE_NODE_KEYS.attributes],
+          )}
+        />
+        <DiscourseNodeSelectPanel
+          nodeType={node.type}
+          title="Overlay"
+          description={withDocsLink(
+            "Select which attribute is used for the discourse overlay",
+            ROAM_DOCS.discourseAttributes,
+          )}
+          settingKeys={[DISCOURSE_NODE_KEYS.overlay]}
+          options={attributeNode.children.map((c) => c.text)}
+          initialValue={
+            getDiscourseNodeSetting<string>(node.type, [
+              DISCOURSE_NODE_KEYS.overlay,
+            ]) ?? ""
+          }
+          order={0}
+          parentUid={node.type}
+          uid={overlayUid}
+        />
+      </SettingsGroup>
+    </div>
   );
 };
 
