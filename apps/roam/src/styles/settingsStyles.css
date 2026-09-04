@@ -96,6 +96,7 @@
 .dg-settings-node-page {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  /* Wide enough that a group break is unmistakably more than a row break. */
+  gap: 44px;
   padding: 2px;
 }
