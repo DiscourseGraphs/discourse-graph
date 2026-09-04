@@ -57,6 +57,8 @@ type MultiTextSetter = (keys: string[], value: string[]) => void;
 
 type RowPresentationProps = {
   scope?: SettingScope;
+  /** Tighter row for narrow hosts such as the Export dialog. */
+  compact?: boolean;
 };
 
 type BaseTextPanelProps = {
@@ -218,6 +220,7 @@ const BaseTextPanel = ({
   order,
   blockKey,
   scope,
+  compact,
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? "");
   const errorRef = useRef(error);
@@ -250,6 +253,7 @@ const BaseTextPanel = ({
       label={title}
       description={description}
       scope={scope}
+      compact={compact}
       settingKeys={settingKeys}
       error={error}
       controlPlacement={multiline ? "below" : "trailing"}
@@ -294,6 +298,7 @@ const BaseFlagPanel = ({
   order,
   blockKey,
   scope,
+  compact,
 }: BaseFlagPanelProps) => {
   const [internalValue, setInternalValue] = useState(
     () => initialValue ?? false,
@@ -341,6 +346,7 @@ const BaseFlagPanel = ({
       label={title}
       description={description}
       scope={scope}
+      compact={compact}
       settingKeys={settingKeys}
       control={(controlId) => (
         <Switch
@@ -369,6 +375,7 @@ const BaseNumberPanel = ({
   order,
   blockKey,
   scope,
+  compact,
 }: BaseNumberPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? 0);
   const syncToBlock = useLegacyBlockSync({
@@ -395,16 +402,19 @@ const BaseNumberPanel = ({
       label={title}
       description={description}
       scope={scope}
+      compact={compact}
       settingKeys={settingKeys}
       control={(controlId) => (
-        <NumericInput
-          id={controlId}
-          value={value}
-          onValueChange={handleChange}
-          min={min}
-          max={max}
-          className="w-24"
-        />
+        <div className="w-24">
+          <NumericInput
+            id={controlId}
+            value={value}
+            onValueChange={handleChange}
+            min={min}
+            max={max}
+            fill
+          />
+        </div>
       )}
     />
   );
@@ -422,6 +432,7 @@ const BaseSelectPanel = ({
   order,
   blockKey,
   scope,
+  compact,
 }: BaseSelectPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? options[0]);
   const syncToBlock = useLegacyBlockSync({
@@ -447,6 +458,7 @@ const BaseSelectPanel = ({
       label={title}
       description={description}
       scope={scope}
+      compact={compact}
       settingKeys={settingKeys}
       control={(controlId) => (
         <HTMLSelect
@@ -472,6 +484,7 @@ const BaseMultiTextPanel = ({
   order,
   blockKey,
   scope,
+  compact,
 }: BaseMultiTextPanelProps) => {
   const [values, setValues] = useState<string[]>(() => initialValue ?? []);
   const [inputValue, setInputValue] = useState("");
@@ -552,6 +565,7 @@ const BaseMultiTextPanel = ({
       label={title}
       description={description}
       scope={scope}
+      compact={compact}
       settingKeys={settingKeys}
       controlPlacement="below"
       control={(controlId) => (
