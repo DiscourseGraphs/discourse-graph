@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { importPage } from "nextra/pages";
+import { JsonLd } from "~/components/JsonLd";
+import {
+  createBreadcrumbStructuredData,
+  createStructuredDataDocument,
+} from "~/utils/structuredData";
 import { getAllBlogs } from "./readBlogs";
 
 type ImportedPage = Awaited<ReturnType<typeof importPage>>;
@@ -17,6 +22,14 @@ const BlogIndex = async (): Promise<React.ReactElement> => {
 
   return (
     <div className="flex-1 bg-gray-50">
+      <JsonLd
+        data={createStructuredDataDocument([
+          createBreadcrumbStructuredData([
+            { name: "Home", path: "/" },
+            { name: "Updates", path: "/blog" },
+          ]),
+        ])}
+      />
       <div className="mx-auto max-w-6xl space-y-12 px-6 py-12">
         <article className="rounded-xl bg-white p-8 shadow-md">
           <div className="space-y-4">

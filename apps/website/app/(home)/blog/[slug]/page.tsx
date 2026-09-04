@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { importPage } from "nextra/pages";
+import { JsonLd } from "~/components/JsonLd";
+import {
+  createArticleStructuredData,
+  createBreadcrumbStructuredData,
+  createStructuredDataDocument,
+} from "~/utils/structuredData";
 import type { BlogData } from "../blogSchema";
 import { getAllBlogs, getBlogBySlug } from "../readBlogs";
 
@@ -82,6 +88,23 @@ const BlogPost = async ({ params }: Params): Promise<React.ReactElement> => {
 
     return (
       <div className="flex flex-1 flex-col items-center bg-gray-50 px-6 py-12">
+        <JsonLd
+          data={createStructuredDataDocument([
+            createArticleStructuredData({
+              author: blog.author,
+              datePublished: blog.date,
+              description: blog.description,
+              keywords: blog.tags,
+              path: `/blog/${blog.slug}`,
+              title: blog.title,
+            }),
+            createBreadcrumbStructuredData([
+              { name: "Home", path: "/" },
+              { name: "Updates", path: "/blog" },
+              { name: blog.title, path: `/blog/${blog.slug}` },
+            ]),
+          ])}
+        />
         <article className="w-full max-w-4xl rounded-xl bg-white p-8 shadow-md sm:p-10">
           {!showsPrimaryHeading && (
             <h1 className="text-5xl font-bold leading-tight text-primary">
