@@ -155,7 +155,7 @@ const SettingsSearchField = ({
         )
       }
     >
-      <div className="dg-settings-search mb-2">
+      <div className="dg-settings-search">
         <InputGroup
           inputRef={(input) => {
             inputRef.current = input;
