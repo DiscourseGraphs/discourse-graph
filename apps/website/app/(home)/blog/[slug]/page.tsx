@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { importPage } from "nextra/pages";
 import type { BlogData } from "../blogSchema";
 import { getAllBlogs, getBlogBySlug } from "../readBlogs";
+import { getBlogPostPath, getCanonicalMetadata, getCanonicalUrl } from "~/seo";
 
 type Params = {
   params: Promise<{
@@ -39,6 +40,7 @@ const buildBlogPostMetadata = ({
     description: blog.description,
     metadata: pageMetadata,
   });
+  const canonicalPath = getBlogPostPath(blog.slug);
 
   return {
     ...pageMetadata,
@@ -48,7 +50,7 @@ const buildBlogPostMetadata = ({
     keywords: blog.tags.length ? blog.tags : pageMetadata.keywords,
     alternates: {
       ...pageMetadata.alternates,
-      canonical: `/blog/${blog.slug}`,
+      ...getCanonicalMetadata(canonicalPath).alternates,
     },
     openGraph: {
       ...pageMetadata.openGraph,
@@ -58,7 +60,7 @@ const buildBlogPostMetadata = ({
       publishedTime: blog.date,
       authors: [blog.author],
       tags: blog.tags.length ? blog.tags : undefined,
-      url: `/blog/${blog.slug}`,
+      url: getCanonicalUrl(canonicalPath),
     },
     twitter: {
       ...pageMetadata.twitter,
@@ -124,13 +126,16 @@ export const generateStaticParams = async (): Promise<
 export const generateMetadata = async ({
   params,
 }: Params): Promise<Metadata> => {
+  const { slug } = await params;
+  const canonicalMetadata = getCanonicalMetadata(getBlogPostPath(slug));
+
   try {
-    const { slug } = await params;
     const blog = await getBlogBySlug(slug);
 
     if (!blog) {
       return {
         title: "Blog Post",
+        ...canonicalMetadata,
       };
     }
 
@@ -144,6 +149,7 @@ export const generateMetadata = async ({
     console.error("Error generating metadata:", error);
     return {
       title: "Blog Post",
+      ...canonicalMetadata,
     };
   }
 };

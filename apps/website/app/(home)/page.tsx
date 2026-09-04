@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import type { ReactElement, ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -19,6 +20,11 @@ import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { TeamPerson } from "~/components/TeamPerson";
 import { TEAM_MEMBERS } from "~/data/constants";
+import { getCanonicalMetadata, PUBLIC_STATIC_PATHS } from "~/seo";
+
+export const metadata: Metadata = getCanonicalMetadata(
+  PUBLIC_STATIC_PATHS.home,
+);
 
 const SLACK_URL =
   "https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg";

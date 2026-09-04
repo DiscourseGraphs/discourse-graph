@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { importPage } from "nextra/pages";
 import { getAllBlogs } from "./readBlogs";
+import { getCanonicalMetadata, PUBLIC_STATIC_PATHS } from "~/seo";
 
 type ImportedPage = Awaited<ReturnType<typeof importPage>>;
 
@@ -70,12 +71,16 @@ export const generateMetadata = async (): Promise<Metadata> => {
   try {
     const { metadata } = await loadBlogIndex();
 
-    return metadata;
+    return {
+      ...metadata,
+      ...getCanonicalMetadata(PUBLIC_STATIC_PATHS.blog),
+    };
   } catch (error) {
     console.error("Error generating blog index metadata:", error);
 
     return {
       title: "All Updates",
+      ...getCanonicalMetadata(PUBLIC_STATIC_PATHS.blog),
     };
   }
 };
