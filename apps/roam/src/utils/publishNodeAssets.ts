@@ -232,3 +232,59 @@ export const publishNodeAssets = async ({
   }
   return results;
 };
+
+export type AssetSummary = {
+  /** References newly recorded, one per link copied, not one per blob. */
+  copied: number;
+  /** References already recorded, which cost no transfer. */
+  unchanged: number;
+  /**
+   * Distinct content behind the copied references. Two nodes embedding the same image
+   * copy twice and store once, so this is what actually landed in the bucket, and it is
+   * an upper bound on new uploads: a re-publish reuses a blob already there.
+   */
+  distinctBlobs: number;
+  /** Files declined for being over the cap. Their links stay in the published markdown. */
+  tooLarge: SkippedAsset[];
+  /** Files that could not be read from Roam's storage. Their links stay too. */
+  failed: FailedAsset[];
+};
+
+/** One entry per distinct file, so a file embedded in three nodes is reported once. */
+const byDistinctRef = <T extends { sourceRef: string }>(results: T[]): T[] => {
+  const seen = new Set<string>();
+  return results.filter(({ sourceRef }) => {
+    if (seen.has(sourceRef)) return false;
+    seen.add(sourceRef);
+    return true;
+  });
+};
+
+/**
+ * Counts what the stage did, for a publish summary.
+ *
+ * Skips and failures are kept apart because they mean different things to whoever is
+ * publishing: an oversized file is a decision they can act on, an unreadable one is a
+ * fault. Neither stopped the node from publishing.
+ */
+export const summarizeAssetResults = (
+  results: NodeAssetResult[],
+): AssetSummary => ({
+  copied: results.filter((r) => r.status === "copied").length,
+  unchanged: results.filter((r) => r.status === "unchanged").length,
+  distinctBlobs: new Set(
+    results.flatMap((r) => (r.status === "copied" ? [r.contentHash] : [])),
+  ).size,
+  tooLarge: byDistinctRef(
+    results.filter(
+      (r): r is SkippedAsset & { sourceLocalId: string } =>
+        r.status === "skipped",
+    ),
+  ),
+  failed: byDistinctRef(
+    results.filter(
+      (r): r is FailedAsset & { sourceLocalId: string } =>
+        r.status === "failed",
+    ),
+  ),
+});
