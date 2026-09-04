@@ -112,8 +112,8 @@
    resolve), but anything depending on Tailwind's preflight is hand-rolled:
    `border-b` and `border` only set a width, and preflight's
    `* { border-style: solid }` is not present, so the border never paints. */
-.dg-setting-row + .dg-setting-row {
-  border-top: 1px solid var(--dg-border);
+.dg-setting-row {
+  border-bottom: 1px solid var(--dg-border);
 }
 
 .dg-setting-row__label {
