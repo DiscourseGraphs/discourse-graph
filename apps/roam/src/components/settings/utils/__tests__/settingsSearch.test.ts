@@ -5,17 +5,16 @@ import type { SearchableEntry } from "../settingsCatalog";
 const setting = (
   label: string,
   extra: Partial<SearchableEntry> = {},
-): SearchableEntry =>
-  ({
-    kind: "setting",
-    id: label,
-    anchorId: label,
-    label,
-    keywords: [],
-    path: ["preferences-general"],
-    breadcrumb: "Preferences › General",
-    ...extra,
-  }) as SearchableEntry;
+): SearchableEntry => ({
+  kind: "setting",
+  id: label,
+  anchorId: label,
+  label,
+  keywords: [],
+  path: ["preferences-general"],
+  breadcrumb: "Preferences › General",
+  ...extra,
+});
 
 const page = (label: string): SearchableEntry => ({
   kind: "page",
