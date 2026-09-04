@@ -132,6 +132,9 @@ const makeFakeClient = ({
           : [],
       error: null,
     });
+  // Main's builder already answers what the asset stage asks of `select`: `eq` chains and
+  // the builder is awaitable on its own, which is the shape `publishNodeAssets` uses when
+  // it reads a node's existing references with two `eq`s and no `in`.
   const makeSelectBuilder = (table: string): FakeSelectBuilder => {
     const builder: FakeSelectBuilder = {
       url: { search: "" },
@@ -147,9 +150,16 @@ const makeFakeClient = ({
     };
     return builder;
   };
+  const deleteFilter = (): Record<string, unknown> => ({
+    eq: () => deleteFilter(),
+    notIn: () => deleteFilter(),
+    then: (resolve: (value: unknown) => unknown) =>
+      Promise.resolve({ error: null }).then(resolve),
+  });
   const client = {
     from: (table: string) => ({
       select: () => makeSelectBuilder(table),
+      delete: () => deleteFilter(),
       upsert: (
         rows: Record<string, unknown>[],
         options: Record<string, unknown>,
@@ -329,6 +339,49 @@ describe("publishNodesToGroups", () => {
       expect(grantedIds).not.toContain("node-2");
     },
   );
+
+  it("publishes a node whose asset cannot be fetched, with its content intact and the failure reported", async () => {
+    const assetUrl =
+      "https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FMAPLab%2FlqP2ioVNC3.png?alt=media&token=9f1c07a4";
+    const node = makeCrossAppNode({ uid: "node-1", title: "Claim one" });
+    const markdown = `# Claim one\n\n![](${assetUrl})\n`;
+    node.content.full = { ...node.content.full!, value: markdown };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({ ok: false, status: 500 } as unknown as Response),
+      ),
+    );
+    const { client, rpcCalls } = makeFakeClient({});
+
+    const result = await publishNodesToGroups({
+      client,
+      spaceId: SPACE_ID,
+      groupIds: [GROUP_ID],
+      nodes: [node],
+    });
+
+    expect(result.publishedNodeUids).toContain("node-1");
+    expect(result.failedUpsertUids).toEqual([]);
+    expect(result.assetResults).toEqual([
+      {
+        status: "failed",
+        sourceRef: assetUrl,
+        sourceLocalId: "node-1",
+        error: expect.stringContaining(
+          "Could not read asset descriptor",
+        ) as unknown,
+      },
+    ]);
+    // The content that was upserted still carries the asset link.
+    const upserted = rpcCalls
+      .flatMap(({ args }) => args.data)
+      .find((row) => row.source_local_id === "node-1");
+    expect(JSON.stringify(upserted)).toContain(assetUrl);
+    expect(node.content.full?.value).toBe(markdown);
+
+    vi.unstubAllGlobals();
+  });
 
   it("withholds dependent nodes when their schema upsert fails", async () => {
     const { client, upsertCalls } = makeFakeClient({
