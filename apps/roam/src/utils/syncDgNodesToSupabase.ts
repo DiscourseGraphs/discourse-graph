@@ -4,6 +4,7 @@ import {
   nodeTypeSince,
 } from "./getAllDiscourseNodesSince";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
+import { getImportedNodeUids } from "./importedSourceIdentity";
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import {
   getLoggedInClient,
@@ -1277,16 +1278,26 @@ export const createOrUpdateDiscourseEmbedding = async (
           spaceId: activeContext.spaceId,
         }),
     });
+    const importedNodeUids = await measureSyncPhase({
+      phase: "getImportedNodeUids",
+      phases,
+      operation: () => getImportedNodeUids(),
+    });
+    const nonImportedNodeInstances = changedNodeInstances.filter(
+      (node) => !importedNodeUids.has(node.source_local_id),
+    );
     const nodeInstancesToSync = sharedNodesOnlySync
-      ? changedNodeInstances.filter((node) =>
+      ? nonImportedNodeInstances.filter((node) =>
           sharedSourceLocalIds.has(node.source_local_id),
         )
-      : changedNodeInstances;
+      : nonImportedNodeInstances;
     const nodesToBackfillCoreTitle = (
       coreTitleBackfill?.nodesToBackfill ?? []
     ).filter(
       (node) =>
-        !sharedNodesOnlySync || sharedSourceLocalIds.has(node.source_local_id),
+        !importedNodeUids.has(node.source_local_id) &&
+        (!sharedNodesOnlySync ||
+          sharedSourceLocalIds.has(node.source_local_id)),
     );
     const conceptNodesToSync = mergeNodesBySourceLocalId(
       nodeInstancesToSync,
