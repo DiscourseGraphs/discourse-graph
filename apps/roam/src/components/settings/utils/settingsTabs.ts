@@ -1,0 +1,36 @@
+import type { TabId } from "@blueprintjs/core";
+
+export const SETTINGS_TAB_IDS = {
+  preferencesGeneral: "preferences-general",
+  preferencesStyling: "preferences-styling",
+  featuresDiscourseContext: "features-discourse-context",
+  featuresCanvas: "features-canvas",
+  featuresLeftSidebar: "features-left-sidebar",
+  grammarNodes: "grammar-nodes",
+  grammarRelations: "grammar-relations",
+  advancedQueries: "advanced-queries",
+  advancedExport: "advanced-export",
+  admin: "secret-admin-panel",
+} as const;
+
+export const DEFAULT_SETTINGS_TAB_ID: TabId =
+  SETTINGS_TAB_IDS.preferencesGeneral;
+
+/** Tab ids from before the taxonomy. Saved deep links still carry these. */
+export const SETTINGS_TAB_ALIASES: Record<string, TabId> = {
+  "discourse-graph-home-personal": SETTINGS_TAB_IDS.preferencesGeneral,
+  "discourse-graph-home": SETTINGS_TAB_IDS.preferencesGeneral,
+  "query-settings": SETTINGS_TAB_IDS.advancedQueries,
+  "canvas-shortcuts-personal-settings": SETTINGS_TAB_IDS.featuresCanvas,
+  "left-sidebar-personal-settings": SETTINGS_TAB_IDS.featuresLeftSidebar,
+  "left-sidebar-global-settings": SETTINGS_TAB_IDS.featuresLeftSidebar,
+  "discourse-graph-export": SETTINGS_TAB_IDS.advancedExport,
+  "discourse-nodes": SETTINGS_TAB_IDS.grammarNodes,
+  "discourse-relations": SETTINGS_TAB_IDS.grammarRelations,
+};
+
+/** Unknown ids pass through: per-node tabs are keyed by node page uid. */
+export const resolveSettingsTabId = (id?: TabId): TabId => {
+  if (id === undefined) return DEFAULT_SETTINGS_TAB_ID;
+  return SETTINGS_TAB_ALIASES[String(id)] ?? id;
+};

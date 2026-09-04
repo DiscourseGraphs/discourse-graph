@@ -13,6 +13,7 @@ import getDiscourseNodes from "./getDiscourseNodes";
 import fireQuery from "./fireQuery";
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";
+import { SETTINGS_TAB_IDS } from "~/components/settings/utils/settingsTabs";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import {
@@ -543,7 +544,7 @@ const addBlockToPersonalSection = async ({
     refreshAndNotify();
     renderSettings({
       onloadArgs,
-      selectedTabId: "left-sidebar-personal-settings",
+      selectedTabId: SETTINGS_TAB_IDS.featuresLeftSidebar,
       expandedSectionUid: sectionUid,
     });
   } catch {

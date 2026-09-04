@@ -16,6 +16,7 @@ import {
   TextArea,
 } from "@blueprintjs/core";
 import Description from "~/components/settings/SettingsDescription";
+import { settingAnchor } from "~/components/settings/utils/settingAnchor";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
@@ -34,6 +35,12 @@ type RoamBlockSyncProps = {
   parentUid?: string;
   uid?: string;
   order?: number;
+  /**
+   * Text of the legacy block this panel mirrors into. Defaults to `title`.
+   * Set it when the visible title must differ from the exact text that
+   * discourseConfigRef.ts and friends look the block up by.
+   */
+  blockKey?: string;
 };
 
 type TextSetter = (keys: string[], value: string) => void;
@@ -97,6 +104,19 @@ type BaseMultiTextPanelProps = {
   onChange?: (values: string[]) => void;
 } & RoamBlockSyncProps;
 
+const SettingTitle = ({
+  title,
+  description,
+}: {
+  title: React.ReactNode;
+  description?: React.ReactNode;
+}) => (
+  <>
+    {title}
+    {description ? <Description description={description} /> : null}
+  </>
+);
+
 const DEBOUNCE_MS = 250;
 
 const BaseTextPanel = ({
@@ -113,6 +133,7 @@ const BaseTextPanel = ({
   parentUid,
   uid,
   order,
+  blockKey,
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? "");
   const errorRef = useRef(error);
@@ -120,7 +141,7 @@ const BaseTextPanel = ({
   const debounceRef = useRef(0);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
-    title,
+    title: blockKey ?? title,
     parentUid: parentUid ?? "",
     order: order ?? 0,
     uid,
@@ -154,10 +175,9 @@ const BaseTextPanel = ({
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col" {...settingAnchor(settingKeys)}>
       <Label>
-        {title}
-        {description && <Description description={description} />}
+        <SettingTitle title={title} description={description} />
         {multiline ? (
           <TextArea
             value={value}
@@ -196,6 +216,7 @@ const BaseFlagPanel = ({
   parentUid,
   uid: initialBlockUid,
   order,
+  blockKey,
 }: BaseFlagPanelProps) => {
   const [internalValue, setInternalValue] = useState(
     () => initialValue ?? false,
@@ -209,7 +230,7 @@ const BaseFlagPanel = ({
         if (blockUidRef.current) return;
         const newUid = window.roamAlphaAPI.util.generateUID();
         await window.roamAlphaAPI.data.block.create({
-          block: { string: title, uid: newUid },
+          block: { string: blockKey ?? title, uid: newUid },
           location: { order, "parent-uid": parentUid },
         });
         blockUidRef.current = newUid;
@@ -220,7 +241,7 @@ const BaseFlagPanel = ({
         blockUidRef.current = undefined;
       }
     },
-    [title, parentUid, order],
+    [blockKey, title, parentUid, order],
   );
 
   const handleChange = async (e: React.FormEvent<HTMLInputElement>) => {
@@ -239,17 +260,14 @@ const BaseFlagPanel = ({
   };
 
   return (
-    <Checkbox
-      checked={value ?? internalValue}
-      onChange={(e) => void handleChange(e)}
-      disabled={disabled}
-      labelElement={
-        <>
-          {title}
-          <Description description={description} />
-        </>
-      }
-    />
+    <div {...settingAnchor(settingKeys)}>
+      <Checkbox
+        checked={value ?? internalValue}
+        onChange={(e) => void handleChange(e)}
+        disabled={disabled}
+        labelElement={<SettingTitle title={title} description={description} />}
+      />
+    </div>
   );
 };
 
@@ -265,11 +283,12 @@ const BaseNumberPanel = ({
   parentUid,
   uid,
   order,
+  blockKey,
 }: BaseNumberPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? 0);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
-    title,
+    title: blockKey ?? title,
     parentUid: parentUid ?? "",
     order: order ?? 0,
     uid,
@@ -297,9 +316,8 @@ const BaseNumberPanel = ({
   };
 
   return (
-    <Label>
-      {title}
-      <Description description={description} />
+    <Label {...settingAnchor(settingKeys)}>
+      <SettingTitle title={title} description={description} />
       <NumericInput
         value={value}
         onValueChange={handleChange}
@@ -321,11 +339,12 @@ const BaseSelectPanel = ({
   parentUid,
   uid,
   order,
+  blockKey,
 }: BaseSelectPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? options[0]);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
-    title,
+    title: blockKey ?? title,
     parentUid: parentUid ?? "",
     order: order ?? 0,
     uid,
@@ -352,9 +371,8 @@ const BaseSelectPanel = ({
   };
 
   return (
-    <Label>
-      {title}
-      <Description description={description} />
+    <Label {...settingAnchor(settingKeys)}>
+      <SettingTitle title={title} description={description} />
       <HTMLSelect
         value={value}
         onChange={handleChange}
@@ -375,6 +393,7 @@ const BaseMultiTextPanel = ({
   parentUid,
   uid: initialBlockUid,
   order,
+  blockKey,
 }: BaseMultiTextPanelProps) => {
   const [values, setValues] = useState<string[]>(() => initialValue ?? []);
   const [inputValue, setInputValue] = useState("");
@@ -395,12 +414,12 @@ const BaseMultiTextPanel = ({
     if (parentUid === undefined || order === undefined) return undefined;
     const newUid = window.roamAlphaAPI.util.generateUID();
     await window.roamAlphaAPI.createBlock({
-      block: { string: title, uid: newUid },
+      block: { string: blockKey ?? title, uid: newUid },
       location: { order, "parent-uid": parentUid },
     });
     blockUidRef.current = newUid;
     return newUid;
-  }, [title, parentUid, order]);
+  }, [blockKey, title, parentUid, order]);
 
   const handleAdd = async () => {
     if (inputValue.trim() && !values.includes(inputValue.trim())) {
@@ -451,9 +470,8 @@ const BaseMultiTextPanel = ({
   };
 
   return (
-    <Label>
-      {title}
-      <Description description={description} />
+    <Label {...settingAnchor(settingKeys)}>
+      <SettingTitle title={title} description={description} />
       <div className="flex gap-2">
         <InputGroup
           value={inputValue}
@@ -532,6 +550,7 @@ export const FeatureFlagPanel = ({
   parentUid,
   uid,
   order,
+  blockKey,
 }: {
   title: string;
   description: React.ReactNode;
@@ -556,6 +575,7 @@ export const FeatureFlagPanel = ({
   return (
     <BaseFlagPanel
       title={title}
+      blockKey={blockKey}
       description={description}
       settingKeys={[featureKey as string]}
       setter={featureFlagSetter}
