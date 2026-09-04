@@ -9,7 +9,6 @@ export const SETTINGS_TAB_IDS = {
   grammarNodes: "grammar-nodes",
   grammarRelations: "grammar-relations",
   advancedQueries: "advanced-queries",
-  advancedExport: "advanced-export",
   admin: "secret-admin-panel",
 } as const;
 
@@ -24,7 +23,8 @@ export const SETTINGS_TAB_ALIASES: Record<string, TabId> = {
   "canvas-shortcuts-personal-settings": SETTINGS_TAB_IDS.featuresCanvas,
   "left-sidebar-personal-settings": SETTINGS_TAB_IDS.featuresLeftSidebar,
   "left-sidebar-global-settings": SETTINGS_TAB_IDS.featuresLeftSidebar,
-  "discourse-graph-export": SETTINGS_TAB_IDS.advancedExport,
+  // Export options left Settings in ENG-2185; they now live in the Export dialog.
+  "discourse-graph-export": SETTINGS_TAB_IDS.preferencesGeneral,
   "discourse-nodes": SETTINGS_TAB_IDS.grammarNodes,
   "discourse-relations": SETTINGS_TAB_IDS.grammarRelations,
 };

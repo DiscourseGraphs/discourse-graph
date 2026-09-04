@@ -1,6 +1,4 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
-import { Label } from "@blueprintjs/core";
-import Description from "~/components/settings/SettingsDescription";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
@@ -12,6 +10,7 @@ import {
   setDiscourseNodeSetting,
 } from "~/components/settings/utils/accessors";
 import type { DiscourseNodeBaseProps } from "./BlockPropSettingPanels";
+import SettingItemRow from "~/components/settings/components/SettingItemRow";
 
 const DEBOUNCE_MS = 250;
 const TEMPLATE_BUFFER_TEXT = "Template";
@@ -213,14 +212,16 @@ const DualWriteBlocksPanel = ({
     };
   }, [renderUid, handleChange, flushPendingChanges]);
 
+  // One node either way: the ref must attach whether or not a header wraps it.
+  const blocksContainer = (
+    <div
+      ref={containerRef}
+      className="dg-dualwrite-blocks rounded border border-gray-200 py-2"
+    />
+  );
+
   return (
     <>
-      {title ? (
-        <Label>
-          {title}
-          <Description description={description} />
-        </Label>
-      ) : null}
       <style>{`.dg-dualwrite-blocks > div > .rm-block-main {
     display: none;
   }
@@ -230,10 +231,17 @@ const DualWriteBlocksPanel = ({
   .dg-dualwrite-blocks > div > .rm-block-children {
     margin-left: -4px;
   }`}</style>
-      <div
-        ref={containerRef}
-        className="dg-dualwrite-blocks rounded border border-gray-200 py-2"
-      />
+      {title ? (
+        <SettingItemRow
+          label={title}
+          description={description}
+          scope="global"
+          controlPlacement="below"
+          control={blocksContainer}
+        />
+      ) : (
+        blocksContainer
+      )}
     </>
   );
 };
