@@ -21,6 +21,7 @@ import {
 } from "@repo/database/lib/crossAppConverters";
 import { ensurePartialSpaceAccess } from "@repo/database/lib/groups";
 import { isIgnorableUpsertError } from "@repo/database/lib/contextFunctions";
+import { getAllPages } from "@repo/database/lib/pagination";
 import { isRid, ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
 import getDiscourseNodes from "./getDiscourseNodes";
 import { difference, intersection } from "@repo/utils/setOperations";
@@ -35,21 +36,32 @@ export type NodeUidWithType = {
   type: string;
 };
 
-const getAllPublishedIdsByGroup = async (
-  client: DGSupabaseClient,
-  spaceId: number,
-  groupIds: string[],
-): Promise<Record<string, Set<string>>> => {
-  const response = await client
+export const getAllPublishedIdsByGroup = async ({
+  client,
+  spaceId,
+  groupIds,
+  sourceLocalIds,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  groupIds: string[];
+  sourceLocalIds?: string[];
+}): Promise<Record<string, Set<string>>> => {
+  let query = client
     .from("ResourceAccess")
     .select("account_uid, source_local_id")
     .eq("space_id", spaceId)
     .in("account_uid", groupIds);
-  if (response.error) throw response.error;
+  if (sourceLocalIds) query = query.in("source_local_id", sourceLocalIds);
+  const rows = await getAllPages(
+    query.order("account_uid").order("source_local_id"),
+    1000,
+  );
+  if (!Array.isArray(rows)) throw rows;
   const publishedIdsByGroupId = Object.fromEntries(
     groupIds.map((gid) => [gid, new Set<string>()]),
   );
-  response.data.forEach(({ account_uid, source_local_id }) => {
+  rows.forEach(({ account_uid, source_local_id }) => {
     publishedIdsByGroupId[account_uid].add(source_local_id);
   });
 
@@ -145,11 +157,11 @@ export const gatherCorrespondingRelations = async ({
             (forNodeIds.has(r.sourceUid) || forNodeIds.has(r.destinationUid)),
         )
       : allRelations.filter((r) => r.importedFromRid === undefined);
-  const publishedIdsByGroup = await getAllPublishedIdsByGroup(
+  const publishedIdsByGroup = await getAllPublishedIdsByGroup({
     client,
     spaceId,
     groupIds,
-  );
+  });
   // calculate separately to avoid case of a relation between nodes published to or from different groups
   const relevantRelationIdsPerGroupId = Object.fromEntries(
     groupIds.map((groupId) => {
