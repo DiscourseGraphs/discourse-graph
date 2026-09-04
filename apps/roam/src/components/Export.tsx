@@ -234,9 +234,13 @@ const ExportDialog: ExportDialogComponent = ({
   const [includeDiscourseContext, setIncludeDiscourseContext] = useState(false);
   const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
   const exportOptionsOpened = useRef(false);
+  // Re-read on every open rather than once at mount: Collapse unmounts the option
+  // panels while closed, so each open seeds them from the current stored values
+  // instead of whatever the dialog saw when it first rendered.
   const exportGlobalSettings = useMemo(
     () => bulkReadSettings().globalSettings,
-    [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [exportOptionsOpen],
   );
 
   // The export option panels write legacy config blocks alongside block props, so
@@ -974,13 +978,27 @@ const ExportDialog: ExportDialogComponent = ({
           />
         </Label>
 
-        <div className="flex items-end justify-between">
-          <span>
-            {typeof results === "function"
-              ? "Calculating number of results..."
-              : `Exporting ${results.length} results`}
-          </span>
-          <div className="flex flex-col items-end">
+        <div className="mt-2 flex items-start justify-between gap-4">
+          <Button
+            minimal={true}
+            small={true}
+            icon={exportOptionsOpen ? "chevron-down" : "chevron-right"}
+            text="Export options"
+            onClick={() => {
+              const nextOpen = !exportOptionsOpen;
+              setExportOptionsOpen(nextOpen);
+              if (nextOpen) exportOptionsOpened.current = true;
+              posthog.capture("Export Dialog: Options Toggled", {
+                open: nextOpen,
+              });
+            }}
+          />
+          <div className="flex flex-col items-end gap-1">
+            <span>
+              {typeof results === "function"
+                ? "Calculating number of results..."
+                : `Exporting ${results.length} results`}
+            </span>
             <FormGroup className={`m-0`} inline>
               <Checkbox
                 alignIndicator={"right"}
@@ -1004,28 +1022,11 @@ const ExportDialog: ExportDialogComponent = ({
             </FormGroup>
           </div>
         </div>
-
-        <div className="mt-2">
-          <Button
-            minimal={true}
-            small={true}
-            icon={exportOptionsOpen ? "chevron-down" : "chevron-right"}
-            text="Export options"
-            onClick={() => {
-              const nextOpen = !exportOptionsOpen;
-              setExportOptionsOpen(nextOpen);
-              if (nextOpen) exportOptionsOpened.current = true;
-              posthog.capture("Export Dialog: Options Toggled", {
-                open: nextOpen,
-              });
-            }}
-          />
-          <Collapse isOpen={exportOptionsOpen}>
-            <div className="max-h-64 overflow-y-auto">
-              <ExportOptions globalSettings={exportGlobalSettings} />
-            </div>
-          </Collapse>
-        </div>
+        <Collapse isOpen={exportOptionsOpen}>
+          <div className="max-h-64 overflow-y-auto">
+            <ExportOptions globalSettings={exportGlobalSettings} />
+          </div>
+        </Collapse>
       </div>
       <div className={Classes.DIALOG_FOOTER}>
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
