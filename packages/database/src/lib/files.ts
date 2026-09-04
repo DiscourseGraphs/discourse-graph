@@ -24,7 +24,8 @@ export const addFile = async ({
   created: Date;
   lastModified: Date;
   content: ArrayBuffer;
-}): Promise<void> => {
+  /** Resolves to the content hash, which a publisher needs to describe the stored asset. */
+}): Promise<string> => {
   // This assumes the content fits in memory.
   const uint8Array = new Uint8Array(content);
   const hashBuffer = await crypto.subtle.digest("SHA-256", uint8Array);
@@ -75,4 +76,5 @@ export const addFile = async ({
       if (updateResult.error) throw updateResult.error;
     } else throw frefResult.error;
   }
+  return hashvalue;
 };
