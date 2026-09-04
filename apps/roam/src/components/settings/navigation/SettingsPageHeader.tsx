@@ -25,16 +25,16 @@ const SettingsPageHeader = ({
 
   return (
     <div className="dg-settings-page-header">
-      <div className="dg-settings-page-header__back">
+      <div className="dg-settings-page-header__title">
+        {/* Back sits inline with the title; the trail below already names where it goes. */}
         <Button
           minimal
           small
           icon="chevron-left"
-          text={parent.label}
+          title={`Back to ${parent.label}`}
+          aria-label={`Back to ${parent.label}`}
           onClick={pop}
         />
-      </div>
-      <div className="dg-settings-page-header__title">
         <span
           className="dg-settings-page-header__dot"
           style={dotColor ? { backgroundColor: dotColor } : undefined}

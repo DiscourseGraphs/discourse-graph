@@ -58,7 +58,9 @@ const GrammarNodesRoute = ({
       />
       <div className="dg-settings-route__body">
         {!node ? (
-          <DiscourseNodeConfigPanel />
+          <div className="p-1">
+            <DiscourseNodeConfigPanel />
+          </div>
         ) : subPage === nodeConfigSegmentIds.index ? (
           <NodeIndexPage node={node} onloadArgs={onloadArgs} />
         ) : subPage === nodeConfigSegmentIds.template ? (

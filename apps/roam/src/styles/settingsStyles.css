@@ -64,11 +64,6 @@
   margin-bottom: 20px;
 }
 
-.dg-settings-page-header__back {
-  display: block;
-  margin-bottom: 4px;
-}
-
 .dg-settings-page-header__title {
   display: flex;
   align-items: center;

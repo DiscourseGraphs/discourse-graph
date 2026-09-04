@@ -293,6 +293,12 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
   return (
     <div className="dg-settings-node-page">
       <SettingsGroup title="Identity">
+        <SettingsDrillDownRow
+          title="Index"
+          description={`The saved list of all ${node.text} pages \u2014 which pages appear and which columns show.`}
+          buttonText={`See all ${node.text} nodes`}
+          onClick={() => nav.push(nodeConfigSegmentIds.index)}
+        />
         <DiscourseNodeTextPanel
           nodeType={node.type}
           title="Description"
@@ -329,14 +335,11 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           initialColor={node.canvasSettings?.color}
           tagValue={tagValue}
         />
-      </SettingsGroup>
-
-      <SettingsGroup title="Recognition">
         <DiscourseNodeTextPanel
           nodeType={node.type}
           title="Format"
           description={withDocsLink(
-            `DEPRECATED - Use specification instead. The format ${node.text} pages should have.`,
+            `The format ${node.text} pages should have.`,
             ROAM_DOCS.grammarNodes,
           )}
           settingKeys={[DISCOURSE_NODE_KEYS.format]}
@@ -346,32 +349,6 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           order={3}
           parentUid={node.type}
           uid={formatUid}
-        />
-        <Label>
-          Specification
-          <Description
-            description={withDocsLink(
-              `The conditions specified to identify a ${node.text} node.`,
-              ROAM_DOCS.grammarNodes,
-            )}
-          />
-          <DiscourseNodeSpecification
-            node={node}
-            parentUid={specificationUid}
-            parentSetEnabled={(isSpecificationEnabled) => {
-              validate({
-                tag: tagValue,
-                format: formatValue,
-                isSpecificationEnabled,
-              });
-            }}
-          />
-        </Label>
-        <SettingsDrillDownRow
-          title="Index"
-          description={`The saved list of all ${node.text} pages \u2014 which pages appear and which columns show.`}
-          buttonText={`See all ${node.text} nodes`}
-          onClick={() => nav.push(nodeConfigSegmentIds.index)}
         />
       </SettingsGroup>
 
@@ -443,6 +420,31 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           parentUid={node.type}
           uid={graphOverviewUid}
         />
+      </SettingsGroup>
+
+      {/* Settings mid-migration live here until they either replace their
+          predecessor or are removed. */}
+      <SettingsGroup title="Legacy">
+        <Label>
+          Specification
+          <Description
+            description={withDocsLink(
+              `The conditions specified to identify a ${node.text} node.`,
+              ROAM_DOCS.grammarNodes,
+            )}
+          />
+          <DiscourseNodeSpecification
+            node={node}
+            parentUid={specificationUid}
+            parentSetEnabled={(isSpecificationEnabled) => {
+              validate({
+                tag: tagValue,
+                format: formatValue,
+                isSpecificationEnabled,
+              });
+            }}
+          />
+        </Label>
       </SettingsGroup>
 
       {isSyncEnabled() && (
