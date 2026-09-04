@@ -57,6 +57,8 @@ type SettingItemRowProps = {
   controlPlacement?: "trailing" | "below";
   settingKeys?: string[];
   error?: string;
+  /** Tighter row for narrow hosts such as the Export dialog: no scope badge, control below. */
+  compact?: boolean;
 };
 
 const SettingItemRow = ({
@@ -67,6 +69,7 @@ const SettingItemRow = ({
   controlPlacement = "trailing",
   settingKeys,
   error,
+  compact = false,
 }: SettingItemRowProps): React.ReactElement => {
   const controlId = useId();
   const isAssociated = typeof control === "function";
@@ -78,8 +81,8 @@ const SettingItemRow = ({
   return (
     <div
       {...(settingKeys ? settingAnchor(settingKeys) : {})}
-      className={`dg-setting-row py-3 ${
-        controlPlacement === "trailing"
+      className={`dg-setting-row ${compact ? "py-2" : "py-3"} ${
+        controlPlacement === "trailing" && !compact
           ? "flex items-center justify-between gap-4"
           : "flex flex-col gap-2"
       }`}
@@ -91,7 +94,7 @@ const SettingItemRow = ({
             isAssociated ? "cursor-pointer" : ""
           }`}
         >
-          {scope ? <SettingScopeIndicator scope={scope} /> : null}
+          {scope && !compact ? <SettingScopeIndicator scope={scope} /> : null}
           <span>{label}</span>
         </LabelTag>
         {description ? (
@@ -102,7 +105,11 @@ const SettingItemRow = ({
         ) : null}
       </div>
       <div
-        className={controlPlacement === "trailing" ? "flex-shrink-0" : "w-full"}
+        className={
+          controlPlacement === "trailing" && !compact
+            ? "flex-shrink-0"
+            : "w-full"
+        }
       >
         {isAssociated ? control(controlId) : control}
       </div>
