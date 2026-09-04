@@ -14,11 +14,16 @@ import {
   Puzzle,
   Sparkles,
 } from "lucide-react";
-import { getLatestBlogs } from "~/(home)/blog/readBlogs";
+import { getAllBlogs } from "~/(home)/blog/readBlogs";
 import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { TeamPerson } from "~/components/TeamPerson";
 import { TEAM_MEMBERS } from "~/data/constants";
+import { STATIC_NEWS_ITEMS } from "~/data/news";
+import type { NewsItem } from "~/types/news";
+import { getButtondownNewsletterItems } from "~/utils/buttondown";
+import { formatDisplayDate } from "~/utils/formatDate";
+import { sortByDateDesc } from "~/utils/sortByDate";
 
 const SLACK_URL =
   "https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg";
@@ -89,39 +94,10 @@ const RESOURCE_LINKS = [
   },
 ] as const;
 
-const EVENTS = [
-  {
-    href: "https://discoursegraphs.github.io/panel-qa-site/",
-    linkText: "View panel notes",
-    meta: "June 18, 2026 | Zoom",
-    title: "Frontiers in Research: Open Science Catalyze Panel",
-  },
-  {
-    href: "https://bsky.app/profile/atproto.science/post/3mh6kak5agk2z",
-    linkText: "View event post",
-    meta: "March 27, 2026 | ATScience Conference, Vancouver",
-    title: "Toward Modular Open Science",
-  },
-  {
-    href: "https://www.mcgill.ca/qls/channels/event/qls-seminar-series-matthew-akamatsu-371875",
-    linkText: "View seminar details",
-    meta: "March 24, 2026 | Montreal",
-    title: "Seminar: McGill University Quantitative Life Sciences program",
-  },
-  {
-    href: "https://luma.com/jijn0d5k",
-    linkText: "View talk page",
-    meta: "November 19, 2025 | Zoom",
-    title:
-      "Metagov x Future of Science Seminar: Interoperable LLM- and human-centered research with Discourse Graphs",
-  },
-  {
-    href: "https://iosp.io/schedule",
-    linkText: "View full schedule",
-    meta: "February 23-24, 2025 | Denver Museum of Nature and Science",
-    title: "IOSP '25 Winter Workshop: Discourse Graphs",
-  },
-] as const;
+// Keeps the homepage widget to a "recent news" size instead of growing
+// forever as blog posts and newsletters accumulate; the full blog archive
+// is still reachable via the "See all posts" link.
+const MAX_NEWS_ITEMS = 10;
 
 type Talk =
   | {
@@ -270,7 +246,31 @@ const ArrowLink = ({
 );
 
 const Home = async (): Promise<ReactElement> => {
-  const blogs = await getLatestBlogs();
+  const [blogs, newsletterItems] = await Promise.all([
+    getAllBlogs(),
+    getButtondownNewsletterItems(),
+  ]);
+
+  const blogNewsItems: NewsItem[] = blogs.map((blog) => ({
+    date: blog.date,
+    href: `/blog/${blog.slug}`,
+    linkText: "View post",
+    meta: `${formatDisplayDate(blog.date)} | By ${blog.author}`,
+    title: blog.title,
+  }));
+
+  const allNewsItems = [
+    ...STATIC_NEWS_ITEMS,
+    ...blogNewsItems,
+    ...newsletterItems,
+  ];
+  // Buttondown's pagination can occasionally return the same email twice
+  // (e.g. if one is sent mid-fetch); href is used as the React key, so
+  // dedupe before rendering.
+  const dedupedNewsItems = Array.from(
+    new Map(allNewsItems.map((item) => [item.href, item])).values(),
+  );
+  const news = dedupedNewsItems.sort(sortByDateDesc).slice(0, MAX_NEWS_ITEMS);
 
   return (
     <div>
@@ -614,74 +614,42 @@ const Home = async (): Promise<ReactElement> => {
           </div>
         </section>
 
-        <section className="px-5 py-16 sm:px-6 lg:py-24">
-          <div id="events" className="mx-auto max-w-7xl scroll-mt-20">
-            <SectionHeader
-              eyebrow="Events"
-              isWide
-              title="Recent talks, panels, and workshops"
-              description="Places where the team and collaborators have presented the Discourse Graphs model and project."
-            />
-            <div className="mt-10 divide-y divide-neutral-dark/10 border-y border-neutral-dark/10">
-              {EVENTS.map((event) => (
-                <article
-                  key={event.href}
-                  className="grid gap-4 py-6 md:grid-cols-[1fr_auto] md:items-center"
-                >
-                  <div>
-                    <h3 className="text-xl font-semibold text-neutral-dark">
-                      {event.title}
-                    </h3>
-                    <p className="mt-2 text-sm text-neutral-dark/65">
-                      {event.meta}
-                    </p>
-                  </div>
-                  <Link
-                    href={event.href}
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-secondary transition-colors hover:text-secondary/70"
-                  >
-                    {event.linkText}
-                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                  </Link>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {blogs.length > 0 && (
-          <section className="bg-white px-5 py-16 sm:px-6 lg:py-24">
-            <div id="updates" className="mx-auto max-w-7xl scroll-mt-20">
+        {news.length > 0 && (
+          <section className="px-5 py-16 sm:px-6 lg:py-24">
+            <div id="news" className="mx-auto max-w-7xl scroll-mt-20">
               <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
                 <SectionHeader
-                  eyebrow="Updates"
+                  eyebrow="News"
                   isWide
-                  title="Latest project updates"
-                  description="Recent posts from the Discourse Graphs team."
+                  title="Talks, posts, and newsletters"
+                  description="Recent updates from the Discourse Graphs team and places where the team and collaborators have presented the model and project."
                 />
-                <ArrowLink href="/blog">See all updates</ArrowLink>
+                {blogs.length > 0 && (
+                  <ArrowLink href="/blog">See all posts</ArrowLink>
+                )}
               </div>
-              <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {blogs.map((blog) => (
-                  <Card
-                    key={blog.slug}
-                    className="rounded-lg border-neutral-dark/10 bg-neutral-light shadow-sm"
+              <div className="mt-10 divide-y divide-neutral-dark/10 border-y border-neutral-dark/10">
+                {news.map((item) => (
+                  <article
+                    key={item.href}
+                    className="grid gap-4 py-6 md:grid-cols-[1fr_auto] md:items-center"
                   >
-                    <CardContent className="flex h-full flex-col p-6">
-                      <p className="text-sm text-neutral-dark/60">
-                        {blog.date}
+                    <div>
+                      <h3 className="text-xl font-semibold text-neutral-dark">
+                        {item.title}
+                      </h3>
+                      <p className="mt-2 text-sm text-neutral-dark/65">
+                        {item.meta}
                       </p>
-                      <Link
-                        href={`/blog/${blog.slug}`}
-                        className="mt-4 text-xl font-semibold text-neutral-dark transition-colors hover:text-secondary"
-                      >
-                        {blog.title}
-                      </Link>
-                      <p className="mt-6 text-sm text-neutral-dark/60">
-                        By {blog.author}
-                      </p>
-                    </CardContent>
-                  </Card>
+                    </div>
+                    <Link
+                      href={item.href}
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-secondary transition-colors hover:text-secondary/70"
+                    >
+                      {item.linkText}
+                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </article>
                 ))}
               </div>
             </div>
