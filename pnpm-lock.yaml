@@ -326,6 +326,9 @@ importers:
       lodash.isequal:
         specifier: ^4.5.0
         version: 4.5.0
+      mime-db:
+        specifier: ^1.54.0
+        version: 1.54.0
       minisearch:
         specifier: ^7.2.0
         version: 7.2.0
@@ -384,6 +387,9 @@ importers:
       '@types/file-saver':
         specifier: 2.0.5
         version: 2.0.5
+      '@types/mime-db':
+        specifier: ^1.43.6
+        version: 1.43.6
       '@types/nanoid':
         specifier: 2.0.0
         version: 2.0.0
@@ -5070,6 +5076,9 @@ packages:
 
   '@types/mdx@2.0.13':
     resolution: {integrity: sha512-+OWZQfAYyio6YkJb3HLxDrvnx6SWWDbC0zVPfBRzUk0/nqoDyf6dNxQi3eArPe8rJ473nobTMQ/8Zk+LxJ+Yuw==}
+
+  '@types/mime-db@1.43.6':
+    resolution: {integrity: sha512-r2cqxAt/Eo5yWBOQie1lyM1JZFCiORa5xtLlhSZI0w8RJggBPKw8c4g/fgQCzWydaDR5bL4imnmix2d1n52iBw==}
 
   '@types/mime-types@3.0.1':
     resolution: {integrity: sha512-xRMsfuQbnRq1Ef+C+RKaENOxXX87Ygl38W1vDfPHRku02TgQr+Qd8iivLtAMcR0KF5/29xlnFihkTlbqFrGOVQ==}
@@ -16625,6 +16634,8 @@ snapshots:
   '@types/mdurl@2.0.0': {}
 
   '@types/mdx@2.0.13': {}
+
+  '@types/mime-db@1.43.6': {}
 
   '@types/mime-types@3.0.1': {}
 
