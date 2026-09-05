@@ -37,6 +37,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
 
 :root {
   /* Brand secondary, mirroring packages/tailwind-config. */
