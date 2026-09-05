@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import {
   Classes,
@@ -16,11 +23,6 @@ import discourseConfigRef from "~/utils/discourseConfigRef";
 import DiscourseGraphExport from "./ExportSettings";
 import QuerySettings from "./QuerySettings";
 import AdminPanel from "./AdminPanel";
-import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
-import getDiscourseNodes, {
-  excludeDefaultNodes,
-} from "~/utils/getDiscourseNodes";
-import NodeConfig from "./NodeConfig";
 import PreferencesGeneral from "./PreferencesGeneral";
 import PreferencesStyling from "./PreferencesStyling";
 import LeftSidebarSettings from "./LeftSidebarSettings";
@@ -32,7 +34,14 @@ import { getVersionWithDate } from "~/utils/getVersion";
 import posthog from "posthog-js";
 import { bulkReadSettings } from "./utils/accessors";
 import { onSettingChange, settingKeys } from "./utils/settingsEmitter";
-import { SETTINGS_TAB_IDS, resolveSettingsTabId } from "./utils/settingsTabs";
+import { SETTINGS_TAB_IDS } from "./utils/settingsTabs";
+import {
+  resolveInitialSettingsPath,
+  settingsNavReducer,
+  tabIdOf,
+} from "./utils/settingsNavigation";
+import { SettingsNavProvider } from "./navigation/SettingsNavContext";
+import GrammarNodesRoute from "./GrammarNodesRoute";
 
 const SectionHeader = ({ children }: { children: React.ReactNode }) => (
   <div className="bp3-tab-copy mt-4 cursor-default select-none text-lg font-semibold text-neutral-dark">
@@ -77,10 +86,15 @@ export const SettingsDialog = ({
   const relationsNode = grammarNode?.children.find(
     (node) => node.text === "relations",
   );
-  const nodesNode = grammarNode?.children.find((node) => node.text === "nodes");
-  const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
-  const [activeTabId, setActiveTabId] = useState<TabId>(() =>
-    resolveSettingsTabId(selectedTabId),
+  const [path, dispatch] = useReducer(
+    settingsNavReducer,
+    selectedTabId,
+    resolveInitialSettingsPath,
+  );
+  const activeTabId = tabIdOf(path);
+  const selectTab = useCallback(
+    (tabId: string) => dispatch({ type: "select-tab", tabId }),
+    [],
   );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const settings = useMemo(() => bulkReadSettings(), [activeTabId]);
@@ -98,15 +112,14 @@ export const SettingsDialog = ({
   const { versionStamp } = getVersionWithDate();
   const openAdminPanel = (): void => {
     setShowAdminPanel(true);
-    setActiveTabId(SETTINGS_TAB_IDS.admin);
+    selectTab(SETTINGS_TAB_IDS.admin);
     posthog.capture("Settings: Admin Panel Opened from Footer");
   };
 
+  const initialTabId = useRef(activeTabId).current;
   useEffect(() => {
-    posthog.capture("Settings: Dialog Opened", {
-      initialTabId: String(resolveSettingsTabId(selectedTabId)),
-    });
-  }, [selectedTabId]);
+    posthog.capture("Settings: Dialog Opened", { initialTabId });
+  }, [initialTabId]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -114,14 +127,14 @@ export const SettingsDialog = ({
         e.stopPropagation();
         e.preventDefault();
         setShowAdminPanel(true);
-        setActiveTabId(SETTINGS_TAB_IDS.admin);
+        selectTab(SETTINGS_TAB_IDS.admin);
         posthog.capture("Settings: Admin Panel Opened via Shortcut");
       }
     };
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, []);
+  }, [selectTab]);
   return (
     <Dialog
       isOpen={isOpen}
@@ -164,7 +177,7 @@ export const SettingsDialog = ({
         <Tabs
           className="dg-settings-tabs flex h-full"
           onChange={(id) => {
-            setActiveTabId(id);
+            selectTab(String(id));
             posthog.capture("Settings: Tab Opened", {
               tabId: String(id),
             });
@@ -238,16 +251,10 @@ export const SettingsDialog = ({
           <Tab
             id={SETTINGS_TAB_IDS.grammarNodes}
             title="Nodes"
-            className="overflow-y-auto"
             panel={
-              <DiscourseNodeConfigPanel
-                title="Nodes"
-                uid={nodesNode?.uid || ""}
-                parentUid={grammarNode?.uid || ""}
-                defaultValue={[]}
-                setSelectedTabId={setActiveTabId}
-                isPopup={true}
-              />
+              <SettingsNavProvider path={path} dispatch={dispatch}>
+                <GrammarNodesRoute onloadArgs={onloadArgs} />
+              </SettingsNavProvider>
             }
           />
           <Tab
@@ -263,17 +270,6 @@ export const SettingsDialog = ({
               />
             }
           />
-          {/* Per-node tabs stay in the rail until ENG-2186 adds the drill-down. */}
-          <SectionHeader>Node types</SectionHeader>
-          {nodes.map((n) => (
-            <Tab
-              key={n.type}
-              id={n.type}
-              title={n.text}
-              className="overflow-y-auto"
-              panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
-            />
-          ))}
           <SectionHeader>Advanced</SectionHeader>
           <Tab
             id={SETTINGS_TAB_IDS.advancedQueries}

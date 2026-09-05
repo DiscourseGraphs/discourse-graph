@@ -9,6 +9,7 @@ export default defineConfig({
     environment: "node",
     include: [
       "src/utils/__tests__/**/*.test.ts",
+      "src/components/**/__tests__/**/*.test.ts",
       "scripts/__tests__/**/*.test.ts",
     ],
   },
