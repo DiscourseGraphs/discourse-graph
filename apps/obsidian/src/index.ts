@@ -21,7 +21,11 @@ import {
 import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
 import { createWikilinkDragExtension } from "~/utils/wikilinkDragHandler";
 import { createDiscourseContextOverlayExtension } from "~/utils/discourseContextOverlayExtension";
-import { createDiscourseContextOverlayPostProcessor } from "~/utils/discourseContextOverlayPostProcessor";
+import {
+  createDiscourseContextOverlayPostProcessor,
+  registerDiscourseContextOverlayRefresh,
+} from "~/utils/discourseContextOverlayPostProcessor";
+import { closeDiscourseContextPopover } from "~/components/DiscourseContextPopover";
 import {
   registerCommands,
   createModifyNodeModalSubmitHandler,
@@ -110,6 +114,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.registerMarkdownPostProcessor(
       createDiscourseContextOverlayPostProcessor(this),
     );
+    registerDiscourseContextOverlayRefresh(this);
 
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
@@ -495,6 +500,10 @@ export default class DiscourseGraphPlugin extends Plugin {
       this.fileChangeListener = null;
     }
 
+    // The popover lives on document.body with its own listeners, so it would
+    // otherwise outlive the plugin — including an Escape handler that would go
+    // on swallowing the key for the rest of the session.
+    closeDiscourseContextPopover();
     this.relationsIndex.unload();
   }
 }

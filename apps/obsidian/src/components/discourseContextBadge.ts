@@ -59,6 +59,11 @@ export const createDiscourseContextBadge = ({
     onActivate({ file, anchor: badge });
   };
 
+  // Without this the mousedown still lands in the editor and moves the caret,
+  // which in Live Preview expands the raw [[...]] markup under the popover.
+  badge.addEventListener("mousedown", (event: MouseEvent) => {
+    event.preventDefault();
+  });
   badge.addEventListener("click", activate);
   badge.addEventListener("keydown", (event: KeyboardEvent) => {
     if (event.key !== "Enter" && event.key !== " ") return;

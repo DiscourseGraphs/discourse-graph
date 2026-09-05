@@ -20,6 +20,8 @@ export class RelationsIndex {
   private plugin: DiscourseGraphPlugin;
   private index: Map<string, RelationInstance[]> | null = null;
   private inFlight: Promise<void> | null = null;
+  private stale = false;
+  private unloaded = false;
   private subscribers = new Set<() => void>();
   /**
    * Bumped on every invalidation. A load that started before the bump is stale
@@ -49,6 +51,7 @@ export class RelationsIndex {
   }
 
   unload(): void {
+    this.unloaded = true;
     this.subscribers.clear();
     this.index = null;
     this.inFlight = null;
@@ -64,53 +67,68 @@ export class RelationsIndex {
     return () => this.subscribers.delete(subscriber);
   }
 
-  isReady(): boolean {
-    return this.index !== null;
-  }
-
   async ensureLoaded(): Promise<void> {
-    if (this.index !== null) return;
+    if (this.unloaded) return;
+    if (this.index !== null && !this.stale) return;
     if (this.inFlight) return this.inFlight;
 
     const generation = this.generation;
     this.inFlight = (async () => {
-      const relationsFile = await loadRelations(this.plugin);
-      if (generation !== this.generation) return;
-      this.index = buildEndpointIndex(relationsFile.relations ?? {});
-      this.inFlight = null;
+      try {
+        const relationsFile = await loadRelations(this.plugin);
+        // A newer invalidation landed mid-read, so this result is already out
+        // of date; the reload it scheduled will supersede it.
+        if (generation !== this.generation || this.unloaded) return;
+        this.index = buildEndpointIndex(relationsFile.relations ?? {});
+        this.stale = false;
+      } finally {
+        // Must clear on every path. Leaving it set would make ensureLoaded
+        // hand out a settled promise forever, so the snapshot would stay stale
+        // and every read would re-request a load that never runs.
+        this.inFlight = null;
+      }
+      // An invalidation that arrived mid-read was skipped above; it still needs
+      // a load of its own.
+      if (this.stale && !this.unloaded) {
+        void this.ensureLoaded();
+        return;
+      }
       this.notify();
     })();
 
     return this.inFlight;
   }
 
-  /** Drops the snapshot and reloads it. */
-  async refresh(): Promise<void> {
-    this.invalidate();
-    await this.ensureLoaded();
-  }
-
   /**
    * Relations touching any of `endpointIds`.
    *
-   * Returns an empty array when the snapshot is cold and schedules a load;
-   * subscribers are notified once it lands. Callers on a render path should
-   * treat an empty result as "nothing to draw yet" rather than "no relations".
+   * Returns an empty array while the snapshot is still cold; subscribers are
+   * notified once it lands. Callers on a render path should treat an empty
+   * result as "nothing to draw yet" rather than "no relations".
+   *
+   * Deliberately does not schedule a load — initialize() and invalidate() are
+   * the only things that do. Requesting one from a render path would make
+   * notify -> re-render -> read cycle forever.
    */
   getRelationsForEndpointIds(
     endpointIds: Iterable<string>,
   ): RelationInstance[] {
-    if (this.index === null) {
-      void this.ensureLoaded();
-      return [];
-    }
+    if (this.index === null) return [];
     return collectRelations({ index: this.index, endpointIds });
   }
 
+  /**
+   * Marks the snapshot for reload without discarding it.
+   *
+   * Dropping it outright would make every badge read 0 until the reload lands —
+   * and since saving a relation writes relations.json, that flash would happen
+   * on the very action the user just took. The previous counts are a better
+   * answer for those few milliseconds than a wrong one.
+   */
   private invalidate(): void {
     this.generation += 1;
-    this.index = null;
     this.inFlight = null;
+    this.stale = true;
     void this.ensureLoaded();
   }
 
