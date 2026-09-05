@@ -451,13 +451,14 @@ const fetchFileReferences = async ({
   Array<{
     filepath: string;
     filehash: string;
+    sourcePath: string | null;
     created: number;
     last_modified: number;
   }>
 > => {
   const { data, error } = (await client
     .from("my_file_references")
-    .select("filepath, filehash, created, last_modified")
+    .select("filepath, filehash, source_path, created, last_modified")
     .eq("space_id", spaceId)
     .eq("source_local_id", nodeInstanceId)) as PostgrestResponse<
     Tables<"FileReference">
@@ -468,12 +469,23 @@ const fetchFileReferences = async ({
     return [];
   }
 
-  return data.map(({ filepath, filehash, created, last_modified }) => ({
-    filepath,
-    filehash,
-    created: created ? new Date(created + "Z").valueOf() : 0,
-    last_modified: last_modified ? new Date(last_modified + "Z").valueOf() : 0,
-  }));
+  return data.map(
+    ({
+      filepath,
+      filehash,
+      source_path: sourcePath,
+      created,
+      last_modified,
+    }) => ({
+      filepath,
+      filehash,
+      sourcePath,
+      created: created ? new Date(created + "Z").valueOf() : 0,
+      last_modified: last_modified
+        ? new Date(last_modified + "Z").valueOf()
+        : 0,
+    }),
+  );
 };
 
 const downloadFileFromStorage = async ({
@@ -596,6 +608,11 @@ const updateMarkdownAssetLinks = ({
   };
 
   // Look up new path by link as written in content: use canonical form (resolve relative + strip import prefix).
+  /**
+   * The vault path this run wrote for a link, if it wrote one. Used as it stands: the
+   * file is too new for the metadata cache, so resolving through it would fail and leave
+   * the original link in the note.
+   */
   const getNewPathForLink = (linkPath: string): string | undefined => {
     const canonical = normalizePathForLookup(
       getLinkCanonicalForMatch(linkPath),
@@ -658,17 +675,8 @@ const updateMarkdownAssetLinks = ({
         return getRelativeLinkPath(importedAssetFile.path);
       }
 
-      // Direct lookup from pathMapping (record built when we downloaded each asset)
       const newPath = getNewPathForLink(path);
-      if (newPath) {
-        const newFile = app.metadataCache.getFirstLinkpathDest(
-          newPath,
-          targetFile.path,
-        );
-        if (newFile) {
-          return getRelativeLinkPath(newFile.path);
-        }
-      }
+      if (newPath) return getRelativeLinkPath(newPath);
 
       // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
       const resolvedFile = app.metadataCache.getFirstLinkpathDest(
@@ -731,6 +739,12 @@ const updateMarkdownAssetLinks = ({
     markdownLinkRegex,
     (match, linkText: string, linkPath: string) => {
       if (!linkPath) return match;
+      // Resolve by row before looking at the shape of the link: a Roam-origin asset is
+      // referenced by its storage URL. Matched on the raw link, because the decoding
+      // below would mangle the percent-escaping a storage URL carries.
+      const mappedFromUrl = getNewPathForLink(linkPath);
+      if (mappedFromUrl)
+        return `[${linkText}](${encodePathForMarkdownLink(getRelativeLinkPath(mappedFromUrl))})`;
       linkPath = linkPath
         .split("/")
         .map((segment) => {
@@ -741,6 +755,7 @@ const updateMarkdownAssetLinks = ({
           }
         })
         .join("/");
+      // A URL with no mapping is genuinely external and is left exactly as written.
       if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
         return match;
       }
@@ -753,40 +768,119 @@ const updateMarkdownAssetLinks = ({
   const markdownImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
   updatedContent = updatedContent.replace(
     markdownImageRegex,
-    (match, alt, linkPath) => {
+    (match, alt: string, linkPath: string) => {
       // Remove optional title from linkPath: "path" or "path title"
       const cleanPath = linkPath.replace(/\s+"[^"]*"$/, "").trim();
 
-      // Skip external URLs
-      if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
-        return match;
+      const isExternalUrl =
+        cleanPath.startsWith("http://") || cleanPath.startsWith("https://");
+      // Resolve by row, not by link shape: a mapped URL is one we now hold locally, an
+      // unmapped one is genuinely external and is left as written.
+      if (isExternalUrl) {
+        const mappedFromUrl = getNewPathForLink(cleanPath);
+        if (!mappedFromUrl) return match;
+        return `![${alt}](${encodePathForMarkdownLink(getRelativeLinkPath(mappedFromUrl))})`;
       }
 
       // First, try to find if this link resolves to one of our imported assets
       const importedAssetFile = findImportedAssetFile(cleanPath);
       if (importedAssetFile) {
-        const linkText = getRelativeLinkPath(importedAssetFile.path);
+        const linkText = encodePathForMarkdownLink(
+          getRelativeLinkPath(importedAssetFile.path),
+        );
         return `![${alt}](${linkText})`;
       }
 
-      // Direct lookup from pathMapping (record built when we downloaded each asset)
       const newPath = getNewPathForLink(cleanPath);
-      if (newPath) {
-        const newFile = app.metadataCache.getFirstLinkpathDest(
-          newPath,
-          targetFile.path,
-        );
-        if (newFile) {
-          const linkText = getRelativeLinkPath(newFile.path);
-          return `![${alt}](${linkText})`;
-        }
-      }
+      if (newPath)
+        return `![${alt}](${encodePathForMarkdownLink(getRelativeLinkPath(newPath))})`;
 
       return match;
     },
   );
 
   return updatedContent;
+};
+
+/**
+ * A variant of a colliding path, distinguished by the asset's own content hash:
+ * `report.png` becomes `report-1a2b3c4d.png`.
+ *
+ * Keyed on the hash rather than a counter so the name is stable: a re-import has to land
+ * on the same path, or it renames the file and leaves the previous copy behind.
+ */
+const disambiguateAssetPath = (
+  assetPath: string,
+  filehash: string,
+  suffixLength = 8,
+): string => {
+  const suffix = `-${filehash.slice(0, suffixLength)}`;
+  const lastSlash = assetPath.lastIndexOf("/");
+  const dir = lastSlash === -1 ? "" : assetPath.slice(0, lastSlash + 1);
+  const name = assetPath.slice(lastSlash + 1);
+  const lastDot = name.lastIndexOf(".");
+  // `lastDot <= 0` covers a name with no extension and a leading-dot name alike.
+  return lastDot <= 0
+    ? `${dir}${name}${suffix}`
+    : `${dir}${name.slice(0, lastDot)}${suffix}${name.slice(lastDot)}`;
+};
+
+/**
+ * SHA-256 of a file in the vault, in the same lowercase hex `addFile` stores, so a file
+ * already sitting at a target path can be compared against the reference being imported.
+ */
+const hashOfVaultFile = async (
+  plugin: DiscourseGraphPlugin,
+  file: TFile,
+): Promise<string> => {
+  const bytes = await plugin.app.vault.readBinary(file);
+  const digest = await crypto.subtle.digest("SHA-256", new Uint8Array(bytes));
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+};
+
+/**
+ * Where an asset should land, given that something may already be there.
+ *
+ * The import folder is shared by every node imported from a space, so a collision is
+ * usually between two notes' assets rather than two of one note's. That rules out
+ * deciding from the importing note's bookkeeping: the only reliable question is what the
+ * bytes already at that path are. Same content reuses the copy another node imported,
+ * different content takes a `disambiguateAssetPath` suffix.
+ */
+const resolveAssetTargetPath = async ({
+  plugin,
+  candidatePath,
+  filehash,
+  claimedPaths,
+}: {
+  plugin: DiscourseGraphPlugin;
+  candidatePath: string;
+  filehash: string;
+  claimedPaths: Map<string, string>;
+}): Promise<string> => {
+  const occupantHash = async (path: string): Promise<string | undefined> => {
+    // Claims from earlier in this run come first: the vault has not indexed them yet.
+    const claimed = claimedPaths.get(path);
+    if (claimed !== undefined) return claimed;
+    const existing = plugin.app.vault.getAbstractFileByPath(path);
+    return existing instanceof TFile
+      ? await hashOfVaultFile(plugin, existing)
+      : undefined;
+  };
+
+  const candidateHash = await occupantHash(candidatePath);
+  if (candidateHash === undefined || candidateHash === filehash)
+    return candidatePath;
+
+  const suffixed = disambiguateAssetPath(candidatePath, filehash);
+  const suffixedHash = await occupantHash(suffixed);
+  if (suffixedHash === undefined || suffixedHash === filehash) return suffixed;
+
+  // Two different assets sharing a name and a hash prefix. Vanishingly unlikely, but the
+  // failure it would otherwise cause is a silent overwrite, so fall back to the full hash.
+  return disambiguateAssetPath(candidatePath, filehash, filehash.length);
 };
 
 /** Path of an asset relative to the note's directory (vault-relative). If asset is not under note dir, returns full path. */
@@ -837,6 +931,12 @@ const importAssetsForNode = async ({
     pathMapping.set(normalizePathForLookup(oldPath), newPath);
   };
 
+  /** Undoes the above, so a reference whose asset failed keeps its original link. */
+  const unsetPathMapping = (oldPath: string): void => {
+    pathMapping.delete(oldPath);
+    pathMapping.delete(normalizePathForLookup(oldPath));
+  };
+
   // Fetch FileReference records for the node
   const fileReferences = await fetchFileReferences({
     client,
@@ -860,10 +960,21 @@ const importAssetsForNode = async ({
       : {};
   // importedAssets format: { filehash: vaultPath }
 
+  // Which vault path holds which asset, for paths this run has already written. The
+  // vault is the authority, since the import folder is shared across nodes; this covers
+  // only what the vault is too fresh to report.
+  const claimedPaths = new Map<string, string>();
+  for (const [hash, path] of Object.entries(importedAssets))
+    claimedPaths.set(path, hash);
+
   // Process each file reference
   for (const fileRef of fileReferences) {
+    // Hoisted so the catch can release the claim staked below. Safe to drop even when
+    // the throw came after the write: `resolveAssetTargetPath` then falls back to the
+    // vault, which holds the file and answers for it.
+    let claimedTargetPath: string | undefined;
     try {
-      const { filepath, filehash } = fileRef;
+      const { filepath, filehash, sourcePath } = fileRef;
 
       // Check if we already have a file for this hash
       const existingAssetPath: string | undefined = importedAssets[filehash];
@@ -878,29 +989,55 @@ const importAssetsForNode = async ({
       }
 
       let overwritePath: string | undefined;
+      // Set when the copy already recorded for this hash is current, so the path is
+      // reused as it stands and nothing is written.
+      let reuseWithoutWriting = false;
       if (existingFile) {
         const refLastModifiedMs = fileRef.last_modified || 0;
         const localModifiedAfterRef =
           refLastModifiedMs > 0 && existingFile.stat.mtime > refLastModifiedMs;
-        if (!localModifiedAfterRef) {
-          setPathMapping(filepath, existingFile.path);
-          continue;
-        }
+        reuseWithoutWriting = !localModifiedAfterRef;
         overwritePath = existingFile.path;
       }
 
       // Target path: import/{spaceName}/{path relative to note}. If sourceNotePath is set and asset
       // is under the note's directory, use that relative path so assets sit under import/{space}/.
+      // Where the asset lands comes from `source_path`, where the publishing platform
+      // kept it. `filepath` is only what the content refers to: for a Roam-origin row a
+      // storage URL, which would make a vault name carrying an access token. A row
+      // predating `source_path` falls back to the old behaviour.
+      const localPath = sourcePath ?? filepath;
       const pathForImport =
         originalNodePath !== undefined
-          ? getAssetPathRelativeToNote(filepath, originalNodePath)
-          : filepath;
-      const sanitizedAssetPath = pathForImport
-        .split("/")
-        .map(sanitizeFileName)
-        .join("/");
+          ? getAssetPathRelativeToNote(localPath, originalNodePath)
+          : localPath;
+      const sanitizedAssetPath = sanitizePathForImport(pathForImport);
+      // A name made entirely of dots, or of characters `sanitizeFileName` strips,
+      // sanitizes away to nothing and would leave the asset addressed to its own folder.
+      // The hash stands in, being the one identifier every reference carries.
+      //
+      // It recovers no extension, so the asset does not render inline, though its link
+      // resolves and its bytes are intact. Naming the type would mean a mimetype on
+      // `FileReference`, which the design rejected on stronger grounds; sniffing
+      // `fileContent` below is the cheaper route if it is ever wanted.
+      const candidatePath = `${importBasePath}/${
+        sanitizedAssetPath || `asset-${filehash.slice(0, 8)}`
+      }`;
       const targetPath =
-        overwritePath ?? `${importBasePath}/${sanitizedAssetPath}`;
+        overwritePath ??
+        (await resolveAssetTargetPath({
+          plugin,
+          candidatePath,
+          filehash,
+          claimedPaths,
+        }));
+      claimedPaths.set(targetPath, filehash);
+      claimedTargetPath = targetPath;
+      // The one place a reference is recorded as resolving locally, true as soon as the
+      // path is known and taken back by the failure paths below. Setting it per branch
+      // is what previously let a path through the loop forget it.
+      setPathMapping(filepath, targetPath);
+      if (reuseWithoutWriting) continue;
 
       // Ensure all parent folders exist before writing
       const pathParts = targetPath.split("/");
@@ -922,7 +1059,6 @@ const importAssetsForNode = async ({
           const remoteIsNewer =
             refLastModifiedMs > 0 && refLastModifiedMs > localMtimeMs;
           if (!localModifiedAfterRef && !remoteIsNewer) {
-            setPathMapping(filepath, targetPath);
             await plugin.app.fileManager.processFrontMatter(
               targetMarkdownFile,
               (fm) => {
@@ -952,6 +1088,12 @@ const importAssetsForNode = async ({
       });
 
       if (!fileContent) {
+        // The bytes never landed, so both claims staked before the download go back.
+        // Keeping the mapping would point the note at a path this run never wrote,
+        // replacing a link that still resolves with a dead one; keeping the claim would
+        // suffix a later reference away from a path nothing occupies.
+        unsetPathMapping(filepath);
+        claimedPaths.delete(targetPath);
         errors.push(`Failed to download file: ${filepath}`);
         continue;
       }
@@ -989,10 +1131,12 @@ const importAssetsForNode = async ({
         },
         stat,
       );
-
-      // Track path mapping (raw + normalized key so updateMarkdownAssetLinks can lookup by link text)
-      setPathMapping(filepath, targetPath);
     } catch (error) {
+      // The asset did not land, so the note keeps the link it arrived with and the path
+      // it was headed for goes back on offer.
+      unsetPathMapping(fileRef.filepath);
+      if (claimedTargetPath !== undefined)
+        claimedPaths.delete(claimedTargetPath);
       const errorMsg = `Error importing asset ${fileRef.filepath}: ${error}`;
       errors.push(errorMsg);
       console.error(errorMsg, error);
@@ -1014,13 +1158,33 @@ const sanitizeFileName = (fileName: string): string => {
     .trim();
 };
 
-/** Sanitize each path segment for use under import folder (preserves source vault folder structure). */
+/**
+ * Sanitize each path segment for use under the import folder, preserving the source
+ * vault's folder structure.
+ *
+ * Segments arrive from a `FileReference` row, so they are remote input. The path is
+ * normalized rather than filtered: a user may have written it by hand, and existing
+ * imports sit at the resolved location, so `a/../b.png` must keep landing on `b.png` or
+ * a re-import writes a second copy beside the first.
+ *
+ * A `..` that would climb past the import folder is dropped instead, which is the escape
+ * this exists to stop and the one place it disagrees with the source. A segment that
+ * sanitizes away to nothing is dropped too, since an empty segment breaks folder
+ * creation. Neither is rejected, so an oddly named asset still imports.
+ */
 const sanitizePathForImport = (path: string): string => {
-  return path
-    .split("/")
-    .map((segment) => sanitizeFileName(segment))
-    .filter(Boolean)
-    .join("/");
+  const segments: string[] = [];
+  for (const rawSegment of path.split("/")) {
+    const segment = sanitizeFileName(rawSegment);
+    if (segment === "" || segment === ".") continue;
+    if (segment === "..") {
+      // Empty stack means this would climb out of the import folder: drop it.
+      segments.pop();
+      continue;
+    }
+    segments.push(segment);
+  }
+  return segments.join("/");
 };
 
 type ParsedFrontmatter = {
