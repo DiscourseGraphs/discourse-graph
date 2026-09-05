@@ -673,6 +673,36 @@ const convertDgToSupabaseConcepts = async ({
   }
 };
 
+/**
+ * An embedded asset, kept as both halves of what a `FileReference` records: the link the
+ * note wrote, and the file that link resolves to.
+ *
+ * The two differ under Obsidian's default shortest-path setting, where a note embeds
+ * `diagram.png` while the file lives at `attachments/diagram.png`. `filepath` has to be
+ * what the content says, so a destination can match it without knowing Obsidian's link
+ * conventions; `source_path` has to be the vault path, so the folder layout survives an
+ * import.
+ */
+export type EmbeddedAttachment = { link: string; file: TFile };
+
+/** Resolves a note's embeds against the vault, dropping links that resolve to nothing. */
+export const findEmbeddedAttachments = (
+  plugin: DiscourseGraphPlugin,
+  file: TFile,
+): EmbeddedAttachment[] => {
+  const embeds = plugin.app.metadataCache.getFileCache(file)?.embeds ?? [];
+  const byLink = new Map<string, EmbeddedAttachment>();
+  for (const { link } of embeds) {
+    if (byLink.has(link)) continue;
+    const resolved = plugin.app.metadataCache.getFirstLinkpathDest(
+      link,
+      file.path,
+    );
+    if (resolved) byLink.set(link, { link, file: resolved });
+  }
+  return [...byLink.values()];
+};
+
 export const syncPublishedNodeAssets = async ({
   plugin,
   client,
@@ -686,20 +716,10 @@ export const syncPublishedNodeAssets = async ({
   nodeId: string;
   spaceId: number;
   file: TFile;
-  attachments?: TFile[];
+  attachments?: EmbeddedAttachment[];
 }): Promise<void> => {
-  if (attachments === undefined) {
-    const embeds = plugin.app.metadataCache.getFileCache(file)?.embeds ?? [];
-    attachments = embeds
-      .map(({ link }) => {
-        const attachment = plugin.app.metadataCache.getFirstLinkpathDest(
-          link,
-          file.path,
-        );
-        return attachment;
-      })
-      .filter((a) => !!a);
-  }
+  if (attachments === undefined)
+    attachments = findEmbeddedAttachments(plugin, file);
   // Always sync non-text assets when node is published to this group
   const existingFiles: string[] = [];
   const existingReferencesReq = await client
@@ -715,7 +735,8 @@ export const syncPublishedNodeAssets = async ({
     existingReferencesReq.data.map((ref) => [ref.filepath, ref]),
   ) as Record<string, (typeof existingReferencesReq.data)[0]>;
 
-  for (const attachment of attachments) {
+  for (const { link, file: attachment } of attachments) {
+    // The extension comes from the resolved file: a link may be written without one.
     const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
     if (mimetype.startsWith("text/")) continue;
     // Do not use standard upload for large files
@@ -725,10 +746,20 @@ export const syncPublishedNodeAssets = async ({
       );
       continue;
     }
-    existingFiles.push(attachment.path);
-    const existingRef = existingReferencesByPath[attachment.path];
+    // Rows are keyed on the link, so respelling a link replaces the row rather than
+    // accumulating one per spelling. Rows predating the split hold a resolved path here,
+    // match no link, and the cleanup below drops them: re-publishing corrects them.
+    existingFiles.push(link);
+    const existingRef = existingReferencesByPath[link];
+    // Rewrite the row when its bytes are stale, and also when where it says the file
+    // lives is stale. The second case is not about content: a row predating the split
+    // carries no `source_path`, and one whose link happens to equal the old stored path
+    // would never be corrected, since the asset itself never changed. It also covers an
+    // asset moved in the vault while its link stayed the same. Self-limiting: after one
+    // sync the recorded path matches and this stops firing.
     if (
       !existingRef ||
+      existingRef.source_path !== attachment.path ||
       new Date(existingRef.last_modified + "Z").valueOf() <
         attachment.stat.mtime
     ) {
@@ -737,7 +768,8 @@ export const syncPublishedNodeAssets = async ({
         client,
         spaceId,
         sourceLocalId: nodeId,
-        fname: attachment.path,
+        fname: link,
+        sourcePath: attachment.path,
         mimetype,
         created: new Date(attachment.stat.ctime),
         lastModified: new Date(attachment.stat.mtime),
