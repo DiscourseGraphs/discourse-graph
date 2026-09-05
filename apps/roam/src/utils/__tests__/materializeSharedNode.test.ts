@@ -84,6 +84,13 @@ const FULL_MARKDOWN = [
 
 const MATERIALIZED_MARKDOWN = "# Findings\nREM sleep improves recall";
 
+/**
+ * What the asset stage reports for a node with no recorded references, which every node
+ * in this suite is. A skipped import replaces no content, so it runs no asset stage and
+ * carries no report at all.
+ */
+const NO_ASSETS = { mirrored: 0, reused: 0, skipped: [], failed: [] };
+
 const clientWithFullContent = ({
   text,
   contentType = "text/obsidian+markdown",
@@ -148,6 +155,7 @@ describe("materializeSharedNode", () => {
       pageUid: GENERATED_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(eq).toHaveBeenCalledWith("original", true);
     expect(pageFromMarkdown).toHaveBeenCalledWith({
@@ -233,6 +241,7 @@ describe("materializeSharedNode", () => {
       pageUid: EXISTING_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(pageFromMarkdown).not.toHaveBeenCalled();
     expect(updatePage).not.toHaveBeenCalled();
@@ -286,6 +295,7 @@ describe("materializeSharedNode", () => {
       pageUid: EXISTING_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(blockFromMarkdown).toHaveBeenCalled();
     expect(mockedWriteImportedSourceIdentity).toHaveBeenCalledWith({
@@ -385,6 +395,7 @@ describe("materializeSharedNode", () => {
       pageUid: GENERATED_PAGE_UID,
       sourceModifiedAt: roamSharedNode.lastModified,
       sourceNodeRid: roamSharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(pageFromMarkdown).toHaveBeenCalledWith({
       page: { title: roamSharedNode.title, uid: GENERATED_PAGE_UID },
