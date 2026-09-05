@@ -24,8 +24,8 @@ import { getErrorMessage } from "./getErrorMessage";
  * registry keyed by content hash (see `assetRegistry`), so a blob this call uploaded may
  * already have been resolved by another user's import. A failed import leaves its copies
  * in place instead, and callers order their work so a rejected import never uploads at
- * all. Roam exposes no way to list a graph's files, so an orphan cannot be swept up
- * afterwards either.
+ * all (see `titleCollisionFailure`). Roam exposes no way to list a graph's files, so an
+ * orphan cannot be swept up afterwards either.
  *
  * **Call this one asset at a time.** The registry read and the matching write are
  * separated by a download and an upload, so callers running it under `Promise.all` all
