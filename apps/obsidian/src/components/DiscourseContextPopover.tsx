@@ -6,6 +6,7 @@ import { RelationshipSection } from "~/components/RelationshipSection";
 
 const POPOVER_CLASS = "dg-discourse-context-popover";
 const VIEWPORT_MARGIN = 8;
+const EMPTY_MESSAGE = "No discourse relation found";
 
 /**
  * Positions the popover under its badge, pulling it back inside the window when
@@ -32,6 +33,13 @@ const positionPopover = (popover: HTMLElement, anchor: HTMLElement): void => {
   popover.style.top = `${top}px`;
 };
 
+type PopoverOptions = {
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
+  anchor: HTMLElement;
+  relationCount: number;
+};
+
 /**
  * The discourse context shown when a badge is selected.
  *
@@ -45,13 +53,11 @@ const positionPopover = (popover: HTMLElement, anchor: HTMLElement): void => {
 class DiscourseContextPopover {
   private containerEl: HTMLElement;
   private root: Root;
+  private plugin: DiscourseGraphPlugin;
   private cleanupListeners: (() => void)[] = [];
 
-  constructor(
-    private plugin: DiscourseGraphPlugin,
-    file: TFile,
-    anchor: HTMLElement,
-  ) {
+  constructor({ plugin, file, anchor, relationCount }: PopoverOptions) {
+    this.plugin = plugin;
     this.containerEl = activeDocument.body.createDiv({ cls: POPOVER_CLASS });
     this.containerEl.addClass(
       "fixed",
@@ -68,10 +74,15 @@ class DiscourseContextPopover {
       "shadow-lg",
     );
 
-    const header = this.containerEl.createDiv({
-      cls: "mb-2 text-xs font-medium text-[var(--text-muted)]",
-    });
-    header.setText(file.basename);
+    // CurrentRelationships renders nothing at all when a node has none, so
+    // without this the popover would open on an unexplained "Add a new
+    // relation" button. Created before the React host so it reads above it.
+    if (relationCount === 0) {
+      this.containerEl.createDiv({
+        cls: "mb-2 text-sm text-[var(--text-muted)]",
+        text: EMPTY_MESSAGE,
+      });
+    }
 
     const reactHost = this.containerEl.createDiv();
     this.root = createRoot(reactHost);
@@ -135,17 +146,9 @@ class DiscourseContextPopover {
 
 let activePopover: DiscourseContextPopover | null = null;
 
-export const openDiscourseContextPopover = ({
-  plugin,
-  file,
-  anchor,
-}: {
-  plugin: DiscourseGraphPlugin;
-  file: TFile;
-  anchor: HTMLElement;
-}): void => {
+export const openDiscourseContextPopover = (options: PopoverOptions): void => {
   activePopover?.close();
-  activePopover = new DiscourseContextPopover(plugin, file, anchor);
+  activePopover = new DiscourseContextPopover(options);
 };
 
 export const closeDiscourseContextPopover = (): void => {

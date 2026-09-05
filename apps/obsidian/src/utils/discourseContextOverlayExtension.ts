@@ -62,7 +62,12 @@ class DiscourseContextBadgeWidget extends WidgetType {
       nodeType: this.target.nodeType,
       relationCount: this.target.relationCount,
       onActivate: ({ file, anchor }) =>
-        openDiscourseContextPopover({ plugin: this.plugin, file, anchor }),
+        openDiscourseContextPopover({
+          plugin: this.plugin,
+          file,
+          anchor,
+          relationCount: this.target.relationCount,
+        }),
     });
   }
 
@@ -106,7 +111,7 @@ const buildBadgeDecorations = (
         linktext: extractLinktext(match[0]),
         sourcePath,
       });
-      if (!target || target.relationCount === 0) continue;
+      if (!target) continue;
 
       const matchEnd = from + match.index + match[0].length;
       widgets.push(
