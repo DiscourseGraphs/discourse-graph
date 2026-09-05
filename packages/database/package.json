@@ -12,7 +12,8 @@
     },
     "./dbTypes": "./src/dbTypes.ts",
     "./inputTypes": "./src/inputTypes.ts",
-    "./crossAppContracts": "./src/crossAppContracts.ts"
+    "./crossAppContracts": "./src/crossAppContracts.ts",
+    "./crossAppNodeContract.example": "./src/crossAppNodeContract.example.ts"
   },
   "typesVersions": {
     "*": {
