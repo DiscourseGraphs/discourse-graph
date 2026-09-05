@@ -1,14 +1,8 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import {
-  InputGroup,
-  Button,
-  getKeyCombo,
-  IKeyCombo,
-  Label,
-} from "@blueprintjs/core";
-import Description from "~/components/settings/SettingsDescription";
-import { settingAnchor } from "~/components/settings/utils/settingAnchor";
+import { Button, getKeyCombo, IKeyCombo } from "@blueprintjs/core";
+import SettingKeycapInput from "~/components/settings/components/SettingKeycapInput";
+import SettingItemRow from "~/components/settings/components/SettingItemRow";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { comboToString } from "~/components/DiscourseNodeMenu";
@@ -93,26 +87,32 @@ const KeyboardShortcutInput = ({
   }, [extensionAPI, settingKey, blockPropKey]);
 
   return (
-    <Label {...settingAnchor([blockPropKey])}>
-      {label}
-      <Description description={description} />
-      <InputGroup
-        inputRef={inputRef}
-        placeholder={isActive ? "Press keys" : placeholder}
-        value={shortcut}
-        onKeyDown={handleKeyDown}
-        onFocus={() => setIsActive(true)}
-        onBlur={() => setIsActive(false)}
-        rightElement={
-          <Button
-            hidden={!comboKey.key}
-            icon="remove"
-            onClick={handleClear}
-            minimal
-          />
-        }
-      />
-    </Label>
+    <SettingItemRow
+      label={label}
+      description={description}
+      scope="personal"
+      settingKeys={[blockPropKey]}
+      control={(controlId) => (
+        <SettingKeycapInput
+          wide
+          id={controlId}
+          inputRef={inputRef}
+          placeholder={isActive ? "Press keys" : placeholder}
+          value={shortcut}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsActive(true)}
+          onBlur={() => setIsActive(false)}
+          rightElement={
+            <Button
+              hidden={!comboKey.key}
+              icon="remove"
+              onClick={handleClear}
+              minimal
+            />
+          }
+        />
+      )}
+    />
   );
 };
 

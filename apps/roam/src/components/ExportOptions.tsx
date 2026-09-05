@@ -5,15 +5,15 @@ import {
   GlobalNumberPanel,
   GlobalMultiTextPanel,
   GlobalSelectPanel,
-} from "./components/BlockPropSettingPanels";
+} from "~/components/settings/components/BlockPropSettingPanels";
 import {
   GLOBAL_KEYS,
   EXPORT_KEYS,
 } from "~/components/settings/utils/settingKeys";
-import { type SettingsSnapshot } from "./utils/accessors";
-import { ROAM_DOCS, withDocsLink } from "./utils/docs";
+import { type SettingsSnapshot } from "~/components/settings/utils/accessors";
+import { ROAM_DOCS, withDocsLink } from "~/components/settings/utils/docs";
 
-const DiscourseGraphExport = ({
+const ExportOptions = ({
   globalSettings,
 }: {
   globalSettings: SettingsSnapshot["globalSettings"];
@@ -40,6 +40,7 @@ const DiscourseGraphExport = ({
           order={1}
           uid={exportSettings.removeSpecialCharacters.uid}
           parentUid={parentUid}
+          compact
         />
 
         <GlobalFlagPanel
@@ -53,6 +54,7 @@ const DiscourseGraphExport = ({
           order={3}
           uid={exportSettings.optsRefs.uid}
           parentUid={parentUid}
+          compact
         />
         <GlobalFlagPanel
           title="resolve block embeds"
@@ -65,6 +67,7 @@ const DiscourseGraphExport = ({
           order={4}
           uid={exportSettings.optsEmbeds.uid}
           parentUid={parentUid}
+          compact
         />
 
         <GlobalFlagPanel
@@ -78,6 +81,7 @@ const DiscourseGraphExport = ({
           order={6}
           uid={exportSettings.appendRefNodeContext.uid}
           parentUid={parentUid}
+          compact
         />
       </div>
       <div className="link-type-select-wrapper">
@@ -93,6 +97,7 @@ const DiscourseGraphExport = ({
           options={["alias", "wikilinks", "roam url"]}
           uid={exportSettings.linkType.uid}
           parentUid={parentUid}
+          compact
         />
       </div>
       <GlobalNumberPanel
@@ -106,6 +111,7 @@ const DiscourseGraphExport = ({
         order={0}
         uid={exportSettings.maxFilenameLength.uid}
         parentUid={parentUid}
+        compact
       />
       <GlobalMultiTextPanel
         title="frontmatter"
@@ -118,9 +124,10 @@ const DiscourseGraphExport = ({
         order={2}
         uid={exportSettings.frontmatter.uid}
         parentUid={parentUid}
+        compact
       />
     </div>
   );
 };
 
-export default DiscourseGraphExport;
+export default ExportOptions;
