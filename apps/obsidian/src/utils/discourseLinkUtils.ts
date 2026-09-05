@@ -1,9 +1,9 @@
 import { parseLinktext, TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import type { DiscourseNode } from "~/types";
-import { getNodeTypeById } from "./typeUtils";
+import { getNodeTypeById, getRelationTypeById } from "./typeUtils";
 import {
-  countAcceptedRelations,
+  countDisplayableRelations,
   getEndpointIdsFromFrontmatter,
   getNodeTypeIdFromFrontmatter,
 } from "./discourseLinkFrontmatter";
@@ -47,8 +47,7 @@ export const resolveDiscourseLinkTarget = ({
   const file = plugin.app.metadataCache.getFirstLinkpathDest(path, sourcePath);
   if (!file) return null;
 
-  const frontmatter = plugin.app.metadataCache.getFileCache(file)
-    ?.frontmatter as Record<string, unknown> | undefined;
+  const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
 
   const nodeTypeId = getNodeTypeIdFromFrontmatter(frontmatter);
   if (!nodeTypeId) return null;
@@ -62,5 +61,11 @@ export const resolveDiscourseLinkTarget = ({
   const relations =
     plugin.relationsIndex.getRelationsForEndpointIds(endpointIds);
 
-  return { file, nodeType, relationCount: countAcceptedRelations(relations) };
+  const relationCount = countDisplayableRelations({
+    relations,
+    isConfiguredType: (relationTypeId) =>
+      !!getRelationTypeById(plugin, relationTypeId),
+  });
+
+  return { file, nodeType, relationCount };
 };

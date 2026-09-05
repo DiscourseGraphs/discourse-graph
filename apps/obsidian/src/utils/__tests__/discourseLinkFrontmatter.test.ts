@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RelationInstance } from "~/types";
 import {
-  countAcceptedRelations,
+  countDisplayableRelations,
   getEndpointIdsFromFrontmatter,
   getNodeTypeIdFromFrontmatter,
 } from "~/utils/discourseLinkFrontmatter";
@@ -67,29 +67,60 @@ describe("getEndpointIdsFromFrontmatter", () => {
   });
 });
 
-describe("countAcceptedRelations", () => {
+describe("countDisplayableRelations", () => {
+  const allConfigured = () => true;
+
   it("counts local relations, which leave tentative undefined", () => {
     expect(
-      countAcceptedRelations([relation({ id: "r1" }), relation({ id: "r2" })]),
+      countDisplayableRelations({
+        relations: [relation({ id: "r1" }), relation({ id: "r2" })],
+        isConfiguredType: allConfigured,
+      }),
     ).toBe(2);
   });
 
   it("counts explicitly accepted relations", () => {
     expect(
-      countAcceptedRelations([relation({ id: "r1", tentative: true })]),
+      countDisplayableRelations({
+        relations: [relation({ id: "r1", tentative: true })],
+        isConfiguredType: allConfigured,
+      }),
     ).toBe(1);
   });
 
   it("excludes imported relations awaiting acceptance", () => {
     expect(
-      countAcceptedRelations([
-        relation({ id: "r1" }),
-        relation({ id: "r2", tentative: false }),
-      ]),
+      countDisplayableRelations({
+        relations: [
+          relation({ id: "r1" }),
+          relation({ id: "r2", tentative: false }),
+        ],
+        isConfiguredType: allConfigured,
+      }),
+    ).toBe(1);
+  });
+
+  it("excludes relations orphaned by a deleted relation type", () => {
+    // Deleting a relation type leaves its relations in relations.json. The
+    // panel drops them, so a badge that counted them would promise context the
+    // panel then refuses to show.
+    expect(
+      countDisplayableRelations({
+        relations: [
+          relation({ id: "r1", type: "supports" }),
+          relation({ id: "r2", type: "deleted-type" }),
+        ],
+        isConfiguredType: (type) => type === "supports",
+      }),
     ).toBe(1);
   });
 
   it("returns zero for no relations", () => {
-    expect(countAcceptedRelations([])).toBe(0);
+    expect(
+      countDisplayableRelations({
+        relations: [],
+        isConfiguredType: allConfigured,
+      }),
+    ).toBe(0);
   });
 });

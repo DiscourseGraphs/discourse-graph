@@ -20,6 +20,8 @@ import {
 } from "~/utils/editorMenuUtils";
 import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
 import { createWikilinkDragExtension } from "~/utils/wikilinkDragHandler";
+import { createDiscourseContextOverlayExtension } from "~/utils/discourseContextOverlayExtension";
+import { createDiscourseContextOverlayPostProcessor } from "~/utils/discourseContextOverlayPostProcessor";
 import {
   registerCommands,
   createModifyNodeModalSubmitHandler,
@@ -105,6 +107,9 @@ export default class DiscourseGraphPlugin extends Plugin {
     }
 
     this.relationsIndex.initialize();
+    this.registerMarkdownPostProcessor(
+      createDiscourseContextOverlayPostProcessor(this),
+    );
 
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
@@ -369,6 +374,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.registerEditorExtension(createImageEmbedHoverExtension(this));
 
     this.registerEditorExtension(createWikilinkDragExtension(this));
+    this.registerEditorExtension(createDiscourseContextOverlayExtension(this));
   }
 
   updateFrontmatterStyles(): void {
