@@ -20,7 +20,6 @@ import renderOverlay from "roamjs-components/util/renderOverlay";
 import DiscourseRelationConfigPanel from "./DiscourseRelationConfigPanel";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import discourseConfigRef from "~/utils/discourseConfigRef";
-import DiscourseGraphExport from "./ExportSettings";
 import QuerySettings from "./QuerySettings";
 import AdminPanel from "./AdminPanel";
 import PreferencesGeneral from "./PreferencesGeneral";
@@ -280,15 +279,6 @@ export const SettingsDialog = ({
                 extensionAPI={extensionAPI}
                 personalSettings={settings.personalSettings}
               />
-            }
-          />
-          {/* Leaves Settings entirely in ENG-2185. */}
-          <Tab
-            id={SETTINGS_TAB_IDS.advancedExport}
-            title="Export"
-            className="overflow-y-auto"
-            panel={
-              <DiscourseGraphExport globalSettings={settings.globalSettings} />
             }
           />
           <Tabs.Expander />
