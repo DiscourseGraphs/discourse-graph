@@ -15,27 +15,7 @@ import {
   resolveDiscourseLinkTarget,
   type DiscourseLinkTarget,
 } from "./discourseLinkUtils";
-
-// Wikilinks [[...]] and markdown links [text](path.md). Embeds are excluded in
-// the loop below, since a leading "!" sits outside the match.
-const INTERNAL_LINK_RE = /\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)]+\.md)\)/g;
-
-/** Extracts the link target from a wikilink or markdown link match. */
-const extractLinktext = (match: string): string => {
-  if (match.startsWith("[[")) {
-    const inner = match.slice(2, -2);
-    const pipeIndex = inner.indexOf("|");
-    return pipeIndex >= 0 ? inner.slice(0, pipeIndex) : inner;
-  }
-
-  const parenOpen = match.lastIndexOf("(");
-  const rawPath = match.slice(parenOpen + 1, -1);
-  try {
-    return decodeURIComponent(rawPath);
-  } catch {
-    return rawPath;
-  }
-};
+import { extractLinktext, INTERNAL_LINK_RE } from "./internalLinkParsing";
 
 class DiscourseContextBadgeWidget extends WidgetType {
   constructor(
@@ -46,13 +26,15 @@ class DiscourseContextBadgeWidget extends WidgetType {
   }
 
   /**
-   * Keyed on path and count so a badge is only rebuilt when what it displays
-   * changes — not on every keystroke elsewhere in the document.
+   * Keyed on everything the badge displays, so it is rebuilt when its content
+   * changes and left alone on every other keystroke in the document.
    */
   eq(other: DiscourseContextBadgeWidget): boolean {
     return (
       this.target.file.path === other.target.file.path &&
-      this.target.relationCount === other.target.relationCount
+      this.target.relationCount === other.target.relationCount &&
+      this.target.nodeType.id === other.target.nodeType.id &&
+      this.target.nodeType.name === other.target.nodeType.name
     );
   }
 
@@ -123,17 +105,16 @@ const buildBadgeDecorations = (
     }
   }
 
-  widgets.sort((a, b) => a.from - b.from);
-  return Decoration.set(widgets);
+  return Decoration.set(widgets, true);
 };
 
 /**
  * Renders the discourse context badge after each link to a discourse node in
  * Live Preview.
  *
- * Rebuilds on relation changes as well as document and viewport changes, since
- * the badge shows a count that lives outside the document — adding a relation
- * from the badge's own popover has to update the number behind it.
+ * Rebuilds on document and viewport changes. Changes that originate outside the
+ * document — a relation added, a target's frontmatter finishing indexing —
+ * arrive as an empty transaction from registerDiscourseContextOverlayRefresh.
  */
 export const createDiscourseContextOverlayExtension = (
   plugin: DiscourseGraphPlugin,
@@ -142,16 +123,10 @@ export const createDiscourseContextOverlayExtension = (
     class {
       decorations: DecorationSet;
       private enabled: boolean;
-      private unsubscribe: () => void;
 
       constructor(view: EditorView) {
         this.enabled = plugin.settings.showDiscourseContextOverlay;
         this.decorations = buildBadgeDecorations(view, plugin);
-        this.unsubscribe = plugin.relationsIndex.onChange(() => {
-          this.decorations = buildBadgeDecorations(view, plugin);
-          // The index resolves outside any transaction, so ask for a redraw.
-          view.dispatch({});
-        });
       }
 
       update(update: ViewUpdate): void {
@@ -168,10 +143,6 @@ export const createDiscourseContextOverlayExtension = (
         }
         this.enabled = enabled;
         this.decorations = buildBadgeDecorations(update.view, plugin);
-      }
-
-      destroy(): void {
-        this.unsubscribe();
       }
     },
     {

@@ -14,15 +14,18 @@ const EMPTY_MESSAGE = "No discourse relation found";
  * how many relations the node has.
  */
 const positionPopover = (popover: HTMLElement, anchor: HTMLElement): void => {
+  // Geometry has to come from the window the anchor is in, not the main one, or
+  // a popover opened in a popout window gets clamped to the wrong viewport.
+  const win = anchor.ownerDocument.defaultView ?? window;
   const anchorRect = anchor.getBoundingClientRect();
   const { width, height } = popover.getBoundingClientRect();
 
   const left = Math.min(
     Math.max(VIEWPORT_MARGIN, anchorRect.left),
-    Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN),
+    Math.max(VIEWPORT_MARGIN, win.innerWidth - width - VIEWPORT_MARGIN),
   );
 
-  const spaceBelow = window.innerHeight - anchorRect.bottom;
+  const spaceBelow = win.innerHeight - anchorRect.bottom;
   const openUpward =
     spaceBelow < height + VIEWPORT_MARGIN && anchorRect.top > height;
   const top = openUpward
@@ -54,11 +57,16 @@ class DiscourseContextPopover {
   private containerEl: HTMLElement;
   private root: Root;
   private plugin: DiscourseGraphPlugin;
+  private win: Window;
+  private reposition: () => void = () => {};
+  private resizeObserver: ResizeObserver | null = null;
   private cleanupListeners: (() => void)[] = [];
 
   constructor({ plugin, file, anchor, relationCount }: PopoverOptions) {
     this.plugin = plugin;
-    this.containerEl = activeDocument.body.createDiv({ cls: POPOVER_CLASS });
+    const doc = anchor.ownerDocument;
+    this.win = doc.defaultView ?? window;
+    this.containerEl = doc.body.createDiv({ cls: POPOVER_CLASS });
     this.containerEl.addClass(
       "fixed",
       "z-50",
@@ -92,11 +100,20 @@ class DiscourseContextPopover {
       </PluginProvider>,
     );
 
+    // A React 18 root does not commit synchronously, so measuring now would
+    // size an empty box and the flip-up-when-near-the-bottom check would never
+    // fire. Re-measured after paint, and again as the relation list fills in.
     positionPopover(this.containerEl, anchor);
+    this.reposition = () => positionPopover(this.containerEl, anchor);
+    this.win.requestAnimationFrame(this.reposition);
+    this.resizeObserver = new ResizeObserver(this.reposition);
+    this.resizeObserver.observe(this.containerEl);
+
     this.registerDismissListeners();
   }
 
   private registerDismissListeners(): void {
+    const doc = this.containerEl.ownerDocument;
     const closeIfOutside = (event: MouseEvent): void => {
       if (this.containerEl.contains(event.target as Node)) return;
       this.close();
@@ -117,28 +134,30 @@ class DiscourseContextPopover {
 
     // Deferred so the click that opened the popover does not immediately
     // dismiss it as an outside click.
-    const attach = window.setTimeout(() => {
-      activeDocument.addEventListener("click", closeIfOutside, true);
+    const attach = this.win.setTimeout(() => {
+      doc.addEventListener("click", closeIfOutside, true);
     }, 0);
 
-    activeDocument.addEventListener("keydown", closeOnEscape);
+    doc.addEventListener("keydown", closeOnEscape);
     // Capture phase, since scrolling happens inside panes rather than on window.
-    activeDocument.addEventListener("scroll", closeOnScroll, true);
+    doc.addEventListener("scroll", closeOnScroll, true);
 
     this.cleanupListeners.push(() => {
-      window.clearTimeout(attach);
-      activeDocument.removeEventListener("click", closeIfOutside, true);
-      activeDocument.removeEventListener("keydown", closeOnEscape);
-      activeDocument.removeEventListener("scroll", closeOnScroll, true);
+      this.win.clearTimeout(attach);
+      doc.removeEventListener("click", closeIfOutside, true);
+      doc.removeEventListener("keydown", closeOnEscape);
+      doc.removeEventListener("scroll", closeOnScroll, true);
     });
   }
 
   close(): void {
     for (const cleanup of this.cleanupListeners) cleanup();
     this.cleanupListeners = [];
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
     // Unmounting during React's own event handling warns, so defer it.
     const root = this.root;
-    window.setTimeout(() => root.unmount(), 0);
+    this.win.setTimeout(() => root.unmount(), 0);
     this.containerEl.remove();
     if (activePopover === this) activePopover = null;
   }
