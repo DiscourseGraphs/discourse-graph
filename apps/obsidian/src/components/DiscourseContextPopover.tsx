@@ -1,0 +1,153 @@
+import { TFile } from "obsidian";
+import { createRoot, Root } from "react-dom/client";
+import type DiscourseGraphPlugin from "~/index";
+import { PluginProvider } from "~/components/PluginContext";
+import { RelationshipSection } from "~/components/RelationshipSection";
+
+const POPOVER_CLASS = "dg-discourse-context-popover";
+const VIEWPORT_MARGIN = 8;
+
+/**
+ * Positions the popover under its badge, pulling it back inside the window when
+ * it would overflow. Measured after mount because the content height depends on
+ * how many relations the node has.
+ */
+const positionPopover = (popover: HTMLElement, anchor: HTMLElement): void => {
+  const anchorRect = anchor.getBoundingClientRect();
+  const { width, height } = popover.getBoundingClientRect();
+
+  const left = Math.min(
+    Math.max(VIEWPORT_MARGIN, anchorRect.left),
+    Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN),
+  );
+
+  const spaceBelow = window.innerHeight - anchorRect.bottom;
+  const openUpward =
+    spaceBelow < height + VIEWPORT_MARGIN && anchorRect.top > height;
+  const top = openUpward
+    ? Math.max(VIEWPORT_MARGIN, anchorRect.top - height - 4)
+    : anchorRect.bottom + 4;
+
+  popover.style.left = `${left}px`;
+  popover.style.top = `${top}px`;
+};
+
+/**
+ * The discourse context shown when a badge is selected.
+ *
+ * Reuses RelationshipSection, the same component the Discourse Context panel
+ * renders, so the two can never disagree about a node's relations. It needs
+ * only a TFile and PluginProvider — no workspace leaf — which is what makes it
+ * reusable here.
+ *
+ * Only one popover exists at a time; opening another closes the previous one.
+ */
+class DiscourseContextPopover {
+  private containerEl: HTMLElement;
+  private root: Root;
+  private cleanupListeners: (() => void)[] = [];
+
+  constructor(
+    private plugin: DiscourseGraphPlugin,
+    file: TFile,
+    anchor: HTMLElement,
+  ) {
+    this.containerEl = activeDocument.body.createDiv({ cls: POPOVER_CLASS });
+    this.containerEl.addClass(
+      "fixed",
+      "z-50",
+      "max-h-[60vh]",
+      "w-80",
+      "overflow-y-auto",
+      "rounded-md",
+      "border",
+      "border-solid",
+      "border-[var(--background-modifier-border)]",
+      "bg-[var(--background-primary)]",
+      "p-3",
+      "shadow-lg",
+    );
+
+    const header = this.containerEl.createDiv({
+      cls: "mb-2 text-xs font-medium text-[var(--text-muted)]",
+    });
+    header.setText(file.basename);
+
+    const reactHost = this.containerEl.createDiv();
+    this.root = createRoot(reactHost);
+    this.root.render(
+      <PluginProvider plugin={this.plugin}>
+        <RelationshipSection activeFile={file} />
+      </PluginProvider>,
+    );
+
+    positionPopover(this.containerEl, anchor);
+    this.registerDismissListeners();
+  }
+
+  private registerDismissListeners(): void {
+    const closeIfOutside = (event: MouseEvent): void => {
+      if (this.containerEl.contains(event.target as Node)) return;
+      this.close();
+    };
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      this.close();
+    };
+    // Scrolling the note moves the badge out from under the popover, so the
+    // popover follows it away. Scrolling *within* the popover must not dismiss
+    // it — its own content scrolls, and reaching "Add a new relation" requires
+    // exactly that.
+    const closeOnScroll = (event: Event): void => {
+      if (this.containerEl.contains(event.target as Node)) return;
+      this.close();
+    };
+
+    // Deferred so the click that opened the popover does not immediately
+    // dismiss it as an outside click.
+    const attach = window.setTimeout(() => {
+      activeDocument.addEventListener("click", closeIfOutside, true);
+    }, 0);
+
+    activeDocument.addEventListener("keydown", closeOnEscape);
+    // Capture phase, since scrolling happens inside panes rather than on window.
+    activeDocument.addEventListener("scroll", closeOnScroll, true);
+
+    this.cleanupListeners.push(() => {
+      window.clearTimeout(attach);
+      activeDocument.removeEventListener("click", closeIfOutside, true);
+      activeDocument.removeEventListener("keydown", closeOnEscape);
+      activeDocument.removeEventListener("scroll", closeOnScroll, true);
+    });
+  }
+
+  close(): void {
+    for (const cleanup of this.cleanupListeners) cleanup();
+    this.cleanupListeners = [];
+    // Unmounting during React's own event handling warns, so defer it.
+    const root = this.root;
+    window.setTimeout(() => root.unmount(), 0);
+    this.containerEl.remove();
+    if (activePopover === this) activePopover = null;
+  }
+}
+
+let activePopover: DiscourseContextPopover | null = null;
+
+export const openDiscourseContextPopover = ({
+  plugin,
+  file,
+  anchor,
+}: {
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
+  anchor: HTMLElement;
+}): void => {
+  activePopover?.close();
+  activePopover = new DiscourseContextPopover(plugin, file, anchor);
+};
+
+export const closeDiscourseContextPopover = (): void => {
+  activePopover?.close();
+};

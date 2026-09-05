@@ -35,12 +35,25 @@ export const getEndpointIdsFromFrontmatter = (
 };
 
 /**
- * Counts relations that are actually part of the graph.
+ * Counts the relations the Discourse Context panel would actually list.
  *
- * `tentative === false` marks an imported relation the user has not accepted
- * yet; the Discourse Context panel lists those separately from accepted ones,
- * so counting them in the badge would show a number the panel never repeats
- * back. Local relations leave `tentative` undefined.
+ * Two kinds are excluded, and both have to be, or the badge advertises context
+ * the panel then refuses to show:
+ *
+ * - `tentative === false` marks an imported relation the user has not accepted
+ *   yet, which the panel lists separately. Local relations leave it undefined.
+ * - A relation whose type is no longer configured is orphaned — deleting a
+ *   relation type leaves its relations behind in relations.json — and the panel
+ *   silently drops those.
  */
-export const countAcceptedRelations = (relations: RelationInstance[]): number =>
-  relations.filter((relation) => relation.tentative !== false).length;
+export const countDisplayableRelations = ({
+  relations,
+  isConfiguredType,
+}: {
+  relations: RelationInstance[];
+  isConfiguredType: (relationTypeId: string) => boolean;
+}): number =>
+  relations.filter(
+    (relation) =>
+      relation.tentative !== false && isConfiguredType(relation.type),
+  ).length;

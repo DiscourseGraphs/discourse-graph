@@ -11,7 +11,7 @@ export type DiscourseContextBadgeProps = {
   file: TFile;
   nodeType: DiscourseNode;
   relationCount: number;
-  onActivate: (file: TFile) => void;
+  onActivate: (args: { file: TFile; anchor: HTMLElement }) => void;
 };
 
 const badgeTooltip = ({
@@ -56,7 +56,7 @@ export const createDiscourseContextBadge = ({
     // Stops Obsidian from following the link the badge sits next to.
     event.preventDefault();
     event.stopPropagation();
-    onActivate(file);
+    onActivate({ file, anchor: badge });
   };
 
   badge.addEventListener("click", activate);
