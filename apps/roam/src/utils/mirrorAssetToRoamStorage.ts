@@ -4,6 +4,7 @@ import {
 } from "@repo/database/lib/assetLimits";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { readMirroredAssetUrl, recordMirroredAsset } from "./assetRegistry";
+import { getErrorMessage } from "./getErrorMessage";
 
 /**
  * Copies one asset out of shared storage and into this graph's own Roam storage.
@@ -30,9 +31,6 @@ import { readMirroredAssetUrl, recordMirroredAsset } from "./assetRegistry";
  * sequential loop rather than a lock here. Parallelising a caller means adding an
  * in-flight map of hash to promise in this module first.
  */
-
-const getErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
 
 /** The bucket `addFile` writes to, keyed by content hash. */
 const SHARED_ASSET_BUCKET = "assets";
