@@ -17,6 +17,7 @@ import {
   writeImportedSourceIdentity,
   type ImportedSourceIdentity,
 } from "./importedSourceIdentity";
+import { importNodeAssets, type AssetImportReport } from "./importNodeAssets";
 
 type MaterializationStage =
   | "validate-input"
@@ -46,6 +47,12 @@ type MaterializationSuccess = SourceIdentity & {
   success: true;
   action: "created" | "updated" | "skipped";
   pageUid: string;
+  /**
+   * What the asset stage did. Absent on a skipped import, which replaces no content and
+   * so copies nothing. An asset that could not be copied appears here rather than
+   * failing the node.
+   */
+  assets?: AssetImportReport;
 };
 
 export type MaterializeSharedNodeResult =
@@ -358,16 +365,28 @@ export const materializeSharedNode = async ({
       stage: "fetch-content",
     });
 
-  return importedPageUid
+  // Between fetching the content and replacing the page with it: the markdown written
+  // below is the rewritten one, and the copies it points at exist by then.
+  const { markdown, report } = await importNodeAssets({
+    client,
+    sharedNode,
+    markdown: content.markdown,
+  });
+
+  const result = await (importedPageUid
     ? updateImportedPage({
         identity,
-        markdown: content.markdown,
+        markdown,
         pageUid: importedPageUid,
         title: validated.title,
       })
     : createImportedPage({
         identity,
-        markdown: content.markdown,
+        markdown,
         title: validated.title,
-      });
+      }));
+
+  // Carried on success only. A node that failed to import has a stage of its own to
+  // report, and the assets it did or did not copy are not what the reader needs.
+  return result.success ? { ...result, assets: report } : result;
 };
