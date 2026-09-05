@@ -1,7 +1,7 @@
 /**
  * Load an image and return its natural dimensions.
  * Supports both vault resource paths (app://...) and external URLs (https://...).
- * 
+ *
  * Note: This works with Obsidian's resource paths returned by app.vault.getResourcePath()
  * which are special app:// protocol URLs handled by Obsidian's Electron environment.
  */
@@ -38,4 +38,3 @@ export const loadImage = (
     img.src = url;
   });
 };
-
