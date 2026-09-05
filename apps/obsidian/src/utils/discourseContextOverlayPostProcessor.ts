@@ -39,14 +39,19 @@ export const createDiscourseContextOverlayPostProcessor =
         linktext,
         sourcePath: ctx.sourcePath,
       });
-      if (!target || target.relationCount === 0) continue;
+      if (!target) continue;
 
       const badge = createDiscourseContextBadge({
         file: target.file,
         nodeType: target.nodeType,
         relationCount: target.relationCount,
         onActivate: ({ file, anchor }) =>
-          openDiscourseContextPopover({ plugin, file, anchor }),
+          openDiscourseContextPopover({
+            plugin,
+            file,
+            anchor,
+            relationCount: target.relationCount,
+          }),
       });
 
       link.insertAdjacentElement("afterend", badge);
