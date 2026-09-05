@@ -119,6 +119,7 @@ export const DEFAULT_SETTINGS: Settings = {
   canvasAttachmentsFolderPath: "attachments",
   nodeTagHotkey: "\\",
   showHelpMenuStatusBarIcon: false,
+  showDiscourseContextOverlay: true,
   spacePassword: undefined,
   accountLocalId: undefined,
   syncModeEnabled: false,

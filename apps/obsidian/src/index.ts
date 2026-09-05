@@ -36,6 +36,10 @@ import { InlineNodeTypePicker } from "~/components/InlineNodeTypePicker";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
 import { RelationsIndex } from "~/utils/relationsIndex";
+import {
+  refreshMarkdownEditors,
+  refreshMarkdownPreviews,
+} from "~/utils/markdownViewRefresh";
 import generateUid from "~/utils/generateUid";
 import {
   migrateFrontmatterRelationsToRelationsJson,
@@ -272,34 +276,26 @@ export default class DiscourseGraphPlugin extends Plugin {
       }),
     );
 
-    type EditorWithCm = { cm: EditorView };
-    const hasCodeMirrorView = (editor: unknown): editor is EditorWithCm => {
-      if (!editor || typeof editor !== "object") return false;
-      return "cm" in editor;
-    };
-
     // Dispatch a no-op CM6 transaction to every markdown editor so their
     // ViewPlugin re-evaluates hasVisibleCanvasLeaf and shows/hides widgets.
     // layout-change covers splits/moves, active-leaf-change covers tab switches.
-    const refreshMarkdownEditors = (): void => {
-      this.app.workspace.iterateAllLeaves((leaf) => {
-        if (
-          leaf.view instanceof MarkdownView &&
-          hasCodeMirrorView(leaf.view.editor)
-        ) {
-          leaf.view.editor.cm.dispatch({});
-        }
-      });
-    };
+    const refreshEditors = (): void => refreshMarkdownEditors(this.app);
+    this.registerEvent(this.app.workspace.on("layout-change", refreshEditors));
     this.registerEvent(
-      this.app.workspace.on("layout-change", refreshMarkdownEditors),
-    );
-    this.registerEvent(
-      this.app.workspace.on("active-leaf-change", refreshMarkdownEditors),
+      this.app.workspace.on("active-leaf-change", refreshEditors),
     );
 
     // Register editor keydown listener for node tag hotkey
     this.setupNodeTagHotkey();
+  }
+
+  /**
+   * Re-renders both markdown surfaces so the discourse context overlay appears
+   * or disappears immediately when its setting is toggled, without a reload.
+   */
+  refreshDiscourseContextOverlay(): void {
+    refreshMarkdownEditors(this.app);
+    refreshMarkdownPreviews(this.app);
   }
 
   setHelpMenuStatusBarItemVisibility(): void {
