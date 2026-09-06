@@ -406,7 +406,8 @@ export const CreateRelationButton = (
       text="Add relation"
       disabled={extProps === null}
       onClick={() => {
-        renderCreateRelationDialog(extProps);
+        // A schema may have been accepted since this button last rendered.
+        renderCreateRelationDialog(relationProps);
       }}
     />
   );
