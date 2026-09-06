@@ -2,12 +2,13 @@ import {
   Alert,
   Button,
   ControlGroup,
+  Icon,
   InputGroup,
   Intent,
   HTMLTable,
   Tooltip,
 } from "@blueprintjs/core";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import type { CustomField } from "roamjs-components/components/ConfigPanels/types";
@@ -51,6 +52,19 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
     DiscourseRelation[]
   >([]);
   const [nodeTypeIdToDelete, setNodeTypeIdToDelete] = useState<string>("");
+  const duplicateShortcuts = useMemo(() => {
+    const counts = new Map<string, number>();
+    nodes.forEach((n) => {
+      const shortcut = n.shortcut.toUpperCase();
+      if (!shortcut) return;
+      counts.set(shortcut, (counts.get(shortcut) ?? 0) + 1);
+    });
+    return new Set(
+      Array.from(counts.entries())
+        .filter(([, count]) => count > 1)
+        .map(([shortcut]) => shortcut),
+    );
+  }, [nodes]);
   const navigateToNode = (uid: string) => {
     if (isPopup) {
       setSelectedTabId(uid);
@@ -107,6 +121,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
         <thead>
           <tr>
             <th>Node</th>
+            <th>Shortcut</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -126,6 +141,23 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                     }}
                   />
                   <span>{n.text}</span>
+                </div>
+              </td>
+              <td
+                onClick={() => navigateToNode(n.type)}
+                style={{ verticalAlign: "middle" }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-mono">{n.shortcut}</span>
+                  {duplicateShortcuts.has(n.shortcut.toUpperCase()) && (
+                    <Tooltip
+                      className="flex"
+                      targetClassName="flex"
+                      content={`Multiple nodes share the shortcut "${n.shortcut.toUpperCase()}". Only one node can respond to it in the node menu.`}
+                    >
+                      <Icon icon="warning-sign" intent={Intent.WARNING} />
+                    </Tooltip>
+                  )}
                 </div>
               </td>
               <td>
