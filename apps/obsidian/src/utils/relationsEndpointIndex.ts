@@ -2,7 +2,8 @@ import type { RelationInstance } from "~/types";
 
 /**
  * Pure indexing helpers behind RelationsIndex, kept free of Obsidian and
- * relationsStore imports so they stay directly testable.
+ * relationsStore imports so the grouping and dedupe rules stay separate from
+ * snapshot loading and invalidation.
  */
 
 /**

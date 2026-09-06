@@ -1,6 +1,7 @@
 /**
  * Pure parsing for internal links in raw markdown, kept free of Obsidian and
- * CodeMirror imports so it stays directly testable.
+ * CodeMirror imports so it can be reused by any caller that has raw markdown
+ * rather than an editor.
  */
 
 /**
