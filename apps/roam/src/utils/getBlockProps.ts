@@ -6,6 +6,9 @@ export type json =
   | json[]
   | { [key: string]: json };
 
+export const isJsonObject = (value: json): value is Record<string, json> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 export const normalizeProps = (props: json): json =>
   typeof props === "object"
     ? props === null
