@@ -58,9 +58,19 @@ describe("findTargetUid", () => {
       findTargetUid(`${LOCAL_SPACE_URI}/page-uid`, OBSIDIAN_SPACE_URI),
     ).resolves.toBe("page-uid");
     expect(roamQuery).toHaveBeenCalledWith(
-      '[:find (?e) :where [?e :block/uid "page-uid"]]',
+      "[:find (?e) :in $ ?uid :where [?e :block/uid ?uid]]",
+      "page-uid",
     );
     expect(mockedFindImportedNodeUidBySourceRid).not.toHaveBeenCalled();
+  });
+
+  it("passes a shared id containing query syntax as data", async () => {
+    const sharedId = 'page-uid"] [(= ?e ?e)] ; "';
+    await expect(findTargetUid(sharedId, LOCAL_SPACE_URI)).resolves.toBeNull();
+    expect(roamQuery).toHaveBeenCalledWith(
+      "[:find (?e) :in $ ?uid :where [?e :block/uid ?uid]]",
+      sharedId,
+    );
   });
 
   it("returns null for a RID in this graph whose page is missing", async () => {

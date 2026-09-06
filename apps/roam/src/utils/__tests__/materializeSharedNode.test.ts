@@ -477,7 +477,8 @@ describe("materializeSharedNode", () => {
       sourceNodeRid: sharedNode.rid,
     });
     expect(roamQuery).toHaveBeenCalledWith(
-      `[:find (?e) :where [?e :block/uid "${SOURCE_PAGE_UID}"]]`,
+      "[:find (?e) :in $ ?uid :where [?e :block/uid ?uid]]",
+      SOURCE_PAGE_UID,
     );
     expect(mockedFindImportedNodeUidBySourceRid).toHaveBeenCalledTimes(1);
     expect(pageFromMarkdown).toHaveBeenCalledWith({
