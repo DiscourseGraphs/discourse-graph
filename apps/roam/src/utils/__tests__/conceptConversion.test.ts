@@ -98,6 +98,11 @@ describe("discourseNodeSchemaToLocalConcept source slot", () => {
     });
   });
 
+  it("carries the type author as author_local_id", () => {
+    const concept = discourseNodeSchemaToLocalConcept(CONTEXT, nodeType({}));
+    expect(concept.author_local_id).toBe("author-1");
+  });
+
   it("keeps the label and template it already carried", () => {
     const concept = discourseNodeSchemaToLocalConcept(
       CONTEXT,
