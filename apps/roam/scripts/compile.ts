@@ -192,6 +192,9 @@ export const compile = ({
       bundle: true,
       format,
       define: {
+        "process.env.NODE_ENV": JSON.stringify(
+          process.env.NODE_ENV || "development",
+        ),
         "process.env.SUPABASE_URL": dbEnv.SUPABASE_URL
           ? `"${dbEnv.SUPABASE_URL}"`
           : "null",
@@ -205,7 +208,8 @@ export const compile = ({
         "window.__DISCOURSE_GRAPH_BUILD_BRANCH__": `"${getBuildBranch()}"`,
       },
       sourcemap: process.env.NODE_ENV === "production" ? "external" : "inline",
-      minify: process.env.NODE_ENV === "production",
+      // Keep the debug release readable when investigating direct cloud canvas loads.
+      minify: false,
       entryNames: out,
       external: externalModules.map(([e]) => e).concat(["crypto"]),
       plugins: [
