@@ -1,15 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
+import type { ImportedSourceIdentity } from "~/utils/importedSourceIdentity";
 
-const { mockedGetPageUidByPageTitle, mockedGetDiscourseNodes } = vi.hoisted(
-  () => ({
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    mockedGetPageUidByPageTitle: vi.fn((_title: string) => ""),
-    mockedGetDiscourseNodes: vi.fn((): DiscourseNode[] => []),
-  }),
-);
+const {
+  mockedGetPageUidByPageTitle,
+  mockedGetDiscourseNodes,
+  mockedReadImportedSourceIdentity,
+} = vi.hoisted(() => ({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  mockedGetPageUidByPageTitle: vi.fn((_title: string) => ""),
+  mockedGetDiscourseNodes: vi.fn((): DiscourseNode[] => []),
+  mockedReadImportedSourceIdentity: vi.fn(
+    (): ImportedSourceIdentity | undefined => undefined,
+  ),
+}));
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
   default: mockedGetPageUidByPageTitle,
+}));
+vi.mock("~/utils/importedSourceIdentity", () => ({
+  readImportedSourceIdentity: mockedReadImportedSourceIdentity,
 }));
 vi.mock("~/utils/getDiscourseNodes", () => ({
   default: mockedGetDiscourseNodes,
@@ -65,6 +74,7 @@ beforeEach(() => {
     (title: string) => PAGE_UIDS[title] ?? "",
   );
   mockedGetDiscourseNodes.mockReturnValue([SOURCE_TYPE]);
+  mockedReadImportedSourceIdentity.mockReset();
 });
 
 describe("discourseNodeSchemaToLocalConcept source slot", () => {
@@ -157,6 +167,20 @@ describe("discourseNodeBlockToLocalConcept source slot", () => {
     expect(concept.local_reference_content).toEqual({
       sourceDocument: "source-1",
     });
+  });
+
+  it("writes the origin RID when the source page was imported from another app", () => {
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+      sourceNodeRid: "orn:obsidian.note:vault-a/node-1",
+    });
+    const concept = convert(
+      "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+    );
+    expect(concept.local_reference_content).toEqual({
+      sourceDocument: "orn:obsidian.note:vault-a/node-1",
+    });
+    expect(mockedReadImportedSourceIdentity).toHaveBeenCalledWith("source-1");
   });
 
   // Leniency on the target type: see sourceSlot.ts
