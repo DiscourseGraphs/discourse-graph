@@ -38,11 +38,13 @@ const buildFixture = async (): Promise<string> => {
   return result.outputFiles?.[0]?.text || "";
 };
 
-describe("Roam React compatibility bundle", () => {
+describe("Roam React host bundle", () => {
   it.each([false, true])(
-    "keeps the host renderer and a private hook when a global shim already exists: %s",
+    "keeps the initial host hook stable when it is already replaced: %s",
     async (hasExistingShim): Promise<void> => {
-      const existingShim = vi.fn(() => -1);
+      const initialHook = vi.fn((_subscribe, getSnapshot: () => number) =>
+        getSnapshot(),
+      );
       const useState = vi.fn((value: unknown) => [value, vi.fn()]);
       const dispatcher = {};
       const hostReact = {
@@ -52,8 +54,12 @@ describe("Roam React compatibility bundle", () => {
         useDebugValue: vi.fn(),
         createElement: vi.fn(),
         __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED: dispatcher,
-        ...(hasExistingShim ? { useSyncExternalStore: existingShim } : {}),
+        version: "18.2.0",
+        useSyncExternalStore: hasExistingShim
+          ? vi.fn(initialHook)
+          : initialHook,
       };
+      const capturedHook = hostReact.useSyncExternalStore;
       const renderer = {};
       const module = { exports: {} as Fixture };
       runInNewContext(await buildFixture(), {
@@ -75,20 +81,18 @@ describe("Roam React compatibility bundle", () => {
         fixture.react.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED,
       ).toBe(dispatcher);
       expect(fixture.renderer).toBe(renderer);
-      expect(hostReact.useSyncExternalStore).toBe(
-        hasExistingShim ? existingShim : undefined,
-      );
-      expect(privateHook).not.toBe(existingShim);
+      expect(hostReact.useSyncExternalStore).toBe(capturedHook);
+      expect(privateHook).toBe(capturedHook);
       expect(fixture.read()).toBe(42);
-      expect(useState).toHaveBeenCalledTimes(1);
+      expect(initialHook).toHaveBeenCalledTimes(1);
 
       // Simulate another extension loading between component renders.
       const replacement = vi.fn(() => -2);
       hostReact.useSyncExternalStore = replacement;
       expect(fixture.getHook()).toBe(privateHook);
       expect(fixture.read()).toBe(42);
-      expect(useState).toHaveBeenCalledTimes(2);
-      expect(existingShim).not.toHaveBeenCalled();
+      expect(initialHook).toHaveBeenCalledTimes(2);
+      expect(useState).not.toHaveBeenCalled();
       expect(replacement).not.toHaveBeenCalled();
     },
   );
