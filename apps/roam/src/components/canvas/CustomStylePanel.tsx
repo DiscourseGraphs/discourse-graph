@@ -1,5 +1,12 @@
-import React, { ReactElement, useEffect, useMemo, useState } from "react";
+import React, {
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
+  Box,
   DefaultStylePanel,
   DefaultStylePanelContent,
   TLUiStylePanelProps,
@@ -12,26 +19,28 @@ import { Button, Tab, Tabs } from "@blueprintjs/core";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
+import { useDiscourseContextMutationRefresh } from "~/utils/discourseContextMutationRefresh";
 import type { DiscourseContextResults } from "~/components/DiscourseContext";
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { RenderRoamBlockString } from "~/utils/roamReactComponents";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { withAutoCanvasRelationsSuppressed } from "./autoCanvasRelationsSuppression";
 import { getAllRelations, isDiscourseNodeShape } from "./canvasUtils";
 import {
   DISCOURSE_NODE_SHAPE_TYPE,
   DiscourseNodeShape,
+  DiscourseNodeUtil,
   getDiscourseNodeTypeId,
 } from "./DiscourseNodeUtil";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
-import {
-  getParallelArrowBend,
-  getRelationArrowsBetween,
-} from "./DiscourseRelationShape/helpers";
+import { getParallelArrowBend } from "./DiscourseRelationShape/helpers";
 import { dispatchToastEvent } from "./ToastListener";
 
 const NEW_NODE_OFFSET_PX = 80;
 const NEW_NODE_GAP_PX = 24;
+const CAMERA_INSET_PX = 64;
 
 const ContextTabContent = ({
   shape,
@@ -42,14 +51,18 @@ const ContextTabContent = ({
   const extensionAPI = useExtensionAPI();
   const [results, setResults] = useState<DiscourseContextResults | null>(null);
   const [failed, setFailed] = useState(false);
-  const [pendingKeys, setPendingKeys] = useState<string[]>([]);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [pendingUids, setPendingUids] = useState<string[]>([]);
   const uid = shape.props.uid;
 
   useEffect(() => {
-    let cancelled = false;
     setResults(null);
+  }, [uid]);
+
+  useEffect(() => {
+    let cancelled = false;
     setFailed(false);
-    getDiscourseContextResults({ uid })
+    getDiscourseContextResults({ uid, ignoreCache: refreshCount > 0 })
       .then((r) => {
         if (!cancelled) setResults(r);
       })
@@ -59,7 +72,13 @@ const ContextTabContent = ({
     return () => {
       cancelled = true;
     };
-  }, [uid]);
+  }, [uid, refreshCount]);
+
+  const onMutationRefresh = useCallback(
+    () => setRefreshCount((count) => count + 1),
+    [],
+  );
+  useDiscourseContextMutationRefresh({ uid, onMutationRefresh });
 
   const getNodeShapeByUid = (
     relatedUid: string,
@@ -69,127 +88,84 @@ const ContextTabContent = ({
       .filter((s): s is DiscourseNodeShape => isDiscourseNodeShape(editor, s))
       .find((s) => s.props.uid === relatedUid);
 
-  const relationIdsInResults = useMemo(
-    () =>
-      new Set(
-        (results ?? []).flatMap((relation) =>
-          Object.values(relation.results).flatMap((result) =>
-            result.id ? [result.id] : [],
-          ),
-        ),
-      ),
+  const relatedUids = useMemo(
+    () => (results ?? []).flatMap((relation) => Object.keys(relation.results)),
     [results],
   );
 
-  const arrowKeysOnCanvas = useValue(
-    "discourse-relation-arrow-keys",
-    () => {
-      const keys = new Set<string>();
-      relationIdsInResults.forEach((relationId) => {
-        editor.getBindingsToShape(shape.id, relationId).forEach((binding) => {
-          const farBinding = editor
-            .getBindingsFromShape(binding.fromId, relationId)
-            .find((b) => b.toId !== shape.id);
-          if (!farBinding) return;
-          const farShape = editor.getShape(farBinding.toId);
-          if (farShape && isDiscourseNodeShape(editor, farShape)) {
-            keys.add(`${relationId}:${farShape.props.uid}`);
-          }
-        });
-      });
-      return keys;
-    },
-    [editor, shape.id, relationIdsInResults],
+  const pageUidsInResults = useMemo(
+    () => new Set(relatedUids.filter((u) => getPageTitleByPageUid(u))),
+    [relatedUids],
   );
 
-  const addNodeToCanvas = async ({
-    relatedUid,
-    text,
+  const uidsOnCanvas = useValue(
+    "discourse-node-uids-on-canvas",
+    () =>
+      new Set(
+        editor
+          .getCurrentPageShapes()
+          .filter((s): s is DiscourseNodeShape =>
+            isDiscourseNodeShape(editor, s),
+          )
+          .map((s) => s.props.uid),
+      ),
+    [editor],
+  );
+
+  const getFreePositionInColumn = ({
+    anchorBounds,
+    w,
+    h,
   }: {
-    relatedUid: string;
-    text: string;
-  }): Promise<DiscourseNodeShape | undefined> => {
-    if (!extensionAPI) return undefined;
-    const node = findDiscourseNode({ uid: relatedUid });
-    if (!node) {
-      dispatchToastEvent({
-        id: "dg-context-tab-missing-node",
-        title: "Could not find a discourse node for this result.",
-        severity: "error",
-      });
-      return undefined;
-    }
-    const { w, h, imageUrl } = await calcCanvasNodeSizeAndImg({
-      nodeText: text,
-      uid: relatedUid,
-      nodeType: node.type,
-      extensionAPI,
-    });
-    const existing = getNodeShapeByUid(relatedUid);
-    if (existing) return existing;
-    const anchorBounds = editor.getShapePageBounds(shape.id);
-    if (!anchorBounds) return undefined;
+    anchorBounds: Box;
+    w: number;
+    h: number;
+  }): { x: number; y: number } => {
     const x = anchorBounds.maxX + NEW_NODE_OFFSET_PX;
-    const columnBottoms = editor
+    const blockers = editor
       .getCurrentPageShapes()
       .filter((s): s is DiscourseNodeShape => isDiscourseNodeShape(editor, s))
       .flatMap((s) => {
         const bounds = editor.getShapePageBounds(s.id);
-        return bounds && bounds.minX < x + w && bounds.maxX > x
-          ? [bounds.maxY]
-          : [];
-      });
-    const y = columnBottoms.length
-      ? Math.max(...columnBottoms) + NEW_NODE_GAP_PX
-      : anchorBounds.minY;
-    const id = createShapeId();
-    withAutoCanvasRelationsSuppressed(() =>
-      editor.createShapes([
-        {
-          id,
-          type: DISCOURSE_NODE_SHAPE_TYPE,
-          x,
-          y,
-          props: {
-            uid: relatedUid,
-            title: text,
-            w,
-            h,
-            ...(imageUrl && { imageUrl }),
-            size: "s",
-            fontFamily: "sans",
-            nodeTypeId: node.type,
-          },
-        },
-      ]),
-    );
-    return editor.getShape<DiscourseNodeShape>(id);
+        return bounds && bounds.minX < x + w && bounds.maxX > x ? [bounds] : [];
+      })
+      .sort((a, b) => a.minY - b.minY);
+    let y = anchorBounds.minY;
+    for (const blocker of blockers) {
+      if (blocker.maxY + NEW_NODE_GAP_PX <= y) continue;
+      if (blocker.minY >= y + h + NEW_NODE_GAP_PX) break;
+      y = blocker.maxY + NEW_NODE_GAP_PX;
+    }
+    return { x, y };
   };
 
-  const addRelationToCanvas = async ({
+  const bringIntoView = ({
+    anchorBounds,
+    shapeId,
+  }: {
+    anchorBounds: Box;
+    shapeId: DiscourseNodeShape["id"];
+  }): void => {
+    const newBounds = editor.getShapePageBounds(shapeId);
+    if (!newBounds || Box.Contains(editor.getViewportPageBounds(), newBounds))
+      return;
+    editor.zoomToBounds(Box.Common([anchorBounds, newBounds]), {
+      inset: CAMERA_INSET_PX,
+      animation: { duration: 200 },
+    });
+  };
+
+  const drawRelationArrow = ({
+    nodeShape,
     relationId,
     complement,
-    relatedUid,
-    text,
     label,
   }: {
+    nodeShape: DiscourseNodeShape;
     relationId: string;
     complement: boolean;
-    relatedUid: string;
-    text: string;
     label: string;
-  }): Promise<void> => {
-    const nodeShape =
-      getNodeShapeByUid(relatedUid) ??
-      (await addNodeToCanvas({ relatedUid, text }));
-    if (!nodeShape) return;
-    const alreadyOnCanvas = getRelationArrowsBetween({
-      editor,
-      shapeId: shape.id,
-      otherShapeId: nodeShape.id,
-      relationIds: new Set([relationId]),
-    });
-    if (alreadyOnCanvas.length) return;
+  }): void => {
     const startId = complement ? nodeShape.id : shape.id;
     const endId = complement ? shape.id : nodeShape.id;
     const { bend } = getParallelArrowBend({
@@ -223,7 +199,7 @@ const ContextTabContent = ({
       ]);
   };
 
-  const toggleRelationOnCanvas = async ({
+  const addNodeToCanvas = async ({
     relationId,
     complement,
     relatedUid,
@@ -236,27 +212,81 @@ const ContextTabContent = ({
     text: string;
     label: string;
   }): Promise<void> => {
-    const key = `${relationId}:${relatedUid}`;
-    setPendingKeys((prev) => [...prev, key]);
+    if (!extensionAPI) return;
+    const node = findDiscourseNode({ uid: relatedUid });
+    if (!node) {
+      dispatchToastEvent({
+        id: "dg-context-tab-missing-node",
+        title: "Could not find a discourse node for this result.",
+        severity: "error",
+      });
+      return;
+    }
+    const { w, h, imageUrl } = await calcCanvasNodeSizeAndImg({
+      nodeText: text,
+      uid: relatedUid,
+      nodeType: node.type,
+      extensionAPI,
+    });
+    if (getNodeShapeByUid(relatedUid)) return;
+    const anchorBounds = editor.getShapePageBounds(shape.id);
+    if (!anchorBounds) return;
+    const { x, y } = getFreePositionInColumn({ anchorBounds, w, h });
+    const id = createShapeId();
+    withAutoCanvasRelationsSuppressed(() =>
+      editor.createShapes([
+        {
+          id,
+          type: DISCOURSE_NODE_SHAPE_TYPE,
+          x,
+          y,
+          props: {
+            uid: relatedUid,
+            title: text,
+            w,
+            h,
+            ...(imageUrl && { imageUrl }),
+            size: "s",
+            fontFamily: "sans",
+            nodeTypeId: node.type,
+          },
+        },
+      ]),
+    );
+    const created = editor.getShape<DiscourseNodeShape>(id);
+    if (!created) return;
+    bringIntoView({ anchorBounds, shapeId: id });
+    const autoCanvasRelations = getPersonalSetting<boolean>([
+      PERSONAL_KEYS.autoCanvasRelations,
+    ]);
+    const util = editor.getShapeUtil(created);
+    if (autoCanvasRelations && util instanceof DiscourseNodeUtil) {
+      await util.createExistingRelations({ shape: created });
+      return;
+    }
+    drawRelationArrow({ nodeShape: created, relationId, complement, label });
+  };
+
+  const toggleNodeOnCanvas = async ({
+    relationId,
+    complement,
+    relatedUid,
+    text,
+    label,
+  }: {
+    relationId: string;
+    complement: boolean;
+    relatedUid: string;
+    text: string;
+    label: string;
+  }): Promise<void> => {
+    setPendingUids((prev) => [...prev, relatedUid]);
     try {
       const nodeShape = getNodeShapeByUid(relatedUid);
-      const existingArrows = nodeShape
-        ? getRelationArrowsBetween({
-            editor,
-            shapeId: shape.id,
-            otherShapeId: nodeShape.id,
-            relationIds: new Set([relationId]),
-          })
-        : [];
-      if (existingArrows.length) {
-        const bindingIds = existingArrows
-          .flatMap((arrow) => editor.getBindingsFromShape(arrow.id, relationId))
-          .map((b) => b.id);
-        editor
-          .deleteShapes(existingArrows.map((a) => a.id))
-          .deleteBindings(bindingIds);
+      if (nodeShape) {
+        editor.deleteShapes([nodeShape.id]);
       } else {
-        await addRelationToCanvas({
+        await addNodeToCanvas({
           relationId,
           complement,
           relatedUid,
@@ -271,7 +301,7 @@ const ContextTabContent = ({
         severity: "error",
       });
     } finally {
-      setPendingKeys((prev) => prev.filter((k) => k !== key));
+      setPendingUids((prev) => prev.filter((u) => u !== relatedUid));
     }
   };
 
@@ -286,9 +316,9 @@ const ContextTabContent = ({
   }
 
   return (
-    <div className="max-h-96 overflow-y-auto p-3">
+    <div className="max-h-96 space-y-3 overflow-y-auto p-3">
       {results.map((relation) => (
-        <div key={relation.label} className="mb-3 last:mb-0">
+        <div key={relation.label}>
           <div className="mb-1 text-xs font-semibold text-gray-500">
             {relation.label}
           </div>
@@ -296,8 +326,7 @@ const ContextTabContent = ({
             {Object.entries(relation.results).map(([relatedUid, result]) => {
               const text = result.text ?? relatedUid;
               const relationId = result.id;
-              const key = `${relationId}:${relatedUid}`;
-              const onCanvas = !!relationId && arrowKeysOnCanvas.has(key);
+              const onCanvas = uidsOnCanvas.has(relatedUid);
               return (
                 <li
                   key={relatedUid}
@@ -309,7 +338,7 @@ const ContextTabContent = ({
                   >
                     <RenderRoamBlockString
                       string={
-                        getPageTitleByPageUid(relatedUid) ? `[[${text}]]` : text
+                        pageUidsInResults.has(relatedUid) ? `[[${text}]]` : text
                       }
                     />
                   </span>
@@ -320,12 +349,12 @@ const ContextTabContent = ({
                       icon={onCanvas ? "minus" : "plus"}
                       title={
                         onCanvas
-                          ? "Remove relation from canvas"
-                          : "Add relation to canvas"
+                          ? "Remove node from canvas"
+                          : "Add node to canvas"
                       }
-                      loading={pendingKeys.includes(key)}
+                      loading={pendingUids.includes(relatedUid)}
                       onClick={() =>
-                        void toggleRelationOnCanvas({
+                        void toggleNodeOnCanvas({
                           relationId,
                           complement: result.complement === 1,
                           relatedUid,
