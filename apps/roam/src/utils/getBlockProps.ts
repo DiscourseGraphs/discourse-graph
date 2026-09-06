@@ -6,6 +6,18 @@ export type json =
   | json[]
   | { [key: string]: json };
 
+/**
+ * Whether a props value is a plain JSON object, and so safe to spread or index.
+ *
+ * Roam hands back whatever was written, so every step into a props tree has to be
+ * narrowed. `undefined` is accepted because a caller reading an absent key gets it under
+ * `noUncheckedIndexedAccess`, and treating it as "not an object" is the same answer.
+ */
+export const isJsonObject = (
+  value: json | undefined,
+): value is Record<string, json> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 export const normalizeProps = (props: json): json =>
   typeof props === "object"
     ? props === null
