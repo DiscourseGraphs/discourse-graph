@@ -115,6 +115,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import internalError from "~/utils/internalError";
+import { refreshDiscourseContextsForMutatedUids } from "~/utils/discourseContextMutationRefresh";
 
 const COLOR_ARRAY = Array.from(DefaultColorStyle.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
@@ -248,6 +249,9 @@ export const createAllReferencedNodeUtils = (
           id: "tldraw-success",
           title: `Updated node title.`,
           severity: "success",
+        });
+        refreshDiscourseContextsForMutatedUids({
+          uids: [source.props.uid, target.props.uid],
         });
       };
 
@@ -780,6 +784,9 @@ export const createAllRelationShapeUtils = (
             ),
           })(newTriples)();
         }
+        refreshDiscourseContextsForMutatedUids({
+          uids: [source.props.uid, target.props.uid],
+        });
       };
 
       override getDefaultProps(): DiscourseRelationShape["props"] {
