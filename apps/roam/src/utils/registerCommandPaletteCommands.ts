@@ -378,7 +378,8 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
       timeout: 0,
     });
     try {
-      const { refreshed, skipped, failed } = await refreshAllImportedNodes();
+      const { refreshed, skipped, failed, warnings } =
+        await refreshAllImportedNodes();
       if (refreshed + skipped + failed === 0) {
         renderToast({
           id: REFRESH_ALL_TOAST_ID,
@@ -388,8 +389,11 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
       }
       renderToast({
         id: REFRESH_ALL_TOAST_ID,
-        intent: failed > 0 ? "warning" : "success",
-        content: `${refreshed} refreshed, ${skipped} skipped, ${failed} failed.`,
+        intent: failed > 0 || warnings.length > 0 ? "warning" : "success",
+        content: [
+          `${refreshed} refreshed, ${skipped} skipped, ${failed} failed.`,
+          ...warnings,
+        ].join(" "),
       });
     } catch (error) {
       internalError({

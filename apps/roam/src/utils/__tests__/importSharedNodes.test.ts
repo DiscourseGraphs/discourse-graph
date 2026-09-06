@@ -20,6 +20,13 @@ vi.mock("~/utils/resolveSharedNodeTypes", () => ({
   resolveSharedNodeTypes: vi.fn(),
 }));
 
+// Runs before the imports above: getDiscourseNodes calls generateUID at module load.
+vi.hoisted(() => {
+  (globalThis as { window?: unknown }).window = {
+    roamAlphaAPI: { util: { generateUID: () => "someUid" } },
+  };
+});
+
 const mockedMaterializeSharedNode = vi.mocked(materializeSharedNode);
 const mockedResolveSharedNodeTypes = vi.mocked(resolveSharedNodeTypes);
 
@@ -137,6 +144,56 @@ describe("importSharedNodes", () => {
       sharedNode: sharedNodes[1],
       nodeType: undefined,
     });
+  });
+
+  it("materializes a node before the nodes that name it as their source", async () => {
+    const evidence = {
+      ...makeSharedNode("node-1"),
+      slots: { sourceDocument: "node-2" },
+    };
+    const source = makeSharedNode("node-2");
+    const other = makeSharedNode("node-3");
+    mockedMaterializeSharedNode
+      .mockResolvedValueOnce(successResult(source, "created"))
+      .mockResolvedValueOnce(successResult(evidence, "created"))
+      .mockResolvedValueOnce(successResult(other, "created"));
+
+    const items = await importSharedNodes({
+      client,
+      sharedNodes: [evidence, source, other],
+      onProgress: vi.fn(),
+    });
+
+    expect(
+      mockedMaterializeSharedNode.mock.calls.map(([args]) => args.sharedNode),
+    ).toEqual([source, evidence, other]);
+    expect(items.map((item) => item.sharedNode)).toEqual([
+      source,
+      evidence,
+      other,
+    ]);
+  });
+
+  it("reports the materializer's warning on the imported node", async () => {
+    const sharedNodes = [makeSharedNode("node-1")];
+    mockedMaterializeSharedNode.mockResolvedValueOnce({
+      ...successResult(sharedNodes[0], "created"),
+      warning: "No source was published with this node.",
+    });
+
+    const items = await importSharedNodes({
+      client,
+      sharedNodes,
+      onProgress: vi.fn(),
+    });
+
+    expect(items).toEqual([
+      {
+        sharedNode: sharedNodes[0],
+        status: "imported",
+        warning: "No source was published with this node.",
+      },
+    ]);
   });
 
   it("keeps importing the remaining nodes when a materialization throws", async () => {
