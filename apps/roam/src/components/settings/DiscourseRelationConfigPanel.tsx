@@ -1366,47 +1366,50 @@ const DiscourseRelationConfigPanel = ({
                         </Tag>
                       )}
                     </td>
-                    <td>
-                      {isProvisional && (
-                        <Tooltip
-                          content="Accepting enables this imported relation for local use and publishing"
-                          hoverOpenDelay={500}
-                        >
+                    <td style={{ verticalAlign: "middle" }}>
+                      <div className="flex items-center">
+                        {isProvisional && (
+                          <Tooltip
+                            content="Accepting enables this imported relation for local use and publishing"
+                            hoverOpenDelay={500}
+                          >
+                            <Button
+                              text="Accept"
+                              intent={Intent.PRIMARY}
+                              minimal
+                              onClick={() => handleAcceptImported(rel)}
+                            />
+                          </Tooltip>
+                        )}
+                        <Tooltip content="Delete" hoverOpenDelay={500}>
                           <Button
-                            text="Accept"
-                            intent={Intent.PRIMARY}
+                            icon="trash"
                             minimal
-                            onClick={() => handleAcceptImported(rel)}
+                            onClick={() => {
+                              if (deleteConfirmation)
+                                setDeleteConfirmation(null);
+                              else setDeleteConfirmation(rel.uid);
+                            }}
                           />
                         </Tooltip>
-                      )}
-                      <Tooltip content="Delete" hoverOpenDelay={500}>
-                        <Button
-                          icon="trash"
-                          minimal
-                          onClick={() => {
-                            if (deleteConfirmation) setDeleteConfirmation(null);
-                            else setDeleteConfirmation(rel.uid);
-                          }}
-                        />
-                      </Tooltip>
-                      <Button
-                        intent={Intent.DANGER}
-                        onClick={() => handleDeleteImported(rel)}
-                        className={`mx-1 ${
-                          deleteConfirmation !== rel.uid ? "invisible" : ""
-                        }`}
-                      >
-                        Confirm
-                      </Button>
-                      <Button
-                        onClick={() => setDeleteConfirmation(null)}
-                        className={`mx-1 ${
-                          deleteConfirmation !== rel.uid ? "invisible" : ""
-                        }`}
-                      >
-                        Cancel
-                      </Button>
+                        {deleteConfirmation === rel.uid && (
+                          <>
+                            <Button
+                              intent={Intent.DANGER}
+                              onClick={() => handleDeleteImported(rel)}
+                              className="mx-1"
+                            >
+                              Confirm
+                            </Button>
+                            <Button
+                              onClick={() => setDeleteConfirmation(null)}
+                              className="mx-1"
+                            >
+                              Cancel
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
