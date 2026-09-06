@@ -1,3 +1,7 @@
+import {
+  isRelationSchemaDeleted,
+  notifyRelationSchemaChange,
+} from "./relationSchemaChanges";
 import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
 import getBlockProps from "./getBlockProps";
 import { setBlockPropsAsync } from "./setBlockProps";
@@ -44,7 +48,11 @@ export const isProvisionalRelationSchema = (
 export const excludeProvisionalRelationSchemas = <T extends { id: string }>(
   relations: T[],
 ): T[] =>
-  relations.filter((relation) => !isProvisionalRelationSchema(relation.id));
+  relations.filter(
+    (relation) =>
+      !isRelationSchemaDeleted(relation.id) &&
+      !isProvisionalRelationSchema(relation.id),
+  );
 
 export const acceptImportedRelationSchema = async (
   relationSchemaUid: string,
@@ -57,4 +65,5 @@ export const acceptImportedRelationSchema = async (
       [RELATION_SCHEMA_STATUS_PROP_KEY]: ACCEPTED_STATUS,
     },
   });
+  notifyRelationSchemaChange();
 };

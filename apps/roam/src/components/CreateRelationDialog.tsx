@@ -1,3 +1,4 @@
+import { useRelationSchemaRevision } from "~/utils/relationSchemaChanges";
 import React, { useState, useMemo } from "react";
 import { Dialog, Classes, Label, Button, Callout } from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
@@ -388,6 +389,7 @@ export const renderCreateRelationDialog = (
 export const CreateRelationButton = (
   props: CreateRelationDialogProps & { fill?: boolean },
 ): React.JSX.Element | null => {
+  useRelationSchemaRevision();
   const { fill = false, ...relationProps } = props;
   const storedRelationsEnabled = getStoredRelationsEnabled();
   if (!storedRelationsEnabled) return null;
