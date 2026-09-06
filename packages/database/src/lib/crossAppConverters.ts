@@ -80,6 +80,9 @@ export const crossAppNodeToDbConcept = (
     name: node.content.direct.value,
     author_local_id: node.authorId,
     schema_represented_by_local_id: node.nodeType,
+    literal_content: {
+      core_title: node.coreTitle,
+    },
     contents_inline: filterUndefinedArray([
       crossAppNodeToDbContent(node, "direct"),
       crossAppNodeToDbContent(node, "full"),
@@ -97,6 +100,7 @@ export const crossAppNodeSchemaToDbConcept = (
   const literalInfo = filterUndefined({
     template: node.templateTitle,
     template_content: node.template,
+    format: node.format,
     roles: slots.length > 0 ? slots : undefined,
   });
   const referenceContent = slots.length ? node.slotDefinitions : undefined;

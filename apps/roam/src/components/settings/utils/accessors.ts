@@ -1106,11 +1106,13 @@ export const createDiscourseNodeType = async ({
   shortcut,
   format,
   template,
+  uid,
 }: {
   label: string;
   shortcut?: string;
   format?: string;
   template?: RoamBasicNode[] | string; // string would be markdown
+  uid?: string;
 }): Promise<DiscourseNode> => {
   if (shortcut === undefined) shortcut = getUnusedShortcut(label);
   format = format ?? `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
@@ -1137,7 +1139,8 @@ export const createDiscourseNodeType = async ({
     });
   }
   const pageUid = await createPage({
-    title: `discourse-graph/nodes/${label}`,
+    title: `${DISCOURSE_NODE_PAGE_PREFIX}${label}`,
+    uid,
     tree,
   });
   if (typeof template === "string") {

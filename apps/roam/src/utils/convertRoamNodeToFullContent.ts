@@ -9,6 +9,7 @@ export type RoamFullContentNode = {
   last_modified: string | number;
   text: string;
   node_type_id: string;
+  format: string;
   node_title?: string;
 };
 

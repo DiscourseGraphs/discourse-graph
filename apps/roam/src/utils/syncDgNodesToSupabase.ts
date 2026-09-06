@@ -4,6 +4,7 @@ import {
   nodeTypeSince,
 } from "./getAllDiscourseNodesSince";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
+import { getImportedNodeUids } from "./importedSourceIdentity";
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import {
   getLoggedInClient,
@@ -25,6 +26,17 @@ import {
 } from "./convertRoamNodeToFullContent";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { intersection } from "@repo/utils/setOperations";
+import { CORE_TITLE_PROBE_SELECT } from "@repo/database/lib/coreTitleBackfill";
+import {
+  buildCoreTitleBackfill,
+  mergeNodesBySourceLocalId,
+  type CoreTitleBackfill,
+} from "./coreTitleBackfill";
+import {
+  buildSchemaFormatBackfill,
+  SCHEMA_FORMAT_PROBE_SELECT,
+  type SchemaFormatBackfill,
+} from "./schemaFormatBackfill";
 import type { Json, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
@@ -144,7 +156,7 @@ const getJsonObject = (
     return null;
   }
 
-  return data as Record<string, unknown>;
+  return data;
 };
 
 const getEndSyncTaskResultVersion = (data: Json | undefined): number => {
@@ -634,6 +646,7 @@ export const convertDgToSupabaseConcepts = async ({
   since,
   allNodeTypes,
   sharedNodeTypeIds = new Set<string>(),
+  backfillNodeTypeIds = new Set<string>(),
   supabaseClient,
   context,
 }: {
@@ -641,6 +654,7 @@ export const convertDgToSupabaseConcepts = async ({
   since: number | undefined;
   allNodeTypes: DiscourseNode[];
   sharedNodeTypeIds?: ReadonlySet<string>;
+  backfillNodeTypeIds?: ReadonlySet<string>;
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
 }) => {
@@ -650,7 +664,10 @@ export const convertDgToSupabaseConcepts = async ({
   );
 
   allNodeTypes.forEach((nodeType) => {
-    if (sharedNodeTypeIds.has(nodeType.type)) {
+    if (
+      sharedNodeTypeIds.has(nodeType.type) ||
+      backfillNodeTypeIds.has(nodeType.type)
+    ) {
       nodeTypesByUid.set(nodeType.type, nodeType);
     }
   });
@@ -667,11 +684,16 @@ export const convertDgToSupabaseConcepts = async ({
     return discourseNodeSchemaToLocalConcept(context, node);
   });
 
+  const schemasByUid = new Map(
+    allNodeTypes.map((nodeType) => [nodeType.type, nodeType]),
+  );
+
   const nodeBlockToLocalConcepts = nodesSince.map((node) => {
     const localConcept = discourseNodeBlockToLocalConcept(context, {
       nodeUid: node.source_local_id,
       schemaUid: node.type,
-      text: node.node_title ? `${node.node_title} ${node.text}` : node.text,
+      title: node.node_title ?? node.text,
+      schema: schemasByUid.get(node.type),
     });
     return localConcept;
   });
@@ -863,6 +885,25 @@ export const setSyncActivity = (active: boolean) => {
   }
 };
 
+const reportCoreTitleBackfill = ({
+  backfilled,
+  deferred,
+  skipped,
+  orphaned,
+}: {
+  backfilled: number;
+  deferred: number;
+  skipped: number;
+  orphaned: number;
+}): void => {
+  posthog.capture("Sync core_title backfill", {
+    backfilled,
+    deferred,
+    skipped,
+    orphaned,
+  });
+};
+
 const getAllMissingOrNewDiscourseNodes = async ({
   supabaseClient,
   spaceId,
@@ -873,9 +914,12 @@ const getAllMissingOrNewDiscourseNodes = async ({
   spaceId: number;
   since: number | undefined;
   nodeTypes: DiscourseNode[];
-}): Promise<RoamDiscourseNodeData[]> => {
+}): Promise<{
+  nodes: RoamDiscourseNodeData[];
+  coreTitleBackfill: CoreTitleBackfill | null;
+}> => {
   const allNodes = await getAllDiscourseNodesSince(undefined, nodeTypes);
-  if (since === undefined) return allNodes;
+  if (since === undefined) return { nodes: allNodes, coreTitleBackfill: null };
   const newNodes = await getAllDiscourseNodesSince(since, nodeTypes);
   const existingContentIdsReq = await getAllPages(
     supabaseClient
@@ -889,7 +933,7 @@ const getAllMissingOrNewDiscourseNodes = async ({
   const existingConceptIdsReq = await getAllPages(
     supabaseClient
       .from("my_concepts")
-      .select("source_local_id")
+      .select(CORE_TITLE_PROBE_SELECT)
       .eq("space_id", spaceId)
       .eq("is_relation", false)
       .eq("is_schema", false)
@@ -904,10 +948,16 @@ const getAllMissingOrNewDiscourseNodes = async ({
     ),
     ...newNodes.map((n) => n.source_local_id),
   ]);
-  return [
-    ...newNodes,
-    ...allNodes.filter((n) => !existingIds.has(n.source_local_id)),
-  ];
+  return {
+    nodes: [
+      ...newNodes,
+      ...allNodes.filter((n) => !existingIds.has(n.source_local_id)),
+    ],
+    coreTitleBackfill: buildCoreTitleBackfill({
+      conceptRows: existingConceptIdsReq,
+      localNodes: allNodes,
+    }),
+  };
 };
 
 const getSharedNodeInstanceSourceLocalIds = async ({
@@ -1062,6 +1112,7 @@ const getSharedRoamNodesWithFullContentUpdatesSince = async ({
           last_modified: Math.max(row.node_edit_time, row.page_edit_time),
           text: row.text,
           node_type_id: matchingNodeType.type,
+          format: matchingNodeType.format,
         },
         nodeTypeId: matchingNodeType.type,
       },
@@ -1069,8 +1120,65 @@ const getSharedRoamNodesWithFullContentUpdatesSince = async ({
   });
 };
 
+const probeSchemaFormatBackfill = async ({
+  supabaseClient,
+  spaceId,
+  nodeTypes,
+}: {
+  supabaseClient: DGSupabaseClient;
+  spaceId: number;
+  nodeTypes: DiscourseNode[];
+}): Promise<SchemaFormatBackfill> => {
+  const probeRows = await getAllPages(
+    supabaseClient
+      .from("my_concepts")
+      .select(SCHEMA_FORMAT_PROBE_SELECT)
+      .eq("space_id", spaceId)
+      .eq("is_schema", true)
+      .eq("is_relation", false)
+      .order("id"),
+    1000,
+  );
+  if (!Array.isArray(probeRows)) throw probeRows;
+  return buildSchemaFormatBackfill({
+    conceptRows: probeRows,
+    nodeTypes,
+  });
+};
+
+const reportSchemaFormatBackfill = ({
+  backfilled,
+  skipped,
+  orphaned,
+}: {
+  backfilled: number;
+  skipped: number;
+  orphaned: number;
+}): void => {
+  posthog.capture("Sync schema format backfill", {
+    backfilled,
+    skipped,
+    orphaned,
+  });
+  if (backfilled === 0 && orphaned === 0) return;
+  const messages = [
+    `Backfilled format for ${backfilled} node type${backfilled === 1 ? "" : "s"}.`,
+    `${skipped} already had one.`,
+  ];
+  if (orphaned > 0) {
+    messages.push(`${orphaned} no longer match a node type in this graph.`);
+  }
+  renderToast({
+    id: "schema-format-backfill",
+    intent: orphaned > 0 ? "warning" : "success",
+    content: messages.join(" "),
+    timeout: 5000,
+  });
+};
+
 export const createOrUpdateDiscourseEmbedding = async (
   showToast = false,
+  sendAll?: boolean,
 ): Promise<void> => {
   if (!doSync) return;
   console.debug("starting createOrUpdateDiscourseEmbedding");
@@ -1183,6 +1291,8 @@ export const createOrUpdateDiscourseEmbedding = async (
           Math.max(0, nextUpdateTime.valueOf() - Date.now()) +
             100 +
             Math.floor(Math.random() * 200), // avoid stampede
+          false,
+          sendAll,
         );
       }
       return;
@@ -1195,28 +1305,49 @@ export const createOrUpdateDiscourseEmbedding = async (
       phases,
       operation: getAllUsers,
     });
-    const sinceTime = lastUpdateTime
-      ? lastUpdateTime.valueOf() - 1000 // add a one-second buffer
-      : undefined;
+    const sinceTime =
+      lastUpdateTime && !sendAll
+        ? lastUpdateTime.valueOf() - 1000 // add a one-second buffer
+        : undefined;
     const allDgNodeTypes = getDiscourseNodes().filter(
       (n) => n.backedBy === "user",
     );
 
-    const changedNodeInstances = await measureSyncPhase({
-      phase: isInitialSync
-        ? "getAllMissingOrNewDiscourseNodes"
-        : "getAllDiscourseNodesSince",
-      phases,
-      operation: () =>
-        isInitialSync
-          ? getAllMissingOrNewDiscourseNodes({
+    const schemaFormatBackfill = isInitialSync
+      ? await measureSyncPhase({
+          phase: "probeSchemaFormatBackfill",
+          phases,
+          operation: () =>
+            probeSchemaFormatBackfill({
               supabaseClient: activeSupabaseClient,
               spaceId: activeContext.spaceId,
-              since: sinceTime,
               nodeTypes: allDgNodeTypes,
-            })
-          : getAllDiscourseNodesSince(sinceTime, allDgNodeTypes),
-    });
+            }),
+        })
+      : null;
+
+    const { nodes: changedNodeInstances, coreTitleBackfill } =
+      await measureSyncPhase({
+        phase: isInitialSync
+          ? "getAllMissingOrNewDiscourseNodes"
+          : "getAllDiscourseNodesSince",
+        phases,
+        operation: async () =>
+          isInitialSync
+            ? getAllMissingOrNewDiscourseNodes({
+                supabaseClient: activeSupabaseClient,
+                spaceId: activeContext.spaceId,
+                since: sinceTime,
+                nodeTypes: allDgNodeTypes,
+              })
+            : {
+                nodes: await getAllDiscourseNodesSince(
+                  sinceTime,
+                  allDgNodeTypes,
+                ),
+                coreTitleBackfill: null,
+              },
+      });
     const sharedSourceLocalIds = await measureSyncPhase({
       phase: "getSharedNodeInstanceSourceLocalIds",
       phases,
@@ -1226,11 +1357,31 @@ export const createOrUpdateDiscourseEmbedding = async (
           spaceId: activeContext.spaceId,
         }),
     });
+    const importedNodeUids = await measureSyncPhase({
+      phase: "getImportedNodeUids",
+      phases,
+      operation: () => getImportedNodeUids(),
+    });
+    const nonImportedNodeInstances = changedNodeInstances.filter(
+      (node) => !importedNodeUids.has(node.source_local_id),
+    );
     const nodeInstancesToSync = sharedNodesOnlySync
-      ? changedNodeInstances.filter((node) =>
+      ? nonImportedNodeInstances.filter((node) =>
           sharedSourceLocalIds.has(node.source_local_id),
         )
-      : changedNodeInstances;
+      : nonImportedNodeInstances;
+    const nodesToBackfillCoreTitle = (
+      coreTitleBackfill?.nodesToBackfill ?? []
+    ).filter(
+      (node) =>
+        !importedNodeUids.has(node.source_local_id) &&
+        (!sharedNodesOnlySync ||
+          sharedSourceLocalIds.has(node.source_local_id)),
+    );
+    const conceptNodesToSync = mergeNodesBySourceLocalId(
+      nodeInstancesToSync,
+      nodesToBackfillCoreTitle,
+    );
     const sharedSourceLocalIdsToBackfill = await measureSyncPhase({
       phase: "getSharedSourceLocalIdsMissingFullContent",
       phases,
@@ -1309,14 +1460,32 @@ export const createOrUpdateDiscourseEmbedding = async (
       phases,
       operation: () =>
         convertDgToSupabaseConcepts({
-          nodesSince: nodeInstancesToSync,
+          nodesSince: conceptNodesToSync,
           since: sinceTime,
           allNodeTypes: allDgNodeTypes,
           sharedNodeTypeIds,
+          backfillNodeTypeIds: schemaFormatBackfill?.nodeTypeIdsToBackfill,
           supabaseClient: activeSupabaseClient,
           context: activeContext,
         }),
     });
+    if (schemaFormatBackfill !== null) {
+      reportSchemaFormatBackfill({
+        backfilled: schemaFormatBackfill.nodeTypeIdsToBackfill.size,
+        skipped: schemaFormatBackfill.withFormatCount,
+        orphaned: schemaFormatBackfill.orphanedCount,
+      });
+    }
+    if (coreTitleBackfill !== null) {
+      reportCoreTitleBackfill({
+        backfilled: nodesToBackfillCoreTitle.length,
+        deferred:
+          coreTitleBackfill.nodesToBackfill.length -
+          nodesToBackfillCoreTitle.length,
+        skipped: coreTitleBackfill.withCoreTitleCount,
+        orphaned: coreTitleBackfill.orphanedCount,
+      });
+    }
     await measureSyncPhase({
       phase: "cleanupOrphanedNodes",
       phases,
