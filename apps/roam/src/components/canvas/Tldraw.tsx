@@ -1,3 +1,7 @@
+import {
+  isRelationSchemaDeleted,
+  useRelationSchemaRevision,
+} from "~/utils/relationSchemaChanges";
 import React, {
   useState,
   useRef,
@@ -150,7 +154,8 @@ export const discourseContext: DiscourseContextType = {
 };
 
 export const isAcceptedRelationSchema = (relation: { id: string }): boolean =>
-  !discourseContext.provisionalRelationIds.has(relation.id);
+  !discourseContext.provisionalRelationIds.has(relation.id) &&
+  !isRelationSchemaDeleted(relation.id);
 
 let activeCanvasPageUid: string | null = null;
 let activeCanvasEditor: Editor | null = null;
@@ -774,11 +779,7 @@ const TldrawCanvasShared = ({
       },
       {} as Record<string, DiscourseRelation[]>,
     );
-    discourseContext.provisionalRelationIds = new Set(
-      relations
-        .filter((r) => isProvisionalRelationSchema(r.id))
-        .map((r) => r.id),
-    );
+
     return relations;
   }, []);
   const allRelationsById = useMemo(() => {
@@ -790,11 +791,34 @@ const TldrawCanvasShared = ({
   const allRelationIds = useMemo(() => {
     return Object.keys(allRelationsById);
   }, [allRelationsById]);
+  const relationSchemaRevision = useRelationSchemaRevision();
+  const registeredRelationNames = useMemo(
+    () => [...new Set(allRelations.map((relation) => relation.label))],
+    [allRelations],
+  );
   const allRelationNames = useMemo(() => {
+    discourseContext.provisionalRelationIds = new Set(
+      allRelations
+        .filter((r) => isProvisionalRelationSchema(r.id))
+        .map((r) => r.id),
+    );
     return Object.entries(discourseContext.relations)
       .filter(([, relations]) => relations.some(isAcceptedRelationSchema))
       .map(([name]) => name);
-  }, []);
+    // Acceptance and deletion invalidate the relation data stored outside React.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allRelations, relationSchemaRevision]);
+  useEffect(() => {
+    const editor = appRef.current;
+    if (!editor) return;
+    const tool = editor.getCurrentToolId();
+    if (
+      registeredRelationNames.includes(tool) &&
+      !allRelationNames.includes(tool)
+    ) {
+      editor.setCurrentTool("select");
+    }
+  }, [allRelationNames, registeredRelationNames]);
   const allNodes = useMemo(() => {
     const allNodes = getDiscourseNodes();
     discourseContext.nodes = Object.fromEntries(
@@ -1040,7 +1064,9 @@ const TldrawCanvasShared = ({
     static override isLockable = true;
   };
   const discourseNodeTools = createNodeShapeTools(allNodes);
-  const discourseRelationTools = createAllRelationShapeTools(allRelationNames);
+  const discourseRelationTools = createAllRelationShapeTools(
+    registeredRelationNames,
+  );
   const referencedNodeTools = createAllReferencedNodeTools(
     allAddReferencedNodeByAction,
   );

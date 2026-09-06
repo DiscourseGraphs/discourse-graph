@@ -1,3 +1,4 @@
+import { useRelationSchemaRevision } from "~/utils/relationSchemaChanges";
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   Button,
@@ -233,9 +234,12 @@ const SuggestionsBody = ({
     () => findDiscourseNode({ uid: tagUid }),
     [tagUid],
   );
+  const relationSchemaRevision = useRelationSchemaRevision();
   const allRelations = useMemo(
     () => excludeProvisionalRelationSchemas(getDiscourseRelations()),
-    [],
+    // Acceptance and deletion invalidate the relation data stored outside React.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [relationSchemaRevision],
   );
   const allNodes = useMemo(() => getDiscourseNodes(), []);
 
