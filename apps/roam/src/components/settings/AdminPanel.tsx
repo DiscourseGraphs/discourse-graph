@@ -422,7 +422,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
       <FeatureFlagPanel
         title="Use new settings store"
-        description="When enabled, accessor getters read from block props instead of the old system. Surfaces dual-write gaps during development."
+        description="Enabled by default. Disable temporarily to read from legacy settings while rollback support remains available."
         featureKey="Use new settings store"
       />
 

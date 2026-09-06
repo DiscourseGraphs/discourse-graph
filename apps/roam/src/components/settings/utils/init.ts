@@ -1,7 +1,8 @@
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import { createPage, createBlock } from "roamjs-components/writes";
-import setBlockProps from "~/utils/setBlockProps";
+import { setBlockPropsAsync } from "~/utils/setBlockProps";
+import internalError from "~/utils/internalError";
 import getBlockProps from "~/utils/getBlockProps";
 import type { json } from "~/utils/getBlockProps";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
@@ -23,6 +24,7 @@ import {
   migrateGraphLevel,
   migratePersonalSettings,
 } from "./migrateLegacyToBlockProps";
+import { migratePropsStoreDefault } from "./migratePropsStoreDefault";
 import { getTopLevelBlockPropsConfig } from "~/components/settings/utils/zodSchema";
 import { DG_BLOCK_PROP_SETTINGS_PAGE_TITLE } from "./zodSchema";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
@@ -144,10 +146,10 @@ const ensureLegacyConfigBlocks = async (pageUid: string): Promise<void> => {
   }
 };
 
-const initializeSettingsBlockProps = (
+const initializeSettingsBlockProps = async (
   pageUid: string,
   blockMap: Record<string, string>,
-): void => {
+): Promise<void> => {
   const configs = getTopLevelBlockPropsConfig();
 
   for (const { key, schema } of configs) {
@@ -163,7 +165,7 @@ const initializeSettingsBlockProps = (
         Object.keys(existingProps).length === 0 ||
         !schema.safeParse(existingProps).success
       ) {
-        setBlockProps(uid, defaults, false);
+        await setBlockPropsAsync(uid, defaults, false);
       }
 
       // Reconcile placeholder relation keys with real block UIDs.
@@ -176,14 +178,17 @@ const initializeSettingsBlockProps = (
           json
         >;
         if (relations) {
-          reconcileRelationKeys(pageUid, uid, relations);
+          await reconcileRelationKeys(pageUid, uid, relations);
         }
       }
     }
   }
 };
 
-const initSettingsPageBlocks = async (): Promise<Record<string, string>> => {
+const initSettingsPageBlocks = async (): Promise<{
+  blockUids: Record<string, string>;
+  propsInitialized: boolean;
+}> => {
   const pageUid = await ensurePageExists(DG_BLOCK_PROP_SETTINGS_PAGE_TITLE);
   const blockMap = buildBlockMap(pageUid);
 
@@ -192,9 +197,18 @@ const initSettingsPageBlocks = async (): Promise<Record<string, string>> => {
 
   await ensureLegacyConfigBlocks(pageUid);
 
-  initializeSettingsBlockProps(pageUid, blockMap);
-
-  return blockMap;
+  try {
+    await initializeSettingsBlockProps(pageUid, blockMap);
+    return { blockUids: blockMap, propsInitialized: true };
+  } catch (error) {
+    internalError({
+      error,
+      type: "DG Block Props Initialization",
+      context: { pageUid },
+      sendEmail: false,
+    });
+    return { blockUids: blockMap, propsInitialized: false };
+  }
 };
 
 /**
@@ -205,11 +219,11 @@ const initSettingsPageBlocks = async (): Promise<Record<string, string>> => {
  * exclusively from blockprops, the keys won't need to match block UIDs anymore
  * and the defaults can use any stable IDs.
  */
-const reconcileRelationKeys = (
+const reconcileRelationKeys = async (
   pageUid: string,
   globalBlockUid: string,
   relations: Record<string, json>,
-): void => {
+): Promise<void> => {
   const placeholderKeys = Object.keys(DEFAULT_RELATIONS_BLOCK_PROPS);
   const hasPlaceholders = placeholderKeys.some((k) => k in relations);
   if (!hasPlaceholders) {
@@ -261,7 +275,11 @@ const reconcileRelationKeys = (
   }
 
   if (changed) {
-    setBlockProps(globalBlockUid, { Relations: reconciledRelations }, false);
+    await setBlockPropsAsync(
+      globalBlockUid,
+      { Relations: reconciledRelations },
+      false,
+    );
   }
 };
 
@@ -370,14 +388,20 @@ const logDualReadComparison = (): void => {
 };
 
 export const initSchema = async (): Promise<InitSchemaResult> => {
-  const blockUids = await initSettingsPageBlocks();
+  const { blockUids, propsInitialized } = await initSettingsPageBlocks();
+
+  // Retrying on the next load is safer than migrating over unfinished defaults.
+  if (!propsInitialized) return { blockUids, nodePageUids: {} };
 
   if (!discourseConfigRef.tree.some((n) => n.text === "grammar")) {
     refreshConfigTree();
   }
 
-  await migrateGraphLevel(blockUids);
-  await migratePersonalSettings(blockUids);
+  const graphSettingsMigrated = await migrateGraphLevel(blockUids);
+  const personalSettingsMigrated = await migratePersonalSettings(blockUids);
+  if (graphSettingsMigrated && personalSettingsMigrated) {
+    await migratePropsStoreDefault(blockUids);
+  }
   (window as unknown as Record<string, unknown>).dgDualReadLog =
     logDualReadComparison;
   return { blockUids, nodePageUids: {} };
