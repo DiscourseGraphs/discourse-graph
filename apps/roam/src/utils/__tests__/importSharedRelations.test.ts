@@ -13,7 +13,7 @@ vi.mock("~/utils/getDiscourseNodes", () => ({
   default: () => [{ type: "local-claim", text: "Claim" }],
 }));
 vi.mock("~/utils/importedSourceIdentity", () => ({
-  getImportedSourceRids: async () => new Set<string>(),
+  getImportedSourceRids: () => Promise.resolve(new Set<string>()),
   findImportedNodeUidBySourceRid: vi.fn(),
   writeImportedSourceIdentity: vi.fn(),
 }));
@@ -24,36 +24,37 @@ vi.mock("~/utils/createRelationSchema", () => ({
   createRelationSchema: vi.fn(),
 }));
 vi.mock("~/utils/createReifiedBlock", () => ({
-  getReifiedRelations: async () => [],
+  getReifiedRelations: () => Promise.resolve([]),
   createReifiedRelation: vi.fn(),
 }));
 vi.mock("roamjs-components/writes", () => ({ deleteBlock: vi.fn() }));
 vi.mock("~/utils/discoverSharedRelations", () => ({
-  discoverSharedRelations: async () => ({
-    relations: [],
-    relTypeSchemas: [],
-    nodeSchemas: [
-      {
-        localId: "claim",
-        rid: "orn:obsidian.schema:remote/claim",
-        label: "Claim",
-        authorId: "author",
-        createdAt: new Date("2026-09-07"),
-      },
-    ],
-    relTripleSchemas: [
-      {
-        localId: "supports",
-        rid: "orn:obsidian.schema:remote/supports",
-        label: "Supports",
-        complement: "Supported by",
-        sourceType: "claim",
-        destinationType: "claim",
-        authorId: "author",
-        createdAt: new Date("2026-09-07"),
-      },
-    ],
-  }),
+  discoverSharedRelations: () =>
+    Promise.resolve({
+      relations: [],
+      relTypeSchemas: [],
+      nodeSchemas: [
+        {
+          localId: "claim",
+          rid: "orn:obsidian.schema:remote/claim",
+          label: "Claim",
+          authorId: "author",
+          createdAt: new Date("2026-09-07"),
+        },
+      ],
+      relTripleSchemas: [
+        {
+          localId: "supports",
+          rid: "orn:obsidian.schema:remote/supports",
+          label: "Supports",
+          complement: "Supported by",
+          sourceType: "claim",
+          destinationType: "claim",
+          authorId: "author",
+          createdAt: new Date("2026-09-07"),
+        },
+      ],
+    }),
 }));
 
 const relation = (id: string): DiscourseRelation => ({
