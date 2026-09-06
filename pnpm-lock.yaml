@@ -85,9 +85,6 @@ patchedDependencies:
   '@tldraw/state@2.4.6':
     hash: b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc
     path: patches/@tldraw__state@2.4.6.patch
-  roamjs-components@0.88.3:
-    hash: 054e002496f801f5b2fa697a1265fda46a897ce11b81491860ddcb4b9832c1f5
-    path: patches/roamjs-components@0.88.3.patch
   tldraw@2.4.6:
     hash: 56e196052862c9a58a11b43e5e121384cd1d6548416afa0f16e9fbfbf0e4080d
     path: patches/tldraw@2.4.6.patch
@@ -354,8 +351,8 @@ importers:
         specifier: 3.5.2
         version: 3.5.2(react@18.2.0)
       roamjs-components:
-        specifier: 0.88.3
-        version: 0.88.3(patch_hash=054e002496f801f5b2fa697a1265fda46a897ce11b81491860ddcb4b9832c1f5)(323501797697e57d5f8d07d52746f463)
+        specifier: 0.90.0
+        version: 0.90.0(323501797697e57d5f8d07d52746f463)
       tldraw:
         specifier: 2.4.6
         version: 2.4.6(patch_hash=56e196052862c9a58a11b43e5e121384cd1d6548416afa0f16e9fbfbf0e4080d)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -9787,8 +9784,8 @@ packages:
     deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
 
-  roamjs-components@0.88.3:
-    resolution: {integrity: sha512-eCKpgKSLoxtOqRZG9c0KOwTQIu2WrYzuipvfeGI377dzUZ8AIj4hJaq6qYzBPL7N1bnns0mMcjHiBhOgLgQTBg==}
+  roamjs-components@0.90.0:
+    resolution: {integrity: sha512-lp2a7soqJ8FciuoPsZKOXxciXvsp3IBZIIY/pr/W7nXebDALMeB2N1iz4xS+laPTP057G5TCpVFDS2vEXX438A==}
     engines: {node: '>=16.0.0', npm: '>=7.0.0'}
     hasBin: true
     peerDependencies:
@@ -22760,7 +22757,7 @@ snapshots:
     dependencies:
       glob: 7.2.3
 
-  roamjs-components@0.88.3(patch_hash=054e002496f801f5b2fa697a1265fda46a897ce11b81491860ddcb4b9832c1f5)(323501797697e57d5f8d07d52746f463):
+  roamjs-components@0.90.0(323501797697e57d5f8d07d52746f463):
     dependencies:
       '@blueprintjs/core': 3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@blueprintjs/datetime': 3.23.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
