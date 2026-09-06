@@ -66,6 +66,7 @@ describe("legacy settings migration", () => {
     );
     mocks.setBlockPropsAsync.mockResolvedValue({});
     mocks.setSetting.mockResolvedValue(undefined);
+    mocks.getSetting.mockReturnValue(false);
     (globalThis as { window: unknown }).window = {
       roamAlphaAPI: {
         data: { async: { fast: { q: vi.fn().mockResolvedValue([]) } } },
@@ -136,6 +137,37 @@ describe("legacy settings migration", () => {
       "dg-personal-settings-migrated-v2",
       false,
     );
+    expect(mocks.setSetting).toHaveBeenCalledWith(
+      "dg-personal-settings-migrated-v2",
+      true,
+    );
+  });
+
+  it("does not mark personal settings ready when their props write fails", async () => {
+    mocks.setBlockPropsAsync.mockRejectedValue(new Error("write failed"));
+
+    expect(
+      await migratePersonalSettings({ "user-uid": "personal-settings-uid" }),
+    ).toBe(false);
+    expect(mocks.setSetting).not.toHaveBeenCalled();
+  });
+
+  it("waits for the personal props write before marking the user ready", async () => {
+    let finishWrite!: () => void;
+    mocks.setBlockPropsAsync.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishWrite = resolve;
+      }),
+    );
+
+    const migration = migratePersonalSettings({
+      "user-uid": "personal-settings-uid",
+    });
+    expect(mocks.setSetting).not.toHaveBeenCalled();
+
+    finishWrite();
+
+    expect(await migration).toBe(true);
     expect(mocks.setSetting).toHaveBeenCalledWith(
       "dg-personal-settings-migrated-v2",
       true,

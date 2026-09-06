@@ -24,10 +24,10 @@ import {
 } from "./zodSchema";
 import type { z } from "zod";
 import { invalidateDiscourseNodeTypeCaches } from "~/utils/discourseNodeTypeCache";
+import { PERSONAL_MIGRATION_MARKER } from "./migrationMarkers";
 
 const LOG_PREFIX = "[DG BlockProps Migration]";
 const GRAPH_MIGRATION_MARKER = "Block props migrated v2";
-const PERSONAL_MIGRATION_MARKER = "dg-personal-settings-migrated-v2";
 const MAX_ERROR_CONTEXT_LENGTH = 5000;
 
 const hasGraphMigrationMarker = (blockMap: Record<string, string>): boolean =>
