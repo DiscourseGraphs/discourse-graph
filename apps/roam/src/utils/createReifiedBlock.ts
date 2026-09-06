@@ -23,6 +23,7 @@ const SANE_ROLE_NAME_RE = new RegExp(/^[\w-]*$/);
 
 export const strictQueryForReifiedBlocks = async (
   parameterUids: Record<string, string>,
+  { acceptedOnly = false }: { acceptedOnly?: boolean } = {},
 ): Promise<string | null> => {
   const paramsAsSeq = Object.entries(parameterUids);
   // validate parameter names
@@ -43,7 +44,11 @@ export const strictQueryForReifiedBlocks = async (
   // post-filtering because cannot filter by number of keys in datascript
   const numParams = countRoleKeys(parameterUids);
   const resultF = result
-    .filter(([, params]) => countRoleKeys(params) === numParams)
+    .filter(
+      ([, params]) =>
+        countRoleKeys(params) === numParams &&
+        (!acceptedOnly || params[TENTATIVE_PROP_KEY] !== "true"),
+    )
     .map(([uid]) => uid);
   if (resultF.length > 1) {
     const paramsAsText = Object.entries(parameterUids)

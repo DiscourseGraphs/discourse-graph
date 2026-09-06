@@ -211,6 +211,43 @@ describe("strictQueryForReifiedBlocks", () => {
     ).toBe(RELATION_UID);
   });
 
+  it.each([undefined, "false"])(
+    "selects the accepted deletion target when a pending twin is returned first (%s)",
+    async (tentative) => {
+      query.mockResolvedValue([
+        [RELATION_UID, tentativeRelationProps()],
+        [
+          "accepted-twin",
+          { ...acceptedRelationProps(), ...(tentative && { tentative }) },
+        ],
+      ]);
+      expect(
+        await strictQueryForReifiedBlocks(
+          {
+            sourceUid: "claim-a",
+            destinationUid: "question-a",
+            hasSchema: "supports",
+          },
+          { acceptedOnly: true },
+        ),
+      ).toBe("accepted-twin");
+    },
+  );
+
+  it("does not fall back to deleting a pending relation when no accepted twin remains", async () => {
+    query.mockResolvedValue([[RELATION_UID, tentativeRelationProps()]]);
+    expect(
+      await strictQueryForReifiedBlocks(
+        {
+          sourceUid: "claim-a",
+          destinationUid: "question-a",
+          hasSchema: "supports",
+        },
+        { acceptedOnly: true },
+      ),
+    ).toBeNull();
+  });
+
   it("still rejects blocks with extra role keys", async () => {
     query.mockResolvedValue([
       [RELATION_UID, { ...tentativeRelationProps(), contextUid: "context-a" }],
