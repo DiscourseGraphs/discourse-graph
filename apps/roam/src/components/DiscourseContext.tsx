@@ -173,7 +173,9 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
   });
   const [tabId, setTabId] = useState(0);
   const [groupByTarget, setGroupByTarget] = useState(false);
-  const [tentativeCount, setTentativeCount] = useState(0);
+  const [tentativeCount, setTentativeCount] = useState<number | undefined>(
+    undefined,
+  );
   const body = queryResults.length ? (
     <>
       <style>{`@media (hover: hover) and (pointer: fine) {
@@ -251,7 +253,7 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
     </Tabs>
   ) : (
     <div className="flex flex-col items-start">
-      {!tentativeCount && <span>No discourse relations found.</span>}
+      {tentativeCount === 0 && <span>No discourse relations found.</span>}
       <CreateRelationButton sourceNodeUid={uid} onCreated={delayedRefresh} />
     </div>
   );

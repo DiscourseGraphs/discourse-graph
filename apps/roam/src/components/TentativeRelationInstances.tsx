@@ -43,7 +43,7 @@ const TentativeRelationInstances = ({
   onCountChange,
 }: {
   uid: string;
-  onCountChange: (count: number) => void;
+  onCountChange: (count: number | undefined) => void;
 }): React.JSX.Element | null => {
   const [rows, setRows] = useState<TentativeRelationRow[]>([]);
   const [pending, setPending] = useState<{
@@ -52,31 +52,48 @@ const TentativeRelationInstances = ({
   } | null>(null);
 
   const loadRows = useCallback(async () => {
-    if (!getStoredRelationsEnabled()) return;
-    const instances = await getTentativeRelationInstances();
-    const relevant = instances.filter(
-      (instance) =>
-        instance.sourceUid === uid || instance.destinationUid === uid,
-    );
-    const relationById = new Map(getDiscourseRelations().map((r) => [r.id, r]));
-    const nextRows = relevant.map((instance) => {
-      const isOutgoing = instance.sourceUid === uid;
-      const otherUid = isOutgoing
-        ? instance.destinationUid
-        : instance.sourceUid;
-      const schema = relationById.get(instance.schemaUid);
-      const label =
-        (isOutgoing ? schema?.label : schema?.complement || schema?.label) ||
-        "Unknown relation";
-      return {
-        ...instance,
-        label,
-        otherText: getPageTitleByPageUid(otherUid) || otherUid,
-        provenance: buildProvenance(instance.importedFrom),
-      };
-    });
-    setRows(nextRows);
-    onCountChange(nextRows.length);
+    if (!getStoredRelationsEnabled()) {
+      onCountChange(0);
+      return;
+    }
+    onCountChange(undefined);
+    try {
+      const instances = await getTentativeRelationInstances();
+      const relevant = instances.filter(
+        (instance) =>
+          instance.sourceUid === uid || instance.destinationUid === uid,
+      );
+      const relationById = new Map(
+        getDiscourseRelations().map((r) => [r.id, r]),
+      );
+      const nextRows = relevant.map((instance) => {
+        const isOutgoing = instance.sourceUid === uid;
+        const otherUid = isOutgoing
+          ? instance.destinationUid
+          : instance.sourceUid;
+        const schema = relationById.get(instance.schemaUid);
+        const label =
+          (isOutgoing ? schema?.label : schema?.complement || schema?.label) ||
+          "Unknown relation";
+        return {
+          ...instance,
+          label,
+          otherText: getPageTitleByPageUid(otherUid) || otherUid,
+          provenance: buildProvenance(instance.importedFrom),
+        };
+      });
+      setRows(nextRows);
+      onCountChange(nextRows.length);
+    } catch (error) {
+      internalError({
+        error,
+        type: "Load Tentative Relations Failed",
+        context: { uid },
+        userMessage:
+          "Could not load imported relations. Refresh and try again.",
+        sendEmail: false,
+      });
+    }
   }, [uid, onCountChange]);
 
   useEffect(() => {
