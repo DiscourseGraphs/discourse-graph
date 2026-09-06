@@ -2,12 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import { importSharedRelations } from "~/utils/importSharedRelations";
+import refreshConfigTree from "~/utils/refreshConfigTree";
+import { writeImportedSourceIdentity } from "~/utils/importedSourceIdentity";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import { createRelationSchema } from "~/utils/createRelationSchema";
 
 vi.hoisted(() => {
   vi.stubGlobal("window", { roamAlphaAPI: { graph: { name: "local" } } });
 });
+vi.mock("~/utils/refreshConfigTree", () => ({ default: vi.fn() }));
 vi.mock("~/utils/getDiscourseRelations", () => ({ default: vi.fn() }));
 vi.mock("~/utils/getDiscourseNodes", () => ({
   default: () => [{ type: "local-claim", text: "Claim" }],
@@ -70,6 +73,23 @@ const client = {} as DGSupabaseClient;
 beforeEach(() => vi.clearAllMocks());
 
 describe("importSharedRelations schema matching", () => {
+  it("refreshes the grammar after storing a new schema and its provenance", async () => {
+    vi.mocked(getDiscourseRelations).mockReturnValue([]);
+    vi.mocked(createRelationSchema).mockResolvedValue("imported-supports");
+    await importSharedRelations(client, 7);
+    expect(writeImportedSourceIdentity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pageUid: "imported-supports",
+        sourceNodeRid: "orn:obsidian.schema:remote/supports",
+      }),
+    );
+    expect(refreshConfigTree).toHaveBeenCalledOnce();
+    expect(
+      vi.mocked(refreshConfigTree).mock.invocationCallOrder[0],
+    ).toBeGreaterThan(
+      vi.mocked(writeImportedSourceIdentity).mock.invocationCallOrder[0],
+    );
+  });
   it("reuses one schema when its query patterns produce multiple matches", async () => {
     vi.mocked(getDiscourseRelations).mockReturnValue([
       {
