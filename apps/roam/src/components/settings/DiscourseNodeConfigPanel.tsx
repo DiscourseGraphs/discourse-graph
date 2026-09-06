@@ -151,6 +151,8 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                   <span className="font-mono">{n.shortcut}</span>
                   {duplicateShortcuts.has(n.shortcut.toUpperCase()) && (
                     <Tooltip
+                      className="flex"
+                      targetClassName="flex"
                       content={`Multiple nodes share the shortcut "${n.shortcut.toUpperCase()}". Only one node can respond to it in the node menu.`}
                     >
                       <Icon icon="warning-sign" intent={Intent.WARNING} />
