@@ -215,23 +215,14 @@ const validateVersion = (version: string): void => {
 };
 
 const isExternalRelease = (version: string): boolean => {
-  // External releases are:
-  // 1. Stable releases (x.y.z)
-  // 2. Beta releases (x.y.z-beta.n)
-
-  // Stable release pattern (x.y.z)
+  // The Obsidian community store reads manifest.json from the publish repo's
+  // main branch, so only a finished release may be external. Everything else
+  // ships as a GitHub pre-release and leaves that branch untouched.
   const stablePattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
   if (stablePattern.test(version)) {
     return true;
   }
 
-  // Beta release pattern (x.y.z-beta.n)
-  const betaPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-beta(\.\d+)?$/;
-  if (betaPattern.test(version)) {
-    return true;
-  }
-
-  // Everything else (including alpha releases) is internal
   return false;
 };
 
@@ -302,17 +293,23 @@ const execCommand = async (
   }
 };
 
+// Patterns match a whole path segment, never a substring of one, and globs are
+// anchored to a single segment.
+const segmentMatchesPattern = (segment: string, pattern: string): boolean => {
+  if (!pattern.includes("*")) return segment === pattern;
+
+  const escaped = pattern
+    .split("*")
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("[^/]*");
+  return new RegExp(`^${escaped}$`).test(segment);
+};
+
 const shouldExclude = (filePath: string, baseDir: string): boolean => {
-  const relativePath = path.relative(baseDir, filePath);
-  return EXCLUDE_PATTERNS.some((pattern) => {
-    if (pattern.includes("*")) {
-      const regex = new RegExp(pattern.replace(/\*/g, ".*"));
-      return regex.test(relativePath) || regex.test(path.basename(filePath));
-    }
-    return (
-      relativePath.includes(pattern) || path.basename(filePath) === pattern
-    );
-  });
+  const segments = path.relative(baseDir, filePath).split(path.sep);
+  return segments.some((segment) =>
+    EXCLUDE_PATTERNS.some((pattern) => segmentMatchesPattern(segment, pattern)),
+  );
 };
 
 const copyDirectory = ({
@@ -400,6 +397,18 @@ const sanitizePackageJsonForMirror = (tempDir: string): void => {
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
     log("Removed package.json scripts for mirrored publish repo");
   }
+};
+
+// updateLocalVersion runs after the publish-repo push, so the release version
+// has to be written into the staged copy here as well.
+const updateStagedPackageVersion = (tempDir: string, version: string): void => {
+  const packageJsonPath = path.join(tempDir, "package.json");
+  if (!fs.existsSync(packageJsonPath)) return;
+
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+  packageJson.version = version;
+  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  log(`Updated staged package.json version to ${version}`);
 };
 
 const updateLocalVersion = (obsidianDir: string, version: string): void => {
@@ -741,6 +750,7 @@ const publish = async (config: PublishConfig): Promise<void> => {
 
     if (isExternal) {
       updateManifest(tempDir, version);
+      updateStagedPackageVersion(tempDir, version);
       await updateMainBranch(tempDir, version);
       updateLocalVersion(obsidianDir, version);
     } else {

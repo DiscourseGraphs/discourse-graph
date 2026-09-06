@@ -80,22 +80,30 @@ export const crossAppNodeToDbConcept = (
     name: node.content.direct.value,
     author_local_id: node.authorId,
     schema_represented_by_local_id: node.nodeType,
+    literal_content: {
+      core_title: node.coreTitle,
+    },
     contents_inline: filterUndefinedArray([
       crossAppNodeToDbContent(node, "direct"),
       crossAppNodeToDbContent(node, "full"),
     ]),
     created: node.createdAt?.toISOString(),
     last_modified: node.modifiedAt?.toISOString(),
+    local_reference_content: node.slots,
   });
 };
 
 export const crossAppNodeSchemaToDbConcept = (
   node: CrossAppNodeSchema,
 ): LocalConceptDataInput => {
+  const slots = Object.keys(node.slotDefinitions ?? {});
   const literalInfo = filterUndefined({
     template: node.templateTitle,
     template_content: node.template,
+    format: node.format,
+    roles: slots.length > 0 ? slots : undefined,
   });
+  const referenceContent = slots.length ? node.slotDefinitions : undefined;
   const spaceUri = node.rid
     ? ridToSpaceUriAndLocalId(node.rid).spaceUri
     : undefined;
@@ -107,6 +115,7 @@ export const crossAppNodeSchemaToDbConcept = (
     is_schema: true,
     literal_content:
       Object.keys(literalInfo).length > 0 ? literalInfo : undefined,
+    local_reference_content: referenceContent,
     created: node.createdAt?.toISOString(),
     last_modified: node.modifiedAt?.toISOString(),
   });

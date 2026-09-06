@@ -21,6 +21,8 @@ import {
 } from "./importRelations";
 import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
+import { getNodeTypeById } from "./typeUtils";
+import { decorateTitle } from "@repo/database/lib/decorateTitle";
 
 type PublishedNode = {
   source_local_id: string;
@@ -327,7 +329,12 @@ type NodeTypeSchemaForInstance = {
   name: string;
 };
 
-export const fetchNodeTypeSchemasForInstances = async ({
+type NodeInstanceImportInfo = {
+  schema?: NodeTypeSchemaForInstance;
+  coreTitle?: string;
+};
+
+export const fetchNodeImportInfoForInstances = async ({
   client,
   spaceId,
   nodeInstanceIds,
@@ -335,12 +342,14 @@ export const fetchNodeTypeSchemasForInstances = async ({
   client: DGSupabaseClient;
   spaceId: number;
   nodeInstanceIds: string[];
-}): Promise<Map<string, NodeTypeSchemaForInstance>> => {
-  const result = new Map<string, NodeTypeSchemaForInstance>();
+}): Promise<Map<string, NodeInstanceImportInfo>> => {
+  const result = new Map<string, NodeInstanceImportInfo>();
 
   const { data: instanceRows, error: instanceError } = await client
     .from("my_concepts")
-    .select("source_local_id, schema_id")
+    .select(
+      "source_local_id, schema_id, core_title:literal_content->>core_title",
+    )
     .eq("space_id", spaceId)
     .eq("is_schema", false)
     .eq("is_relation", false)
@@ -358,35 +367,42 @@ export const fetchNodeTypeSchemasForInstances = async ({
         .filter((id): id is number => id !== null),
     ),
   ];
-  if (schemaIds.length === 0) return result;
-
-  const { data: schemaRows, error: schemaError } = await client
-    .from("my_concepts")
-    .select("id, source_local_id, name")
-    .eq("space_id", spaceId)
-    .eq("is_schema", true)
-    .eq("is_relation", false)
-    .in("id", schemaIds);
-
-  if (schemaError || !schemaRows) {
-    console.error("Error fetching node type schemas:", schemaError);
-    return result;
-  }
 
   const schemasById = new Map<number, NodeTypeSchemaForInstance>();
-  for (const row of schemaRows) {
-    if (row.id !== null && row.source_local_id !== null && row.name !== null) {
-      schemasById.set(row.id, {
-        nodeTypeId: row.source_local_id,
-        name: row.name,
-      });
+  if (schemaIds.length > 0) {
+    const { data: schemaRows, error: schemaError } = await client
+      .from("my_concepts")
+      .select("id, source_local_id, name")
+      .eq("space_id", spaceId)
+      .eq("is_schema", true)
+      .eq("is_relation", false)
+      .in("id", schemaIds);
+
+    if (schemaError || !schemaRows) {
+      console.error("Error fetching node type schemas:", schemaError);
+    } else {
+      for (const row of schemaRows) {
+        if (
+          row.id !== null &&
+          row.source_local_id !== null &&
+          row.name !== null
+        ) {
+          schemasById.set(row.id, {
+            nodeTypeId: row.source_local_id,
+            name: row.name,
+          });
+        }
+      }
     }
   }
 
   for (const row of instanceRows) {
-    if (row.source_local_id === null || row.schema_id === null) continue;
-    const schema = schemasById.get(row.schema_id);
-    if (schema) result.set(row.source_local_id, schema);
+    if (row.source_local_id === null) continue;
+    result.set(row.source_local_id, {
+      schema:
+        row.schema_id === null ? undefined : schemasById.get(row.schema_id),
+      coreTitle: row.core_title ?? undefined,
+    });
   }
 
   return result;
@@ -1159,8 +1175,6 @@ export const mapNodeTypeIdToLocal = async ({
 
 const processFileContent = async ({
   plugin,
-  client,
-  sourceSpaceId,
   sourceSpaceUri,
   rawContent,
   filePath,
@@ -1168,11 +1182,9 @@ const processFileContent = async ({
   importedModifiedAt,
   authorId,
   nodeInstanceId,
-  nodeTypeIdFromConcept,
+  nodeTypeId,
 }: {
   plugin: DiscourseGraphPlugin;
-  client: DGSupabaseClient;
-  sourceSpaceId: number;
   sourceSpaceUri: string;
   rawContent: string;
   filePath: string;
@@ -1180,25 +1192,9 @@ const processFileContent = async ({
   importedModifiedAt?: number;
   authorId?: number;
   nodeInstanceId: string;
-  nodeTypeIdFromConcept?: string;
-}): Promise<
-  { file: TFile; error?: never } | { file?: never; error: string }
-> => {
-  // 1. Parse frontmatter from rawContent (metadataCache is updated async and is
-  //    often empty immediately after create/modify) and resolve the node type
-  //    before any vault write, so a failed lookup leaves existing files untouched.
-  const { frontmatter } = parseFrontmatter(rawContent);
-  const sourceNodeTypeId =
-    typeof frontmatter.nodeTypeId === "string"
-      ? frontmatter.nodeTypeId
-      : nodeTypeIdFromConcept;
-  if (sourceNodeTypeId === undefined) {
-    return {
-      error: "importedNode missing sourceNodeTypeId",
-    };
-  }
-
-  // 2. Create or update the file with the fetched content.
+  nodeTypeId: string;
+}): Promise<TFile> => {
+  // Create or update the file with the fetched content.
   // On create, set file metadata (ctime/mtime) to original vault dates via vault adapter.
   let file: TFile | null = plugin.app.vault.getFileByPath(filePath);
   const stat =
@@ -1214,19 +1210,11 @@ const processFileContent = async ({
     await plugin.app.vault.process(file, () => rawContent, stat);
   }
 
-  const mappedNodeTypeId = await mapNodeTypeIdToLocal({
-    plugin,
-    client,
-    sourceSpaceId,
-    sourceSpaceUri,
-    sourceNodeTypeId,
-  });
-
   await plugin.app.fileManager.processFrontMatter(
     file,
     (fm) => {
       const record = fm as Record<string, unknown>;
-      record.nodeTypeId = mappedNodeTypeId;
+      record.nodeTypeId = nodeTypeId;
       record.nodeInstanceId = nodeInstanceId;
       record.importedFromRid = spaceUriAndLocalIdToRid(
         sourceSpaceUri,
@@ -1239,7 +1227,7 @@ const processFileContent = async ({
     stat,
   );
 
-  return { file };
+  return file;
 };
 
 export const importSelectedNodes = async ({
@@ -1308,7 +1296,7 @@ export const importSelectedNodes = async ({
       spaceName,
     });
 
-    const nodeTypeSchemasByInstance = await fetchNodeTypeSchemasForInstances({
+    const nodeImportInfoByInstance = await fetchNodeImportInfoForInstances({
       client,
       spaceId,
       nodeInstanceIds: nodes.map((n) => n.nodeInstanceId),
@@ -1355,8 +1343,44 @@ export const importSelectedNodes = async ({
         const originalNodePath: string | undefined =
           contentFilePath ?? node.filePath;
 
-        // Sanitize file name
-        const sanitizedFileName = sanitizeFileName(fileName);
+        const nodeImportInfo = nodeImportInfoByInstance.get(
+          node.nodeInstanceId,
+        );
+
+        // Parse frontmatter from content (metadataCache is updated async and is
+        // often empty immediately after create/modify) and resolve the node type
+        // before any vault write, so a failed lookup leaves existing files untouched.
+        const { frontmatter } = parseFrontmatter(content);
+        const sourceNodeTypeId =
+          typeof frontmatter.nodeTypeId === "string"
+            ? frontmatter.nodeTypeId
+            : nodeImportInfo?.schema?.nodeTypeId;
+        if (sourceNodeTypeId === undefined) {
+          console.error(
+            `Error processing file content for node ${node.nodeInstanceId}:`,
+            "importedNode missing sourceNodeTypeId",
+          );
+          failedCount++;
+          processedCount++;
+          onProgress?.(processedCount, totalNodes);
+          continue;
+        }
+
+        const mappedNodeTypeId = await mapNodeTypeIdToLocal({
+          plugin,
+          client,
+          sourceSpaceId: spaceId,
+          sourceSpaceUri: spaceUri,
+          sourceNodeTypeId,
+        });
+
+        const localNodeType = getNodeTypeById(plugin, mappedNodeTypeId);
+        const coreTitle = nodeImportInfo?.coreTitle;
+        const decoratedTitle =
+          coreTitle !== undefined && localNodeType
+            ? decorateTitle(localNodeType.format, coreTitle)
+            : null;
+        const sanitizedFileName = sanitizeFileName(decoratedTitle ?? fileName);
         let finalFilePath: string;
 
         if (existingFile) {
@@ -1364,10 +1388,13 @@ export const importSelectedNodes = async ({
           finalFilePath = existingFile.path;
         } else {
           // Preserve source vault folder structure under import/{vaultName} when we have filePath from Content
-          const pathUnderImport =
+          const sourceFolder =
             contentFilePath && contentFilePath.includes("/")
-              ? sanitizePathForImport(contentFilePath)
-              : `${sanitizedFileName}.md`;
+              ? sanitizePathForImport(contentFilePath.replace(/\/[^/]*$/, ""))
+              : "";
+          const pathUnderImport = sourceFolder
+            ? `${sourceFolder}/${sanitizedFileName}.md`
+            : `${sanitizedFileName}.md`;
           finalFilePath = `${importFolderPath}/${pathUnderImport}`;
 
           // Ensure all parent folders exist (e.g. import/VaultName/Discourse Nodes/SubFolder)
@@ -1380,12 +1407,8 @@ export const importSelectedNodes = async ({
           }
         }
 
-        // Process the file content (maps nodeTypeId, handles frontmatter, stores import timestamps)
-        // This updates existing file or creates new one
-        const result = await processFileContent({
+        const processedFile = await processFileContent({
           plugin,
-          client,
-          sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
           rawContent: content,
           filePath: finalFilePath,
@@ -1393,24 +1416,8 @@ export const importSelectedNodes = async ({
           importedModifiedAt: modifiedAt,
           authorId,
           nodeInstanceId: node.nodeInstanceId,
-          nodeTypeIdFromConcept: nodeTypeSchemasByInstance.get(
-            node.nodeInstanceId,
-          )?.nodeTypeId,
+          nodeTypeId: mappedNodeTypeId,
         });
-
-        if (result.error) {
-          console.error(
-            `Error processing file content for node ${node.nodeInstanceId}:`,
-            result.error,
-          );
-          failedCount++;
-          processedCount++;
-          onProgress?.(processedCount, totalNodes);
-          continue;
-        }
-
-        // typescript should not need this assertion?
-        const processedFile = result.file!;
 
         // Import assets for this node (use originalNodePath so assets go under import/{space}/ relative to note)
         const assetImportResult = await importAssetsForNode({

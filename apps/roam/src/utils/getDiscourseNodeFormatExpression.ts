@@ -1,7 +1,9 @@
+import { FORMAT_PLACEHOLDER } from "@repo/database/lib/decorateTitle";
+
 export const getDiscourseNodeFormatInnerExpression = (format: string): string =>
   `${format
     .replace(/(\[|\]|\?|\.|\+)/g, "\\$1")
-    .replace(/{[a-zA-Z]+}/g, "(.*?)")}`;
+    .replace(FORMAT_PLACEHOLDER, "(.*?)")}`;
 
 const getDiscourseNodeFormatExpression = (format: string): RegExp =>
   format

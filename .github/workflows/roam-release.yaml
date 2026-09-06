@@ -85,6 +85,9 @@ jobs:
           version: ${{ steps.version.outputs.version }}
 
       - name: Update Roam Depot Extension
+        id: publish
+        env:
+          ROAM_RELEASE_TOKEN: ${{ secrets.ROAM_RELEASE_TOKEN }}
         run: npx turbo run publish --filter=roam --ui stream -- --no-compile
 
       - name: Mark Linear release sent to Roam review
@@ -102,7 +105,7 @@ jobs:
           RELEASE_URL: ${{ steps.linear_release.outputs.release-url }}
           SOURCE_SHA: ${{ github.sha }}
           SOURCE_URL: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
-          DEPOT_COMPARE_URL: https://github.com/Roam-Research/roam-depot/compare/main...DiscourseGraphs:roam-depot:main?expand=1
+          DEPOT_PR_URL: ${{ steps.publish.outputs.roam_depot_pr_url }}
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           # Roam ${RELEASE_VERSION} submitted for review
@@ -110,11 +113,11 @@ jobs:
           - **Release version:** ${RELEASE_VERSION}
           - **Source commit:** [\`${SOURCE_SHA}\`](${SOURCE_URL})
           - **Linear release:** [Roam ${RELEASE_VERSION}](${RELEASE_URL})
-          - **Roam Depot comparison:** [Open comparison](${DEPOT_COMPARE_URL})
+          - **Roam Depot pull request:** [Open pull request](${DEPOT_PR_URL})
 
           ## Remaining manual steps
 
-          1. Open the upstream Roam Depot PR from the comparison above.
+          1. Link the Roam Depot pull request above in the Linear release checklist issue and subscribe to it.
           2. Create the next Roam Linear release and bump \`apps/roam/package.json\` to its version.
           3. After Roam publishes the submitted release, complete [Roam ${RELEASE_VERSION}](${RELEASE_URL}) in Linear.
           EOF

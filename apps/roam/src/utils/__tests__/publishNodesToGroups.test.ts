@@ -38,6 +38,7 @@ vi.mock("~/utils/roamToCrossAppConverters", () => ({
     label: s.text,
     authorId: "author-1",
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    format: s.format,
   }),
   reifiedRelationToCrossApp: vi.fn(),
   relationTripleSchemaToCrossApp: vi.fn(),
@@ -72,12 +73,15 @@ const claimSchema: DiscourseNode = {
 const makeCrossAppNode = ({
   uid,
   title,
+  coreTitle = title,
 }: {
   uid: string;
   title: string;
+  coreTitle?: string;
 }): CrossAppNode => ({
   localId: uid,
   nodeType: SCHEMA_UID,
+  coreTitle,
   authorId: "user-1",
   createdAt: new Date("2026-01-02T00:00:00.000Z"),
   modifiedAt: new Date("2026-01-03T00:00:00.000Z"),
@@ -94,6 +98,19 @@ const makeCrossAppNode = ({
 
 type RpcArgs = { v_space_id: number; data: Record<string, unknown>[] };
 
+type SelectResponse = {
+  data: { source_local_id: string }[];
+  error: null;
+};
+
+type FakeSelectBuilder = PromiseLike<SelectResponse> & {
+  url: { search: string };
+  eq: () => FakeSelectBuilder;
+  in: () => FakeSelectBuilder;
+  order: (column: string) => FakeSelectBuilder;
+  range: () => Promise<SelectResponse>;
+};
+
 const makeFakeClient = ({
   syncedUids = [],
   rpcResponse,
@@ -107,7 +124,7 @@ const makeFakeClient = ({
     rows: Record<string, unknown>[];
     options: Record<string, unknown>;
   }[] = [];
-  const selectResult = (table: string) =>
+  const selectResult = (table: string): Promise<SelectResponse> =>
     Promise.resolve({
       data:
         table === "my_concepts"
@@ -115,12 +132,24 @@ const makeFakeClient = ({
           : [],
       error: null,
     });
+  const makeSelectBuilder = (table: string): FakeSelectBuilder => {
+    const builder: FakeSelectBuilder = {
+      url: { search: "" },
+      eq: () => builder,
+      in: () => builder,
+      order: (column) => {
+        builder.url.search += `&order=${column}`;
+        return builder;
+      },
+      range: () => selectResult(table),
+      then: (onfulfilled, onrejected) =>
+        selectResult(table).then(onfulfilled, onrejected),
+    };
+    return builder;
+  };
   const client = {
     from: (table: string) => ({
-      select: () => ({
-        eq: () => ({ in: () => selectResult(table) }),
-        in: () => selectResult(table),
-      }),
+      select: () => makeSelectBuilder(table),
       upsert: (
         rows: Record<string, unknown>[],
         options: Record<string, unknown>,
@@ -160,7 +189,13 @@ describe("publishNodesToGroups", () => {
       client,
       spaceId: SPACE_ID,
       groupIds: [GROUP_ID],
-      nodes: [makeCrossAppNode({ uid: "node-1", title: "CLM - new claim" })],
+      nodes: [
+        makeCrossAppNode({
+          uid: "node-1",
+          title: "CLM - new claim",
+          coreTitle: "new claim",
+        }),
+      ],
     });
 
     expect(rpcCalls).toHaveLength(1);
@@ -172,11 +207,13 @@ describe("publishNodesToGroups", () => {
       source_local_id: SCHEMA_UID,
       is_schema: true,
       name: "Claim",
+      literal_content: { format: "[[CLM]] - {content}" },
     });
     expect(data[1]).toMatchObject({
       source_local_id: "node-1",
       name: "CLM - new claim",
       schema_represented_by_local_id: SCHEMA_UID,
+      literal_content: { core_title: "new claim" },
     });
     expect(data[1].contents_inline).toEqual([
       expect.objectContaining({

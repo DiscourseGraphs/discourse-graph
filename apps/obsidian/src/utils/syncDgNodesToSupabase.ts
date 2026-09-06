@@ -30,6 +30,10 @@ import { isAcceptedSchema } from "./typeUtils";
 import { getTemplatePluginInfo } from "./templates";
 import { difference } from "@repo/utils/setOperations";
 import { getAllPages } from "@repo/database/lib/pagination";
+import {
+  CORE_TITLE_PROBE_SELECT,
+  partitionByCoreTitle,
+} from "@repo/database/lib/coreTitleBackfill";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
@@ -231,6 +235,10 @@ type BuildChangedNodesOptions = {
   fullSync?: boolean;
 };
 
+type BuildChangedNodesResult = {
+  changedNodes: ObsidianDiscourseNodeData[];
+};
+
 const mergeChangeTypes = (
   base: ChangeType[],
   additional: ChangeType[],
@@ -326,9 +334,9 @@ const buildChangedNodesFromNodes = async ({
   context,
   changeTypesByPath,
   fullSync = false,
-}: BuildChangedNodesOptions): Promise<ObsidianDiscourseNodeData[]> => {
+}: BuildChangedNodesOptions): Promise<BuildChangedNodesResult> => {
   if (nodes.length === 0) {
-    return [];
+    return { changedNodes: [] };
   }
 
   const nodeInstanceIds = nodes.map((node) => node.nodeInstanceId);
@@ -344,11 +352,12 @@ const buildChangedNodesFromNodes = async ({
   );
   const changedNodes: ObsidianDiscourseNodeData[] = [];
   let missingConcepts: Set<string> | undefined;
+  let missingCoreTitleIds: Set<string> | undefined;
   if (fullSync) {
     const existingConceptIds = await getAllPages(
       supabaseClient
         .from("my_concepts")
-        .select("source_local_id")
+        .select(CORE_TITLE_PROBE_SELECT)
         .eq("space_id", context.spaceId)
         .eq("is_relation", false)
         .eq("is_schema", false)
@@ -369,6 +378,8 @@ const buildChangedNodesFromNodes = async ({
           .filter((id) => id !== null),
       );
       missingConcepts = difference(nodeIds, dbConceptIds);
+      missingCoreTitleIds =
+        partitionByCoreTitle(existingConceptIds).missingCoreTitleIds;
     }
   }
 
@@ -389,7 +400,8 @@ const buildChangedNodesFromNodes = async ({
 
     if (
       finalChangeTypes.length === 0 &&
-      !missingConcepts?.has(node.nodeInstanceId)
+      !missingConcepts?.has(node.nodeInstanceId) &&
+      !missingCoreTitleIds?.has(node.nodeInstanceId)
     ) {
       continue;
     }
@@ -405,7 +417,7 @@ const buildChangedNodesFromNodes = async ({
     });
   }
 
-  return changedNodes;
+  return { changedNodes };
 };
 
 export const syncAllNodesAndRelations = async (
@@ -426,8 +438,8 @@ export const syncAllNodesAndRelations = async (
 
     const allNodes = await collectDiscourseNodesFromVault(plugin, true);
 
-    const changedNodeInstances = relationsOnly
-      ? []
+    const { changedNodes: changedNodeInstances } = relationsOnly
+      ? { changedNodes: [] }
       : await buildChangedNodesFromNodes({
           nodes: allNodes,
           supabaseClient,
@@ -452,14 +464,16 @@ export const syncAllNodesAndRelations = async (
       nodesSince: changedNodeInstances,
       supabaseClient,
       context,
-      accountLocalId,
       plugin,
       allNodes,
       fullSync: true,
     });
 
     // When synced nodes are already published, ensure non-text assets are in storage.
-    await syncPublishedNodesAssets(plugin, changedNodeInstances);
+    await syncPublishedNodesAssets(
+      plugin,
+      changedNodeInstances.filter((node) => node.changeTypes.length > 0),
+    );
   } catch (error) {
     console.error("syncAllNodesAndRelations: Process failed:", error);
     throw error;
@@ -470,7 +484,6 @@ const convertDgToSupabaseConcepts = async ({
   nodesSince,
   supabaseClient,
   context,
-  accountLocalId,
   plugin,
   allNodes,
   fullSync,
@@ -478,7 +491,6 @@ const convertDgToSupabaseConcepts = async ({
   nodesSince: ObsidianDiscourseNodeData[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
-  accountLocalId: string;
   plugin: DiscourseGraphPlugin;
   allNodes?: DiscourseNodeInVault[];
   fullSync?: boolean;
@@ -594,7 +606,11 @@ const convertDgToSupabaseConcepts = async ({
     .filter((n) => !!n);
 
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
-    return discourseNodeInstanceToLocalConcept(context, node);
+    return discourseNodeInstanceToLocalConcept({
+      context,
+      nodeData: node,
+      nodeTypesById,
+    });
   });
 
   const relationInstancesData = await loadRelations(plugin);
@@ -817,7 +833,6 @@ const syncChangedNodesToSupabase = async ({
     nodesSince: nodesNeedingConceptUpsert,
     supabaseClient,
     context,
-    accountLocalId,
     plugin,
   });
 
@@ -935,7 +950,7 @@ export const syncDiscourseNodeChanges = async (
       return;
     }
 
-    const changedNodes = await buildChangedNodesFromNodes({
+    const { changedNodes } = await buildChangedNodesFromNodes({
       nodes: dgNodesInVault,
       supabaseClient,
       context,

@@ -6,34 +6,37 @@ import {
   getErrorMessage,
   materializeSharedNode,
 } from "./materializeSharedNode";
+import { resolveSharedNodeTypes } from "./resolveSharedNodeTypes";
 import { getLoggedInClient } from "./supabaseContext";
 
-const REFRESH_ERROR_TYPE = "Imported node refresh failed";
+export const REFRESH_ERROR_TYPE = "Imported node refresh failed";
 const REFRESH_ERROR_OPERATION = "refresh-imported-node";
 
 type RefreshImportedNodeResult = {
-  success: boolean;
+  status: "refreshed" | "skipped" | "failed";
   message: string;
 };
 
 export const refreshImportedNode = async ({
   pageUid,
+  force,
 }: {
   pageUid: string;
+  force: boolean;
 }): Promise<RefreshImportedNodeResult> => {
   try {
     const title = getPageTitleByPageUid(pageUid);
     const identity = readImportedSourceIdentity(pageUid);
     if (!identity)
       return {
-        success: false,
+        status: "failed",
         message: `"${title}" has no stored source identity, so it cannot be refreshed.`,
       };
 
     const client = await getLoggedInClient();
     if (!client)
       return {
-        success: false,
+        status: "failed",
         message: "Could not connect to shared persistence.",
       };
 
@@ -43,14 +46,19 @@ export const refreshImportedNode = async ({
     });
     if (!sharedNode)
       return {
-        success: false,
+        status: "failed",
         message: `The source of "${title}" is no longer shared with your groups, so it cannot be refreshed.`,
       };
 
+    const nodeTypesBySchemaId = await resolveSharedNodeTypes({
+      client,
+      sharedNodes: [sharedNode],
+    });
     const result = await materializeSharedNode({
       client,
       sharedNode,
-      force: true,
+      nodeType: nodeTypesBySchemaId.get(sharedNode.schemaId),
+      force,
     });
     if (!result.success) {
       internalError({
@@ -63,15 +71,20 @@ export const refreshImportedNode = async ({
         },
         sendEmail: false,
       });
-      return { success: false, message: result.error.message };
+      return { status: "failed", message: result.error.message };
     }
     if (result.pageUid !== pageUid)
       return {
-        success: false,
+        status: "failed",
         message: `A different page ("${getPageTitleByPageUid(result.pageUid)}") is linked to the same source and was refreshed instead.`,
       };
+    if (result.action === "skipped")
+      return {
+        status: "skipped",
+        message: `"${sharedNode.title}" is already up to date.`,
+      };
     return {
-      success: true,
+      status: "refreshed",
       message: `Refreshed "${sharedNode.title}" from ${sharedNode.spaceName}.`,
     };
   } catch (error) {
@@ -82,7 +95,7 @@ export const refreshImportedNode = async ({
       sendEmail: false,
     });
     return {
-      success: false,
+      status: "failed",
       message: `Could not refresh this page: ${getErrorMessage(error)}`,
     };
   }
