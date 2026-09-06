@@ -1,0 +1,18 @@
+diff --git a/util/runExtension.js b/util/runExtension.js
+--- a/util/runExtension.js
++++ b/util/runExtension.js
+@@ -4,14 +4,10 @@
+ const addStyle_1 = tslib_1.__importDefault(require("../dom/addStyle"));
+ const react_dom_1 = tslib_1.__importDefault(require("react-dom"));
+ const env_1 = require("./env");
+-const shim_1 = require("use-sync-external-store/shim");
+ const extensionApiContext_1 = require("./extensionApiContext");
+ const apiPost_1 = tslib_1.__importDefault(require("./apiPost"));
+ const Toast_1 = tslib_1.__importDefault(require("../components/Toast"));
+ const runExtension = (run) => {
+-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+-    // @ts-ignore React17 shim
+-    window.React.useSyncExternalStore = shim_1.useSyncExternalStore;
+     let unload;
+     const extensionId = (0, env_1.getRoamJSExtensionIdEnv)();
+     const registry = {
