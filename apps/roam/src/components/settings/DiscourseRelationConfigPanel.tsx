@@ -75,7 +75,7 @@ import {
 import { getReifiedRelations } from "~/utils/createReifiedBlock";
 import { ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
 import { ROAM_URL_PREFIX } from "~/utils/canonicalRoamUrl";
-import { discourseContext } from "~/components/canvas/Tldraw";
+import { deleteRelationSchema } from "~/utils/deleteRelationSchema";
 import internalError from "~/utils/internalError";
 
 const DEFAULT_SELECTED_RELATION = {
@@ -1100,21 +1100,13 @@ const DiscourseRelationConfigPanel = ({
     setEditingRelation(rel.uid);
   };
 
-  const handleDelete = (rel: Relation) => {
-    void deleteBlock(rel.uid).then(() => {
-      const { [rel.uid]: _, ...remaining } = getGlobalSettings().Relations;
-      setGlobalSetting([GLOBAL_KEYS.relations], remaining);
-      setTimeout(() => {
-        refreshConfigTree();
-        setRelations(refreshRelations());
-      }, 50);
-    });
+  const handleDelete = async (rel: Relation): Promise<void> => {
+    await deleteRelationSchema(rel.uid);
+    setRelations(refreshRelations());
   };
   const handleAcceptImported = (rel: Relation) => {
     void acceptImportedRelationSchema(rel.uid)
       .then(() => {
-        // Make the acceptance visible to canvases that are already mounted.
-        discourseContext.provisionalRelationIds.delete(rel.uid);
         posthog.capture("Discourse Relation: Accepted", {
           relationUid: rel.uid,
         });
@@ -1145,14 +1137,13 @@ const DiscourseRelationConfigPanel = ({
           setDeleteConfirmation(null);
           return;
         }
-        handleDelete(rel);
+        return handleDelete(rel);
       })
       .catch((error: unknown) => {
         internalError({
           error,
-          type: "Discourse Relation: Delete imported check failed",
-          userMessage:
-            "Could not check whether this imported relation is in use.",
+          type: "Discourse Relation: Delete imported failed",
+          userMessage: "Could not delete the imported relation.",
         });
       });
   };
@@ -1299,7 +1290,13 @@ const DiscourseRelationConfigPanel = ({
                   intent={Intent.DANGER}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDelete(rel);
+                    void handleDelete(rel).catch((error: unknown) => {
+                      internalError({
+                        error,
+                        type: "Discourse Relation: Delete failed",
+                        userMessage: "Could not delete the relation.",
+                      });
+                    });
                   }}
                   className={`mx-1 ${
                     deleteConfirmation !== rel.uid ? "opacity-0" : ""
