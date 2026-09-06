@@ -66,7 +66,7 @@ import {
   getValidRelationTypesBetween,
   persistRelationArrow,
 } from "./overlays/relationCreation";
-import { getAllRelations } from "./canvasUtils";
+import { getCreatableRelations } from "./canvasUtils";
 import { createOrUpdateArrowBinding } from "./DiscourseRelationShape/helpers";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
@@ -299,7 +299,9 @@ const convertArrowToRelation = async ({
   const boundNodes = getArrowBoundNodeInfo(editor, arrow);
   if (!boundNodes) return null;
 
-  const selectedRelation = getAllRelations().find((r) => r.id === relationId);
+  const selectedRelation = getCreatableRelations().find(
+    (r) => r.id === relationId,
+  );
   if (!selectedRelation) return null;
 
   const sourceNode = editor.getShape(boundNodes.startId);
