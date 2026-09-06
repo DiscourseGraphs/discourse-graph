@@ -63,9 +63,7 @@ const resolveObsidianUrlToFile = (
 
   let abstract = plugin.app.vault.getAbstractFileByPath(parsed.filePath);
   if (!(abstract instanceof TFile) && !parsed.filePath.endsWith(".md")) {
-    abstract = plugin.app.vault.getAbstractFileByPath(
-      `${parsed.filePath}.md`,
-    );
+    abstract = plugin.app.vault.getAbstractFileByPath(`${parsed.filePath}.md`);
   }
   return abstract instanceof TFile ? abstract : null;
 };
@@ -80,7 +78,8 @@ const isDiscourseNodeFile = (
 ): boolean => {
   if (!file.path.endsWith(".md")) return false;
   const frontmatter = getFrontmatterForFile(plugin.app, file);
-  const nodeTypeId = (frontmatter as { nodeTypeId?: string } | null)?.nodeTypeId;
+  const nodeTypeId = (frontmatter as { nodeTypeId?: string } | null)
+    ?.nodeTypeId;
   if (!nodeTypeId || typeof nodeTypeId !== "string") return false;
   return !!getNodeTypeById(plugin, nodeTypeId);
 };
@@ -116,7 +115,9 @@ export const handleExternalUrlContent = async ({
   if (url.startsWith(OBSIDIAN_URL_PREFIX)) {
     const parsed = parseObsidianOpenUrl(url);
     if (!parsed) {
-      new Notice("Invalid Obsidian link. Only discourse nodes can be dropped on the canvas.");
+      new Notice(
+        "Invalid Obsidian link. Only discourse nodes can be dropped on the canvas.",
+      );
       return;
     }
 
@@ -182,7 +183,9 @@ const createDiscourseNodeShapeAtPoint = async ({
 
   if (existing) {
     editor.setSelectedShapes([existing.id]);
-    editor.zoomToSelection({ animation: { duration: editor.options.animationMediumMs } });
+    editor.zoomToSelection({
+      animation: { duration: editor.options.animationMediumMs },
+    });
     return;
   }
 

@@ -26,7 +26,7 @@ import {
   removeRelationBySourceDestinationType,
   updateRelation,
 } from "~/utils/relationsStore";
-import { InfoTooltip } from "./DiscourseContextView";
+import { InfoTooltip } from "./InfoTooltip";
 
 type RelationTypeOption = {
   id: string;

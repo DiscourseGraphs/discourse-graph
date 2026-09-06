@@ -20,6 +20,12 @@ import {
 } from "~/utils/editorMenuUtils";
 import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
 import { createWikilinkDragExtension } from "~/utils/wikilinkDragHandler";
+import { createDiscourseContextOverlayExtension } from "~/utils/discourseContextOverlayExtension";
+import {
+  createDiscourseContextOverlayPostProcessor,
+  registerDiscourseContextOverlayRefresh,
+} from "~/utils/discourseContextOverlayPostProcessor";
+import { closeDiscourseContextPopover } from "~/components/DiscourseContextPopover";
 import {
   registerCommands,
   createModifyNodeModalSubmitHandler,
@@ -35,6 +41,11 @@ import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
 import { InlineNodeTypePicker } from "~/components/InlineNodeTypePicker";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
+import { RelationsIndex } from "~/utils/relationsIndex";
+import {
+  refreshMarkdownEditors,
+  refreshMarkdownPreviews,
+} from "~/utils/markdownViewRefresh";
 import generateUid from "~/utils/generateUid";
 import {
   migrateFrontmatterRelationsToRelationsJson,
@@ -51,6 +62,7 @@ import {
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
+  relationsIndex: RelationsIndex = new RelationsIndex(this);
   private tagNodeHandler: TagNodeHandler | null = null;
   private fileChangeListener: FileChangeListener | null = null;
   private activeNodePopover:
@@ -97,6 +109,12 @@ export default class DiscourseGraphPlugin extends Plugin {
         this.fileChangeListener = null;
       }
     }
+
+    this.relationsIndex.initialize();
+    this.registerMarkdownPostProcessor(
+      createDiscourseContextOverlayPostProcessor(this),
+    );
+    registerDiscourseContextOverlayRefresh(this);
 
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
@@ -268,34 +286,26 @@ export default class DiscourseGraphPlugin extends Plugin {
       }),
     );
 
-    type EditorWithCm = { cm: EditorView };
-    const hasCodeMirrorView = (editor: unknown): editor is EditorWithCm => {
-      if (!editor || typeof editor !== "object") return false;
-      return "cm" in editor;
-    };
-
     // Dispatch a no-op CM6 transaction to every markdown editor so their
     // ViewPlugin re-evaluates hasVisibleCanvasLeaf and shows/hides widgets.
     // layout-change covers splits/moves, active-leaf-change covers tab switches.
-    const refreshMarkdownEditors = (): void => {
-      this.app.workspace.iterateAllLeaves((leaf) => {
-        if (
-          leaf.view instanceof MarkdownView &&
-          hasCodeMirrorView(leaf.view.editor)
-        ) {
-          leaf.view.editor.cm.dispatch({});
-        }
-      });
-    };
+    const refreshEditors = (): void => refreshMarkdownEditors(this.app);
+    this.registerEvent(this.app.workspace.on("layout-change", refreshEditors));
     this.registerEvent(
-      this.app.workspace.on("layout-change", refreshMarkdownEditors),
-    );
-    this.registerEvent(
-      this.app.workspace.on("active-leaf-change", refreshMarkdownEditors),
+      this.app.workspace.on("active-leaf-change", refreshEditors),
     );
 
     // Register editor keydown listener for node tag hotkey
     this.setupNodeTagHotkey();
+  }
+
+  /**
+   * Re-renders both markdown surfaces so the discourse context overlay appears
+   * or disappears immediately when its setting is toggled, without a reload.
+   */
+  refreshDiscourseContextOverlay(): void {
+    refreshMarkdownEditors(this.app);
+    refreshMarkdownPreviews(this.app);
   }
 
   setHelpMenuStatusBarItemVisibility(): void {
@@ -369,6 +379,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.registerEditorExtension(createImageEmbedHoverExtension(this));
 
     this.registerEditorExtension(createWikilinkDragExtension(this));
+    this.registerEditorExtension(createDiscourseContextOverlayExtension(this));
   }
 
   updateFrontmatterStyles(): void {
@@ -488,5 +499,11 @@ export default class DiscourseGraphPlugin extends Plugin {
       this.fileChangeListener.cleanup();
       this.fileChangeListener = null;
     }
+
+    // The popover lives on document.body with its own listeners, so it would
+    // otherwise outlive the plugin — including an Escape handler that would go
+    // on swallowing the key for the rest of the session.
+    closeDiscourseContextPopover();
+    this.relationsIndex.unload();
   }
 }
