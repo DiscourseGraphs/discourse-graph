@@ -242,7 +242,7 @@ const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
  * `metadataCache`, while the note itself holds `my%20folder/d.png` — so any vault path
  * with a space in it needs the decoded form to match.
  */
-const lookupCandidates = (ref: string): string[] => {
+export const lookupCandidates = (ref: string): string[] => {
   const candidates = [ref];
   const withoutPunctuation = ref.replace(TRAILING_PUNCTUATION, "");
   if (withoutPunctuation !== ref) candidates.push(withoutPunctuation);
@@ -255,6 +255,84 @@ const lookupCandidates = (ref: string): string[] => {
     }
   }
   return candidates;
+};
+
+/**
+ * What one match of `LINK_PATTERN` refers to, read from the capture groups in the order
+ * the pattern lists its branches.
+ *
+ * Shared with `collectAssetTokens` so that the tokens a caller can see are exactly the
+ * tokens this file will rewrite. Anything deriving that set independently drifts from it,
+ * and a token missing from the caller's set is an asset silently dropped.
+ */
+const parseMatch = (
+  groups: (string | undefined)[],
+):
+  | {
+      ref: string;
+      form: ReferenceForm;
+      declaredKind?: AssetKind;
+      linkText: string;
+    }
+  | undefined => {
+  const [
+    imageAlt,
+    imageRef,
+    linkLabel,
+    linkRef,
+    bracketedMediaKind,
+    bracketedMediaRef,
+    mediaKind,
+    mediaRef,
+    embedRef,
+    wikiRef,
+    bareRef,
+  ] = groups;
+  const ref =
+    imageRef ??
+    linkRef ??
+    bracketedMediaRef ??
+    mediaRef ??
+    embedRef ??
+    wikiRef ??
+    bareRef;
+  if (ref === undefined) return undefined;
+
+  const form: ReferenceForm =
+    imageRef !== undefined ||
+    bracketedMediaRef !== undefined ||
+    mediaRef !== undefined ||
+    embedRef !== undefined
+      ? "embed"
+      : bareRef !== undefined
+        ? "bare"
+        : "link";
+
+  return {
+    ref,
+    form,
+    declaredKind: (bracketedMediaKind ?? mediaKind) as AssetKind | undefined,
+    // A wikilink embed carries no separate text, so its label comes from the asset.
+    linkText: imageRef ? (imageAlt ?? "") : (linkLabel ?? ""),
+  };
+};
+
+/**
+ * Every token this markdown refers an asset by, as `rewriteAssetLinks` will read them.
+ *
+ * A caller deciding which recorded references are worth acting on has to ask the text the
+ * same question the rewrite will ask it. Widening each of these through
+ * `lookupCandidates` yields exactly the set of `sourceRef` values that would resolve, so
+ * a caller's set and the rewriter's are equal by construction rather than by agreement.
+ */
+export const collectAssetTokens = (markdown: string): string[] => {
+  const tokens: string[] = [];
+  for (const match of markdown.matchAll(LINK_PATTERN)) {
+    const [, ...groups] = match;
+    const parsed = parseMatch(groups);
+    if (parsed) tokens.push(parsed.ref);
+  }
+  return tokens;
 };
 
 export const rewriteAssetLinks = ({
@@ -272,28 +350,9 @@ export const rewriteAssetLinks = ({
     // One capture group per branch, in the order the pattern lists them. The trailing
     // offset and input arguments the replacer also receives are simply not destructured.
     (match: string, ...groups: (string | undefined)[]) => {
-      const [
-        imageAlt,
-        imageRef,
-        linkLabel,
-        linkRef,
-        bracketedMediaKind,
-        bracketedMediaRef,
-        mediaKind,
-        mediaRef,
-        embedRef,
-        wikiRef,
-        bareRef,
-      ] = groups;
-      const ref =
-        imageRef ??
-        linkRef ??
-        bracketedMediaRef ??
-        mediaRef ??
-        embedRef ??
-        wikiRef ??
-        bareRef;
-      if (ref === undefined) return match;
+      const parsed = parseMatch(groups);
+      if (!parsed) return match;
+      const { ref, form, declaredKind, linkText } = parsed;
 
       const candidates = lookupCandidates(ref);
       const matched = candidates.find((candidate) => byRef.has(candidate));
@@ -301,25 +360,11 @@ export const rewriteAssetLinks = ({
       const asset = byRef.get(matched);
       if (!asset) return match;
 
-      const form: ReferenceForm =
-        imageRef !== undefined ||
-        bracketedMediaRef !== undefined ||
-        mediaRef !== undefined ||
-        embedRef !== undefined
-          ? "embed"
-          : bareRef !== undefined
-            ? "bare"
-            : "link";
-      const context: ReferenceContext = {
-        form,
-        declaredKind: (bracketedMediaKind ?? mediaKind) as
-          | AssetKind
-          | undefined,
-      };
-
-      // A wikilink embed carries no separate text, so its label comes from the asset.
-      const linkText = imageRef ? (imageAlt ?? "") : (linkLabel ?? "");
-      const rewritten = render({ asset, linkText, context });
+      const rewritten = render({
+        asset,
+        linkText,
+        context: { form, declaredKind },
+      });
 
       // Punctuation only comes back on a bare URL, where it was the sentence's rather
       // than the link's. Inside `![](…)` or `{{[[pdf]]: …}}` the token is delimited
