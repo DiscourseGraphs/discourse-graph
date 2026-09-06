@@ -2,7 +2,8 @@ import type { RelationInstance } from "~/types";
 
 /**
  * Pure frontmatter/relation helpers behind discourseLinkUtils, kept free of
- * Obsidian imports so they stay directly testable.
+ * Obsidian imports so the counting rules can be read and changed without
+ * untangling them from link resolution.
  */
 
 const asString = (value: unknown): string | undefined =>
