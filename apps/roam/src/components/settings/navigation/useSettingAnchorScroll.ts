@@ -10,20 +10,13 @@ const FLASH_DURATION_MS = 1600;
 
 const flashTimeouts = new WeakMap<Element, number>();
 
-/**
- * Marks the row that was jumped to, and owns the class for the whole animation.
- *
- * Deliberately not scoped to the effect below: finding the row settles the jump,
- * which clears `anchorId` and so re-runs the effect. An effect-scoped cleanup
- * would strip the class on that very next render, and the flash would never be
- * seen.
- */
+/** Owns the flash independently of the effect: settling clears anchorId and re-runs the
+ *  effect, whose cleanup would otherwise strip the class before it is seen. */
 const flashRow = (target: Element): void => {
   const pending = flashTimeouts.get(target);
   if (pending !== undefined) window.clearTimeout(pending);
 
-  // Removing and forcing a reflow restarts the animation, so jumping to the same
-  // row twice flashes twice rather than riding the first animation out.
+  // Remove and reflow so hitting the same row twice restarts the animation.
   target.classList.remove(SETTING_ANCHOR_FLASH_CLASS);
   target.getBoundingClientRect();
   target.classList.add(SETTING_ANCHOR_FLASH_CLASS);
@@ -67,7 +60,6 @@ export const useSettingAnchorScroll = ({
     };
 
     rafId = requestAnimationFrame(look);
-    // Only the lookup is cancellable; the flash owns its own lifetime.
     return () => cancelAnimationFrame(rafId);
   }, [anchorId, onSettled]);
 };

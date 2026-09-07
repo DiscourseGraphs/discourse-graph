@@ -23,8 +23,7 @@ const SettingsSearchResult = ({
   onSelect: (entry: SearchableEntry) => void;
 }): JSX.Element => (
   <MenuItem
-    // `data-active` is what the scroll effect looks for, mirroring
-    // DiscourseNodeSearchMenu.
+    // `data-active` is what the scroll effect looks for.
     data-active={isActive}
     active={isActive}
     icon={entry.kind === "page" ? "document" : "cog"}
@@ -32,8 +31,7 @@ const SettingsSearchResult = ({
     text={
       <div className="flex flex-col">
         <span>{entry.label}</span>
-        {/* Undimmed on purpose: white on the active row's `#137CBD` is 4.5:1, and any
-            opacity below 100% drops under AA for text this size (80% measures 3.5:1). */}
+        {/* Undimmed: any opacity drops white-on-#137CBD below AA. */}
         <span
           className={`text-xs ${isActive ? "text-inherit" : "text-gray-500"}`}
         >
@@ -41,8 +39,7 @@ const SettingsSearchResult = ({
         </span>
       </div>
     }
-    // Selecting on mousedown so the choice lands before the input's blur closes
-    // the list out from under the pointer.
+    // Select on mousedown, before the input's blur closes the list.
     onMouseDown={(event: React.MouseEvent) => {
       event.preventDefault();
       onSelect(entry);
@@ -69,8 +66,7 @@ const SettingsSearchField = ({
   );
   const isShowingResults = isOpen && query.trim() !== "";
 
-  // Keeps the keyboard-selected row visible when the list scrolls, following
-  // the same approach as DiscourseNodeSearchMenu.
+  // Keeps the keyboard-selected row visible.
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -97,8 +93,7 @@ const SettingsSearchField = ({
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Escape") {
-      // Stopping propagation so Escape clears the search rather than closing
-      // the whole Settings dialog out from under a half-typed query.
+      // Escape clears the query instead of closing the dialog.
       if (query !== "") event.stopPropagation();
       setQuery("");
       setIsOpen(false);
