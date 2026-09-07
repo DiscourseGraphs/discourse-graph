@@ -35,6 +35,13 @@ export class RelationsIndex {
     this.plugin.registerEvent(vault.on("modify", invalidateIfRelationsFile));
     this.plugin.registerEvent(vault.on("create", invalidateIfRelationsFile));
     this.plugin.registerEvent(vault.on("delete", invalidateIfRelationsFile));
+    // Both directions: the file moving out of the root, and one moving in.
+    this.plugin.registerEvent(
+      vault.on("rename", (file, oldPath) => {
+        if (oldPath === getRelationsFilePath()) this.invalidate();
+        else invalidateIfRelationsFile(file);
+      }),
+    );
 
     void this.ensureLoaded();
   }
