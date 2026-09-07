@@ -85,23 +85,27 @@ const BlogPost = async ({ params }: Params): Promise<React.ReactElement> => {
   try {
     const { default: MDXContent, sourceCode } = await loadBlogPage(slug);
     const showsPrimaryHeading = hasPrimaryHeading(sourceCode);
+    const articleStructuredData = createArticleStructuredData({
+      author: blog.author,
+      datePublished: blog.date,
+      description: blog.description,
+      keywords: blog.tags,
+      path: `/blog/${blog.slug}`,
+      title: blog.title,
+    });
 
     return (
       <div className="flex flex-1 flex-col items-center bg-gray-50 px-6 py-12">
         <JsonLd
           data={createStructuredDataDocument([
-            createArticleStructuredData({
-              author: blog.author,
-              datePublished: blog.date,
-              description: blog.description,
-              keywords: blog.tags,
-              path: `/blog/${blog.slug}`,
-              title: blog.title,
-            }),
+            ...(articleStructuredData ? [articleStructuredData] : []),
             createBreadcrumbStructuredData([
               { name: "Home", path: "/" },
               { name: "Updates", path: "/blog" },
-              { name: blog.title, path: `/blog/${blog.slug}` },
+              {
+                name: blog.title.trim() || blog.slug,
+                path: `/blog/${blog.slug}`,
+              },
             ]),
           ])}
         />

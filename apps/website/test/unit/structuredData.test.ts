@@ -85,12 +85,31 @@ describe("structured data", () => {
       });
 
       expect(article).toMatchObject({ "@type": "Article" });
+      if (!article) throw new Error("Expected valid article markup");
       const serializedDocument: unknown = JSON.parse(
         serializeStructuredData(createStructuredDataDocument([article])),
       );
       expect(serializedDocument).not.toHaveProperty("@graph.0.description");
     },
   );
+
+  it.each([
+    { datePublished: "September 7, 2026" },
+    { author: "" },
+    { title: "" },
+    { keywords: [""] },
+  ])("omits invalid article markup without throwing (%j)", (frontmatter) => {
+    expect(
+      createArticleStructuredData({
+        author: "Joel Chan",
+        datePublished: "2026-09-07",
+        keywords: [],
+        path: "/blog/update",
+        title: "Update",
+        ...frontmatter,
+      }),
+    ).toBeNull();
+  });
 
   it("omits a non-routable category from nested docs breadcrumbs", () => {
     const breadcrumbs = createDocsBreadcrumbStructuredData({

@@ -192,10 +192,10 @@ export const createArticleStructuredData = ({
   keywords: string[];
   path: string;
   title: string;
-}): StructuredDataNode => {
+}): StructuredDataNode | null => {
   const url = absoluteUrl(path);
 
-  return ArticleSchema.parse({
+  const result = ArticleSchema.safeParse({
     "@type": "Article",
     headline: title,
     datePublished,
@@ -206,6 +206,9 @@ export const createArticleStructuredData = ({
     description: description?.trim() || undefined,
     keywords: keywords.length ? keywords : undefined,
   });
+
+  // Existing frontmatter is more permissive; optional markup must not break posts.
+  return result.success ? result.data : null;
 };
 
 export const createBreadcrumbStructuredData = (
