@@ -24,7 +24,9 @@ import { createDiscourseContextOverlayExtension } from "~/utils/discourseContext
 import {
   createDiscourseContextOverlayPostProcessor,
   registerDiscourseContextOverlayRefresh,
+  refreshDiscourseContextOverlaySurfaces,
 } from "~/utils/discourseContextOverlayPostProcessor";
+import { refreshMarkdownEditors } from "~/utils/markdownViewRefresh";
 import { closeDiscourseContextPopover } from "~/components/DiscourseContextPopover";
 import {
   registerCommands,
@@ -42,10 +44,6 @@ import { InlineNodeTypePicker } from "~/components/InlineNodeTypePicker";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
 import { RelationsIndex } from "~/utils/relationsIndex";
-import {
-  refreshMarkdownEditors,
-  refreshMarkdownPreviews,
-} from "~/utils/markdownViewRefresh";
 import generateUid from "~/utils/generateUid";
 import {
   migrateFrontmatterRelationsToRelationsJson,
@@ -304,8 +302,7 @@ export default class DiscourseGraphPlugin extends Plugin {
    * or disappears immediately when its setting is toggled, without a reload.
    */
   refreshDiscourseContextOverlay(): void {
-    refreshMarkdownEditors(this.app);
-    refreshMarkdownPreviews(this.app);
+    refreshDiscourseContextOverlaySurfaces(this);
   }
 
   setHelpMenuStatusBarItemVisibility(): void {

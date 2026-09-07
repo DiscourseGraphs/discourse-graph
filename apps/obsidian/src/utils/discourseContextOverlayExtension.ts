@@ -123,25 +123,32 @@ export const createDiscourseContextOverlayExtension = (
     class {
       decorations: DecorationSet;
       private enabled: boolean;
+      private indexVersion: number;
 
       constructor(view: EditorView) {
         this.enabled = plugin.settings.showDiscourseContextOverlay;
+        this.indexVersion = plugin.relationsIndex.getVersion();
         this.decorations = buildBadgeDecorations(view, plugin);
       }
 
       update(update: ViewUpdate): void {
-        // The setting is toggled by dispatching an empty transaction, which
-        // changes neither the document nor the viewport, so it has to be
-        // compared explicitly or the toggle would appear to do nothing.
+        // Everything that changes a badge from outside the document — the
+        // setting, and the relation counts themselves — arrives as an empty
+        // transaction, which changes neither the document nor the viewport. Both
+        // have to be compared explicitly, or the redraw silently does nothing
+        // and badges keep a count from before the last relation change.
         const enabled = plugin.settings.showDiscourseContextOverlay;
+        const indexVersion = plugin.relationsIndex.getVersion();
         if (
           !update.docChanged &&
           !update.viewportChanged &&
-          enabled === this.enabled
+          enabled === this.enabled &&
+          indexVersion === this.indexVersion
         ) {
           return;
         }
         this.enabled = enabled;
+        this.indexVersion = indexVersion;
         this.decorations = buildBadgeDecorations(update.view, plugin);
       }
     },

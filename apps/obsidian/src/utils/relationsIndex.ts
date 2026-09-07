@@ -22,6 +22,12 @@ export class RelationsIndex {
   private inFlight: Promise<void> | null = null;
   private stale = false;
   private unloaded = false;
+  /**
+   * Incremented every time the snapshot is replaced. Lets a caller that cannot
+   * subscribe — a CodeMirror ViewPlugin, whose update() only sees transactions —
+   * detect that counts changed by comparing versions.
+   */
+  private version = 0;
   private subscribers = new Set<() => void>();
   /**
    * Bumped on every invalidation. A load that started before the bump is stale
@@ -58,6 +64,11 @@ export class RelationsIndex {
     this.generation += 1;
   }
 
+  /** Changes whenever the snapshot is replaced; see the field comment. */
+  getVersion(): number {
+    return this.version;
+  }
+
   /**
    * Notifies when the snapshot changes, so a caller that rendered against a
    * cold or stale index can render again. Returns an unsubscribe function.
@@ -81,6 +92,7 @@ export class RelationsIndex {
         if (generation !== this.generation || this.unloaded) return;
         this.index = buildEndpointIndex(relationsFile.relations ?? {});
         this.stale = false;
+        this.version += 1;
       } finally {
         // Must clear on every path. Leaving it set would make ensureLoaded
         // hand out a settled promise forever, so the snapshot would stay stale

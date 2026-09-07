@@ -25,18 +25,3 @@ export const refreshMarkdownEditors = (app: App): void => {
     }
   });
 };
-
-/**
- * Re-renders every open Reading view.
- *
- * Reading view has no equivalent of the CM6 no-op transaction: markdown post
- * processors only run when content is rendered, so a setting that changes what
- * they emit needs the already-rendered content thrown away and rebuilt.
- */
-export const refreshMarkdownPreviews = (app: App): void => {
-  app.workspace.iterateAllLeaves((leaf) => {
-    if (leaf.view instanceof MarkdownView) {
-      leaf.view.previewMode?.rerender(true);
-    }
-  });
-};
