@@ -192,7 +192,7 @@ export const createArticleStructuredData = ({
     publisher: { "@id": ORGANIZATION_ID },
     mainEntityOfPage: url,
     url,
-    description,
+    description: description?.trim() || undefined,
     keywords: keywords.length ? keywords : undefined,
   });
 };

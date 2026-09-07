@@ -72,6 +72,27 @@ describe("structured data", () => {
     });
   });
 
+  it.each([undefined, "", "   "])(
+    "accepts an optional blank article description (%s)",
+    (description) => {
+      const article = createArticleStructuredData({
+        author: "Joel Chan",
+        datePublished: "2026-09-02",
+        description,
+        keywords: [],
+        path: "/blog/project-update",
+        title: "Project update",
+      });
+
+      expect(article).toMatchObject({ "@type": "Article" });
+      expect(
+        JSON.parse(
+          serializeStructuredData(createStructuredDataDocument([article])),
+        )["@graph"][0],
+      ).not.toHaveProperty("description");
+    },
+  );
+
   it("omits a non-routable category from nested docs breadcrumbs", () => {
     const breadcrumbs = createDocsBreadcrumbStructuredData({
       mdxPath: ["advanced-features", "command-palette"],
