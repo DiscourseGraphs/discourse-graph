@@ -1,7 +1,16 @@
 import type { EvaluateResult } from "nextra";
 import { useMDXComponents } from "mdx-components";
+import { DocsPageHeading } from "./DocsPageHeading";
 
 type DocsPageTemplateProps = Omit<EvaluateResult, "default"> & {
+  children: ({
+    h1,
+  }: {
+    h1: React.ComponentType<React.HTMLAttributes<HTMLHeadingElement>>;
+  }) => React.ReactNode;
+};
+
+type DocsPageWrapperProps = Omit<DocsPageTemplateProps, "children"> & {
   children: React.ReactNode;
 };
 
@@ -15,17 +24,24 @@ const DocsPageTemplate = ({
   ...wrapperProps
 }: DocsPageTemplateProps): React.ReactElement => {
   const { h1, wrapper } = useMDXComponents();
-  const Wrapper = wrapper as React.ComponentType<DocsPageTemplateProps>;
+  const Wrapper = wrapper as React.ComponentType<DocsPageWrapperProps>;
   const H1 = h1 as React.ComponentType<
-    React.HTMLAttributes<HTMLHeadingElement> & {
-      children: React.ReactNode;
-    }
+    React.HTMLAttributes<HTMLHeadingElement>
   >;
+  const showsPrimaryHeading = hasPrimaryHeading(sourceCode);
+  const PageHeading = (
+    headingProps: React.HTMLAttributes<HTMLHeadingElement>,
+  ): React.ReactElement =>
+    DocsPageHeading({
+      headingComponent: H1,
+      headingProps,
+      metadata,
+    });
 
   return (
     <Wrapper metadata={metadata} sourceCode={sourceCode} {...wrapperProps}>
-      {!hasPrimaryHeading(sourceCode) && <H1>{metadata.title}</H1>}
-      {children}
+      {!showsPrimaryHeading && <PageHeading>{metadata.title}</PageHeading>}
+      {children({ h1: PageHeading })}
     </Wrapper>
   );
 };
