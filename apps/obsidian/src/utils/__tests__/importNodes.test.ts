@@ -507,4 +507,163 @@ describe("source document import", () => {
       h.create.mock.calls.filter(([path]) => path.includes("SRC -")),
     ).toHaveLength(1);
   });
+
+  it("keeps distinct same-titled Sources and their relations through repeated pulls", async () => {
+    const h = createHarness();
+    h.concepts.push(
+      {
+        ...h.concepts.find((row) => row.id === 20)!,
+        id: 22,
+        source_local_id: "second-evidence",
+        core_title: "Second evidence",
+        sourceDocument: 23,
+      },
+      {
+        ...h.concepts.find((row) => row.id === 21)!,
+        id: 23,
+        source_local_id: "second-source",
+      },
+    );
+    h.contentRows.push(
+      ...h.contentRows.map((row) => ({
+        ...row,
+        source_local_id: `second-${String(row.source_local_id)}`,
+        text: `Second ${String(row.text)}`,
+      })),
+    );
+    const pull = () =>
+      importSelectedNodes({
+        plugin: h.plugin,
+        selectedNodes: [
+          selectedNode,
+          { ...selectedNode, nodeInstanceId: "second-evidence" },
+        ],
+      });
+    expect(await pull()).toEqual({ success: 2, failed: 0 });
+    const sources = [...h.files.values()].filter(
+      (file) =>
+        matter(h.contents.get(file.path)!).data.nodeTypeId === "source-type",
+    );
+    expect(sources).toHaveLength(2);
+    const sourceContents = sources.map((file) => h.contents.get(file.path)!);
+    expect(
+      sourceContents.some(
+        (content) => matter(content).content.trim() === "source body",
+      ),
+    ).toBe(true);
+    expect(
+      sourceContents.some(
+        (content) => matter(content).content.trim() === "Second source body",
+      ),
+    ).toBe(true);
+    const relations = Object.values((await loadRelations(h.plugin)).relations);
+    expect(relations).toHaveLength(2);
+    expect(new Set(relations.map((relation) => relation.destination))).toEqual(
+      new Set(
+        sourceContents.map((content) =>
+          String(matter(content).data.importedFromRid),
+        ),
+      ),
+    );
+    const paths = [...h.files.keys()];
+    await pull();
+    await refreshImportedFile({ plugin: h.plugin, file: sources[1]! });
+    await pull();
+    expect([...h.files.keys()]).toEqual(paths);
+    expect(Object.values((await loadRelations(h.plugin)).relations)).toEqual(
+      relations,
+    );
+    expect(h.renameFile).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])(
+    "resolves a local Source despite a same-ID import (Datacore=%s)",
+    async (datacore) => {
+      const h = createHarness();
+      h.concepts.find((row) => row.id === 21)!.space_id = 1;
+      await h.seedSource();
+      const localSource = await h.create(
+        "Local source.md",
+        matter.stringify("Local source", {
+          nodeInstanceId: "source",
+          nodeTypeId: "source-type",
+        }),
+      );
+      if (datacore)
+        Object.assign(h.plugin.app, {
+          plugins: {
+            plugins: {
+              datacore: {
+                api: {
+                  query: (query: string) =>
+                    [...h.files.values()]
+                      .filter((file) => {
+                        const frontmatter = matter(
+                          h.contents.get(file.path)!,
+                        ).data;
+                        return (
+                          file.extension === "md" &&
+                          [
+                            ...query.matchAll(
+                              /(nodeInstanceId|importedFromRid) = "([^"]+)"/g,
+                            ),
+                          ].every(
+                            ([, key, value]) => frontmatter[key!] === value,
+                          )
+                        );
+                      })
+                      .map((file) => ({ $path: file.path })),
+                },
+              },
+            },
+          },
+        });
+      await h.pull();
+      expect(Object.values((await loadRelations(h.plugin)).relations)).toEqual([
+        expect.objectContaining({ source: evidenceRid, destination: "source" }),
+      ]);
+      expect(h.contents.get(localSource.path)).toContain("Local source");
+    },
+  );
+
+  it.each([false, true])(
+    "does not confuse same-ID local and imported relations (local RIDs=%s)",
+    async (localRids) => {
+      const h = createHarness();
+      for (const id of ["evidence", "source"]) {
+        await h.create(
+          `Local ${id}.md`,
+          matter.stringify(`Local ${id} body`, {
+            nodeInstanceId: id,
+            nodeTypeId: `${id}-type`,
+          }),
+        );
+      }
+      const manual: RelationInstance = {
+        id: "local-relation",
+        type: "based-on",
+        source: localRids
+          ? spaceUriAndLocalIdToRid("obsidian:local-vault", "evidence", "note")
+          : "evidence",
+        destination: localRids
+          ? spaceUriAndLocalIdToRid("obsidian:local-vault", "source", "note")
+          : "source",
+        created: 1,
+      };
+      await saveRelations(h.plugin, {
+        version: 1,
+        lastModified: 1,
+        relations: { [manual.id]: manual },
+      });
+      await h.pull();
+      await h.pull();
+      expect(Object.values((await loadRelations(h.plugin)).relations)).toEqual([
+        manual,
+        expect.objectContaining({
+          source: evidenceRid,
+          destination: sourceRid,
+        }),
+      ]);
+    },
+  );
 });
