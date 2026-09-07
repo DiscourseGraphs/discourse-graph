@@ -9,7 +9,10 @@ import {
 } from "@codemirror/view";
 import { editorInfoField, editorLivePreviewField } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
-import { createDiscourseContextBadge } from "~/components/discourseContextBadge";
+import {
+  createDiscourseContextBadge,
+  updateDiscourseContextBadge,
+} from "~/components/discourseContextBadge";
 import { openDiscourseContextPopover } from "~/components/DiscourseContextPopover";
 import {
   resolveDiscourseLinkTarget,
@@ -48,6 +51,19 @@ class DiscourseContextBadgeWidget extends WidgetType {
           relationCount: this.target.relationCount,
         }),
     });
+  }
+
+  /**
+   * Updates in place so a popover anchored to this badge keeps a connected
+   * anchor; without this CM6 replaces the element on every count change.
+   */
+  updateDOM(dom: HTMLElement): boolean {
+    updateDiscourseContextBadge({
+      badge: dom,
+      nodeType: this.target.nodeType,
+      relationCount: this.target.relationCount,
+    });
+    return true;
   }
 
   /** True (the CM6 default) means the editor ignores the event, so our click handler runs. */
