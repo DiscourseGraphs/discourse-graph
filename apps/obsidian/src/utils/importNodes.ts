@@ -18,7 +18,10 @@ import {
   getImportedNodesInfo,
   getLocalNodeKeyToEndpointId,
 } from "~/utils/relationsStore";
-import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
+import {
+  ridToSpaceUriAndLocalId,
+  spaceUriAndLocalIdToRid,
+} from "@repo/database/lib/rid";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Tables } from "@repo/database/dbTypes";
 import { getSpaceNameIdFromRid } from "./spaceFromRid";
@@ -1307,7 +1310,13 @@ const importSourceDocumentRelations = async ({
     const file =
       importedFiles.get(rid) ??
       (source.space_id === localSpaceId
-        ? queryEngine.getFileByEndpoint(source.source_local_id)
+        ? queryEngine
+            .getFilesWithNodeTypeId({ excludeImported: true })
+            .find(
+              (file) =>
+                plugin.app.metadataCache.getFileCache(file)?.frontmatter
+                  ?.nodeInstanceId === source.source_local_id,
+            )
         : queryEngine.getFileByImportedFromRid(rid));
     if (file) {
       sourceFiles.set(source.id, file);
@@ -1336,6 +1345,34 @@ const importSourceDocumentRelations = async ({
   }
 
   const localSpaceUri = getLocalSpaceUri(plugin.app);
+  const indexedFiles = queryEngine.getFilesWithNodeInstanceId();
+  const legacyEndpointsForFile = ({
+    file,
+    nodeInstanceId,
+  }: {
+    file: TFile;
+    nodeInstanceId: string;
+  }): string[] => {
+    // Bare IDs and vault RIDs are ambiguous when another space uses the same ID.
+    const hasOtherFile =
+      indexedFiles.some(
+        (candidate) =>
+          candidate !== file &&
+          plugin.app.metadataCache.getFileCache(candidate)?.frontmatter
+            ?.nodeInstanceId === nodeInstanceId,
+      ) ||
+      [...importedFiles].some(
+        ([rid, candidate]) =>
+          candidate !== file &&
+          ridToSpaceUriAndLocalId(rid).sourceLocalId === nodeInstanceId,
+      );
+    return hasOtherFile
+      ? []
+      : [
+          nodeInstanceId,
+          spaceUriAndLocalIdToRid(localSpaceUri, nodeInstanceId, "note"),
+        ];
+  };
   for (const { file, nodeId, sourceDocumentId } of nodesWithSource) {
     const sourceFile = sourceFiles.get(sourceDocumentId);
     if (!sourceFile) {
@@ -1374,13 +1411,14 @@ const importSourceDocumentRelations = async ({
     const relations = await loadRelations(plugin);
     const currentEndpoints = [
       currentEndpoint,
-      nodeId,
-      spaceUriAndLocalIdToRid(localSpaceUri, nodeId, "note"),
+      ...legacyEndpointsForFile({ file, nodeInstanceId: nodeId }),
     ];
     const sourceEndpoints = [
       sourceEndpoint,
-      source.nodeInstanceId,
-      spaceUriAndLocalIdToRid(localSpaceUri, source.nodeInstanceId, "note"),
+      ...legacyEndpointsForFile({
+        file: sourceFile,
+        nodeInstanceId: source.nodeInstanceId,
+      }),
     ];
     if (
       currentEndpoints.some((from) =>
@@ -1582,6 +1620,20 @@ const importNodes = async ({
             : `${sanitizedFileName}.md`;
           finalFilePath = `${importFolderPath}/${pathUnderImport}`;
 
+          const desiredFilePath = finalFilePath;
+          let counter = 1;
+          let occupiedFile: TFile | null;
+          while (
+            (occupiedFile = plugin.app.vault.getFileByPath(finalFilePath))
+          ) {
+            const { frontmatter } = parseFrontmatter(
+              await plugin.app.vault.read(occupiedFile),
+            );
+            if (frontmatter.importedFromRid === importedFromRid) break;
+            finalFilePath = `${desiredFilePath.slice(0, -3)} (${counter}).md`;
+            counter++;
+          }
+
           // Ensure all parent folders exist (e.g. import/VaultName/Discourse Nodes/SubFolder)
           const dirParts = finalFilePath.split("/");
           for (let i = 1; i < dirParts.length - 1; i++) {
@@ -1638,11 +1690,16 @@ const importNodes = async ({
           const newPath = `${currentDir}/${sanitizedFileName}.md`;
           let targetPath = newPath;
           let counter = 1;
-          while (await plugin.app.vault.adapter.exists(targetPath)) {
+          while (
+            (await plugin.app.vault.adapter.exists(targetPath)) &&
+            plugin.app.vault.getFileByPath(targetPath) !== processedFile
+          ) {
             targetPath = `${currentDir}/${sanitizedFileName} (${counter}).md`;
             counter++;
           }
-          await plugin.app.fileManager.renameFile(processedFile, targetPath);
+          if (targetPath !== processedFile.path) {
+            await plugin.app.fileManager.renameFile(processedFile, targetPath);
+          }
         }
 
         // The metadata cache can lag behind vault writes during a batch import.
