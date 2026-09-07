@@ -20,6 +20,13 @@ import {
 } from "~/utils/editorMenuUtils";
 import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
 import { createWikilinkDragExtension } from "~/utils/wikilinkDragHandler";
+import { createDiscourseContextOverlayExtension } from "~/utils/discourseContextOverlayExtension";
+import {
+  registerDiscourseContextOverlayRefresh,
+  refreshDiscourseContextOverlaySurfaces,
+} from "~/utils/discourseContextOverlayRefresh";
+import { refreshMarkdownEditors } from "~/utils/markdownViewRefresh";
+import { closeDiscourseContextPopover } from "~/components/DiscourseContextPopover";
 import {
   registerCommands,
   createModifyNodeModalSubmitHandler,
@@ -101,6 +108,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     }
 
     this.relationsIndex.initialize();
+    registerDiscourseContextOverlayRefresh(this);
 
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
@@ -272,34 +280,20 @@ export default class DiscourseGraphPlugin extends Plugin {
       }),
     );
 
-    type EditorWithCm = { cm: EditorView };
-    const hasCodeMirrorView = (editor: unknown): editor is EditorWithCm => {
-      if (!editor || typeof editor !== "object") return false;
-      return "cm" in editor;
-    };
-
-    // Dispatch a no-op CM6 transaction to every markdown editor so their
-    // ViewPlugin re-evaluates hasVisibleCanvasLeaf and shows/hides widgets.
-    // layout-change covers splits/moves, active-leaf-change covers tab switches.
-    const refreshMarkdownEditors = (): void => {
-      this.app.workspace.iterateAllLeaves((leaf) => {
-        if (
-          leaf.view instanceof MarkdownView &&
-          hasCodeMirrorView(leaf.view.editor)
-        ) {
-          leaf.view.editor.cm.dispatch({});
-        }
-      });
-    };
+    // Re-evaluate ViewPlugins on splits/moves (layout-change) and tab switches.
+    const refreshEditors = (): void => refreshMarkdownEditors(this.app);
+    this.registerEvent(this.app.workspace.on("layout-change", refreshEditors));
     this.registerEvent(
-      this.app.workspace.on("layout-change", refreshMarkdownEditors),
-    );
-    this.registerEvent(
-      this.app.workspace.on("active-leaf-change", refreshMarkdownEditors),
+      this.app.workspace.on("active-leaf-change", refreshEditors),
     );
 
     // Register editor keydown listener for node tag hotkey
     this.setupNodeTagHotkey();
+  }
+
+  /** Applies the overlay setting immediately, without a reload. */
+  refreshDiscourseContextOverlay(): void {
+    refreshDiscourseContextOverlaySurfaces(this);
   }
 
   setHelpMenuStatusBarItemVisibility(): void {
@@ -373,6 +367,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.registerEditorExtension(createImageEmbedHoverExtension(this));
 
     this.registerEditorExtension(createWikilinkDragExtension(this));
+    this.registerEditorExtension(createDiscourseContextOverlayExtension(this));
   }
 
   updateFrontmatterStyles(): void {
@@ -493,6 +488,8 @@ export default class DiscourseGraphPlugin extends Plugin {
       this.fileChangeListener = null;
     }
 
+    // Lives on document.body with its own listeners; would outlive the plugin.
+    closeDiscourseContextPopover();
     this.relationsIndex.unload();
   }
 }
