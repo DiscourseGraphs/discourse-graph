@@ -5,11 +5,15 @@ description: Run a comprehensive, read-only code review in a separate subagent, 
 
 # DG Delegated Full Review
 
-Use this skill only when the user invokes it directly. Do not select it automatically.
+Use this skill only when the user invokes it directly or an explicitly requested workflow invokes it. Do not select it automatically.
 
 Use `$dg-engineering-writing-style` when available. Look for it in the repository's `./.agents/skills` folder.
 
 Run the review outside the primary agent's context. Do not modify files, fix findings, or delegate from the review subagent.
+
+## Workflow reference
+
+May be selected by `$mg-run-scoped-engineering-workflow` at step 6 through its review dispatcher. Standalone use remains supported. This skill owns the single review subagent; never route back through the personal dispatcher. Preserve any caller-supplied acceptance boundary alongside the review target.
 
 ## Resolve the target
 
@@ -21,7 +25,7 @@ Run the review outside the primary agent's context. Do not modify files, fix fin
 
 Create exactly one read-only subagent or task in the current working directory. Use the host-specific path that matches the available tools without asking the user which host is running:
 
-- In Codex, spawn an agent thread and direct it to run `/review` for the resolved target.
+- In Codex, spawn a subagent (not a new user-visible task) and direct it to run `/review` for the resolved target.
 - In Claude Code, use an `Agent` subagent and direct it to run `/review`, the alias for `/code-review`. Use `/code-review` if the alias is unavailable.
 - In another agent host, use its task or subagent mechanism and give the worker the natural-language review instructions below.
 
@@ -37,7 +41,7 @@ Wait for the worker to finish. Return its findings to the primary conversation, 
 
 Capture the result before cleanup.
 
-- In Codex, close the completed agent thread when a non-destructive close or archive action is available. Otherwise report that the runtime does not support cleanup.
+- In Codex, close the completed subagent when a non-destructive close or archive action is available. Otherwise report that the runtime does not support cleanup.
 - Claude Code subagents are ephemeral and need no separate archive action.
 - In another host, close or archive the completed task when a non-destructive lifecycle action is available.
 
