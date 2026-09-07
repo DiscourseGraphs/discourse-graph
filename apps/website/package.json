@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "check-types": "tsc --noEmit --skipLibCheck",
-    "test:unit": "vitest run --config vitest.unit.config.mts",
+    "test:unit": "node --test scripts/build-docs-search-index.test.mjs && vitest run --config vitest.unit.config.mts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:integration:nodb": "vitest run --config vitest.integration.config.ts --tags-filter '!database'"
   },
