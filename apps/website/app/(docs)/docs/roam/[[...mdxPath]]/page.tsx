@@ -60,7 +60,10 @@ const Page = async ({ params }: DocsPageProps): Promise<React.ReactElement> => {
         />
         <DocsPageTemplate metadata={metadata} {...wrapperProps}>
           {({ h1 }) => (
-            <MDXContent components={{ h1 }} params={{ mdxPath: mdxPath ?? [] }} />
+            <MDXContent
+              components={{ h1 }}
+              params={{ mdxPath: mdxPath ?? [] }}
+            />
           )}
         </DocsPageTemplate>
       </>
