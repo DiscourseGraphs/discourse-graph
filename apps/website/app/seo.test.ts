@@ -26,10 +26,6 @@ describe("canonical metadata", () => {
       docs: "https://discoursegraphs.com/docs",
       extractNodes: "https://discoursegraphs.com/extract-nodes",
       home: "https://discoursegraphs.com/",
-      nextra: "https://discoursegraphs.com/nextra",
-      nextraGettingStarted:
-        "https://discoursegraphs.com/nextra/getting-started",
-      nextraTemplates: "https://discoursegraphs.com/nextra/templates",
     });
   });
 

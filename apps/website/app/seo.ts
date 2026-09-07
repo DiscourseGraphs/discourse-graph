@@ -7,9 +7,6 @@ export const PUBLIC_STATIC_PATHS = {
   docs: "/docs",
   extractNodes: "/extract-nodes",
   home: "/",
-  nextra: "/nextra",
-  nextraGettingStarted: "/nextra/getting-started",
-  nextraTemplates: "/nextra/templates",
 } as const;
 
 export const getCanonicalUrl = (pathname: string): URL =>

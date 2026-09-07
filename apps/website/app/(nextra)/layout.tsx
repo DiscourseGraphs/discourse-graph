@@ -1,14 +1,8 @@
 import { getPageMap } from "nextra/page-map";
 import type { PageMapItem } from "nextra";
-import type { Metadata } from "next";
 import { Footer, Layout, Navbar } from "nextra-theme-docs";
 import "./nextra-css.css";
 import "nextra-theme-docs/style-prefixed.css";
-import { getCanonicalMetadata, PUBLIC_STATIC_PATHS } from "~/seo";
-
-export const metadata: Metadata = getCanonicalMetadata(
-  PUBLIC_STATIC_PATHS.nextra,
-);
 
 type DocsNextraLayoutProps = {
   children: React.ReactNode;
