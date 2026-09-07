@@ -31,25 +31,31 @@ describe("buildDocsPageMetadata", () => {
     });
   });
 
-  it("creates an accurate platform-specific description for sparse pages", () => {
-    const metadata = buildDocsPageMetadata({
-      metadata: {
-        title: "Node search",
-        author: "",
-        date: "2026-08-23",
-      },
-      platform: "obsidian",
-    });
+  it.each([
+    ["obsidian", "Obsidian plugin"],
+    ["roam", "Roam Research extension"],
+  ] as const)(
+    "creates an accurate %s description for sparse pages",
+    (platform, product) => {
+      const metadata = buildDocsPageMetadata({
+        metadata: {
+          title: "Node search",
+          author: "",
+          date: "2026-08-23",
+        },
+        platform,
+      });
 
-    expect(metadata.description).toBe(
-      "Node search documentation for the Discourse Graph Obsidian plugin.",
-    );
-    expect(metadata.authors).toEqual([{ name: DOCS_AUTHOR }]);
-    expect(metadata.openGraph).toMatchObject({
-      publishedTime: "2026-08-23",
-      modifiedTime: undefined,
-    });
-  });
+      expect(metadata.description).toBe(
+        `Node search documentation for the Discourse Graph ${product}.`,
+      );
+      expect(metadata.authors).toEqual([{ name: DOCS_AUTHOR }]);
+      expect(metadata.openGraph).toMatchObject({
+        publishedTime: "2026-08-23",
+        modifiedTime: undefined,
+      });
+    },
+  );
 });
 
 describe("getDocsPageDetails", () => {

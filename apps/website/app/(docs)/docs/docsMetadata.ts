@@ -43,7 +43,7 @@ export const buildDocsPageMetadata = ({
   const title = getTitle(metadata);
   const description =
     getNonEmptyString(metadata.description) ??
-    `${title} documentation for the Discourse Graph ${getPlatformLabel(platform)} plugin.`;
+    `${title} documentation for the Discourse Graph ${getPlatformLabel(platform)} ${platform === "roam" ? "extension" : "plugin"}.`;
   const { author, publishedAt, updatedAt } = getDocsPageDetails(metadata);
 
   return {
