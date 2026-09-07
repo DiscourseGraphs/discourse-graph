@@ -7,6 +7,8 @@ import {
   createBreadcrumbStructuredData,
   createStructuredDataDocument,
 } from "~/utils/structuredData";
+import { AuthorLink } from "~/components/AuthorLink";
+import { getAuthorProfileByName } from "~/data/authorProfiles";
 import type { BlogData } from "../blogSchema";
 import { getAllBlogs, getBlogBySlug } from "../readBlogs";
 import { getBlogPostPath, getCanonicalMetadata, getCanonicalUrl } from "~/seo";
@@ -47,12 +49,18 @@ const buildBlogPostMetadata = ({
     metadata: pageMetadata,
   });
   const canonicalPath = getBlogPostPath(blog.slug);
+  const authorProfile = getAuthorProfileByName(blog.author);
 
   return {
     ...pageMetadata,
     title: blog.title,
     description,
-    authors: [{ name: blog.author }],
+    authors: [
+      {
+        name: blog.author,
+        url: authorProfile ? `/authors/${authorProfile.slug}` : undefined,
+      },
+    ],
     keywords: blog.tags.length ? blog.tags : pageMetadata.keywords,
     alternates: {
       ...pageMetadata.alternates,
@@ -119,7 +127,12 @@ const BlogPost = async ({ params }: Params): Promise<React.ReactElement> => {
           )}
           <div className={showsPrimaryHeading ? "mb-6" : "mb-8 mt-4"}>
             <p className="text-sm italic text-gray-500">
-              By {blog.author} | {blog.date}
+              By{" "}
+              <AuthorLink
+                authorName={blog.author}
+                className="decoration-current/35 underline underline-offset-4 hover:text-blue-600"
+              />{" "}
+              | {blog.date}
             </p>
             {blog.tags.length > 0 && (
               <ul className="mt-4 flex flex-wrap gap-2">

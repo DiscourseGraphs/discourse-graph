@@ -1,19 +1,24 @@
-"use client";
+import type { ReactElement } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-export interface TeamMember {
+export type TeamMember = {
   name: string;
   title: string;
   image: string;
+  profileHref?: string;
   links?: {
     twitter?: string;
     github?: string;
     website?: string;
   };
-}
+};
 
-export function TeamPerson({ member }: { member: TeamMember }) {
+export const TeamPerson = ({
+  member,
+}: {
+  member: TeamMember;
+}): ReactElement => {
   return (
     <div className="flex flex-col items-center space-y-4 text-center">
       <div className="relative h-40 w-40 overflow-hidden rounded-full">
@@ -26,7 +31,16 @@ export function TeamPerson({ member }: { member: TeamMember }) {
       </div>
       <div>
         <h3 className="text-xl font-semibold text-neutral-dark">
-          {member.name}
+          {member.profileHref ? (
+            <Link
+              href={member.profileHref}
+              className="transition-colors hover:text-secondary"
+            >
+              {member.name}
+            </Link>
+          ) : (
+            member.name
+          )}
         </h3>
         <p className="text-neutral-dark/80">{member.title}</p>
       </div>
@@ -73,4 +87,4 @@ export function TeamPerson({ member }: { member: TeamMember }) {
       )}
     </div>
   );
-}
+};
