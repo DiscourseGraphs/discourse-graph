@@ -1,8 +1,10 @@
 import { setIcon, setTooltip, TFile } from "obsidian";
 import type { DiscourseNode } from "~/types";
 
-/** Marks a badge so a re-run can find and replace it. */
+/** Marks a badge so a re-run can find and update it. */
 export const DISCOURSE_CONTEXT_BADGE_CLASS = "dg-discourse-context-badge";
+const BADGE_COUNT_CLASS = "dg-discourse-context-badge-count";
+const BADGE_PATH_ATTR = "data-dg-path";
 
 export type DiscourseContextBadgeProps = {
   file: TFile;
@@ -37,13 +39,14 @@ export const createDiscourseContextBadge = ({
   });
   setIcon(icon, "network");
 
-  badge.createSpan({ text: String(relationCount) });
+  badge.createSpan({ cls: BADGE_COUNT_CLASS, text: String(relationCount) });
 
   const label = badgeTooltip({ nodeType, relationCount });
   setTooltip(badge, label);
   badge.setAttribute("aria-label", label);
   badge.setAttribute("role", "button");
   badge.setAttribute("tabindex", "0");
+  badge.setAttribute(BADGE_PATH_ATTR, file.path);
 
   const activate = (event: Event): void => {
     // Do not follow the link the badge sits next to.
@@ -63,4 +66,29 @@ export const createDiscourseContextBadge = ({
   });
 
   return badge;
+};
+
+/** The badge's target, so a refresh can tell an update from a replacement. */
+export const badgeTargetPath = (badge: Element): string | null =>
+  badge.getAttribute(BADGE_PATH_ATTR);
+
+/**
+ * Updates a badge's count without replacing the element, so an open popover
+ * anchored to it keeps a connected anchor to position against.
+ */
+export const updateDiscourseContextBadge = ({
+  badge,
+  nodeType,
+  relationCount,
+}: {
+  badge: HTMLElement;
+  nodeType: DiscourseNode;
+  relationCount: number;
+}): void => {
+  const count = badge.querySelector(`.${BADGE_COUNT_CLASS}`);
+  if (count) count.textContent = String(relationCount);
+
+  const label = badgeTooltip({ nodeType, relationCount });
+  setTooltip(badge, label);
+  badge.setAttribute("aria-label", label);
 };
