@@ -25,10 +25,7 @@ class DiscourseContextBadgeWidget extends WidgetType {
     super();
   }
 
-  /**
-   * Keyed on everything the badge displays, so it is rebuilt when its content
-   * changes and left alone on every other keystroke in the document.
-   */
+  /** Keyed on what the badge displays, so keystrokes elsewhere do not rebuild it. */
   eq(other: DiscourseContextBadgeWidget): boolean {
     return (
       this.target.file.path === other.target.file.path &&
@@ -53,11 +50,7 @@ class DiscourseContextBadgeWidget extends WidgetType {
     });
   }
 
-  /**
-   * Left at the CM6 default of true: the editor ignores events on the widget,
-   * so the badge's own click listener fires natively. Returning false hands the
-   * event to CM's input handling instead and the badge never reacts.
-   */
+  /** True (the CM6 default) means the editor ignores the event, so our click handler runs. */
   ignoreEvent(): boolean {
     return true;
   }
@@ -68,7 +61,7 @@ const buildBadgeDecorations = (
   plugin: DiscourseGraphPlugin,
 ): DecorationSet => {
   if (!plugin.settings.showDiscourseContextOverlay) return Decoration.none;
-  // Source mode shows raw markdown; a badge there would be noise.
+  // Source mode shows raw markdown; a badge there is noise.
   if (!view.state.field(editorLivePreviewField, false)) return Decoration.none;
 
   const sourcePath = view.state.field(editorInfoField, false)?.file?.path;
@@ -108,14 +101,7 @@ const buildBadgeDecorations = (
   return Decoration.set(widgets, true);
 };
 
-/**
- * Renders the discourse context badge after each link to a discourse node in
- * Live Preview.
- *
- * Rebuilds on document and viewport changes. Changes that originate outside the
- * document — a relation added, a target's frontmatter finishing indexing —
- * arrive as an empty transaction from registerDiscourseContextOverlayRefresh.
- */
+/** Renders the badge after each discourse-node link in Live Preview. */
 export const createDiscourseContextOverlayExtension = (
   plugin: DiscourseGraphPlugin,
 ): ViewPlugin<PluginValue> =>
@@ -132,11 +118,8 @@ export const createDiscourseContextOverlayExtension = (
       }
 
       update(update: ViewUpdate): void {
-        // Everything that changes a badge from outside the document — the
-        // setting, and the relation counts themselves — arrives as an empty
-        // transaction, which changes neither the document nor the viewport. Both
-        // have to be compared explicitly, or the redraw silently does nothing
-        // and badges keep a count from before the last relation change.
+        // Setting and relation changes arrive as an empty transaction, which
+        // changes neither doc nor viewport, so both need comparing explicitly.
         const enabled = plugin.settings.showDiscourseContextOverlay;
         const indexVersion = plugin.relationsIndex.getVersion();
         if (

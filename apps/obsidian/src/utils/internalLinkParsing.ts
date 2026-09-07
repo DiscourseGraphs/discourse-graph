@@ -1,23 +1,9 @@
-/**
- * Pure parsing for internal links in raw markdown, kept free of Obsidian and
- * CodeMirror imports so it can be reused by any caller that has raw markdown
- * rather than an editor.
- */
+// Shared by the CM6 extensions that scan raw markdown for internal links.
 
-/**
- * Wikilinks `[[...]]` and markdown links `[text](path.md)`.
- *
- * Embeds are not excluded here: the leading `!` sits outside the match, so the
- * caller has to check the preceding character.
- */
+/** Embeds are not matched: the leading `!` sits outside, so callers check it. */
 export const INTERNAL_LINK_RE = /\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)]+\.md)\)/g;
 
-/**
- * Extracts the link target from a wikilink or markdown link match.
- *
- * Any `#heading` subpath is left in place; resolving it is the caller's job,
- * since Obsidian's own parseLinktext handles that.
- */
+/** Target of a wikilink or markdown link; any `#subpath` is left for parseLinktext. */
 export const extractLinktext = (match: string): string => {
   if (match.startsWith("[[")) {
     const inner = match.slice(2, -2);

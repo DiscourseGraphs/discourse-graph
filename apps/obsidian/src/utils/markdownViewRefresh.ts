@@ -9,11 +9,8 @@ export const hasCodeMirrorView = (editor: unknown): editor is EditorWithCm => {
 };
 
 /**
- * Dispatches an empty CM6 transaction to every open markdown editor, which
- * forces each ViewPlugin's update() to run and rebuild its decorations.
- *
- * Needed whenever something a ViewPlugin reads changes outside the editor —
- * a setting, or which leaves are visible — since CM6 has no way to know.
+ * Empty CM6 transaction to every open editor, forcing ViewPlugin.update() to
+ * run when something it reads changes outside the editor.
  */
 export const refreshMarkdownEditors = (app: App): void => {
   app.workspace.iterateAllLeaves((leaf) => {

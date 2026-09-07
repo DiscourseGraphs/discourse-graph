@@ -1,11 +1,5 @@
 import type { RelationInstance } from "~/types";
 
-/**
- * Pure frontmatter/relation helpers behind discourseLinkUtils, kept free of
- * Obsidian imports so the counting rules can be read and changed without
- * untangling them from link resolution.
- */
-
 const asString = (value: unknown): string | undefined =>
   typeof value === "string" && value.length > 0 ? value : undefined;
 
@@ -13,13 +7,7 @@ export const getNodeTypeIdFromFrontmatter = (
   frontmatter: Record<string, unknown> | undefined,
 ): string | undefined => asString(frontmatter?.nodeTypeId);
 
-/**
- * The ids a file's relations can be filed under.
- *
- * An imported node is referenced by its local nodeInstanceId and, in relations
- * that arrived with the import, by its importedFromRid — so both must be
- * queried for its relations to be found.
- */
+/** An imported node is referenced by both its nodeInstanceId and its importedFromRid. */
 export const getEndpointIdsFromFrontmatter = (
   frontmatter: Record<string, unknown> | undefined,
 ): string[] => {
@@ -36,16 +24,8 @@ export const getEndpointIdsFromFrontmatter = (
 };
 
 /**
- * Counts the relations the Discourse Context panel would actually list.
- *
- * Two kinds are excluded, and both have to be, or the badge advertises context
- * the panel then refuses to show:
- *
- * - `tentative === false` marks an imported relation the user has not accepted
- *   yet, which the panel lists separately. Local relations leave it undefined.
- * - A relation whose type is no longer configured is orphaned — deleting a
- *   relation type leaves its relations behind in relations.json — and the panel
- *   silently drops those.
+ * Counts what the panel would list. Excludes unaccepted imports and relations
+ * orphaned by a deleted relation type, both of which the panel hides.
  */
 export const countDisplayableRelations = ({
   relations,

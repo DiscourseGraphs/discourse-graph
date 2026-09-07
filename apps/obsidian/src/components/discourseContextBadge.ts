@@ -1,10 +1,7 @@
 import { setIcon, setTooltip, TFile } from "obsidian";
 import type { DiscourseNode } from "~/types";
 
-/**
- * Marks a badge in the DOM. Both render paths check for this before adding one,
- * since Obsidian re-runs post processors over already-rendered sections.
- */
+/** Marks a badge so a re-run can find and replace it. */
 export const DISCOURSE_CONTEXT_BADGE_CLASS = "dg-discourse-context-badge";
 
 export type DiscourseContextBadgeProps = {
@@ -23,12 +20,8 @@ const badgeTooltip = ({
 };
 
 /**
- * The inline badge shown next to a link to a discourse node.
- *
- * Plain DOM rather than React so the CodeMirror widget and the Reading view
- * post processor can share one implementation — neither has a React root, and
- * mounting one per link would be far too heavy. Tailwind utilities work here
- * because they compile to ordinary global classes.
+ * Inline badge next to a link to a discourse node. Plain DOM, not React, so both
+ * render paths share it without mounting a React root per link.
  */
 export const createDiscourseContextBadge = ({
   file,
@@ -53,14 +46,13 @@ export const createDiscourseContextBadge = ({
   badge.setAttribute("tabindex", "0");
 
   const activate = (event: Event): void => {
-    // Stops Obsidian from following the link the badge sits next to.
+    // Do not follow the link the badge sits next to.
     event.preventDefault();
     event.stopPropagation();
     onActivate({ file, anchor: badge });
   };
 
-  // Without this the mousedown still lands in the editor and moves the caret,
-  // which in Live Preview expands the raw [[...]] markup under the popover.
+  // Otherwise the caret moves, expanding the raw [[...]] under the popover.
   badge.addEventListener("mousedown", (event: MouseEvent) => {
     event.preventDefault();
   });

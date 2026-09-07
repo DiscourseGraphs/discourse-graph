@@ -284,9 +284,7 @@ export default class DiscourseGraphPlugin extends Plugin {
       }),
     );
 
-    // Dispatch a no-op CM6 transaction to every markdown editor so their
-    // ViewPlugin re-evaluates hasVisibleCanvasLeaf and shows/hides widgets.
-    // layout-change covers splits/moves, active-leaf-change covers tab switches.
+    // Re-evaluate ViewPlugins on splits/moves (layout-change) and tab switches.
     const refreshEditors = (): void => refreshMarkdownEditors(this.app);
     this.registerEvent(this.app.workspace.on("layout-change", refreshEditors));
     this.registerEvent(
@@ -497,9 +495,7 @@ export default class DiscourseGraphPlugin extends Plugin {
       this.fileChangeListener = null;
     }
 
-    // The popover lives on document.body with its own listeners, so it would
-    // otherwise outlive the plugin — including an Escape handler that would go
-    // on swallowing the key for the rest of the session.
+    // Lives on document.body with its own listeners; would outlive the plugin.
     closeDiscourseContextPopover();
     this.relationsIndex.unload();
   }

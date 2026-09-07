@@ -14,15 +14,6 @@ import { resolveDiscourseLinkTarget } from "./discourseLinkUtils";
 import { getNodeTypeIdFromFrontmatter } from "./discourseLinkFrontmatter";
 import { refreshMarkdownEditors } from "./markdownViewRefresh";
 
-/**
- * Reading view's counterpart to the Live Preview extension.
- *
- * Obsidian runs post processors over rendered sections and reuses those
- * sections, so this must be safe to run repeatedly over content that already
- * has badges — hence the marker-class check per link rather than a one-shot
- * pass. The same guard covers hover previews and exports, which render through
- * this path too.
- */
 const REFRESH_DEBOUNCE_MS = 300;
 
 /** Only a discourse node's own frontmatter can change what a badge shows. */
@@ -35,11 +26,8 @@ const isDiscourseNodeFile = (
   );
 
 /**
- * Adds, updates or removes the badge on every discourse-node link inside `el`.
- *
- * Safe to run repeatedly over the same content, which it has to be: Obsidian
- * reuses rendered sections and re-runs post processors over them, and the
- * refresh below re-applies this in place rather than re-rendering.
+ * Adds, updates or removes the badge on every discourse-node link in `el`.
+ * Idempotent: Obsidian reuses rendered sections and re-runs post processors.
  */
 export const applyDiscourseContextBadges = ({
   plugin,
@@ -87,9 +75,7 @@ export const applyDiscourseContextBadges = ({
         }),
     });
 
-    // Replaced rather than skipped: Obsidian reuses rendered sections, so a
-    // badge left in place would keep showing a count from before the last
-    // relation change.
+    // Replaced, not skipped, or it keeps a count from before the last change.
     existing?.remove();
     link.insertAdjacentElement("afterend", badge);
   }
@@ -111,15 +97,8 @@ export const createDiscourseContextOverlayPostProcessor =
   };
 
 /**
- * Redraws both overlay surfaces when something they depend on changes outside
- * the document they render — a relation added or removed, or a target's
- * frontmatter finishing indexing.
- *
- * Reading view has no equivalent of CM6's update cycle, so nothing re-runs the
- * post processor on its own. It is refreshed by re-applying badges over the
- * already-rendered content rather than by calling previewMode.rerender():
- * rerender tears the preview down, and a pane that is not currently painting
- * never rebuilds it, leaving Reading view permanently blank.
+ * Redraws both surfaces when relations or frontmatter change. Reading view is
+ * refreshed in place: rerender() blanks a pane that is not currently painting.
  */
 export const refreshDiscourseContextOverlaySurfaces = (
   plugin: DiscourseGraphPlugin,
@@ -149,11 +128,7 @@ export const registerDiscourseContextOverlayRefresh = (
   );
 
   plugin.register(plugin.relationsIndex.onChange(refresh));
-  // A link only resolves once its target's frontmatter is cached, so a note
-  // rendered before that lands needs a second pass.
-  //
-  // Scoped to "changed" rather than "resolved" on purpose: "resolved" also
-  // fires while a preview renders, which would make this re-entrant.
+  // "changed", not "resolved": resolved also fires while a preview renders.
   plugin.registerEvent(
     plugin.app.metadataCache.on("changed", (file) => {
       if (!isDiscourseNodeFile(plugin, file)) return;

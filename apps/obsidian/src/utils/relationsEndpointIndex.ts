@@ -1,18 +1,8 @@
 import type { RelationInstance } from "~/types";
 
 /**
- * Pure indexing helpers behind RelationsIndex, kept free of Obsidian and
- * relationsStore imports so the grouping and dedupe rules stay separate from
- * snapshot loading and invalidation.
- */
-
-/**
- * Groups relations by the node instance ids at either end, so a lookup by
- * endpoint is a Map hit instead of a scan over every relation in the vault.
- *
- * A relation is filed under both its source and its destination. Self-relations
- * (source === destination) are filed once so a single endpoint never yields the
- * same relation twice.
+ * Groups relations by the ids at either end, so a lookup is a Map hit rather
+ * than a scan. Self-relations are filed once, not twice.
  */
 export const buildEndpointIndex = (
   relations: Record<string, RelationInstance>,
@@ -39,13 +29,7 @@ export const buildEndpointIndex = (
   return index;
 };
 
-/**
- * Returns every relation touching any of `endpointIds`, deduplicated by id.
- *
- * A relation whose source and destination are both in `endpointIds` — which
- * happens for an imported node matched by both its nodeInstanceId and its
- * importedFromRid — must still be counted once.
- */
+/** Relations touching any of `endpointIds`, deduped: an imported node matches on two ids. */
 export const collectRelations = ({
   index,
   endpointIds,

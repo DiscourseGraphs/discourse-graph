@@ -15,21 +15,8 @@ export type DiscourseLinkTarget = {
 };
 
 /**
- * Resolves a link to a discourse node and its relation count, synchronously.
- *
- * Every read here hits an already-in-memory cache — Obsidian's metadataCache
- * for frontmatter, the plugin's settings for node types, and RelationsIndex for
- * relations — because this runs per link on a render path, once per viewport
- * update.
- *
- * Deliberately does not use getNodeTypeIdForFile/getNodeInstanceIdForFile: those
- * poll for up to 500ms waiting on frontmatter for a just-created file, which is
- * right for relation bookkeeping and wrong for rendering. If frontmatter is not
- * cached yet this returns null and the caller redraws when the index or the
- * metadata cache next reports a change.
- *
- * Returns null when the link does not resolve, the target is not a discourse
- * node, or its node type is no longer configured.
+ * Resolves a link to a discourse node and its relation count from in-memory
+ * caches only; avoids getNodeTypeIdForFile, which polls 500ms for frontmatter.
  */
 export const resolveDiscourseLinkTarget = ({
   plugin,
@@ -40,7 +27,7 @@ export const resolveDiscourseLinkTarget = ({
   linktext: string;
   sourcePath: string;
 }): DiscourseLinkTarget | null => {
-  // Strips any #heading or #^block subpath, which is not part of the file path.
+  // Strips any #heading or #^block subpath.
   const { path } = parseLinktext(linktext);
   if (!path) return null;
 

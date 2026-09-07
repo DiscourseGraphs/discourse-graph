@@ -8,14 +8,9 @@ const POPOVER_CLASS = "dg-discourse-context-popover";
 const VIEWPORT_MARGIN = 8;
 const EMPTY_MESSAGE = "No discourse relation found";
 
-/**
- * Positions the popover under its badge, pulling it back inside the window when
- * it would overflow. Measured after mount because the content height depends on
- * how many relations the node has.
- */
+/** Positions the popover under its badge, clamped inside the viewport. */
 const positionPopover = (popover: HTMLElement, anchor: HTMLElement): void => {
-  // Geometry has to come from the window the anchor is in, not the main one, or
-  // a popover opened in a popout window gets clamped to the wrong viewport.
+  // The anchor's own window, or a popout gets clamped to the wrong viewport.
   const win = anchor.ownerDocument.defaultView ?? window;
   const anchorRect = anchor.getBoundingClientRect();
   const { width, height } = popover.getBoundingClientRect();
@@ -44,14 +39,8 @@ type PopoverOptions = {
 };
 
 /**
- * The discourse context shown when a badge is selected.
- *
- * Reuses RelationshipSection, the same component the Discourse Context panel
- * renders, so the two can never disagree about a node's relations. It needs
- * only a TFile and PluginProvider — no workspace leaf — which is what makes it
- * reusable here.
- *
- * Only one popover exists at a time; opening another closes the previous one.
+ * Discourse context shown when a badge is selected. Reuses RelationshipSection
+ * so it cannot disagree with the panel. Only one is open at a time.
  */
 class DiscourseContextPopover {
   private containerEl: HTMLElement;
@@ -82,9 +71,7 @@ class DiscourseContextPopover {
       "shadow-lg",
     );
 
-    // CurrentRelationships renders nothing at all when a node has none, so
-    // without this the popover would open on an unexplained "Add a new
-    // relation" button. Created before the React host so it reads above it.
+    // CurrentRelationships renders nothing when empty, leaving a bare button.
     if (relationCount === 0) {
       this.containerEl.createDiv({
         cls: "mb-2 text-sm text-[var(--text-muted)]",
@@ -100,9 +87,7 @@ class DiscourseContextPopover {
       </PluginProvider>,
     );
 
-    // A React 18 root does not commit synchronously, so measuring now would
-    // size an empty box and the flip-up-when-near-the-bottom check would never
-    // fire. Re-measured after paint, and again as the relation list fills in.
+    // A React 18 root commits async, so measure again after paint and on resize.
     positionPopover(this.containerEl, anchor);
     this.reposition = () => positionPopover(this.containerEl, anchor);
     this.win.requestAnimationFrame(this.reposition);
@@ -123,23 +108,19 @@ class DiscourseContextPopover {
       event.preventDefault();
       this.close();
     };
-    // Scrolling the note moves the badge out from under the popover, so the
-    // popover follows it away. Scrolling *within* the popover must not dismiss
-    // it — its own content scrolls, and reaching "Add a new relation" requires
-    // exactly that.
+    // Scrolling the note dismisses; scrolling the popover's own content must not.
     const closeOnScroll = (event: Event): void => {
       if (this.containerEl.contains(event.target as Node)) return;
       this.close();
     };
 
-    // Deferred so the click that opened the popover does not immediately
-    // dismiss it as an outside click.
+    // Deferred so the opening click is not read as an outside click.
     const attach = this.win.setTimeout(() => {
       doc.addEventListener("click", closeIfOutside, true);
     }, 0);
 
     doc.addEventListener("keydown", closeOnEscape);
-    // Capture phase, since scrolling happens inside panes rather than on window.
+    // Capture phase: scrolling happens inside panes, not on window.
     doc.addEventListener("scroll", closeOnScroll, true);
 
     this.cleanupListeners.push(() => {
@@ -155,7 +136,7 @@ class DiscourseContextPopover {
     this.cleanupListeners = [];
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
-    // Unmounting during React's own event handling warns, so defer it.
+    // Deferred: unmounting during React's event handling warns.
     const root = this.root;
     this.win.setTimeout(() => root.unmount(), 0);
     this.containerEl.remove();
