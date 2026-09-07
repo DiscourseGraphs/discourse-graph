@@ -89,24 +89,18 @@ export type AuthoredSetting = {
   /** Set when the value is nested, e.g. Export rows under `GLOBAL_KEYS.export`. */
   parent?: SettingKeyId;
   label: string;
-  /** The enclosing `SettingsGroup` title, when the row sits in one. */
   group?: string;
   description?: string;
   docsLink?: string;
   /** Synonyms and pre-ENG-2189 section names, so muscle memory still resolves. */
   keywords?: readonly string[];
-  /**
-   * Omitted for settings that live outside the Settings dialog — the Export
-   * options moved into the Export dialog in ENG-2185. Still authored here so a
-   * row's description and docs link have one source, but not offered by a search
-   * that can only navigate Settings.
-   */
+  /** Omitted when the setting lives outside Settings (Export options are in the Export
+   *  dialog): still authored for its description, but not offered by search. */
   path?: SettingsPath | ((nodeTypeUid: string) => SettingsPath);
   /** Settings a graph cannot reach are dropped rather than offered as dead ends. */
   isAvailable?: () => boolean;
 };
 
-/** An authored entry with its address built and its route resolved. */
 export type SearchableSetting = {
   kind: "setting";
   /** Unique per result; the anchor value plus the node uid for per-node rows. */
@@ -236,8 +230,7 @@ const AUTHORED_SETTINGS = {
     keywords: ["personal", "tldraw", "hotkey"],
     path: rootPath(SETTINGS_TAB_IDS.featuresCanvas),
   },
-  // One row for the whole per-node grid: the overrides share a single stored
-  // value and a single anchor, so search lands on the grid rather than a node.
+  // One row for the whole grid: the overrides share one stored value and one anchor.
   "PERSONAL_KEYS.canvasNodeShortcuts": {
     label: "Override the canvas keyboard shortcuts",
     description:
@@ -293,8 +286,7 @@ const AUTHORED_SETTINGS = {
     keywords: ["personal", "query builder"],
     path: rootPath(SETTINGS_TAB_IDS.advancedQueries),
   },
-  // No `path`: ENG-2185 moved these seven out of Settings and into the Export
-  // dialog's Export options, so settings search cannot navigate to them.
+  // No path: these live in the Export dialog now.
   "EXPORT_KEYS.removeSpecialCharacters": {
     parent: "GLOBAL_KEYS.export",
     label: "remove special characters",
@@ -525,8 +517,6 @@ export const buildSettingsCatalog = (): SearchableEntry[] => {
   const available = (
     Object.entries(AUTHORED_SETTINGS) as [RowKeyId, AuthoredSetting][]
   ).filter(
-    // A path-less entry is authored only for its description; it is not somewhere
-    // this search can navigate to.
     ([, setting]) =>
       setting.path !== undefined && (setting.isAvailable?.() ?? true),
   );
@@ -564,8 +554,7 @@ const BY_ADDRESS = new Map(
   ),
 );
 
-/** Lets a row omit the description prop and read it from here, so the two cannot drift
- *  apart. ENG-2187 migrates the remaining call sites. */
+/** Lets a row omit `description` and read the catalog's, so the two cannot drift. */
 export const describedSetting = (
   settingKeys: readonly string[] | undefined,
 ): { description?: string; docsLink?: string } | undefined => {
