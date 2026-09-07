@@ -43,8 +43,7 @@ export const settingsNavReducer = (
       return action.tabId === tabIdOf(state) && state.length === 1
         ? state
         : rootPath(action.tabId);
-    // Search jumps to a setting several segments deep in one go, which `push`
-    // cannot express. An empty path is ignored rather than emptying the route.
+    // Search jumps several segments at once; an empty path is ignored.
     case "navigate":
       return action.path.length === 0 || isSamePath(action.path, state)
         ? state
