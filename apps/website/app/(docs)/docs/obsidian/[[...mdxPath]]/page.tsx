@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { generateStaticParamsFor, importPage } from "nextra/pages";
 import DocsPageTemplate from "../../_components/DocsPageTemplate";
+import { getCanonicalMetadata, getDocsPath } from "~/seo";
 
 type DocsPageProps = {
   params: Promise<{
@@ -52,16 +53,24 @@ const Page = async ({ params }: DocsPageProps): Promise<React.ReactElement> => {
 export const generateMetadata = async ({
   params,
 }: DocsPageProps): Promise<Metadata> => {
+  const { mdxPath } = await params;
+  const canonicalMetadata = getCanonicalMetadata(
+    getDocsPath({ mdxPath, platform: "obsidian" }),
+  );
+
   try {
-    const { mdxPath } = await params;
     const { metadata } = await loadPage(mdxPath);
 
-    return metadata;
+    return {
+      ...metadata,
+      ...canonicalMetadata,
+    };
   } catch (error) {
     console.error("Error generating Obsidian docs metadata:", error);
 
     return {
       title: "Obsidian docs",
+      ...canonicalMetadata,
     };
   }
 };
