@@ -1,7 +1,9 @@
 import type { MarkdownPostProcessorContext } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import {
+  badgeTargetPath,
   createDiscourseContextBadge,
+  updateDiscourseContextBadge,
   DISCOURSE_CONTEXT_BADGE_CLASS,
 } from "~/components/discourseContextBadge";
 import { openDiscourseContextPopover } from "~/components/DiscourseContextPopover";
@@ -15,18 +17,22 @@ export const applyDiscourseContextBadges = ({
   plugin,
   el,
   sourcePath,
+  skipEmbedded = false,
 }: {
   plugin: DiscourseGraphPlugin;
   el: HTMLElement;
   sourcePath: string;
+  /** Links inside a transclusion resolve against the embedded file, not `sourcePath`. */
+  skipEmbedded?: boolean;
 }): void => {
   const links = el.querySelectorAll<HTMLAnchorElement>("a.internal-link");
 
   for (const link of Array.from(links)) {
+    if (skipEmbedded && link.closest(".internal-embed")) continue;
     const existing = link.nextElementSibling?.hasClass(
       DISCOURSE_CONTEXT_BADGE_CLASS,
     )
-      ? link.nextElementSibling
+      ? (link.nextElementSibling as HTMLElement)
       : null;
 
     // data-href holds the link as written; href is resolved and URL-encoded.
@@ -44,6 +50,17 @@ export const applyDiscourseContextBadges = ({
       continue;
     }
 
+    // Updated rather than replaced when the target is unchanged: an open
+    // popover anchored to this badge would otherwise hold a detached element.
+    if (existing && badgeTargetPath(existing) === target.file.path) {
+      updateDiscourseContextBadge({
+        badge: existing,
+        nodeType: target.nodeType,
+        relationCount: target.relationCount,
+      });
+      continue;
+    }
+
     const badge = createDiscourseContextBadge({
       file: target.file,
       nodeType: target.nodeType,
@@ -57,7 +74,6 @@ export const applyDiscourseContextBadges = ({
         }),
     });
 
-    // Replaced, not skipped, or it keeps a count from before the last change.
     existing?.remove();
     link.insertAdjacentElement("afterend", badge);
   }
