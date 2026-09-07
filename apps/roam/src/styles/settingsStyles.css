@@ -19,10 +19,8 @@
   width: 100%;
 }
 
-/* Section heading inside a tab. Sized to Blueprint's h6 so it outranks the
-   14px row labels beneath it; the 2px rule is heavier than the 1px row
-   hairlines so a section break reads by weight as well as by size. Hand-rolled
-   because Roam ships no Tailwind preflight, so `border-b-2` would never paint. */
+/* Outranks the 14px row labels by size and by the only rule on the page.
+   Hand-rolled: Roam ships no Tailwind preflight, so `border-b-2` never paints. */
 .dg-settings-heading {
   font-size: 16px;
   font-weight: 600;
