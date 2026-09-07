@@ -13,7 +13,7 @@ Run the review outside the primary agent's context. Do not modify files, fix fin
 
 ## Workflow reference
 
-May be selected by `$mg-run-scoped-engineering-workflow` at step 6 through its review dispatcher. Standalone use remains supported. This skill owns the single review subagent; never route back through the personal dispatcher. Preserve any caller-supplied acceptance boundary alongside the review target.
+May be selected by `$*-run-scoped-engineering-workflow` at step 6 through its review dispatcher. Standalone use remains supported. This skill owns the single review subagent; never route back through the personal dispatcher. Preserve any caller-supplied acceptance boundary alongside the review target.
 
 ## Resolve the target
 
