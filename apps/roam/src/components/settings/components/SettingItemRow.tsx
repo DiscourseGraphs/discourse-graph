@@ -60,8 +60,7 @@ const SettingItemRow = ({
 }: SettingItemRowProps): React.ReactElement => {
   const controlId = useId();
   const isAssociated = typeof control === "function";
-  // The catalog fallback lets a call site drop the prop, so the row and search
-  // read one string rather than two that can drift.
+  // Falls back to the catalog so the row and search read one description.
   const authored =
     description === undefined ? describedSetting(settingKeys) : undefined;
   const resolvedDescription =
