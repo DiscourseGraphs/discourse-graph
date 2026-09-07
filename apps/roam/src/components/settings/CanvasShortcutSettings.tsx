@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Checkbox, InputGroup, Tabs, Tab } from "@blueprintjs/core";
+import { Checkbox, InputGroup } from "@blueprintjs/core";
 import Description from "~/components/settings/SettingsDescription";
 import getDiscourseNodes, {
   excludeDefaultNodes,
@@ -103,45 +103,33 @@ const CanvasShortcutSettings = ({
   };
 
   return (
-    <Tabs renderActiveTabPanelOnly={true}>
-      <Tab
-        id="shortcuts"
-        title="Shortcuts"
-        panel={
-          <div className="inline-grid grid-cols-[auto_auto] items-center gap-x-4 gap-y-2 p-1">
-            <div className="col-span-2 mb-2">
-              <div className="text-base">
-                Override the canvas keyboard shortcuts
-              </div>
-              <div className="text-sm italic text-gray-500">
-                Changes take effect next time a canvas is opened
-              </div>
-            </div>
-            {nodes.map((node) => {
-              const override = shortcuts[node.type];
-              return (
-                <ShortcutRow
-                  key={node.type}
-                  nodeText={node.text}
-                  defaultShortcut={node.shortcut}
-                  initialEnabled={override?.enabled ?? false}
-                  initialValue={override?.value ?? ""}
-                  onEnabledChange={(enabled) =>
-                    updateShortcut(node.type, {
-                      enabled,
-                      ...(enabled ? {} : { value: "" }),
-                    })
-                  }
-                  onValueChange={(value) =>
-                    updateShortcut(node.type, { value })
-                  }
-                />
-              );
-            })}
-          </div>
-        }
-      />
-    </Tabs>
+    <div className="inline-grid grid-cols-[auto_auto] items-center gap-x-4 gap-y-2 p-1">
+      <div className="col-span-2 mb-2">
+        <div className="text-base">Override the canvas keyboard shortcuts</div>
+        <div className="text-sm italic text-gray-500">
+          Changes take effect next time a canvas is opened
+        </div>
+      </div>
+      {nodes.map((node) => {
+        const override = shortcuts[node.type];
+        return (
+          <ShortcutRow
+            key={node.type}
+            nodeText={node.text}
+            defaultShortcut={node.shortcut}
+            initialEnabled={override?.enabled ?? false}
+            initialValue={override?.value ?? ""}
+            onEnabledChange={(enabled) =>
+              updateShortcut(node.type, {
+                enabled,
+                ...(enabled ? {} : { value: "" }),
+              })
+            }
+            onValueChange={(value) => updateShortcut(node.type, { value })}
+          />
+        );
+      })}
+    </div>
   );
 };
 

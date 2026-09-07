@@ -18,3 +18,21 @@
   padding: 0 10px;
   width: 100%;
 }
+
+/* Outranks the 14px row labels by size and by the only rule on the page.
+   Hand-rolled: Roam ships no Tailwind preflight, so `border-b-2` never paints. */
+.dg-settings-heading {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--dg-neutral-dark, #1f1f1f);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--dg-border, rgb(229, 231, 235));
+}
+
+.dg-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

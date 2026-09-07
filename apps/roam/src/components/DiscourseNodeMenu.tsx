@@ -465,9 +465,12 @@ export const comboToString = (combo: IKeyCombo): string => {
 export const NodeMenuTriggerComponent = ({
   extensionAPI,
   initialValue,
+  placeholder,
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
   initialValue: PersonalSettings["Personal node menu trigger"];
+  /** Replaces the inactive-state placeholder; "" shows none. */
+  placeholder?: string;
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isActive, setIsActive] = useState(false);
@@ -495,7 +498,9 @@ export const NodeMenuTriggerComponent = ({
   return (
     <InputGroup
       inputRef={inputRef}
-      placeholder={isActive ? "Press keys" : "Click to set trigger"}
+      placeholder={
+        isActive ? "Press keys" : (placeholder ?? "Click to set trigger")
+      }
       value={shortcut}
       onKeyDown={handleKeyDown}
       onFocus={() => setIsActive(true)}
