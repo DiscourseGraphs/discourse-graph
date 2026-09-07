@@ -177,7 +177,7 @@ const BaseTextPanel = ({
         )}
       </Label>
       {error && (
-        <div className="mt-1 text-sm font-medium text-red-600">{error}</div>
+        <div className="mt-1 text-sm font-medium text-red-700">{error}</div>
       )}
     </div>
   );

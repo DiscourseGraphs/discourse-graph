@@ -56,6 +56,7 @@ When creating or updating a pull request body:
 - Use platform-native UI components (see below) first with shadcn/ui as a fallback
 - Maintain visual consistency with the host application's design system
 - Follow responsive design principles
+- Use `text-red-700` for Roam error message text. Obsidian keeps `text-error`; website and shared UI keep `text-destructive`. This convention does not change danger buttons, borders, backgrounds, or diagram colors.
 
 ### TypeScript Guidelines
 
