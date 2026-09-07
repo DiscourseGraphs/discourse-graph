@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Json } from "@repo/database/dbTypes";
 import defaultDiscourseNodes from "~/data/defaultDiscourseNodes";
+import type { ImportedSourceIdentity } from "~/utils/importedSourceIdentity";
 
 vi.mock("roamjs-components/queries/getFullTreeByParentUid", () => ({
   default: () => ({ children: [] }),
@@ -13,12 +14,19 @@ vi.mock("~/utils/getDiscourseNodes", () => ({
   default: vi.fn(() => defaultDiscourseNodes),
 }));
 
-const { mockedGetPageUidByPageTitle } = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  mockedGetPageUidByPageTitle: vi.fn((_title: string) => ""),
-}));
+const { mockedGetPageUidByPageTitle, mockedReadImportedSourceIdentity } =
+  vi.hoisted(() => ({
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    mockedGetPageUidByPageTitle: vi.fn((_title: string) => ""),
+    mockedReadImportedSourceIdentity: vi.fn(
+      (): ImportedSourceIdentity | undefined => undefined,
+    ),
+  }));
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
   default: mockedGetPageUidByPageTitle,
+}));
+vi.mock("~/utils/importedSourceIdentity", () => ({
+  readImportedSourceIdentity: mockedReadImportedSourceIdentity,
 }));
 
 // Runs before the imports below: getDiscourseNodes calls generateUID at module load.
@@ -251,6 +259,7 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
     mockedGetPageUidByPageTitle.mockImplementation(
       (title: string) => PAGE_UIDS[title] ?? "",
     );
+    mockedReadImportedSourceIdentity.mockReset();
   });
 
   it("resolves the source page from the title into a sourceDocument slot", async () => {
@@ -261,6 +270,49 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
     });
     expect(node.slots).toEqual({ sourceDocument: "source-1" });
   });
+
+  it.each([
+    "orn:obsidian.note:vault-a/node-1",
+    "orn:obsidian:vault-a/node-1",
+    "https://roamresearch.com/#/app/graph-b/node-1",
+  ])(
+    "writes the origin RID %j when the source page was imported from another app",
+    async (sourceNodeRid) => {
+      mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
+      mockedReadImportedSourceIdentity.mockReturnValue({
+        sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+        sourceNodeRid,
+      });
+      const node = await convertRow({
+        ...baseRow,
+        ":node/title": "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+      });
+      expect(node.slots).toEqual({ sourceDocument: sourceNodeRid });
+      expect(mockedReadImportedSourceIdentity).toHaveBeenCalledWith("source-1");
+    },
+  );
+
+  it.each([
+    "not a rid",
+    "orn:bad",
+    "orn:obsidian.note:vault-a/",
+    "orn:broken/node-1",
+    "https:///node-1",
+  ])(
+    "keeps the page uid when the imported identity %j is not a well-formed RID",
+    async (sourceNodeRid) => {
+      mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
+      mockedReadImportedSourceIdentity.mockReturnValue({
+        sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+        sourceNodeRid,
+      });
+      const node = await convertRow({
+        ...baseRow,
+        ":node/title": "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+      });
+      expect(node.slots).toEqual({ sourceDocument: "source-1" });
+    },
+  );
 
   // Leniency on the target type: see sourceSlot.ts
   it("accepts a source that is a node of another type", async () => {

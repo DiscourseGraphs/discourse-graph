@@ -5,7 +5,7 @@ import {
   SOURCE_SLOT,
   schemaHasSourceSlot,
   sourceSlotSchemaId,
-  sourceUidOfNode,
+  sourceIdOfNode,
 } from "./sourceSlot";
 import extractContentFromTitle from "./extractContentFromTitle";
 import getDiscourseRelations from "./getDiscourseRelations";
@@ -122,7 +122,7 @@ export const discourseNodeBlockToLocalConcept = (
     schema?: DiscourseNode;
   },
 ): LocalConceptDataInput => {
-  const sourceUid = title ? sourceUidOfNode(title, schema) : undefined;
+  const sourceId = title ? sourceIdOfNode(title, schema) : undefined;
   return {
     space_id: context.spaceId,
     name: title,
@@ -134,8 +134,8 @@ export const discourseNodeBlockToLocalConcept = (
         format: schema?.format ?? "",
       }),
     },
-    ...(sourceUid
-      ? { local_reference_content: { [SOURCE_SLOT]: sourceUid } }
+    ...(sourceId
+      ? { local_reference_content: { [SOURCE_SLOT]: sourceId } }
       : {}),
     /* eslint-enable @typescript-eslint/naming-convention */
     ...getNodeExtraData(nodeUid),
