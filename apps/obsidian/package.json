@@ -9,6 +9,7 @@
     "build": "tsx scripts/build.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test:unit": "tsx --test \"src/**/*.test.ts\"",
     "publish": "tsx scripts/publish.ts",
     "check-types": "tsc --noEmit --skipLibCheck"
   },
@@ -38,6 +39,7 @@
     "zod": "^3.24.1"
   },
   "dependencies": {
+    "@codemirror/language": "^6.12.4",
     "@codemirror/view": "^6.38.8",
     "@repo/database": "workspace:*",
     "@repo/utils": "workspace:*",
