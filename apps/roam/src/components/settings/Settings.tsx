@@ -98,8 +98,7 @@ export const SettingsDialog = ({
     (tabId: string) => dispatch({ type: "select-tab", tabId }),
     [],
   );
-  // Cleared once the row is found or the lookup gives up, so a repeat jump to the
-  // same row still scrolls.
+  // Cleared once settled, so a repeat jump to the same row still scrolls.
   const [pendingAnchorId, setPendingAnchorId] = useState<string | null>(null);
   const handleSearchSelect = useCallback((entry: SearchableEntry) => {
     dispatch({ type: "navigate", path: entry.path });

@@ -7,8 +7,7 @@ export const settingAnchor = (
   [SETTING_ANCHOR_ATTRIBUTE]: settingKeys.join("/"),
 });
 
-/** Setting keys are authored identifiers today; escaped anyway so a future key with a
- *  quote or backslash cannot break out of the attribute selector. */
+/** Escaped so a key with a quote or backslash cannot break the selector. */
 export const settingAnchorSelector = (anchorId: string): string =>
   `[${SETTING_ANCHOR_ATTRIBUTE}="${anchorId.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"]`;
 

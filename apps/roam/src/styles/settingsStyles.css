@@ -111,17 +111,13 @@
   font-family: monospace;
 }
 
-/* Settings search field. Inset to the tab titles' left edge so the box does not
-   sit flush with the rail while everything under it is indented. */
+/** Inset to the tab titles' left edge. */
 .dg-settings-search {
   margin: 4px 10px 8px;
 }
 
-/* Settings search results.
-   Portalled by Blueprint so the tab rail's `overflow: hidden` cannot clip it.
-   The surface is painted here rather than inherited: Roam ships its own
-   Blueprint build and themes `.bp3-popover`, so relying on the library default
-   leaves the panel transparent and the rail shows straight through it. */
+/** Portalled by Blueprint so the rail's overflow cannot clip it; painted here because
+ *  Roam themes `.bp3-popover` and the library default is transparent. */
 .dg-settings-search__results .bp3-popover-content {
   width: 340px;
   background-color: #fff;
@@ -141,8 +137,7 @@
   overflow-y: auto;
 }
 
-/* Marks the row a search result jumped to. The row is already scrolled into
-   view; this only answers "which one of these is it?". */
+/** Marks the row a search result jumped to. */
 .dg-setting-row--flash {
   animation: dg-setting-row-flash 1.6s ease-out;
 }
