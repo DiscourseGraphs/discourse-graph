@@ -628,7 +628,7 @@ const ModifyNodeDialog = ({
               disabled={loading}
               className="flex-shrink-0"
             />
-            <span className="flex-grow text-red-800">{error}</span>
+            <span className="flex-grow text-red-700">{error}</span>
             {loading && <Spinner size={SpinnerSize.SMALL} />}
           </div>
         </div>
