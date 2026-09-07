@@ -12,13 +12,13 @@ It composes with `dg-roam-playwright-session` for account/profile selection.
 ## Quick Start
 
 ```sh
-pnpm --filter roam playwright:loadExtension -- --slot 1
+pnpm --filter roam playwright:load-extension -- --slot 1
 ```
 
 Use another slot for isolated work:
 
 ```sh
-pnpm --filter roam playwright:loadExtension -- --slot 2
+pnpm --filter roam playwright:load-extension -- --slot 2
 ```
 
 The script builds by default, verifies `window.roamjs.extension.queryBuilder`, checks the DG settings UI, and writes proof under `local/roam-playwright/artifacts`.
@@ -26,7 +26,7 @@ The script builds by default, verifies `window.roamjs.extension.queryBuilder`, c
 To add feature-specific assertions without copying the loader, pass an ESM test module:
 
 ```sh
-pnpm --filter roam playwright:loadExtension -- --slot 1 --test-module ./local/roam-playwright/feature-proof.mjs
+pnpm --filter roam playwright:load-extension -- --slot 1 --test-module ./local/roam-playwright/feature-proof.mjs
 ```
 
 ```js
