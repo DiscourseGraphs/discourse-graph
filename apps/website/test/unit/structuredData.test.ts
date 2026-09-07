@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { serializeStructuredData } from "~/components/JsonLd";
 import {
@@ -23,7 +25,7 @@ describe("structured data", () => {
         {
           "@type": "Organization",
           "@id": "https://discoursegraphs.com/#organization",
-          logo: "https://discoursegraphs.com/DG-lockup.svg",
+          logo: "https://discoursegraphs.com/organization-logo.svg",
         },
         {
           "@type": "WebSite",
@@ -34,6 +36,24 @@ describe("structured data", () => {
         },
       ],
     });
+  });
+
+  it("references a square logo asset meeting the minimum image dimensions", () => {
+    const data = createSiteStructuredData({ description: "Discourse Graphs" });
+    const organization = data["@graph"].find(
+      (node) => node["@type"] === "Organization",
+    );
+    if (!organization || organization["@type"] !== "Organization") {
+      throw new Error("Expected Organization structured data");
+    }
+    const pathname = new URL(organization.logo).pathname;
+    const svg = readFileSync(resolve("public", `.${pathname}`), "utf8");
+    const root = svg.match(/<svg\b[^>]*>/)?.[0] ?? "";
+    const width = Number(root.match(/\bwidth="(\d+)"/)?.[1]);
+    const height = Number(root.match(/\bheight="(\d+)"/)?.[1]);
+
+    expect(width).toBeGreaterThanOrEqual(112);
+    expect(height).toBe(width);
   });
 
   it("uses blog frontmatter to build an Article and its breadcrumbs", () => {

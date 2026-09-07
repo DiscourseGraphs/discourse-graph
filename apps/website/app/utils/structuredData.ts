@@ -123,7 +123,7 @@ export const createSiteStructuredData = ({
       "@id": ORGANIZATION_ID,
       name: "Discourse Graphs",
       url: SITE_URL,
-      logo: absoluteUrl("/DG-lockup.svg"),
+      logo: absoluteUrl("/organization-logo.svg"),
       sameAs: ["https://github.com/DiscourseGraphs"],
     }),
     WebSiteSchema.parse({
