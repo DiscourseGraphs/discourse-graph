@@ -137,6 +137,7 @@ describe("structured data", () => {
       speakers: "Joel Chan, Protocol Labs Research Seminar",
       thumbnailUrl: "https://i.ytimg.com/vi/53kLyq7PceQ/hqdefault.jpg",
       title: "Accelerating Scientific Discovery with Discourse Graphs",
+      uploadDate: "2024-01-15",
     });
 
     expect(person).toMatchObject({
@@ -145,12 +146,28 @@ describe("structured data", () => {
     });
     expect(video).toMatchObject({
       "@type": "VideoObject",
+      uploadDate: "2024-01-15",
       description:
         "Accelerating Scientific Discovery with Discourse Graphs. Featuring: Joel Chan, Protocol Labs Research Seminar.",
       embedUrl: "https://www.youtube-nocookie.com/embed/53kLyq7PceQ",
       thumbnailUrl: "https://i.ytimg.com/vi/53kLyq7PceQ/hqdefault.jpg",
     });
   });
+
+  it.each([undefined, "", "unknown", "2024-02-30"])(
+    "omits video markup without a valid upload date (%s)",
+    (uploadDate) => {
+      expect(
+        createVideoStructuredData({
+          embedUrl: "https://example.com/embed/video",
+          speakers: "Speaker",
+          thumbnailUrl: "https://example.com/thumbnail.jpg",
+          title: "Talk",
+          uploadDate,
+        }),
+      ).toBeNull();
+    },
+  );
 
   it("rejects structured data nodes with relative URLs", () => {
     const invalidNode = {

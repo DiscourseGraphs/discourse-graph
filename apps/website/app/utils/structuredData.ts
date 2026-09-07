@@ -77,6 +77,10 @@ const VideoObjectSchema = z.object({
   description: z.string().min(1),
   embedUrl: AbsoluteHttpUrlSchema,
   thumbnailUrl: AbsoluteHttpUrlSchema,
+  uploadDate: z
+    .string()
+    .date()
+    .or(z.string().datetime({ offset: true })),
 });
 
 const StructuredDataNodeSchema = z.discriminatedUnion("@type", [
@@ -153,19 +157,26 @@ export const createVideoStructuredData = ({
   speakers,
   thumbnailUrl,
   title,
+  uploadDate,
 }: {
   embedUrl: string;
   speakers: string;
   thumbnailUrl: string;
   title: string;
-}): StructuredDataNode =>
-  VideoObjectSchema.parse({
+  uploadDate?: string;
+}): StructuredDataNode | null => {
+  // Omit markup until the video's actual upload date is known and valid.
+  const result = VideoObjectSchema.safeParse({
     "@type": "VideoObject",
     name: title,
     description: `${title}. Featuring: ${speakers}.`,
     embedUrl,
     thumbnailUrl,
+    uploadDate,
   });
+
+  return result.success ? result.data : null;
+};
 
 export const createArticleStructuredData = ({
   author,
