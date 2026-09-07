@@ -1,7 +1,8 @@
 // Shared by the CM6 extensions that scan raw markdown for internal links.
 
 /** Embeds are not matched: the leading `!` sits outside, so callers check it. */
-export const INTERNAL_LINK_RE = /\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)]+\.md)\)/g;
+export const INTERNAL_LINK_RE =
+  /\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)]+\.md(?:#[^)]*)?)\)/g;
 
 /** Target of a wikilink or markdown link; any `#subpath` is left for parseLinktext. */
 export const extractLinktext = (match: string): string => {
