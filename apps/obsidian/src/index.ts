@@ -35,6 +35,7 @@ import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
 import { InlineNodeTypePicker } from "~/components/InlineNodeTypePicker";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
+import { RelationsIndex } from "~/utils/relationsIndex";
 import generateUid from "~/utils/generateUid";
 import {
   migrateFrontmatterRelationsToRelationsJson,
@@ -51,6 +52,7 @@ import {
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
+  relationsIndex: RelationsIndex = new RelationsIndex(this);
   private tagNodeHandler: TagNodeHandler | null = null;
   private fileChangeListener: FileChangeListener | null = null;
   private activeNodePopover:
@@ -97,6 +99,8 @@ export default class DiscourseGraphPlugin extends Plugin {
         this.fileChangeListener = null;
       }
     }
+
+    this.relationsIndex.initialize();
 
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
@@ -488,5 +492,7 @@ export default class DiscourseGraphPlugin extends Plugin {
       this.fileChangeListener.cleanup();
       this.fileChangeListener = null;
     }
+
+    this.relationsIndex.unload();
   }
 }
