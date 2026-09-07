@@ -85,11 +85,10 @@ describe("structured data", () => {
       });
 
       expect(article).toMatchObject({ "@type": "Article" });
-      expect(
-        JSON.parse(
-          serializeStructuredData(createStructuredDataDocument([article])),
-        )["@graph"][0],
-      ).not.toHaveProperty("description");
+      const serializedDocument: unknown = JSON.parse(
+        serializeStructuredData(createStructuredDataDocument([article])),
+      );
+      expect(serializedDocument).not.toHaveProperty("@graph.0.description");
     },
   );
 
