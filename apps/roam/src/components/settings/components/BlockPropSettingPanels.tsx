@@ -695,12 +695,8 @@ export const FeatureFlagPanel = ({
   );
 };
 
-/**
- * The scope indicator is derived from the wrapper rather than passed by each
- * call site, because the wrapper already binds the setter that decides who a
- * value is written for. A call site that overrides `setter` must therefore
- * also pass `scope`, or the indicator will contradict where the value lands.
- */
+/** Scope comes from the wrapper because it binds the setter that decides where a value
+ *  lands; a call site that overrides `setter` must pass `scope` too. */
 export const GlobalTextPanel = ({
   scope = "global",
   ...props

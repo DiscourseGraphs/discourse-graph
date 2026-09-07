@@ -40,9 +40,7 @@
 :root {
   /* Brand secondary, mirroring packages/tailwind-config. */
   --dg-secondary: #5f57c0;
-  /* Neutrals, likewise mirrored: Roam ships Tailwind's own utilities but not
-     this repo's theme extensions, so `neutral-dark`/`neutral-light` never
-     resolve in the extension. */
+  /** Neutrals mirrored too: Roam ships Tailwind's utilities but not this repo's theme extensions. */
   --dg-neutral-dark: #1f1f1f;
   --dg-neutral-light: #f1f1f1;
   --dg-border: rgb(229, 231, 235);
@@ -95,10 +93,7 @@
   padding: 2px;
 }
 
-/* Setting rows carry no dividers: the only rule on a page is the one under a
-   section heading, so a line always means "a section starts here". Layout is
-   Tailwind (Roam ships its utilities), but borders are hand-rolled below
-   because Roam has no Tailwind preflight — `border` alone never paints. */
+/** No row dividers: the only rule on a page is the one under a section heading. */
 
 .dg-setting-row__label {
   color: var(--dg-neutral-dark);
