@@ -293,22 +293,130 @@ The point of creating a discourse graph is not to put stuff _into_ it, it's to g
 
 The discourse graph plugin includes a [querybuilder](https://github.com/RoamJS/query-builder) component that allows users to create and save queries against their graph.
 
-![a question query](/docs/roam/query-ex01.png)
+<Image
+  src="/docs/roam/query-ex01.png"
+  alt="a question query"
+  width={730}
+  height={592}
+  className="docs-bordered-image"
+/>
+
 _A query returning all Question nodes in a graph_
 
-Queries are an effective means of locating nodes and relations that you authored intentionally, as well as surfacing latent connections in your graph. For example, the shared lab graph depicted below contains canvases depicting two different projects: one concerning gut microbiology and the other on the chemistry of mood neuroscience.
+Queries are an effective means of locating nodes and relations that you authored intentionally, as well as surfacing latent connections in your graph. For example, the shared lab graph depicted below contains canvases depicting two different projects in a lab working on α-synuclein: one is a wet-lab experiment, the other uses computer simulations.
 
-![gut microbiology canvas](/docs/roam/PKM-canvas07.png)
-_A canvas describing a gut microbiology project_
+<Image
+  src="/docs/roam/PKM-canvas09.png"
+  alt="simulation canvas"
+  width={1419}
+  height={698}
+  className="docs-bordered-image"
+/>
 
-![mood neuroscience canvas](/docs/roam/PKM-canvas08.png)
-_a canvas describing a project on the neuroscience of mood_
+_A canvas describing a series of simulations_
 
-#### Inline search
+<Image
+  src="/docs/roam/PKM-canvas10.png"
+  alt="wet lab canvas"
+  width={1389}
+  height={776}
+  className="docs-bordered-image"
+/>
+
+_A canvas describing a wet lab experiment_
+
+Both canvases describe different results involving the same region -- the C-terminus -- and its effect on misfolding.
+
+Now both of these researchers have a reason to be interested in the C-terminus, and they might run a query asking _"Which hypotheses mention this region, and which methods were used to investigate each hypothesis?"_
+
+In the querybuilder's language, that query would look like this:
+
+<Image
+  src="/docs/roam/c-terminus-query01.png"
+  alt="hypothesis node query"
+  width={675}
+  height={402}
+  className="docs-bordered-image"
+/>
+
+_A query targeting hypotheses involving the C-terminus region_
+
+In this example, the lab has used the Roam Research convention of using [[wikilinks]] to automatically create pages aggregating references to terms of interest. Seeing [[C-terminus]] and [[aggregation]] in such proximity might prompt the wet lab experimentalist in the lab group to pose a new Question: _"Does the C-terminal modification (pS129) act on the same soluble-state brake that the simulations identified?"_
+
+That question might motivate the creation of a new Hypothesis and a new Issue: an opportunity for collaboration between the _in vitro_ and _in silico_ researchers in the lab.
+
+<Image
+  src="/docs/roam/PKM-issue.png"
+  alt="new issue"
+  width={1715}
+  height={877}
+  className="docs-bordered-image"
+/>
+
+_An Issue created by an experimentalist requesting a simulation that could inform several projects_
+
+#### Searching and indexing tools
+
+Roam provides several native methods of finding content in your graph. The simplest is the search bar atop every page. You can navigate to it directly by pressing `Cmd/Ctrl + U`.
+
+<Image
+  src="/docs/roam/PKM-searchbar.png"
+  alt="the search bar"
+  width={1034}
+  height={341}
+  className="docs-bordered-image"
+/>
+
+_The Roam search bar: find or create pages in your graph_
+
+Enabling advanced search in the Settings menu can speed up searches in larger graphs.
+
+<Image
+  src="/docs/roam/rooam-advanced-search.png"
+  alt="advanced search"
+  width={849}
+  height={448}
+  className="docs-bordered-image"
+/>
+
+_Better search setting_
+
+Roam also maintains an index of all of the pages you create in your graph.
+
+<Image
+  src="/docs/roam/pkm-allpages.png"
+  alt="the page index"
+  width={1031}
+  height={306}
+  className="docs-bordered-image"
+/>
+
+_The All Pages index_
+
+The administrator of your graph can enable **semantic search** so that you can search by vibes.
+
+<Callout type="warning" emoji="⚠️">
+  Certain semantic search options can send your data to a third party.
+</Callout>
+
+<Image
+  src="/docs/roam/roam-semantic-search.png"
+  alt="semantic search"
+  width={856}
+  height={317}
+  className="docs-bordered-image"
+/>
+
+_Enabling semantic search in Settings > Graph_
+
+<Callout type="info" emoji="💡">
+  Learn more about semantic search
+  [here](https://roamresearch.com/#/app/help/page/CslZS1zBh).
+</Callout>
 
 #### Advanced node search
 
-#### Semantic search
+The discourse graph plugin includes its own native search tool
 
 ## What else would you like to do?
 
