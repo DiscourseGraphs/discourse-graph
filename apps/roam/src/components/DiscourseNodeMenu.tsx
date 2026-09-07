@@ -469,7 +469,7 @@ export const NodeMenuTriggerComponent = ({
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
   initialValue: PersonalSettings["Personal node menu trigger"];
-  /** Shown when no override is set, to surface the graph-wide trigger. */
+  /** Replaces the inactive-state placeholder; "" shows none. */
   placeholder?: string;
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);

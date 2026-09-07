@@ -35,11 +35,8 @@ type RoamBlockSyncProps = {
   parentUid?: string;
   uid?: string;
   order?: number;
-  /**
-   * Text of the legacy block this panel mirrors into. Defaults to `title`.
-   * Set it when the visible title must differ from the exact text that
-   * discourseConfigRef.ts and friends look the block up by.
-   */
+  /** Legacy block text when it must differ from `title`; readers such as
+   *  discourseConfigRef.ts match on it exactly. Defaults to `title`. */
   blockKey?: string;
 };
 

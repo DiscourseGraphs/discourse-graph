@@ -7,12 +7,8 @@ import {
 } from "~/utils/getExportSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 
-/**
- * The three settings that still mirror into the legacy Roam block tree, keyed
- * by the exact block text that discourseConfigRef.ts reads them back by. Text
- * and order live together here so the panels writing under one parentUid can
- * neither collide on order nor drift from the reader's spelling.
- */
+/** Block text is what discourseConfigRef.ts reads back by; kept with `order` so
+ *  panels writing under one parentUid can neither collide nor drift. */
 const LEGACY_CONFIG_BLOCKS = {
   trigger: { blockKey: "trigger", order: 0 },
   canvasPageFormat: { blockKey: "Canvas Page Format", order: 1 },
@@ -32,15 +28,8 @@ type LegacyConfigBlocks = Record<
   LegacyConfigBlock
 >;
 
-/**
- * Panels only mirror when given uid/parentUid/order, and `Use new settings
- * store = false` (the shipping default) reads from that tree, so dropping any
- * of these breaks the setting silently.
- *
- * Reads the config tree as-is: every writer in the dialog refreshes it after
- * writing and the dialog refreshes it again on close, so a refresh here would
- * only repeat that work on each tab visit.
- */
+/** `Use new settings store = false` (the default) still reads this tree. No
+ *  refresh here: every writer and the dialog's close already refresh it. */
 export const useLegacyConfigBlocks = (): LegacyConfigBlocks =>
   useMemo(() => {
     const tree = discourseConfigRef.tree;

@@ -263,7 +263,6 @@ export const SettingsDialog = ({
               />
             }
           />
-          {/* Per-node tabs stay in the rail until ENG-2186 adds the drill-down. */}
           <SectionHeader>Node types</SectionHeader>
           {nodes.map((n) => (
             <Tab
@@ -286,7 +285,6 @@ export const SettingsDialog = ({
               />
             }
           />
-          {/* Leaves Settings entirely in ENG-2185. */}
           <Tab
             id={SETTINGS_TAB_IDS.advancedExport}
             title="Export"
