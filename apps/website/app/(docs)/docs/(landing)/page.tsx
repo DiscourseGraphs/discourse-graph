@@ -3,6 +3,11 @@ import { ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { Logo } from "~/components/Logo";
+import { JsonLd } from "~/components/JsonLd";
+import {
+  createBreadcrumbStructuredData,
+  createStructuredDataDocument,
+} from "~/utils/structuredData";
 
 export const metadata: Metadata = {
   title: "Documentation",
@@ -30,6 +35,14 @@ const DOCS_DESTINATIONS = [
 const DocsLandingPage = (): React.ReactElement => {
   return (
     <div className="marketing-site font-[family:var(--font-inter)] min-h-screen bg-neutral-light text-neutral-dark">
+      <JsonLd
+        data={createStructuredDataDocument([
+          createBreadcrumbStructuredData([
+            { name: "Home", path: "/" },
+            { name: "Documentation", path: "/docs" },
+          ]),
+        ])}
+      />
       <header className="border-b border-black/5 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
           <Logo />

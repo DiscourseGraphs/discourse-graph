@@ -18,7 +18,13 @@ import { getLatestBlogs } from "~/(home)/blog/readBlogs";
 import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { TeamPerson } from "~/components/TeamPerson";
+import { JsonLd } from "~/components/JsonLd";
 import { TEAM_MEMBERS } from "~/data/constants";
+import {
+  createPersonStructuredData,
+  createStructuredDataDocument,
+  createVideoStructuredData,
+} from "~/utils/structuredData";
 
 const SLACK_URL =
   "https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg";
@@ -127,7 +133,9 @@ type Talk =
   | {
       embedUrl: string;
       kind: "embed";
+      uploadDate?: string;
       speakers: string;
+      thumbnailUrl: string;
       title: string;
     }
   | {
@@ -149,30 +157,35 @@ const TALKS: Talk[] = [
     embedUrl: "https://www.youtube-nocookie.com/embed/JOn_dJ-g3vY",
     kind: "embed",
     speakers: "Matt Akamatsu",
+    thumbnailUrl: "https://i.ytimg.com/vi/JOn_dJ-g3vY/hqdefault.jpg",
     title: "HCIL Brown Bag Speaker Series: Matt Akamatsu",
   },
   {
     embedUrl: "https://www.youtube-nocookie.com/embed/Fm-lzNhVMKs",
     kind: "embed",
     speakers: "Matt Akamatsu, Topos Institute",
+    thumbnailUrl: "https://i.ytimg.com/vi/Fm-lzNhVMKs/hqdefault.jpg",
     title: "Discourse Graphs: A New Model for Scientific Communication",
   },
   {
     embedUrl: "https://www.youtube-nocookie.com/embed/2xGQepp-f-8",
     kind: "embed",
     speakers: "Matt Akamatsu, Desci Denver 2024",
+    thumbnailUrl: "https://i.ytimg.com/vi/2xGQepp-f-8/hqdefault.jpg",
     title: "Open Sourcing Scientific Research with Lab Discourse Graphs",
   },
   {
     embedUrl: "https://www.youtube-nocookie.com/embed/53kLyq7PceQ",
     kind: "embed",
     speakers: "Joel Chan, Protocol Labs Research Seminar",
+    thumbnailUrl: "https://i.ytimg.com/vi/53kLyq7PceQ/hqdefault.jpg",
     title: "Accelerating Scientific Discovery with Discourse Graphs",
   },
   {
     embedUrl: "https://www.youtube-nocookie.com/embed/P0KUt2yrUkw",
     kind: "embed",
     speakers: "Karola Kirsanow, NYC Protocol Labs Research Seminar",
+    thumbnailUrl: "https://i.ytimg.com/vi/P0KUt2yrUkw/hqdefault.jpg",
     title: "Research roadmapping with Discourse Graphs",
   },
 ];
@@ -271,9 +284,22 @@ const ArrowLink = ({
 
 const Home = async (): Promise<ReactElement> => {
   const blogs = await getLatestBlogs();
+  const peopleStructuredData = TEAM_MEMBERS.map(createPersonStructuredData);
+  const videoStructuredData = TALKS.flatMap((talk) => {
+    if (talk.kind !== "embed") return [];
+
+    const video = createVideoStructuredData(talk);
+    return video ? [video] : [];
+  });
 
   return (
     <div>
+      <JsonLd
+        data={createStructuredDataDocument([
+          ...peopleStructuredData,
+          ...videoStructuredData,
+        ])}
+      />
       <section className="relative isolate flex min-h-[72svh] items-center overflow-hidden bg-neutral-dark px-5 py-16 text-white sm:px-6 lg:py-20">
         <Image
           src="/MATSU_lab_journal_club_graph_view.png"
