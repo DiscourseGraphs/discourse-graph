@@ -5,6 +5,7 @@ import {
   selectedNode,
 } from "./importNodesHarness";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import matter from "gray-matter";
 import { Notice } from "obsidian";
 import type { RelationInstance } from "~/types";
 import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
