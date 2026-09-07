@@ -3,6 +3,23 @@ import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
 import { PluginProvider } from "~/components/PluginContext";
 import { RelationshipSection } from "~/components/RelationshipSection";
+import {
+  countDisplayableRelations,
+  getEndpointIdsFromFrontmatter,
+} from "~/utils/discourseLinkFrontmatter";
+import { getRelationTypeById } from "~/utils/typeUtils";
+
+const countRelationsForFile = (
+  plugin: DiscourseGraphPlugin,
+  file: TFile,
+): number => {
+  const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+  const endpointIds = getEndpointIdsFromFrontmatter(frontmatter);
+  return countDisplayableRelations({
+    relations: plugin.relationsIndex.getRelationsForEndpointIds(endpointIds),
+    isConfiguredType: (id) => !!getRelationTypeById(plugin, id),
+  });
+};
 
 const POPOVER_CLASS = "dg-discourse-context-popover";
 const VIEWPORT_MARGIN = 8;
@@ -21,8 +38,10 @@ const positionPopover = (popover: HTMLElement, anchor: HTMLElement): void => {
   );
 
   const spaceBelow = win.innerHeight - anchorRect.bottom;
+  // Open upward only when that genuinely has more room, so a popover taller
+  // than either side still lands on the roomier one instead of clipping.
   const openUpward =
-    spaceBelow < height + VIEWPORT_MARGIN && anchorRect.top > height;
+    spaceBelow < height + VIEWPORT_MARGIN && anchorRect.top > spaceBelow;
   const top = openUpward
     ? Math.max(VIEWPORT_MARGIN, anchorRect.top - height - 4)
     : anchorRect.bottom + 4;
@@ -49,6 +68,7 @@ class DiscourseContextPopover {
   private win: Window;
   private reposition: () => void = () => {};
   private resizeObserver: ResizeObserver | null = null;
+  private emptyEl: HTMLElement | null = null;
   private cleanupListeners: (() => void)[] = [];
 
   constructor({ plugin, file, anchor, relationCount }: PopoverOptions) {
@@ -73,10 +93,19 @@ class DiscourseContextPopover {
 
     // CurrentRelationships renders nothing when empty, leaving a bare button.
     if (relationCount === 0) {
-      this.containerEl.createDiv({
+      this.emptyEl = this.containerEl.createDiv({
         cls: "mb-2 text-sm text-[var(--text-muted)]",
         text: EMPTY_MESSAGE,
       });
+      // It lives outside React, so RelationshipSection cannot clear it when the
+      // first relation is added from this very popover.
+      this.cleanupListeners.push(
+        plugin.relationsIndex.onChange(() => {
+          if (countRelationsForFile(plugin, file) === 0) return;
+          this.emptyEl?.remove();
+          this.emptyEl = null;
+        }),
+      );
     }
 
     const reactHost = this.containerEl.createDiv();
@@ -101,6 +130,9 @@ class DiscourseContextPopover {
     const doc = this.containerEl.ownerDocument;
     const closeIfOutside = (event: MouseEvent): void => {
       if (this.containerEl.contains(event.target as Node)) return;
+      // AbstractInputSuggest mounts its list on body, so a click picking a node
+      // for a new relation would otherwise dismiss the popover behind it.
+      if ((event.target as Element)?.closest?.(".suggestion-container")) return;
       this.close();
     };
     const closeOnEscape = (event: KeyboardEvent): void => {
