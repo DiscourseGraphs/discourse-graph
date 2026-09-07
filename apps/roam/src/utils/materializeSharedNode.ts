@@ -12,6 +12,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
+import { findTargetUid } from "./findTargetUid";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import {
   findImportedNodeUidBySourceRid,
@@ -19,6 +20,11 @@ import {
   writeImportedSourceIdentity,
   type ImportedSourceIdentity,
 } from "./importedSourceIdentity";
+import {
+  schemaHasSourceSlot,
+  SOURCE_SLOT,
+  titleWithSource,
+} from "./sourceSlot";
 
 type MaterializationStage =
   | "validate-input"
@@ -48,6 +54,7 @@ type MaterializationSuccess = SourceIdentity & {
   success: true;
   action: "created" | "updated" | "skipped";
   pageUid: string;
+  warning?: string;
 };
 
 export type MaterializeSharedNodeResult =
@@ -126,6 +133,53 @@ const validateSharedNode = (
   if (!title) return { error: "Source node title is required" };
 
   return { sourceModifiedAt: modifiedAt.toISOString(), title };
+};
+
+// The Source page a node's sourceDocument slot names, when this graph has it.
+const resolveSourceTitle = async (
+  sharedNode: SharedNode,
+): Promise<{ sourceTitle: string } | { warning: string }> => {
+  const slotValue = sharedNode.slots?.[SOURCE_SLOT];
+  if (!slotValue)
+    return {
+      warning:
+        "No source was published with this node, so its title was kept as published.",
+    };
+  const sourceUid = await findTargetUid(slotValue, sharedNode.spaceUri);
+  const sourceTitle = sourceUid ? getPageTitleByPageUid(sourceUid) : "";
+  if (!sourceTitle)
+    return {
+      warning: `Its source (${slotValue}) is not in this graph, so its title was kept as published. Import the source, then refresh this page.`,
+    };
+  return { sourceTitle };
+};
+
+const buildPageTitle = async ({
+  sharedNode,
+  nodeType,
+  incomingTitle,
+}: {
+  sharedNode: SharedNode;
+  nodeType?: Pick<DiscourseNode, "format">;
+  incomingTitle: string;
+}): Promise<{ title: string; warning?: string }> => {
+  const coreTitle = sharedNode.coreTitle;
+  if (!coreTitle || !nodeType) return { title: incomingTitle };
+  if (!schemaHasSourceSlot(nodeType))
+    return {
+      title: decorateTitle(nodeType.format, coreTitle) ?? incomingTitle,
+    };
+  const source = await resolveSourceTitle(sharedNode);
+  if ("warning" in source)
+    return { title: incomingTitle, warning: source.warning };
+  return {
+    title:
+      titleWithSource({
+        format: nodeType.format,
+        coreTitle,
+        sourceTitle: source.sourceTitle,
+      }) ?? incomingTitle,
+  };
 };
 
 const fetchFullMarkdown = async ({
@@ -319,10 +373,6 @@ export const materializeSharedNode = async ({
     sourceModifiedAt: validated.sourceModifiedAt,
     sourceNodeRid: sharedNode.rid,
   };
-  const pageTitle =
-    (sharedNode.coreTitle && nodeType
-      ? decorateTitle(nodeType.format, sharedNode.coreTitle)
-      : null) ?? validated.title;
 
   let importedPageUid: string | null;
   let storedIdentity: ImportedSourceIdentity | undefined;
@@ -356,6 +406,12 @@ export const materializeSharedNode = async ({
       pageUid: importedPageUid,
     };
 
+  const { title: pageTitle, warning } = await buildPageTitle({
+    sharedNode,
+    nodeType,
+    incomingTitle: validated.title,
+  });
+
   const content = await fetchFullMarkdown({ client, sharedNode }).catch(
     (error: unknown) => ({ error: getErrorMessage(error) }),
   );
@@ -366,7 +422,7 @@ export const materializeSharedNode = async ({
       stage: "fetch-content",
     });
 
-  return importedPageUid
+  const result = await (importedPageUid
     ? updateImportedPage({
         identity,
         markdown: content.markdown,
@@ -377,5 +433,6 @@ export const materializeSharedNode = async ({
         identity,
         markdown: content.markdown,
         title: pageTitle,
-      });
+      }));
+  return result.success && warning ? { ...result, warning } : result;
 };
