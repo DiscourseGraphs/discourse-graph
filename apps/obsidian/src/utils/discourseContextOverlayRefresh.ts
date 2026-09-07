@@ -31,10 +31,17 @@ export const registerDiscourseContextOverlayRefresh = (
   );
 
   plugin.register(plugin.relationsIndex.onChange(refresh));
+  // Files that were nodes must still trigger a refresh once they stop being
+  // one, or their existing badges never get removed.
+  const knownNodePaths = new Set<string>();
   // "changed", not "resolved": resolved also fires while a preview renders.
   plugin.registerEvent(
     plugin.app.metadataCache.on("changed", (file) => {
-      if (!isDiscourseNodeFile(plugin, file)) return;
+      if (isDiscourseNodeFile(plugin, file)) {
+        knownNodePaths.add(file.path);
+      } else if (!knownNodePaths.delete(file.path)) {
+        return;
+      }
       refresh();
     }),
   );
