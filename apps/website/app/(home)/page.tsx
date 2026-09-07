@@ -133,6 +133,7 @@ type Talk =
   | {
       embedUrl: string;
       kind: "embed";
+      uploadDate?: string;
       speakers: string;
       thumbnailUrl: string;
       title: string;
@@ -284,18 +285,12 @@ const ArrowLink = ({
 const Home = async (): Promise<ReactElement> => {
   const blogs = await getLatestBlogs();
   const peopleStructuredData = TEAM_MEMBERS.map(createPersonStructuredData);
-  const videoStructuredData = TALKS.flatMap((talk) =>
-    talk.kind === "embed"
-      ? [
-          createVideoStructuredData({
-            embedUrl: talk.embedUrl,
-            speakers: talk.speakers,
-            thumbnailUrl: talk.thumbnailUrl,
-            title: talk.title,
-          }),
-        ]
-      : [],
-  );
+  const videoStructuredData = TALKS.flatMap((talk) => {
+    if (talk.kind !== "embed") return [];
+
+    const video = createVideoStructuredData(talk);
+    return video ? [video] : [];
+  });
 
   return (
     <div>
