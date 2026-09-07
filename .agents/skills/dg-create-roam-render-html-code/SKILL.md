@@ -14,9 +14,7 @@ Derive concise, descriptive names from the HTML's subject:
 - Use a short, human-readable iframe title.
 
 ```js
-const USEFUL_NAMED_VARIABLE = String.raw`
-<!-- INSERT HTML HERE -->
-`;
+const ARTIFACT_HTML = "__HTML_SOURCE__";
 
 function usefulNamedFunction(props) {
   const React = window.React;
@@ -24,7 +22,8 @@ function usefulNamedFunction(props) {
 
   return React.createElement("iframe", {
     title: "Useful named title",
-    srcDoc: USEFUL_NAMED_VARIABLE,
+    srcDoc: ARTIFACT_HTML,
+    sandbox: "allow-scripts",
     loading: "eager",
     style: {
       width: "100%",
@@ -39,8 +38,21 @@ function usefulNamedFunction(props) {
 }
 ```
 
-Replace the placeholder comment with the complete HTML; do not summarize, redesign, minify, or omit any of it. Preserve the wrapper's iframe options and styles unless the user explicitly requests changes.
+Replace the entire `"__HTML_SOURCE__"` string literal with a JSON-serialized JavaScript string containing the complete HTML. Do not summarize, redesign, minify, omit, trim, or normalize line endings in the HTML. Preserve the wrapper's styles unless the user explicitly requests changes.
 
-Ensure the resulting JavaScript is syntactically valid without changing the HTML produced at runtime. A tagged `String.raw` template preserves escape characters, so do not escape embedded backticks or `${` sequences with a backslash. If either sequence occurs in the HTML, encode it with a template interpolation that evaluates to the original literal text, such as `${"`"}`for a backtick or`${"${"}`for`${`.
+Generate the literal mechanically rather than escaping template delimiters by hand. Given the original `html` string and the wrapper above as `wrapper`, use:
+
+```js
+const htmlLiteral = JSON.stringify(html)
+  .replace(/\u2028/g, "\\u2028")
+  .replace(/\u2029/g, "\\u2029");
+const renderer = wrapper.replace('"__HTML_SOURCE__"', () => htmlLiteral);
+```
+
+The replacement callback preserves replacement-like text such as `$&` in the HTML. JSON serialization handles quotes, backslashes (including odd runs before backticks or `${` and a trailing backslash), control characters, and line endings without executing embedded expressions. Save `renderer` as the standalone `.js` file; do not wrap it in an HTML script tag.
+
+Keep `sandbox: "allow-scripts"` for interactive artifacts. Omit `allow-same-origin` so embedded scripts cannot access Roam's parent DOM, authenticated storage, or APIs. For static HTML, use `sandbox: ""`. Add other sandbox permissions only for a specifically required capability; do not remove the sandbox or add `allow-same-origin` to restore parent access. Features requiring Roam APIs need a separately designed integration, not this iframe wrapper.
+
+Before delivering a renderer, check its JavaScript syntax and verify that its evaluated `srcDoc` exactly equals the original HTML. Include backticks, `${`, quotes, dollar replacement patterns, CRLF, Unicode, and odd/even backslash runs before template delimiters and at end of input in regression checks. Run `node --test scripts/renderer.test.mjs` from this skill directory when changing this guidance.
 
 After writing the file, report its path. Do not paste the complete generated file into the response unless the user asks.
