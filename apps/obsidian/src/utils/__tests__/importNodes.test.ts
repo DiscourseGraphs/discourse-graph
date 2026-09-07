@@ -16,14 +16,14 @@ vi.mock("../supabaseContext", () => ({
   getLocalSpaceUri: () => "obsidian:local-vault",
 }));
 vi.mock("../publishNode", () => ({
-  publishNewRelation: vi.fn(async () => false),
+  publishNewRelation: vi.fn().mockResolvedValue(false),
 }));
 vi.mock("../templates", () => ({ createTemplateFile: vi.fn() }));
 vi.mock("../importFolderMetadata", () => ({
-  resolveFolderForSpaceUri: vi.fn(async () => "import/Research"),
+  resolveFolderForSpaceUri: vi.fn().mockResolvedValue("import/Research"),
 }));
 vi.mock("../importRelations", () => ({
-  importRelationsForImportedNodes: vi.fn(async () => ({ imported: 0 })),
+  importRelationsForImportedNodes: vi.fn().mockResolvedValue({ imported: 0 }),
 }));
 
 const REMOTE_URI = "https://roamresearch.com/#/app/research";
@@ -157,31 +157,34 @@ const createHarness = () => {
         request.filters.push([key, values]);
         return query;
       },
-      maybeSingle: async () => response(true),
+      maybeSingle: () => Promise.resolve(response(true)),
       then: (resolve: (result: ReturnType<typeof response>) => unknown) =>
         Promise.resolve(response(false)).then(resolve),
     };
     return query;
   });
-  const create = vi.fn(async (path: string, content: string) => {
-    if (files.has(path)) throw new Error(`File already exists: ${path}`);
+  const create = vi.fn((path: string, content: string) => {
+    if (files.has(path))
+      return Promise.reject(new Error(`File already exists: ${path}`));
     const file = new TFile();
     file.path = path;
     files.set(path, file);
     contents.set(path, content);
-    return file;
+    return Promise.resolve(file);
   });
-  const renameFile = vi.fn(async (file: TFile, newPath: string) => {
+  const renameFile = vi.fn((file: TFile, newPath: string) => {
     const content = contents.get(file.path)!;
     files.delete(file.path);
     contents.delete(file.path);
     file.path = newPath;
     files.set(newPath, file);
     contents.set(newPath, content);
+    return Promise.resolve();
   });
   const getFileCache = vi.fn((file: TFile) => ({
     frontmatter: matter(contents.get(file.path) ?? "").data,
   }));
+  const saveSettings = vi.fn();
   const plugin = {
     app: {
       plugins: { plugins: {} },
@@ -191,20 +194,22 @@ const createHarness = () => {
         getAbstractFileByPath: (path: string) => files.get(path) ?? null,
         getMarkdownFiles: () =>
           [...files.values()].filter((file) => file.extension === "md"),
-        read: async (file: TFile) => contents.get(file.path)!,
-        modify: async (file: TFile, content: string) => {
+        read: (file: TFile) => Promise.resolve(contents.get(file.path)!),
+        modify: (file: TFile, content: string) => {
           contents.set(file.path, content);
+          return Promise.resolve();
         },
-        process: async (file: TFile, callback: (content: string) => string) => {
+        process: (file: TFile, callback: (content: string) => string) => {
           contents.set(file.path, callback(contents.get(file.path)!));
+          return Promise.resolve();
         },
         createFolder: vi.fn(),
-        adapter: { exists: async (path: string) => files.has(path) },
+        adapter: { exists: (path: string) => Promise.resolve(files.has(path)) },
       },
       metadataCache: { getFileCache, getFirstLinkpathDest: () => null },
       fileManager: {
         renameFile,
-        processFrontMatter: async (
+        processFrontMatter: (
           file: TFile,
           callback: (frontmatter: Row) => void,
         ) => {
@@ -214,6 +219,7 @@ const createHarness = () => {
             file.path,
             matter.stringify(parsed.content, parsed.data),
           );
+          return Promise.resolve();
         },
       },
     },
@@ -255,7 +261,7 @@ const createHarness = () => {
         },
       ],
     },
-    saveSettings: vi.fn(),
+    saveSettings,
   } as unknown as DiscourseGraphPlugin;
   vi.mocked(getLoggedInClient).mockResolvedValue({
     from,
@@ -279,6 +285,7 @@ const createHarness = () => {
     );
   return {
     plugin,
+    saveSettings,
     concepts,
     contentRows,
     requests,
@@ -361,7 +368,7 @@ describe("source document import", () => {
       ).toHaveLength(2);
       expect((await loadRelations(h.plugin)).relations).toEqual({});
       expect(h.plugin.settings).toEqual(settings);
-      expect(h.plugin.saveSettings).not.toHaveBeenCalled();
+      expect(h.saveSettings).not.toHaveBeenCalled();
     },
   );
 
