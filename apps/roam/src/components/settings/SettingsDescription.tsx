@@ -1,11 +1,7 @@
 import React from "react";
 
-/**
- * Renders a setting's description inline. It used to be a hover popover, which
- * dismissed on mouseleave before a doc link inside it could be clicked
- * (ENG-2080). Rows built on `SettingItemRow` get this styling from the row
- * itself; this component remains for rows not yet migrated (ENG-2187).
- */
+/** Inline, not a hover popover: the popover dismissed before its doc links could be
+ *  clicked (ENG-2080). Kept for rows not yet on SettingItemRow. */
 const SettingsDescription = ({
   description,
 }: {

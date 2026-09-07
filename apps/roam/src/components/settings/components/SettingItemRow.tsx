@@ -2,12 +2,7 @@ import React, { useId } from "react";
 import { Icon, type IconName, Position, Tooltip } from "@blueprintjs/core";
 import { settingAnchor } from "~/components/settings/utils/settingAnchor";
 
-/**
- * Who a setting applies to. Two values only, matching the agreed badge model:
- * a setting either affects just you or everyone in the graph. Per-node settings
- * are `global` — they are stored on the node type's own page, so the whole graph
- * sees them.
- */
+/** Per-node settings are `global`: they live on the node type's page, so the whole graph sees them. */
 export type SettingScope = "personal" | "global";
 
 const SCOPE_INDICATORS = {
@@ -21,15 +16,8 @@ const SCOPE_INDICATORS = {
   },
 } as const satisfies Record<SettingScope, { icon: IconName; tooltip: string }>;
 
-/**
- * Two Blueprint rules will push this badge out of line if the surrounding
- * markup changes: `label.bp3-label .bp3-popover-wrapper` sets `display: block`
- * and `margin-top: 5px` at specificity (0,2,1), which outranks any utility
- * class, and `.bp3-icon` is `vertical-align: text-bottom`. Both are neutralised
- * here by the label being a raw `<label>` rather than Blueprint's `<Label>`
- * (so the first selector cannot match) and by the flex layout below (which
- * makes `vertical-align` inert). Keep both properties when editing.
- */
+/** Raw <label> plus flex on purpose: Blueprint's `.bp3-label .bp3-popover-wrapper` and
+ *  `.bp3-icon` vertical-align rules would otherwise push the badge out of line. */
 const SettingScopeIndicator = ({ scope }: { scope: SettingScope }) => {
   const { icon, tooltip } = SCOPE_INDICATORS[scope];
   return (
@@ -47,10 +35,7 @@ const SettingScopeIndicator = ({ scope }: { scope: SettingScope }) => {
 type SettingItemRowProps = {
   label: React.ReactNode;
   description?: React.ReactNode;
-  /**
-   * Given the row's generated id so the control can be associated with the
-   * label. Pass a plain node for controls that own their own labelling.
-   */
+  /** A function receives the row's id to bind label and control; a node labels itself. */
   control: React.ReactNode | ((controlId: string) => React.ReactNode);
   scope?: SettingScope;
   /** `below` is for controls too tall to sit beside the label, such as a textarea. */
@@ -73,9 +58,7 @@ const SettingItemRow = ({
 }: SettingItemRowProps): React.ReactElement => {
   const controlId = useId();
   const isAssociated = typeof control === "function";
-  // A raw label keeps Blueprint's `.bp3-label` spacing out of the row, and
-  // keeps the description a sibling rather than a descendant — a description
-  // nested in the label makes its doc links toggle the control (ENG-2080).
+  // Description is a sibling of the label: nested, its doc links would toggle the control (ENG-2080).
   const LabelTag = isAssociated ? "label" : "div";
 
   return (
