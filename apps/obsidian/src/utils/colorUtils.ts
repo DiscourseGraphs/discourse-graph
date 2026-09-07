@@ -55,6 +55,7 @@ export const getNodeTagColors = (
   return { backgroundColor, textColor };
 };
 
+
 export const getAllDiscourseNodeColors = (
   nodeTypes: DiscourseNode[],
 ): Array<{
