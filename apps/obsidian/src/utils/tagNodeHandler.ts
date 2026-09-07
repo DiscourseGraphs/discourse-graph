@@ -293,6 +293,37 @@ const createNodeFromTag = async (
 // HOVER TOOLTIP
 // ============================================================================
 
+// Popout windows are separate realms, so their elements fail `instanceof
+// HTMLElement` against the main window's class.
+const asElement = (target: EventTarget | null): HTMLElement | null =>
+  target && typeof (target as HTMLElement).closest === "function"
+    ? (target as HTMLElement)
+    : null;
+
+const editorViewOf = (editor: unknown): EditorView | null =>
+  editor && typeof editor === "object" && "cm" in editor
+    ? ((editor as { cm: EditorView }).cm ?? null)
+    : null;
+
+/** The hovered editor is not always the active one, e.g. a tag in an inactive split. */
+const markdownViewFor = (
+  plugin: DiscourseGraphPlugin,
+  view: EditorView,
+): MarkdownView | null => {
+  let match: MarkdownView | null = null;
+  plugin.app.workspace.iterateAllLeaves((leaf) => {
+    if (match) return;
+    const leafView = leaf.view;
+    if (
+      leafView instanceof MarkdownView &&
+      editorViewOf(leafView.editor) === view
+    ) {
+      match = leafView;
+    }
+  });
+  return match;
+};
+
 class DiscourseTagHoverController {
   private tooltip: HTMLElement | null = null;
   private showTimeout: number | null = null;
@@ -302,11 +333,10 @@ class DiscourseTagHoverController {
   constructor(private plugin: DiscourseGraphPlugin) {}
 
   handleMouseOver(event: MouseEvent, view: EditorView): void {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-
-    const tagEl = target.closest(`.${DISCOURSE_TAG_CLASS}`);
-    if (!(tagEl instanceof HTMLElement)) return;
+    const tagEl = asElement(event.target)?.closest(
+      `.${DISCOURSE_TAG_CLASS}`,
+    ) as HTMLElement | null;
+    if (!tagEl) return;
     if (tagEl === this.anchor && this.tooltip) {
       this.cancelHide();
       return;
@@ -323,12 +353,10 @@ class DiscourseTagHoverController {
   }
 
   handleMouseOut(event: MouseEvent): void {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    if (!target.closest(`.${DISCOURSE_TAG_CLASS}`)) return;
+    if (!asElement(event.target)?.closest(`.${DISCOURSE_TAG_CLASS}`)) return;
 
-    const related = event.relatedTarget;
-    if (related instanceof Node && this.tooltip?.contains(related)) return;
+    const related = asElement(event.relatedTarget);
+    if (related && this.tooltip?.contains(related)) return;
 
     this.clearShowTimeout();
     this.scheduleHide();
@@ -365,14 +393,18 @@ class DiscourseTagHoverController {
     this.hide();
 
     const rect = this.anchorRect(tagEl);
-    const tooltip = createDiv({ cls: "discourse-tag-popover" });
+    // The rect is in the tag's own window, so the tooltip must go in that
+    // document too, rather than wherever `activeDocument` currently points.
+    const doc = tagEl.ownerDocument;
+    const tooltip = doc.createElement("div");
+    tooltip.className = "discourse-tag-popover";
     tooltip.style.top = `${rect.top - TOOLTIP_OFFSET}px`;
     tooltip.style.left = `${rect.left + rect.width / 2}px`;
 
-    const button = tooltip.createEl("button", {
-      cls: "mod-cta dg-create-node-button",
-      text: `Create ${nodeType.name}`,
-    });
+    const button = doc.createElement("button");
+    button.className = "mod-cta dg-create-node-button";
+    button.textContent = `Create ${nodeType.name}`;
+    tooltip.appendChild(button);
     button.addEventListener("click", (clickEvent) => {
       clickEvent.preventDefault();
       clickEvent.stopPropagation();
@@ -383,7 +415,7 @@ class DiscourseTagHoverController {
     tooltip.addEventListener("mouseenter", () => this.cancelHide());
     tooltip.addEventListener("mouseleave", () => this.scheduleHide());
 
-    activeDocument.body.appendChild(tooltip);
+    doc.body.appendChild(tooltip);
     this.tooltip = tooltip;
     this.anchor = tagEl;
   }
@@ -397,8 +429,7 @@ class DiscourseTagHoverController {
     nodeType: DiscourseNode;
     view: EditorView;
   }): void {
-    const markdownView =
-      this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+    const markdownView = markdownViewFor(this.plugin, view);
     const editor = markdownView?.editor;
     if (!editor) return;
 
@@ -411,7 +442,7 @@ class DiscourseTagHoverController {
       plugin: this.plugin,
       initialTitle: titleFromTaggedLine(lineText),
       initialNodeType: nodeType,
-      currentFile: markdownView?.file ?? undefined,
+      currentFile: markdownView.file ?? undefined,
       onSubmit: async ({
         nodeType: selectedNodeType,
         title,
@@ -463,6 +494,7 @@ class DiscourseTagHoverController {
 
 export const createDiscourseTagExtension = (plugin: DiscourseGraphPlugin) => {
   const hover = new DiscourseTagHoverController(plugin);
+  plugin.register(() => hover.destroy());
 
   return [
     createTagDecorationPlugin(plugin),
