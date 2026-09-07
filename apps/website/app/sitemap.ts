@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { MetadataRoute } from "next";
+import matter from "gray-matter";
 import { getAllBlogs } from "./(home)/blog/readBlogs";
 
 const SITE_URL = "https://discoursegraphs.com";
@@ -18,7 +19,12 @@ const getDocsContentPaths = async (directory: string): Promise<string[]> => {
         return getDocsContentPaths(entryPath);
       }
 
-      return DOCS_FILE_EXTENSION_RE.test(entry.name) ? [entryPath] : [];
+      if (!entry.isFile() || !DOCS_FILE_EXTENSION_RE.test(entry.name))
+        return [];
+
+      const source = await fs.readFile(entryPath, "utf8");
+      const { data } = matter(source);
+      return data.published === false ? [] : [entryPath];
     }),
   );
 

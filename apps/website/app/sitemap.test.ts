@@ -1,7 +1,29 @@
-import { describe, expect, it } from "vitest";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import sitemap from "./sitemap";
 
 describe("sitemap", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("excludes documentation explicitly marked unpublished", async () => {
+    const readFile = fs.readFile.bind(fs);
+    vi.spyOn(fs, "readFile").mockImplementation(async (file, options) => {
+      if (
+        typeof file === "string" &&
+        file.endsWith(path.join("roam", "welcome", "getting-started.md"))
+      ) {
+        return "---\npublished: false\n---\nDraft documentation";
+      }
+      return readFile(file, options);
+    });
+
+    const entries = await sitemap();
+    expect(entries.map(({ url }) => url)).not.toContain(
+      "https://discoursegraphs.com/docs/roam/welcome/getting-started",
+    );
+  });
+
   it("lists the public marketing and documentation routes", async () => {
     const entries = await sitemap();
     const urls = entries.map(({ url }) => url);
