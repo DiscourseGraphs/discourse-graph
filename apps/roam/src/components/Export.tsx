@@ -234,20 +234,15 @@ const ExportDialog: ExportDialogComponent = ({
   const [includeDiscourseContext, setIncludeDiscourseContext] = useState(false);
   const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
   const exportOptionsOpened = useRef(false);
-  // Re-read on every open rather than once at mount: Collapse unmounts the option
-  // panels while closed, so each open seeds them from the current stored values
-  // instead of whatever the dialog saw when it first rendered.
+  // Collapse unmounts the panels while closed, so each open seeds them from current values.
   const exportGlobalSettings = useMemo(
     () => bulkReadSettings().globalSettings,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [exportOptionsOpen],
   );
 
-  // The export option panels write legacy config blocks alongside block props, so
-  // the cached config tree has to be refreshed the way SettingsDialog does. Gated
-  // on the section having been opened because refreshConfigTree re-reads every
-  // node page and re-registers the datalog translators, which is too heavy to run
-  // on every close of a dialog that is opened for each export.
+  // Option panels also write legacy config blocks, so refresh the tree as SettingsDialog
+  // does, but only if they were opened: refreshConfigTree re-reads every node page.
   const closeDialog = (): void => {
     if (exportOptionsOpened.current) refreshConfigTree();
     onClose();
@@ -1055,11 +1050,8 @@ const ExportDialog: ExportDialogComponent = ({
               // eslint-disable-next-line @typescript-eslint/no-misused-promises
               setTimeout(async () => {
                 try {
-                  // The export reads settings inside its callback, and the number
-                  // and select panels defer their write behind a short timer. The
-                  // await matters as much as the flush: committing only starts the
-                  // Roam block update, so an option edited a moment ago would
-                  // otherwise still read as its previous value here.
+                  // Awaited, not just fired: a commit only starts the Roam update, and an option edited
+                  // a moment ago would otherwise still read as its previous value here.
                   await flushPendingSettingWrites();
                   const exportType = exportTypes.find(
                     (e) => e.name === activeExportType,
