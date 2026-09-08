@@ -9,10 +9,7 @@ import {
 import { openDiscourseContextPopover } from "~/components/DiscourseContextPopover";
 import { resolveDiscourseLinkTarget } from "./discourseLinkUtils";
 
-/**
- * Adds, updates or removes the badge on every discourse-node link in `el`.
- * Idempotent: Obsidian reuses rendered sections and re-runs post processors.
- */
+/** Idempotent: Obsidian reuses rendered sections and re-runs post processors. */
 export const applyDiscourseContextBadges = ({
   plugin,
   el,
@@ -79,7 +76,6 @@ export const applyDiscourseContextBadges = ({
   }
 };
 
-/** Strips every badge under `el`, for when the setting is switched off. */
 export const removeDiscourseContextBadges = (el: HTMLElement): void => {
   el.querySelectorAll(`.${DISCOURSE_CONTEXT_BADGE_CLASS}`).forEach((badge) =>
     badge.remove(),
