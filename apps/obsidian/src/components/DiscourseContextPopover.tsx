@@ -25,7 +25,6 @@ const POPOVER_CLASS = "dg-discourse-context-popover";
 const VIEWPORT_MARGIN = 8;
 const EMPTY_MESSAGE = "No discourse relation found";
 
-/** Positions the popover under its badge, clamped inside the viewport. */
 const positionPopover = (popover: HTMLElement, anchor: HTMLElement): void => {
   // The anchor's own window, or a popout gets clamped to the wrong viewport.
   const win = anchor.ownerDocument.defaultView ?? window;
@@ -58,8 +57,8 @@ type PopoverOptions = {
 };
 
 /**
- * Discourse context shown when a badge is selected. Reuses RelationshipSection
- * so it cannot disagree with the panel. Only one is open at a time.
+ * Reuses RelationshipSection so it cannot disagree with the sidebar panel.
+ * Only one is open at a time.
  */
 class DiscourseContextPopover {
   private containerEl: HTMLElement;
