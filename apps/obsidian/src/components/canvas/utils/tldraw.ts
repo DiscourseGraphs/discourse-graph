@@ -2,9 +2,7 @@ import {
   createTLStore,
   defaultBindingUtils,
   defaultShapeUtils,
-  SerializedStore,
   TldrawFile,
-  TLRecord,
   TLStore,
   loadSnapshot,
   TLStoreSnapshot,
@@ -29,6 +27,7 @@ import {
 import { DiscourseRelationUtil } from "~/components/canvas/shapes/DiscourseRelationShape";
 import { DiscourseRelationBindingUtil } from "~/components/canvas/shapes/DiscourseRelationBinding";
 import { discourseNodeMigrations } from "~/components/canvas/shapes/discourseNodeMigrations";
+import { toSerializedStore } from "~/components/canvas/utils/canvasFileSync";
 
 export type TldrawPluginMetaData = {
   "plugin-version": string;
@@ -59,17 +58,7 @@ export const processInitialData = (
     DiscourseRelationUtil.configure(ctx),
   ];
 
-  const recordsData = Array.isArray(data.raw.records)
-    ? (data.raw.records.reduce(
-        (acc: Record<string, TLRecord>, record: { id: string } & TLRecord) => {
-          acc[record.id] = {
-            ...record,
-          };
-          return acc;
-        },
-        {},
-      ) as SerializedStore<TLRecord>)
-    : (data.raw.records as SerializedStore<TLRecord>);
+  const recordsData = toSerializedStore(data.raw.records);
 
   // Create store first (this creates the schema with migrations)
   const store = createTLStore({
