@@ -1,6 +1,6 @@
 import { settleTrackedRoamWrites } from "./setBlockProps";
 
-type PendingWrite = () => void | Promise<void>;
+type PendingWrite = () => Promise<void>;
 
 // Panels defer their block-prop write behind a timer. Registering the pending commit
 // lets a reader commit everything first instead of seeing a stale value.

@@ -176,7 +176,7 @@ const useLegacyBlockSync = ({
 // flush, or unmount. Unmount commits rather than cancels.
 const useDeferredWrite = (): DeferredWrite => {
   const timeoutRef = useRef(0);
-  const commitRef = useRef<Commit | null>(null);
+  const commitRef = useRef<(() => Promise<void>) | null>(null);
 
   const forget = useCallback(() => {
     window.clearTimeout(timeoutRef.current);
@@ -189,9 +189,9 @@ const useDeferredWrite = (): DeferredWrite => {
   const schedule = useCallback(
     (commit: Commit, delayMs: number) => {
       forget();
-      const runOnce = (): void | Promise<void> => {
+      const runOnce = async (): Promise<void> => {
         forget();
-        return commit();
+        await commit();
       };
       commitRef.current = runOnce;
       addPendingSettingWrite(runOnce);
