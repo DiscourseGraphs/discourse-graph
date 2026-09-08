@@ -65,7 +65,6 @@ import renderOverlay from "roamjs-components/util/renderOverlay";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
 import { commands, cleanCommandName } from "~/components/LeftSidebarCommands";
 import { isSmartBlockUid } from "~/utils/isSmartBlockUid";
@@ -730,7 +729,6 @@ const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
   return {
     uid: oldConfig.uid,
     favoritesMigrated: oldConfig.favoritesMigrated,
-    sidebarMigrated: oldConfig.sidebarMigrated,
     global: mergeGlobalSectionWithAccessor(oldConfig.global, globalValues),
     globalSectionFolded: {
       uid: oldConfig.globalSectionFolded.uid,
@@ -743,7 +741,6 @@ const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
         personalValues,
       ),
     },
-    allPersonalSections: oldConfig.allPersonalSections,
   };
 };
 
@@ -1067,7 +1064,6 @@ export const mountLeftSidebar = async ({
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
   if (!root) {
     await migrateFavorites();
-    await migrateLeftSidebarSettings();
     wrapper.innerHTML = "";
     root = document.createElement("div");
     root.id = id;
