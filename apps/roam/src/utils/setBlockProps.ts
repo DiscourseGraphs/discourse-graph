@@ -19,6 +19,22 @@ export const deNormalizeProps = (props: json): json =>
           )
     : props;
 
+// Tracked so a caller about to read a value it just wrote can wait for the update.
+const inFlightWrites = new Set<Promise<unknown>>();
+
+export const trackRoamWrite = <T>(write: Promise<T>): Promise<T> => {
+  inFlightWrites.add(write);
+  void write.catch(() => undefined).finally(() => inFlightWrites.delete(write));
+  return write;
+};
+
+/** Bounded: a commit may start one further write (the legacy mirror), never a chain. */
+export const settleTrackedRoamWrites = async (): Promise<void> => {
+  for (let pass = 0; pass < 5 && inFlightWrites.size > 0; pass++) {
+    await Promise.allSettled(Array.from(inFlightWrites));
+  }
+};
+
 export const setBlockPropsAsync = (
   uid: string,
   newProps: Record<string, json>,
@@ -33,9 +49,11 @@ export const setBlockPropsAsync = (
         ? (deNormalizeProps(newProps) as Record<string, json>)
         : newProps),
     } as Record<string, json>;
-    return window.roamAlphaAPI.data.block
-      .update({ block: { uid, props } })
-      .then(() => props);
+    return trackRoamWrite(
+      window.roamAlphaAPI.data.block
+        .update({ block: { uid, props } })
+        .then(() => props),
+    );
   }
   return Promise.resolve(baseProps);
 };
