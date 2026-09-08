@@ -3,7 +3,6 @@ import { OnloadArgs } from "roamjs-components/types";
 import getDiscourseNodes, {
   excludeDefaultNodes,
 } from "~/utils/getDiscourseNodes";
-import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import { useSettingsNav } from "./navigation/SettingsNavContext";
 import SettingsPageHeader from "./navigation/SettingsPageHeader";
 import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
@@ -39,9 +38,6 @@ const GrammarNodesRoute = ({
         ancestorLabels={NODES_ANCESTOR_LABELS}
         rootLabel="Nodes"
         resolveLabel={resolveLabel}
-        dotColor={
-          formatHexColor(node?.canvasSettings?.color ?? "") || undefined
-        }
       />
       <div className="dg-settings-route__body">
         {node ? (
