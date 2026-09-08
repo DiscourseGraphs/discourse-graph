@@ -22,8 +22,8 @@ const badgeTooltip = ({
 };
 
 /**
- * Inline badge next to a link to a discourse node. Plain DOM, not React, so both
- * render paths share it without mounting a React root per link.
+ * Plain DOM, not React, so both render paths share it without mounting a React
+ * root per link.
  */
 export const createDiscourseContextBadge = ({
   file,
@@ -72,10 +72,7 @@ export const createDiscourseContextBadge = ({
 export const badgeTargetPath = (badge: Element): string | null =>
   badge.getAttribute(BADGE_PATH_ATTR);
 
-/**
- * Updates a badge's count without replacing the element, so an open popover
- * anchored to it keeps a connected anchor to position against.
- */
+/** In place, so an open popover anchored to it keeps a connected anchor. */
 export const updateDiscourseContextBadge = ({
   badge,
   nodeType,
