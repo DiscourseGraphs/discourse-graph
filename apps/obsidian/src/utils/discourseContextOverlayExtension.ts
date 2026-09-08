@@ -117,7 +117,6 @@ const buildBadgeDecorations = (
   return Decoration.set(widgets, true);
 };
 
-/** Renders the badge after each discourse-node link in Live Preview. */
 export const createDiscourseContextOverlayExtension = (
   plugin: DiscourseGraphPlugin,
 ): ViewPlugin<PluginValue> =>
