@@ -81,3 +81,10 @@
 .dg-settings-page-header__crumb {
   cursor: pointer;
 }
+
+.dg-settings-node-page {
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+  padding: 2px;
+}
