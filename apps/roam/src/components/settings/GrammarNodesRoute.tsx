@@ -4,12 +4,20 @@ import getDiscourseNodes, {
   excludeDefaultNodes,
 } from "~/utils/getDiscourseNodes";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
+import { nodeConfigSegmentIds } from "./utils/settingsNavigation";
 import { useSettingsNav } from "./navigation/SettingsNavContext";
 import SettingsPageHeader from "./navigation/SettingsPageHeader";
 import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
 import NodeConfig from "./NodeConfig";
+import NodeIndexPage from "./NodeIndexPage";
+import NodeTemplatePage from "./NodeTemplatePage";
 
 const NODES_ANCESTOR_LABELS = ["Grammar"] as const;
+
+const SUB_PAGE_LABELS: Record<string, string | undefined> = {
+  [nodeConfigSegmentIds.index]: "Index",
+  [nodeConfigSegmentIds.template]: "Template",
+};
 
 const GrammarNodesRoute = ({
   onloadArgs,
@@ -19,7 +27,7 @@ const GrammarNodesRoute = ({
   const { segments, goToDepth } = useSettingsNav();
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
 
-  const [nodeTypeUid] = segments;
+  const [nodeTypeUid, subPage] = segments;
   const node = nodeTypeUid
     ? nodes.find((n) => n.type === nodeTypeUid)
     : undefined;
@@ -30,8 +38,14 @@ const GrammarNodesRoute = ({
     if (isStalePath) goToDepth(0);
   }, [isStalePath, goToDepth]);
 
-  const resolveLabel = (segment: string): string =>
-    nodes.find((n) => n.type === segment)?.text ?? segment;
+  const resolveLabel = (segment: string, segmentIndex: number): string =>
+    segmentIndex === 0
+      ? (nodes.find((n) => n.type === segment)?.text ?? segment)
+      : (SUB_PAGE_LABELS[segment] ?? segment);
+
+  const dotColor = subPage
+    ? undefined
+    : formatHexColor(node?.canvasSettings?.color ?? "") || undefined;
 
   return (
     <div className="dg-settings-route">
@@ -39,17 +53,19 @@ const GrammarNodesRoute = ({
         ancestorLabels={NODES_ANCESTOR_LABELS}
         rootLabel="Nodes"
         resolveLabel={resolveLabel}
-        dotColor={
-          formatHexColor(node?.canvasSettings?.color ?? "") || undefined
-        }
+        dotColor={dotColor}
       />
       <div className="dg-settings-route__body">
-        {node ? (
-          <NodeConfig node={node} onloadArgs={onloadArgs} />
-        ) : (
+        {!node ? (
           <div className="p-1">
             <DiscourseNodeConfigPanel />
           </div>
+        ) : subPage === nodeConfigSegmentIds.index ? (
+          <NodeIndexPage node={node} onloadArgs={onloadArgs} />
+        ) : subPage === nodeConfigSegmentIds.template ? (
+          <NodeTemplatePage node={node} />
+        ) : (
+          <NodeConfig node={node} />
         )}
       </div>
     </div>
