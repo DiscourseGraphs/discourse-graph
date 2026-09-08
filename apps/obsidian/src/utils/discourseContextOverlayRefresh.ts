@@ -19,8 +19,8 @@ const isDiscourseNodeFile = (
   );
 
 /**
- * Redraws both surfaces when relations or frontmatter change. Reading view is
- * refreshed in place: rerender() blanks a pane that is not currently painting.
+ * Reading view is refreshed in place: rerender() blanks a pane that is not
+ * currently painting.
  */
 export const refreshDiscourseContextOverlaySurfaces = (
   plugin: DiscourseGraphPlugin,
