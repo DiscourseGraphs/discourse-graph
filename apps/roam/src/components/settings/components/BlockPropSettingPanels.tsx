@@ -17,7 +17,10 @@ import {
 } from "@blueprintjs/core";
 import Description from "~/components/settings/SettingsDescription";
 import { settingAnchor } from "~/components/settings/utils/settingAnchor";
-import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
+import getFirstChildUidByBlockUid from "roamjs-components/queries/getFirstChildUidByBlockUid";
+import createBlock from "roamjs-components/writes/createBlock";
+import updateBlock from "roamjs-components/writes/updateBlock";
+import { trackRoamWrite } from "~/utils/setBlockProps";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import {
@@ -30,6 +33,10 @@ import {
 } from "~/components/settings/utils/accessors";
 import type { FeatureFlags } from "../utils/zodSchema";
 import type { json } from "~/utils/getBlockProps";
+import {
+  addPendingSettingWrite,
+  removePendingSettingWrite,
+} from "~/utils/pendingSettingWrites";
 
 type RoamBlockSyncProps = {
   parentUid?: string;
@@ -115,6 +122,88 @@ const SettingTitle = ({
 );
 
 const DEBOUNCE_MS = 250;
+const SHORT_DEBOUNCE_MS = 100;
+
+type Commit = () => void | Promise<void>;
+
+type DeferredWrite = {
+  schedule: (commit: Commit, delayMs: number) => void;
+};
+
+type LegacyBlockSync = (text: string) => Promise<void>;
+
+// The legacy config tree is what readers see while `Use new settings store` is
+// off, so a commit must be able to await this write before re-reading the tree.
+const useLegacyBlockSync = ({
+  title,
+  parentUid,
+  order,
+  uid,
+}: {
+  title: string;
+  parentUid?: string;
+  order?: number;
+  uid?: string;
+}): LegacyBlockSync | undefined => {
+  const uidRef = useRef(uid);
+  const valueUidRef = useRef(uid ? getFirstChildUidByBlockUid(uid) : "");
+  const enabled = parentUid !== undefined && order !== undefined;
+  const sync = useCallback(
+    async (text: string): Promise<void> => {
+      if (valueUidRef.current) {
+        await trackRoamWrite(updateBlock({ uid: valueUidRef.current, text }));
+        return;
+      }
+      if (!uidRef.current) {
+        uidRef.current = await trackRoamWrite(
+          createBlock({
+            node: { text: title },
+            parentUid: parentUid ?? "",
+            order: order ?? 0,
+          }),
+        );
+      }
+      valueUidRef.current = await trackRoamWrite(
+        createBlock({ node: { text }, parentUid: uidRef.current, order: 0 }),
+      );
+    },
+    [title, parentUid, order],
+  );
+  return enabled ? sync : undefined;
+};
+
+// One timer and one registry entry per panel: a commit runs exactly once, by timer,
+// flush, or unmount. Unmount commits rather than cancels.
+const useDeferredWrite = (): DeferredWrite => {
+  const timeoutRef = useRef(0);
+  const commitRef = useRef<(() => Promise<void>) | null>(null);
+
+  const forget = useCallback(() => {
+    window.clearTimeout(timeoutRef.current);
+    if (commitRef.current) {
+      removePendingSettingWrite(commitRef.current);
+      commitRef.current = null;
+    }
+  }, []);
+
+  const schedule = useCallback(
+    (commit: Commit, delayMs: number) => {
+      forget();
+      const runOnce = async (): Promise<void> => {
+        forget();
+        await commit();
+      };
+      commitRef.current = runOnce;
+      addPendingSettingWrite(runOnce);
+      timeoutRef.current = window.setTimeout(() => void runOnce(), delayMs);
+    },
+    [forget],
+  );
+
+  useEffect(() => () => void commitRef.current?.(), []);
+
+  return { schedule };
+};
 
 const BaseTextPanel = ({
   title,
@@ -135,22 +224,13 @@ const BaseTextPanel = ({
   const [value, setValue] = useState(() => initialValue ?? "");
   const errorRef = useRef(error);
   errorRef.current = error;
-  const debounceRef = useRef(0);
-  const hasBlockSync = parentUid !== undefined && order !== undefined;
-  const { onChange: rawSyncToBlock } = useSingleChildValue({
+  const { schedule } = useDeferredWrite();
+  const syncToBlock = useLegacyBlockSync({
     title: blockKey ?? title,
-    parentUid: parentUid ?? "",
-    order: order ?? 0,
+    parentUid,
+    order,
     uid,
-    defaultValue: initialValue ?? "",
-    transform: (s: string) => s,
-    toStr: (s: string) => s,
   });
-  const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
-
-  useEffect(() => {
-    return () => window.clearTimeout(debounceRef.current);
-  }, []);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -159,15 +239,11 @@ const BaseTextPanel = ({
     setValue(newValue);
     onChange?.(newValue);
 
-    window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(() => {
+    schedule(async () => {
       if (errorRef.current) return;
-      syncToBlock?.(newValue);
-      debounceRef.current = window.setTimeout(() => {
-        if (errorRef.current) return;
-        refreshConfigTree();
-        setter(settingKeys, newValue);
-      }, 100);
+      await syncToBlock?.(newValue);
+      setter(settingKeys, newValue);
+      refreshConfigTree();
     }, DEBOUNCE_MS);
   };
 
@@ -283,33 +359,23 @@ const BaseNumberPanel = ({
   blockKey,
 }: BaseNumberPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? 0);
-  const hasBlockSync = parentUid !== undefined && order !== undefined;
-  const { onChange: rawSyncToBlock } = useSingleChildValue({
+  const syncToBlock = useLegacyBlockSync({
     title: blockKey ?? title,
-    parentUid: parentUid ?? "",
-    order: order ?? 0,
+    parentUid,
+    order,
     uid,
-    defaultValue: initialValue ?? 0,
-    transform: (s: string) => parseInt(s, 10),
-    toStr: (v: number) => `${v}`,
   });
-  const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
-  const refreshTimeoutRef = useRef(0);
-
-  useEffect(() => {
-    return () => window.clearTimeout(refreshTimeoutRef.current);
-  }, []);
+  const { schedule } = useDeferredWrite();
 
   const handleChange = (valueAsNumber: number) => {
     if (Number.isNaN(valueAsNumber)) return;
     setValue(valueAsNumber);
-    syncToBlock?.(valueAsNumber);
-    window.clearTimeout(refreshTimeoutRef.current);
-    refreshTimeoutRef.current = window.setTimeout(() => {
-      refreshConfigTree();
+    schedule(async () => {
+      await syncToBlock?.(`${valueAsNumber}`);
       setter(settingKeys, valueAsNumber);
+      refreshConfigTree();
       onChange?.(valueAsNumber);
-    }, 100);
+    }, SHORT_DEBOUNCE_MS);
   };
 
   return (
@@ -339,32 +405,22 @@ const BaseSelectPanel = ({
   blockKey,
 }: BaseSelectPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? options[0]);
-  const hasBlockSync = parentUid !== undefined && order !== undefined;
-  const { onChange: rawSyncToBlock } = useSingleChildValue({
+  const syncToBlock = useLegacyBlockSync({
     title: blockKey ?? title,
-    parentUid: parentUid ?? "",
-    order: order ?? 0,
+    parentUid,
+    order,
     uid,
-    defaultValue: initialValue ?? options[0] ?? "",
-    transform: (s: string) => s,
-    toStr: (s: string) => s,
   });
-  const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
-  const refreshTimeoutRef = useRef(0);
-
-  useEffect(() => {
-    return () => window.clearTimeout(refreshTimeoutRef.current);
-  }, []);
+  const { schedule } = useDeferredWrite();
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
-    syncToBlock?.(newValue);
-    window.clearTimeout(refreshTimeoutRef.current);
-    refreshTimeoutRef.current = window.setTimeout(() => {
-      refreshConfigTree();
+    schedule(async () => {
+      await syncToBlock?.(newValue);
       setter(settingKeys, newValue);
-    }, 100);
+      refreshConfigTree();
+    }, SHORT_DEBOUNCE_MS);
   };
 
   return (
