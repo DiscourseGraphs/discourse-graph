@@ -287,9 +287,121 @@ One of the strengths of the discourse graph workflow is that the protocol automa
 
 ### Searching & querying
 
-#### Queries
+The point of creating a discourse graph is not to put stuff _into_ it, it's to get meaning _out_ of it. You can quickly locate specific content using **Searches** and **Queries.**
 
-The point of creating a discourse graph is not to put stuff _into_ it, it's to get meaning _out_ of it. **Queries** are one way to find specific content
+#### Searching and indexing tools
+
+Roam provides several native methods of finding content in your graph. The simplest is the search bar atop every page. You can navigate to it directly by pressing `Cmd/Ctrl + U`.
+
+<Image
+  src="/docs/roam/PKM-searchbar.png"
+  alt="the search bar"
+  width={1034}
+  height={341}
+  className="docs-bordered-image"
+/>
+
+_The Roam search bar: find or create pages in your graph_
+
+Enabling "better search" in the Settings menu can speed up searches in larger graphs.
+
+<Image
+  src="/docs/roam/rooam-advanced-search.png"
+  alt="advanced search"
+  width={849}
+  height={448}
+  className="docs-bordered-image"
+/>
+
+_Better search setting_
+
+Roam also maintains an index of all of the pages you create in your graph.
+
+<Image
+  src="/docs/roam/pkm-allpages.png"
+  alt="the page index"
+  width={1031}
+  height={306}
+  className="docs-bordered-image"
+/>
+
+_The All Pages index_
+
+The administrator of your graph can enable **semantic search** so that you can search by vibes.
+
+<Callout type="warning" emoji="⚠️">
+  Certain semantic search options can send your data to a third party.
+</Callout>
+
+<Image
+  src="/docs/roam/roam-semantic-search.png"
+  alt="semantic search"
+  width={856}
+  height={317}
+  className="docs-bordered-image"
+/>
+
+_Enabling semantic search in Settings > Graph_
+
+<Callout type="info" emoji="💡">
+  Learn more about semantic search
+  [here](https://roamresearch.com/#/app/help/page/CslZS1zBh).
+</Callout>
+
+#### Node search
+
+The discourse graph plugin includes its own native search tool, which can be triggered by pressing `@` to summon a node search modal with filtering options.
+
+<Image
+  src="/docs/roam/node-search.png"
+  alt="node search"
+  width={633}
+  height={393}
+  className="docs-bordered-image"
+/>
+
+#### Advanced node search
+
+<Callout type="warning" emoji="⚠️">
+  Advanced node search is a beta feature. Certain semantic search options can
+  send your data to a third party.
+</Callout>
+
+The discourse graph plugin includes its own semantic search tool, **Advanced node search**, which can be enabled via a toggle on the administrator panel. Open discourse graph settings > press `Ctrl+ Shift +A` and > select "Advanced node search."
+
+<Image
+  src="/docs/roam/admin-panel.png"
+  alt="the admin panel"
+  width={916}
+  height={630}
+  className="docs-bordered-image"
+/>
+
+_The admin panel, reached from the discourse graph plugin Settings menu_
+
+<Image
+  src="/docs/roam/advanced-node-search02.png"
+  alt="advanced node search providers and settings"
+  width={917}
+  height={630}
+  className="docs-bordered-image"
+/>
+
+_Advanced node search providers and settings_
+
+You can set a hotkey to summon the advanced node search menu in the Command Palette. When triggered, it will open the node search modal, which includes previews of results.
+
+<Image
+  src="/docs/roam/advanced-node-search03.png"
+  alt="an advanced node search result"
+  width={790}
+  height={703}
+  className="docs-bordered-image"
+/>
+
+_An advanced node search result_
+
+#### Queries
 
 The discourse graph plugin includes a [querybuilder](https://github.com/RoamJS/query-builder) component that allows users to create and save queries against their graph.
 
@@ -355,68 +467,7 @@ That question might motivate the creation of a new Hypothesis and a new Issue: a
 
 _An Issue created by an experimentalist requesting a simulation that could inform several projects_
 
-#### Searching and indexing tools
-
-Roam provides several native methods of finding content in your graph. The simplest is the search bar atop every page. You can navigate to it directly by pressing `Cmd/Ctrl + U`.
-
-<Image
-  src="/docs/roam/PKM-searchbar.png"
-  alt="the search bar"
-  width={1034}
-  height={341}
-  className="docs-bordered-image"
-/>
-
-_The Roam search bar: find or create pages in your graph_
-
-Enabling advanced search in the Settings menu can speed up searches in larger graphs.
-
-<Image
-  src="/docs/roam/rooam-advanced-search.png"
-  alt="advanced search"
-  width={849}
-  height={448}
-  className="docs-bordered-image"
-/>
-
-_Better search setting_
-
-Roam also maintains an index of all of the pages you create in your graph.
-
-<Image
-  src="/docs/roam/pkm-allpages.png"
-  alt="the page index"
-  width={1031}
-  height={306}
-  className="docs-bordered-image"
-/>
-
-_The All Pages index_
-
-The administrator of your graph can enable **semantic search** so that you can search by vibes.
-
-<Callout type="warning" emoji="⚠️">
-  Certain semantic search options can send your data to a third party.
-</Callout>
-
-<Image
-  src="/docs/roam/roam-semantic-search.png"
-  alt="semantic search"
-  width={856}
-  height={317}
-  className="docs-bordered-image"
-/>
-
-_Enabling semantic search in Settings > Graph_
-
-<Callout type="info" emoji="💡">
-  Learn more about semantic search
-  [here](https://roamresearch.com/#/app/help/page/CslZS1zBh).
-</Callout>
-
-#### Advanced node search
-
-The discourse graph plugin includes its own native search tool
+Well-formed queries can be used to surface salient information to others in a shared knowledge base, as well as to future versions of yourself.
 
 ## What else would you like to do?
 
