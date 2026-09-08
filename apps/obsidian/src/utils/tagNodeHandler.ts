@@ -195,8 +195,9 @@ const buildTagDecorations = (
   return Decoration.set(decorations);
 };
 
-// CodeMirror recreates tag spans on focus and on scroll, discarding anything
-// stamped on from outside (ENG-2231). Decorations are re-applied every update.
+// CodeMirror's ContentView.sync() re-applies each span's attributes from its
+// decoration spec, dropping foreign ones, and drops line DOM as the viewport
+// scrolls — so attributes stamped from outside do not survive (ENG-2231).
 const createTagDecorationPlugin = (
   plugin: DiscourseGraphPlugin,
 ): ViewPlugin<PluginValue> =>
