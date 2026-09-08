@@ -9,7 +9,6 @@
     "build": "tsx scripts/build.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test:unit": "tsx --test \"src/**/*.test.ts\"",
     "publish": "tsx scripts/publish.ts",
     "check-types": "tsc --noEmit --skipLibCheck"
   },

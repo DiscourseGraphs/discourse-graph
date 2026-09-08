@@ -14,13 +14,6 @@ import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 import { getNodeTagColors } from "./colorUtils";
 import { createDiscourseNodeFile, formatNodeName } from "./createNode";
-import {
-  extractListPrefix,
-  mergeAdjacentRanges,
-  tagNameFromSyntaxNode,
-  titleFromTaggedLine,
-  type TaggedRange,
-} from "./discourseTagText";
 
 const HOVER_DELAY = 200;
 const HIDE_DELAY = 100;
@@ -29,23 +22,75 @@ const STYLE_ELEMENT_ID = "dg-discourse-tag-colors";
 const DISCOURSE_TAG_CLASS = "dg-discourse-tag";
 const NODE_ID_ATTR = "data-dg-discourse-tag-node";
 
+const LIST_INDICATOR_REGEX = /^(\s*)(\d+[.)]\s+|[-*+]\s+(?:\[[ xX]\]\s+)?)/;
+
+const TAG_SEGMENT_PREFIX = "tag-";
+
+const sanitizeTitle = (title: string): string =>
+  title
+    .replace(LIST_INDICATOR_REGEX, "")
+    .replace(/[\\/:]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const extractListPrefix = (line: string): string =>
+  line.match(LIST_INDICATOR_REGEX)?.[0] ?? "";
+
+const titleFromTaggedLine = (lineText: string): string =>
+  sanitizeTitle(lineText.replace(/#[^\s]+/g, ""));
+
+// Nodes are named like `hashtag_hashtag-end_meta_tag-clm-candidate`; reading the tag
+// from the tree inherits Obsidian's rules for code blocks, URLs and headings.
+const tagNameFromSyntaxNode = (nodeName: string): string | null => {
+  if (!nodeName.includes("hashtag")) return null;
+  const segment = nodeName
+    .split("_")
+    .find(
+      (part) =>
+        part.startsWith(TAG_SEGMENT_PREFIX) &&
+        part.length > TAG_SEGMENT_PREFIX.length,
+    );
+  return segment ? segment.slice(TAG_SEGMENT_PREFIX.length) : null;
+};
+
+type TaggedRange<TStyle extends { nodeTypeId: string }> = {
+  from: number;
+  to: number;
+  style: TStyle;
+};
+
+// The `#` and the name are separate syntax nodes; join them into one chip.
+const mergeAdjacentRanges = <TStyle extends { nodeTypeId: string }>(
+  ranges: TaggedRange<TStyle>[],
+): TaggedRange<TStyle>[] => {
+  const sorted = [...ranges].sort((a, b) => a.from - b.from);
+  const merged: TaggedRange<TStyle>[] = [];
+
+  for (const range of sorted) {
+    const previous = merged[merged.length - 1];
+    if (
+      previous &&
+      previous.to === range.from &&
+      previous.style.nodeTypeId === range.style.nodeTypeId
+    ) {
+      previous.to = range.to;
+      continue;
+    }
+    merged.push({ ...range });
+  }
+
+  return merged;
+};
+
 type TagStyle = { nodeTypeId: string };
 type TagRange = TaggedRange<TagStyle>;
 
-// ============================================================================
-// COLOURS
-// ============================================================================
-
-/**
- * A mark decoration can only create a span *inside* Obsidian's `.cm-hashtag`,
- * which is the element carrying the tag's padding and border radius, so the
- * colours are applied to that parent through `:has()` on this marker class.
- */
+// A decoration can only create a span inside Obsidian's `.cm-hashtag`, which owns
+// the tag's padding and radius, so colours target that parent via `:has()`.
 export const discourseTagClassForNode = (nodeTypeId: string): string =>
   `dg-tag-${nodeTypeId.replace(/[^A-Za-z0-9_-]/g, "-")}`;
 
-// Obsidian's own rule is a bare `.cm-hashtag { background: var(--tag-background) }`
-// and themes recolour by redefining that variable, so this wins without `!important`.
+// Beats Obsidian's own `.cm-hashtag` rule on specificity, so no `!important`.
 const buildStyleSheet = (plugin: DiscourseGraphPlugin): string =>
   plugin.settings.nodeTypes
     .map((nodeType, nodeIndex) => {
@@ -93,10 +138,6 @@ export class DiscourseTagStyleManager {
     return Array.from(documents);
   }
 }
-
-// ============================================================================
-// DECORATIONS
-// ============================================================================
 
 const buildTagStyleIndex = (
   plugin: DiscourseGraphPlugin,
@@ -154,11 +195,8 @@ const buildTagDecorations = (
   return Decoration.set(decorations);
 };
 
-/**
- * CodeMirror rebuilds its content on focus and recreates tag spans as lines
- * scroll through the viewport, silently discarding anything stamped onto them
- * from outside (ENG-2231). Decorations are re-applied on every update.
- */
+// CodeMirror recreates tag spans on focus and on scroll, discarding anything
+// stamped on from outside (ENG-2231). Decorations are re-applied every update.
 const createTagDecorationPlugin = (
   plugin: DiscourseGraphPlugin,
 ): ViewPlugin<PluginValue> =>
@@ -186,10 +224,6 @@ const createTagDecorationPlugin = (
     },
     { decorations: (value) => value.decorations },
   );
-
-// ============================================================================
-// NODE CREATION
-// ============================================================================
 
 type CreateNodeFromTagParams = {
   plugin: DiscourseGraphPlugin;
@@ -237,7 +271,6 @@ const resolveTargetFile = async ({
   return { file: newFile, linkText: `[[${formattedNodeName}]]` };
 };
 
-/** Replaces the whole tagged line, preserving any list prefix. */
 const createNodeFromTag = async (
   params: CreateNodeFromTagParams,
 ): Promise<void> => {
@@ -289,12 +322,7 @@ const createNodeFromTag = async (
   }
 };
 
-// ============================================================================
-// HOVER TOOLTIP
-// ============================================================================
-
-// Popout windows are separate realms, so their elements fail `instanceof
-// HTMLElement` against the main window's class.
+// Popout elements fail `instanceof HTMLElement` against the main window's class.
 const asElement = (target: EventTarget | null): HTMLElement | null =>
   target && typeof (target as HTMLElement).closest === "function"
     ? (target as HTMLElement)
@@ -376,7 +404,6 @@ class DiscourseTagHoverController {
     );
   }
 
-  // A tag wrapped across two visual lines has several rects; anchor to its start.
   private anchorRect(tagEl: HTMLElement): DOMRect {
     return tagEl.getClientRects().item(0) ?? tagEl.getBoundingClientRect();
   }
@@ -393,8 +420,7 @@ class DiscourseTagHoverController {
     this.hide();
 
     const rect = this.anchorRect(tagEl);
-    // The rect is in the tag's own window, so the tooltip must go in that
-    // document too, rather than wherever `activeDocument` currently points.
+    // The rect is in the tag's own window, so the tooltip belongs in that document.
     const doc = tagEl.ownerDocument;
     const tooltip = doc.createElement("div");
     tooltip.className = "discourse-tag-popover";
@@ -487,10 +513,6 @@ class DiscourseTagHoverController {
     this.anchor = null;
   }
 }
-
-// ============================================================================
-// PUBLIC API
-// ============================================================================
 
 export const createDiscourseTagExtension = (plugin: DiscourseGraphPlugin) => {
   const hover = new DiscourseTagHoverController(plugin);
