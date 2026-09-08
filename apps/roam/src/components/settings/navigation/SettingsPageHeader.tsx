@@ -8,12 +8,10 @@ const SettingsPageHeader = ({
   ancestorLabels,
   rootLabel,
   resolveLabel,
-  dotColor,
 }: {
   ancestorLabels: readonly string[];
   rootLabel: string;
   resolveLabel: (segment: string, segmentIndex: number) => string;
-  dotColor?: string;
 }): JSX.Element | null => {
   const { path, depth, pop, goToDepth } = useSettingsNav();
   if (depth === 0) return null;
@@ -33,10 +31,6 @@ const SettingsPageHeader = ({
           title={`Back to ${parent.label}`}
           aria-label={`Back to ${parent.label}`}
           onClick={pop}
-        />
-        <span
-          className="dg-settings-page-header__dot"
-          style={dotColor ? { backgroundColor: dotColor } : undefined}
         />
         {current.label}
       </div>
