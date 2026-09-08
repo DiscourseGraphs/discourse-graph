@@ -3898,3 +3898,52 @@ kbd.tlui-kbd {
     background-color: var(--background-secondary);
   }
 }
+
+.dg-node-search-modal .dg-search-result-title span {
+  background-color: var(--text-highlight-bg);
+  color: inherit;
+  border-radius: var(--radius-s);
+  padding: 0 1px;
+}
+
+/* Only the properties Tailwind utilities cannot win here; the rest of this
+   footer's layout is utilities on the elements themselves. Obsidian sets
+   `color`, `background-color`, and `box-shadow` in `button:not(.clickable-icon)`
+   and `button:hover` — both (0,1,1), which outrank a single utility class — so a
+   utility would leave the label in `--text-normal` on an interactive-grey pill.
+   `font-size` has no inherit utility, and without it the button takes
+   `--font-ui-small` rather than the smaller type of the row it sits in. */
+.dg-node-search-modal .dg-search-footer-action,
+.dg-node-search-modal .dg-search-footer-action:hover {
+  color: inherit;
+  background-color: transparent;
+  box-shadow: none;
+  font-size: inherit;
+}
+
+/* Each key is a bordered cap, so `esc` reads as one of the set rather than as
+   emphasised text. Kept in CSS for the inherited font and em-based sizing. */
+.dg-node-search-modal .dg-search-footer-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  padding: 0 var(--size-2-1);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background-color: var(--background-primary);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1.6;
+}
+
+.dg-node-search-modal .dg-search-footer-action:hover:not(:disabled) {
+  color: var(--text-normal);
+}
+
+.dg-node-search-modal .dg-search-footer-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

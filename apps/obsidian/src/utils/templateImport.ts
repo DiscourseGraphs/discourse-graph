@@ -90,7 +90,7 @@ export const fetchTemplateImportCandidates = async ({
       "id, source_local_id, name, literal_content, author_id, space_id, last_modified",
     )
     .eq("is_schema", true)
-    .eq("arity", 0)
+    .eq("is_relation", false)
     .eq("name", trimmedNodeTypeName)
     .neq("space_id", context.spaceId);
 

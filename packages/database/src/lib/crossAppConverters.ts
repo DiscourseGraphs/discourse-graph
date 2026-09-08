@@ -8,6 +8,7 @@ import {
   CrossAppRelation,
 } from "../crossAppContracts";
 import { LocalContentDataInput, LocalConceptDataInput } from "../inputTypes";
+import { ridToSpaceUriAndLocalId } from "./rid";
 import { Enums, CompositeTypes } from "../dbTypes";
 
 type InlineEmbeddingInput = CompositeTypes<"inline_embedding_input">;
@@ -70,34 +71,51 @@ export const crossAppNodeToDbContent = (
 export const crossAppNodeToDbConcept = (
   node: CrossAppNode,
 ): LocalConceptDataInput => {
+  const spaceUri = node.rid
+    ? ridToSpaceUriAndLocalId(node.rid).spaceUri
+    : undefined;
   return filterUndefined<LocalConceptDataInput>({
+    space_url: spaceUri,
     source_local_id: node.localId,
     name: node.content.direct.value,
     author_local_id: node.authorId,
     schema_represented_by_local_id: node.nodeType,
+    literal_content: {
+      core_title: node.coreTitle,
+    },
     contents_inline: filterUndefinedArray([
       crossAppNodeToDbContent(node, "direct"),
       crossAppNodeToDbContent(node, "full"),
     ]),
     created: node.createdAt?.toISOString(),
     last_modified: node.modifiedAt?.toISOString(),
+    local_reference_content: node.slots,
   });
 };
 
 export const crossAppNodeSchemaToDbConcept = (
   node: CrossAppNodeSchema,
 ): LocalConceptDataInput => {
+  const slots = Object.keys(node.slotDefinitions ?? {});
   const literalInfo = filterUndefined({
     template: node.templateTitle,
     template_content: node.template,
+    format: node.format,
+    roles: slots.length > 0 ? slots : undefined,
   });
+  const referenceContent = slots.length ? node.slotDefinitions : undefined;
+  const spaceUri = node.rid
+    ? ridToSpaceUriAndLocalId(node.rid).spaceUri
+    : undefined;
   return filterUndefined<LocalConceptDataInput>({
+    space_url: spaceUri,
     source_local_id: node.localId,
     name: node.label,
     author_local_id: node.authorId,
     is_schema: true,
     literal_content:
       Object.keys(literalInfo).length > 0 ? literalInfo : undefined,
+    local_reference_content: referenceContent,
     created: node.createdAt?.toISOString(),
     last_modified: node.modifiedAt?.toISOString(),
   });
@@ -106,7 +124,11 @@ export const crossAppNodeSchemaToDbConcept = (
 export const crossAppRelationTypeSchemaToDbConcept = (
   node: CrossAppRelationTypeSchema,
 ): LocalConceptDataInput => {
+  const spaceUri = node.rid
+    ? ridToSpaceUriAndLocalId(node.rid).spaceUri
+    : undefined;
   return filterUndefined<LocalConceptDataInput>({
+    space_url: spaceUri,
     source_local_id: node.localId,
     name: node.label,
     author_local_id: node.authorId,
@@ -130,7 +152,11 @@ export const crossAppRelationTripleSchemaToDbConcept = (
   const label = "label" in node ? node.label : relationType!.label;
   const complement =
     "complement" in node ? node.complement : relationType!.complement;
+  const spaceUri = node.rid
+    ? ridToSpaceUriAndLocalId(node.rid).spaceUri
+    : undefined;
   return filterUndefined<LocalConceptDataInput>({
+    space_url: spaceUri,
     source_local_id: node.localId,
     name: node.localId, // has to be unique within space. Not seen yet.
     author_local_id: node.authorId,
@@ -153,9 +179,13 @@ export const crossAppRelationTripleSchemaToDbConcept = (
 export const crossAppRelationToDbConcept = (
   node: CrossAppRelation,
 ): LocalConceptDataInput => {
+  const spaceUri = node.rid
+    ? ridToSpaceUriAndLocalId(node.rid).spaceUri
+    : undefined;
   return filterUndefined<LocalConceptDataInput>({
     // use LocalIds... not ideal
     name: `${node.localId}: ${node.source} -${node.relationType}-> ${node.destination}`,
+    space_url: spaceUri,
     source_local_id: node.localId,
     author_local_id: node.authorId,
     schema_represented_by_local_id: node.relationType,

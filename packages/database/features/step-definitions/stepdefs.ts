@@ -409,6 +409,7 @@ Given(
   "user {word} upserts these concepts to space {word}:",
   async (userName: string, spaceName: string, docString: string) => {
     const data = JSON.parse(docString) as Json;
+    if (!Array.isArray(data)) throw new Error("Invalid data");
     const localRefs = (world.localRefs || {}) as LocalRefsType;
     const spaceId = localRefs[spaceName];
     if (typeof spaceId !== "number") assert.fail("spaceId not a number");
@@ -418,6 +419,17 @@ Given(
       data,
     });
     assert.equal(response.error, null);
+    if (response.data !== null) {
+      response.data.forEach((id, index) => {
+        if (id === undefined) return;
+        const cpt = data[index];
+        if (cpt === null || typeof cpt !== "object" || Array.isArray(cpt))
+          return;
+        const localId = cpt["source_local_id"] as unknown;
+        if (typeof localId !== "string") return;
+        localRefs[localId] = id;
+      });
+    }
   },
 );
 

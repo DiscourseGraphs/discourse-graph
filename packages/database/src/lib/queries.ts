@@ -285,7 +285,7 @@ const composeConceptQuery = ({
   const inRelsToNodesOfAuthor = relations.author;
 
   let q = (fields.concepts || CONCEPT_FIELDS).join(",\n");
-  const innerContent = scope.schemas || baseNodeLocalIds.length > 0;
+  const innerContent = baseNodeLocalIds.length > 0;
   const ctArgs: string[] = (fields.content || []).slice();
   if (innerContent && !ctArgs.includes("source_local_id")) {
     ctArgs.push("source_local_id");
@@ -331,9 +331,9 @@ const composeConceptQuery = ({
   }
   let query = supabase.from("my_concepts").select(q);
   if (scope.type === "nodes") {
-    query = query.eq("arity", 0);
+    query = query.eq("is_relation", false);
   } else if (scope.type === "relations") {
-    query = query.gt("arity", 0);
+    query = query.eq("is_relation", true);
   }
   // else fetch both
 
@@ -544,10 +544,12 @@ export const CONCEPT_FIELDS: (keyof Concept)[] = [
   "last_modified",
   "space_id",
   "arity",
+  "is_relation",
   "literal_content",
   "reference_content",
   "refs",
   "is_schema",
+  "is_relation",
   "schema_id",
   "source_local_id",
 ];
@@ -681,7 +683,7 @@ export const getNodesByType = async ({
 };
 
 /**
- * Retrieves all discourse relations (concepts with arity > 0) in a space.
+ * Retrieves all discourse relations in a space.
  *
  * @param params - Query parameters
  * @param params.supabase - Authenticated Supabase client

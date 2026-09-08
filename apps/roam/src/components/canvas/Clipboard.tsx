@@ -381,7 +381,7 @@ const AddPageModal = ({ isOpen, onClose, onConfirm }: AddPageModalProps) => {
               disabled={isLoading}
               className="flex-shrink-0"
             />
-            <span className={"flex-grow text-red-800"}>{error}</span>
+            <span className={"flex-grow text-red-700"}>{error}</span>
             {isLoading && <Spinner size={SpinnerSize.SMALL} />}
           </div>
         </div>

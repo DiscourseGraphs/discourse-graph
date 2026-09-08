@@ -24,6 +24,7 @@ import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import { resolveNewDiscourseNodeText } from "~/utils/formatUtils";
+import { isMacOS } from "~/utils/platform";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
@@ -419,12 +420,6 @@ export const TextSelectionNodeMenu = ({
   );
 };
 
-// node_modules\@blueprintjs\core\lib\esm\components\hotkeys\hotkeyParser.js
-const isMac = () => {
-  const platform =
-    typeof navigator !== "undefined" ? navigator.platform : undefined;
-  return platform == null ? false : /Mac|iPod|iPhone|iPad/.test(platform);
-};
 const MODIFIER_BIT_MASKS = {
   alt: 1,
   ctrl: 2,
@@ -436,7 +431,7 @@ const ALIASES: { [key: string]: string } = {
   command: "meta",
   escape: "esc",
   minus: "-",
-  mod: isMac() ? "meta" : "ctrl",
+  mod: isMacOS() ? "meta" : "ctrl",
   option: "alt",
   plus: "+",
   return: "enter",
@@ -446,7 +441,7 @@ const normalizeKeyCombo = (combo: string) => {
   const keys = combo.replace(/\s/g, "").split("+");
   return keys.map(function (key) {
     const keyName = ALIASES[key] != null ? ALIASES[key] : key;
-    return keyName === "meta" ? (isMac() ? "cmd" : "win") : keyName;
+    return keyName === "meta" ? (isMacOS() ? "cmd" : "win") : keyName;
   });
 };
 

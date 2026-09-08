@@ -14,6 +14,9 @@ export const excludeDefaultNodes = (node: DiscourseNode) => {
   return node.backedBy !== "default";
 };
 
+export const getRelationEndpointNodeTypes = (nodes: DiscourseNode[]) =>
+  nodes.filter(excludeDefaultNodes).map((n) => n.type);
+
 // TODO - only text and type should be required
 export type DiscourseNode = {
   text: string;

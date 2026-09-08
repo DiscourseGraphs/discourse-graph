@@ -450,7 +450,7 @@ const QuerySectionItem = ({
   if (isLoading) {
     body = <div className="pl-8 pr-2.5 text-sm text-gray-500">Loading…</div>;
   } else if (error) {
-    body = <div className="pl-8 pr-2.5 text-sm text-red-500">{error}</div>;
+    body = <div className="pl-8 pr-2.5 text-sm text-red-700">{error}</div>;
   } else if (limitedResults.length > 0) {
     body = limitedResults.map((child) => (
       <ChildRow

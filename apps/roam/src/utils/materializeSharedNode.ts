@@ -5,12 +5,14 @@ import {
   trimBlankLines,
 } from "@repo/content-model";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import { decorateTitle } from "@repo/database/lib/decorateTitle";
 import { isRid } from "@repo/database/lib/rid";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
+import type { DiscourseNode } from "./getDiscourseNodes";
 import {
   findImportedNodeUidBySourceRid,
   readImportedSourceIdentity,
@@ -67,7 +69,7 @@ type RoamMarkdownApi = {
   };
 };
 
-const getRoamMarkdownApi = (): RoamMarkdownApi =>
+export const getRoamMarkdownApi = (): RoamMarkdownApi =>
   window.roamAlphaAPI.data as unknown as RoamMarkdownApi;
 
 export const getErrorMessage = (error: unknown): string =>
@@ -292,9 +294,13 @@ const updateImportedPage = async ({
 export const materializeSharedNode = async ({
   client,
   sharedNode,
+  nodeType,
+  force = false,
 }: {
   client: DGSupabaseClient;
   sharedNode: SharedNode;
+  nodeType?: Pick<DiscourseNode, "format">;
+  force?: boolean;
 }): Promise<MaterializeSharedNodeResult> => {
   const rawIdentity: SourceIdentity = {
     sourceModifiedAt: sharedNode.lastModified,
@@ -313,6 +319,10 @@ export const materializeSharedNode = async ({
     sourceModifiedAt: validated.sourceModifiedAt,
     sourceNodeRid: sharedNode.rid,
   };
+  const pageTitle =
+    (sharedNode.coreTitle && nodeType
+      ? decorateTitle(nodeType.format, sharedNode.coreTitle)
+      : null) ?? validated.title;
 
   let importedPageUid: string | null;
   let storedIdentity: ImportedSourceIdentity | undefined;
@@ -331,6 +341,7 @@ export const materializeSharedNode = async ({
   }
 
   if (
+    !force &&
     importedPageUid &&
     storedIdentity &&
     isImportUpToDate({
@@ -360,11 +371,11 @@ export const materializeSharedNode = async ({
         identity,
         markdown: content.markdown,
         pageUid: importedPageUid,
-        title: validated.title,
+        title: pageTitle,
       })
     : createImportedPage({
         identity,
         markdown: content.markdown,
-        title: validated.title,
+        title: pageTitle,
       });
 };

@@ -87,6 +87,7 @@ const discourseNodeSettings: DiscourseNodeSettings = {
 const featureFlags: FeatureFlags = {
   "Advanced node search enabled": true,
   "Enable left sidebar": true,
+  "Enable node sharing": true,
   "Suggestive mode overlay enabled": true,
   "Use new settings store": false,
 };
@@ -94,6 +95,7 @@ const featureFlags: FeatureFlags = {
 const defaultFeatureFlags: FeatureFlags = {
   "Advanced node search enabled": false,
   "Enable left sidebar": false,
+  "Enable node sharing": false,
   "Suggestive mode overlay enabled": false,
   "Use new settings store": false,
 };

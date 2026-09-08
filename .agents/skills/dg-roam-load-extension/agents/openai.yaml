@@ -1,0 +1,4 @@
+interface:
+  display_name: "DG Roam Load Extension"
+  short_description: "Load the local DG extension into Roam"
+  default_prompt: "Use $dg-roam-load-extension to load the local DG extension into Roam."

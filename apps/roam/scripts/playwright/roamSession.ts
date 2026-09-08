@@ -52,7 +52,7 @@ type WaitForRoamReadyOptions = {
   loginTimeout?: number;
 };
 
-type OpenRoamSessionOptions = {
+export type OpenRoamSessionOptions = {
   slot?: string | boolean;
   graphUrl?: string;
   profileDir?: string;
@@ -64,10 +64,12 @@ type OpenRoamSessionOptions = {
   chromium?: BrowserType<Browser>;
 };
 
-type OpenRoamSessionResult = {
+export type OpenRoamSessionResult = {
   context: BrowserContext;
   page: Page;
   slotConfig: SlotConfig;
+  headless: boolean;
+  close: () => Promise<void>;
 };
 
 const SCRIPT_DIR = __dirname;
@@ -321,19 +323,36 @@ export const waitForRoamReady = async ({
   await waitForReadySelector({ page, timeout });
 };
 
+const looksLikeProfileLock = (error: unknown): boolean =>
+  error instanceof Error &&
+  /processsingleton|profile.*(?:lock|in use)|singletonlock|already running/i.test(
+    error.message,
+  );
+
+export const closeRoamSession = async ({
+  context,
+}: {
+  context: BrowserContext;
+}): Promise<void> => {
+  await context.close();
+};
+
 export const openRoamSession = async ({
   slot = getEnvValue("DG_ROAM_PLAYWRIGHT_SLOT") || "1",
   graphUrl,
   profileDir,
-  headless = getEnvValue("HEADLESS") !== "false",
+  headless,
   viewport = { width: 1440, height: 1000 },
   timeout = 30_000,
   allowInteractiveLogin = false,
-  allowCredentialLogin = getEnvValue("DG_ROAM_PLAYWRIGHT_AUTO_LOGIN") !==
-    "false",
+  allowCredentialLogin,
   chromium = defaultChromium,
 }: OpenRoamSessionOptions = {}): Promise<OpenRoamSessionResult> => {
   const slotConfig = resolveSlotConfig({ slot, graphUrl, profileDir });
+  const resolvedHeadless = headless ?? getEnvValue("HEADLESS") !== "false";
+  const resolvedAllowCredentialLogin =
+    allowCredentialLogin ??
+    getEnvValue("DG_ROAM_PLAYWRIGHT_AUTO_LOGIN") !== "false";
   const resolvedConfig = {
     ...slotConfig,
     profileDir: path.resolve(slotConfig.profileDir),
@@ -341,24 +360,49 @@ export const openRoamSession = async ({
 
   fs.mkdirSync(resolvedConfig.profileDir, { recursive: true });
 
-  const context = await chromium.launchPersistentContext(
-    resolvedConfig.profileDir,
-    {
-      headless,
-      viewport,
-    },
-  );
+  let context: BrowserContext;
+  try {
+    context = await chromium.launchPersistentContext(
+      resolvedConfig.profileDir,
+      {
+        headless: resolvedHeadless,
+        viewport,
+      },
+    );
+  } catch (error) {
+    if (looksLikeProfileLock(error)) {
+      throw new Error(
+        `Could not open Playwright slot ${resolvedConfig.slot} because its profile is already in use: ${resolvedConfig.profileDir}. Close the other session or choose another --slot.`,
+        { cause: error },
+      );
+    }
+    throw error;
+  }
 
-  const page = context.pages()[0] || (await context.newPage());
-  await page.goto(resolvedConfig.graphUrl, { waitUntil: "domcontentloaded" });
-  await waitForRoamReady({
+  let page: Page;
+  try {
+    page = context.pages()[0] || (await context.newPage());
+    await page.goto(resolvedConfig.graphUrl, {
+      waitUntil: "domcontentloaded",
+    });
+    await waitForRoamReady({
+      page,
+      slotConfig: resolvedConfig,
+      headless: resolvedHeadless,
+      allowInteractiveLogin,
+      allowCredentialLogin: resolvedAllowCredentialLogin,
+      timeout,
+    });
+  } catch (error) {
+    await closeRoamSession({ context });
+    throw error;
+  }
+
+  return {
+    context,
     page,
     slotConfig: resolvedConfig,
-    headless,
-    allowInteractiveLogin,
-    allowCredentialLogin,
-    timeout,
-  });
-
-  return { context, page, slotConfig: resolvedConfig };
+    headless: resolvedHeadless,
+    close: () => closeRoamSession({ context }),
+  };
 };

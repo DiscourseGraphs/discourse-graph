@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { type Locator, type Page } from "playwright";
+import { pathToFileURL } from "node:url";
+import { type BrowserContext, type Locator, type Page } from "playwright";
 import {
   DEFAULT_ARTIFACT_DIR,
   REPO_ROOT,
@@ -45,6 +46,7 @@ type InstallDirectoryPickerShimOptions = {
 };
 
 type DeveloperMode = "already-enabled" | "enabled";
+type ExtensionActivation = "automatic" | "header-refresh" | "row-refresh";
 
 type DiscourseGraphGlobalProof = {
   hasRunQuery: boolean;
@@ -77,6 +79,7 @@ type LoadExtensionResult = {
   resultPath: string;
   headless: boolean;
   developerMode: DeveloperMode | null;
+  activation: ExtensionActivation | null;
   removedExisting: number;
   dgGlobal: DiscourseGraphGlobalProof | null;
   dgUi: DiscourseGraphUiProof | null;
@@ -84,8 +87,32 @@ type LoadExtensionResult = {
   consoleMessages: string[];
   failedRequests: string[];
   knownWarnings: string[];
+  phases: Record<string, { ok: boolean; durationMs: number; error?: string }>;
+  testModule: string | null;
+  test: { ok: boolean; value?: unknown; error?: string } | null;
+  cleanup: { ok: boolean; value?: unknown; error?: string } | null;
+  diagnostics: Record<string, unknown> | null;
+  failureScreenshotPath: string | null;
   error: string | null;
   capturedAt: string | null;
+};
+
+type ExtensionTestHookOptions = {
+  context: BrowserContext;
+  page: Page;
+  outDir: string;
+  distDir: string;
+  result: LoadExtensionResult;
+};
+
+export type ExtensionTestDefinition = {
+  registrationName?: string;
+  readySelector?: string;
+  ready?: (
+    options: Pick<ExtensionTestHookOptions, "context" | "page">,
+  ) => boolean | Promise<boolean>;
+  run?: (options: ExtensionTestHookOptions) => unknown;
+  cleanup?: (options: ExtensionTestHookOptions & { state: unknown }) => unknown;
 };
 
 type CommandPaletteCommand = {
@@ -120,7 +147,7 @@ type DgPlaywrightWindow = {
   showDirectoryPicker?: () => Promise<unknown>;
 };
 
-const ROOT_FILES: ExtensionRootFile[] = [
+export const ROOT_FILES: ExtensionRootFile[] = [
   { name: "extension.js", required: true, type: "text/javascript" },
   { name: "README.md", required: true, type: "text/markdown" },
   { name: "extension.css", required: false, type: "text/css" },
@@ -147,15 +174,39 @@ const runCommand = async ({
     });
   });
 
-const clickByDom = async (
+const clickNative = async (
   locator: Locator,
   timeout = 15_000,
 ): Promise<void> => {
-  await locator.first().waitFor({ timeout });
-  await locator.first().evaluate((element: HTMLElement) => {
-    element.scrollIntoView({ block: "center", inline: "nearest" });
-    element.click();
-  });
+  const target = locator.first();
+  await target.waitFor({ state: "visible", timeout });
+  await target.scrollIntoViewIfNeeded();
+  await target.click({ timeout });
+};
+
+export const classifyBrowserMessage = (
+  message: string,
+): "expected-directory-handle-warning" | "error" =>
+  message.includes("Failed to execute 'put' on 'IDBObjectStore'") &&
+  message.includes("could not be cloned")
+    ? "expected-directory-handle-warning"
+    : "error";
+
+export const loadTestDefinition = async (
+  testModulePath?: string,
+): Promise<(ExtensionTestDefinition & { modulePath: string }) | null> => {
+  if (!testModulePath) return null;
+  const modulePath = path.resolve(testModulePath);
+  const moduleUrl = pathToFileURL(modulePath);
+  moduleUrl.searchParams.set("run", Date.now().toString());
+  const imported = (await import(moduleUrl.href)) as {
+    default?: ExtensionTestDefinition;
+  } & ExtensionTestDefinition;
+  const definition = imported.default || imported;
+  if (!definition || typeof definition !== "object") {
+    throw new Error(`Test module must export an object: ${modulePath}`);
+  }
+  return { ...definition, modulePath };
 };
 
 const closeOpenModals = async (page: Page): Promise<void> => {
@@ -165,9 +216,10 @@ const closeOpenModals = async (page: Page): Promise<void> => {
     );
 
     if ((await closeButtons.count().catch(() => 0)) > 0) {
-      await closeButtons.last().evaluate((element: HTMLElement) => {
-        element.click();
-      });
+      await closeButtons
+        .last()
+        .click({ force: true })
+        .catch(() => undefined);
       await page.waitForTimeout(500);
       continue;
     }
@@ -357,14 +409,15 @@ const openRoamDepotSettings = async ({
   timeout,
 }: PageTimeoutOptions): Promise<void> => {
   await closeOpenModals(page);
-  await clickByDom(page.locator(".rm-topbar .bp3-icon-more"), timeout);
-  await page
-    .locator(".bp3-menu-item, .bp3-menu li, [role='menuitem']")
-    .filter({ hasText: /^Settings$/i })
-    .first()
-    .click({ force: true, timeout });
+  await clickNative(page.locator(".rm-topbar .bp3-icon-more"), timeout);
+  await clickNative(
+    page
+      .locator(".bp3-menu-item, .bp3-menu li, [role='menuitem']")
+      .filter({ hasText: /^Settings$/i }),
+    timeout,
+  );
   await page.locator(".rm-modal-dialog--settings").waitFor({ timeout });
-  await clickByDom(
+  await clickNative(
     page.locator("#bp3-tab-title_rm-settings-tabs_rm-depot-tab"),
     timeout,
   );
@@ -377,64 +430,75 @@ const ensureDeveloperMode = async ({
   page,
   timeout,
 }: PageTimeoutOptions): Promise<DeveloperMode> => {
-  await clickByDom(
+  await clickNative(
     page.locator(".rm-extensions-installed__header button.bp3-icon-cog"),
     timeout,
   );
   await page.waitForTimeout(500);
 
-  if ((await page.locator(".bp3-icon-folder-new").count()) > 0) {
+  const folderButton = page.locator(
+    ".rm-extensions-installed__header button.bp3-icon-folder-new",
+  );
+  if (
+    await folderButton
+      .first()
+      .isVisible()
+      .catch(() => false)
+  ) {
     return "already-enabled";
   }
 
-  await page
-    .locator(".bp3-menu-item, [role='menuitem']")
-    .filter({ hasText: /developer mode/i })
-    .first()
-    .click({ force: true, timeout });
-  await page.waitForFunction(
-    () => Boolean(document.querySelector(".bp3-icon-folder-new")),
-    undefined,
-    { timeout },
-  );
+  let enableDeveloperMode = page
+    .locator(".bp3-menu-item, .bp3-menu li, [role='menuitem'], button")
+    .filter({ hasText: /^Enable developer mode$/i });
+  if ((await enableDeveloperMode.count()) === 0) {
+    enableDeveloperMode = page
+      .locator(".bp3-menu-item, .bp3-menu li, [role='menuitem'], button")
+      .filter({ hasText: /enable.*developer mode|developer mode.*enable/i });
+  }
+  await clickNative(enableDeveloperMode, timeout);
+  await folderButton.first().waitFor({ state: "visible", timeout });
   return "enabled";
 };
 
 const removeExistingDeveloperExtensions = async ({
   page,
   extensionNames,
+  timeout,
 }: {
   page: Page;
   extensionNames: string[];
-}): Promise<number> =>
-  page.evaluate(async (names: string[]): Promise<number> => {
-    const pause = (ms: number): Promise<void> =>
-      new Promise((resolve) => window.setTimeout(resolve, ms));
-    const namesToRemove = new Set(names);
-    let removed = 0;
+  timeout: number;
+}): Promise<number> => {
+  let removed = 0;
 
+  for (const extensionName of new Set(extensionNames)) {
     for (let pass = 0; pass < 10; pass += 1) {
-      const row = Array.from(
-        document.querySelectorAll(".rm-extension-installed"),
-      ).find((element) =>
-        namesToRemove.has(
-          element
-            .querySelector(".rm-extension-installed__name")
-            ?.textContent?.trim() || "",
-        ),
+      const matchingName = page
+        .locator(".rm-extension-installed__name")
+        .filter({ hasText: new RegExp(`^${escapeRegExp(extensionName)}$`) })
+        .first();
+      if ((await matchingName.count()) === 0) break;
+
+      const row = matchingName.locator(
+        "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' rm-extension-installed ')][1]",
       );
-
-      if (!row) break;
-
-      row.querySelector<HTMLButtonElement>("button.bp3-icon-cross")?.click();
+      await clickNative(row.locator("button.bp3-icon-cross"), timeout);
       removed += 1;
-      await pause(500);
+      await matchingName
+        .waitFor({ state: "detached", timeout })
+        .catch(() => undefined);
+      await page.waitForTimeout(250);
     }
+  }
 
-    return removed;
-  }, extensionNames);
+  return removed;
+};
 
-const reloadDeveloperExtension = async ({
+const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export const registerDeveloperExtension = async ({
   page,
   extensionName,
   timeout,
@@ -442,39 +506,59 @@ const reloadDeveloperExtension = async ({
   page: Page;
   extensionName: string;
   timeout: number;
-}): Promise<void> => {
-  await page.waitForFunction(
-    (name: string) =>
-      Array.from(document.querySelectorAll(".rm-extension-installed")).some(
-        (element) =>
-          element
-            .querySelector(".rm-extension-installed__name")
-            ?.textContent?.trim() === name,
-      ),
-    extensionName,
-    { timeout },
+}): Promise<Locator> => {
+  await clickNative(
+    page.locator(".rm-extensions-installed__header button.bp3-icon-folder-new"),
+    timeout,
   );
+  const extensionRowName = page
+    .locator(".rm-extension-installed__name")
+    .filter({ hasText: new RegExp(`^${escapeRegExp(extensionName)}$`) })
+    .last();
+  await extensionRowName.waitFor({ state: "visible", timeout });
+  return extensionRowName.locator(
+    "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' rm-extension-installed ')][1]",
+  );
+};
 
-  await page.evaluate((name: string): void => {
-    const rows = Array.from(
-      document.querySelectorAll(".rm-extension-installed"),
-    );
-    const row = rows
-      .reverse()
-      .find(
-        (element) =>
-          element
-            .querySelector(".rm-extension-installed__name")
-            ?.textContent?.trim() === name,
-      );
-    const reloadButton = row
-      ?.querySelector(".bp3-icon-refresh")
-      ?.closest("button");
-    if (!(reloadButton instanceof HTMLElement)) {
-      throw new Error(`Could not find reload button for ${name}.`);
-    }
-    reloadButton.click();
-  }, extensionName);
+export const activateDeveloperExtension = async ({
+  page,
+  row,
+  timeout,
+}: {
+  page: Page;
+  row: Locator;
+  timeout: number;
+}): Promise<ExtensionActivation> => {
+  const headerRefresh = page.locator(
+    ".rm-extensions-installed__header button.bp3-icon-refresh, .rm-extensions-installed__header button[aria-label*='refresh' i], .rm-extensions-installed__header button[title*='refresh' i]",
+  );
+  if (
+    await headerRefresh
+      .first()
+      .isVisible()
+      .catch(() => false)
+  ) {
+    await clickNative(headerRefresh, timeout);
+    await page.waitForTimeout(500);
+    return "header-refresh";
+  }
+
+  const rowRefresh = row.locator(
+    "button.bp3-icon-refresh, button[aria-label*='refresh' i], button[title*='refresh' i]",
+  );
+  if (
+    await rowRefresh
+      .first()
+      .isVisible()
+      .catch(() => false)
+  ) {
+    await clickNative(rowRefresh, timeout);
+    await page.waitForTimeout(500);
+    return "row-refresh";
+  }
+
+  return "automatic";
 };
 
 const installCommandPaletteObserver = async (page: Page): Promise<void> => {
@@ -590,14 +674,14 @@ const verifyDiscourseGraphUi = async ({
       openSettings();
     });
   } else {
-    await clickByDom(
+    await clickNative(
       page
         .locator(".rm-modal-dialog--settings")
         .getByText(/^Discourse Graphs(?: \(dev\))?$/)
         .first(),
       timeout,
     );
-    await clickByDom(
+    await clickNative(
       page.locator(".rm-modal-dialog--settings button", {
         hasText: /^Open Settings$/i,
       }),
@@ -619,20 +703,127 @@ const verifyDiscourseGraphUi = async ({
   };
 };
 
+export const waitForTestReady = async ({
+  page,
+  context,
+  definition,
+  timeout,
+}: {
+  page: Page;
+  context: BrowserContext;
+  definition: ExtensionTestDefinition;
+  timeout: number;
+}): Promise<void> => {
+  if (!definition.ready && !definition.readySelector) return;
+
+  const deadline = Date.now() + timeout;
+  let lastError: string | null = null;
+  while (Date.now() < deadline) {
+    const selectorReady = definition.readySelector
+      ? await page
+          .locator(definition.readySelector)
+          .first()
+          .isVisible()
+          .catch(() => false)
+      : false;
+    let callerReady = false;
+    if (definition.ready) {
+      try {
+        callerReady = Boolean(await definition.ready({ page, context }));
+        lastError = null;
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : String(error);
+      }
+    }
+    if (selectorReady || callerReady) return;
+    await page.waitForTimeout(250);
+  }
+
+  throw new Error(
+    `The caller test module did not become ready. Selector: ${definition.readySelector || "none"}; last predicate error: ${lastError || "none"}.`,
+  );
+};
+
+const captureDiagnostics = async (
+  page: Page,
+): Promise<Record<string, unknown> | null> =>
+  page
+    .evaluate(() => ({
+      url: location.href,
+      loadedExtensions: (() => {
+        const getLoadedName = (value: unknown): string => {
+          if (typeof value === "string") return value;
+          if (
+            value &&
+            typeof value === "object" &&
+            "name" in value &&
+            typeof value.name === "string"
+          ) {
+            return value.name;
+          }
+          return `[${typeof value}]`;
+        };
+        const loaded = (window as unknown as { roamjs?: { loaded?: unknown } })
+          .roamjs?.loaded;
+        if (!loaded) return [];
+        if (Array.isArray(loaded)) return loaded.map(getLoadedName);
+        if (loaded instanceof Set) return Array.from(loaded, getLoadedName);
+        if (typeof loaded === "object") return Object.keys(loaded);
+        return [getLoadedName(loaded)];
+      })(),
+      depotButtons: Array.from(
+        document.querySelectorAll(
+          "#bp3-tab-panel_rm-settings-tabs_rm-depot-tab button",
+        ),
+      )
+        .map((button) => ({
+          text: button.textContent?.trim() || "",
+          ariaLabel: button.getAttribute("aria-label"),
+          title: button.getAttribute("title"),
+          className: button.className,
+        }))
+        .slice(0, 50),
+      visibleText: document.body.innerText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .slice(0, 200),
+    }))
+    .catch(() => null);
+
+const createPhaseRunner =
+  (result: LoadExtensionResult) =>
+  async <T>(name: string, callback: () => Promise<T>): Promise<T> => {
+    const startedAt = Date.now();
+    try {
+      const value = await callback();
+      result.phases[name] = {
+        ok: true,
+        durationMs: Date.now() - startedAt,
+      };
+      return value;
+    } catch (error) {
+      result.phases[name] = {
+        ok: false,
+        durationMs: Date.now() - startedAt,
+        error: error instanceof Error ? error.message : String(error),
+      };
+      throw error;
+    }
+  };
+
 const waitForTermination = async (): Promise<void> =>
   new Promise((resolve) => {
     process.once("SIGINT", resolve);
     process.once("SIGTERM", resolve);
   });
 
-const main = async (): Promise<void> => {
+export const main = async (): Promise<void> => {
   const args = parseArgs(process.argv.slice(2));
   const slot =
     getStringArg(args, "slot") || getEnvValue("DG_ROAM_PLAYWRIGHT_SLOT") || "1";
   const timeout = Number(getStringArg(args, "timeout") || 45_000);
-  const headless = getBooleanArg(args, "headed")
-    ? false
-    : getEnvValue("HEADLESS") !== "false";
+  const headless = getBooleanArg(args, "headed") ? false : undefined;
   const distDir = path.resolve(
     getStringArg(args, "dist") || path.join(ROAM_APP_ROOT, "dist"),
   );
@@ -643,6 +834,10 @@ const main = async (): Promise<void> => {
     getStringArg(args, "screenshot-name") ||
     `roam-load-extension-slot-${slot}-${timestamp()}.png`;
   const screenshotPath = path.join(outDir, screenshotName);
+  const failureScreenshotPath = path.join(
+    outDir,
+    `roam-load-extension-slot-${slot}-failure.png`,
+  );
   const resultPath = path.join(
     outDir,
     `load-extension-slot-${slot}-last-run.json`,
@@ -657,15 +852,22 @@ const main = async (): Promise<void> => {
   }
 
   const files = await readFolderFiles(distDir);
+  const testDefinition = await loadTestDefinition(
+    getStringArg(args, "test-module"),
+  );
   const extensionName =
     getStringArg(args, "extension-name") ||
     (await readPackageName(distDir)) ||
     "roam";
-  const developerExtensionName = path.basename(distDir);
+  const developerExtensionName =
+    getStringArg(args, "registration-name") ||
+    testDefinition?.registrationName ||
+    path.basename(distDir);
 
   await fs.mkdir(outDir, { recursive: true });
 
-  const { context, page, slotConfig } = await openRoamSession({
+  const sessionStartedAt = Date.now();
+  const session = await openRoamSession({
     slot,
     graphUrl: getStringArg(args, "url"),
     profileDir: getStringArg(args, "profile-dir"),
@@ -673,6 +875,7 @@ const main = async (): Promise<void> => {
     timeout,
     allowInteractiveLogin: getBooleanArg(args, "allow-login"),
   });
+  const { context, page, slotConfig } = session;
 
   const result: LoadExtensionResult = {
     ok: false,
@@ -689,8 +892,9 @@ const main = async (): Promise<void> => {
     })),
     screenshotPath,
     resultPath,
-    headless,
+    headless: session.headless,
     developerMode: null,
+    activation: null,
     removedExisting: 0,
     dgGlobal: null,
     dgUi: null,
@@ -698,6 +902,17 @@ const main = async (): Promise<void> => {
     consoleMessages: [],
     failedRequests: [],
     knownWarnings: [],
+    phases: {
+      session: {
+        ok: true,
+        durationMs: Date.now() - sessionStartedAt,
+      },
+    },
+    testModule: testDefinition?.modulePath || null,
+    test: null,
+    cleanup: null,
+    diagnostics: null,
+    failureScreenshotPath: null,
     error: null,
     capturedAt: null,
   };
@@ -707,8 +922,37 @@ const main = async (): Promise<void> => {
     if (messages.length > 50) messages.shift();
   };
 
+  const warningKeys = new Set<string>();
+  const recordBrowserMessage = ({
+    message,
+    source,
+  }: {
+    message: string;
+    source: "console" | "pageerror";
+  }): void => {
+    if (
+      classifyBrowserMessage(message) === "expected-directory-handle-warning"
+    ) {
+      if (!warningKeys.has(message)) result.knownWarnings.push(message);
+      warningKeys.add(message);
+      return;
+    }
+    if (source === "pageerror") result.pageErrors.push(message);
+  };
+
   page.on("console", (message) => {
-    pushBounded(result.consoleMessages, `${message.type()}: ${message.text()}`);
+    const text = `${message.type()}: ${message.text()}`;
+    if (message.type() === "error") {
+      if (
+        classifyBrowserMessage(message.text()) ===
+        "expected-directory-handle-warning"
+      ) {
+        recordBrowserMessage({ message: message.text(), source: "console" });
+        return;
+      }
+      recordBrowserMessage({ message: message.text(), source: "console" });
+    }
+    pushBounded(result.consoleMessages, text);
   });
 
   page.on("requestfailed", (request) => {
@@ -719,76 +963,190 @@ const main = async (): Promise<void> => {
   });
 
   page.on("pageerror", (error) => {
-    const message = error.message;
-    if (
-      message.includes("Failed to execute 'put' on 'IDBObjectStore'") &&
-      message.includes("could not be cloned")
-    ) {
-      result.knownWarnings.push(message);
-      return;
-    }
-    result.pageErrors.push(message);
+    recordBrowserMessage({ message: error.message, source: "pageerror" });
   });
 
   const persistResult = async (): Promise<void> => {
     result.configuredGraphLoaded = page.url().startsWith(slotConfig.graphUrl);
     result.pageTitleAvailable = Boolean(await page.title().catch(() => ""));
     result.capturedAt = new Date().toISOString();
+    if (!result.ok) {
+      result.diagnostics = await captureDiagnostics(page);
+      result.failureScreenshotPath = failureScreenshotPath;
+      await page
+        .screenshot({ path: failureScreenshotPath, fullPage: false })
+        .catch(() => undefined);
+    }
     await page
       .screenshot({ path: screenshotPath, fullPage: false })
       .catch(() => undefined);
     await fs.writeFile(resultPath, `${JSON.stringify(result, null, 2)}\n`);
   };
 
+  const phase = createPhaseRunner(result);
+  let testState: unknown;
+  let testStarted = false;
+  let primaryError: unknown = null;
+
   try {
-    await installSerializedFunctionShim(page);
-    await installDirectoryPickerShim({
-      page,
-      dirName: path.basename(distDir),
-      files,
+    await phase("picker-shim", async () => {
+      await installSerializedFunctionShim(page);
+      await installDirectoryPickerShim({
+        page,
+        dirName: path.basename(distDir),
+        files,
+      });
+      await installCommandPaletteObserver(page);
     });
-    await installCommandPaletteObserver(page);
-    await openRoamDepotSettings({ page, timeout });
-    result.developerMode = await ensureDeveloperMode({ page, timeout });
-    result.removedExisting = await removeExistingDeveloperExtensions({
-      page,
-      extensionNames: [extensionName, developerExtensionName],
-    });
+    await phase("open-depot", () => openRoamDepotSettings({ page, timeout }));
+    result.developerMode = await phase("developer-mode", () =>
+      ensureDeveloperMode({ page, timeout }),
+    );
+    result.removedExisting = await phase("remove-existing", () =>
+      removeExistingDeveloperExtensions({
+        page,
+        extensionNames: [extensionName, developerExtensionName],
+        timeout,
+      }),
+    );
+    const row = await phase("register", () =>
+      registerDeveloperExtension({
+        page,
+        extensionName: developerExtensionName,
+        timeout,
+      }),
+    );
+    result.activation = await phase("activate", () =>
+      activateDeveloperExtension({ page, row, timeout }),
+    );
 
-    await page
-      .locator(".rm-extensions-installed__header button.bp3-icon-folder-new")
-      .click({ force: true, timeout });
-    await reloadDeveloperExtension({
-      page,
-      extensionName: developerExtensionName,
-      timeout,
-    });
-
-    await waitForDiscourseGraphLoaded({ page, timeout });
-    result.dgGlobal = await getDiscourseGraphGlobalProof(page);
-    result.dgUi = await verifyDiscourseGraphUi({ page, timeout });
+    await phase("dg-ready", () =>
+      waitForDiscourseGraphLoaded({ page, timeout }),
+    );
+    result.dgGlobal = await phase("dg-global-proof", () =>
+      getDiscourseGraphGlobalProof(page),
+    );
+    result.dgUi = await phase("dg-ui-proof", () =>
+      verifyDiscourseGraphUi({ page, timeout }),
+    );
+    if (testDefinition) {
+      await phase("test-ready", () =>
+        waitForTestReady({
+          page,
+          context,
+          definition: testDefinition,
+          timeout,
+        }),
+      );
+    }
+    if (testDefinition?.run) {
+      testStarted = true;
+      testState = await phase("test", () =>
+        Promise.resolve(
+          testDefinition.run?.({
+            context,
+            page,
+            outDir,
+            distDir,
+            result,
+          }),
+        ),
+      );
+      result.test = { ok: true, value: testState };
+    }
     await page.waitForTimeout(1500);
+    if (result.pageErrors.length > 0) {
+      throw new Error(
+        `The extension produced ${result.pageErrors.length} page error(s).`,
+      );
+    }
 
     result.ok = true;
-    await persistResult();
-    console.log(JSON.stringify(result, null, 2));
   } catch (error: unknown) {
+    primaryError = error;
     result.error =
       error instanceof Error ? error.stack || error.message : String(error);
-    await persistResult();
-    console.error(JSON.stringify(result, null, 2));
-    throw error;
+    if (testStarted && !result.test) {
+      result.test = {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   } finally {
+    if (testStarted && testDefinition?.cleanup) {
+      try {
+        const value = await phase("cleanup", () =>
+          Promise.resolve(
+            testDefinition.cleanup?.({
+              context,
+              page,
+              outDir,
+              distDir,
+              result,
+              state: testState,
+            }),
+          ),
+        );
+        result.cleanup = { ok: true, value };
+      } catch (error) {
+        result.cleanup = {
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+        result.ok = false;
+        if (!primaryError) {
+          primaryError = error;
+          result.error =
+            error instanceof Error
+              ? error.stack || error.message
+              : String(error);
+        }
+      }
+    }
+    try {
+      await persistResult();
+    } catch (error) {
+      result.ok = false;
+      if (!primaryError) {
+        primaryError = error;
+        result.error =
+          error instanceof Error ? error.stack || error.message : String(error);
+      }
+    }
     if (getBooleanArg(args, "keep-open")) {
       console.log("Browser context left open. Press Ctrl+C to close it.");
       await waitForTermination();
     }
-    await context.close();
+    try {
+      await session.close();
+    } catch (error) {
+      result.ok = false;
+      if (!primaryError) {
+        primaryError = error;
+        result.error =
+          error instanceof Error ? error.stack || error.message : String(error);
+      }
+      await fs.writeFile(resultPath, `${JSON.stringify(result, null, 2)}\n`);
+    }
   }
+
+  if (primaryError) {
+    console.error(JSON.stringify(result, null, 2));
+    if (primaryError instanceof Error) throw primaryError;
+    throw new Error(
+      typeof primaryError === "string"
+        ? primaryError
+        : "The extension loader failed with a non-Error value.",
+    );
+  }
+  console.log(JSON.stringify(result, null, 2));
 };
 
-main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.stack || error.message : error;
-  console.error(message);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error: unknown) => {
+    const message =
+      error instanceof Error ? error.stack || error.message : error;
+    console.error(message);
+    process.exit(1);
+  });
+}

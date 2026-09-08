@@ -171,7 +171,7 @@ const findOrCreateTriple = async ({
 
 /**
  * Fetch relation instances from a remote space. Relation instances are concepts with
- * is_schema=false and schema_id pointing to a relation type (arity=2).
+ * is_schema=false and schema_id pointing to a relation type
  */
 export const fetchRelationInstancesFromSpace = async ({
   client,
@@ -187,7 +187,7 @@ export const fetchRelationInstancesFromSpace = async ({
     )
     .eq("space_id", spaceId)
     .eq("is_schema", false)
-    .gt("arity", 0);
+    .eq("is_relation", true);
 
   if (error || !instances) {
     console.warn("Error fetching relation instances:", error);

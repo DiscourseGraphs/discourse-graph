@@ -31,14 +31,8 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check TypeScript Types
-        run: npx turbo check-types
-
-      - name: Run Tests
-        run: npx turbo run test --filter=roam --ui stream
-
-      - name: Run Package Unit Tests
-        run: npx turbo run test:unit --ui stream
+      - name: Validate
+        run: pnpm ci:validate
 
   lint-changed-files:
     if: github.event_name == 'pull_request'

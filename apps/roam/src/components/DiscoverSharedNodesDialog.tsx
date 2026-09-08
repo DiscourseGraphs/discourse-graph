@@ -21,6 +21,7 @@ import {
   isFailedSharedNodeImport,
   type SharedNodeImportItem,
 } from "~/utils/importSharedNodes";
+import { importSharedRelations } from "~/utils/importSharedRelations";
 import internalError from "~/utils/internalError";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 
@@ -146,6 +147,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRids, setSelectedRids] = useState<Set<string>>(new Set());
+  const [spaceId, setSpaceId] = useState<number>(0);
   const [importProgress, setImportProgress] = useState<{
     current: number;
     total: number;
@@ -163,6 +165,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     try {
       const context = await getSupabaseContext();
       if (!context) throw new Error("Could not connect to shared persistence.");
+      setSpaceId(context.spaceId);
       const client = await getLoggedInClient();
       if (!client) throw new Error("Could not connect to shared persistence.");
       const { sharedNodes, importedSourceRids } = await discoverSharedNodes({
@@ -242,7 +245,6 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         sharedNodes: selectedNodes,
         onProgress: (current, total) => setImportProgress({ current, total }),
       });
-      setImportResults(results);
       const newlyImportedRids = results
         .filter((item) => item.status !== "failed")
         .map((item) => item.sharedNode.rid);
@@ -251,6 +253,8 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         newlyImportedRids.forEach((rid) => next.add(rid));
         return next;
       });
+      await importSharedRelations(client, spaceId, [...importedRids]);
+      setImportResults(results);
       const failedImports = results.filter(isFailedSharedNodeImport);
       setSelectedRids(
         new Set(failedImports.map((item) => item.sharedNode.rid)),

@@ -37,6 +37,7 @@ import { initPostHog } from "./utils/posthog";
 import { initSchema } from "./components/settings/utils/init";
 import {
   bulkReadSettings,
+  isNodeSharingEnabled,
   isSyncEnabled,
 } from "./components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "./components/settings/utils/settingKeys";
@@ -134,7 +135,7 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  if (isSyncEnabled()) {
+  if (isSyncEnabled() || isNodeSharingEnabled()) {
     initializeSupabaseSync();
   }
 

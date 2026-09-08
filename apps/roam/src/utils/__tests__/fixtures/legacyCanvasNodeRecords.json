@@ -1,0 +1,44 @@
+[
+  {
+    "id": "shape:fixture-node-1",
+    "typeName": "shape",
+    "type": "NODETYPE1",
+    "x": 128,
+    "y": 256,
+    "rotation": 0,
+    "index": "a1",
+    "parentId": "page:fixture-page",
+    "isLocked": false,
+    "opacity": 1,
+    "props": {
+      "uid": "NODEUID01",
+      "title": "[Sanitized node] Representative title",
+      "w": 320,
+      "h": 96,
+      "size": "m",
+      "fontFamily": "draw"
+    },
+    "meta": {}
+  },
+  {
+    "id": "shape:fixture-node-2",
+    "typeName": "shape",
+    "type": "NODE_TYP2",
+    "x": -64,
+    "y": 32,
+    "rotation": 0,
+    "index": "a2",
+    "parentId": "page:fixture-page",
+    "isLocked": false,
+    "opacity": 1,
+    "props": {
+      "uid": "NODE_UID2",
+      "title": "Sanitized block node",
+      "w": 240,
+      "h": 72,
+      "size": "s",
+      "fontFamily": "sans"
+    },
+    "meta": {}
+  }
+]

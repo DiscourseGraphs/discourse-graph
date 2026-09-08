@@ -87,11 +87,12 @@ import { AddReferencedNodeType } from "./canvas/DiscourseRelationShape/Discourse
 import posthog from "posthog-js";
 import { getMyGroups, type MyGroup } from "@repo/database/lib/groups";
 import {
+  getAllPublishedIdsByGroup,
   publishNodeUidsWithTypeToGroups,
   type NodeUidWithType,
 } from "~/utils/publishNodesToGroups";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
-import { isSyncEnabled } from "~/components/settings/utils/accessors";
+import { isNodeSharingEnabled } from "~/components/settings/utils/accessors";
 
 const ExportProgress = ({ id }: { id: string }) => {
   const [progress, setProgress] = useState(0);
@@ -218,12 +219,12 @@ const ExportDialog: ExportDialogComponent = ({
     useState<(typeof SEND_TO_DESTINATIONS)[number]>("page");
   const isSendToGraph = activeSendToDestination === "graph";
   const [livePages, setLivePages] = useState<Result[]>([]);
-  const syncEnabled = useMemo(() => isSyncEnabled(), []);
+  const sharingEnabled = useMemo(() => isNodeSharingEnabled(), []);
   const [selectedTabId, setSelectedTabId] = useState("sendto");
   useEffect(() => {
-    if (initialPanel === "publish" && !syncEnabled) return;
+    if (initialPanel === "publish" && !sharingEnabled) return;
     if (initialPanel) setSelectedTabId(INITIAL_PANEL_TO_TAB_ID[initialPanel]);
-  }, [initialPanel, syncEnabled]);
+  }, [initialPanel, sharingEnabled]);
   const [includeDiscourseContext, setIncludeDiscourseContext] = useState(false);
   const [gitHubAccessToken, setGitHubAccessToken] = useState<string | null>(
     getSetting<string | null>("oauth-github", null),
@@ -240,7 +241,7 @@ const ExportDialog: ExportDialogComponent = ({
 
   const publishableNodes = useMemo(
     () =>
-      syncEnabled
+      sharingEnabled
         ? results
             .map((r) => {
               const node = findDiscourseNode({ uid: r.uid });
@@ -250,7 +251,7 @@ const ExportDialog: ExportDialogComponent = ({
             })
             .filter((n): n is NodeUidWithType => n !== null)
         : [],
-    [results, syncEnabled],
+    [results, sharingEnabled],
   );
   const nonDiscourseCount = results.length - publishableNodes.length;
 
@@ -807,29 +808,56 @@ const ExportDialog: ExportDialogComponent = ({
     }
   };
   useEffect(() => {
-    if (
-      !syncEnabled ||
-      !isOpen ||
-      selectedTabId !== "publish" ||
-      groupsLoaded ||
-      groupsLoading
-    )
-      return;
+    if (isOpen) return;
+    setGroupsLoaded(false);
+    setSelectedGroupIds([]);
+    setGroupsError("");
+  }, [isOpen]);
+  useEffect(() => {
+    if (!sharingEnabled || !isOpen || selectedTabId !== "publish") return;
+    let active = true;
     setGroupsLoading(true);
+    setGroupsLoaded(false);
+    setGroupsError("");
     void (async () => {
       try {
         const client = await getLoggedInClient();
         if (!client) throw new Error("Could not connect to sync.");
         const groups = await getMyGroups(client);
+        const context = await getSupabaseContext();
+        let preselectedGroupIds: string[] = [];
+        if (context && groups.length && publishableNodes.length) {
+          const publishedIdsByGroup = await getAllPublishedIdsByGroup({
+            client,
+            spaceId: context.spaceId,
+            groupIds: groups.map((g) => g.id),
+            sourceLocalIds: publishableNodes.map(({ uid }) => uid),
+          });
+          preselectedGroupIds = groups
+            .map((g) => g.id)
+            .filter((id) =>
+              publishableNodes.every(({ uid }) =>
+                publishedIdsByGroup[id].has(uid),
+              ),
+            );
+        }
+        if (!active) return;
+        setSelectedGroupIds(preselectedGroupIds);
         setMyGroups(groups);
       } catch (e) {
-        setGroupsError((e as Error).message || "Failed to load groups.");
+        if (active)
+          setGroupsError((e as Error).message || "Failed to load groups.");
       } finally {
-        setGroupsLoading(false);
-        setGroupsLoaded(true);
+        if (active) {
+          setGroupsLoading(false);
+          setGroupsLoaded(true);
+        }
       }
     })();
-  }, [syncEnabled, isOpen, selectedTabId, groupsLoaded, groupsLoading]);
+    return () => {
+      active = false;
+    };
+  }, [sharingEnabled, isOpen, selectedTabId, publishableNodes]);
 
   const handlePublish = async () => {
     setPublishError("");
@@ -840,7 +868,7 @@ const ExportDialog: ExportDialogComponent = ({
       if (!client || !context) throw new Error("Could not connect to sync.");
       const {
         publishedNodeUids,
-        skippedUnsyncedUids,
+        failedUpsertUids,
         okGroupIds,
         failedGroupIds,
       } = await publishNodeUidsWithTypeToGroups({
@@ -849,10 +877,14 @@ const ExportDialog: ExportDialogComponent = ({
         groupIds: selectedGroupIds,
         nodeUids: publishableNodes,
       });
+      const selectedNodeUids = new Set(publishableNodes.map((n) => n.uid));
+      const failedNodeCount = failedUpsertUids.filter((uid) =>
+        selectedNodeUids.has(uid),
+      ).length;
       posthog.capture("Export Dialog: Publish", {
         groupCount: okGroupIds.length,
         publishedNodeCount: publishedNodeUids.length,
-        skippedUnsyncedCount: skippedUnsyncedUids.length,
+        failedUpsertCount: failedUpsertUids.length,
         nonDiscourseCount,
         failedGroupCount: failedGroupIds.length,
       });
@@ -866,10 +898,8 @@ const ExportDialog: ExportDialogComponent = ({
             }.`,
           ]
         : ["No nodes were published."];
-      if (skippedUnsyncedUids.length)
-        messages.push(
-          `${skippedUnsyncedUids.length} not synced yet — try again shortly.`,
-        );
+      if (failedNodeCount)
+        messages.push(`${failedNodeCount} failed to publish.`);
       if (nonDiscourseCount)
         messages.push(`${nonDiscourseCount} skipped (not discourse nodes).`);
       if (failedGroupIds.length)
@@ -881,7 +911,9 @@ const ExportDialog: ExportDialogComponent = ({
       renderToast({
         content: messages.join(" "),
         intent:
-          failedGroupIds.length || !hasPublishedNodes ? "warning" : "success",
+          failedGroupIds.length || failedNodeCount || !hasPublishedNodes
+            ? "warning"
+            : "success",
         id: "query-builder-publish-success",
       });
       if (hasPublishedNodes) onClose();
@@ -1263,7 +1295,7 @@ const ExportDialog: ExportDialogComponent = ({
         >
           <Tab id="sendto" title="Send To" panel={SendToPanel} />
           <Tab id="export" title="Export" panel={ExportPanel} />
-          {syncEnabled && (
+          {sharingEnabled && (
             <Tab id="publish" title="Publish" panel={PublishPanel} />
           )}
         </Tabs>

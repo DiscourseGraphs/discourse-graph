@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Security advisory assessment</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+      }
+      body {
+        max-width: 72rem;
+        margin: auto;
+        padding: 1.5rem;
+        line-height: 1.6;
+      }
+      header,
+      article,
+      aside {
+        border: 1px solid #8886;
+        border-radius: 0.6rem;
+        padding: 1rem;
+        margin-block: 1rem;
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 1rem;
+      }
+      label {
+        display: grid;
+        gap: 0.3rem;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        padding: 0.5rem;
+        max-width: 100%;
+      }
+      article,
+      pre,
+      dd,
+      a {
+        overflow-wrap: anywhere;
+      }
+      pre {
+        white-space: pre-wrap;
+        padding: 0.7rem;
+        background: #8882;
+      }
+      dt {
+        font-weight: 650;
+        margin-top: 0.6rem;
+      }
+      dd {
+        margin-left: 0;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      a {
+        color: LinkText;
+      }
+      :focus-visible {
+        outline: 3px solid Highlight;
+        outline-offset: 3px;
+      }
+      @media (max-width: 36rem) {
+        body {
+          padding: 0.75rem;
+        }
+        nav,
+        label {
+          width: 100%;
+        }
+        input {
+          min-width: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Security advisory assessment</h1>
+      <p>Repository: REPLACE_REPOSITORY. Reviewed main: REPLACE_SHA.</p>
+      <p>Assessment snapshot: REPLACE_TIME. Selection: REPLACE_SELECTION.</p>
+      <p>
+        Open repository totals: REPLACE_SEVERITY_COUNTS. Batch counts and
+        recommendations: REPLACE_BATCH_SUMMARY.
+      </p>
+      <p>
+        Decision record: REPLACE_TICKET_LINK. Last outcome verification:
+        REPLACE_VERIFICATION_TIME.
+      </p>
+    </header>
+    <aside>
+      <strong>Assessment status:</strong> REPLACE_STATUS. Recommendations below
+      are proposals unless their execution fields say otherwise.
+    </aside>
+    <nav aria-label="Filter alerts">
+      <label
+        >Search
+        <input
+          id="search"
+          type="search"
+          placeholder="Package, alert, or evidence"
+      /></label>
+      <label
+        >Recommendation
+        <select id="action">
+          <option value="all">All</option>
+          <option value="unused">Unused vulnerable code</option>
+          <option value="accept">Proposed or approved risk acceptance</option>
+          <option value="routine">Routine remediation</option>
+          <option value="fix">Product remediation</option>
+          <option value="unresolved">Unresolved</option>
+        </select>
+      </label>
+      <button id="reset" type="button">Reset filters</button>
+    </nav>
+    <p id="count" role="status" aria-live="polite"></p>
+    <main>
+      <!-- Duplicate and populate this card for each selected alert. Insert escaped text only. -->
+      <article id="alert-example" data-action="unresolved">
+        <h2>REPLACE_ALERT_NUMBER: REPLACE_PACKAGE</h2>
+        <p>REPLACE_PLAIN_LANGUAGE_IMPACT</p>
+        <dl>
+          <dt>Advisory and snapshot state</dt>
+          <dd>REPLACE_GHSA_SEVERITY_STATE_AND_HTTPS_LINK</dd>
+          <dt>Versions and manifest</dt>
+          <dd>REPLACE_INSTALLED_AFFECTED_PATCHED_MANIFEST</dd>
+          <dt>Dependency path and environment</dt>
+          <dd>REPLACE_WORKSPACE_PARENTS_AND_USAGE</dd>
+          <dt>Call, input, and attacker prerequisites</dt>
+          <dd>REPLACE_SOURCE_LINKS_ARGUMENTS_AND_USER_ACTION</dd>
+          <dt>Evidence and limitations</dt>
+          <dd>REPLACE_OBSERVATION_CONFIDENCE_AND_NOT_TESTED</dd>
+          <dt>Parent packages and options</dt>
+          <dd>REPLACE_LATEST_PARENT_PIN_RANGE_AND_OPTIONS</dd>
+          <dt>Recommendation</dt>
+          <dd>REPLACE_ACTION_AND_REASON</dd>
+          <dt>Proposed dismissal</dt>
+          <dd>
+            REPLACE_REASON_OR_NOT_APPLICABLE
+            <pre>REPLACE_PROPOSED_COMMENT</pre>
+          </dd>
+          <dt>Owner decision and execution</dt>
+          <dd>
+            REPLACE_PENDING_OR_APPROVED_DECISION_ACTUAL_STATE_AND_VERIFICATION
+          </dd>
+          <dt>Follow-up and revisit condition</dt>
+          <dd>REPLACE_LINK_AND_CONDITION</dd>
+        </dl>
+        <a href="#">Back to top</a>
+      </article>
+    </main>
+    <script>
+      const cards = [...document.querySelectorAll("article[data-action]")];
+      const search = document.getElementById("search");
+      const action = document.getElementById("action");
+      const count = document.getElementById("count");
+      const filter = () => {
+        const query = search.value.trim().toLowerCase();
+        let visible = 0;
+        for (const card of cards) {
+          card.hidden = !(
+            card.textContent.toLowerCase().includes(query) &&
+            (action.value === "all" || action.value === card.dataset.action)
+          );
+          if (!card.hidden) visible++;
+        }
+        count.textContent = `${visible} of ${cards.length} alerts shown`;
+      };
+      search.addEventListener("input", filter);
+      action.addEventListener("change", filter);
+      document.getElementById("reset").addEventListener("click", () => {
+        search.value = "";
+        action.value = "all";
+        filter();
+      });
+      filter();
+    </script>
+  </body>
+</html>

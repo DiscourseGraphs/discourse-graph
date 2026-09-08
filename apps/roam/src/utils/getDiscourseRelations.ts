@@ -12,6 +12,7 @@ import {
   type SettingsSnapshot,
 } from "~/components/settings/utils/accessors";
 import discourseConfigRef from "./discourseConfigRef";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 
 export type Triple = readonly [string, string, string];
 export type DiscourseRelation = {
@@ -47,6 +48,7 @@ const getDiscourseRelations = (snapshot?: SettingsSnapshot) => {
   const grammarNode = getGrammarNode();
   const relationsNode = getRelationsNode(grammarNode);
   const relationNodes = relationsNode?.children || DEFAULT_RELATION_VALUES;
+  const storedRelationsEnabled = getStoredRelationsEnabled();
   const discourseRelations = relationNodes.flatMap(
     (r: InputTextNode, i: number) => {
       const tree = (r?.children || []) as TextNode[];
@@ -58,6 +60,9 @@ const getDiscourseRelations = (snapshot?: SettingsSnapshot) => {
         complement: getSettingValueFromTree({ tree, key: "Complement" }),
       };
       const ifNode = tree.find(matchNodeText("if"))?.children || [];
+      if (ifNode.length === 0 && storedRelationsEnabled) {
+        return [{ ...data, triples: [] }];
+      }
       return ifNode.map((node) => ({
         ...data,
         triples: node.children
