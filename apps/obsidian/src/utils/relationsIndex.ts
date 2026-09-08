@@ -80,8 +80,9 @@ export class RelationsIndex {
         this.stale = false;
         this.version += 1;
       } finally {
-        // Every path, or ensureLoaded hands out a settled promise forever.
-        this.inFlight = null;
+        // Only if still the current load: an invalidation mid-read starts a
+        // newer one, and clearing unconditionally would discard its tracking.
+        if (generation === this.generation) this.inFlight = null;
       }
       // The skipped invalidation above still needs a load of its own.
       if (this.stale && !this.unloaded) {
