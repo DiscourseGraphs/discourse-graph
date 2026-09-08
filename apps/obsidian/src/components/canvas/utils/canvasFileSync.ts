@@ -44,7 +44,7 @@ export const toSerializedStore = (
   if (Array.isArray(records)) {
     return Object.fromEntries(
       (records as TLRecord[]).map((record) => [record.id, record]),
-    ) as SerializedStore<TLRecord>;
+    );
   }
   return (records ?? {}) as SerializedStore<TLRecord>;
 };
@@ -72,7 +72,7 @@ export const readDocumentRecords = ({
     Object.entries(migration.value).filter(([, record]) =>
       store.scopedTypes.document.has(record.typeName),
     ),
-  ) as SerializedStore<TLRecord>;
+  );
 };
 
 const isDeepEqual = (a: unknown, b: unknown): boolean => {
