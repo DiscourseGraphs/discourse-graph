@@ -15,8 +15,8 @@ export type DiscourseLinkTarget = {
 };
 
 /**
- * Resolves a link to a discourse node and its relation count from in-memory
- * caches only; avoids getNodeTypeIdForFile, which polls 500ms for frontmatter.
+ * In-memory caches only, so this can run per link on a render path. Avoids
+ * getNodeTypeIdForFile, which polls 500ms waiting on frontmatter.
  */
 export const resolveDiscourseLinkTarget = ({
   plugin,
