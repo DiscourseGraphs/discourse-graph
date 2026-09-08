@@ -23,6 +23,9 @@ const TLDATA_BLOCK_REGEX = new RegExp(
   `${TLDATA_DELIMITER_START}\\s*([\\s\\S]*?)\\s*${TLDATA_DELIMITER_END}`,
 );
 
+export const hasCanvasBlock = (content: string): boolean =>
+  content.includes(TLDATA_DELIMITER_START);
+
 export const parseCanvasFileState = (
   content: string,
 ): CanvasFileState | null => {

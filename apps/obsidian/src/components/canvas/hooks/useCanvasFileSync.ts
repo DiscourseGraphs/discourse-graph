@@ -33,6 +33,7 @@ export const useCanvasFileSync = ({
   useEffect(() => {
     let timeout: NodeJS.Timeout | null = null;
     let disposed = false;
+    let generation = 0;
 
     const schedule = (fn: () => void): void => {
       if (timeout) clearTimeout(timeout);
@@ -40,8 +41,10 @@ export const useCanvasFileSync = ({
     };
 
     const syncFromDisk = async (): Promise<void> => {
+      const myGeneration = ++generation;
       const content = await plugin.app.vault.read(file);
-      if (disposed) return;
+      // Reads can resolve out of order; only the newest one may apply.
+      if (disposed || myGeneration !== generation) return;
 
       const incoming = parseCanvasFileState(content);
       if (!incoming) return;

@@ -27,6 +27,7 @@ import { DEFAULT_SAVE_DELAY } from "~/constants";
 import {
   applyCanvasFileState,
   CanvasFileState,
+  hasCanvasBlock,
   parseCanvasFileState,
 } from "~/components/canvas/utils/canvasFileSync";
 import { useCanvasFileSync } from "~/components/canvas/hooks/useCanvasFileSync";
@@ -68,6 +69,12 @@ type TldrawPreviewProps = {
 
 type SaveResult = "saved" | "skipped" | "retry";
 
+type WriteOutcome = "written" | "unchanged" | "diverged" | "unreadable";
+
+// A sync client can leave the canvas block half-written for a moment; give it
+// a few save cycles to settle before giving up on this batch of changes.
+const MAX_UNREADABLE_SAVE_RETRIES = 3;
+
 export const TldrawPreviewComponent = ({
   store,
   file,
@@ -87,6 +94,7 @@ export const TldrawPreviewComponent = ({
   // The file as this tab last agreed with it: seeded at mount, set before each
   // of our writes, and replaced after each external change we merge in.
   const lastKnownFileRef = useRef<CanvasFileState | null>(initialFileState);
+  const unreadableSaveRetriesRef = useRef(0);
   const editorRef = useRef<Editor>(null);
   const plugin = usePlugin();
 
@@ -185,46 +193,67 @@ export const TldrawPreviewComponent = ({
         return "skipped";
       }
 
-      const currentContent = await plugin.app.vault.read(file);
-      if (!currentContent) {
-        console.error("Could not read file content");
-        return "skipped";
-      }
-
-      // Never overwrite a version of the file this tab has not merged. Merge
-      // it in and ask the caller to retry so the next write carries both.
-      const onDisk = parseCanvasFileState(currentContent);
-      if (onDisk && onDisk.text !== lastKnownFileRef.current?.text) {
-        const applied = applyCanvasFileState({
-          store: currentStore,
-          base: lastKnownFileRef.current,
-          incoming: onDisk,
-        });
-        if (applied) {
-          lastKnownFileRef.current = onDisk;
-        }
-        return "retry";
-      }
-
-      const updatedString = getUpdatedMdContent(
-        currentContent,
-        stringifiedData,
-      );
-      if (updatedString === currentContent) {
-        return "skipped";
-      }
-
-      // Recorded before the write so the vault `modify` event it triggers is
-      // recognised as our own and not merged back in.
       const previousState = lastKnownFileRef.current;
-      lastKnownFileRef.current = { text: stringifiedData, data: newData };
+      const write: { outcome: WriteOutcome; onDisk: CanvasFileState | null } = {
+        outcome: "unchanged",
+        onDisk: null,
+      };
 
       try {
-        await plugin.app.vault.modify(file, updatedString);
+        // Vault.process serialises read-modify-write, so Markdown edits outside
+        // the canvas block made by another writer in the meantime are kept.
+        const written = await plugin.app.vault.process(file, (content) => {
+          if (!hasCanvasBlock(content)) return content;
 
-        const savedState = parseCanvasFileState(
-          await plugin.app.vault.read(file),
-        );
+          write.onDisk = parseCanvasFileState(content);
+          if (!write.onDisk) {
+            write.outcome = "unreadable";
+            return content;
+          }
+          // Never overwrite a version of the file this tab has not merged.
+          if (write.onDisk.text !== lastKnownFileRef.current?.text) {
+            write.outcome = "diverged";
+            return content;
+          }
+
+          const updated = getUpdatedMdContent(content, stringifiedData);
+          if (updated === content) return content;
+
+          // Recorded before the write so the vault `modify` event it triggers
+          // is recognised as our own and not merged back in.
+          lastKnownFileRef.current = { text: stringifiedData, data: newData };
+          write.outcome = "written";
+          return updated;
+        });
+
+        if (write.outcome === "diverged" && write.onDisk) {
+          // Merge the newer file in and retry so the next write carries both.
+          const applied = applyCanvasFileState({
+            store: currentStore,
+            base: lastKnownFileRef.current,
+            incoming: write.onDisk,
+          });
+          if (applied) lastKnownFileRef.current = write.onDisk;
+          unreadableSaveRetriesRef.current = 0;
+          return "retry";
+        }
+
+        if (write.outcome === "unreadable") {
+          unreadableSaveRetriesRef.current += 1;
+          if (unreadableSaveRetriesRef.current <= MAX_UNREADABLE_SAVE_RETRIES) {
+            return "retry";
+          }
+          unreadableSaveRetriesRef.current = 0;
+          new Notice(
+            "Canvas file contains invalid data; your latest changes were not saved.",
+          );
+          return "skipped";
+        }
+
+        unreadableSaveRetriesRef.current = 0;
+        if (write.outcome === "unchanged") return "skipped";
+
+        const savedState = parseCanvasFileState(written);
         if (!savedState) {
           throw new Error(
             "Failed to verify saved TLDraw data: Could not find data block",
@@ -237,7 +266,8 @@ export const TldrawPreviewComponent = ({
         }
         return "saved";
       } catch (error) {
-        lastKnownFileRef.current = previousState;
+        if (write.outcome === "written")
+          lastKnownFileRef.current = previousState;
         console.error("Error saving/verifying TLDraw data:", error);
         // Reload the editor state from file since save failed
         const fileState = parseCanvasFileState(
