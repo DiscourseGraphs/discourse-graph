@@ -516,8 +516,8 @@ const NodeSearch = ({
           sortKey={sortKey}
         />
       </div>
-      <div className="border-modifier-border mt-3 flex flex-1 overflow-hidden rounded border">
-        <div className="border-modifier-border flex w-2/5 flex-col border-r">
+      <div className="border-modifier-border mt-3 flex flex-1 flex-col overflow-hidden rounded border sm:flex-row">
+        <div className="border-modifier-border flex min-h-0 flex-1 flex-col border-b sm:w-2/5 sm:flex-none sm:border-b-0 sm:border-r">
           {candidateState.status === "loading" && (
             <div className="text-muted p-4">Loading discourse nodes…</div>
           )}
@@ -566,12 +566,14 @@ export class NodeSearchModal extends Modal {
   onOpen() {
     const { contentEl, modalEl } = this;
     // The default modal is too narrow for a result list beside a preview pane.
-    // Responsive layout is an explicit non-goal, so this is a desktop-only size.
+    // Below `sm` the two panes stack instead, so the width is only claimed once
+    // there is room for the side-by-side layout.
     modalEl.addClasses([
       "dg-node-search-modal",
       "h-[600px]",
       "max-h-[80vh]",
-      "w-[900px]",
+      "w-full",
+      "sm:w-[900px]",
       "max-w-[90vw]",
     ]);
     contentEl.addClasses(["flex", "h-full", "flex-col", "overflow-hidden"]);

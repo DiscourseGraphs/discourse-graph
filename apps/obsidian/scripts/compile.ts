@@ -2,7 +2,6 @@ import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
-import builtins from "builtin-modules";
 import dotenv from "dotenv";
 import postcss from "postcss";
 import tailwindcss from "tailwindcss";
@@ -43,9 +42,12 @@ export const args = {
   format: "cjs",
   root: ".",
   mirror: process.env.OBSIDIAN_PLUGIN_PATH,
+  // Node builtins and "electron" are deliberately NOT external. Marking them
+  // external lets a dependency's `require("fs")` survive into the bundle, which
+  // throws at runtime on Obsidian mobile. Leaving them out makes esbuild fail
+  // the build instead, so a mobile-breaking dependency cannot land unnoticed.
   external: [
     "obsidian",
-    "electron",
     "@codemirror/autocomplete",
     "@codemirror/collab",
     "@codemirror/commands",
@@ -58,7 +60,6 @@ export const args = {
     "@lezer/highlight",
     "@lezer/lr",
     "tslib=window.TSLib",
-    ...builtins,
   ],
 } as CliOpts;
 
@@ -115,6 +116,7 @@ export const compile = ({
       outdir,
       bundle: true,
       format,
+      platform: "browser",
       sourcemap: isProd ? undefined : "inline",
       minify: isProd,
       entryNames: out,

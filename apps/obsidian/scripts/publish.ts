@@ -375,6 +375,55 @@ const updateManifest = (tempDir: string, version: string): void => {
 
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
   log(`Updated manifest version to ${version}`);
+  log(`  isDesktopOnly: ${manifest.isDesktopOnly}`);
+};
+
+// Everything published is read from the current working directory, so running
+// this from the wrong checkout silently ships that checkout's manifest. Printing
+// the branch alongside the flags that change who can install the plugin makes
+// that mistake visible before anything is pushed.
+const logReleaseProvenance = async (obsidianDir: string): Promise<void> => {
+  const manifestPath = path.join(obsidianDir, "manifest.json");
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error(`manifest.json not found in ${obsidianDir}`);
+  }
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+
+  let branch = "unknown";
+  try {
+    const { stdout } = await execPromise("git rev-parse --abbrev-ref HEAD", {
+      cwd: obsidianDir,
+    });
+    branch = stdout.trim();
+  } catch {
+    // A detached HEAD or a missing git dir should not block a publish
+  }
+
+  log("Publishing from:");
+  log(`  directory:      ${obsidianDir}`);
+  log(`  branch:         ${branch}`);
+  log(`  isDesktopOnly:  ${manifest.isDesktopOnly}`);
+  log(`  minAppVersion:  ${manifest.minAppVersion}`);
+};
+
+// The mirror-repo copy takes manifest.json from dist/ while the release assets
+// take it from source, so a stale dist/ would publish two different manifests.
+const assertBuiltManifestMatchesSource = (obsidianDir: string): void => {
+  const sourcePath = path.join(obsidianDir, "manifest.json");
+  const builtPath = path.join(obsidianDir, "dist", "manifest.json");
+  if (!fs.existsSync(builtPath)) {
+    throw new Error("dist/manifest.json not found — build the plugin first");
+  }
+
+  const source = fs.readFileSync(sourcePath, "utf8").trim();
+  const built = fs.readFileSync(builtPath, "utf8").trim();
+  if (source !== built) {
+    throw new Error(
+      "manifest.json and dist/manifest.json disagree. The build is stale, so " +
+        "the mirrored repo and the release assets would ship different " +
+        "manifests. Rebuild before publishing.",
+    );
+  }
 };
 
 const copyBuildFiles = (buildDir: string, tempDir: string): void => {
@@ -739,6 +788,8 @@ const publish = async (config: PublishConfig): Promise<void> => {
     log(`Publishing Obsidian plugin v${version} (${releaseType} release)`);
 
     await buildPlugin(obsidianDir);
+    assertBuiltManifestMatchesSource(obsidianDir);
+    await logReleaseProvenance(obsidianDir);
 
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true });

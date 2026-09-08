@@ -88,6 +88,8 @@ for (let leaf of app.workspace.getActiveLeavesOfType(MY_VIEW_TYPE)) {
 
 ### Mobile compatibility
 
+- The plugin ships with `isDesktopOnly: false`, so it must load on mobile
+- Node builtins and `electron` are deliberately not listed in the esbuild `external` array in `scripts/compile.ts`. Adding them back would let a dependency's `require("fs")` survive into the bundle and throw at runtime on mobile; leaving them out makes the build fail instead. Replace the dependency rather than re-adding the external
 - Node.js and Electron APIs (`fs`, `crypto`, `os`) are unavailable on mobile
 - If the plugin targets mobile, use web API equivalents: `SubtleCrypto` instead of `crypto`, `navigator.clipboard` for clipboard access
 - Regex lookbehind assertions are not supported on some mobile — avoid them if possible
