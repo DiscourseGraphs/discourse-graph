@@ -4,14 +4,13 @@ import type { CrossAppNode } from "./crossAppContracts";
 // const ROAM_SOURCE_SPACE_ID = "https://roamresearch.com/#/app/MAPLab";
 const ROAM_SOURCE_NODE_ID = "tgWb6JozF";
 
-// Roam addresses assets by URL. Both of these are the tokens the source page holds,
-// and publication leaves them exactly as they are.
+// Roam addresses assets by URL. Both are references the source page holds, and
+// publication leaves them unchanged.
 const ROAM_STORED_ASSET_URL =
   "https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FMAPLab%2FlqP2ioVNC3.png?alt=media&token=9f1c07a4-2b3e-4c5d-8a91-6e0f2d7b4c13";
-// Bytes that could not be copied at publication. It is embedded in the markdown below
-// with Roam's own PDF syntax — so a destination scanning for embeds does find it — but
-// is deliberately absent from `assets`: an unresolvable asset has no recorded reference
-// at all, so the destination finds no entry for this token and leaves it in place.
+// Bytes that could not be copied at publication. Embedded below with Roam's own PDF
+// syntax, so a destination scanning for embeds does find it, but deliberately absent
+// from `assets`: with no entry to resolve, the destination leaves the reference alone.
 const ROAM_UNRESOLVABLE_ASSET_URL =
   "https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FMAPLab%2FGVfB6XBcMR.pdf?alt=media&token=3a5d81b6-7c24-4e19-b0f8-52ca9e3d1f07";
 
@@ -45,8 +44,8 @@ export const roamOriginNodeExample: CrossAppNode = {
       sourceRef: ROAM_STORED_ASSET_URL,
       contentHash:
         "e030fe745078ef6ea92f5cf4f65a0d93755ba9abe1bb53653da5f4b7cdb91a57",
-      // Roam keeps the uploaded name in Firebase custom metadata; the publisher reads
-      // it from there, because the URL itself carries only a random storage uid.
+      // The URL carries only a random storage uid, so the publisher reads the
+      // uploaded name from Firebase custom metadata.
       sourcePath: "CleanShot 2025-11-16 at 17.14.44@2x.png",
     },
   ],
@@ -93,8 +92,8 @@ export const obsidianOriginNodeExample: CrossAppNode = {
       sourceRef: OBSIDIAN_ASSET_PATH,
       contentHash:
         "b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78",
-      // No sourcePath: an Obsidian sourceRef is already a vault path, which a
-      // destination can decompose on its own.
+      // No sourcePath: an Obsidian sourceRef is already a vault path a destination
+      // can decompose.
     },
   ],
   createdAt: new Date("2026-06-14T10:30:00.000Z"),
