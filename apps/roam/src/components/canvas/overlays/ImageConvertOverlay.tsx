@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { Button, Icon } from "@blueprintjs/core";
-import { TLImageShape, useEditor, useValue } from "tldraw";
+import { TLImageShape, TLShape, useEditor, useValue } from "tldraw";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import posthog from "posthog-js";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
@@ -12,10 +12,10 @@ import {
 
 const BUTTON_INSET = 8;
 
-const isImageShape = (shape: unknown): shape is TLImageShape =>
-  !!shape && (shape as { type?: string }).type === "image";
+const isConvertibleImage = (shape?: TLShape | null): shape is TLImageShape =>
+  shape?.type === "image" && !shape.isLocked;
 
-export const ImageConvertOverlay = () => {
+export const ImageConvertOverlay = (): JSX.Element | null => {
   const editor = useEditor();
   const extensionAPI = useExtensionAPI();
   const [uploading, setUploading] = useState(false);
@@ -25,9 +25,9 @@ export const ImageConvertOverlay = () => {
     () => {
       if (!editor.isIn("select.idle")) return null;
       const hovered = editor.getHoveredShape();
-      if (isImageShape(hovered)) return hovered;
+      if (isConvertibleImage(hovered)) return hovered;
       const selected = editor.getOnlySelectedShape();
-      return isImageShape(selected) ? selected : null;
+      return isConvertibleImage(selected) ? selected : null;
     },
     [editor],
   );
@@ -65,7 +65,14 @@ export const ImageConvertOverlay = () => {
         imageUrl: src,
         onSuccess: async ({ text, uid, nodeType }) => {
           const shape = editor.getShape(imageShape.id);
-          if (!shape || !nodeType) return;
+          if (!shape || !nodeType) {
+            dispatchToastEvent({
+              id: "tldraw-image-convert-not-replaced",
+              title: "Node created, but the image could not be replaced",
+              severity: "warning",
+            });
+            return;
+          }
           await replaceShapeWithDiscourseNode({
             editor,
             extensionAPI,
@@ -76,6 +83,12 @@ export const ImageConvertOverlay = () => {
           });
         },
         onClose: () => {},
+      });
+    } catch (error) {
+      dispatchToastEvent({
+        id: "tldraw-image-convert-failed",
+        title: `Could not upload this image: ${String(error)}`,
+        severity: "error",
       });
     } finally {
       setUploading(false);
