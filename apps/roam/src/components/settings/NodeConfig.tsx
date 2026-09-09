@@ -287,6 +287,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           label="Index"
           description={`The saved list of all ${node.text} pages \u2014 which pages appear and which columns show.`}
           scope="global"
+          settingKeys={[DISCOURSE_NODE_KEYS.index]}
           control={
             <SettingDrillDownSummary
               summary={`See all ${node.text} nodes`}
@@ -402,6 +403,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
             ROAM_DOCS.grammarNodes,
           )}
           scope="global"
+          settingKeys={[DISCOURSE_NODE_KEYS.specification]}
           controlPlacement="below"
           control={
             <DiscourseNodeSpecification
