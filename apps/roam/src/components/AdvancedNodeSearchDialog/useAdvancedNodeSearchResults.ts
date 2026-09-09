@@ -1,8 +1,11 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MiniSearch from "minisearch";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import { searchDiscourseNodes } from "~/utils/searchDiscourseNodes";
 import {
-  searchIndexedNodes,
+  searchDiscourseNodesWithMiniSearch,
   sortSearchResults,
+  type ScoredSearchResult,
   type SearchResult,
   type SortConfig,
 } from "./utils";
@@ -32,37 +35,91 @@ export const useAdvancedNodeSearchResults = ({
   searchIndex,
   dockedQuery,
   dockedResults,
-}: UseAdvancedNodeSearchResultsArgs): SearchResult[] =>
-  useMemo(() => {
-    if (!debouncedSearchTerm) return [];
-
-    const isDockedQuery =
+}: UseAdvancedNodeSearchResultsArgs): SearchResult[] => {
+  const isDockedQuery = useMemo(
+    () =>
       dockedQuery !== undefined &&
-      debouncedSearchTerm.trim() === dockedQuery.trim();
+      debouncedSearchTerm.trim() === dockedQuery.trim(),
+    [debouncedSearchTerm, dockedQuery],
+  );
 
-    if (isDockedQuery && dockedResults) {
-      return dockedResults;
+  const [unsortedScoredResults, setUnsortedScoredResults] = useState<
+    ScoredSearchResult[]
+  >([]);
+
+  useEffect(() => {
+    if (isDockedQuery) {
+      setUnsortedScoredResults([]);
+      return;
+    }
+
+    if (!debouncedSearchTerm) {
+      setUnsortedScoredResults([]);
+      return;
     }
 
     if (isIndexLoading || indexError || !searchIndex) {
-      return [];
+      setUnsortedScoredResults([]);
+      return;
     }
 
-    const scoredHits = searchIndexedNodes({
-      miniSearch: searchIndex.miniSearch,
-      allResults: searchIndex.allResults,
-      searchTerm: debouncedSearchTerm,
-      typeFilter: selectedNodeTypeIds.length ? selectedNodeTypeIds : undefined,
-    });
+    setUnsortedScoredResults([]);
+    let cancelled = false;
+    const typeFilter = selectedNodeTypeIds.length
+      ? selectedNodeTypeIds
+      : undefined;
+    const discourseNodes = getDiscourseNodes().filter(
+      (node) =>
+        node.backedBy === "user" &&
+        (!typeFilter || typeFilter.includes(node.type)),
+    );
+    const resultsByUid = new Map(
+      searchIndex.allResults.map((result) => [result.uid, result]),
+    );
 
-    return sortSearchResults({ hits: scoredHits, sort });
+    const runMiniSearch = (): ScoredSearchResult[] =>
+      searchDiscourseNodesWithMiniSearch({
+        miniSearch: searchIndex.miniSearch,
+        allResults: searchIndex.allResults,
+        searchTerm: debouncedSearchTerm,
+        typeFilter,
+      });
+
+    void searchDiscourseNodes({
+      nodeTypes: discourseNodes,
+      query: debouncedSearchTerm,
+      resultsByUid,
+      runMiniSearch,
+    })
+      .then((results) => {
+        if (cancelled) return;
+        setUnsortedScoredResults(results);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setUnsortedScoredResults(runMiniSearch());
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     debouncedSearchTerm,
-    dockedQuery,
-    dockedResults,
     indexError,
+    isDockedQuery,
     isIndexLoading,
     searchIndex,
     selectedNodeTypeIds,
-    sort,
   ]);
+
+  const results = useMemo(
+    () => sortSearchResults({ scoredResults: unsortedScoredResults, sort }),
+    [unsortedScoredResults, sort],
+  );
+
+  if (isDockedQuery && dockedResults) {
+    return dockedResults;
+  }
+
+  return results;
+};
