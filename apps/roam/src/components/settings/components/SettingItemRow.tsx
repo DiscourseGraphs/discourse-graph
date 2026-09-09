@@ -1,6 +1,8 @@
 import React, { useId } from "react";
 import { Icon, type IconName, Position, Tooltip } from "@blueprintjs/core";
 import { settingAnchor } from "~/components/settings/utils/settingAnchor";
+import { describedSetting } from "~/components/settings/utils/settingsCatalog";
+import { withDocsLink } from "~/components/settings/utils/docs";
 
 /** Per-node settings are `global`: they live on the node type's page, so the whole graph sees them. */
 export type SettingScope = "personal" | "global";
@@ -58,6 +60,16 @@ const SettingItemRow = ({
 }: SettingItemRowProps): React.ReactElement => {
   const controlId = useId();
   const isAssociated = typeof control === "function";
+  // Falls back to the catalog so the row and search read one description.
+  const authored =
+    description === undefined ? describedSetting(settingKeys) : undefined;
+  const resolvedDescription =
+    description ??
+    (authored
+      ? authored.docsLink
+        ? withDocsLink(authored.description, authored.docsLink)
+        : authored.description
+      : undefined);
   // Description is a sibling of the label: nested, its doc links would toggle the control (ENG-2080).
   const LabelTag = isAssociated ? "label" : "div";
 
@@ -80,8 +92,10 @@ const SettingItemRow = ({
           {scope && !compact ? <SettingScopeIndicator scope={scope} /> : null}
           <span>{label}</span>
         </LabelTag>
-        {description ? (
-          <div className="text-sm font-normal text-gray-500">{description}</div>
+        {resolvedDescription ? (
+          <div className="text-sm font-normal text-gray-500">
+            {resolvedDescription}
+          </div>
         ) : null}
         {error ? (
           <div className="text-sm font-medium text-red-600">{error}</div>

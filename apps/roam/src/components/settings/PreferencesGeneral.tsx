@@ -150,7 +150,7 @@ const PreferencesGeneral = ({
           "Use stored relations instead of legacy pattern-based relations",
           ROAM_DOCS.migrationToStoredRelations,
         )}
-        settingKeys={["Reified relation triples"]}
+        settingKeys={[PERSONAL_KEYS.reifiedRelationTriples]}
         initialValue={personalSettings["Reified relation triples"]}
         value={storedRelations}
         onBeforeChange={async (checked) => {

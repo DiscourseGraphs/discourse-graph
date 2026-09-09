@@ -15,6 +15,59 @@ export const SETTINGS_TAB_IDS = {
 export const DEFAULT_SETTINGS_TAB_ID: TabId =
   SETTINGS_TAB_IDS.preferencesGeneral;
 
+/** One source for tab labels, so a rename cannot drift from recorded locations.
+ *  `searchable: false` keeps the hidden Admin tab out of the index. */
+export const SETTINGS_TAB_META = {
+  [SETTINGS_TAB_IDS.preferencesGeneral]: {
+    section: "Preferences",
+    label: "General",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.preferencesStyling]: {
+    section: "Preferences",
+    label: "Styling",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.featuresDiscourseContext]: {
+    section: "Features",
+    label: "Discourse context",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.featuresCanvas]: {
+    section: "Features",
+    label: "Canvas",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.featuresLeftSidebar]: {
+    section: "Features",
+    label: "Left sidebar",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.grammarNodes]: {
+    section: "Grammar",
+    label: "Nodes",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.grammarRelations]: {
+    section: "Grammar",
+    label: "Relations",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.advancedQueries]: {
+    section: "Advanced",
+    label: "Queries",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.admin]: {
+    section: "Admin",
+    label: "Admin",
+    searchable: false,
+  },
+} as const satisfies Record<
+  (typeof SETTINGS_TAB_IDS)[keyof typeof SETTINGS_TAB_IDS],
+  { section: string; label: string; searchable: boolean }
+>;
+
 /** Tab ids from before the taxonomy. Saved deep links still carry these. */
 export const SETTINGS_TAB_ALIASES: Record<string, TabId> = {
   "discourse-graph-home-personal": SETTINGS_TAB_IDS.preferencesGeneral,
