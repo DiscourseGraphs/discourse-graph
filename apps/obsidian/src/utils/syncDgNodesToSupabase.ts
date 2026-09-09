@@ -1,5 +1,6 @@
 import { Notice, TFile } from "obsidian";
 import { addFile } from "@repo/database/lib/files";
+import { isAssetTooLarge } from "@repo/database/lib/assetLimits";
 import mime from "mime-types";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
@@ -718,7 +719,7 @@ export const syncPublishedNodeAssets = async ({
     const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
     if (mimetype.startsWith("text/")) continue;
     // Do not use standard upload for large files
-    if (attachment.stat.size >= 6 * 1024 * 1024) {
+    if (isAssetTooLarge(attachment.stat.size)) {
       new Notice(
         `Asset file ${attachment.path} is larger than 6Mb and will not be uploaded`,
       );

@@ -74,6 +74,26 @@ type InlineCrossAppTypedContent = InlineCrossAppContent & {
   contentType: ContentType;
 };
 
+// An asset (an image or attachment) that a node's full content references.
+export type CrossAppAsset = {
+  // What the full content refers to, exactly as written: a path on a platform that
+  // addresses assets by path, a URL on one that addresses them by URL. Publication
+  // never rewrites it, so a destination matches on it. Unique within one node's
+  // `assets`: it maps to `FileReference.filepath`, part of that table's primary key.
+  sourceRef: string;
+  // SHA-256 of the stored bytes as 64 lowercase hex characters, which is also their
+  // object name in shared storage. A destination looks the bytes up by this string
+  // exactly, so any other encoding fails as a not-found rather than a type error.
+  // Required: an asset whose bytes were not stored is absent from `assets` rather than
+  // present with nothing to resolve, and the transfer that hit the failure reports it.
+  contentHash: string;
+  // Where the source kept the asset: a name on a platform with a flat asset namespace,
+  // a path on one with folders. A destination decomposes it as a path to name and place
+  // its local copy, and a bare name decomposes to itself. Absent when the source
+  // recorded nothing beyond `sourceRef`.
+  sourcePath?: string;
+};
+
 // A node instance
 export type CrossAppNode = CrossAppBase & {
   nodeType: LocalId;
@@ -86,6 +106,10 @@ export type CrossAppNode = CrossAppBase & {
     direct: InlineCrossAppContent;
     full?: InlineCrossAppTypedContent;
   };
+  // The assets referenced by `content.full` whose bytes are stored. One that could not
+  // be stored is not listed, and a destination leaves its reference untouched, as it
+  // does any link that was never an asset.
+  assets?: CrossAppAsset[];
 };
 
 // A relation instance
