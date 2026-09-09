@@ -50,12 +50,14 @@ import { DiscourseContextType } from "./Tldraw";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import {
   COLOR_ARRAY,
-  DISCOURSE_NODE_SHAPE_TYPE,
   getDiscourseNodeTypeId,
   isDiscourseNodeShape,
   type DiscourseNodeShape,
 } from "./DiscourseNodeUtil";
-import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
+import {
+  replaceShapeWithDiscourseNode,
+  uploadImageShapeToRoam,
+} from "./convertShapeToDiscourseNode";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import {
   DiscourseRelationShape,
@@ -171,8 +173,6 @@ export const getOnSelectForShape = ({
   editor: Editor;
   extensionAPI: OnloadArgs["extensionAPI"];
 }) => {
-  const { x, y } = shape;
-
   const openDialogAndCreateShape = ({
     initialText,
     imageUrl,
@@ -188,54 +188,26 @@ export const getOnSelectForShape = ({
       includeDefaultNodes: true,
       disableNodeTypeChange: true,
       imageUrl,
-      onSuccess: async ({ text, uid }) => {
-        editor.deleteShapes([shape.id]);
-
-        const {
-          h,
-          w,
-          imageUrl: nodeImageUrl,
-        } = await calcCanvasNodeSizeAndImg({
-          nodeText: text,
+      onSuccess: ({ text, uid }) =>
+        replaceShapeWithDiscourseNode({
+          editor,
           extensionAPI,
+          shape,
           nodeType,
+          text,
           uid,
-        });
-        editor.createShapes([
-          {
-            type: DISCOURSE_NODE_SHAPE_TYPE,
-            id: createShapeId(),
-            props: {
-              uid,
-              title: text,
-              h,
-              w,
-              imageUrl: nodeImageUrl,
-              fontFamily: "sans",
-              size: "s",
-              nodeTypeId: nodeType,
-            },
-            x,
-            y,
-          },
-        ]);
-      },
+        }),
       onClose: () => {},
     });
   };
 
   if (shape.type === "image") {
     return async () => {
-      const { assetId } = (shape as TLImageShape).props;
-      if (!assetId) return;
-      const asset = editor.getAsset(assetId);
-      if (!asset || !asset.props.src) return;
-      const file = await fetch(asset.props.src)
-        .then((r) => r.arrayBuffer())
-        .then((buf) => new File([buf], shape.id));
-      // this is a promise
-      // eslint-disable-next-line @typescript-eslint/await-thenable
-      const src = await window.roamAlphaAPI.util.uploadFile({ file });
+      const src = await uploadImageShapeToRoam({
+        editor,
+        shape: shape as TLImageShape,
+      });
+      if (!src) return;
       const initialText = nodeType === "blck-node" ? `![](${src})` : "";
 
       openDialogAndCreateShape({ initialText, imageUrl: src });
