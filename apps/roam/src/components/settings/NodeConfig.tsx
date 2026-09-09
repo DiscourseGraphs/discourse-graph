@@ -352,39 +352,6 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           parentUid={node.type}
           uid={formatUid}
         />
-        <SettingItemRow
-          label="Specification"
-          description={withDocsLink(
-            `The conditions specified to identify a ${node.text} node.`,
-            ROAM_DOCS.grammarNodes,
-          )}
-          scope="global"
-          controlPlacement="below"
-          control={
-            <DiscourseNodeSpecification
-              node={node}
-              parentUid={specificationUid}
-              parentSetEnabled={(isSpecificationEnabled) => {
-                validate({
-                  tag: tagValue,
-                  format: formatValue,
-                  isSpecificationEnabled,
-                });
-              }}
-            />
-          }
-        />
-        <SettingItemRow
-          label="Index"
-          description={`The saved list of all ${node.text} pages \u2014 which pages appear and which columns show.`}
-          scope="global"
-          control={
-            <SettingDrillDownSummary
-              summary={`See all ${node.text} nodes`}
-              onClick={() => nav.push(nodeConfigSegmentIds.index)}
-            />
-          }
-        />
       </SettingsGroup>
 
       <SettingsGroup title="Creation">
