@@ -1,0 +1,103 @@
+import React, { useId } from "react";
+import { Icon, type IconName, Position, Tooltip } from "@blueprintjs/core";
+import { settingAnchor } from "~/components/settings/utils/settingAnchor";
+
+/** Per-node settings are `global`: they live on the node type's page, so the whole graph sees them. */
+export type SettingScope = "personal" | "global";
+
+const SCOPE_INDICATORS = {
+  personal: {
+    icon: "person",
+    tooltip: "Personal — applies only to you",
+  },
+  global: {
+    icon: "globe",
+    tooltip: "Graph-wide — applies to everyone in this graph",
+  },
+} as const satisfies Record<SettingScope, { icon: IconName; tooltip: string }>;
+
+/** Raw <label> plus flex on purpose: Blueprint's `.bp3-label .bp3-popover-wrapper` and
+ *  `.bp3-icon` vertical-align rules would otherwise push the badge out of line. */
+const SettingScopeIndicator = ({ scope }: { scope: SettingScope }) => {
+  const { icon, tooltip } = SCOPE_INDICATORS[scope];
+  return (
+    <Tooltip content={tooltip} position={Position.TOP} hoverOpenDelay={300}>
+      <span
+        aria-label={tooltip}
+        className="dg-setting-row__scope flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-gray-500"
+      >
+        <Icon icon={icon} iconSize={12} />
+      </span>
+    </Tooltip>
+  );
+};
+
+type SettingItemRowProps = {
+  label: React.ReactNode;
+  description?: React.ReactNode;
+  /** A function receives the row's id to bind label and control; a node labels itself. */
+  control: React.ReactNode | ((controlId: string) => React.ReactNode);
+  scope?: SettingScope;
+  /** `below` is for controls too tall to sit beside the label, such as a textarea. */
+  controlPlacement?: "trailing" | "below";
+  settingKeys?: string[];
+  error?: string;
+  /** Tighter row for narrow hosts such as the Export dialog: no scope badge, control below. */
+  compact?: boolean;
+};
+
+const SettingItemRow = ({
+  label,
+  description,
+  control,
+  scope,
+  controlPlacement = "trailing",
+  settingKeys,
+  error,
+  compact = false,
+}: SettingItemRowProps): React.ReactElement => {
+  const controlId = useId();
+  const isAssociated = typeof control === "function";
+  // Description is a sibling of the label: nested, its doc links would toggle the control (ENG-2080).
+  const LabelTag = isAssociated ? "label" : "div";
+
+  return (
+    <div
+      {...(settingKeys ? settingAnchor(settingKeys) : {})}
+      className={`dg-setting-row ${compact ? "py-2" : "py-3"} ${
+        controlPlacement === "trailing" && !compact
+          ? "flex items-center justify-between gap-4"
+          : "flex flex-col gap-2"
+      }`}
+    >
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <LabelTag
+          {...(isAssociated ? { htmlFor: controlId } : {})}
+          className={`dg-setting-row__label mb-0 flex items-center gap-2 font-semibold ${
+            isAssociated ? "cursor-pointer" : ""
+          }`}
+        >
+          {scope && !compact ? <SettingScopeIndicator scope={scope} /> : null}
+          <span>{label}</span>
+        </LabelTag>
+        {description ? (
+          <div className="text-sm font-normal text-gray-500">{description}</div>
+        ) : null}
+        {error ? (
+          <div className="text-sm font-medium text-red-600">{error}</div>
+        ) : null}
+      </div>
+      <div
+        className={
+          controlPlacement === "trailing" && !compact
+            ? "flex-shrink-0"
+            : "w-full"
+        }
+      >
+        {isAssociated ? control(controlId) : control}
+      </div>
+    </div>
+  );
+};
+
+export default SettingItemRow;

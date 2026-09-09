@@ -40,6 +40,10 @@
 :root {
   /* Brand secondary, mirroring packages/tailwind-config. */
   --dg-secondary: #5f57c0;
+  /** Neutrals mirrored too: Roam ships Tailwind's utilities but not this repo's theme extensions. */
+  --dg-neutral-dark: #1f1f1f;
+  --dg-neutral-light: #f1f1f1;
+  --dg-border: rgb(229, 231, 235);
 }
 
 /** Hand-rolled: apps/roam has no Tailwind build, so only utilities Roam ships resolve. */
@@ -87,4 +91,21 @@
   flex-direction: column;
   gap: 44px;
   padding: 2px;
+}
+
+/** No row dividers: the only rule on a page is the one under a section heading. */
+
+.dg-setting-row__label {
+  color: var(--dg-neutral-dark);
+}
+
+.dg-setting-row__scope {
+  background-color: var(--dg-neutral-light);
+  border: 1px solid var(--dg-border);
+}
+
+/* Trailing keycap control: a narrow box whose value reads as a single key. */
+.dg-setting-keycap .bp3-input {
+  text-align: center;
+  font-family: monospace;
 }
