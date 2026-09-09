@@ -31,12 +31,12 @@ import {
   getNewDiscourseNodeText,
   getReferencedNodeInFormat,
 } from "~/utils/formatUtils";
-import createDiscourseNode from "~/utils/createDiscourseNode";
+import createDiscourseNode, {
+  handleImageCreation,
+} from "~/utils/createDiscourseNode";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import resolveQueryBuilderRef from "~/utils/resolveQueryBuilderRef";
-import runQuery from "~/utils/runQuery";
 import posthog from "posthog-js";
 
 export type ModifyNodeDialogMode = "create" | "edit";
@@ -274,66 +274,6 @@ const ModifyNodeDialog = ({
     onClose();
   }, [onClose]);
 
-  const addImageToPage = useCallback(
-    async ({
-      pageUid,
-      imageUrl,
-      configPageUid,
-      extensionAPI,
-    }: {
-      pageUid: string;
-      imageUrl: string;
-      configPageUid: string;
-      extensionAPI?: OnloadArgs["extensionAPI"];
-    }) => {
-      const discourseNodes = getDiscourseNodes();
-      const canvasSettings = Object.fromEntries(
-        discourseNodes.map((n) => [n.type, { ...n.canvasSettings }]),
-      );
-      const {
-        "query-builder-alias": qbAlias = "",
-        "key-image": isKeyImage = "",
-        "key-image-option": keyImageOption = "",
-      } = canvasSettings[configPageUid] || {};
-
-      const createOrUpdateImageBlock = async (imagePlaceholderUid?: string) => {
-        const imageMarkdown = `![](${imageUrl})`;
-        if (imagePlaceholderUid) {
-          await updateBlock({
-            uid: imagePlaceholderUid,
-            text: imageMarkdown,
-          });
-        } else {
-          await createBlock({
-            node: { text: imageMarkdown },
-            order: 0,
-            parentUid: pageUid,
-          });
-        }
-      };
-
-      if (!isKeyImage || !extensionAPI) {
-        await createOrUpdateImageBlock();
-        return;
-      }
-
-      if (keyImageOption === "query-builder") {
-        const parentUid = resolveQueryBuilderRef({ queryRef: qbAlias });
-        const results = await runQuery({
-          extensionAPI,
-          parentUid,
-          // due to query format
-          inputs: { NODETEXT: content.text, NODEUID: pageUid },
-        });
-        const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
-        await createOrUpdateImageBlock(imagePlaceholderUid);
-      } else {
-        await createOrUpdateImageBlock();
-      }
-    },
-    [content.text],
-  );
-
   const onSubmit = async () => {
     if (!content.text.trim()) return;
     if (!selectedNodeType && !isContentLocked) {
@@ -359,11 +299,13 @@ const ModifyNodeDialog = ({
           if (imageUrl) {
             const pageUid = content.uid || getPageUidByPageTitle(content.text);
             if (pageUid) {
-              await addImageToPage({
+              await handleImageCreation({
                 pageUid,
-                imageUrl,
+                discourseNodes: getDiscourseNodes(),
                 configPageUid: selectedNodeType?.type || "",
+                imageUrl,
                 extensionAPI,
+                text: content.text,
               });
             }
           }
