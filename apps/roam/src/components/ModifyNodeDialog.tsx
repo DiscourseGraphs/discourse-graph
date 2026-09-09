@@ -597,14 +597,14 @@ const ModifyNodeDialog = ({
           </div>
 
           {imageUrl && (
-            <Label className="w-full">
-              Image
+            <div className="flex w-full flex-col gap-1">
+              <span>Image</span>
               <img
                 src={imageUrl}
                 alt=""
-                className="mt-1 max-h-40 w-full rounded object-contain"
+                className="max-h-40 w-full rounded object-contain"
               />
-            </Label>
+            </div>
           )}
 
           {/* Referenced Node Input */}
