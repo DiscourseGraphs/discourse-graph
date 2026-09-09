@@ -54,7 +54,7 @@ import {
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
-import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
+import { CanvasOverlays } from "./overlays/CanvasOverlays";
 import { hasAcceptedRelationSchema, isDiscourseNodeShape } from "./canvasUtils";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseRelations, {
@@ -1017,7 +1017,7 @@ const TldrawCanvasShared = ({
   const editorComponents: TLEditorComponents = {
     ...defaultEditorComponents,
     OnTheCanvas: ToastListener,
-    InFrontOfTheCanvas: DragHandleOverlay,
+    InFrontOfTheCanvas: CanvasOverlays,
   };
   const customUiComponents: TLUiComponents = createUiComponents({
     allNodes,
