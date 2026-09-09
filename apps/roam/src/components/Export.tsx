@@ -9,12 +9,10 @@ import {
   ProgressBar,
   Toaster,
   Toast,
-  Tooltip,
   Tab,
   Tabs,
   RadioGroup,
   Radio,
-  FormGroup,
   Collapse,
 } from "@blueprintjs/core";
 import React, { useState, useEffect, useMemo, useRef, FormEvent } from "react";
@@ -99,6 +97,7 @@ import {
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { flushPendingSettingWrites } from "~/utils/pendingSettingWrites";
 import ExportOptions from "./ExportOptions";
+import Description from "~/components/settings/SettingsDescription";
 
 const ExportProgress = ({ id }: { id: string }) => {
   const [progress, setProgress] = useState(0);
@@ -973,30 +972,7 @@ const ExportDialog: ExportDialogComponent = ({
           />
         </Label>
 
-        <div className="mt-2 flex justify-end">
-          <FormGroup className={`m-0`} inline>
-            <Checkbox
-              alignIndicator={"right"}
-              checked={includeDiscourseContext}
-              onChange={(e) => {
-                setIncludeDiscourseContext(
-                  (e.target as HTMLInputElement).checked,
-                );
-              }}
-              labelElement={
-                <Tooltip
-                  className="m-0"
-                  content={
-                    "Include the discourse context of each result in the export."
-                  }
-                >
-                  <span>Discourse context</span>
-                </Tooltip>
-              }
-            />
-          </FormGroup>
-        </div>
-        <div className="mt-1 flex items-center justify-between gap-4">
+        <div className="mt-2 flex items-center justify-between gap-4">
           <Button
             minimal={true}
             small={true}
@@ -1019,6 +995,22 @@ const ExportDialog: ExportDialogComponent = ({
         </div>
         <Collapse isOpen={exportOptionsOpen}>
           <div className="max-h-64 overflow-y-auto">
+            <div className="px-1 pt-1">
+              <Checkbox
+                checked={includeDiscourseContext}
+                onChange={(e) =>
+                  setIncludeDiscourseContext(
+                    (e.target as HTMLInputElement).checked,
+                  )
+                }
+                labelElement={
+                  <>
+                    Discourse context
+                    <Description description="Include the discourse context of each result in the export." />
+                  </>
+                }
+              />
+            </div>
             <ExportOptions globalSettings={exportGlobalSettings} />
           </div>
         </Collapse>
