@@ -21,6 +21,48 @@ describe("rewriteAssetLinks", () => {
     ).toBe(`![](${MIRRORED})`);
   });
 
+  /**
+   * CommonMark wraps a destination containing spaces in angle brackets, and Obsidian can
+   * emit that form for a vault path. The brackets delimit the locator rather than belong
+   * to it, so what matches a recorded row is the text between them.
+   */
+  it("resolves an image whose destination is wrapped in angle brackets", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `![](<my folder/diagram.png>)`,
+        assets: [{ sourceLocator: "my folder/diagram.png", url: MIRRORED }],
+      }),
+    ).toBe(`![](${MIRRORED})`);
+  });
+
+  it("resolves a bracketed link and keeps its label", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `[the report](<my folder/report.docx>)`,
+        assets: [{ sourceLocator: "my folder/report.docx", url: MIRRORED }],
+      }),
+    ).toBe(`[the report](${MIRRORED})`);
+  });
+
+  /**
+   * An autolink is a bare URL the source wrapped in angle brackets. The brackets are part
+   * of the match, not of the locator, so the rewrite takes them with it. Capturing only
+   * the URL inside would leave `<` and `>` around the result, which Roam renders as text.
+   */
+  it("rewrites an autolink without leaving its brackets behind", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `<${EXTERNAL}>`,
+        assets: [{ sourceLocator: EXTERNAL, url: MIRRORED }],
+      }),
+    ).toBe(`{{[[pdf]]: ${MIRRORED}}}`);
+  });
+
+  it("leaves an autolink alone when no row matches it", () => {
+    const markdown = `<${EXTERNAL}>`;
+    expect(rewriteAssetLinks({ markdown, assets: [] })).toBe(markdown);
+  });
+
   it("keeps the alt text an image already carried", () => {
     expect(
       rewriteAssetLinks({
