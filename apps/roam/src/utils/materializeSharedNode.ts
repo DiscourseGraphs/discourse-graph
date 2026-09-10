@@ -19,6 +19,7 @@ import {
   writeImportedSourceIdentity,
   type ImportedSourceIdentity,
 } from "./importedSourceIdentity";
+import { getErrorMessage } from "./getErrorMessage";
 
 type MaterializationStage =
   | "validate-input"
@@ -71,9 +72,6 @@ type RoamMarkdownApi = {
 
 export const getRoamMarkdownApi = (): RoamMarkdownApi =>
   window.roamAlphaAPI.data as unknown as RoamMarkdownApi;
-
-export const getErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
 
 const isImportUpToDate = ({
   sourceModifiedAt,

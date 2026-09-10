@@ -4,6 +4,7 @@ import {
 } from "@repo/database/lib/assetLimits";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { readMirroredAssetUrl, recordMirroredAsset } from "./assetRegistry";
+import { getErrorMessage } from "./getErrorMessage";
 
 /**
  * Copies one asset out of shared storage and into this graph's own Roam storage.
@@ -18,6 +19,14 @@ import { readMirroredAssetUrl, recordMirroredAsset } from "./assetRegistry";
  * detection back into the destination, and would leave this graph's page depending on a
  * blob the origin graph's owner can delete. The copy is irrevocable, deliberately.
  *
+ * **Nothing rolls an upload back.** `file.delete` exists and takes a URL, so a caller
+ * holding one could undo its own upload, but it must not: a graph's users share one
+ * registry keyed by content hash (see `assetRegistry`), so a blob this call uploaded may
+ * already have been resolved by another user's import. A failed import leaves its copies
+ * in place instead, and callers order their work so a rejected import never uploads at
+ * all. Roam exposes no way to list a graph's files, so an orphan cannot be swept up
+ * afterwards either.
+ *
  * **Call this one asset at a time.** The registry read and the matching write are
  * separated by a download and an upload, so callers running it under `Promise.all` all
  * see an empty registry for the same hash: the bytes upload once per call, the registry
@@ -25,9 +34,6 @@ import { readMirroredAssetUrl, recordMirroredAsset } from "./assetRegistry";
  * mitigation is the caller's sequential loop. Parallelising a caller means adding an
  * in-flight map of hash to promise here first.
  */
-
-const getErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
 
 /** The bucket `addFile` writes to, keyed by content hash. */
 const SHARED_ASSET_BUCKET = "assets";
