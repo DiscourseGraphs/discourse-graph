@@ -9,12 +9,12 @@ import {
 import { materializeSharedNode } from "~/utils/materializeSharedNode";
 import { resolveSharedNodeTypes } from "~/utils/resolveSharedNodeTypes";
 
-vi.mock("~/utils/materializeSharedNode", async () => {
-  const actual = await vi.importActual<
-    typeof import("~/utils/materializeSharedNode")
-  >("~/utils/materializeSharedNode");
-  return { ...actual, materializeSharedNode: vi.fn() };
-});
+// A plain factory rather than `importActual`: loading the real module pulls in
+// `internalError`, whose settings-accessor chain reads `window` at module scope. Nothing
+// reachable from this test needs the module's other exports.
+vi.mock("~/utils/materializeSharedNode", () => ({
+  materializeSharedNode: vi.fn(),
+}));
 
 vi.mock("~/utils/resolveSharedNodeTypes", () => ({
   resolveSharedNodeTypes: vi.fn(),
