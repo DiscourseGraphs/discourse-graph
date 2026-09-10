@@ -5,7 +5,6 @@ import {
   TLImageShape,
   TLShape,
   TLShapeId,
-  TLTextShape,
   TLUiDialogProps,
   TLUiOverrides,
   TLUiTranslationKey,
@@ -57,6 +56,7 @@ import {
 import {
   replaceShapeWithDiscourseNode,
   uploadImageShapeToRoam,
+  getConvertibleShapeText,
 } from "./convertShapeToDiscourseNode";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import {
@@ -201,6 +201,9 @@ export const getOnSelectForShape = ({
     });
   };
 
+  const shapeText = getConvertibleShapeText(shape);
+  if (shapeText === null) return () => {};
+
   if (shape.type === "image") {
     return async () => {
       const src = await uploadImageShapeToRoam({
@@ -212,13 +215,8 @@ export const getOnSelectForShape = ({
 
       openDialogAndCreateShape({ initialText, imageUrl: src });
     };
-  } else if (shape.type === "text") {
-    return () => {
-      const { text } = (shape as TLTextShape).props;
-      openDialogAndCreateShape({ initialText: text });
-    };
   }
-  return () => {};
+  return () => openDialogAndCreateShape({ initialText: shapeText });
 };
 
 type ArrowBoundNodeInfo = {
@@ -407,7 +405,7 @@ export const CustomContextMenu = ({
   const shareableResults = getShareableCanvasSelectionResults({
     shapes: selectedShapes,
   });
-  const isTextSelected = selectedShape?.type === "text";
+  const convertibleText = getConvertibleShapeText(selectedShape);
   const isImageSelected = selectedShape?.type === "image";
   const arrowRelationOptions = useValue(
     "arrowRelationOptions",
@@ -454,7 +452,7 @@ export const CustomContextMenu = ({
           />
         </TldrawUiMenuGroup>
       )}
-      {(isTextSelected || isImageSelected) && (
+      {selectedShape && convertibleText !== null && (
         <TldrawUiMenuGroup id="convert-to-group">
           <TldrawUiMenuSubmenu id="convert-to-submenu" label="Convert To">
             {allNodes
