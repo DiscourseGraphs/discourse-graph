@@ -232,7 +232,7 @@ const LINK_PATTERN = new RegExp(
  * here, and a markdown link percent-encodes what a vault path spells plainly (Obsidian
  * records `my folder/d.png` while the note holds `my%20folder/d.png`).
  */
-const lookupCandidates = (locator: string): string[] => {
+export const lookupCandidates = (locator: string): string[] => {
   const candidates = [locator];
   const withoutPunctuation = locator.replace(TRAILING_PUNCTUATION, "");
   if (withoutPunctuation !== locator) candidates.push(withoutPunctuation);
@@ -247,7 +247,14 @@ const lookupCandidates = (locator: string): string[] => {
   return candidates;
 };
 
-// One capture group per branch, in the order the pattern lists them.
+/**
+ * What one match of `LINK_PATTERN` refers to, read from the capture groups in the order
+ * the pattern lists its branches.
+ *
+ * Shared with `collectAssetLocators` so that the locators a caller can see are exactly the
+ * locators this file will rewrite. Anything deriving that set independently drifts from it,
+ * and a locator missing from the caller's set is an asset silently dropped.
+ */
 const parseMatch = (
   groups: (string | undefined)[],
 ):
@@ -306,6 +313,24 @@ const parseMatch = (
     // A wikilink embed carries no separate text, so its label comes from the asset.
     linkText: imageLocator ? (imageAlt ?? "") : (linkLabel ?? wikiLabel ?? ""),
   };
+};
+
+/**
+ * Every locator this markdown refers an asset by, as `rewriteAssetLinks` will read them.
+ *
+ * A caller deciding which recorded references are worth acting on has to ask the text the
+ * same question the rewrite will ask it. Widening each of these through
+ * `lookupCandidates` yields exactly the set of `locator` values that would resolve, so
+ * a caller's set and the rewriter's are equal by construction rather than by agreement.
+ */
+export const collectAssetLocators = (markdown: string): string[] => {
+  const locators: string[] = [];
+  for (const match of markdown.matchAll(LINK_PATTERN)) {
+    const [, ...groups] = match;
+    const parsed = parseMatch(groups);
+    if (parsed) locators.push(parsed.locator);
+  }
+  return locators;
 };
 
 export const rewriteAssetLinks = ({
