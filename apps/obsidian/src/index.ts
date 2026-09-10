@@ -29,7 +29,11 @@ import { VIEW_TYPE_TLDRAW_DG_PREVIEW, FRONTMATTER_KEY } from "~/constants";
 import { convertPageToDiscourseNode } from "~/utils/createNode";
 import { DEFAULT_SETTINGS } from "~/constants";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
-import { TagNodeHandler } from "~/utils/tagNodeHandler";
+import {
+  createDiscourseTagExtension,
+  DiscourseTagStyleManager,
+  refreshDiscourseTagColors,
+} from "~/utils/tagNodeHandler";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
 import { InlineNodeTypePicker } from "~/components/InlineNodeTypePicker";
@@ -51,7 +55,7 @@ import {
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
-  private tagNodeHandler: TagNodeHandler | null = null;
+  private tagStyleManager: DiscourseTagStyleManager | null = null;
   private fileChangeListener: FileChangeListener | null = null;
   private activeNodePopover:
     | NodeTagSuggestPopover
@@ -171,14 +175,6 @@ export default class DiscourseGraphPlugin extends Plugin {
     // Initialize frontmatter CSS
     this.updateFrontmatterStyles();
 
-    // Initialize tag node handler
-    try {
-      this.tagNodeHandler = new TagNodeHandler(this);
-      this.tagNodeHandler.initialize();
-    } catch (error) {
-      console.error("Failed to initialize TagNodeHandler:", error);
-      this.tagNodeHandler = null;
-    }
     this.registerView(
       VIEW_TYPE_TLDRAW_DG_PREVIEW,
       (leaf) => new TldrawView(leaf, this),
@@ -369,6 +365,18 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.registerEditorExtension(createImageEmbedHoverExtension(this));
 
     this.registerEditorExtension(createWikilinkDragExtension(this));
+
+    this.registerEditorExtension(createDiscourseTagExtension(this));
+
+    this.tagStyleManager = new DiscourseTagStyleManager(this);
+    this.tagStyleManager.apply();
+    // A popout window has its own document, which the bundled styles.css
+    // reaches but the generated tag colours do not until they are re-applied.
+    this.registerEvent(
+      this.app.workspace.on("window-open", () => {
+        this.tagStyleManager?.apply();
+      }),
+    );
   }
 
   updateFrontmatterStyles(): void {
@@ -430,6 +438,8 @@ export default class DiscourseGraphPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
     this.updateFrontmatterStyles();
+    this.tagStyleManager?.apply();
+    refreshDiscourseTagColors(this);
   }
 
   private migrateSettings(): boolean {
@@ -479,10 +489,8 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.cleanupViewActions();
     activeDocument.body.classList.remove("dg-hide-frontmatter-ids");
 
-    if (this.tagNodeHandler) {
-      this.tagNodeHandler.cleanup();
-      this.tagNodeHandler = null;
-    }
+    this.tagStyleManager?.destroy();
+    this.tagStyleManager = null;
 
     if (this.fileChangeListener) {
       this.fileChangeListener.cleanup();

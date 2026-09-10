@@ -38,6 +38,7 @@
     "zod": "^3.24.1"
   },
   "dependencies": {
+    "@codemirror/language": "^6.12.4",
     "@codemirror/view": "^6.38.8",
     "@repo/database": "workspace:*",
     "@repo/utils": "workspace:*",
