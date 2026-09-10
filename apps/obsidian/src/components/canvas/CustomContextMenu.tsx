@@ -100,6 +100,7 @@ export const CustomContextMenu = ({
                 id={`convert-to-${nodeType.id}`}
                 label={"Convert to " + nodeType.name}
                 icon="file-type"
+                disabled={isReadonly}
                 onSelect={() => {
                   void convertToDiscourseNode({
                     editor,

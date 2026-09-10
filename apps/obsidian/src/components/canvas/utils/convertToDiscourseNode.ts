@@ -20,11 +20,12 @@ import { showToast } from "./toastUtils";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
 
-// Arrow is excluded on purpose: it owns the "Relation" submenu instead.
-const TEXT_BEARING_SHAPE_TYPES: readonly string[] = ["text", "geo", "note"];
+// Only shapes storing a richText prop. Arrow is not one (it uses props.text) and
+// owns the "Relation" submenu instead.
+const RICH_TEXT_SHAPE_TYPES: readonly string[] = ["text", "geo", "note"];
 
 const getShapeText = (editor: Editor, shape: TLShape): string => {
-  if (!TEXT_BEARING_SHAPE_TYPES.includes(shape.type)) return "";
+  if (!RICH_TEXT_SHAPE_TYPES.includes(shape.type)) return "";
   const { richText } = shape.props as { richText?: TLRichText };
   if (!richText) return "";
   return renderPlaintextFromRichText(editor, richText).trim();
@@ -35,6 +36,7 @@ export const canConvertShapeToNode = (
   shape: TLShape | null,
 ): boolean => {
   if (!shape) return false;
+  // Images are gated at conversion time, not here: the asset may not resolve to a vault file.
   return shape.type === "image" || getShapeText(editor, shape) !== "";
 };
 
@@ -54,13 +56,13 @@ export const convertToDiscourseNode = async (
 
     if (shape.type === "image") {
       return await convertImageShapeToNode(args);
-    } else if (TEXT_BEARING_SHAPE_TYPES.includes(shape.type)) {
+    } else if (RICH_TEXT_SHAPE_TYPES.includes(shape.type)) {
       return convertTextBearingShapeToNode(args);
     } else {
       showToast({
         severity: "warning",
         title: "Cannot Convert",
-        description: "Only shapes with text and images can be converted",
+        description: "Only shapes with text or images can be converted",
         targetCanvasId: args.canvasFile.path,
       });
     }
