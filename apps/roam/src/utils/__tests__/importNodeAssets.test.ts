@@ -298,6 +298,44 @@ describe("importNodeAssets", () => {
     expect(mirror).toHaveBeenCalledTimes(2);
   });
 
+  it("asks once whether a blob is oversized, and reports every locator naming it", async () => {
+    mirror.mockResolvedValue({
+      status: "skipped",
+      contentHash: "h1",
+      reason: "too-large",
+      size: 9_000_000,
+      limit: 6_291_456,
+    });
+
+    const markdown = `![](${IMAGE_REF}) ![](attachments/copy.png)`;
+    const { report } = await importNodeAssets({
+      client: clientWithReferences([
+        row(IMAGE_REF, "h1"),
+        row("attachments/copy.png", "h1"),
+      ]).client,
+      sharedNode,
+      markdown,
+    });
+
+    // Decided once per hash, so the second locator adds no round trip.
+    expect(mirror).toHaveBeenCalledTimes(1);
+    // Still one entry per locator.
+    expect(report.skipped).toEqual([
+      {
+        sourceLocator: IMAGE_REF,
+        reason: "too-large",
+        size: 9_000_000,
+        limit: 6_291_456,
+      },
+      {
+        sourceLocator: "attachments/copy.png",
+        reason: "too-large",
+        size: 9_000_000,
+        limit: 6_291_456,
+      },
+    ]);
+  });
+
   it("copies nothing for a reference the fetched markdown never makes", async () => {
     const { client } = clientWithReferences([
       row("attachments/only-in-frontmatter.png", "h1"),
