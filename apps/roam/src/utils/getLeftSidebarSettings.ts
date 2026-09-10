@@ -74,10 +74,8 @@ export type LeftSidebarGlobalSectionConfig = {
 export type LeftSidebarConfig = {
   uid: string;
   favoritesMigrated: BooleanSetting;
-  sidebarMigrated: BooleanSetting;
   global: LeftSidebarGlobalSectionConfig;
   globalSectionFolded: BooleanSetting;
-  allPersonalSections: AllUsersPersonalSections;
   personal: {
     uid: string;
     sections: LeftSidebarPersonalSectionConfig[];
@@ -146,13 +144,6 @@ const getPersonalSectionSettings = (
   };
 };
 
-export type AllUsersPersonalSections = {
-  [userUid: string]: {
-    uid: string;
-    sections: LeftSidebarPersonalSectionConfig[];
-  };
-};
-
 export const getLeftSidebarPersonalSectionConfig = (
   leftSidebarChildren: RoamBasicNode[],
   userUid?: string,
@@ -202,24 +193,6 @@ export const getLeftSidebarPersonalSectionConfig = (
     sections,
   };
 };
-export const getAllLeftSidebarPersonalSectionConfigs = (
-  leftSidebarChildren: RoamBasicNode[],
-): AllUsersPersonalSections => {
-  const result: AllUsersPersonalSections = {};
-
-  leftSidebarChildren
-    .filter((node) => node.text.endsWith("/Personal-Section"))
-    .forEach((node) => {
-      const userUid = node.text.replace("/Personal-Section", "");
-      result[userUid] = getLeftSidebarPersonalSectionConfig(
-        leftSidebarChildren,
-        userUid,
-      );
-    });
-
-  return result;
-};
-
 export const mergeGlobalSectionWithAccessor = (
   config: LeftSidebarGlobalSectionConfig,
   globalValues: LeftSidebarGlobalSettings | undefined,
@@ -306,16 +279,9 @@ export const getLeftSidebarSettings = (
   const leftSidebarChildren = leftSidebarNode?.children || [];
   const global = getLeftSidebarGlobalSectionConfig(leftSidebarChildren);
   const personal = getLeftSidebarPersonalSectionConfig(leftSidebarChildren);
-  // TODO: remove this on complete migration task [ENG-1171: Remove `migrateLeftSideBarSettings`](https://linear.app/discourse-graphs/issue/ENG-1171/remove-migrateleftsidebarsettings)
-  const allPersonalSections =
-    getAllLeftSidebarPersonalSectionConfigs(leftSidebarChildren);
   const favoritesMigrated = getUidAndBooleanSetting({
     tree: leftSidebarChildren,
     text: "Favorites Migrated",
-  });
-  const sidebarMigrated = getUidAndBooleanSetting({
-    tree: leftSidebarChildren,
-    text: "Sidebar Migrated",
   });
   const currentUserUid = window.roamAlphaAPI.user.uid();
   const globalSectionFolded: BooleanSetting = currentUserUid
@@ -327,10 +293,8 @@ export const getLeftSidebarSettings = (
   return {
     uid: leftSidebarUid,
     favoritesMigrated,
-    sidebarMigrated,
     global,
     globalSectionFolded,
     personal,
-    allPersonalSections,
   };
 };
