@@ -232,12 +232,12 @@ const URL_PATTERN = String.raw`https?://[^\s<>()\[\]{}"']+`;
  */
 const LINK_PATTERN = new RegExp(
   [
-    String.raw`!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)`, // ![alt](locator)
+    String.raw`!\[([^\]]*)\]\((<[^>]*>|[^)\s]+)(?:\s+"[^"]*")?\)`, // ![alt](locator)
     // No `[` in the label, so `[![alt](image)](link)` cannot match here from the outer
     // bracket: the branch fails, the scan advances one character, and the image branch
     // takes the inner embed as it should. Alternation is tried per position, so ordering
     // the image branch first is not enough on its own.
-    String.raw`\[([^\]\[]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)`, // [label](locator)
+    String.raw`\[([^\]\[]*)\]\((<[^>]*>|[^)\s]+)(?:\s+"[^"]*")?\)`, // [label](locator)
     // The media keyword is captured, not discarded: it is the source stating the type,
     // and it is the only statement available for a storage uid with no extension.
     String.raw`\{\{\[\[(pdf|audio|video)\]\]:\s*(${URL_PATTERN})\s*\}\}`, // {{[[pdf]]: url}}
@@ -246,7 +246,10 @@ const LINK_PATTERN = new RegExp(
     // link's names it, so it is captured and becomes the link text.
     String.raw`!\[\[([^\]|]+)(?:\|[^\]]*)?\]\]`, // ![[locator]] or ![[locator|300]]
     String.raw`\[\[([^\]|]+)(?:\|([^\]]*))?\]\]`, // [[locator]] or [[locator|label]]
-    `(${URL_PATTERN})`, // a bare URL, rewritten only when a row matches it
+    // The bracketed form is an autolink. Matching it whole, brackets included, is what
+    // lets them go away with the rest of the match: capturing only the URL inside would
+    // rewrite the middle and leave `<` and `>` wrapped around the result.
+    `(<${URL_PATTERN}>|${URL_PATTERN})`, // a bare URL, rewritten only when a row matches it
   ].join("|"),
   "g",
 );
@@ -300,7 +303,7 @@ const parseMatch = (
     wikiLabel,
     bareLocator,
   ] = groups;
-  const locator =
+  const bracketed =
     imageLocator ??
     linkLocator ??
     bracketedMediaLocator ??
@@ -308,7 +311,11 @@ const parseMatch = (
     embedLocator ??
     wikiLocator ??
     bareLocator;
-  if (locator === undefined) return undefined;
+  if (bracketed === undefined) return undefined;
+  const locator =
+    bracketed.startsWith("<") && bracketed.endsWith(">")
+      ? bracketed.slice(1, -1)
+      : bracketed;
 
   const form: ReferenceForm =
     imageLocator !== undefined ||
