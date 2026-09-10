@@ -14,6 +14,8 @@ export const uploadImageShapeToRoam = async ({
   if (!assetId) return undefined;
   const asset = editor.getAsset(assetId);
   if (!asset || !asset.props.src) return undefined;
+  // Dropped and pasted files are already uploaded to Roam by the canvas handlers
+  if (asset.props.src.startsWith("https:")) return asset.props.src;
   const file = await fetch(asset.props.src)
     .then((r) => r.arrayBuffer())
     .then((buf) => new File([buf], shape.id));
