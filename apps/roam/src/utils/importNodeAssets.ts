@@ -159,13 +159,34 @@ export const importNodeAssets = async ({
    * Counts are per distinct blob, not per reference. Two locators for identical bytes are
    * one upload, and reporting the second as `reused` would tell a user on a first-ever
    * import that this graph already held something it had just fetched.
+   *
+   * `skipped` and `failed` stay per locator: two references to one oversized blob are
+   * two places the page degraded.
    */
   const handledHashes = new Set<string>();
+  /**
+   * Oversize is a property of the bytes, so it is decided once per hash. Asking again
+   * costs a `storage.info` round trip, and where the object carries no size, a second
+   * download of a blob already known to be over the cap.
+   *
+   * A throw is not cached: it can be a transient read failure rather than a fact about
+   * the asset, so a second locator may try again.
+   */
+  const skippedByHash = new Map<string, { size: number; limit: number }>();
 
   // Sequential on purpose. Two references to identical content share a hash, and the
   // registry is what stops the second one uploading again; running them together would
   // race that check and mirror the same bytes twice.
   for (const reference of referenced) {
+    const alreadySkipped = skippedByHash.get(reference.filehash);
+    if (alreadySkipped) {
+      report.skipped.push({
+        sourceLocator: reference.filepath,
+        reason: "too-large",
+        ...alreadySkipped,
+      });
+      continue;
+    }
     try {
       const result = await mirrorAssetToRoamStorage({
         client,
@@ -173,6 +194,10 @@ export const importNodeAssets = async ({
         sourcePath: reference.source_path,
       });
       if (result.status === "skipped") {
+        skippedByHash.set(reference.filehash, {
+          size: result.size,
+          limit: result.limit,
+        });
         report.skipped.push({
           sourceLocator: reference.filepath,
           reason: result.reason,
