@@ -424,7 +424,10 @@ class DiscourseTagHoverController {
     // The rect is in the tag's own window, so the tooltip belongs in that document.
     const doc = tagEl.ownerDocument;
     const tooltip = doc.createElement("div");
-    tooltip.className = "discourse-tag-popover";
+    // Arbitrary transform property: Tailwind's translate utilities need preflight's
+    // --tw-* defaults, which this plugin does not ship, so they compute to none.
+    tooltip.className =
+      "discourse-tag-popover fixed z-[9999] [transform:translateX(-50%)] whitespace-nowrap rounded-md p-1.5 text-xs pointer-events-auto";
     tooltip.style.top = `${rect.top - TOOLTIP_OFFSET}px`;
     tooltip.style.left = `${rect.left + rect.width / 2}px`;
 

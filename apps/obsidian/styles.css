@@ -67,23 +67,10 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   display: none !important;
 }
 
-/* Discourse tag styling in editor. Per-node colours come from the stylesheet
-   generated in discourseTagStyles.ts; the cursor is set on the parent
-   `.cm-hashtag` so it also covers the tag's padding, not just its text. */
+/* Targets the parent `.cm-hashtag`, which Obsidian renders and we cannot class,
+   so this cannot be a Tailwind utility. Per-node colours are generated in tagNodeHandler.ts. */
 .cm-hashtag:has(> .dg-discourse-tag) {
   cursor: pointer;
-}
-
-/* top/left are set inline from the tag's client rect; the rest is static. */
-.discourse-tag-popover {
-  position: fixed;
-  z-index: 9999;
-  transform: translateX(-50%);
-  padding: 6px;
-  border-radius: 6px;
-  font-size: 12px;
-  white-space: nowrap;
-  pointer-events: auto;
 }
 
 /* Off-screen measure container matching DiscourseNodeShape layout */
