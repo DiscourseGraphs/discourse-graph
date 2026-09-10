@@ -32,6 +32,7 @@ describe("refreshAllImportedNodes", () => {
       refreshed: 2,
       skipped: 1,
       failed: 1,
+      warnings: [],
     });
     expect(mockedRefreshImportedNode.mock.calls).toEqual([
       [{ pageUid: "uid-1", force: false }],
@@ -48,7 +49,29 @@ describe("refreshAllImportedNodes", () => {
       refreshed: 0,
       skipped: 0,
       failed: 0,
+      warnings: [],
     });
     expect(mockedRefreshImportedNode).not.toHaveBeenCalled();
+  });
+
+  it("preserves source warnings alongside successful refresh counts", async () => {
+    mockedGetImportedNodeUids.mockResolvedValue(new Set(["uid-1", "uid-2"]));
+    mockedRefreshImportedNode
+      .mockResolvedValueOnce({
+        status: "refreshed",
+        message: 'Refreshed "Evidence" from Research vault.',
+        warning:
+          "Its source is not in this graph, so its title was kept as published.",
+      })
+      .mockResolvedValueOnce({ status: "refreshed", message: "Refreshed." });
+
+    await expect(refreshAllImportedNodes()).resolves.toEqual({
+      refreshed: 2,
+      skipped: 0,
+      failed: 0,
+      warnings: [
+        'Refreshed "Evidence" from Research vault. Its source is not in this graph, so its title was kept as published.',
+      ],
+    });
   });
 });

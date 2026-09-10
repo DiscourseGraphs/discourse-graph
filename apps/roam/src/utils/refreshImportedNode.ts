@@ -15,6 +15,7 @@ const REFRESH_ERROR_OPERATION = "refresh-imported-node";
 type RefreshImportedNodeResult = {
   status: "refreshed" | "skipped" | "failed";
   message: string;
+  warning?: string;
 };
 
 export const refreshImportedNode = async ({
@@ -86,6 +87,7 @@ export const refreshImportedNode = async ({
     return {
       status: "refreshed",
       message: `Refreshed "${sharedNode.title}" from ${sharedNode.spaceName}.`,
+      ...(result.warning ? { warning: result.warning } : {}),
     };
   } catch (error) {
     internalError({
