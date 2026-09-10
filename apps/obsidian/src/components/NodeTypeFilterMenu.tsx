@@ -6,25 +6,21 @@ import { getAllDiscourseNodeColors } from "~/utils/colorUtils";
 import {
   NODE_TYPE_FILTER_SEARCH_THRESHOLD,
   filterNodeTypesByQuery,
-  fromPanelSelectedIds,
   hasActiveTypeFilter,
-  toPanelSelectedIds,
 } from "~/utils/discourseNodeTypeFilter";
 
 const NodeTypeFilterRow = ({
   color,
   isChecked,
   nodeType,
-  onSelectOnly,
   onToggle,
 }: {
   color: string | undefined;
   isChecked: boolean;
   nodeType: DiscourseNode;
-  onSelectOnly: () => void;
   onToggle: () => void;
 }): ReactElement => (
-  <div className="hover:bg-modifier-hover group flex items-center gap-2 px-3 py-1.5">
+  <div className="hover:bg-modifier-hover flex items-center gap-2 px-3 py-1.5">
     <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
       <input
         type="checkbox"
@@ -40,19 +36,6 @@ const NodeTypeFilterRow = ({
       )}
       <span className="text-normal truncate text-sm">{nodeType.name}</span>
     </label>
-    <button
-      type="button"
-      // Hidden until the row is hovered or focused so the list stays scannable,
-      // but focusable by keyboard rather than pointer-only.
-      className="text-muted hover:text-normal shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
-      onClick={(event) => {
-        event.stopPropagation();
-        onSelectOnly();
-      }}
-      onMouseDown={(event) => event.preventDefault()}
-    >
-      Only
-    </button>
   </div>
 );
 
@@ -102,9 +85,7 @@ const NodeTypeFilterPanel = ({
   return (
     <>
       {/* Clearing is the only thing this control ever does, so it says so and
-          appears only when there is a filter to clear. A "select all" checkbox
-          would sit checked-and-inert whenever no filter is active, since an empty
-          selection and a full one are the same state. */}
+          appears only when there is a filter to clear. */}
       {isFilterActive && (
         <div className="border-modifier-border border-b p-2">
           <button
@@ -141,7 +122,6 @@ const NodeTypeFilterPanel = ({
               color={colorsById.get(nodeType.id)}
               isChecked={selectedIdSet.has(nodeType.id)}
               nodeType={nodeType}
-              onSelectOnly={() => onSelectedIdsChange([nodeType.id])}
               onToggle={() => toggleType(nodeType.id)}
             />
           ))
@@ -166,23 +146,9 @@ export const NodeTypeFilterMenu = ({
   onSelectedNodeTypeIdsChange: (ids: string[]) => void;
   selectedNodeTypeIds: string[];
 }): ReactElement => {
-  const allTypeIds = useMemo(
-    () => nodeTypes.map((nodeType) => nodeType.id),
-    [nodeTypes],
-  );
+  const isFilterActive = hasActiveTypeFilter(selectedNodeTypeIds);
 
-  const isFilterActive = hasActiveTypeFilter({
-    selectedTypeIds: selectedNodeTypeIds,
-    allTypeIds,
-  });
-
-  const panelSelectedIds = useMemo(
-    () =>
-      toPanelSelectedIds({ selectedTypeIds: selectedNodeTypeIds, allTypeIds }),
-    [allTypeIds, selectedNodeTypeIds],
-  );
-
-  const activeFilterCount = isFilterActive ? selectedNodeTypeIds.length : 0;
+  const activeFilterCount = selectedNodeTypeIds.length;
 
   return (
     <SearchDropdown
@@ -208,12 +174,8 @@ export const NodeTypeFilterMenu = ({
       <NodeTypeFilterPanel
         isFilterActive={isFilterActive}
         nodeTypes={nodeTypes}
-        onSelectedIdsChange={(panelIds) =>
-          onSelectedNodeTypeIdsChange(
-            fromPanelSelectedIds({ panelSelectedIds: panelIds, allTypeIds }),
-          )
-        }
-        selectedIds={panelSelectedIds}
+        onSelectedIdsChange={onSelectedNodeTypeIdsChange}
+        selectedIds={selectedNodeTypeIds}
       />
     </SearchDropdown>
   );
