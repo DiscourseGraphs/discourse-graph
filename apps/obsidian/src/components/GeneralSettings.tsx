@@ -3,6 +3,8 @@ import { usePlugin } from "./PluginContext";
 import { setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
 import { DiscourseGraphLogoIcon, SlackLogoIcon } from "./Icons";
+import { openExportSpecsModal } from "./ExportSpecsModal";
+import { getDgSchemaFileName } from "~/utils/specValidation";
 import { FeedbackModal } from "./FeedbackModal";
 import { DOCS_URL, COMMUNITY_URL } from "~/constants";
 
@@ -194,6 +196,7 @@ const GeneralSettings = () => {
   const [nodeTagHotkey, setNodeTagHotkey] = useState<string>(
     plugin.settings.nodeTagHotkey,
   );
+  const schemaFileName = getDgSchemaFileName(plugin.app.vault.getName());
   const [showHelpMenuStatusBarIcon, setShowHelpMenuStatusBarIcon] = useState(
     plugin.settings.showHelpMenuStatusBarIcon,
   );
@@ -343,6 +346,24 @@ const GeneralSettings = () => {
         </div>
       </div>
 
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">Export discourse graph schema</div>
+          <div className="setting-item-description">
+            Export selected node types, relation types, relation triples, and
+            templates to a JSON file named <code>{schemaFileName}</code>.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <button
+            type="button"
+            className="rounded border px-3 py-1.5 text-sm"
+            onClick={() => openExportSpecsModal(plugin)}
+          >
+            Open export modal
+          </button>
+        </div>
+      </div>
       <ToggleSetting
         name="Show help menu icon in status bar"
         description="Adds a Discourse Graph icon to the status bar that opens a menu with feedback, docs, community, and settings links."
