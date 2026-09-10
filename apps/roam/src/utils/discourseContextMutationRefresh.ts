@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { invalidateDiscourseContextCache } from "./getDiscourseContextResults";
 
 export const DISCOURSE_CONTEXT_MUTATION_REFRESH_EVENT =
   "roamjs:discourse-context:mutation-refresh";
@@ -14,6 +15,7 @@ export const refreshDiscourseContextsForMutatedUids = ({
     new Set(uids.map((uid) => uid?.trim()).filter(Boolean)),
   );
   if (!uniqueUids.length) return;
+  invalidateDiscourseContextCache({ uids: uniqueUids });
   document.body.dispatchEvent(
     new CustomEvent<DiscourseContextMutationRefreshDetail>(
       DISCOURSE_CONTEXT_MUTATION_REFRESH_EVENT,

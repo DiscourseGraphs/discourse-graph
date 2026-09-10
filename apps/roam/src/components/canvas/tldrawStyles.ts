@@ -79,4 +79,14 @@ export default /* css */ `
   background-color: var(--color-muted-2);
   opacity: 1;
 }
+
+/* Widen the style panel when it shows the node card Context/Styling tabs */
+.tlui-style-panel:has(.dg-node-style-panel) {
+  width: 280px;
+  max-width: 280px;
+}
+
+.dg-node-style-panel .bp3-tab-list {
+  justify-content: center;
+}
 `;

@@ -350,4 +350,23 @@ const getDiscourseContextResults = async ({
   return asResultList;
 };
 
+/*
+ * Cache keys are `${targetUid}~${relationText}~${targetType}`, so a node's
+ * entries have to be found by prefix. Mutating a relation has to drop them
+ * unconditionally rather than relying on a mounted listener to refetch with
+ * ignoreCache, because the next reader is usually a component that was not
+ * mounted when the mutation happened.
+ */
+export const invalidateDiscourseContextCache = ({
+  uids,
+}: {
+  uids: string[];
+}): void => {
+  uids.forEach((uid) => {
+    Object.keys(resultCache)
+      .filter((key) => key.startsWith(`${uid}~`))
+      .forEach((key) => delete resultCache[key]);
+  });
+};
+
 export default getDiscourseContextResults;
