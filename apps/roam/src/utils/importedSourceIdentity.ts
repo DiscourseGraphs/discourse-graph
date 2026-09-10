@@ -1,6 +1,6 @@
 import type { Rid } from "@repo/database/crossAppContracts";
 import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
-import getBlockProps, { type json } from "./getBlockProps";
+import getBlockProps, { isJsonObject, type json } from "./getBlockProps";
 import { setBlockPropsAsync } from "./setBlockProps";
 
 export type ImportedSourceIdentity = {
@@ -11,9 +11,6 @@ export type ImportedSourceIdentity = {
 export const IMPORTED_FROM_PROP_KEY = "importedFrom";
 const SOURCE_NODE_RID_KEY = "sourceNodeRid";
 const SOURCE_MODIFIED_AT_KEY = "sourceModifiedAt";
-
-const isJsonObject = (value: json): value is Record<string, json> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const parseImportedSourceIdentity = (
   props: Record<string, json>,
