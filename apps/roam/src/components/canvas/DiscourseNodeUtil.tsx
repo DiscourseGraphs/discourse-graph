@@ -42,6 +42,7 @@ import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
+import NodeMenu from "~/components/DiscourseNodeMenu";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { RenderRoamBlockString } from "~/utils/roamReactComponents";
@@ -459,6 +460,8 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const [overlayMounted, setOverlayMounted] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [isAddTagMenuOpen, setIsAddTagMenuOpen] = useState(false);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const dialogRenderedRef = useRef(false);
 
     // Detect discourse node tags in block text for blck-node shapes
@@ -486,6 +489,33 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       }
       return null;
     }, [shape]);
+
+    const showAddTagButton =
+      getDiscourseNodeTypeId({ shape }) === "blck-node" &&
+      isLiveBlock(shape.props.uid) &&
+      !editor.isShapeOrAncestorLocked(shape.id) &&
+      Object.values(discourseContext.nodes).some(
+        (n) => n.backedBy === "user" && n.tag,
+      );
+
+    const handleTagAdded = (newText: string) => {
+      const updateShape = async () => {
+        if (!extensionAPI) return;
+        const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
+          nodeText: newText,
+          uid: shape.props.uid,
+          nodeType: getDiscourseNodeTypeId({ shape }),
+          extensionAPI,
+        });
+        this.updateProps(shape.id, shape.type, {
+          title: newText,
+          h,
+          w,
+          imageUrl,
+        });
+      };
+      void updateShape();
+    };
 
     const { backgroundColor, textColor } = this.getColors(shape);
     const showEmbeddedRoamBlock =
@@ -600,6 +630,22 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       }
     }, [isEditing, shape, editor, extensionAPI]);
 
+    const addTagTrigger = (
+      <Button
+        minimal
+        small
+        icon={<span className="px-1 font-semibold">#</span>}
+        text="Add tag"
+        className="opacity-50"
+        style={{ color: textColor }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsAddTagMenuOpen((open) => !open);
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+      />
+    );
+
     return (
       <HTMLContainer
         id={shape.id}
@@ -619,114 +665,127 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
           className="relative flex h-full min-h-0 w-full min-w-0 flex-col"
           style={{ pointerEvents: "all" }}
         >
-          {/* Open in Sidebar Button */}
-          <Button
-            className="absolute left-1 top-1 z-10"
-            minimal
-            small
-            icon={
-              <Icon
-                icon="panel-stats"
-                color={textColor}
-                className="opacity-50"
-              />
-            }
-            onClick={(e) => {
-              e.stopPropagation();
-              void openBlockInSidebar(shape.props.uid);
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            title="Open in sidebar (Shift+Click)"
-          />
-
-          {/* Convert to Node Type Button */}
-          {matchedNodeForConversion && (
+          <div className="absolute left-1 top-1 z-10 flex items-center">
+            {/* Open in Sidebar Button */}
             <Button
-              className="absolute left-7 top-1 z-10"
               minimal
               small
               icon={
-                <Icon icon="plus" color={textColor} className="opacity-50" />
+                <Icon
+                  icon="panel-stats"
+                  color={textColor}
+                  className="opacity-50"
+                />
               }
               onClick={(e) => {
                 e.stopPropagation();
-                const { node, blockText } = matchedNodeForConversion;
-                const tag = node.tag;
-                if (!tag) return;
-                const cleanTag = getCleanTagText(tag);
-                const escapedCleanTag = escapeRegExp(cleanTag);
-                // Strip the tag from block text (same pattern as detection above)
-                const cleanedText = blockText
-                  .replace(
-                    new RegExp(`#\\[\\[${escapedCleanTag}\\]\\]`, "i"),
-                    "",
-                  )
-                  .replace(new RegExp(`#${escapedCleanTag}`, "i"), "")
-                  .trim();
-                const { x, y } = shape;
-                renderModifyNodeDialog({
-                  mode: "create",
-                  nodeType: node.type,
-                  initialValue: { text: cleanedText, uid: "" },
-                  extensionAPI,
-                  includeDefaultNodes: true,
-                  disableNodeTypeChange: true,
-                  onSuccess: async ({ text, uid }) => {
-                    if (!extensionAPI) return;
-                    try {
-                      const {
-                        h,
-                        w,
-                        imageUrl: nodeImageUrl,
-                      } = await calcCanvasNodeSizeAndImg({
-                        nodeText: text,
-                        extensionAPI,
-                        nodeType: node.type,
-                        uid,
-                      });
-                      editor.createShapes([
-                        {
-                          type: DISCOURSE_NODE_SHAPE_TYPE,
-                          id: createShapeId(),
-                          props: {
-                            uid,
-                            title: text,
-                            h,
-                            w,
-                            imageUrl: nodeImageUrl,
-                            fontFamily: "sans",
-                            size: "s",
-                            nodeTypeId: node.type,
-                          },
-                          x,
-                          y,
-                        },
-                      ]);
-                      editor.deleteShapes([shape.id]);
-                    } catch (error) {
-                      renderToast({
-                        id: `discourse-node-convert-error-${Date.now()}`,
-                        intent: "danger",
-                        content: (
-                          <span>Error converting block: {String(error)}</span>
-                        ),
-                      });
-                    }
-                  },
-                  onClose: () => {},
-                });
+                void openBlockInSidebar(shape.props.uid);
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              title={`Convert to ${matchedNodeForConversion.node.text}`}
-            >
-              <span
-                className="opacity-70"
-                style={{ color: textColor, fontSize: "11px" }}
-              >
-                Convert to {matchedNodeForConversion.node.text}
-              </span>
-            </Button>
-          )}
+              title="Open in sidebar (Shift+Click)"
+            />
+
+            {/* Add Tag to Block Button */}
+            {extensionAPI &&
+              showAddTagButton &&
+              (isAddTagMenuOpen ? (
+                <NodeMenu
+                  blockUid={shape.props.uid}
+                  extensionAPI={extensionAPI}
+                  defaultIsOpen
+                  onClose={() => setIsAddTagMenuOpen(false)}
+                  onTagAdded={handleTagAdded}
+                  trigger={addTagTrigger}
+                />
+              ) : (
+                addTagTrigger
+              ))}
+
+            {/* Convert to Node Type Button */}
+            {matchedNodeForConversion && (
+              <Button
+                minimal
+                small
+                icon={
+                  <Icon
+                    icon="exchange"
+                    color={textColor}
+                    className="opacity-50"
+                  />
+                }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const { node, blockText } = matchedNodeForConversion;
+                  const tag = node.tag;
+                  if (!tag) return;
+                  const cleanTag = getCleanTagText(tag);
+                  const escapedCleanTag = escapeRegExp(cleanTag);
+                  // Strip the tag from block text (same pattern as detection above)
+                  const cleanedText = blockText
+                    .replace(
+                      new RegExp(`#\\[\\[${escapedCleanTag}\\]\\]`, "i"),
+                      "",
+                    )
+                    .replace(new RegExp(`#${escapedCleanTag}`, "i"), "")
+                    .trim();
+                  const { x, y } = shape;
+                  renderModifyNodeDialog({
+                    mode: "create",
+                    nodeType: node.type,
+                    initialValue: { text: cleanedText, uid: "" },
+                    extensionAPI,
+                    includeDefaultNodes: true,
+                    disableNodeTypeChange: true,
+                    onSuccess: async ({ text, uid }) => {
+                      if (!extensionAPI) return;
+                      try {
+                        const {
+                          h,
+                          w,
+                          imageUrl: nodeImageUrl,
+                        } = await calcCanvasNodeSizeAndImg({
+                          nodeText: text,
+                          extensionAPI,
+                          nodeType: node.type,
+                          uid,
+                        });
+                        editor.createShapes([
+                          {
+                            type: DISCOURSE_NODE_SHAPE_TYPE,
+                            id: createShapeId(),
+                            props: {
+                              uid,
+                              title: text,
+                              h,
+                              w,
+                              imageUrl: nodeImageUrl,
+                              fontFamily: "sans",
+                              size: "s",
+                              nodeTypeId: node.type,
+                            },
+                            x,
+                            y,
+                          },
+                        ]);
+                        editor.deleteShapes([shape.id]);
+                      } catch (error) {
+                        renderToast({
+                          id: `discourse-node-convert-error-${Date.now()}`,
+                          intent: "danger",
+                          content: (
+                            <span>Error converting block: {String(error)}</span>
+                          ),
+                        });
+                      }
+                    },
+                    onClose: () => {},
+                  });
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                title={`Convert to ${matchedNodeForConversion.node.text}`}
+              />
+            )}
+          </div>
 
           {shape.props.imageUrl && isKeyImage === "true" ? (
             <div className="mt-2 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
