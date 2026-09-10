@@ -105,6 +105,11 @@ type ReferenceContext = {
   form: ReferenceForm;
   /** From `{{[[pdf]]: url}}` and its bracket-less spelling, which name the type. */
   declaredKind?: AssetKind;
+  /**
+   * What followed the pipe in `![[locator|…]]`. A width on an image and a label on
+   * anything else, so only `render` can spend it, once the kind is known.
+   */
+  embedAlias?: string;
 };
 
 /**
@@ -210,7 +215,11 @@ const render = ({
       return `{{[[video]]: ${asset.url}}}`;
     case "file":
     default:
-      return `[${stripLabelBrackets(labelFor({ asset, linkText }))}](${asset.url})`;
+      // Only here. On an image, audio or video the pipe was a width, and the branches
+      // above ignore it rather than printing `![300](…)`.
+      return `[${stripLabelBrackets(
+        labelFor({ asset, linkText: linkText || context.embedAlias || "" }),
+      )}](${asset.url})`;
   }
 };
 
@@ -242,9 +251,11 @@ const LINK_PATTERN = new RegExp(
     // and it is the only statement available for a storage uid with no extension.
     String.raw`\{\{\[\[(pdf|audio|video)\]\]:\s*(${URL_PATTERN})\s*\}\}`, // {{[[pdf]]: url}}
     String.raw`\{\{(pdf|audio|video):\s*(${URL_PATTERN})\s*\}\}`, // {{pdf: url}}
-    // The embed's pipe sizes the image (`![[x.png|300]]`), so it is discarded. The
-    // link's names it, so it is captured and becomes the link text.
-    String.raw`!\[\[([^\]|]+)(?:\|[^\]]*)?\]\]`, // ![[locator]] or ![[locator|300]]
+    // The embed's pipe means two things depending on what it embeds: a width for an
+    // image (`![[x.png|300]]`) and a label for anything else (`![[a.pdf|the paper]]`).
+    // It is captured either way and `render` decides, because only the resolved kind
+    // says which one this is.
+    String.raw`!\[\[([^\]|]+)(?:\|([^\]]*))?\]\]`, // ![[locator]] or ![[locator|300]]
     String.raw`\[\[([^\]|]+)(?:\|([^\]]*))?\]\]`, // [[locator]] or [[locator|label]]
     // The bracketed form is an autolink. Matching it whole, brackets included, is what
     // lets them go away with the rest of the match: capturing only the URL inside would
@@ -286,6 +297,7 @@ const parseMatch = (
       locator: string;
       form: ReferenceForm;
       declaredKind?: AssetKind;
+      embedAlias?: string;
       linkText: string;
     }
   | undefined => {
@@ -299,6 +311,7 @@ const parseMatch = (
     mediaKind,
     mediaLocator,
     embedLocator,
+    embedAlias,
     wikiLocator,
     wikiLabel,
     bareLocator,
@@ -331,6 +344,7 @@ const parseMatch = (
     locator,
     form,
     declaredKind: (bracketedMediaKind ?? mediaKind) as AssetKind | undefined,
+    embedAlias,
     // A wikilink embed carries no separate text, so its label comes from the asset.
     linkText: imageLocator ? (imageAlt ?? "") : (linkLabel ?? wikiLabel ?? ""),
   };
@@ -353,7 +367,7 @@ export const rewriteAssetLinks = ({
     (match: string, ...groups: (string | undefined)[]) => {
       const parsed = parseMatch(groups);
       if (!parsed) return match;
-      const { locator, form, declaredKind, linkText } = parsed;
+      const { locator, form, declaredKind, embedAlias, linkText } = parsed;
 
       const candidates = lookupCandidates(locator);
       const matched = candidates.find((candidate) => byLocator.has(candidate));
@@ -364,7 +378,7 @@ export const rewriteAssetLinks = ({
       const rewritten = render({
         asset,
         linkText,
-        context: { form, declaredKind },
+        context: { form, declaredKind, embedAlias },
       });
 
       // Punctuation only comes back on a bare URL, where it was the sentence's rather

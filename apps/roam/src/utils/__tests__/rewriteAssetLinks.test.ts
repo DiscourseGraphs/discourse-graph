@@ -206,13 +206,36 @@ describe("rewriteAssetLinks", () => {
     ).toBe(`[the protocol](${MIRRORED})`);
   });
 
-  it("ignores a wikilink embed's pipe, which sizes rather than names", () => {
+  it("ignores an image embed's pipe, which sizes rather than names", () => {
     expect(
       rewriteAssetLinks({
         markdown: `![[img.png|300]]`,
         assets: [{ sourceLocator: "img.png", url: MIRRORED }],
       }),
     ).toBe(`![](${MIRRORED})`);
+  });
+
+  /**
+   * Obsidian's pipe means a width on an image embed and a label on anything else. Roam
+   * renders a non-media asset as a labelled link, so the label has somewhere to go, and
+   * dropping it would replace the author's words with a filename.
+   */
+  it("keeps a non-media embed's pipe, which names rather than sizes", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `![[notes/report.docx|the protocol]]`,
+        assets: [{ sourceLocator: "notes/report.docx", url: MIRRORED }],
+      }),
+    ).toBe(`[the protocol](${MIRRORED})`);
+  });
+
+  it("falls back to the recorded name when a non-media embed has no pipe", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `![[notes/report.docx]]`,
+        assets: [{ sourceLocator: "notes/report.docx", url: MIRRORED }],
+      }),
+    ).toBe(`[report.docx](${MIRRORED})`);
   });
 
   it("does not let a bracket in a recorded name break the link", () => {
