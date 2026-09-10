@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactElement, ReactNode } from "react";
 import { Inter } from "next/font/google";
-import { getAllBlogs } from "~/(home)/blog/readBlogs";
 import { Logo } from "~/components/Logo";
+import { STATIC_NEWS_ITEMS } from "~/data/news";
 import { PostHogProvider } from "../providers";
 import { HomeNavigationMenu } from "./HomeNavigationMenu";
 import "~/globals.css";
@@ -39,13 +39,13 @@ const HomeLayout = async ({
 }: {
   children: ReactNode;
 }): Promise<ReactElement> => {
-  const hasUpdates = !!(await getAllBlogs()).length;
   const navigationItems = [
     { href: "/#about", label: "About" },
     { href: "/#plugins", label: "Plugins" },
     { href: "/#resources", label: "Resources" },
-    { href: "/#events", label: "Events" },
-    ...(hasUpdates ? [{ href: "/#updates", label: "Updates" }] : []),
+    ...(STATIC_NEWS_ITEMS.length > 0
+      ? [{ href: "/#news", label: "News" }]
+      : []),
     { href: "/#talks", label: "Talks" },
     { href: "/#team", label: "Team" },
     { href: "/#supporters", label: "Supporters" },
