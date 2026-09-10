@@ -10,6 +10,10 @@ import {
   readImportedSourceIdentity,
   writeImportedSourceIdentity,
 } from "~/utils/importedSourceIdentity";
+import {
+  importNodeAssets,
+  type AssetImportReport,
+} from "~/utils/importNodeAssets";
 import { materializeSharedNode } from "~/utils/materializeSharedNode";
 
 vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
@@ -22,12 +26,16 @@ vi.mock("roamjs-components/queries/getShallowTreeByParentUid", () => ({
   default: vi.fn(),
 }));
 vi.mock("roamjs-components/writes/deleteBlock", () => ({ default: vi.fn() }));
+vi.mock("~/utils/importNodeAssets", () => ({
+  importNodeAssets: vi.fn(),
+}));
 vi.mock("~/utils/importedSourceIdentity", () => ({
   findImportedNodeUidBySourceRid: vi.fn(),
   readImportedSourceIdentity: vi.fn(),
   writeImportedSourceIdentity: vi.fn(),
 }));
 
+const mockedImportNodeAssets = vi.mocked(importNodeAssets);
 const mockedGetPageTitleByPageUid = vi.mocked(getPageTitleByPageUid);
 const mockedGetPageUidByPageTitle = vi.mocked(getPageUidByPageTitle);
 const mockedGetShallowTreeByParentUid = vi.mocked(getShallowTreeByParentUid);
@@ -94,6 +102,13 @@ const FULL_MARKDOWN = [
 
 const MATERIALIZED_MARKDOWN = "# Findings\nREM sleep improves recall";
 
+/**
+ * What the asset stage reports for a node with no recorded references, which every node
+ * in this suite is. A skipped import replaces no content, so it runs no asset stage and
+ * carries no report at all.
+ */
+const NO_ASSETS = { mirrored: 0, reused: 0, skipped: [], failed: [] };
+
 const clientWithFullContent = ({
   text,
   contentType = "text/obsidian+markdown",
@@ -126,6 +141,12 @@ const clientWithFullContent = ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Passing the markdown through unchanged, which is what an asset-free node does. The
+  // stage is mocked rather than left to the client stub: that stub's select chain is not
+  // thenable, so the real stage used to see no rows and report nothing by accident.
+  mockedImportNodeAssets.mockImplementation(({ markdown }) =>
+    Promise.resolve({ markdown, report: NO_ASSETS }),
+  );
   (globalThis as { window: unknown }).window = {
     roamAlphaAPI: {
       updatePage,
@@ -158,6 +179,7 @@ describe("materializeSharedNode", () => {
       pageUid: GENERATED_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(eq).toHaveBeenCalledWith("original", true);
     expect(pageFromMarkdown).toHaveBeenCalledWith({
@@ -243,6 +265,7 @@ describe("materializeSharedNode", () => {
       pageUid: EXISTING_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(pageFromMarkdown).not.toHaveBeenCalled();
     expect(updatePage).not.toHaveBeenCalled();
@@ -296,6 +319,7 @@ describe("materializeSharedNode", () => {
       pageUid: EXISTING_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(blockFromMarkdown).toHaveBeenCalled();
     expect(mockedWriteImportedSourceIdentity).toHaveBeenCalledWith({
@@ -467,6 +491,40 @@ describe("materializeSharedNode", () => {
     expect(updatePage).not.toHaveBeenCalled();
   });
 
+  it("writes the markdown the asset stage rewrote, and carries its report", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    const REWRITTEN = "![](https://firebasestorage.googleapis.com/v0/b/f/o/x)";
+    const report: AssetImportReport = {
+      mirrored: 1,
+      reused: 0,
+      skipped: [],
+      failed: [{ sourceLocator: "attachments/big.png", message: "too big" }],
+    };
+    mockedImportNodeAssets.mockResolvedValue({ markdown: REWRITTEN, report });
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    // The page gets the rewritten markdown, not the published markdown: the copies it
+    // points at exist by now, and this is the only step that writes them.
+    expect(pageFromMarkdown).toHaveBeenCalledWith(
+      expect.objectContaining({ "markdown-string": REWRITTEN }),
+    );
+    expect(result).toMatchObject({ success: true, assets: report });
+  });
+
+  it("reports an asset stage that rejects as its own stage", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedImportNodeAssets.mockRejectedValue(new Error("rewrite blew up"));
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: { stage: "copy-assets" },
+    });
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
+  });
+
   it("refuses to clobber a page that was not imported from this source", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
     mockedGetPageUidByPageTitle.mockReturnValue("unrelated-page-uid");
@@ -480,6 +538,9 @@ describe("materializeSharedNode", () => {
     });
     expect(pageFromMarkdown).not.toHaveBeenCalled();
     expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
+    // The asset stage never ran, so nothing was uploaded. Why a rejected import must
+    // leave no residue is on `mirrorAssetToRoamStorage`.
+    expect(mockedImportNodeAssets).not.toHaveBeenCalled();
   });
 
   it("fails the rename before touching content when the new title collides", async () => {
@@ -499,6 +560,45 @@ describe("materializeSharedNode", () => {
     expect(mockedDeleteBlock).not.toHaveBeenCalled();
     expect(updatePage).not.toHaveBeenCalled();
     expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
+    expect(mockedImportNodeAssets).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The pre-check has to test the title that actually gets written, which is the decorated
+   * one whenever the node carries a core title and a type. Testing the raw title instead
+   * fails both ways: a decorated collision uploads before being rejected, and a raw
+   * collision rejects an import that would have succeeded.
+   */
+  it("checks the decorated title, so a decorated collision uploads nothing", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedGetPageUidByPageTitle.mockImplementation((title: string) =>
+      title === DECORATED_TITLE ? "unrelated-page-uid" : "",
+    );
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: decoratedSharedNode,
+      nodeType: NODE_TYPE,
+    });
+
+    expect(result).toMatchObject({ error: { stage: "title-collision" } });
+    expect(mockedImportNodeAssets).not.toHaveBeenCalled();
+  });
+
+  it("does not reject on the raw title when the decorated one is free", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedGetPageUidByPageTitle.mockImplementation((title: string) =>
+      title === decoratedSharedNode.title ? "unrelated-page-uid" : "",
+    );
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: decoratedSharedNode,
+      nodeType: NODE_TYPE,
+    });
+
+    expect(result).toMatchObject({ success: true });
+    expect(mockedImportNodeAssets).toHaveBeenCalled();
   });
 
   it("imports a Roam-origin node and strips the duplicated title heading", async () => {
@@ -515,6 +615,7 @@ describe("materializeSharedNode", () => {
       pageUid: GENERATED_PAGE_UID,
       sourceModifiedAt: roamSharedNode.lastModified,
       sourceNodeRid: roamSharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(pageFromMarkdown).toHaveBeenCalledWith({
       page: { title: roamSharedNode.title, uid: GENERATED_PAGE_UID },
