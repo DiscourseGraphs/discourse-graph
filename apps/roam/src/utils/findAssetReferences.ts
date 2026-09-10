@@ -37,8 +37,14 @@ const ASSET_REFERENCE_PATTERN = new RegExp(
   "g",
 );
 
-/** Punctuation that ends a sentence rather than the URL it follows. */
-const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
+/**
+ * Punctuation that ends a sentence rather than the URL it follows.
+ *
+ * Exported because `rewriteAssetLinks` has to strip exactly what the publisher stripped
+ * before recording `filepath`. Two copies could drift, and every asset mentioned at the
+ * end of a sentence would stop resolving with no test failing.
+ */
+export const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
 
 /**
  * The object this Storage URL addresses, decoded, as path segments. Empty when the URL
