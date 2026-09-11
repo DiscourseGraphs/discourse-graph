@@ -1,11 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   dbNodeSchemaToCrossApp,
   dbRelationTypeSchemaToCrossApp,
   dbRelationTripleSchemaToCrossApp,
   dbRelationToCrossApp,
+  dbRelationsToCrossApp,
 } from "../dbToCrossAppConverters";
 import { Tables, Json } from "../../dbTypes";
+import type { DGSupabaseClient } from "../client";
 
 type Concept = Tables<"Concept">;
 
@@ -249,8 +251,8 @@ describe("dbRelationTripleSchemaToCrossApp", () => {
 describe("dbRelationToCrossApp", () => {
   const conceptMap: Record<number, string> = {
     10: "orn:obsidian.schema:vault-a/relation-type-1",
-    20: "orn:obsidian.node:vault-a/source-node-1",
-    30: "orn:obsidian.node:vault-a/destination-node-1",
+    20: "orn:obsidian.note:vault-a/source-node-1",
+    30: "orn:obsidian.note:vault-a/destination-node-1",
   };
 
   it("converts a relation, resolving type/source/destination to local ids", () => {
@@ -281,7 +283,7 @@ describe("dbRelationToCrossApp", () => {
     });
     const foreignConceptMap = {
       ...conceptMap,
-      20: "orn:obsidian.node:vault-b/source-node-1",
+      20: "orn:obsidian.note:vault-b/source-node-1",
     };
     expect(
       dbRelationToCrossApp({
@@ -290,7 +292,7 @@ describe("dbRelationToCrossApp", () => {
         accountMap,
         conceptMap: foreignConceptMap,
       }).source,
-    ).toBe("orn:obsidian.node:vault-b/source-node-1");
+    ).toBe("orn:obsidian.note:vault-b/source-node-1");
   });
 
   it("throws when the relation type is missing", () => {
@@ -302,5 +304,84 @@ describe("dbRelationToCrossApp", () => {
     expect(() =>
       dbRelationToCrossApp({ relation, spaceMap, accountMap, conceptMap }),
     ).toThrow("Missing relationType");
+  });
+});
+
+describe("dbRelationsToCrossApp endpoint rids", () => {
+  const crossSpaceMap: Record<number, string> = {
+    1: "obsidian:vault-a",
+    2: "obsidian:vault-b",
+    3: "https://roamresearch.com/#/app/research-graph",
+  };
+
+  const conceptRows = [
+    {
+      id: 10,
+      space_id: 1,
+      source_local_id: "relation-type-1",
+      is_schema: true,
+      is_relation: true,
+    },
+    {
+      id: 20,
+      space_id: 2,
+      source_local_id: "source-node-1",
+      is_schema: false,
+      is_relation: false,
+    },
+    {
+      id: 30,
+      space_id: 3,
+      source_local_id: "roam-uid-1",
+      is_schema: false,
+      is_relation: false,
+    },
+  ];
+
+  const makeClient = (): DGSupabaseClient => {
+    const result = { data: conceptRows, error: null };
+    const builder = {
+      select: vi.fn(),
+      in: vi.fn(),
+      not: vi.fn(),
+      then: (
+        resolve: (value: typeof result) => unknown,
+        reject?: (reason: unknown) => unknown,
+      ) => Promise.resolve(result).then(resolve, reject),
+    };
+    builder.select.mockReturnValue(builder);
+    builder.in.mockReturnValue(builder);
+    builder.not.mockReturnValue(builder);
+    return { from: vi.fn(() => builder) } as unknown as DGSupabaseClient;
+  };
+
+  const relation = baseConcept({
+    is_schema: false,
+    schema_id: 10,
+    reference_content: { source: 20, destination: 30 },
+  });
+
+  // The Obsidian rid must match the `importedFrom.sourceNodeRid` Roam stores for
+  // an imported note, or importSharedRelations cannot resolve the endpoint.
+  it("gives an Obsidian endpoint the note subtype", async () => {
+    const [converted] = await dbRelationsToCrossApp({
+      client: makeClient(),
+      relations: [relation],
+      accountMap,
+      spaceMap: crossSpaceMap,
+    });
+    expect(converted?.source).toBe("orn:obsidian.note:vault-b/source-node-1");
+  });
+
+  it("leaves a Roam endpoint as a url rid with no subtype", async () => {
+    const [converted] = await dbRelationsToCrossApp({
+      client: makeClient(),
+      relations: [relation],
+      accountMap,
+      spaceMap: crossSpaceMap,
+    });
+    expect(converted?.destination).toBe(
+      "https://roamresearch.com/#/app/research-graph/roam-uid-1",
+    );
   });
 });

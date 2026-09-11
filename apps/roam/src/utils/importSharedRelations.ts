@@ -180,7 +180,7 @@ const localSpaceUrl = canonicalRoamUrl(window.roamAlphaAPI.graph.name);
 const findTargetUid = async (
   localOrRid: string,
   spaceUri: string,
-  ridType?: string,
+  ridType: string,
 ): Promise<string | null> => {
   if (isRid(localOrRid)) {
     const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(localOrRid);
@@ -193,11 +193,7 @@ const findTargetUid = async (
       return sourceLocalId;
     }
   } else {
-    localOrRid = spaceUriAndLocalIdToRid(
-      spaceUri,
-      localOrRid,
-      ridType ?? "note",
-    );
+    localOrRid = spaceUriAndLocalIdToRid(spaceUri, localOrRid, ridType);
   }
   return await findImportedNodeUidBySourceRid(localOrRid);
 };
@@ -216,10 +212,10 @@ const importRelations = async (
     const relationBlockUid = schemaRidToLocalId[schemaRid];
     if (relationBlockUid === undefined)
       throw new Error(`Missing relation type: ${relationType}`);
-    const sourceUid = await findTargetUid(source, spaceUri);
+    const sourceUid = await findTargetUid(source, spaceUri, "note");
     if (sourceUid === null)
       throw new Error(`Missing relation source: ${source}`);
-    const destinationUid = await findTargetUid(destination, spaceUri);
+    const destinationUid = await findTargetUid(destination, spaceUri, "note");
     if (destinationUid === null)
       throw new Error(`Missing relation destination: ${destination}`);
     if (existing.has(sourceNodeRid)) {
