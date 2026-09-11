@@ -1,7 +1,11 @@
-import { debounce, type TFile } from "obsidian";
+import { debounce, MarkdownView, type TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { getNodeTypeIdFromFrontmatter } from "./discourseLinkFrontmatter";
 import { refreshMarkdownEditors } from "./markdownViewRefresh";
+import {
+  applyDiscourseContextBadges,
+  removeDiscourseContextBadges,
+} from "./discourseContextOverlayPostProcessor";
 
 const REFRESH_DEBOUNCE_MS = 300;
 
@@ -14,11 +18,26 @@ const isDiscourseNodeFile = (
     plugin.app.metadataCache.getFileCache(file)?.frontmatter,
   );
 
-/** Redraws the overlay when relations or a node's frontmatter change. */
+/**
+ * Reading view is refreshed in place: rerender() blanks a pane that is not
+ * currently painting.
+ */
 export const refreshDiscourseContextOverlaySurfaces = (
   plugin: DiscourseGraphPlugin,
 ): void => {
   refreshMarkdownEditors(plugin.app);
+  plugin.app.workspace.iterateAllLeaves((leaf) => {
+    if (!(leaf.view instanceof MarkdownView)) return;
+    const el = leaf.view.previewMode?.containerEl;
+    if (!el) return;
+    if (!plugin.settings.showDiscourseContextOverlay) {
+      removeDiscourseContextBadges(el);
+      return;
+    }
+    const sourcePath = leaf.view.file?.path;
+    if (!sourcePath) return;
+    applyDiscourseContextBadges({ plugin, el, sourcePath, skipEmbedded: true });
+  });
 };
 
 export const registerDiscourseContextOverlayRefresh = (

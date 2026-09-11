@@ -21,6 +21,7 @@ import {
 import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
 import { createWikilinkDragExtension } from "~/utils/wikilinkDragHandler";
 import { createDiscourseContextOverlayExtension } from "~/utils/discourseContextOverlayExtension";
+import { createDiscourseContextOverlayPostProcessor } from "~/utils/discourseContextOverlayPostProcessor";
 import {
   registerDiscourseContextOverlayRefresh,
   refreshDiscourseContextOverlaySurfaces,
@@ -112,6 +113,9 @@ export default class DiscourseGraphPlugin extends Plugin {
     }
 
     this.relationsIndex.initialize();
+    this.registerMarkdownPostProcessor(
+      createDiscourseContextOverlayPostProcessor(this),
+    );
     registerDiscourseContextOverlayRefresh(this);
 
     registerCommands(this);
@@ -287,7 +291,10 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.setupNodeTagHotkey();
   }
 
-  /** Applies the overlay setting immediately, without a reload. */
+  /**
+   * Re-renders both markdown surfaces so the discourse context overlay appears
+   * or disappears immediately when its setting is toggled, without a reload.
+   */
   refreshDiscourseContextOverlay(): void {
     refreshDiscourseContextOverlaySurfaces(this);
   }
