@@ -208,7 +208,7 @@ describe("buildSharedNodes", () => {
       })[0]?.slots,
     ).toEqual({
       evidence: "node-5",
-      claim: "orn:obsidian:vault-b/node-6",
+      claim: "orn:obsidian.note:vault-b/node-6",
     });
   });
 
