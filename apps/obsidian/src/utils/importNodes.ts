@@ -185,6 +185,60 @@ export const fetchUserNames = async (
   await plugin.saveSettings();
 };
 
+/**
+ * Name of the person account that owns each space, for labelling import folders.
+ *
+ * Resolved from space membership (LocalAccess → my_accounts) rather than from the
+ * authors of the selected nodes: node authors tell us who wrote a particular node,
+ * which can be someone other than the account the source space belongs to.
+ *
+ * A space with several person accounts is ambiguous — the first match wins, and
+ * callers fall back to the space name when a space is missing from the result.
+ */
+const getSpaceOwnerNames = async (
+  client: DGSupabaseClient,
+  spaceIds: number[],
+): Promise<Map<number, string>> => {
+  if (spaceIds.length === 0) return new Map();
+
+  const { data: localAccess, error: localAccessError } = await client
+    .from("LocalAccess")
+    .select("space_id, account_id")
+    .in("space_id", spaceIds);
+
+  if (localAccessError || !localAccess) {
+    console.error("Error fetching space local access:", localAccessError);
+    return new Map();
+  }
+
+  const accountIds = [...new Set(localAccess.map((row) => row.account_id))];
+
+  const { data: accounts, error: accountsError } = await client
+    .from("my_accounts")
+    .select("id, name")
+    .in("id", accountIds)
+    .eq("agent_type", "person");
+
+  if (accountsError || !accounts) {
+    console.error("Error fetching space owner names:", accountsError);
+    return new Map();
+  }
+
+  const nameByAccountId = new Map<number, string>();
+  for (const { id, name } of accounts) {
+    if (id !== null && name) nameByAccountId.set(id, name);
+  }
+
+  const ownerNameBySpaceId = new Map<number, string>();
+  for (const { space_id, account_id } of localAccess) {
+    if (ownerNameBySpaceId.has(space_id)) continue;
+    const name = nameByAccountId.get(account_id);
+    if (name) ownerNameBySpaceId.set(space_id, name);
+  }
+
+  return ownerNameBySpaceId;
+};
+
 export const fetchNodeContent = async ({
   client,
   spaceId,
@@ -1272,9 +1326,11 @@ export const importSelectedNodes = async ({
     nodesBySpace.get(node.spaceId)!.push(node);
   }
 
-  const spaceUris = await getSpaceUris(client, [...nodesBySpace.keys()]);
-  const spaceNames = await getSpaceNameFromIds(client, [
-    ...nodesBySpace.keys(),
+  const spaceIdList = [...nodesBySpace.keys()];
+  const [spaceUris, spaceNames, spaceOwnerNames] = await Promise.all([
+    getSpaceUris(client, spaceIdList),
+    getSpaceNameFromIds(client, spaceIdList),
+    getSpaceOwnerNames(client, spaceIdList),
   ]);
 
   // Process each space
@@ -1290,10 +1346,12 @@ export const importSelectedNodes = async ({
     }
 
     const spaceName = spaceNames.get(spaceId) ?? `space-${spaceId}`;
+    const ownerUserName = spaceOwnerNames.get(spaceId);
     const importFolderPath = await resolveFolderForSpaceUri({
       adapter: plugin.app.vault.adapter,
       spaceUri,
       spaceName,
+      ownerUserName,
     });
 
     const nodeImportInfoByInstance = await fetchNodeImportInfoForInstances({
