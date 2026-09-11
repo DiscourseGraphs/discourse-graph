@@ -11,6 +11,7 @@ import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { Json } from "@repo/database/dbTypes";
 import { extractContentFromTitle } from "./extractContentFromTitle";
+import { SOURCE_SLOT } from "./sourceSlot";
 
 /**
  * Get extra data (author, timestamps) from file metadata
@@ -162,10 +163,12 @@ export const discourseNodeInstanceToLocalConcept = ({
   context,
   nodeData,
   nodeTypesById,
+  sourceSlotByNodeId,
 }: {
   context: SupabaseContext;
   nodeData: ObsidianDiscourseNodeData;
   nodeTypesById: Record<string, DiscourseNode>;
+  sourceSlotByNodeId: Record<string, string>;
 }): LocalConceptDataInput => {
   const extraData = getNodeExtraData(nodeData.file, context.userId);
   const { nodeInstanceId, nodeTypeId, importedFromRid, ...otherData } =
@@ -180,6 +183,7 @@ export const discourseNodeInstanceToLocalConcept = ({
   };
   if (importedFromRid && typeof importedFromRid === "string")
     literal_content.importedFromRid = importedFromRid;
+  const sourceDocumentId = sourceSlotByNodeId[nodeData.nodeInstanceId];
   return {
     space_id: context.spaceId,
     name: nodeData.file.path,
@@ -187,6 +191,10 @@ export const discourseNodeInstanceToLocalConcept = ({
     schema_represented_by_local_id: nodeTypeId as string,
     is_schema: false,
     literal_content,
+    // A value the database cannot resolve to a concept fails this row's upsert (-2).
+    ...(sourceDocumentId
+      ? { local_reference_content: { [SOURCE_SLOT]: sourceDocumentId } }
+      : {}),
     ...extraData,
   };
 };

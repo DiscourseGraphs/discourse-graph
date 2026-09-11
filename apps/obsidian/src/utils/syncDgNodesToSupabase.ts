@@ -8,6 +8,7 @@ import type { Json } from "@repo/database/dbTypes";
 import {
   getSupabaseContext,
   getLoggedInClient,
+  getLocalSpaceUri,
   type SupabaseContext,
 } from "./supabaseContext";
 import { default as DiscourseGraphPlugin } from "~/index";
@@ -21,7 +22,13 @@ import {
   discourseRelationTypeToLocalConcept,
   relationInstanceToLocalConcept,
 } from "./conceptConversion";
-import { loadRelations } from "~/utils/relationsStore";
+import { loadRelations, type RelationsFile } from "~/utils/relationsStore";
+import type { RelationInstance } from "~/types";
+import {
+  findStaleSourceSlotNodeIds,
+  indexSourceSlotValues,
+  SOURCE_SLOT_PROBE_SELECT,
+} from "./sourceSlot";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import {
   type DiscourseNodeInVault,
@@ -234,6 +241,7 @@ type BuildChangedNodesOptions = {
   context: SupabaseContext;
   changeTypesByPath?: Map<string, ChangeType[]>;
   fullSync?: boolean;
+  sourceSlotByNodeId?: Record<string, string>;
 };
 
 type BuildChangedNodesResult = {
@@ -335,6 +343,7 @@ const buildChangedNodesFromNodes = async ({
   context,
   changeTypesByPath,
   fullSync = false,
+  sourceSlotByNodeId,
 }: BuildChangedNodesOptions): Promise<BuildChangedNodesResult> => {
   if (nodes.length === 0) {
     return { changedNodes: [] };
@@ -354,11 +363,12 @@ const buildChangedNodesFromNodes = async ({
   const changedNodes: ObsidianDiscourseNodeData[] = [];
   let missingConcepts: Set<string> | undefined;
   let missingCoreTitleIds: Set<string> | undefined;
+  let staleSourceSlotIds: Set<string> | undefined;
   if (fullSync) {
     const existingConceptIds = await getAllPages(
       supabaseClient
         .from("my_concepts")
-        .select(CORE_TITLE_PROBE_SELECT)
+        .select(`${CORE_TITLE_PROBE_SELECT}, ${SOURCE_SLOT_PROBE_SELECT}`)
         .eq("space_id", context.spaceId)
         .eq("is_relation", false)
         .eq("is_schema", false)
@@ -381,6 +391,12 @@ const buildChangedNodesFromNodes = async ({
       missingConcepts = difference(nodeIds, dbConceptIds);
       missingCoreTitleIds =
         partitionByCoreTitle(existingConceptIds).missingCoreTitleIds;
+      if (sourceSlotByNodeId)
+        staleSourceSlotIds = findStaleSourceSlotNodeIds({
+          rows: existingConceptIds,
+          sourceSlotByNodeId,
+          spaceId: context.spaceId,
+        });
     }
   }
 
@@ -402,7 +418,8 @@ const buildChangedNodesFromNodes = async ({
     if (
       finalChangeTypes.length === 0 &&
       !missingConcepts?.has(node.nodeInstanceId) &&
-      !missingCoreTitleIds?.has(node.nodeInstanceId)
+      !missingCoreTitleIds?.has(node.nodeInstanceId) &&
+      !staleSourceSlotIds?.has(node.nodeInstanceId)
     ) {
       continue;
     }
@@ -421,6 +438,27 @@ const buildChangedNodesFromNodes = async ({
   return { changedNodes };
 };
 
+const indexSourceSlots = ({
+  plugin,
+  nodes,
+  relations,
+}: {
+  plugin: DiscourseGraphPlugin;
+  nodes: DiscourseNodeInVault[];
+  relations: RelationInstance[];
+}): Record<string, string> =>
+  indexSourceSlotValues({
+    relations,
+    nodes,
+    localSpaceUri: getLocalSpaceUri(plugin.app),
+    nodeTypesById: Object.fromEntries(
+      (plugin.settings.nodeTypes ?? []).map((nodeType) => [
+        nodeType.id,
+        nodeType,
+      ]),
+    ),
+  });
+
 export const syncAllNodesAndRelations = async (
   plugin: DiscourseGraphPlugin,
   supabaseContext?: SupabaseContext,
@@ -438,6 +476,14 @@ export const syncAllNodesAndRelations = async (
     }
 
     const allNodes = await collectDiscourseNodesFromVault(plugin, true);
+    const relationInstancesData = await loadRelations(plugin);
+    const sourceSlotByNodeId = relationsOnly
+      ? undefined
+      : indexSourceSlots({
+          plugin,
+          nodes: allNodes,
+          relations: Object.values(relationInstancesData.relations),
+        });
 
     const { changedNodes: changedNodeInstances } = relationsOnly
       ? { changedNodes: [] }
@@ -446,6 +492,7 @@ export const syncAllNodesAndRelations = async (
           supabaseClient,
           context,
           fullSync: true,
+          sourceSlotByNodeId,
         });
 
     const accountLocalId = plugin.settings.accountLocalId;
@@ -468,6 +515,8 @@ export const syncAllNodesAndRelations = async (
       plugin,
       allNodes,
       fullSync: true,
+      relationInstancesData,
+      sourceSlotByNodeId,
     });
 
     // When synced nodes are already published, ensure non-text assets are in storage.
@@ -488,6 +537,8 @@ const convertDgToSupabaseConcepts = async ({
   plugin,
   allNodes,
   fullSync,
+  relationInstancesData,
+  sourceSlotByNodeId,
 }: {
   nodesSince: ObsidianDiscourseNodeData[];
   supabaseClient: DGSupabaseClient;
@@ -495,6 +546,8 @@ const convertDgToSupabaseConcepts = async ({
   plugin: DiscourseGraphPlugin;
   allNodes?: DiscourseNodeInVault[];
   fullSync?: boolean;
+  relationInstancesData?: RelationsFile;
+  sourceSlotByNodeId?: Record<string, string>;
 }): Promise<void> => {
   const lastNodeSchemaSync = (
     await getLastNodeSchemaSyncTime(supabaseClient, context.spaceId)
@@ -606,18 +659,22 @@ const convertDgToSupabaseConcepts = async ({
     )
     .filter((n) => !!n);
 
+  relationInstancesData =
+    relationInstancesData ?? (await loadRelations(plugin));
+  const relationInstances = Object.values(relationInstancesData.relations);
+  sourceSlotByNodeId =
+    sourceSlotByNodeId ??
+    indexSourceSlots({ plugin, nodes: allNodes, relations: relationInstances });
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
     return discourseNodeInstanceToLocalConcept({
       context,
       nodeData: node,
       nodeTypesById,
+      sourceSlotByNodeId,
     });
   });
 
-  const relationInstancesData = await loadRelations(plugin);
-  const relationInstanceToLocalConcepts = Object.values(
-    relationInstancesData.relations,
-  )
+  const relationInstanceToLocalConcepts = relationInstances
     .filter(
       (relationInstanceData) =>
         !relationInstanceData.importedFromRid &&
