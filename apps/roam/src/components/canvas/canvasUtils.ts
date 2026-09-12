@@ -3,7 +3,10 @@ import {
   DiscourseNodeUtil,
   DiscourseNodeShape,
 } from "~/components/canvas/DiscourseNodeUtil";
-import { discourseContext } from "~/components/canvas/Tldraw";
+import {
+  discourseContext,
+  isAcceptedRelationSchema,
+} from "~/components/canvas/Tldraw";
 
 export const isDiscourseNodeShape = (
   editor: Editor,
@@ -16,8 +19,10 @@ export const isDiscourseNodeShape = (
   }
 };
 
-export const getAllRelations = () =>
-  Object.values(discourseContext.relations).flat();
+export const getCreatableRelations = () =>
+  Object.values(discourseContext.relations)
+    .flat()
+    .filter(isAcceptedRelationSchema);
 
 export const checkConnectionType = (
   relation: { source: string; destination: string },
@@ -36,7 +41,7 @@ export const hasValidRelationTypes = (
   sourceNodeType: string,
   targetNodeType: string,
 ): boolean =>
-  getAllRelations().some(
+  getCreatableRelations().some(
     (r) =>
       (r.source === sourceNodeType && r.destination === targetNodeType) ||
       (r.source === targetNodeType && r.destination === sourceNodeType),

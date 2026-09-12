@@ -8,7 +8,10 @@ import {
   DiscourseRelationShape,
   getRelationColor,
 } from "./DiscourseRelationUtil";
-import { discourseContext } from "~/components/canvas/Tldraw";
+import {
+  discourseContext,
+  isAcceptedRelationSchema,
+} from "~/components/canvas/Tldraw";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import { isRelationComplete } from "~/utils/isRelationComplete";
 import {
@@ -350,7 +353,9 @@ export const createAllRelationShapeTools = (
         override onEnter = () => {
           this.didTimeout = false;
 
-          const selectedRelations = discourseContext.relations[name] || [];
+          const selectedRelations = (
+            discourseContext.relations[name] || []
+          ).filter(isAcceptedRelationSchema);
           const hasIncompleteSelectedRelation = selectedRelations.some(
             (relation) => !isRelationComplete(relation),
           );
@@ -384,7 +389,7 @@ export const createAllRelationShapeTools = (
             target && isDiscourseNodeShape(target)
               ? getDiscourseNodeTypeId({ shape: target })
               : undefined;
-          const relation = discourseContext.relations[name].find(
+          const relation = selectedRelations.find(
             (r) =>
               r.source === targetNodeTypeId ||
               r.destination === targetNodeTypeId,
@@ -392,7 +397,7 @@ export const createAllRelationShapeTools = (
           if (relation) {
             this.shapeType = relation.id;
           } else {
-            const acceptableTypes = discourseContext.relations[name]
+            const acceptableTypes = selectedRelations
               .flatMap((r) => [
                 discourseContext.nodes[r.source]?.text,
                 discourseContext.nodes[r.destination]?.text,

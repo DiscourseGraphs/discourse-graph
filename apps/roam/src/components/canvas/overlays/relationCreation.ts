@@ -13,7 +13,7 @@ import { createOrUpdateArrowBinding } from "~/components/canvas/DiscourseRelatio
 import { getDiscourseNodeTypeId } from "~/components/canvas/DiscourseNodeUtil";
 import {
   checkConnectionType,
-  getAllRelations,
+  getCreatableRelations,
   isDiscourseNodeShape,
 } from "~/components/canvas/canvasUtils";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
@@ -93,7 +93,7 @@ export const getValidRelationTypesBetween = (
   const validTypes: RelationTypeOption[] = [];
   const seenLabels = new Set<string>();
 
-  for (const relation of getAllRelations()) {
+  for (const relation of getCreatableRelations()) {
     if (!isRelationComplete(relation)) continue;
     const { isDirect, isReverse } = checkConnectionType(
       relation,
@@ -129,7 +129,9 @@ export const createDefaultRelationBetweenNodes = async ({
   sourceId: TLShapeId;
   targetId: TLShapeId;
 }): Promise<TLShapeId | null> => {
-  const selectedRelation = getAllRelations().find((r) => r.id === relationId);
+  const selectedRelation = getCreatableRelations().find(
+    (r) => r.id === relationId,
+  );
   if (!selectedRelation) return null;
 
   const sourceNode = editor.getShape(sourceId);
