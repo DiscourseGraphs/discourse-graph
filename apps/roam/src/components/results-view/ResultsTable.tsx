@@ -279,7 +279,8 @@ const ResultRow = ({
       hasSchema: r["id"],
     } as Record<string, string>;
     // types got checked as a condition for displaying the button
-    strictQueryForReifiedBlocks(data)
+    // The visible row is accepted; a pending twin must not be its delete target.
+    strictQueryForReifiedBlocks(data, { acceptedOnly: true })
       .then((blockUid) => {
         if (blockUid === null) {
           renderToast({
