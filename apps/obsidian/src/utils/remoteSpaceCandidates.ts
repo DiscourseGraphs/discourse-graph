@@ -3,9 +3,13 @@ import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import type DiscourseGraphPlugin from "~/index";
 import {
   getImportedNodesRaw,
+  QueryEngine,
   type DiscourseNodeCandidate,
+  type RemoteSpaceInfo,
 } from "~/services/QueryEngine";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import { importSelectedNodes } from "~/utils/importNodes";
+import type { TFile } from "obsidian";
 
 /**
  * The rid a locally-imported copy of this node would carry in its
@@ -144,4 +148,47 @@ export const getDistinctRemoteSpaces = (
   return [...nameById.entries()]
     .map(([id, name]) => ({ id, name }))
     .sort((a, b) => a.name.localeCompare(b.name));
+};
+
+/**
+ * Brings a remote node into the vault (reusing the same import path as the
+ * "Import nodes" modal) and returns the resulting local file, so the search
+ * modal can open a remote result exactly like any other.
+ */
+export const importRemoteSpaceNode = async ({
+  plugin,
+  remoteSpace,
+  title,
+}: {
+  plugin: DiscourseGraphPlugin;
+  remoteSpace: RemoteSpaceInfo;
+  title: string;
+}): Promise<TFile> => {
+  const result = await importSelectedNodes({
+    plugin,
+    selectedNodes: [
+      {
+        nodeInstanceId: remoteSpace.nodeInstanceId,
+        title,
+        spaceId: remoteSpace.spaceId,
+        spaceName: remoteSpace.spaceName,
+        groupId: String(remoteSpace.spaceId),
+        selected: false,
+      },
+    ],
+  });
+  if (result.success === 0) {
+    throw new Error("Failed to import node from remote space");
+  }
+  // Space-scoped lookup, not `getFileByEndpoint`'s bare-id search: a
+  // different pre-existing local/imported file could otherwise share this
+  // remote node's `nodeInstanceId` from a different origin space, resolving
+  // to the wrong file.
+  const file = new QueryEngine(plugin.app).getFileByImportedFromRid(
+    getExpectedImportedFromRid(remoteSpace.spaceUri, remoteSpace.nodeInstanceId),
+  );
+  if (!file) {
+    throw new Error("Imported node could not be located in the vault");
+  }
+  return file;
 };

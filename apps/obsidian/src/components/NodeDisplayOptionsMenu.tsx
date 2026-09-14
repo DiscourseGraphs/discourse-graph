@@ -102,20 +102,24 @@ export const NodeDisplayOptionsMenu = ({
   app,
   isOpen,
   onOpenChange,
+  onShowOtherSpacesChange,
   onShowTagsChange,
+  showOtherSpaces,
   showTags,
 }: {
   app: App;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  onShowOtherSpacesChange: (showOtherSpaces: boolean) => void;
   onShowTagsChange: (showTags: boolean) => void;
+  showOtherSpaces: boolean;
   showTags: boolean;
 }): ReactElement => (
   <SearchDropdown
     app={app}
     ariaLabel="Display options"
     iconName="sliders-horizontal"
-    isActive={showTags}
+    isActive={showTags || showOtherSpaces}
     isOpen={isOpen}
     onOpenChange={onOpenChange}
     panelClassName="w-56"
@@ -126,6 +130,11 @@ export const NodeDisplayOptionsMenu = ({
       checked={showTags}
       label="Show tagged content"
       onChange={onShowTagsChange}
+    />
+    <ToggleRow
+      checked={showOtherSpaces}
+      label="Show from other spaces"
+      onChange={onShowOtherSpacesChange}
     />
   </SearchDropdown>
 );

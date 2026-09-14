@@ -51,8 +51,13 @@ import {
 import {
   getNodeTypeBadge,
   getFallbackNodeTypeBadge,
+  getSpaceBadge,
   type NodeTypeBadge,
 } from "~/utils/nodeTypeBadge";
+import {
+  getRemoteSpaceCandidates,
+  importRemoteSpaceNode,
+} from "~/utils/remoteSpaceCandidates";
 import {
   buildAuthorNameByPath,
   resolveAuthorName,
@@ -314,10 +319,23 @@ const PreviewPane = ({
     };
   }, [app, file, loaded, tagLineTitle]);
 
-  if (!result || !file) {
+  if (!result) {
     return (
       <div className="text-muted flex flex-1 items-center justify-center">
         Select a result to preview it.
+      </div>
+    );
+  }
+
+  // No local file to render yet — importing happens on open, not on selection.
+  if (result.remoteSpace) {
+    return (
+      <div className="text-muted flex flex-1 flex-col items-center justify-center gap-[var(--size-4-1)] p-[var(--size-4-4)] text-center">
+        <div className="text-normal font-semibold">{result.title}</div>
+        <div>Published in {result.remoteSpace.spaceName}</div>
+        <div className="text-[length:var(--font-ui-smaller)]">
+          Not yet imported into this vault — press Enter to import and open it.
+        </div>
       </div>
     );
   }
@@ -327,8 +345,8 @@ const PreviewPane = ({
       <div className="border-modifier-border border-b px-[var(--size-4-4)] py-[var(--size-4-3)]">
         <div className="text-normal font-semibold">{result.title}</div>
         <div className="text-muted mt-[var(--size-4-1)] text-[length:var(--font-ui-smaller)]">
-          {`Created ${formatTimestamp(file.stat.ctime)} · Modified ${formatTimestamp(
-            file.stat.mtime,
+          {`Created ${formatTimestamp(result.file.stat.ctime)} · Modified ${formatTimestamp(
+            result.file.stat.mtime,
           )} · ${authorName}`}
         </div>
       </div>
@@ -450,6 +468,11 @@ const ResultList = ({
                 {result.file.basename}
               </div>
             )}
+            {result.remoteSpace && (
+              <div className="text-muted truncate text-[length:var(--font-ui-smaller)]">
+                Not yet imported
+              </div>
+            )}
           </div>
         </div>
       ))}
@@ -475,6 +498,11 @@ const NodeSearch = ({
   const [tagCandidateState, setTagCandidateState] =
     useState<CandidateState | null>(null);
   const [showTags, setShowTags] = useState(false);
+  // Same lazy pattern as `tagCandidateState`: `null` until "Show from other
+  // spaces" is turned on, since fetching it is a network round-trip.
+  const [remoteSpaceState, setRemoteSpaceState] =
+    useState<CandidateState | null>(null);
+  const [showOtherSpaces, setShowOtherSpaces] = useState(false);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -564,6 +592,30 @@ const NodeSearch = ({
     };
   }, [app, plugin.settings.nodeTypes, showTags]);
 
+  // Same fetch-once-on-first-flip pattern as the tag candidates above, but a
+  // Supabase round-trip instead of a vault scan.
+  const hasFetchedRemoteSpaceCandidatesRef = useRef(false);
+  useEffect(() => {
+    if (!showOtherSpaces || hasFetchedRemoteSpaceCandidatesRef.current) return;
+    hasFetchedRemoteSpaceCandidatesRef.current = true;
+    let cancelled = false;
+    setRemoteSpaceState({ status: "loading" });
+    void getRemoteSpaceCandidates(plugin)
+      .then((candidates) => {
+        if (!cancelled) setRemoteSpaceState({ status: "ready", candidates });
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        const message =
+          error instanceof Error ? error.message : "Unexpected error";
+        new Notice(`Could not load nodes from other spaces: ${message}`);
+        setRemoteSpaceState({ status: "error", message });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [plugin, showOtherSpaces]);
+
   useEffect(() => {
     const timeout = window.setTimeout(
       () => setDebouncedQuery(query),
@@ -571,6 +623,16 @@ const NodeSearch = ({
     );
     return () => window.clearTimeout(timeout);
   }, [query]);
+
+  // Memoized (not just a plain `const`): it's a dependency of `results` below,
+  // and a fresh array reference each render would defeat its own memoization.
+  const remoteSpaceCandidates = useMemo(
+    () =>
+      showOtherSpaces && remoteSpaceState?.status === "ready"
+        ? remoteSpaceState.candidates
+        : [],
+    [remoteSpaceState, showOtherSpaces],
+  );
 
   // Sort before truncating, so a date or alphabetical sort covers every match.
   const results = useMemo<SearchResultRow[]>(() => {
@@ -580,7 +642,11 @@ const NodeSearch = ({
         ? tagCandidateState.candidates
         : [];
     const ranked = rankDiscourseNodesByTitle({
-      candidates: [...candidateState.candidates, ...tagCandidates],
+      candidates: [
+        ...candidateState.candidates,
+        ...tagCandidates,
+        ...remoteSpaceCandidates,
+      ],
       query: debouncedQuery,
       nodeTypeIds: selectedNodeTypeIds,
     });
@@ -600,6 +666,17 @@ const NodeSearch = ({
     })
       .slice(0, MAX_VISIBLE_RESULTS)
       .map((result) => {
+        // A remote result has no locally-resolved node type — the space it
+        // came from stands in for the type badge instead.
+        if (result.remoteSpace) {
+          return {
+            ...result,
+            nodeType: {
+              name: result.remoteSpace.spaceName,
+              badge: getSpaceBadge(result.remoteSpace.spaceName),
+            },
+          };
+        }
         const nodeType = nodeTypesById.get(result.nodeTypeId) ?? {
           name: "Unknown type",
           badge: getFallbackNodeTypeBadge(result.title),
@@ -617,6 +694,7 @@ const NodeSearch = ({
     candidateState,
     debouncedQuery,
     nodeTypesById,
+    remoteSpaceCandidates,
     selectedNodeTypeIds,
     showTags,
     sortDirection,
@@ -655,21 +733,31 @@ const NodeSearch = ({
     });
   };
 
-  // Closes before opening: `close()` unmounts this React root, so the file and
-  // app are read first and nothing touches state afterwards.
+  // Closes before opening: `close()` unmounts this React root, so the result,
+  // app and plugin are read first and nothing touches state afterwards. A
+  // remote result has no file to open yet — it's imported into the vault
+  // first (reusing the "Import nodes" modal's own import path), then opened
+  // exactly like any other result.
   const openActiveResult = (
     open: (app: App, file: TFile, line?: number) => Promise<void>,
   ): void => {
-    // A remote result has no local file to open yet — importing it first is
-    // wired up once "Show from other spaces" actually surfaces one (ENG-2269).
-    if (!activeResult || !activeResult.file) return;
-    const { file } = activeResult;
-    const line = activeResult.tagLine?.lineNumber;
+    if (!activeResult) return;
+    const result = activeResult;
+    const line = result.tagLine?.lineNumber;
     onClose();
-    void open(app, file, line).catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : String(error);
-      new Notice(`Could not open ${file.basename}: ${message}`);
-    });
+    const resolveFile: Promise<TFile> = result.remoteSpace
+      ? importRemoteSpaceNode({
+          plugin,
+          remoteSpace: result.remoteSpace,
+          title: result.title,
+        })
+      : Promise.resolve(result.file);
+    void resolveFile
+      .then((resolvedFile) => open(app, resolvedFile, line))
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        new Notice(`Could not open ${result.title}: ${message}`);
+      });
   };
 
   const handleDropdownOpenChange = ({
@@ -698,17 +786,24 @@ const NodeSearch = ({
     }, 0);
   };
 
-  // Closes before inserting, like `openActiveResult`.
+  // Closes before inserting, and imports first for a remote result, like `openActiveResult`.
   const insertLinkToActiveResult = (): void => {
-    if (!activeResult || !insertTarget || !activeResult.file) return;
-    const { file } = activeResult;
+    if (!activeResult || !insertTarget) return;
+    const result = activeResult;
     onClose();
-    try {
-      insertLinkAtInsertTarget({ app, file, target: insertTarget });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      new Notice(`Could not insert a link to ${file.basename}: ${message}`);
-    }
+    const resolveFile: Promise<TFile> = result.remoteSpace
+      ? importRemoteSpaceNode({
+          plugin,
+          remoteSpace: result.remoteSpace,
+          title: result.title,
+        })
+      : Promise.resolve(result.file);
+    void resolveFile
+      .then((file) => insertLinkAtInsertTarget({ app, file, target: insertTarget }))
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        new Notice(`Could not insert a link to ${result.title}: ${message}`);
+      });
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -809,7 +904,9 @@ const NodeSearch = ({
           onOpenChange={(isOpen) =>
             handleDropdownOpenChange({ id: "display-options", isOpen })
           }
+          onShowOtherSpacesChange={setShowOtherSpaces}
           onShowTagsChange={setShowTags}
+          showOtherSpaces={showOtherSpaces}
           showTags={showTags}
         />
         <NodeSortMenu
