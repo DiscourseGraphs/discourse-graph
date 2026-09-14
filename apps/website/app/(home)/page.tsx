@@ -634,7 +634,9 @@ const Home = async (): Promise<ReactElement> => {
                       className="inline-flex items-center gap-2 text-sm font-semibold text-secondary transition-colors hover:text-secondary/70"
                     >
                       {item.linkText}
-                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                      {item.href.startsWith("http") && (
+                        <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                      )}
                     </Link>
                   </article>
                 ))}
