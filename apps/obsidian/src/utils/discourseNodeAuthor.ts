@@ -70,6 +70,8 @@ export const useAuthorNames = ({
     if (!plugin.settings.syncModeEnabled) return;
 
     const isMissingName = (candidate: DiscourseNodeCandidate): boolean => {
+      // A remote candidate has no local file (and so no local frontmatter) to check yet.
+      if (!candidate.file) return false;
       const authorId = getFrontmatterAuthorId(app, candidate.file);
       return (
         typeof authorId === "number" && !plugin.settings.userNames?.[authorId]
