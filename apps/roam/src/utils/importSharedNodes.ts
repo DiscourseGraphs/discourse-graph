@@ -1,5 +1,6 @@
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import { orderConceptsByDependency } from "./conceptConversion";
 import { sharedReferenceRid } from "./findTargetUid";
 import {
   getErrorMessage,
@@ -22,21 +23,26 @@ export const isFailedSharedNodeImport = (
   item: SharedNodeImportItem,
 ): item is FailedSharedNodeImport => item.status === "failed";
 
-// A node's title can only name its source once that source has a local page, so the
-// nodes other batch members refer to are materialized first. One level only: a source
-// that itself names a source in the batch is not ordered after it, and its title is
-// filled on the next refresh instead.
+// Normalize references to RIDs before reusing the publish/sync dependency sorter:
+// bare IDs from different spaces must not collide in a shared-node batch.
 const orderSourcesFirst = (sharedNodes: SharedNode[]): SharedNode[] => {
-  const referencedRids = new Set(
-    sharedNodes.flatMap((node) => {
+  const nodesByRid = new Map(sharedNodes.map((node) => [node.rid, node]));
+  const { ordered } = orderConceptsByDependency(
+    sharedNodes.map((node) => {
       const source = node.slots?.[SOURCE_SLOT];
-      return source ? [sharedReferenceRid(source, node.spaceUri)] : [];
+      return {
+        source_local_id: node.rid,
+        ...(source
+          ? {
+              local_reference_content: {
+                [SOURCE_SLOT]: sharedReferenceRid(source, node.spaceUri),
+              },
+            }
+          : {}),
+      };
     }),
   );
-  return [
-    ...sharedNodes.filter((node) => referencedRids.has(node.rid)),
-    ...sharedNodes.filter((node) => !referencedRids.has(node.rid)),
-  ];
+  return ordered.map((concept) => nodesByRid.get(concept.source_local_id!)!);
 };
 
 export const importSharedNodes = async ({

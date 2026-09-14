@@ -18,9 +18,12 @@ const roamQuery = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks();
   (globalThis as { window: unknown }).window = {
-    roamAlphaAPI: { graph: { name: LOCAL_GRAPH }, q: roamQuery },
+    roamAlphaAPI: {
+      graph: { name: LOCAL_GRAPH },
+      data: { async: { fast: { q: roamQuery } } },
+    },
   };
-  roamQuery.mockReturnValue([]);
+  roamQuery.mockResolvedValue([]);
   mockedFindImportedNodeUidBySourceRid.mockResolvedValue(null);
 });
 
@@ -52,7 +55,7 @@ describe("sharedReferenceRid", () => {
 
 describe("findTargetUid", () => {
   it("returns the local id of a RID in this graph when the page exists", async () => {
-    roamQuery.mockReturnValue([[1]]);
+    roamQuery.mockResolvedValue([[1]]);
 
     await expect(
       findTargetUid(`${LOCAL_SPACE_URI}/page-uid`, OBSIDIAN_SPACE_URI),
@@ -81,7 +84,7 @@ describe("findTargetUid", () => {
   });
 
   it("treats a local id of this graph's space as a page uid", async () => {
-    roamQuery.mockReturnValue([[1]]);
+    roamQuery.mockResolvedValue([[1]]);
 
     await expect(findTargetUid("page-uid", LOCAL_SPACE_URI)).resolves.toBe(
       "page-uid",

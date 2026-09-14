@@ -29,6 +29,7 @@ import internalError from "./internalError";
 import { readImportedSourceIdentity } from "./importedSourceIdentity";
 import { orderConceptsByDependency } from "./conceptConversion";
 import { SOURCE_SLOT } from "./sourceSlot";
+import renderToast from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 
 export type NodeUidWithType = {
@@ -342,9 +343,11 @@ export const publishNodesToGroups = async ({
       syncedUids.has(sourceId)
     )
       return node;
-    console.warn(
-      `Source "${getPageTitleByPageUid(sourceId)}" (${sourceId}) is not in this space yet; publishing "${node.content.direct.value}" without it.`,
-    );
+    renderToast({
+      id: `publish-missing-source-${sourceId}`,
+      intent: "warning",
+      content: `Source "${getPageTitleByPageUid(sourceId) || sourceId}" is not in this space yet. Publishing without this source reference. Publish the Source separately, then publish the referencing node again.`,
+    });
     return { ...node, slots: undefined };
   };
 

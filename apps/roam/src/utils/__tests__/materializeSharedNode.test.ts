@@ -145,9 +145,9 @@ beforeEach(() => {
     roamAlphaAPI: {
       updatePage,
       graph: { name: LOCAL_GRAPH },
-      q: roamQuery,
       util: { generateUID: vi.fn(() => GENERATED_PAGE_UID) },
       data: {
+        async: { fast: { q: roamQuery } },
         block: { fromMarkdown: blockFromMarkdown },
         page: {
           fromMarkdown: pageFromMarkdown,
@@ -453,7 +453,7 @@ describe("materializeSharedNode", () => {
 
   it("names a source page this graph owns", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
-    roamQuery.mockReturnValue([[1]]);
+    roamQuery.mockResolvedValue([[1]]);
     mockedGetPageTitleByPageUid.mockImplementation((uid) =>
       uid === SOURCE_PAGE_UID ? SOURCE_TITLE : "",
     );
