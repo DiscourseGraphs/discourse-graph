@@ -22,8 +22,12 @@ import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeSearchFooter } from "~/components/NodeSearchFooter";
 import { NodeSortMenu } from "~/components/NodeSortMenu";
-import { NodeTypeChipsSearchInput } from "~/components/NodeTypeChipsSearchInput";
+import {
+  NodeTypeChipsSearchInput,
+  setCaretToEnd,
+} from "~/components/NodeTypeChipsSearchInput";
 import { NodeTypeFilterMenu } from "~/components/NodeTypeFilterMenu";
+import { NodeTypeFilterTags } from "~/components/NodeTypeFilterTags";
 import type { SearchDropdownId } from "~/components/SearchDropdown";
 import {
   openFileInNewLeaf,
@@ -422,8 +426,22 @@ const NodeSearch = ({
     isOpen: boolean;
   }): void => {
     setOpenDropdown(isOpen ? id : null);
-    // Returns the keyboard path to the results the moment the panel closes.
-    if (!isOpen) inputRef.current?.focus();
+    if (isOpen) return;
+    // Deferred a tick: both Escape (Obsidian's keymap, not a React event) and
+    // this panel's own unmount can revert focus to `document.body` after this
+    // function returns, not synchronously within it — checking right away could
+    // read a stale `activeElement` from just before that settles.
+    window.setTimeout(() => {
+      // Escape and an outside click leave focus stranded on `document.body`
+      // (the panel's own focused content just unmounted) — reclaim it there so
+      // the keyboard path back to the results isn't lost. But tabbing past the
+      // panel already moves focus forward on its own (to the next toolbar
+      // button); reclaiming unconditionally would fight that and bounce focus
+      // backward instead of letting it land where Tab was already taking it.
+      if (activeDocument.activeElement === activeDocument.body) {
+        inputRef.current?.focus();
+      }
+    }, 0);
   };
 
   // Closes before inserting, like `openActiveResult`.
@@ -518,6 +536,17 @@ const NodeSearch = ({
       </div>
       <div className="border-modifier-border mt-3 flex flex-1 overflow-hidden rounded border">
         <div className="border-modifier-border flex w-2/5 flex-col border-r">
+          <NodeTypeFilterTags
+            focusSearchInput={() => {
+              const field = inputRef.current;
+              if (!field) return;
+              field.focus();
+              setCaretToEnd(field);
+            }}
+            nodeTypes={plugin.settings.nodeTypes}
+            onSelectedNodeTypeIdsChange={setSelectedNodeTypeIds}
+            selectedNodeTypeIds={selectedNodeTypeIds}
+          />
           {candidateState.status === "loading" && (
             <div className="text-muted p-4">Loading discourse nodes…</div>
           )}

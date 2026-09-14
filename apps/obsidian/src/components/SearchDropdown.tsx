@@ -64,6 +64,41 @@ export const SearchDropdown = ({
         // Panel keystrokes must not reach the modal's Enter and arrow result navigation; Escape never arrives here at all.
         event.stopPropagation();
       }}
+      onBlur={() => {
+        if (!isOpen) return;
+        // Deferred a tick: a click inside the panel (e.g. the display-options
+        // toggle) can blur-then-refocus within the same container, and checking
+        // `activeElement` synchronously here would catch it mid-transition and
+        // close the panel out from under the very click that was using it.
+        //
+        // The real fix for that (clicking a non-focusable row element — a
+        // label's text, a toggle's covered pill — blurs whatever was
+        // focused, and since nothing re-focuses afterward, `document.body`
+        // is the *permanent* rest state, not a transient one) lives on each
+        // interactive row itself: `onMouseDown` there prevents the browser's
+        // default blur in the first place, so focus never leaves the panel
+        // for that click at all (see `checkboxLabelClick.ts`). This
+        // double-deferred check is a fallback for anything that doesn't do
+        // that (or a genuinely slow focus-settle) — a second tick to let it
+        // resolve — not the primary defense. A real Tab-away never passes
+        // through `body` at all, so it still closes immediately on the first
+        // check.
+        window.setTimeout(() => {
+          if (containerRef.current?.contains(activeDocument.activeElement)) {
+            return;
+          }
+          if (activeDocument.activeElement !== activeDocument.body) {
+            onOpenChange(false);
+            return;
+          }
+          window.setTimeout(() => {
+            if (containerRef.current?.contains(activeDocument.activeElement)) {
+              return;
+            }
+            onOpenChange(false);
+          }, 0);
+        }, 0);
+      }}
     >
       <button
         type="button"
