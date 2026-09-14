@@ -180,13 +180,20 @@ export const importRemoteSpaceNode = async ({
   if (result.success === 0) {
     throw new Error("Failed to import node from remote space");
   }
-  // Space-scoped lookup, not `getFileByEndpoint`'s bare-id search: a
-  // different pre-existing local/imported file could otherwise share this
-  // remote node's `nodeInstanceId` from a different origin space, resolving
-  // to the wrong file.
-  const file = new QueryEngine(plugin.app).getFileByImportedFromRid(
-    getExpectedImportedFromRid(remoteSpace.spaceUri, remoteSpace.nodeInstanceId),
+  const expectedRid = getExpectedImportedFromRid(
+    remoteSpace.spaceUri,
+    remoteSpace.nodeInstanceId,
   );
+  // `importSelectedNodes` already has the file it just wrote — prefer that
+  // directly over re-discovering it through `metadataCache`, which can still
+  // be indexing the write we just made and momentarily report nothing at
+  // this rid. Space-scoped either way (not `getFileByEndpoint`'s bare-id
+  // search): a different pre-existing local/imported file could otherwise
+  // share this remote node's `nodeInstanceId` from a different origin space,
+  // resolving to the wrong file.
+  const file =
+    result.importedFiles.get(expectedRid) ??
+    new QueryEngine(plugin.app).getFileByImportedFromRid(expectedRid);
   if (!file) {
     throw new Error("Imported node could not be located in the vault");
   }
