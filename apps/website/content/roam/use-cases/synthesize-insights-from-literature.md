@@ -10,7 +10,7 @@ import { Callout } from "nextra/components";
 
 <Callout type="info" emoji="💡">
   This guide makes reference to templates available in an example graph that you
-  can find [here]
+  can find [here](https://roamresearch.com/#/app/template-lab/page/6owMl1Skl)
 </Callout>
 
 ## Literature Synthesis with discourse graphs
