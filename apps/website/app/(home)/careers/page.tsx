@@ -56,7 +56,7 @@ const CareersPage = (): ReactElement => (
           that structure between the tools they already use. We ship plugins for{" "}
           <strong>Roam Research</strong> and <strong>Obsidian</strong>, backed
           by a{" "}
-          <a href="https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/database/supabase">
+          <a href="https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/database">
             shared Supabase database
           </a>
           , and we run live pilots with working scientific labs.
