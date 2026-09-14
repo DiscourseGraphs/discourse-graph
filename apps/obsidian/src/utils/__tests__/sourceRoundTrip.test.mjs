@@ -5,7 +5,10 @@ import { crossAppNodeToDbConcept } from "@repo/database/lib/crossAppConverters";
 import { buildSharedNodes } from "@repo/database/lib/sharedNodes";
 import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import { collectDiscourseNodesFromVault } from "../getDiscourseNodes";
-import { indexSourceSlotValues } from "../sourceSlot";
+import {
+  indexSourceSlotValues,
+  filterAvailableSourceSlotValues,
+} from "../sourceSlot";
 import { discourseNodeInstanceToLocalConcept } from "../conceptConversion";
 import { loadRelations } from "../relationsStore";
 import {
@@ -97,10 +100,14 @@ const installRoam = () => {
     roamAlphaAPI: {
       graph: { name: "target-graph" },
       util: { generateUID: () => `page-${io.pages.size + 1}` },
-      q: (_query, uid) => (io.pages.has(uid) ? [[uid]] : []),
       updatePage,
       data: {
-        async: { pull_many: pullMany },
+        async: {
+          pull_many: pullMany,
+          fast: {
+            q: async (_query, uid) => (io.pages.has(uid) ? [[uid]] : []),
+          },
+        },
         page: {
           fromMarkdown: createPage,
           create: createPage,
@@ -213,23 +220,37 @@ const pullIntoRoam = (sharedNode, force = false) =>
     nodeType: EVIDENCE_FORMAT,
     force,
   });
-const obsidianPush = async (h, relations) => {
+const obsidianPush = async (
+  h,
+  relations,
+  availableSources = new Set(["source"]),
+) => {
   const nodes = await collectDiscourseNodesFromVault(h.plugin, true);
   const nodeTypesById = Object.fromEntries(
     h.plugin.settings.nodeTypes.map((type) => [type.id, type]),
   );
-  const values = indexSourceSlotValues({
+  const candidates = indexSourceSlotValues({
     relations,
     nodes,
     localSpaceUri: LOCAL_URI,
     nodeTypesById,
   });
+  const values = await filterAvailableSourceSlotValues({
+    sourceSlotByNodeId: candidates,
+    client: {
+      rpc: async (_name, { rid }) => ({
+        data: availableSources.has(rid) ? 21 : null,
+        error: null,
+      }),
+    },
+    spaceId: context.spaceId,
+    pendingNodeIds: new Set(["evidence"]),
+  });
   const nodeData = nodes.find((node) => node.nodeInstanceId === "evidence");
   const input = discourseNodeInstanceToLocalConcept({
     context,
-    nodeData,
+    nodeData: { ...nodeData, sourceDocument: values[nodeData.nodeInstanceId] },
     nodeTypesById,
-    sourceSlotByNodeId: values,
   });
   return { input, values };
 };
@@ -322,7 +343,11 @@ describe("Roam push → database → Obsidian pull", () => {
       expect([...h.files.keys()]).toContain(
         "import/Research/SRC - Source title.md",
       );
-      const republished = await obsidianPush(h, relations);
+      const republished = await obsidianPush(
+        h,
+        relations,
+        new Set([sourceRid]),
+      );
       expect(republished.input.local_reference_content).toEqual({
         sourceDocument: sourceRid,
       });
@@ -427,6 +452,60 @@ describe("Obsidian push → database → Roam pull", () => {
     expect(io.pages.get(result.pageUid).title).toBe(ROAM_TITLE);
   });
 
+  it("omits an unpublished Source without substituting a later available relation", async () => {
+    const h = createHarness();
+    await localNodes(h);
+    await h.create(
+      "SRC - Later.md",
+      matter.stringify("body", {
+        nodeInstanceId: "later-source",
+        nodeTypeId: "source-type",
+      }),
+    );
+    const { input, values } = await obsidianPush(
+      h,
+      [
+        sourceRelation,
+        {
+          ...sourceRelation,
+          id: "later",
+          destination: "later-source",
+          created: 20,
+        },
+      ],
+      new Set(["later-source"]),
+    );
+    expect(values).toEqual({});
+    expect(input.local_reference_content).toBeUndefined();
+    expect(sharedFromObsidian({ input }).slots).toBeUndefined();
+    expect(await pullIntoRoam(sharedFromObsidian({ input }))).toMatchObject({
+      success: true,
+    });
+  });
+
+  it("keeps an available imported RID and drops it after access is lost", async () => {
+    const h = createHarness();
+    await localNodes(h);
+    await h.plugin.app.vault.modify(
+      h.files.get("SRC - Source title.md"),
+      matter.stringify("body", {
+        nodeInstanceId: "source",
+        nodeTypeId: "source-type",
+        importedFromRid: sourceRid,
+      }),
+    );
+    const available = await obsidianPush(
+      h,
+      [sourceRelation],
+      new Set([sourceRid]),
+    );
+    expect(available.input.local_reference_content).toEqual({
+      sourceDocument: sourceRid,
+    });
+    const unavailable = await obsidianPush(h, [sourceRelation], new Set());
+    expect(unavailable.input.local_reference_content).toBeUndefined();
+  });
+
   it.each(["absent", "unavailable", "not-imported"])(
     "keeps the incoming title and warns for a %s Source",
     async (state) => {
@@ -496,5 +575,65 @@ describe("Obsidian push → database → Roam pull", () => {
     await pullIntoRoam(shared, true);
     expect(updatePage).toHaveBeenCalledTimes(1);
     expect(io.pages.size).toBe(2);
+  });
+});
+
+describe("Obsidian source availability", () => {
+  it("resolves each distinct source once and preserves explicitly selected local sources", async () => {
+    const rpc = vi.fn(async (_name, { rid }) => ({
+      data: rid === sourceRid ? 21 : null,
+      error: null,
+    }));
+    const values = await filterAvailableSourceSlotValues({
+      sourceSlotByNodeId: {
+        first: sourceRid,
+        second: sourceRid,
+        third: "new-source",
+        fourth: "missing",
+      },
+      client: { rpc },
+      spaceId: 42,
+      pendingNodeIds: new Set(["new-source"]),
+    });
+    expect(values).toEqual({
+      first: sourceRid,
+      second: sourceRid,
+      third: "new-source",
+    });
+    expect(rpc.mock.calls).toEqual([
+      [
+        "rid_or_local_id_to_concept_db_id",
+        { rid: sourceRid, default_space_id: 42 },
+      ],
+      [
+        "rid_or_local_id_to_concept_db_id",
+        { rid: "missing", default_space_id: 42 },
+      ],
+    ]);
+  });
+
+  it("does not mistake a lookup failure for an absent Source", async () => {
+    const error = new Error("lookup failed");
+    await expect(
+      filterAvailableSourceSlotValues({
+        sourceSlotByNodeId: { evidence: "source" },
+        client: { rpc: async () => ({ data: null, error }) },
+        spaceId: 1,
+        pendingNodeIds: new Set(),
+      }),
+    ).rejects.toBe(error);
+  });
+
+  it("does not query when no node has a source", async () => {
+    const rpc = vi.fn();
+    expect(
+      await filterAvailableSourceSlotValues({
+        sourceSlotByNodeId: {},
+        client: { rpc },
+        spaceId: 1,
+        pendingNodeIds: new Set(),
+      }),
+    ).toEqual({});
+    expect(rpc).not.toHaveBeenCalled();
   });
 });
