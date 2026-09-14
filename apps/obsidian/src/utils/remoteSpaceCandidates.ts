@@ -3,9 +3,13 @@ import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import type DiscourseGraphPlugin from "~/index";
 import {
   getImportedNodesRaw,
+  QueryEngine,
   type DiscourseNodeCandidate,
+  type RemoteSpaceInfo,
 } from "~/services/QueryEngine";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import { importSelectedNodes } from "~/utils/importNodes";
+import type { TFile } from "obsidian";
 
 /**
  * The rid a locally-imported copy of this node would carry in its
@@ -144,4 +148,54 @@ export const getDistinctRemoteSpaces = (
   return [...nameById.entries()]
     .map(([id, name]) => ({ id, name }))
     .sort((a, b) => a.name.localeCompare(b.name));
+};
+
+/**
+ * Brings a remote node into the vault (reusing the same import path as the
+ * "Import nodes" modal) and returns the resulting local file, so the search
+ * modal can open a remote result exactly like any other.
+ */
+export const importRemoteSpaceNode = async ({
+  plugin,
+  remoteSpace,
+  title,
+}: {
+  plugin: DiscourseGraphPlugin;
+  remoteSpace: RemoteSpaceInfo;
+  title: string;
+}): Promise<TFile> => {
+  const result = await importSelectedNodes({
+    plugin,
+    selectedNodes: [
+      {
+        nodeInstanceId: remoteSpace.nodeInstanceId,
+        title,
+        spaceId: remoteSpace.spaceId,
+        spaceName: remoteSpace.spaceName,
+        groupId: String(remoteSpace.spaceId),
+        selected: false,
+      },
+    ],
+  });
+  if (result.success === 0) {
+    throw new Error("Failed to import node from remote space");
+  }
+  const expectedRid = getExpectedImportedFromRid(
+    remoteSpace.spaceUri,
+    remoteSpace.nodeInstanceId,
+  );
+  // `importSelectedNodes` already has the file it just wrote — prefer that
+  // directly over re-discovering it through `metadataCache`, which can still
+  // be indexing the write we just made and momentarily report nothing at
+  // this rid. Space-scoped either way (not `getFileByEndpoint`'s bare-id
+  // search): a different pre-existing local/imported file could otherwise
+  // share this remote node's `nodeInstanceId` from a different origin space,
+  // resolving to the wrong file.
+  const file =
+    result.importedFiles.get(expectedRid) ??
+    new QueryEngine(plugin.app).getFileByImportedFromRid(expectedRid);
+  if (!file) {
+    throw new Error("Imported node could not be located in the vault");
+  }
+  return file;
 };

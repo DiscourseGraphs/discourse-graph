@@ -23,6 +23,13 @@ export const getNodeTypeBadge = ({
   ...getNodeTagColors(nodeType, nodeIndex),
 });
 
+/** For a result published to another space: same muted look as an unresolved type, labeled with the space instead. */
+export const getSpaceBadge = (spaceName: string): NodeTypeBadge => ({
+  text: spaceName,
+  backgroundColor: "var(--background-modifier-hover)",
+  textColor: "var(--text-muted)",
+});
+
 export const getFallbackNodeTypeBadge = (
   title: string,
 ): NodeTypeBadge | null => {

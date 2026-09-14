@@ -1453,10 +1453,18 @@ type ImportSelectedNodesOptions = {
   };
 };
 
-export const importSelectedNodes = (
+export const importSelectedNodes = async (
   options: ImportSelectedNodesOptions,
-): Promise<{ success: number; failed: number }> =>
-  importNodes({ ...options, importedFiles: new Map() });
+): Promise<{
+  success: number;
+  failed: number;
+  /** Successfully imported/updated files, keyed by `importedFromRid` — the same files `metadataCache` will eventually reflect, but available immediately instead of racing its async indexing. */
+  importedFiles: Map<string, TFile>;
+}> => {
+  const importedFiles = new Map<string, TFile>();
+  const result = await importNodes({ ...options, importedFiles });
+  return { ...result, importedFiles };
+};
 
 const importNodes = async ({
   plugin,
