@@ -26,7 +26,7 @@ export const findTargetUid = async (
   const rid = sharedReferenceRid(localOrRid, spaceUri);
   const { spaceUri: ridSpaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(rid);
   if (ridSpaceUri === canonicalRoamUrl()) {
-    const result = window.roamAlphaAPI.q(
+    const result = await window.roamAlphaAPI.data.async.fast.q(
       "[:find (?e) :in $ ?uid :where [?e :block/uid ?uid]]",
       sourceLocalId,
     );
