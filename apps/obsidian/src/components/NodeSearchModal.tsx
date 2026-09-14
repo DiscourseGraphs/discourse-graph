@@ -124,16 +124,50 @@ const waitForImages = (container: HTMLElement): Promise<void> => {
  * line by matching its already-known, already-sanitized text (`result.title` for
  * a tag result) against rendered block content instead.
  */
-const scrollToAndFlashLine = (container: HTMLElement, lineText: string): void => {
-  const trimmed = lineText.trim();
-  if (!trimmed) return;
+const normalizeWhitespace = (text: string): string =>
+  text.replace(/\s+/g, " ").trim();
+
+/**
+ * Finds the rendered element whose text is the tagged line, given its
+ * already-sanitized text (`lineText`). Exact equality only — `includes`
+ * previously let an unrelated earlier block that merely *contains* the
+ * tagged line's text as a substring win the match (e.g. a short tagged
+ * line like "Alpha" matching inside an unrelated "Alpha is background"
+ * paragraph above it) — an ambiguous match must not select the wrong
+ * block. Table rows are handled separately: `sanitizeTagLine` leaves a
+ * row's `|`-delimited cells in the title, but a rendered `td`/`th`'s own
+ * `textContent` never contains its neighbors' text, so no single cell can
+ * equal the full row's title — only the enclosing `tr`, compared with
+ * pipes stripped from both sides, can.
+ */
+const findTaggedLineElement = (
+  container: HTMLElement,
+  lineText: string,
+): Element | null => {
+  const target = normalizeWhitespace(lineText);
 
   const blocks = container.querySelectorAll(
-    "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th, dd, dt",
+    "p, li, h1, h2, h3, h4, h5, h6, blockquote, dd, dt",
   );
-  const target = Array.from(blocks).find((block) =>
-    (block.textContent ?? "").replace(/\s+/g, " ").trim().includes(trimmed),
+  const exactBlock = Array.from(blocks).find(
+    (block) => normalizeWhitespace(block.textContent ?? "") === target,
   );
+  if (exactBlock) return exactBlock;
+
+  const normalizedTableTarget = normalizeWhitespace(target.replace(/\|/g, " "));
+  if (!normalizedTableTarget) return null;
+  const rows = container.querySelectorAll("tr");
+  return (
+    Array.from(rows).find(
+      (row) => normalizeWhitespace(row.textContent ?? "") === normalizedTableTarget,
+    ) ?? null
+  );
+};
+
+const scrollToAndFlashLine = (container: HTMLElement, lineText: string): void => {
+  if (!lineText.trim()) return;
+
+  const target = findTaggedLineElement(container, lineText);
   if (!target) return;
 
   target.scrollIntoView({ block: "center" });
