@@ -667,7 +667,12 @@ const convertDgToSupabaseConcepts = async ({
     sourceSlotByNodeId ??
     indexSourceSlots({ plugin, nodes: allNodes, relations: relationInstances });
   sourceSlotByNodeId = await filterAvailableSourceSlotValues({
-    sourceSlotByNodeId,
+    sourceSlotByNodeId: Object.fromEntries(
+      nodesSince.flatMap(({ nodeInstanceId }) => {
+        const sourceId = sourceSlotByNodeId?.[nodeInstanceId];
+        return sourceId ? [[nodeInstanceId, sourceId]] : [];
+      }),
+    ),
     client: supabaseClient,
     spaceId: context.spaceId,
     pendingNodeIds: new Set(nodesSince.map((node) => node.nodeInstanceId)),
