@@ -25,15 +25,27 @@ This document outlines the coding standards and best practices for contributing 
   - camelCase for variables and functions
   - UPPERCASE for constants
 
-## Code Documentation
+## Code comments
 
-- Use Comments Strategically:
-  - Add comments only when necessary. Well-written code with descriptive names should minimize the need for comments.
-  - Avoid stating the obvious (e.g., `// Increment counter` for `counter++`).
-- Explain the Why, Not the What:
-  - Focus on documenting the reasoning behind decisions, trade-offs, and approaches.
-- Highlight Known Issues:
-  - Document limitations, known bugs, or edge cases where behavior may not align with expectations.
+Ask: **What would a maintainer get wrong if this comment were removed?** If there is no specific answer, remove it.
+
+Keep comments that explain non-obvious decisions, external API or data constraints, known limitations, side effects, or ordering requirements. Prefer descriptive names when they can convey the same information.
+
+Before keeping a comment, check:
+
+- **Necessary:** Would removing it hide information needed to safely change or use the code?
+- **Accurate:** Does it describe the actual guarantee, including relevant exceptions?
+- **Concise:** Can it be shortened without losing necessary information?
+- **Durable:** Will it still matter after this PR merges?
+- **Local:** Is it next to the code that depends on the information?
+
+Prefer one or two short sentences. Use longer explanations or examples when the constraint requires them; this is not a hard length limit.
+
+Do not restate function names, types, test names, assertions, or obvious operations. Do not repeat an explanation already documented at its source; link to it when needed.
+
+Put implementation history, review iterations, scope justifications, and ticket splits in inline GitHub comments. Keep durable constraints and known limitations in code or linked documentation. Link to the decision when describing behavior as agreed or accepted.
+
+Agents must check added and modified comments against these criteria before handoff. Authors must review them manually before requesting review.
 
 ## Code Organization
 
