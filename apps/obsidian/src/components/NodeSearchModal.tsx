@@ -417,13 +417,16 @@ const NodeSearch = ({
     if (!showTags || hasFetchedTagCandidatesRef.current) return;
     hasFetchedTagCandidatesRef.current = true;
     let cancelled = false;
+    let settled = false;
     setTagCandidateState({ status: "loading" });
     void new QueryEngine(app)
       .getDiscourseTagCandidates(plugin.settings.nodeTypes)
       .then((candidates) => {
+        settled = true;
         if (!cancelled) setTagCandidateState({ status: "ready", candidates });
       })
       .catch((error: unknown) => {
+        settled = true;
         if (cancelled) return;
         const message =
           error instanceof Error ? error.message : "Unexpected error";
@@ -432,6 +435,12 @@ const NodeSearch = ({
       });
     return () => {
       cancelled = true;
+      // Only a request that never got to report its own outcome needs a
+      // retry path — turning "Show tags" off before the scan finishes must
+      // not permanently block every later scan. One that already settled
+      // (success or failure) stays cached, exactly as toggling off/on is
+      // meant to behave.
+      if (!settled) hasFetchedTagCandidatesRef.current = false;
     };
   }, [app, plugin.settings.nodeTypes, showTags]);
 

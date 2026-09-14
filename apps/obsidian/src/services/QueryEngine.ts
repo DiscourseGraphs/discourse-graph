@@ -146,16 +146,31 @@ export class QueryEngine {
       const tags = this.app.metadataCache.getFileCache(file)?.tags;
       if (!tags?.length) continue;
 
-      const matches = tags.flatMap((tagCache) => {
+      // Deduped by (line, node type): a line repeating the same tag (e.g. a
+      // typo'd duplicate) would otherwise produce identical candidates that
+      // collide on the result list's key. A line tagged for two different
+      // node types still yields one candidate per type.
+      const matchByKey = new Map<string, { nodeType: DiscourseNode; line: number }>();
+      for (const tagCache of tags) {
         const nodeType = nodeTypeByTag.get(
           tagCache.tag.replace(/^#/, "").toLowerCase(),
         );
-        return nodeType ? [{ nodeType, line: tagCache.position.start.line }] : [];
-      });
-      if (!matches.length) continue;
+        if (!nodeType) continue;
+        const line = tagCache.position.start.line;
+        matchByKey.set(`${line}:${nodeType.id}`, { nodeType, line });
+      }
+      if (!matchByKey.size) continue;
 
-      const lines = (await this.app.vault.cachedRead(file)).split("\n");
-      for (const { nodeType, line: lineNumber } of matches) {
+      // One unreadable file must not discard every candidate already found
+      // in the files scanned before it.
+      let lines: string[];
+      try {
+        lines = (await this.app.vault.cachedRead(file)).split("\n");
+      } catch (error) {
+        console.error(`Could not read ${file.path} for tagged results:`, error);
+        continue;
+      }
+      for (const { nodeType, line: lineNumber } of matchByKey.values()) {
         const title = sanitizeTagLine(lines[lineNumber] ?? "");
         if (!title) continue;
         candidates.push({
