@@ -324,9 +324,9 @@ const PreviewPane = ({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="border-modifier-border border-b px-4 py-3">
+      <div className="border-modifier-border border-b px-[var(--size-4-4)] py-[var(--size-4-3)]">
         <div className="text-normal font-semibold">{result.title}</div>
-        <div className="text-muted mt-1 text-xs">
+        <div className="text-muted mt-[var(--size-4-1)] text-[length:var(--font-ui-smaller)]">
           {`Created ${formatTimestamp(file.stat.ctime)} · Modified ${formatTimestamp(
             file.stat.mtime,
           )} · ${authorName}`}
@@ -334,7 +334,7 @@ const PreviewPane = ({
       </div>
       <div
         ref={containerRef}
-        className="text-normal flex-1 overflow-y-auto px-4 py-3"
+        className="text-normal flex-1 overflow-y-auto px-[var(--size-4-4)] py-[var(--size-4-3)]"
       />
     </div>
   );
@@ -421,7 +421,7 @@ const ResultList = ({
           // Keeps focus in the search input, so the keyboard path stays live
           // after a click.
           onMouseDown={(event) => event.preventDefault()}
-          className={`border-modifier-border flex cursor-pointer items-center gap-2 border-b px-3 py-2 ${
+          className={`border-modifier-border flex cursor-pointer items-center gap-[var(--size-4-2)] border-b px-[var(--size-4-3)] py-[var(--size-4-2)] ${
             index === activeIndex ? "bg-modifier-hover" : ""
           }`}
         >
@@ -432,7 +432,7 @@ const ResultList = ({
                 backgroundColor: result.nodeType.badge.backgroundColor,
                 color: result.nodeType.badge.textColor,
               }}
-              className="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
+              className="shrink-0 rounded-full px-[var(--size-4-2)] py-[var(--size-2-1)] text-[length:var(--font-ui-smaller)] font-semibold"
             >
               {result.nodeType.badge.text}
             </span>
@@ -776,7 +776,7 @@ const NodeSearch = ({
     <div className="flex h-full flex-col" onKeyDown={handleKeyDown}>
       {/* Padded so a trigger's count badge is not clipped by the modal's overflow-hidden content. */}
       {/* Top-aligned: the field grows downwards, so the triggers stay on its first line. */}
-      <div className="flex items-start gap-2 px-1 pt-1">
+      <div className="flex items-start gap-[var(--size-4-2)] px-[var(--size-4-1)] pt-[var(--size-4-1)]">
         <NodeTypeChipsSearchInput
           inputRef={inputRef}
           nodeTypes={plugin.settings.nodeTypes}
@@ -818,7 +818,7 @@ const NodeSearch = ({
           sortKey={sortKey}
         />
       </div>
-      <div className="mt-3 flex flex-1 overflow-hidden">
+      <div className="mt-[var(--size-4-3)] flex flex-1 overflow-hidden">
         <div
           // A single arbitrary `border-right` property, not the `border-r`/`border-solid`/
           // `border-modifier-border` combo: those last two are shorthands that apply to all
@@ -826,7 +826,7 @@ const NodeSearch = ({
           // so setting style+color on all sides made the top/left/bottom edges visible too.
           className={`flex flex-col ${
             isPreviewOpen
-              ? "w-2/5 pr-2 [border-right:1px_solid_var(--background-modifier-border)]"
+              ? "w-2/5 pr-[var(--size-4-2)] [border-right:1px_solid_var(--background-modifier-border)]"
               : "w-full"
           }`}
         >
@@ -842,15 +842,17 @@ const NodeSearch = ({
             selectedNodeTypeIds={selectedNodeTypeIds}
           />
           {candidateState.status === "loading" && (
-            <div className="text-muted p-4">Loading discourse nodes…</div>
+            <div className="text-muted p-[var(--size-4-4)]">
+              Loading discourse nodes…
+            </div>
           )}
           {candidateState.status === "error" && (
-            <div className="text-error p-4">
+            <div className="text-error p-[var(--size-4-4)]">
               Could not load discourse nodes. {candidateState.message}
             </div>
           )}
           {candidateState.status === "ready" && results.length === 0 && (
-            <div className="text-muted p-4">No results</div>
+            <div className="text-muted p-[var(--size-4-4)]">No results</div>
           )}
           {candidateState.status === "ready" && results.length > 0 && (
             <ResultList
