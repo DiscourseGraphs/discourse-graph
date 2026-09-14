@@ -520,7 +520,6 @@ const NodeSearch = ({
   const [sortDirection, setSortDirection] = useState<SortDirection>(
     DEFAULT_SORT_DIRECTION,
   );
-  // An editable span, so the query shares its line boxes with the filter chips.
   const inputRef = useRef<HTMLSpanElement | null>(null);
   const userNames = useAuthorNames({
     app,
@@ -905,8 +904,13 @@ const NodeSearch = ({
           nodeTypes={plugin.settings.nodeTypes}
           onQueryChange={setQuery}
           onSelectedNodeTypeIdsChange={setSelectedNodeTypeIds}
+          onSelectedSpaceIdsChange={
+            showOtherSpaces ? setSelectedSpaceIds : undefined
+          }
           query={query}
           selectedNodeTypeIds={selectedNodeTypeIds}
+          selectedSpaceIds={selectedSpaceIds}
+          spaces={showOtherSpaces ? spaceOptions : []}
         />
         <NodeTypeFilterMenu
           app={app}
