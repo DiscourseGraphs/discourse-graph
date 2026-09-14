@@ -38,7 +38,7 @@ import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil
 import { getParallelArrowBend } from "./DiscourseRelationShape/helpers";
 import { dispatchToastEvent } from "./ToastListener";
 
-const NEW_NODE_OFFSET_PX = 80;
+const NEW_NODE_OFFSET_PX = 240;
 const NEW_NODE_GAP_PX = 24;
 const CAMERA_INSET_PX = 64;
 
