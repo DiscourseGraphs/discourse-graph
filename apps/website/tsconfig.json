@@ -4,7 +4,9 @@
     "baseUrl": ".",
     "rootDir": ".",
     "paths": {
-      "~/*": ["./app/*"]
+      "~/*": ["./app/*"],
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"]
     }
   },
   "include": [

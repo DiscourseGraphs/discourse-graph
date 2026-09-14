@@ -3,7 +3,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
-    "outDir": "dist"
+    "outDir": "dist",
+    "paths": {
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"]
+    }
   },
   "include": ["src", "turbo", "scripts"]
 }
