@@ -7,9 +7,11 @@ const meta: MetaRecord = {
   "migration-to-stored-relations": "Migration to stored relations",
   "exploring-discourse-graph": "Exploring your discourse graph",
   "querying-discourse-graph": "Querying",
+  "using-canvas-clipboard": "Using the canvas clipboard",
   "extending-personalizing-graph": "Extending",
   "sharing-discourse-graph": "Sharing",
-  "experiment-tracking": "Experiment tracking",
+  "using-the-left-sidebar": "Using the left sidebar",
+  "using-the-canvas": "Using the canvas",
 };
 
 export default meta;

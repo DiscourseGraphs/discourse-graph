@@ -1,5 +1,6 @@
 import { Notice, TFile } from "obsidian";
 import { addFile } from "@repo/database/lib/files";
+import { isAssetTooLarge } from "@repo/database/lib/assetLimits";
 import mime from "mime-types";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
@@ -30,6 +31,10 @@ import { isAcceptedSchema } from "./typeUtils";
 import { getTemplatePluginInfo } from "./templates";
 import { difference } from "@repo/utils/setOperations";
 import { getAllPages } from "@repo/database/lib/pagination";
+import {
+  CORE_TITLE_PROBE_SELECT,
+  partitionByCoreTitle,
+} from "@repo/database/lib/coreTitleBackfill";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
@@ -184,7 +189,7 @@ const getLastNodeSchemaSyncTime = async (
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", true)
-    .eq("arity", 0)
+    .eq("is_relation", false)
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -200,7 +205,7 @@ const getLastRelationSchemaSyncTime = async (
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", true)
-    .gt("arity", 0)
+    .eq("is_relation", true)
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -216,7 +221,7 @@ const getLastRelationSyncTime = async (
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", false)
-    .gt("arity", 0)
+    .eq("is_relation", true)
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -229,6 +234,10 @@ type BuildChangedNodesOptions = {
   context: SupabaseContext;
   changeTypesByPath?: Map<string, ChangeType[]>;
   fullSync?: boolean;
+};
+
+type BuildChangedNodesResult = {
+  changedNodes: ObsidianDiscourseNodeData[];
 };
 
 const mergeChangeTypes = (
@@ -326,9 +335,9 @@ const buildChangedNodesFromNodes = async ({
   context,
   changeTypesByPath,
   fullSync = false,
-}: BuildChangedNodesOptions): Promise<ObsidianDiscourseNodeData[]> => {
+}: BuildChangedNodesOptions): Promise<BuildChangedNodesResult> => {
   if (nodes.length === 0) {
-    return [];
+    return { changedNodes: [] };
   }
 
   const nodeInstanceIds = nodes.map((node) => node.nodeInstanceId);
@@ -344,13 +353,14 @@ const buildChangedNodesFromNodes = async ({
   );
   const changedNodes: ObsidianDiscourseNodeData[] = [];
   let missingConcepts: Set<string> | undefined;
+  let missingCoreTitleIds: Set<string> | undefined;
   if (fullSync) {
     const existingConceptIds = await getAllPages(
       supabaseClient
         .from("my_concepts")
-        .select("source_local_id")
+        .select(CORE_TITLE_PROBE_SELECT)
         .eq("space_id", context.spaceId)
-        .eq("arity", 0)
+        .eq("is_relation", false)
         .eq("is_schema", false)
         .order("id"),
       1000,
@@ -369,6 +379,8 @@ const buildChangedNodesFromNodes = async ({
           .filter((id) => id !== null),
       );
       missingConcepts = difference(nodeIds, dbConceptIds);
+      missingCoreTitleIds =
+        partitionByCoreTitle(existingConceptIds).missingCoreTitleIds;
     }
   }
 
@@ -389,7 +401,8 @@ const buildChangedNodesFromNodes = async ({
 
     if (
       finalChangeTypes.length === 0 &&
-      !missingConcepts?.has(node.nodeInstanceId)
+      !missingConcepts?.has(node.nodeInstanceId) &&
+      !missingCoreTitleIds?.has(node.nodeInstanceId)
     ) {
       continue;
     }
@@ -405,7 +418,7 @@ const buildChangedNodesFromNodes = async ({
     });
   }
 
-  return changedNodes;
+  return { changedNodes };
 };
 
 export const syncAllNodesAndRelations = async (
@@ -426,8 +439,8 @@ export const syncAllNodesAndRelations = async (
 
     const allNodes = await collectDiscourseNodesFromVault(plugin, true);
 
-    const changedNodeInstances = relationsOnly
-      ? []
+    const { changedNodes: changedNodeInstances } = relationsOnly
+      ? { changedNodes: [] }
       : await buildChangedNodesFromNodes({
           nodes: allNodes,
           supabaseClient,
@@ -452,14 +465,16 @@ export const syncAllNodesAndRelations = async (
       nodesSince: changedNodeInstances,
       supabaseClient,
       context,
-      accountLocalId,
       plugin,
       allNodes,
       fullSync: true,
     });
 
     // When synced nodes are already published, ensure non-text assets are in storage.
-    await syncPublishedNodesAssets(plugin, changedNodeInstances);
+    await syncPublishedNodesAssets(
+      plugin,
+      changedNodeInstances.filter((node) => node.changeTypes.length > 0),
+    );
   } catch (error) {
     console.error("syncAllNodesAndRelations: Process failed:", error);
     throw error;
@@ -470,7 +485,6 @@ const convertDgToSupabaseConcepts = async ({
   nodesSince,
   supabaseClient,
   context,
-  accountLocalId,
   plugin,
   allNodes,
   fullSync,
@@ -478,7 +492,6 @@ const convertDgToSupabaseConcepts = async ({
   nodesSince: ObsidianDiscourseNodeData[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
-  accountLocalId: string;
   plugin: DiscourseGraphPlugin;
   allNodes?: DiscourseNodeInVault[];
   fullSync?: boolean;
@@ -517,7 +530,7 @@ const convertDgToSupabaseConcepts = async ({
       .from("my_concepts")
       .select("source_local_id,literal_content")
       .eq("is_schema", true)
-      .eq("arity", 0)
+      .eq("is_relation", false)
       .eq("space_id", context.spaceId)
       .is("literal_content->>template_content", null);
     // could not filter on only absent keys, this includes nulls
@@ -594,7 +607,11 @@ const convertDgToSupabaseConcepts = async ({
     .filter((n) => !!n);
 
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
-    return discourseNodeInstanceToLocalConcept(context, node);
+    return discourseNodeInstanceToLocalConcept({
+      context,
+      nodeData: node,
+      nodeTypesById,
+    });
   });
 
   const relationInstancesData = await loadRelations(plugin);
@@ -702,7 +719,7 @@ export const syncPublishedNodeAssets = async ({
     const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
     if (mimetype.startsWith("text/")) continue;
     // Do not use standard upload for large files
-    if (attachment.stat.size >= 6 * 1024 * 1024) {
+    if (isAssetTooLarge(attachment.stat.size)) {
       new Notice(
         `Asset file ${attachment.path} is larger than 6Mb and will not be uploaded`,
       );
@@ -817,7 +834,6 @@ const syncChangedNodesToSupabase = async ({
     nodesSince: nodesNeedingConceptUpsert,
     supabaseClient,
     context,
-    accountLocalId,
     plugin,
   });
 
@@ -935,7 +951,7 @@ export const syncDiscourseNodeChanges = async (
       return;
     }
 
-    const changedNodes = await buildChangedNodesFromNodes({
+    const { changedNodes } = await buildChangedNodesFromNodes({
       nodes: dgNodesInVault,
       supabaseClient,
       context,

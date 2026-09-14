@@ -141,7 +141,7 @@ const SuggestiveModeSettings = ({
                         timeout: 3000,
                       });
                       try {
-                        await createOrUpdateDiscourseEmbedding();
+                        await createOrUpdateDiscourseEmbedding(false, true);
                       } catch (e) {
                         console.error("Failed to generate embeddings", e);
                         renderToast({

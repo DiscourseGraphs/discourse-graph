@@ -6,6 +6,10 @@ import {
   getFrontMatterInfo,
 } from "obsidian";
 import type { Settings } from "~/types";
+import type {
+  AppWithUnofficialApis,
+  InternalPluginInstance,
+} from "./obsidianUnofficialTypes";
 
 type TemplatePluginInfo = {
   isEnabled: boolean;
@@ -47,13 +51,18 @@ const mergeFrontmatter = (
 
 export const getTemplatePluginInfo = (app: App): TemplatePluginInfo => {
   try {
-    const templatesPlugin = (app as any).internalPlugins?.plugins?.templates;
+    const templatesPlugin = (app as AppWithUnofficialApis).internalPlugins
+      ?.plugins?.templates;
 
     if (!templatesPlugin || !templatesPlugin.enabled) {
       return { isEnabled: false, folderPath: "" };
     }
 
-    const folderPath = templatesPlugin.instance?.options?.folder || "";
+    const instance = templatesPlugin.instance as InternalPluginInstance & {
+      options?: { folder?: string };
+    };
+
+    const folderPath = instance.options?.folder || "";
 
     return {
       isEnabled: true,

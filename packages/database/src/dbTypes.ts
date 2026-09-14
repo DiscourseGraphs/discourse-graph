@@ -101,12 +101,13 @@ export type Database = {
       }
       Concept: {
         Row: {
-          arity: number | null
+          arity: number
           author_id: number | null
           created: string
           description: string | null
           epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
           id: number
+          is_relation: boolean
           is_schema: boolean
           last_modified: string
           literal_content: Json
@@ -118,12 +119,13 @@ export type Database = {
           space_id: number
         }
         Insert: {
-          arity?: number | null
+          arity: number
           author_id?: number | null
           created: string
           description?: string | null
           epistemic_status?: Database["public"]["Enums"]["EpistemicStatus"]
           id?: number
+          is_relation: boolean
           is_schema?: boolean
           last_modified: string
           literal_content?: Json
@@ -135,12 +137,13 @@ export type Database = {
           space_id: number
         }
         Update: {
-          arity?: number | null
+          arity?: number
           author_id?: number | null
           created?: string
           description?: string | null
           epistemic_status?: Database["public"]["Enums"]["EpistemicStatus"]
           id?: number
+          is_relation?: boolean
           is_schema?: boolean
           last_modified?: string
           literal_content?: Json
@@ -596,6 +599,7 @@ export type Database = {
           last_modified: string
           original: boolean | null
           source_local_id: string
+          source_path: string | null
           space_id: number
           variant: Database["public"]["Enums"]["ContentVariant"] | null
         }
@@ -606,6 +610,7 @@ export type Database = {
           last_modified: string
           original?: boolean | null
           source_local_id: string
+          source_path?: string | null
           space_id: number
           variant?: Database["public"]["Enums"]["ContentVariant"] | null
         }
@@ -616,6 +621,7 @@ export type Database = {
           last_modified?: string
           original?: boolean | null
           source_local_id?: string
+          source_path?: string | null
           space_id?: number
           variant?: Database["public"]["Enums"]["ContentVariant"] | null
         }
@@ -995,6 +1001,7 @@ export type Database = {
             | Database["public"]["Enums"]["EpistemicStatus"]
             | null
           id: number | null
+          is_relation: boolean | null
           is_schema: boolean | null
           last_modified: string | null
           literal_content: Json | null
@@ -1341,6 +1348,7 @@ export type Database = {
           filepath: string | null
           last_modified: string | null
           source_local_id: string | null
+          source_path: string | null
           space_id: number | null
         }
         Relationships: []
@@ -1424,12 +1432,13 @@ export type Database = {
           data: Database["public"]["CompositeTypes"]["concept_local_input"]
         }
         Returns: {
-          arity: number | null
+          arity: number
           author_id: number | null
           created: string
           description: string | null
           epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
           id: number
+          is_relation: boolean
           is_schema: boolean
           last_modified: string
           literal_content: Json
@@ -1556,6 +1565,10 @@ export type Database = {
       compute_arity_local: {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
+      }
+      compute_is_relation_local: {
+        Args: { lit_content: Json; schema_id: number }
+        Returns: boolean
       }
       concept_in_relations:
         | {

@@ -23,6 +23,12 @@ vi.mock("roamjs-components/util/getSettingValueFromTree", () => ({
 vi.mock("roamjs-components/writes/createBlock", () => ({
   default: vi.fn(),
 }));
+// Runs before the imports below: getDiscourseNodes calls generateUID at module load.
+vi.hoisted(() => {
+  (globalThis as { window?: unknown }).window = {
+    roamAlphaAPI: { util: { generateUID: () => "someUid" } },
+  };
+});
 
 import getSubTree from "roamjs-components/util/getSubTree";
 import createBlock from "roamjs-components/writes/createBlock";

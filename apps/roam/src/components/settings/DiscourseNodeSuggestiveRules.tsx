@@ -5,6 +5,7 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import extractRef from "roamjs-components/util/extractRef";
 import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
+import { getImportedNodeUids } from "~/utils/importedSourceIdentity";
 import { upsertNodesToSupabaseAsContentWithEmbeddings } from "~/utils/syncDgNodesToSupabase";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 import {
@@ -56,8 +57,11 @@ const DiscourseNodeSuggestiveRules = ({
 
       const context = await getSupabaseContext();
       if (context && blockNodesSince) {
+        const importedNodeUids = await getImportedNodeUids();
         await upsertNodesToSupabaseAsContentWithEmbeddings(
-          blockNodesSince,
+          blockNodesSince.filter(
+            (node) => !importedNodeUids.has(node.source_local_id),
+          ),
           supabaseClient,
           context,
         );

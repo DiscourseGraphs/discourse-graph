@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactElement, ReactNode } from "react";
 import { Inter } from "next/font/google";
+import Link from "next/link";
 import { Logo } from "~/components/Logo";
 import { STATIC_NEWS_ITEMS } from "~/data/news";
 import { PostHogProvider } from "../providers";
@@ -58,6 +59,20 @@ const HomeLayout = async ({
       <div
         className={`marketing-site flex min-h-screen flex-col bg-neutral-light text-neutral-dark antialiased ${inter.className}`}
       >
+        <div className="border-b border-primary/20 bg-primary px-4 py-2 text-center">
+          <Link
+            href="/careers"
+            className="group inline-flex items-center gap-2 text-sm font-semibold text-neutral-dark transition-colors hover:text-neutral-dark/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-dark"
+          >
+            <span>We’re hiring a database engineer</span>
+            <span
+              aria-hidden="true"
+              className="transition-transform group-hover:translate-x-1 motion-reduce:transform-none"
+            >
+              →
+            </span>
+          </Link>
+        </div>
         <header className="sticky top-0 z-50 border-b border-neutral-dark/10 bg-neutral-light/95 backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-4 min-[360px]:gap-4 min-[360px]:px-5 md:px-6">
             <div className="flex items-center justify-between gap-4">

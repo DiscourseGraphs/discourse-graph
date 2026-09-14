@@ -4,6 +4,13 @@ vi.mock("~/utils/internalError", () => ({ default: vi.fn() }));
 vi.mock("~/utils/extensionSettings", () => ({ getSetting: vi.fn() }));
 vi.mock("~/utils/parseQuery", () => ({ roamNodeToCondition: vi.fn() }));
 
+// Runs before the imports below: getDiscourseNodes calls generateUID at module load.
+vi.hoisted(() => {
+  (globalThis as { window?: unknown }).window = {
+    roamAlphaAPI: { util: { generateUID: () => "someUid" } },
+  };
+});
+
 import {
   isNodeSharingEnabled,
   isSyncEnabled,
@@ -13,6 +20,7 @@ const seedWindow = (featureFlags: Record<string, boolean>) => {
   (globalThis as { window: unknown }).window = {
     roamAlphaAPI: {
       user: { uid: () => "user-1" },
+      util: { generateUID: () => "someUid" },
       pull: () => ({
         ":block/children": [
           {
