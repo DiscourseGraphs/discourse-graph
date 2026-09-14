@@ -1,7 +1,6 @@
 import {
   createTLStore,
   defaultBindingUtils,
-  defaultShapeUtils,
   TldrawFile,
   TLStore,
   loadSnapshot,
@@ -27,6 +26,8 @@ import {
 import { DiscourseRelationUtil } from "~/components/canvas/shapes/DiscourseRelationShape";
 import { DiscourseRelationBindingUtil } from "~/components/canvas/shapes/DiscourseRelationBinding";
 import { discourseNodeMigrations } from "~/components/canvas/shapes/discourseNodeMigrations";
+import { textLinkMigrations } from "~/components/canvas/shapes/textLinkMigrations";
+import { baseShapeUtils } from "~/components/canvas/shapes/baseShapeUtils";
 import { toSerializedStore } from "~/components/canvas/utils/canvasFileSync";
 
 export type TldrawPluginMetaData = {
@@ -53,7 +54,7 @@ export const processInitialData = (
   ctx: DiscourseNodeUtilOptions,
 ): { meta: TldrawPluginMetaData; store: TLStore } => {
   const customShapeUtils = [
-    ...defaultShapeUtils,
+    ...baseShapeUtils,
     DiscourseNodeUtil.configure(ctx),
     DiscourseRelationUtil.configure(ctx),
   ];
@@ -65,7 +66,7 @@ export const processInitialData = (
     shapeUtils: customShapeUtils,
     bindingUtils: [...defaultBindingUtils, DiscourseRelationBindingUtil],
     assets: assetStore,
-    migrations: [discourseNodeMigrations],
+    migrations: [discourseNodeMigrations, textLinkMigrations],
   });
 
   if (recordsData) {
