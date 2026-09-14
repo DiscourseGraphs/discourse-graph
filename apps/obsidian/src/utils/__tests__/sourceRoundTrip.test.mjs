@@ -18,6 +18,7 @@ import {
   sourceRid,
 } from "./importNodesHarness";
 import { nodeUidsWithTypeToCrossApp } from "../../../../roam/src/utils/roamToCrossAppConverters";
+import getDiscourseNodeFormatExpression from "../../../../roam/src/utils/getDiscourseNodeFormatExpression";
 import { materializeSharedNode } from "../../../../roam/src/utils/materializeSharedNode";
 
 // Both adapters run here. Only platform I/O and the SQL storage boundary are doubled.
@@ -65,6 +66,7 @@ const CREATED = "2026-09-01T00:00:00";
 const MODIFIED = "2026-09-02T00:00:00";
 const CORE_TITLE = "Evidence title";
 const SOURCE_TITLE = "@Source title";
+const PLACEHOLDER_TITLE = `[[EVD]] - ${CORE_TITLE} - [[@placeholder]]`;
 const ROAM_TITLE = `[[EVD]] - ${CORE_TITLE} - [[${SOURCE_TITLE}]]`;
 const LOCAL_URI = "obsidian:local-vault";
 const OBSIDIAN_RID = spaceUriAndLocalIdToRid(LOCAL_URI, "evidence", "note");
@@ -507,7 +509,7 @@ describe("Obsidian push → database → Roam pull", () => {
   });
 
   it.each(["absent", "unavailable", "not-imported"])(
-    "keeps the incoming title and warns for a %s Source",
+    "preserves the Roam node format with a placeholder for a %s Source",
     async (state) => {
       const h = createHarness();
       await localNodes(h);
@@ -523,14 +525,43 @@ describe("Obsidian push → database → Roam pull", () => {
       expect(result).toMatchObject({
         success: true,
         action: "created",
-        warning: expect.stringContaining("kept as published"),
+        warning: expect.any(String),
       });
-      expect(io.pages.get(result.pageUid).title).toBe(shared.title);
+      expect(io.pages.get(result.pageUid).title).toBe(PLACEHOLDER_TITLE);
+      expect(io.pages.get(result.pageUid).title).toMatch(
+        getDiscourseNodeFormatExpression(EVIDENCE_FORMAT.format),
+      );
+      const updatePage = window.roamAlphaAPI.updatePage;
+      for (let n = 0; n < 3; n++) {
+        expect(await pullIntoRoam(shared)).toMatchObject({
+          action: "skipped",
+          pageUid: result.pageUid,
+        });
+        expect(await pullIntoRoam(shared, true)).toMatchObject({
+          action: "updated",
+          pageUid: result.pageUid,
+        });
+      }
+      expect(updatePage).not.toHaveBeenCalled();
       expect(io.pages.size).toBe(1);
       if (state === "absent")
         expect(input.local_reference_content).toBeUndefined();
     },
   );
+
+  it("does not add a placeholder when the local format does not require a Source", async () => {
+    const h = createHarness();
+    await localNodes(h);
+    const { input } = await obsidianPush(h, []);
+    const result = await materializeSharedNode({
+      client: contentClient,
+      sharedNode: sharedFromObsidian({ input }),
+      nodeType: { format: "[[EVD]] - {content}" },
+    });
+    expect(result).toMatchObject({ success: true });
+    expect(result.warning).toBeUndefined();
+    expect(io.pages.get(result.pageUid).title).toBe(`[[EVD]] - ${CORE_TITLE}`);
+  });
 
   it("repeated push, pull and forced refresh do not create pages or rename unchanged titles", async () => {
     const h = createHarness();
@@ -565,6 +596,7 @@ describe("Obsidian push → database → Roam pull", () => {
     const shared = sharedFromObsidian({ input });
     const first = await pullIntoRoam(shared);
     expect(first.warning).toBeDefined();
+    expect(io.pages.get(first.pageUid).title).toBe(PLACEHOLDER_TITLE);
     await importSourceIntoRoam();
     expect(await pullIntoRoam(shared, true)).toMatchObject({
       success: true,
