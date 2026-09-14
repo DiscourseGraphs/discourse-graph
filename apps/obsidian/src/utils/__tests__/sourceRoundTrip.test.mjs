@@ -479,6 +479,9 @@ describe("Obsidian push → database → Roam pull", () => {
     );
     expect(values).toEqual({});
     expect(input.local_reference_content).toBeUndefined();
+    expect(console.warn).toHaveBeenCalledWith(
+      "Source source is not in the database yet; pushing node evidence without sourceDocument",
+    );
     expect(sharedFromObsidian({ input }).slots).toBeUndefined();
     expect(await pullIntoRoam(sharedFromObsidian({ input }))).toMatchObject({
       success: true,
@@ -611,6 +614,30 @@ describe("Obsidian push → database → Roam pull", () => {
 });
 
 describe("Obsidian source availability", () => {
+  it("keeps results attached to their Sources when parallel lookups finish out of order", async () => {
+    const responses = new Map();
+    const rpc = vi.fn(
+      (_name, { rid }) => new Promise((resolve) => responses.set(rid, resolve)),
+    );
+    const result = filterAvailableSourceSlotValues({
+      sourceSlotByNodeId: {
+        first: "available-source",
+        second: "missing-source",
+      },
+      client: { rpc },
+      spaceId: 42,
+      pendingNodeIds: new Set(),
+    });
+    expect(rpc).toHaveBeenCalledTimes(2);
+    responses.get("missing-source")({ data: null, error: null });
+    responses.get("available-source")({ data: 21, error: null });
+    expect(await result).toEqual({ first: "available-source" });
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    expect(console.warn).toHaveBeenCalledWith(
+      "Source missing-source is not in the database yet; pushing node second without sourceDocument",
+    );
+  });
+
   it("resolves each distinct source once and preserves explicitly selected local sources", async () => {
     const rpc = vi.fn(async (_name, { rid }) => ({
       data: rid === sourceRid ? 21 : null,
