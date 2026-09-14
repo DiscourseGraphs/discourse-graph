@@ -13,3 +13,9 @@ export const baseShapeUtils: TLAnyShapeUtilConstructor[] =
   defaultShapeUtils.map((util) =>
     util === TextShapeUtil ? TextShapeWithLinkUtil : util,
   );
+
+// A silent no-op here would leave the stock text util registered while the
+// migration still writes `url`, which that util rejects as an unknown prop.
+if (!baseShapeUtils.includes(TextShapeWithLinkUtil)) {
+  throw new Error("tldraw's TextShapeUtil was not replaced in baseShapeUtils");
+}

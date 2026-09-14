@@ -4,6 +4,8 @@ import {
   TLTextShape,
   stopEventPropagation,
   textShapeProps,
+  useEditor,
+  useValue,
 } from "tldraw";
 import { usePlugin } from "~/components/PluginContext";
 import { textLinkUrl } from "~/components/canvas/utils/textShapeLink";
@@ -19,26 +21,27 @@ export type TextShapeWithLinkProps = TLTextShape["props"] & { url: string };
 export const getTextShapeUrl = (shape: TLTextShape): string =>
   (shape.props as Partial<TextShapeWithLinkProps>).url ?? "";
 
+const isObsidianUrl = (url: string): boolean =>
+  url.toLowerCase().startsWith("obsidian:");
+
 // tldraw does not export HyperlinkButton, so this mirrors its markup to keep
 // text links visually identical to geo links.
-const HyperlinkButton = ({
-  url,
-  zoomLevel,
-}: {
-  url: string;
-  zoomLevel: number;
-}): React.ReactElement => {
+const HyperlinkButton = ({ url }: { url: string }): React.ReactElement => {
+  const editor = useEditor();
   const plugin = usePlugin();
+  const isHidden = useValue("zoomLevel", () => editor.getZoomLevel() < 0.32, [
+    editor,
+  ]);
 
-  // Opening obsidian:// in-app avoids an OS protocol round trip that would
-  // defocus and re-enter Obsidian.
   const handleClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
-      const parsed = parseObsidianOpenUrl(url);
-      if (!parsed) return;
+      if (!isObsidianUrl(url)) return;
+      // Always swallow obsidian: hrefs. Falling through hands the URI to the OS
+      // handler, which runs it against the reader's vault.
       event.preventDefault();
 
-      const file = resolveObsidianUrlToFile(plugin, parsed);
+      const parsed = parseObsidianOpenUrl(url);
+      const file = parsed ? resolveObsidianUrlToFile(plugin, parsed) : null;
       if (!file) {
         showToast({
           severity: "warning",
@@ -52,17 +55,29 @@ const HyperlinkButton = ({
     [plugin, url],
   );
 
+  // Upstream lets shift-click through so the canvas can still select the shape.
+  const stopUnlessShift = useCallback(
+    (event: React.PointerEvent<HTMLAnchorElement>) => {
+      if (!editor.inputs.shiftKey) stopEventPropagation(event);
+    },
+    [editor],
+  );
+
   return (
     <a
-      className={`tl-hyperlink-button${
-        zoomLevel < 0.32 ? "tl-hyperlink-button__hidden" : ""
-      }`}
+      className={[
+        "tl-hyperlink-button",
+        "dg-text-hyperlink-button",
+        isHidden && "tl-hyperlink-button__hidden",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       href={url}
       target="_blank"
       rel="noopener noreferrer"
       onClick={handleClick}
-      onPointerDown={stopEventPropagation}
-      onPointerUp={stopEventPropagation}
+      onPointerDown={stopUnlessShift}
+      onPointerUp={stopUnlessShift}
       title={url}
       draggable={false}
     >
@@ -91,9 +106,7 @@ export class TextShapeWithLinkUtil extends TextShapeUtil {
     return (
       <>
         {super.component(shape)}
-        {url && (
-          <HyperlinkButton url={url} zoomLevel={this.editor.getZoomLevel()} />
-        )}
+        {url && <HyperlinkButton url={url} />}
       </>
     );
   }

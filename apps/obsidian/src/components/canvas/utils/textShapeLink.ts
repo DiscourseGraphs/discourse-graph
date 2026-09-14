@@ -1,24 +1,28 @@
 import { T } from "tldraw";
 
-type UnknownRecord = {
-  typeName?: unknown;
-  type?: unknown;
-  props?: Record<string, unknown>;
+type TextShapeRecord = {
+  typeName: string;
+  type: string;
+  props: Record<string, unknown>;
 };
 
 // An allowlist, not a parse check: the link renders as <a href>, so admitting
 // arbitrary protocols would make `javascript:` an XSS vector.
-const ALLOWED_LINK_PROTOCOLS = new Set([
-  "http:",
-  "https:",
-  "mailto:",
-  "obsidian:",
-]);
+const ALLOWED_WEB_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
+
+// Only obsidian://open?...file=... is allowed. A bare `obsidian:` check would
+// also admit action URIs like advanced-uri's commandid, letting a shared canvas
+// run commands in the reader's vault with one click.
+const isAllowedObsidianUrl = (url: URL): boolean =>
+  url.host === "open" && !!url.searchParams.get("file");
 
 export const isAllowedTextLinkUrl = (value: string): boolean => {
   if (value === "") return true;
   try {
-    return ALLOWED_LINK_PROTOCOLS.has(new URL(value).protocol.toLowerCase());
+    const url = new URL(value);
+    const protocol = url.protocol.toLowerCase();
+    if (protocol === "obsidian:") return isAllowedObsidianUrl(url);
+    return ALLOWED_WEB_PROTOCOLS.has(protocol);
   } catch {
     return false;
   }
@@ -33,24 +37,17 @@ export const textLinkUrl = T.string.check((value) => {
   }
 });
 
-export const isTextShapeRecord = (record: unknown): boolean => {
+export const isTextShapeRecord = (
+  record: unknown,
+): record is TextShapeRecord => {
   if (typeof record !== "object" || record === null) return false;
-  const { typeName, type, props } = record as UnknownRecord;
+  const { typeName, type, props } = record as Partial<TextShapeRecord>;
   return typeName === "shape" && type === "text" && typeof props === "object";
-};
-
-// tldraw gates its Edit link action on `'url' in shape.props`, so a text shape
-// missing the key is silently ineligible rather than failing loudly.
-export const hasLinkUrlProp = (record: unknown): boolean => {
-  if (typeof record !== "object" || record === null) return false;
-  const { props } = record as UnknownRecord;
-  return typeof props === "object" && props !== null && "url" in props;
 };
 
 // Never overwrite an existing url: the equivalent Roam migration shipped an
 // unconditional assignment and had to be corrected (PR #916).
 export const backfillTextShapeUrl = (record: unknown): void => {
   if (!isTextShapeRecord(record)) return;
-  const { props } = record as Required<UnknownRecord>;
-  if (props.url === undefined) props.url = "";
+  if (record.props.url === undefined) record.props.url = "";
 };

@@ -36,9 +36,8 @@ const validateUrlForShape = (url: string, shapeType: string): UrlValidity => {
   return { isValid: false, hasProtocol: false };
 };
 
-// A fork of tldraw's EditLinkDialog, which is not exported. The only behavioural
-// change is validateUrlForShape; everything else mirrors the original so the
-// dialog stays visually identical.
+// A fork of tldraw's EditLinkDialog, which is not exported. Copy differs: the
+// original's msg() keys are inlined, as this app has no i18n layer.
 export const TextLinkDialog = track(({ onClose }: TextLinkDialogProps) => {
   const editor = useEditor();
   const selectedShape = editor.getOnlySelectedShape();
@@ -123,8 +122,14 @@ const TextLinkDialogInner = track(
     }, [editor, onClose]);
 
     const handleComplete = useCallback(() => {
+      // Enter reaches this even while Save is disabled, and the fallback
+      // "https://" fails both validators.
+      if (!urlInputState.valid) return;
       const onlySelectedShape = editor.getOnlySelectedShape();
       if (!onlySelectedShape) return;
+      // Selection can change under an open dialog; the value was validated
+      // against the type we opened on.
+      if (onlySelectedShape.type !== shapeType) return onClose();
 
       if (
         "url" in onlySelectedShape.props &&
@@ -139,7 +144,7 @@ const TextLinkDialogInner = track(
         ]);
       }
       onClose();
-    }, [editor, onClose, urlInputState]);
+    }, [editor, onClose, shapeType, urlInputState]);
 
     const handleCancel = useCallback(() => {
       onClose();
@@ -168,9 +173,11 @@ const TextLinkDialogInner = track(
               onCancel={handleCancel}
             />
             <div>
-              {urlInputState.valid
-                ? "Enter a URL, or an obsidian:// link to a page."
-                : "Invalid URL"}
+              {!urlInputState.valid
+                ? "Invalid URL"
+                : shapeType === "text"
+                  ? "Enter a URL, or an obsidian:// link to a page."
+                  : "Enter a URL."}
             </div>
           </div>
         </TldrawUiDialogBody>
