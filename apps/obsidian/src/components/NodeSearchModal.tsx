@@ -9,6 +9,7 @@ import {
   type SearchResult,
 } from "obsidian";
 import {
+  Component as ReactComponent,
   StrictMode,
   useEffect,
   useMemo,
@@ -17,6 +18,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type ReactElement,
+  type ReactNode,
 } from "react";
 import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
@@ -85,6 +87,64 @@ const formatTimestamp = (epochMs: number): string =>
     dateStyle: "medium",
     timeStyle: "short",
   });
+
+/**
+ * `PreviewPane` does its own imperative DOM work (`container.empty()`,
+ * `MarkdownRenderer.render`, image-load waiting, WAAPI animation) alongside
+ * React's own rendering of the same subtree — racy by nature, and Obsidian's
+ * async embed/image rendering can still be mutating that DOM after a rapid
+ * result change has already torn it down, which surfaces as a React
+ * reconciliation crash ("removeChild... not a child of this node") with no
+ * clean fix available from inside the effect itself. Scoped here rather than
+ * around the whole modal, so a crash takes out only the (non-essential)
+ * preview — search, filters, and the result list stay fully usable.
+ *
+ * Not remounted (via a `key`) when the previewed result changes: a keyed
+ * boundary is itself torn down on that change, so an error thrown while
+ * React deletes its *old* subtree has no mounted boundary left to catch it —
+ * defeating the fix for exactly the race this component exists to contain.
+ * Instead this instance stays mounted across every result change, and resets
+ * itself when `resetKey` changes so a later selection can still retry after
+ * a crash. The reset lives in `getDerivedStateFromProps` (compared against
+ * the *stored* `resetKey`, not the previous render's), not
+ * `componentDidUpdate` comparing consecutive props: if the newly-selected
+ * result itself throws, a plain "did resetKey change since last render"
+ * check would clear `hasError` again on the very next update — even though
+ * `resetKey` hasn't moved on since — reopening the same crash in a loop.
+ */
+class PreviewErrorBoundary extends ReactComponent<
+  { children: ReactNode; resetKey: string },
+  { hasError: boolean; resetKey: string }
+> {
+  state = { hasError: false, resetKey: this.props.resetKey };
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  static getDerivedStateFromProps(
+    props: { resetKey: string },
+    state: { hasError: boolean; resetKey: string },
+  ): { hasError: boolean; resetKey: string } | null {
+    if (props.resetKey === state.resetKey) return null;
+    return { hasError: false, resetKey: props.resetKey };
+  }
+
+  componentDidCatch(error: unknown): void {
+    console.error("Node search preview failed to render:", error);
+  }
+
+  render(): ReactNode {
+    if (this.state.hasError) {
+      return (
+        <div className="text-muted flex flex-1 items-center justify-center p-4 text-center">
+          Could not render this preview.
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const PreviewPane = ({
   app,
@@ -566,7 +626,15 @@ const NodeSearch = ({
             />
           )}
         </div>
-        <PreviewPane app={app} result={activeResult} authorName={authorName} />
+        <PreviewErrorBoundary
+          // Resets (clearing any prior crash) whenever the previewed result
+          // itself changes, not just when its data does. Not a `key`: see
+          // the class doc comment for why this boundary must stay mounted
+          // across that change rather than remount.
+          resetKey={activeResult ? activeResult.file.path : "none"}
+        >
+          <PreviewPane app={app} result={activeResult} authorName={authorName} />
+        </PreviewErrorBoundary>
       </div>
       <NodeSearchFooter
         canAct={candidateState.status === "ready" && !!activeResult}
