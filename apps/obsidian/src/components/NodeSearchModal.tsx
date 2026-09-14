@@ -9,6 +9,7 @@ import {
   type SearchResult,
 } from "obsidian";
 import {
+  Component as ReactComponent,
   StrictMode,
   useEffect,
   useMemo,
@@ -17,6 +18,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type ReactElement,
+  type ReactNode,
 } from "react";
 import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
@@ -85,6 +87,46 @@ const formatTimestamp = (epochMs: number): string =>
     dateStyle: "medium",
     timeStyle: "short",
   });
+
+/**
+ * `PreviewPane` does its own imperative DOM work (`container.empty()`,
+ * `MarkdownRenderer.render`, image-load waiting, WAAPI animation) alongside
+ * React's own rendering of the same subtree — racy by nature, and Obsidian's
+ * async embed/image rendering can still be mutating that DOM after a rapid
+ * result change has already torn it down, which surfaces as a React
+ * reconciliation crash ("removeChild... not a child of this node") with no
+ * clean fix available from inside the effect itself. Scoped here rather than
+ * around the whole modal, so a crash takes out only the (non-essential)
+ * preview — search, filters, and the result list stay fully usable — and
+ * keyed by the previewed result's identity in the render below, so picking a
+ * different result always gets a fresh, un-crashed instance rather than
+ * staying stuck on the fallback.
+ */
+class PreviewErrorBoundary extends ReactComponent<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown): void {
+    console.error("Node search preview failed to render:", error);
+  }
+
+  render(): ReactNode {
+    if (this.state.hasError) {
+      return (
+        <div className="text-muted flex flex-1 items-center justify-center p-4 text-center">
+          Could not render this preview.
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const PreviewPane = ({
   app,
@@ -566,7 +608,13 @@ const NodeSearch = ({
             />
           )}
         </div>
-        <PreviewPane app={app} result={activeResult} authorName={authorName} />
+        <PreviewErrorBoundary
+          // Remounts (clearing any prior crash) whenever the previewed result
+          // itself changes, not just when its data does.
+          key={activeResult ? activeResult.file.path : "none"}
+        >
+          <PreviewPane app={app} result={activeResult} authorName={authorName} />
+        </PreviewErrorBoundary>
       </div>
       <NodeSearchFooter
         canAct={candidateState.status === "ready" && !!activeResult}
