@@ -774,6 +774,20 @@ const filterCandidatesByNodeTypeIds = (
   );
 };
 
+/** A space filter scopes to specific remote spaces, so a local (this-vault) candidate — not from any of them — is excluded too, not just non-matching remote ones. */
+const filterCandidatesBySpaceIds = (
+  candidates: DiscourseNodeCandidate[],
+  spaceIds?: string[],
+): DiscourseNodeCandidate[] => {
+  if (!spaceIds?.length) return candidates;
+  const selected = new Set(spaceIds);
+  return candidates.filter(
+    (candidate) =>
+      candidate.remoteSpace !== undefined &&
+      selected.has(String(candidate.remoteSpace.spaceId)),
+  );
+};
+
 /**
  * Best match first, uncapped — capping is the caller's, so a later re-sort orders the
  * whole set rather than a top slice. Filters before scoring: same results, less work.
@@ -782,12 +796,17 @@ export const rankDiscourseNodesByTitle = ({
   candidates,
   query,
   nodeTypeIds,
+  spaceIds,
 }: {
   candidates: DiscourseNodeCandidate[];
   query: string;
   nodeTypeIds?: string[];
+  spaceIds?: string[];
 }): RankedDiscourseNode[] => {
-  const filtered = filterCandidatesByNodeTypeIds(candidates, nodeTypeIds);
+  const filtered = filterCandidatesBySpaceIds(
+    filterCandidatesByNodeTypeIds(candidates, nodeTypeIds),
+    spaceIds,
+  );
   const trimmedQuery = query.trim();
 
   // Filter-only searches still need a list, so an empty query is not an empty result.
