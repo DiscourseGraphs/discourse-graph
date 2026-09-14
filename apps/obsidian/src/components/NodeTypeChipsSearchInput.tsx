@@ -1,10 +1,14 @@
-import type { KeyboardEvent, ReactElement, RefObject } from "react";
+import { useMemo, type KeyboardEvent, type ReactElement, type RefObject } from "react";
 import { DiscourseNode } from "~/types";
 import { getHintKeys } from "~/utils/keyboardHints";
 import {
   getBestPrefixMatch,
   getCompletionSuffix,
+  type ChipCompletionItem,
 } from "~/utils/nodeTypeChipCompletion";
+import type { SpaceOption } from "~/utils/remoteSpaceCandidates";
+
+type ChipCompletionCandidate = ChipCompletionItem & { kind: "type" | "space" };
 
 const QUERY_PLACEHOLDER = "Search discourse nodes by title";
 
@@ -43,21 +47,52 @@ export const NodeTypeChipsSearchInput = ({
   nodeTypes,
   onQueryChange,
   onSelectedNodeTypeIdsChange,
+  onSelectedSpaceIdsChange,
   query,
   selectedNodeTypeIds,
+  selectedSpaceIds,
+  spaces,
 }: {
   inputRef: RefObject<HTMLSpanElement | null>;
   nodeTypes: DiscourseNode[];
   onQueryChange: (query: string) => void;
   onSelectedNodeTypeIdsChange: (ids: string[]) => void;
+  /** Omit (or leave `spaces` empty) when "Show from other spaces" is off — spaces then can't be typed as filters. */
+  onSelectedSpaceIdsChange?: (ids: string[]) => void;
   query: string;
   selectedNodeTypeIds: string[];
+  selectedSpaceIds?: string[];
+  spaces?: SpaceOption[];
 }): ReactElement => {
-  const bestPrefixMatch = getBestPrefixMatch({
-    nodeTypes,
-    query,
-    selectedTypeIds: selectedNodeTypeIds,
-  });
+  // A single completable list, so Tab can commit either a type or a space chip
+  // the same way — `kind` says which selection array and setter to use.
+  // Already-selected items are excluded here, per its own `kind`'s id list —
+  // not by passing a flat, kind-blind `excludedIds` to `getBestPrefixMatch` —
+  // since node type ids and space ids come from independent namespaces and
+  // can collide (e.g. a node type and a remote space both happening to have
+  // id `"1001"`); excluding by bare id alone would then wrongly hide the
+  // *other* kind's still-unselected candidate too.
+  const completionItems = useMemo<ChipCompletionCandidate[]>(
+    () => [
+      ...nodeTypes
+        .filter((nodeType) => !selectedNodeTypeIds.includes(nodeType.id))
+        .map((nodeType) => ({
+          id: nodeType.id,
+          name: nodeType.name,
+          kind: "type" as const,
+        })),
+      ...(spaces ?? [])
+        .filter((space) => !(selectedSpaceIds ?? []).includes(space.id))
+        .map((space) => ({
+          id: space.id,
+          name: space.name,
+          kind: "space" as const,
+        })),
+    ],
+    [nodeTypes, spaces, selectedNodeTypeIds, selectedSpaceIds],
+  );
+
+  const bestPrefixMatch = getBestPrefixMatch({ items: completionItems, query });
 
   const completionSuffix = getCompletionSuffix({ bestPrefixMatch, query });
 
@@ -68,9 +103,15 @@ export const NodeTypeChipsSearchInput = ({
     onQueryChange(value);
   };
 
-  const commitNodeType = (nodeType: DiscourseNode): void => {
-    if (selectedNodeTypeIds.includes(nodeType.id)) return;
-    onSelectedNodeTypeIdsChange([...selectedNodeTypeIds, nodeType.id]);
+  const commitCompletion = (match: ChipCompletionCandidate): void => {
+    if (match.kind === "space") {
+      if (!onSelectedSpaceIdsChange || selectedSpaceIds?.includes(match.id)) return;
+      onSelectedSpaceIdsChange([...(selectedSpaceIds ?? []), match.id]);
+      writeQuery("");
+      return;
+    }
+    if (selectedNodeTypeIds.includes(match.id)) return;
+    onSelectedNodeTypeIdsChange([...selectedNodeTypeIds, match.id]);
     writeQuery("");
   };
 
@@ -84,14 +125,25 @@ export const NodeTypeChipsSearchInput = ({
       // With nothing pending, Tab is left alone so it still reaches the footer actions.
       if (!bestPrefixMatch) return;
       event.preventDefault();
-      commitNodeType(bestPrefixMatch);
+      commitCompletion(bestPrefixMatch);
       return;
     }
 
     // Empty query only, so backspacing through query text never touches filters.
-    if (event.key === "Backspace" && !query && selectedNodeTypeIds.length > 0) {
-      event.preventDefault();
-      onSelectedNodeTypeIdsChange(selectedNodeTypeIds.slice(0, -1));
+    // Mirrors `commitCompletion`'s symmetric type/space handling — a type
+    // chip is removed first if any are selected, otherwise the last space
+    // chip, so Backspace works the same way regardless of which kind of
+    // filter the user added last.
+    if (event.key === "Backspace" && !query) {
+      if (selectedNodeTypeIds.length > 0) {
+        event.preventDefault();
+        onSelectedNodeTypeIdsChange(selectedNodeTypeIds.slice(0, -1));
+        return;
+      }
+      if (onSelectedSpaceIdsChange && selectedSpaceIds?.length) {
+        event.preventDefault();
+        onSelectedSpaceIdsChange(selectedSpaceIds.slice(0, -1));
+      }
     }
   };
 
