@@ -142,14 +142,13 @@ const resolveSourceTitle = async (
   const slotValue = sharedNode.slots?.[SOURCE_SLOT];
   if (!slotValue)
     return {
-      warning:
-        "No source was published with this node, so its title was kept as published.",
+      warning: "No source was published with this node.",
     };
   const sourceUid = await findTargetUid(slotValue, sharedNode.spaceUri);
   const sourceTitle = sourceUid ? getPageTitleByPageUid(sourceUid) : "";
   if (!sourceTitle)
     return {
-      warning: `Its source (${slotValue}) is not in this graph, so its title was kept as published. Import the source, then refresh this page.`,
+      warning: `Its source (${slotValue}) is not in this graph. Import the source, then refresh this page.`,
     };
   return { sourceTitle };
 };
@@ -170,15 +169,16 @@ const buildPageTitle = async ({
       title: decorateTitle(nodeType.format, coreTitle) ?? incomingTitle,
     };
   const source = await resolveSourceTitle(sharedNode);
-  if ("warning" in source)
-    return { title: incomingTitle, warning: source.warning };
   return {
     title:
       titleWithSource({
         format: nodeType.format,
         coreTitle,
-        sourceTitle: source.sourceTitle,
+        // A required Source reference keeps the imported title recognizable as its node type.
+        sourceTitle:
+          "sourceTitle" in source ? source.sourceTitle : "@placeholder",
       }) ?? incomingTitle,
+    ...("warning" in source ? { warning: source.warning } : {}),
   };
 };
 
