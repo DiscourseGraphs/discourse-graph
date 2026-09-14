@@ -499,23 +499,25 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
         (n) => n.backedBy === "user" && n.tag,
       );
 
-    const handleTagAdded = (newText: string) => {
-      const updateShape = async () => {
-        if (!extensionAPI) return;
+    const handleTagAdded = async (newText: string): Promise<void> => {
+      // The tag is already saved. Refresh its action even if sizing fails.
+      this.updateProps(shape.id, shape.type, { title: newText });
+      if (!extensionAPI) return;
+      try {
         const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
           nodeText: newText,
           uid: shape.props.uid,
           nodeType: getDiscourseNodeTypeId({ shape }),
           extensionAPI,
         });
-        this.updateProps(shape.id, shape.type, {
-          title: newText,
-          h,
-          w,
-          imageUrl,
+        this.updateProps(shape.id, shape.type, { h, w, imageUrl });
+      } catch (error) {
+        renderToast({
+          id: "discourse-node-tag-size-error",
+          intent: "danger",
+          content: `Tag added, but the card size could not be refreshed: ${String(error)}`,
         });
-      };
-      void updateShape();
+      }
     };
 
     const { backgroundColor, textColor } = this.getColors(shape);
