@@ -174,6 +174,60 @@ describe("importSharedNodes", () => {
     ]);
   });
 
+  it("orders a chain of sources across spaces before its dependents", async () => {
+    const root = makeSharedNode("root");
+    const source = {
+      ...makeSharedNode("source"),
+      slots: { sourceDocument: root.rid },
+    };
+    const evidence = {
+      ...makeSharedNode("evidence"),
+      rid: "orn:obsidian.note:vault-b/evidence",
+      spaceUri: "obsidian:vault-b",
+      slots: { sourceDocument: source.rid },
+    };
+    mockedMaterializeSharedNode.mockImplementation(async ({ sharedNode }) =>
+      successResult(sharedNode, "created"),
+    );
+    await importSharedNodes({
+      client,
+      sharedNodes: [evidence, source, root],
+      onProgress: vi.fn(),
+    });
+    expect(
+      mockedMaterializeSharedNode.mock.calls.map(([args]) => args.sharedNode),
+    ).toEqual([root, source, evidence]);
+  });
+
+  it("keeps absent references non-blocking and visits cycles only once", async () => {
+    const first = {
+      ...makeSharedNode("first"),
+      slots: { sourceDocument: "second" },
+    };
+    const second = {
+      ...makeSharedNode("second"),
+      slots: { sourceDocument: "first" },
+    };
+    const missing = {
+      ...makeSharedNode("missing"),
+      slots: { sourceDocument: "absent" },
+    };
+    mockedMaterializeSharedNode.mockImplementation(async ({ sharedNode }) =>
+      successResult(sharedNode, "created"),
+    );
+    const items = await importSharedNodes({
+      client,
+      sharedNodes: [first, second, missing],
+      onProgress: vi.fn(),
+    });
+    expect(items.map(({ sharedNode }) => sharedNode.rid)).toEqual([
+      second.rid,
+      first.rid,
+      missing.rid,
+    ]);
+    expect(mockedMaterializeSharedNode).toHaveBeenCalledTimes(3);
+  });
+
   it("reports the materializer's warning on the imported node", async () => {
     const sharedNodes = [makeSharedNode("node-1")];
     mockedMaterializeSharedNode.mockResolvedValueOnce({
