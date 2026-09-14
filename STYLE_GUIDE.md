@@ -34,7 +34,7 @@ Keep comments that explain non-obvious decisions, external API or data constrain
 Before keeping a comment, check:
 
 - **Necessary:** Would removing it hide information needed to safely change or use the code?
-- **Accurate:** Does it describe the actual guarantee, including relevant exceptions?
+- **Accurate:** Does it match what the code actually does, including relevant limitations and exceptions?
 - **Concise:** Can it be shortened without losing necessary information?
 - **Durable:** Will it still matter after this PR merges?
 - **Local:** Is it next to the code that depends on the information?
