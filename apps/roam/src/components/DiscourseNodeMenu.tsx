@@ -308,6 +308,9 @@ const NodeMenu = ({
       content={
         <Menu
           ulRef={menuRef}
+          // Portal events still bubble to the canvas, which captures the pointer
+          // before the menu item receives its click.
+          onPointerDown={(e) => e.stopPropagation()}
           data-active-index={activeIndex}
           style={{ overflowY: "auto", maxHeight: menuMaxHeight }}
         >

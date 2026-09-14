@@ -491,6 +491,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     }, [shape]);
 
     const showAddTagButton =
+      !matchedNodeForConversion &&
       getDiscourseNodeTypeId({ shape }) === "blck-node" &&
       isLiveBlock(shape.props.uid) &&
       !editor.isShapeOrAncestorLocked(shape.id) &&
@@ -707,11 +708,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
                 minimal
                 small
                 icon={
-                  <Icon
-                    icon="exchange"
-                    color={textColor}
-                    className="opacity-50"
-                  />
+                  <Icon icon="plus" color={textColor} className="opacity-50" />
                 }
                 onClick={(e) => {
                   e.stopPropagation();
@@ -783,7 +780,14 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
                 title={`Convert to ${matchedNodeForConversion.node.text}`}
-              />
+              >
+                <span
+                  className="opacity-70"
+                  style={{ color: textColor, fontSize: "11px" }}
+                >
+                  Convert to {matchedNodeForConversion.node.text}
+                </span>
+              </Button>
             )}
           </div>
 
