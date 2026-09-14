@@ -1,3 +1,4 @@
+import { prepareFuzzySearch } from "obsidian";
 import { DiscourseNode } from "~/types";
 
 /**
@@ -7,20 +8,23 @@ import { DiscourseNode } from "~/types";
  * Ported from Roam's advanced search so both apps filter alike.
  */
 
-/** Type count above which the panel adds a search box; the modal is desktop-only. */
-export const NODE_TYPE_FILTER_SEARCH_THRESHOLD = 7;
-
 export const hasActiveTypeFilter = (selectedTypeIds: string[]): boolean =>
   selectedTypeIds.length > 0;
 
+/** Fuzzy-matched and best-match-first, same scorer `rankDiscourseNodesByTitle` uses for results. */
 export const filterNodeTypesByQuery = (
   nodeTypes: DiscourseNode[],
   query: string,
 ): DiscourseNode[] => {
-  const trimmedQuery = query.trim().toLowerCase();
+  const trimmedQuery = query.trim();
   if (!trimmedQuery) return nodeTypes;
 
-  return nodeTypes.filter((nodeType) =>
-    nodeType.name.toLowerCase().includes(trimmedQuery),
-  );
+  const score = prepareFuzzySearch(trimmedQuery);
+  return nodeTypes
+    .flatMap((nodeType) => {
+      const match = score(nodeType.name);
+      return match ? [{ nodeType, score: match.score }] : [];
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(({ nodeType }) => nodeType);
 };
