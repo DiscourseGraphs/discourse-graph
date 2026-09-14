@@ -10,6 +10,7 @@ import { BulkImportPattern, BulkImportCandidate, DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import { extractContentFromTitle } from "~/utils/extractContentFromTitle";
 import { AppWithUnofficialApis } from "~/utils/obsidianUnofficialTypes";
+import { LIST_INDICATOR_REGEX } from "~/utils/tagNodeHandler";
 
 // This is a workaround to get the datacore API.
 // TODO: Remove once we can use datacore npm package
@@ -38,11 +39,48 @@ export type DiscourseNodeCandidate = {
    */
   title: string;
   nodeTypeId: string;
+  /**
+   * Present only for an inline `#tag` result: a line tagged with a node type's
+   * tag, in a file that isn't itself that node. Absent for a real node file.
+   */
+  tagLine?: { lineNumber: number };
 };
 
 export type RankedDiscourseNode = DiscourseNodeCandidate & {
   match: SearchResult;
 };
+
+/**
+ * Strips hashtags, leading list/blockquote/heading markup, and inline
+ * formatting (wikilinks, markdown links, bold/italic, inline code), so a
+ * tagged line reads as a title instead of raw markdown — and, matching what
+ * Obsidian's renderer turns that markup into (a wikilink becomes its display
+ * text, emphasis markers disappear, etc.), so `scrollToAndFlashLine` in
+ * NodeSearchModal can find this same text in the rendered preview to scroll
+ * to and highlight. Without stripping the inline formatting too, a line
+ * containing a link or bold text would sanitize to something the renderer's
+ * actual text content never matches, silently breaking that scroll/highlight.
+ */
+const sanitizeTagLine = (line: string): string =>
+  line
+    .replace(LIST_INDICATOR_REGEX, "")
+    .replace(/^(\s*>+\s*)+/, "")
+    .replace(/^#{1,6}\s+/, "")
+    // Wikilinks: [[Note|alias]] -> alias, [[Note]] -> Note.
+    .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, "$2")
+    .replace(/\[\[([^\]]+)\]\]/g, "$1")
+    // Markdown links: [text](url) -> text.
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    // Bold+italic, then bold, then italic — longest marker run first, so a
+    // shorter pattern doesn't partially consume a longer one.
+    .replace(/(\*\*\*|___)(.+?)\1/g, "$2")
+    .replace(/(\*\*|__)(.+?)\1/g, "$2")
+    .replace(/(\*|_)(.+?)\1/g, "$2")
+    // Inline code: `text` -> text.
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/#\S+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 export class QueryEngine {
   private app: App;
@@ -83,6 +121,65 @@ export class QueryEngine {
       if (typeof nodeTypeId !== "string" || !nodeTypeId) continue;
 
       candidates.push({ file, title: file.basename, nodeTypeId });
+    }
+
+    return candidates;
+  };
+
+  /**
+   * Inline `#tag` results: lines anywhere in the vault tagged with a node type's
+   * `tag`, not full node files. Vault-wide, so only scan on demand (the "Show
+   * tags" toggle), not on every modal open like `getDiscourseNodeCandidates`.
+   */
+  getDiscourseTagCandidates = async (
+    nodeTypes: DiscourseNode[],
+  ): Promise<DiscourseNodeCandidate[]> => {
+    const nodeTypeByTag = new Map<string, DiscourseNode>();
+    for (const nodeType of nodeTypes) {
+      if (nodeType.tag) nodeTypeByTag.set(nodeType.tag.toLowerCase(), nodeType);
+    }
+    if (!nodeTypeByTag.size) return [];
+
+    const candidates: DiscourseNodeCandidate[] = [];
+
+    for (const file of this.app.vault.getMarkdownFiles()) {
+      const tags = this.app.metadataCache.getFileCache(file)?.tags;
+      if (!tags?.length) continue;
+
+      // Deduped by (line, node type): a line repeating the same tag (e.g. a
+      // typo'd duplicate) would otherwise produce identical candidates that
+      // collide on the result list's key. A line tagged for two different
+      // node types still yields one candidate per type.
+      const matchByKey = new Map<string, { nodeType: DiscourseNode; line: number }>();
+      for (const tagCache of tags) {
+        const nodeType = nodeTypeByTag.get(
+          tagCache.tag.replace(/^#/, "").toLowerCase(),
+        );
+        if (!nodeType) continue;
+        const line = tagCache.position.start.line;
+        matchByKey.set(`${line}:${nodeType.id}`, { nodeType, line });
+      }
+      if (!matchByKey.size) continue;
+
+      // One unreadable file must not discard every candidate already found
+      // in the files scanned before it.
+      let lines: string[];
+      try {
+        lines = (await this.app.vault.cachedRead(file)).split("\n");
+      } catch (error) {
+        console.error(`Could not read ${file.path} for tagged results:`, error);
+        continue;
+      }
+      for (const { nodeType, line: lineNumber } of matchByKey.values()) {
+        const title = sanitizeTagLine(lines[lineNumber] ?? "");
+        if (!title) continue;
+        candidates.push({
+          file,
+          title,
+          nodeTypeId: nodeType.id,
+          tagLine: { lineNumber },
+        });
+      }
     }
 
     return candidates;

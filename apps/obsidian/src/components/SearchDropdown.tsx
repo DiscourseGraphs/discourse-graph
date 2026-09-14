@@ -2,7 +2,7 @@ import { App, Scope, setIcon } from "obsidian";
 import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
 
 /** Which toolbar panel is open, so two can never be open at once. */
-export type SearchDropdownId = "type-filter" | "sort" | null;
+export type SearchDropdownId = "display-options" | "type-filter" | "sort" | null;
 
 export const SearchDropdown = ({
   app,
