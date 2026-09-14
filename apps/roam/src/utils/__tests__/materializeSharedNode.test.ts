@@ -10,6 +10,7 @@ import {
   readImportedSourceIdentity,
   writeImportedSourceIdentity,
 } from "~/utils/importedSourceIdentity";
+import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { materializeSharedNode } from "~/utils/materializeSharedNode";
 
 vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
@@ -66,6 +67,7 @@ const SOURCED_NODE_TYPE = { format: "[[EVD]] - {content} - {Source}" };
 const SOURCE_PAGE_UID = "source-page-uid";
 const SOURCE_TITLE = "@Smith 2020";
 const SOURCED_TITLE = `[[EVD]] - REM sleep and recall - [[${SOURCE_TITLE}]]`;
+const PLACEHOLDER_TITLE = "[[EVD]] - REM sleep and recall - [[@placeholder]]";
 const IMPORTED_SOURCE_RID = "orn:obsidian.note:vault-b/node-6";
 
 const sharedNode: SharedNode = {
@@ -412,7 +414,7 @@ describe("materializeSharedNode", () => {
     });
   });
 
-  it("keeps the incoming title and warns when no source was published", async () => {
+  it("uses a placeholder reference when the format requires a Source but none was published", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
 
     const result = await materializeSharedNode({
@@ -423,13 +425,15 @@ describe("materializeSharedNode", () => {
 
     expect(result).toMatchObject({
       success: true,
-      warning:
-        "No source was published with this node, so its title was kept as published.",
+      warning: "No source was published with this node.",
     });
     expect(pageFromMarkdown).toHaveBeenCalledWith({
-      page: { title: decoratedSharedNode.title, uid: GENERATED_PAGE_UID },
+      page: { title: PLACEHOLDER_TITLE, uid: GENERATED_PAGE_UID },
       "markdown-string": MATERIALIZED_MARKDOWN,
     });
+    expect(PLACEHOLDER_TITLE).toMatch(
+      getDiscourseNodeFormatExpression(SOURCED_NODE_TYPE.format),
+    );
     expect(roamQuery).not.toHaveBeenCalled();
   });
 
@@ -541,7 +545,7 @@ describe("materializeSharedNode", () => {
     });
   });
 
-  it("keeps the incoming title and warns when the source is not in this graph", async () => {
+  it("uses a placeholder reference when the Source is not in this graph", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
 
     const result = await materializeSharedNode({
@@ -556,15 +560,46 @@ describe("materializeSharedNode", () => {
     expect(result).toMatchObject({
       success: true,
       action: "created",
-      warning: `Its source (${IMPORTED_SOURCE_RID}) is not in this graph, so its title was kept as published. Import the source, then refresh this page.`,
+      warning: `Its source (${IMPORTED_SOURCE_RID}) is not in this graph. Import the source, then refresh this page.`,
     });
     expect(mockedFindImportedNodeUidBySourceRid).toHaveBeenCalledWith(
       IMPORTED_SOURCE_RID,
     );
     expect(pageFromMarkdown).toHaveBeenCalledWith({
-      page: { title: decoratedSharedNode.title, uid: GENERATED_PAGE_UID },
+      page: { title: PLACEHOLDER_TITLE, uid: GENERATED_PAGE_UID },
       "markdown-string": MATERIALIZED_MARKDOWN,
     });
+  });
+
+  it("does not rename an unchanged placeholder title on explicit refresh", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockImplementation((rid) =>
+      Promise.resolve(rid === sharedNode.rid ? EXISTING_PAGE_UID : null),
+    );
+    mockedGetPageTitleByPageUid.mockReturnValue(PLACEHOLDER_TITLE);
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: {
+        ...decoratedSharedNode,
+        slots: { sourceDocument: IMPORTED_SOURCE_RID },
+      },
+      nodeType: SOURCED_NODE_TYPE,
+      force: true,
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      action: "updated",
+      pageUid: EXISTING_PAGE_UID,
+    });
+    expect(updatePage).not.toHaveBeenCalled();
+    expect(pageCreate).not.toHaveBeenCalled();
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
   });
 
   it("does not look up the source of an import that is up to date", async () => {
@@ -640,7 +675,7 @@ describe("materializeSharedNode", () => {
       ),
     );
     mockedGetPageTitleByPageUid.mockImplementation((uid) =>
-      uid === SOURCE_PAGE_UID ? SOURCE_TITLE : decoratedSharedNode.title,
+      uid === SOURCE_PAGE_UID ? SOURCE_TITLE : PLACEHOLDER_TITLE,
     );
     mockedReadImportedSourceIdentity.mockReturnValue({
       sourceModifiedAt: sharedNode.lastModified,
