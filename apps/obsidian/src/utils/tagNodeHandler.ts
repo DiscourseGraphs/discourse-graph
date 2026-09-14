@@ -22,7 +22,8 @@ const STYLE_ELEMENT_ID = "dg-discourse-tag-colors";
 const DISCOURSE_TAG_CLASS = "dg-discourse-tag";
 const NODE_ID_ATTR = "data-dg-discourse-tag-node";
 
-const LIST_INDICATOR_REGEX = /^(\s*)(\d+[.)]\s+|[-*+]\s+(?:\[[ xX]\]\s+)?)/;
+export const LIST_INDICATOR_REGEX =
+  /^(\s*)(\d+[.)]\s+|[-*+]\s+(?:\[[ xX]\]\s+)?)/;
 
 const TAG_SEGMENT_PREFIX = "tag-";
 

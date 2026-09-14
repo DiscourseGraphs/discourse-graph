@@ -22,6 +22,7 @@ import {
 } from "react";
 import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
+import { NodeDisplayOptionsMenu } from "~/components/NodeDisplayOptionsMenu";
 import { NodeSearchFooter } from "~/components/NodeSearchFooter";
 import { NodeSortMenu } from "~/components/NodeSortMenu";
 import {
@@ -76,6 +77,8 @@ type NodeTypeDisplay = {
   name: string;
   /** Null when neither the config nor the title says what type this is. */
   badge: NodeTypeBadge | null;
+  /** The configured tag, untruncated — a tag result's badge shows this in full. */
+  tag?: string;
 };
 
 type SearchResultRow = RankedDiscourseNode & {
@@ -292,7 +295,12 @@ const ResultList = ({
     >
       {results.map((result, index) => (
         <div
-          key={result.file.path}
+          // A file can hold several tagged lines (or a tag alongside its own
+          // node candidate), so the path alone isn't unique — and a single
+          // line can itself carry more than one configured node-type tag, so
+          // the line number alone isn't either; nodeTypeId disambiguates that
+          // case.
+          key={`${result.file.path}#${result.tagLine?.lineNumber ?? "node"}#${result.nodeTypeId}`}
           role="option"
           aria-selected={index === activeIndex}
           onMouseEnter={(event) => hasPointerMoved(event) && onActivate(index)}
@@ -316,7 +324,15 @@ const ResultList = ({
               {result.nodeType.badge.text}
             </span>
           )}
-          <HighlightedTitle title={result.title} match={result.match} />
+          <div className="min-w-0 flex-1">
+            <HighlightedTitle title={result.title} match={result.match} />
+            {/* A tagged line's file isn't its own title, unlike a node file — so name it. */}
+            {result.tagLine && (
+              <div className="text-muted truncate text-[length:var(--font-ui-smaller)]">
+                {result.file.basename}
+              </div>
+            )}
+          </div>
         </div>
       ))}
     </div>
@@ -336,6 +352,11 @@ const NodeSearch = ({
   const [candidateState, setCandidateState] = useState<CandidateState>({
     status: "loading",
   });
+  // `null` until "Show tags" is turned on for the first time — the scan is
+  // vault-wide, so it's not worth paying for until the toggle asks for it.
+  const [tagCandidateState, setTagCandidateState] =
+    useState<CandidateState | null>(null);
+  const [showTags, setShowTags] = useState(false);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -362,6 +383,7 @@ const NodeSearch = ({
       byId.set(nodeType.id, {
         name: nodeType.name,
         badge: getNodeTypeBadge({ nodeType, nodeIndex }),
+        tag: nodeType.tag,
       });
     });
     return byId;
@@ -386,6 +408,33 @@ const NodeSearch = ({
     }
   }, [app]);
 
+  // Fetches once, on the first flip to `true`; the fetched candidates stay
+  // cached in state so toggling back off/on doesn't rescan the vault. A ref
+  // (not `tagCandidateState` itself) guards the fetch, so setting that state
+  // below doesn't re-trigger this effect and cancel its own in-flight read.
+  const hasFetchedTagCandidatesRef = useRef(false);
+  useEffect(() => {
+    if (!showTags || hasFetchedTagCandidatesRef.current) return;
+    hasFetchedTagCandidatesRef.current = true;
+    let cancelled = false;
+    setTagCandidateState({ status: "loading" });
+    void new QueryEngine(app)
+      .getDiscourseTagCandidates(plugin.settings.nodeTypes)
+      .then((candidates) => {
+        if (!cancelled) setTagCandidateState({ status: "ready", candidates });
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        const message =
+          error instanceof Error ? error.message : "Unexpected error";
+        new Notice(`Could not load tagged lines: ${message}`);
+        setTagCandidateState({ status: "error", message });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [app, plugin.settings.nodeTypes, showTags]);
+
   useEffect(() => {
     const timeout = window.setTimeout(
       () => setDebouncedQuery(query),
@@ -397,8 +446,12 @@ const NodeSearch = ({
   // Sort before truncating, so a date or alphabetical sort covers every match.
   const results = useMemo<SearchResultRow[]>(() => {
     if (candidateState.status !== "ready") return [];
+    const tagCandidates =
+      showTags && tagCandidateState?.status === "ready"
+        ? tagCandidateState.candidates
+        : [];
     const ranked = rankDiscourseNodesByTitle({
-      candidates: candidateState.candidates,
+      candidates: [...candidateState.candidates, ...tagCandidates],
       query: debouncedQuery,
       nodeTypeIds: selectedNodeTypeIds,
     });
@@ -417,21 +470,29 @@ const NodeSearch = ({
       authorNameByPath,
     })
       .slice(0, MAX_VISIBLE_RESULTS)
-      .map((result) => ({
-        ...result,
-        nodeType: nodeTypesById.get(result.nodeTypeId) ?? {
+      .map((result) => {
+        const nodeType = nodeTypesById.get(result.nodeTypeId) ?? {
           name: "Unknown type",
           badge: getFallbackNodeTypeBadge(result.title),
-        },
-      }));
+        };
+        // A tag result's badge shows the full configured tag, not the node
+        // type's usual truncated-to-3-characters badge.
+        const badge =
+          result.tagLine && nodeType.badge && nodeType.tag
+            ? { ...nodeType.badge, text: nodeType.tag }
+            : nodeType.badge;
+        return { ...result, nodeType: { ...nodeType, badge } };
+      });
   }, [
     app,
     candidateState,
     debouncedQuery,
     nodeTypesById,
     selectedNodeTypeIds,
+    showTags,
     sortDirection,
     sortKey,
+    tagCandidateState,
     userNames,
   ]);
 
@@ -467,12 +528,13 @@ const NodeSearch = ({
   // Closes before opening: `close()` unmounts this React root, so the file and
   // app are read first and nothing touches state afterwards.
   const openActiveResult = (
-    open: (app: App, file: TFile) => Promise<void>,
+    open: (app: App, file: TFile, line?: number) => Promise<void>,
   ): void => {
     if (!activeResult) return;
     const { file } = activeResult;
+    const line = activeResult.tagLine?.lineNumber;
     onClose();
-    void open(app, file).catch((error: unknown) => {
+    void open(app, file, line).catch((error: unknown) => {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Could not open ${file.basename}: ${message}`);
     });
@@ -579,6 +641,15 @@ const NodeSearch = ({
           }
           onSelectedNodeTypeIdsChange={setSelectedNodeTypeIds}
           selectedNodeTypeIds={selectedNodeTypeIds}
+        />
+        <NodeDisplayOptionsMenu
+          app={app}
+          isOpen={openDropdown === "display-options"}
+          onOpenChange={(isOpen) =>
+            handleDropdownOpenChange({ id: "display-options", isOpen })
+          }
+          onShowTagsChange={setShowTags}
+          showTags={showTags}
         />
         <NodeSortMenu
           app={app}
