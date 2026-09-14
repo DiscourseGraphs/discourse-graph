@@ -32,6 +32,8 @@ import {
 } from "~/components/NodeTypeChipsSearchInput";
 import { NodeTypeFilterMenu } from "~/components/NodeTypeFilterMenu";
 import { NodeTypeFilterTags } from "~/components/NodeTypeFilterTags";
+import { NodeSpaceFilterMenu } from "~/components/NodeSpaceFilterMenu";
+import { NodeSpaceFilterTags } from "~/components/NodeSpaceFilterTags";
 import type { SearchDropdownId } from "~/components/SearchDropdown";
 import {
   openFileInNewLeaf,
@@ -55,6 +57,7 @@ import {
   type NodeTypeBadge,
 } from "~/utils/nodeTypeBadge";
 import {
+  getDistinctRemoteSpaces,
   getRemoteSpaceCandidates,
   importRemoteSpaceNode,
 } from "~/utils/remoteSpaceCandidates";
@@ -508,8 +511,9 @@ const NodeSearch = ({
   const [activeIndex, setActiveIndex] = useState(0);
   // Closed by default, like Linear's search preview: ArrowRight opens it, ArrowLeft closes it.
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  // Single source of truth: ENG-2111's tag chips will read and write this too.
+  // Single source of truth: the type-ahead input, filter dropdown, and tag row all read and write this.
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
+  const [selectedSpaceIds, setSelectedSpaceIds] = useState<string[]>([]);
   // One value per toolbar, so two panels can never be open at once.
   const [openDropdown, setOpenDropdown] = useState<SearchDropdownId>(null);
   const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT_KEY);
@@ -616,6 +620,12 @@ const NodeSearch = ({
     };
   }, [plugin, showOtherSpaces]);
 
+  // A space filter only means something while remote results are shown —
+  // clear it on toggle-off so the filter tags row doesn't linger stale.
+  useEffect(() => {
+    if (!showOtherSpaces) setSelectedSpaceIds([]);
+  }, [showOtherSpaces]);
+
   useEffect(() => {
     const timeout = window.setTimeout(
       () => setDebouncedQuery(query),
@@ -624,14 +634,22 @@ const NodeSearch = ({
     return () => window.clearTimeout(timeout);
   }, [query]);
 
-  // Memoized (not just a plain `const`): it's a dependency of `results` below,
-  // and a fresh array reference each render would defeat its own memoization.
+  // Memoized (not just a plain `const`): it's a dependency of two other memos
+  // below, and a fresh array reference each render would defeat both.
   const remoteSpaceCandidates = useMemo(
     () =>
       showOtherSpaces && remoteSpaceState?.status === "ready"
         ? remoteSpaceState.candidates
         : [],
     [remoteSpaceState, showOtherSpaces],
+  );
+
+  // Every space with at least one remote candidate, regardless of the current
+  // query/filters — this drives the space filter menu and chip autocomplete,
+  // neither of which should shrink as the result list itself narrows.
+  const spaceOptions = useMemo(
+    () => getDistinctRemoteSpaces(remoteSpaceCandidates),
+    [remoteSpaceCandidates],
   );
 
   // Sort before truncating, so a date or alphabetical sort covers every match.
@@ -649,6 +667,7 @@ const NodeSearch = ({
       ],
       query: debouncedQuery,
       nodeTypeIds: selectedNodeTypeIds,
+      spaceIds: selectedSpaceIds,
     });
     const authorNameByPath =
       sortKey === "author"
@@ -696,6 +715,7 @@ const NodeSearch = ({
     nodeTypesById,
     remoteSpaceCandidates,
     selectedNodeTypeIds,
+    selectedSpaceIds,
     showTags,
     sortDirection,
     sortKey,
@@ -898,6 +918,18 @@ const NodeSearch = ({
           onSelectedNodeTypeIdsChange={setSelectedNodeTypeIds}
           selectedNodeTypeIds={selectedNodeTypeIds}
         />
+        {showOtherSpaces && spaceOptions.length > 0 && (
+          <NodeSpaceFilterMenu
+            app={app}
+            isOpen={openDropdown === "space-filter"}
+            onOpenChange={(isOpen) =>
+              handleDropdownOpenChange({ id: "space-filter", isOpen })
+            }
+            onSelectedSpaceIdsChange={setSelectedSpaceIds}
+            selectedSpaceIds={selectedSpaceIds}
+            spaces={spaceOptions}
+          />
+        )}
         <NodeDisplayOptionsMenu
           app={app}
           isOpen={openDropdown === "display-options"}
@@ -946,6 +978,19 @@ const NodeSearch = ({
             onSelectedNodeTypeIdsChange={setSelectedNodeTypeIds}
             selectedNodeTypeIds={selectedNodeTypeIds}
           />
+          {showOtherSpaces && (
+            <NodeSpaceFilterTags
+              focusSearchInput={() => {
+                const field = inputRef.current;
+                if (!field) return;
+                field.focus();
+                setCaretToEnd(field);
+              }}
+              onSelectedSpaceIdsChange={setSelectedSpaceIds}
+              selectedSpaceIds={selectedSpaceIds}
+              spaces={spaceOptions}
+            />
+          )}
           {candidateState.status === "loading" && (
             <div className="text-muted p-[var(--size-4-4)]">
               Loading discourse nodes…
