@@ -712,8 +712,14 @@ const NodeSearch = ({
     }
 
     // Closing takes priority and isn't caret-gated: once the preview is open,
-    // ArrowLeft is a dedicated "close" action, not a text-editing key.
-    if (event.key === "ArrowLeft" && isPreviewOpen) {
+    // ArrowLeft is a dedicated "close" action, not a text-editing key. Excluded
+    // during IME composition, so repositioning the composition caret with the
+    // arrow keys isn't hijacked into closing the preview instead.
+    if (
+      event.key === "ArrowLeft" &&
+      !event.nativeEvent.isComposing &&
+      isPreviewOpen
+    ) {
       event.preventDefault();
       setIsPreviewOpen(false);
       return;
@@ -724,6 +730,7 @@ const NodeSearch = ({
     // press gets repurposed.
     if (
       event.key === "ArrowRight" &&
+      !event.nativeEvent.isComposing &&
       !isPreviewOpen &&
       activeResult &&
       isCaretAtEnd(inputRef.current)
