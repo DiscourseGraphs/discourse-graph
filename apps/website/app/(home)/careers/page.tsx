@@ -46,10 +46,10 @@ const CareersPage = (): ReactElement => (
           Discourse Graphs is a philanthropically funded open-source project
           that helps research teams structure knowledge work, projects, and
           original research contributions. We do this by helping them represent
-          their work as a structured graph — claims, evidence, requests — and
-          move that structure between the tools they already use. We ship
-          plugins for Roam Research and Obsidian, backed by a shared Supabase
-          database, and we run live pilots with working scientific labs.
+          their work as a structured graph (claims, evidence, requests) and move
+          that structure between the tools they already use. We ship plugins for
+          Roam Research and Obsidian, backed by a shared Supabase database, and
+          we run live pilots with working scientific labs.
         </p>
         <p>
           We’re a distributed team of about eight, funded by the Chan Zuckerberg
@@ -83,9 +83,9 @@ const CareersPage = (): ReactElement => (
         <h2>What you’d work on</h2>
         <ul>
           <li>
-            Finish a Roam ↔ Obsidian push/pull sync — the remaining milestones,
-            including conflict handling on repeat sync and property alignment
-            across two platforms with very different data models
+            Finish the remaining milestones of a Roam ↔ Obsidian push/pull
+            sync, including conflict handling on repeat sync and property
+            alignment across two platforms with very different data models
           </li>
           <li>
             Extend the Supabase schema to store node templates, slot
@@ -99,22 +99,22 @@ const CareersPage = (): ReactElement => (
           </li>
           <li>
             Write a migration readiness assessment for Roam’s forthcoming data
-            model — what it costs, what it implies for the UI, and when we
-            should decide
+            model: what it costs, what it implies for the UI, and when we should
+            decide
           </li>
         </ul>
         <h2>What we’re not asking you to do</h2>
         <p>
           Out of scope: AT Protocol and federation work, cross-graph schema
           reconciliation design, distributed version control, and the Roam
-          migration itself. These are real problems we care about — they are
+          migration itself. These are real problems we care about. They are
           someone else’s ticket, or a later one.
         </p>
         <h2>What we’re looking for</h2>
         <h3>Required</h3>
         <ul>
           <li>
-            Postgres as a primary skill — schema design, migrations, and the
+            Postgres as a primary skill: schema design, migrations, and the
             specific pain of keeping two clients in sync
           </li>
           <li>
@@ -140,8 +140,8 @@ const CareersPage = (): ReactElement => (
           </li>
           <li>
             Interest in federated protocols (AT Protocol, nanopublications,
-            ActivityPub) — not needed for this contract, relevant to where we’re
-            going
+            ActivityPub). This is not needed for this contract but is relevant
+            to where we’re going.
           </li>
           <li>
             Any exposure to tools-for-thought, scientific infrastructure, or
@@ -156,9 +156,9 @@ const CareersPage = (): ReactElement => (
         <p>
           Tickets in Linear and public pull requests. Each week also includes a
           1:1, developer meeting, and all-hands meeting. We build for the use
-          case in front of us and leave room to rewrite — if a choice is cheap
-          to reverse, make it and log the alternatives rather than convening
-          about it. If it’s expensive to reverse, raise it with the tech lead.
+          case in front of us and leave room to rewrite. If a choice is cheap to
+          reverse, make it and log the alternatives rather than convening about
+          it. If it’s expensive to reverse, raise it with the tech lead.
         </p>
         <p>
           Your first week will focus on learning the tool from the user’s
@@ -203,7 +203,7 @@ const CareersPage = (): ReactElement => (
             A short note (1-2 paragraphs is plenty) about a schema or data-model
             decision you made, and what you’d do differently now
           </li>
-          <li>Code we can read — a repo, a PR, anything public</li>
+          <li>Code we can read: a repo, a PR, anything public</li>
           <li>Your availability and rate</li>
         </ul>
         <p>
