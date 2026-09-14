@@ -41,5 +41,12 @@ local/*
 apps/tldraw-sync-worker/tsconfig.tsbuildinfo
 apps/tldraw-sync-worker/.wrangler/*
 .claude/*
+# Claude Code only discovers skills under .claude/skills; keep the symlink to the
+# tracked source in .agents/skills so every clone and worktree gets it.
+!.claude/skills/
+.claude/skills/*
+# dg-* under .claude/skills are symlinks to the tracked .agents/skills sources.
+# Anything else there is local-only and stays ignored.
+!.claude/skills/dg-*
 CLAUDE.md
 *:Zone.Identifier
