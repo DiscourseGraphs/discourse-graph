@@ -13,17 +13,44 @@ import {
 } from "~/utils/specImport";
 import type { SchemaConflict } from "~/utils/schemaFieldDiff";
 import { NativeFileDialogCancelledError } from "~/utils/nativeJsonFileDialogs";
-import { useSchemaSelection } from "~/components/useSchemaSelection";
+import {
+  useSchemaSelection,
+  type SchemaSelectionState,
+} from "~/components/useSchemaSelection";
 import { SchemaSelectionPanel } from "~/components/SchemaSelectionPanel";
 import { ImportSchemaPreviewSummary } from "~/components/ImportSchemaPreviewSummary";
+import { SchemaConflictResolutionStep } from "~/components/SchemaConflictResolutionStep";
+import { useSchemaMergePlan } from "~/components/useSchemaMergePlan";
 
 type ImportSpecsModalProps = {
   plugin: DiscourseGraphPlugin;
   onClose: () => void;
 };
 
+/** A step of its own: per-field choices folded into the selection list would bury the decision that changes existing data. */
+type ImportStep = "select" | "choose";
+
 export const openImportSpecsModal = (plugin: DiscourseGraphPlugin): void => {
   new ImportSpecsModal(plugin).open();
+};
+
+/** Overlaps are computed for the whole file, so drop the ones not being imported. */
+const filterConflictsToSelection = ({
+  conflicts,
+  selection,
+}: {
+  conflicts: SchemaConflict[];
+  selection: SchemaSelectionState;
+}): SchemaConflict[] => {
+  return conflicts.filter((conflict) => {
+    if (conflict.category === "nodeType") {
+      return selection.selectedNodeTypeIds.has(conflict.schemaId);
+    }
+    if (conflict.category === "relationType") {
+      return selection.selectedRelationTypeIds.has(conflict.schemaId);
+    }
+    return selection.selectedTemplateNames.has(conflict.schemaId);
+  });
 };
 
 const buildExistingItemNotes = ({
@@ -83,6 +110,7 @@ const ImportPreviewSelection = ({
   onResetPreview: () => void;
   onClose: () => void;
 }) => {
+  const [step, setStep] = useState<ImportStep>("select");
   const schemaFile = loadedSchemaFile.schemaFile;
   const source = {
     nodeTypes: schemaFile.nodeTypes,
@@ -94,6 +122,17 @@ const ImportPreviewSelection = ({
   const selection = useSchemaSelection({
     source,
     resetKey: loadedSchemaFile.sourcePath,
+  });
+
+  const selectedConflicts = filterConflictsToSelection({
+    conflicts,
+    selection,
+  });
+
+  const mergePlan = useSchemaMergePlan({
+    resetKey: `${loadedSchemaFile.sourcePath}|${selectedConflicts
+      .map((conflict) => `${conflict.category}:${conflict.schemaId}`)
+      .join(",")}`,
   });
 
   const hasAnySelection =
@@ -110,6 +149,7 @@ const ImportPreviewSelection = ({
         plugin,
         loadedSchemaFile,
         selection: selection.asSelectionPayload(),
+        mergePlan: mergePlan.asMergePlan(),
         onWarning: (message) => warnings.push(message),
       });
 
@@ -131,50 +171,76 @@ const ImportPreviewSelection = ({
       new Notice("Select at least one item to import.");
       return;
     }
+    if (selectedConflicts.length > 0) {
+      setStep("choose");
+      return;
+    }
     void handleApplyImport();
   };
 
-  const primaryLabel = isApplyingImport ? "Importing..." : "Import selected";
+  const isChoosingFields = step === "choose";
+  const primaryLabel = isApplyingImport
+    ? "Importing..."
+    : isChoosingFields || selectedConflicts.length === 0
+      ? "Import selected"
+      : `Choose what to keep (${selectedConflicts.length})`;
 
   return (
     <div>
-      <h3 className="mb-2">Import schema preview</h3>
+      <h3 className="mb-2">
+        {isChoosingFields ? "Choose what to keep" : "Import schema preview"}
+      </h3>
       <p className="text-muted mb-4 text-sm">
         Source file: {loadedSchemaFile.sourcePath}
       </p>
 
-      <ImportSchemaPreviewSummary
-        loadedSchemaFile={loadedSchemaFile}
-        previewStats={previewStats}
-      />
-      <SchemaSelectionPanel
-        source={source}
-        selection={selection}
-        nodeTypeNotes={buildExistingItemNotes({
-          existingSchemaIds: loadedSchemaFile.matchPlan.existingNodeTypeIds,
-          conflicts,
-          category: "nodeType",
-        })}
-        relationTypeNotes={buildExistingItemNotes({
-          existingSchemaIds: loadedSchemaFile.matchPlan.existingRelationTypeIds,
-          conflicts,
-          category: "relationType",
-        })}
-      />
+      {isChoosingFields ? (
+        <SchemaConflictResolutionStep
+          conflicts={selectedConflicts}
+          mergePlan={mergePlan}
+          sourceVaultName={schemaFile.vaultName}
+        />
+      ) : (
+        <>
+          <ImportSchemaPreviewSummary
+            loadedSchemaFile={loadedSchemaFile}
+            previewStats={previewStats}
+          />
+          <SchemaSelectionPanel
+            source={source}
+            selection={selection}
+            nodeTypeNotes={buildExistingItemNotes({
+              existingSchemaIds: loadedSchemaFile.matchPlan.existingNodeTypeIds,
+              conflicts,
+              category: "nodeType",
+            })}
+            relationTypeNotes={buildExistingItemNotes({
+              existingSchemaIds:
+                loadedSchemaFile.matchPlan.existingRelationTypeIds,
+              conflicts,
+              category: "relationType",
+            })}
+          />
+        </>
+      )}
 
       <div className="mt-6 flex justify-between">
         <button
           type="button"
           className="px-4 py-2"
-          onClick={onResetPreview}
+          onClick={isChoosingFields ? () => setStep("select") : onResetPreview}
           disabled={isApplyingImport}
         >
-          Choose another file
+          {isChoosingFields ? "Back" : "Choose another file"}
         </button>
         <button
           type="button"
           className="!bg-accent !text-on-accent rounded px-4 py-2"
-          onClick={handleAdvanceFromSelection}
+          onClick={
+            isChoosingFields
+              ? () => void handleApplyImport()
+              : handleAdvanceFromSelection
+          }
           disabled={isApplyingImport}
         >
           {primaryLabel}
