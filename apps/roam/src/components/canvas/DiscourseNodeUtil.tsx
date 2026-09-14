@@ -697,7 +697,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
                   extensionAPI={extensionAPI}
                   defaultIsOpen
                   onClose={() => setIsAddTagMenuOpen(false)}
-                  onTagAdded={handleTagAdded}
+                  onTagAdded={(text) => void handleTagAdded(text)}
                   trigger={addTagTrigger}
                 />
               ) : (
