@@ -228,7 +228,14 @@ const ImportPreviewSelection = ({
         <button
           type="button"
           className="px-4 py-2"
-          onClick={isChoosingFields ? () => setStep("select") : onResetPreview}
+          onClick={
+            isChoosingFields
+              ? () => {
+                  mergePlan.reset();
+                  setStep("select");
+                }
+              : onResetPreview
+          }
           disabled={isApplyingImport}
         >
           {isChoosingFields ? "Back" : "Choose another file"}

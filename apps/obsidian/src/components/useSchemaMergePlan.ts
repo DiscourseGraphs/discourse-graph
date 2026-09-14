@@ -7,6 +7,8 @@ import type { SchemaMergePlan } from "~/utils/specImport";
 
 /** Kept out of useSchemaSelection: a choice only outlives the selection it belongs to, so it resets separately. */
 export type SchemaMergePlanState = {
+  /** Back discards field choices: re-entering the step must start from the local value again. */
+  reset: () => void;
   isFieldSelected: (args: {
     category: SchemaConflictCategory;
     schemaId: string;
@@ -100,11 +102,13 @@ export const useSchemaMergePlan = ({
     () => new Set(),
   );
 
-  useEffect(() => {
+  const reset = (): void => {
     setNodeTypeFields(new Map());
     setRelationTypeFields(new Map());
     setTemplateNames(new Set());
-  }, [resetKey]);
+  };
+
+  useEffect(reset, [resetKey]);
 
   const isFieldSelected: SchemaMergePlanState["isFieldSelected"] = ({
     category,
@@ -142,6 +146,7 @@ export const useSchemaMergePlan = ({
   };
 
   return {
+    reset,
     isFieldSelected,
     toggleField,
     setAllFields: ({ conflict, shouldSelect }) => {
