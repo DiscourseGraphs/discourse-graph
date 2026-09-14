@@ -4,6 +4,7 @@ import {
   nodeTypeSince,
 } from "./getAllDiscourseNodesSince";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
+import { getImportedNodeUids } from "./importedSourceIdentity";
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import {
   getLoggedInClient,
@@ -31,6 +32,11 @@ import {
   mergeNodesBySourceLocalId,
   type CoreTitleBackfill,
 } from "./coreTitleBackfill";
+import {
+  buildSchemaFormatBackfill,
+  SCHEMA_FORMAT_PROBE_SELECT,
+  type SchemaFormatBackfill,
+} from "./schemaFormatBackfill";
 import type { Json, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
@@ -640,6 +646,7 @@ export const convertDgToSupabaseConcepts = async ({
   since,
   allNodeTypes,
   sharedNodeTypeIds = new Set<string>(),
+  backfillNodeTypeIds = new Set<string>(),
   supabaseClient,
   context,
 }: {
@@ -647,6 +654,7 @@ export const convertDgToSupabaseConcepts = async ({
   since: number | undefined;
   allNodeTypes: DiscourseNode[];
   sharedNodeTypeIds?: ReadonlySet<string>;
+  backfillNodeTypeIds?: ReadonlySet<string>;
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
 }) => {
@@ -656,7 +664,10 @@ export const convertDgToSupabaseConcepts = async ({
   );
 
   allNodeTypes.forEach((nodeType) => {
-    if (sharedNodeTypeIds.has(nodeType.type)) {
+    if (
+      sharedNodeTypeIds.has(nodeType.type) ||
+      backfillNodeTypeIds.has(nodeType.type)
+    ) {
       nodeTypesByUid.set(nodeType.type, nodeType);
     }
   });
@@ -1109,6 +1120,62 @@ const getSharedRoamNodesWithFullContentUpdatesSince = async ({
   });
 };
 
+const probeSchemaFormatBackfill = async ({
+  supabaseClient,
+  spaceId,
+  nodeTypes,
+}: {
+  supabaseClient: DGSupabaseClient;
+  spaceId: number;
+  nodeTypes: DiscourseNode[];
+}): Promise<SchemaFormatBackfill> => {
+  const probeRows = await getAllPages(
+    supabaseClient
+      .from("my_concepts")
+      .select(SCHEMA_FORMAT_PROBE_SELECT)
+      .eq("space_id", spaceId)
+      .eq("is_schema", true)
+      .eq("is_relation", false)
+      .order("id"),
+    1000,
+  );
+  if (!Array.isArray(probeRows)) throw probeRows;
+  return buildSchemaFormatBackfill({
+    conceptRows: probeRows,
+    nodeTypes,
+  });
+};
+
+const reportSchemaFormatBackfill = ({
+  backfilled,
+  skipped,
+  orphaned,
+}: {
+  backfilled: number;
+  skipped: number;
+  orphaned: number;
+}): void => {
+  posthog.capture("Sync schema format backfill", {
+    backfilled,
+    skipped,
+    orphaned,
+  });
+  if (backfilled === 0 && orphaned === 0) return;
+  const messages = [
+    `Backfilled format for ${backfilled} node type${backfilled === 1 ? "" : "s"}.`,
+    `${skipped} already had one.`,
+  ];
+  if (orphaned > 0) {
+    messages.push(`${orphaned} no longer match a node type in this graph.`);
+  }
+  renderToast({
+    id: "schema-format-backfill",
+    intent: orphaned > 0 ? "warning" : "success",
+    content: messages.join(" "),
+    timeout: 5000,
+  });
+};
+
 export const createOrUpdateDiscourseEmbedding = async (
   showToast = false,
   sendAll?: boolean,
@@ -1246,6 +1313,19 @@ export const createOrUpdateDiscourseEmbedding = async (
       (n) => n.backedBy === "user",
     );
 
+    const schemaFormatBackfill = isInitialSync
+      ? await measureSyncPhase({
+          phase: "probeSchemaFormatBackfill",
+          phases,
+          operation: () =>
+            probeSchemaFormatBackfill({
+              supabaseClient: activeSupabaseClient,
+              spaceId: activeContext.spaceId,
+              nodeTypes: allDgNodeTypes,
+            }),
+        })
+      : null;
+
     const { nodes: changedNodeInstances, coreTitleBackfill } =
       await measureSyncPhase({
         phase: isInitialSync
@@ -1277,16 +1357,26 @@ export const createOrUpdateDiscourseEmbedding = async (
           spaceId: activeContext.spaceId,
         }),
     });
+    const importedNodeUids = await measureSyncPhase({
+      phase: "getImportedNodeUids",
+      phases,
+      operation: () => getImportedNodeUids(),
+    });
+    const nonImportedNodeInstances = changedNodeInstances.filter(
+      (node) => !importedNodeUids.has(node.source_local_id),
+    );
     const nodeInstancesToSync = sharedNodesOnlySync
-      ? changedNodeInstances.filter((node) =>
+      ? nonImportedNodeInstances.filter((node) =>
           sharedSourceLocalIds.has(node.source_local_id),
         )
-      : changedNodeInstances;
+      : nonImportedNodeInstances;
     const nodesToBackfillCoreTitle = (
       coreTitleBackfill?.nodesToBackfill ?? []
     ).filter(
       (node) =>
-        !sharedNodesOnlySync || sharedSourceLocalIds.has(node.source_local_id),
+        !importedNodeUids.has(node.source_local_id) &&
+        (!sharedNodesOnlySync ||
+          sharedSourceLocalIds.has(node.source_local_id)),
     );
     const conceptNodesToSync = mergeNodesBySourceLocalId(
       nodeInstancesToSync,
@@ -1374,10 +1464,18 @@ export const createOrUpdateDiscourseEmbedding = async (
           since: sinceTime,
           allNodeTypes: allDgNodeTypes,
           sharedNodeTypeIds,
+          backfillNodeTypeIds: schemaFormatBackfill?.nodeTypeIdsToBackfill,
           supabaseClient: activeSupabaseClient,
           context: activeContext,
         }),
     });
+    if (schemaFormatBackfill !== null) {
+      reportSchemaFormatBackfill({
+        backfilled: schemaFormatBackfill.nodeTypeIdsToBackfill.size,
+        skipped: schemaFormatBackfill.withFormatCount,
+        orphaned: schemaFormatBackfill.orphanedCount,
+      });
+    }
     if (coreTitleBackfill !== null) {
       reportCoreTitleBackfill({
         backfilled: nodesToBackfillCoreTitle.length,
