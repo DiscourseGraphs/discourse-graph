@@ -1,6 +1,14 @@
 import { Platform } from "obsidian";
 
-export type HintKey = "Mod" | "Alt" | "Shift" | "Enter" | "Escape" | "Tab";
+export type HintKey =
+  | "Mod"
+  | "Alt"
+  | "Shift"
+  | "Enter"
+  | "Escape"
+  | "Tab"
+  | "ArrowLeft"
+  | "ArrowRight";
 
 // Obsidian shows glyphs on macOS and spelled-out words everywhere else.
 const MAC_SYMBOLS: Record<HintKey, string> = {
@@ -10,6 +18,8 @@ const MAC_SYMBOLS: Record<HintKey, string> = {
   Enter: "↵",
   Escape: "esc",
   Tab: "⇥",
+  ArrowLeft: "←",
+  ArrowRight: "→",
 };
 
 const NON_MAC_SYMBOLS: Record<HintKey, string> = {
@@ -19,6 +29,8 @@ const NON_MAC_SYMBOLS: Record<HintKey, string> = {
   Enter: "Enter",
   Escape: "Esc",
   Tab: "Tab",
+  ArrowLeft: "←",
+  ArrowRight: "→",
 };
 
 /** Takes `isMacOS` so the non-mac branch can be checked without that platform. */

@@ -18,6 +18,20 @@ export const setCaretToEnd = (field: HTMLElement): void => {
   selection.addRange(range);
 };
 
+/** So ArrowRight can be repurposed to open the preview only once typing can't go any further right. */
+export const isCaretAtEnd = (field: HTMLElement | null): boolean => {
+  const selection = field?.ownerDocument.getSelection();
+  if (!field || !selection?.isCollapsed || selection.rangeCount === 0) {
+    return false;
+  }
+  const endOfField = field.ownerDocument.createRange();
+  endOfField.selectNodeContents(field);
+  endOfField.collapse(false);
+  return (
+    selection.getRangeAt(0).compareBoundaryPoints(Range.END_TO_END, endOfField) === 0
+  );
+};
+
 /**
  * Plain title-query input with type-ahead: typing a node type's name and
  * pressing Tab adds it as a filter (rendered by `NodeTypeFilterTags`, not here).
