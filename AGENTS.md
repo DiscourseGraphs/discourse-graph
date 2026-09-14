@@ -36,6 +36,17 @@ PR titles for Linear-backed work should follow this format:
 - Follow the ticket ID with the exact Linear ticket title
 - Example: `ENG-1912 Scaffold @repo/content-model`
 
+### Pull Request Bodies
+
+When creating or updating a pull request body:
+
+- Start with `.github/pull_request_template.md`. Preserve its headings and guidance instead of adding substitute sections.
+- Treat the Linear ticket as the source of truth. Do not restate it in the pull request body.
+- Do not add a file-by-file summary, implementation diary, investigation log, full command output, or unrelated pre-existing issues.
+- Put line-specific implementation context in inline GitHub comments.
+- Put any non-obvious rules that future changes must preserve in code comments, tests, or documentation, not only in the pull request.
+- Remove empty optional sections and anything that does not help review the diff.
+
 ## Style Guide
 
 ### UI Guidelines
@@ -45,6 +56,7 @@ PR titles for Linear-backed work should follow this format:
 - Use platform-native UI components (see below) first with shadcn/ui as a fallback
 - Maintain visual consistency with the host application's design system
 - Follow responsive design principles
+- Use `text-red-700` for Roam error message text. Obsidian keeps `text-error`; website and shared UI keep `text-destructive`. This convention does not change danger buttons, borders, backgrounds, or diagram colors.
 
 ### TypeScript Guidelines
 
@@ -74,12 +86,13 @@ PR titles for Linear-backed work should follow this format:
 
 ### Documentation
 
-- Add comments only when necessary; descriptive names should minimize the need for comments
-- Explain the why, not the what, focusing on reasoning, trade-offs, and approaches
-- Document limitations, known bugs, or edge cases where behavior may not align with expectations
+- Follow the [code comment review criteria](STYLE_GUIDE.md#code-comments). Agents must check added and modified comments before handoff; authors must review them manually before requesting review.
 - Prefer sentence case in documentation and feature descriptions; capitalize official product/plugin names and exact UI labels, buttons, or titles, but keep generic feature terms lowercase to emphasize user actions
 
 ### Testing
 
 - Write unit tests for new functionality
 - Ensure tests are meaningful and maintainable
+- Expose workspace unit tests through a `test:unit` script so the root validation command includes them
+- Before opening a pull request or declaring work PR-ready, run `pnpm install --frozen-lockfile` followed by `pnpm ci:validate` from the repository root, and resolve any failures
+- After opening or updating an authorized pull request, wait for its required GitHub checks and report their final status

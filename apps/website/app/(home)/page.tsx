@@ -742,6 +742,11 @@ const Home = async (): Promise<ReactElement> => {
               title="Built by researchers, designers, and engineers"
               description="The project brings together research infrastructure, knowledge synthesis, and tool-building experience."
             />
+            <div className="mt-6">
+              <ArrowLink href="/careers">
+                We’re hiring a database engineer
+              </ArrowLink>
+            </div>
             <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {TEAM_MEMBERS.map((member) => (
                 <div
@@ -845,6 +850,12 @@ const Home = async (): Promise<ReactElement> => {
           </div>
 
           <div className="grid gap-2 text-sm">
+            <Link
+              href="/careers"
+              className="text-white/70 transition-colors hover:text-primary"
+            >
+              Careers
+            </Link>
             <Link
               href="https://github.com/DiscourseGraphs"
               className="text-white/70 transition-colors hover:text-primary"

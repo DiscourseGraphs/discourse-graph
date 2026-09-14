@@ -59,6 +59,7 @@ class "Concept" [[{An abstract concept, claim or relation}]] {
     {field} reference_content : JSON  
     {field} literal_content : JSON  
     {field} is_schema : boolean  
+    {field} is_relation : boolean  
 }
 "LocalAccess" --> "0..1" "Space" : "space"
 "Content" --> "0..1" "Space" : "space"
@@ -104,6 +105,7 @@ class "ConceptSchema" [[{A Concept that describes a schema (type) for other conc
     {field} reference_content(i) : JSON  
     {field} literal_content(i) : JSON  
     {field} is_schema(i) : boolean  
+    {field} is_relation(i) : boolean  
 }
 "Concept" --> "1" "ConceptSchema" : "schema"
 "Concept" ^-- "ConceptSchema"

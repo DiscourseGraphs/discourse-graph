@@ -1,6 +1,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* tldraw otherwise caps the style panel at 148px; only the context tab needs
+   the extra width, the styling tab keeps tldraw's default proportions. */
+.tlui-style-panel:has(.dg-node-card-menu--context) {
+  width: min(20rem, calc(100vw - 1rem));
+  max-width: min(20rem, calc(100vw - 1rem));
+}
+
 .accent-border-bottom {
   border-bottom: 2px solid var(--interactive-accent) !important;
 }
@@ -60,11 +67,10 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   display: none !important;
 }
 
-/* Discourse tag styling in editor (colors via --dg-discourse-tag-* on the element) */
-[data-dg-discourse-tag] {
+/* Targets the parent `.cm-hashtag`, which Obsidian renders and we cannot class,
+   so this cannot be a Tailwind utility. Per-node colours are generated in tagNodeHandler.ts. */
+.cm-hashtag:has(> .dg-discourse-tag) {
   cursor: pointer;
-  background-color: var(--dg-discourse-tag-bg);
-  color: var(--dg-discourse-tag-fg);
 }
 
 /* Off-screen measure container matching DiscourseNodeShape layout */
@@ -99,4 +105,12 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   color: inherit;
   border: none !important;
   box-shadow: none !important;
+}
+
+/* The reset above outranks utility classes; re-assert the node card menu's active tab styling.
+   border-radius 0 keeps the underline flat instead of bending around the button's rounded corners. */
+.tldraw__editor .dg-node-card-menu button.accent-border-bottom {
+  border-bottom: 2px solid var(--interactive-accent) !important;
+  border-radius: 0;
+  color: var(--interactive-accent);
 }

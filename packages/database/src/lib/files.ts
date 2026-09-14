@@ -7,6 +7,7 @@ export const addFile = async ({
   spaceId,
   sourceLocalId,
   fname,
+  sourcePath,
   mimetype,
   created,
   lastModified,
@@ -15,7 +16,10 @@ export const addFile = async ({
   client: DGSupabaseClient;
   spaceId: number;
   sourceLocalId: string;
+  /** What the content refers to, stored in `filepath`: the link or URL as the content wrote it. */
   fname: string;
+  /** Where the publishing platform kept the asset, stored in `source_path`, when known. */
+  sourcePath?: string | null;
   mimetype: string;
   created: Date;
   lastModified: Date;
@@ -50,6 +54,7 @@ export const addFile = async ({
     last_modified: lastModified.toISOString(),
     filepath: fname,
     filehash: hashvalue,
+    source_path: sourcePath ?? null,
     created: created.toISOString(),
   });
 
@@ -62,6 +67,7 @@ export const addFile = async ({
           last_modified: lastModified.toISOString(),
           filehash: hashvalue,
           created: created.toISOString(),
+          ...(sourcePath === undefined ? {} : { source_path: sourcePath }),
         })
         .eq("source_local_id", sourceLocalId)
         .eq("space_id", spaceId)

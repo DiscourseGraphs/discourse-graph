@@ -14,11 +14,14 @@ const spaces: BuildArgs["spaces"] = [
 ];
 const nodes: BuildArgs["nodes"] = [
   {
+    core_title: "REM sleep and recall",
     is_schema: false,
     last_modified: "2026-06-14T12:00:00",
     schema_id: 200,
     source_local_id: "node-1",
     space_id: 20,
+    reference_content: {},
+    concepts_of_relation: [],
   },
 ];
 const directContents: BuildArgs["directContents"] = [
@@ -66,11 +69,13 @@ describe("buildSharedNodes", () => {
       {
         rid,
         sourceLocalId: "node-1",
+        schemaId: 200,
         spaceId: 20,
         spaceName: "Research vault",
         spaceUri: "obsidian:vault-a",
         platform: "Obsidian",
         title: "EVD - REM sleep and recall",
+        coreTitle: "REM sleep and recall",
         created: "2026-06-14T11:00:00.000Z",
         lastModified: "2026-06-14T15:00:00.000Z",
         authorId: 42,
@@ -89,7 +94,12 @@ describe("buildSharedNodes", () => {
       },
     ];
     const roamNodes: BuildArgs["nodes"] = [
-      { ...nodes[0]!, space_id: 30, source_local_id: "roam-uid-1" },
+      {
+        ...nodes[0]!,
+        core_title: "Sleep improves memory consolidation",
+        space_id: 30,
+        source_local_id: "roam-uid-1",
+      },
     ];
     const roamDirect: BuildArgs["directContents"] = [
       {
@@ -118,17 +128,26 @@ describe("buildSharedNodes", () => {
       {
         rid: "https://roamresearch.com/#/app/research-graph/roam-uid-1",
         sourceLocalId: "roam-uid-1",
+        schemaId: 200,
         spaceId: 30,
         spaceName: "Research graph",
         spaceUri: "https://roamresearch.com/#/app/research-graph",
         platform: "Roam",
         title: "CLM - Sleep improves memory consolidation",
+        coreTitle: "Sleep improves memory consolidation",
         created: "2026-06-14T11:00:00.000Z",
         lastModified: "2026-06-14T15:00:00.000Z",
         authorId: 42,
         directMetadata: null,
       },
     ]);
+  });
+
+  it("leaves the core title unset when the source published none", () => {
+    expect(
+      build({ nodesOverride: [{ ...nodes[0]!, core_title: null }] })[0]
+        ?.coreTitle,
+    ).toBeUndefined();
   });
 
   it("discovers a node without full content", () => {
@@ -165,6 +184,36 @@ describe("buildSharedNodes", () => {
     },
   ])("filters a node with $name", ({ nodesOverride, directOverride }) => {
     expect(build({ nodesOverride, directOverride })).toEqual([]);
+  });
+
+  it("resolves slots to local ids in the same space and rids elsewhere", () => {
+    const otherSpace: BuildArgs["spaces"][number] = {
+      id: 21,
+      name: "Other vault",
+      platform: "Obsidian",
+      url: "obsidian:vault-b",
+    };
+    const nodeWithSlots: BuildArgs["nodes"][number] = {
+      ...nodes[0]!,
+      reference_content: { evidence: 5, claim: 6, dangling: 7 },
+      concepts_of_relation: [
+        { id: 5, space_id: 20, source_local_id: "node-5" },
+        { id: 6, space_id: 21, source_local_id: "node-6" },
+      ],
+    };
+    expect(
+      build({
+        nodesOverride: [nodeWithSlots],
+        spacesOverride: [...spaces, otherSpace],
+      })[0]?.slots,
+    ).toEqual({
+      evidence: "node-5",
+      claim: "orn:obsidian:vault-b/node-6",
+    });
+  });
+
+  it("leaves slots undefined when the node references nothing", () => {
+    expect(build()[0]?.slots).toBeUndefined();
   });
 
   it("sorts newest nodes first", () => {
@@ -263,11 +312,13 @@ describe("getSharedNodeByRid", () => {
     await expect(getSharedNodeByRid({ client, rid })).resolves.toEqual({
       rid,
       sourceLocalId: "node-1",
+      schemaId: 200,
       spaceId: 20,
       spaceName: "Research vault",
       spaceUri: "obsidian:vault-a",
       platform: "Obsidian",
       title: "EVD - REM sleep and recall",
+      coreTitle: "REM sleep and recall",
       created: "2026-06-14T11:00:00.000Z",
       lastModified: "2026-06-14T15:00:00.000Z",
       authorId: 42,

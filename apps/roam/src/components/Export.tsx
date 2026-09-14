@@ -87,6 +87,7 @@ import { AddReferencedNodeType } from "./canvas/DiscourseRelationShape/Discourse
 import posthog from "posthog-js";
 import { getMyGroups, type MyGroup } from "@repo/database/lib/groups";
 import {
+  getAllPublishedIdsByGroup,
   publishNodeUidsWithTypeToGroups,
   type NodeUidWithType,
 } from "~/utils/publishNodesToGroups";
@@ -807,29 +808,56 @@ const ExportDialog: ExportDialogComponent = ({
     }
   };
   useEffect(() => {
-    if (
-      !sharingEnabled ||
-      !isOpen ||
-      selectedTabId !== "publish" ||
-      groupsLoaded ||
-      groupsLoading
-    )
-      return;
+    if (isOpen) return;
+    setGroupsLoaded(false);
+    setSelectedGroupIds([]);
+    setGroupsError("");
+  }, [isOpen]);
+  useEffect(() => {
+    if (!sharingEnabled || !isOpen || selectedTabId !== "publish") return;
+    let active = true;
     setGroupsLoading(true);
+    setGroupsLoaded(false);
+    setGroupsError("");
     void (async () => {
       try {
         const client = await getLoggedInClient();
         if (!client) throw new Error("Could not connect to sync.");
         const groups = await getMyGroups(client);
+        const context = await getSupabaseContext();
+        let preselectedGroupIds: string[] = [];
+        if (context && groups.length && publishableNodes.length) {
+          const publishedIdsByGroup = await getAllPublishedIdsByGroup({
+            client,
+            spaceId: context.spaceId,
+            groupIds: groups.map((g) => g.id),
+            sourceLocalIds: publishableNodes.map(({ uid }) => uid),
+          });
+          preselectedGroupIds = groups
+            .map((g) => g.id)
+            .filter((id) =>
+              publishableNodes.every(({ uid }) =>
+                publishedIdsByGroup[id].has(uid),
+              ),
+            );
+        }
+        if (!active) return;
+        setSelectedGroupIds(preselectedGroupIds);
         setMyGroups(groups);
       } catch (e) {
-        setGroupsError((e as Error).message || "Failed to load groups.");
+        if (active)
+          setGroupsError((e as Error).message || "Failed to load groups.");
       } finally {
-        setGroupsLoading(false);
-        setGroupsLoaded(true);
+        if (active) {
+          setGroupsLoading(false);
+          setGroupsLoaded(true);
+        }
       }
     })();
-  }, [sharingEnabled, isOpen, selectedTabId, groupsLoaded, groupsLoading]);
+    return () => {
+      active = false;
+    };
+  }, [sharingEnabled, isOpen, selectedTabId, publishableNodes]);
 
   const handlePublish = async () => {
     setPublishError("");
