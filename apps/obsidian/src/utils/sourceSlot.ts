@@ -177,25 +177,26 @@ export const filterAvailableSourceSlotValues = async ({
   spaceId: number;
   pendingNodeIds: Set<string>;
 }): Promise<Record<string, string>> => {
-  const available = new Set<string>();
-  for (const sourceId of new Set(Object.values(sourceSlotByNodeId))) {
-    if (!isRid(sourceId) && pendingNodeIds.has(sourceId)) {
-      available.add(sourceId);
-      continue;
-    }
-    const { data, error } = await client.rpc(
-      "rid_or_local_id_to_concept_db_id",
-      {
-        rid: sourceId,
-        default_space_id: spaceId,
-      },
-    );
-    if (error) throw error;
-    if (data !== null) available.add(sourceId);
-  }
-  return Object.fromEntries(
-    Object.entries(sourceSlotByNodeId).filter(([, sourceId]) =>
-      available.has(sourceId),
-    ),
+  const sourceIds = [...new Set(Object.values(sourceSlotByNodeId))];
+  const availability = await Promise.all(
+    sourceIds.map(async (sourceId): Promise<boolean> => {
+      if (!isRid(sourceId) && pendingNodeIds.has(sourceId)) return true;
+      const { data, error } = await client.rpc(
+        "rid_or_local_id_to_concept_db_id",
+        { rid: sourceId, default_space_id: spaceId },
+      );
+      if (error) throw error;
+      return data !== null;
+    }),
   );
+  const available = new Set(sourceIds.filter((_, i) => availability[i]));
+  const kept: Record<string, string> = {};
+  for (const [nodeInstanceId, sourceId] of Object.entries(sourceSlotByNodeId)) {
+    if (available.has(sourceId)) kept[nodeInstanceId] = sourceId;
+    else
+      console.warn(
+        `Source ${sourceId} is not in the database yet; pushing node ${nodeInstanceId} without ${SOURCE_SLOT}`,
+      );
+  }
+  return kept;
 };
