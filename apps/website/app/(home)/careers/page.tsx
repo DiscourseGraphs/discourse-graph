@@ -55,8 +55,11 @@ const CareersPage = (): ReactElement => (
           their work as a structured graph (claims, evidence, requests) and move
           that structure between the tools they already use. We ship plugins for{" "}
           <strong>Roam Research</strong> and <strong>Obsidian</strong>, backed
-          by a shared Supabase database, and we run live pilots with working
-          scientific labs.
+          by a{" "}
+          <a href="https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/database/supabase">
+            shared Supabase database
+          </a>
+          , and we run live pilots with working scientific labs.
         </p>
         <p>
           We’re a distributed team of about eight, funded by the Chan Zuckerberg
