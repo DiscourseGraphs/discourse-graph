@@ -186,8 +186,8 @@ describe("importSharedNodes", () => {
       spaceUri: "obsidian:vault-b",
       slots: { sourceDocument: source.rid },
     };
-    mockedMaterializeSharedNode.mockImplementation(async ({ sharedNode }) =>
-      successResult(sharedNode, "created"),
+    mockedMaterializeSharedNode.mockImplementation(({ sharedNode }) =>
+      Promise.resolve(successResult(sharedNode, "created")),
     );
     await importSharedNodes({
       client,
@@ -212,8 +212,8 @@ describe("importSharedNodes", () => {
       ...makeSharedNode("missing"),
       slots: { sourceDocument: "absent" },
     };
-    mockedMaterializeSharedNode.mockImplementation(async ({ sharedNode }) =>
-      successResult(sharedNode, "created"),
+    mockedMaterializeSharedNode.mockImplementation(({ sharedNode }) =>
+      Promise.resolve(successResult(sharedNode, "created")),
     );
     const items = await importSharedNodes({
       client,
