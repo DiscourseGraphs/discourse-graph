@@ -3,6 +3,8 @@ import {
   ridToSpaceUriAndLocalId,
   spaceUriAndLocalIdToRid,
 } from "@repo/database/lib/rid";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
+import { SOURCE_SLOT } from "~/constants";
 import type { Json } from "@repo/database/dbTypes";
 import type { DiscourseNode, RelationInstance } from "~/types";
 import type { DiscourseNodeInVault } from "./getDiscourseNodes";
@@ -12,8 +14,6 @@ import type { DiscourseNodeInVault } from "./getDiscourseNodes";
 // and a node's sourceDocument is the destination of its earliest relation to a node of
 // that type. Relation endpoints are stored as a nodeInstanceId, as this vault's RID for
 // it, or as an imported node's origin RID, so lookups go through an index of all three.
-
-export const SOURCE_SLOT = "sourceDocument";
 
 type NodesByEndpoint = Record<string, DiscourseNodeInVault>;
 
@@ -161,4 +161,41 @@ export const findStaleSourceSlotNodeIds = ({
     if (!matches) stale.add(row.source_local_id);
   }
   return stale;
+};
+
+// Use the same resolver as upsert_concepts so imported RIDs are checked in their
+// origin space under the publisher's access. An explicitly selected local Source
+// is also valid: dependency ordering upserts it before the referencing node.
+export const filterAvailableSourceSlotValues = async ({
+  sourceSlotByNodeId,
+  client,
+  spaceId,
+  pendingNodeIds,
+}: {
+  sourceSlotByNodeId: Record<string, string>;
+  client: DGSupabaseClient;
+  spaceId: number;
+  pendingNodeIds: Set<string>;
+}): Promise<Record<string, string>> => {
+  const available = new Set<string>();
+  for (const sourceId of new Set(Object.values(sourceSlotByNodeId))) {
+    if (!isRid(sourceId) && pendingNodeIds.has(sourceId)) {
+      available.add(sourceId);
+      continue;
+    }
+    const { data, error } = await client.rpc(
+      "rid_or_local_id_to_concept_db_id",
+      {
+        rid: sourceId,
+        default_space_id: spaceId,
+      },
+    );
+    if (error) throw error;
+    if (data !== null) available.add(sourceId);
+  }
+  return Object.fromEntries(
+    Object.entries(sourceSlotByNodeId).filter(([, sourceId]) =>
+      available.has(sourceId),
+    ),
+  );
 };

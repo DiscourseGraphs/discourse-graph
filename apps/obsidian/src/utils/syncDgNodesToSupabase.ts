@@ -24,6 +24,7 @@ import {
 import { loadRelations, type RelationsFile } from "~/utils/relationsStore";
 import type { RelationInstance } from "~/types";
 import {
+  filterAvailableSourceSlotValues,
   findStaleSourceSlotNodeIds,
   indexSourceSlotValues,
   SOURCE_SLOT_PROBE_SELECT,
@@ -53,6 +54,7 @@ export type ObsidianDiscourseNodeData = {
   created: string;
   last_modified: string;
   changeTypes: ChangeType[];
+  sourceDocument?: string;
 };
 
 export type DiscourseNodeFileChange = {
@@ -664,12 +666,20 @@ const convertDgToSupabaseConcepts = async ({
   sourceSlotByNodeId =
     sourceSlotByNodeId ??
     indexSourceSlots({ plugin, nodes: allNodes, relations: relationInstances });
+  sourceSlotByNodeId = await filterAvailableSourceSlotValues({
+    sourceSlotByNodeId,
+    client: supabaseClient,
+    spaceId: context.spaceId,
+    pendingNodeIds: new Set(nodesSince.map((node) => node.nodeInstanceId)),
+  });
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
     return discourseNodeInstanceToLocalConcept({
       context,
-      nodeData: node,
+      nodeData: {
+        ...node,
+        sourceDocument: sourceSlotByNodeId[node.nodeInstanceId],
+      },
       nodeTypesById,
-      sourceSlotByNodeId,
     });
   });
 
