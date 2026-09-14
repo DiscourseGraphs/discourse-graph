@@ -9,6 +9,11 @@ const mocks = vi.hoisted(() => ({
   getAvailableGroupIds: vi.fn(),
   ensurePartialSpaceAccess: vi.fn(),
   internalError: vi.fn(),
+  renderToast: vi.fn(),
+}));
+
+vi.mock("roamjs-components/components/Toast", () => ({
+  default: mocks.renderToast,
 }));
 
 vi.mock("~/utils/getDiscourseNodes", () => ({
@@ -404,7 +409,7 @@ describe("publishNodesToGroups", () => {
         source_local_id: "node-1",
         local_reference_content: { sourceDocument: SOURCE_UID },
       });
-      expect(console.warn).not.toHaveBeenCalled();
+      expect(mocks.renderToast).not.toHaveBeenCalled();
     });
 
     it("looks a source up once however many nodes reference it", async () => {
@@ -438,10 +443,12 @@ describe("publishNodesToGroups", () => {
         source_local_id: "node-1",
       });
       expect(rpcCalls[0].args.data[0].local_reference_content).toBeUndefined();
-      expect(console.warn).toHaveBeenCalledTimes(1);
-      expect(console.warn).toHaveBeenCalledWith(
-        expect.stringContaining(`"${SOURCE_TITLE}" (${SOURCE_UID})`),
-      );
+      expect(mocks.renderToast).toHaveBeenCalledTimes(1);
+      expect(mocks.renderToast).toHaveBeenCalledWith({
+        id: `publish-missing-source-${SOURCE_UID}`,
+        intent: "warning",
+        content: `Source "${SOURCE_TITLE}" is not in this space yet. Publishing without this source reference. Publish the Source separately, then publish the referencing node again.`,
+      });
       expect(result.publishedNodeUids).toEqual(["node-1"]);
       expect(result.failedUpsertUids).toEqual([]);
       expect(upsertCalls[0].rows.map((r) => r.source_local_id)).toContain(
@@ -467,7 +474,7 @@ describe("publishNodesToGroups", () => {
       expect(data[1].local_reference_content).toEqual({
         sourceDocument: SOURCE_UID,
       });
-      expect(console.warn).not.toHaveBeenCalled();
+      expect(mocks.renderToast).not.toHaveBeenCalled();
     });
 
     it("passes an imported source's RID through without looking it up in the space", async () => {
@@ -481,7 +488,7 @@ describe("publishNodesToGroups", () => {
       expect(rpcCalls[0].args.data[0].local_reference_content).toEqual({
         sourceDocument: SOURCE_RID,
       });
-      expect(console.warn).not.toHaveBeenCalled();
+      expect(mocks.renderToast).not.toHaveBeenCalled();
     });
 
     it("writes the same sourceDocument value on repeated publishes", async () => {
