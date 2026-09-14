@@ -1,11 +1,11 @@
 import { useSync } from "@tldraw/sync";
+import { baseShapeUtils } from "./baseShapeUtils";
 import {
   TLAnyBindingUtilConstructor,
   TLAnyShapeUtilConstructor,
   TLAssetStore,
   TLStoreWithStatus,
   defaultBindingUtils,
-  defaultShapeUtils,
   MigrationSequence,
 } from "tldraw";
 import { useMemo } from "react";
@@ -68,7 +68,7 @@ export const useCloudflareSyncStore = ({
 }): CloudflareCanvasStoreAdapterResult => {
   const assets = useMemo(() => createRoamAssetStore(), []);
   const shapeUtils = useMemo(
-    () => [...defaultShapeUtils, ...customShapeUtils],
+    () => [...baseShapeUtils, ...customShapeUtils],
     [customShapeUtils],
   );
   const bindingUtils = useMemo(
@@ -80,7 +80,9 @@ export const useCloudflareSyncStore = ({
   const uri = useMemo(() => {
     const roomId = getSyncRoomId({ pageUid });
     const query = new URLSearchParams();
-    for (const shapeType of customShapeTypes) {
+    // The worker validates `text` against stock tldraw props unless it is
+    // declared here, which would reject the url prop text links add.
+    for (const shapeType of [...customShapeTypes, "text"]) {
       query.append("shapeType", shapeType);
     }
     for (const bindingType of customBindingTypes) {
