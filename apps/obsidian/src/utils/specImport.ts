@@ -1,14 +1,24 @@
 import type DiscourseGraphPlugin from "~/index";
+import { uuidv7 } from "uuidv7";
 import { parseDgSchemaFile } from "~/utils/specValidation";
-import { getTemplateFiles, readTemplateContent } from "~/utils/templates";
+import {
+  createTemplateFile,
+  createTemplateFileWithUniqueName,
+  getTemplateFiles,
+  readTemplateContent,
+} from "~/utils/templates";
 import { openJsonFromUserLocation } from "~/utils/nativeJsonFileDialogs";
 import type {
   DiscourseNode,
   DiscourseRelation,
   DiscourseRelationType,
   DiscourseSchemaFile,
+  SchemaSelection,
 } from "~/types";
+import { toTldrawColor } from "~/utils/tldrawColors";
+import { canonicalObsidianUrl } from "~/utils/supabaseContext";
 import {
+  buildSchemaRid,
   findExistingTriple,
   findLocalNodeTypeMatch,
   findLocalRelationTypeMatch,
@@ -16,9 +26,20 @@ import {
 } from "~/utils/schemaMatching";
 import {
   buildSchemaConflicts,
+  MERGEABLE_NODE_TYPE_FIELDS,
+  MERGEABLE_RELATION_TYPE_FIELDS,
   type SchemaConflict,
 } from "~/utils/schemaFieldDiff";
+
 export type { SchemaImportMatchPlan };
+
+/** Keyed by schema-file id, templates by name, since two schema ids can share one local id. An absent entry keeps the local value. */
+export type SchemaMergePlan = {
+  nodeTypeFields: ReadonlyMap<string, ReadonlySet<string>>;
+  relationTypeFields: ReadonlyMap<string, ReadonlySet<string>>;
+  templateNames: ReadonlySet<string>;
+};
+
 export type LoadedSchemaFile = {
   sourcePath: string;
   schemaFile: DiscourseSchemaFile;
@@ -37,6 +58,22 @@ export type SpecImportPreview = {
   previewStats: ImportPreviewStats;
   conflicts: SchemaConflict[];
 };
+
+/** Relation triples are absent from `merged` because endpoints are their identity. */
+export type SpecImportApplyResult = {
+  created: {
+    nodeTypes: number;
+    relationTypes: number;
+    discourseRelations: number;
+    templates: number;
+  };
+  merged: {
+    nodeTypes: number;
+    relationTypes: number;
+    templates: number;
+  };
+};
+
 const buildSchemaImportMatchPlan = ({
   schemaFile,
   localNodeTypes,
@@ -242,5 +279,372 @@ export const pickAndPreviewSchemaImport = async ({
       localRelationTypes: plugin.settings.relationTypes,
       localTemplateContents,
     }),
+  };
+};
+
+/** Keyed off what actually landed, so a failed creation leaves no dangling reference; an imported copy wins over a same-named local one. */
+const resolveTemplateReference = ({
+  template,
+  importedTemplateNames,
+  localTemplateNames,
+}: {
+  template: string | undefined;
+  importedTemplateNames: ReadonlyMap<string, string>;
+  localTemplateNames: ReadonlySet<string>;
+}): string | undefined => {
+  if (!template) return undefined;
+  const importedName = importedTemplateNames.get(template);
+  if (importedName) return importedName;
+  return localTemplateNames.has(template) ? template : undefined;
+};
+
+const mergeNodeTypeFields = ({
+  local,
+  imported,
+  fields,
+  importedTemplateNames,
+  localTemplateNames,
+}: {
+  local: DiscourseNode;
+  imported: DiscourseNode;
+  fields: ReadonlySet<string>;
+  importedTemplateNames: ReadonlyMap<string, string>;
+  localTemplateNames: ReadonlySet<string>;
+}): DiscourseNode => {
+  const merged: DiscourseNode = { ...local, modified: Date.now() };
+  for (const field of MERGEABLE_NODE_TYPE_FIELDS) {
+    if (!fields.has(field)) continue;
+    // TS cannot correlate merged[field] with imported[field] across a key union; the `satisfies` clause makes the write sound.
+    (merged as Record<string, unknown>)[field] = imported[field];
+  }
+  // Same guard the create path applies, so a merged reference cannot dangle.
+  if (fields.has("template")) {
+    merged.template = resolveTemplateReference({
+      template: merged.template,
+      importedTemplateNames,
+      localTemplateNames,
+    });
+  }
+  return merged;
+};
+
+const mergeRelationTypeFields = ({
+  local,
+  imported,
+  fields,
+}: {
+  local: DiscourseRelationType;
+  imported: DiscourseRelationType;
+  fields: ReadonlySet<string>;
+}): DiscourseRelationType => {
+  const merged: DiscourseRelationType = { ...local, modified: Date.now() };
+  for (const field of MERGEABLE_RELATION_TYPE_FIELDS) {
+    if (!fields.has(field)) continue;
+    (merged as Record<string, unknown>)[field] = imported[field];
+  }
+  if (fields.has("color")) {
+    merged.color = toTldrawColor(merged.color);
+  }
+  return merged;
+};
+
+export const applySchemaImportSelection = async ({
+  plugin,
+  loadedSchemaFile,
+  selection,
+  mergePlan,
+  onWarning = () => {},
+}: {
+  plugin: DiscourseGraphPlugin;
+  loadedSchemaFile: LoadedSchemaFile;
+  selection: SchemaSelection;
+  mergePlan?: SchemaMergePlan;
+  onWarning?: (message: string) => void;
+}): Promise<SpecImportApplyResult> => {
+  const { schemaFile, matchPlan } = loadedSchemaFile;
+  const sourceSpaceUri = canonicalObsidianUrl(schemaFile.vaultId);
+  const selectedTemplateNames = new Set(selection.templateNames);
+  const selectedNodeTypeIds = new Set(selection.nodeTypeIds);
+  const selectedRelationTypeIds = new Set(selection.relationTypeIds);
+  const selectedRelationIds = new Set(selection.discourseRelationIds);
+
+  let templatesCreated = 0;
+  let templatesMerged = 0;
+  /** Schema-file template name to the name it actually landed under; these differ when the copy sits beside a local template. */
+  const importedTemplateNames = new Map<string, string>();
+  const templatesByName = new Map(
+    schemaFile.templates.map((template) => [template.name, template]),
+  );
+  for (const templateName of selectedTemplateNames) {
+    const template = templatesByName.get(templateName);
+    if (!template) {
+      onWarning(
+        `Template "${templateName}" was selected but not found in schema file.`,
+      );
+      continue;
+    }
+
+    if (matchPlan.existingTemplateNames.has(templateName)) {
+      if (!mergePlan?.templateNames.has(templateName)) {
+        continue;
+      }
+
+      // Never clobber the local template: the copy lands beside it and the node type is repointed at the copy.
+      const copyResult = await createTemplateFileWithUniqueName({
+        app: plugin.app,
+        templateName: template.name,
+        sourceName: schemaFile.vaultName,
+        content: template.content,
+      });
+      if (copyResult.created) {
+        importedTemplateNames.set(template.name, copyResult.templateName);
+        templatesMerged += 1;
+      } else {
+        onWarning(
+          `Template "${template.name}" not imported: ${copyResult.reason}.`,
+        );
+      }
+      continue;
+    }
+
+    const result = await createTemplateFile({
+      app: plugin.app,
+      templateName: template.name,
+      content: template.content,
+    });
+
+    if (result.created) {
+      importedTemplateNames.set(template.name, template.name);
+      templatesCreated += 1;
+      continue;
+    }
+
+    if (result.reason !== "template already exists") {
+      onWarning(`Template "${template.name}" skipped: ${result.reason}.`);
+    }
+  }
+
+  const schemaNodeTypesById = new Map(
+    schemaFile.nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
+  );
+  const schemaRelationTypesById = new Map(
+    schemaFile.relationTypes.map((relationType) => [
+      relationType.id,
+      relationType,
+    ]),
+  );
+
+  let nodeTypesCreated = 0;
+  let nodeTypesMerged = 0;
+  for (const nodeTypeId of selectedNodeTypeIds) {
+    const importedNodeType = schemaNodeTypesById.get(nodeTypeId);
+    if (!importedNodeType) {
+      onWarning(
+        `Node type "${nodeTypeId}" was selected but missing from schema file.`,
+      );
+      continue;
+    }
+
+    if (matchPlan.existingNodeTypeIds.has(nodeTypeId)) {
+      const mergedFields = mergePlan?.nodeTypeFields.get(nodeTypeId);
+      if (!mergedFields?.size) {
+        continue;
+      }
+
+      const localId = matchPlan.nodeTypeIdMapping.get(nodeTypeId);
+      const localIndex = plugin.settings.nodeTypes.findIndex(
+        (nodeType) => nodeType.id === localId,
+      );
+      if (localIndex === -1) {
+        onWarning(
+          `Node type "${importedNodeType.name}" matched an existing type that is no longer present.`,
+        );
+        continue;
+      }
+
+      const nextNodeTypes = [...plugin.settings.nodeTypes];
+      const mergedNodeType = mergeNodeTypeFields({
+        local: nextNodeTypes[localIndex]!,
+        imported: importedNodeType,
+        fields: mergedFields,
+        importedTemplateNames,
+        localTemplateNames: matchPlan.localTemplateNames,
+      });
+      if (
+        mergedFields.has("template") &&
+        importedNodeType.template &&
+        !mergedNodeType.template
+      ) {
+        onWarning(
+          `Template "${importedNodeType.template}" was not imported and is not in this vault, so "${mergedNodeType.name}" was merged without a template reference.`,
+        );
+      }
+      nextNodeTypes[localIndex] = mergedNodeType;
+      plugin.settings.nodeTypes = nextNodeTypes;
+      nodeTypesMerged += 1;
+      continue;
+    }
+
+    const newNodeType: DiscourseNode = {
+      ...importedNodeType,
+      template: resolveTemplateReference({
+        template: importedNodeType.template,
+        importedTemplateNames,
+        localTemplateNames: matchPlan.localTemplateNames,
+      }),
+      importedFromRid: buildSchemaRid({
+        spaceUri: sourceSpaceUri,
+        localId: importedNodeType.id,
+      }),
+      modified: Date.now(),
+    };
+    plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];
+    nodeTypesCreated += 1;
+  }
+
+  let relationTypesCreated = 0;
+  let relationTypesMerged = 0;
+  for (const relationTypeId of selectedRelationTypeIds) {
+    const importedRelationType = schemaRelationTypesById.get(relationTypeId);
+    if (!importedRelationType) {
+      onWarning(
+        `Relation type "${relationTypeId}" was selected but missing from schema file.`,
+      );
+      continue;
+    }
+
+    if (matchPlan.existingRelationTypeIds.has(relationTypeId)) {
+      const mergedFields = mergePlan?.relationTypeFields.get(relationTypeId);
+      if (!mergedFields?.size) {
+        continue;
+      }
+
+      const localId = matchPlan.relationTypeIdMapping.get(relationTypeId);
+      const localIndex = plugin.settings.relationTypes.findIndex(
+        (relationType) => relationType.id === localId,
+      );
+      if (localIndex === -1) {
+        onWarning(
+          `Relation type "${importedRelationType.label}" matched an existing type that is no longer present.`,
+        );
+        continue;
+      }
+
+      const nextRelationTypes = [...plugin.settings.relationTypes];
+      nextRelationTypes[localIndex] = mergeRelationTypeFields({
+        local: nextRelationTypes[localIndex]!,
+        imported: importedRelationType,
+        fields: mergedFields,
+      });
+      plugin.settings.relationTypes = nextRelationTypes;
+      relationTypesMerged += 1;
+      continue;
+    }
+
+    const newRelationType: DiscourseRelationType = {
+      ...importedRelationType,
+      color: toTldrawColor(importedRelationType.color),
+      importedFromRid: buildSchemaRid({
+        spaceUri: sourceSpaceUri,
+        localId: importedRelationType.id,
+      }),
+      // Accepted, not provisional: the user chose this file and hand-picked these items, so nothing is left to review.
+      status: "accepted",
+      modified: Date.now(),
+    };
+    plugin.settings.relationTypes = [
+      ...plugin.settings.relationTypes,
+      newRelationType,
+    ];
+    relationTypesCreated += 1;
+  }
+
+  const hasNodeType = (id: string): boolean =>
+    plugin.settings.nodeTypes.some((nodeType) => nodeType.id === id);
+  const hasRelationType = (id: string): boolean =>
+    plugin.settings.relationTypes.some(
+      (relationType) => relationType.id === id,
+    );
+
+  let discourseRelationsCreated = 0;
+  for (const relation of schemaFile.discourseRelations) {
+    if (!selectedRelationIds.has(relation.id)) {
+      continue;
+    }
+
+    const mappedSourceId =
+      matchPlan.nodeTypeIdMapping.get(relation.sourceId) ?? relation.sourceId;
+    const mappedDestinationId =
+      matchPlan.nodeTypeIdMapping.get(relation.destinationId) ??
+      relation.destinationId;
+    const mappedRelationTypeId =
+      matchPlan.relationTypeIdMapping.get(relation.relationshipTypeId) ??
+      relation.relationshipTypeId;
+
+    // Checked against live settings, not the plan: two file relations can map to one triple after collapsing.
+    const alreadyPresent = findExistingTriple({
+      discourseRelations: plugin.settings.discourseRelations,
+      sourceId: mappedSourceId,
+      destinationId: mappedDestinationId,
+      relationshipTypeId: mappedRelationTypeId,
+    });
+    if (alreadyPresent) {
+      continue;
+    }
+
+    // The selection UI keeps a triple's endpoints selected, but this layer owns settings integrity, so a dangling triple is refused rather than written.
+    if (
+      !hasNodeType(mappedSourceId) ||
+      !hasNodeType(mappedDestinationId) ||
+      !hasRelationType(mappedRelationTypeId)
+    ) {
+      const sourceName =
+        schemaNodeTypesById.get(relation.sourceId)?.name ?? relation.sourceId;
+      const destinationName =
+        schemaNodeTypesById.get(relation.destinationId)?.name ??
+        relation.destinationId;
+      const relationLabel =
+        schemaRelationTypesById.get(relation.relationshipTypeId)?.label ??
+        relation.relationshipTypeId;
+      onWarning(
+        `Relation "${sourceName} ${relationLabel} ${destinationName}" skipped: it references a type that is not in this vault.`,
+      );
+      continue;
+    }
+
+    const newRelation: DiscourseRelation = {
+      ...relation,
+      id: uuidv7(),
+      sourceId: mappedSourceId,
+      destinationId: mappedDestinationId,
+      relationshipTypeId: mappedRelationTypeId,
+      importedFromRid: buildSchemaRid({
+        spaceUri: sourceSpaceUri,
+        localId: relation.id,
+      }),
+      status: "accepted",
+      modified: Date.now(),
+    };
+    plugin.settings.discourseRelations = [
+      ...plugin.settings.discourseRelations,
+      newRelation,
+    ];
+    discourseRelationsCreated += 1;
+  }
+
+  await plugin.saveSettings();
+
+  return {
+    created: {
+      nodeTypes: nodeTypesCreated,
+      relationTypes: relationTypesCreated,
+      discourseRelations: discourseRelationsCreated,
+      templates: templatesCreated,
+    },
+    merged: {
+      nodeTypes: nodeTypesMerged,
+      relationTypes: relationTypesMerged,
+      templates: templatesMerged,
+    },
   };
 };
