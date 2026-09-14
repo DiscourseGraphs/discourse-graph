@@ -92,6 +92,105 @@ const formatTimestamp = (epochMs: number): string =>
   });
 
 /**
+ * An image without dimensions reserves no height until it loads, so scrolling
+ * before that shifts everything below it — including whatever was just
+ * scrolled to — out of view a moment later. Waits for pending images (capped,
+ * so one slow or broken image can't block the flash indefinitely).
+ */
+const waitForImages = (container: HTMLElement): Promise<void> => {
+  const pending = Array.from(container.querySelectorAll("img")).filter(
+    (img) => !img.complete,
+  );
+  if (!pending.length) return Promise.resolve();
+
+  const loaded = Promise.all(
+    pending.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          img.addEventListener("load", () => resolve(), { once: true });
+          img.addEventListener("error", () => resolve(), { once: true });
+        }),
+    ),
+  ).then(() => undefined);
+
+  return Promise.race([
+    loaded,
+    new Promise<void>((resolve) => window.setTimeout(resolve, 1000)),
+  ]);
+};
+
+/**
+ * `MarkdownRenderer.render` has no source-line mapping, so this finds the tagged
+ * line by matching its already-known, already-sanitized text (`result.title` for
+ * a tag result) against rendered block content instead.
+ */
+const normalizeWhitespace = (text: string): string =>
+  text.replace(/\s+/g, " ").trim();
+
+/**
+ * Finds the rendered element whose text is the tagged line, given its
+ * already-sanitized text (`lineText`). Exact equality only — `includes`
+ * previously let an unrelated earlier block that merely *contains* the
+ * tagged line's text as a substring win the match (e.g. a short tagged
+ * line like "Alpha" matching inside an unrelated "Alpha is background"
+ * paragraph above it) — an ambiguous match must not select the wrong
+ * block. Table rows are handled separately: `sanitizeTagLine` leaves a
+ * row's `|`-delimited cells in the title, but a rendered `td`/`th`'s own
+ * `textContent` never contains its neighbors' text, so no single cell can
+ * equal the full row's title — only the enclosing `tr`, compared with
+ * pipes stripped from both sides, can.
+ */
+const findTaggedLineElement = (
+  container: HTMLElement,
+  lineText: string,
+): Element | null => {
+  const target = normalizeWhitespace(lineText);
+
+  const blocks = container.querySelectorAll(
+    "p, li, h1, h2, h3, h4, h5, h6, blockquote, dd, dt",
+  );
+  const exactBlock = Array.from(blocks).find(
+    (block) => normalizeWhitespace(block.textContent ?? "") === target,
+  );
+  if (exactBlock) return exactBlock;
+
+  const normalizedTableTarget = normalizeWhitespace(target.replace(/\|/g, " "));
+  if (!normalizedTableTarget) return null;
+  const rows = container.querySelectorAll("tr");
+  return (
+    Array.from(rows).find(
+      (row) => normalizeWhitespace(row.textContent ?? "") === normalizedTableTarget,
+    ) ?? null
+  );
+};
+
+const scrollToAndFlashLine = (container: HTMLElement, lineText: string): void => {
+  if (!lineText.trim()) return;
+
+  const target = findTaggedLineElement(container, lineText);
+  if (!target) return;
+
+  target.scrollIntoView({ block: "center" });
+
+  // Resolved to a concrete color first: a `var(...)` reference inside
+  // `animate()` keyframes doesn't reliably resolve in every engine, unlike in
+  // a stylesheet or inline `style`. Held at full color before fading, rather
+  // than fading from the first frame — otherwise most of an ease-out fade is
+  // already gone before a reader's eye catches up with the scroll.
+  const highlightColor =
+    getComputedStyle(target).getPropertyValue("--text-highlight-bg").trim() ||
+    "rgba(255, 208, 0, 0.4)";
+  target.animate(
+    [
+      { backgroundColor: highlightColor, offset: 0 },
+      { backgroundColor: highlightColor, offset: 0.35 },
+      { backgroundColor: "transparent", offset: 1 },
+    ],
+    { duration: 3000, easing: "ease-out" },
+  );
+};
+
+/**
  * `PreviewPane` does its own imperative DOM work (`container.empty()`,
  * `MarkdownRenderer.render`, image-load waiting, WAAPI animation) alongside
  * React's own rendering of the same subtree — racy by nature, and Obsidian's
@@ -181,25 +280,38 @@ const PreviewPane = ({
     };
   }, [app, file]);
 
+  // A primitive, not the whole `result` object: `results` gets a fresh object
+  // reference on every re-rank, and depending on the object itself would
+  // re-render (and re-scroll) the markdown on every keystroke even when the
+  // file and target line haven't actually changed.
+  const tagLineTitle = result?.tagLine ? result.title : undefined;
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !file || loaded?.file !== file) return;
 
     container.empty();
     const component = new Component();
+    let cancelled = false;
     void MarkdownRenderer.render(
       app,
       loaded.text.trim() || "This note is empty.",
       container,
       file.path,
       component,
-    );
+    )
+      .then(() => waitForImages(container))
+      .then(() => {
+        if (cancelled || tagLineTitle === undefined) return;
+        scrollToAndFlashLine(container, tagLineTitle);
+      });
 
     return () => {
+      cancelled = true;
       component.unload();
       container.empty();
     };
-  }, [app, file, loaded]);
+  }, [app, file, loaded, tagLineTitle]);
 
   if (!result || !file) {
     return (
