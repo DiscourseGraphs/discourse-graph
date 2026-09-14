@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import type { ReactElement } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -7,11 +7,17 @@ const title = "Database engineer | Discourse Graphs";
 const description =
   "Join Discourse Graphs for a remote, three-month database engineering contract starting October 2026. Approximately 20 hours per week, $8k/month.";
 
-export const metadata: Metadata = {
-  title,
-  description,
-  openGraph: { title, description },
-  twitter: { title, description },
+export const generateMetadata = async (
+  _props: unknown,
+  parent: ResolvingMetadata,
+): Promise<Metadata> => {
+  const inherited = await parent;
+  return {
+    title,
+    description,
+    openGraph: { ...inherited.openGraph, title, description },
+    twitter: { ...inherited.twitter, title, description },
+  };
 };
 
 const CareersPage = (): ReactElement => (
@@ -27,7 +33,7 @@ const CareersPage = (): ReactElement => (
       <h1 className="mt-8 text-4xl font-semibold tracking-tight text-primary sm:text-5xl">
         Database engineer
       </h1>
-      <p className="mt-4 text-lg leading-8 text-neutral-dark/75">
+      <p className="mt-4 text-lg font-semibold leading-8 text-neutral-dark/75">
         3-month contract · Remote · ~20 hrs/week · $8k/mo · Start October 2026
       </p>
       <p className="mt-4 text-lg leading-8 text-neutral-dark/80">
@@ -47,9 +53,10 @@ const CareersPage = (): ReactElement => (
           that helps research teams structure knowledge work, projects, and
           original research contributions. We do this by helping them represent
           their work as a structured graph (claims, evidence, requests) and move
-          that structure between the tools they already use. We ship plugins for
-          Roam Research and Obsidian, backed by a shared Supabase database, and
-          we run live pilots with working scientific labs.
+          that structure between the tools they already use. We ship plugins for{" "}
+          <strong>Roam Research</strong> and <strong>Obsidian</strong>, backed
+          by a shared Supabase database, and we run live pilots with working
+          scientific labs.
         </p>
         <p>
           We’re a distributed team of about eight, funded by the Chan Zuckerberg
@@ -64,18 +71,21 @@ const CareersPage = (): ReactElement => (
           Our database is the layer through which every platform talks to every
           other. Right now it has two gaps:
         </p>
-        <ul>
+        <ol>
           <li>
-            It stores node titles, not node content. Which means agents and
-            other clients can see that something exists but can’t read it.
+            <strong>It stores node titles, not node content.</strong> Which
+            means agents and other clients can see that something exists but
+            can’t read it.
           </li>
           <li>
-            It can’t express a reference that crosses a graph boundary.
+            <strong>
+              It can’t express a reference that crosses a graph boundary.
+            </strong>{" "}
             Cross-graph citations and relation tracking are the next thing our
             users need, and the third-party system we’d planned to lean on has
             been discontinued.
           </li>
-        </ul>
+        </ol>
         <p>
           Closing the first gap, and laying the schema groundwork for the
           second, is what these twelve weeks are for.
@@ -83,32 +93,38 @@ const CareersPage = (): ReactElement => (
         <h2>What you’d work on</h2>
         <ul>
           <li>
-            Finish the remaining milestones of a Roam ↔ Obsidian push/pull
-            sync, including conflict handling on repeat sync and property
-            alignment across two platforms with very different data models
+            Finish the remaining milestones of a{" "}
+            <strong>Roam ↔ Obsidian push/pull sync</strong>, including conflict
+            handling on repeat sync and property alignment across two platforms
+            with very different data models
           </li>
           <li>
-            Extend the Supabase schema to store node templates, slot
-            definitions, and full node content, and expose it through the API so
-            agent tooling can read node bodies
+            Extend the Supabase schema to store{" "}
+            <strong>
+              node templates, slot definitions, and full node content
+            </strong>
+            , and expose it through the API so agent tooling can read node
+            bodies
           </li>
           <li>
-            Import-time sanitization: page references and forward slashes in
-            titles currently break sync in ways that are individually small and
-            collectively corrosive
+            <strong>Import-time sanitization</strong>: page references and
+            forward slashes in titles currently break sync in ways that are
+            individually small and collectively corrosive
           </li>
           <li>
-            Write a migration readiness assessment for Roam’s forthcoming data
-            model: what it costs, what it implies for the UI, and when we should
-            decide
+            Write a <strong>migration readiness assessment</strong> for Roam’s
+            forthcoming data model: what it costs, what it implies for the UI,
+            and when we should decide
           </li>
         </ul>
-        <h2>What we’re not asking you to do</h2>
+        <h2>
+          What we’re <em>not</em> asking you to do
+        </h2>
         <p>
-          Out of scope: AT Protocol and federation work, cross-graph schema
-          reconciliation design, distributed version control, and the Roam
-          migration itself. These are real problems we care about. They are
-          someone else’s ticket, or a later one.
+          <strong>Out of scope:</strong> AT Protocol and federation work,
+          cross-graph schema reconciliation design, distributed version control,
+          and the Roam migration itself. These are real problems we care about.
+          They are someone else’s ticket, or a later one.
         </p>
         <h2>What we’re looking for</h2>
         <h3>Required</h3>
@@ -173,8 +189,8 @@ const CareersPage = (): ReactElement => (
             week 6; extension is possible and would be agreed upon in writing.
           </li>
           <li>
-            <strong>Rate:</strong> $8k/mo, approximately 20 hours per week,
-            invoiced semi-monthly through Homeworld Collective.
+            <strong>Rate:</strong> $8k/mo<strong>, approximately 20</strong>{" "}
+            hours per week, invoiced semi-monthly through Homeworld Collective.
           </li>
           <li>
             <strong>Location:</strong> Fully remote. You’ll need a few hours of
@@ -198,17 +214,17 @@ const CareersPage = (): ReactElement => (
           </a>{" "}
           with:
         </p>
-        <ul>
+        <ol>
           <li>
             A short note (1-2 paragraphs is plenty) about a schema or data-model
             decision you made, and what you’d do differently now
           </li>
           <li>Code we can read: a repo, a PR, anything public</li>
           <li>Your availability and rate</li>
-        </ul>
+        </ol>
         <p>
-          We request applications by October 1, though applications can be
-          rolling.
+          We request applications by <strong>October 1,</strong> though
+          applications can be rolling.
         </p>
         <p>
           First conversation is 30 minutes with Michael Gartner, our technical
