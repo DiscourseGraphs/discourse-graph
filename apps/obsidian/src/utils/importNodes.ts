@@ -4,14 +4,24 @@ import { App, Notice, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { listGroupSharedNodes } from "@repo/database/lib/sharedNodes";
 import type DiscourseGraphPlugin from "~/index";
-import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
+import {
+  getLocalSpaceUri,
+  getLoggedInClient,
+  getSupabaseContext,
+} from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
 import {
+  addRelationNoCheck,
+  findRelationBySourceDestinationType,
+  loadRelations,
   getImportedNodesInfo,
   getLocalNodeKeyToEndpointId,
 } from "~/utils/relationsStore";
-import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
+import {
+  ridToSpaceUriAndLocalId,
+  spaceUriAndLocalIdToRid,
+} from "@repo/database/lib/rid";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Tables } from "@repo/database/dbTypes";
 import { getSpaceNameIdFromRid } from "./spaceFromRid";
@@ -21,7 +31,7 @@ import {
 } from "./importRelations";
 import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
-import { getNodeTypeById } from "./typeUtils";
+import { getNodeTypeById, isAcceptedSchema } from "./typeUtils";
 import { decorateTitle } from "@repo/database/lib/decorateTitle";
 
 type PublishedNode = {
@@ -332,6 +342,7 @@ type NodeTypeSchemaForInstance = {
 type NodeInstanceImportInfo = {
   schema?: NodeTypeSchemaForInstance;
   coreTitle?: string;
+  sourceDocumentId?: number;
 };
 
 export const fetchNodeImportInfoForInstances = async ({
@@ -348,7 +359,7 @@ export const fetchNodeImportInfoForInstances = async ({
   const { data: instanceRows, error: instanceError } = await client
     .from("my_concepts")
     .select(
-      "source_local_id, schema_id, core_title:literal_content->>core_title",
+      "source_local_id, schema_id, core_title:literal_content->>core_title, sourceDocument:reference_content->sourceDocument",
     )
     .eq("space_id", spaceId)
     .eq("is_schema", false)
@@ -402,6 +413,8 @@ export const fetchNodeImportInfoForInstances = async ({
       schema:
         row.schema_id === null ? undefined : schemasById.get(row.schema_id),
       coreTitle: row.core_title ?? undefined,
+      sourceDocumentId:
+        typeof row.sourceDocument === "number" ? row.sourceDocument : undefined,
     });
   }
 
@@ -1230,12 +1243,205 @@ const processFileContent = async ({
   return file;
 };
 
-export const importSelectedNodes = async ({
+const importSourceDocumentRelations = async ({
   plugin,
-  selectedNodes,
-  onProgress,
-  precomputedData,
+  client,
+  localSpaceId,
+  spaceUri,
+  nodeImportInfoByInstance,
+  importedFiles,
 }: {
+  plugin: DiscourseGraphPlugin;
+  client: DGSupabaseClient;
+  localSpaceId: number;
+  spaceUri: string;
+  nodeImportInfoByInstance: Map<string, NodeInstanceImportInfo>;
+  importedFiles: Map<string, TFile>;
+}): Promise<void> => {
+  const nodesWithSource = [...nodeImportInfoByInstance].flatMap(
+    ([nodeId, info]) => {
+      const file = importedFiles.get(
+        spaceUriAndLocalIdToRid(spaceUri, nodeId, "note"),
+      );
+      return file && info.sourceDocumentId !== undefined
+        ? [{ file, nodeId, sourceDocumentId: info.sourceDocumentId }]
+        : [];
+    },
+  );
+  if (nodesWithSource.length === 0) return;
+
+  const { data: sources, error } = await client
+    .from("my_concepts")
+    .select("id, source_local_id, space_id")
+    .eq("is_schema", false)
+    .eq("is_relation", false)
+    .in("id", [
+      ...new Set(nodesWithSource.map((node) => node.sourceDocumentId)),
+    ]);
+  if (error) throw error;
+
+  const sourceSpaceIds = [
+    ...new Set(
+      (sources ?? []).flatMap((source) =>
+        source.space_id === null ? [] : [source.space_id],
+      ),
+    ),
+  ];
+  const sourceSpaceUris = await getSpaceUris(client, sourceSpaceIds);
+  const queryEngine = new QueryEngine(plugin.app);
+  const sourceFiles = new Map<number, TFile>();
+  const pendingSources = new Map<string, ImportableNode>();
+  const sourceRids = new Map<number, string>();
+  for (const source of sources ?? []) {
+    if (
+      source.id === null ||
+      source.space_id === null ||
+      source.source_local_id === null
+    )
+      continue;
+    const sourceSpaceUri = sourceSpaceUris.get(source.space_id);
+    if (!sourceSpaceUri) continue;
+    const rid = spaceUriAndLocalIdToRid(
+      sourceSpaceUri,
+      source.source_local_id,
+      "note",
+    );
+    sourceRids.set(source.id, rid);
+    const file =
+      importedFiles.get(rid) ??
+      (source.space_id === localSpaceId
+        ? queryEngine
+            .getFilesWithNodeTypeId({ excludeImported: true })
+            .find(
+              (file) =>
+                plugin.app.metadataCache.getFileCache(file)?.frontmatter
+                  ?.nodeInstanceId === source.source_local_id,
+            )
+        : queryEngine.getFileByImportedFromRid(rid));
+    if (file) {
+      sourceFiles.set(source.id, file);
+      importedFiles.set(rid, file);
+    } else {
+      pendingSources.set(rid, {
+        nodeInstanceId: source.source_local_id,
+        spaceId: source.space_id,
+        title: "",
+        spaceName: "",
+        groupId: "",
+        selected: false,
+      });
+    }
+  }
+  if (pendingSources.size > 0) {
+    await importNodes({
+      plugin,
+      selectedNodes: [...pendingSources.values()],
+      importedFiles,
+    });
+  }
+  for (const [id, rid] of sourceRids) {
+    const file = importedFiles.get(rid);
+    if (file) sourceFiles.set(id, file);
+  }
+
+  const localSpaceUri = getLocalSpaceUri(plugin.app);
+  const indexedFiles = queryEngine.getFilesWithNodeInstanceId();
+  const legacyEndpointsForFile = ({
+    file,
+    nodeInstanceId,
+  }: {
+    file: TFile;
+    nodeInstanceId: string;
+  }): string[] => {
+    // Bare IDs and vault RIDs are ambiguous when another space uses the same ID.
+    const hasOtherFile =
+      indexedFiles.some(
+        (candidate) =>
+          candidate !== file &&
+          plugin.app.metadataCache.getFileCache(candidate)?.frontmatter
+            ?.nodeInstanceId === nodeInstanceId,
+      ) ||
+      [...importedFiles].some(
+        ([rid, candidate]) =>
+          candidate !== file &&
+          ridToSpaceUriAndLocalId(rid).sourceLocalId === nodeInstanceId,
+      );
+    return hasOtherFile
+      ? []
+      : [
+          nodeInstanceId,
+          spaceUriAndLocalIdToRid(localSpaceUri, nodeInstanceId, "note"),
+        ];
+  };
+  for (const { file, nodeId, sourceDocumentId } of nodesWithSource) {
+    const sourceFile = sourceFiles.get(sourceDocumentId);
+    if (!sourceFile) {
+      const warning = `Imported ${file.basename}, but its Source is unavailable. No source relation was created.`;
+      console.warn(warning);
+      new Notice(warning);
+      continue;
+    }
+    const { frontmatter: current } = parseFrontmatter(
+      await plugin.app.vault.read(file),
+    );
+    const { frontmatter: source } = parseFrontmatter(
+      await plugin.app.vault.read(sourceFile),
+    );
+    const sourceNodeType = plugin.settings.nodeTypes.find(
+      (type) => type.id === source.nodeTypeId,
+    );
+    if (sourceNodeType?.name.toLowerCase() !== "source") continue;
+    const triple = plugin.settings.discourseRelations.find(
+      (relation) =>
+        isAcceptedSchema(relation) &&
+        relation.sourceId === current.nodeTypeId &&
+        relation.destinationId === source.nodeTypeId &&
+        plugin.settings.relationTypes.some(
+          (type) =>
+            type.id === relation.relationshipTypeId && isAcceptedSchema(type),
+        ),
+    );
+    if (!triple) continue;
+    if (typeof source.nodeInstanceId !== "string") continue;
+    const currentEndpoint = spaceUriAndLocalIdToRid(spaceUri, nodeId, "note");
+    const sourceEndpoint =
+      typeof source.importedFromRid === "string"
+        ? source.importedFromRid
+        : source.nodeInstanceId;
+    const relations = await loadRelations(plugin);
+    const currentEndpoints = [
+      currentEndpoint,
+      ...legacyEndpointsForFile({ file, nodeInstanceId: nodeId }),
+    ];
+    const sourceEndpoints = [
+      sourceEndpoint,
+      ...legacyEndpointsForFile({
+        file: sourceFile,
+        nodeInstanceId: source.nodeInstanceId,
+      }),
+    ];
+    if (
+      currentEndpoints.some((from) =>
+        sourceEndpoints.some((to) =>
+          findRelationBySourceDestinationType(
+            relations,
+            from,
+            to,
+            triple.relationshipTypeId,
+          ),
+        ),
+      )
+    )
+      continue;
+    await addRelationNoCheck(plugin, {
+      type: triple.relationshipTypeId,
+      source: currentEndpoint,
+      destination: sourceEndpoint,
+    });
+  }
+};
+
+type ImportSelectedNodesOptions = {
   plugin: DiscourseGraphPlugin;
   selectedNodes: ImportableNode[];
   onProgress?: (current: number, total: number) => void;
@@ -1245,6 +1451,21 @@ export const importSelectedNodes = async ({
     keyToRelationEndpointId: Map<string, string>;
     relationInstancesBySpace: Map<number, RemoteRelationInstance[]>;
   };
+};
+
+export const importSelectedNodes = (
+  options: ImportSelectedNodesOptions,
+): Promise<{ success: number; failed: number }> =>
+  importNodes({ ...options, importedFiles: new Map() });
+
+const importNodes = async ({
+  plugin,
+  selectedNodes,
+  onProgress,
+  precomputedData,
+  importedFiles,
+}: ImportSelectedNodesOptions & {
+  importedFiles: Map<string, TFile>;
 }): Promise<{ success: number; failed: number }> => {
   const client = await getLoggedInClient(plugin);
   if (!client) {
@@ -1311,10 +1532,12 @@ export const importSelectedNodes = async ({
           "note",
         );
         // Check if file already exists by nodeInstanceId + importedFromRid
-        const existingFile = queryEngine.findExistingImportedFile(
-          node.nodeInstanceId,
-          importedFromRid,
-        );
+        const existingFile =
+          importedFiles.get(importedFromRid) ??
+          queryEngine.findExistingImportedFile(
+            node.nodeInstanceId,
+            importedFromRid,
+          );
 
         const nodeContent = await fetchNodeContentForImport({
           client,
@@ -1397,6 +1620,20 @@ export const importSelectedNodes = async ({
             : `${sanitizedFileName}.md`;
           finalFilePath = `${importFolderPath}/${pathUnderImport}`;
 
+          const desiredFilePath = finalFilePath;
+          let counter = 1;
+          let occupiedFile: TFile | null;
+          while (
+            (occupiedFile = plugin.app.vault.getFileByPath(finalFilePath))
+          ) {
+            const { frontmatter } = parseFrontmatter(
+              await plugin.app.vault.read(occupiedFile),
+            );
+            if (frontmatter.importedFromRid === importedFromRid) break;
+            finalFilePath = `${desiredFilePath.slice(0, -3)} (${counter}).md`;
+            counter++;
+          }
+
           // Ensure all parent folders exist (e.g. import/VaultName/Discourse Nodes/SubFolder)
           const dirParts = finalFilePath.split("/");
           for (let i = 1; i < dirParts.length - 1; i++) {
@@ -1453,13 +1690,20 @@ export const importSelectedNodes = async ({
           const newPath = `${currentDir}/${sanitizedFileName}.md`;
           let targetPath = newPath;
           let counter = 1;
-          while (await plugin.app.vault.adapter.exists(targetPath)) {
+          while (
+            (await plugin.app.vault.adapter.exists(targetPath)) &&
+            plugin.app.vault.getFileByPath(targetPath) !== processedFile
+          ) {
             targetPath = `${currentDir}/${sanitizedFileName} (${counter}).md`;
             counter++;
           }
-          await plugin.app.fileManager.renameFile(processedFile, targetPath);
+          if (targetPath !== processedFile.path) {
+            await plugin.app.fileManager.renameFile(processedFile, targetPath);
+          }
         }
 
+        // The metadata cache can lag behind vault writes during a batch import.
+        importedFiles.set(importedFromRid, processedFile);
         successCount++;
         processedCount++;
         onProgress?.(processedCount, totalNodes);
@@ -1469,6 +1713,22 @@ export const importSelectedNodes = async ({
         processedCount++;
         onProgress?.(processedCount, totalNodes);
       }
+    }
+
+    try {
+      await importSourceDocumentRelations({
+        plugin,
+        client,
+        localSpaceId: context.spaceId,
+        spaceUri,
+        nodeImportInfoByInstance,
+        importedFiles,
+      });
+    } catch (error) {
+      console.warn("Could not import source documents:", error);
+      new Notice(
+        "Nodes imported, but their source relations could not be imported.",
+      );
     }
 
     // Import relations where both endpoints resolve in this vault (imported or local)
