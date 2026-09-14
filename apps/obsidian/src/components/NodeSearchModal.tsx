@@ -97,19 +97,37 @@ const formatTimestamp = (epochMs: number): string =>
  * reconciliation crash ("removeChild... not a child of this node") with no
  * clean fix available from inside the effect itself. Scoped here rather than
  * around the whole modal, so a crash takes out only the (non-essential)
- * preview — search, filters, and the result list stay fully usable — and
- * keyed by the previewed result's identity in the render below, so picking a
- * different result always gets a fresh, un-crashed instance rather than
- * staying stuck on the fallback.
+ * preview — search, filters, and the result list stay fully usable.
+ *
+ * Not remounted (via a `key`) when the previewed result changes: a keyed
+ * boundary is itself torn down on that change, so an error thrown while
+ * React deletes its *old* subtree has no mounted boundary left to catch it —
+ * defeating the fix for exactly the race this component exists to contain.
+ * Instead this instance stays mounted across every result change, and resets
+ * itself when `resetKey` changes so a later selection can still retry after
+ * a crash. The reset lives in `getDerivedStateFromProps` (compared against
+ * the *stored* `resetKey`, not the previous render's), not
+ * `componentDidUpdate` comparing consecutive props: if the newly-selected
+ * result itself throws, a plain "did resetKey change since last render"
+ * check would clear `hasError` again on the very next update — even though
+ * `resetKey` hasn't moved on since — reopening the same crash in a loop.
  */
 class PreviewErrorBoundary extends ReactComponent<
-  { children: ReactNode },
-  { hasError: boolean }
+  { children: ReactNode; resetKey: string },
+  { hasError: boolean; resetKey: string }
 > {
-  state = { hasError: false };
+  state = { hasError: false, resetKey: this.props.resetKey };
 
   static getDerivedStateFromError(): { hasError: boolean } {
     return { hasError: true };
+  }
+
+  static getDerivedStateFromProps(
+    props: { resetKey: string },
+    state: { hasError: boolean; resetKey: string },
+  ): { hasError: boolean; resetKey: string } | null {
+    if (props.resetKey === state.resetKey) return null;
+    return { hasError: false, resetKey: props.resetKey };
   }
 
   componentDidCatch(error: unknown): void {
@@ -609,9 +627,11 @@ const NodeSearch = ({
           )}
         </div>
         <PreviewErrorBoundary
-          // Remounts (clearing any prior crash) whenever the previewed result
-          // itself changes, not just when its data does.
-          key={activeResult ? activeResult.file.path : "none"}
+          // Resets (clearing any prior crash) whenever the previewed result
+          // itself changes, not just when its data does. Not a `key`: see
+          // the class doc comment for why this boundary must stay mounted
+          // across that change rather than remount.
+          resetKey={activeResult ? activeResult.file.path : "none"}
         >
           <PreviewPane app={app} result={activeResult} authorName={authorName} />
         </PreviewErrorBoundary>
