@@ -27,6 +27,7 @@ import { NodeSearchFooter } from "~/components/NodeSearchFooter";
 import { NodeSortMenu } from "~/components/NodeSortMenu";
 import {
   NodeTypeChipsSearchInput,
+  isCaretAtEnd,
   setCaretToEnd,
 } from "~/components/NodeTypeChipsSearchInput";
 import { NodeTypeFilterMenu } from "~/components/NodeTypeFilterMenu";
@@ -472,6 +473,8 @@ const NodeSearch = ({
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  // Closed by default, like Linear's search preview: ArrowRight opens it, ArrowLeft closes it.
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   // Single source of truth: ENG-2111's tag chips will read and write this too.
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
   // One value per toolbar, so two panels can never be open at once.
@@ -708,6 +711,35 @@ const NodeSearch = ({
       return;
     }
 
+    // Closing takes priority and isn't caret-gated: once the preview is open,
+    // ArrowLeft is a dedicated "close" action, not a text-editing key. Excluded
+    // during IME composition, so repositioning the composition caret with the
+    // arrow keys isn't hijacked into closing the preview instead.
+    if (
+      event.key === "ArrowLeft" &&
+      !event.nativeEvent.isComposing &&
+      isPreviewOpen
+    ) {
+      event.preventDefault();
+      setIsPreviewOpen(false);
+      return;
+    }
+
+    // Gated on the caret already being at the end, so normal cursor movement
+    // through query text is untouched — only the "nowhere further right to go"
+    // press gets repurposed.
+    if (
+      event.key === "ArrowRight" &&
+      !event.nativeEvent.isComposing &&
+      !isPreviewOpen &&
+      activeResult &&
+      isCaretAtEnd(inputRef.current)
+    ) {
+      event.preventDefault();
+      setIsPreviewOpen(true);
+      return;
+    }
+
     if (event.key !== "Enter") return;
     // Enter also commits an IME candidate, which must not open a file.
     if (event.nativeEvent.isComposing) return;
@@ -786,8 +818,18 @@ const NodeSearch = ({
           sortKey={sortKey}
         />
       </div>
-      <div className="border-modifier-border mt-3 flex flex-1 overflow-hidden rounded border">
-        <div className="border-modifier-border flex w-2/5 flex-col border-r">
+      <div className="mt-3 flex flex-1 overflow-hidden">
+        <div
+          // A single arbitrary `border-right` property, not the `border-r`/`border-solid`/
+          // `border-modifier-border` combo: those last two are shorthands that apply to all
+          // four sides, and something already gives every side a non-zero width by default,
+          // so setting style+color on all sides made the top/left/bottom edges visible too.
+          className={`flex flex-col ${
+            isPreviewOpen
+              ? "w-2/5 pr-2 [border-right:1px_solid_var(--background-modifier-border)]"
+              : "w-full"
+          }`}
+        >
           <NodeTypeFilterTags
             focusSearchInput={() => {
               const field = inputRef.current;
@@ -818,19 +860,27 @@ const NodeSearch = ({
             />
           )}
         </div>
-        <PreviewErrorBoundary
-          // Resets (clearing any prior crash) whenever the previewed result
-          // itself changes, not just when its data does. Not a `key`: see
-          // the class doc comment for why this boundary must stay mounted
-          // across that change rather than remount.
-          resetKey={activeResult ? activeResult.file.path : "none"}
-        >
-          <PreviewPane app={app} result={activeResult} authorName={authorName} />
-        </PreviewErrorBoundary>
+        {isPreviewOpen && (
+          <PreviewErrorBoundary
+            // Resets (clearing any prior crash) whenever the previewed result
+            // itself changes, not just when its data does. Not a `key`: see
+            // the class doc comment for why this boundary must stay mounted
+            // across that change rather than remount.
+            resetKey={
+              activeResult
+                ? `${activeResult.file.path}#${activeResult.tagLine?.lineNumber ?? "node"}`
+                : "none"
+            }
+          >
+            <PreviewPane app={app} result={activeResult} authorName={authorName} />
+          </PreviewErrorBoundary>
+        )}
       </div>
       <NodeSearchFooter
         canAct={candidateState.status === "ready" && !!activeResult}
         canInsertLink={!!insertTarget}
+        isPreviewOpen={isPreviewOpen}
+        onTogglePreview={() => setIsPreviewOpen((current) => !current)}
         onClose={onClose}
         onInsertLink={insertLinkToActiveResult}
         onOpenInNewTab={() => openActiveResult(openFileInNewTab)}
