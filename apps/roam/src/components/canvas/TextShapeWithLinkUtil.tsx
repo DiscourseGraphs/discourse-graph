@@ -22,9 +22,13 @@ const HyperlinkButton = ({
   zoomLevel: number;
 }): JSX.Element => (
   <a
-    className={`tl-hyperlink-button${
-      zoomLevel < 0.32 ? "tl-hyperlink-button__hidden" : ""
-    }`}
+    className={[
+      "tl-hyperlink-button",
+      "dg-text-link-button",
+      zoomLevel < 0.32 ? "tl-hyperlink-button__hidden" : "",
+    ]
+      .filter(Boolean)
+      .join(" ")}
     href={url}
     target="_blank"
     rel="noopener noreferrer"

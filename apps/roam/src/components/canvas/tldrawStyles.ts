@@ -10,6 +10,14 @@ export default /* css */ `
     display: none;
   }
   
+  /* A text shape's bounds hug its glyphs, so tldraw's in-bounds link button
+     lands on the last word; sit it just outside the right edge instead. */
+  .dg-text-link-button {
+    top: 50%;
+    right: 0;
+    transform: translate(100%, -50%);
+  }
+
   /* Shape Render Fix */
   svg.tl-svg-container {
     overflow: visible;

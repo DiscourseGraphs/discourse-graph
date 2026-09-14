@@ -7,7 +7,12 @@ type UnknownRecord = {
 export const isTextShapeRecord = (record: unknown): boolean => {
   if (typeof record !== "object" || record === null) return false;
   const { typeName, type, props } = record as UnknownRecord;
-  return typeName === "shape" && type === "text" && typeof props === "object";
+  return (
+    typeName === "shape" &&
+    type === "text" &&
+    typeof props === "object" &&
+    props !== null
+  );
 };
 
 // tldraw gates its Edit link action on `'url' in shape.props`, so a text shape

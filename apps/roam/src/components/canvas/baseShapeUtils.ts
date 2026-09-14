@@ -11,3 +11,9 @@ export const baseShapeUtils: TLAnyShapeUtilConstructor[] =
   defaultShapeUtils.map((util) =>
     util === TextShapeUtil ? TextShapeWithLinkUtil : util,
   );
+
+// Fail loudly rather than shipping a store whose schema lacks `url` while the
+// UI still writes it, which would only surface as validation errors on save.
+if (!baseShapeUtils.includes(TextShapeWithLinkUtil)) {
+  throw new Error("Failed to replace TextShapeUtil in the default shape utils");
+}

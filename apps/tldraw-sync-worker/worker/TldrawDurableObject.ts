@@ -16,17 +16,34 @@ type RoomSchemaConfig = {
 
 const STORAGE_SCHEMA_CONFIG_KEY = "schemaConfig";
 
+// Text shapes carry a link url; reuse geo's validator rather than redeclaring it.
+const textShapeSchema = {
+  ...defaultShapeSchemas.text,
+  props: {
+    ...defaultShapeSchemas.text.props,
+    url: defaultShapeSchemas.geo.props.url,
+  },
+};
+
 const createRoomSchema = ({ shapeTypes, bindingTypes }: RoomSchemaConfig) => {
+  // A default shape type must keep its own props and migrations. Blanking one
+  // to {} drops its migration sequence, so the room reports version 0 while
+  // every client reports 2 and all of them are rejected as too old.
   const customShapeSchemas = Object.fromEntries(
-    shapeTypes.map((type) => [type, {}]),
+    shapeTypes
+      .filter((type) => !(type in defaultShapeSchemas))
+      .map((type) => [type, {}]),
   );
   const customBindingSchemas = Object.fromEntries(
-    bindingTypes.map((type) => [type, {}]),
+    bindingTypes
+      .filter((type) => !(type in defaultBindingSchemas))
+      .map((type) => [type, {}]),
   );
 
   return createTLSchema({
     shapes: {
       ...defaultShapeSchemas,
+      text: textShapeSchema,
       ...customShapeSchemas,
     },
     bindings: {

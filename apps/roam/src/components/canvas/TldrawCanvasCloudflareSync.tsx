@@ -80,9 +80,7 @@ export const useCloudflareSyncStore = ({
   const uri = useMemo(() => {
     const roomId = getSyncRoomId({ pageUid });
     const query = new URLSearchParams();
-    // The worker validates `text` against stock tldraw props unless it is
-    // declared here, which would reject the url prop text links add.
-    for (const shapeType of [...customShapeTypes, "text"]) {
+    for (const shapeType of customShapeTypes) {
       query.append("shapeType", shapeType);
     }
     for (const bindingType of customBindingTypes) {
