@@ -21,7 +21,6 @@ import { TeamPerson } from "~/components/TeamPerson";
 import { TEAM_MEMBERS } from "~/data/constants";
 import { STATIC_NEWS_ITEMS } from "~/data/news";
 import type { NewsItem } from "~/types/news";
-import { getButtondownNewsletterItems } from "~/utils/buttondown";
 import { formatDisplayDate } from "~/utils/formatDate";
 import { sortByDateDesc } from "~/utils/sortByDate";
 
@@ -246,10 +245,7 @@ const ArrowLink = ({
 );
 
 const Home = async (): Promise<ReactElement> => {
-  const [blogs, newsletterItems] = await Promise.all([
-    getAllBlogs(),
-    getButtondownNewsletterItems(),
-  ]);
+  const blogs = await getAllBlogs();
 
   const blogNewsItems: NewsItem[] = blogs.map((blog) => ({
     date: blog.date,
@@ -259,18 +255,9 @@ const Home = async (): Promise<ReactElement> => {
     title: blog.title,
   }));
 
-  const allNewsItems = [
-    ...STATIC_NEWS_ITEMS,
-    ...blogNewsItems,
-    ...newsletterItems,
-  ];
-  // Buttondown's pagination can occasionally return the same email twice
-  // (e.g. if one is sent mid-fetch); href is used as the React key, so
-  // dedupe before rendering.
-  const dedupedNewsItems = Array.from(
-    new Map(allNewsItems.map((item) => [item.href, item])).values(),
-  );
-  const news = dedupedNewsItems.sort(sortByDateDesc).slice(0, MAX_NEWS_ITEMS);
+  const news = [...STATIC_NEWS_ITEMS, ...blogNewsItems]
+    .sort(sortByDateDesc)
+    .slice(0, MAX_NEWS_ITEMS);
 
   return (
     <div>
