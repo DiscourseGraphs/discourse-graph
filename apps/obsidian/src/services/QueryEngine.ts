@@ -29,8 +29,16 @@ type DatacorePage = {
   $path?: string;
 };
 
-export type DiscourseNodeCandidate = {
-  file: TFile;
+/** Identifies a node published to another space, not yet imported into this vault. */
+export type RemoteSpaceInfo = {
+  spaceId: number;
+  spaceName: string;
+  /** The origin space's canonical URI — node identity is scoped to `(spaceUri, nodeInstanceId)`, not `nodeInstanceId` alone (two different spaces can mint the same local id). */
+  spaceUri: string;
+  nodeInstanceId: string;
+};
+
+type BaseDiscourseNodeCandidate = {
   /**
    * The exact string the fuzzy scorer sees, so the offsets in
    * `RankedDiscourseNode.match.matches` index into it. Callers must hand this same
@@ -39,12 +47,30 @@ export type DiscourseNodeCandidate = {
    */
   title: string;
   nodeTypeId: string;
-  /**
-   * Present only for an inline `#tag` result: a line tagged with a node type's
-   * tag, in a file that isn't itself that node. Absent for a real node file.
-   */
-  tagLine?: { lineNumber: number };
 };
+
+/**
+ * A candidate is either a local file (a real node, or an inline `#tag` line
+ * found in one) or a node published to another space that has no local file
+ * yet — `remoteSpace`'s presence is what callers narrow on to tell them apart.
+ */
+export type DiscourseNodeCandidate = BaseDiscourseNodeCandidate &
+  (
+    | {
+        file: TFile;
+        /**
+         * Present only for an inline `#tag` result: a line tagged with a node type's
+         * tag, in a file that isn't itself that node. Absent for a real node file.
+         */
+        tagLine?: { lineNumber: number };
+        remoteSpace?: undefined;
+      }
+    | {
+        file?: undefined;
+        tagLine?: undefined;
+        remoteSpace: RemoteSpaceInfo;
+      }
+  );
 
 export type RankedDiscourseNode = DiscourseNodeCandidate & {
   match: SearchResult;
@@ -736,13 +762,16 @@ export class QueryEngine {
   }
 }
 
+/** A remote candidate has no locally-resolved node type yet, so the type filter can't narrow it either way — it passes through untouched. */
 const filterCandidatesByNodeTypeIds = (
   candidates: DiscourseNodeCandidate[],
   nodeTypeIds?: string[],
 ): DiscourseNodeCandidate[] => {
   if (!nodeTypeIds?.length) return candidates;
   const selected = new Set(nodeTypeIds);
-  return candidates.filter((candidate) => selected.has(candidate.nodeTypeId));
+  return candidates.filter(
+    (candidate) => candidate.remoteSpace || selected.has(candidate.nodeTypeId),
+  );
 };
 
 /**

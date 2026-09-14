@@ -412,8 +412,13 @@ const ResultList = ({
           // node candidate), so the path alone isn't unique — and a single
           // line can itself carry more than one configured node-type tag, so
           // the line number alone isn't either; nodeTypeId disambiguates that
-          // case.
-          key={`${result.file.path}#${result.tagLine?.lineNumber ?? "node"}#${result.nodeTypeId}`}
+          // case. A remote result has no file yet, so it's keyed by its space
+          // and remote id instead.
+          key={
+            result.remoteSpace
+              ? `remote:${result.remoteSpace.spaceId}:${result.remoteSpace.nodeInstanceId}`
+              : `${result.file.path}#${result.tagLine?.lineNumber ?? "node"}#${result.nodeTypeId}`
+          }
           role="option"
           aria-selected={index === activeIndex}
           onMouseEnter={(event) => hasPointerMoved(event) && onActivate(index)}
@@ -583,7 +588,7 @@ const NodeSearch = ({
       sortKey === "author"
         ? buildAuthorNameByPath({
             app,
-            files: ranked.map((result) => result.file),
+            files: ranked.flatMap((result) => (result.file ? [result.file] : [])),
             userNames,
           })
         : undefined;
@@ -627,9 +632,10 @@ const NodeSearch = ({
   const activeResult = results[activeIndexInRange];
 
   // Only the preview shows an author, so resolve the selection, not all 50 rows.
+  // A remote result has no local file (and so no local author) until it's imported.
   const authorName = useMemo(
     () =>
-      activeResult
+      activeResult?.file
         ? resolveAuthorName({ app, file: activeResult.file, userNames })
         : "",
     [app, activeResult, userNames],
@@ -654,7 +660,9 @@ const NodeSearch = ({
   const openActiveResult = (
     open: (app: App, file: TFile, line?: number) => Promise<void>,
   ): void => {
-    if (!activeResult) return;
+    // A remote result has no local file to open yet — importing it first is
+    // wired up once "Show from other spaces" actually surfaces one (ENG-2269).
+    if (!activeResult || !activeResult.file) return;
     const { file } = activeResult;
     const line = activeResult.tagLine?.lineNumber;
     onClose();
@@ -692,7 +700,7 @@ const NodeSearch = ({
 
   // Closes before inserting, like `openActiveResult`.
   const insertLinkToActiveResult = (): void => {
-    if (!activeResult || !insertTarget) return;
+    if (!activeResult || !insertTarget || !activeResult.file) return;
     const { file } = activeResult;
     onClose();
     try {
@@ -869,9 +877,11 @@ const NodeSearch = ({
             // the class doc comment for why this boundary must stay mounted
             // across that change rather than remount.
             resetKey={
-              activeResult
-                ? `${activeResult.file.path}#${activeResult.tagLine?.lineNumber ?? "node"}`
-                : "none"
+              activeResult?.remoteSpace
+                ? `remote:${activeResult.remoteSpace.spaceId}:${activeResult.remoteSpace.nodeInstanceId}`
+                : activeResult
+                  ? `${activeResult.file.path}#${activeResult.tagLine?.lineNumber ?? "node"}`
+                  : "none"
             }
           >
             <PreviewPane app={app} result={activeResult} authorName={authorName} />

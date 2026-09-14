@@ -1,5 +1,8 @@
 import { TFile } from "obsidian";
-import { isUnattributedAuthorName } from "~/utils/discourseNodeAuthor";
+import {
+  isUnattributedAuthorName,
+  UNRESOLVED_AUTHOR_NAME,
+} from "~/utils/discourseNodeAuthor";
 
 /** Client-side result ordering, over the full ranked list before display truncation. Mirrors Roam's advanced search. */
 
@@ -23,9 +26,9 @@ export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 export const DEFAULT_SORT_KEY: SortKey = "relevance";
 export const DEFAULT_SORT_DIRECTION: SortDirection = "desc";
 
-/** Structural, so the sort runs on ranked results or decorated rows alike. */
+/** Structural, so the sort runs on ranked results or decorated rows alike. `file` is absent for a remote result not yet imported into the vault. */
 export type SortableSearchResult = {
-  file: TFile;
+  file?: TFile;
   title: string;
   match: { score: number };
 };
@@ -62,13 +65,20 @@ export const isDefaultSort = ({
 export const getSortOptionLabel = (sortKey: SortKey): string =>
   SORT_OPTIONS.find((option) => option.key === sortKey)?.label ?? "";
 
+// A remote (not-yet-imported) result has no local file, and so no local
+// author to resolve — treated the same as an unresolvable author (`"Unknown"`)
+// rather than `""`, so it's grouped with other unattributed notes by
+// `compareUnattributedLast` instead of sorting ahead of every named author.
 const getAuthorName = ({
   result,
   authorNameByPath,
 }: {
   result: SortableSearchResult;
   authorNameByPath: Map<string, string> | undefined;
-}): string => authorNameByPath?.get(result.file.path) ?? "";
+}): string => {
+  if (!result.file) return UNRESOLVED_AUTHOR_NAME;
+  return authorNameByPath?.get(result.file.path) || "";
+};
 
 /** Unattributed notes sit after every named author, in both directions. */
 const compareUnattributedLast = ({
@@ -103,8 +113,12 @@ const compareAscending = ({
 }): number => {
   if (sortKey === "relevance") return a.match.score - b.match.score;
   if (sortKey === "title") return a.title.localeCompare(b.title);
-  if (sortKey === "dateCreated") return a.file.stat.ctime - b.file.stat.ctime;
-  if (sortKey === "dateModified") return a.file.stat.mtime - b.file.stat.mtime;
+  // A result with no local file yet (not-yet-imported remote) has no date to
+  // compare — treated as epoch, so it sorts as the oldest either direction.
+  if (sortKey === "dateCreated")
+    return (a.file?.stat.ctime ?? 0) - (b.file?.stat.ctime ?? 0);
+  if (sortKey === "dateModified")
+    return (a.file?.stat.mtime ?? 0) - (b.file?.stat.mtime ?? 0);
 
   const authorDelta = getAuthorName({
     result: a,
