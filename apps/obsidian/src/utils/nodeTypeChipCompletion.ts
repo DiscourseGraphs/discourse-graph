@@ -3,15 +3,21 @@
 /** A node type or a space — anything the chip input can complete and commit as a filter. */
 export type ChipCompletionItem = { id: string; name: string };
 
-/** Exact match beats the first partial, so a name that prefixes another stays reachable. */
+/**
+ * Exact match beats the first partial, so a name that prefixes another stays
+ * reachable. `excludedIds` filters by bare id, so callers combining items
+ * from more than one namespace (e.g. node types and spaces, whose ids can
+ * collide) must already exclude cross-namespace matches from `items` — this
+ * only handles same-namespace exclusion within the list it's given.
+ */
 export const getBestPrefixMatch = <TItem extends ChipCompletionItem>({
   items,
   query,
-  excludedIds,
+  excludedIds = [],
 }: {
   items: TItem[];
   query: string;
-  excludedIds: string[];
+  excludedIds?: string[];
 }): TItem | null => {
   const normalizedQuery = query.trim().toLowerCase();
   if (!normalizedQuery) return null;

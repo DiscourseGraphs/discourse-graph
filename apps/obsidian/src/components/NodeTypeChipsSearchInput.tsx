@@ -66,27 +66,33 @@ export const NodeTypeChipsSearchInput = ({
 }): ReactElement => {
   // A single completable list, so Tab can commit either a type or a space chip
   // the same way — `kind` says which selection array and setter to use.
+  // Already-selected items are excluded here, per its own `kind`'s id list —
+  // not by passing a flat, kind-blind `excludedIds` to `getBestPrefixMatch` —
+  // since node type ids and space ids come from independent namespaces and
+  // can collide (e.g. a node type and a remote space both happening to have
+  // id `"1001"`); excluding by bare id alone would then wrongly hide the
+  // *other* kind's still-unselected candidate too.
   const completionItems = useMemo<ChipCompletionCandidate[]>(
     () => [
-      ...nodeTypes.map((nodeType) => ({
-        id: nodeType.id,
-        name: nodeType.name,
-        kind: "type" as const,
-      })),
-      ...(spaces ?? []).map((space) => ({
-        id: space.id,
-        name: space.name,
-        kind: "space" as const,
-      })),
+      ...nodeTypes
+        .filter((nodeType) => !selectedNodeTypeIds.includes(nodeType.id))
+        .map((nodeType) => ({
+          id: nodeType.id,
+          name: nodeType.name,
+          kind: "type" as const,
+        })),
+      ...(spaces ?? [])
+        .filter((space) => !(selectedSpaceIds ?? []).includes(space.id))
+        .map((space) => ({
+          id: space.id,
+          name: space.name,
+          kind: "space" as const,
+        })),
     ],
-    [nodeTypes, spaces],
+    [nodeTypes, spaces, selectedNodeTypeIds, selectedSpaceIds],
   );
 
-  const bestPrefixMatch = getBestPrefixMatch({
-    items: completionItems,
-    query,
-    excludedIds: [...selectedNodeTypeIds, ...(selectedSpaceIds ?? [])],
-  });
+  const bestPrefixMatch = getBestPrefixMatch({ items: completionItems, query });
 
   const completionSuffix = getCompletionSuffix({ bestPrefixMatch, query });
 
