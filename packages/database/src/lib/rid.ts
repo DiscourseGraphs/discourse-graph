@@ -3,7 +3,6 @@
 // Either a Web URL, with the last segment as the sourceLocalId;
 // OR the format `orn:<platform>.<subtype>:<source identifier>/<sourceLocalId>`
 // With the assumption that the sourceUri has the form <platform>:<source identifier>
-// The subtype may be omitted.
 
 export const isRid = (value: string): boolean =>
   value.startsWith("https://") || value.startsWith("orn:");
@@ -11,7 +10,7 @@ export const isRid = (value: string): boolean =>
 export const spaceUriAndLocalIdToRid = (
   spaceUri: string,
   localId: string,
-  subtype?: string,
+  subtype: string,
 ): string => {
   // Both RID forms use `/` as the sourceLocalId delimiter, so callers must pass
   // slash-free localIds (or pre-encode them) for ridToSpaceUriAndLocalId to
@@ -19,9 +18,7 @@ export const spaceUriAndLocalIdToRid = (
   if (spaceUri.startsWith("http")) return `${spaceUri}/${localId}`;
   const parts = spaceUri.split(":");
   if (parts.length === 2)
-    return subtype
-      ? `orn:${parts[0]}.${subtype}:${parts[1]}/${localId}`
-      : `orn:${parts[0]}:${parts[1]}/${localId}`;
+    return `orn:${parts[0]}.${subtype}:${parts[1]}/${localId}`;
   throw new Error("Unrecognized spaceUri");
 };
 

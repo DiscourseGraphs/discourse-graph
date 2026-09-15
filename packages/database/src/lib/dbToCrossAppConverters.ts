@@ -18,18 +18,23 @@ const getConceptMap = async (
   if (conceptIds.length === 0) return {};
   const request = await client
     .from("my_concepts")
-    .select("id, space_id, source_local_id")
+    .select("id, space_id, source_local_id, is_schema, is_relation")
     .in("id", conceptIds)
     .not("source_local_id", "is", null);
   if (request.error) throw request.error;
   return Object.fromEntries(
     (request.data || [])
-      .map(({ id, source_local_id, space_id }) => {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      .map(({ id, source_local_id, space_id, is_schema, is_relation }) => {
         const spaceUri: string | undefined = spaceMap[space_id ?? 0];
         return [
           id!,
           spaceUri !== undefined
-            ? spaceUriAndLocalIdToRid(spaceUri, source_local_id)
+            ? spaceUriAndLocalIdToRid(
+                spaceUri,
+                source_local_id,
+                is_schema ? "schema" : is_relation ? "relation" : "note",
+              )
             : undefined,
         ];
       })
