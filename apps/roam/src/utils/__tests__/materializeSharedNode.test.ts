@@ -10,6 +10,7 @@ import {
   readImportedSourceIdentity,
   writeImportedSourceIdentity,
 } from "~/utils/importedSourceIdentity";
+import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { materializeSharedNode } from "~/utils/materializeSharedNode";
 
 vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
@@ -27,6 +28,13 @@ vi.mock("~/utils/importedSourceIdentity", () => ({
   readImportedSourceIdentity: vi.fn(),
   writeImportedSourceIdentity: vi.fn(),
 }));
+
+// Runs before the imports above: getDiscourseNodes calls generateUID at module load.
+vi.hoisted(() => {
+  (globalThis as { window?: unknown }).window = {
+    roamAlphaAPI: { util: { generateUID: () => "someUid" } },
+  };
+});
 
 const mockedGetPageTitleByPageUid = vi.mocked(getPageTitleByPageUid);
 const mockedGetPageUidByPageTitle = vi.mocked(getPageUidByPageTitle);
@@ -48,10 +56,19 @@ const blockFromMarkdown = vi.fn();
 const pageCreate = vi.fn();
 const pageDelete = vi.fn();
 const updatePage = vi.fn();
+const roamQuery = vi.fn();
 
 const CORE_TITLE = "REM sleep and recall";
 const DECORATED_TITLE = "[[EVD]] - REM sleep and recall";
 const NODE_TYPE = { format: "[[EVD]] - {content}" };
+
+const LOCAL_GRAPH = "local-graph";
+const SOURCED_NODE_TYPE = { format: "[[EVD]] - {content} - {Source}" };
+const SOURCE_PAGE_UID = "source-page-uid";
+const SOURCE_TITLE = "@Smith 2020";
+const SOURCED_TITLE = `[[EVD]] - REM sleep and recall - [[${SOURCE_TITLE}]]`;
+const PLACEHOLDER_TITLE = "[[EVD]] - REM sleep and recall - [[@placeholder]]";
+const IMPORTED_SOURCE_RID = "orn:obsidian.note:vault-b/node-6";
 
 const sharedNode: SharedNode = {
   rid: "orn:obsidian.note:vault-a/node-1",
@@ -129,8 +146,10 @@ beforeEach(() => {
   (globalThis as { window: unknown }).window = {
     roamAlphaAPI: {
       updatePage,
+      graph: { name: LOCAL_GRAPH },
       util: { generateUID: vi.fn(() => GENERATED_PAGE_UID) },
       data: {
+        async: { fast: { q: roamQuery } },
         block: { fromMarkdown: blockFromMarkdown },
         page: {
           fromMarkdown: pageFromMarkdown,
@@ -395,19 +414,287 @@ describe("materializeSharedNode", () => {
     });
   });
 
-  it("keeps the incoming title when the format has a placeholder core_title cannot fill", async () => {
+  it("uses a placeholder reference when the format requires a Source but none was published", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
 
     const result = await materializeSharedNode({
       client,
       sharedNode: decoratedSharedNode,
-      nodeType: { format: "[[EVD]] - {content} - {Source}" },
+      nodeType: SOURCED_NODE_TYPE,
     });
 
-    expect(result.success).toBe(true);
+    expect(result).toMatchObject({
+      success: true,
+      warning: "No source was published with this node.",
+    });
     expect(pageFromMarkdown).toHaveBeenCalledWith({
-      page: { title: decoratedSharedNode.title, uid: GENERATED_PAGE_UID },
+      page: { title: PLACEHOLDER_TITLE, uid: GENERATED_PAGE_UID },
       "markdown-string": MATERIALIZED_MARKDOWN,
+    });
+    expect(PLACEHOLDER_TITLE).toMatch(
+      getDiscourseNodeFormatExpression(SOURCED_NODE_TYPE.format),
+    );
+    expect(roamQuery).not.toHaveBeenCalled();
+  });
+
+  it("does not warn about a source when the publisher sent no core title", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode,
+      nodeType: SOURCED_NODE_TYPE,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      action: "created",
+      pageUid: GENERATED_PAGE_UID,
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+  });
+
+  it("names a source page this graph owns", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    roamQuery.mockResolvedValue([[1]]);
+    mockedGetPageTitleByPageUid.mockImplementation((uid) =>
+      uid === SOURCE_PAGE_UID ? SOURCE_TITLE : "",
+    );
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: {
+        ...decoratedSharedNode,
+        slots: {
+          sourceDocument: `https://roamresearch.com/#/app/${LOCAL_GRAPH}/${SOURCE_PAGE_UID}`,
+        },
+      },
+      nodeType: SOURCED_NODE_TYPE,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      action: "created",
+      pageUid: GENERATED_PAGE_UID,
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+    expect(roamQuery).toHaveBeenCalledWith(
+      "[:find (?e) :in $ ?uid :where [?e :block/uid ?uid]]",
+      SOURCE_PAGE_UID,
+    );
+    expect(mockedFindImportedNodeUidBySourceRid).toHaveBeenCalledTimes(1);
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: SOURCED_TITLE, uid: GENERATED_PAGE_UID },
+      "markdown-string": MATERIALIZED_MARKDOWN,
+    });
+  });
+
+  it("names a source page imported from the publisher's own space", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockImplementation((rid) =>
+      Promise.resolve(
+        rid === "orn:obsidian.note:vault-a/node-9" ? SOURCE_PAGE_UID : null,
+      ),
+    );
+    mockedGetPageTitleByPageUid.mockImplementation((uid) =>
+      uid === SOURCE_PAGE_UID ? SOURCE_TITLE : "",
+    );
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: {
+        ...decoratedSharedNode,
+        slots: { sourceDocument: "node-9" },
+      },
+      nodeType: SOURCED_NODE_TYPE,
+    });
+
+    expect(result).toMatchObject({ success: true, action: "created" });
+    expect(result).not.toHaveProperty("warning");
+    expect(roamQuery).not.toHaveBeenCalled();
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: SOURCED_TITLE, uid: GENERATED_PAGE_UID },
+      "markdown-string": MATERIALIZED_MARKDOWN,
+    });
+  });
+
+  it("names a source page imported from a third space", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockImplementation((rid) =>
+      Promise.resolve(rid === IMPORTED_SOURCE_RID ? SOURCE_PAGE_UID : null),
+    );
+    mockedGetPageTitleByPageUid.mockImplementation((uid) =>
+      uid === SOURCE_PAGE_UID ? SOURCE_TITLE : "",
+    );
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: {
+        ...decoratedSharedNode,
+        slots: { sourceDocument: IMPORTED_SOURCE_RID },
+      },
+      nodeType: SOURCED_NODE_TYPE,
+    });
+
+    expect(result).toMatchObject({ success: true, action: "created" });
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: SOURCED_TITLE, uid: GENERATED_PAGE_UID },
+      "markdown-string": MATERIALIZED_MARKDOWN,
+    });
+  });
+
+  it("uses a placeholder reference when the Source is not in this graph", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: {
+        ...decoratedSharedNode,
+        slots: { sourceDocument: IMPORTED_SOURCE_RID },
+      },
+      nodeType: SOURCED_NODE_TYPE,
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      action: "created",
+      warning: `Its source (${IMPORTED_SOURCE_RID}) is not in this graph. Import the source, then refresh this page.`,
+    });
+    expect(mockedFindImportedNodeUidBySourceRid).toHaveBeenCalledWith(
+      IMPORTED_SOURCE_RID,
+    );
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: PLACEHOLDER_TITLE, uid: GENERATED_PAGE_UID },
+      "markdown-string": MATERIALIZED_MARKDOWN,
+    });
+  });
+
+  it("does not rename an unchanged placeholder title on explicit refresh", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockImplementation((rid) =>
+      Promise.resolve(rid === sharedNode.rid ? EXISTING_PAGE_UID : null),
+    );
+    mockedGetPageTitleByPageUid.mockReturnValue(PLACEHOLDER_TITLE);
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: {
+        ...decoratedSharedNode,
+        slots: { sourceDocument: IMPORTED_SOURCE_RID },
+      },
+      nodeType: SOURCED_NODE_TYPE,
+      force: true,
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      action: "updated",
+      pageUid: EXISTING_PAGE_UID,
+    });
+    expect(updatePage).not.toHaveBeenCalled();
+    expect(pageCreate).not.toHaveBeenCalled();
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
+  });
+
+  it("does not look up the source of an import that is up to date", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: {
+        ...decoratedSharedNode,
+        slots: { sourceDocument: IMPORTED_SOURCE_RID },
+      },
+      nodeType: SOURCED_NODE_TYPE,
+    });
+
+    expect(result).toMatchObject({ success: true, action: "skipped" });
+    expect(mockedFindImportedNodeUidBySourceRid).toHaveBeenCalledTimes(1);
+    expect(mockedGetPageTitleByPageUid).not.toHaveBeenCalled();
+  });
+
+  it("leaves a title that already names its source untouched when refreshing", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockImplementation((rid) =>
+      Promise.resolve(
+        rid === IMPORTED_SOURCE_RID
+          ? SOURCE_PAGE_UID
+          : rid === sharedNode.rid
+            ? EXISTING_PAGE_UID
+            : null,
+      ),
+    );
+    mockedGetPageTitleByPageUid.mockImplementation((uid) =>
+      uid === SOURCE_PAGE_UID ? SOURCE_TITLE : SOURCED_TITLE,
+    );
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: {
+        ...decoratedSharedNode,
+        slots: { sourceDocument: IMPORTED_SOURCE_RID },
+      },
+      nodeType: SOURCED_NODE_TYPE,
+      force: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      action: "updated",
+      pageUid: EXISTING_PAGE_UID,
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+    expect(updatePage).not.toHaveBeenCalled();
+  });
+
+  it("renames an imported page once its source arrives and it is refreshed", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockImplementation((rid) =>
+      Promise.resolve(
+        rid === IMPORTED_SOURCE_RID
+          ? SOURCE_PAGE_UID
+          : rid === sharedNode.rid
+            ? EXISTING_PAGE_UID
+            : null,
+      ),
+    );
+    mockedGetPageTitleByPageUid.mockImplementation((uid) =>
+      uid === SOURCE_PAGE_UID ? SOURCE_TITLE : PLACEHOLDER_TITLE,
+    );
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: {
+        ...decoratedSharedNode,
+        slots: { sourceDocument: IMPORTED_SOURCE_RID },
+      },
+      nodeType: SOURCED_NODE_TYPE,
+      force: true,
+    });
+
+    expect(result).toMatchObject({ success: true, action: "updated" });
+    expect(updatePage).toHaveBeenCalledWith({
+      page: { uid: EXISTING_PAGE_UID, title: SOURCED_TITLE },
     });
   });
 

@@ -6,9 +6,9 @@ import type {
 } from "@repo/database/crossAppContracts";
 import {
   spaceUriAndLocalIdToRid,
-  isRid,
   ridToSpaceUriAndLocalId,
 } from "@repo/database/lib/rid";
+import { findTargetUid } from "./findTargetUid";
 import {
   findImportedNodeUidBySourceRid,
   getImportedSourceRids,
@@ -27,7 +27,6 @@ import {
 import { discoverSharedRelations } from "./discoverSharedRelations";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import { deleteBlock } from "roamjs-components/writes";
-import canonicalRoamUrl from "./canonicalRoamUrl";
 
 const matchImportedNodeSchemas = async (
   nodeSchemas: CrossAppNodeSchema[],
@@ -139,11 +138,13 @@ const matchImportedRelationSchemas = async (
           r.source === source &&
           r.destination === destination,
       );
-      if (match.length > 1) {
+      // Each query pattern can produce a match for the same local schema.
+      const matchIds = [...new Set(match.map(({ id }) => id))];
+      if (matchIds.length > 1) {
         throw new Error("multiple matches");
       }
-      if (match.length === 1) {
-        blockUid = match[0].id;
+      if (matchIds.length === 1) {
+        blockUid = matchIds[0];
       } else {
         blockUid = await createRelationSchema({
           label,
@@ -173,33 +174,6 @@ const matchImportedRelationSchemas = async (
     }
   }
   return result;
-};
-
-const localSpaceUrl = canonicalRoamUrl(window.roamAlphaAPI.graph.name);
-
-const findTargetUid = async (
-  localOrRid: string,
-  spaceUri: string,
-  ridType?: string,
-): Promise<string | null> => {
-  if (isRid(localOrRid)) {
-    const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(localOrRid);
-    if (spaceUri === localSpaceUrl) {
-      // check existence
-      const result = window.roamAlphaAPI.q(
-        `[:find (?e) :where [?e :block/uid "${sourceLocalId}"]]`,
-      );
-      if (!result || result.length === 0) return null;
-      return sourceLocalId;
-    }
-  } else {
-    localOrRid = spaceUriAndLocalIdToRid(
-      spaceUri,
-      localOrRid,
-      ridType ?? "note",
-    );
-  }
-  return await findImportedNodeUidBySourceRid(localOrRid);
 };
 
 const importRelations = async (

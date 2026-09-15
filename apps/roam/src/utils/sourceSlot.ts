@@ -1,3 +1,4 @@
+import { FORMAT_PLACEHOLDER } from "@repo/database/lib/decorateTitle";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
@@ -11,11 +12,13 @@ import { extractFieldFromTitle } from "./extractContentFromTitle";
 
 export const SOURCE_SLOT = "sourceDocument";
 const DEFAULT_SOURCE_SCHEMA_ID = "_SRC-node";
+const CONTENT_PLACEHOLDER = "{content}";
+const SOURCE_PLACEHOLDER = "{source}";
 
 type NodeFormat = Pick<DiscourseNode, "format">;
 
 export const schemaHasSourceSlot = (schema: NodeFormat): boolean =>
-  (schema?.format ?? "").toLowerCase().includes("{source}");
+  (schema?.format ?? "").toLowerCase().includes(SOURCE_PLACEHOLDER);
 
 const sourceNodeType = (allNodes: DiscourseNode[]): DiscourseNode | undefined =>
   allNodes.find((node) => node.text.toLowerCase() === "source");
@@ -68,4 +71,36 @@ export const sourceUidOfNode = (
   if (!isDiscourseNodeTitle(sourceTitle, allNodes ?? getDiscourseNodes()))
     return undefined;
   return getPageUidByPageTitle(sourceTitle) || undefined;
+};
+
+const FILLABLE_PLACEHOLDERS = new Set([
+  CONTENT_PLACEHOLDER,
+  SOURCE_PLACEHOLDER,
+]);
+
+// Inverse of sourceUidOfNode, for the pull side: the local title of a node whose format
+// names a source, built from its core title and the Source page's title. Null when the
+// format has a placeholder neither fills, so the caller keeps the incoming title.
+export const titleWithSource = ({
+  format,
+  coreTitle,
+  sourceTitle,
+}: {
+  format: string;
+  coreTitle: string;
+  sourceTitle: string;
+}): string | null => {
+  const placeholders = (format.match(FORMAT_PLACEHOLDER) ?? []).map(
+    (placeholder) => placeholder.toLowerCase(),
+  );
+  if (
+    !placeholders.includes(CONTENT_PLACEHOLDER) ||
+    placeholders.some((placeholder) => !FILLABLE_PLACEHOLDERS.has(placeholder))
+  )
+    return null;
+  return format.replace(FORMAT_PLACEHOLDER, (placeholder) =>
+    placeholder.toLowerCase() === CONTENT_PLACEHOLDER
+      ? coreTitle
+      : `[[${sourceTitle}]]`,
+  );
 };
