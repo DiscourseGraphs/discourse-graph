@@ -66,9 +66,6 @@ export const getAllBlogs = async (): Promise<BlogData[]> => {
   }
 };
 
-export const getLatestBlogs = async (): Promise<BlogData[]> =>
-  (await getAllBlogs()).slice(0, 3);
-
 export const getBlogBySlug = async (slug: string): Promise<BlogData | null> => {
   const safeSlug = path.basename(slug);
 
