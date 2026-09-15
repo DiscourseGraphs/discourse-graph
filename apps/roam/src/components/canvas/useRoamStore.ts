@@ -1,4 +1,5 @@
 import { TLRecord } from "@tldraw/tlschema";
+import { baseShapeUtils } from "./baseShapeUtils";
 import nanoid from "nanoid";
 import { useRef, useMemo, useEffect, useState } from "react";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
@@ -14,7 +15,6 @@ import {
 import { SerializedStore, StoreSnapshot } from "@tldraw/store";
 import {
   defaultBindingUtils,
-  defaultShapeUtils,
   getIndices,
   loadSnapshot,
   MigrationSequence,
@@ -91,7 +91,7 @@ const createCanvasStore = ({
 }): TLStore =>
   createTLStore({
     migrations,
-    shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
+    shapeUtils: [...baseShapeUtils, ...customShapeUtils],
     bindingUtils: [...defaultBindingUtils, ...customBindingUtils],
   });
 
