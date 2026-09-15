@@ -853,6 +853,9 @@ const hashOfVaultFile = async (
     .join("");
 };
 
+/** Stands in for a hash when a folder occupies a path; never equal to a SHA-256 hex. */
+const FOLDER_OCCUPANT = "folder";
+
 /**
  * Where an asset should land, given that something may already be there.
  *
@@ -860,7 +863,8 @@ const hashOfVaultFile = async (
  * usually between two notes' assets rather than two of one note's. That rules out
  * deciding from the importing note's bookkeeping: the only reliable question is what the
  * bytes already at that path are. Same content reuses the copy another node imported,
- * different content takes a `disambiguateAssetPath` suffix.
+ * different content takes a `disambiguateAssetPath` suffix. Throws when every suffixed
+ * path holds different content, so the per-asset error path reports it.
  */
 const resolveAssetTargetPath = async ({
   plugin,
@@ -878,9 +882,11 @@ const resolveAssetTargetPath = async ({
     const claimed = claimedPaths.get(path);
     if (claimed !== undefined) return claimed;
     const existing = plugin.app.vault.getAbstractFileByPath(path);
+    if (existing === null) return undefined;
+    // A folder cannot be written over either, so it counts as a collision.
     return existing instanceof TFile
       ? await hashOfVaultFile(plugin, existing)
-      : undefined;
+      : FOLDER_OCCUPANT;
   };
 
   const candidateHash = await occupantHash(candidatePath);
@@ -893,7 +899,21 @@ const resolveAssetTargetPath = async ({
 
   // Two different assets sharing a name and a hash prefix. Vanishingly unlikely, but the
   // failure it would otherwise cause is a silent overwrite, so fall back to the full hash.
-  return disambiguateAssetPath(candidatePath, filehash, filehash.length);
+  const fullySuffixed = disambiguateAssetPath(
+    candidatePath,
+    filehash,
+    filehash.length,
+  );
+  const fullySuffixedHash = await occupantHash(fullySuffixed);
+  if (fullySuffixedHash === undefined || fullySuffixedHash === filehash)
+    return fullySuffixed;
+
+  // Different bytes under a name carrying this asset's full hash can only be a file
+  // edited or placed there by hand. No further name would stay stable across
+  // re-imports, so the asset is refused rather than written over that file.
+  throw new Error(
+    `No free path for asset ${candidatePath}: ${fullySuffixed} holds different content`,
+  );
 };
 
 /** Path of an asset relative to the note's directory (vault-relative). If asset is not under note dir, returns full path. */
