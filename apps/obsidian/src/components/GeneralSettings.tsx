@@ -200,6 +200,8 @@ const GeneralSettings = () => {
   const [showHelpMenuStatusBarIcon, setShowHelpMenuStatusBarIcon] = useState(
     plugin.settings.showHelpMenuStatusBarIcon,
   );
+  const [showDiscourseContextOverlay, setShowDiscourseContextOverlay] =
+    useState(plugin.settings.showDiscourseContextOverlay);
 
   const handleToggleChange = (newValue: boolean) => {
     setShowIdsInFrontmatter(newValue);
@@ -211,6 +213,13 @@ const GeneralSettings = () => {
     setShowHelpMenuStatusBarIcon(newValue);
     plugin.settings.showHelpMenuStatusBarIcon = newValue;
     plugin.setHelpMenuStatusBarItemVisibility();
+    void plugin.saveSettings();
+  };
+
+  const handleDiscourseContextOverlayToggleChange = (newValue: boolean) => {
+    setShowDiscourseContextOverlay(newValue);
+    plugin.settings.showDiscourseContextOverlay = newValue;
+    plugin.refreshDiscourseContextOverlay();
     void plugin.saveSettings();
   };
 
@@ -364,6 +373,13 @@ const GeneralSettings = () => {
           </button>
         </div>
       </div>
+      <ToggleSetting
+        name="Show discourse context overlay"
+        description="Shows a badge next to links to discourse nodes with how many relations each one has. Select a badge to open its discourse context."
+        checked={showDiscourseContextOverlay}
+        onChange={handleDiscourseContextOverlayToggleChange}
+      />
+
       <ToggleSetting
         name="Show help menu icon in status bar"
         description="Adds a Discourse Graph icon to the status bar that opens a menu with feedback, docs, community, and settings links."

@@ -10,6 +10,7 @@ import { createRoot, Root } from "react-dom/client";
 import DiscourseGraphPlugin from "~/index";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import { RelationshipSection } from "~/components/RelationshipSection";
+import { InfoTooltip } from "~/components/InfoTooltip";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { PluginProvider, usePlugin } from "~/components/PluginContext";
 import {
@@ -25,21 +26,6 @@ import { useState } from "react";
 type DiscourseContextProps = {
   activeFile: TFile | null;
 };
-
-type InfoTooltipProps = {
-  content: string;
-};
-
-export const InfoTooltip = ({ content }: InfoTooltipProps) => (
-  <button
-    ref={(el) => {
-      if (el) setTooltip(el, content);
-    }}
-    className="clickable-icon text-muted hover:text-normal flex h-4 w-4 items-center justify-center"
-  >
-    <div ref={(el) => (el && setIcon(el, "info")) || undefined} />
-  </button>
-);
 
 const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
   const plugin = usePlugin();
