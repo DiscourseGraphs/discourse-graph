@@ -30,7 +30,7 @@ You can configure a custom hotkey in the Obsidian settings to quickly toggle the
 
 Links to a discourse node show a small badge with the number of relations that node has. Select the badge to open its discourse context in place, without leaving the note you are reading.
 
-The badge appears in Live Preview, on every link to a discourse node. A node with no relations yet shows a badge reading `0`, and opening it says "No discourse relation found" alongside the option to add one. You can turn the badge off in [General settings](/docs/obsidian/configuration/general-settings).
+The badge appears in both Live Preview and Reading view, on every link to a discourse node. A node with no relations yet shows a badge reading `0`, and opening it says "No discourse relation found" alongside the option to add one. You can turn the badge off in [General settings](/docs/obsidian/configuration/general-settings).
 
 ## Using the discourse context
 
