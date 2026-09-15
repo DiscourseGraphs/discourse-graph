@@ -71,16 +71,19 @@ const warnOrphanedRegistry = (): void => {
 };
 
 const getOrCreateRegistryBlockUid = async (): Promise<string> => {
-  const { pageUid, blockUid } = locateRegistry();
-  if (blockUid) return blockUid;
-
-  // No warning on this path: it recreates what it found missing, in this same call.
-  return createBlock({
-    node: { text: ASSET_REGISTRY_BLOCK_TEXT },
-    parentUid:
-      pageUid ?? (await createPage({ title: ASSET_REGISTRY_PAGE_TITLE })),
-    order: "last",
-  });
+  const { pageUid, blockUid: foundBlockUid } = locateRegistry();
+  // No warning on the create path: it recreates what it found missing, in this same call.
+  const blockUid =
+    foundBlockUid ??
+    (await createBlock({
+      node: { text: ASSET_REGISTRY_BLOCK_TEXT },
+      parentUid:
+        pageUid ?? (await createPage({ title: ASSET_REGISTRY_PAGE_TITLE })),
+      order: "last",
+    }));
+  // A write reaching the block is as much a reachable registry as a read doing so.
+  hasWarnedOrphanedRegistry = false;
+  return blockUid;
 };
 
 const registryFromProps = (blockUid: string): AssetRegistry => {

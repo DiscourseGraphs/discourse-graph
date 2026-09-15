@@ -239,6 +239,26 @@ describe("asset registry", () => {
     expect(mockedInternalError).not.toHaveBeenCalled();
   });
 
+  it("warns again when a registry recreated by a write is orphaned again", async () => {
+    await recordMirroredAsset({ contentHash: HASH, url: URL });
+    expect(readAssetRegistry()).toEqual({ [HASH]: URL });
+
+    graph.pages.set(ASSET_REGISTRY_PAGE_TITLE, [
+      { uid: "some-other-block", text: "Sync Asset Registry (renamed)" },
+    ]);
+    readAssetRegistry();
+    expect(mockedInternalError).toHaveBeenCalledTimes(1);
+
+    // The write repairs the registry, and no read sees it healthy before it breaks again.
+    await recordMirroredAsset({ contentHash: OTHER_HASH, url: OTHER_URL });
+    graph.pages.set(ASSET_REGISTRY_PAGE_TITLE, [
+      { uid: "some-other-block", text: "Sync Asset Registry (renamed)" },
+    ]);
+    readAssetRegistry();
+
+    expect(mockedInternalError).toHaveBeenCalledTimes(2);
+  });
+
   it("says nothing on a graph that has never imported an asset", () => {
     expect(readAssetRegistry()).toEqual({});
     expect(mockedInternalError).not.toHaveBeenCalled();
