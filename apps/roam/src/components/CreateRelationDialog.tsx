@@ -1,3 +1,4 @@
+import { useRelationSchemaRevision } from "~/utils/relationSchemaChanges";
 import React, { useState, useMemo } from "react";
 import { Dialog, Classes, Label, Button, Callout } from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
@@ -8,6 +9,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import getDiscourseRelations, {
   type DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
+import { excludeProvisionalRelationSchemas } from "~/utils/relationSchemaAcceptance";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import findDiscourseNode from "~/utils/findDiscourseNode";
@@ -291,7 +293,7 @@ const prepareRelData = (
 ): RelWithDirection[] => {
   nodeTitle = nodeTitle || getPageTitleByPageUid(targetNodeUid).trim();
   const discourseNodeSchemas = getDiscourseNodes();
-  const relations = getDiscourseRelations();
+  const relations = excludeProvisionalRelationSchemas(getDiscourseRelations());
   const nodeSchema = findDiscourseNode({
     uid: targetNodeUid,
     title: nodeTitle,
@@ -387,6 +389,7 @@ export const renderCreateRelationDialog = (
 export const CreateRelationButton = (
   props: CreateRelationDialogProps & { fill?: boolean },
 ): React.JSX.Element | null => {
+  useRelationSchemaRevision();
   const { fill = false, ...relationProps } = props;
   const storedRelationsEnabled = getStoredRelationsEnabled();
   if (!storedRelationsEnabled) return null;
@@ -405,7 +408,8 @@ export const CreateRelationButton = (
       text="Add relation"
       disabled={extProps === null}
       onClick={() => {
-        renderCreateRelationDialog(extProps);
+        // A schema may have been accepted since this button last rendered.
+        renderCreateRelationDialog(relationProps);
       }}
     />
   );

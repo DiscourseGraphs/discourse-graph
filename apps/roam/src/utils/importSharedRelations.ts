@@ -28,6 +28,7 @@ import { discoverSharedRelations } from "./discoverSharedRelations";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import { deleteBlock } from "roamjs-components/writes";
 import canonicalRoamUrl from "./canonicalRoamUrl";
+import refreshConfigTree from "./refreshConfigTree";
 
 const matchImportedNodeSchemas = async (
   nodeSchemas: CrossAppNodeSchema[],
@@ -139,11 +140,13 @@ const matchImportedRelationSchemas = async (
           r.source === source &&
           r.destination === destination,
       );
-      if (match.length > 1) {
+      // Each query pattern can produce a match for the same local schema.
+      const matchIds = [...new Set(match.map(({ id }) => id))];
+      if (matchIds.length > 1) {
         throw new Error("multiple matches");
       }
-      if (match.length === 1) {
-        blockUid = match[0].id;
+      if (matchIds.length === 1) {
+        blockUid = matchIds[0];
       } else {
         blockUid = await createRelationSchema({
           label,
@@ -280,4 +283,6 @@ export const importSharedRelations = async (
   );
   ridToLocalId = { ...ridToLocalId, ...relationSchemaMap };
   await importRelations(ridToLocalId, relations);
+  // Legacy settings read the cached grammar, including newly imported schemas.
+  refreshConfigTree();
 };

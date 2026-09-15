@@ -1,3 +1,4 @@
+import { useRelationSchemaRevision } from "~/utils/relationSchemaChanges";
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   Button,
@@ -21,6 +22,7 @@ import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
+import { excludeProvisionalRelationSchemas } from "~/utils/relationSchemaAcceptance";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import { type RelationDetails } from "~/utils/hyde";
@@ -232,7 +234,13 @@ const SuggestionsBody = ({
     () => findDiscourseNode({ uid: tagUid }),
     [tagUid],
   );
-  const allRelations = useMemo(() => getDiscourseRelations(), []);
+  const relationSchemaRevision = useRelationSchemaRevision();
+  const allRelations = useMemo(
+    () => excludeProvisionalRelationSchemas(getDiscourseRelations()),
+    // Acceptance and deletion invalidate the relation data stored outside React.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [relationSchemaRevision],
+  );
   const allNodes = useMemo(() => getDiscourseNodes(), []);
 
   const validRelations = useMemo(() => {

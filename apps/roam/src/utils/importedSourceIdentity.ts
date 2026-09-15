@@ -12,10 +12,10 @@ export const IMPORTED_FROM_PROP_KEY = "importedFrom";
 const SOURCE_NODE_RID_KEY = "sourceNodeRid";
 const SOURCE_MODIFIED_AT_KEY = "sourceModifiedAt";
 
-const isJsonObject = (value: json): value is Record<string, json> =>
+export const isJsonObject = (value: json): value is Record<string, json> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const parseImportedSourceIdentity = (
+export const parseImportedSourceIdentity = (
   props: Record<string, json>,
 ): ImportedSourceIdentity | undefined => {
   const discourseGraphProps = props[DISCOURSE_GRAPH_PROP_NAME];
