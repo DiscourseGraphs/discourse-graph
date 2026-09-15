@@ -21,6 +21,7 @@ import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
+import getFirstAvailableShortcut from "~/utils/getFirstAvailableShortcut";
 import type { Condition } from "~/utils/types";
 import { z } from "zod";
 import {
@@ -1096,15 +1097,15 @@ const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
     : undefined,
 });
 
-const getUnusedShortcut = (label: string): string => {
-  const candidateShortcut = label.slice(0, 1).toUpperCase();
-  const existingShortcuts = new Set(
-    getDiscourseNodes()
-      .map((n) => n.shortcut.toUpperCase())
-      .filter(Boolean),
+const getUnusedShortcut = (label: string): string =>
+  getFirstAvailableShortcut(
+    label,
+    new Set(
+      getDiscourseNodes()
+        .map((n) => n.shortcut.toUpperCase())
+        .filter(Boolean),
+    ),
   );
-  return existingShortcuts.has(candidateShortcut) ? "" : candidateShortcut;
-};
 
 // getAllDiscourseNodes skips prop-less pages, so invalidate only after the props write settles.
 export const createDiscourseNodeType = async ({
