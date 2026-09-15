@@ -11,12 +11,10 @@ html {
 }
 
 /*
- * Nextra's MDX link component appends an inline external-link arrow icon
- * styled with its own (CSS-layered) `display: inline` class. Tailwind's
- * unlayered `svg { display: block }` preflight always wins over layered
- * rules regardless of specificity, which otherwise drops the icon to its
- * own line inside prose-rendered MDX content (e.g. blog posts).
+ * Nextra's MDX link component appends an external-link arrow icon to
+ * every external link, which we don't want in prose-rendered MDX
+ * content (e.g. blog posts).
  */
 .prose :where(a svg) {
-  display: inline;
+  display: none;
 }

@@ -105,7 +105,7 @@ const BlogPost = async ({ params }: Params): Promise<React.ReactElement> => {
               </ul>
             )}
           </div>
-          <div className="prose max-w-none">
+          <div className="prose prose-a:text-secondary max-w-none">
             <MDXContent />
           </div>
         </article>
