@@ -9,14 +9,15 @@ const description =
 
 export const generateMetadata = async (
   _props: unknown,
-  parent: ResolvingMetadata,
+  parent?: ResolvingMetadata,
 ): Promise<Metadata> => {
+  // Nextra's page map calls this without Next.js's parent metadata argument.
   const inherited = await parent;
   return {
     title,
     description,
-    openGraph: { ...inherited.openGraph, title, description },
-    twitter: { ...inherited.twitter, title, description },
+    openGraph: { ...inherited?.openGraph, title, description },
+    twitter: { ...inherited?.twitter, title, description },
   };
 };
 
