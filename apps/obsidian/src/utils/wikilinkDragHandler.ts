@@ -10,6 +10,7 @@ import {
 import { TFile, WorkspaceLeaf } from "obsidian";
 import { VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import type DiscourseGraphPlugin from "~/index";
+import { extractLinktext, INTERNAL_LINK_RE } from "./internalLinkParsing";
 
 const buildObsidianUrl = (vaultName: string, filePath: string): string => {
   return `obsidian://open?vault=${encodeURIComponent(vaultName)}&file=${encodeURIComponent(filePath)}`;
@@ -41,29 +42,6 @@ const setDragData = (
 };
 
 // --- Live Preview ---
-
-/**
- * Extract the file path from a link match.
- * Handles wikilinks (`[[path]]`, `[[path|alias]]`) and
- * markdown links (`[text](path.md)`), decoding URL-encoded paths.
- */
-const extractLinkPath = (match: string): string => {
-  // Wikilink: [[path]] or [[path|alias]]
-  if (match.startsWith("[[")) {
-    const inner = match.slice(2, -2);
-    const pipeIndex = inner.indexOf("|");
-    return pipeIndex >= 0 ? inner.slice(0, pipeIndex) : inner;
-  }
-
-  // Markdown link: [text](path)
-  const parenOpen = match.lastIndexOf("(");
-  const rawPath = match.slice(parenOpen + 1, -1);
-  try {
-    return decodeURIComponent(rawPath);
-  } catch (error) {
-    return rawPath;
-  }
-};
 
 /**
  * Widget that renders a small drag handle next to an internal link.
@@ -103,10 +81,6 @@ class WikilinkDragHandleWidget extends WidgetType {
   }
 }
 
-// Matches wikilinks [[...]] and markdown links [text](path.md).
-// Embed exclusion (![[...]] and ![text](...)) is handled in the loop.
-const INTERNAL_LINK_RE = /\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)]+\.md)\)/g;
-
 const hasVisibleCanvasLeaf = (plugin: DiscourseGraphPlugin): boolean =>
   plugin.app.workspace
     .getLeavesOfType(VIEW_TYPE_TLDRAW_DG_PREVIEW)
@@ -133,7 +107,7 @@ const buildWidgetDecorations = (
         view.state.doc.sliceString(checkPos, checkPos + 1) === "!";
       if (isEmbed) continue;
       const matchEnd = from + match.index + match[0].length;
-      const linkPath = extractLinkPath(match[0]);
+      const linkPath = extractLinktext(match[0]);
       const widget = new WikilinkDragHandleWidget(linkPath, plugin);
       widgets.push(Decoration.widget({ widget, side: 1 }).range(matchEnd));
     }
