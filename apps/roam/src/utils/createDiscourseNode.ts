@@ -40,7 +40,8 @@ const stripTemplateUids = (nodes: InputTextNode[]): InputTextNode[] =>
     };
   });
 
-const handleImageCreation = async ({
+// Key Image only decides where the image block goes, never whether it is added
+export const handleImageCreation = async ({
   pageUid,
   discourseNodes,
   configPageUid,
@@ -54,7 +55,8 @@ const handleImageCreation = async ({
   imageUrl?: string;
   extensionAPI?: OnloadArgs["extensionAPI"];
   text: string;
-}) => {
+}): Promise<void> => {
+  if (!imageUrl) return;
   const canvasSettings = Object.fromEntries(
     discourseNodes.map((n) => [n.type, { ...n.canvasSettings }]),
   );
@@ -64,38 +66,29 @@ const handleImageCreation = async ({
     "key-image-option": keyImageOption = "",
   } = canvasSettings[configPageUid] || {};
 
-  if (isKeyImage && imageUrl) {
-    const createOrUpdateImageBlock = async (imagePlaceholderUid?: string) => {
-      const imageMarkdown = `![](${imageUrl})`;
-      if (imagePlaceholderUid) {
-        await updateBlock({
-          uid: imagePlaceholderUid,
-          text: imageMarkdown,
-        });
-      } else {
-        await createBlock({
-          node: { text: imageMarkdown },
-          order: 0,
-          parentUid: pageUid,
-        });
-      }
-    };
+  const imageMarkdown = `![](${imageUrl})`;
+  const usesQueryBuilderPlaceholder =
+    !!isKeyImage && keyImageOption === "query-builder" && !!extensionAPI;
 
-    if (keyImageOption === "query-builder") {
-      if (!extensionAPI) return;
-
-      const parentUid = resolveQueryBuilderRef({ queryRef: qbAlias });
-      const results = await runQuery({
-        extensionAPI,
-        parentUid,
-        inputs: { NODETEXT: text, NODEUID: pageUid },
-      });
-      const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
-      await createOrUpdateImageBlock(imagePlaceholderUid);
-    } else {
-      await createOrUpdateImageBlock();
+  if (usesQueryBuilderPlaceholder) {
+    const parentUid = resolveQueryBuilderRef({ queryRef: qbAlias });
+    const results = await runQuery({
+      extensionAPI,
+      parentUid,
+      inputs: { NODETEXT: text, NODEUID: pageUid },
+    });
+    const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
+    if (imagePlaceholderUid) {
+      await updateBlock({ uid: imagePlaceholderUid, text: imageMarkdown });
+      return;
     }
   }
+
+  await createBlock({
+    node: { text: imageMarkdown },
+    order: 0,
+    parentUid: pageUid,
+  });
 };
 
 export const createBlocksFromTemplate = async ({
