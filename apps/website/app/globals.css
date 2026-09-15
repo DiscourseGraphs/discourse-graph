@@ -9,12 +9,3 @@
 html {
   @apply scroll-smooth;
 }
-
-/*
- * Nextra's MDX link component appends an external-link arrow icon to
- * every external link, which we don't want in prose-rendered MDX
- * content (e.g. blog posts).
- */
-.prose :where(a svg) {
-  display: none;
-}
