@@ -102,11 +102,6 @@ const FULL_MARKDOWN = [
 
 const MATERIALIZED_MARKDOWN = "# Findings\nREM sleep improves recall";
 
-/**
- * What the asset stage reports for a node with no recorded references, which every node
- * in this suite is. A skipped import replaces no content, so it runs no asset stage and
- * carries no report at all.
- */
 const NO_ASSETS = { mirrored: 0, reused: 0, skipped: [], failed: [] };
 
 const clientWithFullContent = ({
@@ -141,9 +136,7 @@ const clientWithFullContent = ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Passing the markdown through unchanged, which is what an asset-free node does. The
-  // stage is mocked rather than left to the client stub: that stub's select chain is not
-  // thenable, so the real stage used to see no rows and report nothing by accident.
+  // The client stub's select chain isn't thenable, so the real asset stage can't run here.
   mockedImportNodeAssets.mockImplementation(({ markdown }) =>
     Promise.resolve({ markdown, report: NO_ASSETS }),
   );
@@ -504,8 +497,6 @@ describe("materializeSharedNode", () => {
 
     const result = await materializeSharedNode({ client, sharedNode });
 
-    // The page gets the rewritten markdown, not the published markdown: the copies it
-    // points at exist by now, and this is the only step that writes them.
     expect(pageFromMarkdown).toHaveBeenCalledWith(
       expect.objectContaining({ "markdown-string": REWRITTEN }),
     );
@@ -538,8 +529,6 @@ describe("materializeSharedNode", () => {
     });
     expect(pageFromMarkdown).not.toHaveBeenCalled();
     expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
-    // The asset stage never ran, so nothing was uploaded. Why a rejected import must
-    // leave no residue is on `mirrorAssetToRoamStorage`.
     expect(mockedImportNodeAssets).not.toHaveBeenCalled();
   });
 
@@ -563,12 +552,6 @@ describe("materializeSharedNode", () => {
     expect(mockedImportNodeAssets).not.toHaveBeenCalled();
   });
 
-  /**
-   * The pre-check has to test the title that actually gets written, which is the decorated
-   * one whenever the node carries a core title and a type. Testing the raw title instead
-   * fails both ways: a decorated collision uploads before being rejected, and a raw
-   * collision rejects an import that would have succeeded.
-   */
   it("checks the decorated title, so a decorated collision uploads nothing", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
     mockedGetPageUidByPageTitle.mockImplementation((title: string) =>

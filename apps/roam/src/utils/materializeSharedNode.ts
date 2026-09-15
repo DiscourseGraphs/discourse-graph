@@ -51,16 +51,7 @@ type MaterializationSuccess = SourceIdentity & {
   success: true;
   action: "created" | "updated" | "skipped";
   pageUid: string;
-  /**
-   * What the asset stage did. Absent on a skipped import, which replaces no content and
-   * so copies nothing. An asset that could not be copied appears here rather than
-   * failing the node.
-   *
-   * Nothing reads it yet, and that is the intended state: `importSharedNodes` and
-   * `refreshImportedNode` both discard it, so a degraded asset is currently invisible to
-   * the user. Surfacing cross-app failures is ENG-1877's work, and this field exists so
-   * that ticket has a shape to read rather than a behaviour to add first.
-   */
+  /** Absent on a skipped import. Per-asset failures land here and don't fail the node. */
   assets?: AssetImportReport;
 };
 
@@ -172,21 +163,6 @@ const fetchFullMarkdown = async ({
   return { markdown: markdown.trim() ? markdown : "" };
 };
 
-/**
- * The title check both import paths make, extracted so materialization can make it before
- * the asset stage runs.
- *
- * A collision imports nothing and tells the user to rename the other page, which reads as
- * a clean no-op. Running the asset stage first would owe a rollback instead, and an upload
- * cannot be rolled back safely (see `mirrorAssetToRoamStorage`). The check is two
- * synchronous reads, so ordering it first avoids the question.
- *
- * Sequencing does not solve it. `importSharedNodes` runs one node at a time, which rules
- * out a race inside a single run, but nothing serializes two users importing at once.
- *
- * Still made again inside the two paths: they are exported behaviour in their own right,
- * and the message belongs with the check rather than being duplicated at the call site.
- */
 const titleCollisionFailure = ({
   identity,
   importedPageUid,
@@ -415,7 +391,8 @@ export const materializeSharedNode = async ({
       stage: "fetch-content",
     });
 
-  // Before the assets, so a rejected import uploads nothing. See `titleCollisionFailure`.
+  // Checked before uploading because uploads can't be rolled back. The page writers check
+  // again, since a page with this title can appear while assets upload.
   const collision = titleCollisionFailure({
     identity,
     importedPageUid: importedPageUid ?? undefined,
@@ -423,13 +400,6 @@ export const materializeSharedNode = async ({
   });
   if (collision) return collision;
 
-  // Between fetching the content and replacing the page with it: the markdown written
-  // below is the rewritten one, and the copies it points at exist by then.
-  //
-  // Nothing known throws out of the stage today: it reports its per-asset failures and
-  // catches its reference query. This covers the residue, the link rewrite and whatever a
-  // later edit adds outside those guards. Without it such a throw leaves a stage-less
-  // rejection, which callers can only report as an unexplained error.
   const assets = await importNodeAssets({
     client,
     sharedNode,
@@ -457,7 +427,5 @@ export const materializeSharedNode = async ({
         title: pageTitle,
       }));
 
-  // Carried on success only. A node that failed to import has a stage of its own to
-  // report, and the assets it did or did not copy are not what the reader needs.
   return result.success ? { ...result, assets: report } : result;
 };
