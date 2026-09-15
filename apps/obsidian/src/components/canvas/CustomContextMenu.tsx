@@ -10,7 +10,10 @@ import {
 } from "tldraw";
 import type { TFile } from "obsidian";
 import { usePlugin } from "~/components/PluginContext";
-import { convertToDiscourseNode } from "./utils/convertToDiscourseNode";
+import {
+  canConvertShapeToNode,
+  convertToDiscourseNode,
+} from "./utils/convertToDiscourseNode";
 import {
   convertArrowToDiscourseRelation,
   getValidRelationTypesForArrow,
@@ -34,9 +37,11 @@ export const CustomContextMenu = ({
     [editor],
   );
 
-  const shouldShowConvertTo =
-    selectedShape &&
-    (selectedShape.type === "text" || selectedShape.type === "image");
+  const shouldShowConvertTo = useValue(
+    "shouldShowConvertTo",
+    () => canConvertShapeToNode(editor, editor.getOnlySelectedShape()),
+    [editor],
+  );
 
   const isReadonly = useValue(
     "isReadonly",
@@ -86,7 +91,7 @@ export const CustomContextMenu = ({
           </TldrawUiMenuSubmenu>
         </TldrawUiMenuGroup>
       )}
-      {shouldShowConvertTo && (
+      {shouldShowConvertTo && selectedShape && (
         <TldrawUiMenuGroup id="convert-to">
           <TldrawUiMenuSubmenu id="convert-to-submenu" label="Convert To">
             {plugin.settings.nodeTypes.map((nodeType) => (
@@ -95,6 +100,7 @@ export const CustomContextMenu = ({
                 id={`convert-to-${nodeType.id}`}
                 label={"Convert to " + nodeType.name}
                 icon="file-type"
+                disabled={isReadonly}
                 onSelect={() => {
                   void convertToDiscourseNode({
                     editor,

@@ -3,7 +3,7 @@ import {
   TLShape,
   createShapeId,
   TLAssetId,
-  TLTextShape,
+  TLRichText,
   TLShapeId,
   renderPlaintextFromRichText,
 } from "tldraw";
@@ -20,6 +20,26 @@ import { showToast } from "./toastUtils";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
 
+// Only shapes storing a richText prop. Arrow is not one (it uses props.text) and
+// owns the "Relation" submenu instead.
+const RICH_TEXT_SHAPE_TYPES: readonly string[] = ["text", "geo", "note"];
+
+const getShapeText = (editor: Editor, shape: TLShape): string => {
+  if (!RICH_TEXT_SHAPE_TYPES.includes(shape.type)) return "";
+  const { richText } = shape.props as { richText?: TLRichText };
+  if (!richText) return "";
+  return renderPlaintextFromRichText(editor, richText).trim();
+};
+
+export const canConvertShapeToNode = (
+  editor: Editor,
+  shape: TLShape | null,
+): boolean => {
+  if (!shape) return false;
+  // Images are gated at conversion time, not here: the asset may not resolve to a vault file.
+  return shape.type === "image" || getShapeText(editor, shape) !== "";
+};
+
 type ConvertToDiscourseNodeArgs = {
   editor: Editor;
   shape: TLShape;
@@ -34,15 +54,15 @@ export const convertToDiscourseNode = async (
   try {
     const { shape } = args;
 
-    if (shape.type === "text") {
-      return await convertTextShapeToNode(args);
-    } else if (shape.type === "image") {
+    if (shape.type === "image") {
       return await convertImageShapeToNode(args);
+    } else if (RICH_TEXT_SHAPE_TYPES.includes(shape.type)) {
+      return convertTextBearingShapeToNode(args);
     } else {
       showToast({
         severity: "warning",
         title: "Cannot Convert",
-        description: "Only text and image shapes can be converted",
+        description: "Only shapes with text or images can be converted",
         targetCanvasId: args.canvasFile.path,
       });
     }
@@ -57,23 +77,20 @@ export const convertToDiscourseNode = async (
   }
 };
 
-const convertTextShapeToNode = ({
+const convertTextBearingShapeToNode = ({
   editor,
   shape,
   nodeType,
   plugin,
   canvasFile,
 }: ConvertToDiscourseNodeArgs): TLShapeId | undefined => {
-  const text = renderPlaintextFromRichText(
-    editor,
-    (shape as TLTextShape).props.richText,
-  );
+  const text = getShapeText(editor, shape);
 
-  if (!text.trim()) {
+  if (!text) {
     showToast({
       severity: "warning",
       title: "Cannot Convert",
-      description: "Text shape has no content to convert",
+      description: "Shape has no text to convert",
       targetCanvasId: canvasFile.path,
     });
     return undefined;
@@ -85,7 +102,7 @@ const convertTextShapeToNode = ({
     nodeTypes: plugin.settings.nodeTypes,
     plugin,
     initialNodeType: nodeType,
-    initialTitle: text.trim(),
+    initialTitle: text,
     onSubmit: async ({
       nodeType: selectedNodeType,
       title,
@@ -116,11 +133,11 @@ const convertTextShapeToNode = ({
         showToast({
           severity: "success",
           title: "Shape Converted",
-          description: `Converted text to ${selectedNodeType.name}`,
+          description: `Converted shape to ${selectedNodeType.name}`,
           targetCanvasId: canvasFile.path,
         });
       } catch (error) {
-        console.error("Error creating node from text:", error);
+        console.error("Error creating node from shape text:", error);
         throw error;
       }
     },
