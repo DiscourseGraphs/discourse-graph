@@ -3,6 +3,20 @@ import type { OnloadArgs } from "roamjs-components/types";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { DISCOURSE_NODE_SHAPE_TYPE } from "./DiscourseNodeUtil";
 
+const TEXT_SHAPE_TYPES = ["text", "geo", "note"];
+
+export const getConvertibleShapeText = (
+  shape?: TLShape | null,
+): string | null => {
+  if (!shape || shape.isLocked) return null;
+  if (shape.type === "image") return "";
+  if (!TEXT_SHAPE_TYPES.includes(shape.type)) return null;
+  if (!("text" in shape.props)) return null;
+  const text = shape.props.text.trim();
+  // Geo and note shapes convert only when they carry text.
+  return shape.type === "text" || text ? text : null;
+};
+
 export const uploadImageShapeToRoam = async ({
   editor,
   shape,
