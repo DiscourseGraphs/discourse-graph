@@ -38,8 +38,8 @@ export const ImageConvertOverlay = (): JSX.Element | null => {
       if (!imageShape) return null;
       const bounds = editor.getShapePageBounds(imageShape.id);
       if (!bounds) return null;
-      const vp = editor.pageToViewport({ x: bounds.minX, y: bounds.minY });
-      return { left: vp.x + BUTTON_INSET, top: vp.y + BUTTON_INSET };
+      const vp = editor.pageToViewport({ x: bounds.maxX, y: bounds.minY });
+      return { left: vp.x - BUTTON_INSET, top: vp.y + BUTTON_INSET };
     },
     [editor, imageShape?.id],
   );
@@ -105,9 +105,10 @@ export const ImageConvertOverlay = (): JSX.Element | null => {
         style={{
           left: `${buttonPosition.left}px`,
           top: `${buttonPosition.top}px`,
+          transform: "translateX(-100%)",
           pointerEvents: "all",
         }}
-        icon={<Icon icon="new-object" />}
+        icon={<Icon icon="document-open" />}
         loading={uploading}
         title="Convert to discourse node"
         onPointerDown={(e) => e.stopPropagation()}
