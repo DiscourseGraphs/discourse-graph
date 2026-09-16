@@ -66,7 +66,7 @@ const CREATED = "2026-09-01T00:00:00";
 const MODIFIED = "2026-09-02T00:00:00";
 const CORE_TITLE = "Evidence title";
 const SOURCE_TITLE = "@Source title";
-const PLACEHOLDER_TITLE = `[[EVD]] - ${CORE_TITLE} - [[@placeholder]]`;
+const PLACEHOLDER_TITLE = `[[EVD]] - ${CORE_TITLE} - (source missing)`;
 const ROAM_TITLE = `[[EVD]] - ${CORE_TITLE} - [[${SOURCE_TITLE}]]`;
 const LOCAL_URI = "obsidian:local-vault";
 const OBSIDIAN_RID = spaceUriAndLocalIdToRid(LOCAL_URI, "evidence", "note");
@@ -534,6 +534,15 @@ describe("Obsidian push → database → Roam pull", () => {
       expect(io.pages.get(result.pageUid).title).toMatch(
         getDiscourseNodeFormatExpression(EVIDENCE_FORMAT.format),
       );
+      const [republished] = await nodeUidsWithTypeToCrossApp([
+        { uid: result.pageUid, type: "evidence-type" },
+      ]);
+      expect(republished.coreTitle).toBe(CORE_TITLE);
+      expect(republished.slots?.sourceDocument).toBeUndefined();
+      expect(
+        crossAppNodeToDbConcept(republished).local_reference_content
+          ?.sourceDocument,
+      ).toBeUndefined();
       const updatePage = window.roamAlphaAPI.updatePage;
       for (let n = 0; n < 3; n++) {
         expect(await pullIntoRoam(shared)).toMatchObject({
