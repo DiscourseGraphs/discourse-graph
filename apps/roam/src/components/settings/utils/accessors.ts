@@ -12,6 +12,7 @@ import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import { getRoamMarkdownApi } from "~/utils/materializeSharedNode";
+import { PERSONAL_MIGRATION_MARKER } from "./migrationMarkers";
 
 import type { RoamBasicNode } from "roamjs-components/types";
 import discourseConfigRef from "~/utils/discourseConfigRef";
@@ -20,6 +21,7 @@ import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
+import getFirstAvailableShortcut from "~/utils/getFirstAvailableShortcut";
 import type { Condition } from "~/utils/types";
 import { z } from "zod";
 import {
@@ -906,7 +908,12 @@ export const bulkReadSettings = (): SettingsSnapshot => {
   return {
     featureFlags,
     globalSettings: GlobalSettingsSchema.parse(globalProps || {}),
-    personalSettings: PersonalSettingsSchema.parse(personalProps || {}),
+    // Another user can enable the graph-wide flag before this user's migration.
+    // Startup reads (including the diagnostics opt-out) must wait for their data.
+    personalSettings:
+      getSetting<boolean>(PERSONAL_MIGRATION_MARKER, false) === true
+        ? PersonalSettingsSchema.parse(personalProps || {})
+        : (readAllLegacyPersonalSettings() as PersonalSettings),
   };
 };
 
@@ -1086,15 +1093,15 @@ const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
     : undefined,
 });
 
-const getUnusedShortcut = (label: string): string => {
-  const candidateShortcut = label.slice(0, 1).toUpperCase();
-  const existingShortcuts = new Set(
-    getDiscourseNodes()
-      .map((n) => n.shortcut.toUpperCase())
-      .filter(Boolean),
+const getUnusedShortcut = (label: string): string =>
+  getFirstAvailableShortcut(
+    label,
+    new Set(
+      getDiscourseNodes()
+        .map((n) => n.shortcut)
+        .filter(Boolean),
+    ),
   );
-  return existingShortcuts.has(candidateShortcut) ? "" : candidateShortcut;
-};
 
 // getAllDiscourseNodes skips prop-less pages, so invalidate only after the props write settles.
 export const createDiscourseNodeType = async ({
