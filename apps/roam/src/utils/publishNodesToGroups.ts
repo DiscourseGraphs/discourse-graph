@@ -31,6 +31,7 @@ import { orderConceptsByDependency } from "./conceptConversion";
 import { SOURCE_SLOT } from "./sourceSlot";
 import renderToast from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+import { publishNodeAssets, type NodeAssetResult } from "./publishNodeAssets";
 
 export type NodeUidWithType = {
   uid: string;
@@ -226,6 +227,8 @@ type PublishNodesResult = {
   failedUpsertUids: string[];
   okGroupIds: string[];
   failedGroupIds: string[];
+  /** One entry per asset the published nodes reference. See publishNodeAssets. */
+  assetResults: NodeAssetResult[];
 };
 
 // Grants a group access to discourse nodes by mirroring the Obsidian
@@ -259,6 +262,7 @@ export const publishNodesToGroups = async ({
     failedUpsertUids: [],
     okGroupIds: [],
     failedGroupIds: [],
+    assetResults: [],
   };
   if (nodes.length === 0 || groupIds.length === 0) return result;
 
@@ -414,6 +418,16 @@ export const publishNodesToGroups = async ({
   result.syncedRelationUids = [...syncedRelationUids];
   nodeUids = [...upsertedNodeUids];
   const failedUpsertIds = new Set(result.failedUpsertUids);
+
+  // After the content upsert, because FileReference has a foreign key to Content, and
+  // before the access grants, so a node becomes visible with its assets already recorded.
+  result.assetResults = await publishNodeAssets({
+    client,
+    spaceId,
+    nodes: [...nodesByUid.values()].filter((node) =>
+      upsertedNodeUids.has(node.localId),
+    ),
+  });
 
   const resourceAccesses = [];
   const resourceIds = [...nodeUids, ...nodeSchemaUids];

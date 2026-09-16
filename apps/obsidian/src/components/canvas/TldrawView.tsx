@@ -5,9 +5,13 @@ import { TldrawPreviewComponent } from "./TldrawViewComponent";
 import { TLStore } from "tldraw";
 import React from "react";
 import DiscourseGraphPlugin from "~/index";
-import { processInitialData, TLData } from "~/components/canvas/utils/tldraw";
+import { processInitialData } from "~/components/canvas/utils/tldraw";
 import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 import { PluginProvider } from "../PluginContext";
+import {
+  CanvasFileState,
+  parseCanvasFileState,
+} from "~/components/canvas/utils/canvasFileSync";
 
 export class TldrawView extends TextFileView {
   plugin: DiscourseGraphPlugin;
@@ -15,6 +19,7 @@ export class TldrawView extends TextFileView {
   private store: TLStore | null = null;
   private assetStore: ObsidianTLAssetStore | null = null;
   private canvasUuid: string | null = null;
+  private initialFileState: CanvasFileState | null = null;
   private onUnloadCallbacks: (() => void)[] = [];
 
   constructor(leaf: WorkspaceLeaf, plugin: DiscourseGraphPlugin) {
@@ -94,18 +99,13 @@ export class TldrawView extends TextFileView {
     assetStore: ObsidianTLAssetStore,
   ): TLStore | undefined {
     try {
-      const match = fileData.match(
-        /```json !!!_START_OF_TLDRAW_DG_DATA__DO_NOT_CHANGE_THIS_PHRASE_!!!([\s\S]*?)!!!_END_OF_TLDRAW_DG_DATA__DO_NOT_CHANGE_THIS_PHRASE_!!!\n```/,
-      );
-
-      if (!match?.[1]) {
+      const fileState = parseCanvasFileState(fileData);
+      if (!fileState) {
         return;
       }
 
-      const data = JSON.parse(match[1]) as TLData;
-      if (!data.raw) {
-        return;
-      }
+      this.initialFileState = fileState;
+      const { data } = fileState;
       if (data.meta?.uuid) {
         this.canvasUuid = data.meta.uuid;
       } else {
@@ -159,6 +159,7 @@ export class TldrawView extends TextFileView {
             file={this.file}
             assetStore={this.assetStore}
             canvasUuid={this.canvasUuid}
+            initialFileState={this.initialFileState}
           />
         </PluginProvider>
       </React.StrictMode>,

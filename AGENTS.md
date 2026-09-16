@@ -56,6 +56,7 @@ When creating or updating a pull request body:
 - Use platform-native UI components (see below) first with shadcn/ui as a fallback
 - Maintain visual consistency with the host application's design system
 - Follow responsive design principles
+- Use `text-red-700` for Roam error message text. Obsidian keeps `text-error`; website and shared UI keep `text-destructive`. This convention does not change danger buttons, borders, backgrounds, or diagram colors.
 
 ### TypeScript Guidelines
 
@@ -85,9 +86,7 @@ When creating or updating a pull request body:
 
 ### Documentation
 
-- Add comments only when necessary; descriptive names should minimize the need for comments
-- Explain the why, not the what, focusing on reasoning, trade-offs, and approaches
-- Document limitations, known bugs, or edge cases where behavior may not align with expectations
+- Follow the [code comment review criteria](STYLE_GUIDE.md#code-comments). Agents must check added and modified comments before handoff; authors must review them manually before requesting review.
 - Prefer sentence case in documentation and feature descriptions; capitalize official product/plugin names and exact UI labels, buttons, or titles, but keep generic feature terms lowercase to emphasize user actions
 
 ### Testing

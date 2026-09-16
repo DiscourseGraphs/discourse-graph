@@ -11,6 +11,7 @@ type SharedConcept = Pick<
   | "space_id"
   | "reference_content"
 > & {
+  core_title: string | null;
   concepts_of_relation: {
     id: number | null;
     space_id: number | null;
@@ -47,11 +48,13 @@ type ValidSharedSpace = {
 export type SharedNode = {
   rid: string;
   sourceLocalId: string;
+  schemaId: number;
   spaceId: number;
   spaceName: string;
   spaceUri: string;
   platform: Platform;
   title: string;
+  coreTitle?: string;
   created: string | null;
   lastModified: string;
   authorId?: number;
@@ -67,7 +70,7 @@ export type SharedNodeRows = {
 };
 
 const CONCEPT_COLUMNS_WITH_SLOTS =
-  "is_schema, last_modified, schema_id, source_local_id, space_id, reference_content, concepts_of_relation(id, space_id, source_local_id)";
+  "core_title:literal_content->>core_title, is_schema, last_modified, schema_id, source_local_id, space_id, reference_content, concepts_of_relation(id, space_id, source_local_id)";
 const DIRECT_CONTENT_COLUMNS =
   "author_id, created, last_modified, metadata, source_local_id, space_id, text, variant";
 const FULL_CONTENT_SUMMARY_COLUMNS = "last_modified, source_local_id, space_id";
@@ -223,11 +226,13 @@ export const buildSharedNodes = ({
         {
           rid,
           sourceLocalId: node.source_local_id,
+          schemaId: node.schema_id,
           spaceId: node.space_id,
           spaceName: space.name,
           spaceUri: space.url,
           platform: space.platform,
           title: direct.text,
+          coreTitle: node.core_title ?? undefined,
           created,
           lastModified,
           authorId: direct.author_id ?? undefined,

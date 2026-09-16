@@ -3,6 +3,7 @@ import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
+import { importAsGlobals } from "./importAsGlobals";
 
 const getVersion = (): string => {
   try {
@@ -64,57 +65,6 @@ try {
   throw error;
 }
 
-// https://github.com/evanw/esbuild/issues/337#issuecomment-954633403
-const importAsGlobals = (
-  mapping: Record<string, string> = {},
-): esbuild.Plugin => {
-  const escRe = (s: string) => s.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
-  const filter = new RegExp(
-    Object.keys(mapping).length
-      ? Object.keys(mapping)
-          .map((mod) => `^${escRe(mod)}$`)
-          .join("|")
-      : /$^/,
-  );
-
-  return {
-    name: "global-imports",
-    setup(build) {
-      build.onResolve({ filter }, (args) => {
-        if (!mapping[args.path]) {
-          throw new Error("Unknown global: " + args.path);
-        }
-        return {
-          path: args.path,
-          namespace: "external-global",
-        };
-      });
-
-      build.onLoad(
-        {
-          filter,
-          namespace: "external-global",
-        },
-        async (args) => {
-          const global = mapping[args.path];
-          if (fs.existsSync(global)) {
-            return {
-              contents: fs.readFileSync(global).toString(),
-              loader: "js",
-              resolveDir: path.dirname(global),
-            };
-          }
-          return {
-            contents: `module.exports = ${global};`,
-            loader: "js",
-            resolveDir: process.cwd(),
-          };
-        },
-      );
-    },
-  };
-};
-
 const DEFAULT_FILES_INCLUDED = ["package.json", "README.md"];
 
 const addPlaceholderChangelogPlugin = (outdir: string): esbuild.Plugin => ({
@@ -156,7 +106,7 @@ export const args = {
     "marked=window.RoamLazy.Marked",
     "marked-react=window.RoamLazy.MarkedReact",
     "nanoid=window.Nanoid;module.exports.nanoid=window.Nanoid",
-    'react=window.React;module.exports.useSyncExternalStore=require("use-sync-external-store/shim").useSyncExternalStore',
+    "react=./scripts/react.cjs",
     "react/jsx-runtime=./node_modules/react/jsx-runtime.js",
     "react-dom=window.ReactDOM",
     "react-youtube=window.ReactYoutube",
