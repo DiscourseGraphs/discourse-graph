@@ -11,7 +11,7 @@ describe("getFirstAvailableShortcut", () => {
   });
 
   it("matches taken shortcuts case-insensitively", () => {
-    expect(getFirstAvailableShortcut("claim", new Set(["C", "L"]))).toBe("A");
+    expect(getFirstAvailableShortcut("claim", new Set(["c", "L"]))).toBe("A");
   });
 
   it("returns empty when every candidate is taken", () => {

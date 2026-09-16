@@ -1096,7 +1096,7 @@ const getUnusedShortcut = (label: string): string =>
     label,
     new Set(
       getDiscourseNodes()
-        .map((n) => n.shortcut.toUpperCase())
+        .map((n) => n.shortcut)
         .filter(Boolean),
     ),
   );
