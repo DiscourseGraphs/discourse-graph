@@ -24,8 +24,10 @@ export const getEndpointIdsFromFrontmatter = (
 };
 
 /**
- * Counts what the panel would list. Excludes unaccepted imports and relations
- * orphaned by a deleted relation type, both of which the panel hides.
+ * Excludes unaccepted imports and relations orphaned by a deleted relation
+ * type, both of which the panel hides. Does not check that the peer endpoint
+ * still resolves to a file, so a deleted peer over-counts by one: resolving a
+ * peer is a vault scan, which callers on a render path cannot afford.
  */
 export const countDisplayableRelations = ({
   relations,

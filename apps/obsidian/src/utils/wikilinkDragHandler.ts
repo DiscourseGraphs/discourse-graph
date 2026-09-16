@@ -7,7 +7,7 @@ import {
   type DecorationSet,
   EditorView,
 } from "@codemirror/view";
-import { TFile, WorkspaceLeaf } from "obsidian";
+import { parseLinktext, TFile, WorkspaceLeaf } from "obsidian";
 import { VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import type DiscourseGraphPlugin from "~/index";
 import { extractLinktext, INTERNAL_LINK_RE } from "./internalLinkParsing";
@@ -23,8 +23,12 @@ const resolveFileFromLinkText = (
   const activeFile = plugin.app.workspace.getActiveFile();
   if (!activeFile) return null;
 
+  // getFirstLinkpathDest takes a link path, so any #heading or #^block must go.
+  const { path } = parseLinktext(linkText);
+  if (!path) return null;
+
   const resolved = plugin.app.metadataCache.getFirstLinkpathDest(
-    linkText,
+    path,
     activeFile.path,
   );
   return resolved instanceof TFile ? resolved : null;
