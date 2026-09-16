@@ -2,13 +2,9 @@
  * Rewrites the asset links in an imported node's markdown to point at this graph's own
  * copies.
  *
- * Resolution is by recorded row, never by origin. Each `FileReference` records the locator
- * exactly as the publishing platform's content expressed it, so a locator is rewritten when
- * a row matches it and left alone when none does. That one rule covers every case: a
- * genuinely external link has no row, and so does an asset whose bytes could not be
- * copied, which is why leaving the locator untouched is also the degradation path. Nothing
- * here inspects a locator's shape: a Roam-origin locator is a storage URL and an
- * Obsidian-origin one is a vault path, and this code never needs to know which it has.
+ * A locator is rewritten when a `FileReference` row matches it and left alone when none
+ * does, whatever its shape. An external link and an asset that could not be copied both
+ * fall out of that rule untouched, which is also the degradation path.
  */
 
 import mimeDb from "mime-db";
@@ -28,20 +24,13 @@ export type ResolvedAsset = {
 };
 
 /**
- * The kind Roam renders a MIME type as.
+ * Roam's own rule, verified against `file.upload`: it branches on the first part of the
+ * type, and everything it does not recognise becomes a bare URL. Reproduced rather than
+ * curated, so an imported asset renders like the same file uploaded directly, awkward
+ * cases included (`image/vnd.adobe.photoshop` embeds, possibly as a broken image).
  *
- * Roam's own rule, verified by uploading one file per type and reading back what
- * `file.upload` returned: it branches on the first part of the type. Every `image/*`
- * embeds, `audio/*` and `video/*` get their players, `application/pdf` gets the PDF
- * viewer, and everything else is written as a bare URL.
- *
- * Reproduced rather than curated, so an imported asset renders the way the same file
- * would if it had been uploaded into this graph directly. That includes the awkward
- * cases: `image/vnd.adobe.photoshop` embeds and may show a broken image, exactly as it
- * does for a native upload.
- *
- * Normalised first: the value comes from a `FileReference` row, not from `mime-db`, so
- * its case and parameters are not ours to assume.
+ * Normalised first: the value comes from a `FileReference` row, so its case and
+ * parameters are not ours to assume.
  */
 const kindForMimetype = (
   mimetype: string | undefined,
@@ -59,15 +48,13 @@ const kindForMimetype = (
 /**
  * Extension to kind, indexed from `mime-db` rather than maintained here.
  *
- * An extension can be claimed by several types, and `mime-db` states no preference:
- * `.mp4` is both `application/mp4` and `video/mp4`. A type that renders as nothing never
- * wins, which settles every case that matters. Where two rendering types claim one
- * extension the first indexed wins, and since both embed, the cost is the wrong player
+ * Several types can claim one extension (`.mp4` is both `application/mp4` and
+ * `video/mp4`) and `mime-db` states no preference. A non-rendering type never wins; where
+ * two rendering types claim an extension the first indexed wins, costing the wrong player
  * rather than a broken link.
  *
- * Prototype-free, and read through `Object.hasOwn`: a locator ending in `.constructor`
- * would otherwise look up a function, fail every `case` in `render`, and write the
- * literal string `undefined` into the user's page in place of their content.
+ * Prototype-free and read through `Object.hasOwn`: a locator ending in `.constructor`
+ * would otherwise resolve to a function and write `undefined` into the user's page.
  */
 const EXTENSION_KINDS: Record<string, AssetKind> = Object.entries(
   mimeDb,
@@ -114,14 +101,9 @@ type ReferenceContext = {
 
 /**
  * What kind of asset this is, in decreasing order of how much the source committed to:
- * the recorded MIME type, the kind the markdown named outright, the extension on either
- * name, and finally the form it was written in. An unrecognised type is a `file`, which
- * renders as a labelled link and is the one form that works for anything.
- *
- * The form ranks last as the weakest evidence, deciding only where nothing else can: an
- * extension-less locator embedded as `![](url)`. Roam keeps the extension after the uid on
- * nearly every upload, so that is rare, and with nothing populating `mimetype` the
- * extension does the work in practice.
+ * recorded MIME type, the kind the markdown named, the extension on either name, then the
+ * form it was written in. An unrecognised type is a `file`, the one form that works for
+ * anything.
  */
 const kindOf = (
   { sourcePath, sourceLocator, mimetype }: ResolvedAsset,
@@ -130,7 +112,6 @@ const kindOf = (
   const byType = kindForMimetype(mimetype);
   if (byType) return byType;
 
-  // `{{[[pdf]]: url}}` is not a guess to be improved on: the source said what this is.
   if (declaredKind) return declaredKind;
 
   const named =
@@ -138,39 +119,28 @@ const kindOf = (
     kindForExtension(extensionOf(sourceLocator));
   if (named) return named;
 
-  // Only where nothing names an extension. An embed of `report.docx` said "embed" but
-  // never said "image", and treating it as one would assert a type the source contradicts
-  // and drop the filename `labelFor` exists to show. An extension-less locator has no such
-  // claim to contradict, and there `![...]` is the only evidence available.
+  // Only where nothing names an extension: an embed of `report.docx` said "embed", never
+  // "image", so treating it as one would drop the filename `labelFor` exists to show.
   const unnamed = !extensionOf(sourcePath ?? "") && !extensionOf(sourceLocator);
   return form === "embed" && unnamed ? "image" : "file";
 };
 
 /**
  * Brackets end a markdown label early, and `Paper [draft].pdf` is an ordinary attachment
- * name. Stripping is not a fallback for escaping, it is the only option: Roam honours no
- * escape, and `\[` was verified in a graph to break exactly as a bare `[` does.
+ * name. Stripping is the only option: Roam honours no escape, and `\[` was verified in a
+ * graph to break exactly as a bare `[` does.
  *
- * Applied only where a bracket would newly break something: a label we invent from a
- * filename, and a wikilink alias we translate into markdown link syntax. Image alt text
- * is passed through untouched, because it is the author's own markdown and renders the
- * way it always did.
+ * Applied only to a label we invent or translate, never to image alt text, which is the
+ * author's own markdown and renders as it always did.
  */
 const stripLabelBrackets = (label: string): string =>
   label.replace(/[[\]]/g, "");
 
 /**
- * The label for an asset Roam renders as a link rather than as content.
- *
- * `file.upload` returns a bare URL for anything that is not an image, PDF, audio or
- * video, and a bare URL in a block renders as a link whose visible text is the URL: a
- * hundred characters of storage uid telling the reader nothing. This label is the only
- * place a user sees what an imported file is called.
- *
- * One case has nothing better to offer: a bare storage URL whose row records no name,
- * where the label falls back to the uid leaf, shorter than the URL and no more
- * informative. Only a recorded name fixes that; the type ranks decide how an asset
- * renders, not what it is called.
+ * The label for an asset Roam renders as a link rather than as content. Without it the
+ * visible text is the storage URL, so this is the only place a reader learns what an
+ * imported file is called. A row that records no name has nothing better than the uid
+ * leaf to fall back to.
  */
 const labelFor = ({
   asset,
@@ -197,10 +167,8 @@ const render = ({
   linkText: string;
   context: ReferenceContext;
 }): string => {
-  // A note that wrote `[Figure 3](image)` chose a link over an embed, and no Roam media
-  // embed carries text, so embedding any of them would delete the only words the reader
-  // sees. Kind is irrelevant here: an embed, a bare URL, and a link with nothing in its
-  // brackets all have no text to lose, and every other link does.
+  // No Roam media embed carries text, so embedding a link that has some would delete the
+  // only words the reader sees. Kind is irrelevant: this is about text to lose.
   if (context.form === "link" && linkText.trim())
     return `[${stripLabelBrackets(linkText.trim())}](${asset.url})`;
 
@@ -215,8 +183,8 @@ const render = ({
       return `{{[[video]]: ${asset.url}}}`;
     case "file":
     default:
-      // Only here. On an image, audio or video the pipe was a width, and the branches
-      // above ignore it rather than printing `![300](…)`.
+      // The pipe is spent only here. On an image, audio or video it was a width, and the
+      // branches above drop it rather than print `![300](…)`.
       return `[${stripLabelBrackets(
         labelFor({ asset, linkText: linkText || context.embedAlias || "" }),
       )}](${asset.url})`;
@@ -230,36 +198,29 @@ const URL_PATTERN = String.raw`https?://[^\s<>()\[\]{}"']+`;
  * The link forms an imported node's markdown can express an asset in, matched in one pass
  * so that a locator inside an embed is never also treated as a bare reference.
  *
- * Ordered. The media-embed branches precede the wikilink ones, or `{{[[pdf]]: url}}`
- * would be read as a page reference to `pdf` and its URL left behind as a bare locator.
- * Roam writes a stored PDF in exactly that form, so this is the shape a Roam-origin
- * asset arrives in, not a hypothetical one.
+ * Ordered. The media-embed branches precede the wikilink ones, or `{{[[pdf]]: url}}`, the
+ * form Roam writes a stored PDF in, would be read as a page reference to `pdf`.
  *
- * The wikilink branches carry Obsidian-origin notes. A Roam page reference is written the
- * same way, so it is matched too, but it can never resolve: a page name is not a recorded
- * locator, and an unmatched locator is left exactly as it was.
+ * The wikilink branches match Roam page references too, but those never resolve: a page
+ * name is not a recorded locator.
  */
 const LINK_PATTERN = new RegExp(
   [
     String.raw`!\[([^\]]*)\]\((<[^>]*>|[^)\s]+)(?:\s+"[^"]*")?\)`, // ![alt](locator)
-    // No `[` in the label, so `[![alt](image)](link)` cannot match here from the outer
-    // bracket: the branch fails, the scan advances one character, and the image branch
-    // takes the inner embed as it should. Alternation is tried per position, so ordering
-    // the image branch first is not enough on its own.
+    // No `[` in the label, so the outer bracket of `[![alt](image)](link)` fails here and
+    // the scan reaches the inner embed. Alternation is per position, so branch order
+    // alone would not do it.
     String.raw`\[([^\]\[]*)\]\((<[^>]*>|[^)\s]+)(?:\s+"[^"]*")?\)`, // [label](locator)
-    // The media keyword is captured, not discarded: it is the source stating the type,
-    // and it is the only statement available for a storage uid with no extension.
+    // The keyword is captured, not discarded: for a storage uid with no extension it is
+    // the only statement of the type.
     String.raw`\{\{\[\[(pdf|audio|video)\]\]:\s*(${URL_PATTERN})\s*\}\}`, // {{[[pdf]]: url}}
     String.raw`\{\{(pdf|audio|video):\s*(${URL_PATTERN})\s*\}\}`, // {{pdf: url}}
-    // The embed's pipe means two things depending on what it embeds: a width for an
-    // image (`![[x.png|300]]`) and a label for anything else (`![[a.pdf|the paper]]`).
-    // It is captured either way and `render` decides, because only the resolved kind
-    // says which one this is.
+    // The pipe is a width on an image (`![[x.png|300]]`) and a label on anything else
+    // (`![[a.pdf|the paper]]`), so it is captured and `render` decides once it has a kind.
     String.raw`!\[\[([^\]|]+)(?:\|([^\]]*))?\]\]`, // ![[locator]] or ![[locator|300]]
     String.raw`\[\[([^\]|]+)(?:\|([^\]]*))?\]\]`, // [[locator]] or [[locator|label]]
-    // The bracketed form is an autolink. Matching it whole, brackets included, is what
-    // lets them go away with the rest of the match: capturing only the URL inside would
-    // rewrite the middle and leave `<` and `>` wrapped around the result.
+    // An autolink is matched whole so its brackets go away with the rest of the match.
+    // Capturing only the URL would leave `<` and `>` around the rewritten link.
     `(<${URL_PATTERN}>|${URL_PATTERN})`, // a bare URL, rewritten only when a row matches it
   ].join("|"),
   "g",
@@ -267,12 +228,9 @@ const LINK_PATTERN = new RegExp(
 
 /**
  * The forms of a locator that could match a recorded reference, in decreasing fidelity.
- *
- * Two mismatches are known and neither is the publisher's to fix. Trailing punctuation is
- * stripped at publication but is inside the locator here. And a markdown link percent-
- * encodes what a vault path spells plainly. Obsidian records `my folder/d.png` from
- * `metadataCache`, while the note itself holds `my%20folder/d.png`, so any vault path
- * with a space in it needs the decoded form to match.
+ * Two known mismatches: publication strips trailing punctuation that is inside the locator
+ * here, and a markdown link percent-encodes what a vault path spells plainly (Obsidian
+ * records `my folder/d.png` while the note holds `my%20folder/d.png`).
  */
 const lookupCandidates = (locator: string): string[] => {
   const candidates = [locator];
@@ -381,10 +339,9 @@ export const rewriteAssetLinks = ({
         context: { form, declaredKind, embedAlias },
       });
 
-      // Punctuation only comes back on a bare URL, where it was the sentence's rather
-      // than the link's. Inside `![](…)` or `{{[[pdf]]: …}}` the locator is delimited
-      // already, so a trailing character there was part of the URL the publisher chose
-      // to record without. Putting it back would leave a stray mark beside the embed.
+      // Punctuation comes back only on a bare URL, where it was the sentence's. Inside
+      // `![](…)` the locator is already delimited, so a trailing character belonged to
+      // the URL and restoring it would leave a stray mark beside the embed.
       const trailing =
         form === "bare" && matched !== locator
           ? (locator.match(TRAILING_PUNCTUATION)?.[0] ?? "")

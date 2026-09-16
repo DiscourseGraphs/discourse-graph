@@ -21,11 +21,8 @@ describe("rewriteAssetLinks", () => {
     ).toBe(`![](${MIRRORED})`);
   });
 
-  /**
-   * CommonMark wraps a destination containing spaces in angle brackets, and Obsidian can
-   * emit that form for a vault path. The brackets delimit the locator rather than belong
-   * to it, so what matches a recorded row is the text between them.
-   */
+  // Obsidian emits this CommonMark form for a vault path with spaces. The brackets
+  // delimit the locator, so the recorded row matches the text between them.
   it("resolves an image whose destination is wrapped in angle brackets", () => {
     expect(
       rewriteAssetLinks({
@@ -44,11 +41,7 @@ describe("rewriteAssetLinks", () => {
     ).toBe(`[the report](${MIRRORED})`);
   });
 
-  /**
-   * An autolink is a bare URL the source wrapped in angle brackets. The brackets are part
-   * of the match, not of the locator, so the rewrite takes them with it. Capturing only
-   * the URL inside would leave `<` and `>` around the result, which Roam renders as text.
-   */
+  // Leftover `<` and `>` around a rewritten link render as text in Roam.
   it("rewrites an autolink without leaving its brackets behind", () => {
     expect(
       rewriteAssetLinks({
@@ -73,8 +66,7 @@ describe("rewriteAssetLinks", () => {
   });
 
   it("writes a non-media asset as a labelled link, not a bare URL", () => {
-    // A bare URL renders as a link whose visible text is the URL, which tells the reader
-    // nothing about what the file is.
+    // A bare URL's visible text is the URL, which says nothing about the file.
     expect(
       rewriteAssetLinks({
         markdown: `[](attachments/report.docx)`,
@@ -90,9 +82,8 @@ describe("rewriteAssetLinks", () => {
   });
 
   it("embeds any image type, matching what Roam does with a native upload", () => {
-    // Verified against `file.upload`: Roam takes the first part of the MIME type, so
-    // every `image/*` embeds, `.psd` included. Rendering it as a link here would make
-    // the same file look different depending on how it arrived in the graph.
+    // Verified against `file.upload`: Roam branches on the first part of the MIME type,
+    // so every `image/*` embeds, `.psd` included.
     expect(
       rewriteAssetLinks({
         markdown: `[](vault/layers.psd)`,
@@ -109,8 +100,7 @@ describe("rewriteAssetLinks", () => {
   });
 
   it("knows every extension a renderable type claims, not just the common spelling", () => {
-    // `.qt` is video/quicktime just as `.mov` is, so listing one and not the other is an
-    // accident the extension table should not be able to have.
+    // `.qt` is video/quicktime just as `.mov` is.
     expect(
       rewriteAssetLinks({
         markdown: `[](vault/clip.qt)`,
@@ -120,10 +110,8 @@ describe("rewriteAssetLinks", () => {
   });
 
   it("still resolves every extension the renderer depends on", () => {
-    // A guard rather than a new behaviour. The table is indexed from all of `mime-db`,
-    // so nothing here is hand-written and nothing pins these extensions except this
-    // test: a change in the data, or in how it is indexed, would silently degrade a
-    // common asset to a labelled link.
+    // The table is indexed from `mime-db`, so only this test pins these extensions: a
+    // change in the data would silently degrade a common asset to a labelled link.
     const shapeFor: Record<string, (url: string) => string> = {
       image: (url) => `![](${url})`,
       pdf: (url) => `{{[[pdf]]: ${url}}}`,
@@ -168,8 +156,7 @@ describe("rewriteAssetLinks", () => {
   });
 
   it("keeps a deliberate link's text for every kind, not only images", () => {
-    // Roam's media embeds carry no text, so embedding a link would delete the only words
-    // the reader sees. That is true of a PDF exactly as it is of an image.
+    // Roam's media embeds carry no text, a PDF's as much as an image's.
     expect(
       rewriteAssetLinks({
         markdown: `[Read the protocol](notes/report.pdf)`,
@@ -185,7 +172,7 @@ describe("rewriteAssetLinks", () => {
   });
 
   it("keeps a wikilink's alias as the link text", () => {
-    // `[[x]]` is a link in Obsidian, not an embed, and the alias is the author's words.
+    // `[[x]]` is a link in Obsidian, not an embed.
     expect(
       rewriteAssetLinks({
         markdown: `[[vault/d.png|Figure 3]]`,
@@ -215,11 +202,7 @@ describe("rewriteAssetLinks", () => {
     ).toBe(`![](${MIRRORED})`);
   });
 
-  /**
-   * Obsidian's pipe means a width on an image embed and a label on anything else. Roam
-   * renders a non-media asset as a labelled link, so the label has somewhere to go, and
-   * dropping it would replace the author's words with a filename.
-   */
+  // A non-media asset renders as a labelled link, so the pipe's label has somewhere to go.
   it("keeps a non-media embed's pipe, which names rather than sizes", () => {
     expect(
       rewriteAssetLinks({
@@ -239,8 +222,8 @@ describe("rewriteAssetLinks", () => {
   });
 
   it("does not let a bracket in a recorded name break the link", () => {
-    // `Paper [draft].pdf` is an ordinary attachment name. Emitted raw it ends the label
-    // early and the rest of the link leaks into the page as literal text.
+    // Emitted raw, the bracket ends the label early and the rest of the link leaks into
+    // the page as literal text.
     const rewritten = rewriteAssetLinks({
       markdown: `[](x.docx)`,
       assets: [
@@ -255,8 +238,8 @@ describe("rewriteAssetLinks", () => {
   });
 
   it("reads a recorded MIME type that carries case or parameters", () => {
-    // `mimetype` comes from a `FileReference` row, not from `mime-db`, so it is not
-    // normalised for us. An exact-match miss here silently drops to the extension rank.
+    // A `FileReference` row is not normalised for us, and a miss here silently drops to
+    // the extension rank.
     expect(
       rewriteAssetLinks({
         markdown: `[](vault/d.png)`,
@@ -347,9 +330,8 @@ describe("rewriteAssetLinks", () => {
     ).toBe(`![](${MIRRORED})\n\nand again ![](${MIRRORED})`);
   });
 
-  // A Roam-origin non-media asset arrives as a bare storage URL, and Roam renders a bare
-  // URL using the URL itself as the link text. The recorded name is the only place a
-  // reader ever learns what the file is called.
+  // A Roam-origin non-media asset arrives as a bare storage URL, so the recorded name is
+  // all a reader has to go on.
   it("labels a non-media link with the recorded name rather than the storage URL", () => {
     const published = `${MIRRORED.replace("/o/x", "/o/GVfB6XBcMR")}`;
     const result = rewriteAssetLinks({
@@ -388,8 +370,8 @@ describe("rewriteAssetLinks", () => {
   });
 
   it("matches a URL a sentence ended on, which the publisher recorded without its period", () => {
-    // `findAssetReferences` strips trailing punctuation before writing `filepath`, so a
-    // lookup that did not would leave the page pointing at the origin graph's storage.
+    // `findAssetReferences` strips this before writing `filepath`, so a lookup that did
+    // not would leave the page pointing at the origin graph's storage.
     const asset = `https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FMAPLab%2Fx.png?alt=media&token=abc`;
 
     expect(
@@ -424,8 +406,8 @@ describe("rewriteAssetLinks", () => {
   });
 
   it("matches a percent-encoded locator against the decoded path Obsidian recorded", () => {
-    // The note holds the encoded form; `metadataCache` gives the publisher the decoded
-    // one, so every vault path with a space in it arrives spelled two ways.
+    // The note holds the encoded form and `metadataCache` the decoded one, so a vault path
+    // with a space arrives spelled two ways.
     expect(
       rewriteAssetLinks({
         markdown: `![](my%20folder/d.png)`,
@@ -477,8 +459,7 @@ describe("rewriteAssetLinks", () => {
   });
 
   it("treats a locator whose extension names a prototype member as an unknown type", () => {
-    // Not the assertion it looks like: the point is that the literal string `undefined`
-    // never reaches the page. An unknown extension is a file, like any other.
+    // The point is that the literal string `undefined` never reaches the page.
     expect(
       rewriteAssetLinks({
         markdown: `![](vault/odd.constructor)`,
@@ -540,8 +521,8 @@ describe("the cross-app contract fixtures round-trip", () => {
     expect(result).toContain(
       `![](${MIRRORED}#${stored?.contentHash.slice(0, 8)})`,
     );
-    // The fixture's second asset is deliberately absent from `assets`: its bytes were
-    // never stored, so the locator stays exactly as published. That is the degradation path.
+    // The second asset is absent from `assets`, as an uncopied one would be: its locator
+    // stays as published. That is the degradation path.
     expect(result).toContain(
       "{{[[pdf]]: https://firebasestorage.googleapis.com",
     );
