@@ -1,5 +1,8 @@
 import type { Rid } from "@repo/database/crossAppContracts";
-import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
+import {
+  DISCOURSE_GRAPH_PROP_NAME,
+  IMPORTED_FROM_PROP_KEY,
+} from "./createReifiedBlock";
 import getBlockProps, { isJsonObject, type json } from "./getBlockProps";
 import { setBlockPropsAsync } from "./setBlockProps";
 
@@ -8,17 +11,12 @@ export type ImportedSourceIdentity = {
   sourceNodeRid: Rid;
 };
 
-export const IMPORTED_FROM_PROP_KEY = "importedFrom";
 const SOURCE_NODE_RID_KEY = "sourceNodeRid";
 const SOURCE_MODIFIED_AT_KEY = "sourceModifiedAt";
 
-const parseImportedSourceIdentity = (
-  props: Record<string, json>,
+export const parseSourceIdentity = (
+  importedFrom: json | undefined,
 ): ImportedSourceIdentity | undefined => {
-  const discourseGraphProps = props[DISCOURSE_GRAPH_PROP_NAME];
-  if (!isJsonObject(discourseGraphProps)) return undefined;
-
-  const importedFrom = discourseGraphProps[IMPORTED_FROM_PROP_KEY];
   if (!isJsonObject(importedFrom)) return undefined;
 
   const sourceModifiedAt = importedFrom[SOURCE_MODIFIED_AT_KEY];
@@ -27,6 +25,15 @@ const parseImportedSourceIdentity = (
     return undefined;
 
   return { sourceModifiedAt, sourceNodeRid };
+};
+
+const parseImportedSourceIdentity = (
+  props: Record<string, json>,
+): ImportedSourceIdentity | undefined => {
+  const discourseGraphProps = props[DISCOURSE_GRAPH_PROP_NAME];
+  if (!isJsonObject(discourseGraphProps)) return undefined;
+
+  return parseSourceIdentity(discourseGraphProps[IMPORTED_FROM_PROP_KEY]);
 };
 
 export const readImportedSourceIdentity = (

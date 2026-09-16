@@ -16,6 +16,8 @@ vi.mock("~/utils/materializeSharedNode", async () => {
   return { ...actual, materializeSharedNode: vi.fn() };
 });
 
+vi.mock("~/utils/internalError", () => ({ default: vi.fn() }));
+
 vi.mock("~/utils/resolveSharedNodeTypes", () => ({
   resolveSharedNodeTypes: vi.fn(),
 }));
