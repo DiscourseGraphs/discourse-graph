@@ -12,6 +12,9 @@ export type SchemaImportMatchPlan = {
   relationTypeIdMapping: Map<string, string>;
   existingNodeTypeIds: Set<string>;
   existingRelationTypeIds: Set<string>;
+  /** Subset of `existing*` that matched another entry in the same file rather than the vault, so previews can exclude them from both counts. */
+  collapsedNodeTypeIds: Set<string>;
+  collapsedRelationTypeIds: Set<string>;
   existingDiscourseRelationIds: Set<string>;
   existingTemplateNames: Set<string>;
   localTemplateNames: Set<string>;

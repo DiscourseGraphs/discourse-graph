@@ -4,6 +4,7 @@ import type {
   DiscourseSchemaFile,
 } from "~/types";
 import type { SchemaImportMatchPlan } from "~/utils/schemaMatching";
+import { toTldrawColor } from "~/utils/tldrawColors";
 
 /** Fields an import may overwrite. `name`/`label` are excluded: renaming a type does not retag its pages, so the vault would silently split. */
 export const MERGEABLE_NODE_TYPE_FIELDS = [
@@ -70,7 +71,9 @@ const buildRelationTypeFieldChanges = ({
   imported: DiscourseRelationType;
 }): SchemaFieldChange[] => {
   return MERGEABLE_RELATION_TYPE_FIELDS.flatMap((field) => {
-    const localValue = local[field];
+    // Parsing coerces the imported color to a tldraw name; resolve the local one too, or an equivalent hex reads as a conflict and the value shown is not the one that would be stored.
+    const localValue =
+      field === "color" ? toTldrawColor(local.color) : local[field];
     const importedValue = imported[field];
     if (hasNoImportedValue(importedValue)) return [];
     if (localValue === importedValue) return [];
