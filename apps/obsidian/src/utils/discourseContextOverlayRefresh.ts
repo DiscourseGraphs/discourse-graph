@@ -37,7 +37,7 @@ export const refreshDiscourseContextOverlaySurfaces = (
     }
     const sourcePath = leaf.view.file?.path;
     if (!sourcePath) return;
-    applyDiscourseContextBadges({ plugin, el, sourcePath, skipEmbedded: true });
+    applyDiscourseContextBadges({ plugin, el, sourcePath });
   });
 };
 

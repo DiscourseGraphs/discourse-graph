@@ -1,4 +1,4 @@
-import type { MarkdownPostProcessorContext } from "obsidian";
+import { parseLinktext, type MarkdownPostProcessorContext } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import {
   badgeTargetPath,
@@ -9,23 +9,55 @@ import {
 import { openDiscourseContextPopover } from "~/components/DiscourseContextPopover";
 import { resolveDiscourseLinkTarget } from "./discourseLinkUtils";
 
+/**
+ * A link inside a transclusion resolves against the embedded file, so walk the
+ * `.internal-embed` chain outwards to find the file it was actually written in.
+ */
+const resolveLinkSourcePath = ({
+  plugin,
+  link,
+  sourcePath,
+}: {
+  plugin: DiscourseGraphPlugin;
+  link: HTMLElement;
+  sourcePath: string;
+}): string | null => {
+  const embeds: HTMLElement[] = [];
+  let embed = link.parentElement?.closest<HTMLElement>(".internal-embed");
+  while (embed) {
+    embeds.unshift(embed);
+    embed = embed.parentElement?.closest<HTMLElement>(".internal-embed");
+  }
+
+  let path = sourcePath;
+  for (const ancestor of embeds) {
+    const src = ancestor.getAttribute("src");
+    if (!src) return null;
+    const file = plugin.app.metadataCache.getFirstLinkpathDest(
+      parseLinktext(src).path,
+      path,
+    );
+    if (!file) return null;
+    path = file.path;
+  }
+  return path;
+};
+
 /** Idempotent: Obsidian reuses rendered sections and re-runs post processors. */
 export const applyDiscourseContextBadges = ({
   plugin,
   el,
   sourcePath,
-  skipEmbedded = false,
 }: {
   plugin: DiscourseGraphPlugin;
   el: HTMLElement;
   sourcePath: string;
-  /** Links inside a transclusion resolve against the embedded file, not `sourcePath`. */
-  skipEmbedded?: boolean;
 }): void => {
   const links = el.querySelectorAll<HTMLAnchorElement>("a.internal-link");
 
   for (const link of Array.from(links)) {
-    if (skipEmbedded && link.closest(".internal-embed")) continue;
+    const linkSourcePath = resolveLinkSourcePath({ plugin, link, sourcePath });
+    if (!linkSourcePath) continue;
     const existing = link.nextElementSibling?.hasClass(
       DISCOURSE_CONTEXT_BADGE_CLASS,
     )
@@ -35,12 +67,15 @@ export const applyDiscourseContextBadges = ({
     // data-href holds the link as written; href is resolved and URL-encoded.
     const linktext =
       link.getAttribute("data-href") ?? link.getAttribute("href");
-    if (!linktext) continue;
+    if (!linktext) {
+      existing?.remove();
+      continue;
+    }
 
     const target = resolveDiscourseLinkTarget({
       plugin,
       linktext,
-      sourcePath,
+      sourcePath: linkSourcePath,
     });
     if (!target) {
       existing?.remove();
