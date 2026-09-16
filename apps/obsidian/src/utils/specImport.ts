@@ -52,6 +52,10 @@ const buildSchemaImportMatchPlan = ({
 }): SchemaImportMatchPlan => {
   const nodeTypeIdMapping = new Map<string, string>();
   const existingNodeTypeIds = new Set<string>();
+  const collapsedNodeTypeIds = new Set<string>();
+  const localNodeTypeIds = new Set(
+    localNodeTypes.map((nodeType) => nodeType.id),
+  );
   // Grows as types are planned, so "Event" and "event" in one file collapse instead of creating two.
   const knownNodeTypes = [...localNodeTypes];
 
@@ -64,6 +68,10 @@ const buildSchemaImportMatchPlan = ({
     if (localMatch) {
       nodeTypeIdMapping.set(nodeType.id, localMatch.id);
       existingNodeTypeIds.add(nodeType.id);
+      // Matched a type planned earlier in this file, not one the vault holds.
+      if (!localNodeTypeIds.has(localMatch.id)) {
+        collapsedNodeTypeIds.add(nodeType.id);
+      }
       continue;
     }
 
@@ -73,6 +81,10 @@ const buildSchemaImportMatchPlan = ({
 
   const relationTypeIdMapping = new Map<string, string>();
   const existingRelationTypeIds = new Set<string>();
+  const collapsedRelationTypeIds = new Set<string>();
+  const localRelationTypeIds = new Set(
+    localRelationTypes.map((relationType) => relationType.id),
+  );
   const knownRelationTypes = [...localRelationTypes];
 
   for (const relationType of schemaFile.relationTypes) {
@@ -84,6 +96,9 @@ const buildSchemaImportMatchPlan = ({
     if (localMatch) {
       relationTypeIdMapping.set(relationType.id, localMatch.id);
       existingRelationTypeIds.add(relationType.id);
+      if (!localRelationTypeIds.has(localMatch.id)) {
+        collapsedRelationTypeIds.add(relationType.id);
+      }
       continue;
     }
 
@@ -119,6 +134,8 @@ const buildSchemaImportMatchPlan = ({
     relationTypeIdMapping,
     existingNodeTypeIds,
     existingRelationTypeIds,
+    collapsedNodeTypeIds,
+    collapsedRelationTypeIds,
     existingDiscourseRelationIds,
     existingTemplateNames,
     localTemplateNames,
@@ -133,14 +150,21 @@ const buildPreviewStats = ({
   matchPlan: SchemaImportMatchPlan;
 }): ImportPreviewStats => {
   return {
+    // A collapsed id is neither created nor held by the vault, so counting it as existing would name a type the user does not have.
     nodeTypes: {
-      total: schemaFile.nodeTypes.length,
-      existing: matchPlan.existingNodeTypeIds.size,
+      total: schemaFile.nodeTypes.length - matchPlan.collapsedNodeTypeIds.size,
+      existing:
+        matchPlan.existingNodeTypeIds.size -
+        matchPlan.collapsedNodeTypeIds.size,
       new: schemaFile.nodeTypes.length - matchPlan.existingNodeTypeIds.size,
     },
     relationTypes: {
-      total: schemaFile.relationTypes.length,
-      existing: matchPlan.existingRelationTypeIds.size,
+      total:
+        schemaFile.relationTypes.length -
+        matchPlan.collapsedRelationTypeIds.size,
+      existing:
+        matchPlan.existingRelationTypeIds.size -
+        matchPlan.collapsedRelationTypeIds.size,
       new:
         schemaFile.relationTypes.length -
         matchPlan.existingRelationTypeIds.size,
