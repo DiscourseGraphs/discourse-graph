@@ -124,12 +124,15 @@ export const importNodeAssets = async ({
   const resolved: ResolvedAsset[] = [];
   const report = emptyReport();
   /**
-   * `mirrored` and `reused` count distinct blobs: two locators for identical bytes are one
-   * upload, and counting the second as `reused` would claim this graph already held what
-   * it had just fetched. `skipped` and `failed` stay per locator, since each is a place
-   * the page degraded.
+   * The copy each hash resolved to in this run. A second locator for identical bytes takes
+   * the URL from here rather than from the registry, whose write is best-effort: when it
+   * fails, asking again would upload the same bytes a second time, permanently.
+   *
+   * `mirrored` and `reused` therefore count distinct blobs, and counting the second locator
+   * as `reused` would claim this graph already held what it had just fetched. `skipped` and
+   * `failed` stay per locator, since each is a place the page degraded.
    */
-  const handledHashes = new Set<string>();
+  const urlByHash = new Map<string, string>();
   /**
    * Oversize is a property of the bytes, so it is decided once per hash: asking again
    * costs a round trip, or a second download of a blob already known to be too big. A
@@ -146,6 +149,15 @@ export const importNodeAssets = async ({
         sourceLocator: reference.filepath,
         reason: "too-large",
         ...alreadySkipped,
+      });
+      continue;
+    }
+    const alreadyResolved = urlByHash.get(reference.filehash);
+    if (alreadyResolved) {
+      resolved.push({
+        sourceLocator: reference.filepath,
+        url: alreadyResolved,
+        sourcePath: reference.source_path,
       });
       continue;
     }
@@ -168,11 +180,9 @@ export const importNodeAssets = async ({
         });
         continue;
       }
-      if (!handledHashes.has(reference.filehash)) {
-        handledHashes.add(reference.filehash);
-        if (result.status === "mirrored") report.mirrored += 1;
-        else report.reused += 1;
-      }
+      urlByHash.set(reference.filehash, result.url);
+      if (result.status === "mirrored") report.mirrored += 1;
+      else report.reused += 1;
       resolved.push({
         sourceLocator: reference.filepath,
         url: result.url,

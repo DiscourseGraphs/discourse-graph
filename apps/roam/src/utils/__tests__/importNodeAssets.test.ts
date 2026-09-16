@@ -290,20 +290,16 @@ describe("importNodeAssets", () => {
     expect(second.report.failed).toEqual([]);
   });
 
-  it("counts one upload when two locators name identical bytes", async () => {
-    mirror
-      .mockResolvedValueOnce({
-        status: "mirrored",
-        contentHash: "h1",
-        url: MIRRORED,
-      })
-      .mockResolvedValueOnce({
-        status: "reused",
-        contentHash: "h1",
-        url: MIRRORED,
-      });
+  // The mock returns `mirrored` on every call, as the real one does after a failed registry
+  // write, so only the loop's own memo stops the second upload.
+  it("uploads identical bytes once when two locators name them", async () => {
+    mirror.mockResolvedValue({
+      status: "mirrored",
+      contentHash: "h1",
+      url: MIRRORED,
+    });
 
-    const { report } = await importNodeAssets({
+    const { markdown, report } = await importNodeAssets({
       client: clientWithReferences([
         row(IMAGE_REF, "h1"),
         row("attachments/copy.png", "h1"),
@@ -312,10 +308,10 @@ describe("importNodeAssets", () => {
       markdown: `![](${IMAGE_REF}) ![](attachments/copy.png)`,
     });
 
+    expect(mirror).toHaveBeenCalledTimes(1);
+    expect(markdown).toBe(`![](${MIRRORED}) ![](${MIRRORED})`);
     // Not `reused: 1`: this run uploaded those bytes itself a moment earlier.
     expect(report).toMatchObject({ mirrored: 1, reused: 0 });
-    // Deduplication is the registry's job, inside `mirrorAssetToRoamStorage`.
-    expect(mirror).toHaveBeenCalledTimes(2);
   });
 
   it("asks once whether a blob is oversized, and reports every locator naming it", async () => {
