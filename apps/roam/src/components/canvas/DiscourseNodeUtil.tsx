@@ -36,7 +36,10 @@ import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { discourseContext } from "./Tldraw";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
-import { createTextJsxFromSpans } from "./DiscourseRelationShape/helpers";
+import {
+  createTextJsxFromSpans,
+  getParallelArrowBend,
+} from "./DiscourseRelationShape/helpers";
 import { loadImage } from "~/utils/loadImage";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
@@ -316,10 +319,27 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
         return { relationId, complement, nodeId, arrowId, label };
       });
 
+    const allRelationIds = getRelationIds();
+    const reservedBendsByPair = new Map<string, number[]>();
     const shapesToCreate = toCreate.map(
-      ({ relationId, arrowId, label }, index) => {
+      ({ relationId, complement, nodeId, arrowId, label }, index) => {
         const color = getRelationColor(label, index);
-        return { id: arrowId, type: relationId, props: { color } };
+        const startId = complement ? nodesInCanvas[nodeId].id : shape.id;
+        const endId = complement ? shape.id : nodesInCanvas[nodeId].id;
+        const pairKey = [startId, endId].sort().join(":");
+        const reservedCanonicalBends = reservedBendsByPair.get(pairKey) ?? [];
+        const { bend, canonicalBend } = getParallelArrowBend({
+          editor,
+          startShapeId: startId,
+          endShapeId: endId,
+          relationIds: allRelationIds,
+          reservedCanonicalBends,
+        });
+        reservedBendsByPair.set(pairKey, [
+          ...reservedCanonicalBends,
+          canonicalBend,
+        ]);
+        return { id: arrowId, type: relationId, props: { color, bend } };
       },
     );
 

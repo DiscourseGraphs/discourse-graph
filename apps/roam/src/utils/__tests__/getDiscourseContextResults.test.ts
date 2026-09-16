@@ -39,7 +39,9 @@ vi.mock("~/utils/tentativeRelations", () => ({
   getTentativeOnlyRelationKeys: mocks.getTentativeOnlyRelationKeys,
 }));
 
-import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
+import getDiscourseContextResults, {
+  invalidateDiscourseContextCache,
+} from "~/utils/getDiscourseContextResults";
 
 const makeNode = ({
   type,
@@ -276,5 +278,47 @@ describe("getDiscourseContextResults", () => {
     expect(results).toHaveLength(1);
     expect(results[0].label).toBe("Supports");
     expect(Object.keys(results[0].results)).toEqual(["question-a"]);
+  });
+});
+
+describe("discourse context cache invalidation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (globalThis as { window: unknown }).window = {
+      roamAlphaAPI: { util: { generateUID: mocks.generateUID } },
+    };
+    mocks.generateUID.mockReturnValue("cache-condition");
+  });
+
+  it("invalidates a changed node even when no panel is mounted, preserving other nodes", async () => {
+    mocks.getSetting.mockReturnValue(false);
+    mocks.findDiscourseNode.mockReturnValue({ type: "CLM" });
+    const nodes = [
+      makeNode({ type: "CLM", text: "Claim" }),
+      makeNode({ type: "QUE", text: "Question" }),
+    ];
+    const relations: DiscourseRelation[] = [
+      {
+        id: "cache-supports",
+        label: "Supports",
+        complement: "Supported By",
+        source: "CLM",
+        destination: "QUE",
+        triples: [],
+      },
+    ];
+    const get = (uid: string) =>
+      getDiscourseContextResults({ uid, nodes, relations });
+    mocks.fireQuery.mockResolvedValue([]);
+    await get("cache-node");
+    await get("cache-other");
+    mocks.fireQuery.mockClear();
+    await get("cache-node");
+    expect(mocks.fireQuery).not.toHaveBeenCalled();
+    invalidateDiscourseContextCache({ uids: ["cache-node"] });
+    await get("cache-other");
+    expect(mocks.fireQuery).not.toHaveBeenCalled();
+    await get("cache-node");
+    expect(mocks.fireQuery).toHaveBeenCalledOnce();
   });
 });
