@@ -147,6 +147,8 @@ export const VIEW_TYPE_TLDRAW_DG_PREVIEW = "tldraw-dg-preview";
 
 export const TLDRAW_VERSION = "3.14.2";
 export const DEFAULT_SAVE_DELAY = 500; // in ms
+// Delay before an open canvas re-reads its backing file after a vault `modify` event
+export const CANVAS_FILE_SYNC_DEBOUNCE_MS = 150;
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files

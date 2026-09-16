@@ -67,11 +67,10 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   display: none !important;
 }
 
-/* Discourse tag styling in editor (colors via --dg-discourse-tag-* on the element) */
-[data-dg-discourse-tag] {
+/* Targets the parent `.cm-hashtag`, which Obsidian renders and we cannot class,
+   so this cannot be a Tailwind utility. Per-node colours are generated in tagNodeHandler.ts. */
+.cm-hashtag:has(> .dg-discourse-tag) {
   cursor: pointer;
-  background-color: var(--dg-discourse-tag-bg);
-  color: var(--dg-discourse-tag-fg);
 }
 
 /* Off-screen measure container matching DiscourseNodeShape layout */
