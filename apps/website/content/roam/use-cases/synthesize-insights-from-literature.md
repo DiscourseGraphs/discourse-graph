@@ -37,9 +37,7 @@ There's a bit of a chicken-and-egg problem here, as engaging in question-driven 
 
 ## Building your library of sources
 
-Let's assume that your exploration phase is influenced by the items in your reference manager/personal library. Roam offers several plugins for interacting with reference management software.
-
-The [template lab graph](https://github.com/DiscourseGraphs/obsidian-lab-example) uses [Zotero](https://github.com/8bitgentleman/zotero-roam), a Zotero integration plugin.
+Let's assume that your exploration phase is influenced by the items in your reference manager/personal library. The [template lab graph](https://github.com/DiscourseGraphs/obsidian-lab-example) uses [Zotero](https://github.com/8bitgentleman/zotero-roam), a Roam plugin for interacting with the Zotero refrence management software available on Roam Depot.
 
 ### Managing literature sources with Zotero
 

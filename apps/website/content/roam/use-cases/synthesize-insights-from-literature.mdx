@@ -37,15 +37,24 @@ There's a bit of a chicken-and-egg problem here, as engaging in question-driven 
 
 ## Building your library of sources
 
-Let's assume that your exploration phase is influenced by the items in your reference manager/personal library. Roam offers several plugins for interacting with reference management software.
+Let's assume that your exploration phase is influenced by the items in your reference manager/personal library. The [Roam template lab graph](https://roamresearch.com/#/app/template-lab/page/wnEmTP0TK) uses uses [Zotero](https://github.com/8bitgentleman/zotero-roam), a Roam plugin for interacting with the Zotero reference management software..
 
-[](image needed)
-
-The [Roam template lab graph](https://roamresearch.com/#/app/template-lab/page/wnEmTP0TK) uses [Zotero](link needed), a Zotero integration plugin.
+![zoteroroam](/docs/roam/zoteroroam-depot.png)
+_ZoteroRoam is available on Settings>Roam Depot_
 
 ### Managing literature sources with Zotero
 
-[](image needed)
+<Callout type="info" emoji="💡">
+  For more detailed instructions on importing and citing articles from zotero,
+  check out the tutorials in the [template lab
+  graph](https://roamresearch.com/#/app/template-lab/page/9we_HJeEH)
+</Callout>
+
+Here's how to get started: - Install and enable the ZoteroRoam extension from Roam Depot - Install the [Better BibTeX plugin](https://retorque.re/zotero-better-bibtex/installation/) for Zotero and open Zotero Settings - ![](/docs/roam/zoteroroam01.png) - Set your **Citation key format** to: `auth.lower + year + veryshorttitle(1,0).lower` - Set the autoPinDelay parameter to 1 - Make sure to pin your existing citekeys: select all items in view (either with the mouse or the Ctrl-A keyboard shortcut), right-click, then navigate to **Better BibTeX > Pin BibTeX key** - ![](/docs/roam/zoteroroam02.png) - Back in Roam, navigate to the top right of your screen. - ![](/docs/roam/zoteroroam03.png) - You'll be prompted to enter an API key and a nickname for your personal or group library - ![](/docs/roam/zoteroroam04.png) - Login to Zotero on the web and navigate [here](https://www.zotero.org/settings/security#applications) to get your personal API key. Click on `create new private key` to generate an API key and enter it at the prompt (and record it elsewhere for later use). Your User ID for API calls goes in the area marked with the orange box.
+![](/docs/roam/zoteroroam05.png) - ![](/docs/roam/zoteroroam06.png) - Now set your permissions. You will probably want to give ZoteroRoam notes access and write access if you want to import your notes and add items to Zotero from Roam. - When ZoteroRoam is up and running, the icon looks like this:
+![](/docs/roam/zoteroroam07.png) - In order to use the metadata and notes page features described below, ensure that zoteroRoam draws from the correct template. Navigate to **Settings > Metadata** , select ☑️**Smartblock**, select **By name** in the dropdown menu, and type in `zoteroRoam Roam Depot Source` to load the template. - ![](/docs/roam/zoteroroam08.png)
+
+Now when you import articles from your Zotero library to your Roam graph, a **Source** page will be automatically created to capture
 
 ## Organizing your reading
 
