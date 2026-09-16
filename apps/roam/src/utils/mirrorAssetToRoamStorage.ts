@@ -6,35 +6,6 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { readMirroredAssetUrl, recordMirroredAsset } from "./assetRegistry";
 import { getErrorMessage } from "./getErrorMessage";
 
-/**
- * Copies one asset out of shared storage and into this graph's own Roam storage.
- *
- * Roam renders an embed by issuing an anonymous cross-origin GET, with no credentials,
- * so whatever an imported page points at has to be fetchable without our auth. Shared
- * storage is private, so the bytes have to land somewhere public: this graph's own
- * Firebase storage, through `file.upload`.
- *
- * Every asset takes this path, whatever platform published it, including a Roam-origin
- * one imported into a second graph. Skipping the copy for those would put origin
- * detection back into the destination, and would leave this graph's page depending on a
- * blob the origin graph's owner can delete. The copy is irrevocable, deliberately.
- *
- * **Nothing rolls an upload back.** `file.delete` exists and takes a URL, so a caller
- * holding one could undo its own upload, but it must not: a graph's users share one
- * registry keyed by content hash (see `assetRegistry`), so a blob this call uploaded may
- * already have been resolved by another user's import. A failed import leaves its copies
- * in place instead, and callers order their work so a rejected import never uploads at
- * all. Roam exposes no way to list a graph's files, so an orphan cannot be swept up
- * afterwards either.
- *
- * **Call this one asset at a time.** The registry read and the matching write are
- * separated by a download and an upload, so callers running it under `Promise.all` all
- * see an empty registry for the same hash: the bytes upload once per call, the registry
- * keeps one URL, and the rest are permanent orphans in the user's Roam storage. The
- * mitigation is the caller's sequential loop. Parallelising a caller means adding an
- * in-flight map of hash to promise here first.
- */
-
 /** The bucket `addFile` writes to, keyed by content hash. */
 const SHARED_ASSET_BUCKET = "assets";
 
@@ -144,6 +115,33 @@ export const mirroredAssetFileName = ({
 }): string =>
   `imported-${contentHash}${extensionFor({ sourcePath, mimetype })}`;
 
+/**
+ * Copies one asset out of shared storage and into this graph's own Roam storage.
+ *
+ * Roam renders an embed by issuing an anonymous cross-origin GET, with no credentials,
+ * so whatever an imported page points at has to be fetchable without our auth. Shared
+ * storage is private, so the bytes have to land somewhere public: this graph's own
+ * Firebase storage, through `file.upload`.
+ *
+ * Every asset takes this path, whatever platform published it, including a Roam-origin
+ * one imported into a second graph. Skipping the copy for those would put origin
+ * detection back into the destination, and would leave this graph's page depending on a
+ * blob the origin graph's owner can delete. The copy is irrevocable, deliberately.
+ *
+ * **Nothing rolls an upload back.** `file.delete` takes a URL, so a caller could undo its
+ * own upload, but must not: users of a graph share one registry keyed by content hash (see
+ * `assetRegistry`), so another user's import may already have resolved this blob. A failed
+ * import leaves its copies in place, so callers should reject an import before uploading
+ * when they can. Roam exposes no way to list a graph's files, so an orphan cannot be swept
+ * up afterwards either.
+ *
+ * **Call this one asset at a time.** The registry read and the matching write are
+ * separated by a download and an upload, so callers running it under `Promise.all` all
+ * see an empty registry for the same hash: the bytes upload once per call, the registry
+ * keeps one URL, and the rest are permanent orphans in the user's Roam storage. The
+ * mitigation is the caller's sequential loop. Parallelising a caller means adding an
+ * in-flight map of hash to promise here first.
+ */
 export const mirrorAssetToRoamStorage = async ({
   client,
   contentHash,

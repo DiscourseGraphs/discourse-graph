@@ -32,9 +32,8 @@ export type AssetImportReport = {
 };
 
 /**
- * A fresh report per call, never a shared constant. Callers own what they are handed and
- * the arrays are mutable, so one `report.failed.push(...)` on a returned object would
- * otherwise attribute one node's failure to every asset-free node in the session.
+ * A fresh report per call, never a shared constant: the arrays are mutable, so a caller's
+ * push would otherwise reach every other node's report.
  */
 const emptyReport = (): AssetImportReport => ({
   mirrored: 0,
@@ -49,11 +48,6 @@ type ReferenceRow = {
   source_path: string | null;
 };
 
-/**
- * The references recorded against the published node, which are the only things this
- * stage resolves. A node with no rows has no assets to copy, whether because it
- * references none or because none could be stored when it was published.
- */
 const fetchNodeReferences = async ({
   client,
   sharedNode,
@@ -66,10 +60,8 @@ const fetchNodeReferences = async ({
     .select("filepath, filehash, source_path")
     .eq("space_id", sharedNode.spaceId)
     .eq("source_local_id", sharedNode.sourceLocalId)
-    // Ordered so a repeated import does the same thing twice. Where two references share
-    // a hash, the first one mirrored decides the uploaded file's extension, because the
-    // second reuses its URL; without an order, which name that is comes down to whatever
-    // Postgres returned first.
+    // Ordered so a repeated import does the same thing twice: where two references share a
+    // hash, whichever mirrors first decides the uploaded file's extension.
     .order("filepath");
   if (error) throw error;
   return (data ?? []).flatMap((row): ReferenceRow[] =>
@@ -90,18 +82,10 @@ const fetchNodeReferences = async ({
  * The asset stage of materialization: copy the bytes an imported node references into
  * this graph's storage, and point the node's markdown at those copies.
  *
- * It runs between fetching the content and replacing the page's blocks, because the
- * markdown it returns is what gets written. Nothing here can fail the node: an asset that
- * cannot be copied leaves its locator exactly as published, and is reported instead of
- * thrown.
- *
- * What a surviving locator does depends on its origin. A Roam-origin locator is a public
- * Firebase URL, so the block still renders from the origin graph. An Obsidian-origin
- * locator is a vault path, and Roam reads `![[attachments/diagram.png]]` as a page
- * reference, so a failed Obsidian asset leaves a link to an empty page.
- *
- * That is deliberate. An unresolved locator must survive unchanged so a later re-import
- * can resolve it.
+ * Nothing here fails the node: an asset that cannot be copied is reported and its locator
+ * left exactly as published, so a later re-import can still resolve it. A surviving
+ * Roam-origin locator keeps rendering from the origin graph; a surviving Obsidian one is a
+ * vault path, which Roam reads as a reference to an empty page.
  */
 export const importNodeAssets = async ({
   client,
@@ -118,9 +102,8 @@ export const importNodeAssets = async ({
   try {
     references = await fetchNodeReferences({ client, sharedNode });
   } catch (error) {
-    // The node still imports, with every asset locator left as published. Reported as one
-    // failure rather than none, because "no rows" and "could not read the rows" produce
-    // the same content and must not look the same to a reader.
+    // Reported rather than swallowed: "no rows" and "could not read the rows" produce the
+    // same content, so only the report tells them apart.
     return {
       markdown,
       report: {
@@ -135,19 +118,16 @@ export const importNodeAssets = async ({
   }
   if (!references.length) return { markdown, report: emptyReport() };
 
-  // The locators come from the rewriter's own reading of the text, not from re-deriving
-  // the spellings a path might take. Generating them forward cannot work: a note writes
-  // `fig#1.png` as `fig%231.png`, and `encodeURI` leaves `#` and `?` alone, so a filter
-  // built that way drops an asset the rewrite would have resolved.
+  // Locators come from the rewriter's own reading of the text. Re-deriving the spellings a
+  // path might take cannot work: a note writes `fig#1.png` as `fig%231.png`, and
+  // `encodeURI` leaves `#` alone, so such a filter drops assets the rewrite would resolve.
   const resolvable = new Set(
     collectAssetLocators(markdown).flatMap(lookupCandidates),
   );
 
-  // Only the references this content actually makes. A row can outlive its locator two
-  // ways: `publishNodeAssets` cleans stale rows best-effort and logs rather than fails,
-  // and the markdown fetched here has had its frontmatter or title heading stripped, so
-  // an asset referenced only there has a row and no locator. Copying one would spend the
-  // user's storage, permanently, on bytes no block will ever point at.
+  // Only the references this content makes, since a copy is permanent. A row outlives its
+  // locator when `publishNodeAssets` fails to clean it up, or when the asset was
+  // referenced only in the stripped frontmatter or title heading.
   const referenced = references.filter(({ filepath }) =>
     resolvable.has(filepath),
   );
@@ -156,27 +136,21 @@ export const importNodeAssets = async ({
   const resolved: ResolvedAsset[] = [];
   const report = emptyReport();
   /**
-   * Counts are per distinct blob, not per reference. Two locators for identical bytes are
-   * one upload, and reporting the second as `reused` would tell a user on a first-ever
-   * import that this graph already held something it had just fetched.
-   *
-   * `skipped` and `failed` stay per locator: two references to one oversized blob are
-   * two places the page degraded.
+   * `mirrored` and `reused` count distinct blobs: two locators for identical bytes are one
+   * upload, and counting the second as `reused` would claim this graph already held what
+   * it had just fetched. `skipped` and `failed` stay per locator, since each is a place
+   * the page degraded.
    */
   const handledHashes = new Set<string>();
   /**
-   * Oversize is a property of the bytes, so it is decided once per hash. Asking again
-   * costs a `storage.info` round trip, and where the object carries no size, a second
-   * download of a blob already known to be over the cap.
-   *
-   * A throw is not cached: it can be a transient read failure rather than a fact about
-   * the asset, so a second locator may try again.
+   * Oversize is a property of the bytes, so it is decided once per hash: asking again
+   * costs a round trip, or a second download of a blob already known to be too big. A
+   * throw is not cached, since it may be transient.
    */
   const skippedByHash = new Map<string, { size: number; limit: number }>();
 
-  // Sequential on purpose. Two references to identical content share a hash, and the
-  // registry is what stops the second one uploading again; running them together would
-  // race that check and mirror the same bytes twice.
+  // Sequential on purpose: the registry check that stops identical bytes uploading twice
+  // races if these run together.
   for (const reference of referenced) {
     const alreadySkipped = skippedByHash.get(reference.filehash);
     if (alreadySkipped) {

@@ -133,8 +133,7 @@ describe("importNodeAssets", () => {
       markdown,
     });
 
-    // The resolved asset is still rewritten; the failed one keeps the locator it arrived
-    // with, which is the degradation path rather than a broken node.
+    // A failed asset keeps the locator it arrived with rather than breaking the node.
     expect(result.markdown).toBe(`![](${MIRRORED}) and [](${FILE_REF})`);
     expect(result.report.mirrored).toBe(1);
     expect(result.report.failed).toEqual([
@@ -198,17 +197,14 @@ describe("importNodeAssets", () => {
         message: expect.stringContaining("permission denied") as string,
       },
     ]);
-    // `toEqual` cannot tell an absent optional property from an explicit undefined, so
-    // the absence is asserted directly: this failure is about the node, not one asset.
+    // `toEqual` cannot tell an absent optional property from an explicit undefined, and
+    // this failure is about the node rather than one asset.
     expect(result.report.failed[0]).not.toHaveProperty("sourceLocator");
     expect(mirror).not.toHaveBeenCalled();
   });
 
-  // A node published from Roam and imported into a second Roam graph. The locator is a URL
-  // the importing graph could render directly, and it is still resolved through its row
-  // and copied: recognising a storage URL in order to skip the copy would put origin
-  // detection back into the destination, and it would leave this graph's page depending
-  // on a blob the origin graph's owner can delete.
+  // This locator would render as it is, but skipping the copy would leave the page
+  // depending on a blob the origin graph's owner can delete.
   it("stores its own copy of a Roam-origin asset rather than passing the origin URL through", async () => {
     const originUrl =
       "https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FOriginGraph%2FlqP2ioVNC3.png?alt=media&token=9f1c07a4";
@@ -289,12 +285,9 @@ describe("importNodeAssets", () => {
       markdown: `![](${IMAGE_REF}) ![](attachments/copy.png)`,
     });
 
-    // Not `reused: 1`: this run uploaded those bytes itself a moment earlier, and a first
-    // import reporting a cache hit would be a lie about where the copy came from.
+    // Not `reused: 1`: this run uploaded those bytes itself a moment earlier.
     expect(report).toMatchObject({ mirrored: 1, reused: 0 });
-    // Both references are still mirrored. Deduplication belongs to the registry inside
-    // `mirrorAssetToRoamStorage`, which is what turns the second call into a reuse; this
-    // module's job is only to count blobs rather than locators.
+    // Deduplication is the registry's job, inside `mirrorAssetToRoamStorage`.
     expect(mirror).toHaveBeenCalledTimes(2);
   });
 
@@ -347,9 +340,8 @@ describe("importNodeAssets", () => {
       markdown: "A body that mentions no assets at all.",
     });
 
-    // The row outlived its locator: stripped frontmatter, or a publish whose best-effort
-    // cleanup failed. Uploading it would spend the user's storage permanently on bytes
-    // no block can reference.
+    // The row outlived its locator: stripped frontmatter, or a publish whose cleanup
+    // failed. Uploading it would spend the user's storage on bytes nothing references.
     expect(mirror).not.toHaveBeenCalled();
     expect(report).toMatchObject({ mirrored: 0, reused: 0 });
   });
@@ -372,9 +364,8 @@ describe("importNodeAssets", () => {
   });
 
   it("copies a reference whose name forces an encoding encodeURI would not apply", async () => {
-    // `fig#1.png` is written `fig%231.png`, because `#` starts a fragment. Deriving the
-    // spellings forward would miss it and drop the asset; reading the locators the rewriter
-    // will act on cannot, because it is the same set.
+    // `fig#1.png` is written `fig%231.png`, since `#` starts a fragment. Deriving the
+    // spellings forward would miss it; reading the rewriter's own locators cannot.
     mirror.mockResolvedValue({
       status: "mirrored",
       contentHash: "h1",

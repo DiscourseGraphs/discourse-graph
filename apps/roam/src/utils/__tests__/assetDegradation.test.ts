@@ -9,19 +9,12 @@ import { importNodeAssets } from "../importNodeAssets";
 import { mirrorAssetToRoamStorage } from "../mirrorAssetToRoamStorage";
 
 /**
- * The degradation path, followed across both transfers rather than within one.
+ * The degradation path across both transfers: publication's markdown is import's input, so
+ * only here is it visible that the two halves agree on what passes between them. Each half
+ * is covered on its own in `publishNodeAssets.test.ts` and `importNodeAssets.test.ts`.
  *
- * The published markdown of the first half is the input to the second, so what a
- * destination actually receives for an asset that never made it into shared storage is
- * asserted rather than assumed: publication reports the failure and leaves the asset's
- * link as written, and import leaves that same link alone because no row matches it. The
- * two halves are covered separately in `publishNodeAssets.test.ts` and
- * `importNodeAssets.test.ts`; what is only visible here is that they agree on what passes
- * between them.
- *
- * The two halves name that string differently: publication's results carry `sourceRef`,
- * the rewriter's carry `sourceLocator`. Same string, different owners, so neither name is
- * wrong here and the assertions below use whichever side they are reading.
+ * One string, two names: publication's results carry `sourceRef` and the rewriter's carry
+ * `sourceLocator`, so assertions use whichever side they read.
  */
 
 vi.mock("../mirrorAssetToRoamStorage", () => ({
@@ -29,8 +22,8 @@ vi.mock("../mirrorAssetToRoamStorage", () => ({
 }));
 const mirror = vi.mocked(mirrorAssetToRoamStorage);
 
-/** Shared by the fixture URLs and the `graph.name` stub, which must agree: publication
- * recognises an asset by the graph named in its path. */
+/** The fixture URLs and the `graph.name` stub must agree: publication recognises an asset
+ * by the graph named in its path. */
 const GRAPH_NAME = "MAPLab";
 
 const roamAsset = (name: string) =>
@@ -87,9 +80,8 @@ type Row = {
 };
 
 /**
- * One store standing in for Supabase across both halves: publication inserts into it and
- * import reads back out of it, so the rows the destination sees are the rows publication
- * actually wrote.
+ * One store standing in for Supabase across both halves, so the rows import reads are the
+ * rows publication wrote.
  */
 const makeSharedStorage = () => {
   const rows: Row[] = [];
@@ -144,11 +136,9 @@ const makeSharedStorage = () => {
 };
 
 /**
- * Roam's storage: one asset readable, one unreadable, one past the publish cap.
- *
- * Both reads an asset takes are stubbed: the descriptor over `fetch`, the bytes through
- * `file.get`. The unreadable one fails on either, so the test does not depend on which of
- * the two happens to reach it first.
+ * Roam's storage: one asset readable, one unreadable, one past the publish cap. Both reads
+ * are stubbed, the descriptor over `fetch` and the bytes through `file.get`, and the
+ * unreadable one fails on either, so order does not matter.
  */
 const stubRoamStorage = () => {
   const objectPath = (url: string) => url.split("?")[0] ?? url;
@@ -245,9 +235,8 @@ describe("asset degradation across both transfers", () => {
     // Only the asset that reached shared storage was mirrored, so only its locator moved.
     expect(mirror).toHaveBeenCalledTimes(1);
     expect(markdown).toContain(`![](${THIS_GRAPHS_COPY})`);
-    // The rest of the node arrives exactly as published: the two locators that never
-    // became rows still point at Roam's world-readable originals, which is what makes
-    // them render, and the external link was never ours to touch.
+    // The rest arrives as published: the two locators that never became rows still point
+    // at Roam's world-readable originals, so they still render.
     expect(markdown).toContain(`![](${UNREADABLE})`);
     expect(markdown).toContain(`![](${OVERSIZED})`);
     expect(markdown).toContain(`[a paper](${EXTERNAL})`);

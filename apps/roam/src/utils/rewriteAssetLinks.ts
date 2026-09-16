@@ -249,11 +249,8 @@ export const lookupCandidates = (locator: string): string[] => {
 
 /**
  * What one match of `LINK_PATTERN` refers to, read from the capture groups in the order
- * the pattern lists its branches.
- *
- * Shared with `collectAssetLocators` so that the locators a caller can see are exactly the
- * locators this file will rewrite. Anything deriving that set independently drifts from it,
- * and a locator missing from the caller's set is an asset silently dropped.
+ * the pattern lists its branches. Shared with `collectAssetLocators` so a caller sees
+ * exactly the locators this file will rewrite.
  */
 const parseMatch = (
   groups: (string | undefined)[],
@@ -316,12 +313,9 @@ const parseMatch = (
 };
 
 /**
- * Every locator this markdown refers an asset by, as `rewriteAssetLinks` will read them.
- *
- * A caller deciding which recorded references are worth acting on has to ask the text the
- * same question the rewrite will ask it. Widening each of these through
- * `lookupCandidates` yields exactly the set of `locator` values that would resolve, so
- * a caller's set and the rewriter's are equal by construction rather than by agreement.
+ * Every locator this markdown refers an asset by, as `rewriteAssetLinks` reads them.
+ * Widening these through `lookupCandidates` gives exactly the locators that would resolve,
+ * so a caller deciding which references to act on cannot drift from the rewrite.
  */
 export const collectAssetLocators = (markdown: string): string[] => {
   const locators: string[] = [];
