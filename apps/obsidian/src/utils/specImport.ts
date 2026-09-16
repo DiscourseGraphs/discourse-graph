@@ -220,5 +220,3 @@ export const pickAndPreviewSchemaImport = async ({
     }),
   };
 };
-
-/** Keyed off what actually landed, so a failed creation leaves no dangling reference; an imported copy wins over a same-named local one. */
