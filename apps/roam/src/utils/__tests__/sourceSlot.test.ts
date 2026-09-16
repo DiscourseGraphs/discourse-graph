@@ -1,4 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import type { DiscourseNode } from "~/utils/getDiscourseNodes";
+import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
+
+vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
+  default: vi.fn(),
+}));
 
 // Runs before the imports below: getDiscourseNodes calls generateUID at module load.
 vi.hoisted(() => {
@@ -7,9 +14,19 @@ vi.hoisted(() => {
   };
 });
 
-import { titleWithSource } from "~/utils/sourceSlot";
+import { sourceUidOfNode, titleWithSource } from "~/utils/sourceSlot";
 
 describe("titleWithSource", () => {
+  it("fills a missing Source with text that creates no page reference", () => {
+    expect(
+      titleWithSource({
+        format: "[[EVD]] - {content} - {Source}",
+        coreTitle: "REM sleep and recall",
+        sourceTitle: "(source missing)",
+      }),
+    ).toBe("[[EVD]] - REM sleep and recall - (source missing)");
+  });
+
   it("fills the content and source placeholders", () => {
     expect(
       titleWithSource({
@@ -58,5 +75,43 @@ describe("titleWithSource", () => {
         sourceTitle: "y",
       }),
     ).toBeNull();
+  });
+});
+
+describe("sourceUidOfNode", () => {
+  const schema = { format: "[[EVD]] - {content} - {Source}" };
+  const sourceNode: DiscourseNode = {
+    type: "source-type",
+    text: "Source",
+    shortcut: "S",
+    format: "@{content}",
+    specification: [],
+    backedBy: "user",
+    canvasSettings: {},
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getPageUidByPageTitle).mockReturnValue("source-page");
+  });
+
+  it.each(["(source missing)", "[[(source missing)]]"])(
+    "omits %s even if a custom node format and an existing page match it",
+    (sourceField) => {
+      const customSource = { ...sourceNode, format: "{Content}" };
+      expect("(source missing)").toMatch(
+        getDiscourseNodeFormatExpression(customSource.format),
+      );
+      expect(
+        sourceUidOfNode(`[[EVD]] - X - ${sourceField}`, schema, [customSource]),
+      ).toBeUndefined();
+      expect(getPageUidByPageTitle).not.toHaveBeenCalled();
+    },
+  );
+
+  it("still resolves a real Source page reference", () => {
+    expect(
+      sourceUidOfNode("[[EVD]] - X - [[@Smith 2020]]", schema, [sourceNode]),
+    ).toBe("source-page");
   });
 });
