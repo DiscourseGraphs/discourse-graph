@@ -4,9 +4,12 @@ import { getErrorMessage } from "./getErrorMessage";
 import { mirrorAssetToRoamStorage } from "./mirrorAssetToRoamStorage";
 import {
   collectAssetLocators,
+  FAILED_IMPORT_MARKER,
   lookupCandidates,
   rewriteAssetLinks,
+  TOO_LARGE_MARKER,
   type ResolvedAsset,
+  type UnresolvedAsset,
 } from "./rewriteAssetLinks";
 
 export type SkippedImport = {
@@ -17,8 +20,7 @@ export type SkippedImport = {
 };
 
 export type FailedImport = {
-  /** Absent when the failure was not about one asset. */
-  sourceLocator?: string;
+  sourceLocator: string;
   message: string;
 };
 
@@ -82,10 +84,13 @@ const fetchNodeReferences = async ({
  * The asset stage of materialization: copy the bytes an imported node references into
  * this graph's storage, and point the node's markdown at those copies.
  *
- * Nothing here fails the node: an asset that cannot be copied is reported and its locator
- * left exactly as published, so a later re-import can still resolve it. A surviving
- * Roam-origin locator keeps rendering from the origin graph; a surviving Obsidian one is a
- * vault path, which Roam reads as a reference to an empty page.
+ * An asset that cannot be copied does not fail the node: it is reported, and its link is
+ * marked so the reader knows to refresh the page. Only a forced refresh retries it, since
+ * the page is recorded as up to date.
+ *
+ * Failing to read the references throws, since no link can be marked without them. A
+ * caller must then fail the node without recording its source timestamp, so the next
+ * import retries it.
  */
 export const importNodeAssets = async ({
   client,
@@ -98,24 +103,7 @@ export const importNodeAssets = async ({
 }): Promise<{ markdown: string; report: AssetImportReport }> => {
   if (!markdown) return { markdown, report: emptyReport() };
 
-  let references: ReferenceRow[];
-  try {
-    references = await fetchNodeReferences({ client, sharedNode });
-  } catch (error) {
-    // Reported rather than swallowed: "no rows" and "could not read the rows" produce the
-    // same content, so only the report tells them apart.
-    return {
-      markdown,
-      report: {
-        ...emptyReport(),
-        failed: [
-          {
-            message: `Could not read the asset references of "${sharedNode.title}": ${getErrorMessage(error)}`,
-          },
-        ],
-      },
-    };
-  }
+  const references = await fetchNodeReferences({ client, sharedNode });
   if (!references.length) return { markdown, report: emptyReport() };
 
   // Locators come from the rewriter's own reading of the text. Re-deriving the spellings a
@@ -198,8 +186,23 @@ export const importNodeAssets = async ({
     }
   }
 
+  const unresolved = [
+    ...report.failed.map(
+      ({ sourceLocator }): UnresolvedAsset => ({
+        sourceLocator,
+        marker: FAILED_IMPORT_MARKER,
+      }),
+    ),
+    ...report.skipped.map(
+      ({ sourceLocator }): UnresolvedAsset => ({
+        sourceLocator,
+        marker: TOO_LARGE_MARKER,
+      }),
+    ),
+  ];
+
   return {
-    markdown: rewriteAssetLinks({ markdown, assets: resolved }),
+    markdown: rewriteAssetLinks({ markdown, assets: resolved, unresolved }),
     report,
   };
 };

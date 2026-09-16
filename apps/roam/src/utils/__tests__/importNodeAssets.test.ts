@@ -133,15 +133,17 @@ describe("importNodeAssets", () => {
       markdown,
     });
 
-    // A failed asset keeps the locator it arrived with rather than breaking the node.
-    expect(result.markdown).toBe(`![](${MIRRORED}) and [](${FILE_REF})`);
+    // A failed asset is marked rather than breaking the node.
+    expect(result.markdown).toBe(
+      `![](${MIRRORED}) and [Failed to import](${FILE_REF})`,
+    );
     expect(result.report.mirrored).toBe(1);
     expect(result.report.failed).toEqual([
       { sourceLocator: FILE_REF, message: "upload refused" },
     ]);
   });
 
-  it("reports an oversized asset and leaves its locator in place", async () => {
+  it("reports an oversized asset and marks its link", async () => {
     mirror.mockResolvedValue({
       status: "skipped",
       contentHash: "h1",
@@ -150,14 +152,13 @@ describe("importNodeAssets", () => {
       limit: 6_291_456,
     });
 
-    const markdown = `![](${IMAGE_REF})`;
     const result = await importNodeAssets({
       client: clientWithReferences([row(IMAGE_REF, "h1")]).client,
       sharedNode,
-      markdown,
+      markdown: `![](${IMAGE_REF})`,
     });
 
-    expect(result.markdown).toBe(markdown);
+    expect(result.markdown).toBe(`[Too large for import](${IMAGE_REF})`);
     expect(result.report.skipped).toEqual([
       {
         sourceLocator: IMAGE_REF,
@@ -171,36 +172,62 @@ describe("importNodeAssets", () => {
   it("imports a node whose every asset fails, reporting each one", async () => {
     mirror.mockRejectedValue(new Error("storage unreachable"));
 
-    const markdown = `![](${IMAGE_REF}) and [](${FILE_REF})`;
     const result = await importNodeAssets({
       client: clientWithReferences([row(IMAGE_REF, "h1"), row(FILE_REF, "h2")])
         .client,
       sharedNode,
-      markdown,
+      markdown: `![](${IMAGE_REF}) and [](${FILE_REF})`,
     });
 
-    expect(result.markdown).toBe(markdown);
+    expect(result.markdown).toBe(
+      `[Failed to import](${IMAGE_REF}) and [Failed to import](${FILE_REF})`,
+    );
     expect(result.report.failed).toHaveLength(2);
   });
 
-  it("does not fail the node when the references cannot be read", async () => {
-    const markdown = `![](${IMAGE_REF})`;
+  // Without the rows no link can be marked, so the node fails and the next import retries.
+  it("throws when the references cannot be read", async () => {
+    await expect(
+      importNodeAssets({
+        client: clientWithReferences([], { message: "permission denied" })
+          .client,
+        sharedNode,
+        markdown: `![](${IMAGE_REF})`,
+      }),
+    ).rejects.toMatchObject({ message: "permission denied" });
+    expect(mirror).not.toHaveBeenCalled();
+  });
+
+  it("marks failed and oversized assets among copied ones, each at its own link", async () => {
+    mirror
+      .mockRejectedValueOnce(new Error("upload refused"))
+      .mockResolvedValueOnce({
+        status: "mirrored",
+        contentHash: "h2",
+        url: MIRRORED,
+      })
+      .mockResolvedValueOnce({
+        status: "skipped",
+        contentHash: "h3",
+        reason: "too-large",
+        size: 9_000_000,
+        limit: 6_291_456,
+      });
+
+    // Rows are fetched ordered by filepath, so this is the order they are mirrored in.
     const result = await importNodeAssets({
-      client: clientWithReferences([], { message: "permission denied" }).client,
+      client: clientWithReferences([
+        row("a/first.png", "h1"),
+        row("b/second.png", "h2"),
+        row("c/third.pdf", "h3"),
+      ]).client,
       sharedNode,
-      markdown,
+      markdown: `![[a/first.png]] ![the second](b/second.png) [[c/third.pdf|the paper]]`,
     });
 
-    expect(result.markdown).toBe(markdown);
-    expect(result.report.failed).toEqual([
-      {
-        message: expect.stringContaining("permission denied") as string,
-      },
-    ]);
-    // `toEqual` cannot tell an absent optional property from an explicit undefined, and
-    // this failure is about the node rather than one asset.
-    expect(result.report.failed[0]).not.toHaveProperty("sourceLocator");
-    expect(mirror).not.toHaveBeenCalled();
+    expect(result.markdown).toBe(
+      `[Failed to import](a/first.png) ![the second](${MIRRORED}) [the paper (Too large for import)](c/third.pdf)`,
+    );
   });
 
   // This locator would render as it is, but skipping the copy would leave the page

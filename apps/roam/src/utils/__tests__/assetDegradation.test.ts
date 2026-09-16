@@ -245,7 +245,7 @@ describe("asset degradation across both transfers", () => {
     expect(report).toMatchObject({ mirrored: 1, reused: 0, skipped: [] });
   });
 
-  it("reports an asset that fails on the way in, leaving its locator and the node body untouched", async () => {
+  it("reports an asset that fails on the way in, marking its link and leaving the node body untouched", async () => {
     await publish();
     mirror.mockRejectedValue(new Error("upload refused"));
 
@@ -255,7 +255,10 @@ describe("asset degradation across both transfers", () => {
       markdown: MARKDOWN,
     });
 
-    expect(markdown).toBe(MARKDOWN);
+    // A Roam-origin link stays as published, since the origin copy may still render.
+    expect(markdown).toBe(
+      MARKDOWN.replace(`![](${STORED})`, `![](${STORED}) (Failed to import)`),
+    );
     expect(report.failed).toEqual([
       { sourceLocator: STORED, message: "upload refused" },
     ]);

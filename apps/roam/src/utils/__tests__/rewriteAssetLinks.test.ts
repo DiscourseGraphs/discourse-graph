@@ -5,8 +5,11 @@ import {
 } from "@repo/database/crossAppNodeContract.example";
 import {
   collectAssetLocators,
+  FAILED_IMPORT_MARKER,
   lookupCandidates,
   rewriteAssetLinks,
+  TOO_LARGE_MARKER,
+  type UnresolvedAsset,
 } from "../rewriteAssetLinks";
 
 const MIRRORED =
@@ -502,6 +505,248 @@ describe("rewriteAssetLinks", () => {
   it("returns the markdown untouched when the node has no assets", () => {
     const markdown = `![](a.png) and [[EVD]]`;
     expect(rewriteAssetLinks({ markdown, assets: [] })).toBe(markdown);
+  });
+});
+
+describe("marking an asset this graph holds no copy of", () => {
+  const ORIGIN =
+    "https://firebasestorage.googleapis.com/v0/b/f.appspot.com/o/origin?alt=media&token=abc";
+  const failed = (sourceLocator: string): UnresolvedAsset => ({
+    sourceLocator,
+    marker: FAILED_IMPORT_MARKER,
+  });
+  const tooLarge = (sourceLocator: string): UnresolvedAsset => ({
+    sourceLocator,
+    marker: TOO_LARGE_MARKER,
+  });
+
+  it("marks a vault path without a label with the marker alone", () => {
+    for (const markdown of [
+      `![](vault/d.png)`,
+      `[](vault/d.png)`,
+      `![[vault/d.png]]`,
+      `[[vault/d.png]]`,
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [],
+          unresolved: [failed("vault/d.png")],
+        }),
+      ).toBe(`[Failed to import](vault/d.png)`);
+  });
+
+  it("keeps a vault path's label next to the marker", () => {
+    const unresolved = [tooLarge("vault/report.docx")];
+    for (const markdown of [
+      `![the report](vault/report.docx)`,
+      `[the report](vault/report.docx)`,
+      `![[vault/report.docx|the report]]`,
+      `[[vault/report.docx|the report]]`,
+    ])
+      expect(rewriteAssetLinks({ markdown, assets: [], unresolved })).toBe(
+        `[the report (Too large for import)](vault/report.docx)`,
+      );
+  });
+
+  it("does not read an image embed's width as a label", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `![[vault/d.png|300]]`,
+        assets: [],
+        unresolved: [failed("vault/d.png")],
+      }),
+    ).toBe(`[Failed to import](vault/d.png)`);
+  });
+
+  it("keeps a vault path with spaces a single link destination", () => {
+    for (const markdown of [
+      `![](<my folder/d (1).png>)`,
+      `![[my folder/d (1).png]]`,
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [],
+          unresolved: [failed("my folder/d (1).png")],
+        }),
+      ).toBe(`[Failed to import](my%20folder/d%20%281%29.png)`);
+  });
+
+  it("keeps the label of a PDF, audio or video embed", () => {
+    for (const [locator, label] of [
+      ["vault/a.pdf", "the paper"],
+      ["vault/a.mp3", "the talk"],
+      ["vault/a.mp4", "the demo"],
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown: `![[${locator}|${label}]]`,
+          assets: [],
+          unresolved: [failed(locator)],
+        }),
+      ).toBe(`[${label} (Failed to import)](${locator})`);
+  });
+
+  it("does not read an embed's size as a label, whatever the kind", () => {
+    for (const [locator, size] of [
+      ["vault/a.mp4", "640"],
+      ["vault/a.png", "300x200"],
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown: `![[${locator}|${size}]]`,
+          assets: [],
+          unresolved: [failed(locator)],
+        }),
+      ).toBe(`[Failed to import](${locator})`);
+  });
+
+  it("keeps a destination the source already percent-encoded", () => {
+    for (const [markdown, recorded, destination] of [
+      [`![](fig%231.png)`, "fig#1.png", "fig%231.png"],
+      [`![](vault/100%25.png)`, "vault/100%.png", "vault/100%25.png"],
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [],
+          unresolved: [failed(recorded)],
+        }),
+      ).toBe(`[Failed to import](${destination})`);
+  });
+
+  it("encodes a path the source spelled raw", () => {
+    for (const [markdown, recorded, destination] of [
+      [`![](<fig#1.png>)`, "fig#1.png", "fig%231.png"],
+      [`![[vault/100%.png]]`, "vault/100%.png", "vault/100%25.png"],
+      [`[[what?.png]]`, "what?.png", "what%3F.png"],
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [],
+          unresolved: [failed(recorded)],
+        }),
+      ).toBe(`[Failed to import](${destination})`);
+  });
+
+  it("marks an image inside a link without nesting one link in another", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `[![alt](vault/d.png)](https://x.org)`,
+        assets: [],
+        unresolved: [failed("vault/d.png")],
+      }),
+    ).toBe(`[alt (Failed to import)](https://x.org)`);
+    expect(
+      rewriteAssetLinks({
+        markdown: `[![alt](${ORIGIN})](https://x.org)`,
+        assets: [],
+        unresolved: [failed(ORIGIN)],
+      }),
+    ).toBe(`[![alt](${ORIGIN}) (Failed to import)](https://x.org)`);
+    expect(
+      rewriteAssetLinks({
+        markdown: `[see ![alt](vault/d.png) here](https://x.org)`,
+        assets: [],
+        unresolved: [failed("vault/d.png")],
+      }),
+    ).toBe(`[see alt (Failed to import) here](https://x.org)`);
+  });
+
+  it("marks every image in one link label, as in a row of badges", () => {
+    for (const [markdown, expected] of [
+      [
+        `[see ![a](vault/d.png) and ![b](vault/d.png)](https://x.org)`,
+        `[see a (Failed to import) and b (Failed to import)](https://x.org)`,
+      ],
+      [
+        `[![a](vault/d.png)![b](vault/d.png)](https://x.org)`,
+        `[a (Failed to import)b (Failed to import)](https://x.org)`,
+      ],
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [],
+          unresolved: [failed("vault/d.png")],
+        }),
+      ).toBe(expected);
+  });
+
+  it("keeps an image's link when a bracket before it opens no link", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `[![alt](vault/d.png) plain bracket`,
+        assets: [],
+        unresolved: [failed("vault/d.png")],
+      }),
+    ).toBe(`[[alt (Failed to import)](vault/d.png) plain bracket`);
+  });
+
+  it("keeps a Roam-origin reference as published and puts the marker after it", () => {
+    for (const markdown of [
+      `![a figure](${ORIGIN})`,
+      `[the protocol](${ORIGIN})`,
+      `{{[[pdf]]: ${ORIGIN}}}`,
+      `{{audio: ${ORIGIN}}}`,
+      ORIGIN,
+      `<${ORIGIN}>`,
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [],
+          unresolved: [tooLarge(ORIGIN)],
+        }),
+      ).toBe(`${markdown} (Too large for import)`);
+  });
+
+  it("keeps a sentence's punctuation after the marker of a bare URL", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `See ${ORIGIN}, then stop.`,
+        assets: [],
+        unresolved: [failed(ORIGIN)],
+      }),
+    ).toBe(`See ${ORIGIN} (Failed to import), then stop.`);
+  });
+
+  it("strips brackets from a label it keeps", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `[[vault/d.docx|Paper [draft]]]`,
+        assets: [],
+        unresolved: [failed("vault/d.docx")],
+      }),
+    ).toContain(`(Failed to import)](vault/d.docx)`);
+  });
+
+  it("rewrites copied assets and marks the rest in one pass, in any order", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `![](a.png) ![](b.png) ![](c.png) ![](d.png)`,
+        assets: [
+          { sourceLocator: "b.png", url: MIRRORED },
+          { sourceLocator: "d.png", url: OTHER_MIRRORED },
+        ],
+        unresolved: [failed("a.png"), tooLarge("c.png")],
+      }),
+    ).toBe(
+      `[Failed to import](a.png) ![](${MIRRORED}) [Too large for import](c.png) ![](${OTHER_MIRRORED})`,
+    );
+  });
+
+  it("leaves a link alone when it is neither copied nor marked", () => {
+    const markdown = `![](vault/other.png) and [[EVD]]`;
+    expect(
+      rewriteAssetLinks({
+        markdown,
+        assets: [],
+        unresolved: [failed("vault/d.png")],
+      }),
+    ).toBe(markdown);
   });
 });
 
