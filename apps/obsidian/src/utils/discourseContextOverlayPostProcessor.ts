@@ -67,7 +67,6 @@ export const applyDiscourseContextBadges = ({
           plugin,
           file,
           anchor,
-          relationCount: target.relationCount,
         }),
     });
 
