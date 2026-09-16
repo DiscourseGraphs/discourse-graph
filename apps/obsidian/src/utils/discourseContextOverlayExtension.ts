@@ -48,7 +48,6 @@ class DiscourseContextBadgeWidget extends WidgetType {
           plugin: this.plugin,
           file,
           anchor,
-          relationCount: this.target.relationCount,
         }),
     });
   }

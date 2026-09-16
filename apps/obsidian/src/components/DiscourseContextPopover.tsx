@@ -53,7 +53,6 @@ type PopoverOptions = {
   plugin: DiscourseGraphPlugin;
   file: TFile;
   anchor: HTMLElement;
-  relationCount: number;
 };
 
 /**
@@ -70,8 +69,11 @@ class DiscourseContextPopover {
   private emptyEl: HTMLElement | null = null;
   private cleanupListeners: (() => void)[] = [];
 
-  constructor({ plugin, file, anchor, relationCount }: PopoverOptions) {
+  constructor({ plugin, file, anchor }: PopoverOptions) {
     this.plugin = plugin;
+    // Counted here, not passed in: a badge updated in place keeps the click
+    // listener built with its original count.
+    const relationCount = countRelationsForFile(plugin, file);
     const doc = anchor.ownerDocument;
     this.win = doc.defaultView ?? window;
     this.containerEl = doc.body.createDiv({ cls: POPOVER_CLASS });

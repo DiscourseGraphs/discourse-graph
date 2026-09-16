@@ -1,5 +1,6 @@
 import { debounce, type TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
+import { QueryEngine } from "~/services/QueryEngine";
 import { getNodeTypeIdFromFrontmatter } from "./discourseLinkFrontmatter";
 import { refreshMarkdownEditors } from "./markdownViewRefresh";
 
@@ -34,6 +35,14 @@ export const registerDiscourseContextOverlayRefresh = (
   // Files that were nodes must still trigger a refresh once they stop being
   // one, or their existing badges never get removed.
   const knownNodePaths = new Set<string>();
+  // Seeded once the metadata cache is warm: a node that already existed at
+  // load is otherwise untracked, so its first change would skip the refresh.
+  plugin.app.workspace.onLayoutReady(() => {
+    const queryEngine = new QueryEngine(plugin.app);
+    for (const file of queryEngine.getFilesWithNodeTypeId()) {
+      knownNodePaths.add(file.path);
+    }
+  });
   // "changed", not "resolved": resolved also fires while a preview renders.
   plugin.registerEvent(
     plugin.app.metadataCache.on("changed", (file) => {
