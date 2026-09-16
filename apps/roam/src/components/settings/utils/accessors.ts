@@ -12,6 +12,7 @@ import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import { getRoamMarkdownApi } from "~/utils/materializeSharedNode";
+import { PERSONAL_MIGRATION_MARKER } from "./migrationMarkers";
 
 import type { RoamBasicNode } from "roamjs-components/types";
 import discourseConfigRef from "~/utils/discourseConfigRef";
@@ -910,7 +911,12 @@ export const bulkReadSettings = (): SettingsSnapshot => {
   return {
     featureFlags,
     globalSettings: GlobalSettingsSchema.parse(globalProps || {}),
-    personalSettings: PersonalSettingsSchema.parse(personalProps || {}),
+    // Another user can enable the graph-wide flag before this user's migration.
+    // Startup reads (including the diagnostics opt-out) must wait for their data.
+    personalSettings:
+      getSetting<boolean>(PERSONAL_MIGRATION_MARKER, false) === true
+        ? PersonalSettingsSchema.parse(personalProps || {})
+        : (readAllLegacyPersonalSettings() as PersonalSettings),
   };
 };
 

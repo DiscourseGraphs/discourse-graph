@@ -17,8 +17,7 @@ const SOURCE_MODIFIED_AT_KEY = "sourceModifiedAt";
 export const parseSourceIdentity = (
   importedFrom: json | undefined,
 ): ImportedSourceIdentity | undefined => {
-  if (importedFrom === undefined || !isJsonObject(importedFrom))
-    return undefined;
+  if (!isJsonObject(importedFrom)) return undefined;
 
   const sourceModifiedAt = importedFrom[SOURCE_MODIFIED_AT_KEY];
   const sourceNodeRid = importedFrom[SOURCE_NODE_RID_KEY];

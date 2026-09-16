@@ -5,6 +5,8 @@ author: ""
 published: true
 ---
 
+import { Callout } from "nextra/components";
+
 The canvas feature in Discourse Graph provides an interactive visual workspace for creating and connecting discourse nodes and relations. Built on top of tldraw, it allows you to visually map out discourse structures with drag-and-drop functionality, adding other visual elements like texts, scribbles, embeddings, and images.
 
 ## Creating a new canvas
@@ -31,7 +33,11 @@ Using the command palette
 Or click on the canvas icon at the top right corner
 ![Canvas icon button](/docs/obsidian/canvas-icon-button.png)
 
-**WARNING: DO NOT MODIFY MARKDOWN CONTENT OF FILE**
+<Callout type="warning">
+  Do not hand-edit the generated canvas data block inside a canvas file. Hand
+  edits to that block can make the canvas unreadable. Text outside the block is
+  safe to edit. See [Avoiding data loss](#avoiding-data-loss).
+</Callout>
 
 ## Discourse nodes
 
@@ -133,6 +139,7 @@ Then you will see the image show up if any is present in the file.
 - Changes are automatically saved to the markdown file
 - No manual save required
 - File updates preserve the markdown structure and block references
+- An open canvas also watches its file, so changes written by another tab, another device, or a sync service are merged in as they arrive. See [Avoiding data loss](#avoiding-data-loss) for the cases this cannot cover.
 
 ### Export Options
 
@@ -141,6 +148,34 @@ Then you will see the image show up if any is present in the file.
 - **PNG Export**: Export canvas as PNG image (via tldraw)
 
 ![Export options](/docs/obsidian/export-options.png)
+
+## Avoiding data loss
+
+### Editing in more than one place
+
+An open canvas holds its own copy of the canvas in memory and writes the whole canvas back to the markdown file shortly after each change. It also watches that file, so a change written by another tab, another device, or a hand edit is merged into your open canvas as it arrives.
+
+That merge works item by item — each shape, and each relation between nodes — and each item is merged as a whole rather than field by field. It is not full conflict resolution. If the same item is changed in two places at once, the version that reached the file first wins, and the later change to it is discarded. The rest of the canvas is kept.
+
+<Callout type="warning">
+  Editing the same canvas on two devices that are offline or out of sync is the
+  riskiest case. The two versions diverge across many items at once, so a large
+  part of one device's work is dropped — either your sync service picks a winner
+  at the file level, or the merge replaces your items wholesale. Changes made on
+  the losing device may be unrecoverable.
+</Callout>
+
+To keep your work safe:
+
+- Edit a canvas in one place at a time. Close duplicate tabs, splits, and popout windows showing the same canvas.
+- Let sync finish before you start editing on a second device, and check that the canvas shows your latest work before you change anything.
+- Do not hand-edit the canvas data block, whether or not the canvas is open.
+
+### Use only one sync service
+
+Running more than one sync service over the same vault — for example Obsidian Sync alongside iCloud Drive, Dropbox, or Google Drive — can duplicate, corrupt, or delete files, and canvases are no exception. Obsidian calls this double-syncing and does not support it.
+
+If your vault sits inside a cloud storage folder, move it out or turn off the other service. See [Troubleshoot Obsidian Sync](https://obsidian.md/help/sync/troubleshoot) for Obsidian's own guidance.
 
 ## Troubleshooting
 
@@ -157,6 +192,14 @@ Then you will see the image show up if any is present in the file.
 - Ensure the node types allow the relation type you're trying to create
 - Check your discourse relation configuration in settings
 - Verify both nodes are valid discourse nodes
+
+**Canvas Is Missing Recent Changes**:
+
+- Check whether the same canvas is open in another tab, split, or window, and close the duplicates
+- On a synced vault, confirm sync has finished on every device
+- Check your sync service for a conflicted copy or version history of the file, which may still hold the missing work
+- Confirm only one sync service is running over the vault (see [Use only one sync service](#use-only-one-sync-service))
+- If you saw the notice "Canvas file contains invalid data; your latest changes were not saved.", the data block could not be read — check the file for a damaged or hand-edited data block
 
 **Performance Issues**:
 
