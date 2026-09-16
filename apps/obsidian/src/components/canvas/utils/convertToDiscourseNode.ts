@@ -245,7 +245,7 @@ const createDiscourseNodeShape = async ({
     linkedFile: createdFile,
   });
 
-  const { x, y } = shape;
+  const { x, y, rotation, parentId } = shape;
 
   const { w, h } = await calcDiscourseNodeSize({
     title: createdFile.basename,
@@ -258,8 +258,12 @@ const createDiscourseNodeShape = async ({
   editor.createShape({
     id: shapeId,
     type: "discourse-node",
+    // x/y are parent-relative, so the parent must come along or a shape inside a
+    // frame lands elsewhere on the page.
+    parentId,
     x,
     y,
+    rotation,
     props: {
       w,
       h,

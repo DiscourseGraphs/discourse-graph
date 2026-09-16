@@ -98,7 +98,7 @@ export const CustomContextMenu = ({
               <TldrawUiMenuItem
                 key={nodeType.id}
                 id={`convert-to-${nodeType.id}`}
-                label={"Convert to " + nodeType.name}
+                label={nodeType.name}
                 icon="file-type"
                 disabled={isReadonly}
                 onSelect={() => {
