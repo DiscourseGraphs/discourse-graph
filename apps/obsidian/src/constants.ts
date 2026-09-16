@@ -179,3 +179,5 @@ export const DEFAULT_STYLE_PROPS = {
   width: "fit-content",
   padding: "40px",
 };
+
+export const SOURCE_SLOT = "sourceDocument";
