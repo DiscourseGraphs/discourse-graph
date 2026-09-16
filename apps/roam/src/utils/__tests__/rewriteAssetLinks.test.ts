@@ -644,3 +644,85 @@ describe("collectAssetLocators reads what rewriteAssetLinks acts on", () => {
     expect(result).toContain(`[[EVD]]`);
   });
 });
+
+/**
+ * Roam stores a page as blocks, so a rewrite that reached across a line break could not be
+ * repeated later against any one block's text. Both readers must therefore stop at a line
+ * break, and a reference spelled across one is left as published — the same degradation as
+ * an asset with no row.
+ */
+describe("a reference never spans a line break", () => {
+  const spanning: { form: string; markdown: string; locator: string }[] = [
+    {
+      form: "an image's alt text",
+      markdown: `![a figure\nspanning](vault/fig.png)`,
+      locator: "vault/fig.png",
+    },
+    {
+      form: "a link's label",
+      markdown: `[the\npaper](vault/doc.pdf)`,
+      locator: "vault/doc.pdf",
+    },
+    {
+      form: "an angle-bracketed destination",
+      markdown: `![](<my folder/fig\nbar.png>)`,
+      locator: "my folder/fig\nbar.png",
+    },
+    {
+      form: "a title following a destination",
+      markdown: `![a](vault/fig.png\n"a title")`,
+      locator: "vault/fig.png",
+    },
+    {
+      form: "a wikilink embed's locator",
+      markdown: `![[vault/fig\nbar.png]]`,
+      locator: "vault/fig\nbar.png",
+    },
+    {
+      form: "a wikilink's alias",
+      markdown: `[[vault/doc.pdf\n|the paper]]`,
+      locator: "vault/doc.pdf",
+    },
+  ];
+
+  for (const { form, markdown, locator } of spanning) {
+    it(`collects nothing from ${form} written across two lines`, () => {
+      expect(collectAssetLocators(markdown)).toEqual([]);
+    });
+
+    it(`leaves ${form} written across two lines exactly as published`, () => {
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [{ sourceLocator: locator, url: MIRRORED }],
+        }),
+      ).toBe(markdown);
+    });
+  }
+
+  // The URL branch already stopped at a line break, so it still reaches a URL the broken
+  // construct around it happens to enclose. What matters is that it reads that line the
+  // same way whether the line arrives alone or inside the whole document, since that is
+  // the agreement a later per-block pass depends on.
+  it("reads a media embed split across lines as the bare URL its second line holds", () => {
+    const secondLine = `${EXTERNAL}}}`;
+    const assets = [{ sourceLocator: EXTERNAL, url: MIRRORED }];
+
+    expect(
+      rewriteAssetLinks({ markdown: `{{[[pdf]]:\n${secondLine}`, assets }),
+    ).toBe(
+      `{{[[pdf]]:\n${rewriteAssetLinks({ markdown: secondLine, assets })}`,
+    );
+  });
+
+  // The constraint stops at the line break and no earlier: a reference sitting on its own
+  // line among others is ordinary content, not a spanning one.
+  it("still resolves a reference on one line of a multi-line document", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `first line\n![](vault/fig.png)\nlast line`,
+        assets: [{ sourceLocator: "vault/fig.png", url: MIRRORED }],
+      }),
+    ).toBe(`first line\n![](${MIRRORED})\nlast line`);
+  });
+});

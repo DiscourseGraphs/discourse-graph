@@ -203,22 +203,27 @@ const URL_PATTERN = String.raw`https?://[^\s<>()\[\]{}"']+`;
  *
  * The wikilink branches match Roam page references too, but those never resolve: a page
  * name is not a recorded locator.
+ *
+ * Every branch stops at a line break. Roam stores a page as blocks, so a reference spelled
+ * across one could be rewritten here but never again from a single block's text, and the
+ * two readings would disagree. One spelled that way is left as published instead, which is
+ * what an asset with no row already gets.
  */
 const LINK_PATTERN = new RegExp(
   [
-    String.raw`!\[([^\]]*)\]\((<[^>]*>|[^)\s]+)(?:\s+"[^"]*")?\)`, // ![alt](locator)
+    String.raw`!\[([^\]\n]*)\]\((<[^>\n]*>|[^)\s]+)(?:[^\S\n]+"[^"\n]*")?\)`, // ![alt](locator)
     // No `[` in the label, so the outer bracket of `[![alt](image)](link)` fails here and
     // the scan reaches the inner embed. Alternation is per position, so branch order
     // alone would not do it.
-    String.raw`\[([^\]\[]*)\]\((<[^>]*>|[^)\s]+)(?:\s+"[^"]*")?\)`, // [label](locator)
+    String.raw`\[([^\]\[\n]*)\]\((<[^>\n]*>|[^)\s]+)(?:[^\S\n]+"[^"\n]*")?\)`, // [label](locator)
     // The keyword is captured, not discarded: for a storage uid with no extension it is
     // the only statement of the type.
-    String.raw`\{\{\[\[(pdf|audio|video)\]\]:\s*(${URL_PATTERN})\s*\}\}`, // {{[[pdf]]: url}}
-    String.raw`\{\{(pdf|audio|video):\s*(${URL_PATTERN})\s*\}\}`, // {{pdf: url}}
+    String.raw`\{\{\[\[(pdf|audio|video)\]\]:[^\S\n]*(${URL_PATTERN})[^\S\n]*\}\}`, // {{[[pdf]]: url}}
+    String.raw`\{\{(pdf|audio|video):[^\S\n]*(${URL_PATTERN})[^\S\n]*\}\}`, // {{pdf: url}}
     // The pipe is a width on an image (`![[x.png|300]]`) and a label on anything else
     // (`![[a.pdf|the paper]]`), so it is captured and `render` decides once it has a kind.
-    String.raw`!\[\[([^\]|]+)(?:\|([^\]]*))?\]\]`, // ![[locator]] or ![[locator|300]]
-    String.raw`\[\[([^\]|]+)(?:\|([^\]]*))?\]\]`, // [[locator]] or [[locator|label]]
+    String.raw`!\[\[([^\]|\n]+)(?:\|([^\]\n]*))?\]\]`, // ![[locator]] or ![[locator|300]]
+    String.raw`\[\[([^\]|\n]+)(?:\|([^\]\n]*))?\]\]`, // [[locator]] or [[locator|label]]
     // An autolink is matched whole so its brackets go away with the rest of the match.
     // Capturing only the URL would leave `<` and `>` around the rewritten link.
     `(<${URL_PATTERN}>|${URL_PATTERN})`, // a bare URL, rewritten only when a row matches it
