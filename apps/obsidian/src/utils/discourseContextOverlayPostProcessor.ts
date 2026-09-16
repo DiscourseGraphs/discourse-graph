@@ -121,5 +121,8 @@ export const createDiscourseContextOverlayPostProcessor =
   (el: HTMLElement, ctx: MarkdownPostProcessorContext): void => {
     if (!plugin.settings.showDiscourseContextOverlay) return;
     if (!ctx.sourcePath) return;
+    // Rendered sections arrive detached, so an attached one is the plugin's own
+    // MarkdownRenderer.render inside a modal, where the popover cannot dismiss.
+    if (el.closest(".modal-container")) return;
     applyDiscourseContextBadges({ plugin, el, sourcePath: ctx.sourcePath });
   };
