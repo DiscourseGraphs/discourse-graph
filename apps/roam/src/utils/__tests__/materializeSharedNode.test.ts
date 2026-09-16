@@ -67,7 +67,7 @@ const SOURCED_NODE_TYPE = { format: "[[EVD]] - {content} - {Source}" };
 const SOURCE_PAGE_UID = "source-page-uid";
 const SOURCE_TITLE = "@Smith 2020";
 const SOURCED_TITLE = `[[EVD]] - REM sleep and recall - [[${SOURCE_TITLE}]]`;
-const PLACEHOLDER_TITLE = "[[EVD]] - REM sleep and recall - [[@placeholder]]";
+const PLACEHOLDER_TITLE = "[[EVD]] - REM sleep and recall - (source missing)";
 const IMPORTED_SOURCE_RID = "orn:obsidian.note:vault-b/node-6";
 
 const sharedNode: SharedNode = {
@@ -414,7 +414,7 @@ describe("materializeSharedNode", () => {
     });
   });
 
-  it("uses a placeholder reference when the format requires a Source but none was published", async () => {
+  it("uses placeholder text when the format requires a Source but none was published", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
 
     const result = await materializeSharedNode({
@@ -545,7 +545,7 @@ describe("materializeSharedNode", () => {
     });
   });
 
-  it("uses a placeholder reference when the Source is not in this graph", async () => {
+  it("uses placeholder text when the Source is not in this graph", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
 
     const result = await materializeSharedNode({
@@ -577,6 +577,9 @@ describe("materializeSharedNode", () => {
       Promise.resolve(rid === sharedNode.rid ? EXISTING_PAGE_UID : null),
     );
     mockedGetPageTitleByPageUid.mockReturnValue(PLACEHOLDER_TITLE);
+    mockedGetPageUidByPageTitle.mockImplementation((title) =>
+      title === PLACEHOLDER_TITLE ? EXISTING_PAGE_UID : "",
+    );
     mockedReadImportedSourceIdentity.mockReturnValue({
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
@@ -622,6 +625,115 @@ describe("materializeSharedNode", () => {
     expect(result).toMatchObject({ success: true, action: "skipped" });
     expect(mockedFindImportedNodeUidBySourceRid).toHaveBeenCalledTimes(1);
     expect(mockedGetPageTitleByPageUid).not.toHaveBeenCalled();
+  });
+
+  it("keeps distinct incoming titles when same-core imports have unresolved Sources", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    const pages = new Map<string, string>();
+    mockedGetPageUidByPageTitle.mockImplementation(
+      (title) => pages.get(title) ?? "",
+    );
+    const storePage = ({
+      page,
+    }: {
+      page: { title: string; uid: string };
+    }): void => {
+      pages.set(page.title, page.uid);
+    };
+    pageFromMarkdown
+      .mockImplementationOnce(storePage)
+      .mockImplementationOnce(storePage);
+    vi.mocked(window.roamAlphaAPI.util.generateUID)
+      .mockReturnValueOnce("first-page")
+      .mockReturnValueOnce("second-page");
+    const first = await materializeSharedNode({
+      client,
+      sharedNode: {
+        ...decoratedSharedNode,
+        title: "Published evidence from Source A",
+        slots: { sourceDocument: "source-a" },
+      },
+      nodeType: SOURCED_NODE_TYPE,
+    });
+    const second = await materializeSharedNode({
+      client,
+      sharedNode: {
+        ...decoratedSharedNode,
+        rid: "orn:obsidian.note:vault-a/node-2",
+        title: "Published evidence from Source B",
+        slots: { sourceDocument: "source-b" },
+      },
+      nodeType: SOURCED_NODE_TYPE,
+    });
+
+    expect(first).toMatchObject({ success: true, pageUid: "first-page" });
+    expect(second).toMatchObject({
+      success: true,
+      action: "created",
+      pageUid: "second-page",
+    });
+    if (!second.success) throw new Error(second.error.message);
+    expect(second.warning).toContain("placeholder title");
+    expect(second.warning).toContain("source-b");
+    expect(second.warning).toContain("kept the incoming title");
+    expect(pages).toEqual(
+      new Map([
+        [PLACEHOLDER_TITLE, "first-page"],
+        ["Published evidence from Source B", "second-page"],
+      ]),
+    );
+    expect(mockedWriteImportedSourceIdentity).toHaveBeenLastCalledWith({
+      pageUid: "second-page",
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: "orn:obsidian.note:vault-a/node-2",
+    });
+  });
+
+  it("keeps the incoming title on refresh when another page has the placeholder title", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
+    mockedGetPageTitleByPageUid.mockReturnValue(sharedNode.title);
+    mockedGetPageUidByPageTitle.mockImplementation((title) =>
+      title === PLACEHOLDER_TITLE ? "another-import" : EXISTING_PAGE_UID,
+    );
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: decoratedSharedNode,
+      nodeType: SOURCED_NODE_TYPE,
+      force: true,
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      action: "updated",
+      pageUid: EXISTING_PAGE_UID,
+    });
+    if (!result.success) throw new Error(result.error.message);
+    expect(result.warning).toContain("kept the incoming title");
+    expect(updatePage).not.toHaveBeenCalled();
+  });
+
+  it("still fails when the incoming fallback title also belongs to another page", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedGetPageUidByPageTitle.mockReturnValue("unrelated-page");
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: decoratedSharedNode,
+      nodeType: SOURCED_NODE_TYPE,
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: {
+        stage: "title-collision",
+      },
+    });
+    if (result.success) throw new Error("Expected a title collision");
+    expect(result.error.message).toContain(sharedNode.title);
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
+    expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
   });
 
   it("leaves a title that already names its source untouched when refreshing", async () => {

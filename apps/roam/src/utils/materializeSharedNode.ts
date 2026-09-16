@@ -21,6 +21,7 @@ import {
   type ImportedSourceIdentity,
 } from "./importedSourceIdentity";
 import {
+  MISSING_SOURCE_PLACEHOLDER,
   schemaHasSourceSlot,
   SOURCE_SLOT,
   titleWithSource,
@@ -157,10 +158,12 @@ const buildPageTitle = async ({
   sharedNode,
   nodeType,
   incomingTitle,
+  importedPageUid,
 }: {
   sharedNode: SharedNode;
   nodeType?: Pick<DiscourseNode, "format">;
   incomingTitle: string;
+  importedPageUid: string | null;
 }): Promise<{ title: string; warning?: string }> => {
   const coreTitle = sharedNode.coreTitle;
   if (!coreTitle || !nodeType) return { title: incomingTitle };
@@ -169,15 +172,22 @@ const buildPageTitle = async ({
       title: decorateTitle(nodeType.format, coreTitle) ?? incomingTitle,
     };
   const source = await resolveSourceTitle(sharedNode);
+  const title = titleWithSource({
+    format: nodeType.format,
+    coreTitle,
+    sourceTitle:
+      "sourceTitle" in source ? source.sourceTitle : MISSING_SOURCE_PLACEHOLDER,
+  });
+  if (title !== null && "warning" in source) {
+    const existingPageUid = getPageUidByPageTitle(title);
+    if (existingPageUid && existingPageUid !== importedPageUid)
+      return {
+        title: incomingTitle,
+        warning: `${source.warning} The placeholder title "${title}" already belongs to another page; kept the incoming title "${incomingTitle}".`,
+      };
+  }
   return {
-    title:
-      titleWithSource({
-        format: nodeType.format,
-        coreTitle,
-        // A required Source reference keeps the imported title recognizable as its node type.
-        sourceTitle:
-          "sourceTitle" in source ? source.sourceTitle : "@placeholder",
-      }) ?? incomingTitle,
+    title: title ?? incomingTitle,
     ...("warning" in source ? { warning: source.warning } : {}),
   };
 };
@@ -410,6 +420,7 @@ export const materializeSharedNode = async ({
     sharedNode,
     nodeType,
     incomingTitle: validated.title,
+    importedPageUid,
   });
 
   const content = await fetchFullMarkdown({ client, sharedNode }).catch(
