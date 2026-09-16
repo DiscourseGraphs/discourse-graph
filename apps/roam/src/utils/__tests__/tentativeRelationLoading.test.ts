@@ -20,6 +20,9 @@ vi.mock("~/utils/materializeSharedNode", () => ({ getErrorMessage: String }));
 vi.mock("~/utils/createReifiedBlock", () => ({
   acceptTentativeRelationInstance: vi.fn(),
 }));
+vi.mock("~/utils/getDiscourseContextResults", () => ({
+  invalidateDiscourseContextCache: vi.fn(),
+}));
 vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
   default: (uid: string) => uid,
 }));
