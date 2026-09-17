@@ -7,6 +7,7 @@ import {
   useEditor,
   useValue,
 } from "tldraw";
+import { EXTERNAL_LINK_ICON_SVG } from "~/icons";
 import { usePlugin } from "~/components/PluginContext";
 import { textLinkUrl } from "~/components/canvas/utils/textShapeLink";
 import {
@@ -20,6 +21,10 @@ export type TextShapeWithLinkProps = TLTextShape["props"] & { url: string };
 
 export const getTextShapeUrl = (shape: TLTextShape): string =>
   (shape.props as Partial<TextShapeWithLinkProps>).url ?? "";
+
+const LINK_ICON_MASK = `url("data:image/svg+xml;utf8,${encodeURIComponent(
+  EXTERNAL_LINK_ICON_SVG,
+)}") center 100% / 100% no-repeat`;
 
 const isObsidianUrl = (url: string): boolean =>
   url.toLowerCase().startsWith("obsidian:");
@@ -81,7 +86,10 @@ const HyperlinkButton = ({ url }: { url: string }): React.ReactElement => {
       title={url}
       draggable={false}
     >
-      <div className="tl-hyperlink__icon dg-hyperlink__icon" />
+      <div
+        className="tl-hyperlink__icon"
+        style={{ mask: LINK_ICON_MASK, WebkitMask: LINK_ICON_MASK }}
+      />
     </a>
   );
 };

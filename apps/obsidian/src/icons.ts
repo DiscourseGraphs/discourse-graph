@@ -13,3 +13,8 @@ export const TOOL_ARROW_ICON_SVG =
 
 export const NODE_COLOR_ICON_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="none"><circle cx="15" cy="15" r="13" fill="#000"/></svg>';
+
+// Copied from tldraw's HyperlinkButton, which is not exported. Keeping the
+// same glyph keeps text links visually identical to geo links.
+export const EXTERNAL_LINK_ICON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="none"><path stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6M19 5h6m0 0v6m0-6L13 17"/></svg>';
