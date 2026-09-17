@@ -22,8 +22,9 @@ const SettingsPageHeader = ({
   const parent = trail[trail.length - 2];
 
   return (
-    <div className="dg-settings-page-header">
-      <div className="dg-settings-page-header__title">
+    // Shrinkable by default: without flex-shrink-0 the header squashes into the scrolling body.
+    <div className="mb-5 block flex-shrink-0">
+      <div className="mb-1 flex items-center gap-2 text-2xl font-semibold leading-tight">
         <Button
           minimal
           small
@@ -34,7 +35,7 @@ const SettingsPageHeader = ({
         />
         {current.label}
       </div>
-      <div className="dg-settings-page-header__trail">
+      <div className="text-sm leading-snug text-gray-500">
         {ancestorLabels.map((label) => (
           <span key={label}>{`${label} › `}</span>
         ))}
@@ -45,7 +46,7 @@ const SettingsPageHeader = ({
             ) : (
               <>
                 <a
-                  className="dg-settings-page-header__crumb"
+                  className="cursor-pointer"
                   onClick={() => goToDepth(crumb.depth)}
                   role="button"
                   tabIndex={0}
