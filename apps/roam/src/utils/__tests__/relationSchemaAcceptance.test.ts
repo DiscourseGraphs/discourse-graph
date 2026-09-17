@@ -10,6 +10,8 @@ import {
 } from "~/utils/relationSchemaAcceptance";
 import type { json } from "~/utils/getBlockProps";
 
+vi.mock("~/utils/internalError", () => ({ default: vi.fn() }));
+
 const SOURCE_NODE_RID = "orn:obsidian.schema:vault-a/relation-type-1";
 const SOURCE_MODIFIED_AT = "2026-08-01T12:00:00.000Z";
 const SCHEMA_UID = "relation-schema-uid";
