@@ -33,13 +33,13 @@ const GrammarNodesRoute = ({
     nodes.find((n) => n.type === segment)?.text ?? segment;
 
   return (
-    <div className="dg-settings-route">
+    <div className="flex h-full flex-col">
       <SettingsPageHeader
         ancestorLabels={NODES_ANCESTOR_LABELS}
         rootLabel="Nodes"
         resolveLabel={resolveLabel}
       />
-      <div className="dg-settings-route__body">
+      <div className="min-h-0 flex-auto overflow-y-auto">
         {node ? (
           <NodeConfig node={node} onloadArgs={onloadArgs} />
         ) : (
