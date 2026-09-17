@@ -414,7 +414,8 @@ export const applySchemaImportSelection = async ({
     });
 
     if (result.created) {
-      importedTemplateNames.set(template.name, template.name);
+      // The landed basename, not the requested name: creation sanitizes, and a node type referencing the unsanitized name would resolve to no file.
+      importedTemplateNames.set(template.name, result.templateName);
       templatesCreated += 1;
       continue;
     }
@@ -434,6 +435,8 @@ export const applySchemaImportSelection = async ({
     ]),
   );
 
+  /** Where each schema id actually ended up, which diverges from the plan when settings moved since the preview. */
+  const effectiveNodeTypeIds = new Map<string, string>();
   let nodeTypesCreated = 0;
   let nodeTypesMerged = 0;
   for (const nodeTypeId of selectedNodeTypeIds) {
@@ -445,23 +448,21 @@ export const applySchemaImportSelection = async ({
       continue;
     }
 
-    if (matchPlan.existingNodeTypeIds.has(nodeTypeId)) {
+    // Re-matched against live settings rather than the plan: the plan is a preview-time snapshot, and an entry that collapsed onto another file entry has nothing to merge into unless that entry was also selected.
+    const localMatch = findLocalNodeTypeMatch({
+      localNodeTypes: plugin.settings.nodeTypes,
+      id: matchPlan.nodeTypeIdMapping.get(nodeTypeId) ?? nodeTypeId,
+      name: importedNodeType.name,
+    });
+
+    if (localMatch) {
+      effectiveNodeTypeIds.set(nodeTypeId, localMatch.id);
       const mergedFields = mergePlan?.nodeTypeFields.get(nodeTypeId);
       if (!mergedFields?.size) {
         continue;
       }
 
-      const localId = matchPlan.nodeTypeIdMapping.get(nodeTypeId);
-      const localIndex = plugin.settings.nodeTypes.findIndex(
-        (nodeType) => nodeType.id === localId,
-      );
-      if (localIndex === -1) {
-        onWarning(
-          `Node type "${importedNodeType.name}" matched an existing type that is no longer present.`,
-        );
-        continue;
-      }
-
+      const localIndex = plugin.settings.nodeTypes.indexOf(localMatch);
       const nextNodeTypes = [...plugin.settings.nodeTypes];
       const mergedNodeType = mergeNodeTypeFields({
         local: nextNodeTypes[localIndex]!,
@@ -485,6 +486,7 @@ export const applySchemaImportSelection = async ({
       continue;
     }
 
+    effectiveNodeTypeIds.set(nodeTypeId, importedNodeType.id);
     const newNodeType: DiscourseNode = {
       ...importedNodeType,
       template: resolveTemplateReference({
@@ -502,6 +504,7 @@ export const applySchemaImportSelection = async ({
     nodeTypesCreated += 1;
   }
 
+  const effectiveRelationTypeIds = new Map<string, string>();
   let relationTypesCreated = 0;
   let relationTypesMerged = 0;
   for (const relationTypeId of selectedRelationTypeIds) {
@@ -513,23 +516,20 @@ export const applySchemaImportSelection = async ({
       continue;
     }
 
-    if (matchPlan.existingRelationTypeIds.has(relationTypeId)) {
+    const localMatch = findLocalRelationTypeMatch({
+      localRelationTypes: plugin.settings.relationTypes,
+      id: matchPlan.relationTypeIdMapping.get(relationTypeId) ?? relationTypeId,
+      label: importedRelationType.label,
+    });
+
+    if (localMatch) {
+      effectiveRelationTypeIds.set(relationTypeId, localMatch.id);
       const mergedFields = mergePlan?.relationTypeFields.get(relationTypeId);
       if (!mergedFields?.size) {
         continue;
       }
 
-      const localId = matchPlan.relationTypeIdMapping.get(relationTypeId);
-      const localIndex = plugin.settings.relationTypes.findIndex(
-        (relationType) => relationType.id === localId,
-      );
-      if (localIndex === -1) {
-        onWarning(
-          `Relation type "${importedRelationType.label}" matched an existing type that is no longer present.`,
-        );
-        continue;
-      }
-
+      const localIndex = plugin.settings.relationTypes.indexOf(localMatch);
       const nextRelationTypes = [...plugin.settings.relationTypes];
       nextRelationTypes[localIndex] = mergeRelationTypeFields({
         local: nextRelationTypes[localIndex]!,
@@ -541,6 +541,7 @@ export const applySchemaImportSelection = async ({
       continue;
     }
 
+    effectiveRelationTypeIds.set(relationTypeId, importedRelationType.id);
     const newRelationType: DiscourseRelationType = {
       ...importedRelationType,
       color: toTldrawColor(importedRelationType.color),
@@ -572,12 +573,17 @@ export const applySchemaImportSelection = async ({
       continue;
     }
 
+    // Where the endpoint actually landed takes precedence over the plan, which can name a type this run never created.
     const mappedSourceId =
-      matchPlan.nodeTypeIdMapping.get(relation.sourceId) ?? relation.sourceId;
+      effectiveNodeTypeIds.get(relation.sourceId) ??
+      matchPlan.nodeTypeIdMapping.get(relation.sourceId) ??
+      relation.sourceId;
     const mappedDestinationId =
+      effectiveNodeTypeIds.get(relation.destinationId) ??
       matchPlan.nodeTypeIdMapping.get(relation.destinationId) ??
       relation.destinationId;
     const mappedRelationTypeId =
+      effectiveRelationTypeIds.get(relation.relationshipTypeId) ??
       matchPlan.relationTypeIdMapping.get(relation.relationshipTypeId) ??
       relation.relationshipTypeId;
 
