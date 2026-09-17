@@ -2,6 +2,7 @@ import type {
   SchemaConflict,
   SchemaFieldChange,
 } from "~/utils/schemaFieldDiff";
+import { TEMPLATE_CONTENT_FIELD } from "~/utils/schemaFieldDiff";
 import type { SchemaMergePlanState } from "~/components/useSchemaMergePlan";
 import { getImportedTemplateFileName } from "~/utils/templates";
 import { COLOR_PALETTE } from "~/utils/tldrawColors";
@@ -62,7 +63,8 @@ const describeTemplateBody = (
 ): string => {
   if (typeof value !== "string") return formatFieldValue(value);
   const lineCount = value.split("\n").length;
-  return `${value.length} bytes, ${lineCount} line${lineCount === 1 ? "" : "s"}`;
+  const byteCount = new TextEncoder().encode(value).length;
+  return `${byteCount} bytes, ${lineCount} line${lineCount === 1 ? "" : "s"}`;
 };
 
 const ChoiceCell = ({
@@ -245,8 +247,15 @@ export const SchemaConflictResolutionStep = ({
     (total, conflict) => total + mergePlan.countSelectedFields(conflict),
     0,
   );
-  const templateConflicts = conflicts.filter(
-    (conflict) => conflict.category === "template",
+  // A template left on the local value produces no copy, so only the chosen ones are named.
+  const copiedTemplateConflicts = conflicts.filter(
+    (conflict) =>
+      conflict.category === "template" &&
+      mergePlan.isFieldSelected({
+        category: conflict.category,
+        schemaId: conflict.schemaId,
+        field: TEMPLATE_CONTENT_FIELD,
+      }),
   );
 
   return (
@@ -287,11 +296,11 @@ export const SchemaConflictResolutionStep = ({
         })}
       </div>
 
-      {templateConflicts.length > 0 && (
+      {copiedTemplateConflicts.length > 0 && (
         <p className="text-muted mt-2 text-xs">
           ⧉ Your template file is never overwritten — the imported version is
           added beside it as{" "}
-          {templateConflicts
+          {copiedTemplateConflicts
             .map((conflict) =>
               getImportedTemplateFileName({
                 templateName: conflict.schemaId,
