@@ -8,7 +8,6 @@ import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { settingAnchor } from "~/components/settings/utils/settingAnchor";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { setSetting } from "~/utils/extensionSettings";
-import { settingAnchor } from "~/components/settings/utils/settingAnchor";
 import { CANVAS_NODE_SHORTCUTS_KEY } from "~/data/userSettings";
 import type { CanvasNodeShortcuts, PersonalSettings } from "./utils/zodSchema";
 
