@@ -97,7 +97,6 @@ import {
   isNodeSharingEnabled,
 } from "~/components/settings/utils/accessors";
 import refreshConfigTree from "~/utils/refreshConfigTree";
-import { flushPendingSettingWrites } from "~/utils/pendingSettingWrites";
 import ExportOptions from "./ExportOptions";
 import Description from "~/components/settings/SettingsDescription";
 
@@ -1095,9 +1094,6 @@ const ExportDialog: ExportDialogComponent = ({
               // eslint-disable-next-line @typescript-eslint/no-misused-promises
               setTimeout(async () => {
                 try {
-                  // Awaited, not just fired: a commit only starts the Roam update, and an option edited
-                  // a moment ago would otherwise still read as its previous value here.
-                  await flushPendingSettingWrites();
                   const exportType = exportTypes.find(
                     (e) => e.name === activeExportType,
                   );
