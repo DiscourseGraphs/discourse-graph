@@ -208,14 +208,6 @@ const AUTHORED_SETTINGS = {
     keywords: ["personal", "discourse context"],
     path: rootPath(SETTINGS_TAB_IDS.featuresDiscourseContext),
   },
-  "PERSONAL_KEYS.overlayInCanvas": {
-    label: "(BETA) Overlay in canvas",
-    description:
-      "Whether or not to overlay discourse context information over canvas nodes.",
-    docsLink: ROAM_DOCS.discourseContextOverlay,
-    keywords: ["personal", "discourse context", "canvas"],
-    path: rootPath(SETTINGS_TAB_IDS.featuresDiscourseContext),
-  },
   "GLOBAL_KEYS.canvasPageFormat": {
     label: "Canvas Page Format",
     description: "The page format for canvas pages",
