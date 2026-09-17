@@ -324,6 +324,10 @@ const mergeNodeTypeFields = ({
       importedTemplateNames,
       localTemplateNames,
     });
+  } else if (merged.template) {
+    // Both sides naming the same template yields no `template` change row, so the reference must still follow a chosen imported body into its renamed copy.
+    merged.template =
+      importedTemplateNames.get(merged.template) ?? merged.template;
   }
   return merged;
 };
