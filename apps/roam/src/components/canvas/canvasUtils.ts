@@ -19,10 +19,11 @@ export const isDiscourseNodeShape = (
   }
 };
 
+export const getAllRelations = () =>
+  Object.values(discourseContext.relations).flat();
+
 export const getCreatableRelations = () =>
-  Object.values(discourseContext.relations)
-    .flat()
-    .filter(isAcceptedRelationSchema);
+  getAllRelations().filter(isAcceptedRelationSchema);
 
 export const checkConnectionType = (
   relation: { source: string; destination: string },
