@@ -5,7 +5,6 @@ import {
   getOverlayHandler,
   onPageRefObserverChange,
 } from "~/utils/pageRefObserverHandlers";
-import { DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY } from "~/data/userSettings";
 import { setSetting } from "~/utils/extensionSettings";
 import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
 import { PERSONAL_KEYS } from "./utils/settingKeys";
@@ -36,18 +35,6 @@ const DiscourseContextSettings = ({
           posthog.capture("Personal Settings: Overlay Toggled", {
             enabled: checked,
           });
-        }}
-      />
-      <PersonalFlagPanel
-        title="(BETA) Overlay in canvas"
-        description={withDocsLink(
-          "Whether or not to overlay discourse context information over canvas nodes.",
-          ROAM_DOCS.discourseContextOverlay,
-        )}
-        settingKeys={[PERSONAL_KEYS.overlayInCanvas]}
-        initialValue={personalSettings[PERSONAL_KEYS.overlayInCanvas]}
-        onChange={(checked) => {
-          void setSetting(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, checked);
         }}
       />
     </div>
