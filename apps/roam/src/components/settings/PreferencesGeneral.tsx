@@ -127,12 +127,13 @@ const PreferencesGeneral = ({
         description="Set the trigger character for the node search menu."
         scope="personal"
         settingKeys={[PERSONAL_KEYS.nodeSearchMenuTrigger]}
-        control={
+        control={(controlId) => (
           <NodeSearchMenuTriggerSetting
+            id={controlId}
             onloadArgs={onloadArgs}
             initialValue={personalSettings[PERSONAL_KEYS.nodeSearchMenuTrigger]}
           />
-        }
+        )}
       />
       <PersonalFlagPanel
         title="Text selection popup"
@@ -212,14 +213,15 @@ const PreferencesGeneral = ({
           )}
           scope="personal"
           settingKeys={[PERSONAL_KEYS.personalNodeMenuTrigger]}
-          control={
+          control={(controlId) => (
             <NodeMenuTriggerComponent
+              id={controlId}
               extensionAPI={extensionAPI}
               initialValue={
                 personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger]
               }
             />
-          }
+          )}
         />
       </SettingsGroup>
       <FeatureFlagPanel

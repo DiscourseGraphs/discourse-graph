@@ -18,13 +18,6 @@
   padding: 0 10px;
   width: 100%;
 }
-:root {
-  /** Neutrals mirrored too: Roam ships Tailwind's utilities but not this repo's theme extensions. */
-  --dg-neutral-dark: #1f1f1f;
-  --dg-neutral-light: #f1f1f1;
-  --dg-border: rgb(229, 231, 235);
-}
-
 .dg-settings-node-page {
   display: flex;
   flex-direction: column;
@@ -34,13 +27,11 @@
 
 /** No row dividers: the only rule on a page is the one under a section heading. */
 
-.dg-setting-row__label {
-  color: var(--dg-neutral-dark);
-}
-
+/* Translucent neutral so the badge reads on Roam's light and dark themes;
+   the label and icon inherit the host foreground rather than a fixed palette. */
 .dg-setting-row__scope {
-  background-color: var(--dg-neutral-light);
-  border: 1px solid var(--dg-border);
+  background-color: rgba(138, 155, 168, 0.15);
+  border: 1px solid rgba(138, 155, 168, 0.25);
 }
 
 /* Trailing keycap control: a narrow box whose value reads as a single key. */
