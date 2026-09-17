@@ -203,7 +203,6 @@ const PreferencesGeneral = ({
             initialValue={
               personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger]
             }
-            placeholder=""
           />
         </Label>
       </SettingsGroup>

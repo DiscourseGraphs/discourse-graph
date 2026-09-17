@@ -14,10 +14,8 @@ export const SettingsGroup = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <div className="dg-settings-group">
+  <div className="flex flex-col gap-1">
     <div className="dg-settings-heading">{title}</div>
-    <div className="dg-settings-group__rows flex flex-col gap-4">
-      {children}
-    </div>
+    <div className="flex flex-col gap-4">{children}</div>
   </div>
 );

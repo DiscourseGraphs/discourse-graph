@@ -19,20 +19,19 @@
   width: 100%;
 }
 
-/* Outranks the 14px row labels by size and by the only rule on the page.
-   Hand-rolled: Roam ships no Tailwind preflight, so `border-b-2` never paints. */
+/* Blueprint palette with a .bp3-dark override, as elsewhere in this app: a
+   width-only `border-b-2` paints nothing without Tailwind's preflight. */
 .dg-settings-heading {
   font-size: 16px;
   font-weight: 600;
   line-height: 1.3;
   letter-spacing: -0.01em;
-  color: var(--dg-neutral-dark, #1f1f1f);
+  color: #182026;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--dg-border, rgb(229, 231, 235));
+  border-bottom: 2px solid rgba(16, 22, 26, 0.15);
 }
 
-.dg-settings-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.bp3-dark .dg-settings-heading {
+  color: #f5f8fa;
+  border-bottom-color: rgba(255, 255, 255, 0.2);
 }

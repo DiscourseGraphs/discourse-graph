@@ -15,7 +15,7 @@ const LEGACY_CONFIG_BLOCKS = {
   leftSidebarFlag: { blockKey: "(BETA) Left Sidebar", order: 2 },
 } as const;
 
-/** Spreads straight onto a panel's block-sync props. */
+/** Matches the Roam block-sync props on the BlockPropSettingPanels panels. */
 export type LegacyConfigBlock = {
   blockKey: string;
   order: number;
@@ -28,8 +28,8 @@ type LegacyConfigBlocks = Record<
   LegacyConfigBlock
 >;
 
-/** `Use new settings store = false` (the default) still reads this tree. No
- *  refresh here: every writer and the dialog's close already refresh it. */
+/** Graphs with `Use new settings store` off still read this tree. No refresh
+ *  here: every writer and the dialog's close already refresh it. */
 export const useLegacyConfigBlocks = (): LegacyConfigBlocks =>
   useMemo(() => {
     const tree = discourseConfigRef.tree;

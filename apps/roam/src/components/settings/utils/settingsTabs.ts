@@ -30,7 +30,6 @@ export const SETTINGS_TAB_ALIASES: Record<string, TabId> = {
 };
 
 /** Unknown ids pass through: per-node tabs are keyed by node page uid. */
-export const resolveSettingsTabId = (id?: TabId): TabId => {
-  if (id === undefined) return DEFAULT_SETTINGS_TAB_ID;
-  return SETTINGS_TAB_ALIASES[String(id)] ?? id;
-};
+export const resolveSettingsTabId = (
+  id: TabId = DEFAULT_SETTINGS_TAB_ID,
+): TabId => SETTINGS_TAB_ALIASES[String(id)] ?? id;
