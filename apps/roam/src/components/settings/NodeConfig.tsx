@@ -281,7 +281,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
   );
 
   return (
-    <div className="dg-settings-node-page">
+    <div className="flex flex-col gap-12 p-1">
       <SettingsGroup title="Identity">
         <SettingsDrillDownRow
           title="Index"
