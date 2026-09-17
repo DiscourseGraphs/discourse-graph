@@ -12,30 +12,53 @@ The Canvas lets you lay out your work visually. It's great for synthesizing your
 
 ## Creating a canvas
 
-### From anywhere
-
-Type `jj` followed by `canvas` anywhere in your graph to create and title a canvas. The canvas is created as a separate page in your graph.
-
-<Callout type="info" emoji="💡">
-  You can also use this SmartBlock button for one-click canvas creation:
-  `{{Create canvas:SmartBlock:Create New Canvas:RemoveButton=false,Icon=presentation}}`.
-  Copy and paste it onto your home page for easy access.
-</Callout>
-
-### From a project page
-
-You can also create a canvas to represent your current projects directly from the Project page:
+You can create a discourse canvas by creating a new Page titled "Canvas/(canvas name)". The plugin will recognize `Canvas/` and automatically create a canvas page.
 
 <Image
-  src="/docs/roam/canvas-tut01.png"
-  alt="Project Canvas button"
+  src="/docs/roam/create-canvas001.png"
+  alt="canvas page title"
   width={480}
-  height={211}
+  height={88}
   className="docs-bordered-image"
 />
-_Creating a canvas from a Project page_
+_Creating a canvas using the page title convention_
 
-This canvas is automatically named after the project it was generated from. Once created, you can use the `Project Canvas` button to navigate to the Project canvas.
+<Image
+  src="/docs/roam/create-canvas002.png"
+  alt="canvas page"
+  width={480}
+  height={239}
+  className="docs-bordered-image"
+/>
+_The newly created canvas page_
+
+<Callout type="info" emoji="💡">
+  The following is a brief digression on using SmartBlocks to automate canvas
+  creation.
+</Callout>
+
+You can automate canvas creation using the [SmartBlocks](https://github.com/RoamJS/smartblocks) extension.
+
+1. Install SmartBlocks from Roam Depot
+2. Create a page called "Templates" and paste [this block](https://roamresearch.com/#/app/template-lab/page/1Ey_02b6h) onto that page.
+3. Point the "New Canvas" link highlighted in yellow (below) to the "New Canvas" form by right-clicking on the bullet highlighted in yellow > copy block ref > paste after `%FORM:`
+4. Type `jj` followed by `canvas` anywhere in your graph to create and title a canvas. The canvas will then be created as a new page in your graph. You can also copy the button text highlighted in magenta below to any page in your graph to create a button enabling one-press canvas creation.
+
+<Image
+  src="/docs/roam/create-canvas-smartblock.png"
+  alt="create canvas smartblock"
+  width={480}
+  height={421}
+  className="docs-bordered-image"
+/>
+_The "Create Canvas" SmartBlock_
+
+<Callout type="info" emoji="💡">
+  Now back to our regularly-scheduled content about using the canvas. You can
+  re-use the pattern above to mine the [template
+  graph](https://roamresearch.com/#/app/template-lab/page/6HzLUqC4q) for
+  SmartBlocks to use in your discourse graph.
+</Callout>
 
 ## Adding nodes to your canvas
 
@@ -147,35 +170,64 @@ _Viewing clipboard content_
 
 You can drag nodes not already on your canvas onto your canvas from the Clipboard.
 
-<Callout type="info" emoji="💡">
-  If you enable the **Key Image** setting in the Discourse Graph Settings menu
-  for a particular node type, any nodes you drag to your graph will bring along
-  the first image from that page.
+<Image
+  src="/docs/roam/canvas-tut12.png"
+  alt="dragging nodes from the clipboard"
+  width={480}
+  height={313}
+  className="docs-bordered-image"
+/>
+_Dragging nodes from the clipboard_
 
-  <Image
-    src="/docs/roam/canvas-tut11.png"
-    alt="The Key Image setting in Discourse Graph Settings"
-    width={660}
-    height={644}
-    className="docs-bordered-image"
-    sizes="300px"
-    style={{ width: 300 }}
-  />
-</Callout>
+### Using key images
 
-<Callout type="info" emoji="💡">
-  You can also specify a particular image to use by entering its block reference
-  (right-click the bullet next to the image and select "Copy block ref") in the
-  "Query builder reference" field shown above.
+If you enable the **Key Image** setting in the Discourse Graph Settings menu
+for a particular node type, any nodes you add to your graph will bring along
+the first image from that page.
 
-  <Image
-    src="/docs/roam/canvas-tut12.png"
-    alt="The Query builder reference field for specifying an image"
-    width={480}
-    height={313}
-    className="docs-bordered-image"
-  />
-</Callout>
+<Image
+  src="/docs/roam/canvas-tut12.png"
+  alt="The Query builder reference field for specifying an image"
+  width={480}
+  height={313}
+  className="docs-bordered-image"
+/>
+
+If you wish to draw your key images from a consistent location in your node template, you can create a query targeting all such images and enter its block reference (right-click the bullet next to the query and select "Copy block ref") in the
+"Query builder reference" field in that node type's canvas settings.
+
+<Image
+  src="/docs/roam/canvas-tut11.png"
+  alt="canvas settings"
+  width={480}
+  height={468}
+  className="docs-bordered-image"
+/>
+_The key image settings for the Question node type, found in discourse graph
+plugin settings > nodes > Question > Canvas tab_
+
+For example, the image below shows a query that draws the first image found under the heading "Figures & additional characterization." The block reference for this query has been set for the Evidence node type.
+
+<Image
+  src="/docs/roam/canvas-tut-key-image02.png"
+  alt="canvas key image"
+  width={480}
+  height={225}
+  className="docs-bordered-image"
+/>
+_A key image query. Its block reference can be found by right-clicking on the
+bullet highlighted in yellow_
+
+Whenever an evidence node is added to a canvas, it brings along the first image under that heading, rather than the first image on the page.
+
+<Image
+  src="/docs/roam/canvas-tut-key-image01.png"
+  alt="key image on canvas"
+  width={480}
+  height={329}
+  className="docs-bordered-image"
+/>
+_The key image on the canvas_
 
 ### The sidebar
 
@@ -190,7 +242,7 @@ Clicking the sidebar icon on any node opens that node's page in your sidebar.
 />
 _The sidebar icon_
 
-You can use this side-by-side view to move images or text from that node's page onto your canvas.
+You can use this side-by-side view to examine a node's content without losing sight of your canvas, and to easily copy and paste additional material from node pages to your canvas.
 
 <Image
   src="/docs/roam/canvas-tut14.png"
@@ -217,7 +269,7 @@ _sending query results to your canvas_
 
 ### Converting images or text into discourse nodes
 
-You can select images or text from your graph, a document, a file, or a webpage, copy them to your canvas, and convert them into discourse nodes. Right-click the image, select "Convert to...", then modify the title as needed.
+You can select images or text from your graph, a document, a file, or a webpage, copy them to your canvas, and convert them into discourse nodes. Right-click the selection, select "Convert to...", then modify the title as needed.
 
 <Callout type="info" emoji="💡">
   Remember to enable the **Key Image** feature in Settings if you want to
@@ -282,6 +334,29 @@ _Adding text boxes and shapes to a canvas_
 _Adding video to a canvas_
 
 Stickers, arrows, GIFs, YouTube videos — anything that enhances understanding or presentation. These features can come in handy during a live or recorded canvas walkthrough.
+
+## Co-working on your canvas
+
+The discourse canvas supports simultaneous read/write operations from multiple users of your graph. Enable the **Cloud Canvas** setting to synchronize your view of the canvas to use it as a shared real-time whiteboard.
+
+<Image
+  src="/docs/roam/canvas-tut-cloud-canvas.png"
+  alt="cloud canvas setting"
+  width={480}
+  height={460}
+  className="docs-bordered-image"
+/>
+_The cloud canvas setting_
+
+<Image
+  src="/docs/roam/two-cursors.gif"
+  alt="coworking"
+  width={447}
+  height={480}
+  className="docs-bordered-image"
+  unoptimized
+/>
+_Collaborating on a cloud canvas_
 
 ## Exporting your canvas
 
