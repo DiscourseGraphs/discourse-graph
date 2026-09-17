@@ -16,7 +16,7 @@ vi.mock("~/utils/storedRelations", () => ({
 }));
 vi.mock("~/utils/internalError", () => ({ default: vi.fn() }));
 vi.mock("~/utils/getDiscourseRelations", () => ({ default: () => [] }));
-vi.mock("~/utils/materializeSharedNode", () => ({ getErrorMessage: String }));
+vi.mock("~/utils/getErrorMessage", () => ({ getErrorMessage: String }));
 vi.mock("~/utils/createReifiedBlock", () => ({
   acceptTentativeRelationInstance: vi.fn(),
 }));

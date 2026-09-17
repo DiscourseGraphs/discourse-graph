@@ -7,7 +7,7 @@ import posthog from "posthog-js";
 import { isRid, ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import internalError from "~/utils/internalError";
-import { getErrorMessage } from "~/utils/materializeSharedNode";
+import { getErrorMessage } from "~/utils/getErrorMessage";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import {
   refreshDiscourseContextsForMutatedUids,
