@@ -1,11 +1,15 @@
 import React from "react";
 
-/** Styled in settingsStyles.css: outranks the rows by size and rule, never by indenting them. */
+/** `border-0 border-solid` is required: Roam ships no Tailwind preflight, so a
+ *  bare `border-b-2` has no border-style and paints nothing. */
+const HEADING_CLASS =
+  "text-lg font-semibold leading-tight pb-2 border-0 border-b-2 border-solid dg-settings-heading";
+
 export const SettingsSectionHeading = ({
   children,
 }: {
   children: React.ReactNode;
-}) => <div className="dg-settings-heading">{children}</div>;
+}) => <div className={HEADING_CLASS}>{children}</div>;
 
 export const SettingsGroup = ({
   title,
@@ -15,7 +19,7 @@ export const SettingsGroup = ({
   children: React.ReactNode;
 }) => (
   <div className="flex flex-col gap-1">
-    <div className="dg-settings-heading">{title}</div>
+    <div className={HEADING_CLASS}>{title}</div>
     <div className="flex flex-col gap-4">{children}</div>
   </div>
 );

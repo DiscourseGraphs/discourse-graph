@@ -19,16 +19,11 @@
   width: 100%;
 }
 
-/* Blueprint palette with a .bp3-dark override, as elsewhere in this app: a
-   width-only `border-b-2` paints nothing without Tailwind's preflight. */
+/* Colors only: the rest is Tailwind on the element. Blueprint palette with a
+   .bp3-dark override, the pattern used elsewhere in this app. */
 .dg-settings-heading {
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
   color: #182026;
-  padding-bottom: 8px;
-  border-bottom: 2px solid rgba(16, 22, 26, 0.15);
+  border-bottom-color: rgba(16, 22, 26, 0.15);
 }
 
 .bp3-dark .dg-settings-heading {
