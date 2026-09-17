@@ -16,7 +16,8 @@ export const SETTINGS_TAB_IDS = {
 export const DEFAULT_SETTINGS_TAB_ID: TabId =
   SETTINGS_TAB_IDS.preferencesGeneral;
 
-/** Tab ids from before the taxonomy. Saved deep links still carry these. */
+/** Tab ids from before the taxonomy. `SettingsDialog` is exported, so callers
+ *  outside this repo may still pass them; every in-repo call site is updated. */
 export const SETTINGS_TAB_ALIASES: Record<string, TabId> = {
   "discourse-graph-home-personal": SETTINGS_TAB_IDS.preferencesGeneral,
   "discourse-graph-home": SETTINGS_TAB_IDS.preferencesGeneral,
@@ -29,7 +30,6 @@ export const SETTINGS_TAB_ALIASES: Record<string, TabId> = {
   "discourse-relations": SETTINGS_TAB_IDS.grammarRelations,
 };
 
-/** Unknown ids pass through: per-node tabs are keyed by node page uid. */
 export const resolveSettingsTabId = (
   id: TabId = DEFAULT_SETTINGS_TAB_ID,
 ): TabId => SETTINGS_TAB_ALIASES[String(id)] ?? id;
