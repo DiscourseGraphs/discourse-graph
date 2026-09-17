@@ -20,7 +20,6 @@ import { settingAnchor } from "~/components/settings/utils/settingAnchor";
 import getFirstChildUidByBlockUid from "roamjs-components/queries/getFirstChildUidByBlockUid";
 import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
-import { trackRoamWrite } from "~/utils/setBlockProps";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import {
@@ -33,10 +32,6 @@ import {
 } from "~/components/settings/utils/accessors";
 import type { FeatureFlags } from "../utils/zodSchema";
 import type { json } from "~/utils/getBlockProps";
-import {
-  addPendingSettingWrite,
-  removePendingSettingWrite,
-} from "~/utils/pendingSettingWrites";
 
 type RoamBlockSyncProps = {
   parentUid?: string;
@@ -151,39 +146,36 @@ const useLegacyBlockSync = ({
   const sync = useCallback(
     async (text: string): Promise<void> => {
       if (valueUidRef.current) {
-        await trackRoamWrite(updateBlock({ uid: valueUidRef.current, text }));
+        await updateBlock({ uid: valueUidRef.current, text });
         return;
       }
       if (!uidRef.current) {
-        uidRef.current = await trackRoamWrite(
-          createBlock({
-            node: { text: title },
-            parentUid: parentUid ?? "",
-            order: order ?? 0,
-          }),
-        );
+        uidRef.current = await createBlock({
+          node: { text: title },
+          parentUid: parentUid ?? "",
+          order: order ?? 0,
+        });
       }
-      valueUidRef.current = await trackRoamWrite(
-        createBlock({ node: { text }, parentUid: uidRef.current, order: 0 }),
-      );
+      valueUidRef.current = await createBlock({
+        node: { text },
+        parentUid: uidRef.current,
+        order: 0,
+      });
     },
     [title, parentUid, order],
   );
   return enabled ? sync : undefined;
 };
 
-// One timer and one registry entry per panel: a commit runs exactly once, by timer,
-// flush, or unmount. Unmount commits rather than cancels.
+// One timer per panel: a commit runs exactly once, by timer or unmount.
+// Unmount commits rather than cancels; Back and the breadcrumbs unmount mid-debounce.
 const useDeferredWrite = (): DeferredWrite => {
   const timeoutRef = useRef(0);
   const commitRef = useRef<(() => Promise<void>) | null>(null);
 
   const forget = useCallback(() => {
     window.clearTimeout(timeoutRef.current);
-    if (commitRef.current) {
-      removePendingSettingWrite(commitRef.current);
-      commitRef.current = null;
-    }
+    commitRef.current = null;
   }, []);
 
   const schedule = useCallback(
@@ -194,7 +186,6 @@ const useDeferredWrite = (): DeferredWrite => {
         await commit();
       };
       commitRef.current = runOnce;
-      addPendingSettingWrite(runOnce);
       timeoutRef.current = window.setTimeout(() => void runOnce(), delayMs);
     },
     [forget],
