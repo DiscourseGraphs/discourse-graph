@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@blueprintjs/core";
-import { buildBreadcrumbTrail } from "../utils/settingsNavigation";
+import { buildBreadcrumbTrail } from "~/components/settings/utils/settingsNavigation";
 import { useSettingsNav } from "./SettingsNavContext";
 
 /** `ancestorLabels` are static crumbs above the tab itself: shown in the trail, not navigable. */

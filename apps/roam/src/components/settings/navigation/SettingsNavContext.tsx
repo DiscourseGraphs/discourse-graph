@@ -4,7 +4,7 @@ import {
   segmentsOf,
   type SettingsNavAction,
   type SettingsPath,
-} from "../utils/settingsNavigation";
+} from "~/components/settings/utils/settingsNavigation";
 
 export type SettingsNavValue = {
   path: SettingsPath;
