@@ -105,9 +105,10 @@ const DiscourseNodeColorSetting = ({
         label="Color"
         description="Changes the color of tags and canvas nodes"
         scope="global"
-        control={
+        control={(controlId) => (
           <ControlGroup>
             <InputGroup
+              id={controlId}
               style={{ width: 120 }}
               type={"color"}
               value={color}
@@ -133,7 +134,7 @@ const DiscourseNodeColorSetting = ({
               />
             </Tooltip>
           </ControlGroup>
-        }
+        )}
       />
     </>
   );

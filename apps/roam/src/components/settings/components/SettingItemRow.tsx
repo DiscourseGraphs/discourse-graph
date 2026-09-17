@@ -24,7 +24,7 @@ const SettingScopeIndicator = ({ scope }: { scope: SettingScope }) => {
     <Tooltip content={tooltip} position={Position.TOP} hoverOpenDelay={300}>
       <span
         aria-label={tooltip}
-        className="dg-setting-row__scope flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-gray-500"
+        className="dg-setting-row__scope flex h-5 w-5 flex-shrink-0 items-center justify-center rounded opacity-60"
       >
         <Icon icon={icon} iconSize={12} />
       </span>
@@ -73,7 +73,7 @@ const SettingItemRow = ({
       <div className="flex min-w-0 flex-col gap-0.5">
         <LabelTag
           {...(isAssociated ? { htmlFor: controlId } : {})}
-          className={`dg-setting-row__label mb-0 flex items-center gap-2 font-semibold ${
+          className={`mb-0 flex items-center gap-2 font-semibold ${
             isAssociated ? "cursor-pointer" : ""
           }`}
         >
@@ -84,7 +84,7 @@ const SettingItemRow = ({
           <div className="text-sm font-normal text-gray-500">{description}</div>
         ) : null}
         {error ? (
-          <div className="text-sm font-medium text-red-600">{error}</div>
+          <div className="text-sm font-medium text-red-700">{error}</div>
         ) : null}
       </div>
       <div
