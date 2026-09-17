@@ -54,7 +54,7 @@ const APP_MIGRATIONS = [discourseNodeMigrations, textLinkMigrations];
 // drop only our sequence ids. Migrations missing from the loaded schema replay
 // in full (they are retroactive), while built-ins stay at their current version
 // instead of re-running against already-migrated records.
-const schemaBeforeAppMigrations = (store: TLStore): SerializedSchema => {
+export const schemaBeforeAppMigrations = (store: TLStore): SerializedSchema => {
   const appSequenceIds = new Set(APP_MIGRATIONS.map((m) => m.sequenceId));
   const { sequences, ...rest } = store.schema.serialize();
   return {
