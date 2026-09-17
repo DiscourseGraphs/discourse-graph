@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Json } from "@repo/database/dbTypes";
 import defaultDiscourseNodes from "~/data/defaultDiscourseNodes";
+import type { ImportedSourceIdentity } from "~/utils/importedSourceIdentity";
 
 vi.mock("roamjs-components/queries/getFullTreeByParentUid", () => ({
   default: () => ({ children: [] }),
@@ -13,12 +14,19 @@ vi.mock("~/utils/getDiscourseNodes", () => ({
   default: vi.fn(() => defaultDiscourseNodes),
 }));
 
-const { mockedGetPageUidByPageTitle } = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  mockedGetPageUidByPageTitle: vi.fn((_title: string) => ""),
-}));
+const { mockedGetPageUidByPageTitle, mockedReadImportedSourceIdentity } =
+  vi.hoisted(() => ({
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    mockedGetPageUidByPageTitle: vi.fn((_title: string) => ""),
+    mockedReadImportedSourceIdentity: vi.fn(
+      (): ImportedSourceIdentity | undefined => undefined,
+    ),
+  }));
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
   default: mockedGetPageUidByPageTitle,
+}));
+vi.mock("~/utils/importedSourceIdentity", () => ({
+  readImportedSourceIdentity: mockedReadImportedSourceIdentity,
 }));
 
 // Runs before the imports below: getDiscourseNodes calls generateUID at module load.
@@ -29,6 +37,7 @@ vi.hoisted(() => {
 });
 
 import {
+  fullContentNodeToCrossApp,
   nodeSchemaToCrossApp,
   nodeUidsWithTypeToCrossApp,
 } from "~/utils/roamToCrossAppConverters";
@@ -37,6 +46,16 @@ import getDiscourseNodes, {
 } from "~/utils/getDiscourseNodes";
 
 const mockedGetDiscourseNodes = vi.mocked(getDiscourseNodes);
+
+const claimSchema: DiscourseNode = {
+  type: "schema-1",
+  text: "Claim",
+  shortcut: "C",
+  specification: [],
+  backedBy: "user",
+  canvasSettings: {},
+  format: "CLM - {content}",
+};
 
 const USER_ROW = { ":db/id": 5, ":user/uid": "user-1" };
 
@@ -85,6 +104,54 @@ describe("nodeUidsWithTypeToCrossApp timestamps", () => {
   it("falls back to the create time when no edit time exists", async () => {
     const node = await convertRow(baseRow);
     expect(node.modifiedAt).toEqual(new Date(1000));
+  });
+});
+
+describe("nodeUidsWithTypeToCrossApp coreTitle", () => {
+  it("extracts the content from a title matching the node type's format", async () => {
+    mockedGetDiscourseNodes.mockReturnValue([claimSchema]);
+    const node = await convertRow(baseRow);
+    expect(node.coreTitle).toBe("claim");
+  });
+
+  it("keeps the whole title when the node type is unknown", async () => {
+    mockedGetDiscourseNodes.mockReturnValue([]);
+    const node = await convertRow(baseRow);
+    expect(node.coreTitle).toBe("CLM - claim");
+  });
+});
+
+describe("fullContentNodeToCrossApp coreTitle", () => {
+  const baseNode = {
+    author_local_id: "user-1",
+    source_local_id: "node-1",
+    created: 1000,
+    last_modified: 2000,
+    node_type_id: "schema-1",
+    format: "CLM - {content}",
+    text: "CLM - claim",
+  };
+
+  it("extracts the content from the title", () => {
+    const node = fullContentNodeToCrossApp(baseNode);
+    expect(node.coreTitle).toBe("claim");
+  });
+
+  it("extracts from the page title when node_title is present", () => {
+    const node = fullContentNodeToCrossApp({
+      ...baseNode,
+      text: "some block text",
+      node_title: "CLM - claim",
+    });
+    expect(node.coreTitle).toBe("claim");
+  });
+
+  it("keeps the whole title when it does not match the format", () => {
+    const node = fullContentNodeToCrossApp({
+      ...baseNode,
+      text: "unrelated title",
+    });
+    expect(node.coreTitle).toBe("unrelated title");
   });
 });
 
@@ -147,6 +214,13 @@ describe("nodeSchemaToCrossApp timestamps", () => {
   });
 });
 
+describe("nodeSchemaToCrossApp format", () => {
+  it("carries the node type format", () => {
+    const schema = convertSchemaPull(schemaPull);
+    expect(schema?.format).toBe("[[EVD]] - {content} - {Source}");
+  });
+});
+
 describe("nodeSchemaToCrossApp source slot", () => {
   it("adds a sourceDocument slot definition pointing at the Source node type", () => {
     mockedGetDiscourseNodes.mockReturnValue([
@@ -185,6 +259,7 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
     mockedGetPageUidByPageTitle.mockImplementation(
       (title: string) => PAGE_UIDS[title] ?? "",
     );
+    mockedReadImportedSourceIdentity.mockReset();
   });
 
   it("resolves the source page from the title into a sourceDocument slot", async () => {
@@ -195,6 +270,49 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
     });
     expect(node.slots).toEqual({ sourceDocument: "source-1" });
   });
+
+  it.each([
+    "orn:obsidian.note:vault-a/node-1",
+    "orn:obsidian:vault-a/node-1",
+    "https://roamresearch.com/#/app/graph-b/node-1",
+  ])(
+    "writes the origin RID %j when the source page was imported from another app",
+    async (sourceNodeRid) => {
+      mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
+      mockedReadImportedSourceIdentity.mockReturnValue({
+        sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+        sourceNodeRid,
+      });
+      const node = await convertRow({
+        ...baseRow,
+        ":node/title": "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+      });
+      expect(node.slots).toEqual({ sourceDocument: sourceNodeRid });
+      expect(mockedReadImportedSourceIdentity).toHaveBeenCalledWith("source-1");
+    },
+  );
+
+  it.each([
+    "not a rid",
+    "orn:bad",
+    "orn:obsidian.note:vault-a/",
+    "orn:broken/node-1",
+    "https:///node-1",
+  ])(
+    "keeps the page uid when the imported identity %j is not a well-formed RID",
+    async (sourceNodeRid) => {
+      mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
+      mockedReadImportedSourceIdentity.mockReturnValue({
+        sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+        sourceNodeRid,
+      });
+      const node = await convertRow({
+        ...baseRow,
+        ":node/title": "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+      });
+      expect(node.slots).toEqual({ sourceDocument: "source-1" });
+    },
+  );
 
   // Leniency on the target type: see sourceSlot.ts
   it("accepts a source that is a node of another type", async () => {

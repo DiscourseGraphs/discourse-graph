@@ -68,9 +68,11 @@ export type Settings = {
   canvasAttachmentsFolderPath: string;
   nodeTagHotkey: string;
   showHelpMenuStatusBarIcon: boolean;
+  showDiscourseContextOverlay: boolean;
   spacePassword?: string;
   accountLocalId?: string;
   syncModeEnabled?: boolean;
+  nodeCardContextMenuEnabled?: boolean;
   /** Maps spaceUri (e.g. "obsidian:abc123") to human-readable name (e.g. "My Vault") */
   spaceNames?: Record<string, string>;
   username?: string;

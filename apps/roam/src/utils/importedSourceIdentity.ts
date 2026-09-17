@@ -1,6 +1,9 @@
 import type { Rid } from "@repo/database/crossAppContracts";
-import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
-import getBlockProps, { type json } from "./getBlockProps";
+import {
+  DISCOURSE_GRAPH_PROP_NAME,
+  IMPORTED_FROM_PROP_KEY,
+} from "./createReifiedBlock";
+import getBlockProps, { isJsonObject, type json } from "./getBlockProps";
 import { setBlockPropsAsync } from "./setBlockProps";
 
 export type ImportedSourceIdentity = {
@@ -8,20 +11,12 @@ export type ImportedSourceIdentity = {
   sourceNodeRid: Rid;
 };
 
-export const IMPORTED_FROM_PROP_KEY = "importedFrom";
 const SOURCE_NODE_RID_KEY = "sourceNodeRid";
 const SOURCE_MODIFIED_AT_KEY = "sourceModifiedAt";
 
-const isJsonObject = (value: json): value is Record<string, json> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const parseImportedSourceIdentity = (
-  props: Record<string, json>,
+export const parseSourceIdentity = (
+  importedFrom: json | undefined,
 ): ImportedSourceIdentity | undefined => {
-  const discourseGraphProps = props[DISCOURSE_GRAPH_PROP_NAME];
-  if (!isJsonObject(discourseGraphProps)) return undefined;
-
-  const importedFrom = discourseGraphProps[IMPORTED_FROM_PROP_KEY];
   if (!isJsonObject(importedFrom)) return undefined;
 
   const sourceModifiedAt = importedFrom[SOURCE_MODIFIED_AT_KEY];
@@ -30,6 +25,15 @@ const parseImportedSourceIdentity = (
     return undefined;
 
   return { sourceModifiedAt, sourceNodeRid };
+};
+
+const parseImportedSourceIdentity = (
+  props: Record<string, json>,
+): ImportedSourceIdentity | undefined => {
+  const discourseGraphProps = props[DISCOURSE_GRAPH_PROP_NAME];
+  if (!isJsonObject(discourseGraphProps)) return undefined;
+
+  return parseSourceIdentity(discourseGraphProps[IMPORTED_FROM_PROP_KEY]);
 };
 
 export const readImportedSourceIdentity = (
@@ -71,6 +75,21 @@ export const getImportedSourceRids = async (): Promise<Set<string>> => {
 
   return new Set(
     result.filter((rid): rid is string => typeof rid === "string"),
+  );
+};
+
+export const getImportedNodeUids = async (): Promise<Set<string>> => {
+  const query = `[:find [?uid ...]
+    :where
+      [?page :block/uid ?uid]
+      [?page :block/props ?props]
+      [(get ?props :${DISCOURSE_GRAPH_PROP_NAME}) ?dgData]
+      [(get ?dgData :${IMPORTED_FROM_PROP_KEY}) ?importedFrom]
+      [(get ?importedFrom :${SOURCE_NODE_RID_KEY}) ?rid]]`;
+  const result = (await window.roamAlphaAPI.data.async.q(query)) as unknown[];
+
+  return new Set(
+    result.filter((uid): uid is string => typeof uid === "string"),
   );
 };
 

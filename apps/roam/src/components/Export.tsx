@@ -87,9 +87,11 @@ import { AddReferencedNodeType } from "./canvas/DiscourseRelationShape/Discourse
 import posthog from "posthog-js";
 import { getMyGroups, type MyGroup } from "@repo/database/lib/groups";
 import {
+  getAllPublishedIdsByGroup,
   publishNodeUidsWithTypeToGroups,
   type NodeUidWithType,
 } from "~/utils/publishNodesToGroups";
+import { summarizeAssetResults } from "~/utils/publishNodeAssets";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 import { isNodeSharingEnabled } from "~/components/settings/utils/accessors";
 
@@ -807,29 +809,56 @@ const ExportDialog: ExportDialogComponent = ({
     }
   };
   useEffect(() => {
-    if (
-      !sharingEnabled ||
-      !isOpen ||
-      selectedTabId !== "publish" ||
-      groupsLoaded ||
-      groupsLoading
-    )
-      return;
+    if (isOpen) return;
+    setGroupsLoaded(false);
+    setSelectedGroupIds([]);
+    setGroupsError("");
+  }, [isOpen]);
+  useEffect(() => {
+    if (!sharingEnabled || !isOpen || selectedTabId !== "publish") return;
+    let active = true;
     setGroupsLoading(true);
+    setGroupsLoaded(false);
+    setGroupsError("");
     void (async () => {
       try {
         const client = await getLoggedInClient();
         if (!client) throw new Error("Could not connect to sync.");
         const groups = await getMyGroups(client);
+        const context = await getSupabaseContext();
+        let preselectedGroupIds: string[] = [];
+        if (context && groups.length && publishableNodes.length) {
+          const publishedIdsByGroup = await getAllPublishedIdsByGroup({
+            client,
+            spaceId: context.spaceId,
+            groupIds: groups.map((g) => g.id),
+            sourceLocalIds: publishableNodes.map(({ uid }) => uid),
+          });
+          preselectedGroupIds = groups
+            .map((g) => g.id)
+            .filter((id) =>
+              publishableNodes.every(({ uid }) =>
+                publishedIdsByGroup[id].has(uid),
+              ),
+            );
+        }
+        if (!active) return;
+        setSelectedGroupIds(preselectedGroupIds);
         setMyGroups(groups);
       } catch (e) {
-        setGroupsError((e as Error).message || "Failed to load groups.");
+        if (active)
+          setGroupsError((e as Error).message || "Failed to load groups.");
       } finally {
-        setGroupsLoading(false);
-        setGroupsLoaded(true);
+        if (active) {
+          setGroupsLoading(false);
+          setGroupsLoaded(true);
+        }
       }
     })();
-  }, [sharingEnabled, isOpen, selectedTabId, groupsLoaded, groupsLoading]);
+    return () => {
+      active = false;
+    };
+  }, [sharingEnabled, isOpen, selectedTabId, publishableNodes]);
 
   const handlePublish = async () => {
     setPublishError("");
@@ -843,6 +872,7 @@ const ExportDialog: ExportDialogComponent = ({
         failedUpsertUids,
         okGroupIds,
         failedGroupIds,
+        assetResults,
       } = await publishNodeUidsWithTypeToGroups({
         client,
         spaceId: context.spaceId,
@@ -853,12 +883,18 @@ const ExportDialog: ExportDialogComponent = ({
       const failedNodeCount = failedUpsertUids.filter((uid) =>
         selectedNodeUids.has(uid),
       ).length;
+      const assets = summarizeAssetResults(assetResults);
       posthog.capture("Export Dialog: Publish", {
         groupCount: okGroupIds.length,
         publishedNodeCount: publishedNodeUids.length,
         failedUpsertCount: failedUpsertUids.length,
         nonDiscourseCount,
         failedGroupCount: failedGroupIds.length,
+        assetCopiedCount: assets.copied,
+        assetUnchangedCount: assets.unchanged,
+        assetDistinctBlobCount: assets.distinctBlobs,
+        assetTooLargeCount: assets.tooLarge.length,
+        assetFailedCount: assets.failed.length,
       });
       const hasPublishedNodes = publishedNodeUids.length > 0;
       const messages = hasPublishedNodes
@@ -880,10 +916,27 @@ const ExportDialog: ExportDialogComponent = ({
             failedGroupIds.length === 1 ? "" : "s"
           } failed.`,
         );
+      // The nodes themselves published either way; their links still point at Roam.
+      if (assets.tooLarge.length)
+        messages.push(
+          `${assets.tooLarge.length} file${
+            assets.tooLarge.length === 1 ? " was" : "s were"
+          } too large to copy.`,
+        );
+      if (assets.failed.length)
+        messages.push(
+          `${assets.failed.length} file${
+            assets.failed.length === 1 ? "" : "s"
+          } could not be copied.`,
+        );
       renderToast({
         content: messages.join(" "),
         intent:
-          failedGroupIds.length || failedNodeCount || !hasPublishedNodes
+          failedGroupIds.length ||
+          failedNodeCount ||
+          !hasPublishedNodes ||
+          assets.tooLarge.length ||
+          assets.failed.length
             ? "warning"
             : "success",
         id: "query-builder-publish-success",

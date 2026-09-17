@@ -26,9 +26,15 @@ export const extractFieldFromTitle = (
   if (contentIndex >= 0) return expressionMatch[contentIndex + 1]?.trim();
 };
 
+// A matched-but-empty {content} capture yields "" instead of falling back to
+// the decorated title, so the decorate/undecorate round trip holds for empty
+// content.
 const extractContentFromTitle = (
   title: string,
   node: { format: string },
-): string => extractFieldFromTitle(title, node, "content") || title;
+): string => {
+  const content = extractFieldFromTitle(title, node, "content");
+  return content === undefined ? title : content;
+};
 
 export default extractContentFromTitle;

@@ -16,11 +16,12 @@ import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParen
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { contentTypes } from "@repo/content-model";
 import getDiscourseNodes from "./getDiscourseNodes";
+import extractContentFromTitle from "./extractContentFromTitle";
 import {
   SOURCE_SLOT,
   schemaHasSourceSlot,
   sourceSlotSchemaId,
-  sourceUidOfNode,
+  sourceIdOfNode,
 } from "./sourceSlot";
 
 const FULL_MARKDOWN_OPTS = {
@@ -80,6 +81,7 @@ export const fullContentNodeToCrossApp = (
     createdAt: new Date(node.created || Date.now()),
     modifiedAt: new Date(node.last_modified || Date.now()),
     nodeType: node.node_type_id,
+    coreTitle: extractContentFromTitle(title, { format: node.format }),
     content: {
       direct: {
         localId: node.source_local_id,
@@ -126,7 +128,7 @@ export const nodeUidsWithTypeToCrossApp = async (
     const pageEditTime =
       (row[":page/edit-time"] as number | undefined) ?? editTime;
     const nodeType = typesByUid[uid];
-    const sourceUid = sourceUidOfNode(title, schemasById[nodeType]);
+    const sourceId = sourceIdOfNode(title, schemasById[nodeType]);
 
     return {
       localId: uid,
@@ -134,6 +136,9 @@ export const nodeUidsWithTypeToCrossApp = async (
       authorId: userUid,
       createdAt: new Date(createdTime),
       modifiedAt: new Date(Math.max(editTime, pageEditTime)),
+      coreTitle: extractContentFromTitle(title, {
+        format: schemasById[nodeType]?.format ?? "",
+      }),
       content: {
         direct: {
           localId: uid,
@@ -141,7 +146,7 @@ export const nodeUidsWithTypeToCrossApp = async (
         },
         full: buildFullInlineContent({ uid, title }),
       },
-      ...(sourceUid ? { slots: { [SOURCE_SLOT]: sourceUid } } : {}),
+      ...(sourceId ? { slots: { [SOURCE_SLOT]: sourceId } } : {}),
     };
   });
   return results;
@@ -220,6 +225,7 @@ export const nodeSchemaToCrossApp = (
     authorId: userUid,
     createdAt: new Date(createdTime),
     modifiedAt: new Date(Math.max(pageEditTime, createdTime)),
+    format: s.format,
     ...(hasSourceSlot
       ? { slotDefinitions: { [SOURCE_SLOT]: sourceSlotSchemaId() } }
       : {}),

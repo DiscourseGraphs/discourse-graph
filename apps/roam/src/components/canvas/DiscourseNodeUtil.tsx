@@ -21,7 +21,7 @@ import {
   toDomPrecision,
   TLAnyShapeUtilConstructor,
 } from "tldraw";
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo, useState } from "react";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
@@ -36,12 +36,14 @@ import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { discourseContext } from "./Tldraw";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
-import { createTextJsxFromSpans } from "./DiscourseRelationShape/helpers";
+import {
+  createTextJsxFromSpans,
+  getParallelArrowBend,
+} from "./DiscourseRelationShape/helpers";
 import { loadImage } from "~/utils/loadImage";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
-import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import NodeMenu from "~/components/DiscourseNodeMenu";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
@@ -317,10 +319,27 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
         return { relationId, complement, nodeId, arrowId, label };
       });
 
+    const allRelationIds = getRelationIds();
+    const reservedBendsByPair = new Map<string, number[]>();
     const shapesToCreate = toCreate.map(
-      ({ relationId, arrowId, label }, index) => {
+      ({ relationId, complement, nodeId, arrowId, label }, index) => {
         const color = getRelationColor(label, index);
-        return { id: arrowId, type: relationId, props: { color } };
+        const startId = complement ? nodesInCanvas[nodeId].id : shape.id;
+        const endId = complement ? shape.id : nodesInCanvas[nodeId].id;
+        const pairKey = [startId, endId].sort().join(":");
+        const reservedCanonicalBends = reservedBendsByPair.get(pairKey) ?? [];
+        const { bend, canonicalBend } = getParallelArrowBend({
+          editor,
+          startShapeId: startId,
+          endShapeId: endId,
+          relationIds: allRelationIds,
+          reservedCanonicalBends,
+        });
+        reservedBendsByPair.set(pairKey, [
+          ...reservedCanonicalBends,
+          canonicalBend,
+        ]);
+        return { id: arrowId, type: relationId, props: { color, bend } };
       },
     );
 
@@ -450,15 +469,8 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     const {
       canvasSettings: { alias = "", "key-image": isKeyImage = "" } = {},
     } = discourseContext.nodes[getDiscourseNodeTypeId({ shape })] || {};
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isOverlayEnabled = useMemo(
-      () => getPersonalSetting<boolean>([PERSONAL_KEYS.overlayInCanvas]),
-      [],
-    );
 
     const isEditing = this.editor.getEditingShapeId() === shape.id;
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [overlayMounted, setOverlayMounted] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const [isAddTagMenuOpen, setIsAddTagMenuOpen] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -662,7 +674,6 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
           maxHeight: shape.props.h,
           boxSizing: "border-box",
         }}
-        onPointerEnter={() => setOverlayMounted(true)}
       >
         <div
           className="relative flex h-full min-h-0 w-full min-w-0 flex-col"
@@ -815,24 +826,6 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
               fontSize: FONT_SIZES[shape.props.size],
             }}
           >
-            {overlayMounted &&
-              isOverlayEnabled &&
-              !["blck-node", "page-node"].includes(
-                getDiscourseNodeTypeId({ shape }),
-              ) && (
-                <div
-                  className="roamjs-discourse-context-overlay-container absolute right-1 top-1"
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
-                  <DiscourseContextOverlay
-                    uid={shape.props.uid}
-                    id={`${shape.id}-overlay`}
-                    opacity="50"
-                    textColor={textColor}
-                    iconColor={textColor}
-                  />
-                </div>
-              )}
             {showEmbeddedRoamBlock ? (
               <div className="w-full min-w-0">
                 <RenderRoamBlockString
