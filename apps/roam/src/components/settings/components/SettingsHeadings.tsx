@@ -1,9 +1,9 @@
 import React from "react";
 
-/** `border-0 border-solid` is required: Roam ships no Tailwind preflight, so a
- *  bare `border-b-2` has no border-style and paints nothing. */
+/** `bp3-heading` carries the themed text color; `border-0 border-solid` is
+ *  required because Roam ships no Tailwind preflight to default border-style. */
 const HEADING_CLASS =
-  "text-lg font-semibold leading-tight pb-2 border-0 border-b-2 border-solid dg-settings-heading";
+  "bp3-heading mb-0 text-lg leading-tight pb-2 border-0 border-b-2 border-solid border-gray-300";
 
 export const SettingsSectionHeading = ({
   children,

@@ -18,15 +18,3 @@
   padding: 0 10px;
   width: 100%;
 }
-
-/* Colors only: the rest is Tailwind on the element. Blueprint palette with a
-   .bp3-dark override, the pattern used elsewhere in this app. */
-.dg-settings-heading {
-  color: #182026;
-  border-bottom-color: rgba(16, 22, 26, 0.15);
-}
-
-.bp3-dark .dg-settings-heading {
-  color: #f5f8fa;
-  border-bottom-color: rgba(255, 255, 255, 0.2);
-}
