@@ -25,7 +25,7 @@ const CanvasSettings = ({
   onloadArgs: OnloadArgs;
   globalSettings: SettingsSnapshot["globalSettings"];
   personalSettings: SettingsSnapshot["personalSettings"];
-}) => {
+}): React.ReactElement => {
   const legacyBlocks = useLegacyConfigBlocks();
   return (
     <div className="flex flex-col gap-4 p-1">

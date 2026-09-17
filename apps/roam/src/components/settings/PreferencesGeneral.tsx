@@ -42,7 +42,7 @@ const PreferencesGeneral = ({
   onloadArgs: OnloadArgs;
   globalSettings: SettingsSnapshot["globalSettings"];
   personalSettings: SettingsSnapshot["personalSettings"];
-}) => {
+}): React.ReactElement => {
   const extensionAPI = onloadArgs.extensionAPI;
   const legacyBlocks = useLegacyConfigBlocks();
   const [activeRelationMigration, setActiveRelationMigration] =

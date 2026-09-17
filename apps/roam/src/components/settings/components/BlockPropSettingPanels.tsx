@@ -107,7 +107,7 @@ const SettingTitle = ({
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
-}) => (
+}): React.ReactElement => (
   <>
     {title}
     {description ? <Description description={description} /> : null}

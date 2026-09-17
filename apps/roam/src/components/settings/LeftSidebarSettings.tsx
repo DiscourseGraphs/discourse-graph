@@ -21,7 +21,7 @@ const LeftSidebarSettings = ({
   personalSettings: SettingsSnapshot["personalSettings"];
   featureFlags: SettingsSnapshot["featureFlags"];
   expandedSectionUid?: string;
-}) => {
+}): React.ReactElement => {
   const legacyBlocks = useLegacyConfigBlocks();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   return (

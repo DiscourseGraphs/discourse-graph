@@ -9,7 +9,7 @@ export const SettingsSectionHeading = ({
   children,
 }: {
   children: React.ReactNode;
-}) => <div className={HEADING_CLASS}>{children}</div>;
+}): React.ReactElement => <div className={HEADING_CLASS}>{children}</div>;
 
 export const SettingsGroup = ({
   title,
@@ -17,7 +17,7 @@ export const SettingsGroup = ({
 }: {
   title: string;
   children: React.ReactNode;
-}) => (
+}): React.ReactElement => (
   <div className="flex flex-col gap-1">
     <div className={HEADING_CLASS}>{title}</div>
     <div className="flex flex-col gap-4">{children}</div>
