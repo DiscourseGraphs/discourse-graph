@@ -281,7 +281,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
   );
 
   return (
-    <div className="flex flex-col gap-12 p-1">
+    <div className="flex flex-col gap-6 p-1">
       <SettingsGroup title="Identity">
         <SettingsDrillDownRow
           title="Index"
