@@ -688,9 +688,11 @@ export const renderDiscourseNodeSearchMenu = (props: Props) => {
 export const NodeSearchMenuTriggerSetting = ({
   onloadArgs,
   initialValue,
+  id,
 }: {
   onloadArgs: OnloadArgs;
   initialValue: string;
+  id?: string;
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const [nodeSearchTrigger, setNodeSearchTrigger] = useState<string>(
@@ -713,6 +715,7 @@ export const NodeSearchMenuTriggerSetting = ({
   };
   return (
     <SettingKeycapInput
+      id={id}
       value={nodeSearchTrigger}
       onChange={handleNodeSearchTriggerChange}
       placeholder="Click to set trigger"
