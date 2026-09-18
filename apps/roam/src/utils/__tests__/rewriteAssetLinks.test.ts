@@ -3,7 +3,14 @@ import {
   obsidianOriginNodeExample,
   roamOriginNodeExample,
 } from "@repo/database/crossAppNodeContract.example";
-import { rewriteAssetLinks } from "../rewriteAssetLinks";
+import {
+  collectAssetLocators,
+  FAILED_IMPORT_MARKER,
+  lookupCandidates,
+  rewriteAssetLinks,
+  TOO_LARGE_MARKER,
+  type UnresolvedAsset,
+} from "../rewriteAssetLinks";
 
 const MIRRORED =
   "https://firebasestorage.googleapis.com/v0/b/f.appspot.com/o/x?alt=media&token=abc";
@@ -501,6 +508,248 @@ describe("rewriteAssetLinks", () => {
   });
 });
 
+describe("marking an asset this graph holds no copy of", () => {
+  const ORIGIN =
+    "https://firebasestorage.googleapis.com/v0/b/f.appspot.com/o/origin?alt=media&token=abc";
+  const failed = (sourceLocator: string): UnresolvedAsset => ({
+    sourceLocator,
+    marker: FAILED_IMPORT_MARKER,
+  });
+  const tooLarge = (sourceLocator: string): UnresolvedAsset => ({
+    sourceLocator,
+    marker: TOO_LARGE_MARKER,
+  });
+
+  it("marks a vault path without a label with the marker alone", () => {
+    for (const markdown of [
+      `![](vault/d.png)`,
+      `[](vault/d.png)`,
+      `![[vault/d.png]]`,
+      `[[vault/d.png]]`,
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [],
+          unresolved: [failed("vault/d.png")],
+        }),
+      ).toBe(`[Failed to import](vault/d.png)`);
+  });
+
+  it("keeps a vault path's label next to the marker", () => {
+    const unresolved = [tooLarge("vault/report.docx")];
+    for (const markdown of [
+      `![the report](vault/report.docx)`,
+      `[the report](vault/report.docx)`,
+      `![[vault/report.docx|the report]]`,
+      `[[vault/report.docx|the report]]`,
+    ])
+      expect(rewriteAssetLinks({ markdown, assets: [], unresolved })).toBe(
+        `[the report (Too large for import)](vault/report.docx)`,
+      );
+  });
+
+  it("does not read an image embed's width as a label", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `![[vault/d.png|300]]`,
+        assets: [],
+        unresolved: [failed("vault/d.png")],
+      }),
+    ).toBe(`[Failed to import](vault/d.png)`);
+  });
+
+  it("keeps a vault path with spaces a single link destination", () => {
+    for (const markdown of [
+      `![](<my folder/d (1).png>)`,
+      `![[my folder/d (1).png]]`,
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [],
+          unresolved: [failed("my folder/d (1).png")],
+        }),
+      ).toBe(`[Failed to import](my%20folder/d%20%281%29.png)`);
+  });
+
+  it("keeps the label of a PDF, audio or video embed", () => {
+    for (const [locator, label] of [
+      ["vault/a.pdf", "the paper"],
+      ["vault/a.mp3", "the talk"],
+      ["vault/a.mp4", "the demo"],
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown: `![[${locator}|${label}]]`,
+          assets: [],
+          unresolved: [failed(locator)],
+        }),
+      ).toBe(`[${label} (Failed to import)](${locator})`);
+  });
+
+  it("does not read an embed's size as a label, whatever the kind", () => {
+    for (const [locator, size] of [
+      ["vault/a.mp4", "640"],
+      ["vault/a.png", "300x200"],
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown: `![[${locator}|${size}]]`,
+          assets: [],
+          unresolved: [failed(locator)],
+        }),
+      ).toBe(`[Failed to import](${locator})`);
+  });
+
+  it("keeps a destination the source already percent-encoded", () => {
+    for (const [markdown, recorded, destination] of [
+      [`![](fig%231.png)`, "fig#1.png", "fig%231.png"],
+      [`![](vault/100%25.png)`, "vault/100%.png", "vault/100%25.png"],
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [],
+          unresolved: [failed(recorded)],
+        }),
+      ).toBe(`[Failed to import](${destination})`);
+  });
+
+  it("encodes a path the source spelled raw", () => {
+    for (const [markdown, recorded, destination] of [
+      [`![](<fig#1.png>)`, "fig#1.png", "fig%231.png"],
+      [`![[vault/100%.png]]`, "vault/100%.png", "vault/100%25.png"],
+      [`[[what?.png]]`, "what?.png", "what%3F.png"],
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [],
+          unresolved: [failed(recorded)],
+        }),
+      ).toBe(`[Failed to import](${destination})`);
+  });
+
+  it("marks an image inside a link without nesting one link in another", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `[![alt](vault/d.png)](https://x.org)`,
+        assets: [],
+        unresolved: [failed("vault/d.png")],
+      }),
+    ).toBe(`[alt (Failed to import)](https://x.org)`);
+    expect(
+      rewriteAssetLinks({
+        markdown: `[![alt](${ORIGIN})](https://x.org)`,
+        assets: [],
+        unresolved: [failed(ORIGIN)],
+      }),
+    ).toBe(`[![alt](${ORIGIN}) (Failed to import)](https://x.org)`);
+    expect(
+      rewriteAssetLinks({
+        markdown: `[see ![alt](vault/d.png) here](https://x.org)`,
+        assets: [],
+        unresolved: [failed("vault/d.png")],
+      }),
+    ).toBe(`[see alt (Failed to import) here](https://x.org)`);
+  });
+
+  it("marks every image in one link label, as in a row of badges", () => {
+    for (const [markdown, expected] of [
+      [
+        `[see ![a](vault/d.png) and ![b](vault/d.png)](https://x.org)`,
+        `[see a (Failed to import) and b (Failed to import)](https://x.org)`,
+      ],
+      [
+        `[![a](vault/d.png)![b](vault/d.png)](https://x.org)`,
+        `[a (Failed to import)b (Failed to import)](https://x.org)`,
+      ],
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [],
+          unresolved: [failed("vault/d.png")],
+        }),
+      ).toBe(expected);
+  });
+
+  it("keeps an image's link when a bracket before it opens no link", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `[![alt](vault/d.png) plain bracket`,
+        assets: [],
+        unresolved: [failed("vault/d.png")],
+      }),
+    ).toBe(`[[alt (Failed to import)](vault/d.png) plain bracket`);
+  });
+
+  it("keeps a Roam-origin reference as published and puts the marker after it", () => {
+    for (const markdown of [
+      `![a figure](${ORIGIN})`,
+      `[the protocol](${ORIGIN})`,
+      `{{[[pdf]]: ${ORIGIN}}}`,
+      `{{audio: ${ORIGIN}}}`,
+      ORIGIN,
+      `<${ORIGIN}>`,
+    ])
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [],
+          unresolved: [tooLarge(ORIGIN)],
+        }),
+      ).toBe(`${markdown} (Too large for import)`);
+  });
+
+  it("keeps a sentence's punctuation after the marker of a bare URL", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `See ${ORIGIN}, then stop.`,
+        assets: [],
+        unresolved: [failed(ORIGIN)],
+      }),
+    ).toBe(`See ${ORIGIN} (Failed to import), then stop.`);
+  });
+
+  it("strips brackets from a label it keeps", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `[[vault/d.docx|Paper [draft]]]`,
+        assets: [],
+        unresolved: [failed("vault/d.docx")],
+      }),
+    ).toContain(`(Failed to import)](vault/d.docx)`);
+  });
+
+  it("rewrites copied assets and marks the rest in one pass, in any order", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `![](a.png) ![](b.png) ![](c.png) ![](d.png)`,
+        assets: [
+          { sourceLocator: "b.png", url: MIRRORED },
+          { sourceLocator: "d.png", url: OTHER_MIRRORED },
+        ],
+        unresolved: [failed("a.png"), tooLarge("c.png")],
+      }),
+    ).toBe(
+      `[Failed to import](a.png) ![](${MIRRORED}) [Too large for import](c.png) ![](${OTHER_MIRRORED})`,
+    );
+  });
+
+  it("leaves a link alone when it is neither copied nor marked", () => {
+    const markdown = `![](vault/other.png) and [[EVD]]`;
+    expect(
+      rewriteAssetLinks({
+        markdown,
+        assets: [],
+        unresolved: [failed("vault/d.png")],
+      }),
+    ).toBe(markdown);
+  });
+});
+
 describe("the cross-app contract fixtures round-trip", () => {
   const mirrorAll = (node: typeof roamOriginNodeExample) =>
     (node.assets ?? []).map((asset) => ({
@@ -541,5 +790,184 @@ describe("the cross-app contract fixtures round-trip", () => {
     expect(result).toContain(
       `![](${MIRRORED}#${asset?.contentHash.slice(0, 8)})`,
     );
+  });
+});
+
+/**
+ * Pins what `collectAssetLocators` promises: the locators a caller can see are the ones
+ * the rewrite will act on.
+ *
+ * The corpus carries one of every branch `LINK_PATTERN` lists, so a capture-group change
+ * that leaves the rewriter working still fails here. Nothing else would catch it, because
+ * a divergence imports the node successfully, just wrong.
+ */
+describe("collectAssetLocators reads what rewriteAssetLinks acts on", () => {
+  const CORPUS = [
+    `![a diagram](vault/a.png)`,
+    `[the report](vault/b.docx)`,
+    `{{[[pdf]]: https://storage.test/c.pdf}}`,
+    `{{audio: https://storage.test/d.mp3}}`,
+    `![[vault/e.png]]`,
+    `[[vault/f.png|Figure 6]]`,
+    `See https://storage.test/g.png, then stop.`,
+    `![](my%20folder/h.png)`,
+    `![[vault/i.docx|a label]]`,
+    `![](<my folder/j.png>)`,
+    `<https://storage.test/k.png>`,
+    `A page reference, [[EVD]], which no row matches.`,
+  ].join("\n\n");
+
+  // As a `FileReference` records them, which is not always as the markdown spells them:
+  // the bare URL arrives with the sentence's comma attached, and Obsidian records a
+  // vault path decoded.
+  const RECORDED = [
+    "vault/a.png",
+    "vault/b.docx",
+    "https://storage.test/c.pdf",
+    "https://storage.test/d.mp3",
+    "vault/e.png",
+    "vault/f.png",
+    "https://storage.test/g.png",
+    "my folder/h.png",
+    "vault/i.docx",
+    "my folder/j.png",
+    "https://storage.test/k.png",
+  ];
+
+  it("collects one locator per reference, in the order the markdown makes them", () => {
+    // Written out rather than derived, so a drift in the capture groups fails here
+    // instead of being absorbed by whatever derived it.
+    expect(collectAssetLocators(CORPUS)).toEqual([
+      "vault/a.png",
+      "vault/b.docx",
+      "https://storage.test/c.pdf",
+      "https://storage.test/d.mp3",
+      "vault/e.png",
+      "vault/f.png",
+      "https://storage.test/g.png,",
+      "my%20folder/h.png",
+      // The embed's alias is a group of its own, so it is never a locator.
+      "vault/i.docx",
+      // Angle brackets delimit the locator, so they are gone by the time it is collected.
+      "my folder/j.png",
+      "https://storage.test/k.png",
+      "EVD",
+    ]);
+  });
+
+  it("reaches every recorded locator once widened, which is what the caller filters on", () => {
+    const resolvable = new Set(
+      collectAssetLocators(CORPUS).flatMap(lookupCandidates),
+    );
+    for (const recorded of RECORDED) expect(resolvable).toContain(recorded);
+  });
+
+  it("rewrites every locator it collected, and nothing it did not", () => {
+    const assets = RECORDED.map((sourceLocator, index) => ({
+      sourceLocator,
+      url: `https://mirror.test/${index}`,
+    }));
+    const result = rewriteAssetLinks({ markdown: CORPUS, assets });
+
+    // Each asset reached its own copy, so no branch was collected but left unrewritten.
+    for (const asset of assets) expect(result).toContain(asset.url);
+    // And no original spelling survived, so none was rewritten only in part.
+    for (const spelling of [
+      "vault/a.png",
+      "vault/b.docx",
+      "vault/e.png",
+      "vault/f.png",
+      "my%20folder/h.png",
+      "vault/i.docx",
+      "my folder/j.png",
+      "storage.test",
+    ])
+      expect(result).not.toContain(spelling);
+
+    // `EVD` is collected like any other match, because this file cannot know which
+    // locators have rows. Having no row is what leaves it alone.
+    expect(result).toContain(`[[EVD]]`);
+  });
+});
+
+/**
+ * Roam stores a page as blocks, so a rewrite that reached across a line break could not be
+ * repeated later against any one block's text. Both readers must therefore stop at a line
+ * break, and a reference spelled across one is left as published — the same degradation as
+ * an asset with no row.
+ */
+describe("a reference never spans a line break", () => {
+  const spanning: { form: string; markdown: string; locator: string }[] = [
+    {
+      form: "an image's alt text",
+      markdown: `![a figure\nspanning](vault/fig.png)`,
+      locator: "vault/fig.png",
+    },
+    {
+      form: "a link's label",
+      markdown: `[the\npaper](vault/doc.pdf)`,
+      locator: "vault/doc.pdf",
+    },
+    {
+      form: "an angle-bracketed destination",
+      markdown: `![](<my folder/fig\nbar.png>)`,
+      locator: "my folder/fig\nbar.png",
+    },
+    {
+      form: "a title following a destination",
+      markdown: `![a](vault/fig.png\n"a title")`,
+      locator: "vault/fig.png",
+    },
+    {
+      form: "a wikilink embed's locator",
+      markdown: `![[vault/fig\nbar.png]]`,
+      locator: "vault/fig\nbar.png",
+    },
+    {
+      form: "a wikilink's alias",
+      markdown: `[[vault/doc.pdf\n|the paper]]`,
+      locator: "vault/doc.pdf",
+    },
+  ];
+
+  for (const { form, markdown, locator } of spanning) {
+    it(`collects nothing from ${form} written across two lines`, () => {
+      expect(collectAssetLocators(markdown)).toEqual([]);
+    });
+
+    it(`leaves ${form} written across two lines exactly as published`, () => {
+      expect(
+        rewriteAssetLinks({
+          markdown,
+          assets: [{ sourceLocator: locator, url: MIRRORED }],
+        }),
+      ).toBe(markdown);
+    });
+  }
+
+  // The URL branch already stopped at a line break, so it still reaches a URL the broken
+  // construct around it happens to enclose. What matters is that it reads that line the
+  // same way whether the line arrives alone or inside the whole document, since that is
+  // the agreement a later per-block pass depends on.
+  it("reads a media embed split across lines as the bare URL its second line holds", () => {
+    const secondLine = `${EXTERNAL}}}`;
+    const assets = [{ sourceLocator: EXTERNAL, url: MIRRORED }];
+
+    expect(
+      rewriteAssetLinks({ markdown: `{{[[pdf]]:\n${secondLine}`, assets }),
+    ).toBe(
+      `{{[[pdf]]:\n${rewriteAssetLinks({ markdown: secondLine, assets })}`,
+    );
+  });
+
+  // The constraint stops at the line break and no earlier: a reference sitting on its own
+  // line among others is ordinary content, not a spanning one.
+  it("still resolves a reference on one line of a multi-line document", () => {
+    expect(
+      rewriteAssetLinks({
+        markdown: `first line\n![](vault/fig.png)\nlast line`,
+        assets: [{ sourceLocator: "vault/fig.png", url: MIRRORED }],
+      }),
+    ).toBe(`first line\n![](${MIRRORED})\nlast line`);
   });
 });
