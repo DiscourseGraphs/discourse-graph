@@ -16,6 +16,7 @@ import {
   Radio,
   FormGroup,
 } from "@blueprintjs/core";
+import { baseShapeUtils } from "~/components/canvas/baseShapeUtils";
 import React, { useState, useEffect, useMemo, FormEvent } from "react";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import { saveAs } from "file-saver";
@@ -50,7 +51,6 @@ import {
   TLParentId,
   getIndexAbove,
   TLShape,
-  defaultShapeUtils,
   defaultBindingUtils,
 } from "tldraw";
 import {
@@ -434,7 +434,7 @@ const ExportDialog: ExportDialogComponent = ({
 
       const tlStore = createTLStore({
         migrations,
-        shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
+        shapeUtils: [...baseShapeUtils, ...customShapeUtils],
         bindingUtils: [...defaultBindingUtils, ...customBindingUtils],
       });
 
