@@ -60,6 +60,7 @@ import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { Dispatch, SetStateAction } from "react";
 import { SettingsDialog } from "./settings/Settings";
+import { SETTINGS_TAB_IDS } from "./settings/utils/settingsTabs";
 import { OnloadArgs } from "roamjs-components/types";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
@@ -862,16 +863,9 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           content={
             <Menu>
               <MenuItem
-                text="Global Section"
+                text="Left sidebar"
                 onClick={() => {
-                  renderSettingsDialog("left-sidebar-global-settings");
-                  setIsMenuOpen(false);
-                }}
-              />
-              <MenuItem
-                text="Personal Section"
-                onClick={() => {
-                  renderSettingsDialog("left-sidebar-personal-settings");
+                  renderSettingsDialog(SETTINGS_TAB_IDS.featuresLeftSidebar);
                   setIsMenuOpen(false);
                 }}
               />
