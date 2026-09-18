@@ -50,48 +50,94 @@ _ZoteroRoam is available on Settings>Roam Depot_
   graph](https://roamresearch.com/#/app/template-lab/page/9we_HJeEH)
 </Callout>
 
-Here's how to get started: - Install and enable the ZoteroRoam extension from Roam Depot - Install the [Better BibTeX plugin](https://retorque.re/zotero-better-bibtex/installation/) for Zotero and open Zotero Settings - ![](/docs/roam/zoteroroam01.png) - Set your **Citation key format** to: `auth.lower + year + veryshorttitle(1,0).lower` - Set the autoPinDelay parameter to 1 - Make sure to pin your existing citekeys: select all items in view (either with the mouse or the Ctrl-A keyboard shortcut), right-click, then navigate to **Better BibTeX > Pin BibTeX key** - ![](/docs/roam/zoteroroam02.png) - Back in Roam, navigate to the top right of your screen. - ![](/docs/roam/zoteroroam03.png) - You'll be prompted to enter an API key and a nickname for your personal or group library - ![](/docs/roam/zoteroroam04.png) - Login to Zotero on the web and navigate [here](https://www.zotero.org/settings/security#applications) to get your personal API key. Click on `create new private key` to generate an API key and enter it at the prompt (and record it elsewhere for later use). Your User ID for API calls goes in the area marked with the orange box.
-![](/docs/roam/zoteroroam05.png) - ![](/docs/roam/zoteroroam06.png) - Now set your permissions. You will probably want to give ZoteroRoam notes access and write access if you want to import your notes and add items to Zotero from Roam. - When ZoteroRoam is up and running, the icon looks like this:
-![](/docs/roam/zoteroroam07.png) - In order to use the metadata and notes page features described below, ensure that zoteroRoam draws from the correct template. Navigate to **Settings > Metadata** , select ☑️**Smartblock**, select **By name** in the dropdown menu, and type in `zoteroRoam Roam Depot Source` to load the template. - ![](/docs/roam/zoteroroam08.png)
+Here's how to get started:
 
-Now when you import articles from your Zotero library to your Roam graph, a **Source** page will be automatically created to capture
+1. Install and enable the ZoteroRoam extension from Roam Depot
+2. Install the [Better BibTeX plugin](https://retorque.re/zotero-better-bibtex/installation/) for Zotero and open Zotero Settings
+
+![](/docs/roam/zoteroroam01.png)
+_installing Better BibTex_
+
+3. Set your **Citation key format** to: `auth.lower + year + veryshorttitle(1,0).lower`
+
+4. Set the **autoPinDelay** parameter to 1
+
+5. Pin your existing **citekeys**: select all items in view (either with the mouse or the Ctrl-A keyboard shortcut), right-click, then navigate to **Better BibTeX > Pin BibTeX key**
+
+![](/docs/roam/zoteroroam02.png)
+_Pinning citekeys_
+
+5.  Back in Roam, navigate to the top right of your screen.
+
+![](/docs/roam/zoteroroam03.png)
+_The zoteroRoam icon_
+
+6. You'll be prompted to enter an API key and a nickname for your personal or group library
+
+![](/docs/roam/zoteroroam04.png)
+_API key prompt_
+
+7. Login to Zotero on the web and navigate [here](https://www.zotero.org/settings/security#applications) to get your personal API key. Click on `create new private key` to generate an API key and enter it at the prompt (and record it elsewhere for later use). Your User ID for API calls goes in the area marked with the orange box.
+
+![](/docs/roam/zoteroroam05.png)
+_Creating an API key_
+
+![](/docs/roam/zoteroroam06.png)
+_User ID field highlighted in orange_
+
+8. Now set your permissions. You will probably want to give ZoteroRoam notes access and write access if you want to import your notes and add items to Zotero from Roam.
+
+When ZoteroRoam is up and running, the icon looks like this:
+
+![](/docs/roam/zoteroroam07.png)
+_zoteroRoam is active in your graph_
+
+In order to use the metadata and notes page features described below, ensure that zoteroRoam draws from the correct template. Navigate to **Settings > Metadata** , select ☑️ **Smartblock**, select **By name** in the dropdown menu, and type in `zoteroRoam Roam Depot Source` to load the template.
+
+- ![](/docs/roam/zoteroroam08.png)
+  _Choosing the SmartBlock template to use for your Source pages. N.B. this step requires the [SmartBlock extension](https://github.com/RoamJS/smartblocks)_
+
+Now when you import articles from your Zotero library to your Roam graph, a **Source** page will be automatically created to capture your notes in your preferred format.
 
 ## Organizing your reading
 
 At the outset of the _exploration_ phase, you probably have a topic in mind, or an assertion vaguely in the shape of a question/hypothesis that needs further refinement. You may be reading the literature to understand prior art on the topic. At this point, before a Question or Project has coalesced, some users like to take notes on their **Daily Notes Page**.
 
-[](image needed)
-
-<Callout type="info" emoji="✎">
-  **As long as you use wikilink syntax**
-
-(`[[mertonMatthewEffectScience1968]]`) the notes you make here will be
-referenced at the bottom of the appropriate Source page so that you can find
-them later.
-
-[](image needed)
-
-</Callout>
+![the dnp](/docs/roam/daily-notes-page02.png)
+_Quick notes on the Roam Daily Notes Page_
 
 Quick notes on your Daily Notes Page or on the Source page itself can later be converted to structured note-taking.
 
+![source page notes](/docs/roam/source-page-notes.png)
+_A source page template with a "Notes" section_
+
 Reflecting on your reading might inspire you to develop a few candidate questions of your own:
 
-[](image needed)
+![dnp candidates](/docs/roam/daily-notes-page01.png)
+_Tagging candidate discourse notes on the Daily Notes Page_
+
+<Callout type="info" emoji="✎">
+  Tag your notes with the relevant source page so that they can be easily found
+  later via linked references at the bottom of the source page or through
+  queries.
+</Callout>
 
 After further reading, you're ready to formalize one of these candidates as the Question driving your literature review:
 
-[](image needed)
+![que promotion](/docs/roam/create-QUE.png)
+_Promoting a candidate question to a QUE node_
 
 Now you can read and revisit articles in light of your guiding question, and search for **Claims** _addressing_ the **Question** and **Evidence** _supporting_ those **Claims**.
 
-[](image needed)
+![new QUE page](/docs/roam/create-QUE02.png)
+_Reading more broadly to investigate a question_
 
 ### EVD and CLM mining
 
-As you read the literature, capture claims and evidence relevant to your Question. You can track them on the Question page itself, on the relevant Source page, or anywhere else in your graph -- as long as you tag relevant items with `QUE - {your question}`, these mentions will be linked at the bottom of your Question page.
+As you read the literature, capture claims and evidence relevant to your Question. You can track them on the Question page itself, on the relevant Source page, or anywhere else in your graph -- as long as you tag relevant items with `[[[[QUE]] - {your question}]]`, these mentions will be linked at the bottom of your Question page.
 
-[](image needed)
+![linked refs](/docs/roam/source-page-linked-refs.png)
+_Linked refs to the daily notes page on a source page_
 
 ## Integrating findings from the literature with your research
 
