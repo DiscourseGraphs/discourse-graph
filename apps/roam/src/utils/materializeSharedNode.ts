@@ -22,6 +22,7 @@ import {
 } from "./importedSourceIdentity";
 import { getErrorMessage } from "./getErrorMessage";
 import { importNodeAssets, type AssetImportReport } from "./importNodeAssets";
+import { protectMediaEmbeds } from "./protectMediaEmbeds";
 import {
   MISSING_SOURCE_PLACEHOLDER,
   schemaHasSourceSlot,
@@ -272,7 +273,7 @@ const createImportedPage = async ({
     if (markdown) {
       await getRoamMarkdownApi().page.fromMarkdown({
         page: { title, uid: pageUid },
-        "markdown-string": markdown,
+        "markdown-string": protectMediaEmbeds(markdown),
       });
     } else {
       await window.roamAlphaAPI.data.page.create({
@@ -337,7 +338,7 @@ const updateImportedPage = async ({
     if (markdown) {
       await getRoamMarkdownApi().block.fromMarkdown({
         location: { "parent-uid": pageUid, order: "last" },
-        "markdown-string": markdown,
+        "markdown-string": protectMediaEmbeds(markdown),
       });
     }
     await Promise.all(previousChildren.map(({ uid }) => deleteBlock(uid)));
