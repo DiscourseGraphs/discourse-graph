@@ -32,6 +32,7 @@ import { SOURCE_SLOT } from "./sourceSlot";
 import renderToast from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { publishNodeAssets, type NodeAssetResult } from "./publishNodeAssets";
+import { excludeProvisionalRelationSchemas } from "./relationSchemaAcceptance";
 
 export type NodeUidWithType = {
   uid: string;
@@ -128,7 +129,11 @@ export const gatherCorrespondingRelations = async ({
   relationTripleSchemas: CrossAppRelationTripleSchema[];
   relevantRelationIdsPerGroupId: Record<string, string[]>;
 }> => {
-  const allRelationsSchemas = getDiscourseRelations();
+  // Excluding provisional schemas here also drops their relation instances:
+  // relationSchemaIds below only keeps instances whose schema is in this map.
+  const allRelationsSchemas = excludeProvisionalRelationSchemas(
+    getDiscourseRelations(),
+  );
   const allRelationSchemasById = Object.fromEntries(
     allRelationsSchemas.map((s) => [s.id, s]),
   );
