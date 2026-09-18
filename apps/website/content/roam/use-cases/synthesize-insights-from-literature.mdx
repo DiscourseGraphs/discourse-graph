@@ -1,0 +1,179 @@
+---
+title: "Synthesize insights from the literature"
+date: "2026-06-29"
+author: ""
+published: true
+---
+
+import Image from "next/image";
+import { Callout } from "nextra/components";
+
+<Callout type="info" emoji="💡">
+  This guide makes reference to templates available in the [Roam template lab
+  graph](https://roamresearch.com/#/app/template-lab/page/wnEmTP0TK)
+</Callout>
+
+## Literature Synthesis with discourse graphs
+
+Discourse graphs turn literature synthesis into a **question-directed activity**: instead of merely absorbing disconnected insights from different sources, the discourse graph workflow orients your reading around a central guiding question of your own devising.
+
+- <NodeTag type="hyp" />
+  This purpose-driven reading increases engagement with the text and retention
+  of salient data.
+- <NodeTag type="hyp" />
+  It also incentivizes reading widely and strategically, as papers from many
+  different authors/fields may have made small but significant contributions to
+  your question.
+
+There's a bit of a chicken-and-egg problem here, as engaging in question-driven analysis of the literature first requires the development of a question, which usually involves at least some loosely-directed exploration. Discourse graphs accommodate both phases of the explore/exploit curve.
+
+<Image
+  src="/docs/obsidian/exp-exp.png"
+  alt="explore/exploit curve"
+  width={1022}
+  height={596}
+  className="docs-bordered-image"
+/>
+
+## Building your library of sources
+
+Let's assume that your exploration phase is influenced by the items in your reference manager/personal library. The [Roam template lab graph](https://roamresearch.com/#/app/template-lab/page/wnEmTP0TK) uses uses [Zotero](https://github.com/8bitgentleman/zotero-roam), a Roam plugin for interacting with the Zotero reference management software..
+
+![zoteroroam](/docs/roam/zoteroroam-depot.png)
+_ZoteroRoam is available on Settings>Roam Depot_
+
+### Managing literature sources with Zotero
+
+<Callout type="info" emoji="💡">
+  For more detailed instructions on importing and citing articles from zotero,
+  check out the tutorials in the [template lab
+  graph](https://roamresearch.com/#/app/template-lab/page/9we_HJeEH)
+</Callout>
+
+Here's how to get started:
+
+1. Install and enable the ZoteroRoam extension from Roam Depot
+2. Install the [Better BibTeX plugin](https://retorque.re/zotero-better-bibtex/installation/) for Zotero and open Zotero Settings
+
+![](/docs/roam/zoteroroam01.png)
+_installing Better BibTex_
+
+3. Set your **Citation key format** to: `auth.lower + year + veryshorttitle(1,0).lower`
+
+4. Set the **autoPinDelay** parameter to 1
+
+5. Pin your existing **citekeys**: select all items in view (either with the mouse or the Ctrl-A keyboard shortcut), right-click, then navigate to **Better BibTeX > Pin BibTeX key**
+
+![](/docs/roam/zoteroroam02.png)
+_Pinning citekeys_
+
+5.  Back in Roam, navigate to the top right of your screen.
+
+![](/docs/roam/zoteroroam03.png)
+_The zoteroRoam icon_
+
+6. You'll be prompted to enter an API key and a nickname for your personal or group library
+
+![](/docs/roam/zoteroroam04.png)
+_API key prompt_
+
+7. Login to Zotero on the web and navigate [here](https://www.zotero.org/settings/security#applications) to get your personal API key. Click on `create new private key` to generate an API key and enter it at the prompt (and record it elsewhere for later use). Your User ID for API calls goes in the area marked with the orange box.
+
+![](/docs/roam/zoteroroam05.png)
+_Creating an API key_
+
+![](/docs/roam/zoteroroam06.png)
+_User ID field highlighted in orange_
+
+8. Now set your permissions. You will probably want to give ZoteroRoam notes access and write access if you want to import your notes and add items to Zotero from Roam.
+
+When ZoteroRoam is up and running, the icon looks like this:
+
+![](/docs/roam/zoteroroam07.png)
+_zoteroRoam is active in your graph_
+
+In order to use the metadata and notes page features described below, ensure that zoteroRoam draws from the correct template. Navigate to **Settings > Metadata** , select ☑️ **Smartblock**, select **By name** in the dropdown menu, and type in `zoteroRoam Roam Depot Source` to load the template.
+
+- ![](/docs/roam/zoteroroam08.png)
+  _Choosing the SmartBlock template to use for your Source pages. N.B. this step requires the [SmartBlock extension](https://github.com/RoamJS/smartblocks)_
+
+Now when you import articles from your Zotero library to your Roam graph, a **Source** page will be automatically created to capture your notes in your preferred format.
+
+## Organizing your reading
+
+At the outset of the _exploration_ phase, you probably have a topic in mind, or an assertion vaguely in the shape of a question/hypothesis that needs further refinement. You may be reading the literature to understand prior art on the topic. At this point, before a Question or Project has coalesced, some users like to take notes on their **Daily Notes Page**.
+
+![the dnp](/docs/roam/daily-notes-page02.png)
+_Quick notes on the Roam Daily Notes Page_
+
+Quick notes on your Daily Notes Page or on the Source page itself can later be converted to structured note-taking.
+
+![source page notes](/docs/roam/source-page-notes.png)
+_A source page template with a "Notes" section_
+
+Reflecting on your reading might inspire you to develop a few candidate questions of your own:
+
+![dnp candidates](/docs/roam/daily-notes-page01.png)
+_Tagging candidate discourse notes on the Daily Notes Page_
+
+<Callout type="info" emoji="✎">
+  Tag your notes with the relevant source page so that they can be easily found
+  later via linked references at the bottom of the source page or through
+  queries.
+</Callout>
+
+After further reading, you're ready to formalize one of these candidates as the Question driving your literature review:
+
+![que promotion](/docs/roam/create-QUE.png)
+_Promoting a candidate question to a QUE node_
+
+Now you can read and revisit articles in light of your guiding question, and search for **Claims** _addressing_ the **Question** and **Evidence** _supporting_ those **Claims**.
+
+![new QUE page](/docs/roam/create-QUE02.png)
+_Reading more broadly to investigate a question_
+
+### EVD and CLM mining
+
+As you read the literature, capture claims and evidence relevant to your Question. You can track them on the Question page itself, on the relevant Source page, or anywhere else in your graph -- as long as you tag relevant items with `[[[[QUE]] - {your question}]]`, these mentions will be linked at the bottom of your Question page.
+
+![linked refs](/docs/roam/source-page-linked-refs.png)
+_Linked refs to the daily notes page on a source page_
+
+## Integrating findings from the literature with your research
+
+The [Discourse Canvas](/docs/roam/guides/using-the-canvas) can be used to assemble your claims and evidence into an overview of the state of the field in relation to your target question.
+
+As you collect and assimilate claims and evidence sourced directly from the literature, you will probably develop a few claims of your own that derive from your reading but aren't directly stated in any of the articles. This is your **Synthesis Claim**: an initial position on the question that you'd like to test further.
+
+[](image needed)
+
+This synthesis claim can be used as a springboard for more directed reading and the development of an experiment, simulation, or other test.
+
+Once you've metabolized the claim to find testable components, you can add those components to your graph as **Hypotheses** and begin developing **Experiments**.
+
+The multiple layers of the tldraw discourse canvas facilitate organizing your research campaign into _literature review_ and _project planning phases_.
+
+[](image needed)
+
+In the discourse graph workflow, these phases are largely simultaneous and mutually informative.
+
+<Image
+  src="/docs/obsidian/exp-exp02.png"
+  alt="moving along the curve"
+  width={936}
+  height={555}
+  className="docs-bordered-image"
+/>
+
+<Callout type="info" emoji="💡">
+  We're developing an LLM-assisted workflow for extracting claims & evidence
+  from the literature. Join us on
+  [Slack](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg)
+  to learn more.
+</Callout>
+
+## What else would you like to do?
+
+- [Build and utilize a personal knowledge base](/docs/roam/use-cases/build-utilize-personal-knowledge-base)
+- [Track your projects and experiments](/docs/roam/use-cases/track-your-projects-and-experiments)
+- [Share your ideas & research](/docs/roam/use-cases/share-your-ideas-and-research)
