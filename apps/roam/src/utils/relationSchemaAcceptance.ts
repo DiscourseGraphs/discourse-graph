@@ -3,10 +3,9 @@ import {
   notifyRelationSchemaChange,
 } from "./relationSchemaChanges";
 import { DISCOURSE_GRAPH_PROP_NAME } from "./createReifiedBlock";
-import getBlockProps from "./getBlockProps";
+import getBlockProps, { isJsonObject } from "./getBlockProps";
 import { setBlockPropsAsync } from "./setBlockProps";
 import {
-  isJsonObject,
   parseImportedSourceIdentity,
   type ImportedSourceIdentity,
 } from "./importedSourceIdentity";
