@@ -95,6 +95,11 @@ export const SettingsDialog = ({
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
+  const isLeftSidebarTabHidden =
+    !leftSidebarEnabled && activeTabId === SETTINGS_TAB_IDS.featuresLeftSidebar;
+  const visibleTabId = isLeftSidebarTabHidden
+    ? SETTINGS_TAB_IDS.preferencesGeneral
+    : activeTabId;
   const { versionStamp } = getVersionWithDate();
   const openAdminPanel = (): void => {
     setShowAdminPanel(true);
@@ -169,7 +174,7 @@ export const SettingsDialog = ({
               tabId: String(id),
             });
           }}
-          selectedTabId={activeTabId}
+          selectedTabId={visibleTabId}
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
@@ -183,6 +188,7 @@ export const SettingsDialog = ({
                 onloadArgs={onloadArgs}
                 globalSettings={settings.globalSettings}
                 personalSettings={settings.personalSettings}
+                featureFlags={settings.featureFlags}
               />
             }
           />
@@ -224,12 +230,11 @@ export const SettingsDialog = ({
             id={SETTINGS_TAB_IDS.featuresLeftSidebar}
             title="Left sidebar"
             className="overflow-y-auto"
+            hidden={!leftSidebarEnabled}
             panel={
               <LeftSidebarSettings
-                enabled={leftSidebarEnabled}
                 globalSettings={settings.globalSettings}
                 personalSettings={settings.personalSettings}
-                featureFlags={settings.featureFlags}
                 expandedSectionUid={expandedSectionUid}
               />
             }

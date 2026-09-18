@@ -1,7 +1,14 @@
 import React, { useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { Label, Dialog, Button, Intent, Classes } from "@blueprintjs/core";
+import {
+  Alert,
+  Label,
+  Dialog,
+  Button,
+  Intent,
+  Classes,
+} from "@blueprintjs/core";
 import posthog from "posthog-js";
 import Description from "~/components/settings/SettingsDescription";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
@@ -17,6 +24,7 @@ import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import internalError from "~/utils/internalError";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import {
+  FeatureFlagPanel,
   GlobalTextPanel,
   PersonalFlagPanel,
 } from "./components/BlockPropSettingPanels";
@@ -38,10 +46,12 @@ const PreferencesGeneral = ({
   onloadArgs,
   globalSettings,
   personalSettings,
+  featureFlags,
 }: {
   onloadArgs: OnloadArgs;
   globalSettings: SettingsSnapshot["globalSettings"];
   personalSettings: SettingsSnapshot["personalSettings"];
+  featureFlags: SettingsSnapshot["featureFlags"];
 }): React.ReactElement => {
   const extensionAPI = onloadArgs.extensionAPI;
   const legacyBlocks = useLegacyConfigBlocks();
@@ -49,6 +59,7 @@ const PreferencesGeneral = ({
     useState<RelationMigrationDialog>(RelationMigrationDialog.none);
   const [numExistingRelations, setNumExistingRelations] = useState<number>(0);
   const [isOngoing, setIsOngoing] = useState<boolean>(false);
+  const [isLeftSidebarAlertOpen, setIsLeftSidebarAlertOpen] = useState(false);
   const [storedRelations, setStoredRelationsState] = useState<boolean>(
     getStoredRelationsEnabled(),
   );
@@ -206,6 +217,32 @@ const PreferencesGeneral = ({
           />
         </Label>
       </SettingsGroup>
+      <FeatureFlagPanel
+        title="Enable left sidebar"
+        description="Whether or not to enable the left sidebar."
+        featureKey="Enable left sidebar"
+        initialValue={featureFlags["Enable left sidebar"]}
+        {...legacyBlocks.leftSidebarFlag}
+        onAfterChange={(checked: boolean) => {
+          if (checked && !featureFlags["Use new settings store"]) {
+            setIsLeftSidebarAlertOpen(true);
+          }
+          posthog.capture("General Settings: Left Sidebar Toggled", {
+            enabled: checked,
+          });
+        }}
+      />
+      <Alert
+        isOpen={isLeftSidebarAlertOpen}
+        onConfirm={() => window.location.reload()}
+        onCancel={() => setIsLeftSidebarAlertOpen(false)}
+        confirmButtonText="Reload Graph"
+        cancelButtonText="Later"
+        intent={Intent.PRIMARY}
+      >
+        <p>Enabling the Left Sidebar requires a graph reload to take effect.</p>
+        <p>Would you like to reload now?</p>
+      </Alert>
       <Dialog
         isOpen={
           activeRelationMigration === RelationMigrationDialog.reactivate ||
