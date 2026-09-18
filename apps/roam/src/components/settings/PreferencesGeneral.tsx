@@ -10,7 +10,6 @@ import {
   Classes,
 } from "@blueprintjs/core";
 import posthog from "posthog-js";
-import Description from "~/components/settings/SettingsDescription";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 import {
@@ -32,7 +31,7 @@ import { GLOBAL_KEYS, PERSONAL_KEYS } from "./utils/settingKeys";
 import { setPersonalSetting, type SettingsSnapshot } from "./utils/accessors";
 import { useLegacyConfigBlocks } from "./utils/useLegacyConfigBlocks";
 import { SettingsGroup } from "./components/SettingsHeadings";
-import { settingAnchor } from "./utils/settingAnchor";
+import SettingItemRow from "./components/SettingItemRow";
 import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const enum RelationMigrationDialog {
@@ -123,14 +122,19 @@ const PreferencesGeneral = ({
 
   return (
     <div className="flex flex-col gap-4 p-1">
-      <Label {...settingAnchor([PERSONAL_KEYS.nodeSearchMenuTrigger])}>
-        Node search menu trigger
-        <Description description="Set the trigger character for the node search menu." />
-        <NodeSearchMenuTriggerSetting
-          onloadArgs={onloadArgs}
-          initialValue={personalSettings[PERSONAL_KEYS.nodeSearchMenuTrigger]}
-        />
-      </Label>
+      <SettingItemRow
+        label="Node search menu trigger"
+        description="Set the trigger character for the node search menu."
+        scope="personal"
+        settingKeys={[PERSONAL_KEYS.nodeSearchMenuTrigger]}
+        control={(controlId) => (
+          <NodeSearchMenuTriggerSetting
+            id={controlId}
+            onloadArgs={onloadArgs}
+            initialValue={personalSettings[PERSONAL_KEYS.nodeSearchMenuTrigger]}
+          />
+        )}
+      />
       <PersonalFlagPanel
         title="Text selection popup"
         description={withDocsLink(
@@ -201,21 +205,24 @@ const PreferencesGeneral = ({
           initialValue={globalSettings[GLOBAL_KEYS.trigger]}
           {...legacyBlocks.trigger}
         />
-        <Label {...settingAnchor([PERSONAL_KEYS.personalNodeMenuTrigger])}>
-          Personal override
-          <Description
-            description={withDocsLink(
-              "Override the global trigger for the discourse node menu.",
-              ROAM_DOCS.creatingNodes,
-            )}
-          />
-          <NodeMenuTriggerComponent
-            extensionAPI={extensionAPI}
-            initialValue={
-              personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger]
-            }
-          />
-        </Label>
+        <SettingItemRow
+          label="Personal override"
+          description={withDocsLink(
+            "Override the global trigger for the discourse node menu.",
+            ROAM_DOCS.creatingNodes,
+          )}
+          scope="personal"
+          settingKeys={[PERSONAL_KEYS.personalNodeMenuTrigger]}
+          control={(controlId) => (
+            <NodeMenuTriggerComponent
+              id={controlId}
+              extensionAPI={extensionAPI}
+              initialValue={
+                personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger]
+              }
+            />
+          )}
+        />
       </SettingsGroup>
       <FeatureFlagPanel
         title="Enable left sidebar"

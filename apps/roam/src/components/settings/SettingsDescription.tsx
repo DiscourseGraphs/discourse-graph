@@ -1,10 +1,13 @@
 import React from "react";
-import Description from "roamjs-components/components/Description";
 
-type SettingsDescriptionProps = React.ComponentProps<typeof Description>;
-
-const SettingsDescription = (
-  props: SettingsDescriptionProps,
-): React.ReactElement => <Description {...props} interactionKind="hover" />;
+/** Inline, not a hover popover: the popover dismissed before its doc links could be
+ *  clicked (ENG-2080). Kept for rows not yet on SettingItemRow. */
+const SettingsDescription = ({
+  description,
+}: {
+  description: React.ReactNode;
+}): React.ReactElement => (
+  <div className="text-sm font-normal text-gray-500">{description}</div>
+);
 
 export default SettingsDescription;
