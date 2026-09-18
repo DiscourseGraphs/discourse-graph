@@ -5,11 +5,15 @@ Include only the fields that help the reviewer:
 - Result: The final behavior or outcome.
 - Review focus: A decision, risk, or part of the diff that needs careful review.
 - Risk or follow-up: Unresolved, unverified, or deferred work that affects approval.
+Required above 400 changed lines: explain why the PR cannot reasonably be split,
+identify the main review entry points, and describe the testing path.
 -->
 
 ## Verification
 
-<!-- Optional checks and their results. Remove this section when it adds no value. -->
+<!-- Required. Record checks and results, including repository validation and applicable
+build, lint, and manual testing. Use `Not run` with a reason for missing evidence,
+or `Not applicable` with a reason. Keep command output out of the PR body. -->
 
 ## Loom video
 
@@ -30,6 +34,16 @@ This helps reviewers understand intent quickly and catches issues earlier
 - `None` when the final diff stays within Done When.
 - What changed, why it is required now, whether anyone was affected or consulted, and links to the use case, ticket, or decision.
 -->
+
+## Standards check
+
+- [ ] Ran `$dg-pr-adherence-check` against the final diff and PR metadata.
+- Outstanding findings:
+- Unverified requirements:
+
+<!-- Cite the applicable rule and evidence for each finding. Use `None` only when
+checked. Record documented exceptions with links. Checking the box means the review
+ran, not that every requirement passed. -->
 
 ## Local delegated full review
 

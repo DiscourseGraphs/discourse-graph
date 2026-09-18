@@ -13,9 +13,11 @@ This document outlines the coding standards and best practices for contributing 
 ## UI Guidelines
 
 - Use [Tailwind CSS](https://tailwindcss.com/) for styling where possible
+- When refactoring inline styles, use Tailwind classes.
 - Use platform-native UI components first ([blueprintjs for Roam](https://roamresearch.com/#/app/developer-documentation/page/5BB8h4I7b), [Lucide icons for Obsidian](https://help.obsidian.md/Contributing+to+Obsidian/Style+guide), etc), with [shadcn/ui](https://ui.shadcn.com/) as a fallback
 - Maintain visual consistency with the host application's design system
 - Follow responsive design principles
+- Use `text-red-700` for Roam error message text. Obsidian keeps `text-error`; website and shared UI keep `text-destructive`. This convention does not change danger buttons, borders, backgrounds, or diagram colors.
 
 ## Code Formatting
 
@@ -50,7 +52,9 @@ Agents must check added and modified comments against these criteria before hand
 ## Code Organization
 
 - Prefer small, focused functions over inline code
-- Prefer util functions for reusable logic and common operations
+- Co-locate code with its primary usage. Export it only for a concrete reuse need.
+- Move code to `/utils` when it is shared across multiple call sites. Consider a shared package only after the code has stabilized and proven broadly reusable.
+- Ground code movement in a current use case. Moving code because it feels cleaner adds churn without a clear functional benefit.
 - Extract complex logic into well-named functions
 - Prefer early returns over nested conditionals for better readability
 - Function names should describe their purpose clearly:
@@ -104,7 +108,14 @@ const processData = (data: Data) => {
 
 - Use sentence case by default in docs and UI copy. Capitalize official product/plugin names and exact UI labels, buttons, or page titles, but keep generic feature terms lowercase.
 
+## Code hygiene
+
+- Remove unused imports, temporary comments, and debug logging before requesting review. Preserve intentional operational logging.
+- Handle errors gracefully and log enough context to diagnose failures without exposing credentials or sensitive data.
+
 ## Testing
 
 - Write unit tests for new functionality
 - Ensure tests are meaningful and maintainable
+- Cover relevant edge cases, error paths, and alternative flows.
+- Expose workspace unit tests through a `test:unit` script so the root validation command includes them.
