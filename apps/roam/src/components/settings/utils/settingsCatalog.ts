@@ -241,8 +241,8 @@ const AUTHORED_SETTINGS = {
   "FEATURE_FLAG_KEYS.enableLeftSidebar": {
     label: "Enable left sidebar",
     description: "Whether or not to enable the left sidebar.",
-    keywords: ["global", "shortcuts"],
-    path: rootPath(SETTINGS_TAB_IDS.featuresLeftSidebar),
+    keywords: ["global", "left sidebar"],
+    path: rootPath(SETTINGS_TAB_IDS.preferencesGeneral),
   },
   "QUERY_KEYS.hideQueryMetadata": {
     parent: "PERSONAL_KEYS.query",
