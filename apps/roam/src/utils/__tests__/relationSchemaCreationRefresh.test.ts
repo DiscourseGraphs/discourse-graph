@@ -7,8 +7,10 @@ import { CreateRelationButton } from "~/components/CreateRelationDialog";
 import SuggestionsBody from "~/components/SuggestionsBody";
 import { acceptImportedRelationSchema } from "~/utils/relationSchemaAcceptance";
 import { markRelationSchemaDeleted } from "~/utils/relationSchemaChanges";
-import { DISCOURSE_GRAPH_PROP_NAME } from "~/utils/createReifiedBlock";
-import { IMPORTED_FROM_PROP_KEY } from "~/utils/importedSourceIdentity";
+import {
+  DISCOURSE_GRAPH_PROP_NAME,
+  IMPORTED_FROM_PROP_KEY,
+} from "~/utils/createReifiedBlock";
 import type { json } from "~/utils/getBlockProps";
 
 const mocks = vi.hoisted(() => ({

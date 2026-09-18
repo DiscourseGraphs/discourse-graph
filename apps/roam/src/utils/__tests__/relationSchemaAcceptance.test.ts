@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DISCOURSE_GRAPH_PROP_NAME } from "~/utils/createReifiedBlock";
-import { IMPORTED_FROM_PROP_KEY } from "~/utils/importedSourceIdentity";
+import {
+  DISCOURSE_GRAPH_PROP_NAME,
+  IMPORTED_FROM_PROP_KEY,
+} from "~/utils/createReifiedBlock";
 import {
   acceptImportedRelationSchema,
   excludeProvisionalRelationSchemas,
