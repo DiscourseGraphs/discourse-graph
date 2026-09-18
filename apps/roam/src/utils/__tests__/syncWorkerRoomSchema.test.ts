@@ -19,7 +19,7 @@ const clientSchema = createTLSchema({
     ...defaultShapeSchemas,
     text: { props: textUtil.props, migrations: textUtil.migrations },
     "discourse-node": {},
-  } as never,
+  },
 });
 
 const textSequenceVersion = (schema: ReturnType<typeof createTLSchema>) =>
@@ -39,7 +39,7 @@ describe("sync worker room schema", () => {
           },
         },
         "discourse-node": {},
-      } as never,
+      },
     });
 
     expect(textSequenceVersion(workerSchema)).toBe(
@@ -55,7 +55,7 @@ describe("sync worker room schema", () => {
 
   it("breaks if text is blanked to {} the way custom types are", () => {
     const brokenSchema = createTLSchema({
-      shapes: { ...defaultShapeSchemas, text: {} } as never,
+      shapes: { ...defaultShapeSchemas, text: {} },
     });
 
     expect(textSequenceVersion(brokenSchema)).toBe(0);
