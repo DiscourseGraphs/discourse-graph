@@ -453,7 +453,7 @@ export const RelationEditPanel = ({
     cyRef.current.nodes().forEach(nodeCallback);
     cyRef.current.edges().forEach(edgeCallback);
     cyRef.current.nodes(`#source`).style("background-color", "darkblue");
-    cyRef.current.nodes(`#destination`).style("background-color", "darkred");
+    cyRef.current.nodes(`#destination`).style("background-color", "#8b0000");
   }, [
     cyRef,
     containerRef,

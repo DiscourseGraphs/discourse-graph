@@ -71,6 +71,7 @@ import { createOrUpdateArrowBinding } from "./DiscourseRelationShape/helpers";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
+import { CustomStylePanel } from "./CustomStylePanel";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
@@ -545,6 +546,7 @@ export const createUiComponents = ({
   canvasSyncMode: CanvasSyncMode;
 }): TLUiComponents => {
   return {
+    StylePanel: CustomStylePanel,
     Toolbar: (props) => {
       const tools = useTools();
       return (

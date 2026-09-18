@@ -11,6 +11,7 @@ import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { Json } from "@repo/database/dbTypes";
 import { extractContentFromTitle } from "./extractContentFromTitle";
+import { SOURCE_SLOT } from "~/constants";
 
 /**
  * Get extra data (author, timestamps) from file metadata
@@ -180,6 +181,7 @@ export const discourseNodeInstanceToLocalConcept = ({
   };
   if (importedFromRid && typeof importedFromRid === "string")
     literal_content.importedFromRid = importedFromRid;
+  const sourceDocumentId = nodeData.sourceDocument;
   return {
     space_id: context.spaceId,
     name: nodeData.file.path,
@@ -187,6 +189,9 @@ export const discourseNodeInstanceToLocalConcept = ({
     schema_represented_by_local_id: nodeTypeId as string,
     is_schema: false,
     literal_content,
+    ...(sourceDocumentId
+      ? { local_reference_content: { [SOURCE_SLOT]: sourceDocumentId } }
+      : {}),
     ...extraData,
   };
 };

@@ -6,6 +6,9 @@ import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpr
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
   default: vi.fn(),
 }));
+vi.mock("~/utils/importedSourceIdentity", () => ({
+  readImportedSourceIdentity: vi.fn(),
+}));
 
 // Runs before the imports below: getDiscourseNodes calls generateUID at module load.
 vi.hoisted(() => {
@@ -14,7 +17,7 @@ vi.hoisted(() => {
   };
 });
 
-import { sourceUidOfNode, titleWithSource } from "~/utils/sourceSlot";
+import { sourceIdOfNode, titleWithSource } from "~/utils/sourceSlot";
 
 describe("titleWithSource", () => {
   it("fills a missing Source with the placeholder reference", () => {
@@ -78,7 +81,7 @@ describe("titleWithSource", () => {
   });
 });
 
-describe("sourceUidOfNode", () => {
+describe("sourceIdOfNode", () => {
   const schema = { format: "[[EVD]] - {content} - {Source}" };
   const sourceNode: DiscourseNode = {
     type: "source-type",
@@ -103,7 +106,7 @@ describe("sourceUidOfNode", () => {
         getDiscourseNodeFormatExpression(customSource.format),
       );
       expect(
-        sourceUidOfNode(`[[EVD]] - X - ${sourceField}`, schema, [customSource]),
+        sourceIdOfNode(`[[EVD]] - X - ${sourceField}`, schema, [customSource]),
       ).toBeUndefined();
       expect(getPageUidByPageTitle).not.toHaveBeenCalled();
     },
@@ -111,7 +114,7 @@ describe("sourceUidOfNode", () => {
 
   it("still resolves a real Source page reference", () => {
     expect(
-      sourceUidOfNode("[[EVD]] - X - [[@Smith 2020]]", schema, [sourceNode]),
+      sourceIdOfNode("[[EVD]] - X - [[@Smith 2020]]", schema, [sourceNode]),
     ).toBe("source-page");
   });
 });

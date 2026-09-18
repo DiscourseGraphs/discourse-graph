@@ -13,6 +13,7 @@ import {
 import type { RelationInstance } from "~/types";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import {
+  findEmbeddedAttachments,
   syncAllNodesAndRelations,
   syncPublishedNodeAssets,
 } from "./syncDgNodesToSupabase";
@@ -441,19 +442,10 @@ export const publishNodeToGroup = async ({
     // do not fail to publish node for that reason
     console.error("Could not publish relations", error);
   }
-  const embeds = plugin.app.metadataCache.getFileCache(file)?.embeds ?? [];
-  const attachments = embeds
-    .map(({ link }) => {
-      const attachment = plugin.app.metadataCache.getFirstLinkpathDest(
-        link,
-        file.path,
-      );
-      return attachment;
-    })
-    .filter((a) => !!a);
+  const attachments = findEmbeddedAttachments(plugin, file);
   const lastModified = Math.max(
     file.stat.mtime,
-    ...attachments.map((a) => a.stat.mtime),
+    ...attachments.map((a) => a.file.stat.mtime),
   );
 
   const skipPublishAccess =

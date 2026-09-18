@@ -1,6 +1,6 @@
 import getBlockProps from "~/utils/getBlockProps";
 import type { json } from "~/utils/getBlockProps";
-import setBlockProps from "~/utils/setBlockProps";
+import { setBlockPropsAsync } from "~/utils/setBlockProps";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { createBlock } from "roamjs-components/writes";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
@@ -24,10 +24,10 @@ import {
 } from "./zodSchema";
 import type { z } from "zod";
 import { invalidateDiscourseNodeTypeCaches } from "~/utils/discourseNodeTypeCache";
+import { PERSONAL_MIGRATION_MARKER } from "./migrationMarkers";
 
 const LOG_PREFIX = "[DG BlockProps Migration]";
-const GRAPH_MIGRATION_MARKER = "Block props migrated";
-const PERSONAL_MIGRATION_MARKER = "dg-personal-settings-migrated";
+const GRAPH_MIGRATION_MARKER = "Block props migrated v2";
 const MAX_ERROR_CONTEXT_LENGTH = 5000;
 
 const hasGraphMigrationMarker = (blockMap: Record<string, string>): boolean =>
@@ -59,7 +59,7 @@ const shouldWrite = (
   return JSON.stringify(parsedLegacy) !== JSON.stringify(currentProps);
 };
 
-const migrateSection = ({
+const migrateSection = async ({
   label,
   blockUid,
   schema,
@@ -71,17 +71,11 @@ const migrateSection = ({
   schema: z.ZodTypeAny;
   legacyData: Record<string, unknown>;
   onWrite?: () => void;
-}): boolean => {
+}): Promise<boolean> => {
   const currentProps = getBlockProps(blockUid);
 
   const parseResult = schema.safeParse(legacyData);
   if (!parseResult.success) {
-    if (isPropsValid(schema, currentProps)) {
-      console.log(
-        `${LOG_PREFIX} ${label}: legacy malformed but props already valid, skipping`,
-      );
-      return true;
-    }
     console.warn(`${LOG_PREFIX} ${label}: Zod validation failed, skipping`, {
       error: parseResult.error.message,
     });
@@ -105,10 +99,26 @@ const migrateSection = ({
     return true;
   }
 
-  setBlockProps(blockUid, parsedLegacy, false);
-  onWrite?.();
-  console.log(`${LOG_PREFIX} ${label}: migrated`);
-  return true;
+  try {
+    await setBlockPropsAsync(blockUid, parsedLegacy, false);
+    onWrite?.();
+    console.log(`${LOG_PREFIX} ${label}: migrated`);
+    return true;
+  } catch (error) {
+    console.warn(`${LOG_PREFIX} ${label}: write failed, skipping`, error);
+    internalError({
+      error,
+      type: "DG Block Props Migration",
+      context: {
+        label,
+        blockUid,
+        legacyData: serializeErrorContext(legacyData),
+        currentProps: serializeErrorContext(currentProps),
+      },
+      sendEmail: false,
+    });
+    return false;
+  }
 };
 
 const migrateDiscourseNodes = async (): Promise<boolean> => {
@@ -155,13 +165,13 @@ const migrateDiscourseNodes = async (): Promise<boolean> => {
     }
 
     if (
-      !migrateSection({
+      !(await migrateSection({
         label: `Discourse Node (${nodeText})`,
         blockUid: nodePageUid,
         schema: DiscourseNodeSchema,
         legacyData,
         onWrite: invalidateDiscourseNodeTypeCaches,
-      })
+      }))
     ) {
       allOk = false;
     }
@@ -172,7 +182,7 @@ const migrateDiscourseNodes = async (): Promise<boolean> => {
 
 export const migrateGraphLevel = async (
   blockUids: Record<string, string>,
-): Promise<void> => {
+): Promise<boolean> => {
   const pageUid = getPageUidByPageTitle(DG_BLOCK_PROP_SETTINGS_PAGE_TITLE);
   if (!pageUid) {
     internalError({
@@ -181,12 +191,12 @@ export const migrateGraphLevel = async (
       context: { scope: "graph" },
       sendEmail: false,
     });
-    return;
+    return false;
   }
 
   if (hasGraphMigrationMarker(blockUids)) {
     console.log(`${LOG_PREFIX} graph-level: skipped (already migrated)`);
-    return;
+    return true;
   }
 
   let failures = 0;
@@ -215,12 +225,12 @@ export const migrateGraphLevel = async (
       }
     }
     if (
-      !migrateSection({
+      !(await migrateSection({
         label: "Feature Flags",
         blockUid: featureFlagUid,
         schema: FeatureFlagsSchema,
         legacyData: mergedFlags,
-      })
+      }))
     ) {
       failures++;
     }
@@ -241,12 +251,12 @@ export const migrateGraphLevel = async (
   } else {
     const legacyGlobal = readAllLegacyGlobalSettings();
     if (
-      !migrateSection({
+      !(await migrateSection({
         label: "Global",
         blockUid: globalUid,
         schema: GlobalSettingsSchema,
         legacyData: legacyGlobal,
-      })
+      }))
     ) {
       failures++;
     }
@@ -263,25 +273,28 @@ export const migrateGraphLevel = async (
         node: { text: GRAPH_MIGRATION_MARKER },
       });
       console.log(`${LOG_PREFIX} graph-level: completed`);
+      return true;
     } catch (e) {
       console.warn(
         `${LOG_PREFIX} graph-level: data migrated but marker write failed (will retry next load)`,
         e,
       );
+      return false;
     }
-  } else {
-    console.warn(
-      `${LOG_PREFIX} graph-level: ${failures} section(s) failed, marker not created (will retry next load)`,
-    );
   }
+
+  console.warn(
+    `${LOG_PREFIX} graph-level: ${failures} section(s) failed, marker not created (will retry next load)`,
+  );
+  return false;
 };
 
 export const migratePersonalSettings = async (
   blockUids: Record<string, string>,
-): Promise<void> => {
+): Promise<boolean> => {
   if (getSetting<boolean>(PERSONAL_MIGRATION_MARKER, false)) {
     console.log(`${LOG_PREFIX} personal: skipped (already migrated)`);
-    return;
+    return true;
   }
 
   const personalKey = getPersonalSettingsKey();
@@ -300,11 +313,11 @@ export const migratePersonalSettings = async (
       },
       sendEmail: false,
     });
-    return;
+    return false;
   }
 
   const legacyPersonal = readAllLegacyPersonalSettings();
-  const ok = migrateSection({
+  const ok = await migrateSection({
     label: "Personal",
     blockUid: personalUid,
     schema: PersonalSettingsSchema,
@@ -315,15 +328,18 @@ export const migratePersonalSettings = async (
     try {
       await setSetting(PERSONAL_MIGRATION_MARKER, true);
       console.log(`${LOG_PREFIX} personal: completed`);
+      return true;
     } catch (e) {
       console.warn(
         `${LOG_PREFIX} personal: data migrated but marker write failed (will retry next load)`,
         e,
       );
+      return false;
     }
-  } else {
-    console.warn(
-      `${LOG_PREFIX} personal: failed, marker not created (will retry next load)`,
-    );
   }
+
+  console.warn(
+    `${LOG_PREFIX} personal: failed, marker not created (will retry next load)`,
+  );
+  return false;
 };

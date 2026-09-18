@@ -39,9 +39,6 @@ type SharedSpace = Pick<
 >;
 type Platform = Enums<"Platform">;
 
-const nodeRidSubtype = (platform: Platform): string | undefined =>
-  platform === "Obsidian" ? "note" : undefined;
-
 type ValidSharedSpace = {
   name: string;
   platform: Platform;
@@ -193,11 +190,7 @@ export const buildSharedNodes = ({
 
       let rid: string;
       try {
-        rid = spaceUriAndLocalIdToRid(
-          space.url,
-          node.source_local_id,
-          nodeRidSubtype(space.platform),
-        );
+        rid = spaceUriAndLocalIdToRid(space.url, node.source_local_id, "note");
       } catch {
         return [];
       }
@@ -211,11 +204,8 @@ export const buildSharedNodes = ({
             if (!space || !c.source_local_id || !c.id) return [c.id, undefined];
             return [
               c.id,
-              spaceUriAndLocalIdToRid(
-                space.url,
-                c.source_local_id,
-                nodeRidSubtype(space.platform),
-              ),
+              // To be reviewed if we have relations of relations
+              spaceUriAndLocalIdToRid(space.url, c.source_local_id, "note"),
             ];
           }) as [number, string | undefined][],
       );

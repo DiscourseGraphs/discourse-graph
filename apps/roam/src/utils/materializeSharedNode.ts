@@ -20,6 +20,8 @@ import {
   writeImportedSourceIdentity,
   type ImportedSourceIdentity,
 } from "./importedSourceIdentity";
+import { getErrorMessage } from "./getErrorMessage";
+import { importNodeAssets, type AssetImportReport } from "./importNodeAssets";
 import {
   MISSING_SOURCE_PLACEHOLDER,
   schemaHasSourceSlot,
@@ -30,6 +32,7 @@ import {
 type MaterializationStage =
   | "validate-input"
   | "fetch-content"
+  | "copy-assets"
   | "find-imported-node"
   | "title-collision"
   | "create-page"
@@ -56,6 +59,8 @@ type MaterializationSuccess = SourceIdentity & {
   action: "created" | "updated" | "skipped";
   pageUid: string;
   warning?: string;
+  /** Absent on a skipped import. Per-asset failures land here and don't fail the node. */
+  assets?: AssetImportReport;
 };
 
 export type MaterializeSharedNodeResult =
@@ -79,9 +84,6 @@ type RoamMarkdownApi = {
 
 export const getRoamMarkdownApi = (): RoamMarkdownApi =>
   window.roamAlphaAPI.data as unknown as RoamMarkdownApi;
-
-export const getErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
 
 const isImportUpToDate = ({
   sourceModifiedAt,
@@ -225,6 +227,34 @@ const fetchFullMarkdown = async ({
   return { markdown: markdown.trim() ? markdown : "" };
 };
 
+const titleCollisionFailure = ({
+  identity,
+  importedPageUid,
+  title,
+}: {
+  identity: SourceIdentity;
+  importedPageUid?: string;
+  title: string;
+}): MaterializationFailure | undefined => {
+  if (!importedPageUid)
+    return getPageUidByPageTitle(title)
+      ? failure({
+          identity,
+          message: `A page titled "${title}" already exists and was not imported from "${identity.sourceNodeRid}". Rename or remove that page, then import again`,
+          stage: "title-collision",
+        })
+      : undefined;
+
+  const localTitle = getPageTitleByPageUid(importedPageUid);
+  if (localTitle === title || !getPageUidByPageTitle(title)) return undefined;
+  return failure({
+    identity,
+    message: `Cannot rename the imported page "${localTitle}" to "${title}": another page already has that title. Rename or remove that page, then import again`,
+    pageUid: importedPageUid,
+    stage: "title-collision",
+  });
+};
+
 const createImportedPage = async ({
   identity,
   markdown,
@@ -234,12 +264,8 @@ const createImportedPage = async ({
   markdown: string;
   title: string;
 }): Promise<MaterializeSharedNodeResult> => {
-  if (getPageUidByPageTitle(title))
-    return failure({
-      identity,
-      message: `A page titled "${title}" already exists and was not imported from "${identity.sourceNodeRid}". Rename or remove that page, then import again`,
-      stage: "title-collision",
-    });
+  const collision = titleCollisionFailure({ identity, title });
+  if (collision) return collision;
 
   const pageUid = window.roamAlphaAPI.util.generateUID();
   try {
@@ -299,13 +325,12 @@ const updateImportedPage = async ({
 }): Promise<MaterializeSharedNodeResult> => {
   const localTitle = getPageTitleByPageUid(pageUid);
   const needsRename = localTitle !== title;
-  if (needsRename && getPageUidByPageTitle(title))
-    return failure({
-      identity,
-      message: `Cannot rename the imported page "${localTitle}" to "${title}": another page already has that title. Rename or remove that page, then import again`,
-      pageUid,
-      stage: "title-collision",
-    });
+  const collision = titleCollisionFailure({
+    identity,
+    importedPageUid: pageUid,
+    title,
+  });
+  if (collision) return collision;
 
   try {
     const previousChildren = getShallowTreeByParentUid(pageUid);
@@ -433,17 +458,42 @@ export const materializeSharedNode = async ({
       stage: "fetch-content",
     });
 
+  // Checked before uploading because uploads can't be rolled back. The page writers check
+  // again, since a page with this title can appear while assets upload.
+  const collision = titleCollisionFailure({
+    identity,
+    importedPageUid: importedPageUid ?? undefined,
+    title: pageTitle,
+  });
+  if (collision) return collision;
+
+  const assets = await importNodeAssets({
+    client,
+    sharedNode,
+    markdown: content.markdown,
+  }).catch((error: unknown) => ({ error }));
+  if ("error" in assets)
+    return failure({
+      error: assets.error,
+      identity,
+      message: `Failed to copy the assets of "${sharedNode.title}"`,
+      stage: "copy-assets",
+    });
+  const { markdown, report } = assets;
+
   const result = await (importedPageUid
     ? updateImportedPage({
         identity,
-        markdown: content.markdown,
+        markdown,
         pageUid: importedPageUid,
         title: pageTitle,
       })
     : createImportedPage({
         identity,
-        markdown: content.markdown,
+        markdown,
         title: pageTitle,
       }));
-  return result.success && warning ? { ...result, warning } : result;
+
+  if (!result.success) return result;
+  return { ...result, assets: report, ...(warning ? { warning } : {}) };
 };

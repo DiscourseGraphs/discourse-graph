@@ -1,13 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DISCOURSE_GRAPH_PROP_NAME } from "~/utils/createReifiedBlock";
+import {
+  DISCOURSE_GRAPH_PROP_NAME,
+  IMPORTED_FROM_PROP_KEY,
+} from "~/utils/createReifiedBlock";
 import {
   findImportedNodeUidBySourceRid,
   getImportedSourceRids,
-  IMPORTED_FROM_PROP_KEY,
   readImportedSourceIdentity,
   writeImportedSourceIdentity,
 } from "~/utils/importedSourceIdentity";
 import type { json } from "~/utils/getBlockProps";
+
+vi.mock("~/utils/internalError", () => ({ default: vi.fn() }));
 
 const SOURCE_NODE_RID = "orn:obsidian.note:vault-a/node-1";
 const SOURCE_MODIFIED_AT = "2026-06-14T15:00:00.000Z";

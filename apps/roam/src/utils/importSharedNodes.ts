@@ -2,10 +2,8 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
 import { orderConceptsByDependency } from "./conceptConversion";
 import { sharedReferenceRid } from "./findTargetUid";
-import {
-  getErrorMessage,
-  materializeSharedNode,
-} from "./materializeSharedNode";
+import { getErrorMessage } from "./getErrorMessage";
+import { materializeSharedNode } from "./materializeSharedNode";
 import { resolveSharedNodeTypes } from "./resolveSharedNodeTypes";
 import { SOURCE_SLOT } from "./sourceSlot";
 

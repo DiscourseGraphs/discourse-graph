@@ -11,6 +11,10 @@ import {
   writeImportedSourceIdentity,
 } from "~/utils/importedSourceIdentity";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
+import {
+  importNodeAssets,
+  type AssetImportReport,
+} from "~/utils/importNodeAssets";
 import { materializeSharedNode } from "~/utils/materializeSharedNode";
 
 vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
@@ -23,6 +27,9 @@ vi.mock("roamjs-components/queries/getShallowTreeByParentUid", () => ({
   default: vi.fn(),
 }));
 vi.mock("roamjs-components/writes/deleteBlock", () => ({ default: vi.fn() }));
+vi.mock("~/utils/importNodeAssets", () => ({
+  importNodeAssets: vi.fn(),
+}));
 vi.mock("~/utils/importedSourceIdentity", () => ({
   findImportedNodeUidBySourceRid: vi.fn(),
   readImportedSourceIdentity: vi.fn(),
@@ -36,6 +43,7 @@ vi.hoisted(() => {
   };
 });
 
+const mockedImportNodeAssets = vi.mocked(importNodeAssets);
 const mockedGetPageTitleByPageUid = vi.mocked(getPageTitleByPageUid);
 const mockedGetPageUidByPageTitle = vi.mocked(getPageUidByPageTitle);
 const mockedGetShallowTreeByParentUid = vi.mocked(getShallowTreeByParentUid);
@@ -111,6 +119,8 @@ const FULL_MARKDOWN = [
 
 const MATERIALIZED_MARKDOWN = "# Findings\nREM sleep improves recall";
 
+const NO_ASSETS = { mirrored: 0, reused: 0, skipped: [], failed: [] };
+
 const clientWithFullContent = ({
   text,
   contentType = "text/obsidian+markdown",
@@ -143,6 +153,10 @@ const clientWithFullContent = ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // The client stub's select chain isn't thenable, so the real asset stage can't run here.
+  mockedImportNodeAssets.mockImplementation(({ markdown }) =>
+    Promise.resolve({ markdown, report: NO_ASSETS }),
+  );
   (globalThis as { window: unknown }).window = {
     roamAlphaAPI: {
       updatePage,
@@ -177,6 +191,7 @@ describe("materializeSharedNode", () => {
       pageUid: GENERATED_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(eq).toHaveBeenCalledWith("original", true);
     expect(pageFromMarkdown).toHaveBeenCalledWith({
@@ -262,6 +277,7 @@ describe("materializeSharedNode", () => {
       pageUid: EXISTING_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(pageFromMarkdown).not.toHaveBeenCalled();
     expect(updatePage).not.toHaveBeenCalled();
@@ -315,6 +331,7 @@ describe("materializeSharedNode", () => {
       pageUid: EXISTING_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(blockFromMarkdown).toHaveBeenCalled();
     expect(mockedWriteImportedSourceIdentity).toHaveBeenCalledWith({
@@ -452,6 +469,7 @@ describe("materializeSharedNode", () => {
       pageUid: GENERATED_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
+      assets: NO_ASSETS,
     });
   });
 
@@ -479,6 +497,7 @@ describe("materializeSharedNode", () => {
       pageUid: GENERATED_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(roamQuery).toHaveBeenCalledWith(
       "[:find (?e) :in $ ?uid :where [?e :block/uid ?uid]]",
@@ -771,6 +790,7 @@ describe("materializeSharedNode", () => {
       pageUid: EXISTING_PAGE_UID,
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(updatePage).not.toHaveBeenCalled();
   });
@@ -866,6 +886,38 @@ describe("materializeSharedNode", () => {
     expect(updatePage).not.toHaveBeenCalled();
   });
 
+  it("writes the markdown the asset stage rewrote, and carries its report", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    const REWRITTEN = "![](https://firebasestorage.googleapis.com/v0/b/f/o/x)";
+    const report: AssetImportReport = {
+      mirrored: 1,
+      reused: 0,
+      skipped: [],
+      failed: [{ sourceLocator: "attachments/big.png", message: "too big" }],
+    };
+    mockedImportNodeAssets.mockResolvedValue({ markdown: REWRITTEN, report });
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(pageFromMarkdown).toHaveBeenCalledWith(
+      expect.objectContaining({ "markdown-string": REWRITTEN }),
+    );
+    expect(result).toMatchObject({ success: true, assets: report });
+  });
+
+  it("reports an asset stage that rejects as its own stage", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedImportNodeAssets.mockRejectedValue(new Error("rewrite blew up"));
+
+    const result = await materializeSharedNode({ client, sharedNode });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: { stage: "copy-assets" },
+    });
+    expect(pageFromMarkdown).not.toHaveBeenCalled();
+  });
+
   it("refuses to clobber a page that was not imported from this source", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
     mockedGetPageUidByPageTitle.mockReturnValue("unrelated-page-uid");
@@ -879,6 +931,7 @@ describe("materializeSharedNode", () => {
     });
     expect(pageFromMarkdown).not.toHaveBeenCalled();
     expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
+    expect(mockedImportNodeAssets).not.toHaveBeenCalled();
   });
 
   it("fails the rename before touching content when the new title collides", async () => {
@@ -898,6 +951,39 @@ describe("materializeSharedNode", () => {
     expect(mockedDeleteBlock).not.toHaveBeenCalled();
     expect(updatePage).not.toHaveBeenCalled();
     expect(mockedWriteImportedSourceIdentity).not.toHaveBeenCalled();
+    expect(mockedImportNodeAssets).not.toHaveBeenCalled();
+  });
+
+  it("checks the decorated title, so a decorated collision uploads nothing", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedGetPageUidByPageTitle.mockImplementation((title: string) =>
+      title === DECORATED_TITLE ? "unrelated-page-uid" : "",
+    );
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: decoratedSharedNode,
+      nodeType: NODE_TYPE,
+    });
+
+    expect(result).toMatchObject({ error: { stage: "title-collision" } });
+    expect(mockedImportNodeAssets).not.toHaveBeenCalled();
+  });
+
+  it("does not reject on the raw title when the decorated one is free", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedGetPageUidByPageTitle.mockImplementation((title: string) =>
+      title === decoratedSharedNode.title ? "unrelated-page-uid" : "",
+    );
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: decoratedSharedNode,
+      nodeType: NODE_TYPE,
+    });
+
+    expect(result).toMatchObject({ success: true });
+    expect(mockedImportNodeAssets).toHaveBeenCalled();
   });
 
   it("imports a Roam-origin node and strips the duplicated title heading", async () => {
@@ -914,6 +1000,7 @@ describe("materializeSharedNode", () => {
       pageUid: GENERATED_PAGE_UID,
       sourceModifiedAt: roamSharedNode.lastModified,
       sourceNodeRid: roamSharedNode.rid,
+      assets: NO_ASSETS,
     });
     expect(pageFromMarkdown).toHaveBeenCalledWith({
       page: { title: roamSharedNode.title, uid: GENERATED_PAGE_UID },

@@ -78,6 +78,13 @@
     "test:unit": {
       "outputs": []
     },
+    "//#test:unit": {
+      "inputs": [
+        "package.json",
+        ".agents/skills/dg-create-roam-render-html-code/**"
+      ],
+      "outputs": []
+    },
     "dev": {
       "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH"],
       "cache": false,

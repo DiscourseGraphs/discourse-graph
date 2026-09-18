@@ -1,297 +1,478 @@
-import { App, Editor, Notice, MarkdownView, TFile } from "obsidian";
-import { DiscourseNode } from "~/types";
+import { syntaxTree } from "@codemirror/language";
+import {
+  Decoration,
+  type DecorationSet,
+  EditorView,
+  type PluginValue,
+  ViewPlugin,
+  type ViewUpdate,
+} from "@codemirror/view";
+import { Editor, MarkdownView, Notice, TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
+import { DiscourseNode } from "~/types";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
-import { createDiscourseNodeFile, formatNodeName } from "./createNode";
-import { getNodeTagColors } from "./colorUtils";
 import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
+import { getNodeTagColors } from "./colorUtils";
+import { createDiscourseNodeFile, formatNodeName } from "./createNode";
 
 const HOVER_DELAY = 200;
 const HIDE_DELAY = 100;
-const OBSERVER_RESTART_DELAY = 100;
 const TOOLTIP_OFFSET = 40;
+const STYLE_ELEMENT_ID = "dg-discourse-tag-colors";
+const DISCOURSE_TAG_CLASS = "dg-discourse-tag";
+const NODE_ID_ATTR = "data-dg-discourse-tag-node";
 
 const LIST_INDICATOR_REGEX = /^(\s*)(\d+[.)]\s+|[-*+]\s+(?:\[[ xX]\]\s+)?)/;
 
-const sanitizeTitle = (title: string): string => {
-  const invalidChars = /[\\/:]/g;
+const TAG_SEGMENT_PREFIX = "tag-";
 
-  return title
+const sanitizeTitle = (title: string): string =>
+  title
     .replace(LIST_INDICATOR_REGEX, "")
-    .replace(invalidChars, "")
+    .replace(/[\\/:]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+
+const extractListPrefix = (line: string): string =>
+  line.match(LIST_INDICATOR_REGEX)?.[0] ?? "";
+
+const titleFromTaggedLine = (lineText: string): string =>
+  sanitizeTitle(lineText.replace(/#[^\s]+/g, ""));
+
+// Nodes are named like `hashtag_hashtag-end_meta_tag-clm-candidate`; reading the tag
+// from the tree inherits Obsidian's rules for code blocks, URLs and headings.
+const tagNameFromSyntaxNode = (nodeName: string): string | null => {
+  if (!nodeName.includes("hashtag")) return null;
+  const segment = nodeName
+    .split("_")
+    .find(
+      (part) =>
+        part.startsWith(TAG_SEGMENT_PREFIX) &&
+        part.length > TAG_SEGMENT_PREFIX.length,
+    );
+  return segment ? segment.slice(TAG_SEGMENT_PREFIX.length) : null;
 };
 
-const extractListPrefix = (line: string): string => {
-  const match = line.match(LIST_INDICATOR_REGEX);
-  return match ? match[0] : "";
+type TaggedRange<TStyle extends { nodeTypeId: string }> = {
+  from: number;
+  to: number;
+  style: TStyle;
 };
 
-type ExtractedTagData = {
-  fullLineContent: string;
-  tagName: string;
+// The `#` and the name are separate syntax nodes; join them into one chip.
+const mergeAdjacentRanges = <TStyle extends { nodeTypeId: string }>(
+  ranges: TaggedRange<TStyle>[],
+): TaggedRange<TStyle>[] => {
+  const sorted = [...ranges].sort((a, b) => a.from - b.from);
+  const merged: TaggedRange<TStyle>[] = [];
+
+  for (const range of sorted) {
+    const previous = merged[merged.length - 1];
+    if (
+      previous &&
+      previous.to === range.from &&
+      previous.style.nodeTypeId === range.style.nodeTypeId
+    ) {
+      previous.to = range.to;
+      continue;
+    }
+    merged.push({ ...range });
+  }
+
+  return merged;
 };
 
-type NodeCreationParams = {
+type TagStyle = { nodeTypeId: string };
+type TagRange = TaggedRange<TagStyle>;
+
+// A decoration can only create a span inside Obsidian's `.cm-hashtag`, which owns
+// the tag's padding and radius, so colours target that parent via `:has()`.
+export const discourseTagClassForNode = (nodeTypeId: string): string =>
+  `dg-tag-${nodeTypeId.replace(/[^A-Za-z0-9_-]/g, "-")}`;
+
+// Beats Obsidian's own `.cm-hashtag` rule on specificity, so no `!important`.
+const buildStyleSheet = (plugin: DiscourseGraphPlugin): string =>
+  plugin.settings.nodeTypes
+    .map((nodeType, nodeIndex) => {
+      if (!nodeType.tag) return null;
+      const { backgroundColor, textColor } = getNodeTagColors(
+        nodeType,
+        nodeIndex,
+      );
+      return (
+        `span.cm-hashtag:has(> .${discourseTagClassForNode(nodeType.id)}) {\n` +
+        `  background-color: ${backgroundColor};\n` +
+        `  color: ${textColor};\n` +
+        `}`
+      );
+    })
+    .filter((rule): rule is string => rule !== null)
+    .join("\n\n");
+
+export class DiscourseTagStyleManager {
+  constructor(private plugin: DiscourseGraphPlugin) {}
+
+  apply(): void {
+    const css = buildStyleSheet(this.plugin);
+    this.documents().forEach((doc) => {
+      const styleEl =
+        doc.getElementById(STYLE_ELEMENT_ID) ??
+        doc.head.createEl("style", { attr: { id: STYLE_ELEMENT_ID } });
+      styleEl.textContent = css;
+    });
+  }
+
+  destroy(): void {
+    this.documents().forEach((doc) =>
+      doc.getElementById(STYLE_ELEMENT_ID)?.remove(),
+    );
+  }
+
+  // Popout windows have their own document, which the bundled styles.css does not reach.
+  private documents(): Document[] {
+    const documents = new Set<Document>([document]);
+    this.plugin.app.workspace.iterateAllLeaves((leaf) => {
+      const doc = leaf.view.containerEl.ownerDocument;
+      if (doc) documents.add(doc);
+    });
+    return Array.from(documents);
+  }
+}
+
+const buildTagStyleIndex = (
+  plugin: DiscourseGraphPlugin,
+): Map<string, TagStyle> => {
+  const index = new Map<string, TagStyle>();
+  plugin.settings.nodeTypes.forEach((nodeType) => {
+    if (!nodeType.tag) return;
+    index.set(nodeType.tag, { nodeTypeId: nodeType.id });
+  });
+  return index;
+};
+
+const tagSettingsSignature = (plugin: DiscourseGraphPlugin): string =>
+  plugin.settings.nodeTypes.map((n) => `${n.id}:${n.tag ?? ""}`).join("|");
+
+const collectTaggedRanges = (
+  view: EditorView,
+  styles: Map<string, TagStyle>,
+): TagRange[] => {
+  const ranges: TagRange[] = [];
+
+  for (const { from, to } of view.visibleRanges) {
+    syntaxTree(view.state).iterate({
+      from,
+      to,
+      enter: (node) => {
+        const tagName = tagNameFromSyntaxNode(node.name);
+        if (!tagName) return;
+        const style = styles.get(tagName);
+        if (!style) return;
+        ranges.push({ from: node.from, to: node.to, style });
+      },
+    });
+  }
+
+  return ranges;
+};
+
+const buildTagDecorations = (
+  view: EditorView,
+  plugin: DiscourseGraphPlugin,
+): DecorationSet => {
+  const styles = buildTagStyleIndex(plugin);
+  if (styles.size === 0) return Decoration.none;
+
+  const decorations = mergeAdjacentRanges(
+    collectTaggedRanges(view, styles),
+  ).map(({ from, to, style }) =>
+    Decoration.mark({
+      class: `${DISCOURSE_TAG_CLASS} ${discourseTagClassForNode(style.nodeTypeId)}`,
+      attributes: { [NODE_ID_ATTR]: style.nodeTypeId },
+    }).range(from, to),
+  );
+
+  return Decoration.set(decorations);
+};
+
+// CodeMirror's ContentView.sync() re-applies each span's attributes from its
+// decoration spec, dropping foreign ones, and drops line DOM as the viewport
+// scrolls — so attributes stamped from outside do not survive (ENG-2231).
+const createTagDecorationPlugin = (
+  plugin: DiscourseGraphPlugin,
+): ViewPlugin<PluginValue> =>
+  ViewPlugin.fromClass(
+    class {
+      decorations: DecorationSet;
+      private settingsSignature: string;
+
+      constructor(view: EditorView) {
+        this.settingsSignature = tagSettingsSignature(plugin);
+        this.decorations = buildTagDecorations(view, plugin);
+      }
+
+      update(update: ViewUpdate): void {
+        const signature = tagSettingsSignature(plugin);
+        if (
+          update.docChanged ||
+          update.viewportChanged ||
+          signature !== this.settingsSignature
+        ) {
+          this.settingsSignature = signature;
+          this.decorations = buildTagDecorations(update.view, plugin);
+        }
+      }
+    },
+    { decorations: (value) => value.decorations },
+  );
+
+type CreateNodeFromTagParams = {
+  plugin: DiscourseGraphPlugin;
   nodeType: DiscourseNode;
   title: string;
   editor: Editor;
-  tagElement: HTMLElement;
+  lineNumber: number;
   selectedExistingNode?: TFile;
   relationshipId?: string;
   relationshipTargetFile?: TFile;
 };
 
-/**
- * Handles discourse node tag interactions in Obsidian editor
- * - Observes DOM for discourse node tags
- * - Applies styling and hover functionality
- * - Creates discourse nodes from tag clicks
- */
-export class TagNodeHandler {
-  private plugin: DiscourseGraphPlugin;
-  private app: App;
-  private registeredEventHandlers: (() => void)[] = [];
-  private tagObserver: MutationObserver | null = null;
-  private currentTooltip: HTMLElement | null = null;
-
-  constructor(plugin: DiscourseGraphPlugin) {
-    this.plugin = plugin;
-    this.app = plugin.app;
-  }
-
-  // ============================================================================
-  // PUBLIC API
-  // ============================================================================
-
-  /**
-   * Initialize the tag node handler
-   */
-  public initialize(): void {
-    // Clean up any existing tooltips from previous instances
-    this.cleanupTooltips();
-
-    this.tagObserver = this.createTagObserver();
-    this.startObserving();
-    this.processTagsInView();
-    this.setupEventHandlers();
-  }
-
-  /**
-   * Refresh discourse tag colors when node types change
-   */
-  public refreshColors(): void {
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    activeView?.contentEl
-      .querySelectorAll("[data-dg-discourse-tag-node]")
-      .forEach((el) => {
-        delete (el as HTMLElement).dataset.dgDiscourseTagNode;
-      });
-    this.processTagsInView();
-  }
-
-  /**
-   * Cleanup event handlers and tooltips
-   */
-  public cleanup(): void {
-    this.cleanupEventHandlers();
-    this.cleanupObserver();
-    this.cleanupTooltips();
-    this.cleanupProcessedTags();
-  }
-
-  // ============================================================================
-  // DOM OBSERVATION & PROCESSING
-  // ============================================================================
-
-  /**
-   * Create a MutationObserver to watch for discourse node tags
-   */
-  private createTagObserver(): MutationObserver {
-    return new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        // Only process nodes that are likely to contain tags
-        if (mutation.type === "childList") {
-          mutation.addedNodes.forEach((node) => {
-            if (
-              node instanceof HTMLElement &&
-              this.isTagRelevantElement(node)
-            ) {
-              this.processElement(node);
-            }
-          });
-        }
-
-        // Only watch class changes on elements that might be tags
-        if (
-          mutation.type === "attributes" &&
-          mutation.attributeName === "class" &&
-          mutation.target instanceof HTMLElement
-        ) {
-          const target = mutation.target;
-          if (hasTagClass(target)) {
-            this.processElement(target);
-          }
-        }
-      });
-    });
-  }
-
-  /**
-   * Check if element is relevant for tag processing
-   */
-  private isTagRelevantElement(element: HTMLElement): boolean {
-    if (
-      element.classList.contains("discourse-tag-popover") ||
-      element.closest(".discourse-tag-popover") === element
-    ) {
-      return false;
-    }
-
-    return (
-      element.classList.contains("cm-line") ||
-      element.querySelector('[class*="cm-tag-"]') !== null ||
-      hasTagClass(element)
-    );
-  }
-
-  /**
-   * Process an element and its children for discourse node tags
-   */
-  private processElement(element: HTMLElement): void {
-    if (!activeDocument.contains(element)) {
-      return;
-    }
-
-    this.plugin.settings.nodeTypes.forEach((nodeType) => {
-      if (!nodeType.tag) {
-        return;
-      }
-
-      const tag = nodeType.tag;
-      const tagSelector = `.cm-tag-${tag}`;
-
-      if (element.matches(tagSelector)) {
-        this.applyDiscourseTagStyling(element, nodeType);
-      }
-
-      const childTags = element.querySelectorAll(tagSelector);
-      childTags.forEach((tagEl) => {
-        if (tagEl instanceof HTMLElement) {
-          // Skip if this tag is already being processed or is inside a tooltip
-          if (
-            tagEl.dataset.discourseTagProcessed === "true" ||
-            tagEl.closest(".discourse-tag-popover") === tagEl ||
-            !activeDocument.contains(tagEl)
-          ) {
-            return;
-          }
-          this.applyDiscourseTagStyling(tagEl, nodeType);
-        }
-      });
-    });
-  }
-
-  /**
-   * Process existing tags in the current view (for initial setup)
-   */
-  private processTagsInView(): void {
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView) return;
-    this.processElement(activeView.contentEl);
-  }
-
-  // ============================================================================
-  // TAG STYLING & INTERACTION
-  // ============================================================================
-
-  /**
-   * Apply colors and hover functionality to a discourse tag
-   */
-  private applyDiscourseTagStyling(
-    tagElement: HTMLElement,
-    nodeType: DiscourseNode,
-  ): void {
-    const alreadyProcessed =
-      tagElement.dataset.discourseTagProcessed === "true";
-
-    const nodeIndex = this.plugin.settings.nodeTypes.findIndex(
-      (nt) => nt.id === nodeType.id,
-    );
-    const colors = getNodeTagColors(nodeType, nodeIndex);
-
-    // Use data-* + CSS variables only — do not add classes here. The tag observer
-    // watches class mutations; classList.add fights CodeMirror and can freeze the app.
-    if (tagElement.dataset.dgDiscourseTagNode !== nodeType.id) {
-      tagElement.dataset.dgDiscourseTag = "true";
-      tagElement.dataset.dgDiscourseTagNode = nodeType.id;
-      tagElement.setCssProps({
-        "--dg-discourse-tag-bg": colors.backgroundColor,
-        "--dg-discourse-tag-fg": colors.textColor,
-      });
-    }
-
-    if (!alreadyProcessed) {
-      const editor = this.getActiveEditor();
-      if (editor) {
-        this.addHoverFunctionality(tagElement, nodeType, editor);
-      }
-    }
-  }
-  // ============================================================================
-  // CONTENT EXTRACTION & NODE CREATION
-  // ============================================================================
-
-  /**
-   * Extract content from the entire line containing the clicked tag
-   */
-  private extractContent(tagElement: HTMLElement): ExtractedTagData | null {
-    const lineDiv = tagElement.closest(".cm-line");
-    if (!lineDiv) return null;
-
-    const fullLineText = lineDiv.textContent || "";
-
-    const tagClasses = Array.from(tagElement.classList);
-    const tagClass = tagClasses.find((cls) => cls.startsWith("cm-tag-"));
-    if (!tagClass) return null;
-
-    const tagName = tagClass.replace("cm-tag-", "");
-
+const resolveTargetFile = async ({
+  plugin,
+  nodeType,
+  title,
+  selectedExistingNode,
+}: Pick<
+  CreateNodeFromTagParams,
+  "plugin" | "nodeType" | "title" | "selectedExistingNode"
+>): Promise<{ file: TFile; linkText: string } | null> => {
+  if (selectedExistingNode) {
     return {
-      fullLineContent: fullLineText.trim(),
-      tagName,
+      file: selectedExistingNode,
+      linkText: `[[${selectedExistingNode.basename}]]`,
     };
   }
 
-  /**
-   * Handle tag click to create discourse node
-   */
-  private handleTagClick(
-    tagElement: HTMLElement,
-    nodeType: DiscourseNode,
-    editor: Editor,
-  ): void {
-    const extractedData = this.extractContent(tagElement);
-    if (!extractedData) {
-      new Notice("Could not create discourse node", 3000);
+  const formattedNodeName = formatNodeName(title, nodeType);
+  if (!formattedNodeName) {
+    new Notice("Failed to format node name", 3000);
+    return null;
+  }
+
+  const newFile = await createDiscourseNodeFile({
+    plugin,
+    formattedNodeName,
+    nodeType,
+  });
+  if (!newFile) {
+    new Notice("Failed to create discourse node file", 3000);
+    return null;
+  }
+
+  return { file: newFile, linkText: `[[${formattedNodeName}]]` };
+};
+
+const createNodeFromTag = async (
+  params: CreateNodeFromTagParams,
+): Promise<void> => {
+  const {
+    plugin,
+    nodeType,
+    title,
+    editor,
+    lineNumber,
+    selectedExistingNode,
+    relationshipId,
+    relationshipTargetFile,
+  } = params;
+
+  try {
+    const resolved = await resolveTargetFile({
+      plugin,
+      nodeType,
+      title,
+      selectedExistingNode,
+    });
+    if (!resolved) return;
+
+    if (relationshipId && relationshipTargetFile) {
+      await addRelationIfRequested(plugin, resolved.file, {
+        relationshipId,
+        relationshipTargetFile,
+      });
+    }
+
+    if (lineNumber < 0 || lineNumber > editor.lastLine()) {
+      new Notice("Could not replace tag with discourse node", 3000);
       return;
     }
 
-    const cleanText = sanitizeTitle(
-      extractedData.fullLineContent.replace(/#[^\s]+/g, ""),
+    const lineText = editor.getLine(lineNumber);
+    editor.replaceRange(
+      extractListPrefix(lineText) + resolved.linkText,
+      { line: lineNumber, ch: 0 },
+      { line: lineNumber, ch: lineText.length },
     );
+  } catch (error) {
+    new Notice(
+      `Error creating discourse node: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      5000,
+    );
+  }
+};
 
-    // Get the current file from the active view
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    const currentFile = activeView?.file || undefined;
+// Popout elements fail `instanceof HTMLElement` against the main window's class.
+const asElement = (target: EventTarget | null): HTMLElement | null =>
+  target && typeof (target as HTMLElement).closest === "function"
+    ? (target as HTMLElement)
+    : null;
 
-    new ModifyNodeModal(this.app, {
+const editorViewOf = (editor: unknown): EditorView | null =>
+  editor && typeof editor === "object" && "cm" in editor
+    ? ((editor as { cm: EditorView }).cm ?? null)
+    : null;
+
+/** The hovered editor is not always the active one, e.g. a tag in an inactive split. */
+const markdownViewFor = (
+  plugin: DiscourseGraphPlugin,
+  view: EditorView,
+): MarkdownView | null => {
+  let match: MarkdownView | null = null;
+  plugin.app.workspace.iterateAllLeaves((leaf) => {
+    if (match) return;
+    const leafView = leaf.view;
+    if (
+      leafView instanceof MarkdownView &&
+      editorViewOf(leafView.editor) === view
+    ) {
+      match = leafView;
+    }
+  });
+  return match;
+};
+
+class DiscourseTagHoverController {
+  private tooltip: HTMLElement | null = null;
+  private showTimeout: number | null = null;
+  private hideTimeout: number | null = null;
+  private anchor: HTMLElement | null = null;
+
+  constructor(private plugin: DiscourseGraphPlugin) {}
+
+  handleMouseOver(event: MouseEvent, view: EditorView): void {
+    const tagEl = asElement(event.target)?.closest(
+      `.${DISCOURSE_TAG_CLASS}`,
+    ) as HTMLElement | null;
+    if (!tagEl) return;
+    if (tagEl === this.anchor && this.tooltip) {
+      this.cancelHide();
+      return;
+    }
+
+    const nodeType = this.resolveNodeType(tagEl);
+    if (!nodeType) return;
+
+    this.cancelHide();
+    this.clearShowTimeout();
+    this.showTimeout = window.setTimeout(() => {
+      this.show({ tagEl, nodeType, view });
+    }, HOVER_DELAY);
+  }
+
+  handleMouseOut(event: MouseEvent): void {
+    if (!asElement(event.target)?.closest(`.${DISCOURSE_TAG_CLASS}`)) return;
+
+    const related = asElement(event.relatedTarget);
+    if (related && this.tooltip?.contains(related)) return;
+
+    this.clearShowTimeout();
+    this.scheduleHide();
+  }
+
+  destroy(): void {
+    this.clearShowTimeout();
+    this.cancelHide();
+    this.hide();
+  }
+
+  private resolveNodeType(tagEl: HTMLElement): DiscourseNode | null {
+    const nodeId = tagEl.getAttribute(NODE_ID_ATTR);
+    if (!nodeId) return null;
+    return (
+      this.plugin.settings.nodeTypes.find((node) => node.id === nodeId) ?? null
+    );
+  }
+
+  private anchorRect(tagEl: HTMLElement): DOMRect {
+    return tagEl.getClientRects().item(0) ?? tagEl.getBoundingClientRect();
+  }
+
+  private show({
+    tagEl,
+    nodeType,
+    view,
+  }: {
+    tagEl: HTMLElement;
+    nodeType: DiscourseNode;
+    view: EditorView;
+  }): void {
+    this.hide();
+
+    const rect = this.anchorRect(tagEl);
+    // The rect is in the tag's own window, so the tooltip belongs in that document.
+    const doc = tagEl.ownerDocument;
+    const tooltip = doc.createElement("div");
+    // Arbitrary transform property: Tailwind's translate utilities need preflight's
+    // --tw-* defaults, which this plugin does not ship, so they compute to none.
+    tooltip.className =
+      "discourse-tag-popover fixed z-[9999] [transform:translateX(-50%)] whitespace-nowrap rounded-md p-1.5 text-xs pointer-events-auto";
+    tooltip.style.top = `${rect.top - TOOLTIP_OFFSET}px`;
+    tooltip.style.left = `${rect.left + rect.width / 2}px`;
+
+    const button = doc.createElement("button");
+    button.className = "mod-cta dg-create-node-button";
+    button.textContent = `Create ${nodeType.name}`;
+    tooltip.appendChild(button);
+    button.addEventListener("click", (clickEvent) => {
+      clickEvent.preventDefault();
+      clickEvent.stopPropagation();
+      this.openModal({ tagEl, nodeType, view });
+      this.hide();
+    });
+
+    tooltip.addEventListener("mouseenter", () => this.cancelHide());
+    tooltip.addEventListener("mouseleave", () => this.scheduleHide());
+
+    doc.body.appendChild(tooltip);
+    this.tooltip = tooltip;
+    this.anchor = tagEl;
+  }
+
+  private openModal({
+    tagEl,
+    nodeType,
+    view,
+  }: {
+    tagEl: HTMLElement;
+    nodeType: DiscourseNode;
+    view: EditorView;
+  }): void {
+    const markdownView = markdownViewFor(this.plugin, view);
+    const editor = markdownView?.editor;
+    if (!editor) return;
+
+    // Matching the line by its text resolves to the wrong one when a document repeats it.
+    const lineNumber = view.state.doc.lineAt(view.posAtDOM(tagEl)).number - 1;
+    const lineText = editor.getLine(lineNumber);
+
+    new ModifyNodeModal(this.plugin.app, {
       nodeTypes: this.plugin.settings.nodeTypes,
       plugin: this.plugin,
-      initialTitle: cleanText,
+      initialTitle: titleFromTaggedLine(lineText),
       initialNodeType: nodeType,
-      currentFile,
+      currentFile: markdownView.file ?? undefined,
       onSubmit: async ({
         nodeType: selectedNodeType,
         title,
@@ -299,11 +480,12 @@ export class TagNodeHandler {
         relationshipId,
         relationshipTargetFile,
       }) => {
-        await this.createNodeAndReplace({
+        await createNodeFromTag({
+          plugin: this.plugin,
           nodeType: selectedNodeType,
           title,
           editor,
-          tagElement,
+          lineNumber,
           selectedExistingNode,
           relationshipId,
           relationshipTargetFile,
@@ -312,412 +494,52 @@ export class TagNodeHandler {
     }).open();
   }
 
-  /**
-   * Create the discourse node and replace the content up to the tag
-   */
-  private async createNodeAndReplace(
-    params: NodeCreationParams,
-  ): Promise<void> {
-    const {
-      nodeType,
-      title,
-      editor,
-      tagElement,
-      selectedExistingNode,
-      relationshipId,
-      relationshipTargetFile,
-    } = params;
-    try {
-      let linkText: string;
-      let createdOrSelectedFile: TFile;
-
-      if (selectedExistingNode) {
-        linkText = `[[${selectedExistingNode.basename}]]`;
-        createdOrSelectedFile = selectedExistingNode;
-      } else {
-        const formattedNodeName = formatNodeName(title, nodeType);
-        if (!formattedNodeName) {
-          new Notice("Failed to format node name", 3000);
-          return;
-        }
-
-        const newFile = await createDiscourseNodeFile({
-          plugin: this.plugin,
-          formattedNodeName,
-          nodeType,
-        });
-
-        if (!newFile) {
-          new Notice("Failed to create discourse node file", 3000);
-          return;
-        }
-
-        linkText = `[[${formattedNodeName}]]`;
-        createdOrSelectedFile = newFile;
-      }
-
-      if (relationshipId && relationshipTargetFile) {
-        await addRelationIfRequested(this.plugin, createdOrSelectedFile, {
-          relationshipId,
-          relationshipTargetFile,
-        });
-      }
-
-      const extractedData = this.extractContent(tagElement);
-      if (!extractedData) {
-        new Notice("Could not create discourse node", 3000);
-        return;
-      }
-
-      const { fullLineContent } = extractedData;
-      // Find the actual line in editor that matches our DOM content
-      const allLines = editor.getValue().split("\n");
-      let lineNumber = -1;
-      for (let i = 0; i < allLines.length; i++) {
-        if (
-          allLines[i]?.includes(fullLineContent) &&
-          allLines[i]?.includes(tagElement.textContent ?? "")
-        ) {
-          lineNumber = i;
-          break;
-        }
-      }
-
-      if (lineNumber === -1) {
-        new Notice("Could not replace tag with discourse node", 3000);
-        return;
-      }
-
-      const actualLineText = allLines[lineNumber];
-      if (!actualLineText) {
-        new Notice("Could not replace tag with discourse node", 3000);
-        return;
-      }
-
-      const listPrefix = extractListPrefix(actualLineText);
-      const replacementText = listPrefix + linkText;
-
-      editor.replaceRange(
-        replacementText,
-        { line: lineNumber, ch: 0 },
-        { line: lineNumber, ch: actualLineText.length },
-      );
-
-      this.cleanupProcessedTags();
-      this.cleanupTooltips();
-    } catch (error) {
-      console.error("Error creating discourse node from tag:", error);
-      new Notice(
-        `Error creating discourse node: ${error instanceof Error ? error.message : String(error)}`,
-        5000,
-      );
-    }
+  private scheduleHide(): void {
+    this.cancelHide();
+    this.hideTimeout = window.setTimeout(() => this.hide(), HIDE_DELAY);
   }
 
-  // ============================================================================
-  // HOVER FUNCTIONALITY & TOOLTIPS
-  // ============================================================================
-
-  /**
-   * Add hover functionality with "Create [NodeType]" button
-   */
-  private addHoverFunctionality(
-    tagElement: HTMLElement,
-    nodeType: DiscourseNode,
-    editor: Editor,
-  ): void {
-    if (tagElement.dataset.discourseTagProcessed === "true") return;
-    tagElement.dataset.discourseTagProcessed = "true";
-
-    if (
-      (tagElement as HTMLElement & { __discourseTagCleanup?: () => void })
-        .__discourseTagCleanup
-    ) {
-      return;
-    }
-
-    let hoverTimeout: number | null = null;
-    let currentMouseY = 0;
-    let currentMouseX = 0;
-
-    // Track mouse position to determine which part of multi-line tag is hovered
-    const handleMouseMove = (e: MouseEvent) => {
-      currentMouseY = e.clientY;
-      currentMouseX = e.clientX;
-
-      // Update tooltip position if it's already visible
-      if (this.currentTooltip) {
-        updateTooltipPosition();
-      }
-    };
-
-    const getClosestRect = (): DOMRect => {
-      const range = activeDocument.createRange();
-      range.selectNodeContents(tagElement);
-      const clientRects = range.getClientRects();
-
-      if (clientRects.length > 0) {
-        // If tag spans multiple lines, find the rect closest to mouse position
-        if (clientRects.length > 1) {
-          let closestRect: DOMRect | null = null;
-          let minDistance = Infinity;
-
-          for (let i = 0; i < clientRects.length; i++) {
-            const r = clientRects.item(i);
-            if (!r) continue;
-
-            // Calculate distance from mouse position to center of this rect
-            const rectCenterY = r.top + r.height / 2;
-            const rectCenterX = r.left + r.width / 2;
-            const distanceY = Math.abs(currentMouseY - rectCenterY);
-            const distanceX = Math.abs(currentMouseX - rectCenterX);
-            // Weight Y distance more heavily since we care more about vertical proximity
-            const distance = distanceY * 2 + distanceX;
-
-            if (distance < minDistance) {
-              minDistance = distance;
-              closestRect = r;
-            }
-          }
-
-          return (
-            closestRect ||
-            clientRects.item(clientRects.length - 1) ||
-            tagElement.getBoundingClientRect()
-          );
-        } else {
-          // Single line tag - use the only rect
-          return clientRects.item(0) || tagElement.getBoundingClientRect();
-        }
-      }
-
-      return tagElement.getBoundingClientRect();
-    };
-
-    const updateTooltipPosition = () => {
-      if (!this.currentTooltip) return;
-
-      const rect = getClosestRect();
-      this.currentTooltip.style.top = `${rect.top - TOOLTIP_OFFSET}px`;
-      this.currentTooltip.style.left = `${rect.left + rect.width / 2}px`;
-    };
-
-    const showTooltip = () => {
-      if (this.currentTooltip) return;
-
-      const rect = getClosestRect();
-
-      this.currentTooltip = createDiv();
-      this.currentTooltip.className = "discourse-tag-popover";
-      this.currentTooltip.style.cssText = `
-        position: fixed;
-        top: ${rect.top - TOOLTIP_OFFSET}px;
-        left: ${rect.left + rect.width / 2}px;
-        transform: translateX(-50%);
-        border-radius: 6px;
-        padding: 6px;
-        z-index: 9999;
-        white-space: nowrap;
-        font-size: 12px;
-        pointer-events: auto;
-      `;
-
-      const createButton = createEl("button");
-      createButton.textContent = `Create ${nodeType.name}`;
-      createButton.className = "mod-cta dg-create-node-button";
-
-      createButton.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        this.handleTagClick(tagElement, nodeType, editor);
-
-        hideTooltip();
-      });
-
-      this.currentTooltip.appendChild(createButton);
-
-      activeDocument.body.appendChild(this.currentTooltip);
-
-      this.currentTooltip.addEventListener("mouseenter", () => {
-        if (hoverTimeout) {
-          clearTimeout(hoverTimeout);
-          hoverTimeout = null;
-        }
-      });
-
-      this.currentTooltip.addEventListener("mouseleave", () => {
-        void setTimeout(hideTooltip, HIDE_DELAY);
-      });
-    };
-
-    const hideTooltip = () => {
-      if (this.currentTooltip) {
-        this.currentTooltip.remove();
-        this.currentTooltip = null;
-      }
-    };
-
-    tagElement.addEventListener("mouseenter", () => {
-      if (hoverTimeout) {
-        clearTimeout(hoverTimeout);
-      }
-      hoverTimeout = window.setTimeout(showTooltip, HOVER_DELAY);
-    });
-
-    tagElement.addEventListener("mousemove", handleMouseMove);
-
-    tagElement.addEventListener("mouseleave", (e) => {
-      if (hoverTimeout) {
-        clearTimeout(hoverTimeout);
-        hoverTimeout = null;
-      }
-
-      const relatedTarget = e.relatedTarget as HTMLElement;
-      if (!relatedTarget || !this.currentTooltip?.contains(relatedTarget)) {
-        void setTimeout(hideTooltip, HIDE_DELAY);
-      }
-    });
-
-    const cleanup = () => {
-      tagElement.removeEventListener("mousemove", handleMouseMove);
-      if (hoverTimeout) {
-        clearTimeout(hoverTimeout);
-      }
-      hideTooltip();
-    };
-
-    (
-      tagElement as HTMLElement & { __discourseTagCleanup?: () => void }
-    ).__discourseTagCleanup = cleanup;
+  private cancelHide(): void {
+    if (this.hideTimeout === null) return;
+    window.clearTimeout(this.hideTimeout);
+    this.hideTimeout = null;
   }
 
-  // ============================================================================
-  // OBSERVER MANAGEMENT
-  // ============================================================================
-
-  /**
-   * Start observing the current active view for tag changes
-   */
-  private startObserving(): void {
-    if (!this.tagObserver) return;
-
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView) return;
-
-    const targetElement = activeView.contentEl;
-    if (targetElement) {
-      this.tagObserver.observe(targetElement, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ["class"],
-      });
-    }
+  private clearShowTimeout(): void {
+    if (this.showTimeout === null) return;
+    window.clearTimeout(this.showTimeout);
+    this.showTimeout = null;
   }
 
-  /**
-   * Stop observing
-   */
-  private stopObserving(): void {
-    if (this.tagObserver) {
-      this.tagObserver.disconnect();
-    }
-  }
-
-  // ============================================================================
-  // EVENT HANDLERS & LIFECYCLE
-  // ============================================================================
-
-  /**
-   * Setup workspace event handlers
-   */
-  private setupEventHandlers(): void {
-    const activeLeafChangeHandler = () => {
-      void setTimeout(() => {
-        this.stopObserving();
-        this.startObserving();
-        this.processTagsInView();
-      }, OBSERVER_RESTART_DELAY);
-    };
-
-    this.app.workspace.on("active-leaf-change", activeLeafChangeHandler);
-    this.registeredEventHandlers.push(() => {
-      this.app.workspace.off("active-leaf-change", activeLeafChangeHandler);
-    });
-  }
-
-  /**
-   * Cleanup event handlers
-   */
-  private cleanupEventHandlers(): void {
-    this.registeredEventHandlers.forEach((cleanup) => cleanup());
-    this.registeredEventHandlers = [];
-  }
-
-  /**
-   * Cleanup observer
-   */
-  private cleanupObserver(): void {
-    this.stopObserving();
-    this.tagObserver = null;
-  }
-
-  /**
-   * Cleanup tooltips
-   */
-  private cleanupTooltips(): void {
-    if (this.currentTooltip) {
-      this.currentTooltip.remove();
-      this.currentTooltip = null;
-    }
-    const tooltips = activeDocument.querySelectorAll(".discourse-tag-popover");
-    tooltips.forEach((tooltip) => tooltip.remove());
-  }
-
-  /**
-   * Cleanup processed tags
-   */
-  private cleanupProcessedTags(): void {
-    const processedTags = activeDocument.querySelectorAll(
-      '[data-discourse-tag-processed="true"]',
-    );
-    processedTags.forEach((tag) => {
-      const tagWithCleanup = tag as HTMLElement & {
-        __discourseTagCleanup?: () => void;
-      };
-      const cleanup = tagWithCleanup.__discourseTagCleanup;
-      if (typeof cleanup === "function") {
-        cleanup();
-      }
-      tag.removeAttribute("data-discourse-tag-processed");
-
-      const htmlTag = tag as HTMLElement;
-      delete htmlTag.dataset.dgDiscourseTag;
-      delete htmlTag.dataset.dgDiscourseTagNode;
-      htmlTag.setCssProps({
-        "--dg-discourse-tag-bg": "",
-        "--dg-discourse-tag-fg": "",
-      });
-    });
-  }
-
-  // ============================================================================
-  // UTILITY METHODS
-  // ============================================================================
-
-  /**
-   * Get the active editor (helper method)
-   */
-  private getActiveEditor(): Editor | null {
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    return activeView?.editor || null;
+  private hide(): void {
+    this.tooltip?.remove();
+    this.tooltip = null;
+    this.anchor = null;
   }
 }
 
-/**
- * Check if element has cm-tag-* class
- */
-export const hasTagClass = (element: HTMLElement): boolean => {
-  return Array.from(element.classList).some((cls) => cls.startsWith("cm-tag-"));
+export const createDiscourseTagExtension = (plugin: DiscourseGraphPlugin) => {
+  const hover = new DiscourseTagHoverController(plugin);
+  plugin.register(() => hover.destroy());
+
+  return [
+    createTagDecorationPlugin(plugin),
+    EditorView.domEventHandlers({
+      mouseover: (event, view) => {
+        hover.handleMouseOver(event, view);
+        return false;
+      },
+      mouseout: (event) => {
+        hover.handleMouseOut(event);
+        return false;
+      },
+    }),
+  ];
+};
+
+// Reconfigures every open editor, which reruns the ViewPlugin's update.
+export const refreshDiscourseTagColors = (
+  plugin: DiscourseGraphPlugin,
+): void => {
+  plugin.app.workspace.updateOptions();
 };
