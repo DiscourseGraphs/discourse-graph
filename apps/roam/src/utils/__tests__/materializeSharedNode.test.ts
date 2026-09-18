@@ -67,7 +67,7 @@ const SOURCED_NODE_TYPE = { format: "[[EVD]] - {content} - {Source}" };
 const SOURCE_PAGE_UID = "source-page-uid";
 const SOURCE_TITLE = "@Smith 2020";
 const SOURCED_TITLE = `[[EVD]] - REM sleep and recall - [[${SOURCE_TITLE}]]`;
-const PLACEHOLDER_TITLE = "[[EVD]] - REM sleep and recall - (source missing)";
+const PLACEHOLDER_TITLE = "[[EVD]] - REM sleep and recall - [[@placeholder]]";
 const IMPORTED_SOURCE_RID = "orn:obsidian.note:vault-b/node-6";
 
 const sharedNode: SharedNode = {
@@ -414,7 +414,7 @@ describe("materializeSharedNode", () => {
     });
   });
 
-  it("uses placeholder text when the format requires a Source but none was published", async () => {
+  it("uses a placeholder reference when the format requires a Source but none was published", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
 
     const result = await materializeSharedNode({
@@ -545,7 +545,7 @@ describe("materializeSharedNode", () => {
     });
   });
 
-  it("uses placeholder text when the Source is not in this graph", async () => {
+  it("uses a placeholder reference when the Source is not in this graph", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
 
     const result = await materializeSharedNode({

@@ -17,14 +17,14 @@ vi.hoisted(() => {
 import { sourceUidOfNode, titleWithSource } from "~/utils/sourceSlot";
 
 describe("titleWithSource", () => {
-  it("fills a missing Source with text that creates no page reference", () => {
+  it("fills a missing Source with the placeholder reference", () => {
     expect(
       titleWithSource({
         format: "[[EVD]] - {content} - {Source}",
         coreTitle: "REM sleep and recall",
-        sourceTitle: "(source missing)",
+        sourceTitle: "@placeholder",
       }),
-    ).toBe("[[EVD]] - REM sleep and recall - (source missing)");
+    ).toBe("[[EVD]] - REM sleep and recall - [[@placeholder]]");
   });
 
   it("fills the content and source placeholders", () => {
@@ -95,11 +95,11 @@ describe("sourceUidOfNode", () => {
     vi.mocked(getPageUidByPageTitle).mockReturnValue("source-page");
   });
 
-  it.each(["(source missing)", "[[(source missing)]]"])(
+  it.each(["@placeholder", "[[@placeholder]]"])(
     "omits %s even if a custom node format and an existing page match it",
     (sourceField) => {
       const customSource = { ...sourceNode, format: "{Content}" };
-      expect("(source missing)").toMatch(
+      expect("@placeholder").toMatch(
         getDiscourseNodeFormatExpression(customSource.format),
       );
       expect(

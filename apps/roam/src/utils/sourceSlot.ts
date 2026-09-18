@@ -11,7 +11,7 @@ import { extractFieldFromTitle } from "./extractContentFromTitle";
 // either of them.
 
 export const SOURCE_SLOT = "sourceDocument";
-export const MISSING_SOURCE_PLACEHOLDER = "(source missing)";
+export const MISSING_SOURCE_PLACEHOLDER = "@placeholder";
 const DEFAULT_SOURCE_SCHEMA_ID = "_SRC-node";
 const CONTENT_PLACEHOLDER = "{content}";
 const SOURCE_PLACEHOLDER = "{source}";
@@ -68,7 +68,7 @@ export const sourceUidOfNode = (
   const sourceTitle = extractFieldFromTitle(title, schema, "source")
     ?.replace(/^\[\[(.*)\]\]$/s, "$1")
     .trim();
-  // Missing-source text is not a reference, even if a custom node format matches it.
+  // The missing-source placeholder page is never a real Source.
   if (
     !sourceTitle ||
     sourceTitle === MISSING_SOURCE_PLACEHOLDER ||
@@ -105,11 +105,9 @@ export const titleWithSource = ({
     placeholders.some((placeholder) => !FILLABLE_PLACEHOLDERS.has(placeholder))
   )
     return null;
-  return format.replace(FORMAT_PLACEHOLDER, (placeholder) => {
-    if (placeholder.toLowerCase() === CONTENT_PLACEHOLDER) return coreTitle;
-    // A page reference would create a page that could be synced as a real Source.
-    return sourceTitle === MISSING_SOURCE_PLACEHOLDER
-      ? MISSING_SOURCE_PLACEHOLDER
-      : `[[${sourceTitle}]]`;
-  });
+  return format.replace(FORMAT_PLACEHOLDER, (placeholder) =>
+    placeholder.toLowerCase() === CONTENT_PLACEHOLDER
+      ? coreTitle
+      : `[[${sourceTitle}]]`,
+  );
 };
