@@ -212,6 +212,31 @@ describe("buildSharedNodes", () => {
     });
   });
 
+  it("builds a URL rid without subtype for a slot in a Roam space", () => {
+    const roamSpace: BuildArgs["spaces"][number] = {
+      id: 22,
+      name: "Research graph",
+      platform: "Roam",
+      url: "https://roamresearch.com/#/app/research-graph",
+    };
+    const nodeWithRoamSlot: BuildArgs["nodes"][number] = {
+      ...nodes[0]!,
+      reference_content: { sourceDocument: 8 },
+      concepts_of_relation: [
+        { id: 8, space_id: 22, source_local_id: "roam-uid-8" },
+      ],
+    };
+    expect(
+      build({
+        nodesOverride: [nodeWithRoamSlot],
+        spacesOverride: [...spaces, roamSpace],
+      })[0]?.slots,
+    ).toEqual({
+      sourceDocument:
+        "https://roamresearch.com/#/app/research-graph/roam-uid-8",
+    });
+  });
+
   it("leaves slots undefined when the node references nothing", () => {
     expect(build()[0]?.slots).toBeUndefined();
   });

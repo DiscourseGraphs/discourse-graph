@@ -12,6 +12,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
+import { findTargetUid } from "./findTargetUid";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import {
   findImportedNodeUidBySourceRid,
@@ -21,6 +22,12 @@ import {
 } from "./importedSourceIdentity";
 import { getErrorMessage } from "./getErrorMessage";
 import { importNodeAssets, type AssetImportReport } from "./importNodeAssets";
+import {
+  MISSING_SOURCE_PLACEHOLDER,
+  schemaHasSourceSlot,
+  SOURCE_SLOT,
+  titleWithSource,
+} from "./sourceSlot";
 
 type MaterializationStage =
   | "validate-input"
@@ -51,6 +58,7 @@ type MaterializationSuccess = SourceIdentity & {
   success: true;
   action: "created" | "updated" | "skipped";
   pageUid: string;
+  warning?: string;
   /** Absent on a skipped import. Per-asset failures land here and don't fail the node. */
   assets?: AssetImportReport;
 };
@@ -128,6 +136,62 @@ const validateSharedNode = (
   if (!title) return { error: "Source node title is required" };
 
   return { sourceModifiedAt: modifiedAt.toISOString(), title };
+};
+
+// The Source page a node's sourceDocument slot names, when this graph has it.
+const resolveSourceTitle = async (
+  sharedNode: SharedNode,
+): Promise<{ sourceTitle: string } | { warning: string }> => {
+  const slotValue = sharedNode.slots?.[SOURCE_SLOT];
+  if (!slotValue)
+    return {
+      warning: "No source was published with this node.",
+    };
+  const sourceUid = await findTargetUid(slotValue, sharedNode.spaceUri);
+  const sourceTitle = sourceUid ? getPageTitleByPageUid(sourceUid) : "";
+  if (!sourceTitle)
+    return {
+      warning: `Its source (${slotValue}) is not in this graph. Import the source, then refresh this page.`,
+    };
+  return { sourceTitle };
+};
+
+const buildPageTitle = async ({
+  sharedNode,
+  nodeType,
+  incomingTitle,
+  importedPageUid,
+}: {
+  sharedNode: SharedNode;
+  nodeType?: Pick<DiscourseNode, "format">;
+  incomingTitle: string;
+  importedPageUid: string | null;
+}): Promise<{ title: string; warning?: string }> => {
+  const coreTitle = sharedNode.coreTitle;
+  if (!coreTitle || !nodeType) return { title: incomingTitle };
+  if (!schemaHasSourceSlot(nodeType))
+    return {
+      title: decorateTitle(nodeType.format, coreTitle) ?? incomingTitle,
+    };
+  const source = await resolveSourceTitle(sharedNode);
+  const title = titleWithSource({
+    format: nodeType.format,
+    coreTitle,
+    sourceTitle:
+      "sourceTitle" in source ? source.sourceTitle : MISSING_SOURCE_PLACEHOLDER,
+  });
+  if (title !== null && "warning" in source) {
+    const existingPageUid = getPageUidByPageTitle(title);
+    if (existingPageUid && existingPageUid !== importedPageUid)
+      return {
+        title: incomingTitle,
+        warning: `${source.warning} The placeholder title "${title}" already belongs to another page; kept the incoming title "${incomingTitle}".`,
+      };
+  }
+  return {
+    title: title ?? incomingTitle,
+    ...("warning" in source ? { warning: source.warning } : {}),
+  };
 };
 
 const fetchFullMarkdown = async ({
@@ -344,10 +408,6 @@ export const materializeSharedNode = async ({
     sourceModifiedAt: validated.sourceModifiedAt,
     sourceNodeRid: sharedNode.rid,
   };
-  const pageTitle =
-    (sharedNode.coreTitle && nodeType
-      ? decorateTitle(nodeType.format, sharedNode.coreTitle)
-      : null) ?? validated.title;
 
   let importedPageUid: string | null;
   let storedIdentity: ImportedSourceIdentity | undefined;
@@ -380,6 +440,13 @@ export const materializeSharedNode = async ({
       action: "skipped",
       pageUid: importedPageUid,
     };
+
+  const { title: pageTitle, warning } = await buildPageTitle({
+    sharedNode,
+    nodeType,
+    incomingTitle: validated.title,
+    importedPageUid,
+  });
 
   const content = await fetchFullMarkdown({ client, sharedNode }).catch(
     (error: unknown) => ({ error: getErrorMessage(error) }),
@@ -427,5 +494,6 @@ export const materializeSharedNode = async ({
         title: pageTitle,
       }));
 
-  return result.success ? { ...result, assets: report } : result;
+  if (!result.success) return result;
+  return { ...result, assets: report, ...(warning ? { warning } : {}) };
 };
