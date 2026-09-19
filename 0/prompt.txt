@@ -1,0 +1,1 @@
+show me how to test the bracket-stripping
