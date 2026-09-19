@@ -1,0 +1,1 @@
+Yes, that makes sense. Let's write it as a change proposal rather than a ticket, and mark it as post-v0.
