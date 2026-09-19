@@ -1,0 +1,10 @@
+corrected, uncommitted. Comments from the coding agent:
+1. Labels on PDF, audio and video embeds are kept. I didn't use the reviewer's kind !== "image" check. Instead, the text after the pipe is kept as a label unless it's a size like 300 or 300x200, whatever the file type. That also keeps an image's own label text, and treats ![[clip.mp4|640]] as a size.
+   - renderMarked no longer calls kindOf, so I removed UnresolvedAsset.sourcePath and the sourcePaths map in importNodeAssets.
+2. The author's percent-encoding is kept. Marked links now use the locator as written in the note, not the decoded recorded form:
+   - A path written inside ![](…) or [](…) without angle brackets is already encoded, so it's kept exactly (fig%231.png, 100%25.png).
+   - A path written raw (<…> or a wikilink) is encoded with encodeURI, plus #, ? and parentheses, which encodeURI leaves alone.
+3. Images inside links no longer produce broken markup. A marked vault image directly inside a link label now becomes plain text there: [![alt](vault/d.png)](https://x.org) becomes [alt (Failed to import)](https://x.org).
+   - A Roam-origin image in the same position keeps its embed, and the marker follows it inside the label.
+   - The check is simply whether the character before ![ is [.
+4. The docstring on importNodeAssets no longer promises a retry. It now says the caller must fail the node without recording its source timestamp, so the next import retries. materializeSharedNode on ENG-2219 already does that.
