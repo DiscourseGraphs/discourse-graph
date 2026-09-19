@@ -1,0 +1,1 @@
+oh, yes I agree that we need the get for retrieval, that is non-negotiable. So. That roam function throws on a foreign host, not on own URL or even on URL from another graph. The decisive test: A valid non-Roam firebase URL. I do not have one handy but I'll search.
