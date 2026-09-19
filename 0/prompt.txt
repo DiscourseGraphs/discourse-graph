@@ -1,0 +1,1 @@
+Much better. Also still unclear to a cold reader what you mean by 'mime-db rename'.
