@@ -1,0 +1,1 @@
+ok. I still want the ENG-2247 PR (and maybe ticket) to note what was scope expansion with respect to the original 2219 ticket, even if we added to 2247 scope. Can we rephrase and correct to that effect?
