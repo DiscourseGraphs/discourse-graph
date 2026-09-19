@@ -1,0 +1,1 @@
+ok, thanks. I'm still a bit uneasy about seeing EXTENSION_KINDS. I am sure this map exists in some JS module, maybe even something we already have.
