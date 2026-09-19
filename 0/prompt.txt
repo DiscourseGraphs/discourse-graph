@@ -1,0 +1,3 @@
+Did paste. Here's what I got back: So the risk is false positive match if there is a similar filepath in the same file.  This is a real problem but probably unlikely to happen often.  I think this is acceptable for a temporary hack.
+And we'd be dropping a "proper filename".  I also think this is acceptable for a hack. 
+I think he does not fully understand the problem.
