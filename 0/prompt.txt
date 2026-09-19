@@ -1,0 +1,1 @@
+Ok. I downloaded the nodes one by one, so it's not a race condition. The importedAssets are absent. No "Error importing asset" in console.
