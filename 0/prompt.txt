@@ -1,0 +1,1 @@
+Not sure what you mean by "first publish after this". If it's a new node, indeed it should have both entries; and republishing will not change that. It should change it for a previously published node, correct?
