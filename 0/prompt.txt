@@ -1,0 +1,1 @@
+I think we can accept that we need to parse the markdown to get at the assets, at least for v0. Sounds good to me. Let's have a first cut of design.md based on all this.
