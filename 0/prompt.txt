@@ -1,0 +1,1 @@
+I think we can eat the hosting costs. I'm unhappy about exposing the sha256, as it almost gives access to the Obsidian asset. Can't we use the SpaceId+SpaceLocalId as a key? Then I can revoke for a given roam space only.
