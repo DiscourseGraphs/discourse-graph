@@ -1,0 +1,25 @@
+<task-notification>
+<task-id>aa1cadc79b5ed45b4</task-id>
+<output-file>/private/tmp/claude-501/-Users-maparent-OpenSource-discourse-graph/c242fe27-497b-4d33-b41e-dfb042481f9a/tasks/aa1cadc79b5ed45b4.output</output-file>
+<status>completed</status>
+<summary>Agent "/code-review" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>No `ReportFindings` tool is available in this session (it isn't among the loaded or deferred tools), so I'm reporting the findings directly here.
+
+**Scope reviewed:** `git diff main...HEAD` — a single commit, `acca8fa42`, touching only `packages/database/src/lib/sharedNodes.ts` (7 insertions, 4 deletions). Working tree has no source changes (only untracked scratch files).
+
+**Verification of the two changes:**
+
+1. `.in("space_id", …)` → `.in("id", …)` — confirmed correct. `my_spaces` is a view whose Row type in `/Users/maparent/OpenSource/discourse-graph/packages/database/src/dbTypes.ts:1403` has only `id, name, platform, url`; there is no `space_id`, so the previous query would have failed at runtime with a PostgREST "column does not exist" error on every call where `associatedSpaceIds` was non-empty.
+
+2. Adding `concepts.map((cpt) =&gt; cpt.space_id)` to the id set — confirmed correct and necessary. `getSharedNodeRows` fetches concepts with `.neq("space_id", currentSpaceId)`, so each node's own space was never in `associatedSpaceIds`; `buildSharedNodes` looks the node's space up in `spacesById` and drops nodes whose space is missing, so the whole shared-nodes list would have come back empty. Dedup is handled by the `Set`, and the `currentSpace` branch still `delete`s the current id before the query, so no duplicate row is pushed.
+
+Type check (`tsc --noEmit`) and `src/lib/__tests__/sharedNodes.test.ts` (15 tests) both pass.
+
+**Findings: 1 (low).**
+
+- `packages/database/src/lib/sharedNodes.ts:246` — low: `getAssociatedSpaces` has no test coverage, which is exactly why the `.in("space_id", …)` column error shipped. The existing suite only exercises the pure `buildSharedNodes`; both query-building functions (`getSharedNodeRows`, `getSharedNodeByRid`) go untested. A stub client asserting the column name and the id set passed to `.in()` would have caught this and would guard the newly added own-space ids.
+
+Minor non-blocking observation (not counted as a finding, currently unreachable): at line 266, `currentSpaceId = currentSpace.id ?? currentSpaceId` can leave `currentSpaceId` undefined when `currentSpace.id` is null, and the guard at line 270 then skips `spaces.push(currentSpace)` entirely — the current space would be silently absent from the result and its nodes dropped by `buildSharedNodes`. The only caller passing `currentSpace` (`getSharedNodeByRid`, line 353) already returns early unless `typeof space.id === "number"`, so this is dead today.</result>
+<usage><subagent_tokens>47949</subagent_tokens><tool_uses>14</tool_uses><duration_ms>71616</duration_ms></usage>
+</task-notification>
