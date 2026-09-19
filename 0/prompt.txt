@@ -1,0 +1,1 @@
+Ah, I was asked why we cannot reuse the strategies we used in Obsidian. Clear to me, but can you formulate a terse explanation of why?
