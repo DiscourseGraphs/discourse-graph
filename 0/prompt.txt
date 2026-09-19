@@ -1,0 +1,19 @@
+<task-notification>
+<task-id>a37f7d061436117d2</task-id>
+<output-file>/private/tmp/claude-501/-Users-maparent-OpenSource-discourse-graph/9e65ef27-1706-414f-8fc4-d687b9ccda93/tasks/a37f7d061436117d2.output</output-file>
+<status>completed</status>
+<summary>Agent "Read-only review of branch" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>All three points are resolved in the amended commits (`b1c322459`, `c7da3b9c9`). Re-verified read-only:
+
+- **Docstring** — the `// The subtype may be omitted.` line is gone from `packages/database/src/lib/rid.ts`; the remaining four lines describe the format accurately for both directions.
+- **`ObsidianRidSubtype` breadth** — noted as intended, no change expected. Agreed that relations-on-relations is far future; the `sharedNodes.ts:207` comment is the right marker for it.
+- **`findTargetUid`** — `ridType` is now mandatory (`apps/roam/src/utils/importSharedRelations.ts:183`), the `?? "note"` fallback is gone from the reconstruction (line 197), and both call sites pass `"note"` explicitly (lines 218, 221). This is better than threading it through: the subtype choice is now visible where the caller actually knows the endpoint is a note, and the `"relation"` case will fail to compile silently rather than defaulting wrong.
+
+Verification after the amendments:
+- `tsc --noEmit` clean in `packages/database`, `apps/roam`, `apps/obsidian`.
+- `vitest run` in `packages/database`: 7 files, 59/59 pass.
+
+No remaining findings.</result>
+<usage><subagent_tokens>91698</subagent_tokens><tool_uses>37</tool_uses><duration_ms>1048217</duration_ms></usage>
+</task-notification>
