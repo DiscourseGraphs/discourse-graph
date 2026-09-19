@@ -1,0 +1,1 @@
+leave the stale docs alone for now. I think the best flow for now is: Do edit the local openspec files yourself, and show me the diff to make it easier for me to maintain the Roam.
