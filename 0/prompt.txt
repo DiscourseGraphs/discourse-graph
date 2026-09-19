@@ -1,0 +1,1 @@
+Great. What do you mean exactly by "- Access scope metadata." in "Out of Scope" section of ENG-1870 ?
