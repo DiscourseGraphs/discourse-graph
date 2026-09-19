@@ -1,0 +1,1 @@
+Ah, no it's on me, I did not reload the plugin properly. Sorry about that. As for bare URLs... I don't think they count as assets, what do you say?
