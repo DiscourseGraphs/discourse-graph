@@ -1,0 +1,1 @@
+I would say todo, even, mirroring eng-2219. It should also block 2219. I think the last Done when bullet should be in out of scope, yes. Before we proceed, I realize I'm not terribly happy with the term Token here. What's an alternative name? I realize it's baked into 2217, which is still not reviewed, so we could still change it.
