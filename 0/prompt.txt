@@ -1,0 +1,2 @@
+Confirming the metadata works as hoped for. url: https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-dev-graph%2FYM9J_saEmQ.txt?alt=media&token=REDACTED
+VM170:7 name: imported-deadbeef.txt size: 5
