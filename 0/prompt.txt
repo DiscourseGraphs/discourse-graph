@@ -1,0 +1,7 @@
+Ok. below is the original scoping notes to ENG-2219, some of which now belongs to ENG-2247 as expansion from the orignial. Clearly the getErrorMessage moves, and title-collision still belongs in ENG-2219. Did some of the dependencies of title collision move into eng-2247?
+Scope beyond Done When:
+Guards against the new stage's irreversible uploads: the title-collision check was extracted into titleCollisionFailure and is now made in materializeSharedNode before the asset stage, and rewriteAssetLinks gained exported lookupCandidates/collectAssetTokens (with parseMatch) so the stage copies only references the rewriter can resolve.
+A refactor: getErrorMessage moved to a new apps/roam/src/utils/getErrorMessage.ts, replacing the copies in materializeSharedNode and in mirrorAssetToRoamStorage (an ENG-2218 file).
+Required now:
+Yes. Roam exposes no API to list or delete an uploaded blob, so an upload made for a node that then fails on a title collision, or for a row whose token no longer appears in the fetched markdown, is a permanent charge on the user's storage. Both cases become reachable the moment this stage ships, so neither can be deferred.
+No. A module-local copy in importNodeAssets satisfied the ticket; the shared module is cleanup that also touches files outside it. But we now had four shared copies.
