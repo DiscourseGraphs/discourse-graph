@@ -1,0 +1,10 @@
+Ran scope check on 2219, results exactly as expected, but it also found a defect.
+## Scope check
+
+- [x] Ran `$scope-check` against ENG-2219 and the final diff.
+- Scope beyond `Done When`: One addition. The title-collision check was extracted into `titleCollisionFailure` and is now also made in `materializeSharedNode` before the asset stage runs, in addition to the checks the two import paths still make. `Done When` requires no ordering guarantee between the collision check and the copy.
+- Required now: Yes. Roam exposes no API to list or delete an uploaded blob, and a rollback cannot be made safe — a graph's users share one asset registry keyed by content hash, so deleting a blob this import uploaded can strand another user's import that already resolved to it. Without the reordering, a node rejected for a title collision would still have made permanent uploads. That case becomes reachable the moment this stage ships, so it cannot be deferred. The failure message and stage are unchanged, so the addition is ordering only.
+- Anyone affected or consulted: No.
+- Decision: Not documented. Record it in a Linear comment on ENG-2219 before merge.
+
+One incidental defect noticed while mapping: apps/roam/src/utils/__tests__/materializeSharedNode.test.ts:498 builds a fake report with failed: [{ sourceRef: "attachments/big.png", … }], but FailedImport names that field sourceLocator (importNodeAssets.ts:21). It typechecks only because the literal is a separate const and sourceLocator is optional, so the test pins a shape the real stage never produces.
