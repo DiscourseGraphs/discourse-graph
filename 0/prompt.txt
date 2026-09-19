@@ -1,0 +1,49 @@
+here's the doc: 
+Find or Create Page
+
+Your subscription to Roam has expired Renew Your Plan, Export Your Notes, or Contact Support
+Roam Alpha API
+Reference
+roamAlphaAPI.file
+roamAlphaAPI.file.upload
+2
+Description:
+Upload a file to Roam.
+Also exists as the legacy alias roamAlphaAPI.util.uploadFile — prefer this version; the old one won't be removed.
+Parameters:
+file (File, required) — a File object
+toast (object, optional)
+hide (boolean, optional, default false) — hide the upload toast
+Return:
+Promise resolving to a Roam block string embedding the file — ![](url) for images, {{[[pdf]]: url}} / {{[[audio]]: url}} / {{[[video]]: url}} for those media types — or the bare download url (string) for other file types
+Example:
+1
+2
+3
+4
+5
+await roamAlphaAPI.file.upload({file: myImageFile, toast: {hide: true}})
+// => "![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fmy-graph%2FaB3xK9mP2.png?alt=media&token=...)"
+
+await roamAlphaAPI.file.upload({file: new File([""], "notes.txt")})
+// => "https://firebasestorage.googleapis.com/..." (bare url — not a recognized media type)
+
+javascript
+roamAlphaAPI.file.get
+1
+Description:
+Fetch a file hosted on Roam. You could also fetch the url yourself, but get handles decryption on encrypted graphs and restores the original file name and type metadata.
+Parameters:
+url (string, required) — a firebase storage url, obtained from roamAlphaAPI.file.upload or from a block
+format (string, optional) — pass "base64" to resolve with {base64, filename, mimetype} instead of a File object
+Return:
+Promise resolving to a File object — or, with format: "base64", to {base64, filename, mimetype}
+Example:
+1
+2
+await roamAlphaAPI.file.get({url: "https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/..."})
+// => File {name: "GVfB6XBcMR.pdf", type: "application/pdf", size: 183424, ...}
+
+javascript
+
+roamAlphaAPI.file.delete
