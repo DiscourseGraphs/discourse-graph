@@ -1,0 +1,1 @@
+Ok. It's stupid but I'm asked to hew closer to Obsidian, and so we'll store the importedAssets in the page. This will solve the problem of duplicates while re-syncing the same page, but not that of graph-wide duplicate, which I'm asked to ignore.
