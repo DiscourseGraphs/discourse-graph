@@ -1,0 +1,1 @@
+I think for 2, could we say something along the lines of: Will not need to know or infer asset origin to perform the tasks. It feels less like prohibiting an implementation, instead prohibiting a design that drives the implementation in an undesired direction.
