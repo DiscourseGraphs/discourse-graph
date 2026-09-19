@@ -1,0 +1,1 @@
+I see that scratchpad is not in the current workspace. What is the full path?
