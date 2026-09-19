@@ -1,0 +1,1 @@
+Still thinking about other options. Maybe I should not transfer Obsidian data to Supabase, but do something else. Maybe create an empty pseudo-content for the imported node, which can serve as a basis for a Roam-side FileReference; and a vercel view that serves the asset based on an existing FileReference. The latter can be revoked, which is a plus.
