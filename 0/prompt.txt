@@ -1,0 +1,1 @@
+Better, thanks. Btw... not sure the filename collision was an issue before, since imported assets are stored per-space. So collision would require a filename collision in the origin Obsidian space, not an issue. BUT it becomes an issue with the current design.
