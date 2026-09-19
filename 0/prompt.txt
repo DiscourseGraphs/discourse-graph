@@ -1,0 +1,1 @@
+Ah, I was thinking of renaming filepath in CrossAppAsset, which has a small surface, not in addFile.
