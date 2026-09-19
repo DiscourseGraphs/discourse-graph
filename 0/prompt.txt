@@ -1,0 +1,7 @@
+I asked Devin to review ENG-2247. Two line comments. 
+importNodeAssets.ts:153:
+Registry failures duplicate asset uploads
+When two locators share a hash and the first registry write fails, handledHashes does not reuse its returned URL. mirrorAssetToRoamStorage suppresses that failure, so the second locator permanently uploads identical bytes again.
+rewriteAssetLinks:420:
+Code samples become asset links
+When code contains a recorded asset URL, collectAssetLocators treats it as rendered page content. rewriteAssetLinks uses the same context-free pattern, so the imported code changes to the mirrored URL.
