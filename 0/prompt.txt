@@ -1,0 +1,1 @@
+ok, good. I have a rebase in progress, and the tests in assetDegradation fail, can you fix them?
