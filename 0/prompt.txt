@@ -1,0 +1,1 @@
+Ok. I just realized something. The reordering in step 3 is based on the irreversibility of assets. But we do have a roamAlphaAPI.file.delete function. (No list.) Maybe we do not need this reordering?
