@@ -1,0 +1,1 @@
+ok, to generate dbTypes, use `env SUPABASE_USE_DB=local` first. Try again.
