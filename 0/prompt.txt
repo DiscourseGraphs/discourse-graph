@@ -1,0 +1,4 @@
+Ok, that could be a bit clearer. Point 3 and 4 can be replaced by: obtaining the filename from the firebase url is possible, but breaks the consumer's agnosticism about provenance.
+Also, maybe that was missing from the template, but the proposal is missing. (Add a nullable filename column.) (Also mention that Obsidian does not need to fill it, that the path will always be filename OR decompose filepath, etc.)
+Interpret urgency abstractly: In terms of ticket relative ordering, not in terms of cycles.
+5th point is minor and can be skipped. Last point can be clarified for a reader with less context.
