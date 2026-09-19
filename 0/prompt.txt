@@ -1,0 +1,1 @@
+Almost right, but we lost the principle that we want to avoid the importing platform having deep knowledge of the source platform.
