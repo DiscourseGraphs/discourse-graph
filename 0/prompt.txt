@@ -1,0 +1,1 @@
+Let me push back a bit more. We now have two fields in the database, filePath and fileName... could we lean on that?
