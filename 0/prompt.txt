@@ -1,0 +1,1 @@
+Yes. I have another question, though. It seems that worrying about orphaned files is not a strong pattern for Roam. And because we have the data in the filenames, we could in theory punt either the registry or the import list, and recompose either from the other.
