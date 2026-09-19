@@ -1,0 +1,1 @@
+Ok. When I asked you to rewrite for terseness, I forgot to ask you to also follow `AGENTS.md`. Do you also follow it?
