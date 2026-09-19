@@ -1,0 +1,1 @@
+Hmmm... looking at ENG-2217, and there's nothing that excludes autolinks from scope, am I right? We just forgot to treat it. As for the issue with capture groups, we can alter and check tests in the appropriate PR.
