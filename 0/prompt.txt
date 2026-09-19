@@ -1,0 +1,15 @@
+One new regression from the ReferenceForm fallback. Collapsing every embed spelling into a single "embed" discards the kind the source markdown stated explicitly:
+
+{{[[pdf]]: <extension-less storage URL>}}  →  ![](url)
+{{[[audio]]: …}}                           →  ![](url)
+{{video: …}}                               →  ![](url)
+![[notes/report.docx]]                     →  ![](url)
+
+The first three are the shape this file's own doc comment calls out as how a Roam-origin PDF actually arrives, and Roam storage uids carry no extension, so it's the common case, not an edge one — a PDF now becomes an image embed. Before the change it produced [abc](url): still wrong, but not asserting a type the source contradicted. The fourth loses the filename label that labelFor exists to preserve, for any Obsidian embed of a non-media file.
+
+Two changes fix both:
+
+1. Capture the media keyword from the {{[[pdf|audio|video]]: url}} and {{pdf|audio|video: url}} branches and let it outrank the extension guess — the publisher wrote the kind down, so there is nothing to infer.
+2. Restrict the embed → image fallback to a token with no extension at all, and add the missing media extensions (avif, heic, tiff, ico, flac, aac, m4v, mkv, avi) to the list. That keeps ![[photo.avif]] and the extension-less storage URL embedding, while ![[report.docx]] stays a labelled link.
+
+Want me to apply those, or leave them to you?
