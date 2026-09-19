@@ -1,0 +1,16 @@
+Medium (comment) — rewriteAssetLinks.ts:31: the docstring contradicts its own function and labelFor.
+It states Roam "reads the first part of the type, so every image/* embeds, application/pdf gets the PDF viewer, and anything else becomes a bare URL". But the function below also returns "audio" for audio/* and "video" for video/*, which render turns into {{[[audio]]: …}} / {{[[video]]: …}} — not a bare URL. labelFor's docstring (:155) says the opposite: file.upload returns a bare URL for anything that is not "an image, PDF, audio or video". Since the entire new strategy rests on "verified against file.upload", a reader can't tell which of the two behaviors was actually verified, and the wrong one would mean every imported audio/video renders differently from a native upload. Reword whichever is inaccurate.
+
+Low — rewriteAssetLinks.ts:36: the MIME rank is exact-match on a value it doesn't control. mimetype comes from a FileReference row, not from mime-db, so application/pdf; charset=binary or IMAGE/PNG misses and falls through to the extension rank. Nothing populates mimetype yet, so it costs nothing today, and lowercasing plus splitting on ; would close it. Also, the subtype === "pdf" test isn't scoped to application, so a nonstandard text/pdf would embed — harmless, but the check is looser than the comment's "application/pdf".
+
+Low — rewriteAssetLinks.test.ts:80: the guard test's rationale is now stale. The comment says the test catches "a mime-db update renam[ing] a type the table keys on" — the table no longer keys on type names, so that failure mode is gone. The test still earns its place (it pins the 24 common extensions against a derivation change), but the stated reason no longer matches the design.
+
+Not a defect, worth knowing: the widened table means .dwg, .dxf, .wmf, .3ds, .sub now embed as images and .m3u, .asx, .ram, .wax as audio/video players — mostly broken renders. That is the deliberate trade (an imported file looks like a natively uploaded one), and it's the correct call if the file.upload claim above is the verified one.
+
+The escapeLabel → stripLabelBrackets rename plus the narrowed application (invented labels and translated wikilink aliases, not author alt text) is right, and the docstring now records that Roam honours no escape — the reason stripping isn't a fallback.
+
+On the scope question
+
+Yes — materially better, and I'd revise my earlier note. My objection was that mime-db shipped 204 KB to derive ~40 entries that were fully determined at build time by a list already in the file. That's gone: the extension table is now indexed from all ~1000 mime-db types, and the rule reproduced is Roam's, not a curated one. No hand-written list reproduces 223 extensions, and the ticket's "emit Roam's embed syntax for each asset's media type" is what forces exhaustiveness. The dependency is now load-bearing.
+
+The bundle cost is unchanged and still real: mimeDb is enumerated dynamically, so esbuild ships all of db.json into extension.js. If that matters, a build-time codegen step emitting the 223-entry table would keep the derivation and drop the runtime dependency — worth a follow-up ticket, not a blocker.
