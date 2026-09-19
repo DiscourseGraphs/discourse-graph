@@ -1,0 +1,1 @@
+Ok. Now I need to re-compare with the other branch. What if we do copy the asset to FireBase after all. We may end up with duplicate copies of the file if it's referrenced more than once in Obsidian. How to avoid that minimally, or at least store enough information that we can unify post-v0?
