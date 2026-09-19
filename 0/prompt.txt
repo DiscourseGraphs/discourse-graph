@@ -1,0 +1,1 @@
+One last thing: When trying to explain the PR, I realized I was unclear as to how we had obtained an exhaustive link of the file types that Roam knows to render.
