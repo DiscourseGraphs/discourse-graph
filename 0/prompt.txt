@@ -1,0 +1,1 @@
+Actually, is it even true that we don't change how references are found in markdown at publish? The text search is the same, but we now write multiple FileReference rows if an asset is referred to by different links in the same node, whereas we used to normalize to the absolute path.
