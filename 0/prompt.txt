@@ -1,0 +1,1 @@
+Agreed, take A. Keep assetDegradation.test.ts in a separate commit though.
