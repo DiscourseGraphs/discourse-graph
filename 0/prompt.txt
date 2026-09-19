@@ -1,0 +1,1 @@
+It's ok, but give full paths when writing outside the workspace. Much clearer than it was, thank you.
