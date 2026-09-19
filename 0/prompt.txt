@@ -1,0 +1,1 @@
+Looking at the logic in this PR... If I understand well, we need to identify the type of each asset to create the appropriate link. Why can't we just use the source's link shape? Maybe because Obsidian's link shapes don't match the roam link shapes well?
