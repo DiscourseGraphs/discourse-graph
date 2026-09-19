@@ -24,6 +24,11 @@ import {
   convertRoamNodeToFullContent,
   type RoamFullContentNode,
 } from "./convertRoamNodeToFullContent";
+import {
+  publishNodeAssets,
+  summarizeAssetResults,
+  type NodeAssetResult,
+} from "./publishNodeAssets";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { intersection } from "@repo/utils/setOperations";
 import { CORE_TITLE_PROBE_SELECT } from "@repo/database/lib/coreTitleBackfill";
@@ -804,24 +809,44 @@ const upsertNodesToSupabaseAsContent = async (
   await uploadContentBatches({ content, supabaseClient, context });
 };
 
-const upsertRoamNodesToSupabaseAsFullContent = async ({
+/** The asset stage runs here too, so an asset added after sharing still gets a row. */
+export const upsertSharedNodesFullContentWithAssets = async ({
   nodes,
   supabaseClient,
   context,
+  phases,
 }: {
   nodes: RoamFullContentNode[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
-}): Promise<void> => {
-  if (nodes.length === 0) {
-    return;
-  }
-
-  const fullContent = convertRoamNodeToFullContent({ nodes });
-  await uploadContentBatches({
-    content: fullContent,
-    supabaseClient,
-    context,
+  phases: SyncPhaseDurations;
+}): Promise<NodeAssetResult[]> => {
+  // Building the markdown is the expensive half of the upload, so it stays inside the
+  // phase it has always been timed under.
+  const converted = await measureSyncPhase({
+    phase: "upsertFullContent",
+    phases,
+    operation: async () => {
+      const converted = convertRoamNodeToFullContent({ nodes });
+      await uploadContentBatches({
+        content: converted.map(({ content }) => content),
+        supabaseClient,
+        context,
+      });
+      return converted;
+    },
+  });
+  // A failed upload throws above, so every converted node now has the Content row
+  // that publishNodeAssets requires.
+  return measureSyncPhase({
+    phase: "publishSharedNodeAssets",
+    phases,
+    operation: () =>
+      publishNodeAssets({
+        client: supabaseClient,
+        spaceId: context.spaceId,
+        nodes: converted.map(({ node }) => node),
+      }),
   });
 };
 
@@ -902,6 +927,29 @@ const reportCoreTitleBackfill = ({
     skipped,
     orphaned,
   });
+};
+
+/**
+ * A failed copy is not retried until the node changes again, so the counts are the only
+ * standing signal that a shared node's asset never reached storage.
+ */
+const reportSharedNodeAssets = (results: NodeAssetResult[]): void => {
+  if (results.length === 0) return;
+  const { copied, unchanged, distinctBlobs, tooLarge, failed } =
+    summarizeAssetResults(results);
+  posthog.capture("Sync shared node assets", {
+    copied,
+    unchanged,
+    distinctBlobs,
+    tooLarge: tooLarge.length,
+    failed: failed.length,
+  });
+  if (failed.length > 0) {
+    console.warn(
+      `Sync could not copy ${failed.length} shared node assets`,
+      failed,
+    );
+  }
 };
 
 const getAllMissingOrNewDiscourseNodes = async ({
@@ -1445,16 +1493,14 @@ export const createOrUpdateDiscourseEmbedding = async (
               activeContext,
             ),
     });
-    await measureSyncPhase({
-      phase: "upsertFullContent",
-      phases,
-      operation: () =>
-        upsertRoamNodesToSupabaseAsFullContent({
-          nodes: sharedFullContentNodes,
-          supabaseClient: activeSupabaseClient,
-          context: activeContext,
-        }),
-    });
+    reportSharedNodeAssets(
+      await upsertSharedNodesFullContentWithAssets({
+        nodes: sharedFullContentNodes,
+        supabaseClient: activeSupabaseClient,
+        context: activeContext,
+        phases,
+      }),
+    );
     await measureSyncPhase({
       phase: "convertConcepts",
       phases,
