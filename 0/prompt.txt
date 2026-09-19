@@ -1,0 +1,1 @@
+Good, thank you. Ok, while we're there, I'm thinking... are the field names defined in the eng-1864? If not, we could make things conceptually clearer by naming them source_ref and source_path now.
