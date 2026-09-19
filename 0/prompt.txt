@@ -1,0 +1,1 @@
+Thank you. Another question, now on ENG-1870: the ROAM_STORAGE_HOST and ROAM_STORAGE_BUCKET are strong assuptions. Can we relax, at least partly?
