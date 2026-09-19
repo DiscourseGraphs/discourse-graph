@@ -1,7 +1,6 @@
 import {
   createTLStore,
   defaultBindingUtils,
-  defaultShapeUtils,
   TldrawFile,
   TLStore,
   loadSnapshot,
@@ -27,6 +26,8 @@ import {
 import { DiscourseRelationUtil } from "~/components/canvas/shapes/DiscourseRelationShape";
 import { DiscourseRelationBindingUtil } from "~/components/canvas/shapes/DiscourseRelationBinding";
 import { discourseNodeMigrations } from "~/components/canvas/shapes/discourseNodeMigrations";
+import { textLinkMigrations } from "~/components/canvas/shapes/textLinkMigrations";
+import { baseShapeUtils } from "~/components/canvas/shapes/baseShapeUtils";
 import { toSerializedStore } from "~/components/canvas/utils/canvasFileSync";
 
 export type TldrawPluginMetaData = {
@@ -47,13 +48,30 @@ export type TLData = {
   raw: TldrawRawData;
 };
 
+const APP_MIGRATIONS = [discourseNodeMigrations, textLinkMigrations];
+
+// A file with no stored schema predates our own sequences but not tldraw's, so
+// drop only our sequence ids. Migrations missing from the loaded schema replay
+// in full (they are retroactive), while built-ins stay at their current version
+// instead of re-running against already-migrated records.
+export const schemaBeforeAppMigrations = (store: TLStore): SerializedSchema => {
+  const appSequenceIds = new Set(APP_MIGRATIONS.map((m) => m.sequenceId));
+  const { sequences, ...rest } = store.schema.serialize();
+  return {
+    ...rest,
+    sequences: Object.fromEntries(
+      Object.entries(sequences).filter(([id]) => !appSequenceIds.has(id)),
+    ),
+  };
+};
+
 export const processInitialData = (
   data: TLData,
   assetStore: ObsidianTLAssetStore,
   ctx: DiscourseNodeUtilOptions,
 ): { meta: TldrawPluginMetaData; store: TLStore } => {
   const customShapeUtils = [
-    ...defaultShapeUtils,
+    ...baseShapeUtils,
     DiscourseNodeUtil.configure(ctx),
     DiscourseRelationUtil.configure(ctx),
   ];
@@ -65,18 +83,17 @@ export const processInitialData = (
     shapeUtils: customShapeUtils,
     bindingUtils: [...defaultBindingUtils, DiscourseRelationBindingUtil],
     assets: assetStore,
-    migrations: [discourseNodeMigrations],
+    migrations: APP_MIGRATIONS,
   });
 
   if (recordsData) {
-    // Create a snapshot with the old schema (if available) or use current schema
-    // The schema from data.raw is typed as any because it's legacy data format
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- legacy schema may not match current SerializedSchema
-    const oldSchema = data.raw.schema ?? store.schema.serialize();
+    // data.raw.schema is unknown: it comes from the legacy on-disk format.
+    const oldSchema =
+      (data.raw.schema as SerializedSchema | undefined) ??
+      schemaBeforeAppMigrations(store);
     const snapshot: TLStoreSnapshot = {
       store: recordsData,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- legacy schema assigned to snapshot
-      schema: oldSchema as unknown as SerializedSchema,
+      schema: oldSchema,
     };
 
     loadSnapshot(store, snapshot, { forceOverwriteSessionState: true });

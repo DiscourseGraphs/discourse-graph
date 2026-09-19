@@ -114,3 +114,15 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   border-radius: 0;
   color: var(--interactive-accent);
 }
+
+/* A geo shape's label is inset, so tldraw parks the link icon in its empty
+   top-right corner. A text shape is exactly as big as its text, so that corner
+   is the text itself -- sit the icon just past the right edge instead.
+   Both classes are needed: this file is concatenated ahead of the vendored
+   tldraw CSS, so a single class ties on specificity and loses on source order. */
+.tl-hyperlink-button.dg-text-hyperlink-button {
+  top: 50%;
+  right: auto;
+  left: 100%;
+  transform: translateY(-50%);
+}
