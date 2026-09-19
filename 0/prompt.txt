@@ -1,0 +1,1 @@
+I think the markdown shapes are different enough, no shared code. I agree with not splitting 1870. So let's draft the other two.
