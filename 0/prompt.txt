@@ -1,0 +1,1 @@
+Ok. Final ask: Can you rewrite cross-app-assets.html as roam-friendly markdown as well?
