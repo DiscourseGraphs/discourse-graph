@@ -1,0 +1,1 @@
+I want an issue proposal, with the roam template, starting with the problem statement. focus only on the fact that this goes against known decisions we took in Obsidian, that were not captured well while drafting roam mvp0 scope. THEN we'll point to that in the security breach scenario and make the link.
