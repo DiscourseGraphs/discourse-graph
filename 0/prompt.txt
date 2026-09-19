@@ -1,0 +1,1 @@
+Ok, that's reassuring. Also: We may not even need to change the behaviour! We have the original markdown file's path in the literal_content->filePath field. So in theory, in Obsidian, we could compute the full path from the token, am I right?
