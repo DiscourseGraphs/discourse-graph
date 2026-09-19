@@ -1,0 +1,1 @@
+Ok, I'm a bit confused by the table under 'What to record so you can unify later'. I would think that is covered by the fileHash->firebaseUrl table in a Roam prop, no? (probably going that route instead of supabase-side.)  Are you just warning me against not storing that registry? Or am I missing something?
