@@ -1,0 +1,10 @@
+ok rebased, changed the pr base, and all that jazz. I ran scope check on 2247, telling it about the split from 2219. This is what came back:
+## Scope check
+
+- [x] Ran `$scope-check` against ENG-2247 and the final diff.
+- Scope beyond `Done When`: `apps/roam/src/utils/__tests__/assetDegradation.test.ts` (274 lines, commit `284bd2ae2`). It exercises the degradation path across both transfers, calling `publishNodeAssets` / `summarizeAssetResults` (ENG-1870) as well as `importNodeAssets`. No `Done When` criterion covers the publish half. Also a doc-comment block added to `mirrorAssetToRoamStorage.ts` (ENG-2218's file) explaining why nothing rolls an upload back — comment only, no behaviour change.
+- Required now: the test satisfies task 6.1 of the `cross-app-asset-references` OpenSpec change, and its header is the record ENG-2247's Notes point at for why `sourceRef` and `sourceLocator` both exist. It asserts the contract between the two halves, which cannot be asserted from either side alone. The rollback comment documents a constraint `importNodeAssets` depends on and would otherwise be uncaptured.
+- Anyone affected or consulted: Not documented.
+- Decision: `Not documented` — record it in a Linear comment on ENG-2247 before merge.
+
+One separate finding, not a scope issue: Done When 3 asks for collectAssetLocators to be "pinned by a test that walks one corpus through both." No test imports collectAssetLocators — the only non-source references are importNodeAssets.ts and a comment. importNodeAssets.test.ts covers the pairing indirectly (the percent-encoding and encodeURI-resistant cases at lines 319 and 336), but nothing pins the two functions against a shared corpus directly. Worth adding before you call the ticket done.
