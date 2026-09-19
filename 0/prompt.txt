@@ -1,0 +1,2 @@
+Now just did the scope check on eng-2218. 
+One observation, too small for the PR body: UPLOAD_RETURN_PATTERNS includes a bracket-less {{pdf: url}} variant beyond the five shapes the ticket enumerates. It's one regex alternative with no test, so it either deserves a test or removal.
