@@ -1,0 +1,1 @@
+Ok, good catch on the security angle, for me that settles it. But I still have to explain the pros and cons, and your version is much too long (hopefully because it's still written as open.) Can you make a very terse version with the proposed solution?
