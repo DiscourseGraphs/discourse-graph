@@ -1,0 +1,1 @@
+The consequences are acknowledged. I agree it is better to compare decoded paths. Let's record ROAM_STORAGE_BUCKET in the paths not taken in design, and remove it from the code. I did test in a graph with upper case, and they are preserved in the link.
