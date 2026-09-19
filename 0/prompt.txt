@@ -1,0 +1,1 @@
+I don't think that's worth either change. so another question: Would we naturally expose the filename to the user as things stand?
