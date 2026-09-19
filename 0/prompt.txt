@@ -1,0 +1,1 @@
+We're going to finalize the tickets first. A tiny adjustment to ENG-1872 first: We are rewriting from shared nodes to obsidian-origin shared nodes. This is correct, as for Roam-origin shared nodes we can just do nothing, the URL is still usable between Roam graphs. But this needs to be stated (probably as a note.)
