@@ -1,0 +1,1 @@
+Yeah... I suspect that, given the team's decision to avoid scope changes, we'll choose B, which hews closer to Obsidian (which was a context for the linear tickets.) Now thinking... should we make the database change now, and introduce url alongside filename? Another scope change, but I think we can justify it.
