@@ -1,0 +1,4 @@
+Two small things I noticed in the new code, neither blocking:
+
+1. apps/roam/src/utils/assetRegistry.ts:37 — the warn sits in findRegistryBlockUid, which readMirroredAssetUrl calls once per lookup. A per-asset loop on an orphaned registry logs the same paragraph N times. If finding 4's hoist happens in the caller it collapses on its own; otherwise a module-level hasWarned flag would.
+2. Same warn, on the write path: getOrCreateRegistryBlockUid calls findRegistryBlockUid first, so a write against an orphaned page logs "It will be recreated on the next import" and then recreates it in that very call. The message is a sentence off for that path.
