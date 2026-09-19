@@ -1,0 +1,1 @@
+Zed used to have many more unsaved file in the buffer, they disappeared on last load. Are they recoverable? How?
