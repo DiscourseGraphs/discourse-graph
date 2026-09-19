@@ -1,0 +1,1 @@
+Ok, I know I asked for terse, but I don't think it's legible without explaining first the case we're concerned with: New bucket with the same path structure, that we _will_ match, but propose not to store. (Also: Rejected is strong, we're making a case here. Would advise against it because: ...) Explain we agree to match on this case to detect it.
