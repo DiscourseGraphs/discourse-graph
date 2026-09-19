@@ -1,0 +1,21 @@
+from the automatic review: 
+On the judgement call: don't build the byte cache. Neither variant of it.
+
+Your reasoning for skipping the last_modified comparison is right and it also settles the duplicate question, because the same immutability argument means you never need the bytes a second time — only the hash.
+
+What the repeat reference actually needs is a FileReference row: filepath, filehash, filename, mimetype (only for the bucket upload, which is already done), and the timestamps. On the second node, every one of those is known from the first copy in the same run. The bytes are needed for exactly one thing — computing the SHA-256 — and you already computed it. So the minimal fix is a run-scoped Map<assetUrl, CopiedAsset + descriptor fields> plus an entry point in packages/database that inserts a reference against a known hash, which is the bottom half of addFile with the hashing, file_exists check, and upload stripped out. Repeat references then cost zero fetches and zero retained bytes — strictly better than the refcount-and-evict scheme, and smaller.
+
+The pre-count-and-cache option buys the same saving at a much worse price: a refcount map, eviction bookkeeping, and a memory ceiling that is still unbounded (many distinct duplicated assets held simultaneously) unless you cap it too — and the cap reintroduces the misses it was built to avoid. It only exists because addFile demands bytes; fixing that demand is the cheaper move.
+
+That said, I would not do it in 2.4/2.5. It is a first-publish-only cost, bounded by the 6 MiB cap per download, and duplicates are structurally uncommon in Roam — each upload gets its own URL, so a shared asset requires someone deliberately reusing the same URL across nodes. Splitting addFile touches a function the Obsidian sync also depends on, which deserves its own ticket rather than a rider on this one. Flagging it, as you did, is the right call; note in the ticket that the fix is the addFile split, not a cache, so the next person doesn't reach for the cache.
+
+Two small things in the new code, both cheap and in scope if you want them:
+
+- apps/roam/src/utils/publishNodeAssets.ts:133 — readExistingReferences runs one query per node. A single .in("source_local_id", nodeIds) before the loop makes the unchanged-republish case one query total instead of N, and the resulting map is exactly the seed you would want for the cross-node dedup later.
+- apps/roam/src/utils/publishNodeAssets.ts:197 — removeUnreferencedAssets issues a DELETE for every node, including the common case where the node has no recorded references at all. Guarding on "some key in existing is absent from referenced" skips the round trip entirely for first publishes and for unchanged nodes.
+
+One residual on finding 3: the null/"" size parsing is now correct, so a size-less descriptor reliably falls through to the post-download check — but the bytes are still buffered in full before that check. Fine as a documented tradeoff; a Content-Length check on the byte response would close it if you ever see it bite.
+
+
+
+I'm thinking we could get last-modified from the bucket, no?
