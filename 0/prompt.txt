@@ -1,0 +1,1 @@
+First the logic. It would be easy to add a delete in the registry, so that's definitely not load bearing. Delete failure is not a big deal, we'll have an extra entry. I think the only load-bearing reason is the concurrency one. Maybe we need to make that clearer.
