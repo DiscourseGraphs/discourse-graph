@@ -1,0 +1,1 @@
+First: Clearly Q1. My defense of mime-db did not reach review, and simpler is better. Second: Still not sure I want to broaden the cache. Is there a workaround?
