@@ -1,0 +1,6 @@
+While reviewing eng-2129, you found that there were significant mismatches between the path from roam to database through sync vs publish. You noticed in particular:
+- Template mismatch — only bites if publish rewrites an existing schema, and the missingNodeSchemas filter prevents exactly that. After a force sync every schema exists, so publish stops touching them. The mismatch matters when you drop the filter, which is paired with the change-detection PR anyway.
+- Author — pre-existing and unchanged by this stack: publish sets author_local_id, the next sync writes the same concept without it, author_id goes back to NULL. Worth landing before anyone reads authorship out of the data, but nothing here makes it worse.
+
+
+Can we write a linear ticket from that, using the Engineering template?
