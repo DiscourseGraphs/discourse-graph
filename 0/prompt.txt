@@ -1,0 +1,1 @@
+ok, possible adjustments to task 2. Scope check points out that returning the hash in addFile is not consumed yet (beyond landing in CopiedAsset.contentHash). But... is that landing into a CrossAppAsset in this task? I think it would be a good enough reason.
