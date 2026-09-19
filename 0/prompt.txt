@@ -1,0 +1,1 @@
+Not sure I follow you fully. OR we could keep mime-db, derive the link style purely from the 1st part of the mimetype, and drop the table, would that work?
