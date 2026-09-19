@@ -1,0 +1,1 @@
+Ticket A would only have the database label. ENG-1870 is TODO. You can say ticket B is a blocker, since it blocks release.
