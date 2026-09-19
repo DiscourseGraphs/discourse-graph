@@ -1,0 +1,1 @@
+One second, what you're writing about using pass-through for Roam-to-Roam feels like pivot A. I do expect Roam to read FileReference without caring about origin, and that does mean a firebase->supabase->firebase travel path (unfortunately.) I had only agreed to passthrough when the reference to the Roam asset was broken.
