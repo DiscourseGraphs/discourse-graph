@@ -1,0 +1,11 @@
+Ok. Here's what my team lead threw back at me. I'm a bit discouraged.
+So basically the problem is that the filepath that Obsidian stores doesn't match 1:1 the url in the markdown format ![label](url)
+Is that correct?
+Obsidian handles this with a matcher function app.metadataCache.getFirstLinkpathDest()
+Roam doesn't have access to this function
+Assuming this is the extent of the problem, is there any issue with fuzzy matching filepath to url in ![label](url)?
+
+This also means that we don't need filename just yet
+Because we can fuzzymatch on a partial Roam firebase url
+
+Can you explain the failure cases for me? I'm tired.
