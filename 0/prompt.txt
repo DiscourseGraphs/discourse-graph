@@ -1,0 +1,1 @@
+Ok, good. I don't think we need to draft tasks.md for most of the tasks, since most of them already live in linear and are not changed that substantially. Maybe we could try to subdivide 1872 into subtasks, though.
