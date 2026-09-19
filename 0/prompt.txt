@@ -1,0 +1,1 @@
+Not worried about non-http URLs in Roam. Slightly concerned about what happens when we add another platform, which may be URL or ORN based, but I think that will be handled by the converter.
