@@ -1,0 +1,1 @@
+hard-coded teams is fine. Have the number with the title. stdin to stdout, I'll probably combine with pbcopy/pbpaste a lot. I'll add the key to the code.
