@@ -1,0 +1,1 @@
+I folded the other changes. As for rewriteAssetLinks.test.ts (in the top commit) I think it only touches comments that were added within f69f337e672be3b1d48aef5050ba67bf253229c0, so it would not touch eng-2217?
