@@ -1,0 +1,1 @@
+Ok, we'll have to try again. I'm being told that this is not intelligible without a lot of mental context that we share through the conversation, but that is not obvious to my teammates, arriving to this problem cold. For example, we refer to the filepath as a token, not obvious without a deep read of design.txt, which we should not take for granted.
