@@ -1,0 +1,7 @@
+Ok... The review agent got ahead of itself and proposed code; I told it to look at your work, and it noticed this:
+spellingsOf generates the encoded spelling with encodeURI, which does not encode # or ?:
+
+"fig#1.png"  encodeURI -> "fig#1.png"   encodeURIComponent -> "fig%231.png"
+"q?x.png"    encodeURI -> "q?x.png"     encodeURIComponent -> "q%3Fx.png"
+
+An Obsidian attachment named fig#1.png is recorded as fig#1.png and written into the markdown as ![](fig%231.png). markdown.includes misses it, the reference is filtered out, and the image is silently dropped — even though rewriteAssetLinks would have resolved it fine, because lookupCandidates decodes in the other direction. That's exactly the filter/rewriter drift the shared-matcher approach can't have: collectAssetTokens derives the filter set from the rewriter's own LINK_PATTERN, so the two sets are equal by construction.
