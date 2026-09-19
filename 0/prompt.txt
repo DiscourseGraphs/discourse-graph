@@ -1,0 +1,22 @@
+Now the review finding. Pasting as a whole.
+Confirmed the high finding directly: setPathMapping is hoisted to importNodes.ts:1036, and the if (!fileContent) branch at importNodes.ts:1087-1090 continues past it, while only the catch at importNodes.ts:1125-1127 calls unsetPathMapping. Here is the subagent's full report.
+
+High
+
+1. importNodes.ts:1088 — a failed download rewrites the note's link to a file that was never written. setPathMapping(filepath, targetPath) now runs at line 1036, before any write; the if (!fileContent) branch pushes an error and continues without unsetPathMapping, unlike the catch. Compounding it, the old code re-validated the mapped path through app.metadataCache.getFirstLinkpathDest and kept the original link when nothing resolved (pre-diff lines 673-681, 798-800) — that guard is gone, so the mapped path is emitted unconditionally. A Roam-origin asset loses a working storage URL and gains a dead relative path. Fix: unsetPathMapping(filepath) and drop the claimedPaths entry before that continue.
+
+Medium
+
+2. importNodes.ts:1031 — claimedPaths.set runs before the download, so a failed download leaves a phantom occupant and a later reference with the same candidate path gets needlessly suffixed. Move it after a successful createBinary/modifyBinary, or roll it back with the mapping.
+3. importNodes.ts:1013 — an asset edited upstream is never updated in place. Reuse is keyed only on importedAssets[filehash], so a new hash misses, overwritePath stays undefined, and resolveAssetTargetPath finds the old version at candidatePath with a different hash and suffixes it. Result: diagram-<H2[0:8]>.png written, the old file orphaned, the link rewritten, a duplicate frontmatter entry — and the remoteIsNewer overwrite branch (~line 1057) is effectively dead for changed content. Fix: also record filepath → vaultPath so a collision this same reference previously claimed is treated as an update.
+4. importNodes.ts:791 — the new URL branch of the image rewriter emits an unencoded path, with no encodePathForMarkdownLink, unlike the non-image handler at line 750. Roam source_path is a user-supplied filename and sanitizeFileName preserves spaces, so ![](Screen Shot 2024-01-01.png) renders broken. The pre-existing non-URL branch at line 800 has the same gap.
+5. importNodes.ts:1017 — remote source_path segments are not neutralised. split("/").map(sanitizeFileName).join("/") leaves . and .. intact and can produce empty segments, so ../../notes/x.png writes outside the import folder and an empty segment breaks the createFolder loop at 1039-1045. sanitizePathForImport (~line 1150) already filters empties; neither guard is applied here.
+
+Low
+
+6. importNodes.ts:974 — occupantHash trusts frontmatter without checking the file still exists, so a user-deleted asset causes a needless suffix.
+7. syncDgNodesToSupabase.ts:704 — findEmbeddedAttachments dedupes by link, so two spellings of one attachment produce two FileReference rows. Row bloat rather than a correctness break.
+
+Explicitly cleared: the filepath/source_path split itself, insert-then-cleanup ordering in syncPublishedNodeAssets, the one-shot source_path !== attachment.path backfill trigger, disambiguateAssetPath leading-dot handling, and the Math.max over an empty attachment list. tsc --noEmit on apps/obsidian is clean.
+
+Two notes on how this lands against the scope check. Finding 7 is the same behavior I flagged as scope beyond Done When — the reviewer rates it low because import tolerates it, but the reviewer's suggested fix (dedupe by file.path as a secondary key) would break Done When 5 and 7, which require a row per link spelling; the right resolution is the Linear comment, not a code change. Findings 1 and 4 both fall inside the URL-rewriting work that the scope check already flagged as undocumented, which strengthens the case for writing that rationale down. Nothing was modified; want me to fix any of these?
