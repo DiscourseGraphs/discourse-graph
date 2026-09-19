@@ -1,0 +1,1 @@
+temp is gone. I am aware of the import panel issue, I'll look at it later. Comment 1 is handled in the scope check, I'm happy with that. Pasted the other 2 in linear. Ok, we can finally move on to 4.2
