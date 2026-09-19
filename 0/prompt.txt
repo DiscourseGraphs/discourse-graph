@@ -1,0 +1,1 @@
+I understand, and right now we'll delay that decision. There are pros and cons either way: github gives us versioning, Roam allows comments. As for the discrepancy: The block is named in Roam, as far as I can see. Can you re-check?
