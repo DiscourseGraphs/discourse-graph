@@ -1,0 +1,20 @@
+Good, using that. Did another code review. Slim pickings, since this was reviewed before. See if there's anything worth changing.
+Medium — apps/roam/src/utils/importNodeAssets.ts:106 — no caller (out of scope per the ticket)
+importNodeAssets has no callers in src/ other than its own tests. The natural wiring point is apps/roam/src/utils/materializeSharedNode.ts:358-366, where content.markdown goes straight into updateImportedPage/createImportedPage untouched, and nothing consumes AssetImportReport. Flagged for completeness only — ENG-2247 explicitly defers wiring to ENG-2219 and user-facing reporting to ENG-1877, so this is not a defect against the stated acceptance boundary.
+
+Low — apps/roam/src/utils/importNodeAssets.ts:181 — skip/fail entries are per reference, not per blob
+mirrored/reused are deduplicated by content hash through handledHashes, but report.skipped and report.failed are pushed once per reference row. A node embedding the same oversized asset under two locators yields two identical {reason: "too-large"} entries, contradicting the module's own comment that "counts are per distinct blob". It also re-calls mirrorAssetToRoamStorage for an already-known-oversized hash: a second storage.info round trip, and on the branch where info omits size (mirrorAssetToRoamStorage.ts:179) a second full download of the oversized blob before the post-download cap rejects it again. Arguably defensible if each degraded locator should be reported separately, but the dedup asymmetry is undocumented.
+
+Low — apps/roam/src/utils/importNodeAssets.ts:186 — mimetype is dropped
+The ResolvedAsset pushed here never sets mimetype, although mirrorAssetToRoamStorage.ts:189 computes it (info?.contentType || blob.type) and simply does not return it on MirroredAsset/ReusedAsset. kindOf (rewriteAssetLinks.ts) therefore always falls past its highest-fidelity branch to extension sniffing. Concrete case: a Roam-origin upload whose storage object has no extension and whose FileReference.source_path is null, referenced as a bare URL — no extension from either name, form is "bare", so it renders as [<uid>](url) instead of an embedded image. Threading mimetype through the two result types removes the guess.
+
+Low — apps/roam/src/utils/getErrorMessage.ts:10 — a third copy remains
+discourseNodeSearchProviders.ts:131 still holds a private getErrorMessage with the old error instanceof Error ? … : String(error) body — exactly the shape that renders a Postgrest error as [object Object], which is what this extraction was for. publishNodeAssets.ts:77 likewise hand-wraps new Error(error.message) for the same reason and could now use the shared helper.
+
+What was verified and found sound
+
+- The parity property the design rests on: collectAssetLocators(markdown).flatMap(lookupCandidates) produces exactly the key set rewriteAssetLinks looks up in byLocator, because both go through the same LINK_PATTERN → parseMatch → lookupCandidates path. The 12 capture groups line up with parseMatch's destructure order.
+- Regex lastIndex is not shared unsafely between matchAll and String.replace; the extra offset/string args to the replace callback fall harmlessly past the destructure.
+- The my_file_references view's access rules (packages/database/supabase/schemas/assets.sql:30) reach the rows for both reader and partial-access cross-space imports.
+- All six ENG-2247 Done When criteria are covered by tests: per-hash upload counting, skipped/failed shapes, unchanged unresolved locators, the "reference row with no locator in markdown is not copied" filter, the collectAssetLocators/rewriteAssetLinks corpus pin in rewriteAssetLinks.test.ts, the node-level failure with no sourceLocator (asserted via not.toHaveProperty), getErrorMessage on a Supabase-shaped error, and the publish→import degradation seam in assetDegradation.test.ts.
+- The .order("filepath") determinism argument and the sequential (non-Promise.all) mirror loop both hold against assetRegistry.ts's read-modify-write semantics.
