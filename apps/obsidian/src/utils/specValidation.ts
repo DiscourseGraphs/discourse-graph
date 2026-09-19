@@ -6,7 +6,7 @@ import type {
   DiscourseSchemaFile,
   DiscourseSchemaTemplate,
 } from "~/types";
-import { TLDRAW_COLOR_NAMES } from "~/utils/tldrawColors";
+import { toTldrawColor } from "~/utils/tldrawColors";
 
 export const DG_SCHEMA_EXPORT_VERSION = 1;
 
@@ -31,12 +31,21 @@ const discourseNodeSchema: z.ZodType<DiscourseNode> = z
 
 const relationImportStatusSchema = z.enum(["provisional", "accepted"]);
 
-const discourseRelationTypeSchema: z.ZodType<DiscourseRelationType> = z
+const discourseRelationTypeSchema: z.ZodType<
+  DiscourseRelationType,
+  z.ZodTypeDef,
+  unknown
+> = z
   .object({
     id: z.string(),
     label: z.string(),
     complement: z.string(),
-    color: z.enum(TLDRAW_COLOR_NAMES),
+    // Coerced, not rejected: vaults predating tldraw color names hold hex, and export copies settings verbatim, so a strict enum here fails a file the apply path could read.
+    color: z
+      .unknown()
+      .transform((value) =>
+        toTldrawColor(typeof value === "string" ? value : undefined),
+      ),
     created: z.number(),
     modified: z.number(),
     importedFromRid: z.string().optional(),
@@ -63,7 +72,11 @@ const templateExportSchema: z.ZodType<DiscourseSchemaTemplate> = z
   .object({ name: z.string(), content: z.string() })
   .passthrough();
 
-export const dgSchemaFileSchema: z.ZodType<DiscourseSchemaFile> = z
+export const dgSchemaFileSchema: z.ZodType<
+  DiscourseSchemaFile,
+  z.ZodTypeDef,
+  unknown
+> = z
   .object({
     version: z.literal(DG_SCHEMA_EXPORT_VERSION),
     exportedAt: z.string(),
