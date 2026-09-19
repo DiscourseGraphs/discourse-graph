@@ -1,0 +1,1 @@
+Ok. Btw, I rephrased the comment for MAX_ASSET_BYTES so it starts with "Bounded by the minimum of what the platforms allow." It does not have to equal the minimum.
