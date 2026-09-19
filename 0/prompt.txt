@@ -1,0 +1,1 @@
+Agree with accumulate. I think we can proceed accordingly. Also assume the filename is baked in.
