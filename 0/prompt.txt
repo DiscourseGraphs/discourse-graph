@@ -1,0 +1,1 @@
+Let's leave the vite.config untracked. The original correction made it in. Good, we have a PR now. Let's got to 1.3.
