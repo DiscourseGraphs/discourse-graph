@@ -1,0 +1,1 @@
+Agreed on postponing that. One more question: Why are we using ORN Rids for Roam? I'm realizing that the implicit Rid contract was that we'd use URLs for Roam and Rids for Obsidian. (Rid is supposed to include both URL and ORN UIDs.) But that requires a Roam migration now, does it not?
