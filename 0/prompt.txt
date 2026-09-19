@@ -1,0 +1,1 @@
+good, started renames in the second cherry-pick. I found that some sourceRefs are baked in from NodeAssetResult in 1870, which I won't reopen. So maybe some of my renames token->locator should be to sourceRef. I did notice at least one such case.
