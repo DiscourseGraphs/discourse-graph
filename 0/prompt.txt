@@ -1,0 +1,1 @@
+The stack is up, it was down because I was also doing a dbdiff (which failed for other reasons, please do not get into it, I applied a temporary fix and it passed, then reverted it so it goes elsewhere.) Also, do not start a db reset without asking me first.
