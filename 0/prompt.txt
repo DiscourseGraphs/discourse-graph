@@ -1,0 +1,1 @@
+Ok. First, let's be sure we're clear on what decision we're enacting. We'll use a regexp to check if the link is shaped like an firebase link for the current roam graph, disregarding the bucket. We won't detect deviations for now. (Though we may want to add some telemetry later.) Anything else gets treated like a URL. Is that also what you understood?
