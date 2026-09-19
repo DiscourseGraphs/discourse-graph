@@ -1,0 +1,1 @@
+ok. Now looking at eng-2230. Did not rebase on latest work yet. Curious about sanitizePathForImport. Dropping the `..` segments may yield a different path than before the commit, would it not?
