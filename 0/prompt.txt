@@ -1,0 +1,1 @@
+Pushback on security issue. If pirates have enough permissions to add a malicious link to another bucket to the roam page, they have enough permissions to add the payload directly to the graph. Correct?
