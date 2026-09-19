@@ -1,0 +1,1 @@
+trying to see what happens if roam adds a second bucket. Right now, we have firescript-577a2.appspot.com ; are you saying 'firescript' is the bucket and '577a2' is the project id? and that we could match for arbitrary bucket names in that project?
