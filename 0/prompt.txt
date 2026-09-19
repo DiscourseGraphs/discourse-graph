@@ -1,0 +1,2 @@
+We'll come back to that. First, let's see reviews to task 2. Scope check pointed out:   2. `addFile` now returns the content hash (`packages/database/src/lib/files.ts:27`), surfaced as `CopiedAsset.contentHash`. Nothing in this diff reads it; the field matches `CrossAppAsset.contentHash` in the contract, which belongs to the import direction.
+I'm hesitant to change, since the structures need to be defined for the other direction, and once they're defined they need to be filled, am I right?
