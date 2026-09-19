@@ -1,0 +1,4 @@
+Actually found in Roam documenttation: - ## Good to know
+    - Deleting a block doesn't delete the file that was uploaded in it. The upload stays in your graph's storage.
+        - There's no way to search for those leftover files yet. But when you delete a file, the reference check tells you whether anything still shows it before you confirm.
+    - Deleting is permanent. Any block that still embedded the file will no longer be able to show it.
