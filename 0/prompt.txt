@@ -1,0 +1,1 @@
+Three rows after sync. Hard to know if it got deleted and recreated from the database. But in the network, I see the following sequence: POST (which fails as conflict) for filepath="presentations/sl4/ScholOnto.png", then PATCH (succeeds) for presentations/sl4/ScholOnto.png (setting the source_path); and delete for any unknown filereference.
