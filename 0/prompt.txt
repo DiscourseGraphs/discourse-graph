@@ -1,0 +1,1 @@
+Best so far, but still not keen on maintaining the mime information ourselves. Can't we just say that application is the last choice if many choices exist?
