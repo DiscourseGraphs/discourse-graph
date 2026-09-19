@@ -1,0 +1,1 @@
+Agreed on the rollback-rule comment. In 2247 out of scope I said "behaviour is unchanged", which covers it. assetDegradation I want to think more about. One point is to have realistic PR sizes for reviews; how small does 2219 become if we move assetDegradation?
