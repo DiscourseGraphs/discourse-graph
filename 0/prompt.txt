@@ -1,0 +1,42 @@
+<task-notification>
+<task-id>ade2b6638825740a7</task-id>
+<output-file>/private/tmp/claude-501/-Users-maparent-OpenSource-discourse-graph/e5634c2f-cbe1-44d4-b1cf-7a53f2fad92f/tasks/ade2b6638825740a7.output</output-file>
+<status>completed</status>
+<summary>Agent "Full review of ENG-2217 diff" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>The `/code-review high` run completed. Note on scope: `git diff @{upstream}...HEAD` was empty (branch pushed), so the reviewer scoped to head commit `19c07aeb6`, which is exactly the single commit of this branch on top of `eng-2218-Copy-assets-from-supabase-into-Roam-storage` — i.e. the requested diff. It ran the new tests (29 pass) and probed the module with a scratchpad script. The module has no callers yet, expected for this stacked series (2216 → 2218 → 2217).
+
+Findings verbatim:
+
+## Findings
+
+**`apps/roam/src/utils/rewriteAssetLinks.ts:195` — medium. The "don't destroy a deliberate link's text" guard covers only images, so pdf/audio/video links silently lose their visible text.**
+The early return is `if (kind === "image" &amp;&amp; context.form === "link" &amp;&amp; linkText.trim())`. Every other renderable kind falls into the `switch` and becomes a Roam media embed, which carries no text. Verified: `[Read the protocol](notes/report.pdf)` → `{{[[pdf]]: &lt;url&gt;}}` and `[Listen here](a.mp3)` → `{{[[audio]]: &lt;url&gt;}}`. The words "Read the protocol" are gone from the page. This is exactly the failure the comment two lines above argues must not happen ("embedding it would delete the only words the reader sees"), and it is not hypothetical: `findAssetReferences.ts:34` has a dedicated `[label](url)` branch, so plain links to PDFs are recorded and will arrive here. The guard should be `context.form === "link" &amp;&amp; linkText.trim()` regardless of kind (falling through to the `[text](url)` shape), or those kinds should render as labelled links when the form is `link`.
+
+**`apps/roam/src/utils/rewriteAssetLinks.ts:242` (with `:340`) — medium. A wikilink alias is always discarded, which both deletes the author's display text and turns an Obsidian link into an embed.**
+Branch 6's alias is a non-capturing group `(?:\|[^\]]*)?`, and `:340` sets `linkText` from `linkLabel` (undefined for wikilinks), so `linkText` is always `""` for `[[token|alias]]`. Two consequences, both verified:
+- `[[vault/d.png|Figure 3]]` → `![](&lt;url&gt;)`. In Obsidian `[[x]]` is a *link*, not an embed; this inverts the author's choice and deletes "Figure 3". `context.form` is correctly `"link"` here, but the `:195` guard can never fire because `linkText.trim()` is forced empty.
+- `[[notes/report.docx|the protocol]]` → `[report.docx](&lt;url&gt;)`, replacing the author's label with the filename — the opposite of what the "prefers display text the source already wrote" test asserts for the markdown-link form.
+
+Capturing the alias in branches 5 and 6 and feeding it into `linkText` (for branch 6 only; `![[img.png|300]]` is a size hint, not text) fixes both.
+
+**`apps/roam/src/utils/rewriteAssetLinks.ts:177` — low. `labelFor` interpolates a filename into `[...]` without escaping, so a bracket in a recorded name emits broken markdown.**
+`return `[${labelFor(...)}](${asset.url})`` at `:207` takes the label straight from `sourcePath`/`sourceRef`. Verified: `sourcePath: "a]b.docx"` produces `[a]b.docx](&lt;url&gt;)`, which renders as a link labelled "a" followed by the literal text `b.docx](&lt;url&gt;)` — the asset becomes unreachable. Brackets in attachment names are ordinary in a research vault (`Paper [draft].pdf`, `Fig [2].png`). Escaping `[`/`]` in the label, or stripping them, avoids it.
+
+**`apps/roam/src/utils/rewriteAssetLinks.ts:14` — low. `mime-db` ships ~200 KB of JSON into the Roam extension bundle to derive a table of ~40 entries that is fully determined at build time.**
+`mimeDb` is indexed dynamically at `:84`, so esbuild cannot tree-shake `db.json` (204 KB in `mime-db@1.54.0`); the whole table lands in `extension.js`, which Roam loads on every graph open. The derivation exists only to keep `.mov`/`.qt` from drifting apart — an inlined literal plus the existing "still resolves every extension" test gets the same guarantee at zero bundle cost. Related packaging slip in the same commit: `@types/mime-db` was added to `dependencies` in `apps/roam/package.json` while every other `@types/*` in that file is in `devDependencies`.
+
+**`apps/roam/src/utils/rewriteAssetLinks.ts:254` — low. The comment asserts an invariant against `findAssetReferences.ts:41` that nothing enforces.**
+Both modules define `const TRAILING_PUNCTUATION = /[.,;:!?]+$/` independently, and the comment here states they "have to stay the same" because the publisher strips punctuation before recording `filepath`. If someone edits one (say, adding `)` or `"`), every asset mentioned at the end of a sentence stops resolving and silently keeps pointing at the origin graph's storage — no test fails. Exporting the constant from `findAssetReferences.ts` and importing it here makes the coupling structural.
+
+## Not findings, but worth knowing
+
+- Regex branch ordering and the 11 capture-group offsets are correct; I checked the alternation by hand and by probe (`![[x]]` correctly takes the embed branch at position 0, `[![alt](img)](link)` correctly matches the inner embed).
+- `String.prototype.replace` with a function replacer does not interpret `$&amp;`, so Firebase URLs containing `&amp;`/`$` are safe.
+- The module-level `/g` regex is safe with `String.replace` (lastIndex is reset), so no cross-call state bug.
+- `Object.hasOwn` prototype guards are correct; the `.constructor` case genuinely can't emit the string `undefined`.
+- Markdown destinations with literal spaces or CommonMark angle-bracket destinations (`![](&lt;my folder/d.png&gt;)`) don't match and are left unrewritten. Obsidian percent-encodes, which the `lookupCandidates` decode path handles, so this is unlikely to bite — noting it only because the degradation is silent.
+
+No files were modified; the review was read-only.</result>
+<usage><subagent_tokens>46634</subagent_tokens><tool_uses>1</tool_uses><duration_ms>366426</duration_ms></usage>
+</task-notification>
