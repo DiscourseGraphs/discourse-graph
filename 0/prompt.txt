@@ -1,0 +1,1 @@
+Ok, I thought it was unlikely but you're right: file.get gives me now, not the upload time. Whereas the metadata fetch reliably gives me the upload time (in the example I found, the timeCreated and updated are the same; I expect it will always be so.)
