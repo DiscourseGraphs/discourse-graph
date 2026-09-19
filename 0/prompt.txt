@@ -1,0 +1,7 @@
+I fixed both cases the review agent found. All 409 tests pass, tsc and eslint are clean, and nothing is committed.
+
+- Image in the middle of a link label: the old check only looked at the single character before ![. It now checks that the image really sits inside a link label on its line: there's an unclosed [ before it and ]( after it, with no other brackets or line breaks in between. [see ![alt](vault/d.png) here](https://x.org) now becomes [see alt (Failed to import) here](https://x.org).
+- A [ that doesn't open a link: [![alt](vault/d.png) plain bracket now keeps its link, giving [[alt (Failed to import)](vault/d.png) plain bracket. The stray [ is the author's, and with no ]] after it Roam shouldn't read it as a page reference.
+- Finding the match position: it now uses args.find((arg) => typeof arg === "number"), so adding a named group to LINK_PATTERN won't silently break the check.
+
+I added a test for each of the two cases. The check for a real link label is the new isInsideLinkLabel helper in rewriteAssetLinks.ts.
