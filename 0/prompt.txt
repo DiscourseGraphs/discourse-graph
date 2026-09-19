@@ -1,0 +1,1 @@
+You convinced me that removing parameters is a terrible idea. Good on you for checking whether Obsidian handles filename collisions, and maybe something to think about in another task. Your third option is interesting, but fails if the Roam link reference already has text, and is not a bare URL, correct?
