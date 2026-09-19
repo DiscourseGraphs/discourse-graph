@@ -1,0 +1,27 @@
+Now looking at review findings for eng-2217.
+High
+
+apps/roam/src/utils/rewriteAssetLinks.ts:142 — trailing-punctuation asymmetry with the extractor. findAssetReferences strips /[.,;:!?]+$/ before recording sourceRef (findAssetReferences.ts:36,68), but the bare-URL branch here captures the punctuation as part of the token, so byRef.get(ref) misses. Confirmed: Protocol: https://firebasestorage.../x.pdf?alt=media&token=abc. extracts sourceRef without the final ., and rewriteAssetLinks returns the string unchanged — the imported page keeps pointing at the origin graph's Firebase URL, exactly the dependency mirrorAssetToRoamStorage exists to remove. Fix: strip the same punctuation before lookup, or share one tokenizer.
+
+apps/roam/src/utils/rewriteAssetLinks.ts:137 — the [label](token) branch swallows the opening bracket of a linked image. For [![diagram](attachments/d.png)](https://source.example) the branch matches [![diagram](attachments/d.png) with linkLabel = "![diagram", producing ![![diagram](https://mirrored/x)](https://source.example). Reachable from Obsidian. Branch 1 must win — e.g. (?<!!)\[… on branch 2.
+
+apps/roam/src/utils/rewriteAssetLinks.ts:155 — exact string equality misses percent-encoded markdown tokens. Obsidian's syncDgNodesToSupabase writes filepath from metadataCache embeds[].link, which is the decoded destination. A note embedding ![](my%20folder/d.png) records my folder/d.png, so the rewrite silently no-ops. Any vault path containing a space is affected. Add a decodeURIComponent fallback, or index byRef on both forms.
+
+Medium
+
+rewriteAssetLinks.ts:69 — kindOf discards the written form and falls back to an extension whitelist. EXTENSION_KINDS lacks avif, heic, tiff, ico, flac, aac, m4v, mkv, avi. With no mimetype (nothing in this PR populates it), ![[photo.avif]] renders as a plain link. Also confirmed for a Roam storage URL whose uid carries no extension: ![](https://firebasestorage.../o/abc?alt=media&token=1) → [abc](...). The source markdown already said "this is an image"; that signal should rank ahead of "file".
+
+rewriteAssetLinks.ts:105 — a deliberate link to an image is converted into an inline embed, losing its visible text. [Figure 3](<roam-storage-image-url>) — a shape findAssetReferences explicitly records — becomes ![Figure 3](mirrored), and Roam does not display alt text, so "Figure 3" disappears.
+
+Low
+
+rewriteAssetLinks.ts:104 — render's switch has no default and EXTENSION_KINDS is a plain object literal, so a prototype key (a.constructor, a.__proto__) yields a non-AssetKind, render returns undefined, and the replacer writes the literal text undefined — content destruction rather than a no-op. Contrived filenames, free fix: Object.create(null) / Object.hasOwn plus a default or exhaustiveness assert.
+
+rewriteAssetLinks.ts:93 — labelFor uses ??, so an empty-string sourcePath defeats the fallback chain. sourceRef: "notes/report.docx", sourcePath: "" renders [https://mirrored/x](https://mirrored/x) — the outcome the function's own doc comment forbids. Use ||.
+
+---
+
+Two notes:
+
+- Nothing calls rewriteAssetLinks yet, so none of these are live regressions today — they land when a later commit wires it in. All 15 new tests pass.
+- The agent reported writing a temporary vitest file to confirm findings and then deleting it, which deviates from the read-only instruction. I checked: git status is clean, nothing was left behind.
