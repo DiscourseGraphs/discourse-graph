@@ -1,0 +1,1 @@
+Yes, write the tesk. I see your point about not adding done-when ad-hoc, but can we argue that checking that is part of the overall (2247+2219) scope, and it was just a move?
