@@ -1,0 +1,1 @@
+Ok. While waiting: The review also called the use of filename??null at line 69 of files.ts. It makes it impossible to delete a filename if we want to. I am thinking: allow undefined or null, and then add `...(filename===undefined?{}: {filename})` in the update parameters. Would that make sense?
