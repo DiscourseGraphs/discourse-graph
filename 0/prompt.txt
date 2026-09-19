@@ -1,0 +1,1 @@
+Correct. This is going to be a team decision, and I want to think about the implications more myself. In the short term, I won't check in the openSpec artifacts it git, and will use Roam as a sharing surface, so Roam is authoritative for the moment. The two blocks were edited.
