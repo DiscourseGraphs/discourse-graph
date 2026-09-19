@@ -1,0 +1,1 @@
+yes, that example is fine, do edit. Oh, while you're there, the destination platform's ceiling is not unknown to us, but it's platform-specific (next comment.) (It's 100Mb on Roam, but that does not belong here.)
