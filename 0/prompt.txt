@@ -1,0 +1,1 @@
+Agree to fix 1. As for 2, we had decided earlier that full markdown parsing was out of scope. I think that finding code fences is edging in that territory. Actually, we even captured https://roamresearch.com/#/app/discourse-graphs/page/xWrkhw4lC . Am I right that this is related?
