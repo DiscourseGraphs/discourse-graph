@@ -1,0 +1,1 @@
+I say go ahead. I'll add to 2217. Review did not start, and it's not even scope creep since list of patterns not stated in scope. I'll add a note to the PR saying this was added after the fact, pointing to the Devin comment as justification.
