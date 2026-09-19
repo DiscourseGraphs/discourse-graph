@@ -1,0 +1,1 @@
+Can the human name  be used in the sync mechanism? Eg if a file was changed but kept the same name, we could interpret that as a change and garbage collect more aggressively.
