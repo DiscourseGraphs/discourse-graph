@@ -1,0 +1,1 @@
+I did a re-import of the failure case, it's fine. Go ahead with the structural fix. I'll work on the readable local name.
