@@ -1,0 +1,1 @@
+Hmm... the path may have been hand-written by an Obsidian user, so I don't want to change them. Also we have existing imports that should be preserved. So yes, I prefer normalize-then-clamp.
