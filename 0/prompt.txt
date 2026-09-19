@@ -1,0 +1,10 @@
+Ok. More comments from the reviewer:
+New findings
+
+Medium — materializeSharedNode.test.ts never actually exercises the asset stage. :113-119 builds a select chain with eq/maybeSingle but no then, so await …eq().eq() in fetchNodeReferences resolves to the chain object itself; { data, error } destructures to undefined/undefined and the query silently yields []. Every node in that suite reports NO_ASSETS by accident, not by arrangement. So nothing asserts that the rewritten markdown reaches page.fromMarkdown/block.fromMarkdown, and the new copy-assets guard has no test. Two tests mocking ../importNodeAssets — one returning a rewritten string plus a non-empty report, one rejecting — close both.
+
+Low — mirrorAssetToRoamStorage can throw after a successful upload, and we discard a URL we already have. recordMirroredAsset (assetRegistry.ts:132-152) does createPage/createBlock/setBlockPropsAsync, any of which can throw, and mirrorAssetToRoamStorage.ts:214 awaits it after the upload returned a usable URL. importNodeAssets.ts:214-218 maps that to failed for every token in the group: bytes in storage, unrecorded (next run re-uploads), page still on the published token. A cache-write failure shouldn't degrade an asset that copied fine. Pre-existing in mirrorAssetToRoamStorage, but this PR is its first caller and hash grouping widens the blast radius.
+
+Low — the "one upload per hash" test doesn't pin its own invariant. importNodeAssets.test.ts:267-292 asserts only the counters; expect(mirror).toHaveBeenCalledTimes(1) is what states finding 4.
+
+Low — group source_path selection is non-deterministic. fetchNodeReferences issues no .order(), so group.find((r) => r.source_path) can pick a different name across runs when members disagree. Only affects the uploaded filename's extension; .order("filepath") would make it reproducible.
