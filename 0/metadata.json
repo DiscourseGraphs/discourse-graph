@@ -1,0 +1,57 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2VPS9EZ3HKR9A6FGX2MEB25",
+  "session_id": "01a0b765-1542-7ef3-9988-660bea0a3d90",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-19T02:09:06.8099803Z",
+  "branch": "add-entire-first-checkpoint",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "221c43b91f44",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 23756,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 23168,
+    "output_tokens": 127,
+    "api_call_count": 2
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 121,
+      "user_lines_removed": 8,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88,
+        "apps/roam/build.sh": 8,
+        "apps/website/content/blog/test-news-post.mdx": 25
+      },
+      "user_removed_per_file": {
+        "apps/roam/build.sh": 8
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 55,
+      "user_lines_removed": 53,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".gitignore": 47,
+        "apps/roam/build.sh": 8
+      },
+      "user_removed_per_file": {
+        ".gitignore": 45,
+        "apps/roam/build.sh": 8
+      }
+    }
+  ]
+}
