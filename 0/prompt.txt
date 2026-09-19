@@ -7,3 +7,7 @@ git add .
 ---
 
 [Image #1] how can i remove the .worktrees from the commit/branch/pr
+
+---
+
+do it
