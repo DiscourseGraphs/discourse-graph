@@ -1,0 +1,1 @@
+Hmmm.. now thinking we should check. Maybe always following the mimetype is the right call after all!
