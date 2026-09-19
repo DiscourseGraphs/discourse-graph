@@ -1,0 +1,9 @@
+Create a file named hello-entire.md with a short note explaining that this is my first Entire checkpoint.
+
+---
+
+git add .
+
+---
+
+[Image #1] how can i remove the .worktrees from the commit/branch/pr
