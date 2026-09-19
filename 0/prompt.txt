@@ -1,0 +1,1 @@
+Note: You still have Obsidian's solution in the rejected alternatives of option 3 in design.md, at line 72
