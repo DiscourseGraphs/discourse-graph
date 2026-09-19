@@ -1,0 +1,7 @@
+I'm now looking at linear task eng-1864, and its subsequent tasks eng-1870, eng-1871, eng-1872, eng-1873.
+In Obsidian, local assets are uploaded as content-addressed supabase blobs (see `packages/database/src/lib/files.ts`)
+The fact that a given Obsidian node refers to a given asset is recorded in the FileReference table.
+In Roam, assets are uploaded by Roam to a world-readable firebase bucket.
+We decided (cf https://roamresearch.com/#/app/discourse-graphs/page/3dI5iyDAI) that leaking firebase urls was acceptable. We will not, for now, transfer firebase assets to supabase.
+I suspect that we will overload FileReference to also refer to external URLs. (File path could store the URL.) We may have to adjust the triggers to handle FileReferences that do not correspond to buckets (empty hash?)
+So let's list the steps to implement eng-1864 in a way that allows for subsequent tasks to be seamless.
