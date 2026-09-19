@@ -1,0 +1,1 @@
+surgery is done. While there, I noticed a nit: in publishNodeAssets, if we have find no asset in the markdown, we exit early. (line 147) But we may have to remove stale entries with removeUnreferencedAssets, no?
