@@ -1,0 +1,1 @@
+actually... could we replace this table by a table from mimetype to render shape, and have a separate extension-to-mimetype? That would solve both problems cleanly. (the extension to mimetype could come from the library, would we incur the full cost?)
