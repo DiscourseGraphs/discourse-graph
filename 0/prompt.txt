@@ -1,0 +1,1 @@
+One second, it's a fact that we decided not to republish shared nodes now. I did not check you when you said ENG-1859 because I knew that to be the case. Is that constraint already in the code or in flight and in which ticket I don't know, but it is a design decision.
