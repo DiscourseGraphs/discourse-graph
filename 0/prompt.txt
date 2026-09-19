@@ -1,0 +1,9 @@
+sigh. Plugin reload issue. But we still have a problem. Everything is as described, except we now have more FileReferences than before (which is the correct behaviour.) See the list after sync. The first row is the unchanged row.
+postgres=> select source_local_id, filepath, source_path from "FileReference" where space_id=22792;
+┌──────────────────────────────────────┬───────────────────────────────────────┬─────────────────────────────────┐
+│           source_local_id            │               filepath                │           source_path           │
+├──────────────────────────────────────┼───────────────────────────────────────┼─────────────────────────────────┤
+│ 7704b3d0-d97a-4dd0-a6f8-6f43eed82d94 │ presentations/sl4/ScholOnto.png       │                                 │
+│ 7704b3d0-d97a-4dd0-a6f8-6f43eed82d94 │ ../../presentations/sl4/ScholOnto.png │ presentations/sl4/ScholOnto.png │
+│ 7704b3d0-d97a-4dd0-a6f8-6f43eed82d94 │ ScholOnto.png                         │ presentations/sl4/ScholOnto.png │
+└──────────────────────────────────────┴───────────────────────────────────────┴─────────────────────────────────┘
