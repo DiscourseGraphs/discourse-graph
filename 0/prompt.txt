@@ -1,0 +1,1 @@
+Still not ready to write. I'm a bit iffy on the options. Do we know how firebase URLs are composed? Do we have any control? Could we make it so they can be inferred from the Obsidian file hash?
