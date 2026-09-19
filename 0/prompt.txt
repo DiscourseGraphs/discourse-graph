@@ -1,0 +1,1 @@
+Please write revisions as a roam-style markdown, which I'll get approved before writing to Linear.
