@@ -1,0 +1,1 @@
+Ok, trying to understand the OpenSpec process better: I would think we have most of the information to write specs and tasks.md from the linear tickets. What's missing?
