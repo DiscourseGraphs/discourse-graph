@@ -1,0 +1,31 @@
+<task-notification>
+<task-id>a548520eb5838a146</task-id>
+<output-file>/private/tmp/claude-501/-Users-maparent-OpenSource-discourse-graph/4123e9ab-7f42-4d32-be3f-86cc2c0607cb/tasks/a548520eb5838a146.output</output-file>
+<status>completed</status>
+<summary>Agent "Full review of ENG-2230 branch" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Review complete (read-only; nothing modified). Target: `eng-1870-copy-roam-origin-assets-into-supabase-on-publish...HEAD`, 3 files. `tsc --noEmit` on `apps/obsidian` is clean. Findings, by severity:
+
+**High**
+
+1. `apps/obsidian/src/utils/importNodes.ts:1088` — a failed download now rewrites the note's link to a file that was never written. `setPathMapping(filepath, targetPath)` was hoisted to line 1036, before any write; the `if (!fileContent)` branch pushes an error and `continue`s without `unsetPathMapping`, unlike the `catch` at 1127. Compounding it, the old code re-validated the mapped path via `app.metadataCache.getFirstLinkpathDest` and kept the original link when nothing resolved (pre-diff lines 673-681, 798-800); that guard is gone, so the mapped path is emitted unconditionally. A Roam-origin asset loses a working storage URL and gains a dead relative path. Fix: `unsetPathMapping(filepath)` and drop the `claimedPaths` entry before that `continue`.
+
+**Medium**
+
+2. `importNodes.ts:1031` — `claimedPaths.set(targetPath, filehash)` runs before the download, so a failed download leaves a phantom occupant; a later reference with the same candidate path gets needlessly suffixed. Move the set after a successful `createBinary`/`modifyBinary`, or roll it back with the mapping.
+
+3. `importNodes.ts:1013` — an asset edited upstream is never updated in place. Reuse is keyed only on `importedAssets[filehash]`, so a new hash misses, `overwritePath` stays undefined, and `resolveAssetTargetPath` sees the old version of the same asset at `candidatePath` with a different hash and suffixes. Result: `diagram-&lt;H2[0:8]&gt;.png` written, the old file orphaned, link rewritten, duplicate frontmatter entry. The `remoteIsNewer` overwrite branch (~line 1057) is effectively dead for changed content. Fix: also record `filepath → vaultPath` so a collision the same reference previously claimed is treated as an update.
+
+4. `importNodes.ts:791` — the new URL branch of the image rewriter emits an unencoded path (no `encodePathForMarkdownLink`, unlike the non-image handler at line 750). Roam `source_path` is a user-supplied filename and `sanitizeFileName` preserves spaces, so `![](Screen Shot 2024-01-01.png)` renders broken. Line 800's pre-existing non-URL branch has the same gap.
+
+5. `importNodes.ts:1017` — remote `source_path` segments are not neutralised: `split("/").map(sanitizeFileName).join("/")` leaves `.`/`..` intact and can produce empty segments. `../../notes/x.png` writes outside the import folder; an empty segment breaks the `createFolder` loop at 1039-1045. `sanitizePathForImport` (~line 1150) already filters empties; neither guard is applied here.
+
+**Low**
+
+6. `importNodes.ts:974` — `occupantHash` trusts frontmatter without checking the file still exists, so a user-deleted asset causes a needless suffix. Guard with `getAbstractFileByPath`, or only trust claims made during this run.
+
+7. `apps/obsidian/src/utils/syncDgNodesToSupabase.ts:704` — `findEmbeddedAttachments` dedupes by `link`, so two spellings of one attachment produce two `FileReference` rows. Row bloat rather than a correctness break (import tolerates it); dedupe by `file.path` as a secondary key.
+
+The reviewer explicitly cleared the rest of the diff: the `filepath`/`source_path` split, insert-then-cleanup ordering in `syncPublishedNodeAssets`, the one-shot `source_path !== attachment.path` backfill trigger, `disambiguateAssetPath` leading-dot handling, and the `Math.max` over an empty attachment list.</result>
+<usage><subagent_tokens>45825</subagent_tokens><tool_uses>1</tool_uses><duration_ms>406718</duration_ms></usage>
+</task-notification>
