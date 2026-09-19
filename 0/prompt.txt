@@ -1,0 +1,23 @@
+Yes, I'll wait on the archive operation. Ok, now I'm applying code review to ENG-2216 (Task 4.1). I switched back to that branch. Here are the findings:
+1. apps/roam/src/utils/assetRegistry.ts:44 — getOrCreateRegistryBlockUid can create duplicate registry blocks under concurrency.
+The existence check and the create are separated by an await, with no lock or in-flight promise memo. The realistic caller is an import mirroring several assets in parallel (publishNodeAssets.ts:277 already batches). On a fresh graph all N calls see no page, so N pages/blocks get created; findRegistryBlockUid then returns whichever getShallowTreeByParentUid yields first, so entries written to the other blocks become invisible and those assets are re-uploaded next import. A module-level let pending: Promise<string> | undefined memo around the create closes it.
+
+2. apps/roam/src/utils/assetRegistry.ts:88 — recordMirroredAsset is a non-atomic read-modify-write, so concurrent calls lose entries.
+Two concurrent calls for hashes A and B both read the pre-write map; the second block.update to land overwrites the first. The JSDoc — "Merges into the props read back at call time so a concurrent write to another key is not dropped" — holds only for a different top-level prop key (that merge is inside setBlockPropsAsync), not for two concurrent recordMirroredAsset calls, which is the common case. Either serialize writes through one promise chain, or fix the comment so it doesn't over-promise.
+
+3. apps/roam/src/utils/assetRegistry.ts:37 — the registry is located by block text, so editing the block silently orphans it.
+findRegistryBlockUid matches text === "Sync Asset Registry" on a user-visible, user-editable page. A rename or stray edit makes the next write create a second registry block; the old props stay on the graph but unreachable, and every previously mirrored asset is re-uploaded with no warning. Suggested: console.warn when the page exists but no block matches, or store the props on the page uid itself, as importedSourceIdentity.ts does.
+
+4. apps/roam/src/utils/assetRegistry.ts:81 — readMirroredAssetUrl re-reads the whole registry per lookup.
+Each call does a page-uid pull, a getShallowTreeByParentUid, and a props pull, then rebuilds a filtered copy of the entire map for one hash. A per-asset loop over N assets pays 3N graph reads. Hoisting one readAssetRegistry() into the caller (or memoizing per import run) is worth settling before the first caller lands.
+
+5. apps/roam/src/utils/assetRegistry.ts:88 — no invalidation path for stale URLs.
+If a user deletes the mirrored file from Roam storage, the hash→URL entry survives and callers get a dead URL embedded into freshly imported blocks as a broken image. There is no removal export, so a caller that sees a 404 cannot repair the registry. Cheapest to add while the module is still unused.
+
+6. apps/roam/src/utils/assetRegistry.ts:31 — isJsonObject duplicates importedSourceIdentity.ts:15 (identical body, parameter type widened to json | undefined). Per AGENTS.md it belongs next to the json type in getBlockProps.ts, imported by both.
+
+7. apps/roam/src/utils/__tests__/assetRegistry.test.ts:33 — the test assigns globalThis.window in beforeEach and never restores it. Harmless under Vitest's default per-file isolation, but it's the only file in src/utils/__tests__ doing an unguarded global assignment with no afterEach; the fake roamAlphaAPI would leak if isolation is disabled or the file is merged into another suite.
+
+No correctness bugs in the pure read path: registryFromProps guards both nesting levels and filters non-string values, readAssetRegistry genuinely does not mutate the graph, and the props merge preserves sibling discourse-graph keys.
+
+One caveat on findings 1 and 2 that the reviewer did not have: ENG-2216 explicitly says "Two clients in the same graph can write at once. The last write wins, and the cost is one redundant upload. Do not add locking." That covers cross-client races, not the single-process Promise.all case both findings describe — so finding 1 (duplicate blocks, which orphans entries permanently) is still worth fixing, and finding 2 is arguably already the accepted trade-off, leaving just the JSDoc to correct.
