@@ -1,0 +1,1 @@
+Read ~/zed-buffer-recovery/RESUME.md and continue from "THE NEXT STEP". Quit Zed first — I'm running you from Terminal specifically so you can. Then report only what's genuinely new versus what's already in live/ and carved_test/, and try to identify deleted workspaces 173 and 40.
