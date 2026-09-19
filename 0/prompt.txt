@@ -1,0 +1,1 @@
+I feel a storage.info call would be cheap enough... but that's still a few times per imported page, right? Do we have to do it on every sync?
