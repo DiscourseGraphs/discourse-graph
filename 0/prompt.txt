@@ -1,0 +1,1 @@
+I confirm, after another sync, we had the query for my_file_references, then the generic delete, and nothing else. Yes you can tick. I did check 3.1 and 3.2 previously, did I not? 3.3 is pending.
