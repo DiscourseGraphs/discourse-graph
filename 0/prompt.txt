@@ -1,0 +1,22 @@
+Findings
+
+Medium
+
+1. packages/database/src/crossAppContracts.ts:90 — filename?: string cannot express "this asset has no name", which breaks round-trip against the sink this contract feeds.
+The persistence target is FileReference.filename, typed string | null (packages/database/src/dbTypes.ts:598), and addFile (packages/database/src/lib/files.ts:22) deliberately distinguishes three states on its filename?: string | null parameter: a string sets, null clears (files.ts:70), undefined leaves the stored value alone. CrossAppAsset collapses the last two into undefined. A destination importer reading a CrossAppAsset with no filename and calling addFile therefore cannot clear a previously-stored name — it will silently preserve a stale one from an earlier publication. Widening to filename?: string | null on the contract preserves the distinction the DB layer already implements. Nothing consumes assets yet (see finding 5), so this is cheap to fix now and expensive later.
+
+Low
+
+2. packages/database/src/crossAppContracts.ts:80-83 — reference uniqueness within assets is unstated.
+The comment tells a destination that reference "is what a destination matches on", which implies keying a lookup by it, but assets?: CrossAppAsset[] permits two entries with the same reference and different contentHash with no stated winner. The database does enforce this — FileReference_pkey is (source_local_id, space_id, filepath) and reference maps to filepath — so the contract should say what the storage layer already guarantees.
+
+3. packages/database/src/crossAppContracts.ts:84-88 — contentHash encoding is unspecified.
+The comment says "The SHA-256 of the stored bytes, which is also their name in shared storage." The producer (files.ts:32-34) emits lowercase hex and uses that string verbatim as the storage object name (files.ts:42) and as filehash. Since a destination looks the bytes up by exact object name, an uppercase-hex or base64 producer fails silently with a not-found rather than a type error. Say "lowercase hex, 64 characters" in the comment; the fixtures at crossAppNodeContract.example.ts:31,81 already follow it.
+
+4. packages/database/src/crossAppNodeContract.example.ts:11-15,24 — the "unresolvable asset" fixture does not exercise the case its comment describes.
+ROAM_UNRESOLVABLE_ASSET_URL is embedded as a plain markdown link, [url](url), not an embed. But crossAppContracts.ts:105-107 defines the unresolvable case as one where "a destination leaves its token untouched, which is the same thing it does for a link that was never an asset." As written the fixture is a link that was never an asset, so a destination scanning content.full for embeds would never have considered it an asset and the interesting branch — an embed with no matching assets entry — is not demonstrated. Making it ![](${ROAM_UNRESOLVABLE_ASSET_URL}) would make the fixture show what the comment claims.
+
+Nit
+
+5. packages/database/src/crossAppNodeContract.example.ts:27,77 — the asset arrays are exported but unused, and the naming diverges from the file's convention.
+roamOriginAssetExamples / obsidianOriginAssetExamples are plural where the sibling exports are singular (roamOriginNodeExample, obsidianOriginNodeExample), and nothing in the repo imports either. Since both are already inlined at :53 and :102, they could be plain consts unless a consumer is planned.
