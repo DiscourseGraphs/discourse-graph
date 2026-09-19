@@ -1,0 +1,1 @@
+Actually, the registry did not land yet, so you don't have to worry about migration or previous shapes. Does that make it simpler?
