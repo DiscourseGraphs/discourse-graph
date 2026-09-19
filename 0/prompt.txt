@@ -1,0 +1,1 @@
+So! Almost: The test with a name collision (different content with the same name) worked perfectly, but if reusing the same firebase url in two distinct nodes and importing them, the second imported node keeps the firebase URL.
