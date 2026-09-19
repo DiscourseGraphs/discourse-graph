@@ -1,0 +1,1 @@
+ok, I took the successful firebase roam url, changed the bucket name (i.e. started with "https://firebasestorage.googleapis.com/v0/b/firescript-577a3.appspot.com/o/...") and the request was sent.
