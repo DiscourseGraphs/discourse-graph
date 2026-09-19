@@ -1,0 +1,1 @@
+Good point on linkText. What about urlInText?
