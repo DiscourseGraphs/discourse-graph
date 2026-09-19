@@ -1,0 +1,2 @@
+One observation, not a defect and not for this ticket: a bare extension-less storage URL (See <uid-url>.) resolves to [abc123](url), labelled with the uid leaf. There is genuinely no signal left to do better — no MIME, no declared kind, no extension, and bare carries no intent — so it waits on something populating mimetype.
+Should we comment that case somewhere?
