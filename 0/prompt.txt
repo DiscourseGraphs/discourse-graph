@@ -1,0 +1,1 @@
+yes, I told you to stop to look at the publish path instead. The publish button should not even be there.
