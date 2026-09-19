@@ -1,0 +1,1 @@
+Totally unrelated to the current PR... how hard would it be to write a script (python or TS) that would replace ticket numbers (such as ENG-1221) with linear links (in `[title](link)` format) in markdown text? I have a linear api key.
