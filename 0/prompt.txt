@@ -1,0 +1,1 @@
+Did 2. 1 as proposed does not type check, unless I change the types SkippedImport and FailedImport accordingly, which seems right. Any reason not to?
