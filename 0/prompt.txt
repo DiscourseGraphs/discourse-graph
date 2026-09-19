@@ -1,0 +1,1 @@
+I think we can set the sub-issue to TODO, same cycle, skill notwithstanding. The TODO on the parent is moot; the task will be set to completed in linear when the subtasks are completed... so keep a dummy done when (your first line: Sub-issues are complete) and make sure the verification step is in sub-issue d.
