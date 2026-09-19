@@ -1,0 +1,1 @@
+This sounds about right. A few details: What is accessScope for? Can we enforce it reasonably? I do assume that Obsidian assets will be copied to firebase for Roam access for ENG-1864. Also let's think about migration: We'll have to backfill mimetype/size in FileReference from the bucket. OR should we leave it empty when we use a bucket?
