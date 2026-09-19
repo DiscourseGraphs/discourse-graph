@@ -1,0 +1,2 @@
+3A. We decided against page blocks, and though I forget the reasons at the moment, I remember enough to see that they stand. Also, the same argument would apply to a page delete.
+The proposal is obsolete, and needs updating. Definitely `roam/js/discourse-graph/imported-assets.`.
