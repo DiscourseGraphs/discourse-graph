@@ -1,0 +1,1 @@
+That's worth noting, yes. Btw, we intend to increase the 6MB cap.
