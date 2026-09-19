@@ -1,0 +1,1 @@
+Actually, another thought. We are doing a lot to garbage collect firebase blobs. What if Roam takes care of that? How much simpler would the design be? I'll make a few tests.
