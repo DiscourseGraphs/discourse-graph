@@ -1,0 +1,1 @@
+ok, added a comment for point 2; for 9, added src/utils/getErrorMessage.ts. Let's use it where appropriate.
