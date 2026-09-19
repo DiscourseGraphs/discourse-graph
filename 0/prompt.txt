@@ -1,0 +1,1 @@
+Yes to the first. As to the second, I copied the proposal and design in Roam here: https://roamresearch.com/#/app/discourse-graphs/page/Ex0HuOqBS . The ideal would be for all references to the design to be block-specific Roam URLs.
