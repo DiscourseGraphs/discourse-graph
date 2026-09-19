@@ -1,0 +1,1 @@
+I think that which PR the corpus exists on should not matter. What I did now: Pull the 2247 version of rewriteAssetLinks.test.ts in the workspace, though we're on 2217. This is not meant to be committed, but to allow safe manipulation. So I say attack the first issue. Also agree that a markdown parser is out of scope, and that code-block can wait.
