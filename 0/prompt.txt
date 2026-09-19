@@ -1,0 +1,41 @@
+Good, now working on eng-2219.
+Findings
+
+Medium
+
+1. apps/roam/src/utils/materializeSharedNode.ts:370 — assets are uploaded before both title-collision guards, so a failed import permanently orphans blobs in the user's Roam storage.
+The asset stage runs at line 370, before createImportedPage's collision guard (:178) and updateImportedPage's (:243), and before the writeImportedSourceIdentity failure path (:206-225) that deletes the page it just created. Scenario: a user imports a shared node whose title matches an existing local page. Nothing is imported, they are told to "Rename or remove that page, then import again", and N blobs are now permanently in their graph with no Roam API to list or delete them. mirrorAssetToRoamStorage.ts documents the copy as irrevocable and treats an orphaned upload as the cost to avoid. Both checks are synchronous and cheap; they belong above the importNodeAssets call.
+
+2. apps/roam/src/utils/materializeSharedNode.ts:391 — AssetImportReport has no consumer, so the documented degradation is silent end to end.
+importSharedNodes.ts:35-41 maps the result down to { sharedNode, status } and drops result.assets; refreshImportedNode.ts:68-73 returns only Refreshed "<title>" from <space>; DiscoverSharedNodesDialog.tsx:243-274 only surfaces isFailedSharedNodeImport. Scenario: a node with a 7 MB image imports, mirrorAssetToRoamStorage returns skipped/too-large, the token attachments/diagram.png stays in the page, and the user is told the import succeeded with no indication anything degraded. The result-shape half of the requirement is met; the reporting half is not wired through. Either surface it or note in the type that it is currently unread.
+
+Low
+
+3. apps/roam/src/utils/importNodeAssets.ts:37, :105, :117, :127 — EMPTY_REPORT is a shared mutable module constant handed out to callers.
+Lines 105 and 127 return the constant itself, so every asset-free node in a session shares one object identity; line 117's { ...EMPTY_REPORT, failed: [...] } still aliases EMPTY_REPORT.skipped. The moment anything aggregates reports (finding 2) with report.failed.push(...), one node's failure is retroactively attributed to every other node. Build a fresh report per path, or Object.freeze the constant.
+
+4. apps/roam/src/utils/importNodeAssets.ts:140 — mirrored/reused count references, not distinct hashes.
+Two references to identical bytes within one node report mirrored: 1, reused: 1, contradicting the field's own doc ("Already held by this graph, so no upload was needed"). The second was uploaded by this same run. A user seeing reused: 1 on a first-ever import will read it as a cache hit from a previous one.
+
+5. apps/roam/src/utils/importNodeAssets.ts:140 — every recorded reference is downloaded and uploaded whether or not its token occurs in the fetched markdown.
+rewriteAssetLinks is the only thing that consults the text, and it runs after all uploads. Two ways rows outlive their tokens: publishNodeAssets.removeUnreferencedAssets is best-effort (publishNodeAssets.ts:127 logs and continues), so a stale row survives a publish whose cleanup failed; and fetchFullMarkdown strips frontmatter (Obsidian) or the title heading (Roam) at materializeSharedNode.ts:160-165 while publication recorded references from the unstripped content, so a frontmatter-only asset has a row and no token. Either way the importer permanently spends storage on a blob the page never renders, and report.mirrored is inflated. A markdown.includes(...) pre-filter using lookupCandidates' decoded form would make the upload set match the rewrite set.
+
+6. apps/roam/src/utils/importNodeAssets.ts:9 — the module docstring's degradation claim holds only for Roam-origin tokens.
+"Leaves its token exactly as published, which still renders wherever the publishing platform's URL was public" is true for a Firebase URL. An Obsidian-origin token is a vault path, and the wikilink spellings rewriteAssetLinks matches (![[attachments/diagram.png]]) are left verbatim in a Roam page, where [[...]] is a page reference — so a failed or oversized Obsidian asset silently creates junk pages named after vault paths in the user's graph. Narrow the comment, or degrade Obsidian wikilink tokens to plain text.
+
+7. apps/roam/src/utils/materializeSharedNode.ts:370 — the asset stage is the only awaited step without a failure guard.
+Every other step is wrapped into a typed MaterializationFailure with a stage; this await is bare. Inside, the reference query (importNodeAssets.ts:113-126) and each mirror call (:164) are guarded, but rewriteAssetLinks(...) at :172 is not, nor is a synchronous throw from client.from(...). That contradicts the header's "Nothing here can fail the node": such a throw exits materializeSharedNode as a stage-less rejection, caught only by the generic handlers at importSharedNodes.ts:43 and refreshImportedNode.ts:76.
+
+8. apps/roam/src/utils/importNodeAssets.ts:143-162 — ResolvedAsset.mimetype is left unset even though the mirror step knows it.
+mirrorAssetToRoamStorage computes info?.contentType || blob.type for the upload filename but does not return it, so resolved.push({ sourceRef, url, sourcePath }) cannot populate it. rewriteAssetLinks.ts names mimetype as its highest-fidelity signal and calls out the exact unresolved case: a Roam-origin storage URL with no recorded source_path renders as a labelled link with a uid for a label instead of the right embed. Threading it through MirroredAsset closes the gap (partially — ReusedAsset comes from the registry and has none).
+
+9. apps/roam/src/utils/importNodeAssets.ts:49-57 — duplicated getErrorMessage.
+materializeSharedNode.ts:77 already exports one, imported by both importSharedNodes.ts and refreshImportedNode.ts. The local copy differs only by also reading message off a bare Postgrest object — a strictly better implementation. Promote the superset rather than shadowing it.
+
+Verified clean
+
+Failed and oversized assets are correctly excluded from resolved, so their tokens survive verbatim (importNodeAssets.ts:145-156). The sequential loop honours mirrorAssetToRoamStorage's "one asset at a time" contract, and both production callers drive nodes sequentially, so no Promise.all breaks it. Re-sync does not re-upload: readMirroredAssetUrl is a synchronous Datalog read and recordMirroredAsset is awaited before the mirror returns. The stage is genuinely origin-agnostic — it iterates rows and never inspects token shape — and the my_file_references columns and space_id/source_local_id filter match the view in packages/database/supabase/schemas/assets.sql:30 and the generated types, with the same nullable-column defensiveness as publishNodeAssets.ts:78-88. All 38 tests across the three suites pass locally.
+
+---
+
+Finding 1 is the one I'd act on first — it's an unrecoverable side effect on a path the code otherwise treats as a clean no-op, and the fix is just moving the collision checks above the stage. Findings 2 and 6 both touch the ticket's stated degradation contract. Nothing was modified; say the word if you want any of these applied.
