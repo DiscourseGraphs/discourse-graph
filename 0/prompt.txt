@@ -1,0 +1,15 @@
+png    image/png                                                              image embed
+VM123:17 tiff   image/tiff                                                             image embed
+VM123:17 heic   image/heic                                                             image embed
+VM123:17 avif   image/avif                                                             image embed
+VM123:17 ico    image/vnd.microsoft.icon                                               image embed
+VM123:17 psd    image/vnd.adobe.photoshop                                              image embed
+VM123:17 pdf    application/pdf                                                        {{[[pdf]]}}
+VM123:17 mp3    audio/mpeg                                                             {{[[audio]]}}
+VM123:17 flac   audio/x-flac                                                           {{[[audio]]}}
+VM123:17 wma    audio/x-ms-wma                                                         {{[[audio]]}}
+VM123:17 mp4    video/mp4                                                              {{[[video]]}}
+VM123:17 mkv    video/x-matroska                                                       {{[[video]]}}
+VM123:17 avi    video/x-msvideo                                                        {{[[video]]}}
+VM123:17 wmv    video/x-ms-wmv                                                         {{[[video]]}}
+VM123:17 docx   application/vnd.openxmlformats-officedocument.wordprocessingml.document bare URL
