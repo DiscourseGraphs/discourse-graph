@@ -1,0 +1,1 @@
+Put in ~/bin/. Decided to get the key from the environment after all. Thank you.
