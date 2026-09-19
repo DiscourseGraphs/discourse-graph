@@ -1,0 +1,1 @@
+No, this is good. We use the term platform instead of host, but otherwise good to go.
