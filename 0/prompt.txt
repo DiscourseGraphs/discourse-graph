@@ -1,0 +1,1 @@
+Agreed on adding the field to the view, that was implicitly part of ENG-2229 for me, but explicit is better. Go ahead and change that one. Still thinking about the CrossAppNode field.
