@@ -1,0 +1,1 @@
+Clearly option 1, and I fail to understand what contradicts it. Are you saying that the firebase URL is not "a stable reference" because of the token?
