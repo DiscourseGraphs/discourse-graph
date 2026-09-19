@@ -1,0 +1,1 @@
+one second, should I follow the next step instructions, or hand off to another claude session (presumably after quitting zed)
