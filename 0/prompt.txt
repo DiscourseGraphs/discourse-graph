@@ -1,0 +1,1 @@
+Let's compare to another option: Eliminating subtype altogether. I don't think Rids are stored anywhere, they are only used for database input.
