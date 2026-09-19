@@ -1,0 +1,1 @@
+Ah, and there's another consideration: Postponing means that Obsidian must ask itself: Is this coming from Roam? Oh, I have to do this roam-specific trick to get the filename. That's one thing we're strongly trying to avoid: The Platform <-> DB path must be roughly agnostic to data origin.
