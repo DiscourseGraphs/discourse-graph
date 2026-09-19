@@ -1,0 +1,1 @@
+I meant sourceRef within ResolvedAsset, not anywhere else.
