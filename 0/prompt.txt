@@ -1,0 +1,5 @@
+Wait, a few more nits from the review agent.
+Two residuals in the same area, both narrower than the findings they come from — your call whether they're worth handling here or with 3 and 7:
+
+- The catch at :1132-1139 still calls only unsetPathMapping, so an exception thrown after the claim but before the write — createFolder, createBinary — leaves a phantom entry in claimedPaths and a later reference gets needlessly suffixed. It can't delete the entry as written, because targetPath is scoped inside the try; it would need to be hoisted, or the claim moved to just after the write.
+- If a source_path sanitizes away entirely (a segment of exactly . or .. and nothing else), sanitizedAssetPath is "" and candidatePath becomes import/<space>/. createBinary then throws into that same catch, so the note keeps its link and the error is recorded — safe degradation, but it exercises the phantom-claim path above.
