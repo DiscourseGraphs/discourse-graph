@@ -1,0 +1,1 @@
+Ok... maybe I jumped the gun, and the global assetSync is not off the table. (I have the earlier design.md in design.previous.md at root level, with a more roamish syntax.) So... how would the linear tickets be rewritten in that case?
