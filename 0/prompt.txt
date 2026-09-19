@@ -1,0 +1,1 @@
+Declining 4 is sound as stated — the eng-2219 caller is sequential by deliberate design, and a dedupe map wouldn't cover the cross-tab case that assetRegistry.ts already prices in. Worth noting the module's doc comment doesn't say the module assumes sequential callers; a line to that effect would make the assumption discoverable at the point where someone would break it.
