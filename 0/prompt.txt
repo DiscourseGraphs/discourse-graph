@@ -1,0 +1,36 @@
+<task-notification>
+<task-id>a37f7d061436117d2</task-id>
+<tool-use-id>toolu_01YK72R88GpmRzqVpJum8L6y</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-maparent-OpenSource-discourse-graph/9e65ef27-1706-414f-8fc4-d687b9ccda93/tasks/a37f7d061436117d2.output</output-file>
+<status>completed</status>
+<summary>Agent "Read-only review of branch" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>## Review: `eng-2215-give-cross-space-relation-endpoint-rids-the-platform-subtype`
+
+Scope reviewed: `git diff main...HEAD` (2 commits, 6 files) plus every call site of `spaceUriAndLocalIdToRid` / `ridToSpaceUriAndLocalId` across `apps/roam`, `apps/obsidian`, `packages/database`.
+
+### Verification run (read-only)
+- `tsc --noEmit` clean in `packages/database`, `apps/roam`, `apps/obsidian` — no caller was left without the now-required `subtype` argument.
+- `vitest run` in `packages/database`: 59/59 pass, including the 2 new endpoint-rid tests.
+- Confirmed `my_concepts` exposes `is_schema` / `is_relation` (`packages/database/src/dbTypes.ts:994-1013`), so the widened `select` is valid.
+- Confirmed the subtype the converter now emits matches what each consumer stores: Obsidian writes `.note` for note instances (`apps/obsidian/src/utils/importNodes.ts:1219,1308`), `.relation` for relation instances (`apps/obsidian/src/utils/importRelations.ts:337`), `.schema` for types (`importNodes.ts:1126`, `importRelations.ts:87`). Roam's `findImportedNodeUidBySourceRid` is fed rids from `SharedNode.rid`, which already carried `.note`. The fix is coherent end to end; the previous subtype-less endpoint rid was the real mismatch.
+- Confirmed `sharedNodes.ts:193` is behaviour-identical: `Platform` is only `"Roam" | "Obsidian"` (`dbTypes.ts:1954`), and Roam space URLs take the `http` branch where the subtype is discarded.
+- Confirmed `packages/database/dist/**` holds a stale `rid.d.ts` with the old optional signature, but `dist` is gitignored and `package.json` `exports` resolve `./lib/*` to `src`, so it is inert.
+
+### Findings
+
+**Low — `packages/database/src/lib/rid.ts:6`**
+The module docstring still reads `// The subtype may be omitted.` That is now false for the construction direction: `spaceUriAndLocalIdToRid` requires `subtype` and always emits it for `orn:` space URIs. It remains true only for `ridToSpaceUriAndLocalId`, which keeps the `m2` fallback for legacy subtype-less rids. As written the comment will lead the next reader to think the subtype-less form is still producible.
+
+**Low — `packages/database/src/lib/rid.ts:11,16`**
+`ObsidianRidSubtype` is required for every space, including Roam, where `spaceUri.startsWith("http")` returns before the subtype is ever read (`rid.ts:20`). Roam-only call sites such as `apps/roam/src/utils/discoverSharedRelations.ts:61` must now pass a value that is guaranteed to be discarded, and the type name says "Obsidian" while the parameter governs all `orn:` platforms. Not a behaviour regression — a naming/API-shape cost introduced by making the argument mandatory.
+
+**Low (latent, pre-existing; now inconsistent with the new converter) — `apps/roam/src/utils/importSharedRelations.ts:184,197-201`**
+`findTargetUid`'s `ridType` parameter is never supplied by any caller (both uses are `findTargetUid(source, spaceUri)` / `findTargetUid(destination, spaceUri)` at lines 220 and 223), so the reconstruction always falls back to `"note"`. This change makes `getConceptMap` correctly distinguish `"relation"` for endpoints that are themselves relations, but that distinction only survives for *cross-space* endpoints, which take the `isRid` branch. A same-space relation-of-relation endpoint is collapsed to a bare localId by `asSimpleLocalId` and then rebuilt here as `orn:&lt;platform&gt;.note:…`, which will not match the `.relation` rid Obsidian stored — surfacing as `Missing relation source`. The diff narrows this parameter's type without wiring it up; the dead parameter is now the only thing signalling the gap.
+
+**Low (latent) — `packages/database/src/lib/sharedNodes.ts:207-208`**
+Same gap, and the new comment (`// To be reviewed if we have relations of relations`) names it. `nodeRidById` hardcodes `"note"` for every cross-space slot filler. Currently harmless: `SharedNode.slots` has no consumer yet (no reader in `apps/roam/src/utils/materializeSharedNode.ts`, `resolveSharedNodeTypes.ts`, or `DiscoverSharedNodesDialog.tsx`), so nothing depends on the value. Worth noting that this row *is* reachable by the same `is_relation` signal the converter now uses, so it could be made correct rather than deferred.
+
+No correctness regressions found in the shipped path. The test additions are meaningful, not vacuous — the relation's own `space_id` (1, `obsidian:vault-a`) differs from both endpoint spaces (2 and 3), so `asSimpleLocalId(…, optional=true)` genuinely preserves the full rid and both assertions exercise the new subtype logic.</result>
+<usage><subagent_tokens>86604</subagent_tokens><tool_uses>32</tool_uses><duration_ms>221347</duration_ms></usage>
+</task-notification>
