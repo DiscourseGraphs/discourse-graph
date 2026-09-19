@@ -1,0 +1,1 @@
+Yes, confirm 6Mb, my mistake. Oh, and 1784 is about Vercel blobs, not Supabase blobs. Nevermind. Let's proceed with that.
