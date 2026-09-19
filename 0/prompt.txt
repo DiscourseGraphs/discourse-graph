@@ -1,0 +1,1 @@
+Looking at Linear issue ENG-2215, and trying to evaluate the blast radius. My instinct: It is easy to alter getConceptMap to get Rids with subtype. Let's make the subtype mandatory. I would align package/database/getSharedNote to use the note subtype regardless of platform. Is there any reason not to go this route?
