@@ -1,0 +1,1 @@
+Ok, I am asked to explain why I'm not doing exactly why Obsidian is doing. Can you get to the heart of the sub-optimality of copying the Obsidian importedAssets structure (assuming the transfer of assets to firebase as a given)
