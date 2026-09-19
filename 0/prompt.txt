@@ -1,0 +1,1 @@
+Another scope issue: It calls on  `fetchRoamAsset` (`apps/roam/src/utils/fetchRoamAsset.ts:131`) — a combined descriptor-then-bytes fetch with its own tests, unreferenced outside those tests. The publish path uses `fetchAssetDescriptor` + `fetchAssetBytes` directly, so this is a third, unused entry point. What do you think?
