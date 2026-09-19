@@ -1,0 +1,1 @@
+Ah, sorry, I did not give proper context. I had some pushback on using the bucket names, and we designed what we saw as an appropriate solution here: https://roamresearch.com/#/app/discourse-graphs/page/qxLrH9j3U There is now more pushback on using the bucket names; I raised the encryption issue from the documentantion.
