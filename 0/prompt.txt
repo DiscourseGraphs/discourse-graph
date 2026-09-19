@@ -1,0 +1,1 @@
+Ah, the integration is what I was worried about. I repaired the build issue, ran all tests, including db integration. You can have a go now if you want.
