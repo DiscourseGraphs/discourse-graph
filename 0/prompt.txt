@@ -1,0 +1,1 @@
+The roam changes were made. I pushed the commit and PR. As for the file size, changing that limit is considered low priority (ENG-1784) so we can go with the current 5Mb.
