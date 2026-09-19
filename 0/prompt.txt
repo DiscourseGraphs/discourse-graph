@@ -1,0 +1,1 @@
+Good. Scope-check balked a bit at mime-db, but I'll defend it. Here are findings from review:
