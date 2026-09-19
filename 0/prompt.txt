@@ -1,0 +1,1 @@
+Ah, do we still need new FileReference columns? Not sure anymore.
