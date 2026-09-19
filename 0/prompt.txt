@@ -1,0 +1,1 @@
+Ok. I added a first note: "This scope is extracted fully from [ENG-2219], basically splitting it in two for review convenience." Now we should look at the impact on ENG-2219 formulation.
