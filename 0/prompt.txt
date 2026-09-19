@@ -1,0 +1,1 @@
+let's keep looking at the first task before jumping to the next. This is going to be a generic instruction. I removed the comment about ordering in the view. I notice you have a database comment in the migration, vs a code comment in the schema. It should be the same. It has not been the pattern, but I think that a database comment is preferrable.
