@@ -1,0 +1,40 @@
+Review findings: 
+HIGH — apps/roam/src/utils/materializeSharedNode.ts:423-427 — the hoisted collision check tests the wrong title
+
+The pre-check is called with validated.title, but both import paths below are called with pageTitle:
+
+title: validated.title,        // line 426, the hoisted pre-check
+title: pageTitle,              // lines 456 and 461, updateImportedPage / createImportedPage
+
+pageTitle is the decorated title (materializeSharedNode.ts:372-375):
+
+const pageTitle =
+  (sharedNode.coreTitle && nodeType
+    ? decorateTitle(nodeType.format, sharedNode.coreTitle)
+    : null) ?? validated.title;
+
+Both real callers pass nodeType — importSharedNodes.ts:40 and refreshImportedNode.ts:58, each from nodeTypesBySchemaId.get(sharedNode.schemaId) — and coreTitle is populated from core_title in sharedNodes.ts. So in the ordinary cross-app case the two titles differ, and the check guards a title that is never written.
+
+Two consequences, in opposite directions:
+
+1. The hoist fails at its own purpose. When the decorated title collides but the raw one is free, the pre-check passes, importNodeAssets runs and uploads, and then createImportedPage/updateImportedPage returns title-collision. That is exactly the unrevocable upload for a rejected import that the reordering exists to prevent — and, as the titleCollisionFailure docstring says, it cannot be swept up afterwards.
+2. A new false rejection. When the raw title collides but the decorated one is free, the pre-check now aborts an import that previously succeeded, with a message naming a title the import would never have used. This regresses working imports and refreshes.
+
+On the rename branch the same substitution misfires both ways: titleCollisionFailure compares getPageTitleByPageUid(importedPageUid) (which holds the decorated title) against validated.title, so needsRename reads true spuriously, and then getPageUidByPageTitle(validated.title) looks up the wrong page.
+
+Fix is one word: pass title: pageTitle at line 426.
+
+LOW/MEDIUM — materializeSharedNode.test.ts:544 and :564 — the ordering guarantee is untested
+
+Both collision tests assert expect(from).not.toHaveBeenCalledWith("my_file_references"). importNodeAssets is module-mocked at the top of the file (vi.mock("~/utils/importNodeAssets", …)), so nothing in the test ever reaches the reference query — the assertion cannot fail regardless of ordering, and would still pass if the hoist were reverted entirely. expect(mockedImportNodeAssets).not.toHaveBeenCalled() tests the actual property. This is also why the HIGH finding above slipped through: no test exercises the pre-check with a decorated title.
+
+Verified sound
+
+- The importNodeAssets(...).catch((error) => ({ error })) / if ("error" in assets) narrowing: no success path carries an error key, so the discriminant is safe.
+- assets is attached only on success and correctly absent on action: "skipped" (the skipped path returns before the stage), pinned by toEqual in the suite.
+- No consumer switches exhaustively on MaterializationStage, so adding copy-assets breaks nothing; both MaterializationSuccess consumers typecheck.
+- The mocked report shapes now match emptyReport() and FailedImport exactly, after your sourceLocator fix.
+- mirrorAssetToRoamStorage.ts change is comment-only.
+- vitest 34/34 pass, tsc --noEmit clean, eslint clean. Nothing in the tree was modified.
+
+The HIGH finding is a one-line fix but it inverts the guarantee the PR's scope-check section is built on, so it should land before merge — and the scope-check rationale stays valid once it does.
