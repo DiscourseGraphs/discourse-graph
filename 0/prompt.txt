@@ -1,0 +1,1 @@
+We made an issue proposal here: https://roamresearch.com/#/app/discourse-graphs/page/-y0pyFKNV There was agreement this is needed, and that we need an appropriate ticket. Can you draft it using the home style?
