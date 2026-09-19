@@ -1,0 +1,1 @@
+We're looking at making some changes to the database format, and thinking about schema migration options. Our users don't update their client reliably. Can we nudge them, and let's discuss strategies to introduce schema changes in a controlled fashion, so newer plugins can live with data from older plugins.
