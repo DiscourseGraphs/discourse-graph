@@ -1,0 +1,13 @@
+Yes, please do. Not sure if you have access to https://roamresearch.com/#/app/developer-documentation/page/I7uGmS9BF , pasting just in case.
+- `roamAlphaAPI.file.delete`
+    - Description::
+        - Delete a file hosted on Roam.
+    - Parameters::
+        - `url` (string, required) — a firebase storage url, obtained from `roamAlphaAPI.file.upload` or from a block
+    - Return::
+        - Promise resolving to `undefined`
+    - Example::
+        - ```javascript
+          await roamAlphaAPI.file.delete({url: "https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/..."})
+          // => undefined
+          ```
