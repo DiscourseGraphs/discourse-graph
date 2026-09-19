@@ -1,0 +1,1 @@
+Hmmm... The downside of that is that we are again introducing a lot of Obsidian knowledge into the Roam importer, and I'm not happy about that. I'll push back on one thing: the raw token is not unique per asset, but it's unique per Obsidian markdown document, which has a fixed location. So maybe that's a workable solution after all. BUT it does imply a migration.
