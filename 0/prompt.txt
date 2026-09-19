@@ -1,0 +1,1 @@
+Hmm... just on the idea of our own guess round-tripped: that's true for Roam, but not for Obsidian-origin assets, right?
