@@ -1,0 +1,2 @@
+I have recorded the linear ticket text, you can forget it for now. The issue has been written in https://roamresearch.com/#/app/discourse-graphs/page/oFjrl7kq6 . I'll add a note in linear.
+Meanwhile, let's think about finding 8. Is adding the return values a scope creep for eng-2218? It seems easy to add.
