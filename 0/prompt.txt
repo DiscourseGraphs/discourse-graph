@@ -1,0 +1,1 @@
+ok. Just checking the design. I may have missed the idea of creating FileReference without filehash as a failure marker, and I'm not fully sold on it. Can we report on failures without allowing this in the CrossApp structures? More important: Without storing those in the database?
