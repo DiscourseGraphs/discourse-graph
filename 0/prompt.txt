@@ -1,0 +1,1 @@
+Thinking more. Is it fair to say that one of the reasons we want to restrict to this graph asset's is that it makes for a tighter check on new bucket paths?
