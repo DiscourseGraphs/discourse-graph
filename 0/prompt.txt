@@ -1,0 +1,1 @@
+Ok. So I stashed the latest 3.4 work, I should just have the 3.1-3.3 work. I tested 3.1. The image was downloaded properly, and is put in the node's importedAssets, but the markdown still uses the firebase URL. I then ran the 3.1 test, and the image was replaced, no hash suffix, and of course the same problem of using the firebase URL. So look at the latest commit.
