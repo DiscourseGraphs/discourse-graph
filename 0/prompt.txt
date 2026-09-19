@@ -1,0 +1,1 @@
+do not add a ticket for Obsidian unit testing, we're doing manual tests. We'll fold tslib when we need it.
