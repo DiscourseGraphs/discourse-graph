@@ -159,3 +159,29 @@ export const removeFromGroup = async ({
 
   return null; // success
 };
+
+export const setGroupAdmin = async ({
+  client,
+  groupId,
+  memberId,
+  admin,
+}: {
+  client: DGSupabaseClient;
+  groupId: string;
+  memberId: string;
+  admin: boolean;
+}): Promise<string | null> => {
+  const response = await client
+    .from("group_membership")
+    .update({ admin })
+    .eq("member_id", memberId)
+    .eq("group_id", groupId)
+    .select();
+  if (response.error) return response.error.message;
+  // The update policy only matches rows the caller administers, so a
+  // non-admin caller gets an empty result rather than an error.
+  if (response.data === null || response.data.length === 0)
+    return "No such member, or you are not an admin of this group";
+
+  return null; // success
+};
