@@ -1,0 +1,9 @@
+so since september 8th 2026 in our graph we have not been able to see the personal left sidebar it has happened to all the users now we are not sure if this is due to merge or a roam side bug so first lets checout from the codebase pov like can you check the pr's merged to main and then which could have made this happen btw i am on the version v0.22.0-2026-08-24-078990e8 so not sure when did this happen  so there was a pr that added "
+  Block props migrated v2
+  " to a roam/js/discourse-graph page and since then everything is broken ... i want to understand what we did with the "Block props migrated" and then what happens after "
+  Block props migrated v2
+  " i need to build the mental model of how the system was setup to work so i can make sense of it 
+
+
+
+if you can figure out a hypotheis that you think might answer all of this then it would be awesome but if you can't atleast give me the understanding i can build in my brain
