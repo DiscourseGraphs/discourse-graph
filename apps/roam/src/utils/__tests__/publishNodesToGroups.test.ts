@@ -103,7 +103,7 @@ const makeCrossAppNode = ({
     direct: { localId: uid, value: title },
     full: {
       localId: uid,
-      value: `# ${title}\n\nBody\n`,
+      value: `Body\n`,
       contentType: contentTypes.roamMarkdown,
       scale: "document",
     },
@@ -253,7 +253,7 @@ describe("publishNodesToGroups", () => {
       expect.objectContaining({
         source_local_id: "node-1",
         variant: "full",
-        text: "# CLM - new claim\n\nBody\n",
+        text: "Body\n",
         content_type: contentTypes.roamMarkdown,
       }),
     ]);
@@ -304,7 +304,7 @@ describe("publishNodesToGroups", () => {
       }),
       expect.objectContaining({
         variant: "full",
-        text: "# CLM - updated title\n\nBody\n",
+        text: "Body\n",
       }),
     ]);
     expect(result.syncedNodeSchemaUids).toEqual([]);

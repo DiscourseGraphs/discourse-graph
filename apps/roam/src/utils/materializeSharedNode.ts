@@ -1,7 +1,7 @@
 import {
   contentTypes,
+  normalizeLineEndings,
   stripFrontmatter,
-  stripTitleHeading,
   trimBlankLines,
 } from "@repo/content-model";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
@@ -220,10 +220,12 @@ const fetchFullMarkdown = async ({
     return {
       error: `Unsupported full content type "${data.content_type}" — expected "${expectedContentType}"`,
     };
+  // Obsidian's `full` is the file bytes, so it opens with frontmatter that must
+  // not cross spaces. Roam's is the body alone.
   const withoutPreamble =
-    sharedNode.platform === "Roam"
-      ? stripTitleHeading({ markdown: data.text, title: sharedNode.title })
-      : stripFrontmatter(data.text);
+    data.content_type === contentTypes.obsidianMarkdown
+      ? stripFrontmatter(data.text)
+      : normalizeLineEndings(data.text);
   const markdown = trimBlankLines(withoutPreamble);
   return { markdown: markdown.trim() ? markdown : "" };
 };

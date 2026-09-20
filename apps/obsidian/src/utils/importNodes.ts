@@ -1,4 +1,3 @@
-import type { Json } from "@repo/database/dbTypes";
 import matter from "gray-matter";
 import { App, Notice, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
@@ -32,6 +31,10 @@ import {
 import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 import { getNodeTypeById, isAcceptedSchema } from "./typeUtils";
+import {
+  type ImportedNodeContent,
+  resolveImportedNodeContent,
+} from "./importedNodeContent";
 import { decorateTitle } from "@repo/database/lib/decorateTitle";
 
 type PublishedNode = {
@@ -261,14 +264,7 @@ const fetchNodeContentForImport = async ({
   client: DGSupabaseClient;
   spaceId: number;
   nodeInstanceId: string;
-}): Promise<{
-  fileName: string;
-  content: string;
-  createdAt: number;
-  modifiedAt: number;
-  authorId: number;
-  filePath?: string;
-} | null> => {
+}): Promise<ImportedNodeContent | null> => {
   const { data, error } = await client
     .from("my_contents")
     .select("text, created, last_modified, variant, metadata, author_id")
@@ -281,41 +277,7 @@ const fetchNodeContentForImport = async ({
     return null;
   }
 
-  const rows = (data ?? []) as Array<{
-    text: string | null;
-    created: string | null;
-    last_modified: string | null;
-    author_id: number | null;
-    variant: string | null;
-    metadata: Json;
-  }>;
-  const direct = rows.find((r) => r.variant === "direct");
-  const full = rows.find((r) => r.variant === "full");
-  const authorId = full?.author_id ?? direct?.author_id ?? null;
-
-  if (
-    !direct?.text ||
-    !full?.text ||
-    full.created === null ||
-    full.last_modified === null ||
-    authorId === null
-  ) {
-    return null;
-  }
-
-  const filePath: string | undefined =
-    typeof direct.metadata === "object" &&
-    typeof (direct.metadata as Record<string, any>).filePath === "string"
-      ? (direct.metadata as Record<string, any>).filePath
-      : undefined;
-  return {
-    fileName: direct.text,
-    content: full.text,
-    createdAt: new Date(full.created + "Z").valueOf(),
-    modifiedAt: new Date(full.last_modified + "Z").valueOf(),
-    filePath,
-    authorId,
-  };
+  return resolveImportedNodeContent(data ?? []);
 };
 
 type NodeTypeSchemaForInstance = {
