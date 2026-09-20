@@ -2,11 +2,7 @@
 import type { Json } from "@repo/database/dbTypes";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import type DiscourseGraphPlugin from "~/index";
-import {
-  fetchUserNames,
-  getSpaceNameFromIds,
-  getSpaceUris,
-} from "./importNodes";
+import { fetchUserNames, getSpaceInfoFromIds } from "./importNodes";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import { getUserNameById } from "./typeUtils";
 
@@ -144,10 +140,7 @@ export const fetchTemplateImportCandidates = async ({
   const spaceIds = [
     ...new Set(rowsWithTemplates.map(({ row }) => row.space_id!)),
   ];
-  const [spaceNames, spaceUris] = await Promise.all([
-    getSpaceNameFromIds(client, spaceIds),
-    getSpaceUris(client, spaceIds),
-  ]);
+  const spaceInfoById = await getSpaceInfoFromIds(client, spaceIds);
 
   return rowsWithTemplates
     .map(({ row, templateName, templateContent }) => {
@@ -163,8 +156,8 @@ export const fetchTemplateImportCandidates = async ({
           ? getUserNameById(plugin, row.author_id)
           : undefined,
         spaceId,
-        spaceName: spaceNames.get(spaceId) ?? `Space ${spaceId}`,
-        spaceUri: spaceUris.get(spaceId),
+        spaceName: spaceInfoById.get(spaceId)?.name ?? `Space ${spaceId}`,
+        spaceUri: spaceInfoById.get(spaceId)?.url,
         lastModified: row.last_modified
           ? new Date(row.last_modified + "Z").valueOf()
           : undefined,
