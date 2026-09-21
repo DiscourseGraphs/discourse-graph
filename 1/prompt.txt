@@ -52,3 +52,7 @@ what's a warning level error? i wanna test
 ---
 
 so per our current setup, are there any errors with the current version based on main??
+
+---
+
+hmm then how did it pass the obsidian store plugin review. something's not right here
