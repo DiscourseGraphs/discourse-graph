@@ -69,7 +69,7 @@ Confirm the selected project still exists, is active, and includes the Engineeri
 
 ## Labels and optional fields
 
-- Resolve provenance labels from the workspace label list, not only Engineering team labels. Select the appropriate child of the `Created by` group by its current ID; do not apply the group itself or create team-specific copies. Inspect other existing issue labels and apply every clearly relevant label.
+- Inspect existing issue labels and apply every clearly relevant label.
 - Never create a label or guess an uncertain label.
 - Missing or uncertain optional labels do not block creation. If `Ticket Draft` or the required provenance label is missing or ambiguous, return the prepared draft and report the configuration gap instead of creating an unmarked ticket or substituting a status.
 - Set priority only when the user or context makes it clear and useful.

@@ -8,12 +8,6 @@ Before diving into a pull request, it’s a good idea to [open an issue](https:/
 
 If you’re uncertain about the value of your proposed change, don’t hesitate to create an issue anyway 😄. We’ll review it together, and once we agree on next steps, you can confidently move forward.
 
-## Review agent-created Engineering tickets
-
-Agent-created Linear tickets start in `Ticket Draft` with exactly one workspace provenance label from the `Created by` group based on the creating agent: `Created by Claude`, `Created by Codex`, or `Created by LLM` for another or unknown agent. The human who asked the agent to create the ticket reviews the intent, scope, acceptance criteria, and writing standards before implementation. Moving the ticket to `Backlog` signs off an agreed, implementable task; moving it to `Triage` signs off the ticket while leaving product or solution decisions open. Keep the provenance label after review.
-
-The [ticket-creation skill](.agents/skills/dg-create-engineering-ticket/SKILL.md) defines the required metadata and transitions for all repository-supported agent creation workflows.
-
 ## Making Your Changes
 
 Here’s how to contribute:
