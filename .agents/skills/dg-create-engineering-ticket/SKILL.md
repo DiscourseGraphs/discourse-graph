@@ -47,13 +47,13 @@ Every bullet above is placeholder guidance. Replace or remove every placeholder 
 
 Always use the Engineering team. This skill never creates or redirects to Feedback.
 
-- Create every agent-created ticket in the existing `Draft` status with exactly one existing agent provenance label. The label records provenance and stays after approval.
+- Create every agent-created ticket in the existing `Ticket Draft` status with exactly one existing agent provenance label. The label records provenance and stays after approval.
 - Select the label from the creating agent's known identity: `Created by Claude` for Claude, `Created by Codex` for Codex, or `Created by LLM` for any other agent or when its identity cannot be determined. Do not infer agent identity from the Linear account, ticket topic, or skill name. Do not use `Created by LLM` as a substitute when the correct agent-specific label is missing.
-- `Draft` means human ticket review is pending, even though Linear currently classifies it as a started status; it does not authorize implementation.
+- `Ticket Draft` is in the Backlog category and means human ticket review is pending; it does not authorize implementation. The existing `Draft` status belongs to the Started category and is used by the PR workflow. Do not use it for ticket review or change its automation.
 - In `Notes`, record `Created with: dg-create-engineering-ticket` and any other creation skills actually used. Skill attribution is provenance, not evidence that the ticket meets the standards.
-- The human who asked the agent to create the ticket checks intent against the source request, scope and exclusions, verifiable acceptance criteria, and the canonical template and engineering writing standards. Keep the ticket in `Draft` while changes are needed.
+- The human who asked the agent to create the ticket checks intent against the source request, scope and exclusions, verifiable acceptance criteria, and the canonical template and engineering writing standards. Keep the ticket in `Ticket Draft` while changes are needed.
 - Human approval moves the ticket to `Backlog` when the problem and fix are agreed and implementation needs no further product or solution decisions. Use `Triage` when implementation is likely within six months but decisions remain. Keep idea-stage Engineering requests in Engineering.
-- The human's move from `Draft` to `Triage` or `Backlog` records sign-off. An agent may make that move only after explicit human approval of the completed ticket and destination. A request to create a ticket is not approval of its generated contents. Keep the provenance label and skill attribution.
+- The human's move from `Ticket Draft` to `Triage` or `Backlog` records sign-off. An agent may make that move only after explicit human approval of the completed ticket and destination. A request to create a ticket is not approval of its generated contents. Keep the provenance label and skill attribution.
 
 ## Project selection
 
@@ -71,7 +71,7 @@ Confirm the selected project still exists, is active, and includes the Engineeri
 
 - Inspect existing issue labels and apply every clearly relevant label.
 - Never create a label or guess an uncertain label.
-- Missing or uncertain optional labels do not block creation. If `Draft` or the required provenance label is missing or ambiguous, return the prepared draft and report the configuration gap instead of creating an unmarked ticket or substituting a status.
+- Missing or uncertain optional labels do not block creation. If `Ticket Draft` or the required provenance label is missing or ambiguous, return the prepared draft and report the configuration gap instead of creating an unmarked ticket or substituting a status.
 - Set priority only when the user or context makes it clear and useful.
 - Do not set a cycle or release. CI/CD handles releases.
 
@@ -79,6 +79,6 @@ Confirm the selected project still exists, is active, and includes the Engineeri
 
 Draft without changing Linear when the user asks for a draft, review, or rewrite. Create the ticket without an additional confirmation when the user explicitly asks to create it.
 
-Before creation, resolve the current Engineering statuses, selected project, and existing labels. Create the issue once with its title, completed description (including skill attribution), `Draft` status, project, provenance and relevant labels, and justified priority. If the result is ambiguous, search for the issue before retrying so a transient failure does not create a duplicate.
+Before creation, resolve the current Engineering statuses, selected project, and existing labels. Create the issue once with its title, completed description (including skill attribution), `Ticket Draft` status, project, provenance and relevant labels, and justified priority. If the result is ambiguous, search for the issue before retrying so a transient failure does not create a duplicate.
 
 Read the created issue back and verify its status, labels, and attribution. Report any mismatch instead of claiming successful routing. Return the issue identifier, title, status, project, and link, and say that human review is pending. Include the generated branch name when Linear returns one. Do not restate the full description unless the user asks.
