@@ -5,12 +5,8 @@
   "branch": "eng-2202-reconcile-roam-node-schema-metadata-between-sync-and-publish",
   "checkpoints_count": 6,
   "files_touched": [
-    "apps/roam/src/utils/__tests__/conceptConversion.test.ts",
-    "apps/roam/src/utils/__tests__/roamToCrossAppConverters.test.ts",
-    "apps/roam/src/utils/conceptConversion.ts",
-    "apps/roam/src/utils/roamToCrossAppConverters.ts",
-    "packages/database/src/lib/__tests__/crossAppConverters.test.ts",
-    "packages/database/src/lib/crossAppConverters.ts"
+    "apps/roam/src/utils/__tests__/schemaMetadataParity.test.ts",
+    "apps/roam/src/utils/nodeTemplateContent.ts"
   ],
   "sessions": [
     {
