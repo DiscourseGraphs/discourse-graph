@@ -310,7 +310,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     const item = this.addStatusBarItem();
     item.addClass(
       "dg-help-menu-status-bar-item",
-      "clickable-icon",
+      "mod-clickable",
       "text-muted",
       "hover:text-normal",
     );
