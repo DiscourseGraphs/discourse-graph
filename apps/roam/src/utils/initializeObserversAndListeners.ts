@@ -124,8 +124,9 @@ export const initObservers = ({
 
       const sharingEnabled =
         settings.featureFlags[FEATURE_FLAG_KEYS.enableNodeSharing];
-      const isImportedNode = Boolean(uid && readImportedSourceIdentity(uid));
-      if (sharingEnabled && isImportedNode) {
+      const isImportedNode =
+        sharingEnabled && Boolean(uid && readImportedSourceIdentity(uid));
+      if (isImportedNode) {
         renderRefreshImportedNodeTitleButton({ h1, uid });
       }
       const isDiscourseNode = node && node.backedBy !== "default";
