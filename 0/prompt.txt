@@ -1,0 +1,1 @@
+remove any changes that aren't related to adding obsidian eslint (ie the fixes for warnings on apps/obsidian/src/components/canvas/utils/relationUtils.tsx or apps/obsidian/src/components/canvas/DiscourseToolPanel.tsx)
