@@ -47,7 +47,9 @@ Every bullet above is placeholder guidance. Replace or remove every placeholder 
 
 Always use the Engineering team. This skill never creates or redirects to Feedback.
 
-- Create every agent-created ticket in the existing `Draft` status with the existing `created by claude/codex` label, including tickets created by other agents. The label records provenance and stays after approval. `Draft` means human ticket review is pending, even though Linear currently classifies it as a started status; it does not authorize implementation.
+- Create every agent-created ticket in the existing `Draft` status with exactly one existing agent provenance label. The label records provenance and stays after approval.
+- Select the label from the creating agent's known identity: `Created by Claude` for Claude, `Created by Codex` for Codex, or `Created by LLM` for any other agent or when its identity cannot be determined. Do not infer agent identity from the Linear account, ticket topic, or skill name. Do not use `Created by LLM` as a substitute when the correct agent-specific label is missing.
+- `Draft` means human ticket review is pending, even though Linear currently classifies it as a started status; it does not authorize implementation.
 - In `Notes`, record `Created with: dg-create-engineering-ticket` and any other creation skills actually used. Skill attribution is provenance, not evidence that the ticket meets the standards.
 - Record `Human reviewer: <requesting human>` in `Notes`. The requesting human owns review unless they name another human. If their identity is unknown, resolve it before creation; never infer it from an API or bot account.
 - The human reviewer checks intent against the source request, scope and exclusions, verifiable acceptance criteria, and the canonical template and engineering writing standards. Keep the ticket in `Draft` while changes are needed.

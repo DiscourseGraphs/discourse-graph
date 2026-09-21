@@ -10,7 +10,7 @@ If you’re uncertain about the value of your proposed change, don’t hesitate 
 
 ## Review agent-created Engineering tickets
 
-Agent-created Linear tickets start in `Draft` with the `created by claude/codex` label. The requesting human (or a human they designate) reviews the intent, scope, acceptance criteria, and writing standards before implementation. Moving the ticket to `Backlog` signs off an agreed, implementable task; moving it to `Triage` signs off the ticket while leaving product or solution decisions open. Keep the provenance label after review.
+Agent-created Linear tickets start in `Draft` with exactly one provenance label based on the creating agent: `Created by Claude`, `Created by Codex`, or `Created by LLM` for another or unknown agent. The requesting human (or a human they designate) reviews the intent, scope, acceptance criteria, and writing standards before implementation. Moving the ticket to `Backlog` signs off an agreed, implementable task; moving it to `Triage` signs off the ticket while leaving product or solution decisions open. Keep the provenance label after review.
 
 The [ticket-creation skill](.agents/skills/dg-create-engineering-ticket/SKILL.md) defines the required metadata and transitions for all repository-supported agent creation workflows.
 
