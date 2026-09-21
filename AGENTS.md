@@ -42,57 +42,13 @@ When creating or updating a pull request body:
 
 - Start with `.github/pull_request_template.md`. Preserve its headings and guidance instead of adding substitute sections.
 - Treat the Linear ticket as the source of truth. Do not restate it in the pull request body.
-- Do not add a file-by-file summary, implementation diary, investigation log, full command output, or unrelated pre-existing issues.
+- Do not add a file-by-file summary, implementation diary, investigation log, full command output, or unrelated pre-existing issues. For PRs over 400 changed lines, excluding tests, include a concise split justification, main review entry points, and testing path in Reviewer brief.
 - Put line-specific implementation context in inline GitHub comments.
 - Put any non-obvious rules that future changes must preserve in code comments, tests, or documentation, not only in the pull request.
 - Remove empty optional sections and anything that does not help review the diff.
 
-## Style Guide
+## Required standards
 
-### UI Guidelines
-
-- Use Tailwind CSS for styling where possible
-- When refactoring inline styles, use tailwind classes
-- Use platform-native UI components (see below) first with shadcn/ui as a fallback
-- Maintain visual consistency with the host application's design system
-- Follow responsive design principles
-- Use `text-red-700` for Roam error message text. Obsidian keeps `text-error`; website and shared UI keep `text-destructive`. This convention does not change danger buttons, borders, backgrounds, or diagram colors.
-
-### TypeScript Guidelines
-
-- Prefer `type` over `interface`
-- Use explicit return types for functions
-- Avoid `any` types when possible
-- Prefer arrow functions over regular function declarations
-- Use named parameters (object destructuring) when a function has more than 2 parameters
-
-### Code Formatting
-
-- Use Prettier with the project's configuration
-- Maintain consistent naming conventions:
-  - PascalCase for components and types
-  - camelCase for variables and functions
-  - UPPERCASE for constants
-
-### Code Organization
-
-- Prefer small, focused functions over inline code
-- Extract complex logic into well-named functions
-- Function names should describe their purpose clearly
-- Choose descriptive function names that make comments unnecessary
-- Break down complex operations into smaller, meaningful functions
-- Prefer early returns over nested conditionals for better readability
-- Prefer util functions for reusable logic and common operations
-
-### Documentation
-
-- Follow the [code comment review criteria](STYLE_GUIDE.md#code-comments). Agents must check added and modified comments before handoff; authors must review them manually before requesting review.
-- Prefer sentence case in documentation and feature descriptions; capitalize official product/plugin names and exact UI labels, buttons, or titles, but keep generic feature terms lowercase to emphasize user actions
-
-### Testing
-
-- Write unit tests for new functionality
-- Ensure tests are meaningful and maintainable
-- Expose workspace unit tests through a `test:unit` script so the root validation command includes them
-- Before opening a pull request or declaring work PR-ready, run `pnpm install --frozen-lockfile` followed by `pnpm ci:validate` from the repository root, and resolve any failures
-- After opening or updating an authorized pull request, wait for its required GitHub checks and report their final status
+- Read and follow [STYLE_GUIDE.md](STYLE_GUIDE.md) and the nested `AGENTS.md` files that apply to changed files before editing or reviewing code.
+- Follow [PR_GUIDELINES.md](PR_GUIDELINES.md) for scope, verification, and review requirements. General code standards live in the style guide; app-specific instructions remain in nested `AGENTS.md` files.
+- Before handoff or requesting review, run `$dg-pr-adherence-check` from `.agents/skills/dg-pr-adherence-check/SKILL.md` against the final diff and available PR metadata. Resolve findings or report them explicitly, including missing evidence. Rerun affected checks after changes.

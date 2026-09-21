@@ -31,6 +31,14 @@ This helps reviewers understand intent quickly and catches issues earlier
 - What changed, why it is required now, whether anyone was affected or consulted, and links to the use case, ticket, or decision.
 -->
 
+## Standards check
+
+- [ ] Ran `$dg-pr-adherence-check` against the final diff and PR metadata.
+
+<!-- Checking the box means the review ran, not that every requirement passed.
+Make any outstanding findings or unverified requirements known to the PR author
+so they can address them. -->
+
 ## Local delegated full review
 
 - [ ] Ran a comprehensive review of the entire final diff in a subagent with a fresh context. Use `$dg-delegated-full-review` when no other full-review workflow is available.
