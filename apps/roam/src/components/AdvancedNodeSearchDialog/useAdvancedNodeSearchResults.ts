@@ -35,7 +35,10 @@ export const useAdvancedNodeSearchResults = ({
   searchIndex,
   dockedQuery,
   dockedResults,
-}: UseAdvancedNodeSearchResultsArgs): SearchResult[] => {
+}: UseAdvancedNodeSearchResultsArgs): {
+  results: SearchResult[];
+  isSearching: boolean;
+} => {
   // An empty persisted result set is not a usable cache: the docked panel also
   // persists the transient [] published while an async search is in flight.
   const hasUsableDockedResults = useMemo(
@@ -50,24 +53,29 @@ export const useAdvancedNodeSearchResults = ({
   const [unsortedScoredResults, setUnsortedScoredResults] = useState<
     ScoredSearchResult[]
   >([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     if (hasUsableDockedResults) {
       setUnsortedScoredResults([]);
+      setIsSearching(false);
       return;
     }
 
     if (!debouncedSearchTerm) {
       setUnsortedScoredResults([]);
+      setIsSearching(false);
       return;
     }
 
     if (isIndexLoading || indexError || !searchIndex) {
       setUnsortedScoredResults([]);
+      setIsSearching(false);
       return;
     }
 
     setUnsortedScoredResults([]);
+    setIsSearching(true);
     let cancelled = false;
     const typeFilter = selectedNodeTypeIds.length
       ? selectedNodeTypeIds
@@ -101,7 +109,14 @@ export const useAdvancedNodeSearchResults = ({
       })
       .catch(() => {
         if (cancelled) return;
-        setUnsortedScoredResults(runMiniSearch());
+        try {
+          setUnsortedScoredResults(runMiniSearch());
+        } catch {
+          setUnsortedScoredResults([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsSearching(false);
       });
 
     return () => {
@@ -122,8 +137,8 @@ export const useAdvancedNodeSearchResults = ({
   );
 
   if (hasUsableDockedResults && dockedResults) {
-    return dockedResults;
+    return { results: dockedResults, isSearching: false };
   }
 
-  return results;
+  return { results, isSearching };
 };
