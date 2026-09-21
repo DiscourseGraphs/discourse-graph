@@ -21,3 +21,10 @@ trang.doan@Trangs-MacBook-Pro discourse-graph %</bash-stdout><bash-stderr></bash
 ---
 
 i wanna run the .github/workflows/ci.yaml flow test for this branch. to see if this branch itself will pass or block the CI test
+
+---
+
+i wanna confirm if these mechanisms are actually implemented on this branch:
+
+* obsidian-eslint ERRORS will be marked as errors and not as warnings -> will be blocking. can test this by: finding what's a blocking errors for obsidian eslint -> add that to the file -> see if the IDE flags it or not
+* no effect on regular eslint rules
