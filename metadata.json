@@ -3,10 +3,11 @@
   "checkpoint_id": "01M328REVVFQFG693P0GE3X5VS",
   "strategy": "manual-commit",
   "branch": "eng-1832-add-obsidian-eslint-to-the-project",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     ".github/workflows/ci.yaml",
     "apps/obsidian/AGENTS.md",
+    "apps/obsidian/eslint.config.mjs",
     "apps/obsidian/eslint.config.store.mjs",
     "apps/obsidian/package.json",
     "packages/eslint-config/obsidian-store.js",
@@ -27,13 +28,20 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 208,
-    "cache_creation_tokens": 349999,
-    "cache_read_tokens": 14515572,
-    "output_tokens": 82051,
-    "api_call_count": 104
+    "input_tokens": 254,
+    "cache_creation_tokens": 411755,
+    "cache_read_tokens": 16617854,
+    "output_tokens": 92626,
+    "api_call_count": 127
   }
 }
