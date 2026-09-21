@@ -23,7 +23,7 @@ import {
   spaceUriAndLocalIdToRid,
 } from "@repo/database/lib/rid";
 import type { PostgrestResponse } from "@supabase/supabase-js";
-import type { Tables } from "@repo/database/dbTypes";
+import type { Enums, Tables } from "@repo/database/dbTypes";
 import { getSpaceNameIdFromRid } from "./spaceFromRid";
 import {
   importRelationsForImportedNodes,
@@ -124,53 +124,37 @@ export const getSpaceNameFromId = async (
 
 export { getSpaceNameIdFromRid } from "./spaceFromRid";
 
-export const getSpaceNameFromIds = async (
-  client: DGSupabaseClient,
-  spaceIds: number[],
-): Promise<Map<number, string>> => {
-  if (spaceIds.length === 0) {
-    return new Map();
-  }
-
-  const { data, error } = (await client
-    .from("my_spaces")
-    .select("id, name")
-    .in("id", spaceIds)) as PostgrestResponse<Tables<"Space">>;
-
-  if (error) {
-    console.error("Error fetching space names:", error);
-    return new Map();
-  }
-
-  const spaceMap = new Map<number, string>();
-  (data || []).forEach((space) => {
-    spaceMap.set(space.id, space.name);
-  });
-
-  return spaceMap;
+export type SpaceInfo = {
+  name: string;
+  url: string;
+  platform: Enums<"Platform">;
 };
 
-export const getSpaceUris = async (
+/** Spaces the user cannot see, and rows missing any of the three columns, are absent from the map. */
+export const getSpaceInfoFromIds = async (
   client: DGSupabaseClient,
   spaceIds: number[],
-): Promise<Map<number, string>> => {
+): Promise<Map<number, SpaceInfo>> => {
   if (spaceIds.length === 0) {
     return new Map();
   }
 
-  const { data, error } = (await client
+  const { data, error } = await client
     .from("my_spaces")
-    .select("id, url")
-    .in("id", spaceIds)) as PostgrestResponse<Tables<"Space">>;
+    .select("id, name, url, platform")
+    .in("id", spaceIds);
 
   if (error) {
-    console.error("Error fetching space urls:", error);
+    console.error("Error fetching spaces:", error);
     return new Map();
   }
 
-  const spaceMap = new Map<number, string>();
-  (data || []).forEach((space) => {
-    spaceMap.set(space.id, space.url);
+  const spaceMap = new Map<number, SpaceInfo>();
+  (data ?? []).forEach(({ id, name, url, platform }) => {
+    if (id === null || name === null || url === null || platform === null) {
+      return;
+    }
+    spaceMap.set(id, { name, url, platform });
   });
 
   return spaceMap;
@@ -1471,7 +1455,7 @@ const importSourceDocumentRelations = async ({
       ),
     ),
   ];
-  const sourceSpaceUris = await getSpaceUris(client, sourceSpaceIds);
+  const sourceSpaceInfo = await getSpaceInfoFromIds(client, sourceSpaceIds);
   const queryEngine = new QueryEngine(plugin.app);
   const sourceFiles = new Map<number, TFile>();
   const pendingSources = new Map<string, ImportableNode>();
@@ -1483,7 +1467,7 @@ const importSourceDocumentRelations = async ({
       source.source_local_id === null
     )
       continue;
-    const sourceSpaceUri = sourceSpaceUris.get(source.space_id);
+    const sourceSpaceUri = sourceSpaceInfo.get(source.space_id)?.url;
     if (!sourceSpaceUri) continue;
     const rid = spaceUriAndLocalIdToRid(
       sourceSpaceUri,
@@ -1677,14 +1661,13 @@ const importNodes = async ({
     nodesBySpace.get(node.spaceId)!.push(node);
   }
 
-  const spaceUris = await getSpaceUris(client, [...nodesBySpace.keys()]);
-  const spaceNames = await getSpaceNameFromIds(client, [
+  const spaceInfoById = await getSpaceInfoFromIds(client, [
     ...nodesBySpace.keys(),
   ]);
 
   // Process each space
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
-    const spaceUri = spaceUris.get(spaceId);
+    const spaceUri = spaceInfoById.get(spaceId)?.url;
     if (!spaceUri) {
       for (const _node of nodes) {
         failedCount++;
@@ -1694,7 +1677,7 @@ const importNodes = async ({
       continue;
     }
 
-    const spaceName = spaceNames.get(spaceId) ?? `space-${spaceId}`;
+    const spaceName = spaceInfoById.get(spaceId)?.name ?? `space-${spaceId}`;
     const importFolderPath = await resolveFolderForSpaceUri({
       adapter: plugin.app.vault.adapter,
       spaceUri,
