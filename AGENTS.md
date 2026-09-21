@@ -21,7 +21,7 @@ This repository uses Turborepo.
 
 ### Agent-created Engineering tickets
 
-For all agent-created Engineering tickets, including direct Linear tool calls and tickets created through other skills, use [dg-create-engineering-ticket](.agents/skills/dg-create-engineering-ticket/SKILL.md). Create them in `Draft` with exactly one provenance label: `Created by Claude`, `Created by Codex`, or `Created by LLM` for another or unknown agent. Record the creation skills actually used and the requesting human reviewer in `Notes`, and verify those fields after creation. If no skill was used, record `Created with: direct agent workflow (no skill)` and still apply the same review rules.
+For all agent-created Engineering tickets, including direct Linear tool calls and tickets created through other skills, use [dg-create-engineering-ticket](.agents/skills/dg-create-engineering-ticket/SKILL.md). Create them in `Draft` with exactly one provenance label: `Created by Claude`, `Created by Codex`, or `Created by LLM` for another or unknown agent. Record the creation skills actually used in `Notes`, and verify those fields after creation. If no skill was used, record `Created with: direct agent workflow (no skill)` and still apply the same review rules.
 
 The requesting human reviews intent, scope, acceptance criteria, and ticket-writing standards before approving a move to `Triage` or `Backlog`. Keep the provenance label after approval. See the skill for transitions and missing-configuration handling. This applies to new tickets; do not retrospectively classify existing tickets.
 
