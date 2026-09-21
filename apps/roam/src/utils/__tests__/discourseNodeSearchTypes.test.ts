@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sortSearchResults } from "~/components/AdvancedNodeSearchDialog/utils";
 import {
   combineSemanticAndMiniSearchResults,
+  MAX_RESULTS,
   type DiscourseNodeSearchSource,
   type ScoredSearchResult,
 } from "~/utils/discourseNodeSearchTypes";
@@ -104,5 +105,38 @@ describe("sortSearchResults relevance", () => {
     relevanceOrder(scoredResults, "asc");
 
     expect(scoredResults.map((entry) => entry.result.uid)).toEqual(["a", "b"]);
+  });
+});
+
+describe("combined semantic + MiniSearch ordering", () => {
+  it("keeps every semantic result, in order, ahead of MiniSearch results in order", () => {
+    const semantic = ["s1", "s2", "s3"].map((uid, i) =>
+      makeEntry({ uid, score: i, source: "semantic" }),
+    );
+    const miniSearch = ["m1", "m2"].map((uid, i) =>
+      makeEntry({ uid, score: 100 - i, source: "miniSearch" }),
+    );
+
+    const combined = combineSemanticAndMiniSearchResults({
+      semantic,
+      miniSearch,
+    });
+
+    expect(relevanceOrder(combined)).toEqual(["s1", "s2", "s3", "m1", "m2"]);
+  });
+
+  it("caps at MAX_RESULTS so the semantic path cannot overflow the list", () => {
+    expect(MAX_RESULTS).toBe(50);
+    const semantic = Array.from({ length: 200 }, (_, i) =>
+      makeEntry({ uid: `s${i}`, score: 0, source: "semantic" }),
+    );
+
+    const combined = combineSemanticAndMiniSearchResults({
+      semantic,
+      miniSearch: [makeEntry({ uid: "m1", score: 9, source: "miniSearch" })],
+    });
+
+    expect(combined).toHaveLength(201);
+    expect(combined.slice(0, MAX_RESULTS)).toHaveLength(50);
   });
 });

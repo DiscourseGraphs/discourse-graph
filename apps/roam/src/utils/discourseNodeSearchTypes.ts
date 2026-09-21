@@ -1,5 +1,8 @@
 export type DiscourseNodeSearchSource = "semantic" | "miniSearch";
 
+// Caps what any search path returns, semantic included.
+export const MAX_RESULTS = 50;
+
 export type SearchResult = {
   uid: string;
   title: string;
@@ -11,6 +14,8 @@ export type SearchResult = {
   authorName: string;
 };
 
+// score and source are carried for diagnostics and future rank fusion; ordering
+// reuses each provider's returned order instead of re-deriving it from score.
 export type ScoredSearchResult = {
   result: SearchResult;
   score: number;

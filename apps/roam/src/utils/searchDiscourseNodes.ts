@@ -1,6 +1,7 @@
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import {
   combineSemanticAndMiniSearchResults,
+  MAX_RESULTS,
   toScoredSearchResultFromSemantic,
   type ScoredSearchResult,
   type SearchResult,
@@ -28,17 +29,19 @@ const runMiniSearchSafely = (
   }
 };
 
-export const searchDiscourseNodes = async ({
-  nodeTypes,
-  query,
-  resultsByUid,
-  runMiniSearch,
-}: {
+type SearchDiscourseNodesArgs = {
   nodeTypes: DiscourseNode[];
   query: string;
   resultsByUid: Map<string, SearchResult>;
   runMiniSearch: () => ScoredSearchResult[];
-}): Promise<ScoredSearchResult[]> => {
+};
+
+const collectDiscourseNodeResults = async ({
+  nodeTypes,
+  query,
+  resultsByUid,
+  runMiniSearch,
+}: SearchDiscourseNodesArgs): Promise<ScoredSearchResult[]> => {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return [];
 
@@ -77,3 +80,8 @@ export const searchDiscourseNodes = async ({
     return runMiniSearchSafely(runMiniSearch);
   }
 };
+
+export const searchDiscourseNodes = async (
+  args: SearchDiscourseNodesArgs,
+): Promise<ScoredSearchResult[]> =>
+  (await collectDiscourseNodeResults(args)).slice(0, MAX_RESULTS);

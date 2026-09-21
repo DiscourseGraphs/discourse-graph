@@ -36,11 +36,15 @@ export const useAdvancedNodeSearchResults = ({
   dockedQuery,
   dockedResults,
 }: UseAdvancedNodeSearchResultsArgs): SearchResult[] => {
-  const isDockedQuery = useMemo(
+  // An empty persisted result set is not a usable cache: the docked panel also
+  // persists the transient [] published while an async search is in flight.
+  const hasUsableDockedResults = useMemo(
     () =>
       dockedQuery !== undefined &&
-      debouncedSearchTerm.trim() === dockedQuery.trim(),
-    [debouncedSearchTerm, dockedQuery],
+      debouncedSearchTerm.trim() === dockedQuery.trim() &&
+      !!dockedResults &&
+      dockedResults.length > 0,
+    [debouncedSearchTerm, dockedQuery, dockedResults],
   );
 
   const [unsortedScoredResults, setUnsortedScoredResults] = useState<
@@ -48,7 +52,7 @@ export const useAdvancedNodeSearchResults = ({
   >([]);
 
   useEffect(() => {
-    if (isDockedQuery) {
+    if (hasUsableDockedResults) {
       setUnsortedScoredResults([]);
       return;
     }
@@ -105,8 +109,8 @@ export const useAdvancedNodeSearchResults = ({
     };
   }, [
     debouncedSearchTerm,
+    hasUsableDockedResults,
     indexError,
-    isDockedQuery,
     isIndexLoading,
     searchIndex,
     selectedNodeTypeIds,
@@ -117,7 +121,7 @@ export const useAdvancedNodeSearchResults = ({
     [unsortedScoredResults, sort],
   );
 
-  if (isDockedQuery && dockedResults) {
+  if (hasUsableDockedResults && dockedResults) {
     return dockedResults;
   }
 

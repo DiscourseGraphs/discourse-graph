@@ -9,9 +9,10 @@ import {
   getPulledDiscourseNodeUid,
   queryDiscourseNodesByFormat,
 } from "~/utils/discourseNodeSearch";
-import type {
-  ScoredSearchResult,
-  SearchResult,
+import {
+  MAX_RESULTS,
+  type ScoredSearchResult,
+  type SearchResult,
 } from "~/utils/discourseNodeSearchTypes";
 
 export type {
@@ -20,7 +21,7 @@ export type {
 } from "~/utils/discourseNodeSearchTypes";
 
 export const DEBOUNCE_MS = 250;
-export const MAX_RESULTS = 50;
+export { MAX_RESULTS };
 
 export const getSearchKeywords = (searchTerm: string): string[] =>
   searchTerm.split(/\s+/).filter(Boolean);
