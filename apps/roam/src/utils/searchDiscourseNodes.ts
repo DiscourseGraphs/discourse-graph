@@ -18,6 +18,16 @@ export type {
 export const isRoamSemanticSearchEnabled = (): boolean =>
   window.roamAlphaAPI.data.semanticSearchEnabled();
 
+const runMiniSearchSafely = (
+  runMiniSearch: () => ScoredSearchResult[],
+): ScoredSearchResult[] => {
+  try {
+    return runMiniSearch();
+  } catch {
+    return [];
+  }
+};
+
 export const searchDiscourseNodes = async ({
   nodeTypes,
   query,
@@ -33,7 +43,7 @@ export const searchDiscourseNodes = async ({
   if (!trimmedQuery) return [];
 
   if (!isRoamSemanticSearchEnabled()) {
-    return runMiniSearch();
+    return runMiniSearchSafely(runMiniSearch);
   }
 
   try {
@@ -41,13 +51,14 @@ export const searchDiscourseNodes = async ({
       nodeTypes,
       query: trimmedQuery,
     });
-    const semanticResults = providerResult.filteredResults.map((item) =>
+    const semanticResults = providerResult.filteredResults.map((item, index) =>
       toScoredSearchResultFromSemantic({
         uid: item.uid,
         title: item.text,
         type: item.type,
         nodeTypeLabel: item.nodeTypeLabel,
         score: item.score ?? 0,
+        rank: index,
         resultsByUid,
       }),
     );
@@ -61,9 +72,9 @@ export const searchDiscourseNodes = async ({
 
     return combineSemanticAndMiniSearchResults({
       semantic: semanticResults,
-      miniSearch: runMiniSearch(),
+      miniSearch: runMiniSearchSafely(runMiniSearch),
     });
   } catch {
-    return runMiniSearch();
+    return runMiniSearchSafely(runMiniSearch);
   }
 };

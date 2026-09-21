@@ -9,9 +9,10 @@ import {
   getPulledDiscourseNodeUid,
   queryDiscourseNodesByFormat,
 } from "~/utils/discourseNodeSearch";
-import type {
-  ScoredSearchResult,
-  SearchResult,
+import {
+  compareByRelevance,
+  type ScoredSearchResult,
+  type SearchResult,
 } from "~/utils/discourseNodeSearchTypes";
 
 export type {
@@ -222,11 +223,11 @@ export const sortSearchResults = ({
 
     switch (sort.field) {
       case "relevance":
-        if (aEntry.source !== bEntry.source) {
-          comparison = aEntry.source === "semantic" ? -1 : 1;
-          break;
-        }
-        comparison = compareNumbers(aEntry.score, bEntry.score, sort.direction);
+        comparison = compareByRelevance({
+          a: aEntry,
+          b: bEntry,
+          descending: sort.direction === "desc",
+        });
         break;
       case "alphabetical":
         comparison = compareStrings(
@@ -285,12 +286,13 @@ export const searchDiscourseNodesWithMiniSearch = ({
     })
     .filter((result) => result.score > DISCOURSE_NODE_MIN_SEARCH_SCORE)
     .slice(0, MAX_RESULTS)
-    .map((result) => {
+    .map((result, index) => {
       const searchResult = resultsByUid.get(String(result.id));
       if (!searchResult) return null;
       return {
         result: searchResult,
         score: result.score,
+        rank: index,
         source: "miniSearch",
       };
     })
