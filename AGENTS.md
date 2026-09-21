@@ -19,6 +19,12 @@ This repository uses Turborepo.
 
 ## Git & Publishing Conventions
 
+### Agent-created Engineering tickets
+
+For all agent-created Engineering tickets, including direct Linear tool calls and tickets created through other skills, use [dg-create-engineering-ticket](.agents/skills/dg-create-engineering-ticket/SKILL.md). Create them in `Draft` with the `created by claude/codex` provenance label, record the creation skills actually used and the requesting human reviewer in `Notes`, and verify those fields after creation. If no skill was used, record `Created with: direct agent workflow (no skill)` and still apply the same review rules.
+
+The requesting human reviews intent, scope, acceptance criteria, and ticket-writing standards before approving a move to `Triage` or `Backlog`. Keep the provenance label after approval. See the skill for transitions and missing-configuration handling. This applies to new tickets; do not retrospectively classify existing tickets.
+
 ### Branch Naming
 
 When working on Linear issues, prefer using the Linear-provided branch name when available. Linear automatically generates branch names in the format `eng-####-descriptive-name` (e.g., `eng-1912-scaffold-repocontent-model`).
