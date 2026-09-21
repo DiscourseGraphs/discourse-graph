@@ -47,7 +47,7 @@ Every bullet above is placeholder guidance. Replace or remove every placeholder 
 
 Always use the Engineering team. This skill never creates or redirects to Feedback.
 
-- Create every agent-created ticket in the existing `Ticket Draft` status with exactly one existing agent provenance label. The label records provenance and stays after approval.
+- Create every agent-created ticket in the existing `Ticket Draft` status with exactly one existing workspace provenance label from the `Created by` group. The label records provenance and stays after approval.
 - Select the label from the creating agent's known identity: `Created by Claude` for Claude, `Created by Codex` for Codex, or `Created by LLM` for any other agent or when its identity cannot be determined. Do not infer agent identity from the Linear account, ticket topic, or skill name. Do not use `Created by LLM` as a substitute when the correct agent-specific label is missing.
 - `Ticket Draft` is in the Backlog category and means human ticket review is pending; it does not authorize implementation. The existing `Draft` status belongs to the Started category and is used by the PR workflow. Do not use it for ticket review or change its automation.
 - In `Notes`, record `Created with: dg-create-engineering-ticket` and any other creation skills actually used. Skill attribution is provenance, not evidence that the ticket meets the standards.
@@ -69,7 +69,7 @@ Confirm the selected project still exists, is active, and includes the Engineeri
 
 ## Labels and optional fields
 
-- Inspect existing issue labels and apply every clearly relevant label.
+- Resolve provenance labels from the workspace label list, not only Engineering team labels. Select the appropriate child of the `Created by` group by its current ID; do not apply the group itself or create team-specific copies. Inspect other existing issue labels and apply every clearly relevant label.
 - Never create a label or guess an uncertain label.
 - Missing or uncertain optional labels do not block creation. If `Ticket Draft` or the required provenance label is missing or ambiguous, return the prepared draft and report the configuration gap instead of creating an unmarked ticket or substituting a status.
 - Set priority only when the user or context makes it clear and useful.
