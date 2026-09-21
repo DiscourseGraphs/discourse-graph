@@ -1,0 +1,21 @@
+Let's look at ENG_2202. Is the ticket clear to you, and ready for implementation?
+
+---
+
+Ok. I want to explore a bit, I'm not sure we have two label values. Splitting the DiscourseNode.text at slashes in conceptConversion:87 might have been a mistake; the DiscourseNode.text never has slashes, so this operation is likely a no-op.
+
+---
+
+I made changes to the linear comment. Let's solve the other minor issues so we can proceed.
+
+---
+
+I say settle for the unit test, add a note about the limitation.
+
+---
+
+posted, go ahead
+
+---
+
+Great, thanks. There is at least one comment that looks more verbose than house style.

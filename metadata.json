@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M327E9K9BPPZ1R8T0PTZ1KX7",
+  "strategy": "manual-commit",
+  "branch": "eng-2202-reconcile-roam-node-schema-metadata-between-sync-and-publish",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "apps/roam/src/utils/__tests__/conceptConversion.test.ts",
+    "apps/roam/src/utils/__tests__/roamToCrossAppConverters.test.ts",
+    "apps/roam/src/utils/conceptConversion.ts",
+    "apps/roam/src/utils/roamToCrossAppConverters.ts",
+    "packages/database/src/lib/__tests__/crossAppConverters.test.ts",
+    "packages/database/src/lib/crossAppConverters.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 92,
+    "cache_creation_tokens": 162185,
+    "cache_read_tokens": 4437394,
+    "output_tokens": 29026,
+    "api_call_count": 46
+  }
+}
