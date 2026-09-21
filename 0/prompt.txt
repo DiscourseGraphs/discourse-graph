@@ -3,3 +3,21 @@ remove any changes that aren't related to adding obsidian eslint (ie the fixes f
 ---
 
 or simply, what are the outputs of these rules if we lint with both obsidian-eslint and regular eslint rules? will anything be errors and blocking? what will stay as warnings? run both through the apps/obsidian and show me output to test. or simply tell me which command to run
+
+---
+
+<bash-input>pnpm --dir apps/obsidian lint:store</bash-input><bash-stdout> ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "apps/obsidian" not found</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+<bash-input>code /Users/trang.doan/Desktop/code/discourse-graph/.claude/worktrees/eng-1832-add-obsidian-eslint-to-the-project/apps/obsidian/src/components/canvas/DiscourseToolPanel.tsx</bash-input><bash-stdout>zsh: command not found: code
+trang.doan@Trangs-MacBook-Pro discourse-graph %</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+<bash-input>code /Users/trang.doan/Desktop/code/discourse-graph/.claude/worktrees/eng-1832-add-obsidian-eslint-to-the-project/apps/obsidian/src/components/canvas/DiscourseToolPanel.tsx</bash-input><bash-stdout>zsh: command not found: code
+trang.doan@Trangs-MacBook-Pro discourse-graph %</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+i wanna run the .github/workflows/ci.yaml flow test for this branch. to see if this branch itself will pass or block the CI test
