@@ -3,7 +3,7 @@
   "checkpoint_id": "01M32B5A89BT6AS07VW4HV05N1",
   "strategy": "manual-commit",
   "branch": "eng-1832-add-obsidian-eslint-to-the-project",
-  "checkpoints_count": 1,
+  "checkpoints_count": 8,
   "files_touched": [
     ".github/workflows/ci.yaml",
     ".vscode/settings.json",
@@ -22,13 +22,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 70,
-    "cache_creation_tokens": 43645,
-    "cache_read_tokens": 6369165,
-    "output_tokens": 27070,
-    "api_call_count": 35
+    "input_tokens": 122,
+    "cache_creation_tokens": 64866,
+    "cache_read_tokens": 13720944,
+    "output_tokens": 49611,
+    "api_call_count": 61
   }
 }

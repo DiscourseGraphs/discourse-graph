@@ -1,0 +1,54 @@
+remove any changes that aren't related to adding obsidian eslint (ie the fixes for warnings on apps/obsidian/src/components/canvas/utils/relationUtils.tsx or apps/obsidian/src/components/canvas/DiscourseToolPanel.tsx)
+
+---
+
+or simply, what are the outputs of these rules if we lint with both obsidian-eslint and regular eslint rules? will anything be errors and blocking? what will stay as warnings? run both through the apps/obsidian and show me output to test. or simply tell me which command to run
+
+---
+
+<bash-input>pnpm --dir apps/obsidian lint:store</bash-input><bash-stdout> ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "apps/obsidian" not found</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+<bash-input>code /Users/trang.doan/Desktop/code/discourse-graph/.claude/worktrees/eng-1832-add-obsidian-eslint-to-the-project/apps/obsidian/src/components/canvas/DiscourseToolPanel.tsx</bash-input><bash-stdout>zsh: command not found: code
+trang.doan@Trangs-MacBook-Pro discourse-graph %</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+<bash-input>code /Users/trang.doan/Desktop/code/discourse-graph/.claude/worktrees/eng-1832-add-obsidian-eslint-to-the-project/apps/obsidian/src/components/canvas/DiscourseToolPanel.tsx</bash-input><bash-stdout>zsh: command not found: code
+trang.doan@Trangs-MacBook-Pro discourse-graph %</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+i wanna run the .github/workflows/ci.yaml flow test for this branch. to see if this branch itself will pass or block the CI test
+
+---
+
+i wanna confirm if these mechanisms are actually implemented on this branch:
+
+* obsidian-eslint ERRORS will be marked as errors and not as warnings -> will be blocking. can test this by: finding what's a blocking errors for obsidian eslint -> add that to the file -> see if the IDE flags it or not
+* no effect on regular eslint rules
+
+---
+
+hmm Cursor initially red swiggle, then yellow the "console.log". does the change of vscode/settings.json affect the branch only? does it have to be on main for it to show??
+
+---
+
+so i need to open a new workspace specifically for this worktree? how to do that?
+
+---
+
+<bash-input>cursor /Users/trang.doan/Desktop/code/discourse-graph/.claude/worktrees/eng-1832-add-obsidian-eslint-to-the-project</bash-input><bash-stdout>trang.doan@Trangs-MacBook-Pro discourse-graph %</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+is "            imageRef.style.display = "none";" error or warning? because our plugin passed but it's showing up here as error
+
+---
+
+what's a warning level error? i wanna test
+
+---
+
+so per our current setup, are there any errors with the current version based on main??
