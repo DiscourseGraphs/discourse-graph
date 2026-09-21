@@ -51,14 +51,13 @@ export const searchDiscourseNodes = async ({
       nodeTypes,
       query: trimmedQuery,
     });
-    const semanticResults = providerResult.filteredResults.map((item, index) =>
+    const semanticResults = providerResult.filteredResults.map((item) =>
       toScoredSearchResultFromSemantic({
         uid: item.uid,
         title: item.text,
         type: item.type,
         nodeTypeLabel: item.nodeTypeLabel,
         score: item.score ?? 0,
-        rank: index,
         resultsByUid,
       }),
     );

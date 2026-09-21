@@ -9,10 +9,9 @@ import {
   getPulledDiscourseNodeUid,
   queryDiscourseNodesByFormat,
 } from "~/utils/discourseNodeSearch";
-import {
-  compareByRelevance,
-  type ScoredSearchResult,
-  type SearchResult,
+import type {
+  ScoredSearchResult,
+  SearchResult,
 } from "~/utils/discourseNodeSearchTypes";
 
 export type {
@@ -214,6 +213,14 @@ export const sortSearchResults = ({
   scoredResults: ScoredSearchResult[];
   sort: SortConfig;
 }): SearchResult[] => {
+  // Semantic and MiniSearch results already arrive in their provider's relevance
+  // order, so relevance sorting only has to reverse it for ascending.
+  if (sort.field === "relevance") {
+    const ordered =
+      sort.direction === "asc" ? [...scoredResults].reverse() : scoredResults;
+    return ordered.map((entry) => entry.result);
+  }
+
   const sorted = [...scoredResults];
 
   sorted.sort((aEntry, bEntry) => {
@@ -222,13 +229,6 @@ export const sortSearchResults = ({
     let comparison = 0;
 
     switch (sort.field) {
-      case "relevance":
-        comparison = compareByRelevance({
-          a: aEntry,
-          b: bEntry,
-          descending: sort.direction === "desc",
-        });
-        break;
       case "alphabetical":
         comparison = compareStrings(
           getSortableTitle(a),
@@ -286,13 +286,12 @@ export const searchDiscourseNodesWithMiniSearch = ({
     })
     .filter((result) => result.score > DISCOURSE_NODE_MIN_SEARCH_SCORE)
     .slice(0, MAX_RESULTS)
-    .map((result, index) => {
+    .map((result) => {
       const searchResult = resultsByUid.get(String(result.id));
       if (!searchResult) return null;
       return {
         result: searchResult,
         score: result.score,
-        rank: index,
         source: "miniSearch",
       };
     })

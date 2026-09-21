@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { sortSearchResults } from "~/components/AdvancedNodeSearchDialog/utils";
 import {
   combineSemanticAndMiniSearchResults,
-  compareByRelevance,
   type DiscourseNodeSearchSource,
   type ScoredSearchResult,
 } from "~/utils/discourseNodeSearchTypes";
@@ -9,12 +9,10 @@ import {
 const makeEntry = ({
   uid,
   score,
-  rank,
   source,
 }: {
   uid: string;
   score: number;
-  rank: number;
   source: DiscourseNodeSearchSource;
 }): ScoredSearchResult => ({
   result: {
@@ -28,29 +26,29 @@ const makeEntry = ({
     authorName: "",
   },
   score,
-  rank,
   source,
 });
 
-const sortByRelevance = (
-  entries: ScoredSearchResult[],
-  descending = true,
+const relevanceOrder = (
+  scoredResults: ScoredSearchResult[],
+  direction: "asc" | "desc" = "desc",
 ): string[] =>
-  [...entries]
-    .sort((a, b) => compareByRelevance({ a, b, descending }))
-    .map((entry) => entry.result.uid);
+  sortSearchResults({
+    scoredResults,
+    sort: { field: "relevance", direction },
+  }).map((result) => result.uid);
 
 describe("combineSemanticAndMiniSearchResults", () => {
   it("drops duplicate uids from both sources", () => {
     const combined = combineSemanticAndMiniSearchResults({
       semantic: [
-        makeEntry({ uid: "a", score: 0.9, rank: 0, source: "semantic" }),
-        makeEntry({ uid: "a", score: 0.7, rank: 1, source: "semantic" }),
-        makeEntry({ uid: "b", score: 0.5, rank: 2, source: "semantic" }),
+        makeEntry({ uid: "a", score: 0.9, source: "semantic" }),
+        makeEntry({ uid: "a", score: 0.7, source: "semantic" }),
+        makeEntry({ uid: "b", score: 0.5, source: "semantic" }),
       ],
       miniSearch: [
-        makeEntry({ uid: "b", score: 10, rank: 0, source: "miniSearch" }),
-        makeEntry({ uid: "c", score: 8, rank: 1, source: "miniSearch" }),
+        makeEntry({ uid: "b", score: 10, source: "miniSearch" }),
+        makeEntry({ uid: "c", score: 8, source: "miniSearch" }),
       ],
     });
 
@@ -59,42 +57,52 @@ describe("combineSemanticAndMiniSearchResults", () => {
   });
 });
 
-describe("compareByRelevance", () => {
-  it("keeps Roam's returned order for semantic results regardless of score", () => {
-    const entries = [
-      makeEntry({ uid: "second", score: 0.91, rank: 1, source: "semantic" }),
-      makeEntry({ uid: "first", score: 0.12, rank: 0, source: "semantic" }),
-      makeEntry({ uid: "third", score: 0.55, rank: 2, source: "semantic" }),
+describe("sortSearchResults relevance", () => {
+  it("preserves the order the providers returned, ignoring score", () => {
+    const scoredResults = [
+      makeEntry({ uid: "roamFirst", score: 0.12, source: "semantic" }),
+      makeEntry({ uid: "roamSecond", score: 0.91, source: "semantic" }),
+      makeEntry({ uid: "miniFirst", score: 9, source: "miniSearch" }),
+      makeEntry({ uid: "miniSecond", score: 2, source: "miniSearch" }),
     ];
 
-    expect(sortByRelevance(entries)).toEqual(["first", "second", "third"]);
+    expect(relevanceOrder(scoredResults)).toEqual([
+      "roamFirst",
+      "roamSecond",
+      "miniFirst",
+      "miniSecond",
+    ]);
   });
 
-  it("sorts MiniSearch results by score", () => {
-    const entries = [
-      makeEntry({ uid: "low", score: 2, rank: 1, source: "miniSearch" }),
-      makeEntry({ uid: "high", score: 9, rank: 0, source: "miniSearch" }),
+  it("does not reorder tied scores by uid", () => {
+    const scoredResults = [
+      makeEntry({ uid: "zzz", score: 0, source: "semantic" }),
+      makeEntry({ uid: "aaa", score: 0, source: "semantic" }),
     ];
 
-    expect(sortByRelevance(entries)).toEqual(["high", "low"]);
+    expect(relevanceOrder(scoredResults)).toEqual(["zzz", "aaa"]);
   });
 
-  it("puts semantic results ahead of MiniSearch results in both directions", () => {
-    const entries = [
-      makeEntry({ uid: "mini", score: 99, rank: 0, source: "miniSearch" }),
-      makeEntry({ uid: "semantic", score: 0.01, rank: 0, source: "semantic" }),
+  it("reverses the provider order when sorting ascending", () => {
+    const scoredResults = [
+      makeEntry({ uid: "roamFirst", score: 0.12, source: "semantic" }),
+      makeEntry({ uid: "miniFirst", score: 9, source: "miniSearch" }),
     ];
 
-    expect(sortByRelevance(entries)).toEqual(["semantic", "mini"]);
-    expect(sortByRelevance(entries, false)).toEqual(["semantic", "mini"]);
+    expect(relevanceOrder(scoredResults, "asc")).toEqual([
+      "miniFirst",
+      "roamFirst",
+    ]);
   });
 
-  it("reverses within-source order when sorting ascending", () => {
-    const entries = [
-      makeEntry({ uid: "first", score: 0.1, rank: 0, source: "semantic" }),
-      makeEntry({ uid: "second", score: 0.9, rank: 1, source: "semantic" }),
+  it("does not mutate the input array", () => {
+    const scoredResults = [
+      makeEntry({ uid: "a", score: 1, source: "semantic" }),
+      makeEntry({ uid: "b", score: 2, source: "miniSearch" }),
     ];
 
-    expect(sortByRelevance(entries, false)).toEqual(["second", "first"]);
+    relevanceOrder(scoredResults, "asc");
+
+    expect(scoredResults.map((entry) => entry.result.uid)).toEqual(["a", "b"]);
   });
 });
