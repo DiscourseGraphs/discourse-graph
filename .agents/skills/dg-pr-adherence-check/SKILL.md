@@ -1,6 +1,6 @@
 ---
 name: dg-pr-adherence-check
-description: Review a PR or local diff for adherence to Discourse Graphs code standards and PR requirements, and return an evidence-based Standards check section. Use before handoff or requesting review, alongside scope-check.
+description: Review a PR or local diff for adherence to Discourse Graphs code standards and PR requirements, report concerns to the author, and return a Standards check checkbox. Use before handoff or requesting review, alongside scope-check.
 ---
 
 # PR adherence check
@@ -18,21 +18,19 @@ Review the final change against the repository's current rules. Remain read-only
 
 - Inspect the complete diff and enough surrounding code to assess applicable TypeScript, UI, organization, comments, documentation, hygiene, and testing rules. Focus findings on introduced or modified code, not unrelated existing debt.
 - Check title and branch conventions, ticket linkage, PR body requirements, size guidance, split justification, review entry points, testing evidence, Loom, and review/check status against `PR_GUIDELINES.md`.
-- Distinguish mandatory rules from preferences. Words such as “prefer” and “ideally,” the 200-line target, and the five-file guideline need judgment. Above 400 changed lines, check for the required explanation and review guide rather than rejecting the size alone.
-- Cite each finding's rule and concrete file/line or PR field. Classify it as a violation, documented exception with a decision link, or unverified requirement. Do not invent exceptions, team approval, testing outcomes, or video contents. If a required document is unavailable or rules conflict without a clear applicable resolution, report the gap instead of guessing.
+- Distinguish mandatory rules from preferences. Words such as “prefer” and “ideally,” the 200-line target, and the five-file guideline need judgment. Above 400 changed lines, excluding tests, check for the required explanation and review guide rather than rejecting the size alone.
+- Explain concerns briefly to the PR author so they can address them; formal rule citations and evidence for each finding are not required. Do not invent exceptions, team approval, testing outcomes, or video contents. If a required document is unavailable or rules conflict without a clear applicable resolution, report the gap instead of guessing.
 - Respect workflow timing: missing Loom or review evidence can be reported as outstanding before requesting review while a draft is being prepared. Do not call future post-merge steps violations on an open PR.
-- Keep scope expansions in Scope check and detailed command results in Verification. Standards check may reference those sections without duplicating their contents.
+- Keep scope expansions in Scope check. Verification is optional. Standards check only records whether the check ran.
 
 ## Return the result
 
-Return a copy-ready section with brief, evidence-based findings:
+Return a copy-ready section:
 
 ```markdown
 ## Standards check
 
-- [x] Ran `$dg-pr-adherence-check` against <head commit; identify local changes if included> and available PR metadata.
-- Outstanding findings: <rule, evidence, and correction; or None>
-- Unverified requirements: <missing evidence and what is needed; or None>
+- [x] Ran `$dg-pr-adherence-check` against the final diff and PR metadata.
 ```
 
-The checkbox means the review ran, not that all requirements passed. If the diff cannot be resolved or the review could not run, leave it unchecked and state the blocker. Partial evidence must remain explicit; never describe an incomplete review as a clean pass. Include documented exceptions with their decision links in Outstanding findings. Rerun affected checks after changes to code, rules, or PR metadata.
+The checkbox means the review ran, not that all requirements passed. If the diff cannot be resolved or the review could not run, leave it unchecked and tell the author what blocked it. Separately make any outstanding findings or unverified requirements known to the PR author so they can address them; do not require these details in the PR body. Rerun affected checks after changes to code, rules, or PR metadata.

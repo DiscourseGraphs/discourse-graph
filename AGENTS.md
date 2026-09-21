@@ -42,7 +42,7 @@ When creating or updating a pull request body:
 
 - Start with `.github/pull_request_template.md`. Preserve its headings and guidance instead of adding substitute sections.
 - Treat the Linear ticket as the source of truth. Do not restate it in the pull request body.
-- Do not add a file-by-file summary, implementation diary, investigation log, full command output, or unrelated pre-existing issues. For PRs over 400 changed lines, include a concise split justification, main review entry points, and testing path in Reviewer brief.
+- Do not add a file-by-file summary, implementation diary, investigation log, full command output, or unrelated pre-existing issues. For PRs over 400 changed lines, excluding tests, include a concise split justification, main review entry points, and testing path in Reviewer brief.
 - Put line-specific implementation context in inline GitHub comments.
 - Put any non-obvious rules that future changes must preserve in code comments, tests, or documentation, not only in the pull request.
 - Remove empty optional sections and anything that does not help review the diff.

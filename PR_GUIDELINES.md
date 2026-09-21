@@ -13,6 +13,8 @@ This is the repository source for the DevOps PR process. Code standards live in 
 
 About 200 added plus removed lines is a useful target. Up to 400 lines is acceptable when the change is scoped and self-contained. Ideally, touch fewer than five files; repetitive mechanical changes can justify more. These are review guidelines, not automatic rejection thresholds.
 
+Test changes do not count toward the 400-line threshold.
+
 Above 400 changed lines, explain why the PR cannot reasonably be split. Include the main review entry points and intended testing path in Reviewer brief. Keep this concise rather than adding a file-by-file summary.
 
 ## Branches and PR metadata
@@ -24,17 +26,14 @@ Above 400 changed lines, explain why the PR cannot reasonably be split. Include 
 ## Before requesting review
 
 - Run `pnpm install --frozen-lockfile`, then `pnpm ci:validate` from the repository root before opening a PR or declaring it ready. Resolve failures before requesting review. A draft must disclose unresolved validation blockers.
-- Check applicable build and lint commands. Manually exercise changed behavior end-to-end, including relevant edge cases and alternative flows. Record results in Verification; explain checks that were not run or do not apply.
+- Check applicable build and lint commands. Manually exercise changed behavior end-to-end, including relevant edge cases and alternative flows. Verification is optional; use it when checks and results help the reviewer.
 - Read the complete final diff and review it against [STYLE_GUIDE.md](STYLE_GUIDE.md), including added and modified comments. Use inline PR comments for review-specific explanations and durable code comments for constraints future changes must preserve.
 - Run `$scope-check` against the ENG ticket and final diff. Paste its Scope check section into the PR body. If `Done When` is missing, leave the checkbox unchecked and state that explicitly.
-- Run `$dg-pr-adherence-check` against the final diff and PR metadata. Record findings and missing evidence in Standards check. An executed check does not mean all requirements passed.
+- Run `$dg-pr-adherence-check` against the final diff and PR metadata. Check the Standards check box when it has run. Make any outstanding findings or unverified requirements known to the PR author so they can address them.
 - Complete the Local delegated full review required by the template, using `$dg-delegated-full-review` when no other full-review workflow is available.
 - Include a Loom video for every PR, including backend, refactor, and infrastructure changes. Keep it under 2–3 minutes, show before/after for bug fixes, and narrate key decisions. Put the link in Loom video.
-- After self-review, request `@coderabbitai full review` on the PR and address actionable comments before requesting human review. Agents need explicit authorization to post review requests or comments.
 - Assign a reviewer when ready. Do not mark a draft ready while required evidence or reviews remain incomplete.
 
-## GitHub checks and merge
-
-After opening or updating an authorized PR, wait for its required GitHub checks and report their final status. Do not represent pending, unavailable, or skipped checks as passed.
+## After merge
 
 Delete the PR branch after a successful merge. Creating a draft does not authorize merging or deleting branches.
