@@ -249,6 +249,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
       const results = await importSharedNodes({
         client,
         sharedNodes: selectedNodes,
+        discoveredNodes: nodes,
         onProgress: (current, total) => setImportProgress({ current, total }),
       });
       const newlyImportedRids = results

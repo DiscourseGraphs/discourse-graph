@@ -6,6 +6,7 @@ import {
   importSharedNodes,
   isFailedSharedNodeImport,
 } from "~/utils/importSharedNodes";
+import { findImportedNodeUidBySourceRid } from "~/utils/importedSourceIdentity";
 import { materializeSharedNode } from "~/utils/materializeSharedNode";
 import { resolveSharedNodeTypes } from "~/utils/resolveSharedNodeTypes";
 
@@ -22,6 +23,10 @@ vi.mock("~/utils/resolveSharedNodeTypes", () => ({
   resolveSharedNodeTypes: vi.fn(),
 }));
 
+vi.mock("~/utils/importedSourceIdentity", () => ({
+  findImportedNodeUidBySourceRid: vi.fn(),
+}));
+
 // Runs before the imports above: getDiscourseNodes calls generateUID at module load.
 vi.hoisted(() => {
   (globalThis as { window?: unknown }).window = {
@@ -31,6 +36,9 @@ vi.hoisted(() => {
 
 const mockedMaterializeSharedNode = vi.mocked(materializeSharedNode);
 const mockedResolveSharedNodeTypes = vi.mocked(resolveSharedNodeTypes);
+const mockedFindImportedNodeUidBySourceRid = vi.mocked(
+  findImportedNodeUidBySourceRid,
+);
 
 const NODE_TYPE: DiscourseNode = {
   text: "Evidence",
@@ -73,6 +81,7 @@ const successResult = (
 beforeEach(() => {
   vi.clearAllMocks();
   mockedResolveSharedNodeTypes.mockResolvedValue(new Map());
+  mockedFindImportedNodeUidBySourceRid.mockResolvedValue(null);
 });
 
 describe("importSharedNodes", () => {
@@ -92,7 +101,12 @@ describe("importSharedNodes", () => {
       });
     const onProgress = vi.fn();
 
-    const items = await importSharedNodes({ client, sharedNodes, onProgress });
+    const items = await importSharedNodes({
+      client,
+      sharedNodes,
+      discoveredNodes: [],
+      onProgress,
+    });
 
     expect(items).toEqual([
       { sharedNode: sharedNodes[0], status: "imported" },
@@ -129,7 +143,12 @@ describe("importSharedNodes", () => {
       .mockResolvedValueOnce(successResult(sharedNodes[0], "created"))
       .mockResolvedValueOnce(successResult(sharedNodes[1], "created"));
 
-    await importSharedNodes({ client, sharedNodes, onProgress: vi.fn() });
+    await importSharedNodes({
+      client,
+      sharedNodes,
+      discoveredNodes: [],
+      onProgress: vi.fn(),
+    });
 
     expect(mockedResolveSharedNodeTypes).toHaveBeenCalledTimes(1);
     expect(mockedResolveSharedNodeTypes).toHaveBeenCalledWith({
@@ -163,6 +182,7 @@ describe("importSharedNodes", () => {
     const items = await importSharedNodes({
       client,
       sharedNodes: [evidence, source, other],
+      discoveredNodes: [],
       onProgress: vi.fn(),
     });
 
@@ -194,6 +214,7 @@ describe("importSharedNodes", () => {
     await importSharedNodes({
       client,
       sharedNodes: [evidence, source, root],
+      discoveredNodes: [],
       onProgress: vi.fn(),
     });
     expect(
@@ -220,6 +241,7 @@ describe("importSharedNodes", () => {
     const items = await importSharedNodes({
       client,
       sharedNodes: [first, second, missing],
+      discoveredNodes: [],
       onProgress: vi.fn(),
     });
     expect(items.map(({ sharedNode }) => sharedNode.rid)).toEqual([
@@ -240,6 +262,7 @@ describe("importSharedNodes", () => {
     const items = await importSharedNodes({
       client,
       sharedNodes,
+      discoveredNodes: [],
       onProgress: vi.fn(),
     });
 
@@ -261,6 +284,7 @@ describe("importSharedNodes", () => {
     const items = await importSharedNodes({
       client,
       sharedNodes,
+      discoveredNodes: [],
       onProgress: vi.fn(),
     });
 
@@ -271,6 +295,173 @@ describe("importSharedNodes", () => {
         message: "roam api unavailable",
       },
       { sharedNode: sharedNodes[1], status: "imported" },
+    ]);
+  });
+  it("imports a discovered source this graph lacks before the node that names it", async () => {
+    const source = {
+      ...makeSharedNode("source"),
+      rid: "orn:obsidian.note:vault-b/source",
+      spaceUri: "obsidian:vault-b",
+    };
+    const evidence = {
+      ...makeSharedNode("evidence"),
+      slots: { sourceDocument: source.rid },
+    };
+    const other = makeSharedNode("other");
+    mockedMaterializeSharedNode.mockImplementation(({ sharedNode }) =>
+      Promise.resolve(successResult(sharedNode, "created")),
+    );
+    const onProgress = vi.fn();
+
+    const items = await importSharedNodes({
+      client,
+      sharedNodes: [evidence],
+      discoveredNodes: [evidence, source, other],
+      onProgress,
+    });
+
+    expect(mockedFindImportedNodeUidBySourceRid).toHaveBeenCalledWith(
+      source.rid,
+    );
+    expect(mockedResolveSharedNodeTypes).toHaveBeenCalledWith({
+      client,
+      sharedNodes: [evidence, source],
+    });
+    expect(
+      mockedMaterializeSharedNode.mock.calls.map(([args]) => args.sharedNode),
+    ).toEqual([source, evidence]);
+    expect(items).toEqual([
+      { sharedNode: source, status: "imported" },
+      { sharedNode: evidence, status: "imported" },
+    ]);
+    expect(onProgress.mock.calls).toEqual([
+      [1, 2],
+      [2, 2],
+    ]);
+  });
+
+  it("reuses a source this graph already imported", async () => {
+    const source = makeSharedNode("source");
+    const evidence = {
+      ...makeSharedNode("evidence"),
+      slots: { sourceDocument: source.sourceLocalId },
+    };
+    mockedFindImportedNodeUidBySourceRid.mockResolvedValue("source-page-uid");
+    mockedMaterializeSharedNode.mockResolvedValueOnce(
+      successResult(evidence, "created"),
+    );
+
+    const items = await importSharedNodes({
+      client,
+      sharedNodes: [evidence],
+      discoveredNodes: [evidence, source],
+      onProgress: vi.fn(),
+    });
+
+    expect(mockedFindImportedNodeUidBySourceRid).toHaveBeenCalledWith(
+      source.rid,
+    );
+    expect(items).toEqual([{ sharedNode: evidence, status: "imported" }]);
+  });
+
+  it("does not add a source that is selected", async () => {
+    const source = makeSharedNode("source");
+    const evidence = {
+      ...makeSharedNode("evidence"),
+      slots: { sourceDocument: source.sourceLocalId },
+    };
+    mockedMaterializeSharedNode.mockImplementation(({ sharedNode }) =>
+      Promise.resolve(successResult(sharedNode, "created")),
+    );
+
+    const items = await importSharedNodes({
+      client,
+      sharedNodes: [evidence, source],
+      discoveredNodes: [evidence, source],
+      onProgress: vi.fn(),
+    });
+
+    expect(mockedFindImportedNodeUidBySourceRid).not.toHaveBeenCalled();
+    expect(items.map((item) => item.sharedNode)).toEqual([source, evidence]);
+  });
+
+  it("leaves a source the discovery did not list to the materializer", async () => {
+    const evidence = {
+      ...makeSharedNode("evidence"),
+      slots: { sourceDocument: "orn:obsidian.note:vault-b/source" },
+    };
+    mockedMaterializeSharedNode.mockResolvedValueOnce(
+      successResult(evidence, "created"),
+    );
+
+    const items = await importSharedNodes({
+      client,
+      sharedNodes: [evidence],
+      discoveredNodes: [evidence],
+      onProgress: vi.fn(),
+    });
+
+    expect(mockedFindImportedNodeUidBySourceRid).not.toHaveBeenCalled();
+    expect(mockedMaterializeSharedNode).toHaveBeenCalledTimes(1);
+    expect(items).toEqual([{ sharedNode: evidence, status: "imported" }]);
+  });
+
+  it("adds a source once when several nodes name it by a bare id", async () => {
+    const source = makeSharedNode("source");
+    const first = {
+      ...makeSharedNode("first"),
+      slots: { sourceDocument: source.sourceLocalId },
+    };
+    const second = {
+      ...makeSharedNode("second"),
+      slots: { sourceDocument: source.sourceLocalId },
+    };
+    mockedMaterializeSharedNode.mockImplementation(({ sharedNode }) =>
+      Promise.resolve(successResult(sharedNode, "created")),
+    );
+
+    const items = await importSharedNodes({
+      client,
+      sharedNodes: [first, second],
+      discoveredNodes: [first, second, source],
+      onProgress: vi.fn(),
+    });
+
+    expect(mockedFindImportedNodeUidBySourceRid).toHaveBeenCalledTimes(1);
+    expect(mockedFindImportedNodeUidBySourceRid).toHaveBeenCalledWith(
+      source.rid,
+    );
+    expect(items.map((item) => item.sharedNode)).toEqual([
+      source,
+      first,
+      second,
+    ]);
+  });
+  it("adds the source and keeps importing when its identity lookup rejects", async () => {
+    const source = makeSharedNode("source");
+    const evidence = {
+      ...makeSharedNode("evidence"),
+      slots: { sourceDocument: source.sourceLocalId },
+    };
+    mockedFindImportedNodeUidBySourceRid.mockRejectedValue(
+      new Error("roam api unavailable"),
+    );
+    mockedMaterializeSharedNode.mockImplementation(({ sharedNode }) =>
+      Promise.resolve(successResult(sharedNode, "created")),
+    );
+    const onProgress = vi.fn();
+
+    const items = await importSharedNodes({
+      client,
+      sharedNodes: [evidence],
+      discoveredNodes: [evidence, source],
+      onProgress,
+    });
+
+    expect(items.map((item) => item.sharedNode)).toEqual([source, evidence]);
+    expect(onProgress.mock.calls).toEqual([
+      [1, 2],
+      [2, 2],
     ]);
   });
 });
