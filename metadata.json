@@ -3,7 +3,7 @@
   "checkpoint_id": "01M35P984XJ2TWP81W573WTT9H",
   "strategy": "manual-commit",
   "branch": "eng-1734-add-semantic-search-for-sync-enabled-graphs",
-  "checkpoints_count": 9,
+  "checkpoints_count": 13,
   "files_touched": [
     "apps/roam/src/utils/searchDiscourseNodes.ts"
   ],
@@ -21,20 +21,27 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 258,
-    "cache_creation_tokens": 2132317,
-    "cache_read_tokens": 40375892,
-    "output_tokens": 141858,
-    "api_call_count": 129,
+    "input_tokens": 296,
+    "cache_creation_tokens": 2191134,
+    "cache_read_tokens": 41578840,
+    "output_tokens": 150429,
+    "api_call_count": 145,
     "subagent_tokens": {
-      "input_tokens": 14,
-      "cache_creation_tokens": 83767,
-      "cache_read_tokens": 428178,
-      "output_tokens": 4457,
-      "api_call_count": 7
+      "input_tokens": 82,
+      "cache_creation_tokens": 413953,
+      "cache_read_tokens": 2020776,
+      "output_tokens": 27133,
+      "api_call_count": 41
     }
   }
 }

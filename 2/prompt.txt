@@ -1,0 +1,213 @@
+go ahead and  plan
+
+---
+
+<task-notification>
+<task-id>a58156d2cbb0a85be</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/d78ed6cf-8da4-469d-9bbb-8ceb99122423/tasks/a58156d2cbb0a85be.output</output-file>
+<status>completed</status>
+<summary>Agent "Obsidian markdown overlay research" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Every path below is under `/Users/trang.doan/Desktop/code/discourse-graph/.claude/worktrees/eng-2279-add-discourse-context-overlay-to-obsidian-canvas/apps/obsidian/src/`. The main finding: the part that works out context from a `TFile` and the popover itself are already separate from markdown and CM6. The markdown-only parts are the link-finding and link-resolution layers.
+
+## 1. Where the overlay is implemented
+
+**Entry points** (`index.ts`)
+- `:116-119`: calls `relationsIndex.initialize()`, then `registerMarkdownPostProcessor(createDiscourseContextOverlayPostProcessor(this))` for Reading view, then `registerDiscourseContextOverlayRefresh(this)`.
+- `:373`: `registerEditorExtension(createDiscourseContextOverlayExtension(this))` for Live Preview.
+- `:298-300`: `refreshDiscourseContextOverlay()`, called by the settings toggle.
+
+**How it's triggered: a click, not a hover.** A small badge (network icon plus relation count) is inserted right after each `[[link]]` whose target is a discourse node. Clicking the badge, or pressing Enter/Space on it, opens the popover.
+
+**Live Preview** (`utils/discourseContextOverlayExtension.ts`)
+- `DiscourseContextBadgeWidget extends WidgetType` (`:23-72`). `eq` compares path, count and node type. `updateDOM` updates the badge in place. `ignoreEvent` returns true so the badge's own click handler runs.
+- `buildBadgeDecorations` (`:74-117`) returns nothing unless the setting is on and the editor is in Live Preview. It gets the source path from `editorInfoField` and runs `INTERNAL_LINK_RE` over `view.visibleRanges`, skipping `![[embeds]]`. It adds a `Decoration.widget({side:1})` at the end of each match.
+- A `ViewPlugin` (`:119-155`) rebuilds on doc or viewport changes. It also compares the setting and `relationsIndex.getVersion()`, because those changes arrive as empty transactions.
+
+**Reading view** (`utils/discourseContextOverlayPostProcessor.ts`)
+- `applyDiscourseContextBadges` (`:47-111`) goes through `a.internal-link` elements and reads `data-href`. It works out the file the link was written in by walking up the `.internal-embed` chain (`resolveLinkSourcePath`, `:16-44`), then inserts the badge after the link or updates it in place.
+- The post processor (`:119-128`) skips when the setting is off and skips anything inside `.modal-container`.
+
+**Refresh** (`utils/discourseContextOverlayRefresh.ts`)
+- `refreshDiscourseContextOverlaySurfaces` (`:26-42`) calls `refreshMarkdownEditors(app)` and re-applies or removes badges in each `MarkdownView.previewMode.containerEl`.
+- `registerDiscourseContextOverlayRefresh` (`:44-76`) runs a 300 ms debounced refresh on `relationsIndex.onChange` and on `metadataCache "changed"` events for files that are, or used to be, discourse nodes (tracked in `knownNodePaths`).
+
+**Badge** (`components/discourseContextBadge.ts`)
+- Plain DOM, not React.
+- `createDiscourseContextBadge({file, nodeType, relationCount, onActivate})` is at `:28-69`. It sets `mousedown` preventDefault so the caret doesn't move, and `click`/`keydown` call `onActivate({file, anchor})`.
+- `updateDiscourseContextBadge` is at `:76-91`; `badgeTargetPath` reads `data-dg-path`.
+- CSS class is `dg-discourse-context-badge`.
+
+**Popover** (`components/DiscourseContextPopover.tsx`)
+- This is a custom class, not Obsidian's `HoverPopover`.
+- It appends a `fixed z-50 w-80` div to `anchor.ownerDocument.body` (`:79`), mounts a React root there (`createRoot`, `:113`) and renders `&lt;PluginProvider&gt;&lt;RelationshipSection activeFile={file}/&gt;&lt;/PluginProvider&gt;` (`:114-118`). That is the same component the sidebar panel uses.
+- `positionPopover` (`:28-50`) places it from `anchor.getBoundingClientRect()`, opens upward when there is more room above, and stays inside the viewport.
+- It closes on an outside click (except clicks in `.suggestion-container`), on Escape, and on any scroll outside the popover (capture phase, `:130-165`).
+- Only one popover is open at a time: `openDiscourseContextPopover` and `closeDiscourseContextPopover` (`:180-189`).
+- If the file has no relations, it shows "No discourse relation found" and removes that message once `relationsIndex.onChange` reports a relation.
+
+## 2. How the context is computed
+
+- **`utils/relationsIndex.ts`**: the `RelationsIndex` class keeps a synchronous in-memory snapshot of `relations.json`, keyed by endpoint id.
+  - It is rebuilt on vault modify/create/delete/rename of that file (`:27-47`).
+  - API: `getVersion()` (`:58`), `onChange(cb) =&gt; unsubscribe` (`:63`), `ensureLoaded()`, and `getRelationsForEndpointIds(ids)` (`:102`), which returns `[]` until loaded.
+  - It lives on the plugin as `plugin.relationsIndex`.
+- **`utils/discourseLinkFrontmatter.ts`**:
+  - `getNodeTypeIdFromFrontmatter` (`:6`)
+  - `getEndpointIdsFromFrontmatter` (`:11-24`), which returns `nodeInstanceId` plus `importedFromRid`
+  - `countDisplayableRelations({relations, isConfiguredType})` (`:32-42`), which leaves out tentative imports (`tentative === false`) and relations whose type is no longer configured
+- **`utils/discourseLinkUtils.ts`**: `resolveDiscourseLinkTarget({plugin, linktext, sourcePath})` (`:21-58`) returns `{file, nodeType, relationCount}` or null. It only reads caches (metadataCache plus relationsIndex), so it is safe on a render path. It deliberately avoids `getNodeTypeIdForFile`, which polls.
+- **`countRelationsForFile(plugin, file)`** (`DiscourseContextPopover.tsx:12-22`) already takes a `TFile` directly, but it is private to the popover file.
+- **Popover contents:** `RelationshipSection` / `CurrentRelationships` (`components/RelationshipSection.tsx:432-468`) load asynchronously through `getNodeInstanceIdForFile` and `getRelationsForFile`, starting from `activeFile: TFile`.
+
+**Reusable given a `TFile`?** Yes. Everything under the link-resolution layer is independent of the UI and needs only `plugin` plus `TFile`. The only step that assumes a link is the first half of `resolveDiscourseLinkTarget` (`parseLinktext` plus `getFirstLinkpathDest`). The rest (frontmatter to node type to endpoint ids to count) could be pulled out as something like `getDiscourseTargetForFile(plugin, file)`. `openDiscourseContextPopover({plugin, file, anchor})` only needs any `HTMLElement` as its anchor.
+
+## 3. Settings
+
+- **The one overlay setting:** `showDiscourseContextOverlay: boolean`.
+  - Type: `types.ts:72` (in `Settings`).
+  - Default: `true`, at `constants.ts:122` (in `DEFAULT_SETTINGS`).
+  - Every render path checks it at runtime; there is no feature flag.
+- **Settings UI:** `components/GeneralSettings.tsx`.
+  - State at `:203-204`.
+  - The handler (`:219-224`) sets the value, calls `plugin.refreshDiscourseContextOverlay()` and saves.
+  - Rendered at `:376-381` as a `ToggleSetting` named "Show discourse context overlay". `ToggleSetting` is a local component at `:11-41`.
+- **General tab order** (`GeneralSettings`, `:183`):
+  1. Show IDs in frontmatter (toggle)
+  2. Nodes folder path
+  3. Canvas folder path (`canvasFolderPath`, default "Discourse Canvas")
+  4. Canvas attachments folder path (`canvasAttachmentsFolderPath`, default "attachments")
+  5. Node tag hotkey
+  6. Export discourse graph schema (button)
+  7. Show discourse context overlay (toggle)
+  8. Show help menu icon in status bar (toggle)
+  9. `InfoSection`
+- **Settings tabs** (`components/Settings.tsx`): general, nodeTypes, relationTypes and relations. "frontmatter" also renders `GeneralSettings`. There is also a hidden admin-panel tab.
+- **Existing canvas-related settings:** only the two folder paths on the General tab. There are no canvas behaviour toggles there. The only other canvas toggle, `nodeCardContextMenuEnabled` (`types.ts:76`, default `false`), is in the hidden Admin Panel (`components/AdminPanelSettings.tsx:17-51`) and is read in `components/canvas/NodeCardContextMenu.tsx:41`.
+
+## 4. Git history
+
+The overlay came in three stacked PRs:
+- `c71d3237e` ENG-2248: Add a cached relations index and link resolution (#1433)
+- `608c6b079` ENG-2249: Implement Discourse context overlay in Live Preview (#1434). This one also added the General settings toggle.
+- `c8e0f6ffc` ENG-2250: Implement Discourse context overlay in Reading view (#1435)
+
+## 5. What is tied to markdown/CM6 and would need pulling apart
+
+- **Finding links:** `INTERNAL_LINK_RE` / `extractLinktext` over CM6 `visibleRanges`, and `a.internal-link` / `data-href` in the DOM. A canvas would find its node files differently.
+- **Link resolution:** `resolveDiscourseLinkTarget` needs `linktext` plus `sourcePath`. It should be split into "link to `TFile`" and "`TFile` to `{nodeType, relationCount}`". `countRelationsForFile` in the popover repeats that second half and could share it.
+- **Refresh:** `refreshDiscourseContextOverlaySurfaces` only visits `MarkdownView` leaves and CM6 editors. `plugin.refreshDiscourseContextOverlay()` and `registerDiscourseContextOverlayRefresh` would need a way to register other surfaces, or the canvas would subscribe to `relationsIndex.onChange` and `metadataCache "changed"` itself. The `ViewPlugin` detects changes by comparing `relationsIndex.getVersion()`; a React canvas can simply subscribe with `onChange`.
+- **Popover dismissal and placement:**
+  - Any document scroll outside the popover closes it, so canvas pan/zoom may count as a scroll or not.
+  - The outside-click listener is in the capture phase on `document`, so a click on the canvas closes it.
+  - Placement is `position: fixed` from the anchor's rect, so it won't follow the anchor while the canvas pans.
+  - The badge's `mousedown` preventDefault exists to keep the CM caret from moving; on a canvas it may clash with shape selection and dragging.
+- **Behaviour that belongs to one mode:** the Live Preview-only check (`editorLivePreviewField`), skipping embeds, walking the transclusion chain, and skipping `.modal-container` all apply only to markdown.
+- **Badge:** it is plain DOM with Obsidian's `setIcon`/`setTooltip` and `createSpan`. It can be reused, but inside a React canvas it would need a ref or a small React equivalent. `onActivate({file, anchor})` is already an interface that doesn't care about the surface.</result>
+<usage><subagent_tokens>67346</subagent_tokens><tool_uses>9</tool_uses><duration_ms>266735</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>af006ca5c2a66398e</task-id>
+<tool-use-id>toolu_01SCPnkxBy92QC7uDwJoo7Sh</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/d78ed6cf-8da4-469d-9bbb-8ceb99122423/tasks/af006ca5c2a66398e.output</output-file>
+<status>completed</status>
+<summary>Agent "Roam canvas overlay research" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>**The overlay you're porting no longer exists on Roam's canvas.** It was removed in #1288 (ENG-2096). On canvas, Roam now shows discourse context in a "Context" tab of the tldraw style panel when a discourse node is selected (#1272, ENG-2037). And there is no separate canvas overlay toggle in current Roam.
+
+That leaves two possible parity targets: the old removed overlay, or the current Context tab. Both are described below.
+
+Paths below are relative to `/Users/trang.doan/Desktop/code/discourse-graph/.claude/worktrees/eng-2279-add-discourse-context-overlay-to-obsidian-canvas/apps/roam/`.
+
+## 1. How the overlay appeared on the canvas
+
+**Before #1288 (the removed overlay).** Source is `git show b80fe05eb^:apps/roam/src/components/canvas/DiscourseNodeUtil.tsx`; line numbers are approximate, taken from the diff hunks.
+- **Where:** it rendered inside `DiscourseNodeUtil.component()` (~L770), at the top-right of the shape (`absolute right-1 top-1`). Its container stopped pointer-down so tldraw didn't start a drag. It passed `opacity="50"` and used the shape's text colour for text and icon.
+- **Trigger:** it mounted lazily on the first `onPointerEnter` on the shape (~L633, sets `overlayMounted`). Once mounted, the badge stayed visible.
+- **Gating:** it only rendered when the "Overlay in canvas" setting was on (read once, ~L472). #1287 (ENG-2060) then hid it for `blck-node` and `page-node` shapes.
+- **Badge:** `DiscourseContextButton` in `src/components/DiscourseContextOverlay.tsx:105-164`.
+  - It's a small, minimal Blueprint `Button` showing `[diagram-tree icon] {score}  [link icon] {refs}`.
+  - Icons are 10px (`ICON_SIZE`, L103), text is `text-xs`, and it pulses while loading with counts shown as "-".
+  - `score` is the node type's "Overlay" attribute; by default that's the relation count (L191-201).
+  - `refs` is the number of blocks referencing the page (datalog query, L49-51).
+- **Click:** opens a Blueprint `Popover` below the badge (L243-287). It holds `ContextContent` (`src/components/DiscourseContext.tsx:106`), the same UI as the page's discourse context:
+  - one tab per relation label, titled `(${count}) ${label}` (L206);
+  - a "Group By Target" checkbox (L226);
+  - results rendered as Roam links.
+- **No canvas actions:** the popover had no add-to-canvas and no drag onto the canvas.
+
+**Now (#1272, the Context tab).** This lives in `src/components/canvas/CustomStylePanel.tsx`.
+- **Trigger:** selecting exactly one discourse node (not `blck-node` or `page-node`) shows the style panel with two tabs, "Context" (default) and "Styling" (L377-407, L409-440).
+- **`ContextTabContent` (L45):**
+  - Shows "Loading relations...", "Failed to load relations." or "No relations found."
+  - Results are grouped by relation label, with a small grey `text-xs font-semibold` heading per group.
+  - Each row shows the truncated node text as a Roam block string.
+  - Each row has a +/− minimal button, "Add node to canvas" / "Remove node from canvas" (L320-370).
+- **Toggle (`toggleNodeOnCanvas`, L270):**
+  - If the related node is already on the canvas, it deletes it.
+  - Otherwise it creates the shape in a column 240px away (`NEW_NODE_OFFSET_PX`, L41), finding a free spot in that column.
+  - It then draws the relation arrow (L158-180) and brings the new node into view.
+  - If "Auto canvas relations" is on, it also creates the node's other existing relations (L259-264).
+  - A pending set guards against creating duplicates.
+  - Failures show the toast "Failed to update the canvas for this result."
+
+## 2. Settings
+
+**Removed canvas toggle.** Roam used to have a separate canvas toggle; #1288 deleted it.
+- Title "(BETA) Overlay in canvas"; description "Whether or not to overlay discourse context information over canvas nodes." with a docs link.
+- Stored as personal key `"Overlay in canvas"`, default `false`, in the zod schema and in block props.
+- Legacy extension-settings key `discourse-context-overlay-in-canvas` (was in `src/data/userSettings.ts`).
+- Rendered with `PersonalFlagPanel` in `HomePersonalSettings.tsx`.
+
+**Page/markdown overlay (still present).**
+- Title "Overlay"; description "Whether or not to overlay discourse context information over discourse node references." plus a link to `ROAM_DOCS.discourseContextOverlay`.
+- Key `PERSONAL_KEYS.discourseContextOverlay = "Discourse context overlay"` (`src/components/settings/utils/settingKeys.ts:22`), default `false` (`zodSchema.ts:250`), legacy key `discourse-context-overlay` (`accessors.ts:223`).
+- Rendered in `src/components/settings/HomePersonalSettings.tsx:152-166`.
+- Also has a command-palette toggle (`src/utils/registerCommandPaletteCommands.ts:415`) and is applied at load (`src/utils/initializeObserversAndListeners.ts:248`).
+- Per node type, an "Overlay" setting picks which attribute feeds the badge's score (`NodeConfig.tsx:452-466`, `DISCOURSE_NODE_KEYS.overlay`).
+
+**Current HEAD layout.** In `Settings.tsx:198-277`, "Personal Settings" has Home / Queries / Canvas / Left sidebar. The Canvas tab (L223-232) only holds `CanvasShortcutSettings` (per-node-type shortcut checkbox + key input, "Default: X"). "Auto canvas relations" still sits in Home (`HomePersonalSettings.tsx:228-240`).
+
+**The reorg (#1373, ENG-2189, commit 7847403f6).** It is only on `origin/roam-setting-overhaul` and related eng-218x branches; it is not in this worktree's HEAD. It replaces the Personal/Global split with topic sections:
+- **Preferences:** General, Styling
+- **Features:** Discourse context, Canvas, Left sidebar
+- **Grammar:** Nodes, Relations
+- **Node types:** one tab per node type
+- **Advanced:** Queries, Export
+- **Admin**
+
+Tab ids are in `settings/utils/settingsTabs.ts`, e.g. `features-discourse-context`, `features-canvas`. Old ids are aliased, e.g. `canvas-shortcuts-personal-settings` maps to `features-canvas`.
+
+The Features &gt; Canvas tab (`CanvasSettings.tsx`) contains, in order:
+1. "Canvas Page Format", global text: "The page format for canvas pages"
+2. "Discourse tool keyboard shortcut", personal: "Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut." Placeholder "Click to set single key".
+3. "Auto canvas relations", personal flag: "Automatically add discourse relations to canvas when a node is added"
+4. Section heading "Node on canvas", followed by the per-node-type shortcuts.
+
+Features &gt; Discourse context (`DiscourseContextSettings.tsx`) holds only the "Overlay" toggle above. There is no canvas-specific overlay toggle there either. If Obsidian adds one, the closest Roam precedent is the removed "(BETA) Overlay in canvas", default off.
+
+## 3. Performance
+- **Old canvas overlay:** mounted only after the first pointer-enter, and the setting was read once per render via `useMemo`.
+- **Page overlay:** `Wrapper` uses `useInViewport` and shows a disabled "-/-" placeholder until the reference is on screen (`DiscourseContextOverlay.tsx:331-362`). Counts are fetched on mount, not on click.
+- **Caching:** `getDiscourseContextResults` has a cache; it's bypassed with `ignoreCache` on refresh. `useDiscourseContextMutationRefresh` refetches when relations change, which keeps a closed popover's counts from going stale (L236-238).
+- **Context tab:** loads only when a single node is selected, cancels in-flight results when the selection changes, and bypasses the cache only after a mutation (`refreshCount &gt; 0`, `CustomStylePanel.tsx:58-81`).
+
+## 4. Relevant commits
+- `b80fe05eb` [ENG-2096] Remove the discourse context overlay from Roam canvas (#1288)
+- `be9349580` ENG-2037 Add tabbed node card context menu to Roam tldraw (#1272)
+- `da2861f32` ENG-2060 Remove discourse context overlay button from blocks on canvas (#1287)
+- `378372df3` ENG-1140 Implement simplified discourse context overlay (#1294)
+- `7847403f6` ENG-2189 Reorganize Roam settings into four topic-based sections (#1373) — not in HEAD
+- `5ddf58636` ENG-739 Move color selector from Canvas to General tab (#945)
+- `69593ede9` ENG-1660 Dual-write canvas node shortcuts (#1046)
+- `4ba4c7362` [ENG-2088] Add tag to block button on canvas block cards (#1351)
+
+The Obsidian page-overlay work is also on this branch: `c71d3237e` #1433, `608c6b079` #1434, `c8e0f6ffc` #1435.
+
+**Decision for you:** mirror the old badge-plus-popover overlay, which Roam dropped, or the current Context tab with add/remove-to-canvas buttons. Either way, the reorg puts overlay settings under "Discourse context" and canvas settings under "Canvas", and neither tab has a canvas overlay toggle.</result>
+<usage><subagent_tokens>77489</subagent_tokens><tool_uses>17</tool_uses><duration_ms>1262190</duration_ms></usage>
+</task-notification>
