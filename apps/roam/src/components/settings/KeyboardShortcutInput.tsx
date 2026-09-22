@@ -8,6 +8,7 @@ import {
   Label,
 } from "@blueprintjs/core";
 import Description from "~/components/settings/SettingsDescription";
+import { settingAnchor } from "~/components/settings/utils/settingAnchor";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { setPersonalSetting } from "~/components/settings/utils/accessors";
 import { comboToString } from "~/components/DiscourseNodeMenu";
@@ -92,7 +93,7 @@ const KeyboardShortcutInput = ({
   }, [extensionAPI, settingKey, blockPropKey]);
 
   return (
-    <Label>
+    <Label {...settingAnchor([blockPropKey])}>
       {label}
       <Description description={description} />
       <InputGroup
