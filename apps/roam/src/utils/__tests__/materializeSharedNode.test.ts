@@ -119,6 +119,9 @@ const FULL_MARKDOWN = [
 
 const MATERIALIZED_MARKDOWN = "# Findings\nREM sleep improves recall";
 
+const ASSET_URL =
+  "https://firebasestorage.googleapis.com/v0/b/f.appspot.com/o/imgs%2Fapp%2Fgraph%2Fx.pdf?alt=media&token=abc";
+
 const NO_ASSETS = { mirrored: 0, reused: 0, skipped: [], failed: [] };
 
 const clientWithFullContent = ({
@@ -1005,6 +1008,47 @@ describe("materializeSharedNode", () => {
     expect(pageFromMarkdown).toHaveBeenCalledWith({
       page: { title: roamSharedNode.title, uid: GENERATED_PAGE_UID },
       "markdown-string": "- REM sleep improves recall",
+    });
+  });
+
+  // Without the brackets Roam's parser destroys the embed. See `protectMediaEmbeds`.
+  it("brackets a media embed's URL before handing the markdown to Roam", async () => {
+    const embed = `{{[[pdf]]: ${ASSET_URL}}}`;
+    const { client } = clientWithFullContent({
+      text: `# ${roamSharedNode.title}\n\n${embed}\n`,
+      contentType: "text/roam+markdown",
+    });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: roamSharedNode,
+    });
+
+    expect(result.success).toBe(true);
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: roamSharedNode.title, uid: GENERATED_PAGE_UID },
+      "markdown-string": `{{[[pdf]]: <${ASSET_URL}>}}`,
+    });
+  });
+
+  it("brackets a media embed's URL when replacing an imported page too", async () => {
+    const embed = `{{[[audio]]: ${ASSET_URL}}}`;
+    const { client } = clientWithFullContent({
+      text: `# ${roamSharedNode.title}\n\n${embed}\n`,
+      contentType: "text/roam+markdown",
+    });
+    mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
+    mockedGetPageTitleByPageUid.mockReturnValue(roamSharedNode.title);
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: roamSharedNode,
+    });
+
+    expect(result.success).toBe(true);
+    expect(blockFromMarkdown).toHaveBeenCalledWith({
+      location: { "parent-uid": EXISTING_PAGE_UID, order: "last" },
+      "markdown-string": `{{[[audio]]: <${ASSET_URL}>}}`,
     });
   });
 
