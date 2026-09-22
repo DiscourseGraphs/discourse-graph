@@ -29,59 +29,53 @@ const runMiniSearchSafely = (
   }
 };
 
-type SearchDiscourseNodesArgs = {
-  nodeTypes: DiscourseNode[];
-  query: string;
-  resultsByUid: Map<string, SearchResult>;
-  runMiniSearch: () => ScoredSearchResult[];
-};
-
-const collectDiscourseNodeResults = async ({
+export const searchDiscourseNodes = async ({
   nodeTypes,
   query,
   resultsByUid,
   runMiniSearch,
-}: SearchDiscourseNodesArgs): Promise<ScoredSearchResult[]> => {
+}: {
+  nodeTypes: DiscourseNode[];
+  query: string;
+  resultsByUid: Map<string, SearchResult>;
+  runMiniSearch: () => ScoredSearchResult[];
+}): Promise<ScoredSearchResult[]> => {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return [];
 
+  let results: ScoredSearchResult[];
+
   if (!isRoamSemanticSearchEnabled()) {
-    return runMiniSearchSafely(runMiniSearch);
-  }
+    results = runMiniSearchSafely(runMiniSearch);
+  } else {
+    try {
+      const providerResult = await runRoamSemanticSearch({
+        nodeTypes,
+        query: trimmedQuery,
+      });
+      const semanticResults = providerResult.filteredResults.map((item) =>
+        toScoredSearchResultFromSemantic({
+          uid: item.uid,
+          title: item.text,
+          type: item.type,
+          nodeTypeLabel: item.nodeTypeLabel,
+          score: item.score ?? 0,
+          resultsByUid,
+        }),
+      );
 
-  try {
-    const providerResult = await runRoamSemanticSearch({
-      nodeTypes,
-      query: trimmedQuery,
-    });
-    const semanticResults = providerResult.filteredResults.map((item) =>
-      toScoredSearchResultFromSemantic({
-        uid: item.uid,
-        title: item.text,
-        type: item.type,
-        nodeTypeLabel: item.nodeTypeLabel,
-        score: item.score ?? 0,
-        resultsByUid,
-      }),
-    );
-
-    if (
-      providerResult.filteredResultCount >=
-      SEMANTIC_SEARCH_MIN_DISCOURSE_RESULTS
-    ) {
-      return semanticResults;
+      results =
+        providerResult.filteredResultCount >=
+        SEMANTIC_SEARCH_MIN_DISCOURSE_RESULTS
+          ? semanticResults
+          : combineSemanticAndMiniSearchResults({
+              semantic: semanticResults,
+              miniSearch: runMiniSearchSafely(runMiniSearch),
+            });
+    } catch {
+      results = runMiniSearchSafely(runMiniSearch);
     }
-
-    return combineSemanticAndMiniSearchResults({
-      semantic: semanticResults,
-      miniSearch: runMiniSearchSafely(runMiniSearch),
-    });
-  } catch {
-    return runMiniSearchSafely(runMiniSearch);
   }
-};
 
-export const searchDiscourseNodes = async (
-  args: SearchDiscourseNodesArgs,
-): Promise<ScoredSearchResult[]> =>
-  (await collectDiscourseNodeResults(args)).slice(0, MAX_RESULTS);
+  return results.slice(0, MAX_RESULTS);
+};
