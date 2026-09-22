@@ -12,6 +12,12 @@
   border-bottom: 2px solid var(--interactive-accent) !important;
 }
 
+/* Match core status bar icon items (Sync, editor mode) instead of the
+   default .status-bar-item padding, which makes the bar taller. */
+.status-bar-item.dg-help-menu-status-bar-item {
+  padding: 0 var(--size-2-2);
+}
+
 .dg-h1 {
   @apply mb-4 text-3xl font-bold;
 }
