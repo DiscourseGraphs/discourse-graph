@@ -1,0 +1,1 @@
+re-run @.agents/skills/scope-check . i just reconnected linear. then @.agents/skills/dg-pr-adherence-check

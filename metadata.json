@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M35P984XJ2TWP81W573WTT9H",
+  "strategy": "manual-commit",
+  "branch": "eng-1734-add-semantic-search-for-sync-enabled-graphs",
+  "checkpoints_count": 8,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 258,
+    "cache_creation_tokens": 2132317,
+    "cache_read_tokens": 40375892,
+    "output_tokens": 141858,
+    "api_call_count": 129,
+    "subagent_tokens": {
+      "input_tokens": 14,
+      "cache_creation_tokens": 83767,
+      "cache_read_tokens": 428178,
+      "output_tokens": 4457,
+      "api_call_count": 7
+    }
+  }
+}
