@@ -1,0 +1,3 @@
+reword this msg to post as review for me: make it more concise i just audio recorded it:
+I wonder if deciding the author position by platform is the right strategy here. Maybe we should generalize it in the case where if all the authors of the node from the same space only has one author, then we show it at the top of the vault selection. Versus if we have multiple authors from the same space, then we'll show it for individual nodes.
+ The reason being that Obsidian also have Obsidian Sync, and I know that we might not have the mechanism for it right now to detect the author of each Obsidian node, but we might need to. And I think maybe a bit generalizing like that might be more helpful, but happy to discuss more.
