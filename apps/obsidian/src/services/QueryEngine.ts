@@ -566,9 +566,8 @@ export class QueryEngine {
     return this.app.vault
       .getMarkdownFiles()
       .filter((file) => {
-        const fm = this.app.metadataCache.getFileCache(file)?.frontmatter as
-          | Record<string, unknown>
-          | undefined;
+        const fm: Record<string, unknown> | undefined =
+          this.app.metadataCache.getFileCache(file)?.frontmatter;
         if (!fm?.nodeTypeId) return false;
         if (nodeTypeId && fm.nodeTypeId !== nodeTypeId) return false;
         return this.fuzzySearch(file.basename, query);
@@ -578,9 +577,8 @@ export class QueryEngine {
 
   private fallbackGetDiscourseNodeById(nodeInstanceId: string): TFile | null {
     for (const file of this.app.vault.getMarkdownFiles()) {
-      const fm = this.app.metadataCache.getFileCache(file)?.frontmatter as
-        | Record<string, unknown>
-        | undefined;
+      const fm: Record<string, unknown> | undefined =
+        this.app.metadataCache.getFileCache(file)?.frontmatter;
       if (fm?.nodeInstanceId === nodeInstanceId) return file;
     }
     return null;
@@ -597,16 +595,15 @@ export class QueryEngine {
     activeFile: TFile;
     selectedRelationType: string;
   }): TFile[] {
-    const fileCache = this.app.metadataCache.getFileCache(activeFile);
-    const frontmatter = fileCache?.frontmatter as
-      | Record<string, unknown>
-      | undefined;
+    const frontmatter: Record<string, unknown> | undefined =
+      this.app.metadataCache.getFileCache(activeFile)?.frontmatter;
     const rawExistingRelations = frontmatter?.[selectedRelationType];
-    const existingRelations = Array.isArray(rawExistingRelations)
-      ? (rawExistingRelations as string[])
-      : rawExistingRelations
-        ? [String(rawExistingRelations)]
-        : [];
+    const relationValues: unknown[] = Array.isArray(rawExistingRelations)
+      ? rawExistingRelations
+      : [rawExistingRelations];
+    const existingRelations = relationValues.filter(
+      (relation): relation is string => typeof relation === "string",
+    );
     const existingRelatedFiles = existingRelations.map((relation) => {
       const match = relation.match(/\[\[(.*?)(?:\|.*?)?\]\]/);
       return match?.[1] ?? relation.replace(/^\[\[|\]\]$/g, "");
@@ -616,10 +613,13 @@ export class QueryEngine {
       .getMarkdownFiles()
       .filter((file) => {
         if (file.path === activeFile.path) return false;
-        const fm = this.app.metadataCache.getFileCache(file)?.frontmatter as
-          | Record<string, unknown>
-          | undefined;
-        if (!compatibleNodeTypeIds.includes(String(fm?.nodeTypeId ?? ""))) {
+        const fm: Record<string, unknown> | undefined =
+          this.app.metadataCache.getFileCache(file)?.frontmatter;
+        const nodeTypeId = fm?.nodeTypeId;
+        if (
+          typeof nodeTypeId !== "string" ||
+          !compatibleNodeTypeIds.includes(nodeTypeId)
+        ) {
           return false;
         }
         if (!this.fuzzySearch(file.basename, query)) return false;
