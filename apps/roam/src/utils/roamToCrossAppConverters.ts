@@ -34,12 +34,11 @@ const FULL_MARKDOWN_OPTS = {
   allNodes: [] as DiscourseNode[],
 };
 
+// `full` carries the page body alone; the title lives in the `direct` variant.
 export const buildFullMarkdown = ({
-  title,
   blocks,
   viewType = "bullet",
 }: {
-  title: string;
   blocks: TreeNode[];
   viewType?: ViewType;
 }): string => {
@@ -50,7 +49,7 @@ export const buildFullMarkdown = ({
     )
     .join("\n")
     .trim();
-  return body ? `# ${title}\n\n${body}\n` : `# ${title}\n`;
+  return body ? `${body}\n` : "";
 };
 
 const buildFullInlineContent = ({
@@ -64,7 +63,7 @@ const buildFullInlineContent = ({
   const viewType = getPageViewType(title) || "bullet";
   return {
     localId: uid,
-    value: buildFullMarkdown({ title, blocks, viewType }),
+    value: buildFullMarkdown({ blocks, viewType }),
     contentType: contentTypes.roamMarkdown,
     scale: "document",
   };

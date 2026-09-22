@@ -833,9 +833,9 @@ describe("materializeSharedNode", () => {
     });
   });
 
-  it("strips the Roam heading by the source title while decorating the page title", async () => {
+  it("keeps the Roam body intact while decorating the page title", async () => {
     const { client } = clientWithFullContent({
-      text: `# ${roamSharedNode.title}\n\n- REM sleep improves recall`,
+      text: "- REM sleep improves recall",
       contentType: "text/roam+markdown",
     });
 
@@ -989,9 +989,9 @@ describe("materializeSharedNode", () => {
     expect(mockedImportNodeAssets).toHaveBeenCalled();
   });
 
-  it("imports a Roam-origin node and strips the duplicated title heading", async () => {
+  it("imports a Roam-origin node body verbatim", async () => {
     const { client } = clientWithFullContent({
-      text: `# ${roamSharedNode.title}\n\n- REM sleep improves recall\n`,
+      text: "- REM sleep improves recall\n",
       contentType: "text/roam+markdown",
     });
 
@@ -1015,7 +1015,7 @@ describe("materializeSharedNode", () => {
   it("brackets a media embed's URL before handing the markdown to Roam", async () => {
     const embed = `{{[[pdf]]: ${ASSET_URL}}}`;
     const { client } = clientWithFullContent({
-      text: `# ${roamSharedNode.title}\n\n${embed}\n`,
+      text: `${embed}\n`,
       contentType: "text/roam+markdown",
     });
 
@@ -1034,7 +1034,7 @@ describe("materializeSharedNode", () => {
   it("brackets a media embed's URL when replacing an imported page too", async () => {
     const embed = `{{[[audio]]: ${ASSET_URL}}}`;
     const { client } = clientWithFullContent({
-      text: `# ${roamSharedNode.title}\n\n${embed}\n`,
+      text: `${embed}\n`,
       contentType: "text/roam+markdown",
     });
     mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
@@ -1052,9 +1052,9 @@ describe("materializeSharedNode", () => {
     });
   });
 
-  it("keeps a first line that does not match the shared title exactly", async () => {
+  it("normalizes CRLF in Roam body content", async () => {
     const { client } = clientWithFullContent({
-      text: "# Some other heading\n\n- body",
+      text: "- first\r\n\r\n- second\r\n",
       contentType: "text/roam+markdown",
     });
 
@@ -1066,13 +1066,31 @@ describe("materializeSharedNode", () => {
     expect(result.success).toBe(true);
     expect(pageFromMarkdown).toHaveBeenCalledWith({
       page: { title: roamSharedNode.title, uid: GENERATED_PAGE_UID },
-      "markdown-string": "# Some other heading\n\n- body",
+      "markdown-string": "- first\n\n- second",
     });
   });
 
-  it("creates a title-only page when Roam full content is only the heading", async () => {
+  it("keeps a leading heading that repeats the title, since the body owns it", async () => {
     const { client } = clientWithFullContent({
-      text: `# ${roamSharedNode.title}\n`,
+      text: `# ${roamSharedNode.title}\n\n- body`,
+      contentType: "text/roam+markdown",
+    });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: roamSharedNode,
+    });
+
+    expect(result.success).toBe(true);
+    expect(pageFromMarkdown).toHaveBeenCalledWith({
+      page: { title: roamSharedNode.title, uid: GENERATED_PAGE_UID },
+      "markdown-string": `# ${roamSharedNode.title}\n\n- body`,
+    });
+  });
+
+  it("creates a title-only page when the Roam body is empty", async () => {
+    const { client } = clientWithFullContent({
+      text: "",
       contentType: "text/roam+markdown",
     });
 
@@ -1090,7 +1108,7 @@ describe("materializeSharedNode", () => {
 
   it("rejects Obsidian markdown on a Roam-origin node", async () => {
     const { client } = clientWithFullContent({
-      text: `# ${roamSharedNode.title}\n\n- body`,
+      text: "- body",
       contentType: "text/obsidian+markdown",
     });
 
