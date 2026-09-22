@@ -1,3 +1,4 @@
+import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import { crossAppNodeToDbContent } from "@repo/database/lib/crossAppConverters";
 import { fullContentNodeToCrossApp } from "./roamToCrossAppConverters";
 import type { LocalContentDataInput } from "@repo/database/inputTypes";
@@ -13,16 +14,24 @@ export type RoamFullContentNode = {
   node_title?: string;
 };
 
+/** Paired so the asset stage reuses the markdown rather than rebuilding it from Roam. */
+export type ConvertedFullContent = {
+  node: CrossAppNode;
+  content: LocalContentDataInput;
+};
+
 export const convertRoamNodeToFullContent = ({
   nodes,
 }: {
   nodes: RoamFullContentNode[];
-}): LocalContentDataInput[] =>
+}): ConvertedFullContent[] =>
   nodes.flatMap((node) => {
     try {
       const crossAppNode = fullContentNodeToCrossApp(node);
       const fullContent = crossAppNodeToDbContent(crossAppNode, "full");
-      return fullContent === undefined ? [] : [fullContent];
+      return fullContent === undefined
+        ? []
+        : [{ node: crossAppNode, content: fullContent }];
     } catch (error) {
       console.error(
         `convertRoamNodeToFullContent: failed to build full markdown for ${node.source_local_id}:`,
