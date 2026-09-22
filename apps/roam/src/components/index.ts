@@ -10,7 +10,6 @@ export { default as Export } from "./Export";
 export { render as ExportDiscourseContext } from "./ExportDiscourseContext";
 export { ExportGithub as ExportGithub } from "./ExportGithub";
 export { default as ImportDialog } from "./ImportDialog";
-export { default as LivePreview } from "./LivePreview";
 export { render as renderQueryDrawer } from "./QueryDrawer";
 export { openQueryDrawer as QueryDrawer } from "./QueryDrawer";
 export { default as QueryEditor } from "./QueryEditor";

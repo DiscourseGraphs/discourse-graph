@@ -5,7 +5,10 @@ import {
   getImportedNodesInfo,
   getLocalNodeKeyToEndpointId,
 } from "./relationsStore";
-import { getSpaceUris } from "./importNodes";
+import {
+  fetchNodeImportInfoForInstances,
+  getSpaceInfoFromIds,
+} from "./importNodes";
 import { QueryEngine } from "~/services/QueryEngine";
 import {
   fetchRelationInstancesFromSpace,
@@ -69,7 +72,7 @@ export const computeImportPreview = async ({
   }
 
   const spaceIds = [...nodesBySpace.keys()];
-  const spaceUris = await getSpaceUris(client, spaceIds);
+  const spaceInfoById = await getSpaceInfoFromIds(client, spaceIds);
 
   const newNodeTypeSchemas: Array<{ id: string; name: string }> = [];
   const seenNodeTypeIds = new Set<string>();
@@ -82,69 +85,37 @@ export const computeImportPreview = async ({
   }
 
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
-    // Get schema_ids for the selected node instances
-    const nodeInstanceIds = nodes.map((n) => n.nodeInstanceId);
-    const { data: conceptRows } = await client
-      .from("my_concepts")
-      .select("source_local_id, schema_id")
-      .eq("space_id", spaceId)
-      .eq("is_schema", false)
-      .in("source_local_id", nodeInstanceIds);
+    const nodeImportInfoByInstance = await fetchNodeImportInfoForInstances({
+      client,
+      spaceId,
+      nodeInstanceIds: nodes.map((n) => n.nodeInstanceId),
+    });
 
-    if (!conceptRows) continue;
-
-    const schemaIds = [
-      ...new Set(
-        (
-          conceptRows as Array<{
-            source_local_id: string;
-            schema_id: number | null;
-          }>
-        )
-          .map((r) => r.schema_id)
-          .filter((id): id is number => id != null),
-      ),
-    ];
-
-    if (schemaIds.length === 0) continue;
-
-    // Resolve schema_ids to node type info
-    const { data: schemaRows } = await client
-      .from("my_concepts")
-      .select("source_local_id, name")
-      .eq("space_id", spaceId)
-      .eq("is_schema", true)
-      .in("id", schemaIds);
-
-    if (!schemaRows) continue;
-
-    for (const schema of schemaRows as Array<{
-      source_local_id: string;
-      name: string;
-    }>) {
-      const sourceNodeTypeId = schema.source_local_id;
+    for (const { schema } of nodeImportInfoByInstance.values()) {
+      if (!schema) continue;
+      const { nodeTypeId, name } = schema;
 
       // Track name for triplet resolution
-      if (!nodeTypeIdToName.has(sourceNodeTypeId)) {
-        nodeTypeIdToName.set(sourceNodeTypeId, schema.name);
+      if (!nodeTypeIdToName.has(nodeTypeId)) {
+        nodeTypeIdToName.set(nodeTypeId, name);
       }
 
-      if (seenNodeTypeIds.has(sourceNodeTypeId)) continue;
-      seenNodeTypeIds.add(sourceNodeTypeId);
+      if (seenNodeTypeIds.has(nodeTypeId)) continue;
+      seenNodeTypeIds.add(nodeTypeId);
 
       // Check against local node types (mirrors mapNodeTypeIdToLocal logic without side effects)
       const matchById = plugin.settings.nodeTypes.find(
-        (nt) => nt.id === sourceNodeTypeId,
+        (nt) => nt.id === nodeTypeId,
       );
       if (matchById) continue;
 
       const matchByName = plugin.settings.nodeTypes.find(
-        (nt) => nt.name === schema.name,
+        (nt) => nt.name === name,
       );
       if (matchByName) continue;
 
       // This is a new node type that would be created
-      newNodeTypeSchemas.push({ id: sourceNodeTypeId, name: schema.name });
+      newNodeTypeSchemas.push({ id: nodeTypeId, name });
     }
   }
 
@@ -158,7 +129,7 @@ export const computeImportPreview = async ({
 
   // Add currently selected nodes to the sets
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
-    const spaceUri = spaceUris.get(spaceId);
+    const spaceUri = spaceInfoById.get(spaceId)?.url;
     if (!spaceUri) continue;
     for (const node of nodes) {
       const key = `${spaceId}:${node.nodeInstanceId}`;

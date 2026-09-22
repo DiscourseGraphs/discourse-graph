@@ -20,9 +20,10 @@ const matchDiscourseNode = ({
   )) => {
   // Handle specification with single "has title" clause
   if (
-    specification.length === 1 &&
-    specification[0].type === "clause" &&
-    specification[0].relation === "has title"
+    specification?.length === 1 &&
+    specification[0]?.type === "clause" &&
+    specification[0]?.relation === "has title" &&
+    specification[0]?.target
   ) {
     const title =
       "title" in rest ? rest.title : getPageTitleByPageUid(rest.uid);

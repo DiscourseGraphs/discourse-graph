@@ -237,6 +237,7 @@ type ResultsViewComponent = (props: {
   results: Result[];
   hideResults?: boolean;
   hideMenu?: boolean;
+  simplified?: boolean;
   preventSavingSettings?: boolean;
   onEdit?: () => void;
   onDeleteQuery?: () => void;
@@ -279,6 +280,7 @@ const ResultsView: ResultsViewComponent = ({
   results,
   hideResults = false,
   hideMenu = false,
+  simplified = false, // eslint-disable-line react/prop-types
   preventSavingSettings = false,
   onEdit,
   onDeleteQuery,
@@ -1383,6 +1385,7 @@ const ResultsView: ResultsViewComponent = ({
                   onRefresh={onRefresh}
                   allResults={results}
                   showInterface={showInterface}
+                  simplified={simplified}
                 />
               ) : layoutMode === "line" ? (
                 <Charts
@@ -1429,10 +1432,13 @@ const ResultsView: ResultsViewComponent = ({
               </div>
             )}
             <div
+              className={`roamjs-query-results-metadata ${
+                simplified ? "bg-transparent" : ""
+              } ${!showInterface ? "hidden" : ""}`}
               style={
-                !showInterface
-                  ? { display: "none" }
-                  : { background: "#eeeeee80" }
+                showInterface && !simplified
+                  ? { background: "#eeeeee80" }
+                  : undefined
               }
             >
               <div

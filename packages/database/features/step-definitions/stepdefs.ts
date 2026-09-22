@@ -21,6 +21,7 @@ import {
 } from "@repo/database/lib/contextFunctions";
 
 type Platform = Enums<"Platform">;
+type ContentVariant = Enums<"ContentVariant">;
 type TableName = keyof Database["public"]["Tables"];
 type LocalRefsType = Record<string, number | string>;
 const PLATFORMS: readonly Platform[] = Constants.public.Enums.Platform;
@@ -307,6 +308,30 @@ Then(
   },
 );
 
+/* eslint-disable max-params -- Cucumber inspects function.length for step arity. */
+Then(
+  "a user logged in space {word} should see {int} content rows with variant {string} and content type {string}",
+  async (
+    spaceName: string,
+    expectedCount: number,
+    variant: ContentVariant,
+    contentType: string,
+  ) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const client = await getLoggedinDatabase(spaceId);
+    const response = await client
+      .from("my_contents")
+      .select("*", { count: "exact", head: true })
+      .eq("variant", variant)
+      .eq("content_type", contentType);
+    assert.equal(response.error, null);
+    assert.equal(response.count, expectedCount);
+  },
+);
+/* eslint-enable max-params */
+
 // invoke the upsert_accounts_in_space function, expects json
 Given(
   "user {word} upserts these accounts to space {word}:",
@@ -384,6 +409,7 @@ Given(
   "user {word} upserts these concepts to space {word}:",
   async (userName: string, spaceName: string, docString: string) => {
     const data = JSON.parse(docString) as Json;
+    if (!Array.isArray(data)) throw new Error("Invalid data");
     const localRefs = (world.localRefs || {}) as LocalRefsType;
     const spaceId = localRefs[spaceName];
     if (typeof spaceId !== "number") assert.fail("spaceId not a number");
@@ -393,6 +419,17 @@ Given(
       data,
     });
     assert.equal(response.error, null);
+    if (response.data !== null) {
+      response.data.forEach((id, index) => {
+        if (id === undefined) return;
+        const cpt = data[index];
+        if (cpt === null || typeof cpt !== "object" || Array.isArray(cpt))
+          return;
+        const localId = cpt["source_local_id"] as unknown;
+        if (typeof localId !== "string") return;
+        localRefs[localId] = id;
+      });
+    }
   },
 );
 

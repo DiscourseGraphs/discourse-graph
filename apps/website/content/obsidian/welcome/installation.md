@@ -5,34 +5,25 @@ author: ""
 published: true
 ---
 
-## Prerequisites
+Discourse Graphs depends on the Datacore plugin, so install Datacore first. Both plugins are available in Obsidian's community plugin browser.
 
-### Install BRAT (Beta Reviewer's Auto-update Tester)
+## Requirements
 
-1. Open Obsidian Settings
-2. Go to Community Plugins and disable Restricted Mode
-3. Click "Browse" and search for "BRAT"
-   ![BRAT](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2Faar5LKpLOk.png?alt=media&token=6f51ac48-19d3-4bb5-9a07-7b32cfa6afe6)
-4. Install BRAT and enable it
+### Install Datacore
 
-### Install DataCore via BRAT
+Datacore is required for Discourse Graphs to work, so install and enable it before the Discourse Graphs plugin.
 
 1. Open Obsidian Settings
-2. Go to "Community Plugins" → "BRAT"
-3. Click "Add Beta Plugin"
-   ![Add plugin](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FdMtstUHPXe.png?alt=media&token=3f139ab9-9802-404d-9554-4a63bac080c5)
-4. Enter the repository URL: `https://github.com/blacksmithgu/datacore` and choose "Latest version"
-   ![Add datacore](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FEY3vNGt1Rf.png?alt=media&token=32c60ff1-5272-4cde-8b5f-8f049fb2cf50)
-5. Check the box for "Enable after installing the plugin"
-6. Click "Add plugin"
+2. Go to "Community plugins" and disable Restricted Mode
+3. Click "Browse" and search for "Datacore"
+4. Install Datacore and enable it
 
 ## Install Discourse Graphs
 
+Once Datacore is installed and enabled, add the Discourse Graphs plugin from the community plugin browser.
+
 1. Open Obsidian Settings
-2. Go to "Community Plugins" → "BRAT"
-3. Click "Add Beta Plugin"
-   ![Add plugin](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FdMtstUHPXe.png?alt=media&token=3f139ab9-9802-404d-9554-4a63bac080c5)
-4. Enter the repository URL: `https://github.com/DiscourseGraphs/discourse-graph-obsidian` and choose "Latest version"
-   ![Add discourse graph](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FSBCK-2lkcu.png?alt=media&token=0375c828-da4d-43b4-8f2c-e691692cb019)
-5. Check the box for "Enable after installing the plugin"
-6. Click "Add Plugin"
+2. Go to "Community plugins" → "Browse"
+3. Search for "Discourse Graphs", then install and enable it
+
+Or install directly from the [community plugin page](https://community.obsidian.md/plugins/discourse-graphs).

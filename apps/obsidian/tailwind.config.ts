@@ -16,6 +16,7 @@ const config: Pick<Config, "content" | "theme" | "plugins"> = {
         muted: "var(--text-muted)",
         "accent-text": "var(--text-accent)",
         error: "var(--text-error)",
+        warning: "var(--text-warning)",
         "on-accent": "var(--text-on-accent)",
 
         // Interactive elements

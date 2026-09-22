@@ -7,7 +7,6 @@ import {
   Card,
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import ReactDOM from "react-dom";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import { ContextContent } from "./DiscourseContext";
 import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
@@ -16,13 +15,13 @@ import deriveDiscourseNodeAttribute from "~/utils/deriveDiscourseNodeAttribute";
 import { getDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 import { DISCOURSE_NODE_KEYS } from "~/components/settings/utils/settingKeys";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
+import { useDiscourseContextMutationRefresh } from "~/utils/discourseContextMutationRefresh";
 import nanoid from "nanoid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
-import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import internalError from "~/utils/internalError";
@@ -233,6 +232,10 @@ const useDiscourseContext = (uid: string, tag: string) => {
   useEffect(() => {
     void getInfo();
   }, [getInfo]);
+
+  // The popover unmounts `ContextContent` while closed, so the overlay button's
+  // score/refs would otherwise stay stale after a relation mutation.
+  useDiscourseContextMutationRefresh({ uid, onMutationRefresh: refresh });
 
   return { loading, results, refs, score, refresh };
 };

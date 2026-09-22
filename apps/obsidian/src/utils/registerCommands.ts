@@ -3,7 +3,10 @@ import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
+import { NodeSearchModal } from "~/components/NodeSearchModal";
 import { ImportNodesModal } from "~/components/ImportNodesModal";
+import { openExportSpecsModal } from "~/components/ExportSpecsModal";
+import { FeedbackModal } from "~/components/FeedbackModal";
 import { convertPageToDiscourseNode, createDiscourseNode } from "./createNode";
 import { refreshAllImportedFiles } from "./importNodes";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
@@ -137,6 +140,15 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   });
 
   plugin.addCommand({
+    id: "open-node-search",
+    name: "Open node search",
+    hotkeys: [],
+    callback: () => {
+      new NodeSearchModal(plugin.app, plugin).open();
+    },
+  });
+
+  plugin.addCommand({
     id: "import-nodes-from-another-space",
     name: "Import nodes from another space",
     checkCallback: (checking: boolean) => {
@@ -195,10 +207,24 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   });
 
   plugin.addCommand({
+    id: "export-dg-schema",
+    name: "Export discourse graph schema",
+    callback: () => openExportSpecsModal(plugin),
+  });
+
+  plugin.addCommand({
     id: "toggle-discourse-context",
     name: "Toggle discourse context",
     callback: () => {
       plugin.toggleDiscourseContextView();
+    },
+  });
+
+  plugin.addCommand({
+    id: "send-feedback",
+    name: "Send feedback",
+    callback: () => {
+      new FeedbackModal(plugin.app, plugin).open();
     },
   });
 

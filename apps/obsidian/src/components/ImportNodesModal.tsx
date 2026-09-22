@@ -3,17 +3,18 @@ import { createRoot, Root } from "react-dom/client";
 import { StrictMode, useState, useEffect, useCallback } from "react";
 import type DiscourseGraphPlugin from "../index";
 import type { ImportableNode, GroupWithNodes } from "~/types";
+import type { Enums } from "@repo/database/dbTypes";
 import { getUserNameById } from "~/utils/typeUtils";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import {
   fetchUserNames,
   getPublishedNodesForGroups,
   getLocalNodeInstanceIds,
-  getSpaceNameFromIds,
-  getSpaceUris,
+  getSpaceInfoFromIds,
   importSelectedNodes,
 } from "~/utils/importNodes";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import { authorNamePlacement } from "~/utils/spaceAuthorDisplay";
 import {
   computeImportPreview,
   type ImportPreviewData,
@@ -67,7 +68,6 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
 
       const publishedNodes = await getPublishedNodesForGroups({
         client,
-        groupIds,
         currentSpaceId: context.spaceId,
       });
 
@@ -81,20 +81,16 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       const uniqueSpaceIds = [
         ...new Set(importableNodes.map((n) => n.space_id)),
       ];
-      const [spaceNames, spaceUris] = await Promise.all([
-        getSpaceNameFromIds(client, uniqueSpaceIds),
-        getSpaceUris(client, uniqueSpaceIds),
-      ]);
+      const spaceInfoById = await getSpaceInfoFromIds(client, uniqueSpaceIds);
 
       // Keep spaceNames in settings up to date for UI display (formatImportSource reads it)
       if (uniqueSpaceIds.length > 0) {
         if (!plugin.settings.spaceNames) plugin.settings.spaceNames = {};
 
         for (const spaceId of uniqueSpaceIds) {
-          const spaceUri = spaceUris.get(spaceId);
-          const spaceName = spaceNames.get(spaceId);
-          if (spaceUri && spaceName) {
-            plugin.settings.spaceNames[spaceUri] = spaceName;
+          const spaceInfo = spaceInfoById.get(spaceId);
+          if (spaceInfo) {
+            plugin.settings.spaceNames[spaceInfo.url] = spaceInfo.name;
           }
         }
         await plugin.saveSettings();
@@ -108,15 +104,17 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
           grouped.set(groupId, {
             groupId,
             groupName:
-              spaceNames.get(node.space_id) ?? `Space ${node.space_id}`,
+              spaceInfoById.get(node.space_id)?.name ??
+              `Space ${node.space_id}`,
             nodes: [],
             authorIds: new Set(),
+            spacePlatform: spaceInfoById.get(node.space_id)?.platform,
           });
         }
 
         const group = grouped.get(groupId)!;
         const spaceName =
-          spaceNames.get(node.space_id) ?? `Space ${node.space_id}`;
+          spaceInfoById.get(node.space_id)?.name ?? `Space ${node.space_id}`;
         group.nodes.push({
           nodeInstanceId: node.source_local_id,
           title: node.text,
@@ -268,6 +266,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       {
         spaceName: string;
         authorIds: Set<number>;
+        spacePlatform?: Enums<"Platform">;
         nodes: Array<{
           node: ImportableNode;
           groupId: string;
@@ -282,6 +281,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
           nodesBySpace.set(node.spaceId, {
             spaceName: node.spaceName,
             authorIds: group.authorIds,
+            spacePlatform: group.spacePlatform,
             nodes: [],
           });
         }
@@ -333,7 +333,10 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
 
         <div className="max-h-96 overflow-y-auto rounded border">
           {Array.from(nodesBySpace.entries()).map(
-            ([spaceId, { spaceName, nodes, authorIds }]) => {
+            ([spaceId, { spaceName, nodes, authorIds, spacePlatform }]) => {
+              const authorPlacement = authorNamePlacement(spacePlatform);
+              const headerAuthorId =
+                authorPlacement === "header" ? [...authorIds][0] : undefined;
               return (
                 <div key={spaceId} className="border-b">
                   <div className="bg-muted/10 flex items-center px-3 py-2">
@@ -341,9 +344,9 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
                     <span className="text-accent-foreground line-clamp-1 font-medium italic">
                       {spaceName}
                     </span>
-                    {authorIds.size === 1 && (
+                    {headerAuthorId !== undefined && (
                       <span>
-                        &nbsp;({getUserNameById(plugin, [...authorIds][0]!)})
+                        &nbsp;({getUserNameById(plugin, headerAuthorId)})
                       </span>
                     )}
                     <span className="text-muted ml-2 text-sm">
@@ -365,7 +368,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
                       <div className="min-w-0 flex-1">
                         <div className="line-clamp-3 font-medium">
                           {node.title}
-                          {node.authorId && authorIds.size > 1 && (
+                          {node.authorId && authorPlacement === "nodes" && (
                             <span className="font-light">
                               &nbsp;({getUserNameById(plugin, node.authorId)})
                             </span>

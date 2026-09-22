@@ -21,7 +21,7 @@ import {
   toDomPrecision,
   TLAnyShapeUtilConstructor,
 } from "tldraw";
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo, useState } from "react";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
@@ -36,12 +36,15 @@ import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { discourseContext } from "./Tldraw";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
-import { createTextJsxFromSpans } from "./DiscourseRelationShape/helpers";
+import {
+  createTextJsxFromSpans,
+  getParallelArrowBend,
+} from "./DiscourseRelationShape/helpers";
 import { loadImage } from "~/utils/loadImage";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
-import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
+import NodeMenu from "~/components/DiscourseNodeMenu";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { RenderRoamBlockString } from "~/utils/roamReactComponents";
@@ -316,10 +319,27 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
         return { relationId, complement, nodeId, arrowId, label };
       });
 
+    const allRelationIds = getRelationIds();
+    const reservedBendsByPair = new Map<string, number[]>();
     const shapesToCreate = toCreate.map(
-      ({ relationId, arrowId, label }, index) => {
+      ({ relationId, complement, nodeId, arrowId, label }, index) => {
         const color = getRelationColor(label, index);
-        return { id: arrowId, type: relationId, props: { color } };
+        const startId = complement ? nodesInCanvas[nodeId].id : shape.id;
+        const endId = complement ? shape.id : nodesInCanvas[nodeId].id;
+        const pairKey = [startId, endId].sort().join(":");
+        const reservedCanonicalBends = reservedBendsByPair.get(pairKey) ?? [];
+        const { bend, canonicalBend } = getParallelArrowBend({
+          editor,
+          startShapeId: startId,
+          endShapeId: endId,
+          relationIds: allRelationIds,
+          reservedCanonicalBends,
+        });
+        reservedBendsByPair.set(pairKey, [
+          ...reservedCanonicalBends,
+          canonicalBend,
+        ]);
+        return { id: arrowId, type: relationId, props: { color, bend } };
       },
     );
 
@@ -449,15 +469,10 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     const {
       canvasSettings: { alias = "", "key-image": isKeyImage = "" } = {},
     } = discourseContext.nodes[getDiscourseNodeTypeId({ shape })] || {};
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isOverlayEnabled = useMemo(
-      () => getPersonalSetting<boolean>([PERSONAL_KEYS.overlayInCanvas]),
-      [],
-    );
 
     const isEditing = this.editor.getEditingShapeId() === shape.id;
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [overlayMounted, setOverlayMounted] = useState(false);
+    const [isAddTagMenuOpen, setIsAddTagMenuOpen] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const dialogRenderedRef = useRef(false);
 
@@ -486,6 +501,36 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       }
       return null;
     }, [shape]);
+
+    const showAddTagButton =
+      !matchedNodeForConversion &&
+      getDiscourseNodeTypeId({ shape }) === "blck-node" &&
+      isLiveBlock(shape.props.uid) &&
+      !editor.isShapeOrAncestorLocked(shape.id) &&
+      Object.values(discourseContext.nodes).some(
+        (n) => n.backedBy === "user" && n.tag,
+      );
+
+    const handleTagAdded = async (newText: string): Promise<void> => {
+      // The tag is already saved. Refresh its action even if sizing fails.
+      this.updateProps(shape.id, shape.type, { title: newText });
+      if (!extensionAPI) return;
+      try {
+        const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
+          nodeText: newText,
+          uid: shape.props.uid,
+          nodeType: getDiscourseNodeTypeId({ shape }),
+          extensionAPI,
+        });
+        this.updateProps(shape.id, shape.type, { h, w, imageUrl });
+      } catch (error) {
+        renderToast({
+          id: "discourse-node-tag-size-error",
+          intent: "danger",
+          content: `Tag added, but the card size could not be refreshed: ${String(error)}`,
+        });
+      }
+    };
 
     const { backgroundColor, textColor } = this.getColors(shape);
     const showEmbeddedRoamBlock =
@@ -600,128 +645,164 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       }
     }, [isEditing, shape, editor, extensionAPI]);
 
+    const addTagTrigger = (
+      <Button
+        minimal
+        small
+        icon={<span className="px-1 font-semibold">#</span>}
+        text="Add tag"
+        className="opacity-50"
+        style={{ color: textColor }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsAddTagMenuOpen((open) => !open);
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+      />
+    );
+
     return (
       <HTMLContainer
         id={shape.id}
-        className="roamjs-tldraw-node pointer-events-auto flex h-full w-full overflow-hidden rounded-2xl"
+        className="roamjs-tldraw-node pointer-events-auto flex h-full min-h-0 w-full min-w-0 overflow-hidden rounded-2xl"
         style={{
           background: backgroundColor,
           color: textColor,
+          width: shape.props.w,
+          height: shape.props.h,
+          maxWidth: shape.props.w,
+          maxHeight: shape.props.h,
+          boxSizing: "border-box",
         }}
-        onPointerEnter={() => setOverlayMounted(true)}
       >
         <div
-          className="relative flex h-full w-full flex-col"
+          className="relative flex h-full min-h-0 w-full min-w-0 flex-col"
           style={{ pointerEvents: "all" }}
         >
-          {/* Open in Sidebar Button */}
-          <Button
-            className="absolute left-1 top-1 z-10"
-            minimal
-            small
-            icon={
-              <Icon
-                icon="panel-stats"
-                color={textColor}
-                className="opacity-50"
-              />
-            }
-            onClick={(e) => {
-              e.stopPropagation();
-              void openBlockInSidebar(shape.props.uid);
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            title="Open in sidebar (Shift+Click)"
-          />
-
-          {/* Convert to Node Type Button */}
-          {matchedNodeForConversion && (
+          <div className="absolute left-1 top-1 z-10 flex items-center">
+            {/* Open in Sidebar Button */}
             <Button
-              className="absolute left-7 top-1 z-10"
               minimal
               small
               icon={
-                <Icon icon="plus" color={textColor} className="opacity-50" />
+                <Icon
+                  icon="panel-stats"
+                  color={textColor}
+                  className="opacity-50"
+                />
               }
               onClick={(e) => {
                 e.stopPropagation();
-                const { node, blockText } = matchedNodeForConversion;
-                const tag = node.tag;
-                if (!tag) return;
-                const cleanTag = getCleanTagText(tag);
-                const escapedCleanTag = escapeRegExp(cleanTag);
-                // Strip the tag from block text (same pattern as detection above)
-                const cleanedText = blockText
-                  .replace(
-                    new RegExp(`#\\[\\[${escapedCleanTag}\\]\\]`, "i"),
-                    "",
-                  )
-                  .replace(new RegExp(`#${escapedCleanTag}`, "i"), "")
-                  .trim();
-                const { x, y } = shape;
-                renderModifyNodeDialog({
-                  mode: "create",
-                  nodeType: node.type,
-                  initialValue: { text: cleanedText, uid: "" },
-                  extensionAPI,
-                  includeDefaultNodes: true,
-                  disableNodeTypeChange: true,
-                  onSuccess: async ({ text, uid }) => {
-                    if (!extensionAPI) return;
-                    try {
-                      const {
-                        h,
-                        w,
-                        imageUrl: nodeImageUrl,
-                      } = await calcCanvasNodeSizeAndImg({
-                        nodeText: text,
-                        extensionAPI,
-                        nodeType: node.type,
-                        uid,
-                      });
-                      editor.createShapes([
-                        {
-                          type: DISCOURSE_NODE_SHAPE_TYPE,
-                          id: createShapeId(),
-                          props: {
-                            uid,
-                            title: text,
-                            h,
-                            w,
-                            imageUrl: nodeImageUrl,
-                            fontFamily: "sans",
-                            size: "s",
-                            nodeTypeId: node.type,
-                          },
-                          x,
-                          y,
-                        },
-                      ]);
-                      editor.deleteShapes([shape.id]);
-                    } catch (error) {
-                      renderToast({
-                        id: `discourse-node-convert-error-${Date.now()}`,
-                        intent: "danger",
-                        content: (
-                          <span>Error converting block: {String(error)}</span>
-                        ),
-                      });
-                    }
-                  },
-                  onClose: () => {},
-                });
+                void openBlockInSidebar(shape.props.uid);
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              title={`Convert to ${matchedNodeForConversion.node.text}`}
-            >
-              <span
-                className="opacity-70"
-                style={{ color: textColor, fontSize: "11px" }}
+              title="Open in sidebar (Shift+Click)"
+            />
+
+            {/* Add Tag to Block Button */}
+            {extensionAPI &&
+              showAddTagButton &&
+              (isAddTagMenuOpen ? (
+                <NodeMenu
+                  blockUid={shape.props.uid}
+                  extensionAPI={extensionAPI}
+                  defaultIsOpen
+                  onClose={() => setIsAddTagMenuOpen(false)}
+                  onTagAdded={(text) => void handleTagAdded(text)}
+                  trigger={addTagTrigger}
+                />
+              ) : (
+                addTagTrigger
+              ))}
+
+            {/* Convert to Node Type Button */}
+            {matchedNodeForConversion && (
+              <Button
+                minimal
+                small
+                icon={
+                  <Icon icon="plus" color={textColor} className="opacity-50" />
+                }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const { node, blockText } = matchedNodeForConversion;
+                  const tag = node.tag;
+                  if (!tag) return;
+                  const cleanTag = getCleanTagText(tag);
+                  const escapedCleanTag = escapeRegExp(cleanTag);
+                  // Strip the tag from block text (same pattern as detection above)
+                  const cleanedText = blockText
+                    .replace(
+                      new RegExp(`#\\[\\[${escapedCleanTag}\\]\\]`, "i"),
+                      "",
+                    )
+                    .replace(new RegExp(`#${escapedCleanTag}`, "i"), "")
+                    .trim();
+                  const { x, y } = shape;
+                  renderModifyNodeDialog({
+                    mode: "create",
+                    nodeType: node.type,
+                    initialValue: { text: cleanedText, uid: "" },
+                    extensionAPI,
+                    includeDefaultNodes: true,
+                    disableNodeTypeChange: true,
+                    onSuccess: async ({ text, uid }) => {
+                      if (!extensionAPI) return;
+                      try {
+                        const {
+                          h,
+                          w,
+                          imageUrl: nodeImageUrl,
+                        } = await calcCanvasNodeSizeAndImg({
+                          nodeText: text,
+                          extensionAPI,
+                          nodeType: node.type,
+                          uid,
+                        });
+                        editor.createShapes([
+                          {
+                            type: DISCOURSE_NODE_SHAPE_TYPE,
+                            id: createShapeId(),
+                            props: {
+                              uid,
+                              title: text,
+                              h,
+                              w,
+                              imageUrl: nodeImageUrl,
+                              fontFamily: "sans",
+                              size: "s",
+                              nodeTypeId: node.type,
+                            },
+                            x,
+                            y,
+                          },
+                        ]);
+                        editor.deleteShapes([shape.id]);
+                      } catch (error) {
+                        renderToast({
+                          id: `discourse-node-convert-error-${Date.now()}`,
+                          intent: "danger",
+                          content: (
+                            <span>Error converting block: {String(error)}</span>
+                          ),
+                        });
+                      }
+                    },
+                    onClose: () => {},
+                  });
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                title={`Convert to ${matchedNodeForConversion.node.text}`}
               >
-                Convert to {matchedNodeForConversion.node.text}
-              </span>
-            </Button>
-          )}
+                <span
+                  className="opacity-70"
+                  style={{ color: textColor, fontSize: "11px" }}
+                >
+                  Convert to {matchedNodeForConversion.node.text}
+                </span>
+              </Button>
+            )}
+          </div>
 
           {shape.props.imageUrl && isKeyImage === "true" ? (
             <div className="mt-2 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
@@ -745,20 +826,6 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
               fontSize: FONT_SIZES[shape.props.size],
             }}
           >
-            {overlayMounted && isOverlayEnabled && (
-              <div
-                className="roamjs-discourse-context-overlay-container absolute right-1 top-1"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <DiscourseContextOverlay
-                  uid={shape.props.uid}
-                  id={`${shape.id}-overlay`}
-                  opacity="50"
-                  textColor={textColor}
-                  iconColor={textColor}
-                />
-              </div>
-            )}
             {showEmbeddedRoamBlock ? (
               <div className="w-full min-w-0">
                 <RenderRoamBlockString

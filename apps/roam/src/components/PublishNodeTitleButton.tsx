@@ -48,6 +48,5 @@ export const renderPublishNodeTitleButton = ({
   handleTitleAdditions(
     h1,
     <PublishNodeTitleButton uid={uid} title={title} nodeType={nodeType} />,
-    { layout: "inline" },
   );
 };

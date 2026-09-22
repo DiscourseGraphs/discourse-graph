@@ -19,11 +19,11 @@ export const deNormalizeProps = (props: json): json =>
           )
     : props;
 
-const setBlockProps = (
+export const setBlockPropsAsync = (
   uid: string,
   newProps: Record<string, json>,
   denormalize: boolean = false,
-) => {
+): Promise<json> => {
   const rawBaseProps = getRawBlockProps(uid);
   const baseProps = denormalize ? rawBaseProps : normalizeProps(rawBaseProps);
   if (typeof baseProps === "object" && !Array.isArray(baseProps)) {
@@ -33,10 +33,19 @@ const setBlockProps = (
         ? (deNormalizeProps(newProps) as Record<string, json>)
         : newProps),
     } as Record<string, json>;
-    window.roamAlphaAPI.data.block.update({ block: { uid, props } });
-    return props;
+    return window.roamAlphaAPI.data.block
+      .update({ block: { uid, props } })
+      .then(() => props);
   }
-  return baseProps;
+  return Promise.resolve(baseProps);
+};
+
+const setBlockProps = (
+  uid: string,
+  newProps: Record<string, json>,
+  denormalize: boolean = false,
+): void => {
+  void setBlockPropsAsync(uid, newProps, denormalize);
 };
 
 export const testSetBlockProps = (
@@ -44,7 +53,7 @@ export const testSetBlockProps = (
   newProps: Record<string, json>,
 ) => {
   const uid = getPageUidByPageTitle(title);
-  return uid ? setBlockProps(uid, newProps) : null;
+  return uid ? setBlockPropsAsync(uid, newProps) : null;
 };
 
 export default setBlockProps;

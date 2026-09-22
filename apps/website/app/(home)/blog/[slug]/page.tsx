@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { importPage } from "nextra/pages";
+import type { AnchorHTMLAttributes, ReactElement } from "react";
 import type { BlogData } from "../blogSchema";
 import { getAllBlogs, getBlogBySlug } from "../readBlogs";
 
@@ -17,6 +18,28 @@ const hasPrimaryHeading = (sourceCode: string): boolean =>
 
 const loadBlogPage = async (slug: string): Promise<ImportedPage> =>
   importPage(["blog", slug]);
+
+const EXTERNAL_HREF_RE = /^https?:\/\//;
+
+// Overrides Nextra's default MDX link component, which appends a
+// non-breaking space and an arrow icon to every external link. Blog posts
+// don't want that affordance, so render a plain anchor instead of hiding
+// the icon with CSS (which would leave the orphaned space behind).
+const BlogLink = ({
+  href,
+  ...props
+}: AnchorHTMLAttributes<HTMLAnchorElement>): ReactElement => {
+  const isExternal = typeof href === "string" && EXTERNAL_HREF_RE.test(href);
+
+  return (
+    <a
+      href={href}
+      target={isExternal ? "_blank" : undefined}
+      rel={isExternal ? "noreferrer" : undefined}
+      {...props}
+    />
+  );
+};
 
 const getMetadataDescription = ({
   description,
@@ -105,8 +128,8 @@ const BlogPost = async ({ params }: Params): Promise<React.ReactElement> => {
               </ul>
             )}
           </div>
-          <div>
-            <MDXContent />
+          <div className="prose prose-headings:text-neutral-dark prose-p:text-neutral-dark/80 prose-a:text-secondary prose-li:text-neutral-dark/80 max-w-none">
+            <MDXContent components={{ a: BlogLink }} />
           </div>
         </article>
       </div>

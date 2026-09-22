@@ -35,7 +35,7 @@ export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
     id: generateUid("node"),
     name: "Source",
     format: "SRC - {content}",
-    color: "#3B82F6",
+    color: "#9E9E9E",
     tag: "src-candidate",
     created: now,
     modified: now,
@@ -118,11 +118,18 @@ export const DEFAULT_SETTINGS: Settings = {
   canvasFolderPath: "Discourse Canvas",
   canvasAttachmentsFolderPath: "attachments",
   nodeTagHotkey: "\\",
+  showHelpMenuStatusBarIcon: false,
+  showDiscourseContextOverlay: true,
   spacePassword: undefined,
   accountLocalId: undefined,
   syncModeEnabled: false,
+  nodeCardContextMenuEnabled: false,
   spaceNames: {},
 };
+
+export const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
+export const COMMUNITY_URL =
+  "https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg";
 
 export const FEATURE_FLAGS = {
   // settings for these features are in the Admin Panel (hidden tab in Settings, toggle with Ctrl+Shift+A)
@@ -141,6 +148,8 @@ export const VIEW_TYPE_TLDRAW_DG_PREVIEW = "tldraw-dg-preview";
 
 export const TLDRAW_VERSION = "3.14.2";
 export const DEFAULT_SAVE_DELAY = 500; // in ms
+// Delay before an open canvas re-reads its backing file after a vault `modify` event
+export const CANVAS_FILE_SYNC_DEBOUNCE_MS = 150;
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -170,3 +179,5 @@ export const DEFAULT_STYLE_PROPS = {
   width: "fit-content",
   padding: "40px",
 };
+
+export const SOURCE_SLOT = "sourceDocument";

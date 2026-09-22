@@ -20,7 +20,6 @@ import {
   enablePageRefObserver,
   addPageRefObserver,
   getPageRefObserversSize,
-  previewPageRefHandler,
   getOverlayHandler,
   onPageRefObserverChange,
   getSuggestiveOverlayHandler,
@@ -47,8 +46,9 @@ import { renderImageToolsMenu } from "./renderImageToolsMenu";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
-import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
 import { renderPublishNodeTitleButton } from "~/components/PublishNodeTitleButton";
+import { renderRefreshImportedNodeTitleButton } from "~/components/RefreshImportedNodeTitleButton";
+import { readImportedSourceIdentity } from "~/utils/importedSourceIdentity";
 import { renderCanvasEmbed } from "~/components/canvas/CanvasEmbed";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -122,12 +122,14 @@ export const initObservers = ({
         snapshot: settings,
       });
 
+      const sharingEnabled =
+        settings.featureFlags[FEATURE_FLAG_KEYS.enableNodeSharing];
+      if (sharingEnabled && uid && readImportedSourceIdentity(uid)) {
+        renderRefreshImportedNodeTitleButton({ h1, uid });
+      }
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
-        const syncEnabled =
-          settings.featureFlags[FEATURE_FLAG_KEYS.duplicateNodeAlertEnabled] ||
-          settings.featureFlags[FEATURE_FLAG_KEYS.suggestiveModeOverlayEnabled];
-        if (syncEnabled && node.backedBy === "user") {
+        if (sharingEnabled && node.backedBy === "user") {
           renderPublishNodeTitleButton({
             h1,
             uid,
@@ -135,14 +137,7 @@ export const initObservers = ({
             nodeType: node.type,
           });
         }
-        if (settings.personalSettings[PERSONAL_KEYS.discourseContextOverlay]) {
-          renderDiscourseContext({ h1, uid });
-        }
-        if (
-          settings.featureFlags[FEATURE_FLAG_KEYS.duplicateNodeAlertEnabled]
-        ) {
-          renderPossibleDuplicates(h1, title, node);
-        }
+        renderDiscourseContext({ h1, uid });
         const linkedReferencesDiv = document.querySelector(
           ".rm-reference-main",
         ) as HTMLDivElement;
@@ -249,9 +244,6 @@ export const initObservers = ({
       }
     },
   });
-
-  if (settings.personalSettings[PERSONAL_KEYS.pagePreview])
-    addPageRefObserver(previewPageRefHandler);
 
   if (settings.personalSettings[PERSONAL_KEYS.discourseContextOverlay]) {
     const overlayHandler = getOverlayHandler(onloadArgs);

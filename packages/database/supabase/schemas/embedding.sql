@@ -43,6 +43,8 @@ ct.scale,
 ct.space_id,
 ct.last_modified,
 ct.part_of_id,
+ct.content_type,
+ct.original,
 emb.model,
 emb.vector
 FROM public."Content" AS ct

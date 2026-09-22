@@ -23,7 +23,11 @@ import updateBlock from "roamjs-components/writes/updateBlock";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import createDiscourseNode from "~/utils/createDiscourseNode";
-import { getNewDiscourseNodeText } from "~/utils/formatUtils";
+import {
+  insertTagIntoText,
+  resolveNewDiscourseNodeText,
+} from "~/utils/formatUtils";
+import { isMacOS } from "~/utils/platform";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
@@ -42,6 +46,8 @@ type Props = {
   isShift?: boolean;
   menuMaxHeight?: number;
   settingsSnapshot?: SettingsSnapshot;
+  onTagAdded?: (newText: string) => void;
+  defaultIsOpen?: boolean;
 };
 
 const NodeMenu = ({
@@ -53,6 +59,8 @@ const NodeMenu = ({
   isShift,
   menuMaxHeight,
   settingsSnapshot,
+  onTagAdded,
+  defaultIsOpen,
 }: { onClose: () => void } & Props) => {
   const isInitialTextSelected =
     !!textarea && textarea.selectionStart !== textarea.selectionEnd;
@@ -79,7 +87,7 @@ const NodeMenu = ({
   );
   const menuRef = useRef<HTMLUListElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isOpen, setIsOpen] = useState(!trigger);
+  const [isOpen, setIsOpen] = useState(defaultIsOpen ?? !trigger);
 
   useEffect(() => {
     const container = menuRef.current;
@@ -126,12 +134,13 @@ const NodeMenu = ({
         if (document.activeElement === textarea) document.body.click();
 
         const createNodeAndUpdateBlock = async () => {
-          const pageName = await getNewDiscourseNodeText({
-            text: highlighted,
-            nodeType: nodeUid,
-            blockUid: targetBlockUid,
-            skipBlockUpdate: true,
-          });
+          const { text: pageName, handledByDialog } =
+            await resolveNewDiscourseNodeText({
+              text: highlighted,
+              nodeType: nodeUid,
+              blockUid: targetBlockUid,
+              skipBlockUpdate: true,
+            });
           if (!pageName) return;
 
           const latestBlockText = getTextByBlockUid(targetBlockUid);
@@ -141,11 +150,13 @@ const NodeMenu = ({
             selectionStart,
           )}[[${pageName}]]${latestBlockText.substring(selectionEnd)}`;
 
-          await createDiscourseNode({
-            text: pageName,
-            configPageUid: nodeUid,
-            extensionAPI,
-          });
+          if (!handledByDialog) {
+            await createDiscourseNode({
+              text: pageName,
+              configPageUid: nodeUid,
+              extensionAPI,
+            });
+          }
           void updateBlock({ text: newText, uid: targetBlockUid });
           posthog.capture("Discourse Node: Created via Node Menu", {
             nodeType: nodeUid,
@@ -155,23 +166,24 @@ const NodeMenu = ({
         // timeout required to ensure the block is updated
         setTimeout(() => void createNodeAndUpdateBlock(), 100);
       } else {
-        const tag = menuItem.getAttribute("data-tag") || "";
+        const tag = (menuItem.getAttribute("data-tag") || "").replace(
+          /^#+/,
+          "",
+        );
         if (!tag) return;
 
-        const addTagToBlock = () => {
-          const textToInsert = `${
-            selectionStart === 0 ? "" : " "
-          }#${tag.replace(/^#/, "")}`;
-
-          const newText = `${currentText.substring(
-            0,
+        const addTagToBlock = async () => {
+          const newText = insertTagIntoText({
+            text: currentText,
+            tag,
             selectionStart,
-          )}${textToInsert}${currentText.substring(selectionStart)}`;
+          });
 
-          void updateBlock({ text: newText, uid: targetBlockUid });
+          await updateBlock({ text: newText, uid: targetBlockUid });
           posthog.capture("Discourse Tag: Created via Node Menu", {
             tag,
           });
+          onTagAdded?.(newText);
         };
         // timeout required to ensure the block is updated
         setTimeout(() => void addTagToBlock(), 100);
@@ -181,7 +193,15 @@ const NodeMenu = ({
       }
       onClose();
     },
-    [menuRef, targetBlockUid, onClose, textarea, extensionAPI, showNodeTypes],
+    [
+      menuRef,
+      targetBlockUid,
+      onClose,
+      textarea,
+      extensionAPI,
+      showNodeTypes,
+      onTagAdded,
+    ],
   );
 
   const keydownListener = useCallback(
@@ -288,6 +308,9 @@ const NodeMenu = ({
       content={
         <Menu
           ulRef={menuRef}
+          // Portal events still bubble to the canvas, which captures the pointer
+          // before the menu item receives its click.
+          onPointerDown={(e) => e.stopPropagation()}
           data-active-index={activeIndex}
           style={{ overflowY: "auto", maxHeight: menuMaxHeight }}
         >
@@ -298,12 +321,12 @@ const NodeMenu = ({
               <MenuItem
                 key={item.text}
                 data-node={item.type}
-                data-tag={item.tag?.replace(/^#/, "")}
+                data-tag={item.tag}
                 text={
                   showNodeTypes
                     ? item.text
                     : item.tag
-                      ? `#${item.tag.replace(/^#/, "")}`
+                      ? `#${item.tag.replace(/^#+/, "")}`
                       : ""
                 }
                 active={i === activeIndex}
@@ -416,12 +439,6 @@ export const TextSelectionNodeMenu = ({
   );
 };
 
-// node_modules\@blueprintjs\core\lib\esm\components\hotkeys\hotkeyParser.js
-const isMac = () => {
-  const platform =
-    typeof navigator !== "undefined" ? navigator.platform : undefined;
-  return platform == null ? false : /Mac|iPod|iPhone|iPad/.test(platform);
-};
 const MODIFIER_BIT_MASKS = {
   alt: 1,
   ctrl: 2,
@@ -433,7 +450,7 @@ const ALIASES: { [key: string]: string } = {
   command: "meta",
   escape: "esc",
   minus: "-",
-  mod: isMac() ? "meta" : "ctrl",
+  mod: isMacOS() ? "meta" : "ctrl",
   option: "alt",
   plus: "+",
   return: "enter",
@@ -443,7 +460,7 @@ const normalizeKeyCombo = (combo: string) => {
   const keys = combo.replace(/\s/g, "").split("+");
   return keys.map(function (key) {
     const keyName = ALIASES[key] != null ? ALIASES[key] : key;
-    return keyName === "meta" ? (isMac() ? "cmd" : "win") : keyName;
+    return keyName === "meta" ? (isMacOS() ? "cmd" : "win") : keyName;
   });
 };
 

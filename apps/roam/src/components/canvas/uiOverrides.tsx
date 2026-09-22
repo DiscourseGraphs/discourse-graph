@@ -71,6 +71,7 @@ import { createOrUpdateArrowBinding } from "./DiscourseRelationShape/helpers";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
+import { CustomStylePanel } from "./CustomStylePanel";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
@@ -537,16 +538,15 @@ export const CustomContextMenu = ({
 };
 export const createUiComponents = ({
   allNodes,
-  allAddReferencedNodeActions,
   allRelationNames,
   canvasSyncMode,
 }: {
   allNodes: DiscourseNode[];
   allRelationNames: string[];
-  allAddReferencedNodeActions: string[];
   canvasSyncMode: CanvasSyncMode;
 }): TLUiComponents => {
   return {
+    StylePanel: CustomStylePanel,
     Toolbar: (props) => {
       const tools = useTools();
       return (
@@ -613,11 +613,9 @@ export const createUiComponents = ({
       );
     },
     SharePanel: () => {
-      const allRelations = [
-        ...allRelationNames,
-        ...allAddReferencedNodeActions,
-      ];
-      return <DiscourseGraphPanel nodes={allNodes} relations={allRelations} />;
+      return (
+        <DiscourseGraphPanel nodes={allNodes} relations={allRelationNames} />
+      );
     },
   };
 };

@@ -3,6 +3,8 @@ import {
   getAllDiscourseNodesSince,
   nodeTypeSince,
 } from "./getAllDiscourseNodesSince";
+import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
+import { getImportedNodeUids } from "./importedSourceIdentity";
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import {
   getLoggedInClient,
@@ -18,12 +20,32 @@ import {
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
-import { convertRoamNodeToFullContent } from "./convertRoamNodeToFullContent";
+import {
+  convertRoamNodeToFullContent,
+  type RoamFullContentNode,
+} from "./convertRoamNodeToFullContent";
+import {
+  publishNodeAssets,
+  summarizeAssetResults,
+  type NodeAssetResult,
+} from "./publishNodeAssets";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { intersection } from "@repo/utils/setOperations";
+import { CORE_TITLE_PROBE_SELECT } from "@repo/database/lib/coreTitleBackfill";
+import {
+  buildCoreTitleBackfill,
+  mergeNodesBySourceLocalId,
+  type CoreTitleBackfill,
+} from "./coreTitleBackfill";
+import {
+  buildSchemaFormatBackfill,
+  SCHEMA_FORMAT_PROBE_SELECT,
+  type SchemaFormatBackfill,
+} from "./schemaFormatBackfill";
 import type { Json, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
+import { isSyncEnabled } from "~/components/settings/utils/accessors";
 import { FatalError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
 import type {
@@ -34,6 +56,7 @@ import type {
 import type { Properties } from "posthog-js";
 
 const SYNC_FUNCTION = "embedding";
+const SHARED_CONTENT_SYNC_FUNCTION = "shared-content";
 // Minimal interval between syncs of all clients for this task.
 const SYNC_INTERVAL = "130s";
 // Interval between syncs for each client individually
@@ -42,6 +65,7 @@ const SYNC_TIMEOUT = "60s"; // must be less than half the SYNC_INTERVAL.
 const BATCH_SIZE = 200;
 const CONCEPT_BATCH_SIZE = 200;
 const END_SYNC_TASK_RESULT_VERSION = 1;
+const DEFAULT_SYNC_TIME = new Date("1970-01-01").getTime();
 
 type SyncPhaseDurations = Record<string, number>;
 
@@ -49,6 +73,10 @@ type SyncTaskInfo = {
   lastUpdateTime?: Date;
   nextUpdateTime?: Date;
   shouldProceed: boolean;
+  failure?: {
+    cause: unknown;
+    context?: Properties;
+  };
 };
 
 type EndSyncTaskRpcResult = {
@@ -86,6 +114,29 @@ type EndSyncTaskResult =
       rpcResult?: EndSyncTaskRpcResult;
     };
 
+const getSupabaseErrorTelemetry = ({
+  error,
+  prefix,
+}: {
+  error: {
+    message?: unknown;
+    code?: unknown;
+    details?: unknown;
+    hint?: unknown;
+  };
+  prefix: "proposeSyncError" | "syncError" | "endSyncError";
+}): Properties => {
+  const getSafeValue = (value: unknown): string | undefined =>
+    typeof value === "string" ? value : undefined;
+
+  return {
+    [`${prefix}Message`]: getSafeValue(error.message),
+    [`${prefix}Code`]: getSafeValue(error.code),
+    [`${prefix}Details`]: getSafeValue(error.details),
+    [`${prefix}Hint`]: getSafeValue(error.hint),
+  };
+};
+
 let syncWorkerId: string | null = null;
 
 const createRuntimeId = (): string => {
@@ -110,7 +161,7 @@ const getJsonObject = (
     return null;
   }
 
-  return data as Record<string, unknown>;
+  return data;
 };
 
 const getEndSyncTaskResultVersion = (data: Json | undefined): number => {
@@ -159,6 +210,7 @@ const syncTelemetryContext = ({
   attemptId,
   worker,
   userUid,
+  syncFunction,
   context,
   startTime,
   claimed,
@@ -172,6 +224,7 @@ const syncTelemetryContext = ({
   attemptId: string;
   worker: string;
   userUid: string;
+  syncFunction: string;
   context: SupabaseContext | null;
   startTime: Date;
   claimed: boolean;
@@ -193,7 +246,7 @@ const syncTelemetryContext = ({
   return {
     syncAttemptId: attemptId,
     syncWorkerId: worker,
-    syncFunction: SYNC_FUNCTION,
+    syncFunction,
     syncUserUid: userUid,
     claimed,
     status,
@@ -262,16 +315,20 @@ const upsertConceptBatches = async ({
 };
 
 const notifyEndSyncFailure = ({
+  error,
   status,
   showToast,
   reason,
   context,
+  rpcResult,
 }: {
+  error: Error;
   status: Enums<"task_status">;
   showToast: boolean;
   reason: string;
   context?: Properties;
-}): void => {
+  rpcResult?: EndSyncTaskRpcResult;
+}): EndSyncTaskResult => {
   if (showToast) {
     renderToast({
       id: "discourse-embedding-error",
@@ -282,14 +339,21 @@ const notifyEndSyncFailure = ({
   }
 
   internalError({
-    error: new Error(reason),
+    error,
     type: "Sync Failed",
-    context: { status, ...(context || {}) },
+    context: {
+      status,
+      reason,
+      ...(context || {}),
+    },
   });
+
+  return { ok: false, stale: false, error, rpcResult };
 };
 
 export const endSyncTask = async ({
   worker,
+  syncFunction,
   status,
   showToast = false,
   taskStartedAt,
@@ -298,6 +362,7 @@ export const endSyncTask = async ({
   telemetryContext,
 }: {
   worker: string;
+  syncFunction: string;
   status: Enums<"task_status">;
   showToast: boolean;
   taskStartedAt: Date;
@@ -305,21 +370,42 @@ export const endSyncTask = async ({
   supabaseClient?: DGSupabaseClient;
   telemetryContext?: Properties;
 }): Promise<EndSyncTaskResult> => {
+  const getEndTelemetryContext = (
+    resolvedContext?: SupabaseContext,
+  ): Properties => ({
+    syncWorkerId: worker,
+    syncFunction,
+    spaceId: resolvedContext?.spaceId ?? context?.spaceId,
+    ...(telemetryContext || {}),
+  });
+
   try {
     const resolvedClient = supabaseClient || (await getLoggedInClient());
     if (!resolvedClient) {
       const error = new Error("Missing Supabase client while ending sync task");
-      return { ok: false, stale: false, error };
+      return notifyEndSyncFailure({
+        error,
+        status,
+        showToast: false,
+        reason: error.message,
+        context: getEndTelemetryContext(),
+      });
     }
     const resolvedContext = context || (await getSupabaseContext());
     if (!resolvedContext) {
       console.error("endSyncTask: Unable to obtain Supabase context.");
       const error = new Error("Unable to obtain Supabase context");
-      return { ok: false, stale: false, error };
+      return notifyEndSyncFailure({
+        error,
+        status,
+        showToast: false,
+        reason: error.message,
+        context: getEndTelemetryContext(),
+      });
     }
     const { data, error } = await resolvedClient.rpc("end_sync_task", {
       s_target: resolvedContext.spaceId,
-      s_function: SYNC_FUNCTION,
+      s_function: syncFunction,
       s_worker: worker,
       s_status: status,
       s_started_at: taskStartedAt.toISOString(),
@@ -327,23 +413,17 @@ export const endSyncTask = async ({
     if (error) {
       console.error("endSyncTask: Error calling end_sync_task:", error);
       const reason = `Supabase end_sync_task RPC failed: ${error.message ?? "Unknown error"}`;
-      notifyEndSyncFailure({
+      const capturedError = new Error(reason, { cause: error });
+      return notifyEndSyncFailure({
+        error: capturedError,
         status,
         showToast,
         reason,
         context: {
-          ...telemetryContext,
-          endSyncErrorCode: error.code,
-          endSyncErrorDetails: error.details,
-          endSyncErrorHint: error.hint,
+          ...getEndTelemetryContext(resolvedContext),
+          ...getSupabaseErrorTelemetry({ error, prefix: "endSyncError" }),
         },
       });
-
-      return {
-        ok: false,
-        stale: false,
-        error: new Error(reason),
-      };
     }
 
     if (!isEndSyncTaskRpcResult(data)) {
@@ -369,21 +449,17 @@ export const endSyncTask = async ({
       }
 
       const reason = "Supabase end_sync_task returned unexpected payload";
-      notifyEndSyncFailure({
+      const capturedError = new Error(reason);
+      return notifyEndSyncFailure({
+        error: capturedError,
         status,
         showToast,
         reason,
         context: {
-          ...telemetryContext,
+          ...getEndTelemetryContext(resolvedContext),
           endSyncPayload: data,
         },
       });
-
-      return {
-        ok: false,
-        stale: false,
-        error: new Error(reason),
-      };
     }
 
     const rpcResult = data;
@@ -403,22 +479,18 @@ export const endSyncTask = async ({
     if (rpcResult?.ok === false) {
       const reason =
         rpcResult.reason || "Supabase end_sync_task returned failure";
-      notifyEndSyncFailure({
+      const capturedError = new Error(reason);
+      return notifyEndSyncFailure({
+        error: capturedError,
         status,
         showToast,
         reason,
         context: {
-          ...telemetryContext,
+          ...getEndTelemetryContext(resolvedContext),
           endSyncResult: rpcResult,
         },
-      });
-
-      return {
-        ok: false,
-        stale: false,
-        error: new Error(reason),
         rpcResult,
-      };
+      });
     }
 
     if (showToast) {
@@ -439,31 +511,34 @@ export const endSyncTask = async ({
       error instanceof Error
         ? `Unexpected error ending sync task: ${error.message}`
         : "Unexpected non-error thrown while ending sync task";
-    notifyEndSyncFailure({
+    const capturedError =
+      error instanceof Error ? error : new Error(reason, { cause: error });
+    return notifyEndSyncFailure({
+      error: capturedError,
       status,
       showToast,
       reason,
-      context: telemetryContext,
+      context: getEndTelemetryContext(),
     });
-
-    return {
-      ok: false,
-      stale: false,
-      error: error instanceof Error ? error : new Error(reason),
-    };
   }
 };
 
-export const proposeSyncTask = async (
-  worker: string,
-  supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
-): Promise<SyncTaskInfo> => {
+export const proposeSyncTask = async ({
+  worker,
+  syncFunction,
+  supabaseClient,
+  context,
+}: {
+  worker: string;
+  syncFunction: string;
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+}): Promise<SyncTaskInfo> => {
   try {
     const now = new Date();
     const { data, error } = await supabaseClient.rpc("propose_sync_task", {
       s_target: context.spaceId,
-      s_function: SYNC_FUNCTION,
+      s_function: syncFunction,
       s_worker: worker,
       task_interval: SYNC_INTERVAL,
       timeout: SYNC_TIMEOUT,
@@ -473,7 +548,16 @@ export const proposeSyncTask = async (
       console.error(
         `proposeSyncTask: propose_sync_task failed - ${error.message}`,
       );
-      return { shouldProceed: false };
+      return {
+        shouldProceed: false,
+        failure: {
+          cause: error,
+          context: getSupabaseErrorTelemetry({
+            error,
+            prefix: "proposeSyncError",
+          }),
+        },
+      };
     }
 
     if (typeof data === "string") {
@@ -500,6 +584,16 @@ export const proposeSyncTask = async (
     );
     return {
       shouldProceed: false,
+      failure: {
+        cause: error,
+        context:
+          typeof error === "object" && error !== null
+            ? getSupabaseErrorTelemetry({
+                error,
+                prefix: "proposeSyncError",
+              })
+            : undefined,
+      },
     };
   }
 };
@@ -556,16 +650,34 @@ export const convertDgToSupabaseConcepts = async ({
   nodesSince,
   since,
   allNodeTypes,
+  sharedNodeTypeIds = new Set<string>(),
+  backfillNodeTypeIds = new Set<string>(),
   supabaseClient,
   context,
 }: {
   nodesSince: RoamDiscourseNodeData[];
   since: number | undefined;
   allNodeTypes: DiscourseNode[];
+  sharedNodeTypeIds?: ReadonlySet<string>;
+  backfillNodeTypeIds?: ReadonlySet<string>;
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
 }) => {
-  const nodeTypes = await nodeTypeSince(since, allNodeTypes);
+  const changedNodeTypes = await nodeTypeSince(since, allNodeTypes);
+  const nodeTypesByUid = new Map(
+    changedNodeTypes.map((nodeType) => [nodeType.type, nodeType]),
+  );
+
+  allNodeTypes.forEach((nodeType) => {
+    if (
+      sharedNodeTypeIds.has(nodeType.type) ||
+      backfillNodeTypeIds.has(nodeType.type)
+    ) {
+      nodeTypesByUid.set(nodeType.type, nodeType);
+    }
+  });
+  const nodeTypes = Array.from(nodeTypesByUid.values());
+
   await upsertNodeSchemaToContent({
     nodeTypesUids: nodeTypes.map((node) => node.type),
     spaceId: context.spaceId,
@@ -577,11 +689,16 @@ export const convertDgToSupabaseConcepts = async ({
     return discourseNodeSchemaToLocalConcept(context, node);
   });
 
+  const schemasByUid = new Map(
+    allNodeTypes.map((nodeType) => [nodeType.type, nodeType]),
+  );
+
   const nodeBlockToLocalConcepts = nodesSince.map((node) => {
     const localConcept = discourseNodeBlockToLocalConcept(context, {
       nodeUid: node.source_local_id,
       schemaUid: node.type,
-      text: node.node_title ? `${node.node_title} ${node.text}` : node.text,
+      title: node.node_title ?? node.text,
+      schema: schemasByUid.get(node.type),
     });
     return localConcept;
   });
@@ -606,49 +723,50 @@ export const convertDgToSupabaseConcepts = async ({
   });
 };
 
+const uploadContentBatches = async ({
+  content,
+  supabaseClient,
+  context,
+}: {
+  content: LocalContentDataInput[];
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+}): Promise<void> => {
+  if (content.length === 0) {
+    return;
+  }
+
+  const batches = chunk(content, BATCH_SIZE);
+
+  for (let idx = 0; idx < batches.length; idx++) {
+    const batch = batches[idx];
+
+    const { error } = await supabaseClient.rpc("upsert_content", {
+      data: batch as Json,
+      v_space_id: context.spaceId,
+      v_creator_id: context.userId,
+      content_as_document: true,
+    });
+
+    if (error) {
+      throw new Error(`upsert_content failed for batch ${idx + 1}`, {
+        cause: error,
+      });
+    }
+  }
+};
+
 export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   roamNodes: RoamDiscourseNodeData[],
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
-  options: { includeFullContent?: boolean } = {},
 ): Promise<void> => {
-  const { userId } = context;
-  const { includeFullContent = false } = options;
-
   if (roamNodes.length === 0) {
     return;
   }
   const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
     nodes: roamNodes,
   });
-
-  const uploadBatches = async (
-    batches: LocalContentDataInput[][],
-  ): Promise<void> => {
-    for (let idx = 0; idx < batches.length; idx++) {
-      const batch = batches[idx];
-
-      const { error } = await supabaseClient.rpc("upsert_content", {
-        data: batch as Json,
-        v_space_id: context.spaceId,
-        v_creator_id: userId,
-        content_as_document: true,
-      });
-
-      if (error) {
-        throw new Error(`upsert_content failed for batch ${idx + 1}`, {
-          cause: error,
-        });
-      }
-    }
-  };
-
-  if (includeFullContent) {
-    const fullContent = convertRoamNodeToFullContent({
-      nodes: roamNodes,
-    });
-    await uploadBatches(chunk(fullContent, BATCH_SIZE));
-  }
 
   let nodesWithEmbeddings: LocalContentDataInput[];
   try {
@@ -672,7 +790,64 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     );
   }
 
-  await uploadBatches(chunk(nodesWithEmbeddings, BATCH_SIZE));
+  await uploadContentBatches({
+    content: nodesWithEmbeddings,
+    supabaseClient,
+    context,
+  });
+};
+
+const upsertNodesToSupabaseAsContent = async (
+  roamNodes: RoamDiscourseNodeData[],
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
+): Promise<void> => {
+  if (roamNodes.length === 0) {
+    return;
+  }
+  const content = convertRoamNodeToLocalContent({ nodes: roamNodes });
+  await uploadContentBatches({ content, supabaseClient, context });
+};
+
+/** The asset stage runs here too, so an asset added after sharing still gets a row. */
+export const upsertSharedNodesFullContentWithAssets = async ({
+  nodes,
+  supabaseClient,
+  context,
+  phases,
+}: {
+  nodes: RoamFullContentNode[];
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+  phases: SyncPhaseDurations;
+}): Promise<NodeAssetResult[]> => {
+  // Building the markdown is the expensive half of the upload, so it stays inside the
+  // phase it has always been timed under.
+  const converted = await measureSyncPhase({
+    phase: "upsertFullContent",
+    phases,
+    operation: async () => {
+      const converted = convertRoamNodeToFullContent({ nodes });
+      await uploadContentBatches({
+        content: converted.map(({ content }) => content),
+        supabaseClient,
+        context,
+      });
+      return converted;
+    },
+  });
+  // A failed upload throws above, so every converted node now has the Content row
+  // that publishNodeAssets requires.
+  return measureSyncPhase({
+    phase: "publishSharedNodeAssets",
+    phases,
+    operation: () =>
+      publishNodeAssets({
+        client: supabaseClient,
+        spaceId: context.spaceId,
+        nodes: converted.map(({ node }) => node),
+      }),
+  });
 };
 
 const getAllUsers = async (): Promise<LocalAccountDataInput[]> => {
@@ -735,6 +910,48 @@ export const setSyncActivity = (active: boolean) => {
   }
 };
 
+const reportCoreTitleBackfill = ({
+  backfilled,
+  deferred,
+  skipped,
+  orphaned,
+}: {
+  backfilled: number;
+  deferred: number;
+  skipped: number;
+  orphaned: number;
+}): void => {
+  posthog.capture("Sync core_title backfill", {
+    backfilled,
+    deferred,
+    skipped,
+    orphaned,
+  });
+};
+
+/**
+ * A failed copy is not retried until the node changes again, so the counts are the only
+ * standing signal that a shared node's asset never reached storage.
+ */
+const reportSharedNodeAssets = (results: NodeAssetResult[]): void => {
+  if (results.length === 0) return;
+  const { copied, unchanged, distinctBlobs, tooLarge, failed } =
+    summarizeAssetResults(results);
+  posthog.capture("Sync shared node assets", {
+    copied,
+    unchanged,
+    distinctBlobs,
+    tooLarge: tooLarge.length,
+    failed: failed.length,
+  });
+  if (failed.length > 0) {
+    console.warn(
+      `Sync could not copy ${failed.length} shared node assets`,
+      failed,
+    );
+  }
+};
+
 const getAllMissingOrNewDiscourseNodes = async ({
   supabaseClient,
   spaceId,
@@ -745,9 +962,12 @@ const getAllMissingOrNewDiscourseNodes = async ({
   spaceId: number;
   since: number | undefined;
   nodeTypes: DiscourseNode[];
-}): Promise<RoamDiscourseNodeData[]> => {
+}): Promise<{
+  nodes: RoamDiscourseNodeData[];
+  coreTitleBackfill: CoreTitleBackfill | null;
+}> => {
   const allNodes = await getAllDiscourseNodesSince(undefined, nodeTypes);
-  if (since === undefined) return allNodes;
+  if (since === undefined) return { nodes: allNodes, coreTitleBackfill: null };
   const newNodes = await getAllDiscourseNodesSince(since, nodeTypes);
   const existingContentIdsReq = await getAllPages(
     supabaseClient
@@ -761,9 +981,9 @@ const getAllMissingOrNewDiscourseNodes = async ({
   const existingConceptIdsReq = await getAllPages(
     supabaseClient
       .from("my_concepts")
-      .select("source_local_id")
+      .select(CORE_TITLE_PROBE_SELECT)
       .eq("space_id", spaceId)
-      .eq("arity", 0)
+      .eq("is_relation", false)
       .eq("is_schema", false)
       .order("id"),
     1000,
@@ -776,14 +996,237 @@ const getAllMissingOrNewDiscourseNodes = async ({
     ),
     ...newNodes.map((n) => n.source_local_id),
   ]);
-  return [
-    ...newNodes,
-    ...allNodes.filter((n) => !existingIds.has(n.source_local_id)),
+  return {
+    nodes: [
+      ...newNodes,
+      ...allNodes.filter((n) => !existingIds.has(n.source_local_id)),
+    ],
+    coreTitleBackfill: buildCoreTitleBackfill({
+      conceptRows: existingConceptIdsReq,
+      localNodes: allNodes,
+    }),
+  };
+};
+
+const getSharedNodeInstanceSourceLocalIds = async ({
+  supabaseClient,
+  spaceId,
+}: {
+  supabaseClient: DGSupabaseClient;
+  spaceId: number;
+}): Promise<Set<string>> => {
+  const sharedResources = await getAllPages(
+    supabaseClient
+      .from("ResourceAccess")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .order("source_local_id")
+      .order("account_uid"),
+    1000,
+  );
+
+  if (!Array.isArray(sharedResources)) throw sharedResources;
+
+  const sharedSourceLocalIds = new Set(
+    sharedResources.map((resource) => resource.source_local_id),
+  );
+  const syncedInstanceConcepts = await getAllPages(
+    supabaseClient
+      .from("my_concepts")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .eq("is_schema", false)
+      .eq("is_relation", false)
+      .order("source_local_id"),
+    1000,
+  );
+
+  if (!Array.isArray(syncedInstanceConcepts)) throw syncedInstanceConcepts;
+
+  const syncedInstanceSourceLocalIds = new Set(
+    syncedInstanceConcepts
+      .map((concept) => concept.source_local_id)
+      .filter((id): id is string => id !== null),
+  );
+
+  return intersection(syncedInstanceSourceLocalIds, sharedSourceLocalIds);
+};
+
+const getSharedSourceLocalIdsMissingFullContent = async ({
+  supabaseClient,
+  spaceId,
+  sharedSourceLocalIds,
+}: {
+  supabaseClient: DGSupabaseClient;
+  spaceId: number;
+  sharedSourceLocalIds: ReadonlySet<string>;
+}): Promise<Set<string>> => {
+  const fullContentRows = await getAllPages(
+    supabaseClient
+      .from("Content")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .eq("variant", "full")
+      .order("source_local_id"),
+    1000,
+  );
+
+  if (!Array.isArray(fullContentRows)) throw fullContentRows;
+
+  const sourceLocalIdsWithFullContent = new Set(
+    fullContentRows
+      .map((row) => row.source_local_id)
+      .filter((id): id is string => id !== null),
+  );
+
+  return new Set(
+    [...sharedSourceLocalIds].filter(
+      (id) => !sourceLocalIdsWithFullContent.has(id),
+    ),
+  );
+};
+
+type SharedFullContentUpdateRow = {
+  author_local_id: string;
+  source_local_id: string;
+  created: number;
+  node_edit_time: number;
+  page_edit_time: number;
+  text: string;
+};
+
+type SharedFullContentUpdate = {
+  fullContentNode: RoamFullContentNode;
+  nodeTypeId: string;
+};
+
+const getSharedRoamNodesWithFullContentUpdatesSince = async ({
+  sourceLocalIds,
+  since,
+  nodeTypes,
+}: {
+  sourceLocalIds: ReadonlySet<string>;
+  since: number | undefined;
+  nodeTypes: DiscourseNode[];
+}): Promise<SharedFullContentUpdate[]> => {
+  const sharedSourceLocalIds = Array.from(sourceLocalIds);
+  if (sharedSourceLocalIds.length === 0 || nodeTypes.length === 0) {
+    return [];
+  }
+
+  const sinceMs = since ?? DEFAULT_SYNC_TIME;
+  const query = `[
+    :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?pageEditTime ?author_local_id
+    :keys text source_local_id created node_edit_time page_edit_time author_local_id
+    :in $ [?sharedUid ...] ?since
+    :where
+      [?node :block/uid ?sharedUid]
+      [?node :node/title ?node-title]
+      [?node :block/uid ?uid]
+      [?node :create/time ?nodeCreateTime]
+      [?node :create/user ?user-eid]
+      [?user-eid :user/uid ?author_local_id]
+      [(get-else $ ?node :edit/time ?nodeCreateTime) ?nodeEditTime]
+      [(get-else $ ?node :page/edit-time ?nodeEditTime) ?pageEditTime]
+      [or
+        [(> ?nodeEditTime ?since)]
+        [(> ?pageEditTime ?since)]]
+  ]`;
+
+  const rows = (await window.roamAlphaAPI.data.backend.q(
+    query,
+    sharedSourceLocalIds,
+    sinceMs,
+  )) as unknown[] as SharedFullContentUpdateRow[];
+  const typeMatchers = nodeTypes.map((node) => ({
+    node,
+    regex: getDiscourseNodeFormatExpression(node.format),
+  }));
+
+  return rows.flatMap((row) => {
+    const matchingNodeType = typeMatchers.find(({ regex }) =>
+      regex.test(row.text),
+    )?.node;
+    if (matchingNodeType === undefined) {
+      return [];
+    }
+
+    return [
+      {
+        fullContentNode: {
+          author_local_id: row.author_local_id,
+          source_local_id: row.source_local_id,
+          created: row.created,
+          last_modified: Math.max(row.node_edit_time, row.page_edit_time),
+          text: row.text,
+          node_type_id: matchingNodeType.type,
+          format: matchingNodeType.format,
+        },
+        nodeTypeId: matchingNodeType.type,
+      },
+    ];
+  });
+};
+
+const probeSchemaFormatBackfill = async ({
+  supabaseClient,
+  spaceId,
+  nodeTypes,
+}: {
+  supabaseClient: DGSupabaseClient;
+  spaceId: number;
+  nodeTypes: DiscourseNode[];
+}): Promise<SchemaFormatBackfill> => {
+  const probeRows = await getAllPages(
+    supabaseClient
+      .from("my_concepts")
+      .select(SCHEMA_FORMAT_PROBE_SELECT)
+      .eq("space_id", spaceId)
+      .eq("is_schema", true)
+      .eq("is_relation", false)
+      .order("id"),
+    1000,
+  );
+  if (!Array.isArray(probeRows)) throw probeRows;
+  return buildSchemaFormatBackfill({
+    conceptRows: probeRows,
+    nodeTypes,
+  });
+};
+
+const reportSchemaFormatBackfill = ({
+  backfilled,
+  skipped,
+  orphaned,
+}: {
+  backfilled: number;
+  skipped: number;
+  orphaned: number;
+}): void => {
+  posthog.capture("Sync schema format backfill", {
+    backfilled,
+    skipped,
+    orphaned,
+  });
+  if (backfilled === 0 && orphaned === 0) return;
+  const messages = [
+    `Backfilled format for ${backfilled} node type${backfilled === 1 ? "" : "s"}.`,
+    `${skipped} already had one.`,
   ];
+  if (orphaned > 0) {
+    messages.push(`${orphaned} no longer match a node type in this graph.`);
+  }
+  renderToast({
+    id: "schema-format-backfill",
+    intent: orphaned > 0 ? "warning" : "success",
+    content: messages.join(" "),
+    timeout: 5000,
+  });
 };
 
 export const createOrUpdateDiscourseEmbedding = async (
   showToast = false,
+  sendAll?: boolean,
 ): Promise<void> => {
   if (!doSync) return;
   console.debug("starting createOrUpdateDiscourseEmbedding");
@@ -797,7 +1240,13 @@ export const createOrUpdateDiscourseEmbedding = async (
   let context: SupabaseContext | null = null;
   let supabaseClient: DGSupabaseClient | null = null;
   let userUid = "";
+  let failureReason: string | undefined;
+  let failureContext: Properties | undefined;
   const worker = getSyncWorkerId();
+  const sharedNodesOnlySync = !isSyncEnabled();
+  const syncFunction = sharedNodesOnlySync
+    ? SHARED_CONTENT_SYNC_FUNCTION
+    : SYNC_FUNCTION;
 
   const buildTelemetry = ({
     status,
@@ -816,6 +1265,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       attemptId,
       worker,
       userUid,
+      syncFunction,
       context,
       startTime,
       claimed,
@@ -854,16 +1304,25 @@ export const createOrUpdateDiscourseEmbedding = async (
     }
     const activeSupabaseClient = supabaseClient;
     const activeContext = context;
-    const { shouldProceed, lastUpdateTime, nextUpdateTime } =
+    const { shouldProceed, lastUpdateTime, nextUpdateTime, failure } =
       await measureSyncPhase({
         phase: "proposeSyncTask",
         phases,
         operation: () =>
-          proposeSyncTask(worker, activeSupabaseClient, activeContext),
+          proposeSyncTask({
+            worker,
+            syncFunction,
+            supabaseClient: activeSupabaseClient,
+            context: activeContext,
+          }),
       });
     if (!shouldProceed) {
       if (nextUpdateTime === undefined) {
-        throw new Error("Can't obtain sync task");
+        failureReason = "Can't obtain sync task";
+        failureContext = failure?.context;
+        throw failure?.cause instanceof Error
+          ? failure.cause
+          : new Error(failureReason, { cause: failure?.cause });
       }
       console.debug("postponed to ", nextUpdateTime);
       posthog.capture(
@@ -880,6 +1339,8 @@ export const createOrUpdateDiscourseEmbedding = async (
           Math.max(0, nextUpdateTime.valueOf() - Date.now()) +
             100 +
             Math.floor(Math.random() * 200), // avoid stampede
+          false,
+          sendAll,
         );
       }
       return;
@@ -892,28 +1353,124 @@ export const createOrUpdateDiscourseEmbedding = async (
       phases,
       operation: getAllUsers,
     });
-    const sinceTime = lastUpdateTime
-      ? lastUpdateTime.valueOf() - 1000 // add a one-second buffer
-      : undefined;
+    const sinceTime =
+      lastUpdateTime && !sendAll
+        ? lastUpdateTime.valueOf() - 1000 // add a one-second buffer
+        : undefined;
     const allDgNodeTypes = getDiscourseNodes().filter(
       (n) => n.backedBy === "user",
     );
 
-    const allNodeInstances = await measureSyncPhase({
-      phase: isInitialSync
-        ? "getAllMissingOrNewDiscourseNodes"
-        : "getAllDiscourseNodesSince",
-      phases,
-      operation: () =>
-        isInitialSync
-          ? getAllMissingOrNewDiscourseNodes({
+    const schemaFormatBackfill = isInitialSync
+      ? await measureSyncPhase({
+          phase: "probeSchemaFormatBackfill",
+          phases,
+          operation: () =>
+            probeSchemaFormatBackfill({
               supabaseClient: activeSupabaseClient,
               spaceId: activeContext.spaceId,
-              since: sinceTime,
               nodeTypes: allDgNodeTypes,
-            })
-          : getAllDiscourseNodesSince(sinceTime, allDgNodeTypes),
+            }),
+        })
+      : null;
+
+    const { nodes: changedNodeInstances, coreTitleBackfill } =
+      await measureSyncPhase({
+        phase: isInitialSync
+          ? "getAllMissingOrNewDiscourseNodes"
+          : "getAllDiscourseNodesSince",
+        phases,
+        operation: async () =>
+          isInitialSync
+            ? getAllMissingOrNewDiscourseNodes({
+                supabaseClient: activeSupabaseClient,
+                spaceId: activeContext.spaceId,
+                since: sinceTime,
+                nodeTypes: allDgNodeTypes,
+              })
+            : {
+                nodes: await getAllDiscourseNodesSince(
+                  sinceTime,
+                  allDgNodeTypes,
+                ),
+                coreTitleBackfill: null,
+              },
+      });
+    const sharedSourceLocalIds = await measureSyncPhase({
+      phase: "getSharedNodeInstanceSourceLocalIds",
+      phases,
+      operation: () =>
+        getSharedNodeInstanceSourceLocalIds({
+          supabaseClient: activeSupabaseClient,
+          spaceId: activeContext.spaceId,
+        }),
     });
+    const importedNodeUids = await measureSyncPhase({
+      phase: "getImportedNodeUids",
+      phases,
+      operation: () => getImportedNodeUids(),
+    });
+    const nonImportedNodeInstances = changedNodeInstances.filter(
+      (node) => !importedNodeUids.has(node.source_local_id),
+    );
+    const nodeInstancesToSync = sharedNodesOnlySync
+      ? nonImportedNodeInstances.filter((node) =>
+          sharedSourceLocalIds.has(node.source_local_id),
+        )
+      : nonImportedNodeInstances;
+    const nodesToBackfillCoreTitle = (
+      coreTitleBackfill?.nodesToBackfill ?? []
+    ).filter(
+      (node) =>
+        !importedNodeUids.has(node.source_local_id) &&
+        (!sharedNodesOnlySync ||
+          sharedSourceLocalIds.has(node.source_local_id)),
+    );
+    const conceptNodesToSync = mergeNodesBySourceLocalId(
+      nodeInstancesToSync,
+      nodesToBackfillCoreTitle,
+    );
+    const sharedSourceLocalIdsToBackfill = await measureSyncPhase({
+      phase: "getSharedSourceLocalIdsMissingFullContent",
+      phases,
+      operation: () =>
+        getSharedSourceLocalIdsMissingFullContent({
+          supabaseClient: activeSupabaseClient,
+          spaceId: activeContext.spaceId,
+          sharedSourceLocalIds,
+        }),
+    });
+    const sharedSourceLocalIdsToRefresh = new Set(
+      [...sharedSourceLocalIds].filter(
+        (id) => !sharedSourceLocalIdsToBackfill.has(id),
+      ),
+    );
+    const sharedFullContentUpdates = await measureSyncPhase({
+      phase: "getSharedFullContentUpdates",
+      phases,
+      operation: async () => {
+        const [refreshed, backfilled] = await Promise.all([
+          getSharedRoamNodesWithFullContentUpdatesSince({
+            sourceLocalIds: sharedSourceLocalIdsToRefresh,
+            since: sinceTime,
+            nodeTypes: allDgNodeTypes,
+          }),
+          getSharedRoamNodesWithFullContentUpdatesSince({
+            sourceLocalIds: sharedSourceLocalIdsToBackfill,
+            since: DEFAULT_SYNC_TIME,
+            nodeTypes: allDgNodeTypes,
+          }),
+        ]);
+        return [...refreshed, ...backfilled];
+      },
+    });
+    const sharedFullContentNodes = sharedFullContentUpdates.map(
+      (update) => update.fullContentNode,
+    );
+    const sharedNodeTypeIds = new Set(
+      sharedFullContentUpdates.map((update) => update.nodeTypeId),
+    );
+
     await measureSyncPhase({
       phase: "upsertUsers",
       phases,
@@ -924,24 +1481,57 @@ export const createOrUpdateDiscourseEmbedding = async (
       phase: "upsertNodes",
       phases,
       operation: () =>
-        upsertNodesToSupabaseAsContentWithEmbeddings(
-          allNodeInstances,
-          activeSupabaseClient,
-          activeContext,
-        ),
+        sharedNodesOnlySync
+          ? upsertNodesToSupabaseAsContent(
+              nodeInstancesToSync,
+              activeSupabaseClient,
+              activeContext,
+            )
+          : upsertNodesToSupabaseAsContentWithEmbeddings(
+              nodeInstancesToSync,
+              activeSupabaseClient,
+              activeContext,
+            ),
     });
+    reportSharedNodeAssets(
+      await upsertSharedNodesFullContentWithAssets({
+        nodes: sharedFullContentNodes,
+        supabaseClient: activeSupabaseClient,
+        context: activeContext,
+        phases,
+      }),
+    );
     await measureSyncPhase({
       phase: "convertConcepts",
       phases,
       operation: () =>
         convertDgToSupabaseConcepts({
-          nodesSince: allNodeInstances,
+          nodesSince: conceptNodesToSync,
           since: sinceTime,
           allNodeTypes: allDgNodeTypes,
+          sharedNodeTypeIds,
+          backfillNodeTypeIds: schemaFormatBackfill?.nodeTypeIdsToBackfill,
           supabaseClient: activeSupabaseClient,
           context: activeContext,
         }),
     });
+    if (schemaFormatBackfill !== null) {
+      reportSchemaFormatBackfill({
+        backfilled: schemaFormatBackfill.nodeTypeIdsToBackfill.size,
+        skipped: schemaFormatBackfill.withFormatCount,
+        orphaned: schemaFormatBackfill.orphanedCount,
+      });
+    }
+    if (coreTitleBackfill !== null) {
+      reportCoreTitleBackfill({
+        backfilled: nodesToBackfillCoreTitle.length,
+        deferred:
+          coreTitleBackfill.nodesToBackfill.length -
+          nodesToBackfillCoreTitle.length,
+        skipped: coreTitleBackfill.withCoreTitleCount,
+        orphaned: coreTitleBackfill.orphanedCount,
+      });
+    }
     await measureSyncPhase({
       phase: "cleanupOrphanedNodes",
       phases,
@@ -954,6 +1544,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       operation: () =>
         endSyncTask({
           worker,
+          syncFunction,
           status: "complete",
           showToast,
           taskStartedAt: activeClaimedAt,
@@ -1003,7 +1594,15 @@ export const createOrUpdateDiscourseEmbedding = async (
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
     success = false;
     const reason =
-      error instanceof Error ? error.message : "Unknown sync error";
+      failureReason ??
+      (error instanceof Error ? error.message : "Unknown sync error");
+    const capturedError =
+      error instanceof Error ? error : new Error(reason, { cause: error });
+    const syncErrorContext =
+      failureContext ??
+      (typeof error === "object" && error !== null
+        ? getSupabaseErrorTelemetry({ error, prefix: "syncError" })
+        : {});
     let failedEndResult: EndSyncTaskResult | undefined;
     const failedClaimedAt = claimedAt;
     if (failedClaimedAt !== null) {
@@ -1013,6 +1612,7 @@ export const createOrUpdateDiscourseEmbedding = async (
         operation: () =>
           endSyncTask({
             worker,
+            syncFunction,
             status: "failed",
             showToast,
             taskStartedAt: failedClaimedAt,
@@ -1022,15 +1622,23 @@ export const createOrUpdateDiscourseEmbedding = async (
           }),
       });
     }
-    posthog.capture(
-      "Sync error",
-      buildTelemetry({
-        status: error instanceof FatalError ? "fatal" : "failed",
-        reason,
-        endSyncResult: failedEndResult?.rpcResult,
-      }),
-    );
-    if (error instanceof FatalError) {
+    const isFatal = failureReason === undefined && error instanceof FatalError;
+    const status = isFatal ? "fatal" : "failed";
+    const errorTelemetry = buildTelemetry({
+      status,
+      reason,
+      endSyncResult: failedEndResult?.rpcResult,
+    });
+    internalError({
+      error: capturedError,
+      type: "Sync Failed",
+      context: {
+        ...errorTelemetry,
+        ...syncErrorContext,
+      },
+    });
+    posthog.capture("Sync error", errorTelemetry);
+    if (isFatal) {
       doSync = false;
       return;
     }

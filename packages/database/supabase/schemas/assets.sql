@@ -6,21 +6,26 @@ CREATE TABLE IF NOT EXISTS public."FileReference" (
     "created" timestamp without time zone NOT NULL,
     last_modified timestamp without time zone NOT NULL,
     -- not allowed virtual with user types
-    variant public."ContentVariant" GENERATED ALWAYS AS ('full') STORED
+    variant public."ContentVariant" GENERATED ALWAYS AS ('full') STORED,
+    original BOOLEAN GENERATED ALWAYS AS (true) STORED,
+    source_path character varying
 );
 ALTER TABLE ONLY public."FileReference"
 ADD CONSTRAINT "FileReference_pkey" PRIMARY KEY (source_local_id, space_id, filepath);
 
 ALTER TABLE ONLY public."FileReference"
 ADD CONSTRAINT "FileReference_content_fkey" FOREIGN KEY (
-    space_id, source_local_id, variant
-) REFERENCES public."Content" (space_id, source_local_id, variant) ON DELETE CASCADE;
+    space_id, source_local_id, variant, original
+) REFERENCES public."Content"(space_id, source_local_id, variant, original) ON DELETE CASCADE;
 -- note the absence of on update ; the generated column forbids cascade, so it will error
 -- However, update on those columns should never happen.
 
 CREATE INDEX file_reference_filepath_idx ON public."FileReference" USING btree (filepath);
 CREATE INDEX file_reference_filehash_idx ON public."FileReference" USING btree (filehash);
 ALTER TABLE public."FileReference" OWNER TO "postgres";
+
+COMMENT ON COLUMN public."FileReference".source_path
+IS 'Where the publishing platform kept the asset: a path in a vault, or a name in a flat asset namespace. Distinct from filepath, which holds what the content refers to. Null when the publisher did not record one. A destination names an imported asset from this, so it never has to inspect filepath for provenance.';
 
 CREATE OR REPLACE VIEW public.my_file_references AS
 SELECT
@@ -29,7 +34,8 @@ SELECT
     filepath,
     filehash,
     created,
-    last_modified
+    last_modified,
+    source_path
 FROM public."FileReference"
     LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (

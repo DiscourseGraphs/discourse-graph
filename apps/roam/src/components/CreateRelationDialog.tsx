@@ -1,12 +1,5 @@
 import React, { useState, useMemo } from "react";
-import {
-  Dialog,
-  Classes,
-  Label,
-  Button,
-  Icon,
-  Callout,
-} from "@blueprintjs/core";
+import { Dialog, Classes, Label, Button, Callout } from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
@@ -24,9 +17,13 @@ import type { Result } from "~/utils/types";
 import internalError from "~/utils/internalError";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import posthog from "posthog-js";
+import { refreshDiscourseContextsForMutatedUids } from "~/utils/discourseContextMutationRefresh";
 
 export type CreateRelationDialogProps = {
-  onClose: () => void;
+  // `renderOverlay` replaces `onClose` with its own zero-argument wrapper, so a
+  // create result can only reach callers through a separate prop.
+  onClose?: () => void;
+  onCreated?: () => void;
   sourceNodeUid: string;
 };
 
@@ -42,6 +39,7 @@ type ExtendedCreateRelationDialogProps = CreateRelationDialogProps & {
 
 const CreateRelationDialog = ({
   onClose,
+  onCreated,
   sourceNodeUid,
   relData,
   sourceNodeTitle,
@@ -159,12 +157,18 @@ const CreateRelationDialog = ({
     if (selectedTargetUid === "") return false;
     const relation = identifyRelationMatch(selectedTargetText);
     if (relation === null) return false;
+    const sourceUid = relation.forward ? sourceNodeUid : selectedTargetUid;
+    const destinationUid = relation.forward ? selectedTargetUid : sourceNodeUid;
     const result = await createReifiedRelation({
       relationBlockUid: relation.id,
-      sourceUid: relation.forward ? sourceNodeUid : selectedTargetUid,
-      destinationUid: relation.forward ? selectedTargetUid : sourceNodeUid,
+      sourceUid,
+      destinationUid,
     });
-    return result !== undefined;
+    if (result === undefined) return false;
+    refreshDiscourseContextsForMutatedUids({
+      uids: [sourceNodeUid, selectedTargetUid],
+    });
+    return true;
   };
 
   const onCreateSync = (): void => {
@@ -173,14 +177,15 @@ const CreateRelationDialog = ({
       hasTarget: !!selectedTargetUid,
     });
     onCreate()
-      .then((result: boolean) => {
-        if (result) {
+      .then((created) => {
+        if (created) {
           renderToast({
             id: `discourse-relation-created-${Date.now()}`,
             intent: "success",
             timeout: 10000,
             content: <span>Created relation</span>,
           });
+          onCreated?.();
         } else {
           renderToast({
             id: `discourse-relation-error-${Date.now()}`,
@@ -188,7 +193,7 @@ const CreateRelationDialog = ({
             content: <span>Failed to create relation</span>,
           });
         }
-        onClose();
+        onClose?.();
       })
       .catch(() => {
         renderToast({
@@ -196,7 +201,7 @@ const CreateRelationDialog = ({
           intent: "danger",
           content: <span>Failed to create relation</span>,
         });
-        onClose();
+        onClose?.();
       });
   };
 
@@ -323,6 +328,7 @@ const prepareRelData = (
 const extendProps = ({
   sourceNodeUid,
   onClose,
+  onCreated,
 }: CreateRelationDialogProps): ExtendedCreateRelationDialogProps | null => {
   const nodeTitle = getPageTitleByPageUid(sourceNodeUid).trim();
   const relData = prepareRelData(sourceNodeUid, nodeTitle);
@@ -340,6 +346,7 @@ const extendProps = ({
   return {
     sourceNodeUid,
     onClose,
+    onCreated,
     relData,
     sourceNodeTitle: nodeTitle,
     selectedSourceType,
@@ -378,26 +385,28 @@ export const renderCreateRelationDialog = (
 };
 
 export const CreateRelationButton = (
-  props: CreateRelationDialogProps,
+  props: CreateRelationDialogProps & { fill?: boolean },
 ): React.JSX.Element | null => {
+  const { fill = false, ...relationProps } = props;
   const storedRelationsEnabled = getStoredRelationsEnabled();
   if (!storedRelationsEnabled) return null;
   let extProps: ExtendedCreateRelationDialogProps | null = null;
   try {
-    extProps = extendProps(props);
+    extProps = extendProps(relationProps);
   } catch (e) {
     // the node's type was not identified. Swallow silently.
   }
   return (
     <Button
-      className="m-2"
+      className="m-0"
       minimal
+      outlined
+      fill={fill}
+      text="Add relation"
       disabled={extProps === null}
       onClick={() => {
         renderCreateRelationDialog(extProps);
       }}
-    >
-      <Icon icon="plus" />
-    </Button>
+    />
   );
 };

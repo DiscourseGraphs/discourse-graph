@@ -6,6 +6,9 @@ import {
   MarkdownView,
   WorkspaceLeaf,
   Notice,
+  setTooltip,
+  addIcon,
+  setIcon,
 } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { SettingsTab } from "~/components/Settings";
@@ -17,6 +20,14 @@ import {
 } from "~/utils/editorMenuUtils";
 import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
 import { createWikilinkDragExtension } from "~/utils/wikilinkDragHandler";
+import { createDiscourseContextOverlayExtension } from "~/utils/discourseContextOverlayExtension";
+import { createDiscourseContextOverlayPostProcessor } from "~/utils/discourseContextOverlayPostProcessor";
+import {
+  registerDiscourseContextOverlayRefresh,
+  refreshDiscourseContextOverlaySurfaces,
+} from "~/utils/discourseContextOverlayRefresh";
+import { refreshMarkdownEditors } from "~/utils/markdownViewRefresh";
+import { closeDiscourseContextPopover } from "~/components/DiscourseContextPopover";
 import {
   registerCommands,
   createModifyNodeModalSubmitHandler,
@@ -26,12 +37,17 @@ import { VIEW_TYPE_TLDRAW_DG_PREVIEW, FRONTMATTER_KEY } from "~/constants";
 import { convertPageToDiscourseNode } from "~/utils/createNode";
 import { DEFAULT_SETTINGS } from "~/constants";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
-import { TagNodeHandler } from "~/utils/tagNodeHandler";
+import {
+  createDiscourseTagExtension,
+  DiscourseTagStyleManager,
+  refreshDiscourseTagColors,
+} from "~/utils/tagNodeHandler";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
 import { InlineNodeTypePicker } from "~/components/InlineNodeTypePicker";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
+import { RelationsIndex } from "~/utils/relationsIndex";
 import generateUid from "~/utils/generateUid";
 import {
   migrateFrontmatterRelationsToRelationsJson,
@@ -39,14 +55,26 @@ import {
 } from "~/utils/relationsStore";
 import { migrateImportFolderMetadata } from "./utils/importFolderMetadata";
 import { registerTemplateSettingsSync } from "~/utils/templateSettingsSync";
+import { showHelpMenu } from "~/utils/helpMenu";
+import { DISCOURSE_GRAPH_LOGO_ICON_ID, WHITE_LOGO_SVG } from "~/icons";
+import {
+  registerNodeTypeIdPropertyWidget,
+  unregisterNodeTypeIdPropertyWidget,
+} from "~/components/nodeTypeIdPropertyWidget";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
-  private tagNodeHandler: TagNodeHandler | null = null;
+  relationsIndex: RelationsIndex = new RelationsIndex(this);
+  private tagStyleManager: DiscourseTagStyleManager | null = null;
   private fileChangeListener: FileChangeListener | null = null;
+  private activeNodePopover:
+    | NodeTagSuggestPopover
+    | InlineNodeTypePicker
+    | null = null;
   private currentViewActions: { leaf: WorkspaceLeaf; action: HTMLElement }[] =
     [];
   private pendingCanvasSwitches = new Set<string>();
+  private helpMenuStatusBarItem: HTMLElement | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -64,6 +92,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     });
 
     registerTemplateSettingsSync(this);
+    registerNodeTypeIdPropertyWidget(this);
 
     if (this.settings.syncModeEnabled === true) {
       void initializeSupabaseSync(this).catch((error) => {
@@ -83,8 +112,16 @@ export default class DiscourseGraphPlugin extends Plugin {
       }
     }
 
+    this.relationsIndex.initialize();
+    this.registerMarkdownPostProcessor(
+      createDiscourseContextOverlayPostProcessor(this),
+    );
+    registerDiscourseContextOverlayRefresh(this);
+
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
+    addIcon(DISCOURSE_GRAPH_LOGO_ICON_ID, WHITE_LOGO_SVG);
+    this.setHelpMenuStatusBarItemVisibility();
 
     this.registerEvent(
       this.app.workspace.on(
@@ -154,14 +191,6 @@ export default class DiscourseGraphPlugin extends Plugin {
     // Initialize frontmatter CSS
     this.updateFrontmatterStyles();
 
-    // Initialize tag node handler
-    try {
-      this.tagNodeHandler = new TagNodeHandler(this);
-      this.tagNodeHandler.initialize();
-    } catch (error) {
-      console.error("Failed to initialize TagNodeHandler:", error);
-      this.tagNodeHandler = null;
-    }
     this.registerView(
       VIEW_TYPE_TLDRAW_DG_PREVIEW,
       (leaf) => new TldrawView(leaf, this),
@@ -251,34 +280,46 @@ export default class DiscourseGraphPlugin extends Plugin {
       }),
     );
 
-    type EditorWithCm = { cm: EditorView };
-    const hasCodeMirrorView = (editor: unknown): editor is EditorWithCm => {
-      if (!editor || typeof editor !== "object") return false;
-      return "cm" in editor;
-    };
-
-    // Dispatch a no-op CM6 transaction to every markdown editor so their
-    // ViewPlugin re-evaluates hasVisibleCanvasLeaf and shows/hides widgets.
-    // layout-change covers splits/moves, active-leaf-change covers tab switches.
-    const refreshMarkdownEditors = (): void => {
-      this.app.workspace.iterateAllLeaves((leaf) => {
-        if (
-          leaf.view instanceof MarkdownView &&
-          hasCodeMirrorView(leaf.view.editor)
-        ) {
-          leaf.view.editor.cm.dispatch({});
-        }
-      });
-    };
+    // Re-evaluate ViewPlugins on splits/moves (layout-change) and tab switches.
+    const refreshEditors = (): void => refreshMarkdownEditors(this.app);
+    this.registerEvent(this.app.workspace.on("layout-change", refreshEditors));
     this.registerEvent(
-      this.app.workspace.on("layout-change", refreshMarkdownEditors),
-    );
-    this.registerEvent(
-      this.app.workspace.on("active-leaf-change", refreshMarkdownEditors),
+      this.app.workspace.on("active-leaf-change", refreshEditors),
     );
 
     // Register editor keydown listener for node tag hotkey
     this.setupNodeTagHotkey();
+  }
+
+  /**
+   * Re-renders both markdown surfaces so the discourse context overlay appears
+   * or disappears immediately when its setting is toggled, without a reload.
+   */
+  refreshDiscourseContextOverlay(): void {
+    refreshDiscourseContextOverlaySurfaces(this);
+  }
+
+  setHelpMenuStatusBarItemVisibility(): void {
+    if (!this.settings.showHelpMenuStatusBarIcon) {
+      this.helpMenuStatusBarItem?.remove();
+      this.helpMenuStatusBarItem = null;
+      return;
+    }
+
+    if (this.helpMenuStatusBarItem) return;
+    const item = this.addStatusBarItem();
+    item.addClass(
+      "dg-help-menu-status-bar-item",
+      "clickable-icon",
+      "text-muted",
+      "hover:text-normal",
+    );
+    setTooltip(item, "Discourse Graph help menu", { placement: "top" });
+    setIcon(item, DISCOURSE_GRAPH_LOGO_ICON_ID);
+    this.registerDomEvent(item, "click", (event) => {
+      showHelpMenu({ plugin: this, event });
+    });
+    this.helpMenuStatusBarItem = item;
   }
 
   private setupNodeTagHotkey() {
@@ -293,26 +334,29 @@ export default class DiscourseGraphPlugin extends Plugin {
         event.preventDefault();
         event.stopPropagation();
 
+        this.activeNodePopover?.close();
+        this.activeNodePopover = null;
+
         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (activeView?.editor) {
           const editor = activeView.editor;
           const selectedText = editor.getSelection();
 
           if (selectedText && selectedText.trim().length > 0) {
-            // Text is selected: open node type picker to create node from selection
             const picker = new InlineNodeTypePicker({
               editor,
               nodeTypes: this.settings.nodeTypes,
               plugin: this,
               selectedText: selectedText.trim(),
             });
+            this.activeNodePopover = picker;
             picker.open();
           } else {
-            // No selection: open the candidate node tag popover
             const popover = new NodeTagSuggestPopover(
               editor,
               this.settings.nodeTypes,
             );
+            this.activeNodePopover = popover;
             popover.open();
           }
         }
@@ -326,6 +370,19 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.registerEditorExtension(createImageEmbedHoverExtension(this));
 
     this.registerEditorExtension(createWikilinkDragExtension(this));
+    this.registerEditorExtension(createDiscourseContextOverlayExtension(this));
+
+    this.registerEditorExtension(createDiscourseTagExtension(this));
+
+    this.tagStyleManager = new DiscourseTagStyleManager(this);
+    this.tagStyleManager.apply();
+    // A popout window has its own document, which the bundled styles.css
+    // reaches but the generated tag colours do not until they are re-applied.
+    this.registerEvent(
+      this.app.workspace.on("window-open", () => {
+        this.tagStyleManager?.apply();
+      }),
+    );
   }
 
   updateFrontmatterStyles(): void {
@@ -387,6 +444,8 @@ export default class DiscourseGraphPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
     this.updateFrontmatterStyles();
+    this.tagStyleManager?.apply();
+    refreshDiscourseTagColors(this);
   }
 
   private migrateSettings(): boolean {
@@ -430,17 +489,22 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   onunload() {
+    unregisterNodeTypeIdPropertyWidget(this);
+    this.activeNodePopover?.close();
+    this.activeNodePopover = null;
     this.cleanupViewActions();
     activeDocument.body.classList.remove("dg-hide-frontmatter-ids");
 
-    if (this.tagNodeHandler) {
-      this.tagNodeHandler.cleanup();
-      this.tagNodeHandler = null;
-    }
+    this.tagStyleManager?.destroy();
+    this.tagStyleManager = null;
 
     if (this.fileChangeListener) {
       this.fileChangeListener.cleanup();
       this.fileChangeListener = null;
     }
+
+    // Lives on document.body with its own listeners; would outlive the plugin.
+    closeDiscourseContextPopover();
+    this.relationsIndex.unload();
   }
 }

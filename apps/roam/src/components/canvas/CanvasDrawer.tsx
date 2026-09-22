@@ -3,6 +3,7 @@ import {
   Button,
   Collapse,
   Icon,
+  InputGroup,
   Menu,
   MenuItem,
   NonIdealState,
@@ -52,6 +53,7 @@ export const CanvasDrawerContent = ({
   const [activeShapeId, setActiveShapeId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState("All");
   const [activeTab, setActiveTab] = useState<TabId>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const pageTitle = useMemo(() => getPageTitleByPageUid(pageUid), [pageUid]);
   const discourseNodes = useMemo(() => getDiscourseNodes(), []);
@@ -120,15 +122,20 @@ export const CanvasDrawerContent = ({
 
   const activeTabId = activeTab as "all" | "duplicates";
 
+  const trimmedSearchQuery = searchQuery.trim().toLowerCase();
+
   const visibleGroups = useMemo(
     () =>
       groups.filter((group) => {
         const matchesType =
           filterType === "All" || group.typeLabel === filterType;
         const matchesTab = activeTabId === "all" ? true : group.isDuplicate;
-        return matchesType && matchesTab;
+        const matchesSearch =
+          !trimmedSearchQuery ||
+          group.title.toLowerCase().includes(trimmedSearchQuery);
+        return matchesType && matchesTab && matchesSearch;
       }),
-    [groups, filterType, activeTabId],
+    [groups, filterType, activeTabId, trimmedSearchQuery],
   );
 
   const visibleNodeCount = useMemo(
@@ -136,7 +143,34 @@ export const CanvasDrawerContent = ({
     [visibleGroups],
   );
 
-  const isFiltered = filterType !== "All" || activeTabId === "duplicates";
+  const hasTypeOrTabFilter =
+    filterType !== "All" || activeTabId === "duplicates";
+  const hasSearch = !!trimmedSearchQuery;
+  const isFiltered = hasTypeOrTabFilter || hasSearch;
+
+  const emptyStateCopy = useMemo(() => {
+    if (!isFiltered) {
+      return {
+        icon: "search" as const,
+        title: `No nodes found for ${pageTitle}`,
+        description:
+          "Add discourse nodes to this canvas to populate the drawer.",
+        actionLabel: undefined,
+      };
+    }
+    const description =
+      hasSearch && hasTypeOrTabFilter
+        ? "Try a different search term or filter."
+        : hasSearch
+          ? "Try a different search term."
+          : "Try a different node type or switch tabs.";
+    return {
+      icon: "filter" as const,
+      title: "No nodes match your filters",
+      description,
+      actionLabel: hasTypeOrTabFilter ? "Clear filters" : "Clear search",
+    };
+  }, [isFiltered, hasSearch, hasTypeOrTabFilter, pageTitle]);
 
   const handleTabChange = useCallback((tabId: TabId) => {
     setActiveTab(tabId);
@@ -174,6 +208,7 @@ export const CanvasDrawerContent = ({
   const handleResetFilters = useCallback(() => {
     setFilterType("All");
     setActiveTab("all");
+    setSearchQuery("");
   }, []);
 
   const renderNodeTypeItem = useCallback(
@@ -322,6 +357,24 @@ export const CanvasDrawerContent = ({
           <Tab id="all" title={`All Nodes (${totalNodeCount})`} />
           <Tab id="duplicates" title={`Duplicates (${duplicateNodeCount})`} />
         </Tabs>
+        <InputGroup
+          leftIcon="search"
+          placeholder="Search nodes"
+          aria-label="Search nodes"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          rightElement={
+            searchQuery ? (
+              <Button
+                icon="cross"
+                minimal
+                small
+                aria-label="Clear search"
+                onClick={() => setSearchQuery("")}
+              />
+            ) : undefined
+          }
+        />
         <div className="flex flex-wrap items-center gap-2">
           <Popover
             content={
@@ -354,7 +407,7 @@ export const CanvasDrawerContent = ({
               />
             </span>
           </Tooltip>
-          {isFiltered && (
+          {hasTypeOrTabFilter && (
             <Tag minimal icon="eye-open">
               {visibleNodeCount} visible
             </Tag>
@@ -364,21 +417,13 @@ export const CanvasDrawerContent = ({
 
       {!visibleGroups.length ? (
         <NonIdealState
-          icon={isFiltered ? "filter" : "search"}
-          title={
-            isFiltered
-              ? "No nodes match your filters"
-              : `No nodes found for ${pageTitle}`
-          }
-          description={
-            isFiltered
-              ? "Try a different node type or switch tabs."
-              : "Add discourse nodes to this canvas to populate the drawer."
-          }
+          icon={emptyStateCopy.icon}
+          title={emptyStateCopy.title}
+          description={emptyStateCopy.description}
           action={
-            isFiltered ? (
+            emptyStateCopy.actionLabel ? (
               <Button minimal icon="filter-remove" onClick={handleResetFilters}>
-                Clear filters
+                {emptyStateCopy.actionLabel}
               </Button>
             ) : undefined
           }

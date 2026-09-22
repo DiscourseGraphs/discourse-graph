@@ -98,3 +98,39 @@ for (let leaf of app.workspace.getActiveLeavesOfType(MY_VIEW_TYPE)) {
 - Prefer `async`/`await` over `.then()` chains
 - Minimize `console.log` — remove debug logs before shipping
 - Do not hardcode styles inline — use CSS classes and Obsidian's CSS variables
+
+## Unit tests
+
+Vitest runs the plugin's pure logic in a Node environment: `pnpm test:unit` (or `pnpm test:watch` while working). The repository-wide `pnpm ci:validate` picks it up through the `test:unit` script.
+
+- Put tests in `src/**/__tests__/<module>.test.ts`, next to the code they cover. Tests covering the test scaffolding itself live in `test/`; those two globs are the whole of `include` in `vitest.config.mts`.
+- Import the module under test through the `~` alias, as the source does.
+- `obsidian` ships type declarations with no runtime entry point, so `vitest.config.mts` aliases it to `test/obsidianStub.ts`. Add to that stub whatever a new test needs to load its module; use `vi.mock("obsidian")` in the test itself when the test needs to assert on a call.
+- Obsidian's own objects are large. Build the slice the code path reads and cast it (`{ metadataCache: … } as unknown as App`) rather than constructing a whole `App` or `TFile`.
+- Logic that needs a live vault, editor, or workspace is not covered here — extract the decision into a util and test that.
+
+### Keeping the stub honest
+
+The stub is hand-written, so it can be wrong about the API today and can fall behind when the `obsidian` dependency is bumped. Two mechanisms catch that. Each runs under exactly one command, so run `pnpm ci:validate` to get both.
+
+`test/obsidianStub.conformance.ts` type-checks each stub member against the real declaration. It is type-only and matches none of the vitest globs, so only `pnpm check-types` enforces it. Keep it inside the `tsconfig.json` include, or the drift check disappears with no signal.
+
+- Members with real behavior are fully conformant.
+- Shells, which exist only so an importing module loads, are checked for the export name alone. When a shell gains behavior, move it to the conformant group.
+- Every export must appear in one group or the other, so adding one without classifying it fails the build.
+
+`test/obsidianStub.test.ts` pins the behavior the stub reimplements, which the type checker cannot see. It is type-checked like any other file, but only `pnpm test:unit` runs its assertions.
+
+### Verifying the stub
+
+Type declarations cannot tell you what a function returns for a given input, so do not guess it. Obsidian ships its implementation in `obsidian.asar`, in the resources directory of the installed app, and the current cases were settled by reading it. Two details it settled: `normalizePath("/")` returns `"/"`, and `TFolder.isRoot()` tests `path === "/"` rather than a null parent.
+
+The bundle is minified, so it takes two steps: find the exported name to learn its minified name, then find that function. The example below is a macOS path; on Windows and Linux locate `obsidian.asar` under the install directory and substitute it.
+
+```
+node -e 'const s=require("fs").readFileSync("/Applications/Obsidian.app/Contents/Resources/obsidian.asar","utf8");
+  const i=s.indexOf("normalizePath:()=>");
+  console.log(s.slice(i, i+80));'
+```
+
+Read the behavior and reimplement it; do not paste the bundle's code into this repository. Pin whatever you learn in `obsidianStub.test.ts`, and name the test `diverges: …` when the stub deliberately does something else.

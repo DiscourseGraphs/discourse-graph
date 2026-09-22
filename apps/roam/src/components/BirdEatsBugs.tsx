@@ -110,7 +110,7 @@ export const initFeedbackWidget = (): void => {
 
   if (window.birdeatsbug && "setOptions" in window.birdeatsbug) {
     window.birdeatsbug.setOptions!({
-      publicAppId: "faf02e48-84b7-4292-b76c-03d9342ba9aa",
+      publicAppId: "b4ea080f-9e8e-440c-a683-a9bf9e2bcd94",
       user: {
         email: getCurrentUserEmail(),
       },

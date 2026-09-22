@@ -2,19 +2,26 @@ import getBlockProps, {
   normalizeProps,
   type json,
 } from "~/utils/getBlockProps";
-import setBlockProps from "~/utils/setBlockProps";
+import setBlockProps, { setBlockPropsAsync } from "~/utils/setBlockProps";
+import { createPage } from "roamjs-components/writes";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { getSubTree } from "roamjs-components/util";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
+import { getRoamMarkdownApi } from "~/utils/materializeSharedNode";
+import { PERSONAL_MIGRATION_MARKER } from "./migrationMarkers";
 
 import type { RoamBasicNode } from "roamjs-components/types";
 import discourseConfigRef from "~/utils/discourseConfigRef";
 import { roamNodeToCondition } from "~/utils/parseQuery";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
-import type { DiscourseNode } from "~/utils/getDiscourseNodes";
+import getDiscourseNodes, {
+  type DiscourseNode,
+} from "~/utils/getDiscourseNodes";
+import getFirstAvailableShortcut from "~/utils/getFirstAvailableShortcut";
 import type { Condition } from "~/utils/types";
 import { z } from "zod";
 import {
@@ -218,13 +225,8 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
   ],
   [pathKey([PERSONAL_KEYS.textSelectionPopup]), "text-selection-popup"],
   [pathKey([PERSONAL_KEYS.disableSidebarOpen]), "disable-sidebar-open"],
-  [pathKey([PERSONAL_KEYS.pagePreview]), "page-preview"],
   [pathKey([PERSONAL_KEYS.hideFeedbackButton]), "hide-feedback-button"],
   [pathKey([PERSONAL_KEYS.autoCanvasRelations]), "auto-canvas-relations"],
-  [
-    pathKey([PERSONAL_KEYS.overlayInCanvas]),
-    "discourse-context-overlay-in-canvas",
-  ],
   [pathKey([PERSONAL_KEYS.streamlineStyling]), "streamline-styling"],
   [pathKey([PERSONAL_KEYS.disableProductDiagnostics]), "disallow-diagnostics"],
   [pathKey([PERSONAL_KEYS.discourseToolShortcut]), "discourse-tool-shortcut"],
@@ -266,7 +268,6 @@ const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
       "Result-limit": section.settings?.resultLimit?.value ?? 0,
     },
   }));
-  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 const getLegacyPersonalSetting = (keys: string[]): unknown => {
@@ -305,6 +306,11 @@ const getLegacyPersonalSetting = (keys: string[]): unknown => {
     const leftSidebarSettings = getLegacyPersonalLeftSidebarSetting();
     if (keys.length === 1) return leftSidebarSettings;
     return readPathValue(leftSidebarSettings, keys.slice(1));
+  }
+
+  if (keys[0] === "Global section folded") {
+    return getLeftSidebarSettings(discourseConfigRef.tree).globalSectionFolded
+      .value;
   }
 
   return undefined;
@@ -403,14 +409,6 @@ const getLegacyGlobalSetting = (keys: string[]): unknown => {
     leftSidebarSettings["Children"] = sidebar.global.children.map(
       (c) => c.text,
     );
-    const sidebarSettingValues: Record<string, unknown> = {};
-    sidebarSettingValues["Collapsable"] =
-      sidebar.global.settings?.collapsable.value ??
-      DEFAULT_GLOBAL_SETTINGS["Left sidebar"].Settings.Collapsable;
-    sidebarSettingValues["Folded"] =
-      sidebar.global.settings?.folded.value ??
-      DEFAULT_GLOBAL_SETTINGS["Left sidebar"].Settings.Folded;
-    leftSidebarSettings["Settings"] = sidebarSettingValues;
     if (keys.length === 1) return leftSidebarSettings;
     return readPathValue(leftSidebarSettings, keys.slice(1));
   }
@@ -536,7 +534,7 @@ const getLegacyDiscourseNodeSetting = (
     "key-image-option": rawCanvas["key-image-option"] || "first-image",
     "query-builder-alias": rawCanvas["query-builder-alias"] || "",
   };
-  /* eslint-enable @typescript-eslint/naming-convention */
+
   const attributes = Object.fromEntries(
     getSubTree({ tree, key: "Attributes" }).children.map((c) => [
       c.text,
@@ -720,7 +718,6 @@ const FEATURE_FLAG_LEGACY_MAP: Record<
       text: "(BETA) Left Sidebar",
     }).value,
 };
-/* eslint-enable @typescript-eslint/naming-convention */
 
 export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
   return bulkReadSettings().featureFlags[key];
@@ -765,8 +762,10 @@ export const readAllLegacyDiscourseNodeSettings = (
 };
 
 export const isSyncEnabled = (): boolean =>
-  getFeatureFlag("Duplicate node alert enabled") ||
   getFeatureFlag("Suggestive mode overlay enabled");
+
+export const isNodeSharingEnabled = (): boolean =>
+  getFeatureFlag("Enable node sharing");
 
 export const setFeatureFlag = (
   key: keyof FeatureFlags,
@@ -830,16 +829,19 @@ export const getAllRelations = (
     ? settings.globalSettings
     : getGlobalSettings();
 
-  return Object.entries(globalSettings.Relations).flatMap(([id, relation]) =>
-    relation.ifConditions.map((ifCondition) => ({
+  const storedRelationsEnabled = getStoredRelationsEnabled();
+  return Object.entries(globalSettings.Relations).flatMap(([id, relation]) => {
+    const base = {
       id,
       label: relation.label,
       source: relation.source,
       destination: relation.destination,
       complement: relation.complement,
-      triples: ifCondition.triples,
-    })),
-  );
+    };
+    if (relation.ifConditions.length === 0 && storedRelationsEnabled)
+      return [{ ...base, triples: [] }];
+    return relation.ifConditions.map((c) => ({ ...base, triples: c.triples }));
+  });
 };
 
 export const getPersonalSettings = (): PersonalSettings => {
@@ -906,7 +908,12 @@ export const bulkReadSettings = (): SettingsSnapshot => {
   return {
     featureFlags,
     globalSettings: GlobalSettingsSchema.parse(globalProps || {}),
-    personalSettings: PersonalSettingsSchema.parse(personalProps || {}),
+    // Another user can enable the graph-wide flag before this user's migration.
+    // Startup reads (including the diagnostics opt-out) must wait for their data.
+    personalSettings:
+      getSetting<boolean>(PERSONAL_MIGRATION_MARKER, false) === true
+        ? PersonalSettingsSchema.parse(personalProps || {})
+        : (readAllLegacyPersonalSettings() as PersonalSettings),
   };
 };
 
@@ -955,7 +962,7 @@ const getRawDiscourseNodeBlockProps = (
   }
 
   return isRecord(blockProps) && Object.keys(blockProps).length > 0
-    ? (blockProps as Record<string, json>)
+    ? blockProps
     : undefined;
 };
 
@@ -1059,7 +1066,7 @@ const addConditionUids = (conditions: SchemaCondition[]): Condition[] =>
       target: c.target,
       not: c.not,
     };
-  }) as Condition[];
+  });
 
 const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
   text: settings.text,
@@ -1085,6 +1092,81 @@ const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
     ? { uid: "", value: true }
     : undefined,
 });
+
+const getUnusedShortcut = (label: string): string =>
+  getFirstAvailableShortcut(
+    label,
+    new Set(
+      getDiscourseNodes()
+        .map((n) => n.shortcut)
+        .filter(Boolean),
+    ),
+  );
+
+// getAllDiscourseNodes skips prop-less pages, so invalidate only after the props write settles.
+export const createDiscourseNodeType = async ({
+  label,
+  shortcut,
+  format,
+  template,
+  uid,
+}: {
+  label: string;
+  shortcut?: string;
+  format?: string;
+  template?: RoamBasicNode[] | string; // string would be markdown
+  uid?: string;
+}): Promise<DiscourseNode> => {
+  if (shortcut === undefined) shortcut = getUnusedShortcut(label);
+  format = format ?? `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
+  const tree = [
+    {
+      text: "Shortcut",
+      children: [{ text: shortcut }],
+    },
+    {
+      text: "Tag",
+      children: [{ text: "" }],
+    },
+    {
+      text: "Format",
+      children: [{ text: format }],
+    },
+  ];
+  let templateTree: RoamBasicNode[] | undefined;
+  if (template !== undefined) {
+    templateTree = Array.isArray(template) ? template : [];
+    tree.push({
+      text: "Template",
+      children: templateTree,
+    });
+  }
+  const pageUid = await createPage({
+    title: `${DISCOURSE_NODE_PAGE_PREFIX}${label}`,
+    uid,
+    tree,
+  });
+  if (typeof template === "string") {
+    const tree = getBasicTreeByParentUid(pageUid);
+    const templateUid = getSubTree({ tree, key: "Template" }).uid;
+    await getRoamMarkdownApi().block.fromMarkdown({
+      location: { "parent-uid": templateUid, order: "last" },
+      "markdown-string": template,
+    });
+    templateTree = getBasicTreeByParentUid(templateUid);
+  }
+  const settings = DiscourseNodeSchema.parse({
+    text: label,
+    type: pageUid,
+    shortcut,
+    format,
+    template: templateTree,
+  });
+  setBlockProps(pageUid, settings);
+  await setBlockPropsAsync(pageUid, settings);
+  invalidateDiscourseNodeTypeCaches();
+  return toDiscourseNode(settings);
+};
 
 /**
  * Migrate known legacy block prop shapes to the current schema.
@@ -1178,8 +1260,9 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
       !blockProps ||
       !isRecord(blockProps) ||
       Object.keys(blockProps).length === 0
-    )
+    ) {
       continue;
+    }
 
     const nodeText = title.replace(DISCOURSE_NODE_PAGE_PREFIX, "");
     const result = DiscourseNodeSchema.safeParse(blockProps);
@@ -1193,9 +1276,7 @@ export const getAllDiscourseNodes = (): DiscourseNode[] => {
       );
     } else {
       // Try migrating legacy field shapes before dropping the node.
-      const migrated = migrateNodeBlockProps(
-        blockProps as Record<string, json>,
-      );
+      const migrated = migrateNodeBlockProps(blockProps);
       const retryResult = DiscourseNodeSchema.safeParse(migrated);
       if (retryResult.success) {
         setBlockProps(pageUid, retryResult.data, false);

@@ -8,7 +8,6 @@ import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
-  previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
 import {
   showDiscourseFloatingMenu,
@@ -18,7 +17,6 @@ import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 import {
   DISCOURSE_TOOL_SHORTCUT_KEY,
   AUTO_CANVAS_RELATIONS_KEY,
-  DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
   STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
   USE_STORED_RELATIONS,
@@ -214,16 +212,6 @@ const HomePersonalSettings = ({
         }}
       />
       <PersonalFlagPanel
-        title="Page preview"
-        description="Whether or not to display page previews when hovering over page refs"
-        settingKeys={[PERSONAL_KEYS.pagePreview]}
-        initialValue={personalSettings[PERSONAL_KEYS.pagePreview]}
-        onChange={(checked) => {
-          void setSetting("page-preview", checked);
-          onPageRefObserverChange(previewPageRefHandler)(checked);
-        }}
-      />
-      <PersonalFlagPanel
         title="Hide feedback button"
         description="Hide the 'Send feedback' button at the bottom right of the screen."
         settingKeys={[PERSONAL_KEYS.hideFeedbackButton]}
@@ -250,18 +238,6 @@ const HomePersonalSettings = ({
         }}
       />
 
-      <PersonalFlagPanel
-        title="(BETA) Overlay in canvas"
-        description={withDocsLink(
-          "Whether or not to overlay discourse context information over canvas nodes.",
-          ROAM_DOCS.discourseContextOverlay,
-        )}
-        settingKeys={[PERSONAL_KEYS.overlayInCanvas]}
-        initialValue={personalSettings[PERSONAL_KEYS.overlayInCanvas]}
-        onChange={(checked) => {
-          void setSetting(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, checked);
-        }}
-      />
       <PersonalFlagPanel
         title="Streamline styling"
         description="Apply streamlined styling to your personal graph for a cleaner appearance."
