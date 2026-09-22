@@ -1,0 +1,43 @@
+rebase this PR again
+
+---
+
+push the rebase up
+
+---
+
+checkout this branch to do a local build so i can test this locally
+
+---
+
+did we not have all these fallbacks already?
+
+---
+
+<task-notification>
+<task-id>bxjc3a9ll</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/35678f0a-54e5-4aa4-8303-f9f3d339c60c/tasks/bxjc3a9ll.output</output-file>
+<status>completed</status>
+<summary>Background command "Install and build plugin into test vault" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+run @.claude/skills/dg-delegated-full-review for this PR. here's the link again in case you need: https://github.com/DiscourseGraphs/discourse-graph/pull/1258
+
+---
+
+hmm how long does it take for datacore to index? i have this bug too: when you first open the create node modal with the first node type, it doesnt query, but once changing the node type once -> the search works as expected. is there a problem with initializing dc or something else? you can drive CDP to test right now
+
+---
+
+hmm ok so that's a separate bug. would merging this PR 1258 affect anything about that bug? or will it just provide extra safety?
+
+---
+
+fetch the branch from remote and run a local build to testVault for me to test
+
+---
+
+fix the lint error on this branch
