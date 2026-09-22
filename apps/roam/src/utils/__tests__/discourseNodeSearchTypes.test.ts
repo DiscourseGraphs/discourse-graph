@@ -125,8 +125,7 @@ describe("combined semantic + MiniSearch ordering", () => {
     expect(relevanceOrder(combined)).toEqual(["s1", "s2", "s3", "m1", "m2"]);
   });
 
-  it("caps at MAX_RESULTS so the semantic path cannot overflow the list", () => {
-    expect(MAX_RESULTS).toBe(50);
+  it("does not cap, so callers stay responsible for MAX_RESULTS", () => {
     const semantic = Array.from({ length: 200 }, (_, i) =>
       makeEntry({ uid: `s${i}`, score: 0, source: "semantic" }),
     );
@@ -136,7 +135,8 @@ describe("combined semantic + MiniSearch ordering", () => {
       miniSearch: [makeEntry({ uid: "m1", score: 9, source: "miniSearch" })],
     });
 
+    // searchDiscourseNodes applies the cap; see searchDiscourseNodes.test.ts.
     expect(combined).toHaveLength(201);
-    expect(combined.slice(0, MAX_RESULTS)).toHaveLength(50);
+    expect(combined.length).toBeGreaterThan(MAX_RESULTS);
   });
 });
