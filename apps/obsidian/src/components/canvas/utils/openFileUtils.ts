@@ -88,17 +88,25 @@ export const openFileInSidebar = async (
 export const openFileInNewTab = async (
   app: App,
   file: TFile,
+  line?: number,
 ): Promise<void> => {
   const leaf = app.workspace.getLeaf("tab");
-  await leaf.openFile(file);
+  await leaf.openFile(
+    file,
+    line === undefined ? undefined : { eState: { line } },
+  );
   app.workspace.setActiveLeaf(leaf);
 };
 
 export const openFileInNewLeaf = async (
   app: App,
   file: TFile,
+  line?: number,
 ): Promise<void> => {
   const leaf = app.workspace.getLeaf("split");
-  await leaf.openFile(file);
+  await leaf.openFile(
+    file,
+    line === undefined ? undefined : { eState: { line } },
+  );
   app.workspace.setActiveLeaf(leaf);
 };

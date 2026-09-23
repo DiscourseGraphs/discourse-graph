@@ -17,7 +17,7 @@ const DIRECTIONS: { direction: SortDirection; label: string }[] = [
 ];
 
 // Rows are divs, so Enter and Space have to be wired up the way a button gets them free.
-const activateOnKey = (
+export const activateOnKey = (
   event: KeyboardEvent<HTMLDivElement>,
   activate: () => void,
 ): void => {
