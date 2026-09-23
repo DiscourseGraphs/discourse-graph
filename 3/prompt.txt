@@ -1,0 +1,420 @@
+<task-notification>
+<task-id>a88fb83f9acf373fc</task-id>
+<tool-use-id>toolu_01JXHBdrDthA8aqhnhqBdQKv</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/3e822f67-c2d4-492b-a356-2650a72feeb7/tasks/a88fb83f9acf373fc.output</output-file>
+<status>completed</status>
+<summary>Agent "Evaluate obsidian-integration-testing library" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>I'd adopt the library partly: use its owned-instance launcher, trusted input and screenshots, but skip its test-runner wiring for now. It fixes the real weaknesses of #1327 and #959. The costs are fast churn (16 major versions in 6 months), one maintainer, and a fixed build-folder layout that doesn't match ours.
+
+## What it does (sourced)
+
+- **Tests run inside a real Obsidian.** Each test calls `evalInObsidian({callback, input})`. The callback is turned into a string, sent over CDP and run inside Obsidian, where it gets `app`, `obsidianModule`, `lib` and `context`. Anything passed in or returned must be plain JSON; live objects persist between calls through `ContextId`. [writing-tests](https://github.com/mnaoumov/obsidian-integration-testing/blob/main/docs/src/content/docs/guides/writing-tests.md)
+- **It launches its own Obsidian by default.** It starts the installed Obsidian binary with a temporary `--user-data-dir` on a free `--remote-debugging-port`, so it never touches your own Obsidian's config, vault list or open window, and runs alongside it (`src/obsidian-instance.ts`). An attach mode (`port: N`) connects to an already-running Obsidian instead. You can pin Obsidian versions, and the window can be moved off-screen. It is not headless. [transports](https://github.com/mnaoumov/obsidian-integration-testing/blob/main/docs/src/content/docs/guides/transports.md)
+- **UI interaction and screenshots.** It sends trusted input through Electron's `sendInputEvent`: typing into the editor, key presses, hover, click and `waitUntil`. The docs point out that dispatched DOM events do nothing in Obsidian or CodeMirror. `captureObsidianScreenshot` returns a PNG and can pin its exact size. [user-input](https://github.com/mnaoumov/obsidian-integration-testing/blob/main/docs/src/content/docs/guides/user-input.md)
+- **Plugin loading.** Global setup copies the build from `dist/dev` or `dist/build` (hardcoded in `src/global-setup-core.ts`, lines 78–79) into a temporary vault and enables it. It throws `StaleBuildError` if `main.js` is older than `src/`.
+- **Runners.** It has global-setup entry points for Vitest and Jest, and requires `fileParallelism: false`. It also exposes `connectToCdp()` plus an `npx obsidian-integration-testing` command for scripts outside a test runner.
+- **Dependencies.** `puppeteer-core` and `webdriverio`. Peer dependencies are `obsidian ^1.12.3`, `sharp` and `type-fest`, and it needs Node 22+.
+- **Platforms.** Its CI runs a boot test on Ubuntu (under `xvfb-run`, sandbox disabled), macOS and Windows, but only when triggered by hand (`validate-installer-boot.yml`). There is also an Android path via Appium.
+- **Maturity.**
+  - MIT licence, 3 stars, 0 issues ever filed.
+  - Created March 2026; last push 2026-09-21; 117 npm versions, currently 16.0.0; about 3.3k downloads a month.
+  - The author, mnaoumov, maintains `obsidian-dev-utils` (108 stars) and about 25 of his own plugins that use this library.
+  - Outside consumers include [obsidian-latex-suite](https://github.com/artisticat1/obsidian-latex-suite) (`^10.3.2` with Vitest 4), Vaultman, image-upload-toolkit and paste-mode.
+
+## Fit with our repo (sourced from local files)
+
+- `apps/obsidian` builds to a flat `dist/`, not `dist/dev` or `dist/build`.
+- Our `obsidian` dependency is `^1.7.2`, below the `^1.12.3` peer requirement.
+- Our Vitest catalog is `^4.0.0`, which matches.
+- `sharp` would be a new native dependency.
+
+## Comparison
+
+| | Library | #1327 (raw CDP attach) | #959 (Playwright over CDP) |
+|---|---|---|---|
+| What it proves | Real app, real vault, trusted input, pinned Obsidian versions | Real app, but whatever vault you have open; input is its own | Real app, test vault, Playwright input |
+| Setup cost | Install the package plus peer deps, and adapt the build folder | None (about 150 lines, no deps) | Playwright; rewrites `obsidian.json`; you must quit Obsidian first |
+| Agent-friendliness | High: launches and cleans up itself, one command, PNG capture | Medium: needs Obsidian already open on 9222 and a preflight check | Medium: fights with the user's running Obsidian; screenshots only on failure unless extended |
+| CI | Yes (xvfb shown in its own workflow) | No (needs an open vault) | Possible, macOS-centric |
+| Parallel worktrees | Safe: temp profile and free port per run | Unsafe: shared port 9222 and a shared vault plugin folder | Unsafe: fixed 9222 plus a global `obsidian.json` (the PR admits it) |
+| Maintenance risk | Outside dependency with very fast major releases and one maintainer; APIs have broken often | We own it, and it's small | We own it; the Playwright/Electron workaround is fragile |
+
+## Inference (not verified)
+
+- **macOS launch.** The launcher-forking problem that broke #959 likely doesn't apply here. The library talks to Obsidian over a CDP port rather than Playwright's pipe to the process it starts, and its macOS CI job boots Obsidian. Nobody has tried it on our machines yet.
+- **Build folder.** A small wrapper can copy `dist/` to `dist/build`. Alternatively, `installPlugin: false` plus `populate` would let us seed the plugin ourselves.
+- **Timestamp checks.** The stale-build check compares file timestamps, which may be noisy in a monorepo.
+- **Peer dependency.** The `obsidian ^1.12.3` requirement means either bumping our typings or accepting a peer warning.
+- **Test style.** Callbacks run as strings inside Obsidian, so they can't import our `src`. Tests poke `app.plugins.plugins["discourse-graphs"]` and the DOM, much like #1327 scenarios do today.
+
+## Recommendation
+
+- **Keep:** `connectToCdp` (owned instance, temp vault, free port), the `lib` input helpers and `captureObsidianScreenshot`. Together they replace #1327's attach-to-9222 setup and #959's `obsidian.json` rewriting.
+- **Hold off on:** the Vitest global-setup integration project, until a spike shows it stays stable across a couple of releases.
+- **Pin an exact version** (no `^`).
+- **Close #959.** Keep #1327's scenario and assertion style as the thin layer on top.
+
+## Spike plan
+
+1. In a scratch worktree, add the package pinned to 16.0.0 with `sharp`. Write one `.mjs` script: `connectToCdp({ isObsidianAppVisible: false })`, copy `apps/obsidian/dist` into the vault's plugin folder, enable `discourse-graphs`, run #1327's `insert-link-at-cursor` scenario using `typeIntoEditor` and `pressKey`, and save a screenshot. Run it on macOS while your own Obsidian is open, and in two worktrees at the same time.
+2. If that passes, run the same script under `xvfb-run` in a throwaway GitHub Actions job on ubuntu-latest. That decides whether it's worth adding as a `test:e2e` Vitest project.
+
+Main sources: https://github.com/mnaoumov/obsidian-integration-testing (README, `docs/src/content/docs/guides/*`, `src/obsidian-instance.ts`, `src/global-setup-core.ts`, `.github/workflows/validate-installer-boot.yml`) and https://www.npmjs.com/package/obsidian-integration-testing.</result>
+<usage><subagent_tokens>97652</subagent_tokens><tool_uses>14</tool_uses><duration_ms>126347</duration_ms></usage>
+</task-notification>
+
+---
+
+1. dev graph: discourse-dev-graph. the same graph i have in my .env to use for @.claude/skills/dg-roam-load-extension . the screenshots should all live under a page name Trang test/. then for each branch/ test, we can create a new block of that branch name, then adding the screenshots as childblocks of that. this way we have a way to trace it back
+2. yes, start the plan. maybe use the /mattpocock-skills:grilling to clarify the plan
+
+---
+
+<task-notification>
+<task-id>ab65c49f25a7d8252</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/3e822f67-c2d4-492b-a356-2650a72feeb7/tasks/ab65c49f25a7d8252.output</output-file>
+<status>completed</status>
+<summary>Agent "Gather facts for workflow plan" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>I finished items 1, 2 and 4, but item 3 is blocked: the Roam MCP has no graphs configured, so I couldn't check `discourse-dev-graph` or the `Trang test/` page. Also, Cursor Bugbot has never commented on the ~40 recent PRs I checked, so I have no exact login for it.
+
+## 1. Skills and scripts
+
+**(a) `~/.claude/skills/create-pr/SKILL.md` phases**
+- **Phase 0 (L14–24):** runs `/pre-pr-review` first. Base branch comes from `ARGUMENTS`; otherwise it's the stacked PR branch, else `main`.
+- **Phase 1 (L26–57), comments:** only trims comments added on this branch, found with `git diff "$BASE"...HEAD | grep -nE '^\+\s*(//|/\*|\*|\{/\*)'`. Every surviving comment must be one line. It lists keep and delete criteria and uses this test: "would a competent reviewer make a wrong change?"
+- **Phase 2 (L59–89), self-review:** reads `AGENTS.md` and runs `pnpm check-types &amp;&amp; pnpm lint` in the changed app, plus `npx prettier --check &lt;files&gt;`. It asks for runtime evidence with numbers. It does **not** run `pnpm install --frozen-lockfile` or `pnpm ci:validate`, which AGENTS.md requires before a PR.
+- **Phase 3 (L91–115):** a fresh-eyes review through `dg-delegated-full-review` (each finding gets fixed or deferred under Known limits), then `$scope-check`.
+- **Phase 4 (L117–229):** writing-style rules (L123–134). The body template (L142–164) is:
+  - a 1–2 sentence problem-and-fix summary
+  - `## Review focus`
+  - `## Decisions worth challenging`
+  - `## Verification`
+  - `## Known limits`
+  - an optional Mermaid section `## How it fits together` (L166–205)
+  - a title `ENG-#### &lt;title&gt;`, created with `gh pr create --base "$BASE"`, and the body ends with the Claude Code attribution line.
+- **After opening (L231–266):** runs `pr-comment-sweep.sh ack &lt;pr&gt;`, then `bind_pr` and `set_monitor` (auto_fix and address_comments on). It runs babysit when a `&lt;ci-monitor-event&gt;` arrives, then writes a Loom shot list.
+- **Plan reference:** none. It never reads a plan or the `_context.md` Key decisions.
+- It never mentions `.github/pull_request_template.md` by path, although L109–115 refer to the template's checkboxes.
+
+**(b) `~/.claude/skills/babysit/SKILL.md`**
+- It is only 3 steps (L13–15): 1. merge conflicts, 2. comments (names Bugbot and says to validate before acting), 3. CI.
+- There is no end step. A "propose structural lesson" step would fit as step 4 after L15, run once the PR is green and comments are triaged.
+- A second option is inside step 2 (L14), when a valid comment reveals a pattern that could be generalized. The loop-exit condition at L15 ("until mergeable + green + comments triaged") is the natural hook.
+
+**(c) `~/.claude/scripts/pr-comment-sweep.sh`**
+- L17: `REVIEW_BOTS='^(devin-ai-integration|coderabbitai|graphite-app|chatgpt-codex-connector)(\[bot\])?$'`
+- Matching (L93–101) uses `user.login` from issue comments, PR review comments, and reviews that are CHANGES_REQUESTED or have a non-empty body, all newer than `$STATE_DIR/&lt;pr&gt;.last`.
+  - The user's own login is skipped.
+  - A login matching `REVIEW_BOTS` is reported as `bot:&lt;login&gt;`.
+  - Any other login ending in `[bot]` is silently dropped, so Cursor Bugbot would be dropped today.
+  - Everything else is reported as `human:&lt;login&gt;`.
+
+**(d) Where plans and decisions are stored**
+- Vault path: `/Users/trang.doan/Documents/testVault/AI_sessions/&lt;branch with / replaced by -&gt;/_context.md`, plus `log/&lt;YYYY-MM-DD-HHMM&gt;.md`. This comes from `~/.claude/scripts/session-context.sh` L24 and L55–67, and can be overridden with `SESSION_VAULT_DIR`.
+- Sections in `~/.claude/skills/checkpoint/template.md`: frontmatter (ticket, status, key_files…), TL;DR, `## Goal / scope agreement`, `## Key decisions` (dated: Why / Rejected / Revisit if), Dead ends, Constraints &amp; preferences, Gotchas, Current state, Next step, Open questions.
+- There is no dedicated "Plan" section. `/start` (`~/.claude/commands/start.md` step 8, L150–160) only reads `_context.md` (Next step, Open questions, Key decisions, Dead ends) and writes nothing.
+
+## 2. Bot logins
+Across PRs 1442, 1444, 1443 and 1432 plus about 40 recent PRs:
+- **Review bots:** `devin-ai-integration[bot]` (67), `chatgpt-codex-connector[bot]` (18), `graphite-app[bot]` (6).
+- **Deploy bots:** `vercel[bot]`, `supabase[bot]`, `linear-code[bot]`.
+- **Humans:** `mdroidian`, `trangdoan982`.
+- No `cursor[bot]` or anything like it appeared, and nothing in `.github` mentions cursor or bugbot. If Bugbot is added later, its GitHub login is probably `cursor[bot]`, but that is unverified.
+
+## 3. Roam MCP
+- `list_graphs` returned `CONFIG_NOT_FOUND`: "No graphs configured". To fix it, run `npx @roam-research/roam-cli connect` or use `setup_new_graph`.
+- I didn't call `get_graph_guidelines` or `get_page`, since there was no graph to call them on.
+- `apps/roam/.env` variable names: `DG_ROAM_PLAYWRIGHT_EMAIL_&lt;n&gt;`, `DG_ROAM_PLAYWRIGHT_PASSWORD_&lt;n&gt;`, `DG_ROAM_PLAYWRIGHT_GRAPH_URL_&lt;n&gt;` (slot 1 exists), `DG_ROAM_PLAYWRIGHT_AUTO_LOGIN`, `BLOB_READ_WRITE_TOKEN`.
+- The graph is only referenced through the `DG_ROAM_PLAYWRIGHT_GRAPH_URL_1` URL, so there's no standalone graph-name variable. I didn't print its value.
+
+## 4. Screenshot output
+`/Users/trang.doan/Desktop/code/discourse-graph/apps/roam/scripts/playwright/loadExtension.ts` L830–843:
+- **Folder:** `--out`, or by default `DEFAULT_ARTIFACT_DIR` = `&lt;REPO_ROOT&gt;/local/roam-playwright/artifacts` (`roamSession.ts` L79–82). `REPO_ROOT` is the worktree the script runs from.
+- **Success screenshot:** `--screenshot-name`, or by default `roam-load-extension-slot-&lt;slot&gt;-&lt;timestamp&gt;.png` (written at L981).
+- **Failure screenshot:** `roam-load-extension-slot-&lt;slot&gt;-failure.png` (L977).
+- **Result JSON:** `load-extension-slot-&lt;slot&gt;-last-run.json` (L983 and L1129). It records `screenshotPath` and `failureScreenshotPath`, so an upload step can read the paths from there.
+
+The Linear, Figma and Slack MCP servers need authorizing, and the GitHub plugin MCP failed to connect; I used the `gh` CLI instead. None of this blocked the tasks.</result>
+<usage><subagent_tokens>81504</subagent_tokens><tool_uses>9</tool_uses><duration_ms>101553</duration_ms></usage>
+</task-notification>
+
+---
+
+for Q5, pick (b) Keep only the delegated review and scope-check, since pre-pr-review is heavy. 
+Q9: for obsidian, maybe we need to check whether there's already a debugging port running on the vault we aim for. if there is, then should notify me so that i can switch the apps/obsidian/.env to a different vault to test. 
+accept the rest of the proposed answers
+
+* for adding screenshots to Roam Graph `discourse-dev-graph`, won't @.agents/skills/dg-roam-playwright-session work? just using playwright to upload the images directly?
+* yes, by "bugbot" i meant devin, codex, and graphite
+* yes, add approved plan to checkpoint
+
+---
+
+Q11: i can provide a list of potential vault path. mostly because it has nodes and relations already setup so it's easier to test cases instead of having to populate the graph. so similar to what Roam does with @.agents/skills/dg-roam-load-extension . i can provide a list of vault paths
+the rest of the Qs: yes i accept your proposal
+
+---
+
+Q17: will copying everything guarantee that we have the same build of the graph and all the plugins in it? if so yes i don't mind creating a copy vault that can be scratched after the test. if not, i don't mind writing in place either. as long as it's not deleting folder everything is fine
+Q18: yes, or simply an array of paths, since Obsidian doesn't require login
+
+---
+
+hmm in that case, for Q17, let's just modify in place from any vault that was decided to be the test vault then. for Obsidian verification, don't use `obsidian-integration-testing`, stick with what we have with CDP driver for now. 
+for create-pr: should use @.agents/skills/dg-engineering-writing-style  too for PR body
+
+---
+
+i'm just switching to CDP because i haven't vetted the `obsidian-integration-testing`. compare and contrast the approach for me. with CDP you can open with a debug port. 
+Q22: CDP is in-memory right now? im not sure how other claude sessions stores it but i can invoke "verify with CDP and screenshots" and receive results
+
+---
+
+Q22: choose (b)
+
+we should just /checkpoint this discussion about `obsidian-integration-testing` vs CDP driver right now. and assuming CDP driver for the current step
+
+---
+
+accept Q19-Q21, write the plan
+
+---
+
+hmm does the bug bots like codex or graphite comment on draft PR? if not, it's unncessary to keep the status draft, just mark it open
+
+---
+
+ok now how do i start using this flow? any other changes required?
+
+---
+
+you can relaunch obsidian with a debug port
+
+---
+
+yes, start phase 1 and 2
+
+---
+
+<task-notification>
+<task-id>a2a7a6dcefc68a528</task-id>
+<tool-use-id>toolu_011FYnCL3C2Dd69KQkMu6rSC</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/3e822f67-c2d4-492b-a356-2650a72feeb7/tasks/a2a7a6dcefc68a528.output</output-file>
+<status>completed</status>
+<summary>Agent "Phase 1.2 create-pr rewrite" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>I rewrote `~/.claude/skills/create-pr/SKILL.md` with phases 0–7 as planned. Checks (a)–(c) pass. Check (d) had to run on the merged commit, because no local ENG-2261 worktree exists.
+
+**What changed vs the backup** (266 lines before, 181 now; no other file touched)
+- **Phase 0 (context):** loads the Approved plan's `ship_when_verified` line via `session-context.sh resolve`. If there's no plan, it warns, skips the drift check and treats the flag as `no`. The pre-pr-review phase is gone.
+- **Phase 1 (comments):** the audit replaces "trim to one line". A workaround comment means fix the cause or delete it; other comments stay only if they state a constraint, in two lines at most.
+- **Phase 2 (checks):** `pnpm install --frozen-lockfile &amp;&amp; pnpm ci:validate`, prettier on changed files, and a warning over ~500 lines (lockfiles excluded). On re-runs, unresolved bot review threads block.
+- **Phases 3 and 4:** the delegated review, then scope-check, then the drift pause for new files, new exports or abstractions, or another app or package. Smaller drift goes on the "Scope beyond Done When" line.
+- **Phase 5 (body):**
+  - reads the template at runtime and ticks a box only if that step ran
+  - one reviewer Mermaid diagram, shaped by PR intent
+  - a scenario matrix, the pr-evidence table, tests with the rerun command, and a "Not verified" list
+  - the Loom line says `pending`
+  - prose goes through `dg-engineering-writing-style`; the eight inline style rules and the old body template are removed
+- **Phase 6 (open):** a ready PR (not a draft, with the Codex/Graphite/CODEOWNERS reason), opened only when `ship_when_verified: yes`. The stacked-base detection, the post-open steps and the attribution line are kept, and the Loom shot list now follows the scenario matrix.
+- **`--dry-run`:** runs 0–5, prints the body and stops.
+
+**Verification**
+- **(a) Headings:** the template's headings are Reviewer brief, Verification, Loom video, Scope check, Standards check and Local delegated full review. The skill tells the agent to read the template now and use its `##` headings exactly. A search for hardcoded `## ` heading lines in the skill found none.
+- **(b) Removed references:** there's no `pre-pr-review` or `--draft` left. "draft" appears only in the line explaining why the PR isn't opened as one.
+- **(c) Bot-thread query on PR 1442:** it returns all 4 threads: 1 from Devin (resolved) and 3 from mdroidian (unresolved). The bot filter returns `0`, which is correct because the only bot thread is resolved.
+  - GitHub's API returns the Devin login without the `[bot]` suffix (`devin-ai-integration`), so a login-pattern filter would miss bots. The query filters on the author type being `Bot` instead; I confirmed that type on PR 1444's thread.
+- **(d) Dry-run body:** `git worktree list | grep 2261` found nothing, and only `origin/eng-2261-schema-import-conflict-resolution` exists. I built the body read-only from the merged commit `35ce2b214` (4 files, 637 lines).
+  - Phase 0 correctly found no context file, so it would warn and set ship to `no`.
+  - Phase 2's size warning fires (over 500 lines).
+  - The body's headings match the template exactly (`diff` printed `HEADINGS_MATCH`). It's saved at `/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/3e822f67-c2d4-492b-a356-2650a72feeb7/scratchpad/pr1444-body.md`.
+  - Not exercised: `dg-engineering-writing-style` wasn't invoked for the prose, and ci:validate, the reviews and prettier were skipped as instructed. No commits, pushes or PRs were made.
+
+**Things you should know**
+- The template's "Standards check" box names `$dg-pr-adherence-check`, which isn't in the skill list and isn't in the plan. The skill leaves that box unticked unless it actually ran.
+- `~/.claude/skills/pr-evidence` doesn't exist yet (Phase 2 of the plan), so the screenshots step will have nothing to paste until then.
+- Lesson worth adding to memory: GitHub's API returns bot logins without `[bot]`, so filter bot threads on the author type, not the login pattern. Want me to add it?</result>
+<usage><subagent_tokens>95850</subagent_tokens><tool_uses>15</tool_uses><duration_ms>127644</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>ac821352a0e22d94a</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/3e822f67-c2d4-492b-a356-2650a72feeb7/tasks/ac821352a0e22d94a.output</output-file>
+<status>completed</status>
+<summary>Agent "Phase 1.1/1.3/1.4 plumbing" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Phases 1.1, 1.3 and 1.4 are done, and I only edited the four files you named plus scratchpad files. Every requested check passed except shellcheck, which isn't installed.
+
+## Diffs vs backups (`~/.claude/backups/2026-09-23/`)
+
+**1.1 checkpoint**
+- **`template.md`:** new `## Approved plan` section after "Goal / scope agreement". It has a one-line note (written verbatim at gate 1, rewritten on re-approval, read by /create-pr), a Mermaid placeholder, per-file intent bullets and the literal line `ship_when_verified: no`. Then a new `## Interventions` section with `- [YYYY-MM-DD] &lt;what the human had to do&gt; — &lt;why the agent couldn't&gt;`.
+- **`SKILL.md`, step 4:**
+  - "Approved plan" is added to the digest list and "Interventions" to the accreting list.
+  - Approved plan is written only at gate 1, verbatim. `ship_when_verified` defaults to `no`, and the heading and line must not be renamed or reformatted because /create-pr parses them.
+  - Interventions are appended with the dated format.
+
+**1.3 `pr-comment-sweep.sh`** (+6/−2 lines)
+- Added `IGNORE_BOTS='^(vercel|supabase|linear-code)(\[bot\])?$'` after `REVIEW_BOTS`.
+- The per-author loop now works in this order: skip ignored bots; a match on `REVIEW_BOTS` or any other `[bot]` login gives `bot:$a`; everyone else gives `human:$a`.
+- The header comment gained one line saying other `[bot]` logins are reported.
+
+**1.4 `babysit/SKILL.md`**
+- "Bugbot" is replaced with Devin/Codex/Graphite.
+- Step 3 no longer carries the exit condition.
+- New step 4, "Encode the lesson", covering the encoding order, the three destinations, the ticket drafted through `dg-create-engineering-ticket` only after approval, waiting for your yes, and not re-proposing lessons already encoded.
+- New "Done when" line: mergeable, CI green, comments triaged, and all three bots have reviewed the head commit (review `commit_id` equals the head SHA, or their comments postdate the push). If ~30 min pass after the last push without that, it counts as done and reports which bots never posted.
+
+## Verification
+- **1.1:** I filled a toy plan in `scratchpad/toy_context.md`.
+  - `grep -A6 '## Approved plan'` printed the heading, note and Mermaid block.
+  - `grep -E '^ship_when_verified: (yes|no)$'` matched `ship_when_verified: yes` in the toy and `no` in the template.
+  - Nothing was written to the vault.
+- **1.3:**
+  - `bash -n` passes; shellcheck is not installed.
+  - I extracted the loop verbatim into `scratchpad/classify_test.sh`. The three review bots map to `bot:&lt;login&gt;`, `foo[bot]` to `bot:foo[bot]` and `mdroidian` to `human:mdroidian`. vercel, supabase, linear-code and your own login are ignored.
+  - Live `scan` with `PR_SWEEP_STATE=scratchpad/sweep-state` exited 0. PR 1442 shows `bot:devin-ai-integration[bot],human:mdroidian`. It also has vercel, supabase and linear-code comments (one each), and none of them appear. The only file written was `worktrees.map` in the temp dir; `ack` was never run.
+- **1.4:** I re-read the file and it hangs together. PR 1327 has one open Devin thread (id 3832222071) on `preflight.mjs:12`: the plugin folder is hardcoded as `discourse-graphs`, and Devin suggests `discourse-graph`.
+
+## Step-4 proposal it would produce
+&gt; The fix is to look up the plugin's folder from `app.plugins.manifests` (id `@discourse-graph/obsidian`) instead of hardcoding either name. Encoding: a **shared helper**, `resolvePluginDir(manifestId)`, used by preflight and the build-deliver step. Neither a type nor a lint rule can catch a wrong folder name. It's small and within #1327's scope, so it goes into this PR. Add it?
+
+Devin's suggested name may itself be wrong. Plan 3.3 says the folder really is `discourse-graphs`, so the step would reject swapping one hardcoded string for another.
+
+Nothing skipped. For the plan's `/checkpoint`-on-a-scratch-branch check I used a template copy instead, as you asked.</result>
+<usage><subagent_tokens>89298</subagent_tokens><tool_uses>22</tool_uses><duration_ms>127994</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>a8b2e439d1cfbde62</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/3e822f67-c2d4-492b-a356-2650a72feeb7/tasks/a8b2e439d1cfbde62.output</output-file>
+<status>completed</status>
+<summary>Agent "Phase 2 pr-evidence upload script" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Phase 2 is built and all five verification steps passed against `discourse-dev-graph`, page `Trang test/`. The image URLs are public: `200 image/png` with no cookies. The repo is unchanged; `git status` shows only the `packages/database/.gitignore` that was already there.
+
+**Files created**
+- `/Users/trang.doan/.claude/skills/pr-evidence/upload.ts`
+- `/Users/trang.doan/.claude/skills/pr-evidence/SKILL.md`: when to use, the command, what create-pr gets back, the page layout in Roam, and gotchas.
+
+**How it works**
+- **Invocation:** run from the worktree root with `./apps/roam/node_modules/.bin/tsx ~/.claude/skills/pr-evidence/upload.ts [--slot N] [--branch b] [--label l] [--harness h] [--out f] a.png=Caption ...`. I used this rather than `pnpm --filter roam exec tsx`, because pnpm exec switches to `apps/roam` and relative PNG paths then point at the wrong place. The pnpm form still works with absolute paths.
+- **Session code:** it loads the worktree's `apps/roam/scripts/playwright/roamSession.ts` by absolute path from `git rev-parse --show-toplevel`, with no copied code. Playwright comes in through that module, so the skill folder needs no dependencies of its own. It runs headless by default.
+- **Upload in the page:** the URL is read from the upload result using the same forms as `mirrorAssetToRoamStorage.ts`, re-inlined because code running inside the page can't import it.
+- **Defaults:** branch comes from git. The label defaults to `&lt;today&gt; · &lt;short sha&gt; · &lt;harness, default "manual"&gt;`.
+- **Slot fallback:** without `--slot` it tries each configured slot and moves on only when a profile is locked.
+- **Output:** JSON goes to stdout. The line `Markdown table: &lt;path&gt;` goes to stderr so stdout stays clean JSON. The table file defaults to `pr-evidence-&lt;runBlockUid&gt;.md` next to the first PNG.
+
+**Verification**
+1. I generated two 64×40 PNGs in the scratchpad (`smoke-a.png`, `smoke-b.png`).
+2. The upload with `--branch pr-evidence-smoke --label "2026-09-23 · smoke · manual"` returned page `LqgQbCoEO`, branch block `SiE_lwbPI`, run block `8hnsqUN7i` and two items, for example `https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-dev-graph%2FjaVTMBnHtW.png?alt=media&amp;token=39b4bd0e-…`.
+3. A readback from a fresh session (`scratchpad/readback.ts`, using q and pull) found one `Trang test/` page, then `pr-evidence-smoke`, then both run blocks, each with two `Caption ![](url)` children. So the writes persisted across sessions.
+4. `curl -sI` without cookies returned `HTTP/2 200` and `content-type: image/png` for both URLs, and the downloaded bytes are valid PNGs. That means the graph isn't encrypted and the URLs are safe to use in a PR body.
+5. The rerun reused the same branch block `SiE_lwbPI` and added a second run block `Tyoh_0e8H`, with no duplicate branch block.
+
+**Issues**
+- tsx wraps the in-page function's inner functions in `__name()`, which the browser doesn't have, and the first run failed with `ReferenceError: __name is not defined`. The fix is a one-line shim injected into the page before the upload; it's commented in the code and listed in the SKILL.md gotchas.
+- Only slot 1 is configured in `apps/roam/.env`, so the fallback to another slot on a lock was not exercised.
+- Roam has no "writes synced" signal, so the script waits 5 seconds after its writes before closing; `--settle-ms` changes that. The fresh-session readback confirmed nothing was lost.
+- The dev graph now holds four smoke images and the `pr-evidence-smoke` blocks. Uploads can't be rolled back, so I left them.
+- Profiles default to each worktree's own `local/roam-playwright/profiles/`, so a new worktree needs a first login unless `DG_ROAM_PLAYWRIGHT_PROFILE_DIR_&lt;n&gt;` is set.
+
+A lesson that might be worth adding to memory: when a function passed to `page.evaluate` runs under tsx, it needs the `__name` shim.</result>
+<usage><subagent_tokens>91485</subagent_tokens><tool_uses>17</tool_uses><duration_ms>164110</duration_ms></usage>
+</task-notification>
+
+---
+
+yes, add it to CLAUDE.md. and i updated Linear and Obsidian_verify_vaults
+
+---
+
+<task-notification>
+<task-id>a17f8ca39d3bfe4e8</task-id>
+<tool-use-id>toolu_01BwWnN1kfE7XL6hui6xcXud</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/3e822f67-c2d4-492b-a356-2650a72feeb7/tasks/a17f8ca39d3bfe4e8.output</output-file>
+<status>completed</status>
+<summary>Agent "Phase 3 Obsidian CDP verify skill" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Phase 3 is built and all eight checks passed. The ported ENG-2114 insert-link scenario passes 3/3 on current main after one selector fix: the search box is now a text-editable element, not an `&lt;input&gt;`. Obsidian is left running with the debug port, and the repo's git status is unchanged.
+
+**How to run it**, from the worktree root:
+```
+node ~/.claude/skills/dg-obsidian-cdp-verify/scripts/run.mjs --slot 1 --marker "&lt;str&gt;" --scenario a.mjs [--scenario b.mjs] [--skip-build]
+```
+It prints the `last-run.json` path, the timings, the `| Scenario | Input | Expected | Actual | Pass |` table and the screenshot args for pr-evidence. Exit codes: 0 all pass, 1 a scenario failed, 2 vault locked, 3 marker missing.
+
+**Checks**
+
+| # | Check | Result |
+|---|---|---|
+| 1 | Port the insert-link scenario | 3 scenarios pass: wikilink, markdown link, and the insert action absent with no note open. |
+| 2 | Obsidian running without the port | It quit Obsidian (pid 51094 → 84330), relaunched with the port and opened dgDevVault. Launch 1.6s, build 2.7s, total 5.1s. The scenarios failed on this run because of the selector drift; after the fix every later run passed. |
+| 3 | Run again | Attached without relaunching. Launch 0.33s, total 7.1s. |
+| 4 | Marker that doesn't exist | Deliver stopped with a clear "PREFLIGHT FAIL" message, exit 3. `run.mjs` stopped before any scenario and released the lock. |
+| 5 | Lock held by a fake live process | Doctor and `run.mjs` both exit 2 with "…being driven by pid 87226 on branch fake-other-run… Switch vault: rerun with --slot &lt;1..3&gt; other than 1." The run left the foreign lock alone; I removed my fake lock afterwards. |
+| 6 | Obsidian not running | Launched with the port, 3/3 pass. Launch 1.0s, total 8.7s. |
+| 7 | Upload through pr-evidence | Uploaded under `Trang test/` → `cdp-verify-smoke`. Table: `local/obsidian-cdp/artifacts/main/2026-09-23T21-18-26/pr-evidence-Qw6KPNRxs.md` |
+| 8 | Vault before/after | The only new file is `_verify/main/insert-link-scratch.md`; nothing was deleted. |
+
+The three uploaded screenshots:
+- [Insert wikilink](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-dev-graph%2FbIPRQj8Sjm.png?alt=media&amp;token=402773ef-9c73-4bac-a6ee-8e656a75f130)
+- [Insert markdown link](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-dev-graph%2FFY-m7f6RMR.png?alt=media&amp;token=408d315e-8a28-4cbe-b320-199d2010bbc5)
+- [Insert action absent](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-dev-graph%2FSRQtigdKdt.png?alt=media&amp;token=da4c6842-1645-46f4-981e-b611dff688d1)
+
+In check 8, some `.obsidian/*.json` files have newer timestamps: `app.json`, `types.json`, `core-plugins.json`, `community-plugins.json`, `appearance.json` and a dictionary plugin's `data.json`. The scenarios change the link settings temporarily; a follow-up run confirmed `app.json` is byte-identical before and after. The others are most likely rewritten by Obsidian on relaunch, though I had no before-copy to diff them against. `community-plugins.json` lists both `discourse-graphs` and `@discourse-graph/obsidian`; the stray folder name probably predates this work.
+
+**Things to know**
+- **Watcher warnings:** every run warned about the `eng-2279` worktree's watcher and the main checkout's own `scripts/dev.ts` watcher (pid 92351). The `main.js` hash stayed the same during every run, so no run was marked invalid.
+- **No foreign-build test:** I didn't plant another worktree's `main.js`. Check 4 hits the same preflight failure.
+- **dist output:** the one-shot build also writes `apps/obsidian/dist`, which is gitignored and can't be avoided with `build.ts`.
+- **#1327 fixes:** the preflight bug is fixed, since the plugin id and folder are now read from the manifests. #1327's driver used `ws.on(...)`, which fails on Node 22's built-in WebSocket; mine uses `addEventListener`, which works with both.
+- **Not done yet:** the plan also calls for a `--dry-run` create-pr body showing the table and URLs, and for shrinking the `reference_obsidian_cdp_driving.md` memory note to a pointer at the skill. I held back on editing memory; say if you want that change.
+- **Proposed CLAUDE.md lesson:** "When porting a UI verification scenario, re-derive its selectors from current source; the UI drifts."
+
+Files are in `/Users/trang.doan/.claude/skills/dg-obsidian-cdp-verify/`:
+- SKILL.md
+- scripts/config.mjs
+- scripts/doctor.mjs
+- scripts/launch.mjs
+- scripts/driver.mjs
+- scripts/deliver.mjs
+- scripts/harness.mjs
+- scripts/run.mjs
+- scripts/websocket.mjs
+- examples/insert-link-at-cursor.mjs</result>
+<usage><subagent_tokens>160157</subagent_tokens><tool_uses>46</tool_uses><duration_ms>467359</duration_ms></usage>
+</task-notification>
+
+---
+
+checkpoint this session
+
+---
+
+/mattpocock-skills:handoff write for a human instead of another agent. but for smo to understand now what the flow should look like. can use mermaid diagram to explain
+
+---
+
+yes, publish it as an artifact
+
+---
+
+I want to edit this HTML, how can I do it?
+
+---
+
+You want to add the screenshot to show them that the verification can show each test case for each branch and with the image verification.
+
+---
+
+how does /mattpocock-skills:tdd play with this flow? is it compatible? can i use it somewhere or it's good to modify it?

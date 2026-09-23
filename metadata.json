@@ -3,7 +3,7 @@
   "checkpoint_id": "01M385GX3NP1QPTJ9K30QK20TG",
   "strategy": "manual-commit",
   "branch": "eng-2272-show-candidate-nodes-as-results-in-advanced-node-search",
-  "checkpoints_count": 15,
+  "checkpoints_count": 39,
   "files_touched": [
     "apps/obsidian/src/components/NodeDisplayOptionsMenu.tsx",
     "apps/obsidian/src/components/NodeSearchModal.tsx",
@@ -36,20 +36,27 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 11979,
-    "cache_creation_tokens": 1429353,
-    "cache_read_tokens": 39710993,
-    "output_tokens": 183742,
-    "api_call_count": 215,
+    "input_tokens": 12157,
+    "cache_creation_tokens": 1743503,
+    "cache_read_tokens": 53714393,
+    "output_tokens": 281783,
+    "api_call_count": 297,
     "subagent_tokens": {
-      "input_tokens": 3478,
-      "cache_creation_tokens": 265352,
-      "cache_read_tokens": 1744375,
-      "output_tokens": 24824,
-      "api_call_count": 28
+      "input_tokens": 3770,
+      "cache_creation_tokens": 1044670,
+      "cache_read_tokens": 13853993,
+      "output_tokens": 139337,
+      "api_call_count": 174
     }
   }
 }
