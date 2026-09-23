@@ -179,3 +179,7 @@ hmm ok. update the agreed plan and /checkpoint . then implement with /tdd
 ---
 
 yes, go ahead
+
+---
+
+yes disable insert-link for candidates, then commit
