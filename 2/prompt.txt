@@ -1,0 +1,13 @@
+/roam-switch
+
+---
+
+start the dev watcher
+
+---
+
+If the image is created with the career builder, then we should follow the rules set out by the query builder rather than simply embedding the image inside the node as the first block. Uh, there must be an example that is used before in the code base, but let me know if this wasn't the case.
+
+---
+
+But in this case, I try to test and there is definitely a defined query builder. Uh, you can see right now with the live roll version uh, that there is defined that key image should live within heading one of the issue note type. However, the image was attached without being under H1 at all. And granted, this is a new node that is being created, but uh, do we need to like add the node template with H1 for it to get applied?
