@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M37GBBZ18TMSF086SVJA8AKC",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 7,
+  "files_touched": [
+    "apps/obsidian/src/utils/__tests__/importedNodeContent.test.ts",
+    "apps/roam/src/utils/__tests__/materializeSharedNode.test.ts",
+    "apps/roam/src/utils/__tests__/publishNodesToGroups.test.ts",
+    "apps/roam/src/utils/materializeSharedNode.ts",
+    "apps/website/public/docs/roam/dg-schema02.PNG"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 32,
+    "cache_creation_tokens": 63286,
+    "cache_read_tokens": 1200545,
+    "output_tokens": 9480,
+    "api_call_count": 16,
+    "subagent_tokens": {
+      "input_tokens": 72,
+      "cache_creation_tokens": 100261,
+      "cache_read_tokens": 2741896,
+      "output_tokens": 17101,
+      "api_call_count": 36
+    }
+  }
+}
