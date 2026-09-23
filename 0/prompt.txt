@@ -1,0 +1,5 @@
+/start [ENG-2312: Release mobile-supported DG obsidian](https://linear.app/discourse-graphs/issue/ENG-2312/release-mobile-supported-dg-obsidian)
+
+---
+
+is there a way to block certain code for mobile and certain code for desktop?
