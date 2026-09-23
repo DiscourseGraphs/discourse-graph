@@ -66,11 +66,8 @@ import {
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
-import {
-  discourseContext,
-  isAcceptedRelationSchema,
-  isPageUid,
-} from "~/components/canvas/Tldraw";
+import { discourseContext, isPageUid } from "~/components/canvas/Tldraw";
+import { isAcceptedRelationSchema } from "~/utils/relationSchemaAcceptance";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 /**

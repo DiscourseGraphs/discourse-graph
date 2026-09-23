@@ -8,10 +8,8 @@ import {
   DiscourseRelationShape,
   getRelationColor,
 } from "./DiscourseRelationUtil";
-import {
-  discourseContext,
-  isAcceptedRelationSchema,
-} from "~/components/canvas/Tldraw";
+import { discourseContext } from "~/components/canvas/Tldraw";
+import { isAcceptedRelationSchema } from "~/utils/relationSchemaAcceptance";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import { isRelationComplete } from "~/utils/isRelationComplete";
 import {

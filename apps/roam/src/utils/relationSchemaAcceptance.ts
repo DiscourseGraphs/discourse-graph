@@ -44,14 +44,13 @@ export const isProvisionalRelationSchema = (
 ): boolean =>
   readRelationSchemaImportMeta(relationSchemaUid)?.status === "provisional";
 
+export const isAcceptedRelationSchema = (relation: { id: string }): boolean =>
+  !isRelationSchemaDeleted(relation.id) &&
+  !isProvisionalRelationSchema(relation.id);
+
 export const excludeProvisionalRelationSchemas = <T extends { id: string }>(
   relations: T[],
-): T[] =>
-  relations.filter(
-    (relation) =>
-      !isRelationSchemaDeleted(relation.id) &&
-      !isProvisionalRelationSchema(relation.id),
-  );
+): T[] => relations.filter(isAcceptedRelationSchema);
 
 export const acceptImportedRelationSchema = async (
   relationSchemaUid: string,

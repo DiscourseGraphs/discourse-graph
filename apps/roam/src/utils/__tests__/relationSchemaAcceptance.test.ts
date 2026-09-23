@@ -6,10 +6,12 @@ import {
 import {
   acceptImportedRelationSchema,
   excludeProvisionalRelationSchemas,
+  isAcceptedRelationSchema,
   isProvisionalRelationSchema,
   readRelationSchemaImportMeta,
   RELATION_SCHEMA_STATUS_PROP_KEY,
 } from "~/utils/relationSchemaAcceptance";
+import { markRelationSchemaDeleted } from "~/utils/relationSchemaChanges";
 import type { json } from "~/utils/getBlockProps";
 
 vi.mock("~/utils/internalError", () => ({ default: vi.fn() }));
@@ -132,5 +134,21 @@ describe("excludeProvisionalRelationSchemas", () => {
       { id: "local-uid" },
       { id: "accepted-uid" },
     ]);
+  });
+});
+
+describe("isAcceptedRelationSchema", () => {
+  it("reads acceptance and deletion live, without a refresh step", async () => {
+    const schema = { id: "live-schema-uid" };
+    propsByUid.set(schema.id, {
+      [DISCOURSE_GRAPH_PROP_NAME]: importedFromProps,
+    });
+    expect(isAcceptedRelationSchema(schema)).toBe(false);
+
+    await acceptImportedRelationSchema(schema.id);
+    expect(isAcceptedRelationSchema(schema)).toBe(true);
+
+    markRelationSchemaDeleted(schema.id);
+    expect(isAcceptedRelationSchema(schema)).toBe(false);
   });
 });

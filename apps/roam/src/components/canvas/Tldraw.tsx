@@ -1,7 +1,4 @@
-import {
-  isRelationSchemaDeleted,
-  useRelationSchemaRevision,
-} from "~/utils/relationSchemaChanges";
+import { subscribeToRelationSchemaChanges } from "~/utils/relationSchemaChanges";
 import React, {
   useState,
   useRef,
@@ -58,7 +55,7 @@ import {
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
 import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
-import { isDiscourseNodeShape } from "./canvasUtils";
+import { hasAcceptedRelationSchema, isDiscourseNodeShape } from "./canvasUtils";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseRelations, {
   DiscourseRelation,
@@ -124,7 +121,6 @@ import posthog from "posthog-js";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { json, normalizeProps } from "~/utils/getBlockProps";
-import { isProvisionalRelationSchema } from "~/utils/relationSchemaAcceptance";
 import { onPageRefObserverChange } from "~/utils/pageRefObserverHandlers";
 
 declare global {
@@ -138,9 +134,6 @@ export type DiscourseContextType = {
   nodes: Record<string, DiscourseNode & { index: number }>;
   // { [Relation.Label] => DiscourseRelation[] }
   relations: Record<string, DiscourseRelation[]>;
-  // Imported, not-yet-accepted relation schemas; excluded from relation
-  // creation but kept in `relations` so existing shapes still render.
-  provisionalRelationIds: Set<string>;
   lastAppEvent: string;
   lastActions: HistoryEntry<TLRecord>[];
 };
@@ -148,14 +141,9 @@ export type DiscourseContextType = {
 export const discourseContext: DiscourseContextType = {
   nodes: {},
   relations: {},
-  provisionalRelationIds: new Set(),
   lastAppEvent: "",
   lastActions: [],
 };
-
-export const isAcceptedRelationSchema = (relation: { id: string }): boolean =>
-  !discourseContext.provisionalRelationIds.has(relation.id) &&
-  !isRelationSchemaDeleted(relation.id);
 
 let activeCanvasPageUid: string | null = null;
 let activeCanvasEditor: Editor | null = null;
@@ -791,34 +779,29 @@ const TldrawCanvasShared = ({
   const allRelationIds = useMemo(() => {
     return Object.keys(allRelationsById);
   }, [allRelationsById]);
-  const relationSchemaRevision = useRelationSchemaRevision();
   const registeredRelationNames = useMemo(
     () => [...new Set(allRelations.map((relation) => relation.label))],
     [allRelations],
   );
-  const allRelationNames = useMemo(() => {
-    discourseContext.provisionalRelationIds = new Set(
-      allRelations
-        .filter((r) => isProvisionalRelationSchema(r.id))
-        .map((r) => r.id),
-    );
-    return Object.entries(discourseContext.relations)
-      .filter(([, relations]) => relations.some(isAcceptedRelationSchema))
-      .map(([name]) => name);
-    // Acceptance and deletion invalidate the relation data stored outside React.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allRelations, relationSchemaRevision]);
-  useEffect(() => {
-    const editor = appRef.current;
-    if (!editor) return;
-    const tool = editor.getCurrentToolId();
-    if (
-      registeredRelationNames.includes(tool) &&
-      !allRelationNames.includes(tool)
-    ) {
-      editor.setCurrentTool("select");
-    }
-  }, [allRelationNames, registeredRelationNames]);
+  const allRelationNames = useMemo(
+    () => registeredRelationNames.filter(hasAcceptedRelationSchema),
+    [registeredRelationNames],
+  );
+  useEffect(
+    () =>
+      subscribeToRelationSchemaChanges(() => {
+        const editor = appRef.current;
+        if (!editor) return;
+        const tool = editor.getCurrentToolId();
+        if (
+          registeredRelationNames.includes(tool) &&
+          !hasAcceptedRelationSchema(tool)
+        ) {
+          editor.setCurrentTool("select");
+        }
+      }),
+    [registeredRelationNames],
+  );
   const allNodes = useMemo(() => {
     const allNodes = getDiscourseNodes();
     discourseContext.nodes = Object.fromEntries(
