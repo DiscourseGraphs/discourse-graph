@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M385GX3NP1QPTJ9K30QK20TG",
+  "strategy": "manual-commit",
+  "branch": "eng-2272-show-candidate-nodes-as-results-in-advanced-node-search",
+  "checkpoints_count": 10,
+  "files_touched": [
+    "apps/obsidian/src/components/NodeDisplayOptionsMenu.tsx",
+    "apps/obsidian/src/components/NodeSearchModal.tsx",
+    "apps/obsidian/src/components/NodeSortMenu.tsx",
+    "apps/obsidian/src/components/SearchDropdown.tsx",
+    "apps/obsidian/src/components/canvas/utils/openFileUtils.ts",
+    "apps/obsidian/src/services/QueryEngine.ts",
+    "apps/obsidian/src/services/__tests__/QueryEngine.test.ts",
+    "apps/obsidian/src/utils/tagNodeHandler.ts",
+    "apps/obsidian/src/utils/taggedLine.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 186,
+    "cache_creation_tokens": 186813,
+    "cache_read_tokens": 13583680,
+    "output_tokens": 71675,
+    "api_call_count": 91,
+    "subagent_tokens": {
+      "input_tokens": 36,
+      "cache_creation_tokens": 155599,
+      "cache_read_tokens": 965736,
+      "output_tokens": 11416,
+      "api_call_count": 18
+    }
+  }
+}
