@@ -262,13 +262,9 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase();
     if (!normalizedSearch) return availableNodes;
     return availableNodes.filter((node) =>
-      [
-        node.platform,
-        node.spaceName,
-        node.spaceUri,
-        node.title,
-        node.sourceLocalId,
-      ].some((value) => value.toLocaleLowerCase().includes(normalizedSearch)),
+      [node.spaceName, node.spaceUri, node.title].some((value) =>
+        value.toLocaleLowerCase().includes(normalizedSearch),
+      ),
     );
   }, [availableNodes, searchTerm]);
 
@@ -321,7 +317,6 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         newlyImportedRids.forEach((rid) => next.add(rid));
         return next;
       });
-      await importSharedRelations(client, spaceId, [...importedRids]);
       setImportResults(results);
       const failedImports = results.filter(isFailedSharedNodeImport);
       setSelectedRids(
@@ -340,6 +335,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           sendEmail: false,
         });
       }
+      await importSharedRelations(client, spaceId, [...importedRids]);
     } catch (importError) {
       internalError({
         error: importError,
