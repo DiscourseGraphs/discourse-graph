@@ -171,7 +171,7 @@ const AdvancedNodeSearchDialog = ({
     discourseNodes.map((node) => [node.type, node]),
   );
 
-  const results = useAdvancedNodeSearchResults({
+  const { results, isSearching } = useAdvancedNodeSearchResults({
     debouncedSearchTerm,
     selectedNodeTypeIds,
     sort,
@@ -291,7 +291,7 @@ const AdvancedNodeSearchDialog = ({
 
   const contentState = indexError
     ? "error"
-    : isIndexLoading
+    : isIndexLoading || isSearching
       ? "indexing"
       : !debouncedSearchTerm && selectedNodeTypeIds.length === 0
         ? "initial"
