@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  defaultShapeUtils,
   DefaultToolbar,
   DefaultToolbarContent,
   ErrorBoundary,
@@ -52,6 +51,8 @@ import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
 import { NodeCardContextMenu } from "./NodeCardContextMenu";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { CustomContextMenu } from "./CustomContextMenu";
+import { baseShapeUtils } from "~/components/canvas/shapes/baseShapeUtils";
+import { TextLinkDialog } from "~/components/canvas/TextLinkDialog";
 import {
   openFileInSidebar,
   openFileInNewTab,
@@ -106,7 +107,7 @@ export const TldrawPreviewComponent = ({
   });
 
   const customShapeUtils = [
-    ...defaultShapeUtils,
+    ...baseShapeUtils,
     createDiscourseNodeUtil({
       app: plugin.app,
       canvasFile: file,
@@ -464,6 +465,29 @@ export const TldrawPreviewComponent = ({
               },
             }}
             overrides={{
+              // Swap only edit-link's dialog; the menu item, icon, placement
+              // and eligibility gate stay stock.
+              actions: (editor, actions, helpers) => {
+                const editLink = actions["edit-link"];
+                if (editLink) {
+                  actions["edit-link"] = {
+                    ...editLink,
+                    onSelect: () => {
+                      // Mirrors the stock action's guards; without them the
+                      // dialog opens empty with nothing selected.
+                      if (!editor.getOnlySelectedShape()) return;
+                      if (editor.getCurrentToolId() !== "select") {
+                        editor.complete();
+                        editor.setCurrentTool("select");
+                        return;
+                      }
+                      editor.markHistoryStoppingPoint("edit-link");
+                      helpers.addDialog({ component: TextLinkDialog });
+                    },
+                  };
+                }
+                return actions;
+              },
               tools: (editor, tools) => {
                 tools["discourse-node"] = {
                   id: "discourse-node",

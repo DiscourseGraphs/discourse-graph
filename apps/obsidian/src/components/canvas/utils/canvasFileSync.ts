@@ -7,7 +7,7 @@ import {
   TLStoreSnapshot,
 } from "tldraw";
 import { TLDATA_DELIMITER_END, TLDATA_DELIMITER_START } from "~/constants";
-import { TLData } from "./tldraw";
+import { schemaBeforeAppMigrations, TLData } from "./tldraw";
 
 /**
  * The canvas data block of the backing markdown file as a tab last saw it.
@@ -66,7 +66,9 @@ export const readDocumentRecords = ({
 }): SerializedStore<TLRecord> | null => {
   const snapshot: TLStoreSnapshot = {
     store: toSerializedStore(data.raw.records),
-    schema: (data.raw.schema ?? store.schema.serialize()) as SerializedSchema,
+    schema:
+      (data.raw.schema as SerializedSchema | undefined) ??
+      schemaBeforeAppMigrations(store),
   };
   const migration = store.schema.migrateStoreSnapshot(snapshot);
   if (migration.type !== "success") return null;
