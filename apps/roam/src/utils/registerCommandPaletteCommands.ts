@@ -486,7 +486,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
   if (isSyncEnabled()) {
-    void addCommand("DG: Discover shared nodes", discoverSharedNodes);
+    void addCommand("DG: Import shared nodes", discoverSharedNodes);
   }
   if (isNodeSharingEnabled()) {
     void addCommand(
