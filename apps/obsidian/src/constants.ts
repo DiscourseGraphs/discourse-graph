@@ -115,7 +115,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ],
   showIdsInFrontmatter: false,
   nodesFolderPath: "",
-  canvasFolderPath: "Discourse Canvas",
+  canvasFolderPath: "",
   canvasAttachmentsFolderPath: "attachments",
   nodeTagHotkey: "\\",
   showHelpMenuStatusBarIcon: false,
