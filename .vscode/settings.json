@@ -4,5 +4,8 @@
   "prettier.prettierPath": "./node_modules/prettier",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "eslint.useFlatConfig": true,
-  "eslint.workingDirectories": [{ "mode": "auto" }]
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+  "eslint.rules.customizations": [
+    { "rule": "obsidianmd/*", "severity": "error" }
+  ]
 }
