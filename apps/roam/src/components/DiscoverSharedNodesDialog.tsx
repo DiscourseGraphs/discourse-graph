@@ -19,6 +19,7 @@ import createOverlayRender from "roamjs-components/util/createOverlayRender";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
 import { discoverSharedNodes } from "~/utils/discoverSharedNodes";
+import { getErrorMessage } from "~/utils/getErrorMessage";
 import {
   importSharedNodes,
   isFailedSharedNodeImport,
@@ -335,7 +336,16 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           sendEmail: false,
         });
       }
-      await importSharedRelations(client, spaceId, [...importedRids]);
+      await importSharedRelations(client, spaceId, [...importedRids]).catch(
+        (relationsError: unknown) =>
+          internalError({
+            error: relationsError,
+            type: IMPORT_ERROR_TYPE,
+            context: { operation: IMPORT_ERROR_OPERATION },
+            sendEmail: false,
+            userMessage: `The nodes were imported, but their relations were not: ${getErrorMessage(relationsError)}`,
+          }),
+      );
     } catch (importError) {
       internalError({
         error: importError,
@@ -368,9 +378,10 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
       title="Import shared nodes"
     >
       <div
-        className={[Classes.DIALOG_BODY, "flex min-h-0 flex-col gap-3"].join(
-          " ",
-        )}
+        className={[
+          Classes.DIALOG_BODY,
+          "flex min-h-0 flex-col gap-3 overflow-auto",
+        ].join(" ")}
       >
         <div className="flex items-center gap-2">
           <InputGroup
