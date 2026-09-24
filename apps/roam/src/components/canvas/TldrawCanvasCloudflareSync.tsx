@@ -1,11 +1,11 @@
 import { useSync } from "@tldraw/sync";
+import { baseShapeUtils } from "./baseShapeUtils";
 import {
   TLAnyBindingUtilConstructor,
   TLAnyShapeUtilConstructor,
   TLAssetStore,
   TLStoreWithStatus,
   defaultBindingUtils,
-  defaultShapeUtils,
   MigrationSequence,
 } from "tldraw";
 import { useMemo } from "react";
@@ -68,7 +68,7 @@ export const useCloudflareSyncStore = ({
 }): CloudflareCanvasStoreAdapterResult => {
   const assets = useMemo(() => createRoamAssetStore(), []);
   const shapeUtils = useMemo(
-    () => [...defaultShapeUtils, ...customShapeUtils],
+    () => [...baseShapeUtils, ...customShapeUtils],
     [customShapeUtils],
   );
   const bindingUtils = useMemo(
