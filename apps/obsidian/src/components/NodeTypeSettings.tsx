@@ -312,9 +312,9 @@ const TemplateField = ({
 
     importButton
       .setTooltip(importDisabledReason ?? "Import template from groups")
-      .setDisabled(!!disabled || !!importDisabledReason)
+      .setDisabled(!!importDisabledReason)
       .onClick(onImportClick);
-  }, [disabled, importDisabledReason, onImportClick]);
+  }, [importDisabledReason, onImportClick]);
 
   return (
     <div className="flex items-center justify-end gap-2">
@@ -855,6 +855,20 @@ const NodeTypeSettings = () => {
     if (editingRef.current) saveSettings(editingRef.current);
   };
 
+  const getTemplateImportDisabledReason = (): string | undefined => {
+    if (isEditingImported) return "Imported node types can't be edited.";
+    if (!templateConfig.isEnabled || !templateConfig.folderPath) {
+      return "Configure and enable the Obsidian templates plugin first.";
+    }
+    if (!editingNodeType?.name.trim()) {
+      return "Name this node type before importing shared templates.";
+    }
+    if (!plugin.settings.syncModeEnabled) {
+      return "Enable sync mode before importing shared templates.";
+    }
+    return undefined;
+  };
+
   const openTemplateImportPanel = async (): Promise<void> => {
     if (!editingNodeType) return;
 
@@ -993,13 +1007,7 @@ const NodeTypeSettings = () => {
             onImportClick={() => {
               void openTemplateImportPanel();
             }}
-            importDisabledReason={
-              !editingNodeType.name.trim()
-                ? "Name this node type before importing shared templates."
-                : !plugin.settings.syncModeEnabled
-                  ? "Enable sync mode before importing shared templates."
-                  : undefined
-            }
+            importDisabledReason={getTemplateImportDisabledReason()}
           />
         ) : fieldConfig.type === "color" ? (
           <ColorField
