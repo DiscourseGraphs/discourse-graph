@@ -24,8 +24,8 @@ const NodeTypeFilterRow = ({
   onSelectOnly: () => void;
   onToggle: () => void;
 }): ReactElement => (
-  <div className="hover:bg-modifier-hover group flex items-center gap-2 px-3 py-1.5">
-    <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+  <div className="hover:bg-modifier-hover group flex items-center gap-[var(--size-4-2)] px-[var(--size-4-3)] py-[var(--size-2-3)]">
+    <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-[var(--size-4-2)]">
       <input
         type="checkbox"
         checked={isChecked}
@@ -38,7 +38,9 @@ const NodeTypeFilterRow = ({
           className="h-3 w-3 shrink-0 rounded-full"
         />
       )}
-      <span className="text-normal truncate text-sm">{nodeType.name}</span>
+      <span className="text-normal truncate text-[length:var(--font-ui-small)]">
+        {nodeType.name}
+      </span>
     </label>
     <button
       type="button"
@@ -106,19 +108,19 @@ const NodeTypeFilterPanel = ({
           would sit checked-and-inert whenever no filter is active, since an empty
           selection and a full one are the same state. */}
       {isFilterActive && (
-        <div className="border-modifier-border border-b p-2">
+        <div className="border-modifier-border border-b p-[var(--size-4-2)] [border-bottom-style:solid]">
           <button
             type="button"
             onClick={() => onSelectedIdsChange([])}
             onMouseDown={(event) => event.preventDefault()}
-            className="w-full text-sm"
+            className="w-full"
           >
             {`Clear filter (${selectedIds.length})`}
           </button>
         </div>
       )}
       {showTypeSearch && (
-        <div className="border-modifier-border border-b p-2">
+        <div className="border-modifier-border border-b p-[var(--size-4-2)] [border-bottom-style:solid]">
           <input
             ref={searchRef}
             type="text"
@@ -129,9 +131,9 @@ const NodeTypeFilterPanel = ({
           />
         </div>
       )}
-      <div className="max-h-64 overflow-y-auto py-1">
+      <div className="max-h-64 overflow-y-auto py-[var(--size-4-1)]">
         {filteredNodeTypes.length === 0 ? (
-          <div className="text-muted p-4 text-center text-sm">
+          <div className="text-muted p-[var(--size-4-4)] text-center text-[length:var(--font-ui-small)]">
             No matching node types
           </div>
         ) : (

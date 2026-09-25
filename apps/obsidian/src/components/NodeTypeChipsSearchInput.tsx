@@ -73,7 +73,7 @@ const NodeTypeChipTag = ({
     onClick={onFocusChip}
     onKeyDown={onKeyDown}
     style={{ backgroundColor: chip.backgroundColor, color: chip.textColor }}
-    className={`mr-1 inline-flex select-none items-center gap-1 whitespace-nowrap rounded-full py-0.5 pl-2 pr-1 align-middle text-xs font-semibold ${
+    className={`mr-[var(--size-4-1)] inline-flex select-none items-center gap-[var(--size-4-1)] whitespace-nowrap rounded-full py-[var(--size-2-1)] pl-[var(--size-4-2)] pr-[var(--size-4-1)] align-middle text-[length:var(--font-ui-smaller)] font-semibold ${
       isFocused ? "outline-accent outline outline-2 outline-offset-1" : ""
     }`}
   >
@@ -262,7 +262,7 @@ export const NodeTypeChipsSearchInput = ({
     <div
       // A block box, not flex: chips and the query are inline siblings, so they flow as one sentence.
       // `border-solid` is required: with no `@tailwind base`, `border` sets width but no style.
-      className="border-modifier-border bg-modifier-form-field min-h-[calc(var(--font-ui-medium)*var(--line-height-tight)_+_12px)] min-w-0 flex-1 cursor-text rounded-[var(--input-radius)] border border-solid px-2 py-1 text-[length:var(--font-ui-medium)] leading-[var(--line-height-tight)] focus-within:border-[color:var(--background-modifier-border-focus)] hover:border-[color:var(--background-modifier-border-hover)]"
+      className="border-modifier-border bg-modifier-form-field min-h-[calc(var(--font-ui-medium)*var(--line-height-tight)_+_12px)] min-w-0 flex-1 cursor-text rounded-[var(--input-radius)] border border-solid px-[var(--size-4-2)] py-[var(--size-4-1)] text-[length:var(--font-ui-medium)] leading-[var(--line-height-tight)] focus-within:border-[color:var(--background-modifier-border-focus)] hover:border-[color:var(--background-modifier-border-hover)]"
       // Padding clicks only: elsewhere the browser has already placed the caret.
       onClick={(event) => {
         if (event.target === event.currentTarget) focusQuery();
@@ -301,7 +301,7 @@ export const NodeTypeChipsSearchInput = ({
       {!!bestPrefixMatch && (
         <span aria-hidden className="align-middle">
           <span className="text-muted">{completionSuffix}</span>
-          <kbd className="dg-search-footer-key ml-2">
+          <kbd className="dg-search-footer-key ml-[var(--size-4-2)]">
             {getHintKeys(["Tab"])[0]}
           </kbd>
         </span>
