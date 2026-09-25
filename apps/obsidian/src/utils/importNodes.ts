@@ -37,6 +37,7 @@ import {
 } from "./importedNodeContent";
 import { decorateTitle } from "@repo/database/lib/decorateTitle";
 import { buildSchemaRid, findLocalNodeTypeMatch } from "./schemaMatching";
+import { noteFileNameFromTitle } from "./noteFileName";
 
 type PublishedNode = {
   source_local_id: string;
@@ -1725,7 +1726,9 @@ const importNodes = async ({
           coreTitle !== undefined && localNodeType
             ? decorateTitle(localNodeType.format, coreTitle)
             : null;
-        const sanitizedFileName = sanitizeFileName(decoratedTitle ?? fileName);
+        const sanitizedFileName =
+          noteFileNameFromTitle(decoratedTitle ?? fileName) ||
+          node.nodeInstanceId;
         let finalFilePath: string;
 
         if (existingFile) {
