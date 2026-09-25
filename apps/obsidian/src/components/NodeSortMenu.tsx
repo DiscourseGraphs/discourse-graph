@@ -71,7 +71,7 @@ const DirectionToggle = ({
   sortDirection: SortDirection;
   sortKey: SortKey;
 }): ReactElement => (
-  <div className="border-modifier-border flex gap-[var(--size-4-1)] border-t p-[var(--size-4-2)]">
+  <div className="border-modifier-border flex gap-[var(--size-4-1)] border-t p-[var(--size-4-2)] [border-top-style:solid]">
     {DIRECTIONS.map(({ direction, label }) => (
       <div
         key={direction}

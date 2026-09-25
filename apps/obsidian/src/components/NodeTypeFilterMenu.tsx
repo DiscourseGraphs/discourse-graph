@@ -108,7 +108,7 @@ const NodeTypeFilterPanel = ({
           would sit checked-and-inert whenever no filter is active, since an empty
           selection and a full one are the same state. */}
       {isFilterActive && (
-        <div className="border-modifier-border border-b p-[var(--size-4-2)]">
+        <div className="border-modifier-border border-b p-[var(--size-4-2)] [border-bottom-style:solid]">
           <button
             type="button"
             onClick={() => onSelectedIdsChange([])}
@@ -120,7 +120,7 @@ const NodeTypeFilterPanel = ({
         </div>
       )}
       {showTypeSearch && (
-        <div className="border-modifier-border border-b p-[var(--size-4-2)]">
+        <div className="border-modifier-border border-b p-[var(--size-4-2)] [border-bottom-style:solid]">
           <input
             ref={searchRef}
             type="text"

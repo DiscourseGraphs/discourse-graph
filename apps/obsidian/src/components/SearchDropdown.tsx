@@ -91,7 +91,7 @@ export const SearchDropdown = ({
       </button>
       {isOpen && (
         <div
-          className={`border-modifier-border absolute right-0 top-full z-50 mt-[var(--size-4-1)] overflow-hidden rounded-[var(--radius-m)] border bg-primary shadow-[shadow:var(--shadow-s)] ${panelClassName}`}
+          className={`border-modifier-border absolute right-0 top-full z-50 mt-[var(--size-4-1)] overflow-hidden rounded-[var(--radius-m)] border border-solid bg-primary shadow-[shadow:var(--shadow-s)] ${panelClassName}`}
         >
           {children}
         </div>
