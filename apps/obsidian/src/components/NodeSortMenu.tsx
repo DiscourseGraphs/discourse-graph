@@ -46,7 +46,7 @@ const SortOptionRow = ({
     onClick={onSelect}
     onKeyDown={(event) => activateOnKey(event, onSelect)}
     onMouseDown={(event) => event.preventDefault()}
-    className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm ${
+    className={`flex cursor-pointer items-center gap-[var(--size-4-2)] px-[var(--size-4-3)] py-[var(--size-2-3)] text-[length:var(--font-ui-small)] ${
       isSelected
         ? "bg-accent text-on-accent"
         : "text-normal hover:bg-modifier-hover"
@@ -71,7 +71,7 @@ const DirectionToggle = ({
   sortDirection: SortDirection;
   sortKey: SortKey;
 }): ReactElement => (
-  <div className="border-modifier-border flex gap-1 border-t p-2">
+  <div className="border-modifier-border flex gap-[var(--size-4-1)] border-t p-[var(--size-4-2)]">
     {DIRECTIONS.map(({ direction, label }) => (
       <div
         key={direction}
@@ -82,7 +82,7 @@ const DirectionToggle = ({
         onClick={() => onSelect(direction)}
         onKeyDown={(event) => activateOnKey(event, () => onSelect(direction))}
         onMouseDown={(event) => event.preventDefault()}
-        className={`flex flex-1 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-sm ${
+        className={`flex flex-1 cursor-pointer items-center justify-center gap-[var(--size-4-1)] rounded-[var(--radius-s)] px-[var(--size-4-2)] py-[var(--size-4-1)] text-[length:var(--font-ui-small)] ${
           direction === sortDirection
             ? "bg-accent text-on-accent"
             : "text-normal hover:bg-modifier-hover"
@@ -131,8 +131,10 @@ export const NodeSortMenu = ({
       panelClassName="w-56"
       title={`Sort by ${getSortOptionLabel(sortKey)} — ${directionLabel}`}
     >
-      <div role="group" className="pb-1">
-        <div className="text-muted px-3 pb-1 pt-2 text-xs">Sort by</div>
+      <div role="group" className="pb-[var(--size-4-1)]">
+        <div className="text-muted px-[var(--size-4-3)] pb-[var(--size-4-1)] pt-[var(--size-4-2)] text-[length:var(--font-ui-smaller)]">
+          Sort by
+        </div>
         {SORT_OPTIONS.map((option) => (
           <SortOptionRow
             key={option.key}

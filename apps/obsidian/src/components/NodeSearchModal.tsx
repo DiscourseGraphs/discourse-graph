@@ -483,7 +483,7 @@ const NodeSearch = ({
     <div className="flex h-full flex-col" onKeyDown={handleKeyDown}>
       {/* Padded so a trigger's count badge is not clipped by the modal's overflow-hidden content. */}
       {/* Top-aligned: the field grows downwards, so the triggers stay on its first line. */}
-      <div className="flex items-start gap-2 px-1 pt-1">
+      <div className="flex items-start gap-[var(--size-4-2)] px-[var(--size-4-1)] pt-[var(--size-4-1)]">
         <NodeTypeChipsSearchInput
           inputRef={inputRef}
           nodeTypes={plugin.settings.nodeTypes}
