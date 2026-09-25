@@ -30,6 +30,7 @@ describe("crossAppNodeSchemaToDbConcept", () => {
       format: "[[CLM]] - {content}",
     });
     expect(concept.literal_content).toEqual({
+      label: "Some concept",
       format: "[[CLM]] - {content}",
     });
   });
@@ -42,15 +43,17 @@ describe("crossAppNodeSchemaToDbConcept", () => {
       templateTitle: "Claim template",
     });
     expect(concept.literal_content).toEqual({
+      label: "Some concept",
       format: "[[CLM]] - {content}",
       template: "Claim template",
       template_content: "* Evidence\n",
     });
   });
 
-  it("omits literal_content when no keys are set", () => {
+  it("writes the label into literal_content as well as the name", () => {
     const concept = crossAppNodeSchemaToDbConcept(baseSchema);
-    expect(concept.literal_content).toBeUndefined();
+    expect(concept.name).toBe("Some concept");
+    expect(concept.literal_content).toEqual({ label: "Some concept" });
   });
 
   it("stores slot definitions as roles plus local reference content", () => {
@@ -60,6 +63,7 @@ describe("crossAppNodeSchemaToDbConcept", () => {
       slotDefinitions: { evidence: "evidence-type", claim: "claim-type" },
     });
     expect(result.literal_content).toEqual({
+      label: "Some concept",
       template: "Template Title",
       roles: ["evidence", "claim"],
     });
@@ -74,7 +78,7 @@ describe("crossAppNodeSchemaToDbConcept", () => {
       ...baseSchema,
       slotDefinitions: {},
     });
-    expect(result).not.toHaveProperty("literal_content");
+    expect(result.literal_content).toEqual({ label: "Some concept" });
     expect(result).not.toHaveProperty("local_reference_content");
   });
 });

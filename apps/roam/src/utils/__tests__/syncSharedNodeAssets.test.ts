@@ -18,6 +18,8 @@ const mocks = vi.hoisted(() => ({
 // under test.
 vi.mock("~/utils/getDiscourseNodes", () => ({ default: () => [] }));
 vi.mock("~/utils/internalError", () => ({ default: vi.fn() }));
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("posthog-js", () => ({ default: { capture } }));
 vi.mock("~/components/settings/utils/accessors", () => ({
   isSyncEnabled: () => false,
 }));
@@ -42,7 +44,10 @@ vi.mock("~/utils/roamToCrossAppConverters", () => ({
   }),
 }));
 
-import { upsertSharedNodesFullContentWithAssets } from "~/utils/syncDgNodesToSupabase";
+import {
+  reportSharedNodeAssets,
+  upsertSharedNodesFullContentWithAssets,
+} from "~/utils/syncDgNodesToSupabase";
 
 const NODE_UID = "tgWb6JozF";
 const SECOND_IMAGE =
@@ -169,5 +174,29 @@ describe("upsertSharedNodesFullContentWithAssets", () => {
       "upsertFullContent",
       "publishSharedNodeAssets",
     ]);
+  });
+});
+
+describe("reportSharedNodeAssets", () => {
+  it("keeps the download token out of the failure event", () => {
+    reportSharedNodeAssets({
+      results: [
+        {
+          status: "failed",
+          sourceLocalId: NODE_UID,
+          sourceRef: IMAGE,
+          error: `Could not fetch asset (HTTP 500): ${IMAGE}`,
+        },
+      ],
+      retried: new Set([NODE_UID]),
+    });
+
+    const imagePath = IMAGE.split("?")[0];
+    expect(capture).toHaveBeenCalledWith("Sync shared node asset failed", {
+      sourceLocalId: NODE_UID,
+      sourceRef: imagePath,
+      error: `Could not fetch asset (HTTP 500): ${imagePath}`,
+      retryScheduled: true,
+    });
   });
 });

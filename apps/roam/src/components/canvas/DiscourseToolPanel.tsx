@@ -15,6 +15,8 @@ import { useAtom } from "@tldraw/state-react";
 import { TOOL_ARROW_ICON_SVG, NODE_COLOR_ICON_SVG } from "~/icons";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./Tldraw";
+import { hasAcceptedRelationSchema } from "./canvasUtils";
+import { useRelationSchemaRevision } from "~/utils/relationSchemaChanges";
 import {
   DEFAULT_STYLE_PROPS,
   DISCOURSE_NODE_SHAPE_TYPE,
@@ -76,7 +78,12 @@ const DiscourseGraphPanel = ({
     [editor],
   );
 
-  const uniqueRelations = useMemo(() => [...new Set(relations)], [relations]);
+  const relationSchemaRevision = useRelationSchemaRevision();
+  const uniqueRelations = useMemo(
+    () => [...new Set(relations)].filter(hasAcceptedRelationSchema),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [relations, relationSchemaRevision],
+  );
 
   const currentNodeTool = nodes.find((node) => node.type === currentToolId);
   const currentRelationTool = uniqueRelations.find(

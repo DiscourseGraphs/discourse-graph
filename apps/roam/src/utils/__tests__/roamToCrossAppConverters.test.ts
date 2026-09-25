@@ -221,6 +221,23 @@ describe("nodeSchemaToCrossApp format", () => {
   });
 });
 
+describe("nodeSchemaToCrossApp template", () => {
+  it("carries the template body, with no template title", () => {
+    const schema = convertSchema(
+      nodeSchema({ template: [{ text: "Question:" }] }),
+    );
+    expect(schema?.template).toBe("* Question:\n");
+    expect(schema?.templateTitle).toBeUndefined();
+  });
+
+  it.each([
+    ["no template", undefined],
+    ["an empty template", []],
+  ])("leaves the template out for %s", (_label, template) => {
+    expect(convertSchema(nodeSchema({ template }))?.template).toBeUndefined();
+  });
+});
+
 describe("nodeSchemaToCrossApp source slot", () => {
   it("adds a sourceDocument slot definition pointing at the Source node type", () => {
     mockedGetDiscourseNodes.mockReturnValue([

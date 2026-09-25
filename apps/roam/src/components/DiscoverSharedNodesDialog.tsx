@@ -5,17 +5,21 @@ import {
   Classes,
   Dialog,
   HTMLTable,
+  Icon,
   InputGroup,
   Intent,
   NonIdealState,
+  ProgressBar,
   Spinner,
-  Tag,
   Tooltip,
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import createOverlayRender from "roamjs-components/util/createOverlayRender";
+import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
 import { discoverSharedNodes } from "~/utils/discoverSharedNodes";
+import { getErrorMessage } from "~/utils/getErrorMessage";
 import {
   importSharedNodes,
   isFailedSharedNodeImport,
@@ -23,6 +27,13 @@ import {
 } from "~/utils/importSharedNodes";
 import { importSharedRelations } from "~/utils/importSharedRelations";
 import internalError from "~/utils/internalError";
+import {
+  DEFAULT_SHARED_NODE_SORT,
+  getNextSharedNodeSort,
+  sortSharedNodes,
+  type SharedNodeSort,
+  type SharedNodeSortColumn,
+} from "~/utils/sortSharedNodes";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 
 const IMPORT_ERROR_TYPE = "Shared node import failed";
@@ -33,13 +44,11 @@ const formatModifiedAt = (modifiedAt: string): string =>
 
 const SharedNodeRow = ({
   node,
-  alreadyImported,
   selected,
   selectionDisabled,
   onToggleSelected,
 }: {
   node: SharedNode;
-  alreadyImported: boolean;
   selected: boolean;
   selectionDisabled: boolean;
   onToggleSelected: () => void;
@@ -53,9 +62,6 @@ const SharedNodeRow = ({
         disabled={selectionDisabled}
         onChange={onToggleSelected}
       />
-    </td>
-    <td>
-      <Tag minimal>{node.platform}</Tag>
     </td>
     <td>
       <div className="max-w-52 font-medium [overflow-wrap:anywhere]">
@@ -77,39 +83,72 @@ const SharedNodeRow = ({
         {node.title}
       </div>
     </td>
-    <td>
-      {node.sourceLocalId ? (
-        <div
-          className={[Classes.MONOSPACE_TEXT, "max-w-44 truncate text-xs"].join(
-            " ",
-          )}
-          title={node.rid}
-        >
-          {node.sourceLocalId}
-        </div>
-      ) : (
-        <span className={Classes.TEXT_MUTED}>Not provided</span>
-      )}
-    </td>
     <td className="whitespace-nowrap" title={node.lastModified}>
       {formatModifiedAt(node.lastModified)}
-    </td>
-    <td>
-      {alreadyImported ? (
-        <Tag intent={Intent.SUCCESS} minimal>
-          Imported
-        </Tag>
-      ) : (
-        <Tag minimal>Available</Tag>
-      )}
     </td>
   </tr>
 );
 
+const SortableHeader = ({
+  label,
+  column,
+  sort,
+  onSort,
+}: {
+  label: string;
+  column: SharedNodeSortColumn;
+  sort: SharedNodeSort;
+  onSort: (column: SharedNodeSortColumn) => void;
+}): React.ReactElement => {
+  const isActive = sort.column === column;
+  return (
+    <th aria-sort={isActive ? sort.direction : "none"}>
+      <button
+        type="button"
+        className="flex w-full cursor-pointer items-center gap-1 border-0 bg-transparent p-0"
+        onClick={() => onSort(column)}
+      >
+        {label}
+        <Icon
+          icon={sort.direction === "descending" ? "sort-desc" : "sort-asc"}
+          iconSize={12}
+          className={isActive ? undefined : "invisible"}
+        />
+      </button>
+    </th>
+  );
+};
+
+const ImportedNodeLink = ({
+  pageUid,
+  onOpenInMainWindow,
+}: {
+  pageUid: string;
+  onOpenInMainWindow: () => void;
+}): React.ReactElement => (
+  <a
+    className="font-medium"
+    onClick={(event) => {
+      if (event.shiftKey) {
+        void openBlockInSidebar(pageUid);
+        return;
+      }
+      void window.roamAlphaAPI.ui.mainWindow.openPage({
+        page: { uid: pageUid },
+      });
+      onOpenInMainWindow();
+    }}
+  >
+    {getPageTitleByPageUid(pageUid)}
+  </a>
+);
+
 const ImportResultsSummary = ({
   results,
+  onOpenInMainWindow,
 }: {
   results: SharedNodeImportItem[];
+  onOpenInMainWindow: () => void;
 }) => {
   const importedCount = results.filter(
     (item) => item.status === "imported",
@@ -118,30 +157,39 @@ const ImportResultsSummary = ({
     (item) => item.status === "skipped",
   ).length;
   const failedImports = results.filter(isFailedSharedNodeImport);
-  const warnings = results.flatMap((item) =>
-    item.status !== "failed" && item.warning
-      ? [{ sharedNode: item.sharedNode, message: item.warning }]
-      : [],
+  const completedImports = results.flatMap((item) =>
+    item.status === "failed" ? [] : [item],
   );
-  const importNotices = [...failedImports, ...warnings];
+  const warningCount = completedImports.filter((item) => item.warning).length;
   return (
     <Callout
-      intent={importNotices.length > 0 ? Intent.WARNING : Intent.SUCCESS}
-      title={`${importedCount} imported, ${skippedCount} skipped, ${failedImports.length} failed${warnings.length > 0 ? `, ${warnings.length} with warnings` : ""}`}
+      intent={
+        failedImports.length > 0 || warningCount > 0
+          ? Intent.WARNING
+          : Intent.SUCCESS
+      }
+      title={`${importedCount} imported, ${skippedCount} skipped, ${failedImports.length} failed${warningCount > 0 ? `, ${warningCount} with warnings` : ""}`}
     >
       {skippedCount > 0 && (
         <div>Skipped nodes were already up to date in this graph.</div>
       )}
-      {importNotices.length > 0 && (
-        <ul className="mb-0 mt-2 list-disc pl-5">
-          {importNotices.map((item) => (
-            <li key={item.sharedNode.rid}>
-              <span className="font-medium">{item.sharedNode.title}</span>:{" "}
-              {item.message}
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="mb-0 mt-2 max-h-40 list-disc overflow-auto pl-5">
+        {failedImports.map((item) => (
+          <li key={item.sharedNode.rid}>
+            <span className="font-medium">{item.sharedNode.title}</span>:{" "}
+            {item.message}
+          </li>
+        ))}
+        {completedImports.map((item) => (
+          <li key={item.sharedNode.rid}>
+            <ImportedNodeLink
+              pageUid={item.pageUid}
+              onOpenInMainWindow={onOpenInMainWindow}
+            />
+            {item.warning && `: ${item.warning}`}
+          </li>
+        ))}
+      </ul>
     </Callout>
   );
 };
@@ -152,6 +200,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [sort, setSort] = useState<SharedNodeSort>(DEFAULT_SHARED_NODE_SORT);
   const [selectedRids, setSelectedRids] = useState<Set<string>>(new Set());
   const [spaceId, setSpaceId] = useState<number>(0);
   const [importProgress, setImportProgress] = useState<{
@@ -201,19 +250,24 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     void loadNodes();
   }, [loadNodes]);
 
+  const availableNodes = useMemo(
+    () =>
+      sortSharedNodes({
+        nodes: nodes.filter((node) => !importedRids.has(node.rid)),
+        sort,
+      }),
+    [importedRids, nodes, sort],
+  );
+
   const visibleNodes = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase();
-    if (!normalizedSearch) return nodes;
-    return nodes.filter((node) =>
-      [
-        node.platform,
-        node.spaceName,
-        node.spaceUri,
-        node.title,
-        node.sourceLocalId,
-      ].some((value) => value.toLocaleLowerCase().includes(normalizedSearch)),
+    if (!normalizedSearch) return availableNodes;
+    return availableNodes.filter((node) =>
+      [node.spaceName, node.spaceUri, node.title].some((value) =>
+        value.toLocaleLowerCase().includes(normalizedSearch),
+      ),
     );
-  }, [nodes, searchTerm]);
+  }, [availableNodes, searchTerm]);
 
   const visibleRids = visibleNodes.map((node) => node.rid);
   const allVisibleSelected =
@@ -238,6 +292,10 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     });
   };
 
+  const handleSort = (column: SharedNodeSortColumn): void => {
+    setSort((currentSort) => getNextSharedNodeSort({ currentSort, column }));
+  };
+
   const importSelectedNodes = async (): Promise<void> => {
     const selectedNodes = nodes.filter((node) => selectedRids.has(node.rid));
 
@@ -260,7 +318,6 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         newlyImportedRids.forEach((rid) => next.add(rid));
         return next;
       });
-      await importSharedRelations(client, spaceId, [...importedRids]);
       setImportResults(results);
       const failedImports = results.filter(isFailedSharedNodeImport);
       setSelectedRids(
@@ -279,6 +336,16 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           sendEmail: false,
         });
       }
+      await importSharedRelations(client, spaceId, [...importedRids]).catch(
+        (relationsError: unknown) =>
+          internalError({
+            error: relationsError,
+            type: IMPORT_ERROR_TYPE,
+            context: { operation: IMPORT_ERROR_OPERATION },
+            sendEmail: false,
+            userMessage: `The nodes were imported, but their relations were not: ${getErrorMessage(relationsError)}`,
+          }),
+      );
     } catch (importError) {
       internalError({
         error: importError,
@@ -302,15 +369,19 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
       canOutsideClickClose={!importing}
       enforceFocus={false}
       isCloseButtonShown={!importing}
-      style={{ width: "min(68rem, calc(100vw - 2rem))" }}
+      style={{
+        width: "min(68rem, calc(100vw - 2rem))",
+        height: "min(48rem, calc(100vh - 4rem))",
+      }}
       isOpen
       onClose={onClose}
-      title="Discover shared nodes"
+      title="Import shared nodes"
     >
       <div
-        className={[Classes.DIALOG_BODY, "flex min-h-72 flex-col gap-3"].join(
-          " ",
-        )}
+        className={[
+          Classes.DIALOG_BODY,
+          "flex min-h-0 flex-col gap-3 overflow-auto",
+        ].join(" ")}
       >
         <div className="flex items-center gap-2">
           <InputGroup
@@ -333,7 +404,23 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           </Tooltip>
         </div>
 
-        {importResults && <ImportResultsSummary results={importResults} />}
+        {importProgress ? (
+          <Callout
+            title={`Importing ${importProgress.current} of ${importProgress.total}…`}
+          >
+            <ProgressBar
+              intent={Intent.PRIMARY}
+              value={importProgress.current / importProgress.total}
+            />
+          </Callout>
+        ) : (
+          importResults && (
+            <ImportResultsSummary
+              onOpenInMainWindow={onClose}
+              results={importResults}
+            />
+          )
+        )}
 
         {loading ? (
           <div className="flex min-h-52 items-center justify-center">
@@ -351,7 +438,9 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
             <NonIdealState
               icon="search"
               title={
-                searchTerm ? "No matching shared nodes" : "No shared nodes"
+                searchTerm
+                  ? "No matching shared nodes"
+                  : "No shared nodes to import"
               }
             />
           </div>
@@ -370,12 +459,24 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
                       onChange={toggleAllVisibleSelected}
                     />
                   </th>
-                  <th>Source app</th>
-                  <th>Source space</th>
-                  <th>Title</th>
-                  <th>Source ID</th>
-                  <th>Modified</th>
-                  <th>Status</th>
+                  <SortableHeader
+                    label="Source space"
+                    column="spaceName"
+                    sort={sort}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    label="Title"
+                    column="title"
+                    sort={sort}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    label="Modified"
+                    column="lastModified"
+                    sort={sort}
+                    onSort={handleSort}
+                  />
                 </tr>
               </thead>
               <tbody>
@@ -383,7 +484,6 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
                   <SharedNodeRow
                     key={node.rid}
                     node={node}
-                    alreadyImported={importedRids.has(node.rid)}
                     onToggleSelected={() => toggleNodeSelected(node.rid)}
                     selected={selectedRids.has(node.rid)}
                     selectionDisabled={importing}
@@ -399,7 +499,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           <span className={[Classes.TEXT_MUTED, "text-xs"].join(" ")}>
             {loading || error
               ? ""
-              : `${visibleNodes.length} of ${nodes.length} nodes`}
+              : `${visibleNodes.length} of ${availableNodes.length} nodes`}
           </span>
           <div className="flex items-center gap-2">
             <Button disabled={importing} onClick={onClose}>
@@ -410,9 +510,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
               intent={Intent.PRIMARY}
               onClick={() => void importSelectedNodes()}
             >
-              {importProgress
-                ? `Importing ${importProgress.current} of ${importProgress.total}…`
-                : `Import selected (${selectedRids.size})`}
+              Import selected ({selectedRids.size})
             </Button>
           </div>
         </div>
