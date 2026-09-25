@@ -15,6 +15,7 @@ const Page = async ({
     token?: string;
     tokenError?: string;
     removeError?: string;
+    adminError?: string;
   }>;
 }) => {
   const { groupId } = await params;
@@ -62,6 +63,7 @@ const Page = async ({
           groupId={groupId}
           isAdmin={isAdmin}
           removeError={sp.removeError}
+          adminError={sp.adminError}
         />
         {isAdmin && (
           <GroupInvite
