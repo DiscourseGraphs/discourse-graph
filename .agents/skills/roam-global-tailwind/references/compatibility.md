@@ -2,7 +2,7 @@
 
 ## Scope and confidence
 
-This reference covers only `https://roamresearch.com/assets/css/tailwind.min.css`, not Tailwind CSS compiled by an extension.
+This reference covers only `https://roamresearch.com/assets/css/tailwind.min.css`, not Tailwind CSS compiled by an extension. It also notes rules in Roam's other stylesheets that change how a Tailwind class behaves.
 
 Verified snapshot:
 
@@ -56,4 +56,4 @@ Roam's global snapshot was not generated with Tailwind's `important` mode. A cla
 
 Scope such overrides to the extension and use them only when specificity or host styles require them.
 
-Roam's `assets/css/less-compiled/site.css` also defines `.flex { flex: 1 }`, so an element with the `flex` class grows like `flex-1` inside a flex container. Leave `flex` off Blueprint components that already set their display, such as `.bp3-button` (`inline-flex`). Add `flex-none` when a `flex` element must keep its content width; `tailwind.min.css` loads after `site.css`, so `flex-none` wins.
+Roam's `assets/css/less-compiled/site.css` also defines `.flex { flex: 1 }` (checked 2026-09-25), so an element with the `flex` class grows like `flex-1` inside a flex container. Leave `flex` off Blueprint components that already set their display, such as `.bp3-button` (`inline-flex`). Add `flex-none` when a `flex` element must keep its content width; `tailwind.min.css` loads after `site.css`, so `flex-none` wins.
