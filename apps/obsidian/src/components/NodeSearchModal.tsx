@@ -169,16 +169,17 @@ const PreviewPane = ({
   const taggedLine = result?.tagLine?.line;
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !loaded || renderedFile !== loaded.file) return;
+    // `loaded` still holds the previous note until the new file's read finishes.
+    if (!container || !loaded || !file || renderedFile !== file) return;
 
     const target =
       taggedLine === undefined
         ? null
         : findTaggedLineElement({
             container,
-            cache: app.metadataCache.getFileCache(loaded.file),
+            cache: app.metadataCache.getFileCache(file),
+            text: loaded.text,
             line: taggedLine,
-            sourceLine: loaded.text.split("\n")[taggedLine] ?? "",
           });
     // Same-note switches don't re-render, so an unlocated line would keep the last scroll.
     if (!target) {
@@ -193,7 +194,7 @@ const PreviewPane = ({
       target.removeEventListener("animationend", clearFlash);
       clearFlash();
     };
-  }, [app, loaded, renderedFile, taggedLine]);
+  }, [app, file, loaded, renderedFile, taggedLine]);
 
   if (!result || !file) {
     return (

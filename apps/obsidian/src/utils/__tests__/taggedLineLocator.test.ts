@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { ListItemCache, Pos, SectionCache } from "obsidian";
-import { locateTaggedLine, renderedLineText } from "~/utils/taggedLineLocator";
+import {
+  locateTaggedLine,
+  renderedLineText,
+  sectionsMatchText,
+} from "~/utils/taggedLineLocator";
 
 const pos = (
   startLine: number,
@@ -141,5 +145,59 @@ describe("renderedLineText", () => {
     expect(renderedLineText("Run `a **b** [[c]]` now")).toBe(
       "Run a **b** [[c]] now",
     );
+  });
+});
+
+describe("renderedLineText for table rows", () => {
+  it("joins the cells the way the rendered row reads", () => {
+    expect(renderedLineText("| **Alpha** | owner | #clm |")).toBe(
+      "Alpha owner #clm",
+    );
+    expect(renderedLineText("|  | b |")).toBe("b");
+  });
+});
+
+describe("sectionsMatchText", () => {
+  const text = "# Title\n\nfirst para\nsecond line\n";
+  const at = (line: number, col: number, offset: number) => ({
+    line,
+    col,
+    offset,
+  });
+  const fresh: SectionCache[] = [
+    { type: "heading", position: { start: at(0, 0, 0), end: at(0, 7, 7) } },
+    {
+      type: "paragraph",
+      position: { start: at(2, 0, 9), end: at(3, 11, 31) },
+    },
+  ];
+
+  it("accepts sections whose offsets line up with the text", () => {
+    expect(sectionsMatchText({ sections: fresh, text })).toBe(true);
+  });
+
+  it("rejects sections from before an edit that shifted the text", () => {
+    expect(sectionsMatchText({ sections: fresh, text: `Intro\n${text}` })).toBe(
+      false,
+    );
+  });
+
+  it("ignores empty EOF sections, whose offsets Obsidian reports one short", () => {
+    const eof = at(4, 0, 32);
+    const withEof: SectionCache[] = [
+      ...fresh,
+      { type: "text", position: { start: eof, end: eof } },
+    ];
+    expect(sectionsMatchText({ sections: withEof, text })).toBe(true);
+  });
+
+  it("rejects sections that point past the last line", () => {
+    const beyond: SectionCache[] = [
+      {
+        type: "paragraph",
+        position: { start: at(9, 0, 40), end: at(9, 1, 41) },
+      },
+    ];
+    expect(sectionsMatchText({ sections: beyond, text })).toBe(false);
   });
 });
