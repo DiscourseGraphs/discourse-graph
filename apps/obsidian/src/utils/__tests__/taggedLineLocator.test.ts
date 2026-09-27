@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { ListItemCache, SectionCache } from "obsidian";
+import type { ListItemCache, Pos, SectionCache } from "obsidian";
 import { locateTaggedLine, renderedLineText } from "~/utils/taggedLineLocator";
 
-const pos = (startLine: number, endLine: number, startOffset = startLine) => ({
+const pos = (
+  startLine: number,
+  endLine: number,
+  startOffset = startLine,
+): Pos => ({
   start: { line: startLine, col: 0, offset: startOffset },
   end: { line: endLine, col: 1, offset: startOffset + 1 },
 });
@@ -86,11 +90,11 @@ describe("locateTaggedLine", () => {
   });
 
   it("maps table lines to rows, skipping the separator line", () => {
-    const at = (line: number) =>
-      locateTaggedLine({ sections, listItems, line })?.item;
-    expect(at(14)).toEqual({ kind: "tr", index: 0, count: 3 });
-    expect(at(15)).toBeUndefined();
-    expect(at(17)).toEqual({ kind: "tr", index: 2, count: 3 });
+    const at = (line: number): ReturnType<typeof locateTaggedLine> =>
+      locateTaggedLine({ sections, listItems, line });
+    expect(at(14)?.item).toEqual({ kind: "tr", index: 0, count: 3 });
+    expect(at(15)?.item).toBeUndefined();
+    expect(at(17)?.item).toEqual({ kind: "tr", index: 2, count: 3 });
   });
 
   it("returns null for a line in no rendered block", () => {

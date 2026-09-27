@@ -6,7 +6,7 @@ import type {
 } from "obsidian";
 import { extractListPrefix } from "~/utils/taggedLine";
 
-export type TaggedLineTarget = {
+type TaggedLineTarget = {
   blockIndex: number;
   blockCount: number;
   item?: { kind: "li" | "tr"; index: number; count: number };
@@ -84,7 +84,8 @@ const stripInlineMarkdown = (text: string): string =>
     .replace(/(^|\W)_(\S(?:.*?\S)?)_(?!\w)/g, "$1$2");
 
 /**
- * The text Obsidian's renderer shows for one source line, minus footnote refs.
+ * The text Obsidian's renderer shows for one source line, minus footnote refs,
+ * embeds and comments.
  * Tags keep their `#`, as the rendered tag link does.
  */
 export const renderedLineText = (sourceLine: string): string => {

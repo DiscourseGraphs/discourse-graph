@@ -184,7 +184,7 @@ const PreviewPane = ({
     if (!target) return;
     target.scrollIntoView({ block: "center" });
     target.addClass(PREVIEW_FLASH_CLASS);
-    const clearFlash = () => target.removeClass(PREVIEW_FLASH_CLASS);
+    const clearFlash = (): void => target.removeClass(PREVIEW_FLASH_CLASS);
     target.addEventListener("animationend", clearFlash, { once: true });
     return () => {
       target.removeEventListener("animationend", clearFlash);
