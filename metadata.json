@@ -3,7 +3,7 @@
   "checkpoint_id": "01M3J9XJKH4F716WY3TM769TG4",
   "strategy": "manual-commit",
   "branch": "eng-2257-add-an-existing-discourse-relation-from-relation-menu",
-  "checkpoints_count": 2,
+  "checkpoints_count": 5,
   "files_touched": [
     "apps/obsidian/src/components/canvas/utils/relationTypeUtils.ts"
   ],
@@ -21,13 +21,27 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 0,
-    "cache_creation_tokens": 0,
-    "cache_read_tokens": 0,
-    "output_tokens": 0,
-    "api_call_count": 0
+    "input_tokens": 20,
+    "cache_creation_tokens": 10762,
+    "cache_read_tokens": 1186980,
+    "output_tokens": 4045,
+    "api_call_count": 7,
+    "subagent_tokens": {
+      "input_tokens": 20,
+      "cache_creation_tokens": 136968,
+      "cache_read_tokens": 488324,
+      "output_tokens": 612,
+      "api_call_count": 10
+    }
   }
 }

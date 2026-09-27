@@ -1,0 +1,7 @@
+{
+  "tool_use_id": "toolu_01GvDucDD8TxMykXBRXYfUy1",
+  "agent_id": "acf423d543cbd41a8",
+  "subagent_type": "general-purpose",
+  "task_description": "Run PR adherence check",
+  "started_at": "2026-09-27T16:44:29.89249-04:00"
+}
