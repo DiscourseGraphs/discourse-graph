@@ -3,7 +3,7 @@
   "checkpoint_id": "01M3J6HQZKQ6DYSAAWQW3F5CAH",
   "strategy": "manual-commit",
   "branch": "eng-2273-scroll-to-and-highlight-the-matched-line-when-previewing-a",
-  "checkpoints_count": 3,
+  "checkpoints_count": 4,
   "files_touched": [
     "apps/obsidian/src/components/NodeSearchModal.tsx"
   ],
@@ -21,13 +21,20 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 40,
-    "cache_creation_tokens": 65421,
-    "cache_read_tokens": 1634949,
-    "output_tokens": 11824,
-    "api_call_count": 20
+    "input_tokens": 54,
+    "cache_creation_tokens": 86437,
+    "cache_read_tokens": 2685799,
+    "output_tokens": 22172,
+    "api_call_count": 27
   }
 }
