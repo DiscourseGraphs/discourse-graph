@@ -245,3 +245,7 @@ yes fix them and run the full review
   - Flash cleanup when the effect re-runs.
   - The CSS scope (`dg-node-search-modal` is applied on `modalEl`).
 </agent-message>
+
+---
+
+yes apply the fix and commit
