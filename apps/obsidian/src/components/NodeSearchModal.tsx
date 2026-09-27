@@ -201,9 +201,11 @@ const NodeTypePill = ({
     style={{
       borderColor: badge.backgroundColor,
       backgroundColor: isCandidate ? "transparent" : badge.backgroundColor,
-      color: isCandidate ? "var(--text-normal)" : badge.textColor,
+      ...(isCandidate ? {} : { color: badge.textColor }),
     }}
-    className="w-full rounded-full border border-solid py-px text-center text-xs font-semibold"
+    className={`w-full rounded-full border border-solid py-px text-center text-xs font-semibold ${
+      isCandidate ? "text-normal" : ""
+    }`}
   >
     {badge.text}
   </span>
@@ -362,7 +364,7 @@ const NodeSearch = ({
       return;
     }
     let cancelled = false;
-    const load = async () => {
+    const load = async (): Promise<void> => {
       try {
         const candidates = await new QueryEngine(app).getCandidateNodes(
           plugin.settings.nodeTypes,
@@ -461,12 +463,12 @@ const NodeSearch = ({
   // Closes before opening: `close()` unmounts this React root, so the file and
   // app are read first and nothing touches state afterwards.
   const openActiveResult = (
-    open: (app: App, file: TFile, line?: number) => Promise<void>,
+    open: (app: App, file: TFile, options: { line?: number }) => Promise<void>,
   ): void => {
     if (!activeResult) return;
     const { file, tagLine } = activeResult;
     onClose();
-    void open(app, file, tagLine?.line).catch((error: unknown) => {
+    void open(app, file, { line: tagLine?.line }).catch((error: unknown) => {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Could not open ${file.basename}: ${message}`);
     });

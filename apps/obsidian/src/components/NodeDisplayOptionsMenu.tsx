@@ -1,7 +1,7 @@
 import type { App } from "obsidian";
 import type { ReactElement } from "react";
-import { activateOnKey } from "~/components/NodeSortMenu";
 import { SearchDropdown } from "~/components/SearchDropdown";
+import { activateOnKey } from "~/utils/keyboardHints";
 
 export const NodeDisplayOptionsMenu = ({
   app,
@@ -16,7 +16,7 @@ export const NodeDisplayOptionsMenu = ({
   onShowCandidatesChange: (showCandidates: boolean) => void;
   showCandidates: boolean;
 }): ReactElement => {
-  const toggle = () => onShowCandidatesChange(!showCandidates);
+  const toggle = (): void => onShowCandidatesChange(!showCandidates);
 
   return (
     <SearchDropdown

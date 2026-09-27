@@ -1,6 +1,7 @@
 import { App, setIcon } from "obsidian";
-import type { KeyboardEvent, ReactElement } from "react";
+import type { ReactElement } from "react";
 import { SearchDropdown } from "~/components/SearchDropdown";
+import { activateOnKey } from "~/utils/keyboardHints";
 import {
   SORT_OPTIONS,
   getDefaultDirectionForKey,
@@ -15,16 +16,6 @@ const DIRECTIONS: { direction: SortDirection; label: string }[] = [
   { direction: "asc", label: "Asc" },
   { direction: "desc", label: "Desc" },
 ];
-
-// Rows are divs, so Enter and Space have to be wired up the way a button gets them free.
-export const activateOnKey = (
-  event: KeyboardEvent<HTMLDivElement>,
-  activate: () => void,
-): void => {
-  if (event.key !== "Enter" && event.key !== " ") return;
-  event.preventDefault();
-  activate();
-};
 
 const getDirectionIconName = (direction: SortDirection): string =>
   direction === "asc" ? "arrow-up-narrow-wide" : "arrow-down-wide-narrow";

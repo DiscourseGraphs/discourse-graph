@@ -116,9 +116,10 @@ export class QueryEngine {
       for (const tagCache of this.app.metadataCache.getFileCache(file)?.tags ??
         []) {
         const match = nodeTypeByTag.get(tagCache.tag.slice(1).toLowerCase());
+        if (!match) continue;
         const line = tagCache.position.start.line;
-        const key = `${line}:${match?.nodeType.id}`;
-        if (!match || seen.has(key)) continue;
+        const key = `${line}:${match.nodeType.id}`;
+        if (seen.has(key)) continue;
         seen.add(key);
         hits.push({ line, ...match });
       }
@@ -798,8 +799,10 @@ const filterCandidatesByNodeTypeIds = (
   return candidates.filter((candidate) => selected.has(candidate.nodeTypeId));
 };
 
-const nodesFirst = (a: DiscourseNodeCandidate, b: DiscourseNodeCandidate) =>
-  Number(!!a.tagLine) - Number(!!b.tagLine);
+const nodesFirst = (
+  a: DiscourseNodeCandidate,
+  b: DiscourseNodeCandidate,
+): number => Number(!!a.tagLine) - Number(!!b.tagLine);
 
 /**
  * Best match first, uncapped — capping is the caller's, so a later re-sort orders the

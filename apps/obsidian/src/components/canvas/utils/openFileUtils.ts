@@ -88,7 +88,7 @@ export const openFileInSidebar = async (
 export const openFileInNewTab = async (
   app: App,
   file: TFile,
-  line?: number,
+  { line }: { line?: number } = {},
 ): Promise<void> => {
   const leaf = app.workspace.getLeaf("tab");
   await leaf.openFile(
@@ -101,7 +101,7 @@ export const openFileInNewTab = async (
 export const openFileInNewLeaf = async (
   app: App,
   file: TFile,
-  line?: number,
+  { line }: { line?: number } = {},
 ): Promise<void> => {
   const leaf = app.workspace.getLeaf("split");
   await leaf.openFile(
