@@ -170,18 +170,21 @@ const PreviewPane = ({
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !loaded || renderedFile !== loaded.file) return;
-    if (taggedLine === undefined) {
+
+    const target =
+      taggedLine === undefined
+        ? null
+        : findTaggedLineElement({
+            container,
+            cache: app.metadataCache.getFileCache(loaded.file),
+            line: taggedLine,
+            sourceLine: loaded.text.split("\n")[taggedLine] ?? "",
+          });
+    // Same-note switches don't re-render, so an unlocated line would keep the last scroll.
+    if (!target) {
       container.scrollTop = 0;
       return;
     }
-
-    const target = findTaggedLineElement({
-      container,
-      cache: app.metadataCache.getFileCache(loaded.file),
-      line: taggedLine,
-      sourceLine: loaded.text.split("\n")[taggedLine] ?? "",
-    });
-    if (!target) return;
     target.scrollIntoView({ block: "center" });
     target.addClass(PREVIEW_FLASH_CLASS);
     const clearFlash = (): void => target.removeClass(PREVIEW_FLASH_CLASS);
