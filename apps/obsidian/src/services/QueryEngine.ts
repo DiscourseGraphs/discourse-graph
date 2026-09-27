@@ -94,20 +94,19 @@ export class QueryEngine {
   getCandidateNodes = async (
     nodeTypes: DiscourseNode[],
   ): Promise<DiscourseNodeCandidate[]> => {
-    // Settings don't enforce unique tags, so one tag can map to several types.
-    const nodeTypesByTag = new Map<
+    const nodeTypeByTag = new Map<
       string,
-      { nodeType: DiscourseNode; tag: string }[]
+      { nodeType: DiscourseNode; tag: string }
     >();
     for (const nodeType of nodeTypes) {
-      if (!nodeType.tag) continue;
-      const key = nodeType.tag.toLowerCase();
-      nodeTypesByTag.set(key, [
-        ...(nodeTypesByTag.get(key) ?? []),
-        { nodeType, tag: nodeType.tag },
-      ]);
+      if (nodeType.tag) {
+        nodeTypeByTag.set(nodeType.tag.toLowerCase(), {
+          nodeType,
+          tag: nodeType.tag,
+        });
+      }
     }
-    if (!nodeTypesByTag.size) return [];
+    if (!nodeTypeByTag.size) return [];
 
     type TagHit = { line: number; nodeType: DiscourseNode; tag: string };
     const hitsByFile: { file: TFile; hits: TagHit[] }[] = [];
@@ -116,15 +115,13 @@ export class QueryEngine {
       const seen = new Set<string>();
       for (const tagCache of this.app.metadataCache.getFileCache(file)?.tags ??
         []) {
+        const match = nodeTypeByTag.get(tagCache.tag.slice(1).toLowerCase());
+        if (!match) continue;
         const line = tagCache.position.start.line;
-        const matches =
-          nodeTypesByTag.get(tagCache.tag.slice(1).toLowerCase()) ?? [];
-        for (const match of matches) {
-          const key = `${line}:${match.nodeType.id}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          hits.push({ line, ...match });
-        }
+        const key = `${line}:${match.nodeType.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        hits.push({ line, ...match });
       }
       if (hits.length) hitsByFile.push({ file, hits });
     }

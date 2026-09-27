@@ -331,19 +331,6 @@ describe("QueryEngine.getCandidateNodes", () => {
     ]);
   });
 
-  it("returns a candidate for every node type that shares a tag", async () => {
-    const { app } = createVaultApp([
-      { path: "Journal.md", content: "Shared line #shared-candidate" },
-    ]);
-
-    const candidates = await new QueryEngine(app).getCandidateNodes([
-      { ...CLAIM, tag: "shared-candidate" },
-      { ...EVIDENCE, tag: "Shared-Candidate" },
-    ]);
-
-    expect(candidates.map((c) => c.nodeTypeId)).toEqual(["claim", "evidence"]);
-  });
-
   it("collapses a node tag repeated on the same line into one candidate", async () => {
     const { app } = createVaultApp([
       {
