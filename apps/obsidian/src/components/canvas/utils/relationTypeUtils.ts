@@ -1,7 +1,10 @@
 import type { Editor, TLShape, TLShapeId, VecLike } from "tldraw";
 import type { DiscourseNodeShape } from "~/components/canvas/shapes/DiscourseNodeShape";
+import type DiscourseGraphPlugin from "~/index";
 import type { DiscourseRelation, DiscourseRelationType } from "~/types";
+import generateUid from "~/utils/generateUid";
 import { COLOR_PALETTE } from "~/utils/tldrawColors";
+import { isAcceptedSchema } from "~/utils/typeUtils";
 
 export const isDiscourseNodeShape = (
   shape: TLShape | null | undefined,
@@ -138,6 +141,65 @@ export const getValidRelationTypesForNodePair = ({
   }
 
   return validTypes;
+};
+
+/**
+ * Returns the accepted relation types not yet valid for a node pair in either
+ * direction, which the "Add existing" picker offers.
+ */
+export const getAssociableRelationTypesForNodePair = ({
+  settings,
+  sourceNodeTypeId,
+  targetNodeTypeId,
+}: {
+  settings: RelationTypeSettings;
+  sourceNodeTypeId: string;
+  targetNodeTypeId: string;
+}): DiscourseRelationType[] =>
+  settings.relationTypes.filter((relationType) => {
+    if (!isAcceptedSchema(relationType)) return false;
+    const { direct, reverse } = getRelationDirection({
+      discourseRelations: settings.discourseRelations,
+      relationTypeId: relationType.id,
+      sourceNodeTypeId,
+      targetNodeTypeId,
+    });
+    return !direct && !reverse;
+  });
+
+/**
+ * Makes a relation type valid for a source → target node pair and saves it.
+ * Restores the previous relations if the save fails.
+ */
+export const associateRelationTypeWithNodePair = async ({
+  plugin,
+  relationTypeId,
+  sourceNodeTypeId,
+  targetNodeTypeId,
+}: {
+  plugin: DiscourseGraphPlugin;
+  relationTypeId: string;
+  sourceNodeTypeId: string;
+  targetNodeTypeId: string;
+}): Promise<DiscourseRelation> => {
+  const now = Date.now();
+  const relation: DiscourseRelation = {
+    id: generateUid("rel3"),
+    sourceId: sourceNodeTypeId,
+    destinationId: targetNodeTypeId,
+    relationshipTypeId: relationTypeId,
+    created: now,
+    modified: now,
+  };
+  const previousRelations = plugin.settings.discourseRelations;
+  plugin.settings.discourseRelations = [...previousRelations, relation];
+  try {
+    await plugin.saveSettings();
+  } catch (error) {
+    plugin.settings.discourseRelations = previousRelations;
+    throw error;
+  }
+  return relation;
 };
 
 /**
