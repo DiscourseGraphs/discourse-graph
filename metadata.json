@@ -3,9 +3,11 @@
   "checkpoint_id": "01M3J6HQZKQ6DYSAAWQW3F5CAH",
   "strategy": "manual-commit",
   "branch": "eng-2273-scroll-to-and-highlight-the-matched-line-when-previewing-a",
-  "checkpoints_count": 4,
+  "checkpoints_count": 11,
   "files_touched": [
-    "apps/obsidian/src/components/NodeSearchModal.tsx"
+    "apps/obsidian/src/components/NodeSearchModal.tsx",
+    "apps/obsidian/src/utils/__tests__/taggedLineLocator.test.ts",
+    "apps/obsidian/src/utils/taggedLineLocator.ts"
   ],
   "sessions": [
     {
@@ -28,13 +30,27 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 54,
-    "cache_creation_tokens": 86437,
-    "cache_read_tokens": 2685799,
-    "output_tokens": 22172,
-    "api_call_count": 27
+    "input_tokens": 136,
+    "cache_creation_tokens": 139467,
+    "cache_read_tokens": 10430553,
+    "output_tokens": 50972,
+    "api_call_count": 65,
+    "subagent_tokens": {
+      "input_tokens": 24,
+      "cache_creation_tokens": 290600,
+      "cache_read_tokens": 1416830,
+      "output_tokens": 1337,
+      "api_call_count": 12
+    }
   }
 }
