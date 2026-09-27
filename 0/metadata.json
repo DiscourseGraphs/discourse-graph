@@ -1,0 +1,381 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3GD0DXCEN0YT67XV9CWFN2N",
+  "session_id": "497ad028-c9de-4d45-a105-68b6b12aec9f",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-27T03:02:19.425446587Z",
+  "branch": "main",
+  "checkpoints_count": 32,
+  "save_step_count": 32,
+  "files_touched": [
+    "apps/obsidian/src/utils/__tests__/repro-DEL-04.test.ts",
+    "apps/obsidian/src/utils/__tests__/repro-REL-15.test.ts",
+    "apps/roam/src/utils/__tests__/repro-REL-10.test.ts",
+    "apps/roam/src/utils/__tests__/repro-REL-11.test.ts",
+    "apps/roam/src/utils/__tests__/repro-REL-13.test.ts",
+    "apps/roam/src/utils/__tests__/repro-UPD-04.test.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5[1m]",
+  "turn_id": "d82890b7e0cd",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 584,
+    "cache_creation_tokens": 1129413,
+    "cache_read_tokens": 129578668,
+    "output_tokens": 356937,
+    "api_call_count": 277,
+    "subagent_tokens": {
+      "input_tokens": 926,
+      "cache_creation_tokens": 1893575,
+      "cache_read_tokens": 49686199,
+      "output_tokens": 25892,
+      "api_call_count": 463
+    }
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_011rJKrvx19gcjQqj2EFRupV",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d82890b7e0cd",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 579,
+        "end": 580,
+        "entry_ids": [
+          "dcd30916-59a0-43ab-a5dc-0ba30bc007ad"
+        ],
+        "tool_use_id": "toolu_011rJKrvx19gcjQqj2EFRupV"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_011rJKrvx19gcjQqj2EFRupV"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01NfU2n15zuDRsgjNZficR8J",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "artifact-design"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d82890b7e0cd",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 818,
+        "end": 819,
+        "entry_ids": [
+          "1c2d7c7d-bbff-46d0-ada1-77dc9745e4a4"
+        ],
+        "tool_use_id": "toolu_01NfU2n15zuDRsgjNZficR8J"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01NfU2n15zuDRsgjNZficR8J"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: artifact-design",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01BoXfXT2J9dgRW4fvsd2Wk1",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "artifact-capabilities"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d82890b7e0cd",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1881,
+        "end": 1882,
+        "entry_ids": [
+          "a70c0033-56ed-4d8f-a374-9f1154db4ace"
+        ],
+        "tool_use_id": "toolu_01BoXfXT2J9dgRW4fvsd2Wk1"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01BoXfXT2J9dgRW4fvsd2Wk1"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: artifact-capabilities",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 32
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-27T03:02:19.173070118Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 2830,
+    "total_committed": 0,
+    "total_lines_changed": 2830,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 2830,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/obsidian/src/utils/__tests__/repro-DEL-04.test.ts": 550,
+        "apps/obsidian/src/utils/__tests__/repro-REL-15.test.ts": 290,
+        "apps/roam/src/utils/__tests__/repro-REL-10.test.ts": 390,
+        "apps/roam/src/utils/__tests__/repro-REL-11.test.ts": 289,
+        "apps/roam/src/utils/__tests__/repro-REL-13.test.ts": 423,
+        "apps/roam/src/utils/__tests__/repro-UPD-04.test.ts": 888
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 13,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 14,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 15,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 16,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 17,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 18,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 19,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 20,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 21,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 22,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 23,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 24,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 25,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 26,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 27,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 28,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 29,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 30,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 31,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 32,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2830,
+      "agent_lines_removed": 0
+    }
+  ]
+}

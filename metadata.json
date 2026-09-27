@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3GD0DXCEN0YT67XV9CWFN2N",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 32,
+  "files_touched": [
+    "apps/obsidian/src/utils/__tests__/repro-DEL-04.test.ts",
+    "apps/obsidian/src/utils/__tests__/repro-REL-15.test.ts",
+    "apps/roam/src/utils/__tests__/repro-REL-10.test.ts",
+    "apps/roam/src/utils/__tests__/repro-REL-11.test.ts",
+    "apps/roam/src/utils/__tests__/repro-REL-13.test.ts",
+    "apps/roam/src/utils/__tests__/repro-UPD-04.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 584,
+    "cache_creation_tokens": 1129413,
+    "cache_read_tokens": 129578668,
+    "output_tokens": 356937,
+    "api_call_count": 277,
+    "subagent_tokens": {
+      "input_tokens": 926,
+      "cache_creation_tokens": 1893575,
+      "cache_read_tokens": 49686199,
+      "output_tokens": 25892,
+      "api_call_count": 463
+    }
+  }
+}
