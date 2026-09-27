@@ -1,0 +1,199 @@
+Show candidate nodes. start planning.
+i had some problems with the draft PR from John:
+
+* the visual design is very cluttering: i think the flushing for either candidate or actual node should be the same. right now the different left margin makes it look quite messy
+* no visual separation of candidate nodes vs real nodes
+* no idea how this is doing the sorting. are we prioritizing candidate nodes before real node? just pure minisearch/semantic?
+
+you can use /mattpocock-skills:prototype to propose new design for this challenge
+
+---
+
+<task-notification>
+<task-id>a122b576ee97113f7</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/0126bbf9-c515-4274-91fd-18f8da370117/tasks/a122b576ee97113f7.output</output-file>
+<status>completed</status>
+<summary>Agent "Analyze John's draft PR 1448" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>The candidate feature is a small, self-contained change, but its sorting is naive: tagged lines are just added to the candidate list and fuzzy-scored exactly like node titles. The feature diff is `gh pr diff 1448`, 325+/14−. Refs below use the form `file:line-in-PR-head`. The branch has two feature commits (f8d9e027b, then c044bea97, which fixed the Devin findings). It is stacked on other unmerged ENG-2181/2263/2264 work, so `main...head` shows 11 files.
+
+**1. Sorting and ranking**
+- **Merge:** `NodeSearchModal.tsx:457-466` appends tag candidates after the node candidates (`[...candidateState.candidates, ...tagCandidates]`) and passes the combined list to the existing `rankDiscourseNodesByTitle`. There is no special weighting, no section and no interleaving logic.
+- **Scoring:** Obsidian's `prepareFuzzySearch` runs against `title`. For a candidate, the title is the cleaned-up line text. Nodes and candidates share one score scale.
+- **Ties:** the sort is stable, so on equal scores nodes come before candidates.
+- **Empty query:** everything is sorted by `title.localeCompare` with score 0, so candidates mix alphabetically with nodes.
+- **Sort options** (`sortSearchResults`, unchanged):
+  - Relevance uses the fuzzy score.
+  - Title uses the cleaned-up line text.
+  - Date created and Date modified use the containing file's `ctime`/`mtime`, so every line from one file ties.
+  - Author uses the file's author.
+- **Truncation:** sorting happens before the `MAX_VISIBLE_RESULTS = 50` cut, so candidates can push nodes out of the top 50.
+
+**2. Scanning** (`QueryEngine.ts` `getDiscourseTagCandidates`, diff 444-496)
+- **Tag mapping:** a map from `nodeType.tag.toLowerCase()` to the node type.
+- **Finding lines:** it loops over `vault.getMarkdownFiles()` and reads `metadataCache.getFileCache(file).tags`, using `position.start.line` to locate each tag. Results are deduped by `(line, nodeTypeId)`. Only files with a match are read, via `cachedRead`, and a read failure skips that file.
+- **When:** once, on the first toggle-on (`NodeSearchModal.tsx` diff 214-248). The result is cached in component state for the modal's lifetime and is not refreshed on keystrokes. If the toggle goes off mid-scan, the guard resets so the next toggle-on scans again.
+- **Performance:** a single pass over the metadata cache (cheap), plus one read per file that has a match, awaited one at a time. There is no chunking or yielding.
+- **Title:** `sanitizeTagLine` (diff 411-430) strips list, blockquote and heading markers, wikilinks, markdown links, bold/italic and code, then removes **every** `#\S+` and collapses whitespace. Lines that end up empty are dropped.
+- **Subtitle:** `file.basename` in muted, smaller text (diff 181-185).
+
+**3. Rendering**
+- **Row container:** the row container's classes are unchanged, so candidate and regular rows have no margin, padding or indent difference.
+- **Title wrapper:** every row, candidate or not, now wraps the title in `&lt;div className="min-w-0 flex-1"&gt;`.
+- **Candidate markers:** the subtitle line, and a badge showing the full configured tag instead of the usual 3-character badge (diff 283-287). There is no icon, label or section header.
+- **Display options menu:** new `NodeDisplayOptionsMenu.tsx`, a `SearchDropdown` with a `sliders-horizontal` icon. `isActive` is set when the toggle is on. It holds one `ToggleRow` built from Obsidian's `checkbox-container mod-small`, with `role="switch"`, a mousedown `preventDefault` so the panel doesn't close, and Enter support. `SearchDropdownId` gains `"display-options"`. The toggle state is not persisted.
+
+**4. Opening**
+- `openActiveResult` passes `tagLine.lineNumber` along (diff 311-314).
+- `openFileInNewTab` and `openFileInNewLeaf` accept an optional `line` and call `leaf.openFile(file, { eState: { line } })` (`openFileUtils.ts`).
+- The in-modal preview does not jump to the line. That is deferred to ENG-2273, and the preview `resetKey` is still `file.path`.
+
+**5. Filters:** yes. `filterCandidatesByNodeTypeIds` runs on the combined list, so candidates are filtered by `nodeTypeId`. An empty selection shows all types.
+
+**6. Review comments**
+- Devin raised three issues: cancelled scans never restart, one unreadable file aborts the whole scan, and a repeated tag creates duplicate rows. Commit c044bea97 addresses all three in code, but the threads are unresolved.
+- Graphite's one open issue is real: cached candidates go stale if `plugin.settings.nodeTypes` changes after a successful scan, because the ref blocks a rescan.
+- The PR is a draft with scope-check and full-review boxes unchecked and the Loom pending.
+
+**7. Questionable or buggy**
+- The doc comment says candidates come from "a file that isn't itself that node", but nothing excludes them. A node file containing its own tag produces both a node row and a candidate row.
+- `sanitizeTagLine` has several problems:
+  - `#\S+` also strips non-node tags and URL fragments like `/page#anchor`.
+  - The `_` italic regex mangles `snake_case`: `foo_bar_baz` becomes `foobarbaz`.
+  - The sanitize comment points to `scrollToAndFlashLine`, which doesn't exist yet (it belongs to ENG-2273).
+- `console.error` in `QueryEngine` breaks the "no console in apps/obsidian" rule; a `Notice` is the expected pattern.
+- Files are read one at a time with no progress indicator, which could stall on large vaults.
+- Date and author sorts are meaningless within a single file, since all its lines share one value.
+- The `ToggleRow` doc comments run far past the 1–2 line comment rule, and several other comment blocks do too.</result>
+<usage><subagent_tokens>83075</subagent_tokens><tool_uses>7</tool_uses><duration_ms>62006</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>a8864eb6e6283839a</task-id>
+<tool-use-id>toolu_01P7VpC5uKdjUpUHyZGz1dyu</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/0126bbf9-c515-4274-91fd-18f8da370117/tasks/a8864eb6e6283839a.output</output-file>
+<status>completed</status>
+<summary>Agent "Map advanced search on main" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Nothing in the vault is scanned for tagged lines yet. The tag field already exists on node types, but search only finds files whose frontmatter has a `nodeTypeId`.
+
+Root: `/Users/trang.doan/Desktop/code/discourse-graph/.claude/worktrees/eng-2272-show-candidate-nodes-as-results-in-advanced-node-search/apps/obsidian/src`
+
+## 1. Entry point and UI
+- **Command:** `open-node-search` in `utils/registerCommands.ts:144-148` runs `new NodeSearchModal(app, plugin).open()`.
+- **Modal:** `components/NodeSearchModal.tsx:554-598` is an Obsidian `Modal` class that mounts a React root. It is sized with Tailwind classes (`h-[600px] w-[900px]`, `dg-node-search-modal`) at :570. When the modal is built, it records where the cursor is (`snapshotInsertTarget`, :563).
+- **Main component:** `NodeSearch` (:262). The toolbar is at :486-518, left to right:
+  - `NodeTypeChipsSearchInput`: a contenteditable span holding the query and type chips.
+  - `NodeTypeFilterMenu`
+  - `NodeSortMenu`
+- **Body:** the list is on the left, 2/5 wide (:519-539), and `PreviewPane` is on the right (:540). `NodeSearchFooter` sits below.
+- **Result row:** `ResultList` (:188-260). Each row:
+  - is a `div role="option"` keyed by `result.file.path` (:231);
+  - has classes `border-modifier-border flex cursor-pointer items-center gap-2 border-b px-3 py-2`, plus `bg-modifier-hover` on the active row (:239-241);
+  - shows a pill badge with inline background/text colours and `shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold` (:243-254);
+  - shows `HighlightedTitle` (:163-186), which uses Obsidian `renderResults(container, title, match)` with class `dg-search-result-title ... truncate`.
+- There is **no subtitle** and no left margin or indent.
+- **Badge:** `utils/nodeTypeBadge.ts:15-24`. The text is the first 3 characters, uppercased, of `nodeType.tag || nodeType.name`. `getFallbackNodeTypeBadge` (:26) uses the title's "XXX - " prefix.
+- **Preview:** `PreviewPane` (:85-161) reads the file with `vault.cachedRead(file)` and renders it with `MarkdownRenderer.render`. Its header shows the title, created/modified times and the author, all taken from the whole file. It always renders the full file.
+
+## 2. Search pipeline
+- **Fetch (once per open):** `QueryEngine.getDiscourseNodeCandidates()` in `services/QueryEngine.ts:75-90`. It uses `getFilesWithNodeTypeId()` (Datacore if installed, otherwise a vault scan) and keeps files with a frontmatter `nodeTypeId`. Called from `NodeSearchModal.tsx:313-323`.
+- **Types** (QueryEngine.ts:38-52):
+  - `DiscourseNodeCandidate = { file: TFile; title: string; nodeTypeId: string }`. `title` is `file.basename`, and the match offsets index into it.
+  - `RankedDiscourseNode = DiscourseNodeCandidate &amp; { match: SearchResult }`
+  - `SearchResultRow = RankedDiscourseNode &amp; { nodeType: { name, badge } }` (NodeSearchModal.tsx:75)
+- **Rank:** `rankDiscourseNodesByTitle({ candidates, query, nodeTypeIds })` (QueryEngine.ts:751-787).
+  - It first filters with `filterCandidatesByNodeTypeIds` (:738). An empty list means no filter.
+  - It then scores with Obsidian `prepareFuzzySearch` (:773), on titles only. There is no MiniSearch and no embeddings.
+  - An empty query returns every candidate A to Z with `score: 0`.
+  - The query is debounced 250ms (:62, :325).
+- **Sort:** `sortSearchResults` in `utils/discourseNodeSort.ts:117`. Options (:15-21): relevance, title, dateCreated, dateModified, author. Relevance defaults to desc.
+  - The date sorts use `file.stat.ctime/mtime`, and author sorts use `authorNameByPath` keyed by file path.
+  - It is generic over `SortableSearchResult = { file; title; match: { score } }` (:27).
+- The list is capped at 50 rows (`MAX_VISIBLE_RESULTS`, NodeSearchModal.tsx:61), after sorting (:333-372).
+- The type-filter panel helpers are in `utils/discourseNodeTypeFilter.ts`.
+
+## 3. Node type config and tag scanning
+- **Type:** `DiscourseNode` in `types.ts:5-20`. The field is `tag?: string`, with no `#`. There is also `shortcut?: string`.
+- **Defaults:** `constants.ts:21,30,39` set `clm-candidate`, `evd-candidate` and `src-candidate`. Question has no tag.
+- **Settings field:** `components/NodeTypeSettings.tsx:116-137` labels it "Node tag" and describes it as "Tags that signal a line is a node candidate". It only allows letters, numbers and dashes.
+- **Global setting:** `nodeTagHotkey` (`types.ts:70`, default `"\\"` at `constants.ts:120`) opens `NodeTagSuggestPopover` (`index.ts:326-368`).
+- **Existing tag code:** `utils/tagNodeHandler.ts` only works inside the open editor. It does not scan the vault.
+  - It colours tags using the CodeMirror syntax tree over `view.visibleRanges` (`tagNameFromSyntaxNode` :44, `buildTagStyleIndex` :142, `collectTaggedRanges` :156).
+  - It shows a hover tooltip on a tag (`DiscourseTagHoverController`, about :356).
+  - It converts a tagged line into a node file (`createNodeFromTag` :275). This replaces the line with a link and keeps any list prefix.
+  - Two helpers could be reused but are not exported: `titleFromTaggedLine` (:39), which strips `#tags` and list markers, and `sanitizeTitle` (:29).
+- There is **no** use of `getAllTags`, `metadataCache` `.tags`, or any other vault-wide tagged-line lookup. `BulkIdentifyDiscourseNodesModal` works from title patterns, not tags.
+
+## 4. Opening a result
+- `openActiveResult` (NodeSearchModal.tsx:405-415) closes the modal first, then calls `open(app, file)`.
+- `openFileInNewTab` and `openFileInNewLeaf` are in `components/canvas/utils/openFileUtils.ts:88-104`. They call `workspace.getLeaf("tab"|"split").openFile(file)` then `setActiveLeaf`. No line or eState is passed.
+- **Keys** (:442-478): Enter opens in a new tab, Shift+Enter in a split, and Cmd/Ctrl+Enter inserts a link at the saved cursor (`insertLinkAtInsertTarget`, `utils/editorInsertTarget.ts`).
+
+## 5. Toolbar menus and UI stack
+- **`components/SearchDropdown.tsx`:** a React popover, not the Obsidian `Menu` API.
+  - `SearchDropdownId = "type-filter" | "sort" | null` (:5). A single `openDropdown` state keeps only one panel open at a time (NodeSearchModal.tsx:281, :417-427).
+  - The trigger is a `clickable-icon` button with `setIcon`, an `is-active` state and an optional count badge.
+  - The panel is `absolute right-0 top-full z-50 ... bg-primary`.
+  - It pushes an Obsidian `Scope` so Escape closes the panel, and closes on outside mousedown.
+- **Pattern to copy:** `components/NodeSortMenu.tsx`. It has `menuitemradio` div rows with a `check` icon and `bg-accent text-on-accent` when selected, plus an Asc/Desc toggle.
+- **Stack:** React 18 (`createRoot`, StrictMode), Tailwind classes mapped to Obsidian CSS variables (`text-muted`, `bg-modifier-hover`, `border-modifier-border`), and Obsidian `setIcon` for Lucide icons.
+- Obsidian `Menu` is only used for the file and editor context menus (`index.ts:200,258`) and `utils/helpMenu.ts`.
+- **Tests:** `services/__tests__/QueryEngine.test.ts`.</result>
+<usage><subagent_tokens>78481</subagent_tokens><tool_uses>15</tool_uses><duration_ms>70440</duration_ms></usage>
+</task-notification>
+
+---
+
+thanks for the ascii. that should be all we need at this stage. i'd prefer to go with option B one ranked list. i like the idea of visually distinguishing candidate nodes and actual nodes. just make sure we have the right flushing for all of them. 
+there must be a better way to query the candidate nodes than to scan the entire vault right? does datacore or obsidian provide any API for tag search?
+
+---
+
+problem is: candidate node tag is not 3 letter. it's unlimited really. but it should be smt like `clm-candidate` or `evd-candidate`(see screenshot above)
+
+yes, use datacore when available. but maybe optimize the query for the fallback. because this current implementation we'll have to O(NxM), N=number of node types, M=number of files. because we have to scan the entire vault already, just keep a record of all the candidates with one scan only -> sort it as we go/ detect
+
+---
+
+hmm i need a few other ideas on differing visual for candidates and actual nodes
+
+---
+
+actually i like your option 1. let's keep it filled vs outlined. i couldn't see the difference in ascii but it makes sense
+
+re datacore: by paragraph not detected you mean smt like this:
+
+line 1: blah blah blah blah
+change line here #candidate-node-tag
+
+what i want is similar to how we detect node tag to create node, which will only show "change line here". but you're saying datacore will return all paragraph, ie "line 1: blah blah blah blah \n change line here #candidate-node-tag"?
+
+---
+
+hmm ok. update the agreed plan and /checkpoint . then implement with /tdd
+
+---
+
+yes, go ahead
+
+---
+
+yes disable insert-link for candidates, then commit
+
+---
+
+run ci:validate and adherence check, then /create-pr
+
+---
+
+<task-notification>
+<task-id>b8q8t38d2</task-id>
+<tool-use-id>toolu_013s2AV7xxBs7HSkusLhMcHH</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/0126bbf9-c515-4274-91fd-18f8da370117/tasks/b8q8t38d2.output</output-file>
+<status>completed</status>
+<summary>Background command "Run repo-wide ci:validate" completed (exit code 0)</summary>
+</task-notification>
