@@ -181,7 +181,7 @@ export const associateRelationTypeWithNodePair = async ({
   relationTypeId: string;
   sourceNodeTypeId: string;
   targetNodeTypeId: string;
-}): Promise<DiscourseRelation> => {
+}): Promise<void> => {
   const now = Date.now();
   const relation: DiscourseRelation = {
     id: generateUid("rel3"),
@@ -199,7 +199,6 @@ export const associateRelationTypeWithNodePair = async ({
     plugin.settings.discourseRelations = previousRelations;
     throw error;
   }
-  return relation;
 };
 
 /**
