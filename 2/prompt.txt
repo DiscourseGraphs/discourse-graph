@@ -108,3 +108,8 @@ yes, start implementation
 </result>
 <usage><subagent_tokens>74949</subagent_tokens><tool_uses>7</tool_uses><duration_ms>69562</duration_ms></usage>
 </task-notification>
+
+---
+
+commit unit tests. remove that rule of mine now that we had obsidian testing infra.
+yes draft the comment for me to review
