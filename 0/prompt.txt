@@ -1,0 +1,5 @@
+what's the difference between claude skills vs claude rules?
+
+---
+
+move the figma reference stuff into a skill
