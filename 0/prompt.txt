@@ -1,0 +1,361 @@
+so we are in the last leg of work for "Push and pull nodes between roam and obsidian project" (you can pull the details from linear on it)  we have to do internal validation. 
+
+
+The goal is to find gaps in the work we did. We alredy ran one part of it found some bugs and fixed them. There are a few prs that are open for this project so to do the testing build on top of them so that you are testing the full work. 
+
+
+these are the notes we took on that day's testing 
+
+
+- During Meeting Notes
+    - Run through a test
+        - {{[[DONE]]}} [ENG-2280: Run the asset stage when the sync re-uploads a shared node's content​](https://linear.app/discourse-graphs/issue/ENG-2280/run-the-asset-stage-when-the-sync-re-uploads-a-shared-nodes-content)
+            - I need to add a loom
+            - shouldn't affect testing
+        - {{[[DONE]]}} [ENG-2142: Map source to the Roam referenced node on pull​](https://linear.app/discourse-graphs/issue/ENG-2142/map-source-to-the-roam-referenced-node-on-pull)
+            - {{[[DONE]]}} change to `[[@placeholder]]`
+            - {{[[DONE]]}} then merge
+        - [ENG-2131: Review and accept imported relation types and triples in Roam​](https://linear.app/discourse-graphs/issue/ENG-2131/review-and-accept-imported-relation-types-and-triples-in-roam)
+            - rebase and use 
+        - {{[[DONE]]}} [ENG-2215: Give cross-space relation endpoint RIDs the platform subtype in dbToCrossAppConverters​](https://linear.app/discourse-graphs/issue/ENG-2215/give-cross-space-relation-endpoint-rids-the-platform-subtype-in)
+            - approved, will be merged
+    - Roam import dialog
+        - [ENG-2296: Simplify the Roam import dialog and import feedback​](https://linear.app/discourse-graphs/issue/ENG-2296/simplify-the-roam-import-dialog-and-import-feedback)
+            - {{[[TODO]]}} Remove the status column and only show nodes available to import.
+                - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2F2026-09-18-test-roam-obsidian-sync%2FtMC9woK7-S.png?alt=media&token=ae43a429-b6ce-412f-a9cd-cbe567ad4784)
+            - {{[[TODO]]}} Add column sorting.
+            - {{[[TODO]]}} Default to sorting by last modified.
+            - {{[[TODO]]}} remove the source node ID column.
+                - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2F2026-09-18-test-roam-obsidian-sync%2FQAvN8WiXku.png?alt=media&token=4856a3e3-5e9e-41d7-8248-53894a5c05e1)
+            - {{[[TODO]]}} Rename “Discover shared nodes” to “Import.”
+                - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2F2026-09-18-test-roam-obsidian-sync%2FALoPCy-cLM.png?alt=media&token=22bb2a2e-31d3-4636-b455-604e5c76acb4)
+                - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2F2026-09-18-test-roam-obsidian-sync%2F1EIkrF4yLj.png?alt=media&token=a7ada900-6bea-4ad3-b6cd-db09c3ae4b11)
+            - {{[[TODO]]}} Remove the “Source app” column.
+                - Create a follow-up ticket to show source details elsewhere.
+            - {{[[TODO]]}} Give the dialog a fixed height and make its contents scrollable.
+            - {{[[TODO]]}} Make imported-node links clickable.
+                - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2F2026-09-18-test-roam-obsidian-sync%2F5OlHau9Bx5.png?alt=media&token=10288c38-41f8-48d6-8720-95f2f0744644)
+            - {{[[TODO]]}} Include `[[@placeholder]]` in the import notification for Obsidian-origin nodes.
+                - It’s currently missing.
+                - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2F2026-09-18-test-roam-obsidian-sync%2FIQ3Y3tZSiY.png?alt=media&token=c868dae4-4a73-4194-8a99-25ded12028cf)
+            - {{[[TODO]]}} Show import progress and the final result in the same area.
+                - Currently, the loading indicator is at the bottom and the final notification is at the top.
+    - [ENG-2297: Make Roam import discovery independent of suggestive mode​](https://linear.app/discourse-graphs/issue/ENG-2297/make-roam-import-discovery-independent-of-suggestive-mode)
+    - Deferred
+        - Roam import dialog
+            - {{[[TODO]]}} Group nodes by space, like Obsidian.
+            - {{[[TODO]]}} Add username
+            - from {{[[TODO]]}} Remove the “Source app” column., add these details in "Source Space"
+                - Possible approach: hover over the source space to see username, space, and source app.
+                - [ENG-2295: Show source details outside the Roam import table columns​](https://linear.app/discourse-graphs/issue/ENG-2295/show-source-details-outside-the-roam-import-table-columns)
+        - Obsidian import dialog
+            - {{[[TODO]]}} Make the dialog larger.
+            - {{[[TODO]]}} Add the modified date.
+        - Obsidian Discourse Context
+            - {{[[TODO]]}} Remove or clarify “content.”
+                - It refers to the `{content}` title placeholder, but that isn’t clear or likely useful to the user.
+            - {{[[TODO]]}} Open the `(i)` details on click.
+                - It currently requires a long hover and appears unresponsive.
+                - Decide what information belongs there.
+                - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2F2026-09-18-test-roam-obsidian-sync%2FVlaId9HT-w.png?alt=media&token=3e73f3f6-6d02-41a5-9a4f-5ccb198cf0b0)
+            - {{[[TODO]]}} Use readable dates and remove the time.
+                - Use relative dates or a standard format, such as “Thursday July 26th.”
+                - Consider moving this metadata into “See more” or an advanced tab.
+            - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2F2026-09-18-test-roam-obsidian-sync%2Fnn_EminZCX.png?alt=media&token=9e88faf7-21cc-47d9-9159-7219a76a576f)
+        - Investigate the incorrect name shown in Obsidian.
+            - It shows “Trang Doan.” The expected name wasn’t recorded.
+            - Assign to MAP.
+            - ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2F2026-09-18-test-roam-obsidian-sync%2FXuPCo4P9Sz.png?alt=media&token=047e67ed-3a1a-46ca-afe2-bc8cbdaa8e1e)
+    - Good testing session for [[Project/Push and pull nodes between Roam and Obsidian]] with Sid, MAP and Michael #updates
+        - Next testing will be with all the dev's on [[September 23rd, 2026]]
+        - Nearing internal release
+
+
+
+
+here is a pdf also for the cases we were going to test and some notes 
+
+
+file:///home/sid/Downloads/Obsidian%20-%20Roam%20sync%20bugbash%20-%20Sheet1.pdf
+
+
+
+NOTE that for individual pr's we already did the loom videos and all this is more of cross work check done all together a sum of all. 
+
+
+So the first task for you to is to get to the current head based on different prs and then you should first enumerate through test cases we can test note that it is a collaborative graph and we have 2 different products that can combine together i.e 
+
+Roam(R) and obsidian(O) ... so the test cases can be checked between RR, RO, OO ..... 
+
+
+think through it deeply broadly
+
+---
+
+lets discuss this first, the logistics
+
+ A good idea can be if we make a pr for it and then for a bunch of grouped tests you make one testing video and we attach to the pr wdyt??? what are other better ways to do this??
+
+---
+
+from other session 
+
+I'd keep the core of your idea (everyone tests one shared head, with visual proof) but change three things.
+
+1. Put the evidence on Linear, not a PR from the integration branch.
+- That PR's diff would be about 2k lines, the sum of five open PRs that were already reviewed one by one.
+- Two of those PRs are still changing: ENG-2131 has changes requested and ENG-2296 is a draft.
+- It can never merge, and every rebase of one of those PRs makes the videos out of date.
+
+We already have the right home. ENG-1883 is "Run internal MVP0 validation and capture follow-up issues", and the test matrix fits ENG-1881, "Document manual internal QA script for MVP0". Results, videos, and one ticket per failure can live there, and they'll outlast the PRs. If you want one SHA everyone builds from, push the branch without opening a PR. pnpm ci:validate already passes on it locally.
+
+2. Record user journeys, not test groups, and make each recording a test.
+The video tooling can check results inside the recording, and it can show Roam and Obsidian side by side. So instead of about 15 groups × 4 directions, I'd do about 6 recordings:
+- one per direction (RR, RO, OR, OO), each covering share → discover → import → edit at source → refresh → accept relation
+- the three-space relation case from your sheet
+- a round trip, Roam → Obsidian → Roam
+
+Each recording then passes or fails on its checks, so you can re-run it after ENG-2131 or ENG-2296 changes. What it needs:
+- It only runs against local Supabase.
+- RR needs Playwright slot 2 logged back in, since the dev graph is read-only.
+- Access tests need a second account that isn't in the group.
+- Per your rule, recording happens in a separate session.
+
+3. Videos show that something passed; they don't find gaps. Covering more cases does. I'd split the matrix three ways:
+- Content conversion (markdown fidelity, title formatting both ways, source mapping, asset link rewrites, node identity): automated round-trip tests in CI across all four directions. It's the cheapest full coverage and keeps checking after merge. It extends ENG-2143, ENG-1879 and ENG-1880.
+- Access and deletion (non-members can't see nodes, access removal, cleanup after a source is deleted): database tests on local Supabase. A video can't convincingly show that something is missing.
+- UI, real data, several users in one graph: the team bug bash on real graphs. Record a short clip only when something fails, and attach it to that bug's ticket.
+
+The code and ticket readers are still running. When they finish I'll build the matrix and tag each row with its lane (CI, recording, or manual), so you can choose which way to go.
+
+
+ME::: maybe the best value of the video is only for the cases/flows that break or have gaps in them
+
+
+Agreed. Once a flow passes, a video adds little; where it earns its cost is showing a failure so the fixer can see it. A few ways to make it pay off:
+
+- One video per underlying cause, not per failing row. Several rows often break for the same reason. Record after we've grouped failures by cause, not during the first pass.
+- Record each failure from a script that checks its own result. It shows the failure (red) now, and the fix PR re-runs the same script to show it passing (green). One piece of work gives you both the bug repro and the PR's demo.
+- Gaps only get a video when someone has to decide. Examples: placeholder vs. warning for a missing source, or the periodic sync republishing imported pages. Gaps that already have a ticket just link to it.
+- Passing rows get a checkbox and the build SHA, plus a screenshot where the result is visual.
+
+From the code reading I'll mark the rows I expect to fail, so the bug bash tests those first and the videos go where the bugs are. Recording stays in a separate session, as you prefer.
+
+
+
+Wdyt?????
+
+---
+
+since 2 parallel sessions are running on the same goal how would you propose we work together??
+
+---
+
+from the other session 
+
+
+I agree with almost all of the other session's refinements. The two-field split and "high risk instead of likely fails" are better than what I had, so I'm adopting them in the matrix.
+
+How I'd split the work. The other session isn't among the peers I can message from here (probably Codex), so we coordinate through shared files and Linear. Each file or ticket has exactly one writer.
+
+- One candidate branch. Use push-pull-validation-head at b3796a70: main plus #1383, #1475, #1477, #1479 and #1482, with ci:validate green. It's local only. If the other session already cut its own branch, we compare SHAs and keep one.
+- This session owns ENG-1881: the canonical cases, fixtures, expected behavior, and the code evidence behind each risk rating. I'll write them to a shared folder as cases.json plus a TSV in the bug-bash sheet's column order.
+- The other session owns ENG-1883: the per-run record, the pass-receipt and failure-capture templates, candidate builds, and prep for the recording session.
+- Cross-check before anything becomes a bug ticket. The other session re-reads each high-risk row on its own; I review its run template against the cases. Anything we disagree on comes to you.
+- You approve every outward action (Linear writes, tickets, pushes, database access, live apps), and only the owning session carries it out, so nothing gets posted twice.
+
+Changes I'm making to the matrix now:
+- Each case gets two fields. Execution method: automated conversion/contract test, local database test, or real-product bug bash. Evidence: assertion output/log, screenshot, or failure video.
+- The ratings become: high risk, needs a decision, known gap, expected to pass, unknown. Upstream relation deletion and "removed relations come back" move to "needs a decision".
+- Four full journeys (RR, RO, OR, OO) become the smoke test for every new candidate.
+- "Round trip" means the contribution flow: A shares, B imports and creates a B-owned node referring to it, then A imports B's node. Republishing an imported copy stays only as a negative test that it's blocked.
+
+One addition the other session didn't have: the database reader found two suspected access-control holes. Reading the SQL, a non-member looks able to grant itself editor on another space, and to join another space's account through the group-membership insert rule. These need a local-database test by an engineer. If they're confirmed, the ticket should be a private Linear one, not a public GitHub issue.
+
+Does this split work for you? If so, name the shared folder, or I'll use /mnt/data/projects/dg-validation-eng-1883/. I'm finishing the matrix page in the meantime, since it's needed under any split.
+
+
+The other session's refinements are in. Next I'm writing the case data as a JSON file, then a small build script that turns it into the page and the TSV for the sheet
+
+---
+
+The test matrix is up: ⧉ https://claude.ai/artifact/PPJhCiaXpp7LB7C11GRpTf. It's private, so the team can't open it until you share it from the page's Share menu. The "Copy … for the sheet" button pastes rows straight into the bug-bash sheet: one row per direction, same columns as your sheet, plus ID, rating, method, evidence, priority and commit. The same rows are also saved as a TSV in my scratchpad (…/scratchpad/matrix/push-pull-test-matrix.tsv).
+
+Candidate branch. push-pull-validation-head at b3796a70 is main (4a13294a) plus #1383 (ENG-2131), #1475 (ENG-2202), #1477 (ENG-2288), #1479 (ENG-2296) and #1482. It merged with no conflicts and pnpm ci:validate passes. It's local only, in .claude/worktrees/push-pull-validation.
+- #1482 isn't a project PR. It's Isaac's fix for Obsidian import file names, which the Roam → Obsidian title cases depend on. Reverting its merge commit takes it out.
+- I left out #1412 (ENG-2143 round-trip tests): it only adds tests and it's built on a pre-merge branch.
+- The install reset the shared git hooks path setting, so I put back its previous value.
+
+What's in the matrix. 172 cases in 17 areas. Each has a rating, how to run it, and what to record when it passes, per the other session's two-field split. The ratings: 43 high risk, 22 need a decision, 21 known gaps, 56 expected to pass, 30 unknown. Four full journeys (RR, RO, OR, OO) are the smoke test for each new candidate.
+
+Most likely to break. I re-checked the ones marked "checked" in the code myself.
+- Imported nodes can still be republished from Roam (PUB-05). DG: Share current node and the Export dialog's Publish tab bypass what ENG-2294 hid.
+- The sheet's cross-space relation case likely fails in both apps (REL-13 to REL-15). Roam drops the relation. Obsidian only publishes it by accident, through frontmatter carried over from the source note, and shows it on the wrong note.
+- Refresh-all reports false failures once any relation has been imported (UPD-04, checked).
+- Roam PDFs, audio and video imported into Obsidian still point at Roam's URLs (AST-04). This explains "worked for image, not PDF".
+- If Obsidian can't read relations.json during a sync, it deletes all the vault's relations from the database (DEL-04, checked).
+- Roam sync can stop silently after 5 failed runs (SRC-06, UPD-10, UPD-11).
+- Two suspected database access holes (SEC-01, SEC-02). They're checked against the SQL but not run. They need an engineer on a local database, and a private Linear ticket if confirmed.
+- One correction to the sheet: Roam syncs about every 5 minutes. The "5 s" is Obsidian's delay after an edit.
+
+Needs a decision before testing:
+- For a missing Source: [[@placeholder]], or keep the title and warn? The tickets disagree.
+- Is there any way to unshare in v0?
+- Should a removed or deleted relation stay removed?
+- When should new relations reach a destination?
+- What happens to shared nodes when the source space leaves the group?
+- What about two nodes with the same title from different spaces?
+- Where should assets land in Obsidian?
+- Is it acceptable that Obsidian [[wikilinks]] and #tags create pages in Roam?
+
+What I need from you:
+1. Is the split between the two sessions OK, with /mnt/data/projects/dg-validation-eng-1883/ as the shared folder?
+2. Which database should the test builds point at? Once you say, I'll build the Roam extension and the Obsidian plugin from b3796a70.
+3. Can I push the candidate branch and put the case list into ENG-1881's description?
+
+---
+
+Backend for run 1: isolated local Supabase. The team bug bash later uses the deployed backend with throwaway spaces and a test group, with no isolated or SEC cases there.
+
+The matrix handoff is up at /mnt/data/projects/dg-validation-eng-1883/HANDOFF-MATRIX.md (cases.json sha256 27e59409…). It includes the SEC-01 and SEC-02 invariants and the SQL locations you asked for.
+
+When your high-risk review is ready, write it to reviews/codex-*.md and update the status in HANDOFF-CODEX.md. The next matrix session reads both.
+
+---
+
+Also exclude every case with method "db" from the deployed bug bash, not only area SEC. That adds AST-22, DEL-06, SCL-03 and SCL-04: they need database access on a local instance.
+
+---
+
+When your high-risk review is final, write it to reviews/codex-*.md, update HANDOFF-CODEX.md, and then create an empty file reviews/READY as the last step. Don't create READY before the review is complete.
+
+---
+
+how much time till you complete your work??
+
+---
+
+who is doing most of the work??? and is the work not parallelizable that can be done with multiple sessions or say multiple subagents??? .... maybe the bottleneck will be the shared graph and database??? but i want to see if we can do these with high throuput but also not spend time trying to optimise for it and fix that
+
+---
+
+parallel session
+
+
+Nobody is doing the bulk of the work yet, because the bulk is running the cases in the real apps and that hasn't started.
+
+Who is doing what now:
+- Code reading: done. This session plus six subagents built the 172 cases.
+- Codex: reviewing the 43 high-risk rows, making the builds and keeping the run records. That's a light-to-medium load.
+- You: the 22 decisions. That's the human bottleneck.
+- Nobody yet: running about 150 real-product cases, or 376 rows once each direction counts separately. That's most of the remaining work. It needs the live apps, the one local database, logged-in Roam profiles, and your OK to drive them.
+
+What parallelizes for free. No shared state, so these need no setup:
+- The Codex review, split by area.
+- Decision memos. One subagent per open question drafts the options and a recommended default, so you settle all 22 in one sitting. This clears your bottleneck fastest.
+- A run plan that groups cases into scenario sessions. Many rows share one setup. For example, J-RO alone also checks about 15 other rows.
+- Automated converter tests. These overlap your ENG-2143 and MAP's ENG-1879, so pick an owner before anyone starts.
+
+What doesn't parallelize cheaply: the live runs. You guessed right; shared resources are the constraint.
+- Roam logins cap it. Only Playwright slot 3 is usable now. Slot 1 is the read-only dev graph and slot 2 is logged out, and Roam → Roam needs two graphs.
+- One local database. The access-control and database cases touch global state, so they must run alone.
+- Headed windows on workspace 9, which is your rule.
+
+So I wouldn't build parallel runners. Keep one runner and get throughput from batching: about 10–12 scenario sessions instead of 172 separate runs. Run the journeys first, then the high-risk cases, and leave the isolated ones for last because they break state. If you ever want a second runner, the cheap version is disjoint graphs, vaults and groups in the same database, but the Roam logins still allow only one runner that can do Roam → Roam.
+
+One question: do you want an agent to run the cases while you're away, in headed windows on workspace 9, or will you run them yourself? I won't assume it, because you've asked me never to launch the apps unprompted.
+
+Updated prompt for the new session. This replaces the earlier one. It does the free parallel work while it waits for Codex:
+
+You're the matrix session for ENG-1881 (Roam ↔ Obsidian push/pull internal validation). I'm away, so work without me until something needs my approval.
+
+Read first:
+- /mnt/data/projects/dg-validation-eng-1883/HANDOFF-MATRIX.md (your handoff)
+- /mnt/data/projects/dg-validation-eng-1883/HANDOFF-CODEX.md (ownership split and Codex's status)
+
+Step 1, now (doesn't depend on Codex). Use parallel Opus subagents:
+a) Run plan: group the cases in matrix/cases.json into about 10–12 scenario sessions that share fixtures and resources. Put the four journeys first, then the high-risk rows, and the isolated rows last. For each session, list the case IDs it checks, the spaces and groups it needs, and which sessions must run alone. Write it to matrix/run-plan.md.
+b) Decision memos: for each rating "decide" case at P0/P1, write the question, 2–3 options, what the code does today, and a recommended default. Write them to matrix/decisions.md.
+
+Step 2, wait: if /mnt/data/projects/dg-validation-eng-1883/reviews/READY doesn't exist, wait for it with the Monitor tool (an until-loop checking every 5 minutes, re-armed as needed, for up to 12 hours). Don't poll with sleep.
+
+Step 3, apply: update matrix/cases.json from Codex's review in reviews/. Change a rating only when the review gives evidence. Where you and Codex disagree, don't change the case; list it for me in HANDOFF-MATRIX.md. Keep case IDs stable. Rebuild with `node matrix/build.mjs`, run `node matrix/check.mjs`, record the new sha256 in HANDOFF-MATRIX.md, and republish the page to https://claude.ai/artifact/PPJhCiaXpp7LB7C11GRpTf (read it first). Then check runs/templates/* against the case fields and note any gaps in HANDOFF-MATRIX.md.
+
+Rules: write only HANDOFF-MATRIX.md and matrix/. Work in the worktree .claude/worktrees/push-pull-validation (candidate b3796a70). No live apps, database access, pushes or Linear writes. Don't start automated tests; that's owned by ENG-2143 and ENG-1879.
+
+---
+
+The review is in, so the new matrix session doesn't need to wait: reviews/READY exists and so do Codex's two review files. I agree with Codex's plan. We haven't hit contention yet, and the cost so far was handoffs and duplicate prep. Codex's review also caught a claim of mine that no longer holds. PUB-07's zero-grant message is now a warning, not a false success. That's exactly what the second reading is for.
+
+Three conflicts in the plan to fix:
+- The matrix session can't do UI reproductions while Codex owns the browsers. REL-13, REL-15 and PUB-05 need the real apps. So the matrix session should reproduce the relation and identity cases in code: tests or scripts in its own worktree off b3796a70, covering DEL-04, UPD-04, REL-13's endpoint id, REL-15's Obsidian lookup, and REL-10/11. The UI reproductions go into Codex's queue after the four journeys.
+- SEC-01/02 deliberately grant access across spaces. Run them on accounts and spaces the journeys don't use, in the exclusive window after the journeys, or reset the database afterwards. Otherwise they could corrupt the access-boundary results.
+- Codex's plan conflicts with two of your standing rules: apps don't launch unprompted, and you approve database access and docker. Both need an explicit yes from you.
+
+Before you leave, if you want run 1 to happen while you're away:
+1. Log in Playwright slot 2 (Test-2-graph). Roam → Roam needs two graphs you can load builds into, and slot 1 is the read-only dev graph. Without it, the Roam → Roam journey waits.
+2. Tell Codex yes or no: "Start local Supabase and drive the four journeys headed on workspace 9."
+3. Tell Codex yes or no: "Run SEC-01/02 on the local database with separate spaces, after the journeys."
+
+New matrix session prompt (this replaces the earlier ones):
+
+You're the matrix session for ENG-1881 (Roam ↔ Obsidian push/pull internal validation). I'm away, so work without me until something needs my approval.
+
+Read first:
+- /mnt/data/projects/dg-validation-eng-1883/HANDOFF-MATRIX.md (your handoff)
+- /mnt/data/projects/dg-validation-eng-1883/HANDOFF-CODEX.md (ownership and Codex's status)
+- /mnt/data/projects/dg-validation-eng-1883/reviews/codex-matrix-review.md and codex-high-risk-review.md (Codex's corrections)
+
+Step 1: apply the review to matrix/cases.json. Change a case only where the review gives evidence. Where you disagree, leave the case and list it for me in HANDOFF-MATRIX.md. Keep IDs stable; add new cases with new IDs. Rebuild with `node matrix/build.mjs`, run `node matrix/check.mjs`, record the new sha256 in HANDOFF-MATRIX.md, and republish https://claude.ai/artifact/PPJhCiaXpp7LB7C11GRpTf (read it first).
+
+Step 2: reproduce in code, no UI, the relation and identity cases DEL-04, UPD-04, REL-13 (the endpoint id Roam publishes), REL-15 (Obsidian panel lookup), REL-10 and REL-11. Work in a new worktree off b3796a70 named push-pull-repros. Write tests or scripts that state the expected result and show the candidate's actual result. Use parallel Opus subagents, one case each, each given the case row and the pinned commit, with no repo-wide discovery. Write the results under matrix/repros/ and register worker, case IDs and result paths in HANDOFF-MATRIX.md. Keep everything local.
+
+Step 3, if time remains: for each "decide" case at P0/P1 that the review didn't settle, write the question, the options, what the code does today and a recommended default to matrix/decisions.md.
+
+Rules: write only HANDOFF-MATRIX.md, matrix/ and your own worktree. Codex owns live apps, builds, the local database and runs/. No live apps, database access, pushes or Linear writes.
+
+This session ends here.
+
+---
+
+Option 1: start Docker/local Supabase, drive the four journeys headed on workspace 9, then run SEC-01/02 with separate accounts, spaces and groups in the exclusive window, and verify cleanup afterwards.
+
+Use your spare capacity for a second Codex worker on code-only work, with its own worktree off b3796a70 and its own result path registered in HANDOFF-CODEX.md:
+(a) code reproductions of the remaining high-risk rows not in the matrix session's six (DEL-04, UPD-04, REL-13, REL-15, REL-10, REL-11), starting with AST-04, TXT-02, SRC-04, SRC-05, UPD-10 and UX-02;
+(b) SEC-01/02 scripts ready before the database window, so the window stays short.
+Keep one owner for live apps and the database.
+
+
+Playwright slot 2 can't log in: Google blocks sign-in from automated browsers. For the Roam → Roam journey, use slots 1 and 3 instead. On slot 1 use a new throwaway graph, never discourse-dev-graph; override DG_ROAM_PLAYWRIGHT_GRAPH_URL_1 for your run rather than editing .env. You may create that throwaway graph. If that's blocked, run the other three journeys and leave Roam → Roam pending.
+
+---
+
+what is next ???
+
+---
+
+/mnt/data/projects/discourse-graph:
+
+You're the run owner for ENG-1883 (Roam ↔ Obsidian push/pull internal validation). Continue from run 1. I'm away, so work without me until something needs my approval.
+
+Read first:
+- /mnt/data/projects/dg-validation-eng-1883/HANDOFF-CODEX.md (yours) and runs/run-1-b3796a70/RESULTS.md
+- /mnt/data/projects/dg-validation-eng-1883/HANDOFF-MATRIX.md, the "For Sid" and "Code reproductions" sections
+- matrix/bugs.md (the failure list) and matrix/linear-failing-cases.md (the steps for each case)
+
+Setup: run 2 uses the same candidate `b3796a70` and the same isolated local Supabase. Pin matrix revision `a15f71e4…`; the full sha256 is in HANDOFF-MATRIX.md. Approved as in run 1: headed apps on workspace 9, Roam slots 1 and 3 with the run-1 throwaway graph, and the local database. Not approved: pushes, Linear writes, recordings, or the deployed backend.
+
+Goal: turn each "code test only" row in bugs.md into a live result, so the team meeting sees confirmed failures.
+
+1. Run your queued live checks first: REL-13, REL-15, PUB-05.
+2. Then run the rest of bugs.md in this order: DEL-04, SRC-04, AST-04, REL-10, REL-11, UPD-04, REL-18, PUB-09, AST-20, UX-02. Run UPD-11 only through controlled failure injection in one loaded client; otherwise skip it and say so.
+3. SEC-01: find out whether error 42804 comes from the test's argument types or from the function itself. Get the permitted-member control passing, then rerun the outsider attempt. Same exclusive window and cleanup rules as run 1; keep the evidence restricted.
+4. Retest the Obsidian relation-timing observation cleanly, capturing the fields your code worker listed in obsidian-relation-publication-finding.md.
+
+For each case, record one of: fails as described, passes, or blocked. Put receipts in runs/run-2-b3796a70/ and capture failures for a later recording session. If a case's steps or expected result look wrong, don't work around them: note it in HANDOFF-CODEX.md for the matrix session.
+
+Finish with a RESULTS.md table: case, result, receipt path, and which bugs.md row it confirms or clears.
+
+---
+
+ok i will say stop and share your results so that i can take them to the claude artifact and it can be updated .... we in meeting and test all there
