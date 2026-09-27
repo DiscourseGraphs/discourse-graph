@@ -40,6 +40,8 @@ type HandlePosition = {
 const HANDLE_RADIUS = 5;
 const HANDLE_HIT_AREA = 12;
 const HANDLE_PADDING = 8; // px offset in viewport space, outward from the node edge
+// Marks an arrow awaiting a relation type; the canvas save loop persists it
+const PENDING_RELATION_META_KEY = "pendingRelationMenu";
 
 /** Page-space edge midpoints and their outward direction vectors. */
 const getEdgeMidpoints = (bounds: {
@@ -93,6 +95,19 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
       dragCleanupRef.current?.();
     };
   }, []);
+
+  // A pending arrow found on mount was abandoned when the canvas last closed
+  useEffect(() => {
+    const abandonedArrowIds = editor
+      .getCurrentPageShapes()
+      .filter(
+        (shape) =>
+          shape.type === "discourse-relation" &&
+          shape.meta[PENDING_RELATION_META_KEY],
+      )
+      .map((shape) => shape.id);
+    if (abandonedArrowIds.length > 0) editor.deleteShapes(abandonedArrowIds);
+  }, [editor]);
 
   // Track the single selected discourse node — mirrors RelationsOverlay pattern
   const selectedNode = useValue<DiscourseNodeShape | null>(
@@ -164,6 +179,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         type: "discourse-relation",
         x: startX,
         y: startY,
+        meta: { [PENDING_RELATION_META_KEY]: true },
         props: {
           color: DEFAULT_TLDRAW_COLOR,
           relationTypeId: "",
@@ -354,6 +370,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         {
           id: pendingArrowId,
           type: "discourse-relation",
+          meta: { ...shape.meta, [PENDING_RELATION_META_KEY]: false },
           props: {
             relationTypeId,
             color: relationType.color,
