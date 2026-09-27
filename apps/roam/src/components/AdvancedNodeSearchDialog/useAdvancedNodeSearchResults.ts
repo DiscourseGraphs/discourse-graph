@@ -1,8 +1,11 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MiniSearch from "minisearch";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import { searchDiscourseNodes } from "~/utils/searchDiscourseNodes";
 import {
-  searchIndexedNodes,
+  searchDiscourseNodesWithMiniSearch,
   sortSearchResults,
+  type ScoredSearchResult,
   type SearchResult,
   type SortConfig,
 } from "./utils";
@@ -32,37 +35,110 @@ export const useAdvancedNodeSearchResults = ({
   searchIndex,
   dockedQuery,
   dockedResults,
-}: UseAdvancedNodeSearchResultsArgs): SearchResult[] =>
-  useMemo(() => {
-    if (!debouncedSearchTerm) return [];
-
-    const isDockedQuery =
+}: UseAdvancedNodeSearchResultsArgs): {
+  results: SearchResult[];
+  isSearching: boolean;
+} => {
+  // An empty persisted result set is not a usable cache: the docked panel also
+  // persists the transient [] published while an async search is in flight.
+  const hasUsableDockedResults = useMemo(
+    () =>
       dockedQuery !== undefined &&
-      debouncedSearchTerm.trim() === dockedQuery.trim();
+      debouncedSearchTerm.trim() === dockedQuery.trim() &&
+      !!dockedResults &&
+      dockedResults.length > 0,
+    [debouncedSearchTerm, dockedQuery, dockedResults],
+  );
 
-    if (isDockedQuery && dockedResults) {
-      return dockedResults;
+  const [unsortedScoredResults, setUnsortedScoredResults] = useState<
+    ScoredSearchResult[]
+  >([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    if (hasUsableDockedResults) {
+      setUnsortedScoredResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    if (!debouncedSearchTerm) {
+      setUnsortedScoredResults([]);
+      setIsSearching(false);
+      return;
     }
 
     if (isIndexLoading || indexError || !searchIndex) {
-      return [];
+      setUnsortedScoredResults([]);
+      setIsSearching(false);
+      return;
     }
 
-    const scoredHits = searchIndexedNodes({
-      miniSearch: searchIndex.miniSearch,
-      allResults: searchIndex.allResults,
-      searchTerm: debouncedSearchTerm,
-      typeFilter: selectedNodeTypeIds.length ? selectedNodeTypeIds : undefined,
-    });
+    setUnsortedScoredResults([]);
+    setIsSearching(true);
+    let cancelled = false;
+    const typeFilter = selectedNodeTypeIds.length
+      ? selectedNodeTypeIds
+      : undefined;
+    const discourseNodes = getDiscourseNodes().filter(
+      (node) =>
+        node.backedBy === "user" &&
+        (!typeFilter || typeFilter.includes(node.type)),
+    );
+    const resultsByUid = new Map(
+      searchIndex.allResults.map((result) => [result.uid, result]),
+    );
 
-    return sortSearchResults({ hits: scoredHits, sort });
+    const runMiniSearch = (): ScoredSearchResult[] =>
+      searchDiscourseNodesWithMiniSearch({
+        miniSearch: searchIndex.miniSearch,
+        allResults: searchIndex.allResults,
+        searchTerm: debouncedSearchTerm,
+        typeFilter,
+      });
+
+    void searchDiscourseNodes({
+      nodeTypes: discourseNodes,
+      query: debouncedSearchTerm,
+      resultsByUid,
+      runMiniSearch,
+    })
+      .then((results) => {
+        if (cancelled) return;
+        setUnsortedScoredResults(results);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        try {
+          setUnsortedScoredResults(runMiniSearch());
+        } catch {
+          setUnsortedScoredResults([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsSearching(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     debouncedSearchTerm,
-    dockedQuery,
-    dockedResults,
+    hasUsableDockedResults,
     indexError,
     isIndexLoading,
     searchIndex,
     selectedNodeTypeIds,
-    sort,
   ]);
+
+  const results = useMemo(
+    () => sortSearchResults({ scoredResults: unsortedScoredResults, sort }),
+    [unsortedScoredResults, sort],
+  );
+
+  if (hasUsableDockedResults && dockedResults) {
+    return { results: dockedResults, isSearching: false };
+  }
+
+  return { results, isSearching };
+};
