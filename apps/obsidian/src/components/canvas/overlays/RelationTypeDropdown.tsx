@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { setIcon } from "obsidian";
 import { TLShapeId, useEditor, useValue } from "tldraw";
 import DiscourseGraphPlugin from "~/index";
 import { DiscourseRelationShape } from "~/components/canvas/shapes/DiscourseRelationShape";
@@ -26,6 +27,7 @@ export const RelationTypeDropdown = ({
 }: RelationTypeDropdownProps) => {
   const editor = useEditor();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
 
   const arrow = useValue<DiscourseRelationShape | null>(
     "dropdownArrow",
@@ -105,16 +107,20 @@ export const RelationTypeDropdown = ({
     };
   }, [onDismiss]);
 
-  // Handle Escape key
+  // Handle Escape key: close the add menu first, then the dropdown
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onDismiss();
+      if (e.key !== "Escape") return;
+      if (isAddMenuOpen) {
+        e.stopPropagation();
+        setIsAddMenuOpen(false);
+        return;
       }
+      onDismiss();
     };
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [onDismiss]);
+  }, [isAddMenuOpen, onDismiss]);
 
   const handleSelect = useCallback(
     (relationTypeId: string) => {
@@ -124,6 +130,16 @@ export const RelationTypeDropdown = ({
   );
 
   if (!dropdownPosition || !arrow) return null;
+
+  const actionClassName =
+    "flex w-full cursor-pointer items-center justify-start rounded border-none bg-transparent px-2 py-1.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-100";
+  const addActions = (
+    <>
+      <button className={actionClassName}>Add existing…</button>
+      <button className={actionClassName}>Create new</button>
+    </>
+  );
+  const hasRelationTypes = validRelationTypes.length > 0;
 
   return (
     <div
@@ -138,23 +154,42 @@ export const RelationTypeDropdown = ({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="max-h-60 min-w-40 overflow-y-auto rounded-lg border bg-white p-1 shadow-lg">
-        <div className="px-2 py-1 text-xs font-medium uppercase tracking-wide text-gray-500">
-          Relation Type
-        </div>
-        {validRelationTypes.map((rt) => (
-          <button
-            key={rt.id}
-            onClick={() => handleSelect(rt.id)}
-            className="flex w-full cursor-pointer items-center gap-2 rounded border-none bg-transparent px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100"
-          >
-            <span
-              className="h-2 w-2 shrink-0 rounded-full"
-              style={{ backgroundColor: rt.color }}
+        <div className="flex items-center justify-between px-2 py-1">
+          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            Relation type
+          </span>
+          {hasRelationTypes && (
+            <button
+              aria-label="Add relation type"
+              aria-expanded={isAddMenuOpen}
+              onClick={() => setIsAddMenuOpen((open) => !open)}
+              className="flex h-auto cursor-pointer items-center rounded border-none bg-transparent p-0.5 text-gray-500 hover:bg-gray-100"
+              ref={(el) => (el && setIcon(el, "plus")) || undefined}
             />
-            {rt.label}
-          </button>
-        ))}
+          )}
+        </div>
+        {hasRelationTypes
+          ? validRelationTypes.map((rt) => (
+              <button
+                key={rt.id}
+                onClick={() => handleSelect(rt.id)}
+                className="flex w-full cursor-pointer items-center gap-2 rounded border-none bg-transparent px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: rt.color }}
+                />
+                {rt.label}
+              </button>
+            ))
+          : addActions}
       </div>
+      {/* Outside the scroll container so it isn't clipped, inside dropdownRef so clicks don't dismiss */}
+      {hasRelationTypes && isAddMenuOpen && (
+        <div className="absolute left-full top-0 ml-1 min-w-32 rounded-lg border bg-white p-1 shadow-lg">
+          {addActions}
+        </div>
+      )}
     </div>
   );
 };

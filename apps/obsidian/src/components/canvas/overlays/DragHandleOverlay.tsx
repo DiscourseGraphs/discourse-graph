@@ -23,7 +23,6 @@ import { showToast } from "~/components/canvas/utils/toastUtils";
 import {
   getDiscourseNodeAtPoint,
   getDiscourseNodeTypeId,
-  hasValidRelationTypeForNodePair,
 } from "~/components/canvas/utils/relationTypeUtils";
 import { RelationTypeDropdown } from "./RelationTypeDropdown";
 
@@ -276,28 +275,17 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         ) {
           const endTarget = editor.getShape(bindings.end.toId);
           if (endTarget && endTarget.type === "discourse-node") {
-            // Check if any relation types are valid for this node pair
             const startNodeTypeId = getDiscourseNodeTypeId(
               editor.getShape(bindings.start.toId),
             );
             const endNodeTypeId = getDiscourseNodeTypeId(endTarget);
 
-            const hasValidRelationType =
-              startNodeTypeId &&
-              endNodeTypeId &&
-              hasValidRelationTypeForNodePair({
-                settings: plugin.settings,
-                sourceNodeTypeId: startNodeTypeId,
-                targetNodeTypeId: endNodeTypeId,
-              });
-
-            if (!hasValidRelationType) {
+            if (!startNodeTypeId || !endNodeTypeId) {
               cleanupArrow(arrowId);
               showToast({
                 severity: "warning",
                 title: "Relation",
-                description:
-                  "No relation types are defined between these node types",
+                description: "Both nodes need a node type to create a relation",
                 targetCanvasId: file.path,
               });
               if (sourceNodeRef.current) {
@@ -340,7 +328,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         dragCleanupRef.current = null;
       };
     },
-    [selectedNode, editor, cleanupArrow, file.path, plugin.settings],
+    [selectedNode, editor, cleanupArrow, file.path],
   );
 
   const handleDropdownSelect = useCallback(

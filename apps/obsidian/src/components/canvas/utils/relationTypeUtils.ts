@@ -187,25 +187,3 @@ export const getCompatibleTargetNodeTypeIds = ({
   }
   return [...targets];
 };
-
-/**
- * Checks whether any valid relation type exists between two node types.
- */
-export const hasValidRelationTypeForNodePair = ({
-  settings,
-  sourceNodeTypeId,
-  targetNodeTypeId,
-}: {
-  settings: RelationTypeSettings;
-  sourceNodeTypeId: string;
-  targetNodeTypeId: string;
-}): boolean => {
-  return settings.discourseRelations.some(
-    (r) =>
-      settings.relationTypes.some((rt) => rt.id === r.relationshipTypeId) &&
-      ((r.sourceId === sourceNodeTypeId &&
-        r.destinationId === targetNodeTypeId) ||
-        (r.sourceId === targetNodeTypeId &&
-          r.destinationId === sourceNodeTypeId)),
-  );
-};
