@@ -3,7 +3,7 @@
   "checkpoint_id": "01M3JADA205HB1WJG30ER2HJVE",
   "strategy": "manual-commit",
   "branch": "eng-2257-add-an-existing-discourse-relation-from-relation-menu",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": null,
   "sessions": [
     {
@@ -19,13 +19,27 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 0,
-    "cache_creation_tokens": 0,
-    "cache_read_tokens": 0,
-    "output_tokens": 0,
-    "api_call_count": 0
+    "input_tokens": 12,
+    "cache_creation_tokens": 6651,
+    "cache_read_tokens": 1074411,
+    "output_tokens": 5501,
+    "api_call_count": 6,
+    "subagent_tokens": {
+      "input_tokens": 4,
+      "cache_creation_tokens": 2473,
+      "cache_read_tokens": 145828,
+      "output_tokens": 38,
+      "api_call_count": 2
+    }
   }
 }
