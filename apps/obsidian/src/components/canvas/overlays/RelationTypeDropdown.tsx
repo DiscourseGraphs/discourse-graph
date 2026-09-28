@@ -256,7 +256,7 @@ export const RelationTypeDropdown = ({
     setIsAddMenuOpen(false);
     setIsCreateDialogOpen(true);
     new CreateRelationTypeModal(plugin.app, {
-      relationTypes: plugin.settings.relationTypes,
+      getRelationTypes: () => plugin.settings.relationTypes,
       onSubmit: async (fields) => {
         const relationType = await createRelationTypeForNodePair({
           plugin,

@@ -16,13 +16,14 @@ type RelationTypeFields = {
 };
 
 type CreateRelationTypeProps = {
-  relationTypes: DiscourseRelationType[];
+  // Read at submit: another canvas may add a type while the dialog is open
+  getRelationTypes: () => DiscourseRelationType[];
   onSubmit: (fields: RelationTypeFields) => Promise<void>;
   onClose: () => void;
 };
 
 const CreateRelationTypeForm = ({
-  relationTypes,
+  getRelationTypes,
   onSubmit,
   onClose,
 }: CreateRelationTypeProps) => {
@@ -40,6 +41,7 @@ const CreateRelationTypeForm = ({
       color,
     };
     const candidate = { id: "new", ...fields, created: 0, modified: 0 };
+    const relationTypes = getRelationTypes();
     const nextError = !fields.label
       ? "Label is required"
       : !fields.complement
@@ -108,10 +110,16 @@ const CreateRelationTypeForm = ({
 export class CreateRelationTypeModal extends Modal {
   private root: Root | null = null;
   private props: CreateRelationTypeProps;
+  private isSaving = false;
 
   constructor(app: App, props: CreateRelationTypeProps) {
     super(app);
     this.props = props;
+  }
+
+  // Escape and the backdrop call close(); a pending save must finish first
+  close() {
+    if (!this.isSaving) super.close();
   }
 
   onOpen() {
@@ -122,8 +130,15 @@ export class CreateRelationTypeModal extends Modal {
     this.root.render(
       <StrictMode>
         <CreateRelationTypeForm
-          relationTypes={this.props.relationTypes}
-          onSubmit={this.props.onSubmit}
+          getRelationTypes={this.props.getRelationTypes}
+          onSubmit={async (fields) => {
+            this.isSaving = true;
+            try {
+              await this.props.onSubmit(fields);
+            } finally {
+              this.isSaving = false;
+            }
+          }}
           onClose={() => this.close()}
         />
       </StrictMode>,
