@@ -1372,6 +1372,15 @@ export const createOrUpdateDiscourseEmbedding = async (
     claimed = true;
     const activeClaimedAt = new Date();
     claimedAt = activeClaimedAt;
+    // Must run before the upserts: a deleted schema still in the database
+    // holds its name, so upsert_concepts refuses a recreated schema with that
+    // name and the sync fails before reaching a later cleanup.
+    await measureSyncPhase({
+      phase: "cleanupOrphanedNodes",
+      phases,
+      operation: () =>
+        cleanupOrphanedNodes(activeSupabaseClient, activeContext),
+    });
     const allUsers = await measureSyncPhase({
       phase: "getAllUsers",
       phases,
@@ -1560,12 +1569,6 @@ export const createOrUpdateDiscourseEmbedding = async (
         orphaned: coreTitleBackfill.orphanedCount,
       });
     }
-    await measureSyncPhase({
-      phase: "cleanupOrphanedNodes",
-      phases,
-      operation: () =>
-        cleanupOrphanedNodes(activeSupabaseClient, activeContext),
-    });
     const completeEndResult = await measureSyncPhase({
       phase: "endSyncTask",
       phases,
