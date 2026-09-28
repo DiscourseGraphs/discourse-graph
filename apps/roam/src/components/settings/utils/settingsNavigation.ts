@@ -14,6 +14,11 @@ export type SettingsNavAction =
   | { type: "pop" }
   | { type: "truncate"; depth: number };
 
+export const nodeConfigSegmentIds = {
+  index: "index",
+  template: "template",
+} as const;
+
 export const rootPath = (tabId: string): SettingsPath => [tabId];
 
 export const tabIdOf = (path: SettingsPath): string => path[0] ?? "";
