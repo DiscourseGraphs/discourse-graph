@@ -927,7 +927,7 @@ const ExportDialog: ExportDialogComponent = ({
         messages.push(
           `${assets.failed.length} file${
             assets.failed.length === 1 ? "" : "s"
-          } could not be copied.`,
+          } could not be copied. Publish again to retry.`,
         );
       renderToast({
         content: messages.join(" "),
