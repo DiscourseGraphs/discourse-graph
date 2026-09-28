@@ -1,0 +1,463 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3M6DWP2S1FKJJRY03MA09AG",
+  "session_id": "0126bbf9-c515-4274-91fd-18f8da370117",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-28T14:24:16.834347Z",
+  "branch": "eng-2257-add-an-existing-discourse-relation-from-relation-menu",
+  "checkpoints_count": 1,
+  "save_step_count": 19,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "8f262c5bba15",
+  "checkpoint_transcript_start": 1331,
+  "transcript_lines_at_start": 1331,
+  "compact_transcript_start": 210,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-start-2026-09-23T21:24:56.589618Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "start"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "563a78590cd5",
+      "timestamp": "2026-09-23T21:24:56.589618Z",
+      "native": {
+        "command": "/start"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/start",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01Q8Lq5wv5ACxFDwjLdBXCXN",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "mattpocock-skills:prototype"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "89cd2ed0056f",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 116,
+        "end": 117,
+        "entry_ids": [
+          "cf8fec77-5f36-4147-ba98-6052ac8db411"
+        ],
+        "tool_use_id": "toolu_01Q8Lq5wv5ACxFDwjLdBXCXN"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Q8Lq5wv5ACxFDwjLdBXCXN"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: mattpocock-skills:prototype",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01UUX9h8Bqs1J8xwP58QV6Jv",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "checkpoint"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "89cd2ed0056f",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 265,
+        "end": 266,
+        "entry_ids": [
+          "56dcf021-1559-4839-90ce-57600acd1e9b"
+        ],
+        "tool_use_id": "toolu_01UUX9h8Bqs1J8xwP58QV6Jv"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01UUX9h8Bqs1J8xwP58QV6Jv"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: checkpoint",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_017pSEGYNm7s1WtsEuqmn3xh",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "mattpocock-skills:tdd"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "89cd2ed0056f",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 300,
+        "end": 301,
+        "entry_ids": [
+          "04d0f0e1-dd57-4c9f-8ab4-cc2482345e69"
+        ],
+        "tool_use_id": "toolu_017pSEGYNm7s1WtsEuqmn3xh"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_017pSEGYNm7s1WtsEuqmn3xh"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: mattpocock-skills:tdd",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01BMJhWAVvnTpKk2A7woZ1BH",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-pr-adherence-check"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "7452a2ebbd92",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 807,
+        "end": 808,
+        "entry_ids": [
+          "a3e312cf-675d-4261-99db-b49a7da05790"
+        ],
+        "tool_use_id": "toolu_01BMJhWAVvnTpKk2A7woZ1BH"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01BMJhWAVvnTpKk2A7woZ1BH"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-pr-adherence-check",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "prompt-skill-claude-code-mattpocock-skills:handoff-2026-09-27T18:45:31.414252Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "mattpocock-skills:handoff"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "edbc9a88fd00",
+      "timestamp": "2026-09-27T18:45:31.414252Z",
+      "native": {
+        "command": "/mattpocock-skills:handoff"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/mattpocock-skills:handoff",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_0127txxqaSFKLXtE3fyFrPyL",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "create-pr"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "a0252ae67e0d",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 948,
+        "end": 949,
+        "entry_ids": [
+          "694f694e-0ce0-4fe7-8f6a-4d0b5a1ebaa4"
+        ],
+        "tool_use_id": "toolu_0127txxqaSFKLXtE3fyFrPyL"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_0127txxqaSFKLXtE3fyFrPyL"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: create-pr",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01CYJmEAnQneetkDojbKK8oQ",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-delegated-full-review"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "a0252ae67e0d",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 979,
+        "end": 980,
+        "entry_ids": [
+          "5f13e182-8094-4c58-a51f-9ed30bfd4509"
+        ],
+        "tool_use_id": "toolu_01CYJmEAnQneetkDojbKK8oQ"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01CYJmEAnQneetkDojbKK8oQ"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-delegated-full-review",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01V4fX3dm5ocdbQBx9nAbmh6",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "a0252ae67e0d",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1009,
+        "end": 1010,
+        "entry_ids": [
+          "10a733c0-653a-442f-8615-dc2fb6df4393"
+        ],
+        "tool_use_id": "toolu_01V4fX3dm5ocdbQBx9nAbmh6"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01V4fX3dm5ocdbQBx9nAbmh6"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01KdBwmZpB6zyQ2PRovTMvhE",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-create-engineering-ticket"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "8f262c5bba15",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1274,
+        "end": 1275,
+        "entry_ids": [
+          "c9751793-706c-459c-b1b5-2b20ec599fdc"
+        ],
+        "tool_use_id": "toolu_01KdBwmZpB6zyQ2PRovTMvhE"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01KdBwmZpB6zyQ2PRovTMvhE"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-create-engineering-ticket",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 19
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 2,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "packages/database/.gitignore": 2
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 510,
+      "agent_lines_removed": 42
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 2,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "packages/database/.gitignore": 2
+      }
+    },
+    {
+      "checkpoint_number": 13,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 14,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 15,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 16,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 17,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 18,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 19,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
