@@ -190,12 +190,28 @@ describe("createRelationTypeForNodePair", () => {
     expect(plugin.saveSettings).toHaveBeenCalledTimes(1);
   });
 
-  it("restores the previous types and relations when saving fails", async () => {
+  it("removes only the added type and relation when saving fails", async () => {
     const { existingTypes, existingRelations, plugin, create } = setup(() =>
       Promise.reject(new Error("disk full")),
     );
     await expect(create()).rejects.toThrow("disk full");
-    expect(plugin.settings.relationTypes).toBe(existingTypes);
-    expect(plugin.settings.discourseRelations).toBe(existingRelations);
+    expect(plugin.settings.relationTypes).toEqual(existingTypes);
+    expect(plugin.settings.discourseRelations).toEqual(existingRelations);
+  });
+
+  it("keeps a type added while its save was pending when saving fails", async () => {
+    const concurrent = relationType("concurrent");
+    const { existingTypes, plugin, create } = setup(() => {
+      plugin.settings.relationTypes = [
+        ...plugin.settings.relationTypes,
+        concurrent,
+      ];
+      return Promise.reject(new Error("disk full"));
+    });
+    await expect(create()).rejects.toThrow("disk full");
+    expect(plugin.settings.relationTypes).toEqual([
+      ...existingTypes,
+      concurrent,
+    ]);
   });
 });

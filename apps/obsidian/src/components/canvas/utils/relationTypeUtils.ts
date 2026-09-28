@@ -207,7 +207,7 @@ export const associateRelationTypeWithNodePair = async ({
 
 /**
  * Creates a relation type, makes it valid for a source → target node pair and
- * saves once. Restores the previous types and relations if the save fails.
+ * saves once. Removes the added type and relation again if the save fails.
  */
 export const createRelationTypeForNodePair = async ({
   plugin,
@@ -233,8 +233,10 @@ export const createRelationTypeForNodePair = async ({
     created: now,
     modified: now,
   };
-  const previousRelationTypes = plugin.settings.relationTypes;
-  plugin.settings.relationTypes = [...previousRelationTypes, relationType];
+  plugin.settings.relationTypes = [
+    ...plugin.settings.relationTypes,
+    relationType,
+  ];
   try {
     await associateRelationTypeWithNodePair({
       plugin,
@@ -243,7 +245,10 @@ export const createRelationTypeForNodePair = async ({
       targetNodeTypeId,
     });
   } catch (error) {
-    plugin.settings.relationTypes = previousRelationTypes;
+    // Filter by id, as the association helper does, so concurrent saves survive
+    plugin.settings.relationTypes = plugin.settings.relationTypes.filter(
+      ({ id }) => id !== relationType.id,
+    );
     throw error;
   }
   return relationType;
