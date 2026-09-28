@@ -16,6 +16,7 @@ import {
   getImportInfo,
   formatImportSource,
   getRelationTypeErrors,
+  isCompleteRelationType,
   isProvisionalSchema,
 } from "~/utils/typeUtils";
 import ImportedSchemaMeta from "./ImportedSchemaMeta";
@@ -120,9 +121,7 @@ const RelationshipTypeSettings = () => {
 
   const saveSettings = (updatedRelationTypes: DiscourseRelationType[]) => {
     const newErrors = getRelationTypeErrors(updatedRelationTypes);
-    const completeTypes = updatedRelationTypes.filter(
-      (rt) => rt.id && rt.label && rt.complement,
-    );
+    const completeTypes = updatedRelationTypes.filter(isCompleteRelationType);
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;

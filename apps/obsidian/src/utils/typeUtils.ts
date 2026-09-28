@@ -96,6 +96,9 @@ export const getUserNameById = (
   return (plugin.settings.userNames || {})[id] || `user ${id}`;
 };
 
+export const isCompleteRelationType = (rt: DiscourseRelationType): boolean =>
+  !!rt.id && !!rt.label && !!rt.complement;
+
 /**
  * Flags relation types whose label or complement repeats another's, keyed by
  * index. Types missing a label or complement are skipped.
@@ -104,9 +107,7 @@ export const getRelationTypeErrors = (
   relationTypes: DiscourseRelationType[],
 ): Record<number, string> => {
   const errors: Record<number, string> = {};
-  const completeTypes = relationTypes.filter(
-    (rt) => rt.id && rt.label && rt.complement,
-  );
+  const completeTypes = relationTypes.filter(isCompleteRelationType);
 
   const seenLabels = new Map<string, number>();
   for (const rt of completeTypes) {

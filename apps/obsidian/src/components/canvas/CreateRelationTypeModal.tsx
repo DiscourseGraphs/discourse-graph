@@ -15,7 +15,8 @@ type RelationTypeFields = {
   color: TldrawColorName;
 };
 
-type CreateRelationTypeFormProps = {
+// Shared by the form and the modal; each closes its own way
+type CreateRelationTypeProps = {
   relationTypes: DiscourseRelationType[];
   onSubmit: (fields: RelationTypeFields) => Promise<void>;
   onClose: () => void;
@@ -25,7 +26,7 @@ const CreateRelationTypeForm = ({
   relationTypes,
   onSubmit,
   onClose,
-}: CreateRelationTypeFormProps) => {
+}: CreateRelationTypeProps) => {
   const [label, setLabel] = useState("");
   const [complement, setComplement] = useState("");
   const [color, setColor] = useState<TldrawColorName>(DEFAULT_TLDRAW_COLOR);
@@ -41,9 +42,9 @@ const CreateRelationTypeForm = ({
       created: 0,
       modified: 0,
     };
-    const nextError = !label
+    const nextError = !label.trim()
       ? "Label is required"
-      : !complement
+      : !complement.trim()
         ? "Complement is required"
         : (getRelationTypeErrors([...relationTypes, candidate])[
             relationTypes.length
@@ -106,24 +107,18 @@ const CreateRelationTypeForm = ({
   );
 };
 
-type CreateRelationTypeModalProps = {
-  relationTypes: DiscourseRelationType[];
-  onSubmit: (fields: RelationTypeFields) => Promise<void>;
-  onClose: () => void;
-};
-
 export class CreateRelationTypeModal extends Modal {
   private root: Root | null = null;
-  private props: CreateRelationTypeModalProps;
+  private props: CreateRelationTypeProps;
 
-  constructor(app: App, props: CreateRelationTypeModalProps) {
+  constructor(app: App, props: CreateRelationTypeProps) {
     super(app);
     this.props = props;
   }
 
   onOpen() {
     this.setTitle("Add relation type");
-    // The colour list is absolutely positioned and extends past this short form
+    // The color list is absolutely positioned and extends past this short form
     this.modalEl.addClass("overflow-visible");
     this.root = createRoot(this.contentEl);
     this.root.render(
