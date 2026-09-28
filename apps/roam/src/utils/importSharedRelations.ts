@@ -27,6 +27,7 @@ import {
 import { discoverSharedRelations } from "./discoverSharedRelations";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import { deleteBlock } from "roamjs-components/writes";
+import refreshConfigTree from "./refreshConfigTree";
 
 const matchImportedNodeSchemas = async (
   nodeSchemas: CrossAppNodeSchema[],
@@ -254,4 +255,6 @@ export const importSharedRelations = async (
   );
   ridToLocalId = { ...ridToLocalId, ...relationSchemaMap };
   await importRelations(ridToLocalId, relations);
+  // Legacy settings read the cached grammar, including newly imported schemas.
+  refreshConfigTree();
 };

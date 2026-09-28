@@ -67,6 +67,7 @@ import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import { discourseContext, isPageUid } from "~/components/canvas/Tldraw";
+import { isAcceptedRelationSchema } from "~/utils/relationSchemaAcceptance";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 /**
@@ -663,11 +664,11 @@ export const createAllRelationShapeUtils = (
           isDirect,
           isReverse,
           matchingRelation: foundRelation,
-        } = this.checkConnectionTypeAcrossLabel(
-          relation.label,
+        } = this.checkConnectionTypeAcrossLabel({
+          label: relation.label,
           sourceNodeType,
           targetNodeType,
-        );
+        });
         const matchingRelation = foundRelation ?? relation;
 
         if (!isDirect && !isReverse) {
@@ -1043,11 +1044,11 @@ export const createAllRelationShapeUtils = (
               const endNodeType = getDiscourseNodeTypeId({ shape: endNode });
 
               const { isReverse, matchingRelation } =
-                this.checkConnectionTypeAcrossLabel(
-                  relation.label,
-                  startNodeType,
-                  endNodeType,
-                );
+                this.checkConnectionTypeAcrossLabel({
+                  label: relation.label,
+                  sourceNodeType: startNodeType,
+                  targetNodeType: endNodeType,
+                });
 
               const effectiveRelation = matchingRelation ?? relation;
 
@@ -1765,16 +1766,24 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     return checkConnectionType(relation, sourceNodeType, targetNodeType);
   }
 
-  checkConnectionTypeAcrossLabel(
-    label: string,
-    sourceNodeType: string,
-    targetNodeType: string,
-  ): {
+  checkConnectionTypeAcrossLabel({
+    label,
+    sourceNodeType,
+    targetNodeType,
+    includeProvisional,
+  }: {
+    label: string;
+    sourceNodeType: string;
+    targetNodeType: string;
+    includeProvisional?: boolean;
+  }): {
     isDirect: boolean;
     isReverse: boolean;
     matchingRelation: DiscourseRelation | null;
   } {
-    const relationsWithLabel = discourseContext.relations[label];
+    const relationsWithLabel = includeProvisional
+      ? discourseContext.relations[label]
+      : discourseContext.relations[label]?.filter(isAcceptedRelationSchema);
     if (!relationsWithLabel) {
       return { isDirect: false, isReverse: false, matchingRelation: null };
     }
@@ -1794,7 +1803,9 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
   }
 
   getValidTargetTypes(label: string, sourceNodeType: string): string[] {
-    const relationsWithLabel = discourseContext.relations[label];
+    const relationsWithLabel = discourseContext.relations[label]?.filter(
+      isAcceptedRelationSchema,
+    );
     if (!relationsWithLabel) return [];
 
     const targets = new Set<string>();
@@ -1814,11 +1825,14 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     const relation = relations.find((r) => r.id === relationId);
     if (!relation) return false;
 
-    const { isDirect, isReverse } = this.checkConnectionTypeAcrossLabel(
-      relation.label,
+    // Validates handle drags of arrows that already exist, so provisional
+    // relations stay re-bindable; only creation paths filter them out.
+    const { isDirect, isReverse } = this.checkConnectionTypeAcrossLabel({
+      label: relation.label,
       sourceNodeType,
       targetNodeType,
-    );
+      includeProvisional: true,
+    });
     return isDirect || isReverse;
   }
 
