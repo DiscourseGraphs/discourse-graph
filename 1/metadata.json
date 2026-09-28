@@ -87,6 +87,68 @@
         "label": "Skill: dg-obsidian-cdp-verify",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01VVNTnxvt1hVCNV7hLEYTvQ",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-pr-adherence-check"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "f264b8c9e1b5",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 538,
+        "end": 539,
+        "entry_ids": [
+          "39a87f18-1af9-47ab-bf52-0aabb8c25d7a"
+        ],
+        "tool_use_id": "toolu_01VVNTnxvt1hVCNV7hLEYTvQ"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01VVNTnxvt1hVCNV7hLEYTvQ"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-pr-adherence-check",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01VunJEqHMSLHg72ukk2rzFw",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "scope-check"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "f264b8c9e1b5",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 551,
+        "end": 552,
+        "entry_ids": [
+          "4549ad78-8177-40d9-8c53-2c86307834db"
+        ],
+        "tool_use_id": "toolu_01VunJEqHMSLHg72ukk2rzFw"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01VunJEqHMSLHg72ukk2rzFw"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: scope-check",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
