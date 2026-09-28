@@ -1,0 +1,57 @@
+/roam-switch eng-2183
+
+---
+
+<bash-input>cd /Users/trang.doan/Desktop/code/discourse-graph/.claude/worktrees/eng-2183-build-the-new-setting-item-row-component && pnpm install && npx turbo build --filter=roam</bash-input><bash-stdout>Scope: all 13 workspace projects
+Lockfile is up to date, resolution step is skipped
+Packages: +7 -1
++++++++-
+Progress: resolved 7, reused 7, downloaded 0, added 7, done
+. prepare$ husky
+└─ Done in 249ms
+Done in 3.1s using pnpm v10.15.1
+╭───────────────────────────────────────────────────────────────────────────╮
+│                                                                           │
+│                     Update available v2.5.6 ≫ v2.11.4                     │
+│    Changelog: https://github.com/vercel/turborepo/releases/tag/v2.11.4    │
+│           Run "pnpm dlx ＠turbo/codemod@latest update" to update           │
+│                                                                           │
+│          Follow ＠turborepo for updates: https://x.com/turborepo           │
+╰───────────────────────────────────────────────────────────────────────────╯
+turbo 2.5.6
+
+• Packages in scope: roam
+• Running build in 1 packages
+• Remote caching disabled
+┌─ ＠repo/database#genenv &gt; cache bypass, force executing 5ceedb4018e0c1f6
+
+
+&gt; ＠repo/database@0.0.0 genenv /Users/trang.doan/Desktop/cod
+e/discourse-graph/.claude/worktrees/eng-2183-build-the-new-
+setting-item-row-component/packages/database
+&gt; tsx scripts/createEnv.mts
+
+none
+└─ ＠repo/database#genenv ──
+┌─ roam#build &gt; cache miss, executing b11c01fad7978ee6
+
+
+&gt; roam@0.23.0 build /Users/trang.doan/Desktop/code/discours
+e-graph/.claude/worktrees/eng-2183-build-the-new-setting-it
+em-row-component/apps/roam
+&gt; tsx scripts/build.ts
+
+Compiling ...
+please define explicitly which database to use (set SUPABAS
+E_USE_DB)
+built with 0 errors
+Compiling complete
+└─ roam#build ──
+
+ Tasks:    2 successful, 2 total
+Cached:    0 cached, 2 total
+  Time:    3.771s</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+this PR was closed but i wanna reopen and merge it again? https://github.com/DiscourseGraphs/discourse-graph/pull/1374
