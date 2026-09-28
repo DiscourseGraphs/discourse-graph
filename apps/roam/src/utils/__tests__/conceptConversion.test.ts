@@ -108,22 +108,49 @@ describe("discourseNodeSchemaToLocalConcept source slot", () => {
     });
   });
 
+  // Not covered: an upsert whose author_local_id doesn't resolve nulls author_id.
   it("carries the type author as author_local_id", () => {
     const concept = discourseNodeSchemaToLocalConcept(CONTEXT, nodeType({}));
     expect(concept.author_local_id).toBe("author-1");
   });
+});
 
-  it("keeps the label and template it already carried", () => {
+describe("discourseNodeSchemaToLocalConcept label and template", () => {
+  it("writes the template body to template_content, with no template title", () => {
     const concept = discourseNodeSchemaToLocalConcept(
       CONTEXT,
-      nodeType({ template: [{ text: "Question:" }] }),
+      nodeType({
+        template: [{ text: "Question:", children: [{ text: "Answer" }] }],
+      }),
     );
     expect(concept.literal_content).toEqual({
       label: "Evidence",
       format: "[[EVD]] - {content} - {Source}",
-      template: "* Question:\n",
+      template_content: "* Question:\n   * Answer\n   \n",
       roles: ["sourceDocument"],
     });
+  });
+
+  it.each([
+    ["no template", undefined],
+    ["an empty template", []],
+    ["a template of only components", [{ text: "{{query block}}" }]],
+  ])("omits template_content for %s", (_label, template) => {
+    const concept = discourseNodeSchemaToLocalConcept(
+      CONTEXT,
+      nodeType({ template }),
+    );
+    expect(concept.literal_content).not.toHaveProperty("template_content");
+    expect(concept.literal_content).not.toHaveProperty("template");
+  });
+
+  it("keeps a slash-separated name whole in label and name", () => {
+    const concept = discourseNodeSchemaToLocalConcept(
+      CONTEXT,
+      nodeType({ text: "Evidence/Figure" }),
+    );
+    expect(concept.name).toBe("Evidence/Figure");
+    expect(concept.literal_content).toMatchObject({ label: "Evidence/Figure" });
   });
 });
 
