@@ -66,6 +66,7 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
+import { logPersonalSettingsDebug } from "./settings/utils/debugPersonalSettings";
 import posthog from "posthog-js";
 import { commands, cleanCommandName } from "~/components/LeftSidebarCommands";
 import { isSmartBlockUid } from "~/utils/isSmartBlockUid";
@@ -749,6 +750,12 @@ const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
 
 export const useConfig = (initialSnapshot?: SettingsSnapshot) => {
   const [config, setConfig] = useState(() => buildConfig(initialSnapshot));
+  useEffect(() => {
+    logPersonalSettingsDebug({
+      phase: "sidebar config",
+      sidebarConfig: config,
+    });
+  }, [config]);
   useEffect(() => {
     const handleUpdate = () => {
       setConfig(buildConfig());

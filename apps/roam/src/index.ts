@@ -49,15 +49,26 @@ import {
 import { mountLeftSidebar } from "./components/LeftSidebarView";
 import { initDockedSearchSidebarPersistence } from "~/components/AdvancedNodeSearchDialog/mountAdvancedSearchInSidebar";
 import { getVersionWithDate } from "./utils/getVersion";
+import { logPersonalSettingsDebug } from "./components/settings/utils/debugPersonalSettings";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
   const pluginLoadStart = performance.now();
 
+  const debugWindow = window as Window & {
+    dgPersonalSettingsDebug?: () => string | undefined;
+  };
+  debugWindow.dgPersonalSettingsDebug = () =>
+    logPersonalSettingsDebug({ phase: "manual" });
+
   refreshConfigTree();
 
   const settings = bulkReadSettings();
+  logPersonalSettingsDebug({
+    phase: "startup before migration",
+    snapshot: settings,
+  });
 
   if (!settings.personalSettings[PERSONAL_KEYS.disableProductDiagnostics]) {
     initPostHog();
@@ -196,6 +207,7 @@ export default runExtension(async (onloadArgs) => {
   );
 
   const { blockUids } = await initSchema();
+  logPersonalSettingsDebug({ phase: "after settings initialization" });
 
   const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
   const cleanupDockedSearchSidebar = initDockedSearchSidebarPersistence();
@@ -214,6 +226,7 @@ export default runExtension(async (onloadArgs) => {
     ],
     observers: observers,
     unload: () => {
+      delete debugWindow.dgPersonalSettingsDebug;
       unsubLeftSidebarFlag();
       cleanupPullWatchers();
       cleanupDockedSearchSidebar();
