@@ -245,10 +245,10 @@ const pagesWithTitleContaining = async (
 type PublishedSource = { uid: string; title: string; conceptId: number };
 
 // A node published before its Source was in this space was stored without its source
-// reference (see omitMissingSource). Publishing the Source sets that reference on the
-// stored concepts and changes nothing else about them, so no access is granted and a
-// node this space never stored stays out of the database. Node concepts hold no other
-// slot, so the whole reference_content is replaced.
+// reference (see omitMissingSource). Publishing the Source sets only that reference.
+// Re-upserting the node would either publish its unpublished edits or stamp its current
+// edit time on the older stored body, so importers would skip its next publish. Node
+// concepts hold no other slot, so the whole reference_content is replaced.
 const restoreSourceReferences = async ({
   client,
   spaceId,
@@ -261,10 +261,13 @@ const restoreSourceReferences = async ({
   discourseNodes: DiscourseNode[];
 }): Promise<void> => {
   if (sources.length === 0) return;
-  const dependentsBySourceUid = new Map(
+  const dependentsBySourceUid = new Map<
+    string,
+    { conceptId: number; dependentUids: string[] }
+  >(
     sources.map(({ uid, conceptId }) => [
       uid,
-      { conceptId, dependentUids: [] as string[] },
+      { conceptId, dependentUids: [] },
     ]),
   );
   const titlesByUid = await pagesWithTitleContaining(

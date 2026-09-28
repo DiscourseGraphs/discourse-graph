@@ -140,9 +140,11 @@ type FakeSelectBuilder = PromiseLike<SelectResponse> & {
 const makeFakeClient = ({
   syncedUids = [],
   rpcResponse,
+  updateError,
 }: {
   syncedUids?: string[];
   rpcResponse?: { data: number[] | null; error: { message: string } | null };
+  updateError?: { message: string };
 }) => {
   const rpcCalls: { fn: string; args: RpcArgs }[] = [];
   const conceptLookups: string[][] = [];
@@ -193,7 +195,8 @@ const makeFakeClient = ({
   });
   const updateFilter = (
     filters: unknown[][],
-  ): Record<string, unknown> & PromiseLike<{ error: null }> => {
+  ): Record<string, unknown> &
+    PromiseLike<{ error: { message: string } | null }> => {
     const filter =
       (op: string) =>
       (...args: unknown[]) => {
@@ -205,7 +208,10 @@ const makeFakeClient = ({
       in: filter("in"),
       is: filter("is"),
       then: (onfulfilled, onrejected) =>
-        Promise.resolve({ error: null }).then(onfulfilled, onrejected),
+        Promise.resolve({ error: updateError ?? null }).then(
+          onfulfilled,
+          onrejected,
+        ),
     };
   };
   const client = {
@@ -711,6 +717,26 @@ describe("publishNodesToGroups", () => {
 
         expect(updateCalls).toEqual([]);
         expect(mocks.internalError).not.toHaveBeenCalled();
+      });
+
+      it("still publishes the source when the restore fails", async () => {
+        stubTitleSearch([["node-1", evidenceTitle]]);
+        const updateError = { message: "boom" };
+        const { client, upsertCalls } = makeFakeClient({
+          syncedUids: [SCHEMA_UID],
+          updateError,
+        });
+
+        const result = await publish(client, [sourceNode]);
+
+        expect(mocks.internalError).toHaveBeenCalledWith({
+          error: updateError,
+          type: "Restore Source References Failed",
+        });
+        expect(result.publishedNodeUids).toEqual([SOURCE_UID]);
+        expect(upsertCalls[0].rows.map((r) => r.source_local_id)).toContain(
+          SOURCE_UID,
+        );
       });
     });
   });
