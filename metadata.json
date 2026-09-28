@@ -3,7 +3,7 @@
   "checkpoint_id": "01M3M6BDTS4G1NYZCH0QMDPXG8",
   "strategy": "manual-commit",
   "branch": "eng-2258-create-a-discourse-relation-from-canvas-and-associate-it",
-  "checkpoints_count": 6,
+  "checkpoints_count": 11,
   "files_touched": [
     "apps/obsidian/src/components/canvas/utils/__tests__/relationTypeUtils.test.ts",
     "apps/obsidian/src/utils/__tests__/typeUtils.test.ts"
@@ -29,13 +29,20 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 2,
-    "cache_creation_tokens": 161334,
-    "cache_read_tokens": 40448,
-    "output_tokens": 616,
-    "api_call_count": 1
+    "input_tokens": 4,
+    "cache_creation_tokens": 163897,
+    "cache_read_tokens": 245505,
+    "output_tokens": 1561,
+    "api_call_count": 2
   }
 }
