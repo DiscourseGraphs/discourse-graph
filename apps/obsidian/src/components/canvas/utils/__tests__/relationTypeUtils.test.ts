@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type DiscourseGraphPlugin from "~/index";
 import {
   associateRelationTypeWithNodePair,
+  createRelationTypeForNodePair,
   getAssociableRelationTypesForNodePair,
 } from "~/components/canvas/utils/relationTypeUtils";
 import type { DiscourseRelation, DiscourseRelationType } from "~/types";
@@ -139,5 +140,62 @@ describe("associateRelationTypeWithNodePair", () => {
     );
     await expect(associate()).rejects.toThrow("disk full");
     expect(plugin.settings.discourseRelations).toEqual(existing);
+  });
+});
+
+describe("createRelationTypeForNodePair", () => {
+  const setup = (saveSettings: () => Promise<void>) => {
+    const existingTypes = [relationType("supports")];
+    const existingRelations = [relation("supports", "evidence", "claim")];
+    const plugin = {
+      settings: {
+        relationTypes: existingTypes,
+        discourseRelations: existingRelations,
+      },
+      saveSettings: vi.fn(saveSettings),
+    };
+    return {
+      existingTypes,
+      existingRelations,
+      plugin,
+      create: () =>
+        createRelationTypeForNodePair({
+          plugin: plugin as unknown as DiscourseGraphPlugin,
+          label: "informs",
+          complement: "is informed by",
+          color: "blue",
+          sourceNodeTypeId: "question",
+          targetNodeTypeId: "claim",
+        }),
+    };
+  };
+
+  it("saves a local type and its source → target relation once", async () => {
+    const { plugin, create } = setup(() => Promise.resolve());
+    const created = await create();
+
+    expect(created).toMatchObject({
+      label: "informs",
+      complement: "is informed by",
+      color: "blue",
+    });
+    expect(created.id).toMatch(/^rel_/);
+    expect(created).not.toHaveProperty("status");
+    expect(plugin.settings.relationTypes.at(-1)).toBe(created);
+    expect(plugin.settings.discourseRelations.at(-1)).toMatchObject({
+      sourceId: "question",
+      destinationId: "claim",
+      relationshipTypeId: created.id,
+    });
+    expect(plugin.saveSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores the previous types and relations when saving fails", async () => {
+    const { existingTypes, existingRelations, plugin, create } = setup(() =>
+      Promise.reject(new Error("disk full")),
+    );
+    await expect(create()).rejects.toThrow("disk full");
+    expect(plugin.settings.relationTypes).toBe(existingTypes);
+    expect(plugin.settings.discourseRelations).toBe(existingRelations);
   });
 });
