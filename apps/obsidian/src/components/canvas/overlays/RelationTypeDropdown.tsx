@@ -44,6 +44,7 @@ export const RelationTypeDropdown = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [isPickingExisting, setIsPickingExisting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const arrow = useValue<DiscourseRelationShape | null>(
     "dropdownArrow",
@@ -204,7 +205,8 @@ export const RelationTypeDropdown = ({
 
   const handleAssociate = useCallback(
     async (relationType: DiscourseRelationType) => {
-      if (!nodePair) return;
+      if (!nodePair || isSaving) return;
+      setIsSaving(true);
       try {
         await associateRelationTypeWithNodePair({
           plugin,
@@ -218,6 +220,8 @@ export const RelationTypeDropdown = ({
           targetCanvasId: canvasPath,
         });
         return;
+      } finally {
+        setIsSaving(false);
       }
       setIsPickingExisting(false);
       const sourceName =
@@ -231,7 +235,7 @@ export const RelationTypeDropdown = ({
         targetCanvasId: canvasPath,
       });
     },
-    [nodePair, plugin, canvasPath],
+    [nodePair, isSaving, plugin, canvasPath],
   );
 
   if (!dropdownPosition || !arrow) return null;
@@ -282,6 +286,7 @@ export const RelationTypeDropdown = ({
       associableRelationTypes.map((rt) => (
         <button
           key={rt.id}
+          disabled={isSaving}
           onClick={() => void handleAssociate(rt)}
           className={actionClassName}
         >

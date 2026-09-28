@@ -133,11 +133,11 @@ describe("associateRelationTypeWithNodePair", () => {
     expect(plugin.saveSettings).toHaveBeenCalledTimes(1);
   });
 
-  it("restores the previous relations and rethrows when saving fails", async () => {
+  it("removes the added relation and rethrows when saving fails", async () => {
     const { existing, plugin, associate } = setup(() =>
       Promise.reject(new Error("disk full")),
     );
     await expect(associate()).rejects.toThrow("disk full");
-    expect(plugin.settings.discourseRelations).toBe(existing);
+    expect(plugin.settings.discourseRelations).toEqual(existing);
   });
 });

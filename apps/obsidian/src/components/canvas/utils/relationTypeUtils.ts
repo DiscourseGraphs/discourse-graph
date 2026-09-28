@@ -169,7 +169,7 @@ export const getAssociableRelationTypesForNodePair = ({
 
 /**
  * Makes a relation type valid for a source → target node pair and saves it.
- * Restores the previous relations if the save fails.
+ * Removes the added relation again if the save fails.
  */
 export const associateRelationTypeWithNodePair = async ({
   plugin,
@@ -191,12 +191,16 @@ export const associateRelationTypeWithNodePair = async ({
     created: now,
     modified: now,
   };
-  const previousRelations = plugin.settings.discourseRelations;
-  plugin.settings.discourseRelations = [...previousRelations, relation];
+  plugin.settings.discourseRelations = [
+    ...plugin.settings.discourseRelations,
+    relation,
+  ];
   try {
     await plugin.saveSettings();
   } catch (error) {
-    plugin.settings.discourseRelations = previousRelations;
+    // Filter by id: another association may have saved while this one was pending
+    plugin.settings.discourseRelations =
+      plugin.settings.discourseRelations.filter(({ id }) => id !== relation.id);
     throw error;
   }
 };
