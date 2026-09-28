@@ -201,6 +201,37 @@
         "label": "Skill: create-pr",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01HgsyzZaBKjU7yBg1WtiuNF",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "3eb6fd7c0c0f",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 798,
+        "end": 799,
+        "entry_ids": [
+          "d1e958cb-e677-4ab6-8f20-8c1f2ea51b9d"
+        ],
+        "tool_use_id": "toolu_01HgsyzZaBKjU7yBg1WtiuNF"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01HgsyzZaBKjU7yBg1WtiuNF"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
