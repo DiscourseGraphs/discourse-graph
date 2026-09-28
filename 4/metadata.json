@@ -1,0 +1,311 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3M74W73JE6NCMK1E3EE6WPP",
+  "session_id": "9016996e-31b7-44d7-a62c-24d19c2622da",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-28T14:36:53.04911Z",
+  "branch": "eng-2258-create-a-discourse-relation-from-canvas-and-associate-it",
+  "checkpoints_count": 1,
+  "save_step_count": 15,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "38ec5eb78fc6",
+  "checkpoint_transcript_start": 742,
+  "transcript_lines_at_start": 742,
+  "compact_transcript_start": 121,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-start-2026-09-27T20:29:00.599956Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "start"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "5ae3d7d92bb0",
+      "timestamp": "2026-09-27T20:29:00.599956Z",
+      "native": {
+        "command": "/start"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/start",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01Rz3zBWhRc2WLGwwaTVMcPx",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "mattpocock-skills:grilling"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "422aa6fad55a",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 151,
+        "end": 152,
+        "entry_ids": [
+          "200b6855-701d-4fff-96bb-08b4aa22790d"
+        ],
+        "tool_use_id": "toolu_01Rz3zBWhRc2WLGwwaTVMcPx"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Rz3zBWhRc2WLGwwaTVMcPx"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: mattpocock-skills:grilling",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01YWWgw4dPFxJQrBAsx8hhSu",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-obsidian-cdp-verify"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "422aa6fad55a",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 291,
+        "end": 292,
+        "entry_ids": [
+          "8f33c8d0-24c7-449d-8a59-9de71f334ad1"
+        ],
+        "tool_use_id": "toolu_01YWWgw4dPFxJQrBAsx8hhSu"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01YWWgw4dPFxJQrBAsx8hhSu"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-obsidian-cdp-verify",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_012fzJPtjXn4iTUebaGmkemv",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "53eea4660875",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 533,
+        "end": 534,
+        "entry_ids": [
+          "5f849888-1029-4ee0-b4e1-cf8e1830de69"
+        ],
+        "tool_use_id": "toolu_012fzJPtjXn4iTUebaGmkemv"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_012fzJPtjXn4iTUebaGmkemv"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "prompt-skill-claude-code-babysit-2026-09-28T14:22:16.078551Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "babysit"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "38ec5eb78fc6",
+      "timestamp": "2026-09-28T14:22:16.078551Z",
+      "native": {
+        "command": "/babysit"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/babysit",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01YbTotLzotYTD5bHbcvXAYj",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-delegated-full-review"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "38ec5eb78fc6",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 625,
+        "end": 626,
+        "entry_ids": [
+          "c6bf21df-c68f-4b29-8e74-b1d38410238e"
+        ],
+        "tool_use_id": "toolu_01YbTotLzotYTD5bHbcvXAYj"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01YbTotLzotYTD5bHbcvXAYj"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-delegated-full-review",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 15
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 1,
+      "user_lines_removed": 2,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/obsidian/src/components/canvas/utils/relationTypeUtils.ts": 1
+      },
+      "user_removed_per_file": {
+        "apps/obsidian/src/components/canvas/utils/relationTypeUtils.ts": 2
+      }
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 13,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 14,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 15,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
