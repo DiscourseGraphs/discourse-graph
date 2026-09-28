@@ -33,17 +33,16 @@ const CreateRelationTypeForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    const candidate = {
-      id: "new",
-      label,
-      complement,
+    // Trimmed so "supports " can't pass as a second "supports"
+    const fields = {
+      label: label.trim(),
+      complement: complement.trim(),
       color,
-      created: 0,
-      modified: 0,
     };
-    const nextError = !label.trim()
+    const candidate = { id: "new", ...fields, created: 0, modified: 0 };
+    const nextError = !fields.label
       ? "Label is required"
-      : !complement.trim()
+      : !fields.complement
         ? "Complement is required"
         : (getRelationTypeErrors([...relationTypes, candidate])[
             relationTypes.length
@@ -53,7 +52,7 @@ const CreateRelationTypeForm = ({
 
     setIsSubmitting(true);
     try {
-      await onSubmit({ label, complement, color });
+      await onSubmit(fields);
     } catch {
       setError("Couldn't save the relation type. Try again.");
       setIsSubmitting(false);
