@@ -1,0 +1,144 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3M6B6ERYKXVX44A3Z6TZ8CR",
+  "session_id": "02d290a9-42bf-4dee-8cac-dbcfdcfb7d45",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-28T14:22:50.025511Z",
+  "branch": "eng-2258-create-a-discourse-relation-from-canvas-and-associate-it",
+  "checkpoints_count": 4,
+  "save_step_count": 4,
+  "files_touched": [
+    "apps/obsidian/src/components/RelationshipTypeSettings.tsx",
+    "apps/obsidian/src/components/canvas/CreateRelationTypeModal.tsx",
+    "apps/obsidian/src/components/canvas/overlays/RelationTypeDropdown.tsx",
+    "apps/obsidian/src/components/canvas/utils/relationTypeUtils.ts",
+    "apps/obsidian/src/components/canvas/utils/toastUtils.ts",
+    "apps/obsidian/src/utils/typeUtils.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "f264b8c9e1b5",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 128,
+    "cache_creation_tokens": 198626,
+    "cache_read_tokens": 8371331,
+    "output_tokens": 56284,
+    "api_call_count": 63,
+    "subagent_tokens": {
+      "input_tokens": 12,
+      "cache_creation_tokens": 58796,
+      "cache_read_tokens": 234330,
+      "output_tokens": 769,
+      "api_call_count": 6
+    }
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-start-2026-09-27T20:33:11.53325Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "start"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "dce951662574",
+      "timestamp": "2026-09-27T20:33:11.53325Z",
+      "native": {
+        "command": "/start"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/start",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01WD8RpwpTyrnR7cuoywfU1i",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-obsidian-cdp-verify"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "f264b8c9e1b5",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 287,
+        "end": 288,
+        "entry_ids": [
+          "b1e4b4c9-b87c-4eee-9a3c-e99aeae1ddab"
+        ],
+        "tool_use_id": "toolu_01WD8RpwpTyrnR7cuoywfU1i"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01WD8RpwpTyrnR7cuoywfU1i"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-obsidian-cdp-verify",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-28T14:22:49.900375Z",
+    "agent_lines": 507,
+    "agent_removed": 93,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 507,
+    "total_lines_changed": 600,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 421,
+      "agent_lines_removed": 47
+    }
+  ]
+}
