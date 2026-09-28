@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { Json } from "@repo/database/dbTypes";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { contentTypes } from "@repo/content-model";
 
 const mocks = vi.hoisted(() => ({
   getDiscourseNodes: vi.fn(),
+  findDiscourseNode: vi.fn(),
   getAvailableGroupIds: vi.fn(),
   ensurePartialSpaceAccess: vi.fn(),
   internalError: vi.fn(),
@@ -18,6 +20,10 @@ vi.mock("roamjs-components/components/Toast", () => ({
 
 vi.mock("~/utils/getDiscourseNodes", () => ({
   default: mocks.getDiscourseNodes,
+}));
+
+vi.mock("~/utils/findDiscourseNode", () => ({
+  default: mocks.findDiscourseNode,
 }));
 
 vi.mock("~/utils/getDiscourseRelations", () => ({
@@ -38,6 +44,10 @@ vi.mock("~/utils/importedSourceIdentity", () => ({
 
 vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
   default: (uid: string) => (uid === SOURCE_UID ? SOURCE_TITLE : ""),
+}));
+
+vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
+  default: (title: string) => (title === SOURCE_TITLE ? SOURCE_UID : ""),
 }));
 
 vi.mock("~/utils/roamToCrossAppConverters", () => ({
@@ -64,6 +74,7 @@ vi.mock("@repo/database/lib/contextFunctions", () => ({
 }));
 
 import { publishNodesToGroups } from "~/utils/publishNodesToGroups";
+import { nodeUidsWithTypeToCrossApp } from "~/utils/roamToCrossAppConverters";
 
 const SPACE_ID = 42;
 const GROUP_ID = "group-1";
@@ -86,15 +97,17 @@ const makeCrossAppNode = ({
   uid,
   title,
   coreTitle = title,
+  nodeType = SCHEMA_UID,
   slots,
 }: {
   uid: string;
   title: string;
   coreTitle?: string;
+  nodeType?: string;
   slots?: CrossAppNode["slots"];
 }): CrossAppNode => ({
   localId: uid,
-  nodeType: SCHEMA_UID,
+  nodeType,
   coreTitle,
   authorId: "user-1",
   createdAt: new Date("2026-01-02T00:00:00.000Z"),
@@ -113,8 +126,10 @@ const makeCrossAppNode = ({
 
 type RpcArgs = { v_space_id: number; data: Record<string, unknown>[] };
 
+type ConceptRow = { source_local_id: string; reference_content?: Json };
+
 type SelectResponse = {
-  data: { source_local_id: string }[];
+  data: ConceptRow[];
   error: null;
 };
 
@@ -128,9 +143,11 @@ type FakeSelectBuilder = PromiseLike<SelectResponse> & {
 
 const makeFakeClient = ({
   syncedUids = [],
+  storedConcepts = [],
   rpcResponse,
 }: {
   syncedUids?: string[];
+  storedConcepts?: ConceptRow[];
   rpcResponse?: { data: number[] | null; error: { message: string } | null };
 }) => {
   const rpcCalls: { fn: string; args: RpcArgs }[] = [];
@@ -140,18 +157,26 @@ const makeFakeClient = ({
     rows: Record<string, unknown>[];
     options: Record<string, unknown>;
   }[] = [];
-  const selectResult = (table: string): Promise<SelectResponse> =>
+  const selectResult = (
+    table: string,
+    columns: string,
+  ): Promise<SelectResponse> =>
     Promise.resolve({
       data:
-        table === "my_concepts"
-          ? syncedUids.map((uid) => ({ source_local_id: uid }))
-          : [],
+        table !== "my_concepts"
+          ? []
+          : columns.includes("reference_content")
+            ? storedConcepts
+            : syncedUids.map((uid) => ({ source_local_id: uid })),
       error: null,
     });
   // Main's builder already answers what the asset stage asks of `select`: `eq` chains and
   // the builder is awaitable on its own, which is the shape `publishNodeAssets` uses when
   // it reads a node's existing references with two `eq`s and no `in`.
-  const makeSelectBuilder = (table: string): FakeSelectBuilder => {
+  const makeSelectBuilder = (
+    table: string,
+    columns: string,
+  ): FakeSelectBuilder => {
     const builder: FakeSelectBuilder = {
       url: { search: "" },
       eq: () => builder,
@@ -163,9 +188,9 @@ const makeFakeClient = ({
         builder.url.search += `&order=${column}`;
         return builder;
       },
-      range: () => selectResult(table),
+      range: () => selectResult(table, columns),
       then: (onfulfilled, onrejected) =>
-        selectResult(table).then(onfulfilled, onrejected),
+        selectResult(table, columns).then(onfulfilled, onrejected),
     };
     return builder;
   };
@@ -177,7 +202,7 @@ const makeFakeClient = ({
   });
   const client = {
     from: (table: string) => ({
-      select: () => makeSelectBuilder(table),
+      select: (columns: string) => makeSelectBuilder(table, columns),
       delete: () => deleteFilter(),
       upsert: (
         rows: Record<string, unknown>[],
@@ -504,7 +529,7 @@ describe("publishNodesToGroups", () => {
       expect(mocks.renderToast).toHaveBeenCalledWith({
         id: `publish-missing-source-${SOURCE_UID}`,
         intent: "warning",
-        content: `Source "${SOURCE_TITLE}" is not in this space yet. Publishing without this source reference. Publish the Source separately, then publish the referencing node again.`,
+        content: `Source "${SOURCE_TITLE}" is not in this space yet. Publishing without this source reference until the Source is published.`,
       });
       expect(result.publishedNodeUids).toEqual(["node-1"]);
       expect(result.failedUpsertUids).toEqual([]);
@@ -563,6 +588,136 @@ describe("publishNodesToGroups", () => {
       expect(rpcCalls[1].args.data[0].local_reference_content).toEqual(
         rpcCalls[0].args.data[0].local_reference_content,
       );
+    });
+
+    describe("when the source is published after a node naming it", () => {
+      const SOURCE_SCHEMA_UID = "source-schema";
+      const EVIDENCE_SCHEMA_UID = "evidence-schema";
+      const evidenceTitle = `[[EVD]] - finding - [[${SOURCE_TITLE}]]`;
+      const claimTitle = `[[CLM]] - about ${SOURCE_TITLE}`;
+      const sourceSchema: DiscourseNode = {
+        ...claimSchema,
+        type: SOURCE_SCHEMA_UID,
+        text: "Source",
+        format: "@{content}",
+      };
+      const evidenceSchema: DiscourseNode = {
+        ...claimSchema,
+        type: EVIDENCE_SCHEMA_UID,
+        text: "Evidence",
+        format: "[[EVD]] - {content} - {Source}",
+      };
+      const sourceNode = makeCrossAppNode({
+        uid: SOURCE_UID,
+        title: SOURCE_TITLE,
+        nodeType: SOURCE_SCHEMA_UID,
+      });
+
+      beforeEach(() => {
+        mocks.getDiscourseNodes.mockReturnValue([
+          claimSchema,
+          evidenceSchema,
+          sourceSchema,
+        ]);
+        mocks.findDiscourseNode.mockImplementation(
+          ({ uid }: { uid: string }) =>
+            ({
+              [SOURCE_UID]: sourceSchema,
+              "node-1": evidenceSchema,
+              "claim-1": claimSchema,
+            })[uid] ?? false,
+        );
+        vi.mocked(nodeUidsWithTypeToCrossApp).mockResolvedValue([
+          evidenceNode(SOURCE_UID),
+        ]);
+        vi.stubGlobal("window", {
+          roamAlphaAPI: {
+            data: {
+              async: {
+                q: (_query: string, text: string) =>
+                  Promise.resolve(
+                    text === SOURCE_TITLE
+                      ? [
+                          [SOURCE_UID, SOURCE_TITLE],
+                          ["node-1", evidenceTitle],
+                          ["claim-1", claimTitle],
+                        ]
+                      : [],
+                  ),
+              },
+            },
+          },
+        });
+      });
+
+      afterEach(() => {
+        vi.unstubAllGlobals();
+      });
+
+      it("restores the source reference the node was first published without", async () => {
+        const { client, rpcCalls, upsertCalls, conceptLookups } =
+          makeFakeClient({
+            syncedUids: [SCHEMA_UID],
+            storedConcepts: [
+              { source_local_id: "node-1", reference_content: {} },
+            ],
+          });
+
+        await publish(client);
+        expect(
+          rpcCalls[0].args.data[0].local_reference_content,
+        ).toBeUndefined();
+
+        const result = await publish(client, [sourceNode]);
+
+        expect(conceptLookups.at(-1)).toEqual(["node-1"]);
+        expect(nodeUidsWithTypeToCrossApp).toHaveBeenCalledWith([
+          { uid: "node-1", type: EVIDENCE_SCHEMA_UID },
+        ]);
+        expect(rpcCalls).toHaveLength(3);
+        expect(rpcCalls[2].args.data).toEqual([
+          expect.objectContaining({
+            source_local_id: "node-1",
+            local_reference_content: { sourceDocument: SOURCE_UID },
+          }),
+        ]);
+        expect(rpcCalls[2].args.data[0].contents_inline).toEqual([
+          expect.objectContaining({ variant: "direct", text: evidenceTitle }),
+        ]);
+        expect(result.publishedNodeUids).toEqual([SOURCE_UID]);
+        expect(upsertCalls[1].rows.map((r) => r.source_local_id)).not.toContain(
+          "node-1",
+        );
+        expect(mocks.internalError).not.toHaveBeenCalled();
+      });
+
+      it("writes nothing for a node this space never stored", async () => {
+        const { client, rpcCalls } = makeFakeClient({
+          syncedUids: [SCHEMA_UID],
+        });
+
+        await publish(client, [sourceNode]);
+
+        expect(rpcCalls).toHaveLength(1);
+        expect(nodeUidsWithTypeToCrossApp).not.toHaveBeenCalled();
+      });
+
+      it("leaves a node alone when its source reference is already stored", async () => {
+        const { client, rpcCalls } = makeFakeClient({
+          syncedUids: [SCHEMA_UID],
+          storedConcepts: [
+            {
+              source_local_id: "node-1",
+              reference_content: { sourceDocument: 7 },
+            },
+          ],
+        });
+
+        await publish(client, [sourceNode]);
+
+        expect(rpcCalls).toHaveLength(1);
+        expect(nodeUidsWithTypeToCrossApp).not.toHaveBeenCalled();
+      });
     });
   });
 });

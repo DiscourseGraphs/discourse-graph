@@ -4,6 +4,7 @@ import {
   CrossAppRelationTripleSchema,
 } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { Json } from "@repo/database/dbTypes";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import { nodeUidsWithTypeToCrossApp } from "./roamToCrossAppConverters";
 import {
@@ -24,11 +25,12 @@ import { isIgnorableUpsertError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
 import { isRid, ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
 import getDiscourseNodes from "./getDiscourseNodes";
+import findDiscourseNode from "./findDiscourseNode";
 import { difference, intersection } from "@repo/utils/setOperations";
 import internalError from "./internalError";
 import { readImportedSourceIdentity } from "./importedSourceIdentity";
 import { orderConceptsByDependency } from "./conceptConversion";
-import { SOURCE_SLOT } from "./sourceSlot";
+import { SOURCE_SLOT, sourceIdOfNode, sourceSlotSchemaId } from "./sourceSlot";
 import renderToast from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { publishNodeAssets, type NodeAssetResult } from "./publishNodeAssets";
@@ -221,6 +223,98 @@ export const gatherCorrespondingRelations = async ({
 const onlyStrings = (values: (string | null)[]): string[] =>
   values.filter((value): value is string => typeof value === "string");
 
+const pagesWithTitleContaining = async (
+  texts: string[],
+): Promise<Map<string, string>> => {
+  const matches = await Promise.all(
+    texts.map(
+      async (text) =>
+        (await window.roamAlphaAPI.data.async.q(
+          `[:find ?uid ?title
+            :in $ ?text
+            :where
+              [?page :node/title ?title]
+              [(clojure.string/includes? ?title ?text)]
+              [?page :block/uid ?uid]]`,
+          text,
+        )) as unknown as [string, string][],
+    ),
+  );
+  return new Map(matches.flat());
+};
+
+const hasStoredSourceReference = (referenceContent: Json | null): boolean =>
+  typeof referenceContent === "object" &&
+  referenceContent !== null &&
+  !Array.isArray(referenceContent) &&
+  typeof referenceContent[SOURCE_SLOT] === "number";
+
+// A node published before its Source was in this space was stored without its source
+// reference (see omitMissingSource). Publishing the Source rewrites those stored
+// concepts so the reference resolves. It grants no access, and a node this space
+// never stored stays out of the database.
+const restoreSourceReferences = async ({
+  client,
+  spaceId,
+  sources,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  sources: CrossAppNode[];
+}): Promise<void> => {
+  if (sources.length === 0) return;
+  const sourceUids = new Set(sources.map((source) => source.localId));
+  const titlesByUid = await pagesWithTitleContaining(
+    sources.map((source) => source.content.direct.value),
+  );
+  const dependents = [...titlesByUid].flatMap(([uid, title]) => {
+    const nodeType = findDiscourseNode({ uid, title });
+    if (!nodeType) return [];
+    const sourceId = sourceIdOfNode(title, nodeType);
+    return sourceId !== undefined && sourceUids.has(sourceId)
+      ? [{ uid, type: nodeType.type }]
+      : [];
+  });
+  if (dependents.length === 0) return;
+  const stored = await client
+    .from("my_concepts")
+    .select("source_local_id, reference_content")
+    .eq("space_id", spaceId)
+    .in(
+      "source_local_id",
+      dependents.map(({ uid }) => uid),
+    );
+  if (stored.error) throw stored.error;
+  const missingUids = new Set(
+    onlyStrings(
+      stored.data
+        .filter((row) => !hasStoredSourceReference(row.reference_content))
+        .map((row) => row.source_local_id),
+    ),
+  );
+  const toRestore = dependents.filter(({ uid }) => missingUids.has(uid));
+  if (toRestore.length === 0) return;
+  // Only the concept holds the reference; full content stays with publish and sync.
+  const concepts = (await nodeUidsWithTypeToCrossApp(toRestore)).map((node) =>
+    crossAppNodeToDbConcept({
+      ...node,
+      content: { direct: node.content.direct },
+    }),
+  );
+  const response = await client.rpc("upsert_concepts", {
+    v_space_id: spaceId,
+    data: concepts,
+  });
+  if (response.error) throw response.error;
+  const failedUids = concepts
+    .filter((_, i) => response.data[i] < 0)
+    .map((concept) => concept.source_local_id);
+  if (failedUids.length > 0)
+    throw new Error(
+      `Could not restore the source reference of ${failedUids.join(", ")}`,
+    );
+};
+
 type PublishNodesResult = {
   publishedNodeSchemaUids: string[];
   publishedNodeUids: string[];
@@ -355,7 +449,7 @@ export const publishNodesToGroups = async ({
     renderToast({
       id: `publish-missing-source-${sourceId}`,
       intent: "warning",
-      content: `Source "${getPageTitleByPageUid(sourceId) || sourceId}" is not in this space yet. Publishing without this source reference. Publish the Source separately, then publish the referencing node again.`,
+      content: `Source "${getPageTitleByPageUid(sourceId) || sourceId}" is not in this space yet. Publishing without this source reference until the Source is published.`,
     });
     return { ...node, slots: undefined };
   };
@@ -423,6 +517,23 @@ export const publishNodesToGroups = async ({
   result.syncedRelationUids = [...syncedRelationUids];
   nodeUids = [...upsertedNodeUids];
   const failedUpsertIds = new Set(result.failedUpsertUids);
+
+  // Only Source nodes trigger the title scan, so an ordinary publish costs no query. A
+  // node naming another type as its source still needs publishing again.
+  const sourceNodeType = sourceSlotSchemaId();
+  try {
+    await restoreSourceReferences({
+      client,
+      spaceId,
+      sources: [...nodesByUid.values()].filter(
+        (node) =>
+          node.nodeType === sourceNodeType &&
+          upsertedNodeUids.has(node.localId),
+      ),
+    });
+  } catch (error) {
+    internalError({ error, type: "Restore Source References Failed" });
+  }
 
   // After the content upsert, because FileReference has a foreign key to Content, and
   // before the access grants, so a node becomes visible with its assets already recorded.
