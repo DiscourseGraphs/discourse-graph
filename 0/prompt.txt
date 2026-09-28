@@ -1,0 +1,17 @@
+when a node is synced from an obsidian vault to another. what is expected behavior when node is modified in these ways:
+
+* delete
+* modify content
+* modify title
+* add assets
+* delete assets
+
+describe what happen when the source vault does it -> how long and what is changed/uploaded in the supabase database -> what's the behavior one should see in the import vault
+
+---
+
+prepare some DG nodes for these test cases for me in vault dgDevVault. should name according to test case
+
+---
+
+for edit content or title: is the overwriting happen naturally? do the import vault have to perform an action to have it?
