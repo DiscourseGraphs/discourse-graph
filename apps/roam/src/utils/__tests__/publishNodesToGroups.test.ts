@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { Json } from "@repo/database/dbTypes";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { contentTypes } from "@repo/content-model";
 
@@ -74,7 +73,6 @@ vi.mock("@repo/database/lib/contextFunctions", () => ({
 }));
 
 import { publishNodesToGroups } from "~/utils/publishNodesToGroups";
-import { nodeUidsWithTypeToCrossApp } from "~/utils/roamToCrossAppConverters";
 
 const SPACE_ID = 42;
 const GROUP_ID = "group-1";
@@ -126,10 +124,8 @@ const makeCrossAppNode = ({
 
 type RpcArgs = { v_space_id: number; data: Record<string, unknown>[] };
 
-type ConceptRow = { source_local_id: string; reference_content?: Json };
-
 type SelectResponse = {
-  data: ConceptRow[];
+  data: { source_local_id: string }[];
   error: null;
 };
 
@@ -143,11 +139,9 @@ type FakeSelectBuilder = PromiseLike<SelectResponse> & {
 
 const makeFakeClient = ({
   syncedUids = [],
-  storedConcepts = [],
   rpcResponse,
 }: {
   syncedUids?: string[];
-  storedConcepts?: ConceptRow[];
   rpcResponse?: { data: number[] | null; error: { message: string } | null };
 }) => {
   const rpcCalls: { fn: string; args: RpcArgs }[] = [];
@@ -157,26 +151,23 @@ const makeFakeClient = ({
     rows: Record<string, unknown>[];
     options: Record<string, unknown>;
   }[] = [];
-  const selectResult = (
-    table: string,
-    columns: string,
-  ): Promise<SelectResponse> =>
+  const updateCalls: {
+    table: string;
+    values: Record<string, unknown>;
+    filters: unknown[][];
+  }[] = [];
+  const selectResult = (table: string): Promise<SelectResponse> =>
     Promise.resolve({
       data:
-        table !== "my_concepts"
-          ? []
-          : columns.includes("reference_content")
-            ? storedConcepts
-            : syncedUids.map((uid) => ({ source_local_id: uid })),
+        table === "my_concepts"
+          ? syncedUids.map((uid) => ({ source_local_id: uid }))
+          : [],
       error: null,
     });
   // Main's builder already answers what the asset stage asks of `select`: `eq` chains and
   // the builder is awaitable on its own, which is the shape `publishNodeAssets` uses when
   // it reads a node's existing references with two `eq`s and no `in`.
-  const makeSelectBuilder = (
-    table: string,
-    columns: string,
-  ): FakeSelectBuilder => {
+  const makeSelectBuilder = (table: string): FakeSelectBuilder => {
     const builder: FakeSelectBuilder = {
       url: { search: "" },
       eq: () => builder,
@@ -188,9 +179,9 @@ const makeFakeClient = ({
         builder.url.search += `&order=${column}`;
         return builder;
       },
-      range: () => selectResult(table, columns),
+      range: () => selectResult(table),
       then: (onfulfilled, onrejected) =>
-        selectResult(table, columns).then(onfulfilled, onrejected),
+        selectResult(table).then(onfulfilled, onrejected),
     };
     return builder;
   };
@@ -200,10 +191,32 @@ const makeFakeClient = ({
     then: (resolve: (value: unknown) => unknown) =>
       Promise.resolve({ error: null }).then(resolve),
   });
+  const updateFilter = (
+    filters: unknown[][],
+  ): Record<string, unknown> & PromiseLike<{ error: null }> => {
+    const filter =
+      (op: string) =>
+      (...args: unknown[]) => {
+        filters.push([op, ...args]);
+        return updateFilter(filters);
+      };
+    return {
+      eq: filter("eq"),
+      in: filter("in"),
+      is: filter("is"),
+      then: (onfulfilled, onrejected) =>
+        Promise.resolve({ error: null }).then(onfulfilled, onrejected),
+    };
+  };
   const client = {
     from: (table: string) => ({
-      select: (columns: string) => makeSelectBuilder(table, columns),
+      select: () => makeSelectBuilder(table),
       delete: () => deleteFilter(),
+      update: (values: Record<string, unknown>) => {
+        const filters: unknown[][] = [];
+        updateCalls.push({ table, values, filters });
+        return updateFilter(filters);
+      },
       upsert: (
         rows: Record<string, unknown>[],
         options: Record<string, unknown>,
@@ -219,7 +232,7 @@ const makeFakeClient = ({
       );
     },
   } as unknown as DGSupabaseClient;
-  return { client, rpcCalls, conceptLookups, upsertCalls };
+  return { client, rpcCalls, conceptLookups, upsertCalls, updateCalls };
 };
 
 describe("publishNodesToGroups", () => {
@@ -529,7 +542,7 @@ describe("publishNodesToGroups", () => {
       expect(mocks.renderToast).toHaveBeenCalledWith({
         id: `publish-missing-source-${SOURCE_UID}`,
         intent: "warning",
-        content: `Source "${SOURCE_TITLE}" is not in this space yet. Publishing without this source reference until the Source is published.`,
+        content: `Source "${SOURCE_TITLE}" is not in this space yet. Publishing without this source reference. Publish the Source separately, then publish the referencing node again.`,
       });
       expect(result.publishedNodeUids).toEqual(["node-1"]);
       expect(result.failedUpsertUids).toEqual([]);
@@ -612,6 +625,17 @@ describe("publishNodesToGroups", () => {
         title: SOURCE_TITLE,
         nodeType: SOURCE_SCHEMA_UID,
       });
+      const stubTitleSearch = (pages: [string, string][]) =>
+        vi.stubGlobal("window", {
+          roamAlphaAPI: {
+            data: {
+              async: {
+                q: (_query: string, text: string) =>
+                  Promise.resolve(text === SOURCE_TITLE ? pages : []),
+              },
+            },
+          },
+        });
 
       beforeEach(() => {
         mocks.getDiscourseNodes.mockReturnValue([
@@ -627,63 +651,46 @@ describe("publishNodesToGroups", () => {
               "claim-1": claimSchema,
             })[uid] ?? false,
         );
-        vi.mocked(nodeUidsWithTypeToCrossApp).mockResolvedValue([
-          evidenceNode(SOURCE_UID),
-        ]);
-        vi.stubGlobal("window", {
-          roamAlphaAPI: {
-            data: {
-              async: {
-                q: (_query: string, text: string) =>
-                  Promise.resolve(
-                    text === SOURCE_TITLE
-                      ? [
-                          [SOURCE_UID, SOURCE_TITLE],
-                          ["node-1", evidenceTitle],
-                          ["claim-1", claimTitle],
-                        ]
-                      : [],
-                  ),
-              },
-            },
-          },
-        });
       });
 
       afterEach(() => {
         vi.unstubAllGlobals();
       });
 
-      it("restores the source reference the node was first published without", async () => {
-        const { client, rpcCalls, upsertCalls, conceptLookups } =
-          makeFakeClient({
-            syncedUids: [SCHEMA_UID],
-            storedConcepts: [
-              { source_local_id: "node-1", reference_content: {} },
-            ],
-          });
+      it("sets the source reference the node was first published without", async () => {
+        stubTitleSearch([
+          [SOURCE_UID, SOURCE_TITLE],
+          ["node-1", evidenceTitle],
+          ["claim-1", claimTitle],
+        ]);
+        const { client, rpcCalls, upsertCalls, updateCalls } = makeFakeClient({
+          syncedUids: [SCHEMA_UID],
+        });
 
         await publish(client);
         expect(
           rpcCalls[0].args.data[0].local_reference_content,
         ).toBeUndefined();
+        expect(updateCalls).toEqual([]);
 
         const result = await publish(client, [sourceNode]);
 
-        expect(conceptLookups.at(-1)).toEqual(["node-1"]);
-        expect(nodeUidsWithTypeToCrossApp).toHaveBeenCalledWith([
-          { uid: "node-1", type: EVIDENCE_SCHEMA_UID },
+        const sourceConceptId =
+          rpcCalls[1].args.data.findIndex(
+            (row) => row.source_local_id === SOURCE_UID,
+          ) + 1;
+        expect(updateCalls).toEqual([
+          {
+            table: "Concept",
+            values: { reference_content: { sourceDocument: sourceConceptId } },
+            filters: [
+              ["eq", "space_id", SPACE_ID],
+              ["in", "source_local_id", ["node-1"]],
+              ["is", "reference_content->>sourceDocument", null],
+            ],
+          },
         ]);
-        expect(rpcCalls).toHaveLength(3);
-        expect(rpcCalls[2].args.data).toEqual([
-          expect.objectContaining({
-            source_local_id: "node-1",
-            local_reference_content: { sourceDocument: SOURCE_UID },
-          }),
-        ]);
-        expect(rpcCalls[2].args.data[0].contents_inline).toEqual([
-          expect.objectContaining({ variant: "direct", text: evidenceTitle }),
-        ]);
+        expect(rpcCalls).toHaveLength(2);
         expect(result.publishedNodeUids).toEqual([SOURCE_UID]);
         expect(upsertCalls[1].rows.map((r) => r.source_local_id)).not.toContain(
           "node-1",
@@ -691,32 +698,19 @@ describe("publishNodesToGroups", () => {
         expect(mocks.internalError).not.toHaveBeenCalled();
       });
 
-      it("writes nothing for a node this space never stored", async () => {
-        const { client, rpcCalls } = makeFakeClient({
+      it("updates nothing when no page names the source", async () => {
+        stubTitleSearch([
+          [SOURCE_UID, SOURCE_TITLE],
+          ["claim-1", claimTitle],
+        ]);
+        const { client, updateCalls } = makeFakeClient({
           syncedUids: [SCHEMA_UID],
         });
 
         await publish(client, [sourceNode]);
 
-        expect(rpcCalls).toHaveLength(1);
-        expect(nodeUidsWithTypeToCrossApp).not.toHaveBeenCalled();
-      });
-
-      it("leaves a node alone when its source reference is already stored", async () => {
-        const { client, rpcCalls } = makeFakeClient({
-          syncedUids: [SCHEMA_UID],
-          storedConcepts: [
-            {
-              source_local_id: "node-1",
-              reference_content: { sourceDocument: 7 },
-            },
-          ],
-        });
-
-        await publish(client, [sourceNode]);
-
-        expect(rpcCalls).toHaveLength(1);
-        expect(nodeUidsWithTypeToCrossApp).not.toHaveBeenCalled();
+        expect(updateCalls).toEqual([]);
+        expect(mocks.internalError).not.toHaveBeenCalled();
       });
     });
   });

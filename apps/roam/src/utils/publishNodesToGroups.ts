@@ -4,7 +4,6 @@ import {
   CrossAppRelationTripleSchema,
 } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { Json } from "@repo/database/dbTypes";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import { nodeUidsWithTypeToCrossApp } from "./roamToCrossAppConverters";
 import {
@@ -24,7 +23,7 @@ import { ensurePartialSpaceAccess } from "@repo/database/lib/groups";
 import { isIgnorableUpsertError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
 import { isRid, ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
-import getDiscourseNodes from "./getDiscourseNodes";
+import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import findDiscourseNode from "./findDiscourseNode";
 import { difference, intersection } from "@repo/utils/setOperations";
 import internalError from "./internalError";
@@ -237,82 +236,57 @@ const pagesWithTitleContaining = async (
               [(clojure.string/includes? ?title ?text)]
               [?page :block/uid ?uid]]`,
           text,
-        )) as unknown as [string, string][],
+        )) as [string, string][],
     ),
   );
   return new Map(matches.flat());
 };
 
-const hasStoredSourceReference = (referenceContent: Json | null): boolean =>
-  typeof referenceContent === "object" &&
-  referenceContent !== null &&
-  !Array.isArray(referenceContent) &&
-  typeof referenceContent[SOURCE_SLOT] === "number";
+type PublishedSource = { uid: string; title: string; conceptId: number };
 
 // A node published before its Source was in this space was stored without its source
-// reference (see omitMissingSource). Publishing the Source rewrites those stored
-// concepts so the reference resolves. It grants no access, and a node this space
-// never stored stays out of the database.
+// reference (see omitMissingSource). Publishing the Source sets that reference on the
+// stored concepts and changes nothing else about them, so no access is granted and a
+// node this space never stored stays out of the database. Node concepts hold no other
+// slot, so the whole reference_content is replaced.
 const restoreSourceReferences = async ({
   client,
   spaceId,
   sources,
+  discourseNodes,
 }: {
   client: DGSupabaseClient;
   spaceId: number;
-  sources: CrossAppNode[];
+  sources: PublishedSource[];
+  discourseNodes: DiscourseNode[];
 }): Promise<void> => {
   if (sources.length === 0) return;
-  const sourceUids = new Set(sources.map((source) => source.localId));
+  const dependentsBySourceUid = new Map(
+    sources.map(({ uid, conceptId }) => [
+      uid,
+      { conceptId, dependentUids: [] as string[] },
+    ]),
+  );
   const titlesByUid = await pagesWithTitleContaining(
-    sources.map((source) => source.content.direct.value),
+    sources.map(({ title }) => title),
   );
-  const dependents = [...titlesByUid].flatMap(([uid, title]) => {
-    const nodeType = findDiscourseNode({ uid, title });
-    if (!nodeType) return [];
-    const sourceId = sourceIdOfNode(title, nodeType);
-    return sourceId !== undefined && sourceUids.has(sourceId)
-      ? [{ uid, type: nodeType.type }]
-      : [];
-  });
-  if (dependents.length === 0) return;
-  const stored = await client
-    .from("my_concepts")
-    .select("source_local_id, reference_content")
-    .eq("space_id", spaceId)
-    .in(
-      "source_local_id",
-      dependents.map(({ uid }) => uid),
-    );
-  if (stored.error) throw stored.error;
-  const missingUids = new Set(
-    onlyStrings(
-      stored.data
-        .filter((row) => !hasStoredSourceReference(row.reference_content))
-        .map((row) => row.source_local_id),
-    ),
-  );
-  const toRestore = dependents.filter(({ uid }) => missingUids.has(uid));
-  if (toRestore.length === 0) return;
-  // Only the concept holds the reference; full content stays with publish and sync.
-  const concepts = (await nodeUidsWithTypeToCrossApp(toRestore)).map((node) =>
-    crossAppNodeToDbConcept({
-      ...node,
-      content: { direct: node.content.direct },
-    }),
-  );
-  const response = await client.rpc("upsert_concepts", {
-    v_space_id: spaceId,
-    data: concepts,
-  });
-  if (response.error) throw response.error;
-  const failedUids = concepts
-    .filter((_, i) => response.data[i] < 0)
-    .map((concept) => concept.source_local_id);
-  if (failedUids.length > 0)
-    throw new Error(
-      `Could not restore the source reference of ${failedUids.join(", ")}`,
-    );
+  for (const [uid, title] of titlesByUid) {
+    const nodeType = findDiscourseNode({ uid, title, nodes: discourseNodes });
+    if (!nodeType) continue;
+    const sourceId = sourceIdOfNode(title, nodeType, discourseNodes);
+    if (sourceId !== undefined)
+      dependentsBySourceUid.get(sourceId)?.dependentUids.push(uid);
+  }
+  for (const { conceptId, dependentUids } of dependentsBySourceUid.values()) {
+    if (dependentUids.length === 0) continue;
+    const { error } = await client
+      .from("Concept")
+      .update({ reference_content: { [SOURCE_SLOT]: conceptId } })
+      .eq("space_id", spaceId)
+      .in("source_local_id", dependentUids)
+      .is(`reference_content->>${SOURCE_SLOT}`, null);
+    if (error) throw error;
+  }
 };
 
 type PublishNodesResult = {
@@ -389,7 +363,8 @@ export const publishNodesToGroups = async ({
   const nodesByUid = new Map(nodes.map((node) => [node.localId, node]));
   let nodeUids = [...nodesByUid.keys()];
   const nodeSchemaUids = new Set(nodes.map((node) => node.nodeType));
-  const nodeSchemas = getDiscourseNodes()
+  const discourseNodes = getDiscourseNodes();
+  const nodeSchemas = discourseNodes
     .filter((s) => nodeSchemaUids.has(s.type))
     .map((s) => nodeSchemaToCrossApp(s))
     .filter((s) => s !== null);
@@ -449,7 +424,7 @@ export const publishNodesToGroups = async ({
     renderToast({
       id: `publish-missing-source-${sourceId}`,
       intent: "warning",
-      content: `Source "${getPageTitleByPageUid(sourceId) || sourceId}" is not in this space yet. Publishing without this source reference until the Source is published.`,
+      content: `Source "${getPageTitleByPageUid(sourceId) || sourceId}" is not in this space yet. Publishing without this source reference. Publish the Source separately, then publish the referencing node again.`,
     });
     return { ...node, slots: undefined };
   };
@@ -520,16 +495,26 @@ export const publishNodesToGroups = async ({
 
   // Only Source nodes trigger the title scan, so an ordinary publish costs no query. A
   // node naming another type as its source still needs publishing again.
-  const sourceNodeType = sourceSlotSchemaId();
+  const sourceNodeType = sourceSlotSchemaId(discourseNodes);
+  const conceptIdByUid = new Map(
+    upsertConcepts.map((concept, i) => [
+      concept.source_local_id,
+      response.data[i],
+    ]),
+  );
   try {
     await restoreSourceReferences({
       client,
       spaceId,
-      sources: [...nodesByUid.values()].filter(
-        (node) =>
-          node.nodeType === sourceNodeType &&
-          upsertedNodeUids.has(node.localId),
-      ),
+      discourseNodes,
+      sources: [...nodesByUid.values()].flatMap((node): PublishedSource[] => {
+        const conceptId = conceptIdByUid.get(node.localId);
+        return node.nodeType === sourceNodeType &&
+          upsertedNodeUids.has(node.localId) &&
+          conceptId !== undefined
+          ? [{ uid: node.localId, title: node.content.direct.value, conceptId }]
+          : [];
+      }),
     });
   } catch (error) {
     internalError({ error, type: "Restore Source References Failed" });
