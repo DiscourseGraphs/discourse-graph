@@ -118,3 +118,7 @@ eng-2257 is up. you can start planning based on that branch now
 ---
 
 yes, export in place and commit tests
+
+---
+
+yes, commit and run the checks
