@@ -15,7 +15,6 @@ type RelationTypeFields = {
   color: TldrawColorName;
 };
 
-// Shared by the form and the modal; each closes its own way
 type CreateRelationTypeProps = {
   relationTypes: DiscourseRelationType[];
   onSubmit: (fields: RelationTypeFields) => Promise<void>;
