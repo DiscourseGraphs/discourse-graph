@@ -1,0 +1,5 @@
+/start eng-2341
+
+---
+
+In order to verify the fix, you need to create a branch on Discourse Graph Obsidian repo, and I can use this branch to run for review. Feel free to use a part of publish.ts script to create this branch if it is relevant at all.

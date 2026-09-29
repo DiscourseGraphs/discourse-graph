@@ -3,8 +3,9 @@
   "checkpoint_id": "01M3QNYZ031S4TGB76M7J0ZC2N",
   "strategy": "manual-commit",
   "branch": "eng-2341-fix-obsidian-plugin-fail-community-check",
-  "checkpoints_count": 1,
+  "checkpoints_count": 8,
   "files_touched": [
+    "apps/obsidian/src/components/useSchemaSelection.ts",
     "apps/obsidian/src/utils/tagNodeHandler.ts"
   ],
   "sessions": [
@@ -14,14 +15,21 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 2,
-    "cache_creation_tokens": 322598,
-    "cache_read_tokens": 36694,
-    "output_tokens": 246,
-    "api_call_count": 1,
+    "input_tokens": 202,
+    "cache_creation_tokens": 491432,
+    "cache_read_tokens": 13996321,
+    "output_tokens": 64912,
+    "api_call_count": 101,
     "subagent_tokens": {
       "input_tokens": 0,
       "cache_creation_tokens": 0,
