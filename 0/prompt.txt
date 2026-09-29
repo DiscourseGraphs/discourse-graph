@@ -331,3 +331,11 @@ No, I'm resolving all the errors with ng2341. For this ticket, just focus on mak
 ---
 
 explain to me again why we can ONLY have superset with `litn:scanner` and not exact match?
+
+---
+
+then can we match the severity downgrade to match the real scanner?
+
+---
+
+see what we can rip from https://github.com/obsidianmd/obsidian-workflows#scanner-lint-rulesets. how did they check the lint in this workflow yaml? can we mirror it?
