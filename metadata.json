@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3QNVKFN8BAXNS3NH873RWTF",
+  "strategy": "manual-commit",
+  "branch": "eng-1832-add-obsidian-eslint-to-the-project",
+  "checkpoints_count": 5,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 142,
+    "cache_creation_tokens": 462641,
+    "cache_read_tokens": 28300660,
+    "output_tokens": 99210,
+    "api_call_count": 71,
+    "subagent_tokens": {
+      "input_tokens": 78,
+      "cache_creation_tokens": 212013,
+      "cache_read_tokens": 3013173,
+      "output_tokens": 452,
+      "api_call_count": 39
+    }
+  }
+}
