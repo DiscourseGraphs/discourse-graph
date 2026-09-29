@@ -1,0 +1,21 @@
+I'd like to take a stab at ENG-1946. The ticket is sparse, but here's a more detailed rundown: When we click the "Manage groups" in the admin interface of either roam or obsidian, it opens a browser page with a ticket it just created. Often, the page errors, not finding the ticket. It seems more frequent when we are already logged in, and log in to a new pseudo-user. The ticket is consumed on read, so I suspect that the issue is that somehow, either the browser or the website code or even the supabase auth code decides to reload after the change of user; at reload the ticket would have been lost.
+
+---
+
+Interesting hypothesis, would be so much simpler. But it's a new page, so I cannot set it to have the developer tools; and then it redirects so I lose sight of the token. But I do get roughly the 1/5 ratio without changing vaults, and I see spaces in the tokens in the vercel logs.
+
+---
+
+Ah, I'd like you to wait on code changes. I stashed it. I need to first put a node in linear explaining what the problem was. Can you draft it?
+
+---
+
+Actually, we'll want to change the PR body to have the usual structure. We normally avoid this, but since the body was incomplete it's appropriate.
+
+---
+
+I removed the note about 45 seconds, not relevant. Ready to paste into Roam.
+
+---
+
+Sorry, making many mistakes today. Yes, Linear, not Roam.
