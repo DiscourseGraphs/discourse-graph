@@ -144,7 +144,8 @@ export const RelationTypeDropdown = ({
   return (
     <div
       ref={dropdownRef}
-      className="pointer-events-auto absolute z-30 -translate-x-1/2 -translate-y-1/2"
+      // Above tldraw's panels (z 300), below its menus (z 400). Arbitrary transform because preflight is off.
+      className="pointer-events-auto absolute z-[301] [transform:translate(-50%,-50%)]"
       style={{
         left: `${dropdownPosition.left}px`,
         top: `${dropdownPosition.top}px`,
