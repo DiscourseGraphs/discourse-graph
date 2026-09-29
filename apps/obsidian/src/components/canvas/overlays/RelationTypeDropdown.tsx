@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { setIcon } from "obsidian";
 import { TLShapeId, useEditor, useValue } from "tldraw";
 import DiscourseGraphPlugin from "~/index";
@@ -11,6 +18,7 @@ import {
   getDiscourseNodeTypeId,
   getValidRelationTypesForNodePair,
 } from "~/components/canvas/utils/relationTypeUtils";
+import { clampMenuCentre } from "~/components/canvas/utils/menuPlacement";
 
 type RelationTypeDropdownProps = {
   arrowId: TLShapeId;
@@ -85,6 +93,35 @@ export const RelationTypeDropdown = ({
     [editor, arrow?.id],
   );
 
+  const viewport = useValue(
+    "dropdownViewport",
+    () => {
+      const bounds = editor.getViewportScreenBounds();
+      return { width: bounds.w, height: bounds.h };
+    },
+    [editor],
+  );
+
+  // Measured before paint so the first frame is already inside the canvas.
+  const [menuSize, setMenuSize] = useState<{
+    menu: { width: number; height: number };
+    flyoutWidth: number;
+  } | null>(null);
+  const hasPosition = !!dropdownPosition;
+  const relationTypeCount = validRelationTypes.length;
+  useLayoutEffect(() => {
+    const [menu, flyout] = Array.from(
+      dropdownRef.current?.children ?? [],
+    ) as HTMLElement[];
+    if (!menu) return;
+    setMenuSize({
+      menu: { width: menu.offsetWidth, height: menu.offsetHeight },
+      flyoutWidth: flyout
+        ? flyout.offsetLeft + flyout.offsetWidth - menu.offsetWidth
+        : 0,
+    });
+  }, [hasPosition, isAddMenuOpen, relationTypeCount]);
+
   // Handle click outside
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
@@ -131,6 +168,15 @@ export const RelationTypeDropdown = ({
 
   if (!dropdownPosition || !arrow) return null;
 
+  const centre = menuSize
+    ? clampMenuCentre({
+        anchor: { x: dropdownPosition.left, y: dropdownPosition.top },
+        ...menuSize,
+        viewport,
+        margin: 8,
+      })
+    : { x: dropdownPosition.left, y: dropdownPosition.top };
+
   const actionClassName =
     "flex w-full cursor-pointer items-center justify-start rounded border-none bg-transparent px-2 py-1.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-100";
   const addActions = (
@@ -144,10 +190,11 @@ export const RelationTypeDropdown = ({
   return (
     <div
       ref={dropdownRef}
-      className="pointer-events-auto absolute z-30 -translate-x-1/2 -translate-y-1/2"
+      // Above tldraw's panels (z 300), below its menus (z 400). Arbitrary transform because preflight is off.
+      className="pointer-events-auto absolute z-[301] [transform:translate(-50%,-50%)]"
       style={{
-        left: `${dropdownPosition.left}px`,
-        top: `${dropdownPosition.top}px`,
+        left: `${centre.x}px`,
+        top: `${centre.y}px`,
       }}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
