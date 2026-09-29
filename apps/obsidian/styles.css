@@ -73,10 +73,26 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   display: none !important;
 }
 
-/* Targets the parent `.cm-hashtag`, which Obsidian renders and we cannot class,
-   so this cannot be a Tailwind utility. Per-node colours are generated in tagNodeHandler.ts. */
+/* The tag mark sits inside Obsidian's `.cm-hashtag`, which owns the chip's padding
+   and radius; ::before fills that box with the node colour set in tagNodeHandler.ts. */
 .cm-hashtag:has(> .dg-discourse-tag) {
+  position: relative;
+  isolation: isolate;
   cursor: pointer;
+}
+
+.dg-discourse-tag {
+  color: var(--dg-tag-fg);
+  border-radius: inherit;
+}
+
+.dg-discourse-tag::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--dg-tag-bg);
 }
 
 /* Off-screen measure container matching DiscourseNodeShape layout */
