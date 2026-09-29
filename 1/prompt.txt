@@ -216,3 +216,7 @@ if we revert the centering. where would the relation option panel lie?
 ---
 
 hmm the cons of being in center might be: when we have sooo many options and the arrow is short. how would that look like?
+
+---
+
+hmm ok use centering then
