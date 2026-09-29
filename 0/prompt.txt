@@ -1,0 +1,9 @@
+/dg-pr-adherence-check
+
+---
+
+made the minor changes (amended the original commit.) Closed the graphite comment with a reference. Removed the investigation note. Now working on loom.
+
+---
+
+Checked out the right branch now. Not sure the roam test is worth it, long to set up, against a minor verification.
