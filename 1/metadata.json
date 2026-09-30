@@ -51,6 +51,68 @@
         "label": "/babysit",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01Xm8W6hWPDRj4qJKkhiCgdx",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "scope-check"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "c7c029c925fe",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 2259,
+        "end": 2260,
+        "entry_ids": [
+          "ed40f752-0078-48b6-8a7e-cfea2ed2f20d"
+        ],
+        "tool_use_id": "toolu_01Xm8W6hWPDRj4qJKkhiCgdx"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Xm8W6hWPDRj4qJKkhiCgdx"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: scope-check",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01QMrPkcikh4hVCb9Ri2rtbm",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-delegated-full-review"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "c7c029c925fe",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 2269,
+        "end": 2270,
+        "entry_ids": [
+          "e59e84ff-73ab-461c-b09b-c0720d1d4585"
+        ],
+        "tool_use_id": "toolu_01QMrPkcikh4hVCb9Ri2rtbm"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01QMrPkcikh4hVCb9Ri2rtbm"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-delegated-full-review",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
