@@ -33,7 +33,7 @@ import { getVersionWithDate } from "~/utils/getVersion";
 import posthog from "posthog-js";
 import { bulkReadSettings } from "./utils/accessors";
 import { onSettingChange, settingKeys } from "./utils/settingsEmitter";
-import { SETTINGS_TAB_IDS } from "./utils/settingsTabs";
+import { SETTINGS_TAB_IDS, SETTINGS_TAB_META } from "./utils/settingsTabs";
 import {
   resolveInitialSettingsPath,
   settingsNavReducer,
@@ -193,7 +193,7 @@ export const SettingsDialog = ({
           <SectionHeader>Preferences</SectionHeader>
           <Tab
             id={SETTINGS_TAB_IDS.preferencesGeneral}
-            title="General"
+            title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.preferencesGeneral].label}
             className="overflow-y-auto"
             panel={
               <PreferencesGeneral
@@ -206,7 +206,7 @@ export const SettingsDialog = ({
           />
           <Tab
             id={SETTINGS_TAB_IDS.preferencesStyling}
-            title="Styling"
+            title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.preferencesStyling].label}
             className="overflow-y-auto"
             panel={
               <PreferencesStyling
@@ -217,7 +217,9 @@ export const SettingsDialog = ({
           <SectionHeader>Features</SectionHeader>
           <Tab
             id={SETTINGS_TAB_IDS.featuresDiscourseContext}
-            title="Discourse context"
+            title={
+              SETTINGS_TAB_META[SETTINGS_TAB_IDS.featuresDiscourseContext].label
+            }
             className="overflow-y-auto"
             panel={
               <DiscourseContextSettings
@@ -228,7 +230,7 @@ export const SettingsDialog = ({
           />
           <Tab
             id={SETTINGS_TAB_IDS.featuresCanvas}
-            title="Canvas"
+            title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.featuresCanvas].label}
             className="overflow-y-auto"
             panel={
               <CanvasSettings
@@ -240,7 +242,9 @@ export const SettingsDialog = ({
           />
           <Tab
             id={SETTINGS_TAB_IDS.featuresLeftSidebar}
-            title="Left sidebar"
+            title={
+              SETTINGS_TAB_META[SETTINGS_TAB_IDS.featuresLeftSidebar].label
+            }
             className="overflow-y-auto"
             hidden={!leftSidebarEnabled}
             panel={
@@ -254,7 +258,7 @@ export const SettingsDialog = ({
           <SectionHeader>Grammar</SectionHeader>
           <Tab
             id={SETTINGS_TAB_IDS.grammarNodes}
-            title="Nodes"
+            title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.grammarNodes].label}
             panel={
               <SettingsNavProvider path={path} dispatch={dispatch}>
                 <GrammarNodesRoute onloadArgs={onloadArgs} />
@@ -263,7 +267,7 @@ export const SettingsDialog = ({
           />
           <Tab
             id={SETTINGS_TAB_IDS.grammarRelations}
-            title="Relations"
+            title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.grammarRelations].label}
             className="overflow-y-auto"
             panel={
               <DiscourseRelationConfigPanel
@@ -277,7 +281,7 @@ export const SettingsDialog = ({
           <SectionHeader>Advanced</SectionHeader>
           <Tab
             id={SETTINGS_TAB_IDS.advancedQueries}
-            title="Queries"
+            title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.advancedQueries].label}
             className="overflow-y-auto"
             panel={
               <QuerySettings

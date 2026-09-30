@@ -17,6 +17,7 @@ import {
   CANVAS_KEYS,
   DISCOURSE_NODE_KEYS,
   SPECIFICATION_KEYS,
+  TEMPLATE_SETTING_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
@@ -105,6 +106,7 @@ const DiscourseNodeColorSetting = ({
         label="Color"
         description="Changes the color of tags and canvas nodes"
         scope="global"
+        settingKeys={[DISCOURSE_NODE_KEYS.canvasSettings, CANVAS_KEYS.color]}
         control={(controlId) => (
           <ControlGroup>
             <InputGroup
@@ -285,6 +287,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           label="Index"
           description={`The saved list of all ${node.text} pages \u2014 which pages appear and which columns show.`}
           scope="global"
+          settingKeys={[DISCOURSE_NODE_KEYS.index]}
           control={
             <SettingDrillDownSummary
               summary={`See all ${node.text} nodes`}
@@ -368,6 +371,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
             ROAM_DOCS.creatingNodes,
           )}
           scope="global"
+          settingKeys={TEMPLATE_SETTING_KEYS}
           control={
             <SettingDrillDownSummary
               summary="Edit template"
@@ -399,6 +403,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
             ROAM_DOCS.grammarNodes,
           )}
           scope="global"
+          settingKeys={[DISCOURSE_NODE_KEYS.specification]}
           controlPlacement="below"
           control={
             <DiscourseNodeSpecification
