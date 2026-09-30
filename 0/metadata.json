@@ -1,0 +1,67 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3RQVS4P5XZFAA6M5YVX36BK",
+  "session_id": "01a0f175-195f-7612-968b-980be9a8fb54",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-30T08:45:57.8622839Z",
+  "branch": "remove-proven-redundant-unit-tests",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/roam/src/utils/__tests__/copyAssetToSharedStorage.test.ts",
+    "apps/roam/src/utils/__tests__/rewriteAssetLinks.test.ts",
+    "packages/database/src/lib/__tests__/sharedNodes.test.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6.1-sol",
+  "turn_id": "e5e974e3ccf8",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 202484,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3092096,
+    "output_tokens": 14267,
+    "api_call_count": 25
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-30T08:45:57.6999195Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 23,
+    "total_committed": 0,
+    "total_lines_changed": 23,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1832,
+      "user_lines_removed": 8,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".agents/skills/.openspec-target": 1,
+        ".agents/skills/openspec-apply-change/SKILL.md": 202,
+        ".agents/skills/openspec-archive-change/SKILL.md": 210,
+        ".agents/skills/openspec-explore/SKILL.md": 354,
+        ".agents/skills/openspec-propose/SKILL.md": 174,
+        ".agents/skills/openspec-sync-specs/SKILL.md": 290,
+        ".agents/skills/openspec-update-change/SKILL.md": 109,
+        "apps/roam/build.sh": 8,
+        "openspec/changes/headless-dg-retrieval-api-and-mcp/.openspec.yaml": 2,
+        "openspec/changes/headless-dg-retrieval-api-and-mcp/design.md": 160,
+        "openspec/changes/headless-dg-retrieval-api-and-mcp/proposal.md": 48,
+        "openspec/changes/headless-dg-retrieval-api-and-mcp/specs/agent-read-access/spec.md": 61,
+        "openspec/changes/headless-dg-retrieval-api-and-mcp/specs/discourse-mcp/spec.md": 40,
+        "openspec/changes/headless-dg-retrieval-api-and-mcp/specs/discourse-retrieval/spec.md": 107,
+        "openspec/changes/headless-dg-retrieval-api-and-mcp/specs/headless-retrieval-api/spec.md": 34,
+        "openspec/config.yaml": 32
+      },
+      "user_removed_per_file": {
+        "apps/roam/build.sh": 8
+      }
+    }
+  ]
+}
