@@ -58,6 +58,7 @@ import {
   type SortDirection,
   type SortKey,
 } from "~/utils/discourseNodeSort";
+import { findTaggedLineElement } from "~/utils/taggedLineLocator";
 
 const MAX_VISIBLE_RESULTS = 50;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -83,6 +84,27 @@ const formatTimestamp = (epochMs: number): string =>
     timeStyle: "short",
   });
 
+const PREVIEW_FLASH_CLASS = "dg-search-preview-flash";
+
+// An image reserves no height until it loads, which would shift a line scrolled to before then.
+const waitForImages = async (container: HTMLElement): Promise<void> => {
+  const pending = Array.from(container.querySelectorAll("img")).filter(
+    (img) => !img.complete,
+  );
+  await Promise.race([
+    Promise.all(
+      pending.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            img.addEventListener("load", () => resolve(), { once: true });
+            img.addEventListener("error", () => resolve(), { once: true });
+          }),
+      ),
+    ),
+    new Promise<void>((resolve) => window.setTimeout(resolve, 1000)),
+  ]);
+};
+
 const PreviewPane = ({
   app,
   result,
@@ -98,6 +120,7 @@ const PreviewPane = ({
   const [loaded, setLoaded] = useState<{ file: TFile; text: string } | null>(
     null,
   );
+  const [renderedFile, setRenderedFile] = useState<TFile | null>(null);
 
   const file = result?.file;
 
@@ -120,20 +143,58 @@ const PreviewPane = ({
     if (!container || !file || loaded?.file !== file) return;
 
     container.empty();
+    setRenderedFile(null);
     const component = new Component();
-    void MarkdownRenderer.render(
-      app,
-      loaded.text.trim() || "This note is empty.",
-      container,
-      file.path,
-      component,
-    );
+    let cancelled = false;
+    void (async () => {
+      await MarkdownRenderer.render(
+        app,
+        loaded.text.trim() || "This note is empty.",
+        container,
+        file.path,
+        component,
+      );
+      await waitForImages(container);
+      if (!cancelled) setRenderedFile(file);
+    })();
 
     return () => {
+      cancelled = true;
       component.unload();
       container.empty();
     };
   }, [app, file, loaded]);
+
+  // Separate from rendering, so moving between two lines of one note only re-scrolls.
+  const taggedLine = result?.tagLine?.line;
+  useEffect(() => {
+    const container = containerRef.current;
+    // `loaded` still holds the previous note until the new file's read finishes.
+    if (!container || !loaded || !file || renderedFile !== file) return;
+
+    const target =
+      taggedLine === undefined
+        ? null
+        : findTaggedLineElement({
+            container,
+            cache: app.metadataCache.getFileCache(file),
+            text: loaded.text,
+            line: taggedLine,
+          });
+    // Same-note switches don't re-render, so an unlocated line would keep the last scroll.
+    if (!target) {
+      container.scrollTop = 0;
+      return;
+    }
+    target.scrollIntoView({ block: "center" });
+    target.addClass(PREVIEW_FLASH_CLASS);
+    const clearFlash = (): void => target.removeClass(PREVIEW_FLASH_CLASS);
+    target.addEventListener("animationend", clearFlash, { once: true });
+    return () => {
+      target.removeEventListener("animationend", clearFlash);
+      clearFlash();
+    };
+  }, [app, file, loaded, renderedFile, taggedLine]);
 
   if (!result || !file) {
     return (
