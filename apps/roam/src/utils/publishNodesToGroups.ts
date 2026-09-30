@@ -22,11 +22,17 @@ import {
 import { ensurePartialSpaceAccess } from "@repo/database/lib/groups";
 import { isIgnorableUpsertError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
-import { ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
+import { isRid, ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
 import getDiscourseNodes from "./getDiscourseNodes";
 import { difference, intersection } from "@repo/utils/setOperations";
 import internalError from "./internalError";
 import { readImportedSourceIdentity } from "./importedSourceIdentity";
+import { orderConceptsByDependency } from "./conceptConversion";
+import { SOURCE_SLOT } from "./sourceSlot";
+import renderToast from "roamjs-components/components/Toast";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+import { publishNodeAssets, type NodeAssetResult } from "./publishNodeAssets";
+import { excludeProvisionalRelationSchemas } from "./relationSchemaAcceptance";
 
 export type NodeUidWithType = {
   uid: string;
@@ -123,7 +129,11 @@ export const gatherCorrespondingRelations = async ({
   relationTripleSchemas: CrossAppRelationTripleSchema[];
   relevantRelationIdsPerGroupId: Record<string, string[]>;
 }> => {
-  const allRelationsSchemas = getDiscourseRelations();
+  // Excluding provisional schemas here also drops their relation instances:
+  // relationSchemaIds below only keeps instances whose schema is in this map.
+  const allRelationsSchemas = excludeProvisionalRelationSchemas(
+    getDiscourseRelations(),
+  );
   const allRelationSchemasById = Object.fromEntries(
     allRelationsSchemas.map((s) => [s.id, s]),
   );
@@ -222,6 +232,8 @@ type PublishNodesResult = {
   failedUpsertUids: string[];
   okGroupIds: string[];
   failedGroupIds: string[];
+  /** One entry per asset the published nodes reference. See publishNodeAssets. */
+  assetResults: NodeAssetResult[];
 };
 
 // Grants a group access to discourse nodes by mirroring the Obsidian
@@ -255,6 +267,7 @@ export const publishNodesToGroups = async ({
     failedUpsertUids: [],
     okGroupIds: [],
     failedGroupIds: [],
+    assetResults: [],
   };
   if (nodes.length === 0 || groupIds.length === 0) return result;
 
@@ -297,10 +310,17 @@ export const publishNodesToGroups = async ({
   const relationUids = relations.map((r) => r.localId);
   const relationTripleSchemaUids = relationTripleSchemas.map((r) => r.localId);
 
+  const localSourceUids = new Set(
+    nodes
+      .map((node) => node.slots?.[SOURCE_SLOT])
+      .filter((id): id is string => id !== undefined && !isRid(id)),
+  );
+
   const neededUids = [
     ...nodeSchemaUids,
     ...relationTripleSchemaUids,
     ...relationUids,
+    ...localSourceUids,
   ];
 
   const syncedRes = await client
@@ -323,14 +343,35 @@ export const publishNodesToGroups = async ({
   );
   const missingRelations = relations.filter((r) => !syncedUids.has(r.localId));
 
-  const upsertConcepts = [
-    ...missingNodeSchemas.map((s) => crossAppNodeSchemaToDbConcept(s)),
-    ...[...nodesByUid.values()].map((node) => crossAppNodeToDbConcept(node)),
-    ...missingRelationTripleSchemas.map((rs3) =>
-      crossAppRelationTripleSchemaToDbConcept(rs3),
-    ),
-    ...missingRelations.map((r) => crossAppRelationToDbConcept(r)),
-  ].filter((r) => r !== undefined);
+  const omitMissingSource = (node: CrossAppNode): CrossAppNode => {
+    const sourceId = node.slots?.[SOURCE_SLOT];
+    if (
+      sourceId === undefined ||
+      isRid(sourceId) ||
+      nodesByUid.has(sourceId) ||
+      syncedUids.has(sourceId)
+    )
+      return node;
+    renderToast({
+      id: `publish-missing-source-${sourceId}`,
+      intent: "warning",
+      content: `Source "${getPageTitleByPageUid(sourceId) || sourceId}" is not in this space yet. Publishing without this source reference. Publish the Source separately, then publish the referencing node again.`,
+    });
+    return { ...node, slots: undefined };
+  };
+
+  const { ordered: upsertConcepts } = orderConceptsByDependency(
+    [
+      ...missingNodeSchemas.map((s) => crossAppNodeSchemaToDbConcept(s)),
+      ...[...nodesByUid.values()].map((node) =>
+        crossAppNodeToDbConcept(omitMissingSource(node)),
+      ),
+      ...missingRelationTripleSchemas.map((rs3) =>
+        crossAppRelationTripleSchemaToDbConcept(rs3),
+      ),
+      ...missingRelations.map((r) => crossAppRelationToDbConcept(r)),
+    ].filter((r) => r !== undefined),
+  );
 
   const upsertedNodeUids = new Set(nodeUids);
   const syncedRelationUids = new Set(missingRelations.map((s) => s.localId));
@@ -382,6 +423,16 @@ export const publishNodesToGroups = async ({
   result.syncedRelationUids = [...syncedRelationUids];
   nodeUids = [...upsertedNodeUids];
   const failedUpsertIds = new Set(result.failedUpsertUids);
+
+  // After the content upsert, because FileReference has a foreign key to Content, and
+  // before the access grants, so a node becomes visible with its assets already recorded.
+  result.assetResults = await publishNodeAssets({
+    client,
+    spaceId,
+    nodes: [...nodesByUid.values()].filter((node) =>
+      upsertedNodeUids.has(node.localId),
+    ),
+  });
 
   const resourceAccesses = [];
   const resourceIds = [...nodeUids, ...nodeSchemaUids];

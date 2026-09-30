@@ -2,10 +2,8 @@ import { getSharedNodeByRid } from "@repo/database/lib/sharedNodes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { readImportedSourceIdentity } from "./importedSourceIdentity";
 import internalError from "./internalError";
-import {
-  getErrorMessage,
-  materializeSharedNode,
-} from "./materializeSharedNode";
+import { getErrorMessage } from "./getErrorMessage";
+import { materializeSharedNode } from "./materializeSharedNode";
 import { resolveSharedNodeTypes } from "./resolveSharedNodeTypes";
 import { getLoggedInClient } from "./supabaseContext";
 
@@ -15,6 +13,7 @@ const REFRESH_ERROR_OPERATION = "refresh-imported-node";
 type RefreshImportedNodeResult = {
   status: "refreshed" | "skipped" | "failed";
   message: string;
+  warning?: string;
 };
 
 export const refreshImportedNode = async ({
@@ -86,6 +85,7 @@ export const refreshImportedNode = async ({
     return {
       status: "refreshed",
       message: `Refreshed "${sharedNode.title}" from ${sharedNode.spaceName}.`,
+      ...(result.warning ? { warning: result.warning } : {}),
     };
   } catch (error) {
     internalError({

@@ -249,7 +249,7 @@ export const searchSemanticNodeTitles = async ({
   );
 };
 
-const runRoamSemanticSearch = async ({
+export const runRoamSemanticSearch = async ({
   nodeTypes,
   query,
 }: {

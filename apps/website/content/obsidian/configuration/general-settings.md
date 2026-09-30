@@ -15,6 +15,16 @@ This setting controls the visibility of identifiers in your note's frontmatter s
 - When disabled, these IDs will be hidden from view
 - This can be useful if you prefer a cleaner frontmatter appearance while still maintaining the underlying structure
 
+## Show discourse context overlay
+
+This setting controls whether links to discourse nodes carry an inline badge showing how many relations the linked node has.
+
+- When enabled, a badge appears after each link to a discourse node, in both Live Preview and Reading view
+- Selecting a badge opens that node's discourse context in a popover, where you can review its relationships and add a new one
+- A node with no relations shows a badge reading `0`, and its popover says "No discourse relation found"
+- Links to notes that are not discourse nodes never show a badge
+- When disabled, the badges are removed immediately; the [discourse context view](/docs/obsidian/core-features/discourse-context) remains available from the sidebar
+
 ## Discourse nodes folder path
 
 This setting determines where new discourse nodes will be created in your vault.

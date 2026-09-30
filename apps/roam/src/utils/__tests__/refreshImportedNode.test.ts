@@ -36,6 +36,13 @@ vi.mock("~/utils/supabaseContext", () => ({
   getLoggedInClient: vi.fn(),
 }));
 
+// Runs before the imports above: getDiscourseNodes calls generateUID at module load.
+vi.hoisted(() => {
+  (globalThis as { window?: unknown }).window = {
+    roamAlphaAPI: { util: { generateUID: () => "someUid" } },
+  };
+});
+
 const mockedGetPageTitleByPageUid = vi.mocked(getPageTitleByPageUid);
 const mockedGetSharedNodeByRid = vi.mocked(getSharedNodeByRid);
 const mockedReadImportedSourceIdentity = vi.mocked(readImportedSourceIdentity);
@@ -119,6 +126,25 @@ describe("refreshImportedNode", () => {
       force: true,
     });
     expect(mockedInternalError).not.toHaveBeenCalled();
+  });
+
+  it("passes the materializer's warning through", async () => {
+    mockedMaterializeSharedNode.mockResolvedValue({
+      success: true,
+      action: "updated",
+      pageUid: PAGE_UID,
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+      warning: "No source was published with this node.",
+    });
+
+    await expect(
+      refreshImportedNode({ pageUid: PAGE_UID, force: true }),
+    ).resolves.toEqual({
+      status: "refreshed",
+      message: 'Refreshed "EVD - REM sleep and recall" from Research vault.',
+      warning: "No source was published with this node.",
+    });
   });
 
   it("passes the resolved node type to the materializer", async () => {

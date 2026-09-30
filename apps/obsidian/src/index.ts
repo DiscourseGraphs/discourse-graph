@@ -20,6 +20,14 @@ import {
 } from "~/utils/editorMenuUtils";
 import { createImageEmbedHoverExtension } from "~/utils/imageEmbedHoverIcon";
 import { createWikilinkDragExtension } from "~/utils/wikilinkDragHandler";
+import { createDiscourseContextOverlayExtension } from "~/utils/discourseContextOverlayExtension";
+import { createDiscourseContextOverlayPostProcessor } from "~/utils/discourseContextOverlayPostProcessor";
+import {
+  registerDiscourseContextOverlayRefresh,
+  refreshDiscourseContextOverlaySurfaces,
+} from "~/utils/discourseContextOverlayRefresh";
+import { refreshMarkdownEditors } from "~/utils/markdownViewRefresh";
+import { closeDiscourseContextPopover } from "~/components/DiscourseContextPopover";
 import {
   registerCommands,
   createModifyNodeModalSubmitHandler,
@@ -31,7 +39,6 @@ import { DEFAULT_SETTINGS } from "~/constants";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import {
   createDiscourseTagExtension,
-  DiscourseTagStyleManager,
   refreshDiscourseTagColors,
 } from "~/utils/tagNodeHandler";
 import { TldrawView } from "~/components/canvas/TldrawView";
@@ -39,6 +46,7 @@ import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
 import { InlineNodeTypePicker } from "~/components/InlineNodeTypePicker";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
+import { RelationsIndex } from "~/utils/relationsIndex";
 import generateUid from "~/utils/generateUid";
 import {
   migrateFrontmatterRelationsToRelationsJson,
@@ -55,7 +63,7 @@ import {
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
-  private tagStyleManager: DiscourseTagStyleManager | null = null;
+  relationsIndex: RelationsIndex = new RelationsIndex(this);
   private fileChangeListener: FileChangeListener | null = null;
   private activeNodePopover:
     | NodeTagSuggestPopover
@@ -101,6 +109,12 @@ export default class DiscourseGraphPlugin extends Plugin {
         this.fileChangeListener = null;
       }
     }
+
+    this.relationsIndex.initialize();
+    this.registerMarkdownPostProcessor(
+      createDiscourseContextOverlayPostProcessor(this),
+    );
+    registerDiscourseContextOverlayRefresh(this);
 
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
@@ -264,34 +278,23 @@ export default class DiscourseGraphPlugin extends Plugin {
       }),
     );
 
-    type EditorWithCm = { cm: EditorView };
-    const hasCodeMirrorView = (editor: unknown): editor is EditorWithCm => {
-      if (!editor || typeof editor !== "object") return false;
-      return "cm" in editor;
-    };
-
-    // Dispatch a no-op CM6 transaction to every markdown editor so their
-    // ViewPlugin re-evaluates hasVisibleCanvasLeaf and shows/hides widgets.
-    // layout-change covers splits/moves, active-leaf-change covers tab switches.
-    const refreshMarkdownEditors = (): void => {
-      this.app.workspace.iterateAllLeaves((leaf) => {
-        if (
-          leaf.view instanceof MarkdownView &&
-          hasCodeMirrorView(leaf.view.editor)
-        ) {
-          leaf.view.editor.cm.dispatch({});
-        }
-      });
-    };
+    // Re-evaluate ViewPlugins on splits/moves (layout-change) and tab switches.
+    const refreshEditors = (): void => refreshMarkdownEditors(this.app);
+    this.registerEvent(this.app.workspace.on("layout-change", refreshEditors));
     this.registerEvent(
-      this.app.workspace.on("layout-change", refreshMarkdownEditors),
-    );
-    this.registerEvent(
-      this.app.workspace.on("active-leaf-change", refreshMarkdownEditors),
+      this.app.workspace.on("active-leaf-change", refreshEditors),
     );
 
     // Register editor keydown listener for node tag hotkey
     this.setupNodeTagHotkey();
+  }
+
+  /**
+   * Re-renders both markdown surfaces so the discourse context overlay appears
+   * or disappears immediately when its setting is toggled, without a reload.
+   */
+  refreshDiscourseContextOverlay(): void {
+    refreshDiscourseContextOverlaySurfaces(this);
   }
 
   setHelpMenuStatusBarItemVisibility(): void {
@@ -305,7 +308,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     const item = this.addStatusBarItem();
     item.addClass(
       "dg-help-menu-status-bar-item",
-      "clickable-icon",
+      "mod-clickable",
       "text-muted",
       "hover:text-normal",
     );
@@ -365,18 +368,9 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.registerEditorExtension(createImageEmbedHoverExtension(this));
 
     this.registerEditorExtension(createWikilinkDragExtension(this));
+    this.registerEditorExtension(createDiscourseContextOverlayExtension(this));
 
     this.registerEditorExtension(createDiscourseTagExtension(this));
-
-    this.tagStyleManager = new DiscourseTagStyleManager(this);
-    this.tagStyleManager.apply();
-    // A popout window has its own document, which the bundled styles.css
-    // reaches but the generated tag colours do not until they are re-applied.
-    this.registerEvent(
-      this.app.workspace.on("window-open", () => {
-        this.tagStyleManager?.apply();
-      }),
-    );
   }
 
   updateFrontmatterStyles(): void {
@@ -438,7 +432,6 @@ export default class DiscourseGraphPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
     this.updateFrontmatterStyles();
-    this.tagStyleManager?.apply();
     refreshDiscourseTagColors(this);
   }
 
@@ -489,12 +482,13 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.cleanupViewActions();
     activeDocument.body.classList.remove("dg-hide-frontmatter-ids");
 
-    this.tagStyleManager?.destroy();
-    this.tagStyleManager = null;
-
     if (this.fileChangeListener) {
       this.fileChangeListener.cleanup();
       this.fileChangeListener = null;
     }
+
+    // Lives on document.body with its own listeners; would outlive the plugin.
+    closeDiscourseContextPopover();
+    this.relationsIndex.unload();
   }
 }

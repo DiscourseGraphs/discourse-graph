@@ -115,10 +115,11 @@ export const DEFAULT_SETTINGS: Settings = {
   ],
   showIdsInFrontmatter: false,
   nodesFolderPath: "",
-  canvasFolderPath: "Discourse Canvas",
+  canvasFolderPath: "",
   canvasAttachmentsFolderPath: "attachments",
   nodeTagHotkey: "\\",
   showHelpMenuStatusBarIcon: false,
+  showDiscourseContextOverlay: true,
   spacePassword: undefined,
   accountLocalId: undefined,
   syncModeEnabled: false,
@@ -178,3 +179,5 @@ export const DEFAULT_STYLE_PROPS = {
   width: "fit-content",
   padding: "40px",
 };
+
+export const SOURCE_SLOT = "sourceDocument";

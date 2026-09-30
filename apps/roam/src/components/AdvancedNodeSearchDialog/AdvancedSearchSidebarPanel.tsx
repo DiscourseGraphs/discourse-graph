@@ -226,7 +226,7 @@ export const AdvancedSearchSidebarPanel = ({
     };
   }, [discourseNodes]);
 
-  const results = useAdvancedNodeSearchResults({
+  const { results, isSearching } = useAdvancedNodeSearchResults({
     debouncedSearchTerm,
     selectedNodeTypeIds,
     sort,
@@ -306,11 +306,14 @@ export const AdvancedSearchSidebarPanel = ({
                     results={results}
                   />
                 )}
-                {debouncedSearchTerm && !results.length && !isIndexLoading && (
-                  <p className="px-2 py-3 text-sm text-gray-500">
-                    No matches. Try another keyword.
-                  </p>
-                )}
+                {debouncedSearchTerm &&
+                  !results.length &&
+                  !isIndexLoading &&
+                  !isSearching && (
+                    <p className="px-2 py-3 text-sm text-gray-500">
+                      No matches. Try another keyword.
+                    </p>
+                  )}
               </>
             )}
           </>
