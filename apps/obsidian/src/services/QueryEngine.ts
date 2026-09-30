@@ -10,6 +10,7 @@ import { BulkImportPattern, BulkImportCandidate, DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import { extractContentFromTitle } from "~/utils/extractContentFromTitle";
 import { AppWithUnofficialApis } from "~/utils/obsidianUnofficialTypes";
+import { titleFromTaggedLine } from "~/utils/taggedLine";
 
 // This is a workaround to get the datacore API.
 // TODO: Remove once we can use datacore npm package
@@ -45,6 +46,8 @@ export type DiscourseNodeCandidate = {
    */
   title: string;
   nodeTypeId: string;
+  /** Set for candidate nodes: an inline line tagged with a node type's tag. */
+  tagLine?: { line: number; tag: string };
 };
 
 export type RankedDiscourseNode = DiscourseNodeCandidate & {
@@ -85,6 +88,58 @@ export class QueryEngine {
     }
 
     return candidates;
+  };
+
+  /** One pass over the metadata cache's tag index; only files with a hit are read. */
+  getCandidateNodes = async (
+    nodeTypes: DiscourseNode[],
+  ): Promise<DiscourseNodeCandidate[]> => {
+    const nodeTypeByTag = new Map<
+      string,
+      { nodeType: DiscourseNode; tag: string }
+    >();
+    for (const nodeType of nodeTypes) {
+      if (nodeType.tag) {
+        nodeTypeByTag.set(nodeType.tag.toLowerCase(), {
+          nodeType,
+          tag: nodeType.tag,
+        });
+      }
+    }
+    if (!nodeTypeByTag.size) return [];
+
+    type TagHit = { line: number; nodeType: DiscourseNode; tag: string };
+    const hitsByFile: { file: TFile; hits: TagHit[] }[] = [];
+    for (const file of this.app.vault.getMarkdownFiles()) {
+      const hits: TagHit[] = [];
+      const seen = new Set<string>();
+      for (const tagCache of this.app.metadataCache.getFileCache(file)?.tags ??
+        []) {
+        const match = nodeTypeByTag.get(tagCache.tag.slice(1).toLowerCase());
+        if (!match) continue;
+        const line = tagCache.position.start.line;
+        const key = `${line}:${match.nodeType.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        hits.push({ line, ...match });
+      }
+      if (hits.length) hitsByFile.push({ file, hits });
+    }
+
+    const perFile = await Promise.all(
+      hitsByFile.map(async ({ file, hits }) => {
+        // A file deleted or locked mid-scan shouldn't sink the other candidates.
+        const content = await this.app.vault.cachedRead(file).catch(() => "");
+        const lines = content.split("\n");
+        return hits.flatMap(({ line, nodeType, tag }) => {
+          const title = titleFromTaggedLine(lines[line] ?? "");
+          return title
+            ? [{ file, title, nodeTypeId: nodeType.id, tagLine: { line, tag } }]
+            : [];
+        });
+      }),
+    );
+    return perFile.flat();
   };
 
   /**
@@ -744,6 +799,11 @@ const filterCandidatesByNodeTypeIds = (
   return candidates.filter((candidate) => selected.has(candidate.nodeTypeId));
 };
 
+const nodesFirst = (
+  a: DiscourseNodeCandidate,
+  b: DiscourseNodeCandidate,
+): number => Number(!!a.tagLine) - Number(!!b.tagLine);
+
 /**
  * Best match first, uncapped — capping is the caller's, so a later re-sort orders the
  * whole set rather than a top slice. Filters before scoring: same results, less work.
@@ -763,7 +823,7 @@ export const rankDiscourseNodesByTitle = ({
   // Filter-only searches still need a list, so an empty query is not an empty result.
   if (!trimmedQuery) {
     return [...filtered]
-      .sort((a, b) => a.title.localeCompare(b.title))
+      .sort((a, b) => a.title.localeCompare(b.title) || nodesFirst(a, b))
       .map((candidate) => ({
         ...candidate,
         match: { score: 0, matches: [] },
@@ -778,8 +838,9 @@ export const rankDiscourseNodesByTitle = ({
     if (match) ranked.push({ ...candidate, match });
   }
 
-  // Sort is stable, so equal scores keep candidate order.
-  return ranked.sort((a, b) => b.match.score - a.match.score);
+  return ranked.sort(
+    (a, b) => b.match.score - a.match.score || nodesFirst(a, b),
+  );
 };
 
 /**

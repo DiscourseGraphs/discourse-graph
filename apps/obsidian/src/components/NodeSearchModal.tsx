@@ -20,6 +20,7 @@ import {
 } from "react";
 import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
+import { NodeDisplayOptionsMenu } from "~/components/NodeDisplayOptionsMenu";
 import { NodeSearchFooter } from "~/components/NodeSearchFooter";
 import { NodeSortMenu } from "~/components/NodeSortMenu";
 import { NodeTypeChipsSearchInput } from "~/components/NodeTypeChipsSearchInput";
@@ -185,6 +186,31 @@ const HighlightedTitle = ({
   );
 };
 
+// Filled for a node, outlined for a candidate; both keep one box size.
+const NodeTypePill = ({
+  badge,
+  isCandidate,
+  label,
+}: {
+  badge: NodeTypeBadge;
+  isCandidate: boolean;
+  label: string;
+}): ReactElement => (
+  <span
+    aria-label={isCandidate ? `${label} candidate` : label}
+    style={{
+      borderColor: badge.backgroundColor,
+      backgroundColor: isCandidate ? "transparent" : badge.backgroundColor,
+      ...(isCandidate ? {} : { color: badge.textColor }),
+    }}
+    className={`w-full rounded-full border border-solid py-px text-center text-xs font-semibold ${
+      isCandidate ? "text-normal" : ""
+    }`}
+  >
+    {badge.text}
+  </span>
+);
+
 const ResultList = ({
   results,
   activeIndex,
@@ -228,7 +254,7 @@ const ResultList = ({
     >
       {results.map((result, index) => (
         <div
-          key={result.file.path}
+          key={`${result.file.path}:${result.tagLine?.line ?? ""}:${result.nodeTypeId}`}
           role="option"
           aria-selected={index === activeIndex}
           onMouseEnter={(event) => hasPointerMoved(event) && onActivate(index)}
@@ -236,23 +262,28 @@ const ResultList = ({
           // Keeps focus in the search input, so the keyboard path stays live
           // after a click.
           onMouseDown={(event) => event.preventDefault()}
-          className={`border-modifier-border flex cursor-pointer items-center gap-2 border-b px-3 py-2 ${
+          className={`border-modifier-border flex cursor-pointer items-start gap-2 border-b px-3 py-2 ${
             index === activeIndex ? "bg-modifier-hover" : ""
           }`}
         >
-          {result.nodeType.badge && (
-            <span
-              aria-label={result.nodeType.name}
-              style={{
-                backgroundColor: result.nodeType.badge.backgroundColor,
-                color: result.nodeType.badge.textColor,
-              }}
-              className="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
-            >
-              {result.nodeType.badge.text}
-            </span>
-          )}
-          <HighlightedTitle title={result.title} match={result.match} />
+          {/* Fixed-width column, so every title starts at the same x. */}
+          <span className="flex w-11 shrink-0">
+            {result.nodeType.badge && (
+              <NodeTypePill
+                badge={result.nodeType.badge}
+                isCandidate={!!result.tagLine}
+                label={result.nodeType.name}
+              />
+            )}
+          </span>
+          <div className="min-w-0 flex-1">
+            <HighlightedTitle title={result.title} match={result.match} />
+            {result.tagLine && (
+              <div className="text-muted truncate text-xs">
+                {`#${result.tagLine.tag} · ${result.file.basename} · L${result.tagLine.line + 1}`}
+              </div>
+            )}
+          </div>
         </div>
       ))}
     </div>
@@ -280,6 +311,10 @@ const NodeSearch = ({
   // One value per toolbar, so two panels can never be open at once.
   const [openDropdown, setOpenDropdown] = useState<SearchDropdownId>(null);
   const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT_KEY);
+  const [showCandidates, setShowCandidates] = useState(false);
+  const [tagCandidates, setTagCandidates] = useState<DiscourseNodeCandidate[]>(
+    [],
+  );
   const [sortDirection, setSortDirection] = useState<SortDirection>(
     DEFAULT_SORT_DIRECTION,
   );
@@ -322,6 +357,30 @@ const NodeSearch = ({
     }
   }, [app]);
 
+  // Rescans on every toggle-on, so node type edits made meanwhile are picked up.
+  useEffect(() => {
+    if (!showCandidates) {
+      setTagCandidates([]);
+      return;
+    }
+    let cancelled = false;
+    const load = async (): Promise<void> => {
+      try {
+        const candidates = await new QueryEngine(app).getCandidateNodes(
+          plugin.settings.nodeTypes,
+        );
+        if (!cancelled) setTagCandidates(candidates);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        new Notice(`Could not load candidate nodes: ${message}`);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [app, plugin.settings.nodeTypes, showCandidates]);
+
   useEffect(() => {
     const timeout = window.setTimeout(
       () => setDebouncedQuery(query),
@@ -334,7 +393,7 @@ const NodeSearch = ({
   const results = useMemo<SearchResultRow[]>(() => {
     if (candidateState.status !== "ready") return [];
     const ranked = rankDiscourseNodesByTitle({
-      candidates: candidateState.candidates,
+      candidates: [...candidateState.candidates, ...tagCandidates],
       query: debouncedQuery,
       nodeTypeIds: selectedNodeTypeIds,
     });
@@ -368,6 +427,7 @@ const NodeSearch = ({
     selectedNodeTypeIds,
     sortDirection,
     sortKey,
+    tagCandidates,
     userNames,
   ]);
 
@@ -403,12 +463,12 @@ const NodeSearch = ({
   // Closes before opening: `close()` unmounts this React root, so the file and
   // app are read first and nothing touches state afterwards.
   const openActiveResult = (
-    open: (app: App, file: TFile) => Promise<void>,
+    open: (app: App, file: TFile, options: { line?: number }) => Promise<void>,
   ): void => {
     if (!activeResult) return;
-    const { file } = activeResult;
+    const { file, tagLine } = activeResult;
     onClose();
-    void open(app, file).catch((error: unknown) => {
+    void open(app, file, { line: tagLine?.line }).catch((error: unknown) => {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Could not open ${file.basename}: ${message}`);
     });
@@ -426,9 +486,12 @@ const NodeSearch = ({
     if (!isOpen) inputRef.current?.focus();
   };
 
+  // A candidate is a line, not a node yet, so there is nothing to link to.
+  const isActiveResultLinkable = !!activeResult && !activeResult.tagLine;
+
   // Closes before inserting, like `openActiveResult`.
   const insertLinkToActiveResult = (): void => {
-    if (!activeResult || !insertTarget) return;
+    if (!activeResult || !insertTarget || !isActiveResultLinkable) return;
     const { file } = activeResult;
     onClose();
     try {
@@ -456,7 +519,7 @@ const NodeSearch = ({
       (event.metaKey || event.ctrlKey) &&
       !event.altKey &&
       insertTarget &&
-      activeResult
+      isActiveResultLinkable
     ) {
       event.preventDefault();
       insertLinkToActiveResult();
@@ -515,6 +578,15 @@ const NodeSearch = ({
           sortDirection={sortDirection}
           sortKey={sortKey}
         />
+        <NodeDisplayOptionsMenu
+          app={app}
+          isOpen={openDropdown === "display-options"}
+          onOpenChange={(isOpen) =>
+            handleDropdownOpenChange({ id: "display-options", isOpen })
+          }
+          onShowCandidatesChange={setShowCandidates}
+          showCandidates={showCandidates}
+        />
       </div>
       <div className="border-modifier-border mt-3 flex flex-1 overflow-hidden rounded border">
         <div className="border-modifier-border flex w-2/5 flex-col border-r">
@@ -542,6 +614,7 @@ const NodeSearch = ({
       <NodeSearchFooter
         canAct={candidateState.status === "ready" && !!activeResult}
         canInsertLink={!!insertTarget}
+        isActiveResultLinkable={isActiveResultLinkable}
         onClose={onClose}
         onInsertLink={insertLinkToActiveResult}
         onOpenInNewTab={() => openActiveResult(openFileInNewTab)}
