@@ -3,7 +3,7 @@
   "checkpoint_id": "01M3SERKMKTD2EAQBZ259JNJ2R",
   "strategy": "manual-commit",
   "branch": "eng-2257-add-an-existing-discourse-relation-from-relation-menu",
-  "checkpoints_count": 6,
+  "checkpoints_count": 8,
   "files_touched": [
     "apps/obsidian/src/components/NodeDisplayOptionsMenu.tsx",
     "apps/obsidian/src/components/NodeSearchModal.tsx",
@@ -11,6 +11,7 @@
     "apps/obsidian/src/components/SearchDropdown.tsx",
     "apps/obsidian/src/components/canvas/overlays/RelationTypeDropdown.tsx",
     "apps/obsidian/src/components/canvas/utils/openFileUtils.ts",
+    "apps/obsidian/src/components/useSchemaSelection.ts",
     "apps/obsidian/src/services/QueryEngine.ts",
     "apps/obsidian/src/services/__tests__/QueryEngine.test.ts",
     "apps/obsidian/src/utils/tagNodeHandler.ts",
@@ -44,20 +45,27 @@
       "compact_transcript": "/3/transcript.jsonl",
       "content_hash": "/3/content_hash.txt",
       "prompt": "/3/prompt.txt"
+    },
+    {
+      "metadata": "/4/metadata.json",
+      "transcript": "/4/full.jsonl",
+      "compact_transcript": "/4/transcript.jsonl",
+      "content_hash": "/4/content_hash.txt",
+      "prompt": "/4/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 28,
-    "cache_creation_tokens": 463307,
-    "cache_read_tokens": 3015652,
-    "output_tokens": 8755,
-    "api_call_count": 14,
+    "input_tokens": 66,
+    "cache_creation_tokens": 493067,
+    "cache_read_tokens": 13515257,
+    "output_tokens": 28126,
+    "api_call_count": 33,
     "subagent_tokens": {
-      "input_tokens": 0,
-      "cache_creation_tokens": 0,
-      "cache_read_tokens": 0,
-      "output_tokens": 0,
-      "api_call_count": 0
+      "input_tokens": 32,
+      "cache_creation_tokens": 100790,
+      "cache_read_tokens": 1200290,
+      "output_tokens": 97,
+      "api_call_count": 16
     }
   }
 }
