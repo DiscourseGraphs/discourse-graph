@@ -133,6 +133,10 @@ const PageGroupsPanel = ({
       label="Page groups"
       description="Organize pages into named groups that will be can be selected when generating discourse suggestions."
       scope="global"
+      settingKeys={[
+        GLOBAL_KEYS.suggestiveMode,
+        SUGGESTIVE_MODE_KEYS.pageGroups,
+      ]}
       controlPlacement="below"
       control={
         <div className="flex flex-col gap-2">
