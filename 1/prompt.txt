@@ -376,3 +376,11 @@ also what are the ways we can verify the changes matches done when:
 ---
 
 where did @eslint-community/eslint-plugin-eslint-comments come from? can we go without it?
+
+---
+
+do both verification tests
+
+---
+
+then run $scope-check and @.agents/skills/dg-delegated-full-review
